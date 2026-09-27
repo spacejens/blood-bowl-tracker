@@ -16,8 +16,8 @@ export interface TeamInfo {
  * unrecognised shapes are not represented here: the parser reports those as
  * the `ignored` and `unrecognized` members of `TpFeedParseResult` instead.
  *
- * `link` is always the embed's `author.url` — the match page for start and
- * end, the roster page for skill, hire and fire.
+ * `link` is the match page (the embed's top-level `url`) for start and end,
+ * and the roster page (the embed's `author.url`) for skill, hire and fire.
  */
 export type TpFeedEvent =
   | { kind: 'match-start'; home: TeamInfo; away: TeamInfo; link: string }

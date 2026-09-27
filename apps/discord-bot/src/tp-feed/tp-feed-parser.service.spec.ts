@@ -116,7 +116,7 @@ describe('TpFeedParserService', () => {
           inline: true,
         },
       ],
-      author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
+      url: 'https://tourplay.net/en/blood-bowl/match/1',
     });
 
     expect(service.parse(message)).toMatchObject({
@@ -221,7 +221,7 @@ describe('TpFeedParserService', () => {
           inline: true,
         },
       ],
-      author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
+      url: 'https://tourplay.net/en/blood-bowl/match/1',
     });
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
@@ -241,7 +241,7 @@ describe('TpFeedParserService', () => {
           inline: true,
         },
       ],
-      author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
+      url: 'https://tourplay.net/en/blood-bowl/match/1',
     });
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
@@ -268,7 +268,9 @@ describe('TpFeedParserService', () => {
     });
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('author.url'));
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('url did not match the expected shape'),
+    );
   });
 
   it('warns and reports unrecognized when a score is not a number', () => {
@@ -287,7 +289,7 @@ describe('TpFeedParserService', () => {
           inline: true,
         },
       ],
-      author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
+      url: 'https://tourplay.net/en/blood-bowl/match/1',
     });
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
@@ -310,7 +312,7 @@ describe('TpFeedParserService', () => {
           inline: true,
         },
       ],
-      author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
+      url: 'https://tourplay.net/en/blood-bowl/match/1',
     });
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
@@ -333,7 +335,7 @@ describe('TpFeedParserService', () => {
           inline: true,
         },
       ],
-      author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
+      url: 'https://tourplay.net/en/blood-bowl/match/1',
     });
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
@@ -422,7 +424,7 @@ describe('TpFeedParserService', () => {
           inline: true,
         },
       ],
-      author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
+      url: 'https://tourplay.net/en/blood-bowl/match/1',
     });
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
@@ -444,7 +446,7 @@ describe('TpFeedParserService', () => {
         },
         { name: '**MISSING LINES**', value: '`      0      `', inline: true },
       ],
-      author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
+      url: 'https://tourplay.net/en/blood-bowl/match/1',
     });
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
@@ -474,7 +476,9 @@ describe('TpFeedParserService', () => {
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('match-end'));
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('author.url'));
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('url did not match the expected shape'),
+    );
   });
 
   it('warns and reports unrecognized when a skill notification has a malformed player field', () => {
@@ -551,7 +555,7 @@ describe('TpFeedParserService', () => {
           inline: true,
         },
       ],
-      author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
+      url: 'https://tourplay.net/en/blood-bowl/match/1',
     });
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
@@ -576,7 +580,7 @@ describe('TpFeedParserService', () => {
           inline: true,
         },
       ],
-      author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
+      url: 'https://tourplay.net/en/blood-bowl/match/1',
     });
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
@@ -617,7 +621,7 @@ describe('TpFeedParserService', () => {
           inline: true,
         },
       ],
-      author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
+      url: 'https://tourplay.net/en/blood-bowl/match/1',
     });
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
