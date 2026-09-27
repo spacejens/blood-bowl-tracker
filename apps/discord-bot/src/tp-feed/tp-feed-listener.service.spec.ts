@@ -3,6 +3,7 @@ import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
 import { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { Message } from 'discord.js';
+import { MessageFlags } from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
@@ -101,6 +102,7 @@ describe('TpFeedListenerService', () => {
     expect(discordClient.sendMessage).toHaveBeenCalledWith(DEBUG_CHANNEL, {
       content: 'Hired: #3 Ragnfred Brownlock',
       allowedMentions: { parse: [] },
+      flags: [MessageFlags.SuppressEmbeds],
     });
     expect(react).toHaveBeenCalledWith(PROCESSED_REACTION);
   });
@@ -142,6 +144,7 @@ describe('TpFeedListenerService', () => {
     expect(discordClient.sendMessage).toHaveBeenCalledWith(DEBUG_CHANNEL, {
       content: `Unrecognized TP notification — ${MESSAGE_URL}`,
       allowedMentions: { parse: [] },
+      flags: [MessageFlags.SuppressEmbeds],
     });
     expect(react).toHaveBeenCalledWith(PROCESSED_REACTION);
   });

@@ -1,6 +1,7 @@
 import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import type { Message } from 'discord.js';
+import { MessageFlags } from 'discord.js';
 
 import { DiscordBotConfigService } from '../discord-bot-config.service';
 import { TpFeedFormatterService } from './tp-feed-formatter.service';
@@ -101,6 +102,10 @@ export class TpFeedListenerService implements OnModuleInit {
         // that reads as a mention (e.g. a player or coach name starting
         // with @); nothing in this feed should ever ping anyone.
         allowedMentions: { parse: [] },
+        // The debug channel is a quick, scannable log; the tourplay.net and
+        // Discord jump links stay clickable, but Discord renders no preview
+        // card under them.
+        flags: [MessageFlags.SuppressEmbeds],
       });
     } catch (error) {
       this.logFailure('Failed to post TP feed message', error);
