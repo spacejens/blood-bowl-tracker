@@ -30,6 +30,31 @@ describe('TpTournamentPathsService', () => {
     expect(paths.frontendPath('s30', 'scores')).toBe('s30/scores');
   });
 
+  it("builds a tournament's scores page path", () => {
+    expect(paths.scoresFrontendPath('s30')).toBe('s30/scores');
+  });
+
+  describe('matchScoresFrontendPath', () => {
+    it("extracts the slug from a tournament's scores page", () => {
+      expect(paths.matchScoresFrontendPath('s30/scores')).toBe('s30');
+    });
+
+    it.each([
+      ['the bare tournament path', 's30'],
+      ['another tournament page', 's30/news'],
+      ['a path deeper under the scores page', 's30/scores/extra'],
+      ['a scores page with no slug', '/scores'],
+    ])('is undefined for %s', (_label, path) => {
+      expect(paths.matchScoresFrontendPath(path)).toBeUndefined();
+    });
+
+    it('round-trips its own scoresFrontendPath', () => {
+      expect(
+        paths.matchScoresFrontendPath(paths.scoresFrontendPath('s30')),
+      ).toBe('s30');
+    });
+  });
+
   it("builds a category's inscriptions path", () => {
     expect(paths.inscriptionsApiPath('s30', 22308)).toBe(
       'inscriptions/s30/category/22308/inscriptions?page=0&pageSize=75',

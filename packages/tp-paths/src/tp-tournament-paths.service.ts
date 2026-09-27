@@ -3,6 +3,9 @@ import { Injectable } from '@nestjs/common';
 /** A tournament page path: a non-empty slug, optionally followed by more. */
 const TOURNAMENT_FRONTEND_PATH = /^([^/]+)(?:\/.*)?$/;
 
+/** The tournament page listing every phase's fixtures and results. */
+const SCORES_PAGE = 'scores';
+
 /**
  * TP's paths for one tournament, exactly as TP's own frontend requests them:
  * API paths relative to TP's backend API base URL, and page paths relative to
@@ -56,5 +59,23 @@ export class TpTournamentPathsService {
    */
   matchFrontendPath(path: string): string | undefined {
     return TOURNAMENT_FRONTEND_PATH.exec(path)?.[1];
+  }
+
+  /** The tournament's scores page: every phase's fixtures and results. */
+  scoresFrontendPath(slug: string): string {
+    return this.frontendPath(slug, SCORES_PAGE);
+  }
+
+  /**
+   * The reverse of `scoresFrontendPath`: the tournament slug of exactly a
+   * scores page path; undefined for any other path (the bare tournament,
+   * another of its pages, or anything deeper under the scores page). Never
+   * throws.
+   */
+  matchScoresFrontendPath(path: string): string | undefined {
+    const [slug, page, ...rest] = path.split('/');
+    return slug !== '' && page === SCORES_PAGE && rest.length === 0
+      ? slug
+      : undefined;
   }
 }
