@@ -7,12 +7,10 @@ import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
 import { Injectable } from '@nestjs/common';
 
 import { TpCompetitionUpsertService } from '../competition/tp-competition-upsert.service';
-import { TpMatchImportService } from '../match/tp-match-import.service';
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpBracketFetchService } from './tp-bracket-fetch.service';
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
-import { TpLiveTeamImportService } from './tp-live-team-import.service';
-import { TpMatchFetchService } from './tp-match-fetch.service';
+import { TpMatchDataImportService } from './tp-match-data-import.service';
 
 /** Options for {@link TpLiveMatchImportService.importMatch}. */
 export interface ImportLiveMatchOptions {
@@ -52,11 +50,9 @@ export interface TpLiveMatchImportResult {
 export class TpLiveMatchImportService {
   constructor(
     private readonly fetcher: TpFetcherService,
-    private readonly matchFetch: TpMatchFetchService,
     private readonly bracketFetch: TpBracketFetchService,
-    private readonly teamImport: TpLiveTeamImportService,
     private readonly competitionUpsert: TpCompetitionUpsertService,
-    private readonly matchImport: TpMatchImportService,
+    private readonly matchData: TpMatchDataImportService,
     private readonly importResults: TpImportResultsService,
   ) {}
 
@@ -80,44 +76,21 @@ export class TpLiveMatchImportService {
   }: ImportLiveMatchOptions): Promise<TpLiveMatchImportResult> {
     try {
       const visit = session ?? this.fetcher.createSession();
-      const matchErrors: ImportError[] = [];
-      const match = await this.matchFetch.fetchMatch({
-        matchId,
-        tournamentSlug,
-        errors: matchErrors,
-        session: visit,
-      });
-      if (match !== undefined && match.winner === undefined) {
-        matchErrors.push(
-          this.importResults.error({
-            item: { matchId },
-            message: `TP match ${matchId} is not completed yet (it has no recorded result); only completed matches are imported.`,
-          }),
-        );
-      }
-      if (match === undefined || match.winner === undefined) {
-        return { ...this.nothingImported(), match: this.failed(matchErrors) };
-      }
-
-      const homeTeam = await this.teamImport.importTeam({
-        rosterId: match.homeTeamTpId,
-        era,
-        externalSystemName,
-        session: visit,
-        matchEmbeddedPlayers: match.homeRosterPlayers,
-      });
-      if (homeTeam.era === undefined) {
-        return { ...this.nothingImported(), homeTeam };
-      }
-      const awayTeam = await this.teamImport.importTeam({
-        rosterId: match.awayTeamTpId,
-        era: homeTeam.era,
-        externalSystemName,
-        session: visit,
-        matchEmbeddedPlayers: match.awayRosterPlayers,
-      });
-      if (awayTeam.era === undefined) {
-        return { ...this.nothingImported(), homeTeam, awayTeam };
+      const { matchFetch, homeTeam, awayTeam, ready } =
+        await this.matchData.importTeams({
+          matchId,
+          tournamentSlug,
+          era,
+          externalSystemName,
+          session: visit,
+        });
+      if (ready === undefined) {
+        return {
+          ...this.nothingImported(),
+          match: matchFetch,
+          homeTeam,
+          awayTeam,
+        };
       }
 
       const competitionErrors: ImportError[] = [];
@@ -132,7 +105,7 @@ export class TpLiveMatchImportService {
           : await this.competitionUpsert.upsertCompetition({
               tournament: bracket.tournament,
               playedDates: bracket.playedDates,
-              era: homeTeam.era,
+              era: ready.era,
               externalSystemName,
               errors: competitionErrors,
             });
@@ -144,10 +117,9 @@ export class TpLiveMatchImportService {
         return { ...this.nothingImported(), homeTeam, awayTeam, competition };
       }
 
-      const core = await this.matchImport.importMatch({
-        match,
-        bracket: bracket.matches,
-        competitionTpId: bracket.tournament.id,
+      const core = await this.matchData.writeMatch({
+        match: ready.match,
+        bracket,
         externalSystemName,
       });
       return { competition, homeTeam, awayTeam, ...core };

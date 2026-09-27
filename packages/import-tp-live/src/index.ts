@@ -38,6 +38,15 @@ export type {
   TpLiveTeamImportResult,
 } from './live/tp-live-team-import.service';
 export { TpLiveTeamImportService } from './live/tp-live-team-import.service';
+export type {
+  ImportMatchDataOptions,
+  ImportMatchTeamsOptions,
+  TpMatchDataImportResult,
+  TpMatchReadyToWrite,
+  TpMatchTeamsImport,
+  WriteTpMatchOptions,
+} from './live/tp-match-data-import.service';
+export { TpMatchDataImportService } from './live/tp-match-data-import.service';
 export type { FetchMatchOptions } from './live/tp-match-fetch.service';
 export { TpMatchFetchService } from './live/tp-match-fetch.service';
 export type { FetchOfficialTeamsOptions } from './live/tp-official-teams-fetch.service';

@@ -12,20 +12,17 @@ import { mock } from 'vitest-mock-extended';
 import { upsertedCompetition } from '../competition/tp-competition.test-helpers';
 import { TpCompetitionUpsertService } from '../competition/tp-competition-upsert.service';
 import {
-  AWAY_ROSTER_ID,
   bracketMatch,
-  HOME_ROSTER_ID,
   MATCH_TP_ID,
   tpMatch,
 } from '../match/tp-match.test-helpers';
-import { TpMatchImportService } from '../match/tp-match-import.service';
 import { TpImportResultsService } from '../tp-import-results.service';
 import type { TpBracket } from './tp-bracket-fetch.service';
 import { TpBracketFetchService } from './tp-bracket-fetch.service';
 import { TpLiveMatchImportService } from './tp-live-match-import.service';
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
-import { TpLiveTeamImportService } from './tp-live-team-import.service';
-import { TpMatchFetchService } from './tp-match-fetch.service';
+import type { TpMatchTeamsImport } from './tp-match-data-import.service';
+import { TpMatchDataImportService } from './tp-match-data-import.service';
 
 const EXTERNAL_SYSTEM_NAME = 'some-external-system';
 
@@ -50,6 +47,12 @@ const notAttemptedTeam: TpLiveTeamImportResult = {
   players: nothing,
   era: undefined,
 };
+const TEAMS_READY: TpMatchTeamsImport = {
+  matchFetch: nothing,
+  homeTeam: teamImported,
+  awayTeam: teamImported,
+  ready: { match: tpMatch(), era: 'Fourth era' },
+};
 const BRACKET: TpBracket = {
   tournament: {
     id: 18442,
@@ -58,7 +61,7 @@ const BRACKET: TpBracket = {
     phases: [],
     categoryIds: [22308],
   },
-  matches: [bracketMatch()],
+  matches: [bracketMatch(), bracketMatch({ id: 662797, winner: undefined })],
   playedDates: [new Date('2026-06-13')],
 };
 const CORE: TpMatchImportResult = {
@@ -72,41 +75,34 @@ describe('TpLiveMatchImportService', () => {
   let service: TpLiveMatchImportService;
   let fetcher: MockProxy<TpFetcherService>;
   let session: MockProxy<TpFetchSession>;
-  let matchFetch: MockProxy<TpMatchFetchService>;
   let bracketFetch: MockProxy<TpBracketFetchService>;
-  let teamImport: MockProxy<TpLiveTeamImportService>;
   let competitionUpsert: MockProxy<TpCompetitionUpsertService>;
-  let matchImport: MockProxy<TpMatchImportService>;
+  let matchData: MockProxy<TpMatchDataImportService>;
 
   beforeEach(async () => {
     fetcher = mock<TpFetcherService>();
     session = mock<TpFetchSession>();
     fetcher.createSession.mockReturnValue(session);
-    matchFetch = mock<TpMatchFetchService>();
     bracketFetch = mock<TpBracketFetchService>();
-    teamImport = mock<TpLiveTeamImportService>();
     competitionUpsert = mock<TpCompetitionUpsertService>();
-    matchImport = mock<TpMatchImportService>();
-    matchFetch.fetchMatch.mockResolvedValue(tpMatch());
-    teamImport.importTeam.mockResolvedValue(teamImported);
+    matchData = mock<TpMatchDataImportService>();
+    matchData.importTeams.mockResolvedValue(TEAMS_READY);
     bracketFetch.fetchBracket.mockResolvedValue(BRACKET);
     competitionUpsert.upsertCompetition.mockResolvedValue(
       upsertedCompetition(),
     );
-    matchImport.importMatch.mockResolvedValue(CORE);
+    matchData.writeMatch.mockResolvedValue(CORE);
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpLiveMatchImportService,
         TpImportResultsService,
         { provide: TpFetcherService, useValue: fetcher },
-        { provide: TpMatchFetchService, useValue: matchFetch },
         { provide: TpBracketFetchService, useValue: bracketFetch },
-        { provide: TpLiveTeamImportService, useValue: teamImport },
         {
           provide: TpCompetitionUpsertService,
           useValue: competitionUpsert,
         },
-        { provide: TpMatchImportService, useValue: matchImport },
+        { provide: TpMatchDataImportService, useValue: matchData },
       ],
     }).compile();
     service = moduleRef.get(TpLiveMatchImportService);
@@ -119,32 +115,19 @@ describe('TpLiveMatchImportService', () => {
       externalSystemName: EXTERNAL_SYSTEM_NAME,
     });
 
-  it('imports the match, both teams, the competition, then the match data, through one session', async () => {
+  it("imports the match's teams, the competition, then the match, through one session", async () => {
     await expect(importMatch()).resolves.toEqual({
       competition: one,
       homeTeam: teamImported,
       awayTeam: teamImported,
       ...CORE,
     });
-    expect(matchFetch.fetchMatch).toHaveBeenCalledWith({
+    expect(matchData.importTeams).toHaveBeenCalledWith({
       matchId: MATCH_TP_ID,
       tournamentSlug: 's30',
-      errors: [],
-      session,
-    });
-    expect(teamImport.importTeam).toHaveBeenNthCalledWith(1, {
-      rosterId: HOME_ROSTER_ID,
       era: undefined,
       externalSystemName: EXTERNAL_SYSTEM_NAME,
       session,
-      matchEmbeddedPlayers: tpMatch().homeRosterPlayers,
-    });
-    expect(teamImport.importTeam).toHaveBeenNthCalledWith(2, {
-      rosterId: AWAY_ROSTER_ID,
-      era: 'Fourth era',
-      externalSystemName: EXTERNAL_SYSTEM_NAME,
-      session,
-      matchEmbeddedPlayers: tpMatch().awayRosterPlayers,
     });
     expect(bracketFetch.fetchBracket).toHaveBeenCalledWith({
       tournamentSlug: 's30',
@@ -158,15 +141,14 @@ describe('TpLiveMatchImportService', () => {
       externalSystemName: EXTERNAL_SYSTEM_NAME,
       errors: [],
     });
-    expect(matchImport.importMatch).toHaveBeenCalledWith({
+    expect(matchData.writeMatch).toHaveBeenCalledWith({
       match: tpMatch(),
-      bracket: BRACKET.matches,
-      competitionTpId: 18442,
+      bracket: BRACKET,
       externalSystemName: EXTERNAL_SYSTEM_NAME,
     });
   });
 
-  it('passes an explicit era to the home team, and a given session throughout', async () => {
+  it('passes an explicit era and a given session through', async () => {
     const given = mock<TpFetchSession>();
 
     await service.importMatch({
@@ -178,65 +160,48 @@ describe('TpLiveMatchImportService', () => {
     });
 
     expect(fetcher.createSession).not.toHaveBeenCalled();
-    expect(teamImport.importTeam).toHaveBeenNthCalledWith(
-      1,
+    expect(matchData.importTeams).toHaveBeenCalledWith(
       expect.objectContaining({ era: 'Fourth era', session: given }),
     );
   });
 
-  it('reports a match fetch failure and attempts nothing else', async () => {
-    matchFetch.fetchMatch.mockImplementation(({ errors }) => {
-      errors.push({ item: { matchId: MATCH_TP_ID }, message: 'status 403' });
-      return Promise.resolve(undefined);
-    });
-
-    const result = await importMatch();
-
-    expect(result.match).toEqual({
+  it("reports the match fetch on the match stage, and attempts nothing else, when the match's teams are not ready", async () => {
+    const failedFetch: ImportResult = {
       success: false,
       imported: 0,
       errors: [{ item: { matchId: MATCH_TP_ID }, message: 'status 403' }],
+    };
+    matchData.importTeams.mockResolvedValue({
+      matchFetch: failedFetch,
+      homeTeam: notAttemptedTeam,
+      awayTeam: notAttemptedTeam,
+      ready: undefined,
     });
-    expect(result.homeTeam).toEqual(notAttemptedTeam);
-    expect(teamImport.importTeam).not.toHaveBeenCalled();
-  });
 
-  it('refuses a match with no recorded result', async () => {
-    matchFetch.fetchMatch.mockResolvedValue(tpMatch({ winner: undefined }));
-
-    const result = await importMatch();
-
-    expect(result.match).toEqual({
-      success: false,
-      imported: 0,
-      errors: [
-        {
-          item: { matchId: MATCH_TP_ID },
-          message: `TP match ${MATCH_TP_ID} is not completed yet (it has no recorded result); only completed matches are imported.`,
-        },
-      ],
+    await expect(importMatch()).resolves.toEqual({
+      competition: nothing,
+      homeTeam: notAttemptedTeam,
+      awayTeam: notAttemptedTeam,
+      match: failedFetch,
+      participation: nothing,
+      events: nothing,
+      outcome: nothing,
     });
-    expect(teamImport.importTeam).not.toHaveBeenCalled();
-  });
-
-  it('stops after a home team that was not imported', async () => {
-    teamImport.importTeam.mockResolvedValue(teamNotImported);
-
-    const result = await importMatch();
-
-    expect(result.homeTeam).toEqual(teamNotImported);
-    expect(result.awayTeam).toEqual(notAttemptedTeam);
-    expect(teamImport.importTeam).toHaveBeenCalledTimes(1);
     expect(bracketFetch.fetchBracket).not.toHaveBeenCalled();
+    expect(matchData.writeMatch).not.toHaveBeenCalled();
   });
 
-  it('stops after an away team that was not imported', async () => {
-    teamImport.importTeam
-      .mockResolvedValueOnce(teamImported)
-      .mockResolvedValueOnce(teamNotImported);
+  it('keeps a team that was not imported in the result, and fetches no bracket', async () => {
+    matchData.importTeams.mockResolvedValue({
+      matchFetch: nothing,
+      homeTeam: teamImported,
+      awayTeam: teamNotImported,
+      ready: undefined,
+    });
 
     const result = await importMatch();
 
+    expect(result.homeTeam).toEqual(teamImported);
     expect(result.awayTeam).toEqual(teamNotImported);
     expect(result.competition).toEqual(nothing);
     expect(bracketFetch.fetchBracket).not.toHaveBeenCalled();
@@ -257,7 +222,7 @@ describe('TpLiveMatchImportService', () => {
     });
     expect(result.match).toEqual(nothing);
     expect(competitionUpsert.upsertCompetition).not.toHaveBeenCalled();
-    expect(matchImport.importMatch).not.toHaveBeenCalled();
+    expect(matchData.writeMatch).not.toHaveBeenCalled();
   });
 
   it('reports a competition upsert failure and imports no match data', async () => {
@@ -269,11 +234,11 @@ describe('TpLiveMatchImportService', () => {
     const result = await importMatch();
 
     expect(result.competition.success).toBe(false);
-    expect(matchImport.importMatch).not.toHaveBeenCalled();
+    expect(matchData.writeMatch).not.toHaveBeenCalled();
   });
 
   it('catches an unexpected exception instead of throwing, reporting it on the match', async () => {
-    matchImport.importMatch.mockRejectedValue(new Error('db down'));
+    matchData.writeMatch.mockRejectedValue(new Error('db down'));
 
     const result = await importMatch();
 

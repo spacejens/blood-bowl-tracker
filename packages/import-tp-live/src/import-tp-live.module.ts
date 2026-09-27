@@ -17,6 +17,7 @@ import { TpLiveCompetitionImportService } from './live/tp-live-competition-impor
 import { TpLiveMatchImportService } from './live/tp-live-match-import.service';
 import { TpLiveOfficialTeamsImportService } from './live/tp-live-official-teams-import.service';
 import { TpLiveTeamImportService } from './live/tp-live-team-import.service';
+import { TpMatchDataImportService } from './live/tp-match-data-import.service';
 import { TpMatchFetchService } from './live/tp-match-fetch.service';
 import { TpOfficialTeamsFetchService } from './live/tp-official-teams-fetch.service';
 import { TpRosterFetchService } from './live/tp-roster-fetch.service';
@@ -50,6 +51,7 @@ import { TpRosterModule } from './roster/tp-roster.module';
     TpEraResolutionService,
     TpLiveTeamImportService,
     TpMatchFetchService,
+    TpMatchDataImportService,
     TpBracketFetchService,
     TpLiveMatchImportService,
     TpAwardsFetchService,
