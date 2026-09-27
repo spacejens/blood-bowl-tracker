@@ -57,7 +57,7 @@ describe('TpPageClassifierService', () => {
       });
     });
 
-    it.each(['scores', 'rules', 'news'])(
+    it.each(['rules', 'news', 'scores/extra'])(
       "classifies a competition's %s page",
       (page) => {
         expect(classifier.classify(`${BASE}s30/${page}`, BASE)).toEqual({
@@ -66,6 +66,19 @@ describe('TpPageClassifierService', () => {
         });
       },
     );
+
+    it("classifies a competition's scores page", () => {
+      expect(classifier.classify(`${BASE}s30/scores`, BASE)).toEqual({
+        kind: 'competitionScores',
+        tournamentSlug: 's30',
+      });
+    });
+
+    it("classifies a competition's scores page given with a trailing slash and a query string", () => {
+      expect(
+        classifier.classify(`${BASE}s30/scores/?utm_source=x`, BASE),
+      ).toEqual({ kind: 'competitionScores', tournamentSlug: 's30' });
+    });
   });
 
   describe('URL normalization', () => {
@@ -121,6 +134,7 @@ describe('TpPageClassifierService', () => {
       ['a match page with no id', `${BASE}s30/match`],
       ['a match page with an extra segment', `${BASE}s30/match/576264/extra`],
       ['a path with an empty leading segment', `${BASE}/s30`],
+      ['a scores page under a reserved roster segment', `${BASE}roster/scores`],
     ])('for %s', (_label, url) => {
       expect(classifier.classify(url, BASE)).toEqual({ kind: 'unknown' });
     });

@@ -10,9 +10,11 @@ import { TpCompetitionImportService } from '../competition/tp-competition-import
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpAwardsFetchService } from './tp-awards-fetch.service';
 import { TpBracketFetchService } from './tp-bracket-fetch.service';
-import { TpInscriptionsFetchService } from './tp-inscriptions-fetch.service';
-import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
-import { TpLiveTeamImportService } from './tp-live-team-import.service';
+import { TpCompetitionMatchesBackfillService } from './tp-competition-matches-backfill.service';
+import type { TpLiveCompetitionTeamResult } from './tp-competition-participants-backfill.service';
+import { TpCompetitionParticipantsBackfillService } from './tp-competition-participants-backfill.service';
+
+export type { TpLiveCompetitionTeamResult } from './tp-competition-participants-backfill.service';
 
 /** Options for {@link TpLiveCompetitionImportService.importCompetition}. */
 export interface ImportLiveCompetitionOptions {
@@ -31,11 +33,12 @@ export interface ImportLiveCompetitionOptions {
    * is paced as one visit. A fresh session is started when omitted.
    */
   session?: TpFetchSession;
-}
-
-/** One registered team's live import within a competition import. */
-export interface TpLiveCompetitionTeamResult extends TpLiveTeamImportResult {
-  rosterId: number;
+  /**
+   * Backfill every completed match of the competition even when it was
+   * already imported. A competition this import newly creates always has
+   * its completed matches backfilled; this forces it for one that exists.
+   */
+  forceMatchBackfill?: boolean;
 }
 
 /** What one live competition import did, one result per stage. */
@@ -54,6 +57,12 @@ export interface TpLiveCompetitionImportResult {
    * settled.
    */
   era: string | undefined;
+  /**
+   * Importing every completed match of the competition's bracket. Present
+   * only when that backfill ran: the competition was newly created, or
+   * `forceMatchBackfill` was set, and the competition itself was imported.
+   */
+  matchesBackfill?: ImportResult;
 }
 
 @Injectable()
@@ -61,10 +70,10 @@ export class TpLiveCompetitionImportService {
   constructor(
     private readonly fetcher: TpFetcherService,
     private readonly bracketFetch: TpBracketFetchService,
-    private readonly inscriptionsFetch: TpInscriptionsFetchService,
     private readonly awardsFetch: TpAwardsFetchService,
-    private readonly teamImport: TpLiveTeamImportService,
+    private readonly participantsBackfill: TpCompetitionParticipantsBackfillService,
     private readonly competitionImport: TpCompetitionImportService,
+    private readonly matchesBackfill: TpCompetitionMatchesBackfillService,
     private readonly importResults: TpImportResultsService,
   ) {}
 
@@ -82,13 +91,18 @@ export class TpLiveCompetitionImportService {
    * era given, the competition is imported under the one era its registered
    * teams were imported under; teams that disagree, or none resolving one,
    * fail the competition stage, while the teams stay imported. Every failure
-   * is reported in the returned results, never thrown.
+   * is reported in the returned results, never thrown. Once the competition
+   * is imported, every completed match of its bracket is backfilled —
+   * reusing the bracket already fetched — when the competition was newly
+   * created or `forceMatchBackfill` is set; the backfill reports its own
+   * failures in `matchesBackfill` and never fails the import.
    */
   async importCompetition({
     tournamentSlug,
     era,
     externalSystemName,
     session,
+    forceMatchBackfill = false,
   }: ImportLiveCompetitionOptions): Promise<TpLiveCompetitionImportResult> {
     const teams: TpLiveCompetitionTeamResult[] = [];
     try {
@@ -106,23 +120,16 @@ export class TpLiveCompetitionImportService {
         };
       }
 
-      const participationErrors: ImportError[] = [];
-      const participantRosterIds =
-        await this.inscriptionsFetch.fetchParticipantRosterIds({
-          tournamentSlug,
-          categoryIds: bracket.tournament.categoryIds,
-          errors: participationErrors,
-          session: visit,
-        });
-      for (const rosterId of participantRosterIds ?? []) {
-        const team = await this.teamImport.importTeam({
-          rosterId,
-          era,
-          externalSystemName,
-          session: visit,
-        });
-        teams.push({ rosterId, ...team });
-      }
+      const registered = await this.participantsBackfill.importRegisteredTeams({
+        tournamentSlug,
+        categoryIds: bracket.tournament.categoryIds,
+        era,
+        externalSystemName,
+        session: visit,
+      });
+      teams.push(...registered.teams);
+      const participationErrors = registered.errors;
+      const participantRosterIds = registered.rosterIds;
 
       const competitionEra =
         era ??
@@ -160,7 +167,7 @@ export class TpLiveCompetitionImportService {
         awards: awards ?? [],
         externalSystemName,
       });
-      return {
+      const imported: TpLiveCompetitionImportResult = {
         competition: this.withErrors({
           result: core.competition,
           errors: competitionErrors,
@@ -175,6 +182,22 @@ export class TpLiveCompetitionImportService {
           errors: trophyErrors,
         }),
         era: competitionEra,
+      };
+      if (
+        core.competition.imported === 0 ||
+        !(core.competitionCreated || forceMatchBackfill)
+      ) {
+        return imported;
+      }
+      return {
+        ...imported,
+        matchesBackfill: await this.matchesBackfill.backfill({
+          tournamentSlug,
+          era: competitionEra,
+          externalSystemName,
+          session: visit,
+          bracket,
+        }),
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

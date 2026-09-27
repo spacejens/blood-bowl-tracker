@@ -4,6 +4,7 @@ import type {
 } from '@blood-bowl-tracker/api-contract';
 import type {
   TpLiveCompetitionImportResult,
+  TpLiveCompetitionTeamResult,
   TpLiveMatchImportResult,
   TpLiveOfficialTeamsImportResult,
   TpLiveOfficialTeamsRulesSetResult,
@@ -65,6 +66,10 @@ const OFFICIAL_TEAMS_WRITE_STAGES = [
  * "completed with errors". Only the primary stage importing nothing (the
  * competition, the match, the team, or every rules set) is a failure.
  *
+ * A backfill the import ran (a new competition's matches and, for a match
+ * import, its registered teams) gets its own bullets after the import's own
+ * stages.
+ *
  * Pure formatting with no dependencies, so specs may pass it real.
  */
 @Injectable()
@@ -105,37 +110,18 @@ export class ImportTpReplyService {
     const head = this.stages([
       { label: 'Competition', result: result.competition },
     ]);
+    const teams = this.teams('Teams', result.teams);
     const tail = this.stages([
       { label: 'Participation', result: result.participation },
       { label: 'Trophy awards', result: result.trophyAwards },
+      ...this.ranOnly('Matches backfill', result.matchesBackfill),
     ]);
-    const teamsImported = result.teams.filter(
-      (team) => team.team.imported > 0,
-    ).length;
-    const players = result.teams.reduce(
-      (sum, team) => sum + team.players.imported,
-      0,
-    );
     return {
       title: `TP import: competition ${tournamentSlug}`,
       failed: result.competition.imported === 0,
       notes: [this.eraNote(result.era)],
-      rows: [
-        ...head.rows,
-        {
-          label: 'Teams',
-          summary: `${teamsImported} of ${result.teams.length} imported, ${players} players`,
-        },
-        ...tail.rows,
-      ],
-      errors: [
-        ...head.errors,
-        ...result.teams.flatMap((team) => [
-          ...this.labelled(`Team ${team.rosterId}`, team.team),
-          ...this.labelled(`Team ${team.rosterId} players`, team.players),
-        ]),
-        ...tail.errors,
-      ],
+      rows: [...head.rows, ...teams.rows, ...tail.rows],
+      errors: [...head.errors, ...teams.errors, ...tail.errors],
     };
   }
 
@@ -143,23 +129,88 @@ export class ImportTpReplyService {
     subject: string,
     result: TpLiveMatchImportResult,
   ): ReplySummary {
+    const own = this.stages([
+      { label: 'Competition', result: result.competition },
+      { label: 'Home team', result: result.homeTeam.team },
+      { label: 'Home players', result: result.homeTeam.players },
+      { label: 'Away team', result: result.awayTeam.team },
+      { label: 'Away players', result: result.awayTeam.players },
+      { label: 'Star player hires', result: result.starPlayerHires },
+      { label: 'Match', result: result.match },
+      { label: 'Participation', result: result.participation },
+      { label: 'Events', result: result.events },
+      { label: 'Outcome', result: result.outcome },
+    ]);
+    const backfill = this.matchBackfill(result);
     return {
       title: `TP import: ${subject}`,
       failed: result.match.imported === 0,
       notes: [this.eraNote(result.homeTeam.era)],
-      ...this.stages([
-        { label: 'Competition', result: result.competition },
-        { label: 'Home team', result: result.homeTeam.team },
-        { label: 'Home players', result: result.homeTeam.players },
-        { label: 'Away team', result: result.awayTeam.team },
-        { label: 'Away players', result: result.awayTeam.players },
-        { label: 'Star player hires', result: result.starPlayerHires },
-        { label: 'Match', result: result.match },
-        { label: 'Participation', result: result.participation },
-        { label: 'Events', result: result.events },
-        { label: 'Outcome', result: result.outcome },
+      rows: [...own.rows, ...backfill.rows],
+      errors: [...own.errors, ...backfill.errors],
+    };
+  }
+
+  /**
+   * The competition backfill a match import ran after creating the
+   * competition: its registered teams, their participation and awards, and
+   * every completed match. Nothing when it ran none.
+   */
+  private matchBackfill(
+    result: TpLiveMatchImportResult,
+  ): Pick<ReplySummary, 'rows' | 'errors'> {
+    const participants = result.participantsBackfill;
+    const parts = [
+      ...(participants === undefined
+        ? []
+        : [
+            this.teams('Backfilled teams', participants.teams),
+            this.stages([
+              {
+                label: 'Backfilled participation',
+                result: participants.participation,
+              },
+              {
+                label: 'Backfilled trophy awards',
+                result: participants.trophyAwards,
+              },
+            ]),
+          ]),
+      this.stages(this.ranOnly('Matches backfill', result.matchesBackfill)),
+    ];
+    return {
+      rows: parts.flatMap((part) => part.rows),
+      errors: parts.flatMap((part) => part.errors),
+    };
+  }
+
+  /** One bullet summarizing several live team imports, plus each team's errors. */
+  private teams(
+    label: string,
+    teams: TpLiveCompetitionTeamResult[],
+  ): Pick<ReplySummary, 'rows' | 'errors'> {
+    const imported = teams.filter((team) => team.team.imported > 0).length;
+    const players = teams.reduce((sum, team) => sum + team.players.imported, 0);
+    return {
+      rows: [
+        {
+          label,
+          summary: `${imported} of ${teams.length} imported, ${players} players`,
+        },
+      ],
+      errors: teams.flatMap((team) => [
+        ...this.labelled(`Team ${team.rosterId}`, team.team),
+        ...this.labelled(`Team ${team.rosterId} players`, team.players),
       ]),
     };
+  }
+
+  /** A stage to report only when it ran. */
+  private ranOnly(
+    label: string,
+    result: ImportResult | undefined,
+  ): LabelledResult[] {
+    return result === undefined ? [] : [{ label, result }];
   }
 
   private roster(

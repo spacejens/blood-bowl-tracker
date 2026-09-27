@@ -55,7 +55,29 @@ an earlier one fails:
 7. **The shared core**, below, importing the match itself.
 
 Only the requested match is imported; its bracket siblings are used only for
-classification and the competition's dates.
+classification and the competition's dates — unless step 5 created the
+competition, below.
+
+### Backfilling a brand-new competition
+
+When step 5 creates the competition (it was never imported before), the
+import then completes it rather than leaving it holding one match, running
+two more steps after the shared core:
+
+1. **Backfill its registered teams**: fetch the inscriptions, import each
+   registered team live under the competition's era, link them to the
+   competition, then fetch and record its trophy awards — the same stages a
+   live competition import runs (see
+   [competition-import.md](competition-import.md)).
+2. **Backfill its completed matches**: every bracket match with a recorded
+   result, one at a time through the same session, the requested match
+   included again (harmless: every write is an upsert).
+
+The result then also carries `participantsBackfill` (`teams`,
+`participation`, `trophyAwards`) and `matchesBackfill` (one `ImportResult`
+for all backfilled matches). A backfill failure is reported there and never
+fails the match import itself. The bulk `tpMatches.import` procedure never
+upserts a competition, so it never backfills.
 
 ## Star player hires
 
@@ -156,5 +178,7 @@ Neither entry point throws for an import problem; every failure is one
 | Team-link failure                                                                                                                                                                 | `participation`                             |
 | Event upsert failure, or an unresolved player (non-fatal)                                                                                                                         | `events`                                    |
 | Undecidable outcome                                                                                                                                                               | `outcome`                                   |
+| A backfilled team's import, the link or the awards fail, after creating the competition; live only                                                                                | `participantsBackfill`                      |
+| A backfilled match's fetch, team import or write fails, after creating the competition; live only                                                                                 | `matchesBackfill`                           |
 
 A stage whose prerequisite failed reports nothing imported.

@@ -10,11 +10,11 @@ describe('RpcRouterFactoryService tpCompetitions router', () => {
     harness = await createRouterHarness();
   });
 
-  it('imports one competition through TpCompetitionImportService, with its dates as dates', async () => {
+  it('imports one competition through TpCompetitionImportService, with its dates as dates and only the contract stages returned', async () => {
     const one = { success: true, imported: 1, errors: [] };
     const outcome = { competition: one, participation: one, trophyAwards: one };
     harness.mocks.tpCompetitionImportService.importCompetition.mockResolvedValue(
-      outcome,
+      { ...outcome, competitionCreated: true },
     );
     const awards = [{ id: 24112, awardType: 1, rosterId: 179769 }];
 

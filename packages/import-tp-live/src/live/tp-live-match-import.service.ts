@@ -7,13 +7,14 @@ import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
 import { Injectable } from '@nestjs/common';
 
 import { TpCompetitionUpsertService } from '../competition/tp-competition-upsert.service';
-import { TpMatchImportService } from '../match/tp-match-import.service';
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpBracketFetchService } from './tp-bracket-fetch.service';
+import { TpCompetitionMatchesBackfillService } from './tp-competition-matches-backfill.service';
+import type { TpParticipantsBackfillResult } from './tp-competition-participants-backfill.service';
+import { TpCompetitionParticipantsBackfillService } from './tp-competition-participants-backfill.service';
 import { TpLiveStarPlayerHiresService } from './tp-live-star-player-hires.service';
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
-import { TpLiveTeamImportService } from './tp-live-team-import.service';
-import { TpMatchFetchService } from './tp-match-fetch.service';
+import { TpMatchDataImportService } from './tp-match-data-import.service';
 
 /** Options for {@link TpLiveMatchImportService.importMatch}. */
 export interface ImportLiveMatchOptions {
@@ -49,30 +50,47 @@ export interface TpLiveMatchImportResult {
   participation: ImportResult;
   events: ImportResult;
   outcome: ImportResult;
+  /**
+   * Importing the competition's registered teams, linking them and
+   * recording its awards. Present only when this import created the
+   * competition.
+   */
+  participantsBackfill?: TpParticipantsBackfillResult;
+  /**
+   * Importing every completed match of the competition's bracket, this
+   * match included again. Present only when this import created the
+   * competition.
+   */
+  matchesBackfill?: ImportResult;
 }
 
 @Injectable()
 export class TpLiveMatchImportService {
   constructor(
     private readonly fetcher: TpFetcherService,
-    private readonly matchFetch: TpMatchFetchService,
     private readonly bracketFetch: TpBracketFetchService,
-    private readonly teamImport: TpLiveTeamImportService,
     private readonly starPlayerHires: TpLiveStarPlayerHiresService,
     private readonly competitionUpsert: TpCompetitionUpsertService,
-    private readonly matchImport: TpMatchImportService,
+    private readonly matchData: TpMatchDataImportService,
+    private readonly participantsBackfill: TpCompetitionParticipantsBackfillService,
+    private readonly matchesBackfill: TpCompetitionMatchesBackfillService,
     private readonly importResults: TpImportResultsService,
   ) {}
 
   /**
    * Import one completed match from TP's live API: fetch it, import both its
    * teams live (always, keeping their rosters current; the away team in the
-   * era the home team was imported under), import the star players either team
-   * hired through the match's inducements, fetch its tournament's whole
+   * era the home team was imported under), import the star players either
+   * team hired through the match's inducements, fetch its tournament's whole
    * bracket and upsert the competition, then import the match through the
-   * same server-side core `tpMatches.import` uses. Only the requested match
-   * is imported; its bracket siblings are used for classification and the
-   * competition's dates only. Every failure is reported in the returned
+   * same server-side core `tpMatches.import` uses. When this import creates
+   * the competition, it then backfills the competition's registered teams
+   * (with their participation links and its trophy awards) and every
+   * completed match of the bracket, the requested match included again
+   * (harmless: every write is an upsert); otherwise only the requested match
+   * is imported, its bracket siblings used for classification and the
+   * competition's dates only. The backfills report their own failures and
+   * never fail this import. Every failure is reported in the returned
    * results, never thrown; a stage whose prerequisite failed is not
    * attempted and reports nothing imported.
    */
@@ -85,48 +103,25 @@ export class TpLiveMatchImportService {
   }: ImportLiveMatchOptions): Promise<TpLiveMatchImportResult> {
     try {
       const visit = session ?? this.fetcher.createSession();
-      const matchErrors: ImportError[] = [];
-      const match = await this.matchFetch.fetchMatch({
-        matchId,
-        tournamentSlug,
-        errors: matchErrors,
-        session: visit,
-      });
-      if (match !== undefined && match.winner === undefined) {
-        matchErrors.push(
-          this.importResults.error({
-            item: { matchId },
-            message: `TP match ${matchId} is not completed yet (it has no recorded result); only completed matches are imported.`,
-          }),
-        );
-      }
-      if (match === undefined || match.winner === undefined) {
-        return { ...this.nothingImported(), match: this.failed(matchErrors) };
-      }
-
-      const homeTeam = await this.teamImport.importTeam({
-        rosterId: match.homeTeamTpId,
-        era,
-        externalSystemName,
-        session: visit,
-        matchEmbeddedPlayers: match.homeRosterPlayers,
-      });
-      if (homeTeam.era === undefined) {
-        return { ...this.nothingImported(), homeTeam };
-      }
-      const awayTeam = await this.teamImport.importTeam({
-        rosterId: match.awayTeamTpId,
-        era: homeTeam.era,
-        externalSystemName,
-        session: visit,
-        matchEmbeddedPlayers: match.awayRosterPlayers,
-      });
-      if (awayTeam.era === undefined) {
-        return { ...this.nothingImported(), homeTeam, awayTeam };
+      const { matchFetch, homeTeam, awayTeam, ready } =
+        await this.matchData.importTeams({
+          matchId,
+          tournamentSlug,
+          era,
+          externalSystemName,
+          session: visit,
+        });
+      if (ready === undefined) {
+        return {
+          ...this.nothingImported(),
+          match: matchFetch,
+          homeTeam,
+          awayTeam,
+        };
       }
 
       const starPlayerHires = await this.starPlayerHires.importHires({
-        match,
+        match: ready.match,
         homeTeamEra: homeTeam.teamEra,
         awayTeamEra: awayTeam.teamEra,
         externalSystemName,
@@ -144,7 +139,7 @@ export class TpLiveMatchImportService {
           : await this.competitionUpsert.upsertCompetition({
               tournament: bracket.tournament,
               playedDates: bracket.playedDates,
-              era: homeTeam.era,
+              era: ready.era,
               externalSystemName,
               errors: competitionErrors,
             });
@@ -162,13 +157,37 @@ export class TpLiveMatchImportService {
         };
       }
 
-      const core = await this.matchImport.importMatch({
-        match,
-        bracket: bracket.matches,
-        competitionTpId: bracket.tournament.id,
+      const core = await this.matchData.writeMatch({
+        match: ready.match,
+        bracket,
         externalSystemName,
       });
-      return { competition, homeTeam, awayTeam, starPlayerHires, ...core };
+      const imported: TpLiveMatchImportResult = {
+        competition,
+        homeTeam,
+        awayTeam,
+        starPlayerHires,
+        ...core,
+      };
+      if (!upserted.created) {
+        return imported;
+      }
+      const participantsBackfill = await this.participantsBackfill.backfill({
+        tournamentSlug,
+        categoryIds: bracket.tournament.categoryIds,
+        era: ready.era,
+        externalSystemName,
+        session: visit,
+        competition: upserted,
+      });
+      const matchesBackfill = await this.matchesBackfill.backfill({
+        tournamentSlug,
+        era: ready.era,
+        externalSystemName,
+        session: visit,
+        bracket,
+      });
+      return { ...imported, participantsBackfill, matchesBackfill };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       return {

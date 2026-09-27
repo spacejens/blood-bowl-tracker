@@ -12,6 +12,11 @@ import { TpTournamentPathsService } from './tp-tournament-paths.service';
  */
 export type TpPageClassification =
   | { kind: 'competition'; tournamentSlug: string }
+  /**
+   * A competition's scores page: importing it also backfills every
+   * completed match, even of a competition already imported.
+   */
+  | { kind: 'competitionScores'; tournamentSlug: string }
   | { kind: 'match'; tournamentSlug: string; matchId: number }
   | { kind: 'roster'; rosterId: number }
   | { kind: 'officialTeams' }
@@ -52,6 +57,10 @@ export class TpPageClassifierService {
     if (match) return { kind: 'match', ...match };
 
     if (this.isOwnedByMoreSpecificKind(path)) return UNKNOWN;
+    const scoresSlug = this.tournament.matchScoresFrontendPath(path);
+    if (scoresSlug !== undefined) {
+      return { kind: 'competitionScores', tournamentSlug: scoresSlug };
+    }
     const tournamentSlug = this.tournament.matchFrontendPath(path);
     if (tournamentSlug !== undefined) {
       return { kind: 'competition', tournamentSlug };

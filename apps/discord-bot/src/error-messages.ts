@@ -307,4 +307,4 @@ export const DEBUG_RETRIGGER_ACCESS_DENIED_MESSAGE =
 // --- Import TP command (slash-commands/admin/import-tp-command.service.ts) ---
 // Deliberately plain rather than in-universe: this is administrator tooling.
 export const IMPORT_TP_UNSUPPORTED_URL_MESSAGE =
-  'That is not a TP page this command can import. Give the URL of a TP competition, match, team roster, or the official teams page.';
+  'That is not a TP page this command can import. Give the URL of a TP competition (or its scores page), match, team roster, or the official teams page.';

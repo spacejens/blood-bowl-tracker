@@ -14,6 +14,8 @@ import { Module } from '@nestjs/common';
 import { TpCompetitionModule } from './competition/tp-competition.module';
 import { TpAwardsFetchService } from './live/tp-awards-fetch.service';
 import { TpBracketFetchService } from './live/tp-bracket-fetch.service';
+import { TpCompetitionMatchesBackfillService } from './live/tp-competition-matches-backfill.service';
+import { TpCompetitionParticipantsBackfillService } from './live/tp-competition-participants-backfill.service';
 import { TpEraResolutionService } from './live/tp-era-resolution.service';
 import { TpInscriptionsFetchService } from './live/tp-inscriptions-fetch.service';
 import { TpLiveCompetitionImportService } from './live/tp-live-competition-import.service';
@@ -21,6 +23,7 @@ import { TpLiveMatchImportService } from './live/tp-live-match-import.service';
 import { TpLiveOfficialTeamsImportService } from './live/tp-live-official-teams-import.service';
 import { TpLiveStarPlayerHiresService } from './live/tp-live-star-player-hires.service';
 import { TpLiveTeamImportService } from './live/tp-live-team-import.service';
+import { TpMatchDataImportService } from './live/tp-match-data-import.service';
 import { TpMatchFetchService } from './live/tp-match-fetch.service';
 import { TpOfficialTeamsFetchService } from './live/tp-official-teams-fetch.service';
 import { TpRosterFetchService } from './live/tp-roster-fetch.service';
@@ -58,12 +61,15 @@ import { TpNameExternalIdService } from './tp-name-external-id.service';
     TpEraResolutionService,
     TpLiveTeamImportService,
     TpMatchFetchService,
+    TpMatchDataImportService,
+    TpCompetitionMatchesBackfillService,
     TpBracketFetchService,
     TpLiveMatchImportService,
     TpLiveStarPlayerHiresService,
     TpNameExternalIdService,
     TpAwardsFetchService,
     TpInscriptionsFetchService,
+    TpCompetitionParticipantsBackfillService,
     TpLiveCompetitionImportService,
     TpOfficialTeamsFetchService,
     TpLiveOfficialTeamsImportService,

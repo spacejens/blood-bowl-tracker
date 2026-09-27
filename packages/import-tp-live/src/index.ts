@@ -1,5 +1,8 @@
 export { TpCompetitionModule } from './competition/tp-competition.module';
-export type { ImportCompetitionOptions } from './competition/tp-competition-import.service';
+export type {
+  ImportCompetitionOptions,
+  TpCoreCompetitionImportResult,
+} from './competition/tp-competition-import.service';
 export { TpCompetitionImportService } from './competition/tp-competition-import.service';
 export { ImportTpLiveModule } from './import-tp-live.module';
 export type { FetchAwardsOptions } from './live/tp-awards-fetch.service';
@@ -9,6 +12,15 @@ export type {
   TpBracket,
 } from './live/tp-bracket-fetch.service';
 export { TpBracketFetchService } from './live/tp-bracket-fetch.service';
+export type { BackfillMatchesOptions } from './live/tp-competition-matches-backfill.service';
+export { TpCompetitionMatchesBackfillService } from './live/tp-competition-matches-backfill.service';
+export type {
+  BackfillParticipantsOptions,
+  ImportRegisteredTeamsOptions,
+  TpParticipantsBackfillResult,
+  TpRegisteredTeamsImport,
+} from './live/tp-competition-participants-backfill.service';
+export { TpCompetitionParticipantsBackfillService } from './live/tp-competition-participants-backfill.service';
 export type { ResolveEraOptions } from './live/tp-era-resolution.service';
 export { TpEraResolutionService } from './live/tp-era-resolution.service';
 export type { FetchParticipantsOptions } from './live/tp-inscriptions-fetch.service';
@@ -37,6 +49,15 @@ export type {
   TpLiveTeamImportResult,
 } from './live/tp-live-team-import.service';
 export { TpLiveTeamImportService } from './live/tp-live-team-import.service';
+export type {
+  ImportMatchDataOptions,
+  ImportMatchTeamsOptions,
+  TpMatchDataImportResult,
+  TpMatchReadyToWrite,
+  TpMatchTeamsImport,
+  WriteTpMatchOptions,
+} from './live/tp-match-data-import.service';
+export { TpMatchDataImportService } from './live/tp-match-data-import.service';
 export type { FetchMatchOptions } from './live/tp-match-fetch.service';
 export { TpMatchFetchService } from './live/tp-match-fetch.service';
 export type { FetchOfficialTeamsOptions } from './live/tp-official-teams-fetch.service';

@@ -68,6 +68,7 @@ describe('TpCompetitionImportService', () => {
       competition: one,
       participation: one,
       trophyAwards: one,
+      competitionCreated: false,
     });
     expect(upsert.upsertCompetition).toHaveBeenCalledWith({
       tournament: OPTIONS.tournament,
@@ -100,6 +101,7 @@ describe('TpCompetitionImportService', () => {
       competition: { success: false, imported: 0, errors: [failure] },
       participation: nothing,
       trophyAwards: nothing,
+      competitionCreated: false,
     });
     expect(participants.linkParticipants).not.toHaveBeenCalled();
     expect(trophyAwards.importAwards).not.toHaveBeenCalled();
@@ -115,6 +117,7 @@ describe('TpCompetitionImportService', () => {
       competition: one,
       participation: { success: false, imported: 0, errors: [failure] },
       trophyAwards: nothing,
+      competitionCreated: false,
     });
     expect(trophyAwards.importAwards).not.toHaveBeenCalled();
   });
@@ -133,6 +136,20 @@ describe('TpCompetitionImportService', () => {
       competition: one,
       participation: { success: false, imported: 1, errors: [failure] },
       trophyAwards: { success: false, imported: 0, errors: [failure] },
+      competitionCreated: false,
+    });
+  });
+
+  it('reports whether the competition was newly created', async () => {
+    upsert.upsertCompetition.mockResolvedValue(
+      upsertedCompetition({ created: true }),
+    );
+
+    await expect(service.importCompetition(OPTIONS)).resolves.toEqual({
+      competition: one,
+      participation: one,
+      trophyAwards: one,
+      competitionCreated: true,
     });
   });
 });

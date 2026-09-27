@@ -54,6 +54,10 @@ export interface DispatchTpImportOptions {
  * TP page (a slash command, feed monitoring) imports it the same way. Every
  * entry point reports failures in its result rather than throwing, and this
  * passes them through untouched.
+ *
+ * A competition's scores page imports that competition and forces every
+ * completed match of it to be backfilled; a plain competition page backfills
+ * matches only for a competition imported for the first time.
  */
 @Injectable()
 export class TpImportDispatchService {
@@ -72,6 +76,7 @@ export class TpImportDispatchService {
     const externalSystemName = this.config.getTpExternalSystemName();
     switch (page.kind) {
       case 'competition':
+      case 'competitionScores':
         return {
           kind: 'competition',
           tournamentSlug: page.tournamentSlug,
@@ -79,6 +84,7 @@ export class TpImportDispatchService {
             tournamentSlug: page.tournamentSlug,
             era,
             externalSystemName,
+            forceMatchBackfill: page.kind === 'competitionScores',
           }),
         };
       case 'match':
