@@ -217,6 +217,11 @@ export class TpMatchDataImportService {
   }
 
   private noTeam(): TpLiveTeamImportResult {
-    return { team: this.nothing(), players: this.nothing(), era: undefined };
+    return {
+      team: this.nothing(),
+      players: this.nothing(),
+      era: undefined,
+      teamEra: undefined,
+    };
   }
 }

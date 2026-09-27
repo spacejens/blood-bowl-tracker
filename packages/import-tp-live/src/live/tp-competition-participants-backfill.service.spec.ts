@@ -27,6 +27,7 @@ const teamImported: TpLiveTeamImportResult = {
   team: one,
   players: one,
   era: 'Fourth era',
+  teamEra: { id: 31, eraId: 40 },
 };
 const teamNotImported: TpLiveTeamImportResult = {
   team: {
@@ -36,6 +37,7 @@ const teamNotImported: TpLiveTeamImportResult = {
   },
   players: nothing,
   era: undefined,
+  teamEra: undefined,
 };
 const AWARD: TpAward = { id: 24112, awardType: 1, rosterId: 179769 };
 const LINKED = new Map([

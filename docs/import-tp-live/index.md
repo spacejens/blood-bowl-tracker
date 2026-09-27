@@ -44,8 +44,8 @@ procedures use it:
   in `ImportTpLiveModule`.
 - **Match import**: `TpMatchModule`, with `TpMatchImportService` and its
   match-context, upsert, events and outcome services, plus
-  `TpLiveMatchImportService` and its match/bracket fetch services — see
-  [match-import.md](match-import.md).
+  `TpLiveMatchImportService`, its match/bracket fetch services and
+  `TpLiveStarPlayerHiresService` — see [match-import.md](match-import.md).
 - **Competition import**: `TpCompetitionModule`, with
   `TpCompetitionImportService` and its upsert, participant and trophy-award
   services (the upsert is shared with the live match import), plus
@@ -78,7 +78,10 @@ const { team, players } = await tpLiveTeamImportService.importTeam({
   requests are paced as one visit. If left out, the import starts its own.
 
 The result carries two `ImportResult`s: `team` (the team upsert, plus any
-failure before it) and `players`.
+failure before it) and `players`. It also names the era the team was
+imported under (`era`), undefined when the team was not imported, and its
+team era's numeric ids (`teamEra`, as `{ id, eraId }`), undefined when the
+team, or its team era for that era, could not be resolved.
 
 A team needs no competition. It is a complete entity on its own, and TP's
 roster data carries no competition either. See [match-import.md](match-import.md)
@@ -101,12 +104,15 @@ live has none until a later bulk import (`tools/import-tp` or
 A missing race or a failed coach upsert skips the team, and a missing
 position skips that player. Each is reported as an error.
 
-A live import brings in the roster's current state only. It has no match
-data, so it adds no departed players seen only in match snapshots and no
-star players hired through inducements — unless the caller passes the
-match's roster snapshot, which is what a live match import does for each of
-its two teams (see [match-import.md](match-import.md)) so a player who has
-since left the roster still exists to be referenced by the match's events.
+A live team import brings in the roster's current state only. It has no
+match data, so it adds no departed players seen only in match snapshots —
+unless the caller passes the match's roster snapshot, which is what a live
+match import does for each of its two teams (see
+[match-import.md](match-import.md)) so a player who has since left the
+roster still exists to be referenced by the match's events. Nor does it add
+star players hired through inducements: those appear only in match events,
+and a live match import adds them (see
+[match-import.md](match-import.md#star-player-hires)).
 It does send characteristics, lasting injuries and characteristic-increase
 counts, validated against the rules set the era declares.
 

@@ -24,6 +24,7 @@ const team = (players: number): TpLiveTeamImportResult => ({
   team: imported(1),
   players: imported(players),
   era: 'Fourth era',
+  teamEra: { id: 31, eraId: 40 },
 });
 
 /** The reply's single embed. */
@@ -124,6 +125,7 @@ describe('ImportTpReplyService', () => {
               team: failedWith('no coach'),
               players: imported(0),
               era: undefined,
+              teamEra: undefined,
             },
           ],
           participation: imported(0),
@@ -184,6 +186,7 @@ describe('ImportTpReplyService', () => {
           competition: imported(1),
           homeTeam: team(12),
           awayTeam: team(11),
+          starPlayerHires: imported(1),
           match: imported(1),
           participation: imported(2),
           events: imported(40),
@@ -202,6 +205,7 @@ describe('ImportTpReplyService', () => {
           '- Home players: 12 imported',
           '- Away team: 1 imported',
           '- Away players: 11 imported',
+          '- Star player hires: 1 imported',
           '- Match: 1 imported',
           '- Participation: 2 imported',
           '- Events: 40 imported',
@@ -219,6 +223,7 @@ describe('ImportTpReplyService', () => {
           competition: imported(0),
           homeTeam: team(0),
           awayTeam: team(0),
+          starPlayerHires: imported(0),
           match: failedWith('match not completed'),
           participation: imported(0),
           events: imported(0),
@@ -231,6 +236,30 @@ describe('ImportTpReplyService', () => {
       expect(description).toContain('- Match: match not completed');
     });
 
+    it('lists a star player hire error under its stage', () => {
+      const reply = service.build({
+        kind: 'match',
+        tournamentSlug: 's30',
+        matchId: 576264,
+        result: {
+          competition: imported(1),
+          homeTeam: team(12),
+          awayTeam: team(11),
+          starPlayerHires: failedWith('no catalog characteristics'),
+          match: imported(1),
+          participation: imported(2),
+          events: imported(40),
+          outcome: imported(1),
+        },
+      });
+
+      const { description } = embed(reply);
+      expect(description.startsWith('**Completed with errors**')).toBe(true);
+      expect(description).toContain(
+        '- Star player hires: no catalog characteristics',
+      );
+    });
+
     it('reports the competition backfill a match import ran after creating the competition', () => {
       const reply = service.build({
         kind: 'match',
@@ -240,6 +269,7 @@ describe('ImportTpReplyService', () => {
           competition: imported(1),
           homeTeam: team(12),
           awayTeam: team(11),
+          starPlayerHires: imported(1),
           match: imported(1),
           participation: imported(2),
           events: imported(40),
@@ -252,6 +282,7 @@ describe('ImportTpReplyService', () => {
                 team: failedWith('no coach'),
                 players: imported(0),
                 era: undefined,
+                teamEra: undefined,
               },
             ],
             participation: imported(1),
@@ -271,6 +302,7 @@ describe('ImportTpReplyService', () => {
           '- Home players: 12 imported',
           '- Away team: 1 imported',
           '- Away players: 11 imported',
+          '- Star player hires: 1 imported',
           '- Match: 1 imported',
           '- Participation: 2 imported',
           '- Events: 40 imported',
@@ -315,6 +347,7 @@ describe('ImportTpReplyService', () => {
           team: failedWith('could not resolve race for code "orc"'),
           players: imported(0),
           era: undefined,
+          teamEra: undefined,
         },
       });
 
@@ -402,6 +435,7 @@ describe('ImportTpReplyService', () => {
           team: failedWith('x'.repeat(100)),
           players: imported(0),
           era: undefined,
+          teamEra: undefined,
         })),
         participation: imported(0),
         trophyAwards: imported(0),

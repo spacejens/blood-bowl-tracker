@@ -36,11 +36,15 @@ an earlier one fails:
    ordinary live team import (see [index.md](index.md#importing-a-team-live)),
    passing that side's match roster snapshot so a player who has since left
    the roster still exists to be referenced by the match's events.
-4. **Fetch the tournament and every phase/round fixture list** — the way
+4. **Import the star players either team hired** through the match's
+   inducements — see [Star player hires](#star-player-hires) below. Only
+   attempted once both teams were imported; a failed hire never stops the
+   rest of the import.
+5. **Fetch the tournament and every phase/round fixture list** — the way
    TP's own scores page does — giving every match in the competition's
    bracket, needed for category classification and for the competition's
    date span.
-5. **Upsert the competition**: its name, TP id, era (the one the home team
+6. **Upsert the competition**: its name, TP id, era (the one the home team
    was imported under), type and dates derived from the fixture lists' dates
    by the same ≤ 3-day cup rule `tools/import-tp`'s bulk import uses. It
    never sends a competition group, so a competition not already curated by
@@ -48,7 +52,7 @@ an earlier one fails:
    competition import's own upsert stage (see
    [competition-import.md](competition-import.md)); a match import does not
    link the competition's other teams or record its awards.
-6. **The shared core**, below, importing the match itself.
+7. **The shared core**, below, importing the match itself.
 
 Only the requested match is imported; its bracket siblings are used only for
 classification and the competition's dates — unless step 5 created the
@@ -74,6 +78,29 @@ The result then also carries `participantsBackfill` (`teams`,
 for all backfilled matches). A backfill failure is reported there and never
 fails the match import itself. The bulk `tpMatches.import` procedure never
 upserts a competition, so it never backfills.
+
+## Star player hires
+
+A star player a team hires for one match is on no roster, so the match's
+own `inducements_roll` events are the only place the hire shows up.
+`TpLiveStarPlayerHiresService` imports each distinct hire (one per roster
+and TP `lineUpMasterId`, however many times it is listed):
+
+- **The star's position** is upserted as a star player, keyed by its bare
+  name as a TP id and its Name id — the same keys the official team list
+  import gives a star, so both land on one row.
+- **Its stat line** is the position's catalog characteristics for the hiring
+  team's era, read from the database. The official team list must already
+  have been imported for that era; a hire whose position has no catalog
+  characteristics there is skipped with an error.
+- **The hired player** is upserted into the hiring team's era, keyed by TP
+  id `star-<rosterId>-<lineUpMasterId>` — the same key `tools/import-tp`'s
+  bulk import gives it, so re-importing a hire through either path updates
+  one row.
+
+This step belongs to the live import only. The `tpMatches.import` procedure
+does not run it: `tools/import-tp`'s bulk run imports star hires in its own
+step before it imports the match files.
 
 ## The shared core
 
@@ -139,18 +166,19 @@ stage.
 Neither entry point throws for an import problem; every failure is one
 `ImportError` in the result.
 
-| Failure                                                                                                      | Reported in                                 |
-| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------- |
-| Match request or parse failure                                                                               | `match`                                     |
-| Match not completed (no recorded result); live only                                                          | `match`                                     |
-| Team import failures (home or away); live only                                                               | `homeTeam`/`awayTeam`, as for a team import |
-| Tournament or fixture-list request/parse failure; live only                                                  | `competition`                               |
-| Unknown era, no dated fixtures, or competition upsert failure (including a missing curated group); live only | `competition`                               |
-| Competition not imported, team era unresolvable, unclassifiable bracket, or match upsert failure             | `match`                                     |
-| Team-link failure                                                                                            | `participation`                             |
-| Event upsert failure, or an unresolved player (non-fatal)                                                    | `events`                                    |
-| Undecidable outcome                                                                                          | `outcome`                                   |
-| A backfilled team's import, the link or the awards fail, after creating the competition; live only           | `participantsBackfill`                      |
-| A backfilled match's fetch, team import or write fails, after creating the competition; live only            | `matchesBackfill`                           |
+| Failure                                                                                                                                                                           | Reported in                                 |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| Match request or parse failure                                                                                                                                                    | `match`                                     |
+| Match not completed (no recorded result); live only                                                                                                                               | `match`                                     |
+| Team import failures (home or away); live only                                                                                                                                    | `homeTeam`/`awayTeam`, as for a team import |
+| Hiring team era unresolved, star position or player upsert failure, characteristics lookup failure, missing catalog characteristics, or external-system upsert failure; live only | `starPlayerHires`                           |
+| Tournament or fixture-list request/parse failure; live only                                                                                                                       | `competition`                               |
+| Unknown era, no dated fixtures, or competition upsert failure (including a missing curated group); live only                                                                      | `competition`                               |
+| Competition not imported, team era unresolvable, unclassifiable bracket, or match upsert failure                                                                                  | `match`                                     |
+| Team-link failure                                                                                                                                                                 | `participation`                             |
+| Event upsert failure, or an unresolved player (non-fatal)                                                                                                                         | `events`                                    |
+| Undecidable outcome                                                                                                                                                               | `outcome`                                   |
+| A backfilled team's import, the link or the awards fail, after creating the competition; live only                                                                                | `participantsBackfill`                      |
+| A backfilled match's fetch, team import or write fails, after creating the competition; live only                                                                                 | `matchesBackfill`                           |
 
 A stage whose prerequisite failed reports nothing imported.

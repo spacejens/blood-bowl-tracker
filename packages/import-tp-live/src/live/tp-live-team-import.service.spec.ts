@@ -35,6 +35,7 @@ const PLAYERS_RESULT: ImportResult = {
   imported: 11,
   errors: [],
 };
+const TEAM_ERA = { id: 31, eraId: 40 };
 
 describe('TpLiveTeamImportService', () => {
   let service: TpLiveTeamImportService;
@@ -65,6 +66,7 @@ describe('TpLiveTeamImportService', () => {
       team: TEAM_RESULT,
       players: PLAYERS_RESULT,
       teamEras: [],
+      teamEra: TEAM_ERA,
       importedPlayers: [],
       mercenaryPositionUsages: [],
     });
@@ -82,6 +84,7 @@ describe('TpLiveTeamImportService', () => {
       team: TEAM_RESULT,
       players: PLAYERS_RESULT,
       era: 'Fourth era',
+      teamEra: TEAM_ERA,
     });
     expect(rosterFetch.fetchRoster).toHaveBeenCalledWith({
       rosterId: 163386,
@@ -124,6 +127,7 @@ describe('TpLiveTeamImportService', () => {
       team: TEAM_RESULT,
       players: PLAYERS_RESULT,
       teamEras: [],
+      teamEra: TEAM_ERA,
       importedPlayers: [],
       mercenaryPositionUsages: [],
     });
@@ -167,6 +171,7 @@ describe('TpLiveTeamImportService', () => {
     expect(result.players.success).toBe(true);
     expect(result.players.imported).toBe(0);
     expect(result.era).toBeUndefined();
+    expect(result).toHaveProperty('teamEra', undefined);
     expect(eraResolution.resolveEra).not.toHaveBeenCalled();
     expect(rosterImport.importRoster).not.toHaveBeenCalled();
   });
@@ -214,6 +219,7 @@ describe('TpLiveTeamImportService', () => {
     expect(result.players.success).toBe(true);
     expect(result.players.imported).toBe(0);
     expect(result.era).toBeUndefined();
+    expect(result).toHaveProperty('teamEra', undefined);
   });
 
   it("passes a match's embedded players through to the roster import", async () => {
@@ -254,6 +260,7 @@ describe('TpLiveTeamImportService', () => {
       },
       players: { success: true, imported: 0, errors: [] },
       teamEras: [],
+      teamEra: undefined,
       importedPlayers: [],
       mercenaryPositionUsages: [],
     });
@@ -264,6 +271,7 @@ describe('TpLiveTeamImportService', () => {
     });
 
     expect(result.era).toBeUndefined();
+    expect(result).toHaveProperty('teamEra', undefined);
     expect(result.team.success).toBe(false);
   });
 });

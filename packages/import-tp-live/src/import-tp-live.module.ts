@@ -1,6 +1,9 @@
 import {
   ErasModule,
   ExternalSystemsModule,
+  PlayersModule,
+  PositionRulesSetsModule,
+  PositionsModule,
   RacesModule,
 } from '@blood-bowl-tracker/game-data';
 import { ParseTpModule } from '@blood-bowl-tracker/parse-tp';
@@ -18,6 +21,7 @@ import { TpInscriptionsFetchService } from './live/tp-inscriptions-fetch.service
 import { TpLiveCompetitionImportService } from './live/tp-live-competition-import.service';
 import { TpLiveMatchImportService } from './live/tp-live-match-import.service';
 import { TpLiveOfficialTeamsImportService } from './live/tp-live-official-teams-import.service';
+import { TpLiveStarPlayerHiresService } from './live/tp-live-star-player-hires.service';
 import { TpLiveTeamImportService } from './live/tp-live-team-import.service';
 import { TpMatchDataImportService } from './live/tp-match-data-import.service';
 import { TpMatchFetchService } from './live/tp-match-fetch.service';
@@ -26,6 +30,7 @@ import { TpRosterFetchService } from './live/tp-roster-fetch.service';
 import { TpMatchModule } from './match/tp-match.module';
 import { TpOfficialTeamsModule } from './official-teams/tp-official-teams.module';
 import { TpRosterModule } from './roster/tp-roster.module';
+import { TpNameExternalIdService } from './tp-name-external-id.service';
 
 /**
  * Live TP import: fetch one roster, one completed match with its teams and
@@ -45,6 +50,9 @@ import { TpRosterModule } from './roster/tp-roster.module';
     ErasModule,
     ExternalSystemsModule,
     RacesModule,
+    PlayersModule,
+    PositionRulesSetsModule,
+    PositionsModule,
     TpCompetitionModule,
     TpOfficialTeamsModule,
   ],
@@ -57,6 +65,8 @@ import { TpRosterModule } from './roster/tp-roster.module';
     TpCompetitionMatchesBackfillService,
     TpBracketFetchService,
     TpLiveMatchImportService,
+    TpLiveStarPlayerHiresService,
+    TpNameExternalIdService,
     TpAwardsFetchService,
     TpInscriptionsFetchService,
     TpCompetitionParticipantsBackfillService,
