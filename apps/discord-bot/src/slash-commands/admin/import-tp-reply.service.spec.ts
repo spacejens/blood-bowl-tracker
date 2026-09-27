@@ -137,6 +137,41 @@ describe('ImportTpReplyService', () => {
       expect(description).toContain('- Teams: 0 of 1 imported, 0 players');
       expect(description).toContain('- Team 163386: no coach');
     });
+
+    it("reports the matches backfill when it ran, with each backfilled match's errors", () => {
+      const reply = service.build({
+        kind: 'competition',
+        tournamentSlug: 's30',
+        result: {
+          competition: imported(1),
+          teams: [],
+          participation: imported(0),
+          trophyAwards: imported(0),
+          era: 'Fourth era',
+          matchesBackfill: {
+            success: false,
+            imported: 5,
+            errors: [{ item: 1, message: 'match 7 not completed' }],
+          },
+        },
+      });
+
+      expect(embed(reply).description).toBe(
+        [
+          '**Completed with errors**',
+          'Era: Fourth era',
+          '',
+          '- Competition: 1 imported',
+          '- Teams: 0 of 0 imported, 0 players',
+          '- Participation: 0 imported',
+          '- Trophy awards: 0 imported',
+          '- Matches backfill: 5 imported',
+          '',
+          '**Errors**',
+          '- Matches backfill: match 7 not completed',
+        ].join('\n'),
+      );
+    });
   });
 
   describe('match', () => {
@@ -194,6 +229,61 @@ describe('ImportTpReplyService', () => {
       const { description } = embed(reply);
       expect(description.startsWith('**Failed**')).toBe(true);
       expect(description).toContain('- Match: match not completed');
+    });
+
+    it('reports the competition backfill a match import ran after creating the competition', () => {
+      const reply = service.build({
+        kind: 'match',
+        tournamentSlug: 's30',
+        matchId: 576264,
+        result: {
+          competition: imported(1),
+          homeTeam: team(12),
+          awayTeam: team(11),
+          match: imported(1),
+          participation: imported(2),
+          events: imported(40),
+          outcome: imported(1),
+          participantsBackfill: {
+            teams: [
+              { rosterId: 1, ...team(12) },
+              {
+                rosterId: 2,
+                team: failedWith('no coach'),
+                players: imported(0),
+                era: undefined,
+              },
+            ],
+            participation: imported(1),
+            trophyAwards: imported(0),
+          },
+          matchesBackfill: imported(6),
+        },
+      });
+
+      expect(embed(reply).description).toBe(
+        [
+          '**Completed with errors**',
+          'Era: Fourth era',
+          '',
+          '- Competition: 1 imported',
+          '- Home team: 1 imported',
+          '- Home players: 12 imported',
+          '- Away team: 1 imported',
+          '- Away players: 11 imported',
+          '- Match: 1 imported',
+          '- Participation: 2 imported',
+          '- Events: 40 imported',
+          '- Outcome: 1 imported',
+          '- Backfilled teams: 1 of 2 imported, 12 players',
+          '- Backfilled participation: 1 imported',
+          '- Backfilled trophy awards: 0 imported',
+          '- Matches backfill: 6 imported',
+          '',
+          '**Errors**',
+          '- Team 2: no coach',
+        ].join('\n'),
+      );
     });
   });
 

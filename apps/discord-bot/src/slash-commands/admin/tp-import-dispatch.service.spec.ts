@@ -97,6 +97,7 @@ describe('TpImportDispatchService', () => {
       tournamentSlug: 's30',
       era: 'Fourth era',
       externalSystemName: EXTERNAL_SYSTEM_NAME,
+      forceMatchBackfill: false,
     });
   });
 
@@ -111,6 +112,28 @@ describe('TpImportDispatchService', () => {
       tournamentSlug: 's30',
       era: undefined,
       externalSystemName: EXTERNAL_SYSTEM_NAME,
+      forceMatchBackfill: false,
+    });
+  });
+
+  it("imports a competition's scores page as that competition, forcing its matches to be backfilled", async () => {
+    competitionImport.importCompetition.mockResolvedValue(COMPETITION_RESULT);
+
+    await expect(
+      service.dispatch({
+        page: { kind: 'competitionScores', tournamentSlug: 's30' },
+        era: 'Fourth era',
+      }),
+    ).resolves.toEqual({
+      kind: 'competition',
+      tournamentSlug: 's30',
+      result: COMPETITION_RESULT,
+    });
+    expect(competitionImport.importCompetition).toHaveBeenCalledWith({
+      tournamentSlug: 's30',
+      era: 'Fourth era',
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
+      forceMatchBackfill: true,
     });
   });
 
