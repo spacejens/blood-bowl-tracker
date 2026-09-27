@@ -6,11 +6,13 @@ integration. The bot can watch that channel, parse those notifications, and
 echo a one-line interpretation of each into a second channel, so a maintainer
 can confirm by eye that they are being read correctly.
 
-Every notification the bot finishes processing also gets a ✔️ reaction in
-the source channel — whether it was interpreted, reported as unrecognised,
-or deliberately ignored. A message without the checkmark was never fully
-handled, for example because the bot was down when it arrived or posting its
-interpretation to the debug channel failed.
+Every notification the bot fully and successfully handles also gets a ✔️
+reaction in the source channel — whether it was interpreted or deliberately
+ignored. A message without the checkmark was never fully handled: the bot
+was down when it arrived, posting its interpretation to the debug channel
+failed, or the notification was not understood at all (reported as
+unrecognised — see below). Unrecognised notifications never get the
+checkmark, even when their debug-channel notice posts successfully.
 
 This is a diagnostic feature. Parsed notifications are not imported into the
 tracked data — nothing downstream reacts to them yet.

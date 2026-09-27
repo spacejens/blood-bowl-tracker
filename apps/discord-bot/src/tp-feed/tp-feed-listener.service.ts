@@ -24,10 +24,12 @@ const PROCESSED_REACTION = '✔️';
  * configuration cannot change while the process runs, so re-reading it per
  * message would buy nothing.
  *
- * Every source message whose processing completes cleanly also gets a ✔️
+ * Every source message that is fully, successfully handled also gets a ✔️
  * reaction, so the source channel itself shows at a glance which messages
- * were handled and, by omission, which were missed (downtime, a crash, or a
- * message that arrived before the bot was listening).
+ * were handled and, by omission, which were not: missed entirely (downtime,
+ * a crash, or a message that arrived before the bot was listening), not
+ * understood (an unrecognized notification), or not fully processed (a
+ * failed debug-channel post).
  */
 @Injectable()
 export class TpFeedListenerService implements OnModuleInit {
@@ -60,10 +62,16 @@ export class TpFeedListenerService implements OnModuleInit {
    * Every message the bot can see reaches here, so the channel check comes
    * first and before any parsing work.
    *
-   * The ✔️ reaction is added once, at the end of whichever branch finishes
-   * processing: the parser ignored the message, there is no debug channel to
-   * post to, or the post succeeded. A failed post does not count as finished
-   * processing, so it gets no reaction.
+   * The ✔️ reaction means the message was fully, successfully handled, so it
+   * is added only when processing actually finished: the parser ignored the
+   * message, or it parsed as an event and either there is no debug channel
+   * to post to or the post succeeded. A failed post does not count as
+   * finished processing, so it gets no reaction.
+   *
+   * An unrecognized message is never reacted to: classifying it as
+   * unrecognized is not handling it. It is still reported to the debug
+   * channel when one is configured, but the reaction is withheld whether
+   * that post succeeds, fails, or is skipped for lack of a debug channel.
    *
    * A failed post is logged and dropped rather than retried or queued,
    * matching how the bot's other one-off messages behave (see
@@ -83,30 +91,53 @@ export class TpFeedListenerService implements OnModuleInit {
       return;
     }
     const debugChannelId = this.config.getTpFeedDebugDiscordChannel();
+    if (result.status === 'unrecognized') {
+      if (debugChannelId) {
+        // `message.url` is discord.js's own jump-link getter
+        // (https://discord.com/channels/<guild>/<channel>/<message>), so a
+        // maintainer can open the message that did not parse.
+        await this.postToDebugChannel(
+          debugChannelId,
+          this.formatter.formatUnrecognized(message.url),
+        );
+      }
+      return;
+    }
     if (!debugChannelId) {
       await this.markProcessed(message);
       return;
     }
-    // `message.url` is discord.js's own jump-link getter
-    // (https://discord.com/channels/<guild>/<channel>/<message>), so a
-    // maintainer can open the message that did not parse.
-    const content =
-      result.status === 'event'
-        ? this.formatter.format(result.event)
-        : this.formatter.formatUnrecognized(message.url);
+    const posted = await this.postToDebugChannel(
+      debugChannelId,
+      this.formatter.format(result.event),
+    );
+    if (posted) {
+      await this.markProcessed(message);
+    }
+  }
+
+  /**
+   * Posts one line to the debug channel. Returns whether the post succeeded;
+   * a failure is logged and swallowed so the caller only has to decide
+   * whether to mark the source message processed.
+   */
+  private async postToDebugChannel(
+    channelId: string,
+    content: string,
+  ): Promise<boolean> {
     try {
-      await this.discordClient.sendMessage(debugChannelId, {
+      await this.discordClient.sendMessage(channelId, {
         content,
         // TP notification text is free-form and could contain something
         // that reads as a mention (e.g. a player or coach name starting
         // with @); nothing in this feed should ever ping anyone.
         allowedMentions: { parse: [] },
       });
+      return true;
     } catch (error) {
       this.logFailure('Failed to post TP feed message', error);
-      return;
+      return false;
     }
-    await this.markProcessed(message);
   }
 
   /**
