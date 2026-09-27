@@ -10,9 +10,10 @@ import { TpCompetitionImportService } from '../competition/tp-competition-import
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpAwardsFetchService } from './tp-awards-fetch.service';
 import { TpBracketFetchService } from './tp-bracket-fetch.service';
-import { TpInscriptionsFetchService } from './tp-inscriptions-fetch.service';
-import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
-import { TpLiveTeamImportService } from './tp-live-team-import.service';
+import type { TpLiveCompetitionTeamResult } from './tp-competition-participants-backfill.service';
+import { TpCompetitionParticipantsBackfillService } from './tp-competition-participants-backfill.service';
+
+export type { TpLiveCompetitionTeamResult } from './tp-competition-participants-backfill.service';
 
 /** Options for {@link TpLiveCompetitionImportService.importCompetition}. */
 export interface ImportLiveCompetitionOptions {
@@ -31,11 +32,6 @@ export interface ImportLiveCompetitionOptions {
    * is paced as one visit. A fresh session is started when omitted.
    */
   session?: TpFetchSession;
-}
-
-/** One registered team's live import within a competition import. */
-export interface TpLiveCompetitionTeamResult extends TpLiveTeamImportResult {
-  rosterId: number;
 }
 
 /** What one live competition import did, one result per stage. */
@@ -61,9 +57,8 @@ export class TpLiveCompetitionImportService {
   constructor(
     private readonly fetcher: TpFetcherService,
     private readonly bracketFetch: TpBracketFetchService,
-    private readonly inscriptionsFetch: TpInscriptionsFetchService,
     private readonly awardsFetch: TpAwardsFetchService,
-    private readonly teamImport: TpLiveTeamImportService,
+    private readonly participantsBackfill: TpCompetitionParticipantsBackfillService,
     private readonly competitionImport: TpCompetitionImportService,
     private readonly importResults: TpImportResultsService,
   ) {}
@@ -106,23 +101,16 @@ export class TpLiveCompetitionImportService {
         };
       }
 
-      const participationErrors: ImportError[] = [];
-      const participantRosterIds =
-        await this.inscriptionsFetch.fetchParticipantRosterIds({
-          tournamentSlug,
-          categoryIds: bracket.tournament.categoryIds,
-          errors: participationErrors,
-          session: visit,
-        });
-      for (const rosterId of participantRosterIds ?? []) {
-        const team = await this.teamImport.importTeam({
-          rosterId,
-          era,
-          externalSystemName,
-          session: visit,
-        });
-        teams.push({ rosterId, ...team });
-      }
+      const registered = await this.participantsBackfill.importRegisteredTeams({
+        tournamentSlug,
+        categoryIds: bracket.tournament.categoryIds,
+        era,
+        externalSystemName,
+        session: visit,
+      });
+      teams.push(...registered.teams);
+      const participationErrors = registered.errors;
+      const participantRosterIds = registered.rosterIds;
 
       const competitionEra =
         era ??

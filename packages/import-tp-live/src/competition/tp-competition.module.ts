@@ -22,7 +22,9 @@ import { TpCompetitionUpsertService } from './tp-competition-upsert.service';
  * straight into the database through packages/game-data.
  * packages/api-server imports it to implement `tpCompetitions.import`;
  * ImportTpLiveModule imports it for the live imports. The importing app
- * provides packages/db's `DB`.
+ * provides packages/db's `DB`. The participants and trophy-awards services
+ * are exported too, for a live match import that created a competition to
+ * link its registered teams and record its awards.
  */
 @Module({
   imports: [
@@ -43,6 +45,11 @@ import { TpCompetitionUpsertService } from './tp-competition-upsert.service';
     TpImportResultsService,
     TpUpsertRunnerService,
   ],
-  exports: [TpCompetitionImportService, TpCompetitionUpsertService],
+  exports: [
+    TpCompetitionImportService,
+    TpCompetitionUpsertService,
+    TpCompetitionParticipantsService,
+    TpCompetitionTrophyAwardsService,
+  ],
 })
 export class TpCompetitionModule {}

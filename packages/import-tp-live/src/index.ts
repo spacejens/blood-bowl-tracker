@@ -14,6 +14,13 @@ export type {
 export { TpBracketFetchService } from './live/tp-bracket-fetch.service';
 export type { BackfillMatchesOptions } from './live/tp-competition-matches-backfill.service';
 export { TpCompetitionMatchesBackfillService } from './live/tp-competition-matches-backfill.service';
+export type {
+  BackfillParticipantsOptions,
+  ImportRegisteredTeamsOptions,
+  TpParticipantsBackfillResult,
+  TpRegisteredTeamsImport,
+} from './live/tp-competition-participants-backfill.service';
+export { TpCompetitionParticipantsBackfillService } from './live/tp-competition-participants-backfill.service';
 export type { ResolveEraOptions } from './live/tp-era-resolution.service';
 export { TpEraResolutionService } from './live/tp-era-resolution.service';
 export type { FetchParticipantsOptions } from './live/tp-inscriptions-fetch.service';

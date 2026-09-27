@@ -12,6 +12,7 @@ import { TpCompetitionModule } from './competition/tp-competition.module';
 import { TpAwardsFetchService } from './live/tp-awards-fetch.service';
 import { TpBracketFetchService } from './live/tp-bracket-fetch.service';
 import { TpCompetitionMatchesBackfillService } from './live/tp-competition-matches-backfill.service';
+import { TpCompetitionParticipantsBackfillService } from './live/tp-competition-participants-backfill.service';
 import { TpEraResolutionService } from './live/tp-era-resolution.service';
 import { TpInscriptionsFetchService } from './live/tp-inscriptions-fetch.service';
 import { TpLiveCompetitionImportService } from './live/tp-live-competition-import.service';
@@ -58,6 +59,7 @@ import { TpRosterModule } from './roster/tp-roster.module';
     TpLiveMatchImportService,
     TpAwardsFetchService,
     TpInscriptionsFetchService,
+    TpCompetitionParticipantsBackfillService,
     TpLiveCompetitionImportService,
     TpOfficialTeamsFetchService,
     TpLiveOfficialTeamsImportService,

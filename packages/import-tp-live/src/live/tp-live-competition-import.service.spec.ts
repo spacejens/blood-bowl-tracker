@@ -12,14 +12,15 @@ import { mock } from 'vitest-mock-extended';
 
 import type { TpCoreCompetitionImportResult } from '../competition/tp-competition-import.service';
 import { TpCompetitionImportService } from '../competition/tp-competition-import.service';
+import { bracketMatch } from '../match/tp-match.test-helpers';
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpAwardsFetchService } from './tp-awards-fetch.service';
 import type { TpBracket } from './tp-bracket-fetch.service';
 import { TpBracketFetchService } from './tp-bracket-fetch.service';
-import { TpInscriptionsFetchService } from './tp-inscriptions-fetch.service';
+import type { TpRegisteredTeamsImport } from './tp-competition-participants-backfill.service';
+import { TpCompetitionParticipantsBackfillService } from './tp-competition-participants-backfill.service';
 import { TpLiveCompetitionImportService } from './tp-live-competition-import.service';
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
-import { TpLiveTeamImportService } from './tp-live-team-import.service';
 
 const EXTERNAL_SYSTEM_NAME = 'some-external-system';
 
@@ -47,7 +48,10 @@ const BRACKET: TpBracket = {
     phases: [],
     categoryIds: [22308],
   },
-  matches: [],
+  matches: [
+    bracketMatch({ id: 1 }),
+    bracketMatch({ id: 2, winner: undefined }),
+  ],
   playedDates: [new Date('2026-01-10'), new Date('2026-06-20')],
 };
 const AWARD: TpAward = { id: 24112, awardType: 1, rosterId: 179769 };
@@ -59,14 +63,28 @@ const CORE: TpCoreCompetitionImportResult = {
 };
 const fetchFailure: ImportError = { item: 1, message: 'status 429' };
 
+/** Both registered teams, imported with the given results. */
+function registered(
+  first: TpLiveTeamImportResult,
+  second: TpLiveTeamImportResult,
+): TpRegisteredTeamsImport {
+  return {
+    rosterIds: [163386, 179769],
+    teams: [
+      { rosterId: 163386, ...first },
+      { rosterId: 179769, ...second },
+    ],
+    errors: [],
+  };
+}
+
 describe('TpLiveCompetitionImportService', () => {
   let service: TpLiveCompetitionImportService;
   let fetcher: MockProxy<TpFetcherService>;
   let session: MockProxy<TpFetchSession>;
   let bracketFetch: MockProxy<TpBracketFetchService>;
-  let inscriptionsFetch: MockProxy<TpInscriptionsFetchService>;
   let awardsFetch: MockProxy<TpAwardsFetchService>;
-  let teamImport: MockProxy<TpLiveTeamImportService>;
+  let participantsBackfill: MockProxy<TpCompetitionParticipantsBackfillService>;
   let competitionImport: MockProxy<TpCompetitionImportService>;
 
   beforeEach(async () => {
@@ -74,15 +92,13 @@ describe('TpLiveCompetitionImportService', () => {
     session = mock<TpFetchSession>();
     fetcher.createSession.mockReturnValue(session);
     bracketFetch = mock<TpBracketFetchService>();
-    inscriptionsFetch = mock<TpInscriptionsFetchService>();
     awardsFetch = mock<TpAwardsFetchService>();
-    teamImport = mock<TpLiveTeamImportService>();
+    participantsBackfill = mock<TpCompetitionParticipantsBackfillService>();
     competitionImport = mock<TpCompetitionImportService>();
     bracketFetch.fetchBracket.mockResolvedValue(BRACKET);
-    inscriptionsFetch.fetchParticipantRosterIds.mockResolvedValue([
-      163386, 179769,
-    ]);
-    teamImport.importTeam.mockResolvedValue(teamImported);
+    participantsBackfill.importRegisteredTeams.mockResolvedValue(
+      registered(teamImported, teamImported),
+    );
     awardsFetch.fetchAwards.mockResolvedValue([AWARD]);
     competitionImport.importCompetition.mockResolvedValue(CORE);
     const moduleRef = await Test.createTestingModule({
@@ -91,9 +107,11 @@ describe('TpLiveCompetitionImportService', () => {
         TpImportResultsService,
         { provide: TpFetcherService, useValue: fetcher },
         { provide: TpBracketFetchService, useValue: bracketFetch },
-        { provide: TpInscriptionsFetchService, useValue: inscriptionsFetch },
         { provide: TpAwardsFetchService, useValue: awardsFetch },
-        { provide: TpLiveTeamImportService, useValue: teamImport },
+        {
+          provide: TpCompetitionParticipantsBackfillService,
+          useValue: participantsBackfill,
+        },
         { provide: TpCompetitionImportService, useValue: competitionImport },
       ],
     }).compile();
@@ -107,7 +125,7 @@ describe('TpLiveCompetitionImportService', () => {
       externalSystemName: EXTERNAL_SYSTEM_NAME,
     });
 
-  it('fetches the bracket and inscriptions, imports each team, fetches the awards, then imports the competition, through one session', async () => {
+  it('fetches the bracket, imports the registered teams, fetches the awards, then imports the competition, through one session', async () => {
     await expect(importCompetition()).resolves.toEqual({
       competition: one,
       teams: [
@@ -123,20 +141,9 @@ describe('TpLiveCompetitionImportService', () => {
       errors: [],
       session,
     });
-    expect(inscriptionsFetch.fetchParticipantRosterIds).toHaveBeenCalledWith({
+    expect(participantsBackfill.importRegisteredTeams).toHaveBeenCalledWith({
       tournamentSlug: 's30',
       categoryIds: [22308],
-      errors: [],
-      session,
-    });
-    expect(teamImport.importTeam).toHaveBeenNthCalledWith(1, {
-      rosterId: 163386,
-      era: 'Fourth era',
-      externalSystemName: EXTERNAL_SYSTEM_NAME,
-      session,
-    });
-    expect(teamImport.importTeam).toHaveBeenNthCalledWith(2, {
-      rosterId: 179769,
       era: 'Fourth era',
       externalSystemName: EXTERNAL_SYSTEM_NAME,
       session,
@@ -170,6 +177,9 @@ describe('TpLiveCompetitionImportService', () => {
     expect(bracketFetch.fetchBracket).toHaveBeenCalledWith(
       expect.objectContaining({ session: given }),
     );
+    expect(participantsBackfill.importRegisteredTeams).toHaveBeenCalledWith(
+      expect.objectContaining({ session: given }),
+    );
   });
 
   it('reports a bracket fetch failure and attempts nothing else', async () => {
@@ -185,17 +195,16 @@ describe('TpLiveCompetitionImportService', () => {
       trophyAwards: nothing,
       era: undefined,
     });
-    expect(inscriptionsFetch.fetchParticipantRosterIds).not.toHaveBeenCalled();
+    expect(participantsBackfill.importRegisteredTeams).not.toHaveBeenCalled();
     expect(competitionImport.importCompetition).not.toHaveBeenCalled();
   });
 
   it('still imports the competition when the inscriptions fetch fails, with no teams and no awards', async () => {
-    inscriptionsFetch.fetchParticipantRosterIds.mockImplementation(
-      ({ errors }) => {
-        errors.push(fetchFailure);
-        return Promise.resolve(undefined);
-      },
-    );
+    participantsBackfill.importRegisteredTeams.mockResolvedValue({
+      rosterIds: undefined,
+      teams: [],
+      errors: [fetchFailure],
+    });
     competitionImport.importCompetition.mockResolvedValue({
       competition: one,
       participation: nothing,
@@ -205,7 +214,6 @@ describe('TpLiveCompetitionImportService', () => {
 
     const result = await importCompetition();
 
-    expect(teamImport.importTeam).not.toHaveBeenCalled();
     expect(awardsFetch.fetchAwards).not.toHaveBeenCalled();
     expect(competitionImport.importCompetition).toHaveBeenCalledWith(
       expect.objectContaining({ participantRosterIds: [], awards: [] }),
@@ -241,9 +249,9 @@ describe('TpLiveCompetitionImportService', () => {
   });
 
   it('keeps going when a team cannot be imported, reporting it in teams', async () => {
-    teamImport.importTeam
-      .mockResolvedValueOnce(teamNotImported)
-      .mockResolvedValueOnce(teamImported);
+    participantsBackfill.importRegisteredTeams.mockResolvedValue(
+      registered(teamNotImported, teamImported),
+    );
 
     const result = await importCompetition();
 
@@ -299,12 +307,9 @@ describe('TpLiveCompetitionImportService', () => {
     it('imports each team without forcing an era, then imports the competition under the era they agree on', async () => {
       const result = await importWithoutEra();
 
-      expect(teamImport.importTeam).toHaveBeenNthCalledWith(1, {
-        rosterId: 163386,
-        era: undefined,
-        externalSystemName: EXTERNAL_SYSTEM_NAME,
-        session,
-      });
+      expect(participantsBackfill.importRegisteredTeams).toHaveBeenCalledWith(
+        expect.objectContaining({ era: undefined }),
+      );
       expect(competitionImport.importCompetition).toHaveBeenCalledWith(
         expect.objectContaining({ era: 'Fourth era' }),
       );
@@ -313,9 +318,9 @@ describe('TpLiveCompetitionImportService', () => {
     });
 
     it('ignores a team that resolved no era when the others agree', async () => {
-      teamImport.importTeam
-        .mockResolvedValueOnce(teamNotImported)
-        .mockResolvedValueOnce(teamImported);
+      participantsBackfill.importRegisteredTeams.mockResolvedValue(
+        registered(teamNotImported, teamImported),
+      );
 
       const result = await importWithoutEra();
 
@@ -327,9 +332,9 @@ describe('TpLiveCompetitionImportService', () => {
 
     it('fails the competition stage when the teams resolved different eras, keeping the teams', async () => {
       const fifthEraTeam = { ...teamImported, era: 'Fifth era' };
-      teamImport.importTeam
-        .mockResolvedValueOnce(teamImported)
-        .mockResolvedValueOnce(fifthEraTeam);
+      participantsBackfill.importRegisteredTeams.mockResolvedValue(
+        registered(teamImported, fifthEraTeam),
+      );
 
       await expect(importWithoutEra()).resolves.toEqual({
         competition: noEraFailure(
@@ -348,7 +353,9 @@ describe('TpLiveCompetitionImportService', () => {
     });
 
     it('fails the competition stage when no team resolved an era', async () => {
-      teamImport.importTeam.mockResolvedValue(teamNotImported);
+      participantsBackfill.importRegisteredTeams.mockResolvedValue(
+        registered(teamNotImported, teamNotImported),
+      );
 
       const result = await importWithoutEra();
 
@@ -358,22 +365,24 @@ describe('TpLiveCompetitionImportService', () => {
     });
 
     it('fails the competition stage when the competition has no registered teams', async () => {
-      inscriptionsFetch.fetchParticipantRosterIds.mockResolvedValue([]);
+      participantsBackfill.importRegisteredTeams.mockResolvedValue({
+        rosterIds: [],
+        teams: [],
+        errors: [],
+      });
 
       const result = await importWithoutEra();
 
-      expect(teamImport.importTeam).not.toHaveBeenCalled();
       expect(result.competition).toEqual(noEraFailure(NO_REGISTERED_TEAMS));
       expect(result.era).toBeUndefined();
     });
 
     it('keeps an inscriptions fetch failure in participation when it leaves no era to resolve', async () => {
-      inscriptionsFetch.fetchParticipantRosterIds.mockImplementation(
-        ({ errors }) => {
-          errors.push(fetchFailure);
-          return Promise.resolve(undefined);
-        },
-      );
+      participantsBackfill.importRegisteredTeams.mockResolvedValue({
+        rosterIds: undefined,
+        teams: [],
+        errors: [fetchFailure],
+      });
 
       const result = await importWithoutEra();
 
