@@ -10,6 +10,7 @@ import { TpCompetitionUpsertService } from '../competition/tp-competition-upsert
 import { TpMatchImportService } from '../match/tp-match-import.service';
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpBracketFetchService } from './tp-bracket-fetch.service';
+import { TpLiveStarPlayerHiresService } from './tp-live-star-player-hires.service';
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
 import { TpLiveTeamImportService } from './tp-live-team-import.service';
 import { TpMatchFetchService } from './tp-match-fetch.service';
@@ -41,6 +42,8 @@ export interface TpLiveMatchImportResult {
   competition: ImportResult;
   homeTeam: TpLiveTeamImportResult;
   awayTeam: TpLiveTeamImportResult;
+  /** The star players either team hired through the match's inducements. */
+  starPlayerHires: ImportResult;
   /** The match fetch, completion check, and the match row itself. */
   match: ImportResult;
   participation: ImportResult;
@@ -55,6 +58,7 @@ export class TpLiveMatchImportService {
     private readonly matchFetch: TpMatchFetchService,
     private readonly bracketFetch: TpBracketFetchService,
     private readonly teamImport: TpLiveTeamImportService,
+    private readonly starPlayerHires: TpLiveStarPlayerHiresService,
     private readonly competitionUpsert: TpCompetitionUpsertService,
     private readonly matchImport: TpMatchImportService,
     private readonly importResults: TpImportResultsService,
@@ -63,7 +67,8 @@ export class TpLiveMatchImportService {
   /**
    * Import one completed match from TP's live API: fetch it, import both its
    * teams live (always, keeping their rosters current; the away team in the
-   * era the home team was imported under), fetch its tournament's whole
+   * era the home team was imported under), import the star players either team
+   * hired through the match's inducements, fetch its tournament's whole
    * bracket and upsert the competition, then import the match through the
    * same server-side core `tpMatches.import` uses. Only the requested match
    * is imported; its bracket siblings are used for classification and the
@@ -120,6 +125,13 @@ export class TpLiveMatchImportService {
         return { ...this.nothingImported(), homeTeam, awayTeam };
       }
 
+      const starPlayerHires = await this.starPlayerHires.importHires({
+        match,
+        homeTeamEra: homeTeam.teamEra,
+        awayTeamEra: awayTeam.teamEra,
+        externalSystemName,
+      });
+
       const competitionErrors: ImportError[] = [];
       const bracket = await this.bracketFetch.fetchBracket({
         tournamentSlug,
@@ -141,7 +153,13 @@ export class TpLiveMatchImportService {
         errors: competitionErrors,
       });
       if (bracket === undefined || upserted === undefined) {
-        return { ...this.nothingImported(), homeTeam, awayTeam, competition };
+        return {
+          ...this.nothingImported(),
+          homeTeam,
+          awayTeam,
+          starPlayerHires,
+          competition,
+        };
       }
 
       const core = await this.matchImport.importMatch({
@@ -150,7 +168,7 @@ export class TpLiveMatchImportService {
         competitionTpId: bracket.tournament.id,
         externalSystemName,
       });
-      return { competition, homeTeam, awayTeam, ...core };
+      return { competition, homeTeam, awayTeam, starPlayerHires, ...core };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       return {
@@ -183,6 +201,7 @@ export class TpLiveMatchImportService {
       competition: nothing(),
       homeTeam: noTeam(),
       awayTeam: noTeam(),
+      starPlayerHires: nothing(),
       match: nothing(),
       participation: nothing(),
       events: nothing(),

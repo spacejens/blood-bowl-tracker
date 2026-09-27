@@ -38,6 +38,7 @@ const MATCH_RESULT: TpLiveMatchImportResult = {
   competition: one,
   homeTeam: TEAM_RESULT,
   awayTeam: TEAM_RESULT,
+  starPlayerHires: one,
   match: one,
   participation: one,
   events: one,

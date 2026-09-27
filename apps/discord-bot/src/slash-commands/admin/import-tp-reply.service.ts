@@ -153,6 +153,7 @@ export class ImportTpReplyService {
         { label: 'Home players', result: result.homeTeam.players },
         { label: 'Away team', result: result.awayTeam.team },
         { label: 'Away players', result: result.awayTeam.players },
+        { label: 'Star player hires', result: result.starPlayerHires },
         { label: 'Match', result: result.match },
         { label: 'Participation', result: result.participation },
         { label: 'Events', result: result.events },
