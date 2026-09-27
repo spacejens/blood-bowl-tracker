@@ -65,6 +65,14 @@ under `TP_EXTERNAL_SYSTEM_NAME`, which must match that tool's configured
 external system name. See [import-tp-live](../../import-tp-live/index.md)
 for what each import needs to already be in the database.
 
+A backfill fetches every completed match one at a time, paced the same way
+every other TP fetch is. On a competition with a very large number of
+completed matches, this can take long enough that Discord's interaction
+token expires before the reply is sent — the import still finishes and its
+data still lands, but the admin sees no reply for it. Checking whether the
+import worked then means looking at the data or the server logs directly,
+not the command's reply.
+
 ## Retriggering
 
 `/importtp` appears in [`/debuginteractions`](debug-interactions.md)' listing
