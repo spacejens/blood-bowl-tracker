@@ -25,6 +25,7 @@ const TEAM_RESULT: TpLiveTeamImportResult = {
   team: one,
   players: one,
   era: 'Fourth era',
+  teamEra: { id: 31, eraId: 40 },
 };
 const COMPETITION_RESULT: TpLiveCompetitionImportResult = {
   competition: one,
@@ -37,6 +38,7 @@ const MATCH_RESULT: TpLiveMatchImportResult = {
   competition: one,
   homeTeam: TEAM_RESULT,
   awayTeam: TEAM_RESULT,
+  starPlayerHires: one,
   match: one,
   participation: one,
   events: one,

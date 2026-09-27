@@ -30,6 +30,8 @@ export type {
   TpLiveOfficialTeamsRulesSetResult,
 } from './live/tp-live-official-teams-import.service';
 export { TpLiveOfficialTeamsImportService } from './live/tp-live-official-teams-import.service';
+export type { ImportStarPlayerHiresOptions } from './live/tp-live-star-player-hires.service';
+export { TpLiveStarPlayerHiresService } from './live/tp-live-star-player-hires.service';
 export type {
   ImportTeamOptions,
   TpLiveTeamImportResult,
@@ -54,6 +56,7 @@ export { TpRosterModule } from './roster/tp-roster.module';
 export type {
   ImportRawRosterOptions,
   ImportRosterOptions,
+  TpRosterImportOutcome,
 } from './roster/tp-roster-import.service';
 export { TpRosterImportService } from './roster/tp-roster-import.service';
 export type { TpConnectionProvider } from './tp-import-providers';
