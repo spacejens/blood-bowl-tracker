@@ -123,6 +123,21 @@ describe('TpCompetitionUpsertService', () => {
     expect(errors).toEqual([]);
   });
 
+  it('reports whether the upsert created the competition', async () => {
+    competitions.upsert.mockResolvedValue({
+      competition: mock<CompetitionWithTeamEras>({
+        id: 12,
+        eraId: 40,
+        competitionGroupId: 7,
+      }),
+      created: true,
+    });
+
+    await expect(upsert()).resolves.toEqual(
+      upsertedCompetition({ created: true }),
+    );
+  });
+
   it('registers the TP system under the name it is given', async () => {
     await upsert('tourplay');
 

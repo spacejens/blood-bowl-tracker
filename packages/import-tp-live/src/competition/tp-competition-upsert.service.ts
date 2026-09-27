@@ -67,6 +67,12 @@ export interface UpsertedTpCompetition {
   eraId: number;
   /** The competition's curated group. */
   competitionGroupId: number;
+  /**
+   * Whether this upsert created the competition, rather than updating one
+   * already imported. Read only by the live imports, to decide whether to
+   * backfill a brand-new competition's matches and teams.
+   */
+  created: boolean;
 }
 
 @Injectable()
@@ -194,6 +200,7 @@ export class TpCompetitionUpsertService {
       competitionTpId: tournament.id,
       eraId: upserted.competition.eraId,
       competitionGroupId: upserted.competition.competitionGroupId,
+      created: upserted.created,
     };
   }
 
