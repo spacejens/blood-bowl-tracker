@@ -9,6 +9,7 @@ import {
   extractFilterValues,
   extractJoinColumns,
   firstCallArg,
+  sqlText,
 } from '../shared/query-assertions.test-helpers';
 import {
   CompetitionGroupsService,
@@ -70,6 +71,80 @@ describe('CompetitionGroupsService', () => {
     expect(db.chains[1].set).toHaveBeenCalledWith({
       name: 'Chaos Cup',
       leagueId: 3,
+    });
+  });
+
+  it('writes a name pattern onto the group', async () => {
+    const updated = {
+      id: 7,
+      name: 'Chaos Cup',
+      leagueId: 3,
+      namePattern: '^Chaos Cup$',
+    };
+    const { service, db } = await makeService(
+      [{ ownerId: 7, externalSystemId: 2, externalId: 'Chaos Cup' }],
+      [updated],
+    );
+
+    await service.upsert({
+      name: 'Chaos Cup',
+      leagueId: 3,
+      namePattern: '^Chaos Cup$',
+      externalIds,
+    });
+
+    expect(db.chains[1].set).toHaveBeenCalledWith({
+      name: 'Chaos Cup',
+      leagueId: 3,
+      namePattern: '^Chaos Cup$',
+    });
+  });
+
+  it('clears a name pattern given an explicit null', async () => {
+    const updated = {
+      id: 7,
+      name: 'Chaos Cup',
+      leagueId: 3,
+      namePattern: null,
+    };
+    const { service, db } = await makeService(
+      [{ ownerId: 7, externalSystemId: 2, externalId: 'Chaos Cup' }],
+      [updated],
+    );
+
+    await service.upsert({
+      name: 'Chaos Cup',
+      leagueId: 3,
+      namePattern: null,
+      externalIds,
+    });
+
+    expect(db.chains[1].set).toHaveBeenCalledWith({
+      name: 'Chaos Cup',
+      leagueId: 3,
+      namePattern: null,
+    });
+  });
+
+  describe('listWithNamePatterns', () => {
+    it('lists only the groups that carry a name pattern', async () => {
+      const { service, db } = await makeService([
+        { id: 1, name: 'Chaos Cup', namePattern: '^Chaos Cup$' },
+        { id: 2, name: 'Fright Night', namePattern: null },
+      ]);
+
+      await expect(service.listWithNamePatterns()).resolves.toEqual([
+        { id: 1, name: 'Chaos Cup', namePattern: '^Chaos Cup$' },
+      ]);
+      expect(db.chains[0].from).toHaveBeenCalledWith(competitionGroups);
+      expect(
+        Object.keys(
+          firstCallArg(db.db.select) as Record<string, unknown>,
+        ).sort(),
+      ).toEqual(['id', 'name', 'namePattern']);
+      expect(sqlText(firstCallArg(db.chains[0].where))).toContain(
+        'is not null',
+      );
     });
   });
 

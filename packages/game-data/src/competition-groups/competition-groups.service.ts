@@ -13,6 +13,7 @@ import {
   DB,
   eq,
   ilike,
+  isNotNull,
   leagues,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
@@ -54,6 +55,28 @@ export class CompetitionGroupsService {
         createdAt: competitionGroups.createdAt,
       })
       .from(competitionGroups);
+  }
+
+  /**
+   * Every group that carries a name pattern, for TP competition import to
+   * match a brand-new competition's raw name against. A group without one is
+   * left out: it is never auto-matched. The SQL filter already drops null
+   * patterns; the narrowing below only tells TypeScript so.
+   */
+  async listWithNamePatterns(): Promise<
+    { id: number; name: string; namePattern: string }[]
+  > {
+    const rows = await this.db
+      .select({
+        id: competitionGroups.id,
+        name: competitionGroups.name,
+        namePattern: competitionGroups.namePattern,
+      })
+      .from(competitionGroups)
+      .where(isNotNull(competitionGroups.namePattern));
+    return rows.flatMap(({ id, name, namePattern }) =>
+      namePattern === null ? [] : [{ id, name, namePattern }],
+    );
   }
 
   /** One competition group's deepdive header, or `undefined` when no such group exists. */
@@ -172,7 +195,11 @@ export class CompetitionGroupsService {
       db: this.db,
       entityTable: competitionGroups,
       entityIdColumn: competitionGroups.id,
-      values: { name: data.name, leagueId: data.leagueId },
+      values: {
+        name: data.name,
+        leagueId: data.leagueId,
+        namePattern: data.namePattern,
+      },
       externalIdTable: competitionGroupExternalIds,
       ownerIdColumn: competitionGroupExternalIds.competitionGroupId,
       externalSystemIdColumn: competitionGroupExternalIds.externalSystemId,

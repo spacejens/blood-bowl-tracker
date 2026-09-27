@@ -61,4 +61,31 @@ describe('UpsertCompetitionGroupSchema', () => {
       }),
     ).toEqual({ name: 'Chaos Cup', leagueId: 1, externalIds });
   });
+
+  it('accepts an optional name pattern, or null to clear it', () => {
+    expect(
+      UpsertCompetitionGroupSchema.parse({
+        name: 'Chaos Cup',
+        leagueId: 1,
+        namePattern: '^Chaos Cup$',
+        externalIds,
+      }).namePattern,
+    ).toBe('^Chaos Cup$');
+    expect(
+      UpsertCompetitionGroupSchema.parse({
+        name: 'Chaos Cup',
+        leagueId: 1,
+        namePattern: null,
+        externalIds,
+      }).namePattern,
+    ).toBeNull();
+    expect(
+      UpsertCompetitionGroupSchema.safeParse({
+        name: 'Chaos Cup',
+        leagueId: 1,
+        namePattern: '',
+        externalIds,
+      }).success,
+    ).toBe(false);
+  });
 });

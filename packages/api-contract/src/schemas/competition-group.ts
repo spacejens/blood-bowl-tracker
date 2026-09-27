@@ -27,6 +27,11 @@ export const CompetitionGroupSchema = z.object({
 export const UpsertCompetitionGroupSchema = z.object({
   name: z.string().min(1),
   leagueId: z.number().int(),
+  // The regular expression TP competition import matches a new competition's
+  // raw name against. Optional so a caller that does not know about it leaves
+  // the stored value alone; tools/import-manual always restates it, sending
+  // null for a group curated without one so removing a pattern clears it.
+  namePattern: z.string().min(1).nullable().optional(),
   externalIds: z.array(ExternalIdSchema).min(1),
 });
 
