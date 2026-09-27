@@ -19,6 +19,9 @@ import {
 import { TpImportResultsService } from '../tp-import-results.service';
 import type { TpBracket } from './tp-bracket-fetch.service';
 import { TpBracketFetchService } from './tp-bracket-fetch.service';
+import { TpCompetitionMatchesBackfillService } from './tp-competition-matches-backfill.service';
+import type { TpParticipantsBackfillResult } from './tp-competition-participants-backfill.service';
+import { TpCompetitionParticipantsBackfillService } from './tp-competition-participants-backfill.service';
 import { TpLiveMatchImportService } from './tp-live-match-import.service';
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
 import type { TpMatchTeamsImport } from './tp-match-data-import.service';
@@ -70,6 +73,16 @@ const CORE: TpMatchImportResult = {
   events: { success: true, imported: 14, errors: [] },
   outcome: one,
 };
+const PARTICIPANTS_BACKFILL: TpParticipantsBackfillResult = {
+  teams: [{ rosterId: 163386, ...teamImported }],
+  participation: one,
+  trophyAwards: nothing,
+};
+const MATCHES_BACKFILL: ImportResult = {
+  success: true,
+  imported: 1,
+  errors: [],
+};
 
 describe('TpLiveMatchImportService', () => {
   let service: TpLiveMatchImportService;
@@ -78,6 +91,8 @@ describe('TpLiveMatchImportService', () => {
   let bracketFetch: MockProxy<TpBracketFetchService>;
   let competitionUpsert: MockProxy<TpCompetitionUpsertService>;
   let matchData: MockProxy<TpMatchDataImportService>;
+  let participantsBackfill: MockProxy<TpCompetitionParticipantsBackfillService>;
+  let matchesBackfill: MockProxy<TpCompetitionMatchesBackfillService>;
 
   beforeEach(async () => {
     fetcher = mock<TpFetcherService>();
@@ -92,6 +107,10 @@ describe('TpLiveMatchImportService', () => {
       upsertedCompetition(),
     );
     matchData.writeMatch.mockResolvedValue(CORE);
+    participantsBackfill = mock<TpCompetitionParticipantsBackfillService>();
+    matchesBackfill = mock<TpCompetitionMatchesBackfillService>();
+    participantsBackfill.backfill.mockResolvedValue(PARTICIPANTS_BACKFILL);
+    matchesBackfill.backfill.mockResolvedValue(MATCHES_BACKFILL);
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpLiveMatchImportService,
@@ -103,6 +122,14 @@ describe('TpLiveMatchImportService', () => {
           useValue: competitionUpsert,
         },
         { provide: TpMatchDataImportService, useValue: matchData },
+        {
+          provide: TpCompetitionParticipantsBackfillService,
+          useValue: participantsBackfill,
+        },
+        {
+          provide: TpCompetitionMatchesBackfillService,
+          useValue: matchesBackfill,
+        },
       ],
     }).compile();
     service = moduleRef.get(TpLiveMatchImportService);
@@ -251,6 +278,73 @@ describe('TpLiveMatchImportService', () => {
           message: `Unexpected error importing match ${MATCH_TP_ID}: db down`,
         },
       ],
+    });
+  });
+
+  it('backfills nothing when the competition was already imported', async () => {
+    const result = await importMatch();
+
+    expect(participantsBackfill.backfill).not.toHaveBeenCalled();
+    expect(matchesBackfill.backfill).not.toHaveBeenCalled();
+    expect(result).not.toHaveProperty('participantsBackfill');
+    expect(result).not.toHaveProperty('matchesBackfill');
+  });
+
+  describe('when its competition upsert created the competition', () => {
+    beforeEach(() => {
+      competitionUpsert.upsertCompetition.mockResolvedValue(
+        upsertedCompetition({ created: true }),
+      );
+    });
+
+    it("backfills the competition's registered teams, then every completed match, after importing its own match", async () => {
+      await expect(importMatch()).resolves.toEqual({
+        competition: one,
+        homeTeam: teamImported,
+        awayTeam: teamImported,
+        ...CORE,
+        participantsBackfill: PARTICIPANTS_BACKFILL,
+        matchesBackfill: MATCHES_BACKFILL,
+      });
+      expect(participantsBackfill.backfill).toHaveBeenCalledWith({
+        tournamentSlug: 's30',
+        categoryIds: [22308],
+        era: 'Fourth era',
+        externalSystemName: EXTERNAL_SYSTEM_NAME,
+        session,
+        competition: upsertedCompetition({ created: true }),
+      });
+      expect(matchesBackfill.backfill).toHaveBeenCalledWith({
+        tournamentSlug: 's30',
+        era: 'Fourth era',
+        externalSystemName: EXTERNAL_SYSTEM_NAME,
+        session,
+        bracket: BRACKET,
+      });
+      const [writeOrder] = matchData.writeMatch.mock.invocationCallOrder;
+      const [participantsOrder] =
+        participantsBackfill.backfill.mock.invocationCallOrder;
+      const [matchesOrder] = matchesBackfill.backfill.mock.invocationCallOrder;
+      expect(writeOrder).toBeLessThan(participantsOrder);
+      expect(participantsOrder).toBeLessThan(matchesOrder);
+    });
+
+    it('still backfills when its own match row could not be written', async () => {
+      matchData.writeMatch.mockResolvedValue({
+        match: {
+          success: false,
+          imported: 0,
+          errors: [{ item: 1, message: 'unclassifiable' }],
+        },
+        participation: nothing,
+        events: nothing,
+        outcome: nothing,
+      });
+
+      const result = await importMatch();
+
+      expect(result.match.imported).toBe(0);
+      expect(result.matchesBackfill).toEqual(MATCHES_BACKFILL);
     });
   });
 });

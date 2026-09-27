@@ -9,6 +9,9 @@ import { Injectable } from '@nestjs/common';
 import { TpCompetitionUpsertService } from '../competition/tp-competition-upsert.service';
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpBracketFetchService } from './tp-bracket-fetch.service';
+import { TpCompetitionMatchesBackfillService } from './tp-competition-matches-backfill.service';
+import type { TpParticipantsBackfillResult } from './tp-competition-participants-backfill.service';
+import { TpCompetitionParticipantsBackfillService } from './tp-competition-participants-backfill.service';
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
 import { TpMatchDataImportService } from './tp-match-data-import.service';
 
@@ -44,6 +47,18 @@ export interface TpLiveMatchImportResult {
   participation: ImportResult;
   events: ImportResult;
   outcome: ImportResult;
+  /**
+   * Importing the competition's registered teams, linking them and
+   * recording its awards. Present only when this import created the
+   * competition.
+   */
+  participantsBackfill?: TpParticipantsBackfillResult;
+  /**
+   * Importing every completed match of the competition's bracket, this
+   * match included again. Present only when this import created the
+   * competition.
+   */
+  matchesBackfill?: ImportResult;
 }
 
 @Injectable()
@@ -53,6 +68,8 @@ export class TpLiveMatchImportService {
     private readonly bracketFetch: TpBracketFetchService,
     private readonly competitionUpsert: TpCompetitionUpsertService,
     private readonly matchData: TpMatchDataImportService,
+    private readonly participantsBackfill: TpCompetitionParticipantsBackfillService,
+    private readonly matchesBackfill: TpCompetitionMatchesBackfillService,
     private readonly importResults: TpImportResultsService,
   ) {}
 
@@ -61,9 +78,14 @@ export class TpLiveMatchImportService {
    * teams live (always, keeping their rosters current; the away team in the
    * era the home team was imported under), fetch its tournament's whole
    * bracket and upsert the competition, then import the match through the
-   * same server-side core `tpMatches.import` uses. Only the requested match
-   * is imported; its bracket siblings are used for classification and the
-   * competition's dates only. Every failure is reported in the returned
+   * same server-side core `tpMatches.import` uses. When this import creates
+   * the competition, it then backfills the competition's registered teams
+   * (with their participation links and its trophy awards) and every
+   * completed match of the bracket, the requested match included again
+   * (harmless: every write is an upsert); otherwise only the requested match
+   * is imported, its bracket siblings used for classification and the
+   * competition's dates only. The backfills report their own failures and
+   * never fail this import. Every failure is reported in the returned
    * results, never thrown; a stage whose prerequisite failed is not
    * attempted and reports nothing imported.
    */
@@ -122,7 +144,31 @@ export class TpLiveMatchImportService {
         bracket,
         externalSystemName,
       });
-      return { competition, homeTeam, awayTeam, ...core };
+      const imported: TpLiveMatchImportResult = {
+        competition,
+        homeTeam,
+        awayTeam,
+        ...core,
+      };
+      if (!upserted.created) {
+        return imported;
+      }
+      const participantsBackfill = await this.participantsBackfill.backfill({
+        tournamentSlug,
+        categoryIds: bracket.tournament.categoryIds,
+        era: ready.era,
+        externalSystemName,
+        session: visit,
+        competition: upserted,
+      });
+      const matchesBackfill = await this.matchesBackfill.backfill({
+        tournamentSlug,
+        era: ready.era,
+        externalSystemName,
+        session: visit,
+        bracket,
+      });
+      return { ...imported, participantsBackfill, matchesBackfill };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       return {
