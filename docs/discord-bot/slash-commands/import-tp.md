@@ -18,11 +18,12 @@ gates the maintainer commands.
 
 - `url` — required. The TP page to import. It must be under the configured
   `TP_FRONTEND_BASE_URL` (normally `https://tourplay.net/en/blood-bowl/`):
-  a competition page (`<base><tournament>`), a match page
+  a competition page (`<base><tournament>`, or any page under it such as
+  `<base><tournament>/news`), a competition's scores page
+  (`<base><tournament>/scores`), a match page
   (`<base><tournament>/match/<id>`), a team roster page
   (`<base>roster/<id>`) or the official teams page (`<base>teams`). Anything
-  else gets a private error naming these four kinds, and nothing is
-  imported.
+  else gets a private error saying so, and nothing is imported.
 - `era` — optional. The era to import under, by name. Omitted, it is
   resolved automatically: a team from its race's one ongoing era, a match
   from its home team, and a competition from the one era its registered
@@ -31,6 +32,13 @@ gates the maintainer commands.
   official team list has no era and ignores this argument.
 
 The official teams page always imports every rules set TP has.
+
+A competition imported for the first time — by its competition page, or as
+a side effect of importing one of its matches — also has every completed
+match TP already records for it imported; a match import that creates its
+competition imports the competition's registered teams too. To backfill the
+completed matches of a competition that was already imported, give its
+scores page URL: that always runs the match backfill.
 
 ## The reply
 
@@ -48,7 +56,8 @@ one embed titled after the page imported, starting with a status:
 
 Below it, a line per import stage says how much it imported (for a
 competition, match or team, also the era used), and an **Errors** section lists
-every problem reported, labelled by stage. A very long reply is cut off at
+every problem reported, labelled by stage. Any backfill the import ran gets
+its own lines after the import's own stages. A very long reply is cut off at
 Discord's embed limit.
 
 It uses the same import code as `tools/import-tp`'s bulk import, registered

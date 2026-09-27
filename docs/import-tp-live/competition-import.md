@@ -33,6 +33,9 @@ const result = await tpLiveCompetitionImportService.importCompetition({
 - `session`: optional. A `packages/scrape-tp` session to fetch through, so
   every request of the import is paced as one visit. A fresh session is
   started when omitted.
+- `forceMatchBackfill`: optional, default false. Backfill every completed
+  match of the competition even when it was already imported (see stage 7
+  below). `/importtp` sets it for a competition's scores page.
 
 The import runs these stages in order. Each is reported in the result even
 when an earlier one fails:
@@ -53,6 +56,13 @@ when an earlier one fails:
 5. **Fetch the awards**, the way TP's awards page does. An unfinished
    competition has none yet. That is not an error, and nothing is awarded.
 6. **The shared core**, below.
+7. **Backfill the completed matches** — only when the shared core newly
+   created the competition, or `forceMatchBackfill` is set, and the
+   competition was imported. Every bracket match with a recorded result is
+   imported one at a time through the same session, exactly as a live
+   match import imports its own match (fetch it, import both teams, write
+   it), reusing the bracket already fetched in step 1. Matches not played
+   yet are skipped. Re-importing an already-imported match is harmless.
 
 A failed inscriptions fetch still imports the competition, with no teams
 linked and no awards — when `era` is given explicitly; without one, a failed
@@ -65,7 +75,9 @@ The result carries `competition`, `participation` and `trophyAwards` (one
 `ImportResult` each), `teams`: one live team import result per registered
 team, with its `rosterId`, and `era`: the era the competition was imported
 under — the given one or the one the teams agreed on — or undefined when the
-import stopped before settling one.
+import stopped before settling one. When step 7 ran, the result also carries
+`matchesBackfill`: one `ImportResult` counting the matches written and
+holding every backfilled match's errors.
 
 A team whose coach was never imported before is still imported: the live
 team import creates the coach from the roster's own coach id and name, with
@@ -84,7 +96,9 @@ already-fetched, already-parsed input:
   external id kept in sync (a live match import's own upsert leaves the
   stored era, type and dates alone). It never sends a competition group, so
   a competition not already curated by `tools/import-manual` cannot be
-  created.
+  created. It also reports whether the competition was newly created; the
+  live import reads that to decide on step 7, and the `tpCompetitions.import`
+  procedure drops it.
 - **Participation**: each registered roster is resolved to its team, and
   then to that team's era in the competition's era. Every resolved team era
   is added to the competition (`competition_teams`). The sync only ever
@@ -142,3 +156,4 @@ Neither entry point throws for an import problem. Every failure is one
 | Award for a team that is not a linked participant                                                | `trophyAwards`                                        |
 | Unresolvable trophy key                                                                          | `trophyAwards`, once per key; further rows summarized |
 | Trophy award upsert failure                                                                      | `trophyAwards`                                        |
+| A backfilled match's fetch, team import or write fails; live only                                | `matchesBackfill`; the other matches still import     |
