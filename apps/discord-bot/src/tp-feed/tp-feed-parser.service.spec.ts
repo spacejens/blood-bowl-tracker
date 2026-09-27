@@ -268,7 +268,9 @@ describe('TpFeedParserService', () => {
     });
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('author.url'));
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('url did not match the expected shape'),
+    );
   });
 
   it('warns and reports unrecognized when a score is not a number', () => {
@@ -474,7 +476,9 @@ describe('TpFeedParserService', () => {
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('match-end'));
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('author.url'));
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('url did not match the expected shape'),
+    );
   });
 
   it('warns and reports unrecognized when a skill notification has a malformed player field', () => {
