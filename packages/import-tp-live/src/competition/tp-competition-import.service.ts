@@ -28,6 +28,18 @@ export interface ImportCompetitionOptions {
 }
 
 /**
+ * What {@link TpCompetitionImportService.importCompetition} did: the
+ * `tpCompetitions.import` contract's stages, plus whether the competition
+ * row was newly created. The flag is read only by the live competition
+ * import; the `tpCompetitions.import` route drops it, so nothing on the
+ * bulk path reads it.
+ */
+export interface TpCoreCompetitionImportResult extends TpCompetitionImportResult {
+  /** True only when this call created the competition. */
+  competitionCreated: boolean;
+}
+
+/**
  * Imports one TP competition straight into the database: the shared core of
  * the live import (TpLiveCompetitionImportService) and the
  * `tpCompetitions.import` procedure tools/import-tp's bulk run calls once per
@@ -53,7 +65,9 @@ export class TpCompetitionImportService {
    * live match import's own incidental competition upsert does not, since it
    * only knows one match's date. A stage whose prerequisite failed is not
    * attempted and reports nothing imported: nothing is linked without a
-   * competition, and no award is recorded when the team link failed.
+   * competition, and no award is recorded when the team link failed. The
+   * result also says whether the competition was newly created; nothing
+   * here acts on that.
    */
   async importCompetition({
     tournament,
@@ -62,7 +76,7 @@ export class TpCompetitionImportService {
     participantRosterIds,
     awards,
     externalSystemName,
-  }: ImportCompetitionOptions): Promise<TpCompetitionImportResult> {
+  }: ImportCompetitionOptions): Promise<TpCoreCompetitionImportResult> {
     const competitionErrors: ImportError[] = [];
     const competition = await this.upsert.upsertCompetition({
       tournament,
@@ -81,8 +95,10 @@ export class TpCompetitionImportService {
         competition: competitionResult,
         participation: this.nothing(),
         trophyAwards: this.nothing(),
+        competitionCreated: false,
       };
     }
+    const competitionCreated = competition.created;
 
     const participationErrors: ImportError[] = [];
     const teamEraIdsByRosterId = await this.participants.linkParticipants({
@@ -99,6 +115,7 @@ export class TpCompetitionImportService {
         competition: competitionResult,
         participation,
         trophyAwards: this.nothing(),
+        competitionCreated,
       };
     }
 
@@ -116,6 +133,7 @@ export class TpCompetitionImportService {
         imported: awarded,
         errors: trophyErrors,
       }),
+      competitionCreated,
     };
   }
 

@@ -1,7 +1,6 @@
 import type {
   ImportError,
   ImportResult,
-  TpCompetitionImportResult,
 } from '@blood-bowl-tracker/api-contract';
 import type { TpAward } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
@@ -11,6 +10,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
+import type { TpCoreCompetitionImportResult } from '../competition/tp-competition-import.service';
 import { TpCompetitionImportService } from '../competition/tp-competition-import.service';
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpAwardsFetchService } from './tp-awards-fetch.service';
@@ -51,10 +51,11 @@ const BRACKET: TpBracket = {
   playedDates: [new Date('2026-01-10'), new Date('2026-06-20')],
 };
 const AWARD: TpAward = { id: 24112, awardType: 1, rosterId: 179769 };
-const CORE: TpCompetitionImportResult = {
+const CORE: TpCoreCompetitionImportResult = {
   competition: one,
   participation: { success: true, imported: 2, errors: [] },
   trophyAwards: one,
+  competitionCreated: false,
 };
 const fetchFailure: ImportError = { item: 1, message: 'status 429' };
 
@@ -199,6 +200,7 @@ describe('TpLiveCompetitionImportService', () => {
       competition: one,
       participation: nothing,
       trophyAwards: nothing,
+      competitionCreated: false,
     });
 
     const result = await importCompetition();
