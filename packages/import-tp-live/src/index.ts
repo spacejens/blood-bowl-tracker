@@ -30,6 +30,8 @@ export type {
   TpLiveOfficialTeamsRulesSetResult,
 } from './live/tp-live-official-teams-import.service';
 export { TpLiveOfficialTeamsImportService } from './live/tp-live-official-teams-import.service';
+export type { ImportStarPlayerHiresOptions } from './live/tp-live-star-player-hires.service';
+export { TpLiveStarPlayerHiresService } from './live/tp-live-star-player-hires.service';
 export type {
   ImportTeamOptions,
   TpLiveTeamImportResult,
