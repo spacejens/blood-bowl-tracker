@@ -79,8 +79,9 @@ const { team, players } = await tpLiveTeamImportService.importTeam({
 
 The result carries two `ImportResult`s: `team` (the team upsert, plus any
 failure before it) and `players`. It also names the era the team was
-imported under (`era`) and its team era's numeric ids (`teamEra`, as
-`{ id, eraId }`); both are undefined when the team was not imported.
+imported under (`era`), undefined when the team was not imported, and its
+team era's numeric ids (`teamEra`, as `{ id, eraId }`), undefined when the
+team, or its team era for that era, could not be resolved.
 
 A team needs no competition. It is a complete entity on its own, and TP's
 roster data carries no competition either. See [match-import.md](match-import.md)

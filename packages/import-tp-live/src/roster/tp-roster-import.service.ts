@@ -84,7 +84,11 @@ export class TpRosterImportService {
         }),
       ]);
     }
-    return this.importRoster({ roster, ...options });
+    const { teamEra: _teamEra, ...result } = await this.importRoster({
+      roster,
+      ...options,
+    });
+    return result;
   }
 
   /**

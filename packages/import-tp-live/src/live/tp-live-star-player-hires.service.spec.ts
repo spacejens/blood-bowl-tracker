@@ -112,7 +112,6 @@ describe('TpLiveStarPlayerHiresService', () => {
       [MORG.name, MORG_POSITION_ID],
     ]);
     positions.upsert.mockImplementation((data) => {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const name = data.name!;
       return Promise.resolve({
         position: mock<Position>({ id: positionIds.get(name) ?? 0 }),

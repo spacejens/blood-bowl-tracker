@@ -144,17 +144,17 @@ stage.
 Neither entry point throws for an import problem; every failure is one
 `ImportError` in the result.
 
-| Failure                                                                                                           | Reported in                                 |
-| ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| Match request or parse failure                                                                                    | `match`                                     |
-| Match not completed (no recorded result); live only                                                               | `match`                                     |
-| Team import failures (home or away); live only                                                                    | `homeTeam`/`awayTeam`, as for a team import |
-| Hiring team era unresolved, star position or player upsert failure, or missing catalog characteristics; live only | `starPlayerHires`                           |
-| Tournament or fixture-list request/parse failure; live only                                                       | `competition`                               |
-| Unknown era, no dated fixtures, or competition upsert failure (including a missing curated group); live only      | `competition`                               |
-| Competition not imported, team era unresolvable, unclassifiable bracket, or match upsert failure                  | `match`                                     |
-| Team-link failure                                                                                                 | `participation`                             |
-| Event upsert failure, or an unresolved player (non-fatal)                                                         | `events`                                    |
-| Undecidable outcome                                                                                               | `outcome`                                   |
+| Failure                                                                                                                                                                           | Reported in                                 |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| Match request or parse failure                                                                                                                                                    | `match`                                     |
+| Match not completed (no recorded result); live only                                                                                                                               | `match`                                     |
+| Team import failures (home or away); live only                                                                                                                                    | `homeTeam`/`awayTeam`, as for a team import |
+| Hiring team era unresolved, star position or player upsert failure, characteristics lookup failure, missing catalog characteristics, or external-system upsert failure; live only | `starPlayerHires`                           |
+| Tournament or fixture-list request/parse failure; live only                                                                                                                       | `competition`                               |
+| Unknown era, no dated fixtures, or competition upsert failure (including a missing curated group); live only                                                                      | `competition`                               |
+| Competition not imported, team era unresolvable, unclassifiable bracket, or match upsert failure                                                                                  | `match`                                     |
+| Team-link failure                                                                                                                                                                 | `participation`                             |
+| Event upsert failure, or an unresolved player (non-fatal)                                                                                                                         | `events`                                    |
+| Undecidable outcome                                                                                                                                                               | `outcome`                                   |
 
 A stage whose prerequisite failed reports nothing imported.
