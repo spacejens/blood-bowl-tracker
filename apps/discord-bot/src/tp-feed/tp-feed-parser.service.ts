@@ -91,7 +91,7 @@ export class TpFeedParserService {
     if (!home) return this.parseFailure(kind, 'home team field', messageId);
     const away = this.parseTeamField(embed.fields.at(1)?.name);
     if (!away) return this.parseFailure(kind, 'away team field', messageId);
-    const link = embed.author?.url;
+    const link = embed.url;
     if (!link) return this.parseFailure(kind, 'author.url', messageId);
     return { status: 'event', event: { kind, home, away, link } };
   }
@@ -108,7 +108,7 @@ export class TpFeedParserService {
     const awayScore = this.parseScore(embed.fields.at(1)?.value);
     if (awayScore === null)
       return this.parseFailure(kind, 'away score', messageId);
-    const link = embed.author?.url;
+    const link = embed.url;
     if (!link) return this.parseFailure(kind, 'author.url', messageId);
     const description = embed.description ?? '';
     const shared = { kind, home, away, homeScore, awayScore, link } as const;

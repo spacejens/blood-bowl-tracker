@@ -9,6 +9,7 @@ import type { Message } from 'discord.js';
 export interface SampleEmbed {
   title?: string;
   description?: string;
+  url?: string;
   fields?: { name: string; value: string; inline: boolean }[];
   author?: { name?: string; url?: string };
   footer?: { text: string };
@@ -43,9 +44,7 @@ export function matchStartMessage(): Message {
         inline: true,
       },
     ],
-    author: {
-      url: 'https://tourplay.net/en/blood-bowl/tloeg-blood-bowl-league-sasong-31/match/670570',
-    },
+    url: 'https://tourplay.net/en/blood-bowl/tloeg-blood-bowl-league-sasong-31/match/670570',
   });
 }
 
@@ -71,9 +70,7 @@ export function matchEndDrawMessage(): Message {
       },
       { name: 'Dedicated fans', value: '` +0 ` ` +0 `', inline: false },
     ],
-    author: {
-      url: 'https://tourplay.net/en/blood-bowl/tloeg-blood-bowl-league-sasong-31/match/670570',
-    },
+    url: 'https://tourplay.net/en/blood-bowl/tloeg-blood-bowl-league-sasong-31/match/670570',
   });
 }
 
@@ -99,9 +96,7 @@ export function matchEndWinMessage(): Message {
       },
       { name: 'Dedicated fans', value: '` +0 ` ` +0 `', inline: false },
     ],
-    author: {
-      url: 'https://tourplay.net/en/blood-bowl/tloeg-blood-bowl-league-sasong-31/match/670571',
-    },
+    url: 'https://tourplay.net/en/blood-bowl/tloeg-blood-bowl-league-sasong-31/match/670571',
   });
 }
 

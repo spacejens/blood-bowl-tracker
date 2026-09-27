@@ -116,7 +116,7 @@ describe('TpFeedParserService', () => {
           inline: true,
         },
       ],
-      author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
+      url: 'https://tourplay.net/en/blood-bowl/match/1',
     });
 
     expect(service.parse(message)).toMatchObject({
@@ -221,7 +221,7 @@ describe('TpFeedParserService', () => {
           inline: true,
         },
       ],
-      author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
+      url: 'https://tourplay.net/en/blood-bowl/match/1',
     });
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
@@ -241,7 +241,7 @@ describe('TpFeedParserService', () => {
           inline: true,
         },
       ],
-      author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
+      url: 'https://tourplay.net/en/blood-bowl/match/1',
     });
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
@@ -287,7 +287,7 @@ describe('TpFeedParserService', () => {
           inline: true,
         },
       ],
-      author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
+      url: 'https://tourplay.net/en/blood-bowl/match/1',
     });
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
@@ -310,7 +310,7 @@ describe('TpFeedParserService', () => {
           inline: true,
         },
       ],
-      author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
+      url: 'https://tourplay.net/en/blood-bowl/match/1',
     });
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
@@ -333,7 +333,7 @@ describe('TpFeedParserService', () => {
           inline: true,
         },
       ],
-      author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
+      url: 'https://tourplay.net/en/blood-bowl/match/1',
     });
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
@@ -422,7 +422,7 @@ describe('TpFeedParserService', () => {
           inline: true,
         },
       ],
-      author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
+      url: 'https://tourplay.net/en/blood-bowl/match/1',
     });
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
@@ -444,7 +444,7 @@ describe('TpFeedParserService', () => {
         },
         { name: '**MISSING LINES**', value: '`      0      `', inline: true },
       ],
-      author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
+      url: 'https://tourplay.net/en/blood-bowl/match/1',
     });
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
@@ -551,7 +551,7 @@ describe('TpFeedParserService', () => {
           inline: true,
         },
       ],
-      author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
+      url: 'https://tourplay.net/en/blood-bowl/match/1',
     });
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
@@ -576,7 +576,7 @@ describe('TpFeedParserService', () => {
           inline: true,
         },
       ],
-      author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
+      url: 'https://tourplay.net/en/blood-bowl/match/1',
     });
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
@@ -617,7 +617,7 @@ describe('TpFeedParserService', () => {
           inline: true,
         },
       ],
-      author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
+      url: 'https://tourplay.net/en/blood-bowl/match/1',
     });
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
