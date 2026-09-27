@@ -190,6 +190,34 @@ export class CompetitionsService {
     return rows[0];
   }
 
+  /**
+   * The group a competition belongs to, or `undefined` when no such
+   * competition exists. TP competition import reads it to find a stored
+   * competition's group siblings when re-deriving its type.
+   */
+  async findGroupIdById(id: number): Promise<number | undefined> {
+    const rows = await this.db
+      .select({ competitionGroupId: competitions.competitionGroupId })
+      .from(competitions)
+      .where(eq(competitions.id, id));
+    return rows[0]?.competitionGroupId;
+  }
+
+  /**
+   * The name and type of every competition in one group, whichever source
+   * imported it. Unordered: TP competition import derives a new instance's
+   * sequence number (a maximum) and type (a consensus) from it, and neither
+   * depends on order.
+   */
+  listNamesAndTypesByGroup(
+    competitionGroupId: number,
+  ): Promise<{ name: string; type: CompetitionType }[]> {
+    return this.db
+      .select({ name: competitions.name, type: competitions.type })
+      .from(competitions)
+      .where(eq(competitions.competitionGroupId, competitionGroupId));
+  }
+
   async findByIdWithEra(id: number): Promise<
     | {
         id: number;
