@@ -132,7 +132,7 @@ describe('TpFeedListenerService', () => {
     expect(react).toHaveBeenCalledWith(PROCESSED_REACTION);
   });
 
-  it('posts an unrecognized notice linking to the original message, then reacts', async () => {
+  it('posts an unrecognized notice linking to the original message, but does not react', async () => {
     const react = vi.fn();
     parser.parse.mockReturnValue({ status: 'unrecognized' });
     service.onModuleInit();
@@ -146,10 +146,31 @@ describe('TpFeedListenerService', () => {
       allowedMentions: { parse: [] },
       flags: [MessageFlags.SuppressEmbeds],
     });
-    expect(react).toHaveBeenCalledWith(PROCESSED_REACTION);
+    expect(react).not.toHaveBeenCalled();
   });
 
-  it('posts nothing but still reacts to an unrecognized message when no debug channel is configured', async () => {
+  it('logs and swallows a failure to post an unrecognized notice, and does not react', async () => {
+    const react = vi.fn();
+    const errorLog = vi
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => undefined);
+    parser.parse.mockReturnValue({ status: 'unrecognized' });
+    discordClient.sendMessage.mockRejectedValue(new Error('channel gone'));
+    service.onModuleInit();
+
+    await expect(
+      registeredHandler()(message(SOURCE_CHANNEL, react)),
+    ).resolves.toBeUndefined();
+
+    expect(errorLog).toHaveBeenCalledWith(
+      'Failed to post TP feed message',
+      expect.stringContaining('channel gone'),
+    );
+    expect(react).not.toHaveBeenCalled();
+    errorLog.mockRestore();
+  });
+
+  it('posts nothing and does not react to an unrecognized message when no debug channel is configured', async () => {
     const react = vi.fn();
     parser.parse.mockReturnValue({ status: 'unrecognized' });
     config.getTpFeedDebugDiscordChannel.mockReturnValue(undefined);
@@ -160,7 +181,7 @@ describe('TpFeedListenerService', () => {
     expect(parser.parse).toHaveBeenCalled();
     expect(formatter.formatUnrecognized).not.toHaveBeenCalled();
     expect(discordClient.sendMessage).not.toHaveBeenCalled();
-    expect(react).toHaveBeenCalledWith(PROCESSED_REACTION);
+    expect(react).not.toHaveBeenCalled();
   });
 
   it('still parses and reacts but posts nothing when no debug channel is configured', async () => {
