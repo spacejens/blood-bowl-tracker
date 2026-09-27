@@ -177,6 +177,7 @@ export class TpLiveMatchImportService {
       team: nothing(),
       players: nothing(),
       era: undefined,
+      teamEra: undefined,
     });
     return {
       competition: nothing(),

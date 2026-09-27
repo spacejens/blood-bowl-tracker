@@ -70,6 +70,7 @@ describe('TpRosterImportService', () => {
         { id: 30, eraId: 39 },
         { id: 31, eraId: ERA_ID },
       ],
+      teamEra: { id: 31, eraId: ERA_ID },
       importedPlayers: [{ lineUpId: 5001, playerId: 700, created: true }],
       mercenaryPositionUsages: [],
     });
@@ -102,7 +103,9 @@ describe('TpRosterImportService', () => {
       return Promise.resolve(undefined);
     });
 
-    await expect(importRoster()).resolves.toEqual({
+    const result = await importRoster();
+
+    expect(result).toEqual({
       team: {
         success: false,
         imported: 0,
@@ -110,9 +113,11 @@ describe('TpRosterImportService', () => {
       },
       players: nothing,
       teamEras: [],
+      teamEra: undefined,
       importedPlayers: [],
       mercenaryPositionUsages: [],
     });
+    expect(result).toHaveProperty('teamEra', undefined);
     expect(teamUpsert.upsertTeam).not.toHaveBeenCalled();
   });
 
@@ -123,6 +128,7 @@ describe('TpRosterImportService', () => {
 
     expect(result.team.imported).toBe(0);
     expect(result.players).toEqual(nothing);
+    expect(result).toHaveProperty('teamEra', undefined);
     expect(playersImport.importPlayers).not.toHaveBeenCalled();
   });
 
@@ -179,6 +185,7 @@ describe('TpRosterImportService', () => {
         },
       ],
     });
+    expect(result).toHaveProperty('teamEra', undefined);
     expect(playersImport.importPlayers).not.toHaveBeenCalled();
   });
 });

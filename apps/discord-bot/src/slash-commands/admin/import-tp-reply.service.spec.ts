@@ -24,6 +24,7 @@ const team = (players: number): TpLiveTeamImportResult => ({
   team: imported(1),
   players: imported(players),
   era: 'Fourth era',
+  teamEra: { id: 31, eraId: 40 },
 });
 
 /** The reply's single embed. */
@@ -124,6 +125,7 @@ describe('ImportTpReplyService', () => {
               team: failedWith('no coach'),
               players: imported(0),
               era: undefined,
+              teamEra: undefined,
             },
           ],
           participation: imported(0),
@@ -225,6 +227,7 @@ describe('ImportTpReplyService', () => {
           team: failedWith('could not resolve race for code "orc"'),
           players: imported(0),
           era: undefined,
+          teamEra: undefined,
         },
       });
 
@@ -312,6 +315,7 @@ describe('ImportTpReplyService', () => {
           team: failedWith('x'.repeat(100)),
           players: imported(0),
           era: undefined,
+          teamEra: undefined,
         })),
         participation: imported(0),
         trophyAwards: imported(0),

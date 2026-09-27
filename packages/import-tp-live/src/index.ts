@@ -54,6 +54,7 @@ export { TpRosterModule } from './roster/tp-roster.module';
 export type {
   ImportRawRosterOptions,
   ImportRosterOptions,
+  TpRosterImportOutcome,
 } from './roster/tp-roster-import.service';
 export { TpRosterImportService } from './roster/tp-roster-import.service';
 export type { TpConnectionProvider } from './tp-import-providers';

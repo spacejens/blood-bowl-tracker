@@ -1,5 +1,6 @@
 import type {
   ImportError,
+  TeamEra,
   TpRosterImportResult,
 } from '@blood-bowl-tracker/api-contract';
 import type { TpRoster, TpRosterPlayer } from '@blood-bowl-tracker/parse-tp';
@@ -30,6 +31,21 @@ export interface ImportRawRosterOptions extends Omit<
 > {
   /** One TP roster exactly as TP's API returns it. */
   content: unknown;
+}
+
+/**
+ * What {@link TpRosterImportService.importRoster} did: the
+ * `tpRosters.import` result plus the team era the players were imported
+ * into, by its numeric ids, which the live match import needs to attach
+ * induced star players to the right team and era. Not part of the RPC
+ * contract; `importRawRoster` declares only the contract's result.
+ */
+export interface TpRosterImportOutcome extends TpRosterImportResult {
+  /**
+   * The team era for the import's era (`id` is `team_eras.id`, `eraId` is
+   * `eras.id`); undefined when the team, or that team era, was not imported.
+   */
+  teamEra: TeamEra | undefined;
 }
 
 /**
@@ -82,7 +98,7 @@ export class TpRosterImportService {
     era,
     externalSystemName,
     matchEmbeddedPlayers = [],
-  }: ImportRosterOptions): Promise<TpRosterImportResult> {
+  }: ImportRosterOptions): Promise<TpRosterImportOutcome> {
     const teamErrors: ImportError[] = [];
     const context = await this.rosterContext.resolve({
       roster,
@@ -119,6 +135,7 @@ export class TpRosterImportService {
           errors: playerErrors,
         }),
         teamEras,
+        teamEra: undefined,
         importedPlayers: [],
         mercenaryPositionUsages: [],
       };
@@ -138,16 +155,18 @@ export class TpRosterImportService {
         errors: playerErrors,
       }),
       teamEras,
+      teamEra,
       importedPlayers: players.importedPlayers,
       mercenaryPositionUsages: players.mercenaryPositionUsages,
     };
   }
 
-  private notImported(teamErrors: ImportError[]): TpRosterImportResult {
+  private notImported(teamErrors: ImportError[]): TpRosterImportOutcome {
     return {
       team: this.importResults.result({ imported: 0, errors: teamErrors }),
       players: this.importResults.result({ imported: 0, errors: [] }),
       teamEras: [],
+      teamEra: undefined,
       importedPlayers: [],
       mercenaryPositionUsages: [],
     };

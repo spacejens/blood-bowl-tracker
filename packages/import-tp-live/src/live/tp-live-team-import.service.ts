@@ -1,6 +1,7 @@
 import type {
   ImportError,
   ImportResult,
+  TeamEra,
 } from '@blood-bowl-tracker/api-contract';
 import type { TpRosterPlayer } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
@@ -43,6 +44,12 @@ export interface TpLiveTeamImportResult {
   players: ImportResult;
   /** The era the team was imported under; undefined when it was not imported. */
   era: string | undefined;
+  /**
+   * The team era the team was imported into, by its numeric ids (`id` is
+   * `team_eras.id`, `eraId` is `eras.id`); undefined when the team, or its
+   * team era for that era, was not imported.
+   */
+  teamEra: TeamEra | undefined;
 }
 
 @Injectable()
@@ -90,7 +97,7 @@ export class TpLiveTeamImportService {
         return this.notImported(errors);
       }
 
-      const { team, players } = await this.rosterImport.importRoster({
+      const { team, players, teamEra } = await this.rosterImport.importRoster({
         roster,
         era: resolvedEra,
         externalSystemName,
@@ -100,6 +107,7 @@ export class TpLiveTeamImportService {
         team,
         players,
         era: team.imported > 0 ? resolvedEra : undefined,
+        teamEra,
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -117,6 +125,7 @@ export class TpLiveTeamImportService {
       team: this.importResults.result({ imported: 0, errors }),
       players: this.importResults.result({ imported: 0, errors: [] }),
       era: undefined,
+      teamEra: undefined,
     };
   }
 }
