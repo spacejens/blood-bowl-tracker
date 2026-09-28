@@ -52,9 +52,10 @@ stages in step 4 writes the whole rules set in a single sync call carrying
 every position's entries, instead of one call per position. The server
 validates a sync all-or-nothing, so when a stage's batch is rejected (for
 example a keyword for a position whose characteristics failed to write)
-that stage retries one position at a time: the failing position is reported
-by name exactly as before, and every other position is still written. A
-stage with nothing to write makes no call.
+that stage retries one position at a time. A characteristics or keywords
+failure names the position; a starting-skills failure identifies it by
+position id. Every other position is still written. A stage with nothing to
+write makes no call.
 
 ## Starting skills
 
