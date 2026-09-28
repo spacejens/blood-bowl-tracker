@@ -74,6 +74,14 @@ export interface UpsertTpCompetitionOptions {
    * competition's full span.
    */
   overlayExisting?: boolean;
+  /**
+   * Whether the competition is finished: TP has published its awards. Only a
+   * finished competition's `endDate` is written, as the latest of its played
+   * dates and any stored end date. An unfinished one is created with a null
+   * `endDate`, and an overlay leaves its stored `endDate` untouched. Its
+   * start date and type still derive from its match dates either way.
+   */
+  finished?: boolean;
   errors: ImportError[];
 }
 
@@ -116,8 +124,8 @@ export class TpCompetitionUpsertService {
    * and the type every competition already in the group shares (falling back
    * to the date-span heuristic when they disagree or there are none). No
    * match, or more than one, fails it with an error saying which. Its era is
-   * resolved by name and its start/end dates derived from its matches'
-   * dates.
+   * resolved by name, its start date derived from its matches' dates,
+   * and its end date too only when `finished` (null otherwise).
    *
    * An already-imported competition keeps its stored name -- the curated or
    * derived standard name, never overwritten by TP's raw one -- has its
@@ -127,7 +135,8 @@ export class TpCompetitionUpsertService {
    * merged with its stored dates (so the range only ever widens), the type
    * again preferring the one its group shares. With no new match dates, era,
    * type and dates are all left exactly as already stored, including a
-   * `null`/ongoing end date. A new competition with no dated match fails; an
+   * `null`/ongoing end date. An overlay writes the end date only when
+   * `finished`; otherwise the stored end date is left untouched. A new competition with no dated match fails; an
    * already-stored one never does, since a call with no new matches for it
    * simply leaves it unchanged. Resolves the stored competition once
    * upserted; each failure records one error and resolves undefined.
@@ -138,6 +147,7 @@ export class TpCompetitionUpsertService {
     era,
     externalSystemName,
     overlayExisting = false,
+    finished = false,
     errors,
   }: UpsertTpCompetitionOptions): Promise<UpsertedTpCompetition | undefined> {
     const tpSystem = await this.runner.record({
@@ -212,7 +222,11 @@ export class TpCompetitionUpsertService {
         type: group.type ?? span.type,
         eraId: eraRef.id,
         startDate: span.startDate,
-        endDate: span.endDate,
+        ...this.endDateField({
+          finished,
+          competitionRef,
+          endDate: span.endDate,
+        }),
       };
     }
     const upserted = await this.runner.record({
@@ -238,6 +252,26 @@ export class TpCompetitionUpsertService {
       competitionGroupId: upserted.competition.competitionGroupId,
       created: upserted.created,
     };
+  }
+
+  /**
+   * The end date to write: the derived one for a finished competition,
+   * null for a new unfinished one, and nothing (leaving the stored value)
+   * for an unfinished one already stored.
+   */
+  private endDateField({
+    finished,
+    competitionRef,
+    endDate,
+  }: {
+    finished: boolean;
+    competitionRef: ResolveResult;
+    endDate: string;
+  }): Pick<UpsertCompetition, 'endDate'> {
+    if (finished) {
+      return { endDate };
+    }
+    return competitionRef.found ? {} : { endDate: null };
   }
 
   /**

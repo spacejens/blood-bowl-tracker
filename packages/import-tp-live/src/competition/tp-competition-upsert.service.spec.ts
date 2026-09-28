@@ -91,26 +91,31 @@ describe('TpCompetitionUpsertService', () => {
     service = moduleRef.get(TpCompetitionUpsertService);
   });
 
-  const upsert = (externalSystemName = 'TP') =>
+  const upsert = ({
+    externalSystemName = 'TP',
+    finished,
+  }: { externalSystemName?: string; finished?: boolean } = {}) =>
     service.upsertCompetition({
       tournament: TOURNAMENT,
       playedDates: DATES,
       era: 'Fourth era',
       externalSystemName,
+      ...(finished === undefined ? {} : { finished }),
       errors,
     });
 
-  const overlay = (playedDates: Date[]) =>
+  const overlay = (playedDates: Date[], finished?: boolean) =>
     service.upsertCompetition({
       tournament: TOURNAMENT,
       playedDates,
       era: 'Fourth era',
       externalSystemName: 'TP',
       overlayExisting: true,
+      ...(finished === undefined ? {} : { finished }),
       errors,
     });
 
-  it('creates a new competition under its matched group, with the derived name, era, type and dates', async () => {
+  it('creates a new, unfinished competition under its matched group, with the derived name, era, type and start date, and no end date', async () => {
     await expect(upsert()).resolves.toEqual(upsertedCompetition());
     expect(externalSystems.upsert).toHaveBeenCalledWith({
       name: 'TP',
@@ -129,7 +134,7 @@ describe('TpCompetitionUpsertService', () => {
       type: 'season',
       eraId: 40,
       startDate: '2026-01-10',
-      endDate: '2026-06-20',
+      endDate: null,
       teamEraIds: [],
       externalIds: [{ externalSystemId: 1, externalId: '18442' }],
     });
@@ -251,7 +256,7 @@ describe('TpCompetitionUpsertService', () => {
   });
 
   it('registers the TP system under the name it is given', async () => {
-    await upsert('tourplay');
+    await upsert({ externalSystemName: 'tourplay' });
 
     expect(externalSystems.upsert).toHaveBeenCalledWith({
       name: 'tourplay',
@@ -275,13 +280,13 @@ describe('TpCompetitionUpsertService', () => {
     expect(errors).toEqual([]);
   });
 
-  it('overlays era, type and dates on an already-imported competition when asked, without reclassifying it', async () => {
+  it('overlays era, type and dates on an already-imported, finished competition when asked, without reclassifying it', async () => {
     competitions.resolve.mockResolvedValue({ found: true, id: 12 });
     competitions.findById.mockResolvedValue(
       storedCompetition('2026-01-10', '2026-06-20'),
     );
 
-    await expect(overlay(DATES)).resolves.toEqual(upsertedCompetition());
+    await expect(overlay(DATES, true)).resolves.toEqual(upsertedCompetition());
     expect(eras.resolve).toHaveBeenCalledWith({
       externalSystemId: 1,
       externalId: 'Fourth era',
@@ -299,6 +304,35 @@ describe('TpCompetitionUpsertService', () => {
       eraId: 40,
       startDate: '2026-01-10',
       endDate: '2026-06-20',
+      teamEraIds: [],
+      externalIds: [{ externalSystemId: 1, externalId: '18442' }],
+    });
+    expect(errors).toEqual([]);
+  });
+
+  it('writes the derived end date on a new competition that is finished', async () => {
+    await upsert({ finished: true });
+
+    expect(competitions.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        startDate: '2026-01-10',
+        endDate: '2026-06-20',
+      }),
+    );
+  });
+
+  it('leaves the stored end date untouched when overlaying an unfinished competition', async () => {
+    competitions.resolve.mockResolvedValue({ found: true, id: 12 });
+    competitions.findById.mockResolvedValue(
+      storedCompetition('2026-01-10', null),
+    );
+
+    await overlay(DATES);
+
+    expect(competitions.upsert).toHaveBeenCalledWith({
+      type: 'season',
+      eraId: 40,
+      startDate: '2026-01-10',
       teamEraIds: [],
       externalIds: [{ externalSystemId: 1, externalId: '18442' }],
     });
