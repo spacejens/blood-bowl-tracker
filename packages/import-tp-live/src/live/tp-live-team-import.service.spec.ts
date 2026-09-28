@@ -29,6 +29,9 @@ const ROSTER: TpRoster = {
   players: [],
 };
 
+const CONTENT = { raw: 'roster' };
+const FETCHED = { roster: ROSTER, content: CONTENT };
+
 const TEAM_RESULT: ImportResult = { success: true, imported: 1, errors: [] };
 const PLAYERS_RESULT: ImportResult = {
   success: true,
@@ -60,7 +63,7 @@ describe('TpLiveTeamImportService', () => {
   });
 
   function stubHappyPath(): void {
-    rosterFetch.fetchRoster.mockResolvedValue(ROSTER);
+    rosterFetch.fetchRoster.mockResolvedValue(FETCHED);
     eraResolution.resolveEra.mockResolvedValue('Fourth era');
     rosterImport.importRoster.mockResolvedValue({
       team: TEAM_RESULT,
@@ -101,6 +104,7 @@ describe('TpLiveTeamImportService', () => {
       roster: ROSTER,
       era: 'Fourth era',
       externalSystemName: EXTERNAL_SYSTEM_NAME,
+      rawContent: CONTENT,
     });
   });
 
@@ -112,16 +116,18 @@ describe('TpLiveTeamImportService', () => {
       externalSystemName: EXTERNAL_SYSTEM_NAME,
     });
 
-    // Exactly { roster, era, externalSystemName }: a live team import needs no competition.
+    // Exactly { roster, era, externalSystemName, rawContent }: a live team
+    // import needs no competition.
     expect(rosterImport.importRoster).toHaveBeenCalledWith({
       roster: ROSTER,
       era: 'Fourth era',
       externalSystemName: EXTERNAL_SYSTEM_NAME,
+      rawContent: CONTENT,
     });
   });
 
   it('passes an explicit era and a caller-supplied session through', async () => {
-    rosterFetch.fetchRoster.mockResolvedValue(ROSTER);
+    rosterFetch.fetchRoster.mockResolvedValue(FETCHED);
     eraResolution.resolveEra.mockResolvedValue('Fifth era');
     rosterImport.importRoster.mockResolvedValue({
       team: TEAM_RESULT,
@@ -182,7 +188,7 @@ describe('TpLiveTeamImportService', () => {
       message:
         'Could not resolve an era for team "Da Boyz": race "Orc" has no ongoing era',
     };
-    rosterFetch.fetchRoster.mockResolvedValue(ROSTER);
+    rosterFetch.fetchRoster.mockResolvedValue(FETCHED);
     eraResolution.resolveEra.mockImplementation(({ errors }) => {
       errors.push(eraError);
       return Promise.resolve(undefined);
@@ -201,7 +207,7 @@ describe('TpLiveTeamImportService', () => {
   });
 
   it('catches an unexpected exception from a collaborator instead of throwing, reporting one error naming the roster id', async () => {
-    rosterFetch.fetchRoster.mockResolvedValue(ROSTER);
+    rosterFetch.fetchRoster.mockResolvedValue(FETCHED);
     eraResolution.resolveEra.mockResolvedValue('Fourth era');
     rosterImport.importRoster.mockRejectedValue(new Error('db down'));
 
@@ -246,11 +252,25 @@ describe('TpLiveTeamImportService', () => {
       era: 'Fourth era',
       externalSystemName: EXTERNAL_SYSTEM_NAME,
       matchEmbeddedPlayers: [departed],
+      rawContent: CONTENT,
     });
   });
 
+  it("passes the fetched raw roster JSON to the roster import so its players' skills are synced", async () => {
+    stubHappyPath();
+
+    await service.importTeam({
+      rosterId: 163386,
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
+    });
+
+    expect(rosterImport.importRoster).toHaveBeenCalledWith(
+      expect.objectContaining({ rawContent: CONTENT }),
+    );
+  });
+
   it('reports no era when the roster import did not import the team', async () => {
-    rosterFetch.fetchRoster.mockResolvedValue(ROSTER);
+    rosterFetch.fetchRoster.mockResolvedValue(FETCHED);
     eraResolution.resolveEra.mockResolvedValue('Fourth era');
     rosterImport.importRoster.mockResolvedValue({
       team: {
