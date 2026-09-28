@@ -6,7 +6,11 @@ import { SleepService } from '../leader-election/sleep.service';
 import type { TpImportTarget } from '../tp-import/tp-import-dispatch.service';
 import { TpImportDispatchService } from '../tp-import/tp-import-dispatch.service';
 import { TpImportFailureService } from '../tp-import/tp-import-failure.service';
-import type { TpFeedEvent, TpFeedImportResult } from './tp-feed-event';
+import type {
+  TpFeedEvent,
+  TpFeedImportFailure,
+  TpFeedImportResult,
+} from './tp-feed-event';
 
 /**
  * How long each feed import waits before it starts. TP can post a
@@ -50,18 +54,27 @@ export class TpFeedImportService {
    */
   enqueue(event: TpFeedEvent): Promise<TpFeedImportResult> {
     const job = this.tail.then(() => this.run(event));
-    this.tail = job;
+    this.tail = job.catch(() => undefined);
     return job;
   }
 
   private async run(event: TpFeedEvent): Promise<TpFeedImportResult> {
     const result = await this.attempt(event);
     if (result.failed) {
+      this.logFailure(event, result);
+    }
+    return result;
+  }
+
+  /** Logging must never turn a finished import into a rejected job. */
+  private logFailure(event: TpFeedEvent, result: TpFeedImportFailure): void {
+    try {
       this.logger.warn(
         [`${result.headline} — ${event.link}`, ...result.errors].join('\n'),
       );
+    } catch {
+      // Nothing more can be done about a logger that itself fails.
     }
-    return result;
   }
 
   private async attempt(event: TpFeedEvent): Promise<TpFeedImportResult> {

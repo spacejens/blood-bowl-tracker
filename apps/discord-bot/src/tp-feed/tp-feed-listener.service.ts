@@ -112,7 +112,7 @@ export class TpFeedListenerService implements OnModuleInit {
     // Enqueued before the first await, so imports queue in arrival order.
     const imported = this.feedImport.enqueue(result.event);
     const described =
-      debugChannelId === undefined ||
+      !debugChannelId ||
       (await this.postToDebugChannel(
         debugChannelId,
         this.formatter.format(result.event),

@@ -147,7 +147,7 @@ describe('TpLiveMatchTeamsImportService', () => {
     matchFetch.fetchMatch.mockImplementation(({ errors }) => {
       errors.push({
         item: { matchId: MATCH_TP_ID },
-        message: 'Could not fetch TP match 662796: status 429',
+        message: `Could not fetch TP match ${MATCH_TP_ID}: status 429`,
       });
       return Promise.resolve(undefined);
     });
@@ -159,7 +159,7 @@ describe('TpLiveMatchTeamsImportService', () => {
         errors: [
           {
             item: { matchId: MATCH_TP_ID },
-            message: 'Could not fetch TP match 662796: status 429',
+            message: `Could not fetch TP match ${MATCH_TP_ID}: status 429`,
           },
         ],
       },

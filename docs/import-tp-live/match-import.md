@@ -190,7 +190,7 @@ stage.
 
 ## Failures
 
-Neither entry point throws for an import problem; every failure is one
+None of the entry points throw for an import problem; every failure is one
 `ImportError` in the result.
 
 | Failure                                                                                                                                                                           | Reported in                                 |

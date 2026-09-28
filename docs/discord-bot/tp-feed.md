@@ -69,6 +69,10 @@ Only real problems count as a failed import:
 - an import that ran but reported errors in any stage (the same
   "completed with errors" `/importtp` shows) is, and its errors are listed.
 
+A match-end notification can occasionally arrive before TP serves the
+completed match. That is reported as a failure in the debug channel, with no
+✔️ reaction; running `/importtp` on the match link afterwards fixes it.
+
 A failed import is always logged. When a debug channel is configured it is
 also posted there as a short `TP import …` line keeping the notification's
 link, followed by one line per error.

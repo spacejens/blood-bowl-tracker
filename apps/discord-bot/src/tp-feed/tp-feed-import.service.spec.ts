@@ -267,8 +267,9 @@ describe('TpFeedImportService', () => {
         .mockReturnValueOnce(first.promise)
         .mockResolvedValueOnce(OUTCOME);
 
+      const otherLink = `${BASE}roster/999`;
       const one = service.enqueue(HIRED);
-      const two = service.enqueue(FIRED);
+      const two = service.enqueue({ ...FIRED, link: otherLink });
       await flush();
 
       expect(dispatch.dispatch).toHaveBeenCalledTimes(1);
@@ -281,8 +282,23 @@ describe('TpFeedImportService', () => {
       expect(sleep.sleep).toHaveBeenCalledTimes(2);
       expect(classifier.classify.mock.calls.map(([url]) => url)).toEqual([
         ROSTER_LINK,
-        ROSTER_LINK,
+        otherLink,
       ]);
+    });
+
+    it('keeps going when logging a failure throws', async () => {
+      vi.spyOn(Logger.prototype, 'warn').mockImplementationOnce(() => {
+        throw new Error('logger broke');
+      });
+      failure.assess.mockReturnValue(assessment('failed'));
+      failure.isRealFailure.mockReturnValueOnce(true).mockReturnValue(false);
+
+      const one = service.enqueue(HIRED);
+      const two = service.enqueue(FIRED);
+
+      await expect(one).resolves.toMatchObject({ failed: true });
+      await expect(two).resolves.toEqual({ failed: false });
+      expect(dispatch.dispatch).toHaveBeenCalledTimes(2);
     });
 
     it('keeps going after a failed job', async () => {

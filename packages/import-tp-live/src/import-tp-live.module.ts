@@ -34,11 +34,12 @@ import { TpRosterModule } from './roster/tp-roster.module';
 import { TpNameExternalIdService } from './tp-name-external-id.service';
 
 /**
- * Live TP import: fetch one roster, one completed match with its teams and
- * competition, both teams of one match in any state, one competition with its registered teams and trophy awards,
- * or TP's official team list for every rules set, from TP's API and import
- * it in-process through TpRosterModule, TpMatchModule, TpCompetitionModule
- * and TpOfficialTeamsModule. The importing app provides
+ * Live TP import: fetch one roster; one completed match with its teams and
+ * competition; both teams of one match in any state; one competition with
+ * its registered teams and trophy awards; or TP's official team list for
+ * every rules set. Each is fetched from TP's API and imported in-process
+ * through TpRosterModule, TpMatchModule, TpCompetitionModule and
+ * TpOfficialTeamsModule. The importing app provides
  * TP_CONNECTION_PROVIDER from a `@Global()` module and packages/db's `DB`.
  */
 @Module({

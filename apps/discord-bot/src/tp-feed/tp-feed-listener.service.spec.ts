@@ -308,6 +308,31 @@ describe('TpFeedListenerService', () => {
     errorLog.mockRestore();
   });
 
+  it('still posts the import failure, and does not react, when the description post failed too', async () => {
+    const react = vi.fn();
+    const errorLog = vi
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => undefined);
+    feedImport.enqueue.mockResolvedValue(IMPORT_FAILURE);
+    discordClient.sendMessage
+      .mockRejectedValueOnce(new Error('channel gone'))
+      .mockResolvedValueOnce(undefined);
+    service.onModuleInit();
+
+    await registeredHandler()(message(SOURCE_CHANNEL, react));
+
+    expect(discordClient.sendMessage).toHaveBeenCalledTimes(2);
+    expect(discordClient.sendMessage).toHaveBeenNthCalledWith(
+      2,
+      DEBUG_CHANNEL,
+      expect.objectContaining({
+        content: 'TP import of team 1 failed — https://tp/r/1',
+      }),
+    );
+    expect(react).not.toHaveBeenCalled();
+    errorLog.mockRestore();
+  });
+
   it('logs and swallows a failure to post an import failure, and does not react', async () => {
     const react = vi.fn();
     const errorLog = vi
