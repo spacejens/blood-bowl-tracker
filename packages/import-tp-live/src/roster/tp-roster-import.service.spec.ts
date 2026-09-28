@@ -6,6 +6,7 @@ import { mock } from 'vitest-mock-extended';
 
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
+import { TpRosterPlayerSkillsService } from './players/tp-roster-player-skills.service';
 import { TpRosterPlayersImportService } from './players/tp-roster-players-import.service';
 import { TpTeamUpsertService } from './team/tp-team-upsert.service';
 import {
@@ -18,6 +19,7 @@ import { TpRosterContextService } from './tp-roster-context.service';
 import { TpRosterImportService } from './tp-roster-import.service';
 
 const nothing = { success: true, imported: 0, errors: [] };
+const RAW = { raw: 'roster' };
 
 describe('TpRosterImportService', () => {
   let service: TpRosterImportService;
@@ -25,12 +27,15 @@ describe('TpRosterImportService', () => {
   let context: MockProxy<TpRosterContextService>;
   let teamUpsert: MockProxy<TpTeamUpsertService>;
   let playersImport: MockProxy<TpRosterPlayersImportService>;
+  let playerSkills: MockProxy<TpRosterPlayerSkillsService>;
 
   beforeEach(async () => {
     parser = mock<RosterParserService>();
     context = mock<TpRosterContextService>();
     teamUpsert = mock<TpTeamUpsertService>();
     playersImport = mock<TpRosterPlayersImportService>();
+    playerSkills = mock<TpRosterPlayerSkillsService>();
+    playerSkills.syncPlayerSkills.mockResolvedValue(0);
     context.resolve.mockResolvedValue(rosterContext());
     teamUpsert.upsertTeam.mockResolvedValue([
       { id: 30, eraId: 39 },
@@ -50,6 +55,7 @@ describe('TpRosterImportService', () => {
         { provide: TpRosterContextService, useValue: context },
         { provide: TpTeamUpsertService, useValue: teamUpsert },
         { provide: TpRosterPlayersImportService, useValue: playersImport },
+        { provide: TpRosterPlayerSkillsService, useValue: playerSkills },
       ],
     }).compile();
     service = moduleRef.get(TpRosterImportService);
@@ -187,5 +193,83 @@ describe('TpRosterImportService', () => {
     });
     expect(result).toHaveProperty('teamEra', undefined);
     expect(playersImport.importPlayers).not.toHaveBeenCalled();
+  });
+
+  const importWithRaw = () =>
+    service.importRoster({
+      roster: tpRoster(),
+      era: 'Fourth era',
+      externalSystemName: 'TP',
+      rawContent: RAW,
+    });
+
+  it("syncs the players' skills from the raw roster once the players are imported", async () => {
+    await importWithRaw();
+
+    expect(playerSkills.syncPlayerSkills).toHaveBeenCalledWith({
+      roster: tpRoster(),
+      content: RAW,
+      importedPlayers: [{ lineUpId: 5001, playerId: 700, created: true }],
+      context: rosterContext(),
+      errors: [],
+    });
+    expect(
+      playersImport.importPlayers.mock.invocationCallOrder[0],
+    ).toBeLessThan(playerSkills.syncPlayerSkills.mock.invocationCallOrder[0]);
+  });
+
+  it('reports a skill gap on the players result without failing the team or the players', async () => {
+    const gap = {
+      item: { skillMasterId: 99 },
+      message: 'Could not resolve TP skill 99',
+    };
+    playerSkills.syncPlayerSkills.mockImplementation(({ errors }) => {
+      errors.push(gap);
+      return Promise.resolve(0);
+    });
+
+    const result = await importWithRaw();
+
+    expect(result.team).toEqual({ success: true, imported: 1, errors: [] });
+    expect(result.players).toEqual({
+      success: false,
+      imported: 1,
+      errors: [gap],
+    });
+  });
+
+  it('syncs no skills when no raw content is given', async () => {
+    await importRoster();
+
+    expect(playerSkills.syncPlayerSkills).not.toHaveBeenCalled();
+  });
+
+  it('syncs no skills for a raw roster imported through tpRosters.import, whose bulk importer writes skills itself', async () => {
+    parser.parse.mockReturnValue(tpRoster());
+
+    await service.importRawRoster({
+      content: RAW,
+      era: 'Fourth era',
+      externalSystemName: 'TP',
+    });
+
+    expect(playersImport.importPlayers).toHaveBeenCalled();
+    expect(playerSkills.syncPlayerSkills).not.toHaveBeenCalled();
+  });
+
+  it('syncs no skills when the team was not imported', async () => {
+    teamUpsert.upsertTeam.mockResolvedValue(undefined);
+
+    await importWithRaw();
+
+    expect(playerSkills.syncPlayerSkills).not.toHaveBeenCalled();
+  });
+
+  it('syncs no skills when the team era for the era is missing', async () => {
+    teamUpsert.upsertTeam.mockResolvedValue([{ id: 30, eraId: 39 }]);
+
+    await importWithRaw();
+
+    expect(playerSkills.syncPlayerSkills).not.toHaveBeenCalled();
   });
 });
