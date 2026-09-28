@@ -25,8 +25,8 @@ real-world entity differently:
   classify instances and trophies into. Not a dedup file in the usual sense —
   like `trophies.json5`, nothing else creates competition groups, so this is
   the sole source of the catalog.
-  Recurring groups also carry a `namePattern` that TP competition import
-  uses to classify a brand-new instance automatically.
+  Every group also carries a required `namePattern` that TP competition
+  import uses to classify a brand-new instance automatically.
 - `eras.json5` — the 8 eras the BBL and TP configs define, copied verbatim
   from `tools/import-bbl/import-bbl-config.json5` and
   `tools/import-tp/import-tp-config.json5`, which remain authoritative. It

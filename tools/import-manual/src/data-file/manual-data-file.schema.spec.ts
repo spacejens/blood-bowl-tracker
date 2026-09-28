@@ -558,6 +558,7 @@ describe('ManualDataFileSchema', () => {
         {
           name: 'Major Season',
           league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
+          namePattern: '^Major Season\\s*\\d+$',
         },
       ],
     });
@@ -567,12 +568,14 @@ describe('ManualDataFileSchema', () => {
   it('requires a competition group entry to name a league', () => {
     expect(
       ManualDataFileSchema.safeParse({
-        competitionGroups: [{ name: 'Major Season' }],
+        competitionGroups: [
+          { name: 'Major Season', namePattern: '^Major Season\\s*\\d+$' },
+        ],
       }).success,
     ).toBe(false);
   });
 
-  it('accepts an optional regular-expression namePattern on a competition group entry', () => {
+  it('accepts a regular-expression namePattern on a competition group entry', () => {
     const parsed = ManualDataFileSchema.parse({
       competitionGroups: [
         {
@@ -585,6 +588,19 @@ describe('ManualDataFileSchema', () => {
     expect(parsed.competitionGroups[0].namePattern).toBe(
       '^(?:tLoEGBBL[\\s-]*)?Chaos Cup(?:\\s*\\d+)?$',
     );
+  });
+
+  it('requires a namePattern on every competition group entry', () => {
+    expect(
+      ManualDataFileSchema.safeParse({
+        competitionGroups: [
+          {
+            name: 'Chaos Cup',
+            league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
+          },
+        ],
+      }).success,
+    ).toBe(false);
   });
 
   it('rejects a competition group namePattern that is not a valid regular expression', () => {

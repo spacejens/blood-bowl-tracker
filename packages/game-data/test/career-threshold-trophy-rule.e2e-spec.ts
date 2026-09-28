@@ -90,7 +90,7 @@ async function seedLeague(db: Db): Promise<LeagueFixtures> {
     .returning();
   const [group] = await db
     .insert(competitionGroups)
-    .values({ name: 'Seasons', leagueId: league.id })
+    .values({ name: 'Seasons', leagueId: league.id, namePattern: '^Seasons$' })
     .returning();
   const [first] = await db
     .insert(competitions)

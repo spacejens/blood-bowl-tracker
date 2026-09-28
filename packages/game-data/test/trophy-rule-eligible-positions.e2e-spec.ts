@@ -94,7 +94,11 @@ async function seed(db: Db, options: SeedOptions): Promise<Fixtures> {
     .returning();
   const [group] = await db
     .insert(competitionGroups)
-    .values({ name: 'Ogretoberfest', leagueId: league.id })
+    .values({
+      name: 'Ogretoberfest',
+      leagueId: league.id,
+      namePattern: '^Ogretoberfest(?:\\s*\\d+)?$',
+    })
     .returning();
   const [competition] = await db
     .insert(competitions)

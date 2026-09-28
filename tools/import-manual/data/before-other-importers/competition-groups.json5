@@ -43,10 +43,12 @@
 // of a track goes into its one pattern as alternation (e.g. Major Season's
 // "Season N" / "Major Season N" / "tLoEGBBL Säsong N"), and each pattern is
 // anchored so it cannot claim another track's names (Major Season's must not
-// match "Minor Season N" or "Dungeon Bowl Season N"). The one-offs -- Fright
-// Night, Snöbollskrieg, Champion of tLoEG, Blitzmania! -- deliberately have
-// none, so a new competition is never auto-classified into them. The real
-// historical names every pattern must (and must not) match are pinned in
+// match "Minor Season N" or "Dungeon Bowl Season N"). Every group carries a
+// pattern -- the manual-import schema requires one -- including groups with
+// a single historical instance so far (Fright Night, Snöbollskrieg, Champion
+// of tLoEG, Blitzmania!), so a future instance of any group is classified
+// automatically. The real historical names every pattern must (and must
+// not) match are pinned in
 // packages/import-tp-live/src/competition/tp-competition-group-name-patterns.spec.ts;
 // update that test alongside any pattern change.
 {
@@ -75,20 +77,38 @@
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
       namePattern: '^(?:tLoEGBBL[\\s-]*)?Stunty Leeg(?:\\s*\\d+)?$',
     },
-    { name: 'Fright Night', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
-    { name: 'Snöbollskrieg', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
+    {
+      name: 'Fright Night',
+      league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
+      namePattern: '^(?:tLoEGBBL[\\s-]*)?Fright Night(?:\\s*\\d+)?$',
+    },
+    {
+      name: 'Snöbollskrieg',
+      league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
+      namePattern: '^(?:tLoEGBBL[\\s-]*)?Snöbollskrieg(?:\\s*\\d+)?$',
+    },
     {
       name: 'Moot Mania',
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
       namePattern: '^(?:tLoEGBBL[\\s-]*)?Moot Mania(?:\\s*\\d+)?$',
     },
-    { name: 'Champion of tLoEG', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
+    {
+      name: 'Champion of tLoEG',
+      league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
+      // BBL's one instance is the plural "Champions of tLoEG" (its
+      // competition list truncates it to "Champions of..."); accept both.
+      namePattern: '^(?:tLoEGBBL[\\s-]*)?Champions? of tLoEG(?:\\s*\\d+)?$',
+    },
     {
       name: 'NAA',
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
       namePattern: '^(?:tLoEGBBL[\\s-]*)?NAA(?:\\s*\\d+)?$',
     },
-    { name: 'Blitzmania!', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
+    {
+      name: 'Blitzmania!',
+      league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
+      namePattern: '^(?:tLoEGBBL[\\s-]*)?Blitzmania!?(?:\\s*\\d+)?$',
+    },
     {
       name: 'Ogretoberfest',
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },

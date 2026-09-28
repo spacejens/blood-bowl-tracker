@@ -76,6 +76,7 @@ describe('CompetitionGroupsProcessor', () => {
       {
         name: 'Chaos Cup',
         league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
+        namePattern: '^Chaos Cup(?:\\s*\\d+)?$',
       },
     ];
     const ctx = makeContext(data);
@@ -87,7 +88,7 @@ describe('CompetitionGroupsProcessor', () => {
       {
         name: 'Chaos Cup',
         leagueId: 9,
-        namePattern: null,
+        namePattern: '^Chaos Cup(?:\\s*\\d+)?$',
         externalIds: [{ externalSystemId: 2, externalId: 'Chaos Cup' }],
       },
       ctx.errors,
@@ -97,42 +98,6 @@ describe('CompetitionGroupsProcessor', () => {
         ref: data.competitionGroups[0].league,
         kind: 'league',
       }),
-    );
-  });
-
-  it("sends the group's curated name pattern", async () => {
-    refResolver.resolveRef.mockResolvedValue(9);
-    refResolver.competitionGroupRef.mockReturnValue({
-      system: 'Name',
-      id: 'Chaos Cup',
-    });
-    groups.upsert.mockResolvedValue({
-      id: 6,
-      name: 'Chaos Cup',
-      leagueId: 9,
-      createdAt: new Date(),
-      created: true,
-    });
-    const data = emptyData();
-    data.competitionGroups = [
-      {
-        name: 'Chaos Cup',
-        league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
-        namePattern: '^Chaos Cup(?:\\s*\\d+)?$',
-      },
-    ];
-    const ctx = makeContext(data);
-
-    await processor.process(ctx);
-
-    expect(groups.upsert).toHaveBeenCalledWith(
-      {
-        name: 'Chaos Cup',
-        leagueId: 9,
-        namePattern: '^Chaos Cup(?:\\s*\\d+)?$',
-        externalIds: [{ externalSystemId: 2, externalId: 'Chaos Cup' }],
-      },
-      ctx.errors,
     );
   });
 
@@ -153,6 +118,7 @@ describe('CompetitionGroupsProcessor', () => {
       {
         name: 'Chaos Cup',
         league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
+        namePattern: '^Chaos Cup(?:\\s*\\d+)?$',
       },
     ];
     const ctx = { ...makeContext(data), systemIds: new Map<string, number>() };
@@ -172,6 +138,7 @@ describe('CompetitionGroupsProcessor', () => {
       {
         name: 'Chaos Cup',
         league: { system: 'tloeg.bbleague.se', id: 'missing' },
+        namePattern: '^Chaos Cup(?:\\s*\\d+)?$',
       },
     ];
     const ctx = { ...makeContext(data), systemIds: new Map<string, number>() };
@@ -187,6 +154,7 @@ describe('CompetitionGroupsProcessor', () => {
       {
         name: 'Chaos Cup',
         league: { system: 'tloeg.bbleague.se', id: 'missing' },
+        namePattern: '^Chaos Cup(?:\\s*\\d+)?$',
       },
     ];
     const ctx = makeContext(data);
@@ -209,6 +177,7 @@ describe('CompetitionGroupsProcessor', () => {
       {
         name: 'Chaos Cup',
         league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
+        namePattern: '^Chaos Cup(?:\\s*\\d+)?$',
       },
     ];
     const ctx = makeContext(data);
