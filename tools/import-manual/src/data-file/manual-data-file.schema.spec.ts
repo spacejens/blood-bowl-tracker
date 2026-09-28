@@ -572,6 +572,35 @@ describe('ManualDataFileSchema', () => {
     ).toBe(false);
   });
 
+  it('accepts an optional regular-expression namePattern on a competition group entry', () => {
+    const parsed = ManualDataFileSchema.parse({
+      competitionGroups: [
+        {
+          name: 'Chaos Cup',
+          league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
+          namePattern: '^(?:tLoEGBBL[\\s-]*)?Chaos Cup(?:\\s*\\d+)?$',
+        },
+      ],
+    });
+    expect(parsed.competitionGroups[0].namePattern).toBe(
+      '^(?:tLoEGBBL[\\s-]*)?Chaos Cup(?:\\s*\\d+)?$',
+    );
+  });
+
+  it('rejects a competition group namePattern that is not a valid regular expression', () => {
+    expect(
+      ManualDataFileSchema.safeParse({
+        competitionGroups: [
+          {
+            name: 'Chaos Cup',
+            league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
+            namePattern: '^Chaos (Cup',
+          },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+
   it('defaults competitionGroups to an empty array', () => {
     expect(ManualDataFileSchema.parse({}).competitionGroups).toEqual([]);
   });

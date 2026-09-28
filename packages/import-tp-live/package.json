@@ -31,6 +31,7 @@
     "@swc/core": "^1.15.47",
     "@types/node": "^24.13.6",
     "@vitest/coverage-v8": "^5.0.0",
+    "json5": "^2.2.3",
     "typescript": "^6.0.3",
     "unplugin-swc": "^1.5.10",
     "vite": "^8.2.1",

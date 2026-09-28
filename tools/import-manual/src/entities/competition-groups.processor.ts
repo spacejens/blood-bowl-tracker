@@ -36,6 +36,10 @@ export class CompetitionGroupsProcessor {
    * every entry, and checking it first means a data file that never declares
    * the "Name" system surfaces that root cause immediately instead of a
    * confusing "unknown league" error from the first entry.
+   *
+   * The group's `namePattern` is always restated -- as `null` when the entry
+   * has none -- so removing a pattern from the data file clears it on the
+   * next run rather than leaving a stale one matching new competitions.
    */
   async process(ctx: ProcessContext): Promise<number> {
     let imported = 0;
@@ -66,6 +70,7 @@ export class CompetitionGroupsProcessor {
         {
           name: entry.name,
           leagueId,
+          namePattern: entry.namePattern ?? null,
           externalIds: [{ externalSystemId: nameSystemId, externalId: ref.id }],
         },
         ctx.errors,

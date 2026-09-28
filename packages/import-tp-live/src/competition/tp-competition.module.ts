@@ -11,6 +11,9 @@ import { Module } from '@nestjs/common';
 
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
+import { TpCompetitionClassifierService } from './tp-competition-classifier.service';
+import { TpCompetitionGroupMatcherService } from './tp-competition-group-matcher.service';
+import { TpCompetitionGroupPrecedentService } from './tp-competition-group-precedent.service';
 import { TpCompetitionImportService } from './tp-competition-import.service';
 import { TpCompetitionParticipantsService } from './tp-competition-participants.service';
 import { TpCompetitionSpanService } from './tp-competition-span.service';
@@ -42,6 +45,9 @@ import { TpCompetitionUpsertService } from './tp-competition-upsert.service';
     TpCompetitionParticipantsService,
     TpCompetitionTrophyAwardsService,
     TpCompetitionSpanService,
+    TpCompetitionClassifierService,
+    TpCompetitionGroupMatcherService,
+    TpCompetitionGroupPrecedentService,
     TpImportResultsService,
     TpUpsertRunnerService,
   ],

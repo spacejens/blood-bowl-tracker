@@ -367,6 +367,39 @@ describe('CompetitionsService', () => {
     });
   });
 
+  describe('listNamesAndTypesByGroup', () => {
+    it('lists the name and type of every competition in the group', async () => {
+      const rows = [
+        { id: 7, name: 'Chaos Cup 7', type: 'cup' },
+        { id: 8, name: 'Chaos Cup 8', type: 'cup' },
+      ];
+      const { db, chains } = await build(rows);
+
+      await expect(service.listNamesAndTypesByGroup(3)).resolves.toEqual(rows);
+      expect(chains[0].from).toHaveBeenCalledWith(competitions);
+      expect(
+        Object.keys(firstCallArg(db.select) as Record<string, unknown>).sort(),
+      ).toEqual(['id', 'name', 'type']);
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(3);
+    });
+  });
+
+  describe('findGroupIdById', () => {
+    it("returns the competition's group id", async () => {
+      const { chains } = await build([{ competitionGroupId: 3 }]);
+
+      await expect(service.findGroupIdById(12)).resolves.toBe(3);
+      expect(chains[0].from).toHaveBeenCalledWith(competitions);
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(12);
+    });
+
+    it('returns undefined when no competition matches', async () => {
+      await build([]);
+
+      await expect(service.findGroupIdById(999)).resolves.toBeUndefined();
+    });
+  });
+
   describe('searchByNamePrefix', () => {
     it('returns competitions joined to their league name, capped at the limit', async () => {
       const rows = [

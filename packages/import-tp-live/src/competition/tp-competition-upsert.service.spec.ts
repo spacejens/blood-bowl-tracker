@@ -14,6 +14,7 @@ import { mock } from 'vitest-mock-extended';
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { upsertedCompetition } from './tp-competition.test-helpers';
+import { TpCompetitionClassifierService } from './tp-competition-classifier.service';
 import { TpCompetitionSpanService } from './tp-competition-span.service';
 import type { TpCompetitionTournament } from './tp-competition-upsert.service';
 import { TpCompetitionUpsertService } from './tp-competition-upsert.service';
@@ -26,7 +27,7 @@ const DATES = [new Date('2026-01-10'), new Date('2026-06-20')];
 
 const storedCompetition = (startDate: string, endDate: string | null) => ({
   id: 12,
-  name: TOURNAMENT.name,
+  name: 'Major Season 30',
   type: 'season' as const,
   eraId: 40,
   startDate,
@@ -39,6 +40,7 @@ describe('TpCompetitionUpsertService', () => {
   let eras: MockProxy<ErasService>;
   let competitions: MockProxy<CompetitionsService>;
   let span: MockProxy<TpCompetitionSpanService>;
+  let classifier: MockProxy<TpCompetitionClassifierService>;
   let errors: ImportError[];
 
   beforeEach(async () => {
@@ -46,6 +48,7 @@ describe('TpCompetitionUpsertService', () => {
     eras = mock<ErasService>();
     competitions = mock<CompetitionsService>();
     span = mock<TpCompetitionSpanService>();
+    classifier = mock<TpCompetitionClassifierService>();
     errors = [];
     externalSystems.upsert.mockResolvedValue({
       system: mock<ExternalSystem>({ id: 1 }),
@@ -58,6 +61,13 @@ describe('TpCompetitionUpsertService', () => {
       startDate: '2026-01-10',
       endDate: '2026-06-20',
     });
+    classifier.classifyNew.mockResolvedValue({
+      kind: 'classified',
+      competitionGroupId: 7,
+      name: 'Major Season 30',
+      type: undefined,
+    });
+    classifier.sharedTypeOfCompetitionGroup.mockResolvedValue(undefined);
     competitions.upsert.mockResolvedValue({
       competition: mock<CompetitionWithTeamEras>({
         id: 12,
@@ -75,6 +85,7 @@ describe('TpCompetitionUpsertService', () => {
         { provide: ErasService, useValue: eras },
         { provide: CompetitionsService, useValue: competitions },
         { provide: TpCompetitionSpanService, useValue: span },
+        { provide: TpCompetitionClassifierService, useValue: classifier },
       ],
     }).compile();
     service = moduleRef.get(TpCompetitionUpsertService);
@@ -99,7 +110,7 @@ describe('TpCompetitionUpsertService', () => {
       errors,
     });
 
-  it('upserts a new competition by TP id with its name, era, type and dates, and no group', async () => {
+  it('creates a new competition under its matched group, with the derived name, era, type and dates', async () => {
     await expect(upsert()).resolves.toEqual(upsertedCompetition());
     expect(externalSystems.upsert).toHaveBeenCalledWith({
       name: 'TP',
@@ -110,9 +121,11 @@ describe('TpCompetitionUpsertService', () => {
       externalId: 'Fourth era',
     });
     expect(span.derive).toHaveBeenCalledWith(DATES);
+    expect(classifier.classifyNew).toHaveBeenCalledWith('tLoEGBBL Säsong 30');
     expect(competitions.findById).not.toHaveBeenCalled();
     expect(competitions.upsert).toHaveBeenCalledWith({
-      name: 'tLoEGBBL Säsong 30',
+      name: 'Major Season 30',
+      competitionGroupId: 7,
       type: 'season',
       eraId: 40,
       startDate: '2026-01-10',
@@ -121,6 +134,105 @@ describe('TpCompetitionUpsertService', () => {
       externalIds: [{ externalSystemId: 1, externalId: '18442' }],
     });
     expect(errors).toEqual([]);
+  });
+
+  it("types a new competition by its group's shared type over the date span's", async () => {
+    // A season imported after its first match day spans a single day, which
+    // the date heuristic alone would call a cup.
+    span.derive.mockReturnValue({
+      type: 'cup',
+      startDate: '2026-01-10',
+      endDate: '2026-01-10',
+    });
+    classifier.classifyNew.mockResolvedValue({
+      kind: 'classified',
+      competitionGroupId: 7,
+      name: 'Major Season 30',
+      type: 'season',
+    });
+
+    await upsert();
+
+    expect(competitions.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'season' }),
+    );
+  });
+
+  it("falls back to the date span's type when the group has no shared type", async () => {
+    span.derive.mockReturnValue({
+      type: 'cup',
+      startDate: '2026-01-10',
+      endDate: '2026-01-10',
+    });
+
+    await upsert();
+
+    expect(competitions.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'cup' }),
+    );
+  });
+
+  it('records one error, and upserts nothing, when no group matches a new competition', async () => {
+    classifier.classifyNew.mockResolvedValue({ kind: 'unmatched' });
+
+    await expect(upsert()).resolves.toBeUndefined();
+    expect(competitions.upsert).not.toHaveBeenCalled();
+    expect(errors).toEqual([
+      {
+        item: { competition: 18442 },
+        message:
+          'Skipping competition "tLoEGBBL Säsong 30": no competition group could be confidently matched.',
+      },
+    ]);
+  });
+
+  it('records one error naming the groups, and upserts nothing, when several groups match', async () => {
+    classifier.classifyNew.mockResolvedValue({
+      kind: 'ambiguous',
+      groupNames: ['Major Season', 'Minor Season'],
+    });
+
+    await expect(upsert()).resolves.toBeUndefined();
+    expect(competitions.upsert).not.toHaveBeenCalled();
+    expect(errors).toEqual([
+      {
+        item: { competition: 18442 },
+        message:
+          'Skipping competition "tLoEGBBL Säsong 30": matched multiple competition groups (Major Season, Minor Season).',
+      },
+    ]);
+  });
+
+  it('records one error, and upserts nothing, when classifying a new competition rejects', async () => {
+    classifier.classifyNew.mockRejectedValue(new Error('some failure'));
+
+    await expect(upsert()).resolves.toBeUndefined();
+    expect(competitions.upsert).not.toHaveBeenCalled();
+    expect(errors).toEqual([
+      {
+        item: { competition: 18442 },
+        message: 'Skipping competition "tLoEGBBL Säsong 30": some failure',
+      },
+    ]);
+  });
+
+  it("records one error, and upserts nothing, when reading an overlaid competition group's shared type rejects", async () => {
+    competitions.resolve.mockResolvedValue({ found: true, id: 12 });
+    competitions.findById.mockResolvedValue(
+      storedCompetition('2026-01-10', '2026-06-20'),
+    );
+    classifier.sharedTypeOfCompetitionGroup.mockRejectedValue(
+      new Error('some failure'),
+    );
+
+    await expect(overlay(DATES)).resolves.toBeUndefined();
+    expect(competitions.upsert).not.toHaveBeenCalled();
+    expect(errors).toEqual([
+      {
+        item: { competition: 18442 },
+        message: 'Skipping competition "tLoEGBBL Säsong 30": some failure',
+      },
+    ]);
   });
 
   it('reports whether the upsert created the competition', async () => {
@@ -147,22 +259,23 @@ describe('TpCompetitionUpsertService', () => {
     });
   });
 
-  it('leaves era, type and dates untouched when the competition is already imported', async () => {
+  it('leaves name, era, type, dates and group untouched when the competition is already imported', async () => {
     competitions.resolve.mockResolvedValue({ found: true, id: 12 });
 
     await expect(upsert()).resolves.toEqual(upsertedCompetition());
     expect(eras.resolve).not.toHaveBeenCalled();
     expect(span.derive).not.toHaveBeenCalled();
     expect(competitions.findById).not.toHaveBeenCalled();
+    expect(classifier.classifyNew).not.toHaveBeenCalled();
+    expect(classifier.sharedTypeOfCompetitionGroup).not.toHaveBeenCalled();
     expect(competitions.upsert).toHaveBeenCalledWith({
-      name: 'tLoEGBBL Säsong 30',
       teamEraIds: [],
       externalIds: [{ externalSystemId: 1, externalId: '18442' }],
     });
     expect(errors).toEqual([]);
   });
 
-  it('overlays era, type and dates on an already-imported competition when asked', async () => {
+  it('overlays era, type and dates on an already-imported competition when asked, without reclassifying it', async () => {
     competitions.resolve.mockResolvedValue({ found: true, id: 12 });
     competitions.findById.mockResolvedValue(
       storedCompetition('2026-01-10', '2026-06-20'),
@@ -179,8 +292,9 @@ describe('TpCompetitionUpsertService', () => {
       new Date('2026-01-10'),
       new Date('2026-06-20'),
     ]);
+    expect(classifier.classifyNew).not.toHaveBeenCalled();
+    expect(classifier.sharedTypeOfCompetitionGroup).toHaveBeenCalledWith(12);
     expect(competitions.upsert).toHaveBeenCalledWith({
-      name: 'tLoEGBBL Säsong 30',
       type: 'season',
       eraId: 40,
       startDate: '2026-01-10',
@@ -189,6 +303,25 @@ describe('TpCompetitionUpsertService', () => {
       externalIds: [{ externalSystemId: 1, externalId: '18442' }],
     });
     expect(errors).toEqual([]);
+  });
+
+  it("overlays the type its group shares over the date span's", async () => {
+    competitions.resolve.mockResolvedValue({ found: true, id: 12 });
+    competitions.findById.mockResolvedValue(
+      storedCompetition('2026-01-10', '2026-01-11'),
+    );
+    span.derive.mockReturnValue({
+      type: 'cup',
+      startDate: '2026-01-10',
+      endDate: '2026-01-11',
+    });
+    classifier.sharedTypeOfCompetitionGroup.mockResolvedValue('season');
+
+    await overlay([new Date('2026-01-11')]);
+
+    expect(competitions.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'season' }),
+    );
   });
 
   // Zero new played dates means no new information about the competition at
@@ -202,8 +335,8 @@ describe('TpCompetitionUpsertService', () => {
     expect(eras.resolve).not.toHaveBeenCalled();
     expect(span.derive).not.toHaveBeenCalled();
     expect(competitions.findById).not.toHaveBeenCalled();
+    expect(classifier.sharedTypeOfCompetitionGroup).not.toHaveBeenCalled();
     expect(competitions.upsert).toHaveBeenCalledWith({
-      name: 'tLoEGBBL Säsong 30',
       teamEraIds: [],
       externalIds: [{ externalSystemId: 1, externalId: '18442' }],
     });
@@ -295,6 +428,7 @@ describe('TpCompetitionUpsertService', () => {
           'Skipping competition "tLoEGBBL Säsong 30": era "Fourth era" does not exist.',
       },
     ]);
+    expect(classifier.classifyNew).not.toHaveBeenCalled();
     expect(competitions.upsert).not.toHaveBeenCalled();
   });
 
@@ -304,6 +438,7 @@ describe('TpCompetitionUpsertService', () => {
 
     await expect(upsert()).resolves.toBeUndefined();
     expect(competitions.findById).not.toHaveBeenCalled();
+    expect(classifier.classifyNew).not.toHaveBeenCalled();
     expect(errors).toEqual([
       {
         item: { competition: 18442 },
@@ -313,17 +448,15 @@ describe('TpCompetitionUpsertService', () => {
     ]);
   });
 
-  it('records one error when the upsert fails, such as a new competition with no curated group', async () => {
-    competitions.upsert.mockRejectedValue(
-      new Error('competition_group_id is required'),
-    );
+  it('records one error when the upsert fails', async () => {
+    competitions.upsert.mockRejectedValue(new Error('db down'));
 
     await expect(upsert()).resolves.toBeUndefined();
     expect(errors).toEqual([
       {
         item: { competition: 18442 },
         message:
-          'Failed to upsert competition "tLoEGBBL Säsong 30" (TP id 18442): competition_group_id is required',
+          'Failed to upsert competition "tLoEGBBL Säsong 30" (TP id 18442): db down',
       },
     ]);
   });

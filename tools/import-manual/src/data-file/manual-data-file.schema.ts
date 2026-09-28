@@ -298,10 +298,30 @@ const TrophyEntrySchema = z.object({
  * "Name" system is derived in code from `name` (see
  * CompetitionGroupsProcessor), the same way BblLeaguesImportService derives a
  * league's, so there is nothing for a curator to keep in sync.
+ *
+ * `namePattern` is optional: a regular expression, compiled with flags `iu`
+ * exactly as TP competition import compiles it, that a brand-new TP
+ * competition's raw name is matched against to classify it into this group
+ * automatically. Validated here so a malformed pattern fails the curated
+ * file rather than a later import.
  */
 const CompetitionGroupEntrySchema = z.object({
   name: z.string().min(1),
   league: ExternalRefSchema,
+  namePattern: z
+    .string()
+    .min(1)
+    .refine(
+      (pattern) => {
+        try {
+          return new RegExp(pattern, 'iu').source.length > 0;
+        } catch {
+          return false;
+        }
+      },
+      { message: 'namePattern must be a valid regular expression' },
+    )
+    .optional(),
 });
 
 /**
