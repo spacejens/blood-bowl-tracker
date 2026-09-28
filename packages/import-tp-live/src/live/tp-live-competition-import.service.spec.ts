@@ -63,6 +63,7 @@ const CORE: TpCoreCompetitionImportResult = {
   participation: { success: true, imported: 2, errors: [] },
   trophyAwards: one,
   competitionCreated: false,
+  competitionId: 12,
 };
 const fetchFailure: ImportError = { item: 1, message: 'status 429' };
 const MATCHES_BACKFILL: ImportResult = {
@@ -225,6 +226,7 @@ describe('TpLiveCompetitionImportService', () => {
       participation: nothing,
       trophyAwards: nothing,
       competitionCreated: false,
+      competitionId: 12,
     });
 
     const result = await importCompetition();
@@ -475,6 +477,7 @@ describe('TpLiveCompetitionImportService', () => {
         participation: nothing,
         trophyAwards: nothing,
         competitionCreated: false,
+        competitionId: undefined,
       });
 
       const result = await importForced();

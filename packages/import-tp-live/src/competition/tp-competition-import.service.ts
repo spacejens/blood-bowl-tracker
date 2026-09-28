@@ -29,14 +29,19 @@ export interface ImportCompetitionOptions {
 
 /**
  * What {@link TpCompetitionImportService.importCompetition} did: the
- * `tpCompetitions.import` contract's stages, plus whether the competition
- * row was newly created. The flag is read only by the live competition
- * import; the `tpCompetitions.import` route drops it, so nothing on the
- * bulk path reads it.
+ * `tpCompetitions.import` contract's stages, plus the competition's id and
+ * whether its row was newly created. Both are read only by the live
+ * competition import; the `tpCompetitions.import` route drops them.
  */
 export interface TpCoreCompetitionImportResult extends TpCompetitionImportResult {
   /** True only when this call created the competition. */
   competitionCreated: boolean;
+  /**
+   * The stored competition's id, or undefined when the upsert failed. Read
+   * only by the live competition import, to compute the extra trophy awards
+   * of a finished competition.
+   */
+  competitionId: number | undefined;
 }
 
 /**
@@ -63,7 +68,9 @@ export class TpCompetitionImportService {
    * data, matching BBL's and TP's bulk import contract (see
    * tools/import-manual/data/before-other-importers/competitions.json5) — a
    * live match import's own incidental competition upsert does not, since it
-   * only knows one match's date. A stage whose prerequisite failed is not
+   * only knows one match's date. A competition with at least one award is
+   * finished, so the upsert writes its end date; one with none yet is not (see
+   * `UpsertTpCompetitionOptions.finished`). A stage whose prerequisite failed is not
    * attempted and reports nothing imported: nothing is linked without a
    * competition, and no award is recorded when the team link failed. The
    * result also says whether the competition was newly created; nothing
@@ -84,6 +91,7 @@ export class TpCompetitionImportService {
       era,
       externalSystemName,
       overlayExisting: true,
+      finished: awards.length > 0,
       errors: competitionErrors,
     });
     const competitionResult = this.importResults.result({
@@ -96,6 +104,7 @@ export class TpCompetitionImportService {
         participation: this.nothing(),
         trophyAwards: this.nothing(),
         competitionCreated: false,
+        competitionId: undefined,
       };
     }
     const competitionCreated = competition.created;
@@ -116,6 +125,7 @@ export class TpCompetitionImportService {
         participation,
         trophyAwards: this.nothing(),
         competitionCreated,
+        competitionId: competition.competitionId,
       };
     }
 
@@ -134,6 +144,7 @@ export class TpCompetitionImportService {
         errors: trophyErrors,
       }),
       competitionCreated,
+      competitionId: competition.competitionId,
     };
   }
 

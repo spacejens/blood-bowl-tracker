@@ -89,10 +89,14 @@ no NAF number (see [index.md](index.md)).
 already-fetched, already-parsed input:
 
 - **Competition**: upserted by its TP id. A new competition gets its era by
-  name, and its type and dates from its matches' dates. The dates are
+  name, and its type and start date from its matches' dates. Its end date is
+  written only once the competition is finished, meaning the call's awards are
+  non-empty: the latest played date, or a later stored end date. Until then a
+  new competition's end date is null, and an overlay leaves a stored one
+  untouched. The dates are
   classified by the same ≤ 3-day cup rule as
   [match import](match-import.md). An already-imported competition has its
-  era, type and dates overwritten from this call's data, its stored name kept
+  era, type and start date overwritten (and its end date, when finished) from this call's data, its stored name kept
   (TP's raw name never overwrites it) and its external id kept in sync (a
   live match import's own upsert leaves the
   stored era, type and dates alone). A new competition's group is found by
