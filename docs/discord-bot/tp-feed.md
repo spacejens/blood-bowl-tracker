@@ -72,7 +72,8 @@ Only real problems count as a failed import:
 - a match that has not finished yet is expected at the start of a match and
   is not a failure there — but an end-of-match notification whose match TP
   still reports as not completed is;
-- a notification whose link is not the expected TP match, roster or competition page is;
+- a notification whose link is not the expected TP match, roster or
+  competition page is;
 - an import that ran but reported errors in any stage (the same
   "completed with errors" `/importtp` shows) is, and its errors are listed.
 

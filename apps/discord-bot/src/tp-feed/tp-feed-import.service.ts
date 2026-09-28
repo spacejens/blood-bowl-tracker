@@ -107,11 +107,15 @@ export class TpFeedImportService {
     mergeKey: string | undefined,
   ): Promise<TpFeedImportResult> {
     try {
-      await this.sleep.sleep(TP_FEED_IMPORT_DELAY_MS);
-      if (mergeKey !== undefined) {
-        // From here the import reads TP afresh, so a later announcement is
-        // no longer covered by it and must queue its own run.
-        this.queuedTrophyJobs.delete(mergeKey);
+      try {
+        await this.sleep.sleep(TP_FEED_IMPORT_DELAY_MS);
+      } finally {
+        if (mergeKey !== undefined) {
+          // From here the import reads TP afresh (or, if the delay failed,
+          // never runs), so a later announcement is no longer covered by it
+          // and must queue its own run.
+          this.queuedTrophyJobs.delete(mergeKey);
+        }
       }
       const target = this.target(event);
       if (target === undefined) {

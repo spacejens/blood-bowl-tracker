@@ -343,6 +343,20 @@ describe('TpFeedImportService', () => {
       expect(dispatch.dispatch).toHaveBeenCalledTimes(2);
     });
 
+    it('releases the queued entry when the import delay fails, so a later announcement queues its own import', async () => {
+      sleep.sleep.mockRejectedValueOnce(new Error('sleep broke'));
+      dispatch.dispatch.mockResolvedValue(OUTCOME);
+
+      const one = service.enqueue(TROPHY);
+      const oneResult = await one;
+      const two = service.enqueue({ ...TROPHY });
+
+      expect(oneResult).toMatchObject({ failed: true });
+      expect(two).not.toBe(one);
+      await expect(two).resolves.toEqual({ failed: false });
+      expect(dispatch.dispatch).toHaveBeenCalledTimes(1);
+    });
+
     it('does not merge announcements for different competitions', async () => {
       const first = deferred<TpImportOutcome>();
       dispatch.dispatch
