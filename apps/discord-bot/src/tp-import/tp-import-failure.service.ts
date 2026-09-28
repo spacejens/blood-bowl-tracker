@@ -6,6 +6,7 @@ import type {
   TpLiveCompetitionImportResult,
   TpLiveCompetitionTeamResult,
   TpLiveMatchImportResult,
+  TpLiveMatchTeamsImportResult,
   TpLiveOfficialTeamsImportResult,
   TpLiveOfficialTeamsRulesSetResult,
   TpLiveTeamImportResult,
@@ -118,6 +119,11 @@ export class TpImportFailureService {
           `match ${outcome.matchId} (${outcome.tournamentSlug})`,
           outcome.result,
         );
+      case 'matchTeams':
+        return this.matchTeams(
+          `teams of match ${outcome.matchId} (${outcome.tournamentSlug})`,
+          outcome.result,
+        );
       case 'roster':
         return this.roster(outcome.rosterId, outcome.result);
       case 'officialTeams':
@@ -167,6 +173,32 @@ export class TpImportFailureService {
       notes: [this.eraNote(result.homeTeam.era)],
       rows: [...own.rows, ...backfill.rows],
       errors: [...own.errors, ...backfill.errors],
+    };
+  }
+
+  /**
+   * Both teams of a match, whatever state the match is in. Both teams are
+   * the point, so either not being imported fails it. The match fetch has
+   * no row of its own — it never imports anything — but its errors lead.
+   */
+  private matchTeams(
+    subject: string,
+    result: TpLiveMatchTeamsImportResult,
+  ): Summary {
+    const teams = this.stages([
+      { label: 'Home team', result: result.homeTeam.team },
+      { label: 'Home players', result: result.homeTeam.players },
+      { label: 'Away team', result: result.awayTeam.team },
+      { label: 'Away players', result: result.awayTeam.players },
+    ]);
+    return {
+      subject,
+      failed:
+        result.homeTeam.team.imported === 0 ||
+        result.awayTeam.team.imported === 0,
+      notes: [this.eraNote(result.homeTeam.era)],
+      rows: teams.rows,
+      errors: [...this.labelled('Match', result.match), ...teams.errors],
     };
   }
 

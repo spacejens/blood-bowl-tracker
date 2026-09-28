@@ -181,6 +181,98 @@ describe('TpImportFailureService', () => {
         errors: [{ label: 'Rules set BB2025 fetch', message: 'status 429' }],
       });
     });
+
+    describe('match teams', () => {
+      const notImported: TpLiveTeamImportResult = {
+        team: failedWith('no coach'),
+        players: imported(0),
+        era: undefined,
+        teamEra: undefined,
+      };
+
+      it('assesses both teams of an unfinished match imported as completed', () => {
+        expect(
+          service.assess({
+            kind: 'matchTeams',
+            tournamentSlug: 's31',
+            matchId: 670570,
+            result: {
+              match: imported(0),
+              homeTeam: team(12),
+              awayTeam: team(11),
+            },
+          }),
+        ).toEqual({
+          subject: 'teams of match 670570 (s31)',
+          status: 'completed',
+          notes: ['Era: Fourth era'],
+          rows: [
+            { label: 'Home team', summary: '1 imported' },
+            { label: 'Home players', summary: '12 imported' },
+            { label: 'Away team', summary: '1 imported' },
+            { label: 'Away players', summary: '11 imported' },
+          ],
+          errors: [],
+        });
+      });
+
+      it('assesses a failed match fetch as failed, labelled Match', () => {
+        const result = service.assess({
+          kind: 'matchTeams',
+          tournamentSlug: 's31',
+          matchId: 670570,
+          result: {
+            match: failedWith('Could not fetch TP match 670570: status 429'),
+            homeTeam: { ...notImported, team: imported(0) },
+            awayTeam: { ...notImported, team: imported(0) },
+          },
+        });
+
+        expect(result.status).toBe('failed');
+        expect(result.errors).toEqual([
+          {
+            label: 'Match',
+            message: 'Could not fetch TP match 670570: status 429',
+          },
+        ]);
+      });
+
+      it('assesses an away team that was not imported as failed', () => {
+        const result = service.assess({
+          kind: 'matchTeams',
+          tournamentSlug: 's31',
+          matchId: 670570,
+          result: {
+            match: imported(0),
+            homeTeam: team(12),
+            awayTeam: notImported,
+          },
+        });
+
+        expect(result.status).toBe('failed');
+        expect(result.errors).toEqual([
+          { label: 'Away team', message: 'no coach' },
+        ]);
+      });
+
+      it('assesses a player error with both teams imported as completed with errors', () => {
+        const result = service.assess({
+          kind: 'matchTeams',
+          tournamentSlug: 's31',
+          matchId: 670570,
+          result: {
+            match: imported(0),
+            homeTeam: { ...team(0), players: failedWith('unknown position') },
+            awayTeam: team(11),
+          },
+        });
+
+        expect(result.status).toBe('completedWithErrors');
+        expect(result.errors).toEqual([
+          { label: 'Home players', message: 'unknown position' },
+        ]);
+      });
+    });
   });
 
   describe('isRealFailure', () => {

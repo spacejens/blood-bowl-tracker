@@ -367,6 +367,28 @@ describe('ImportTpReplyService', () => {
     });
   });
 
+  it("summarizes a match's teams import", () => {
+    const reply = service.build({
+      kind: 'matchTeams',
+      tournamentSlug: 's31',
+      matchId: 670570,
+      result: { match: imported(0), homeTeam: team(12), awayTeam: team(11) },
+    });
+
+    expect(embed(reply)).toEqual({
+      title: 'TP import: teams of match 670570 (s31)',
+      description: [
+        '**Completed**',
+        'Era: Fourth era',
+        '',
+        '- Home team: 1 imported',
+        '- Home players: 12 imported',
+        '- Away team: 1 imported',
+        '- Away players: 11 imported',
+      ].join('\n'),
+    });
+  });
+
   describe('official teams', () => {
     const write: TpOfficialTeamsImportResult = {
       races: imported(30),
