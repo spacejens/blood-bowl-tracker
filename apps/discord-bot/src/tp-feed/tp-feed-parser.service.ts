@@ -63,6 +63,9 @@ export class TpFeedParserService {
     ) {
       return this.parseMatchEnd(embed, message.id);
     }
+    if (title.startsWith(':trophy:') && title.includes('Award')) {
+      return this.parseCompetitionTrophy(embed, message.id);
+    }
     // Recognised, deliberately out of scope. "Match Event" is the shared
     // author name of every in-match event (MVP, casualty, touchdown, ...),
     // which are distinguished only by icon and value text — none of which
@@ -125,6 +128,21 @@ export class TpFeedParserService {
       status: 'event',
       event: { ...shared, outcome: 'win', winnerName },
     };
+  }
+
+  /**
+   * `:trophy:  Award Overall Champion!`: only the link matters. The title's
+   * trophy name, the author (the competition) and the placings are not
+   * read, because the announcement triggers importing every award.
+   */
+  private parseCompetitionTrophy(
+    embed: Embed,
+    messageId: string,
+  ): TpFeedParseResult {
+    const kind = 'competition-trophy';
+    const link = embed.url;
+    if (!link) return this.parseFailure(kind, 'url', messageId);
+    return { status: 'event', event: { kind, link } };
   }
 
   private parseNewSkillOrCharacteristic(

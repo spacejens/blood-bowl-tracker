@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TpFeedParserService } from './tp-feed-parser.service';
 import {
+  competitionTrophyMessage,
   firedMessage,
   hiredMessage,
   matchEndDrawMessage,
@@ -659,5 +660,58 @@ describe('TpFeedParserService', () => {
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('field value'));
+  });
+
+  it('parses a competition trophy announcement', () => {
+    expect(service.parse(competitionTrophyMessage())).toEqual({
+      status: 'event',
+      event: {
+        kind: 'competition-trophy',
+        link: 'https://tourplay.net/en/blood-bowl/tloegbbl-sasong-30/awards',
+      },
+    });
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('parses a trophy announcement whatever trophy its title names', () => {
+    const result = service.parse(
+      sampleMessage({
+        title: ':trophy:  Award Best Stunty Team!',
+        url: 'https://tourplay.net/en/blood-bowl/tloegbbl-sasong-30/awards',
+      }),
+    );
+
+    expect(result).toEqual({
+      status: 'event',
+      event: {
+        kind: 'competition-trophy',
+        link: 'https://tourplay.net/en/blood-bowl/tloegbbl-sasong-30/awards',
+      },
+    });
+  });
+
+  it('warns and reports unrecognized when a trophy announcement has no link', () => {
+    const result = service.parse(
+      sampleMessage({ title: ':trophy:  Award Overall Champion!' }),
+    );
+
+    expect(result).toEqual({ status: 'unrecognized' });
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('competition-trophy'),
+    );
+  });
+
+  it.each([
+    ['without the trophy icon', 'Award Overall Champion!'],
+    ['with the trophy icon but no award', ':trophy:  Season standings'],
+  ])('reports a title %s as unrecognized', (_name, title) => {
+    const result = service.parse(
+      sampleMessage({
+        title,
+        url: 'https://tourplay.net/en/blood-bowl/tloegbbl-sasong-30/awards',
+      }),
+    );
+
+    expect(result).toEqual({ status: 'unrecognized' });
   });
 });

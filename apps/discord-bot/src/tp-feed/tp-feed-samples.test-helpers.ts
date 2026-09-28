@@ -151,6 +151,32 @@ export function firedMessage(): Message {
   });
 }
 
+/**
+ * A competition trophy announcement. The title's text after "Award" names
+ * the trophy; the author is the competition, the url its awards page, the
+ * description the winner and the fields the runner-up and consolation.
+ */
+export function competitionTrophyMessage(): Message {
+  return sampleMessage({
+    title: ':trophy:  Award Overall Champion!',
+    author: { name: 'tLoEGBBL Säsong 30' },
+    url: 'https://tourplay.net/en/blood-bowl/tloegbbl-sasong-30/awards',
+    description: '**CALAVERA SELVÁTICA FC**\n:flag_se: MichaelF',
+    fields: [
+      {
+        name: 'Runner-up',
+        value: "**SATAN'S LITTLE HELPERS**\n:flag_se: Jens Rydholm",
+        inline: true,
+      },
+      {
+        name: 'Consolation',
+        value: '**EVERVAIN EGRETS**\n:flag_se: Patrick M',
+        inline: true,
+      },
+    ],
+  });
+}
+
 /** Recognised but deliberately out of scope. */
 export function matchScheduledMessage(): Message {
   return sampleMessage({

@@ -17,7 +17,9 @@ export interface TeamInfo {
  * the `ignored` and `unrecognized` members of `TpFeedParseResult` instead.
  *
  * `link` is the match page (the embed's top-level `url`) for start and end,
- * and the roster page (the embed's `author.url`) for skill, hire and fire.
+ * the roster page (the embed's `author.url`) for skill, hire and fire, and
+ * the competition's awards page (the embed's top-level `url`) for a trophy
+ * announcement.
  */
 export type TpFeedEvent =
   | { kind: 'match-start'; home: TeamInfo; away: TeamInfo; link: string }
@@ -56,6 +58,15 @@ export type TpFeedEvent =
       playerName: string;
       position: string;
       teamName: string;
+      link: string;
+    }
+  | {
+      /**
+       * TP announcing one of a competition's trophies. The message's presence
+       * is the whole signal: it triggers importing all of the competition's
+       * awards, so nothing about the specific trophy is parsed.
+       */
+      kind: 'competition-trophy';
       link: string;
     };
 
