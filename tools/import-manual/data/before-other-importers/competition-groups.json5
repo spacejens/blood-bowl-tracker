@@ -49,7 +49,11 @@
 // contain another season-style track's word -- Major's prefix excludes
 // "Minor" and "Dungeon", Minor's excludes "Major" and "Dungeon". A new track
 // whose names also end in "Season N" must be added to both exclusion lists,
-// or Major Season would claim it too. Every group carries a
+// or Major Season would claim it too. Every other tLoEG group accepts
+// exactly the two known spellings of the optional league prefix --
+// "tLoEGBBL" and "tLoEG Blood Bowl League" -- as explicit alternation
+// followed by optional spaces and dashes, so the prefix can never swallow
+// another track's words. Every group carries a
 // pattern -- the manual-import schema requires one -- including groups with
 // a single historical instance so far (Fright Night, Snöbollskrieg, Champion
 // of tLoEG, Blitzmania!), so a future instance of any group is classified
@@ -76,62 +80,63 @@
     {
       name: 'Chaos Cup',
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
-      namePattern: '^(?:tLoEGBBL[\\s-]*)?Chaos Cup(?:\\s*\\d+)?$',
+      namePattern: '^(?:tLoEG(?:BBL|\\s+Blood\\s+Bowl\\s+League)[\\s-]*)?Chaos Cup(?:\\s*\\d+)?$',
     },
     {
       name: 'Stunty Leeg',
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
-      namePattern: '^(?:tLoEGBBL[\\s-]*)?Stunty Leeg(?:\\s*\\d+)?$',
+      namePattern: '^(?:tLoEG(?:BBL|\\s+Blood\\s+Bowl\\s+League)[\\s-]*)?Stunty Leeg(?:\\s*\\d+)?$',
     },
     {
       name: 'Fright Night',
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
-      namePattern: '^(?:tLoEGBBL[\\s-]*)?Fright Night(?:\\s*\\d+)?$',
+      namePattern: '^(?:tLoEG(?:BBL|\\s+Blood\\s+Bowl\\s+League)[\\s-]*)?Fright Night(?:\\s*\\d+)?$',
     },
     {
       name: 'Snöbollskrieg',
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
-      namePattern: '^(?:tLoEGBBL[\\s-]*)?Snöbollskrieg(?:\\s*\\d+)?$',
+      namePattern: '^(?:tLoEG(?:BBL|\\s+Blood\\s+Bowl\\s+League)[\\s-]*)?Snöbollskrieg(?:\\s*\\d+)?$',
     },
     {
       name: 'Moot Mania',
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
-      namePattern: '^(?:tLoEGBBL[\\s-]*)?Moot Mania(?:\\s*\\d+)?$',
+      namePattern: '^(?:tLoEG(?:BBL|\\s+Blood\\s+Bowl\\s+League)[\\s-]*)?Moot Mania(?:\\s*\\d+)?$',
     },
     {
       name: 'Champion of tLoEG',
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
       // BBL's one instance is the plural "Champions of tLoEG" (its
       // competition list truncates it to "Champions of..."); accept both.
-      namePattern: '^(?:tLoEGBBL[\\s-]*)?Champions? of tLoEG(?:\\s*\\d+)?$',
+      namePattern: '^(?:tLoEG(?:BBL|\\s+Blood\\s+Bowl\\s+League)[\\s-]*)?Champions? of tLoEG(?:\\s*\\d+)?$',
     },
     {
       name: 'NAA',
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
-      namePattern: '^(?:tLoEGBBL[\\s-]*)?NAA(?:\\s*\\d+)?$',
+      namePattern: '^(?:tLoEG(?:BBL|\\s+Blood\\s+Bowl\\s+League)[\\s-]*)?NAA(?:\\s*\\d+)?$',
     },
     {
       name: 'Blitzmania!',
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
-      namePattern: '^(?:tLoEGBBL[\\s-]*)?Blitzmania!?(?:\\s*\\d+)?$',
+      namePattern: '^(?:tLoEG(?:BBL|\\s+Blood\\s+Bowl\\s+League)[\\s-]*)?Blitzmania!?(?:\\s*\\d+)?$',
     },
     {
       name: 'Ogretoberfest',
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
       // TP once wrapped it in dashes: "-OGRETOBERFEST 12 -"; BBL once dropped
       // the space: "Ogretoberfest10".
-      namePattern: '^[\\s-]*(?:tLoEGBBL[\\s-]*)?Ogretoberfest(?:\\s*\\d+)?[\\s-]*$',
+      namePattern: '^[\\s-]*(?:tLoEG(?:BBL|\\s+Blood\\s+Bowl\\s+League)[\\s-]*)?Ogretoberfest(?:\\s*\\d+)?[\\s-]*$',
     },
     {
       name: 'Dungeon Bowl',
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
-      // TP: "tLoEGBBL - Dungeon Bowl Season N"; BBL: "Dungeon Bowl 1".
-      namePattern: '^(?:tLoEGBBL[\\s-]*)?Dungeon Bowl(?:\\s+Season)?(?:\\s*\\d+)?$',
+      // TP: "tLoEGBBL - Dungeon Bowl Season N", later spelled out as
+      // "tLoEG Blood Bowl League - Dungeon Bowl Season N"; BBL: "Dungeon Bowl 1".
+      namePattern: '^(?:tLoEG(?:BBL|\\s+Blood\\s+Bowl\\s+League)[\\s-]*)?Dungeon Bowl(?:\\s+Season)?(?:\\s*\\d+)?$',
     },
     {
       name: 'Reserves Rumble',
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
-      namePattern: '^(?:tLoEGBBL[\\s-]*)?Reserves Rumble(?:\\s*\\d+)?$',
+      namePattern: '^(?:tLoEG(?:BBL|\\s+Blood\\s+Bowl\\s+League)[\\s-]*)?Reserves Rumble(?:\\s*\\d+)?$',
     },
     {
       name: 'GBBL',
