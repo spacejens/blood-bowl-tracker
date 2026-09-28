@@ -284,9 +284,11 @@ brand-new competition's raw name against, so a new instance of a known
 track is classified, named and typed automatically. Every group carries
 one, including groups with a single historical instance so far. Put every
 historical naming variant of the track into the one pattern as
-alternation, and anchor it so it cannot match another track's names. It is
-validated as a regular expression when the file is parsed, and restated
-on every upsert.
+alternation, and anchor it so it cannot match another track's names. The
+example accepts any `tLoEG…` league prefix made of letters, spaces and
+hyphens, as long as it contains no other season-style track's word
+(`Minor`, `Dungeon`). The pattern is validated as a regular expression
+when the file is parsed, and restated on every upsert.
 
 ```jsonc
 {
@@ -294,7 +296,7 @@ on every upsert.
     {
       "name": "Major Season",
       "league": { "system": "tloeg.bbleague.se", "id": "tLoEG" },
-      "namePattern": "^(?:tLoEGBBL[\\s-]*)?(?:Major Season|Season|Säsong)\\s*\\d+$",
+      "namePattern": "^(?:tLoEG(?:(?!Minor|Dungeon)[\\p{L}\\s-])*)?(?:Major Season|Season|Säsong)\\s*\\d+$",
     },
   ],
 }

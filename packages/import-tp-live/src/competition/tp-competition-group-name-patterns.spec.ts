@@ -46,7 +46,11 @@ function curatedCandidates(): NamePatternCandidate[] {
  * Every raw name each recurring group's instances carried in BBL's
  * competition list (tools/import-bbl/data/tloeg.bbleague.se/default.asp?p=se)
  * and TP's tournament_<slug>.json files (tools/import-tp/data/), plus the
- * canonical and TP-styled names a next instance would plausibly get.
+ * canonical and TP-styled names a next instance would plausibly get --
+ * including the spelled-out "tLoEG Blood Bowl League" prefix TP uses
+ * alongside "tLoEGBBL". Each name must match its own group alone, which is
+ * what keeps a Minor Season name out of Major Season (and vice versa) and
+ * "tLoEGBBL - Dungeon Bowl Season N" out of both season tracks.
  */
 const HISTORICAL_NAMES: Record<string, string[]> = {
   'Major Season': [
@@ -65,6 +69,11 @@ const HISTORICAL_NAMES: Record<string, string[]> = {
     'tLoEGBBL Säsong 30',
     'tLoEGBBL Säsong 31',
     'Major Season 31',
+    'tLoEG Blood Bowl League Säsong 31',
+    'tLoEG Blood Bowl League Major Season 32',
+    'tLoEG Blood Bowl League - Major Season 32',
+    'tLoEG Blood Bowl League Season 32',
+    'tLoEGBBL - Season 32',
   ],
   'Minor Season': [
     'Korpen 1',
@@ -75,6 +84,9 @@ const HISTORICAL_NAMES: Record<string, string[]> = {
     'Minor Season 22',
     'Minor Season 23',
     'Minor Season 25',
+    'tLoEGBBL Minor Season 25',
+    'tLoEG Blood Bowl League Minor Season 26',
+    'tLoEG - Korpen 10',
   ],
   'Chaos Cup': [
     'Chaos Cup',
