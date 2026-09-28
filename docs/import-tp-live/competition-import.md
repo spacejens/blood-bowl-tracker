@@ -152,7 +152,7 @@ Neither entry point throws for an import problem. Every failure is one
 `ImportError` in the result.
 
 | Failure                                                                                                                             | Reported in                                           |
-|-------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------|
+| ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
 | Tournament or fixture-list request/parse failure; live only                                                                         | `competition`; nothing else is attempted              |
 | Unknown era, no dated matches, a new competition matching no curated group's name pattern or several, or competition upsert failure | `competition`                                         |
 | Inscriptions request/parse failure; live only                                                                                       | `participation`; no team is imported or linked        |

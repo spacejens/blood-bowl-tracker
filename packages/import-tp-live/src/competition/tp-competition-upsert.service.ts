@@ -254,14 +254,32 @@ export class TpCompetitionUpsertService {
     errors,
   }: GroupFieldsOptions): Promise<GroupFields | undefined> {
     if (competitionRef.found) {
-      return {
-        identity: {},
-        type: await this.classifier.sharedTypeOfCompetitionGroup(
-          competitionRef.id,
-        ),
-      };
+      const result = await this.runner.record({
+        run: async () => ({
+          type: await this.classifier.sharedTypeOfCompetitionGroup(
+            competitionRef.id,
+          ),
+        }),
+        item: { competition: tournament.id },
+        errors,
+        buildErrorMessage: (error) =>
+          `Skipping competition "${tournament.name}": ${this.runner.messageOf(error)}`,
+      });
+      if (result === undefined) {
+        return undefined;
+      }
+      return { identity: {}, type: result.type };
     }
-    const classification = await this.classifier.classifyNew(tournament.name);
+    const classification = await this.runner.record({
+      run: () => this.classifier.classifyNew(tournament.name),
+      item: { competition: tournament.id },
+      errors,
+      buildErrorMessage: (error) =>
+        `Skipping competition "${tournament.name}": ${this.runner.messageOf(error)}`,
+    });
+    if (classification === undefined) {
+      return undefined;
+    }
     if (classification.kind === 'classified') {
       return {
         identity: {

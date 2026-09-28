@@ -203,6 +203,38 @@ describe('TpCompetitionUpsertService', () => {
     ]);
   });
 
+  it('records one error, and upserts nothing, when classifying a new competition rejects', async () => {
+    classifier.classifyNew.mockRejectedValue(new Error('some failure'));
+
+    await expect(upsert()).resolves.toBeUndefined();
+    expect(competitions.upsert).not.toHaveBeenCalled();
+    expect(errors).toEqual([
+      {
+        item: { competition: 18442 },
+        message: 'Skipping competition "tLoEGBBL Säsong 30": some failure',
+      },
+    ]);
+  });
+
+  it("records one error, and upserts nothing, when reading an overlaid competition group's shared type rejects", async () => {
+    competitions.resolve.mockResolvedValue({ found: true, id: 12 });
+    competitions.findById.mockResolvedValue(
+      storedCompetition('2026-01-10', '2026-06-20'),
+    );
+    classifier.sharedTypeOfCompetitionGroup.mockRejectedValue(
+      new Error('some failure'),
+    );
+
+    await expect(overlay(DATES)).resolves.toBeUndefined();
+    expect(competitions.upsert).not.toHaveBeenCalled();
+    expect(errors).toEqual([
+      {
+        item: { competition: 18442 },
+        message: 'Skipping competition "tLoEGBBL Säsong 30": some failure',
+      },
+    ]);
+  });
+
   it('reports whether the upsert created the competition', async () => {
     competitions.upsert.mockResolvedValue({
       competition: mock<CompetitionWithTeamEras>({

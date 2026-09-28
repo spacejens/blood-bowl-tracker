@@ -44,12 +44,13 @@ an earlier one fails:
    TP's own scores page does — giving every match in the competition's
    bracket, needed for category classification and for the competition's
    date span.
-6. **Upsert the competition**: its name, TP id, era (the one the home team
-   was imported under), type and dates derived from the fixture lists' dates
-   by the same ≤ 3-day cup rule `tools/import-tp`'s bulk import uses. A new
+6. **Upsert the competition**: its TP id, era (the one the home team was
+   imported under), type and dates derived from the fixture lists' dates by
+   the same ≤ 3-day cup rule `tools/import-tp`'s bulk import uses. A new
    competition's group, name and preferred type come from matching its raw
    name against the curated groups' name patterns; one matching no group, or
-   several, is not created. This is the
+   several, is not created. An already-imported competition keeps its stored
+   name — TP's raw name never overwrites it. This is the
    competition import's own upsert stage (see
    [competition-import.md](competition-import.md)); a match import does not
    link the competition's other teams or record its awards.
@@ -168,7 +169,7 @@ Neither entry point throws for an import problem; every failure is one
 `ImportError` in the result.
 
 | Failure                                                                                                                                                                           | Reported in                                 |
-|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------|
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
 | Match request or parse failure                                                                                                                                                    | `match`                                     |
 | Match not completed (no recorded result); live only                                                                                                                               | `match`                                     |
 | Team import failures (home or away); live only                                                                                                                                    | `homeTeam`/`awayTeam`, as for a team import |

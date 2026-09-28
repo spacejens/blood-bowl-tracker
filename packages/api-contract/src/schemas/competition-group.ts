@@ -10,8 +10,10 @@ import { ExternalIdSchema } from './external-id';
  * made in tools/import-manual -- but it still carries external ids, under the
  * synthetic "Name" system, so two independent importer processes can resolve
  * the same group onto the same row. `name`, `leagueId` and `externalIds` are
- * all required on upsert: there is no overlay use case, because the only
- * writer restates every field on every run. `externalIds` (min 1) is the
+ * all required on upsert: there is no overlay use case for them, because the
+ * only writer restates every field on every run (`namePattern`, below, is the
+ * one upsert field with its own optional overlay semantics, but that does not
+ * change this read shape). `externalIds` (min 1) is the
  * load-bearing one -- upsert matches an existing row by external id, never by
  * name, which is what makes re-running tools/import-manual (whose phases run
  * as separate processes) resolve the same curated group onto the same row
