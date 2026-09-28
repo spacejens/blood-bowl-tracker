@@ -21,32 +21,50 @@ describe('CompetitionGroupSchema', () => {
 });
 
 describe('UpsertCompetitionGroupSchema', () => {
-  it('requires name, leagueId and at least one external id', () => {
+  const namePattern = '^Chaos Cup$';
+
+  it('requires name, leagueId, namePattern and at least one external id', () => {
     expect(
       UpsertCompetitionGroupSchema.safeParse({
         name: 'Chaos Cup',
+        namePattern,
         externalIds,
       }).success,
     ).toBe(false);
     expect(
-      UpsertCompetitionGroupSchema.safeParse({ leagueId: 1, externalIds })
-        .success,
+      UpsertCompetitionGroupSchema.safeParse({
+        leagueId: 1,
+        namePattern,
+        externalIds,
+      }).success,
     ).toBe(false);
     expect(
       UpsertCompetitionGroupSchema.safeParse({
         name: '',
         leagueId: 1,
+        namePattern,
         externalIds,
       }).success,
-    ).toBe(false);
-    expect(
-      UpsertCompetitionGroupSchema.safeParse({ name: 'Chaos Cup', leagueId: 1 })
-        .success,
     ).toBe(false);
     expect(
       UpsertCompetitionGroupSchema.safeParse({
         name: 'Chaos Cup',
         leagueId: 1,
+        externalIds,
+      }).success,
+    ).toBe(false);
+    expect(
+      UpsertCompetitionGroupSchema.safeParse({
+        name: 'Chaos Cup',
+        leagueId: 1,
+        namePattern,
+      }).success,
+    ).toBe(false);
+    expect(
+      UpsertCompetitionGroupSchema.safeParse({
+        name: 'Chaos Cup',
+        leagueId: 1,
+        namePattern,
         externalIds: [],
       }).success,
     ).toBe(false);
@@ -57,28 +75,21 @@ describe('UpsertCompetitionGroupSchema', () => {
       UpsertCompetitionGroupSchema.parse({
         name: 'Chaos Cup',
         leagueId: 1,
+        namePattern,
         externalIds,
       }),
-    ).toEqual({ name: 'Chaos Cup', leagueId: 1, externalIds });
+    ).toEqual({ name: 'Chaos Cup', leagueId: 1, namePattern, externalIds });
   });
 
-  it('accepts an optional name pattern, or null to clear it', () => {
+  it('rejects a null or empty name pattern', () => {
     expect(
-      UpsertCompetitionGroupSchema.parse({
-        name: 'Chaos Cup',
-        leagueId: 1,
-        namePattern: '^Chaos Cup$',
-        externalIds,
-      }).namePattern,
-    ).toBe('^Chaos Cup$');
-    expect(
-      UpsertCompetitionGroupSchema.parse({
+      UpsertCompetitionGroupSchema.safeParse({
         name: 'Chaos Cup',
         leagueId: 1,
         namePattern: null,
         externalIds,
-      }).namePattern,
-    ).toBeNull();
+      }).success,
+    ).toBe(false);
     expect(
       UpsertCompetitionGroupSchema.safeParse({
         name: 'Chaos Cup',

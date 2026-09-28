@@ -7,6 +7,7 @@ import { createRouterHarness } from './rpc-router-factory.test-helpers';
 const upsertInput = {
   name: 'Chaos Cup',
   leagueId: 1,
+  namePattern: '^Chaos Cup$',
   externalIds: [{ externalSystemId: 2, externalId: 'Chaos Cup' }],
 };
 

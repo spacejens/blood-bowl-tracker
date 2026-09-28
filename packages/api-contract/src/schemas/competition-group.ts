@@ -9,11 +9,10 @@ import { ExternalIdSchema } from './external-id';
  * No source system names a group -- it exists purely as a curation decision
  * made in tools/import-manual -- but it still carries external ids, under the
  * synthetic "Name" system, so two independent importer processes can resolve
- * the same group onto the same row. `name`, `leagueId` and `externalIds` are
- * all required on upsert: there is no overlay use case for them, because the
- * only writer restates every field on every run (`namePattern`, below, is the
- * one upsert field with its own optional overlay semantics, but that does not
- * change this read shape). `externalIds` (min 1) is the
+ * the same group onto the same row. `name`, `leagueId`, `namePattern` and
+ * `externalIds` are all required on upsert: there is no overlay use case for
+ * them, because the only writer restates every field on every run.
+ * `externalIds` (min 1) is the
  * load-bearing one -- upsert matches an existing row by external id, never by
  * name, which is what makes re-running tools/import-manual (whose phases run
  * as separate processes) resolve the same curated group onto the same row
@@ -30,12 +29,10 @@ export const UpsertCompetitionGroupSchema = z.object({
   name: z.string().min(1),
   leagueId: z.number().int(),
   // The regular expression TP competition import matches a new competition's
-  // raw name against. Optional so a caller that does not know about it leaves
-  // the stored value alone; tools/import-manual always restates it, sending
-  // null for a group curated without one so removing a pattern clears it.
-  // Validated here (compiled with the same 'iu' flags the importer uses) so
-  // an invalid pattern is rejected at the API boundary, not just by
-  // tools/import-manual's own schema.
+  // raw name against. Required: every curated group carries one, and the
+  // column is NOT NULL. Validated here (compiled with the same 'iu' flags the
+  // importer uses) so an invalid pattern is rejected at the API boundary, not
+  // just by tools/import-manual's own schema.
   namePattern: z
     .string()
     .min(1)
@@ -49,9 +46,7 @@ export const UpsertCompetitionGroupSchema = z.object({
         }
       },
       { message: 'namePattern must be a valid regular expression' },
-    )
-    .nullable()
-    .optional(),
+    ),
   externalIds: z.array(ExternalIdSchema).min(1),
 });
 

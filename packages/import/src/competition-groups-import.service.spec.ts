@@ -29,6 +29,7 @@ describe('CompetitionGroupsImportService', () => {
   const data = {
     name: 'Chaos Cup',
     leagueId: 1,
+    namePattern: '^Chaos Cup$',
     externalIds: [{ externalSystemId: 2, externalId: 'Chaos Cup' }],
   };
 

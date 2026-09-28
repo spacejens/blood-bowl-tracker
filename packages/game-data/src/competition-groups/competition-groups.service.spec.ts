@@ -46,6 +46,7 @@ describe('CompetitionGroupsService', () => {
     const result = await service.upsert({
       name: 'Chaos Cup',
       leagueId: 2,
+      namePattern: '^Chaos Cup$',
       externalIds,
     });
 
@@ -64,6 +65,7 @@ describe('CompetitionGroupsService', () => {
     const result = await service.upsert({
       name: 'Chaos Cup',
       leagueId: 3,
+      namePattern: '^Chaos Cup$',
       externalIds,
     });
 
@@ -71,58 +73,7 @@ describe('CompetitionGroupsService', () => {
     expect(db.chains[1].set).toHaveBeenCalledWith({
       name: 'Chaos Cup',
       leagueId: 3,
-    });
-  });
-
-  it('writes a name pattern onto the group', async () => {
-    const updated = {
-      id: 7,
-      name: 'Chaos Cup',
-      leagueId: 3,
       namePattern: '^Chaos Cup$',
-    };
-    const { service, db } = await makeService(
-      [{ ownerId: 7, externalSystemId: 2, externalId: 'Chaos Cup' }],
-      [updated],
-    );
-
-    await service.upsert({
-      name: 'Chaos Cup',
-      leagueId: 3,
-      namePattern: '^Chaos Cup$',
-      externalIds,
-    });
-
-    expect(db.chains[1].set).toHaveBeenCalledWith({
-      name: 'Chaos Cup',
-      leagueId: 3,
-      namePattern: '^Chaos Cup$',
-    });
-  });
-
-  it('clears a name pattern given an explicit null', async () => {
-    const updated = {
-      id: 7,
-      name: 'Chaos Cup',
-      leagueId: 3,
-      namePattern: null,
-    };
-    const { service, db } = await makeService(
-      [{ ownerId: 7, externalSystemId: 2, externalId: 'Chaos Cup' }],
-      [updated],
-    );
-
-    await service.upsert({
-      name: 'Chaos Cup',
-      leagueId: 3,
-      namePattern: null,
-      externalIds,
-    });
-
-    expect(db.chains[1].set).toHaveBeenCalledWith({
-      name: 'Chaos Cup',
-      leagueId: 3,
-      namePattern: null,
     });
   });
 
@@ -155,7 +106,12 @@ describe('CompetitionGroupsService', () => {
     ]);
 
     await expect(
-      service.upsert({ name: 'Chaos Cup', leagueId: 2, externalIds }),
+      service.upsert({
+        name: 'Chaos Cup',
+        leagueId: 2,
+        namePattern: '^Chaos Cup$',
+        externalIds,
+      }),
     ).rejects.toBeInstanceOf(CompetitionGroupUpsertConflictError);
   });
 
