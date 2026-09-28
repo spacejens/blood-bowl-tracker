@@ -94,15 +94,38 @@ const HISTORICAL_NAMES: Record<string, string[]> = {
     'Chaos Cup 7',
     'tLoEGBBL Chaos Cup 8',
     'tLoEGBBL Chaos Cup 9',
+    'tLoEG Blood Bowl League Chaos Cup 9',
+    'tLoEG Blood Bowl League - Chaos Cup 10',
+    'tLoEG Blood Bowl League Chaos Cup',
   ],
-  'Stunty Leeg': ['Stunty Leeg 1', 'Stunty Leeg 2'],
-  'Fright Night': ['Fright Night', 'Fright Night 2', 'tLoEGBBL Fright Night 2'],
+  'Stunty Leeg': [
+    'Stunty Leeg 1',
+    'Stunty Leeg 2',
+    'tLoEG Blood Bowl League Stunty Leeg 3',
+    'tLoEG Blood Bowl League - Stunty Leeg 3',
+  ],
+  'Fright Night': [
+    'Fright Night',
+    'Fright Night 2',
+    'tLoEGBBL Fright Night 2',
+    'tLoEG Blood Bowl League Fright Night 3',
+    'tLoEG Blood Bowl League - Fright Night',
+  ],
   Snöbollskrieg: [
     'Snöbollskrieg',
     'Snöbollskrieg 2',
     'tLoEGBBL - Snöbollskrieg 2026',
+    'tLoEG Blood Bowl League - Snöbollskrieg 2027',
+    'tLoEG Blood Bowl League Snöbollskrieg',
   ],
-  'Moot Mania': ['Moot Mania', 'Moot Mania 2', 'Moot Mania 3', 'Moot Mania 4'],
+  'Moot Mania': [
+    'Moot Mania',
+    'Moot Mania 2',
+    'Moot Mania 3',
+    'Moot Mania 4',
+    'tLoEG Blood Bowl League Moot Mania 5',
+    'tLoEG Blood Bowl League - Moot Mania 5',
+  ],
   // BBL's only instance is "Champions of tLoEG" (plural) -- the group's own
   // name is singular -- so both spellings are accepted.
   'Champion of tLoEG': [
@@ -110,13 +133,22 @@ const HISTORICAL_NAMES: Record<string, string[]> = {
     'Champion of tLoEG',
     'Champions of tLoEG 2',
     'tLoEGBBL Champions of tLoEG 2',
+    'tLoEG Blood Bowl League Champions of tLoEG 2',
+    'tLoEG Blood Bowl League - Champion of tLoEG 3',
   ],
-  NAA: ['NAA', 'NAA 2'],
+  NAA: [
+    'NAA',
+    'NAA 2',
+    'tLoEG Blood Bowl League NAA 3',
+    'tLoEG Blood Bowl League - NAA',
+  ],
   'Blitzmania!': [
     'Blitzmania!',
     'Blitzmania! 2',
     'tLoEGBBL Blitzmania! 2',
     'Blitzmania 2',
+    'tLoEG Blood Bowl League Blitzmania! 3',
+    'tLoEG Blood Bowl League - Blitzmania 3',
   ],
   Ogretoberfest: [
     'Ogretoberfest',
@@ -127,6 +159,8 @@ const HISTORICAL_NAMES: Record<string, string[]> = {
     '-OGRETOBERFEST 12 -',
     'Ogretoberfest 13',
     'Ogretoberfest 14',
+    'tLoEG Blood Bowl League Ogretoberfest 15',
+    'tLoEG Blood Bowl League - Ogretoberfest 15',
   ],
   'Dungeon Bowl': [
     'Dungeon Bowl 1',
@@ -134,8 +168,15 @@ const HISTORICAL_NAMES: Record<string, string[]> = {
     'tLoEGBBL - Dungeon Bowl Season 3',
     'tLoEGBBL - Dungeon Bowl Season 4',
     'tLoEGBBL - Dungeon Bowl Season 5',
+    'tLoEG Blood Bowl League - Dungeon Bowl Season 6',
+    'tLoEG Blood Bowl League Dungeon Bowl Season 6',
   ],
-  'Reserves Rumble': ['Reserves Rumble', 'Reserves Rumble 4'],
+  'Reserves Rumble': [
+    'Reserves Rumble',
+    'Reserves Rumble 4',
+    'tLoEG Blood Bowl League Reserves Rumble 5',
+    'tLoEG Blood Bowl League - Reserves Rumble',
+  ],
   GBBL: ['GBBL 1', 'GBBL 2'],
 };
 
@@ -152,6 +193,8 @@ const NEVER_MATCHED = [
   'tLoEGBBL Säsong',
   'Chaos Cupcake',
   'GBBL Chaos Cup 3',
+  'tLoEG Blood Bowl Chaos Cup 9',
+  'tLoEG Blood Bowl League Open 2026',
 ];
 
 describe('curated competition group name patterns', () => {
