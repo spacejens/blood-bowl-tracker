@@ -45,6 +45,16 @@ describe('TpCompetitionGroupPrecedentService', () => {
         ).toBe('Chaos Cup 9');
       });
 
+      it('extracts the number from a name TP wraps in dashes', () => {
+        expect(
+          service.nextName({
+            groupName: 'Ogretoberfest',
+            rawName: '-OGRETOBERFEST 12 -',
+            existingNames: ['Ogretoberfest 10'],
+          }),
+        ).toBe('Ogretoberfest 12');
+      });
+
       it('falls back to one past the highest when it collides with a sibling', () => {
         expect(
           service.nextName({

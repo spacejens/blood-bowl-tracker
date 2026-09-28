@@ -1,8 +1,12 @@
 import type { CompetitionType } from '@blood-bowl-tracker/api-contract';
 import { Injectable } from '@nestjs/common';
 
-/** A name's trailing sequence number, e.g. the `8` of "Chaos Cup 8". */
-const TRAILING_NUMBER = /(\d+)\s*$/u;
+/**
+ * A name's trailing sequence number, e.g. the `8` of "Chaos Cup 8" or the
+ * `12` of "-OGRETOBERFEST 12 -" (TP has wrapped some competition names in
+ * dashes).
+ */
+const TRAILING_NUMBER = /(\d+)[\s-]*$/u;
 
 /** Options for {@link TpCompetitionGroupPrecedentService.nextName}. */
 export interface NextNameOptions {
