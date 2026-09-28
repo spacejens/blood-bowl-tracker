@@ -211,9 +211,13 @@ export class CompetitionsService {
    */
   listNamesAndTypesByGroup(
     competitionGroupId: number,
-  ): Promise<{ name: string; type: CompetitionType }[]> {
+  ): Promise<{ id: number; name: string; type: CompetitionType }[]> {
     return this.db
-      .select({ name: competitions.name, type: competitions.type })
+      .select({
+        id: competitions.id,
+        name: competitions.name,
+        type: competitions.type,
+      })
       .from(competitions)
       .where(eq(competitions.competitionGroupId, competitionGroupId));
   }

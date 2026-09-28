@@ -18,8 +18,8 @@ const CHAOS_CUP: NamePatternCandidate = {
   namePattern: '^Chaos Cup',
 };
 const SIBLINGS = [
-  { name: 'Chaos Cup 7', type: 'cup' as const },
-  { name: 'Chaos Cup 8', type: 'cup' as const },
+  { id: 101, name: 'Chaos Cup 7', type: 'cup' as const },
+  { id: 102, name: 'Chaos Cup 8', type: 'cup' as const },
 ];
 
 describe('TpCompetitionClassifierService', () => {
@@ -119,6 +119,34 @@ describe('TpCompetitionClassifierService', () => {
         service.sharedTypeOfCompetitionGroup(12),
       ).resolves.toBeUndefined();
       expect(competitions.listNamesAndTypesByGroup).not.toHaveBeenCalled();
+    });
+
+    it("excludes the competition's own row from the shared-type check", async () => {
+      competitions.findGroupIdById.mockResolvedValue(3);
+      competitions.listNamesAndTypesByGroup.mockResolvedValue([
+        { id: 101, name: 'Chaos Cup 7', type: 'cup' },
+        { id: 102, name: 'Chaos Cup 8', type: 'cup' },
+        { id: 12, name: 'Chaos Cup 9', type: 'season' },
+      ]);
+      precedent.sharedType.mockReturnValue('cup');
+
+      await expect(service.sharedTypeOfCompetitionGroup(12)).resolves.toBe(
+        'cup',
+      );
+      expect(precedent.sharedType).toHaveBeenCalledWith(['cup', 'cup']);
+    });
+
+    it('returns undefined when the competition is the only member of its group', async () => {
+      competitions.findGroupIdById.mockResolvedValue(3);
+      competitions.listNamesAndTypesByGroup.mockResolvedValue([
+        { id: 12, name: 'Chaos Cup 9', type: 'cup' },
+      ]);
+      precedent.sharedType.mockReturnValue(undefined);
+
+      await expect(
+        service.sharedTypeOfCompetitionGroup(12),
+      ).resolves.toBeUndefined();
+      expect(precedent.sharedType).toHaveBeenCalledWith([]);
     });
   });
 });

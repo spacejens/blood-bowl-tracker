@@ -370,8 +370,8 @@ describe('CompetitionsService', () => {
   describe('listNamesAndTypesByGroup', () => {
     it('lists the name and type of every competition in the group', async () => {
       const rows = [
-        { name: 'Chaos Cup 7', type: 'cup' },
-        { name: 'Chaos Cup 8', type: 'cup' },
+        { id: 7, name: 'Chaos Cup 7', type: 'cup' },
+        { id: 8, name: 'Chaos Cup 8', type: 'cup' },
       ];
       const { db, chains } = await build(rows);
 
@@ -379,7 +379,7 @@ describe('CompetitionsService', () => {
       expect(chains[0].from).toHaveBeenCalledWith(competitions);
       expect(
         Object.keys(firstCallArg(db.select) as Record<string, unknown>).sort(),
-      ).toEqual(['name', 'type']);
+      ).toEqual(['id', 'name', 'type']);
       expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(3);
     });
   });

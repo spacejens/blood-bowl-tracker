@@ -65,9 +65,12 @@ export class TpCompetitionClassifierService {
   }
 
   /**
-   * The type every competition in a stored competition's group shares
-   * (itself included), or undefined when they disagree or the competition
-   * cannot be found.
+   * The type every OTHER competition in a stored competition's group shares,
+   * or undefined when they disagree, there are none, or the competition
+   * cannot be found. The competition's own row is excluded so a lone or
+   * first group member can still self-correct its type from a widened date
+   * range on a later overlay, rather than perpetually echoing its own
+   * possibly-wrong stored type.
    */
   async sharedTypeOfCompetitionGroup(
     competitionId: number,
@@ -79,6 +82,7 @@ export class TpCompetitionClassifierService {
     }
     const siblings =
       await this.competitions.listNamesAndTypesByGroup(competitionGroupId);
-    return this.precedent.sharedType(siblings.map((sibling) => sibling.type));
+    const others = siblings.filter((sibling) => sibling.id !== competitionId);
+    return this.precedent.sharedType(others.map((sibling) => sibling.type));
   }
 }

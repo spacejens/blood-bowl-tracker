@@ -92,8 +92,9 @@ The competition import consumes these ids, both live and through
 `tpCompetitions.import` (see
 [import-tp-live's competition import](../import-tp-live/competition-import.md)).
 It resolves the catalog trophy by `${disambiguator}-${groupName}`, with the
-group coming from the competition's own `competitionGroupId`, curated in
-tools/import-manual's before-other-importers phase. It takes the winning
+group coming from the competition's own `competitionGroupId`, either curated
+in tools/import-manual's before-other-importers phase or auto-matched from
+the competition's name. It takes the winning
 team's team era from `inscription.roster.id` among the competition's linked
 registered teams, and writes a `trophy_awards` row with `playerId: null`. An
 unresolvable row is recorded as an error and skipped, never invented.
