@@ -189,12 +189,14 @@ describe('ManualDataReader', () => {
     write(
       'a.json5',
       `{ competitionGroups: [{ name: 'Major Season',
-         league: { system: 'Name', id: 'name:major' } }] }`,
+         league: { system: 'Name', id: 'name:major' },
+         namePattern: '^Major Season$' }] }`,
     );
     write(
       'b.json5',
       `{ competitionGroups: [{ name: 'Korpen',
-         league: { system: 'Name', id: 'name:korpen' } }] }`,
+         league: { system: 'Name', id: 'name:korpen' },
+         namePattern: '^Korpen$' }] }`,
     );
 
     const data = await reader.read(dir);

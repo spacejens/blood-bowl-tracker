@@ -269,7 +269,7 @@ section is processed after the rules sets and races it references.
 
 `competitionGroups` entries seed the curated competition-group catalog — the
 recurring track a competition instance belongs to (Major Season, Chaos Cup,
-Ogretoberfest, etc.). Each entry is `{ name, league, namePattern? }`:
+Ogretoberfest, etc.). Each entry is `{ name, league, namePattern }`:
 `league` is an external-id pair pointing at the group's owning league. An
 entry declares no `externalIds` of its own, but the importer derives one for
 it: the group's `name` under the synthetic `Name` external system, exactly
@@ -278,15 +278,15 @@ upsert matches on, like every other entity's upsert, and it is also the
 external-id pair a trophy or competition entry's `competitionGroup` field
 (see below) names explicitly.
 
-`namePattern` is an optional regular expression (flags `iu`) that
+`namePattern` is a required regular expression (flags `iu`) that
 [TP competition import](../import-tp-live/competition-import.md) matches a
 brand-new competition's raw name against, so a new instance of a known
-track is classified, named and typed automatically. Put every historical
-naming variant of the track into the one pattern as alternation, and anchor
-it so it cannot match another track's names. It is validated as a regular
-expression when the file is parsed, and always restated on upsert — an
-entry without one clears any stored pattern. One-off groups deliberately
-have none.
+track is classified, named and typed automatically. Every group carries
+one, including groups with a single historical instance so far. Put every
+historical naming variant of the track into the one pattern as
+alternation, and anchor it so it cannot match another track's names. It is
+validated as a regular expression when the file is parsed, and restated
+on every upsert.
 
 ```jsonc
 {
