@@ -49,12 +49,15 @@
 // contain another season-style track's word -- Major's prefix excludes
 // "Minor" and "Dungeon", Minor's excludes "Major" and "Dungeon". A new track
 // whose names also end in "Season N" must be added to both exclusion lists,
-// or Major Season would claim it too. Every other tLoEG group accepts
-// exactly the two known spellings of the optional league prefix --
-// "tLoEGBBL" and "tLoEG Blood Bowl League" -- as explicit alternation
-// followed by optional spaces and dashes, so the prefix can never swallow
-// another track's words. Every group carries a
-// pattern -- the manual-import schema requires one -- including groups with
+// or Major Season would claim it too.
+//
+// Every other tLoEG group accepts exactly the two known spellings of the
+// optional league prefix -- "tLoEGBBL" and "tLoEG Blood Bowl League" -- as
+// explicit alternation followed by optional spaces and dashes, so the prefix
+// can never swallow another track's words.
+//
+// Every group carries a pattern -- the manual-import schema requires one --
+// including groups with
 // a single historical instance so far (Fright Night, Snöbollskrieg, Champion
 // of tLoEG, Blitzmania!), so a future instance of any group is classified
 // automatically. The real historical names every pattern must (and must

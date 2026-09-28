@@ -289,7 +289,8 @@ example accepts any `tLoEG…` league prefix made of letters, spaces and
 hyphens, as long as it contains no other season-style track's word
 (`Minor`, `Dungeon`). The other tLoEG groups accept only the two known
 prefix spellings, `tLoEGBBL` and `tLoEG Blood Bowl League`, as explicit
-alternation (`tLoEG(?:BBL|\\s+Blood\\s+Bowl\\s+League)[\\s-]*`). The
+alternation (`tLoEG(?:BBL|\s+Blood\s+Bowl\s+League)[\s-]*` as a regular
+expression; the JSON5 file doubles each backslash). The
 pattern is validated as a regular expression when the file is parsed, and
 restated on every upsert.
 
