@@ -8,6 +8,7 @@ import { MessageFlags } from 'discord.js';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
+import { TpImportFailureService } from '../../tp-import/tp-import-failure.service';
 import { ImportTpReplyService } from './import-tp-reply.service';
 
 const imported = (count: number): ImportResult => ({
@@ -38,7 +39,7 @@ describe('ImportTpReplyService', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [ImportTpReplyService],
+      providers: [ImportTpReplyService, TpImportFailureService],
     }).compile();
     service = moduleRef.get(ImportTpReplyService);
   });
