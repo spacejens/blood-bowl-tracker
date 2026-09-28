@@ -17,6 +17,7 @@ import { TpImportResultsService } from '../tp-import-results.service';
 import { TpNameExternalIdService } from '../tp-name-external-id.service';
 import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { TpKeywordTargetDecoderService } from './tp-keyword-target-decoder.service';
+import { TpOfficialBatchSyncService } from './tp-official-batch-sync.service';
 import { TpOfficialCharacteristicsSyncService } from './tp-official-characteristics-sync.service';
 import { TpOfficialKeywordCatalogService } from './tp-official-keyword-catalog.service';
 import { TpOfficialKeywordsSyncService } from './tp-official-keywords-sync.service';
@@ -53,6 +54,7 @@ import { TpOfficialTeamsImportService } from './tp-official-teams-import.service
     TpOfficialTeamsContextService,
     TpOfficialRacesUpsertService,
     TpOfficialPositionsUpsertService,
+    TpOfficialBatchSyncService,
     TpOfficialCharacteristicsSyncService,
     TpOfficialKeywordCatalogService,
     TpKeywordTargetDecoderService,
