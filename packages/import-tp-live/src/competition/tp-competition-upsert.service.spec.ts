@@ -227,7 +227,7 @@ describe('TpCompetitionUpsertService', () => {
     });
   });
 
-  it('leaves era, type, dates and group untouched when the competition is already imported', async () => {
+  it('leaves name, era, type, dates and group untouched when the competition is already imported', async () => {
     competitions.resolve.mockResolvedValue({ found: true, id: 12 });
 
     await expect(upsert()).resolves.toEqual(upsertedCompetition());
@@ -237,7 +237,6 @@ describe('TpCompetitionUpsertService', () => {
     expect(classifier.classifyNew).not.toHaveBeenCalled();
     expect(classifier.sharedTypeOfCompetitionGroup).not.toHaveBeenCalled();
     expect(competitions.upsert).toHaveBeenCalledWith({
-      name: 'tLoEGBBL Säsong 30',
       teamEraIds: [],
       externalIds: [{ externalSystemId: 1, externalId: '18442' }],
     });
@@ -264,7 +263,6 @@ describe('TpCompetitionUpsertService', () => {
     expect(classifier.classifyNew).not.toHaveBeenCalled();
     expect(classifier.sharedTypeOfCompetitionGroup).toHaveBeenCalledWith(12);
     expect(competitions.upsert).toHaveBeenCalledWith({
-      name: 'tLoEGBBL Säsong 30',
       type: 'season',
       eraId: 40,
       startDate: '2026-01-10',
@@ -307,7 +305,6 @@ describe('TpCompetitionUpsertService', () => {
     expect(competitions.findById).not.toHaveBeenCalled();
     expect(classifier.sharedTypeOfCompetitionGroup).not.toHaveBeenCalled();
     expect(competitions.upsert).toHaveBeenCalledWith({
-      name: 'tLoEGBBL Säsong 30',
       teamEraIds: [],
       externalIds: [{ externalSystemId: 1, externalId: '18442' }],
     });

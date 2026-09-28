@@ -22,9 +22,10 @@
 // longer a season. eras.json5 in this directory exists so `era` has something
 // to reference.
 //
-// These values are deliberately real, not placeholders: BBL's and TP's own
-// competition upserts always set name, type, eraId, startDate and endDate
-// unconditionally, so they overlay everything here on the next run -- but a
+// These values are deliberately real, not placeholders: BBL's own competition
+// upsert always sets name, type, eraId, startDate and endDate unconditionally,
+// and TP's sets type, eraId, startDate and endDate (never an existing
+// competition's name), so they overlay those fields here on the next run -- but a
 // competition that is never re-imported in some environment keeps what this
 // file says, and a future reader should find the truth here. Neither importer
 // ever changes an existing competition's competitionGroupId -- TP sets one

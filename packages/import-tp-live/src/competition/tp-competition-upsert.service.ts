@@ -119,7 +119,8 @@ export class TpCompetitionUpsertService {
    * resolved by name and its start/end dates derived from its matches'
    * dates.
    *
-   * An already-imported competition has its name kept in sync and its
+   * An already-imported competition keeps its stored name -- the curated or
+   * derived standard name, never overwritten by TP's raw one -- has its
    * external id link ensured, and is never reclassified; when
    * `overlayExisting` is set and this call has new match dates, its era is
    * overwritten and its type and dates are re-derived from those dates
@@ -217,7 +218,6 @@ export class TpCompetitionUpsertService {
     const upserted = await this.runner.record({
       run: () =>
         this.competitions.upsert({
-          name: tournament.name,
           ...fields,
           teamEraIds: [],
           externalIds,

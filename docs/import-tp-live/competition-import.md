@@ -92,8 +92,9 @@ already-fetched, already-parsed input:
   name, and its type and dates from its matches' dates. The dates are
   classified by the same ≤ 3-day cup rule as
   [match import](match-import.md). An already-imported competition has its
-  era, type and dates overwritten from this call's data, and its name and
-  external id kept in sync (a live match import's own upsert leaves the
+  era, type and dates overwritten from this call's data, its stored name kept
+  (TP's raw name never overwrites it) and its external id kept in sync (a
+  live match import's own upsert leaves the
   stored era, type and dates alone). A new competition's group is found by
   matching its raw TP name against every curated group's `namePattern` (see
   [docs/import-manual](../import-manual/index.md#competition-groups)):
