@@ -39,7 +39,9 @@ procedures use it:
 - **Era resolution**: `TpEraResolutionService` (see below).
 - **Roster import**: `TpRosterImportService`, in `TpRosterModule`. It
   resolves the TP and Name external systems, the era and the era's rules
-  set, upserts the team, then upserts its players.
+  set, upserts the team, then upserts its players. Given the roster's raw
+  JSON (the live import always passes it), it then syncs each player's own
+  skills through `TpRosterPlayerSkillsService` and `TpRosterSkillIdsService`.
 - **The live team entry point**: `TpLiveTeamImportService.importTeam(...)`,
   in `ImportTpLiveModule`.
 - **Match import**: `TpMatchModule`, with `TpMatchImportService` and its
@@ -114,7 +116,21 @@ star players hired through inducements: those appear only in match events,
 and a live match import adds them (see
 [match-import.md](match-import.md#star-player-hires)).
 It does send characteristics, lasting injuries and characteristic-increase
-counts, validated against the rules set the era declares.
+counts, validated against the rules set the era declares, and each roster
+player's skills.
+
+Skills are written to `player_skills`: the position template's as
+`starting`, the player's gained ones as `chosen` or `random` (TP's own
+`isRandom`), numbered in TP's gained-list order. TP names a skill only by
+id, so the roster's own JSON is scanned for the skill names it embeds; a
+named skill is upserted under the Name system and every TP id the roster
+gives it. An id the roster does not name resolves through a skill already
+carrying it as a TP external id — registered by an earlier import, or
+curated in `tools/import-manual` (`data/before-other-importers/skills.json5`).
+A Hatred or Animosity target, which TP writes as an opaque keyword code, is
+named through the curated keyword catalogue
+(`data/before-other-importers/keywords.json5`). A player seen only in a
+match snapshot carries no skill data, so contributes none.
 
 ## Era resolution
 
@@ -144,7 +160,8 @@ player's `lineUpId` → player id (and whether it was inserted), and the
 mercenary hires' position usages. The bulk importer's later steps resolve
 teams and players by these. See
 [import-tp's architecture](../import-tp/index.md#architecture) for how the
-bulk run uses it.
+bulk run uses it. It does not write player skills: the bulk importer writes
+them in its own later pass, naming skills from its whole download mirror.
 
 ## Failures
 
@@ -162,9 +179,15 @@ in the result:
 | External systems cannot be set up                                            | `team`                                               |
 | Race unresolvable, coach or team upsert failure                              | `team`                                               |
 | Position unresolvable, player upsert failure                                 | `players`                                            |
+| Skill id neither named by the roster nor carried by a skill; live only       | `players`, once per id                               |
+| Hatred/Animosity keyword code not curated; live only                         | `players`, once per skill and code                   |
+| Skill upsert, skill lookup, keyword catalogue read or player-skill write     | `players`                                            |
 
 When the team is not imported, its players are not attempted and `players`
 reports nothing imported.
+
+A skill gap never fails a player or the team: the skill is left out, the
+player is still imported, and `players.imported` still counts it.
 
 ## Wiring it into an app
 
