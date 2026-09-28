@@ -41,8 +41,9 @@ export class TpCompetitionClassifierService {
 
   /**
    * Matches a competition not yet stored, by its raw TP name, to exactly one
-   * group; a confident match also names it and, when the group's existing
-   * competitions (from any source) all share one type, types it.
+   * group; a confident match also names it (numbered from the raw name when
+   * possible) and, when the group's existing competitions (from any source)
+   * all share one type, types it.
    */
   async classifyNew(rawName: string): Promise<TpCompetitionClassification> {
     const candidates = await this.groups.listWithNamePatterns();
@@ -58,6 +59,7 @@ export class TpCompetitionClassifierService {
       competitionGroupId: match.group.id,
       name: this.precedent.nextName({
         groupName: match.group.name,
+        rawName,
         existingNames: siblings.map((sibling) => sibling.name),
       }),
       type: this.precedent.sharedType(siblings.map((sibling) => sibling.type)),
