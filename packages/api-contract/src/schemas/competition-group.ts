@@ -33,7 +33,25 @@ export const UpsertCompetitionGroupSchema = z.object({
   // raw name against. Optional so a caller that does not know about it leaves
   // the stored value alone; tools/import-manual always restates it, sending
   // null for a group curated without one so removing a pattern clears it.
-  namePattern: z.string().min(1).nullable().optional(),
+  // Validated here (compiled with the same 'iu' flags the importer uses) so
+  // an invalid pattern is rejected at the API boundary, not just by
+  // tools/import-manual's own schema.
+  namePattern: z
+    .string()
+    .min(1)
+    .refine(
+      (pattern) => {
+        try {
+          new RegExp(pattern, 'iu');
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      { message: 'namePattern must be a valid regular expression' },
+    )
+    .nullable()
+    .optional(),
   externalIds: z.array(ExternalIdSchema).min(1),
 });
 

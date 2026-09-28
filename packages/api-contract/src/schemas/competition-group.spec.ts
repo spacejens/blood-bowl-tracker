@@ -88,4 +88,15 @@ describe('UpsertCompetitionGroupSchema', () => {
       }).success,
     ).toBe(false);
   });
+
+  it('rejects a name pattern that is not a valid regular expression', () => {
+    expect(
+      UpsertCompetitionGroupSchema.safeParse({
+        name: 'Chaos Cup',
+        leagueId: 1,
+        namePattern: '^Chaos (Cup',
+        externalIds,
+      }).success,
+    ).toBe(false);
+  });
 });
