@@ -261,12 +261,7 @@ export class TpLiveCompetitionImportService {
     matchesBackfill: ImportResult | undefined;
   }): Promise<ImportResult> {
     if (matchesBackfill !== undefined && matchesBackfill.errors.length > 0) {
-      return this.failed([
-        this.importResults.error({
-          item: { tournamentSlug },
-          message: `Skipped awarding the extra trophies of competition ${tournamentSlug}: the match backfill reported errors, so some matches may be missing. Import the competition again once its matches import cleanly.`,
-        }),
-      ]);
+      return this.extraTrophyAwards.skippedForBackfillErrors(tournamentSlug);
     }
     return this.extraTrophyAwards.computeExtras({
       competitionId,

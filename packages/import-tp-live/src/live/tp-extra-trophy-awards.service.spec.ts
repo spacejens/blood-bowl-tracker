@@ -57,4 +57,18 @@ describe('TpExtraTrophyAwardsService', () => {
       ],
     });
   });
+
+  it('builds the skipped result, with one error, for a backfill that reported errors', () => {
+    expect(service.skippedForBackfillErrors('s30')).toEqual({
+      success: false,
+      imported: 0,
+      errors: [
+        {
+          item: { tournamentSlug: 's30' },
+          message:
+            'Skipped awarding the extra trophies of competition s30: the match backfill reported errors, so some matches may be missing. Import the competition again once its matches import cleanly.',
+        },
+      ],
+    });
+  });
 });

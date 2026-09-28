@@ -77,8 +77,8 @@ export class TpCompetitionImportService {
    * only knows one match's date. A competition with at least one award is
    * finished, so the upsert writes its end date; one with none yet is not,
    * and has any stored end date reset to null; one whose awards are unknown
-   * keeps any stored end date (see `UpsertTpCompetitionOptions.finished`). A stage whose prerequisite
-   * failed is not attempted and reports nothing imported: nothing is linked
+   * keeps any stored end date (see `UpsertTpCompetitionOptions.finished`). A
+   * stage whose prerequisite failed is not attempted and reports nothing imported: nothing is linked
    * without a competition, and no award is recorded when the team link
    * failed. The result also says whether the competition was newly created;
    * nothing here acts on that.

@@ -281,13 +281,9 @@ export class TpLiveMatchImportService {
       errors,
     });
     if (matchesBackfillFailed) {
-      errors.push(
-        this.importResults.error({
-          item: { tournamentSlug },
-          message: `Skipped awarding the extra trophies of competition ${tournamentSlug}: the match backfill reported errors, so some matches may be missing. Import the competition again once its matches import cleanly.`,
-        }),
-      );
-      return this.failed(errors);
+      const skipped =
+        this.extraTrophyAwards.skippedForBackfillErrors(tournamentSlug);
+      return this.failed([...errors, ...skipped.errors]);
     }
     const extras = await this.extraTrophyAwards.computeExtras({
       competitionId: competition.competitionId,

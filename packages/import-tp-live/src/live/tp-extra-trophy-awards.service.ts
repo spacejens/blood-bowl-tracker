@@ -51,4 +51,22 @@ export class TpExtraTrophyAwardsService {
       errors,
     });
   }
+
+  /**
+   * The result of not awarding a competition's extras because the match
+   * backfill run in the same import reported errors: some matches may be
+   * missing, and an award computed from incomplete matches is never
+   * corrected later. Imports nothing and carries one error saying so.
+   */
+  skippedForBackfillErrors(tournamentSlug: string): ImportResult {
+    return this.importResults.result({
+      imported: 0,
+      errors: [
+        this.importResults.error({
+          item: { tournamentSlug },
+          message: `Skipped awarding the extra trophies of competition ${tournamentSlug}: the match backfill reported errors, so some matches may be missing. Import the competition again once its matches import cleanly.`,
+        }),
+      ],
+    });
+  }
 }

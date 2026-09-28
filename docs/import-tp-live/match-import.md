@@ -90,8 +90,8 @@ The result then also carries `participantsBackfill` (`teams`,
 `participation`, `trophyAwards`) and `matchesBackfill` (one `ImportResult`
 for all backfilled matches) and `extraTrophyAwards` (one `ImportResult`: the
 finishing re-upsert's errors and the extra awards created; nothing imported
-when TP has no awards yet or they could not be fetched). A backfill failure is reported there and never
-fails the match import itself. The bulk `tpMatches.import` procedure never
+when TP has no awards yet or they could not be fetched). A backfill failure is
+reported there and never fails the match import itself. The bulk `tpMatches.import` procedure never
 upserts a competition, so it never backfills.
 
 ## Importing a match's teams live

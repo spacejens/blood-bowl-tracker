@@ -68,8 +68,10 @@ its competition, these are the backfilled teams, participation and trophy
 awards, a **Backfilled extra trophy awards** line counting the extra trophies
 awarded once the competition turned out to be finished, and the **Matches
 backfill**. When the match backfill reported errors, that line instead carries
-one error saying the extra trophies were skipped. A very long reply is cut off at
-Discord's embed limit.
+one error saying the extra trophies were skipped. The same holds for a
+scores-page `/importtp` (a forced backfill): when its match backfill reports
+errors, the competition import's own **Extra trophy awards** line carries the
+skipped error. A very long reply is cut off at Discord's embed limit.
 
 It uses the same import code as `tools/import-tp`'s bulk import, registered
 under `TP_EXTERNAL_SYSTEM_NAME`, which must match that tool's configured

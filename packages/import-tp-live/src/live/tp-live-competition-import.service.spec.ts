@@ -94,6 +94,17 @@ function registered(
   };
 }
 
+const SKIPPED = {
+  success: false,
+  imported: 0,
+  errors: [
+    {
+      item: { tournamentSlug: 's30' },
+      message: 'skipped by the extras service',
+    },
+  ],
+};
+
 describe('TpLiveCompetitionImportService', () => {
   let service: TpLiveCompetitionImportService;
   let fetcher: MockProxy<TpFetcherService>;
@@ -123,6 +134,7 @@ describe('TpLiveCompetitionImportService', () => {
     matchesBackfill.backfill.mockResolvedValue(MATCHES_BACKFILL);
     extraTrophyAwards = mock<TpExtraTrophyAwardsService>();
     extraTrophyAwards.computeExtras.mockResolvedValue(EXTRAS);
+    extraTrophyAwards.skippedForBackfillErrors.mockReturnValue(SKIPPED);
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpLiveCompetitionImportService,
@@ -406,16 +418,10 @@ describe('TpLiveCompetitionImportService', () => {
       const result = await importCompetition();
 
       expect(extraTrophyAwards.computeExtras).not.toHaveBeenCalled();
-      expect(result.extraTrophyAwards).toEqual({
-        success: false,
-        imported: 0,
-        errors: [
-          {
-            item: { tournamentSlug: 's30' },
-            message: expect.stringContaining('match backfill') as unknown,
-          },
-        ],
-      });
+      expect(extraTrophyAwards.skippedForBackfillErrors).toHaveBeenCalledWith(
+        's30',
+      );
+      expect(result.extraTrophyAwards).toEqual(SKIPPED);
       expect(result.matchesBackfill).toEqual(MATCHES_BACKFILL);
       expect(result.competition).toEqual(one);
     });
