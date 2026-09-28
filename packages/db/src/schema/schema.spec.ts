@@ -124,10 +124,10 @@ describe('schema', () => {
     expect(config.schema).toBe('game_data');
   });
 
-  it('gives competition groups a nullable name_pattern column', () => {
+  it('gives competition groups a required name_pattern column', () => {
     expect(competitionGroups.namePattern).toBeDefined();
     expect(competitionGroups.namePattern.name).toBe('name_pattern');
-    expect(competitionGroups.namePattern.notNull).toBe(false);
+    expect(competitionGroups.namePattern.notNull).toBe(true);
     expect(competitionGroups.namePattern.hasDefault).toBe(false);
   });
 

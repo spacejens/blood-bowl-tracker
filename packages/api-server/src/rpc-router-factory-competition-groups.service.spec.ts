@@ -23,7 +23,7 @@ describe('RpcRouterFactoryService competitionGroups router', () => {
       id: 3,
       name: 'Chaos Cup',
       leagueId: 1,
-      namePattern: null,
+      namePattern: '^Chaos Cup$',
       createdAt: new Date('2026-01-01'),
       updatedAt: new Date('2026-01-01'),
       historyVersion: 1,

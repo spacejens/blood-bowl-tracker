@@ -65,7 +65,11 @@ async function seedTrophyFixtures(db: Db): Promise<TrophyFixtures> {
     .returning();
   const [group] = await db
     .insert(competitionGroups)
-    .values({ name: 'Major Season', leagueId: league.id })
+    .values({
+      name: 'Major Season',
+      leagueId: league.id,
+      namePattern: '^Major Season\\s*\\d+$',
+    })
     .returning();
   const [competition] = await db
     .insert(competitions)

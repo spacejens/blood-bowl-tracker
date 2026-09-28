@@ -603,7 +603,7 @@ describe('upsertByExternalIds', () => {
       const result = await upsertByExternalIds({
         ...baseOpts(db),
         entityTable: competitionGroups,
-        values: { name: 'Foo', leagueId: 1 },
+        values: { name: 'Foo', leagueId: 1, namePattern: '^Foo$' },
         externalIdTable: competitionGroupExternalIds,
         buildExternalIdRow: (
           competitionGroupId: number,
@@ -614,7 +614,11 @@ describe('upsertByExternalIds', () => {
       expect(result).toEqual({ row: { id: 9, name: 'Foo' }, created: false });
       expect(transaction).toHaveBeenCalledTimes(2);
       expect(update).toHaveBeenCalledWith(competitionGroups);
-      expect(updateSet).toHaveBeenCalledWith({ name: 'Foo', leagueId: 1 });
+      expect(updateSet).toHaveBeenCalledWith({
+        name: 'Foo',
+        leagueId: 1,
+        namePattern: '^Foo$',
+      });
     });
 
     it('does not retry an error that is not a unique violation', async () => {

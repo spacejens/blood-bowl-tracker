@@ -9,7 +9,6 @@ import {
   extractFilterValues,
   extractJoinColumns,
   firstCallArg,
-  sqlText,
 } from '../shared/query-assertions.test-helpers';
 import {
   CompetitionGroupsService,
@@ -78,24 +77,21 @@ describe('CompetitionGroupsService', () => {
   });
 
   describe('listWithNamePatterns', () => {
-    it('lists only the groups that carry a name pattern', async () => {
-      const { service, db } = await makeService([
+    it('lists every group with its name pattern, unfiltered', async () => {
+      const rows = [
         { id: 1, name: 'Chaos Cup', namePattern: '^Chaos Cup$' },
-        { id: 2, name: 'Fright Night', namePattern: null },
-      ]);
+        { id: 2, name: 'Fright Night', namePattern: '^Fright Night$' },
+      ];
+      const { service, db } = await makeService(rows);
 
-      await expect(service.listWithNamePatterns()).resolves.toEqual([
-        { id: 1, name: 'Chaos Cup', namePattern: '^Chaos Cup$' },
-      ]);
+      await expect(service.listWithNamePatterns()).resolves.toEqual(rows);
       expect(db.chains[0].from).toHaveBeenCalledWith(competitionGroups);
       expect(
         Object.keys(
           firstCallArg(db.db.select) as Record<string, unknown>,
         ).sort(),
       ).toEqual(['id', 'name', 'namePattern']);
-      expect(sqlText(firstCallArg(db.chains[0].where))).toContain(
-        'is not null',
-      );
+      expect(db.chains[0].where).not.toHaveBeenCalled();
     });
   });
 

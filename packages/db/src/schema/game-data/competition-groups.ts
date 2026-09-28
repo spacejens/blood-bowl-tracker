@@ -24,13 +24,13 @@ import { gameData } from './pg-schema';
  * and `CompetitionGroupsService.upsert` matches on external ids like every
  * other upsert, instead of on `name`.
  *
- * `namePattern` is an optional regular expression (compiled case-insensitive
+ * `namePattern` is a required regular expression (compiled case-insensitive
  * and Unicode-aware, flags `iu`) that TP competition import matches a
  * brand-new competition's raw source name against: exactly one group's
  * pattern matching makes that the new competition's group. It is curated in
  * tools/import-manual alongside the group, with every historical naming
- * variant of the track as alternation inside the one pattern. A group
- * without a pattern (a one-off, or not yet curated) is never matched.
+ * variant of the track as alternation inside the one pattern. Every group
+ * carries one, so any group can receive a new instance automatically.
  */
 const competitionGroupsTable = historyTrackedTable({
   schema: gameData,
@@ -41,7 +41,7 @@ const competitionGroupsTable = historyTrackedTable({
     leagueId: integer('league_id')
       .references(() => leagues.id)
       .notNull(),
-    namePattern: text('name_pattern'),
+    namePattern: text('name_pattern').notNull(),
   },
 });
 
