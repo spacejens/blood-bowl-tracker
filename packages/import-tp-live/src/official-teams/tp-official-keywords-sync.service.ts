@@ -1,9 +1,14 @@
-import type { ImportError } from '@blood-bowl-tracker/api-contract';
+import type {
+  ImportError,
+  PositionRulesSetKeywordEntry,
+} from '@blood-bowl-tracker/api-contract';
 import { PositionRulesSetKeywordsService } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
 
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
+import type { TpOfficialBatchGroup } from './tp-official-batch-sync.service';
+import { TpOfficialBatchSyncService } from './tp-official-batch-sync.service';
 import type { TpOfficialKeywordCatalog } from './tp-official-keyword-catalog.service';
 import type { TpOfficialPositionSlot } from './tp-official-positions-upsert.service';
 import type { TpOfficialTeamsContext } from './tp-official-teams-context.service';
@@ -20,6 +25,7 @@ export interface SyncOfficialKeywordsOptions {
 export class TpOfficialKeywordsSyncService {
   constructor(
     private readonly positionKeywords: PositionRulesSetKeywordsService,
+    private readonly batchSync: TpOfficialBatchSyncService,
     private readonly importResults: TpImportResultsService,
     private readonly runner: TpUpsertRunnerService,
   ) {}
@@ -27,10 +33,12 @@ export class TpOfficialKeywordsSyncService {
   /**
    * Writes which curated keywords each position carries under the rules
    * set. An uncurated code is reported once per code, not once per position
-   * carrying it, and the position's other keywords are still written. One
-   * sync call per position: the server rejects a batch all-or-nothing (and
-   * rejects a keyword for a position with no characteristics row, which the
-   * characteristics step creates first). Returns the keyword rows written.
+   * carrying it, and the position's other keywords are still written. Every
+   * position goes in one sync call; the server rejects a batch
+   * all-or-nothing (including a keyword for a position with no
+   * characteristics row, which the characteristics step creates first), so
+   * a rejected batch is retried one position at a time. Returns the keyword
+   * rows written.
    */
   async syncKeywords({
     slots,
@@ -39,7 +47,7 @@ export class TpOfficialKeywordsSyncService {
     errors,
   }: SyncOfficialKeywordsOptions): Promise<number> {
     const reportedCodes = new Set<number>();
-    let imported = 0;
+    const groups: TpOfficialBatchGroup<PositionRulesSetKeywordEntry>[] = [];
     for (const slot of slots) {
       // A Set: TP has been seen to repeat a code within one position, and the
       // server rejects a batch naming the same triple twice.
@@ -66,24 +74,21 @@ export class TpOfficialKeywordsSyncService {
       if (keywordIds.size === 0) {
         continue;
       }
-      const synced = await this.runner.record({
-        run: () =>
-          this.positionKeywords.sync({
-            entries: [...keywordIds].map((keywordId) => ({
-              positionId: slot.positionId,
-              rulesSetId: context.rulesSetId,
-              keywordId,
-            })),
-          }),
+      groups.push({
+        entries: [...keywordIds].map((keywordId) => ({
+          positionId: slot.positionId,
+          rulesSetId: context.rulesSetId,
+          keywordId,
+        })),
         item: { positionId: slot.positionId, rulesSet: context.rulesSet },
-        errors,
         buildErrorMessage: (error) =>
           `Failed to write the keywords of position "${slot.name}" (${context.rulesSet}): ${this.runner.messageOf(error)}`,
       });
-      if (synced !== undefined) {
-        imported += keywordIds.size;
-      }
     }
-    return imported;
+    return this.batchSync.syncGroups({
+      groups,
+      sync: (entries) => this.positionKeywords.sync({ entries }),
+      errors,
+    });
   }
 }
