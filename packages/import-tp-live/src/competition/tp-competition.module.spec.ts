@@ -5,6 +5,7 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 import { TpCompetitionModule } from './tp-competition.module';
+import { TpCompetitionClassifierService } from './tp-competition-classifier.service';
 import { TpCompetitionImportService } from './tp-competition-import.service';
 import { TpCompetitionUpsertService } from './tp-competition-upsert.service';
 
@@ -34,6 +35,16 @@ describe('TpCompetitionModule', () => {
 
     expect(moduleRef.get(TpCompetitionImportService)).toBeInstanceOf(
       TpCompetitionImportService,
+    );
+  });
+
+  it('composes TpCompetitionClassifierService with its real dependencies wired', async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [TestDbModule, TpCompetitionModule],
+    }).compile();
+
+    expect(moduleRef.get(TpCompetitionClassifierService)).toBeInstanceOf(
+      TpCompetitionClassifierService,
     );
   });
 });
