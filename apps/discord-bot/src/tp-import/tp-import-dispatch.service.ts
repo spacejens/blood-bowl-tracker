@@ -13,7 +13,7 @@ import {
 import type { TpPageClassification } from '@blood-bowl-tracker/tp-paths';
 import { Injectable } from '@nestjs/common';
 
-import { DiscordBotConfigService } from '../../discord-bot-config.service';
+import { DiscordBotConfigService } from '../discord-bot-config.service';
 
 /** A classified TP page this bot knows how to import. */
 export type ImportableTpPage = Exclude<

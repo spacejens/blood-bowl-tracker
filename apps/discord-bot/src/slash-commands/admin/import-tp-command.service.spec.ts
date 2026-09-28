@@ -12,11 +12,11 @@ import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { DiscordBotConfigService } from '../../discord-bot-config.service';
 import { IMPORT_TP_UNSUPPORTED_URL_MESSAGE } from '../../error-messages';
+import type { TpImportOutcome } from '../../tp-import/tp-import-dispatch.service';
+import { TpImportDispatchService } from '../../tp-import/tp-import-dispatch.service';
 import { SlashCommandRegistryService } from '../slash-command-registry.service';
 import { ImportTpCommandService } from './import-tp-command.service';
 import { ImportTpReplyService } from './import-tp-reply.service';
-import type { TpImportOutcome } from './tp-import-dispatch.service';
-import { TpImportDispatchService } from './tp-import-dispatch.service';
 
 const BASE = 'https://tourplay.net/en/blood-bowl/';
 const ROSTER_URL = `${BASE}roster/163386`;

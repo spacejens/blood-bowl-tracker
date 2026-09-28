@@ -16,7 +16,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { DiscordBotConfigService } from '../../discord-bot-config.service';
+import { DiscordBotConfigService } from '../discord-bot-config.service';
 import { TpImportDispatchService } from './tp-import-dispatch.service';
 
 const EXTERNAL_SYSTEM_NAME = 'tourplay.net';

@@ -15,7 +15,7 @@ import type { InteractionReplyOptions } from 'discord.js';
 import { MessageFlags } from 'discord.js';
 
 import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
-import type { TpImportOutcome } from './tp-import-dispatch.service';
+import type { TpImportOutcome } from '../../tp-import/tp-import-dispatch.service';
 
 /** One reported stage's bullet: what it is and what it did. */
 interface StageRow {
