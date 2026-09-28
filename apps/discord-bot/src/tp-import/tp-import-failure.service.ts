@@ -142,6 +142,7 @@ export class TpImportFailureService {
     const tail = this.stages([
       { label: 'Participation', result: result.participation },
       { label: 'Trophy awards', result: result.trophyAwards },
+      { label: 'Extra trophy awards', result: result.extraTrophyAwards },
       ...this.ranOnly('Matches backfill', result.matchesBackfill),
     ]);
     return {
@@ -205,7 +206,8 @@ export class TpImportFailureService {
   /**
    * The competition backfill a match import ran after creating the
    * competition: its registered teams, their participation and awards, and
-   * every completed match. Nothing when it ran none.
+   * every completed match, and, once it has awards, the trophies TP does not
+   * record. Nothing when it ran none.
    */
   private matchBackfill(
     result: TpLiveMatchImportResult,
@@ -227,6 +229,12 @@ export class TpImportFailureService {
               },
             ]),
           ]),
+      this.stages(
+        this.ranOnly(
+          'Backfilled extra trophy awards',
+          result.extraTrophyAwards,
+        ),
+      ),
       this.stages(this.ranOnly('Matches backfill', result.matchesBackfill)),
     ];
     return {

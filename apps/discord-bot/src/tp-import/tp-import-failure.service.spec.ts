@@ -124,6 +124,68 @@ describe('TpImportFailureService', () => {
       ]);
     });
 
+    it("reports a competition's extra trophy awards next to its TP awards, with their errors", () => {
+      const result = service.assess({
+        kind: 'competition',
+        tournamentSlug: 's30',
+        result: {
+          competition: imported(1),
+          teams: [],
+          participation: imported(0),
+          trophyAwards: imported(3),
+          extraTrophyAwards: failedWith('database down'),
+          era: 'Fourth era',
+        },
+      });
+
+      const labels = result.rows.map((row) => row.label);
+      expect(labels.indexOf('Extra trophy awards')).toBe(
+        labels.indexOf('Trophy awards') + 1,
+      );
+      expect(result.status).toBe('completedWithErrors');
+      expect(result.errors).toEqual([
+        { label: 'Extra trophy awards', message: 'database down' },
+      ]);
+    });
+
+    it("reports a match import's backfilled extra trophy awards, with their errors", () => {
+      const team = {
+        team: imported(1),
+        players: imported(12),
+        era: 'Fourth era',
+        teamEra: undefined,
+      };
+      const result = service.assess({
+        kind: 'match',
+        tournamentSlug: 's30',
+        matchId: 1,
+        result: {
+          competition: imported(1),
+          homeTeam: team,
+          awayTeam: team,
+          starPlayerHires: imported(0),
+          match: imported(1),
+          participation: imported(2),
+          events: imported(0),
+          outcome: imported(1),
+          participantsBackfill: {
+            teams: [],
+            participation: imported(0),
+            trophyAwards: imported(3),
+          },
+          extraTrophyAwards: failedWith('database down'),
+        },
+      });
+
+      const labels = result.rows.map((row) => row.label);
+      expect(labels.indexOf('Backfilled extra trophy awards')).toBe(
+        labels.indexOf('Backfilled trophy awards') + 1,
+      );
+      expect(result.errors).toEqual([
+        { label: 'Backfilled extra trophy awards', message: 'database down' },
+      ]);
+    });
+
     it("labels a competition's team errors by roster id", () => {
       const result = service.assess({
         kind: 'competition',
