@@ -43,7 +43,13 @@
 // of a track goes into its one pattern as alternation (e.g. Major Season's
 // "Season N" / "Major Season N" / "tLoEGBBL Säsong N"), and each pattern is
 // anchored so it cannot claim another track's names (Major Season's must not
-// match "Minor Season N" or "Dungeon Bowl Season N"). Every group carries a
+// match "Minor Season N" or "Dungeon Bowl Season N"). Major Season and Minor
+// Season accept any tLoEG-style league prefix ("tLoEGBBL", "tLoEG Blood Bowl
+// League", ...): "tLoEG" followed by letters, spaces and dashes that never
+// contain another season-style track's word -- Major's prefix excludes
+// "Minor" and "Dungeon", Minor's excludes "Major" and "Dungeon". A new track
+// whose names also end in "Season N" must be added to both exclusion lists,
+// or Major Season would claim it too. Every group carries a
 // pattern -- the manual-import schema requires one -- including groups with
 // a single historical instance so far (Fright Night, Snöbollskrieg, Champion
 // of tLoEG, Blitzmania!), so a future instance of any group is classified
@@ -60,12 +66,12 @@
     {
       name: 'Major Season',
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
-      namePattern: '^(?:tLoEGBBL[\\s-]*)?(?:Major Season|Season|Säsong)\\s*\\d+$',
+      namePattern: '^(?:tLoEG(?:(?!Minor|Dungeon)[\\p{L}\\s-])*)?(?:Major Season|Season|Säsong)\\s*\\d+$',
     },
     {
       name: 'Minor Season',
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
-      namePattern: '^(?:tLoEGBBL[\\s-]*)?(?:Minor Season|Korpen)\\s*\\d+$',
+      namePattern: '^(?:tLoEG(?:(?!Major|Dungeon)[\\p{L}\\s-])*)?(?:Minor Season|Korpen)\\s*\\d+$',
     },
     {
       name: 'Chaos Cup',
