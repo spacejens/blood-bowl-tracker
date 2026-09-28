@@ -94,9 +94,17 @@ already-fetched, already-parsed input:
   [match import](match-import.md). An already-imported competition has its
   era, type and dates overwritten from this call's data, and its name and
   external id kept in sync (a live match import's own upsert leaves the
-  stored era, type and dates alone). It never sends a competition group, so
-  a competition not already curated by `tools/import-manual` cannot be
-  created. It also reports whether the competition was newly created; the
+  stored era, type and dates alone). A new competition's group is found by
+  matching its raw TP name against every curated group's `namePattern` (see
+  [docs/import-manual](../import-manual/index.md#competition-groups)):
+  exactly one match gives it that group, a name continuing the group's
+  numbering (`"<group> <highest existing number + 1>"`, or the bare group
+  name for a group with no competition yet), and the type every existing
+  competition in the group shares. No match, or several, skips the
+  competition with an error saying which, and it needs curating by hand. On
+  both create and overlay, a type the group's competitions all share wins
+  over the ≤ 3-day date rule, which applies only when they disagree or there
+  are none. It also reports whether the competition was newly created; the
   live import reads that to decide on step 7, and the `tpCompetitions.import`
   procedure drops it.
 - **Participation**: each registered roster is resolved to its team, and
@@ -142,18 +150,18 @@ per stage.
 Neither entry point throws for an import problem. Every failure is one
 `ImportError` in the result.
 
-| Failure                                                                                          | Reported in                                           |
-| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
-| Tournament or fixture-list request/parse failure; live only                                      | `competition`; nothing else is attempted              |
-| Unknown era, no dated matches, or competition upsert failure (including a missing curated group) | `competition`                                         |
-| Inscriptions request/parse failure; live only                                                    | `participation`; no team is imported or linked        |
-| Team import failure; live only                                                                   | that team's entry in `teams`, as for a team import    |
-| No era given, and the teams' eras disagree or none resolved one; live only                       | `competition`; no participation or awards imported    |
-| Registered team not imported, or with no team era in the competition's era                       | `participation`; the other teams are still linked     |
-| Team-link failure                                                                                | `participation`; no award is recorded                 |
-| Awards request/parse failure; live only                                                          | `trophyAwards`; the competition imports with none     |
-| Competition group not in the curated catalog                                                     | `trophyAwards`                                        |
-| Award for a team that is not a linked participant                                                | `trophyAwards`                                        |
-| Unresolvable trophy key                                                                          | `trophyAwards`, once per key; further rows summarized |
-| Trophy award upsert failure                                                                      | `trophyAwards`                                        |
-| A backfilled match's fetch, team import or write fails; live only                                | `matchesBackfill`; the other matches still import     |
+| Failure                                                                                                                             | Reported in                                           |
+|-------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------|
+| Tournament or fixture-list request/parse failure; live only                                                                         | `competition`; nothing else is attempted              |
+| Unknown era, no dated matches, a new competition matching no curated group's name pattern or several, or competition upsert failure | `competition`                                         |
+| Inscriptions request/parse failure; live only                                                                                       | `participation`; no team is imported or linked        |
+| Team import failure; live only                                                                                                      | that team's entry in `teams`, as for a team import    |
+| No era given, and the teams' eras disagree or none resolved one; live only                                                          | `competition`; no participation or awards imported    |
+| Registered team not imported, or with no team era in the competition's era                                                          | `participation`; the other teams are still linked     |
+| Team-link failure                                                                                                                   | `participation`; no award is recorded                 |
+| Awards request/parse failure; live only                                                                                             | `trophyAwards`; the competition imports with none     |
+| Competition group not in the curated catalog                                                                                        | `trophyAwards`                                        |
+| Award for a team that is not a linked participant                                                                                   | `trophyAwards`                                        |
+| Unresolvable trophy key                                                                                                             | `trophyAwards`, once per key; further rows summarized |
+| Trophy award upsert failure                                                                                                         | `trophyAwards`                                        |
+| A backfilled match's fetch, team import or write fails; live only                                                                   | `matchesBackfill`; the other matches still import     |

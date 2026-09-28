@@ -27,7 +27,10 @@
 // unconditionally, so they overlay everything here on the next run -- but a
 // competition that is never re-imported in some environment keeps what this
 // file says, and a future reader should find the truth here. Neither importer
-// ever sets competitionGroupId, so the classification survives untouched.
+// ever changes an existing competition's competitionGroupId -- TP sets one
+// only when creating a competition that is not curated here, by matching its
+// raw name against competition-groups.json5's name patterns -- so the
+// classification here survives untouched.
 //
 // The names here are the raw source names, except for the 36 instances the
 // after-other-importers phase renames -- those carry their canonical name, so

@@ -46,9 +46,10 @@ an earlier one fails:
    date span.
 6. **Upsert the competition**: its name, TP id, era (the one the home team
    was imported under), type and dates derived from the fixture lists' dates
-   by the same ≤ 3-day cup rule `tools/import-tp`'s bulk import uses. It
-   never sends a competition group, so a competition not already curated by
-   `tools/import-manual` cannot be created this way. This is the
+   by the same ≤ 3-day cup rule `tools/import-tp`'s bulk import uses. A new
+   competition's group, name and preferred type come from matching its raw
+   name against the curated groups' name patterns; one matching no group, or
+   several, is not created. This is the
    competition import's own upsert stage (see
    [competition-import.md](competition-import.md)); a match import does not
    link the competition's other teams or record its awards.
@@ -167,13 +168,13 @@ Neither entry point throws for an import problem; every failure is one
 `ImportError` in the result.
 
 | Failure                                                                                                                                                                           | Reported in                                 |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------|
 | Match request or parse failure                                                                                                                                                    | `match`                                     |
 | Match not completed (no recorded result); live only                                                                                                                               | `match`                                     |
 | Team import failures (home or away); live only                                                                                                                                    | `homeTeam`/`awayTeam`, as for a team import |
 | Hiring team era unresolved, star position or player upsert failure, characteristics lookup failure, missing catalog characteristics, or external-system upsert failure; live only | `starPlayerHires`                           |
 | Tournament or fixture-list request/parse failure; live only                                                                                                                       | `competition`                               |
-| Unknown era, no dated fixtures, or competition upsert failure (including a missing curated group); live only                                                                      | `competition`                               |
+| Unknown era, no dated fixtures, or competition upsert failure (including a new competition matching no curated group, or several); live only                                      | `competition`                               |
 | Competition not imported, team era unresolvable, unclassifiable bracket, or match upsert failure                                                                                  | `match`                                     |
 | Team-link failure                                                                                                                                                                 | `participation`                             |
 | Event upsert failure, or an unresolved player (non-fatal)                                                                                                                         | `events`                                    |
