@@ -7,6 +7,7 @@ import { mock } from 'vitest-mock-extended';
 
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
+import { TpKeywordTargetDecoderService } from './tp-keyword-target-decoder.service';
 import type { TpOfficialKeywordCatalog } from './tp-official-keyword-catalog.service';
 import { TpOfficialSkillRefsService } from './tp-official-skill-refs.service';
 import {
@@ -35,6 +36,9 @@ describe('TpOfficialSkillRefsService', () => {
         TpOfficialSkillRefsService,
         TpImportResultsService,
         TpUpsertRunnerService,
+        // Pure, dependency-free decision logic, passed real so the type-3
+        // tests keep exercising the actual decode.
+        TpKeywordTargetDecoderService,
         { provide: SkillsService, useValue: skills },
       ],
     }).compile();
