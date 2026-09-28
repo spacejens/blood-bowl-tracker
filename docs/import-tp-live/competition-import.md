@@ -35,7 +35,8 @@ const result = await tpLiveCompetitionImportService.importCompetition({
   started when omitted.
 - `forceMatchBackfill`: optional, default false. Backfill every completed
   match of the competition even when it was already imported (see stage 7
-  below). `/importtp` sets it for a competition's scores page.
+  below). `/importtp` sets it for a competition's scores page. The TP
+  feed's trophy announcement uses it too.
 
 The import runs these stages in order. Each is reported in the result even
 when an earlier one fails:
@@ -63,6 +64,13 @@ when an earlier one fails:
    match import imports its own match (fetch it, import both teams, write
    it), reusing the bracket already fetched in step 1. Matches not played
    yet are skipped. Re-importing an already-imported match is harmless.
+8. **Award the extra trophies**: only once the competition is imported and
+   finished, meaning step 5 returned at least one award. The trophies TP
+   does not record itself (`max_count`, `max_spp_sum` and `career_threshold`
+   rules) are computed by game-data's `MissingTrophyAwardsService`, the same
+   service `tools/import-tp`'s bulk run calls at its end. This runs after
+   step 7, so the matches it needs are present. It is idempotent, so
+   re-importing is harmless.
 
 A failed inscriptions fetch still imports the competition, with no teams
 linked and no awards — when `era` is given explicitly; without one, a failed
@@ -77,7 +85,9 @@ team, with its `rosterId`, and `era`: the era the competition was imported
 under — the given one or the one the teams agreed on — or undefined when the
 import stopped before settling one. When step 7 ran, the result also carries
 `matchesBackfill`: one `ImportResult` counting the matches written and
-holding every backfilled match's errors.
+holding every backfilled match's errors. `extraTrophyAwards`: one
+`ImportResult` counting the awards step 8 created (nothing imported when it
+did not run).
 
 A team whose coach was never imported before is still imported: the live
 team import creates the coach from the roster's own coach id and name, with
@@ -173,3 +183,4 @@ Neither entry point throws for an import problem. Every failure is one
 | Unresolvable trophy key                                                                                                             | `trophyAwards`, once per key; further rows summarized |
 | Trophy award upsert failure                                                                                                         | `trophyAwards`                                        |
 | A backfilled match's fetch, team import or write fails; live only                                                                   | `matchesBackfill`; the other matches still import     |
+| Computing the extra trophy awards fails; live only                                                                                  | `extraTrophyAwards`; TP's own awards stay recorded    |

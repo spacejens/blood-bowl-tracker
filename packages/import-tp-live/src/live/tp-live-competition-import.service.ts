@@ -13,6 +13,7 @@ import { TpBracketFetchService } from './tp-bracket-fetch.service';
 import { TpCompetitionMatchesBackfillService } from './tp-competition-matches-backfill.service';
 import type { TpLiveCompetitionTeamResult } from './tp-competition-participants-backfill.service';
 import { TpCompetitionParticipantsBackfillService } from './tp-competition-participants-backfill.service';
+import { TpExtraTrophyAwardsService } from './tp-extra-trophy-awards.service';
 
 export type { TpLiveCompetitionTeamResult } from './tp-competition-participants-backfill.service';
 
@@ -52,6 +53,12 @@ export interface TpLiveCompetitionImportResult {
   /** The awards fetch and recording the trophy awards. */
   trophyAwards: ImportResult;
   /**
+   * Awarding the trophies TP does not record itself (see
+   * TpExtraTrophyAwardsService), run only once the competition is finished:
+   * its awards fetch returned at least one award. Nothing imported otherwise.
+   */
+  extraTrophyAwards: ImportResult;
+  /**
    * The era the competition was imported under: the given one, or the one
    * its teams agreed on. Undefined when the import stopped before an era was
    * settled.
@@ -74,6 +81,7 @@ export class TpLiveCompetitionImportService {
     private readonly participantsBackfill: TpCompetitionParticipantsBackfillService,
     private readonly competitionImport: TpCompetitionImportService,
     private readonly matchesBackfill: TpCompetitionMatchesBackfillService,
+    private readonly extraTrophyAwards: TpExtraTrophyAwardsService,
     private readonly importResults: TpImportResultsService,
   ) {}
 
@@ -95,7 +103,11 @@ export class TpLiveCompetitionImportService {
    * is imported, every completed match of its bracket is backfilled —
    * reusing the bracket already fetched — when the competition was newly
    * created or `forceMatchBackfill` is set; the backfill reports its own
-   * failures in `matchesBackfill` and never fails the import.
+   * failures in `matchesBackfill` and never fails the import. Last, once
+   * the competition is imported and finished (TP returned at least one
+   * award), the trophies TP does not record itself are awarded, after the
+   * match backfill so every match's events are present. That stage reports
+   * its own failures in `extraTrophyAwards` and never fails the import.
    */
   async importCompetition({
     tournamentSlug,
@@ -181,23 +193,35 @@ export class TpLiveCompetitionImportService {
           result: core.trophyAwards,
           errors: trophyErrors,
         }),
+        extraTrophyAwards: this.importResults.result({
+          imported: 0,
+          errors: [],
+        }),
         era: competitionEra,
       };
-      if (
-        core.competition.imported === 0 ||
-        !(core.competitionCreated || forceMatchBackfill)
-      ) {
-        return imported;
-      }
+      const matchesBackfill =
+        core.competition.imported > 0 &&
+        (core.competitionCreated || forceMatchBackfill)
+          ? await this.matchesBackfill.backfill({
+              tournamentSlug,
+              era: competitionEra,
+              externalSystemName,
+              session: visit,
+              bracket,
+            })
+          : undefined;
+      const finished = awards !== undefined && awards.length > 0;
+      const extraTrophyAwards =
+        finished && core.competitionId !== undefined
+          ? await this.extraTrophyAwards.computeExtras({
+              competitionId: core.competitionId,
+              tournamentSlug,
+            })
+          : imported.extraTrophyAwards;
       return {
         ...imported,
-        matchesBackfill: await this.matchesBackfill.backfill({
-          tournamentSlug,
-          era: competitionEra,
-          externalSystemName,
-          session: visit,
-          bracket,
-        }),
+        extraTrophyAwards,
+        ...(matchesBackfill === undefined ? {} : { matchesBackfill }),
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -241,6 +265,7 @@ export class TpLiveCompetitionImportService {
       teams: [],
       participation: nothing(),
       trophyAwards: nothing(),
+      extraTrophyAwards: nothing(),
       era: undefined,
     };
   }

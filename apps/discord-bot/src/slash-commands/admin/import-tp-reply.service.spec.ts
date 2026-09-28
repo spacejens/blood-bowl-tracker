@@ -67,6 +67,7 @@ describe('ImportTpReplyService', () => {
           ],
           participation: imported(2),
           trophyAwards: imported(1),
+          extraTrophyAwards: imported(0),
           era: 'Fourth era',
         },
       });
@@ -94,6 +95,7 @@ describe('ImportTpReplyService', () => {
           teams: [],
           participation: imported(0),
           trophyAwards: imported(0),
+          extraTrophyAwards: imported(0),
           era: undefined,
         },
       });
@@ -131,6 +133,7 @@ describe('ImportTpReplyService', () => {
           ],
           participation: imported(0),
           trophyAwards: imported(0),
+          extraTrophyAwards: imported(0),
           era: 'Fourth era',
         },
       });
@@ -150,6 +153,7 @@ describe('ImportTpReplyService', () => {
           teams: [],
           participation: imported(0),
           trophyAwards: imported(0),
+          extraTrophyAwards: imported(0),
           era: 'Fourth era',
           matchesBackfill: {
             success: false,
@@ -462,6 +466,7 @@ describe('ImportTpReplyService', () => {
         })),
         participation: imported(0),
         trophyAwards: imported(0),
+        extraTrophyAwards: imported(0),
         era: 'Fourth era',
       },
     });

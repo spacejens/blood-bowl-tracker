@@ -141,6 +141,7 @@ describe('TpImportFailureService', () => {
           ],
           participation: imported(0),
           trophyAwards: imported(0),
+          extraTrophyAwards: imported(0),
           era: 'Fourth era',
         },
       });
