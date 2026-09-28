@@ -99,9 +99,12 @@ already-fetched, already-parsed input:
   matching its raw TP name against every curated group's `namePattern` (see
   [docs/import-manual](../import-manual/index.md#competition-groups)):
   exactly one match gives it that group, a name continuing the group's
-  numbering (`"<group> <highest existing number + 1>"`, or the bare group
-  name for a group with no competition yet), and the type every existing
-  competition in the group shares. No match, or several, skips the
+  numbering (`"<group> <n>"`, where `n` is the trailing number of TP's raw
+  name when it has one no existing competition in the group already
+  carries, so out-of-order imports keep their real number; otherwise the
+  highest existing number + 1, or the bare group name for a group with no
+  competition yet), and the type every existing competition in the group
+  shares. No match, or several, skips the
   competition with an error saying which, and it needs curating by hand. On
   both create and overlay, a type the group's competitions all share wins
   over the ≤ 3-day date rule, which applies only when they disagree or there

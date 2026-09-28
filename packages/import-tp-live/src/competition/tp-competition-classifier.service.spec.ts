@@ -68,6 +68,7 @@ describe('TpCompetitionClassifierService', () => {
       expect(competitions.listNamesAndTypesByGroup).toHaveBeenCalledWith(3);
       expect(precedent.nextName).toHaveBeenCalledWith({
         groupName: 'Chaos Cup',
+        rawName: 'tLoEGBBL Chaos Cup 9',
         existingNames: ['Chaos Cup 7', 'Chaos Cup 8'],
       });
       expect(precedent.sharedType).toHaveBeenCalledWith(['cup', 'cup']);

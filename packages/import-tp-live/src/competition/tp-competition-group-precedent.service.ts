@@ -8,6 +8,8 @@ const TRAILING_NUMBER = /(\d+)\s*$/u;
 export interface NextNameOptions {
   /** The matched group's curated name. */
   groupName: string;
+  /** TP's own raw name for the new competition, e.g. "tLoEGBBL Chaos Cup 9". */
+  rawName: string;
   /** The stored names of every competition already in the group. */
   existingNames: readonly string[];
 }
@@ -19,19 +21,25 @@ export interface NextNameOptions {
 @Injectable()
 export class TpCompetitionGroupPrecedentService {
   /**
-   * `"<group name> <highest existing number + 1>"`, where a sibling name
-   * with no trailing number counts as 1 (a track's first instalment is often
-   * unnumbered). With no sibling at all, the group name verbatim.
+   * `"<group name> <n>"`, where `n` is the trailing number of TP's own raw
+   * name when it has one that no sibling already carries -- so competitions
+   * imported out of order still get their real number. Otherwise `n` is the
+   * highest existing number + 1, where a sibling name with no trailing number
+   * counts as 1 (a track's first instalment is often unnumbered). With no
+   * usable raw number and no sibling at all, the group name verbatim.
    */
-  nextName({ groupName, existingNames }: NextNameOptions): string {
-    if (existingNames.length === 0) {
+  nextName({ groupName, rawName, existingNames }: NextNameOptions): string {
+    const existingNumbers = existingNames.map(
+      (name) => this.trailingNumber(name) ?? 1,
+    );
+    const rawNumber = this.trailingNumber(rawName);
+    if (rawNumber !== undefined && !existingNumbers.includes(rawNumber)) {
+      return `${groupName} ${rawNumber}`;
+    }
+    if (existingNumbers.length === 0) {
       return groupName;
     }
-    const numbers = existingNames.map((name) => {
-      const match = TRAILING_NUMBER.exec(name);
-      return match === null ? 1 : Number(match[1]);
-    });
-    return `${groupName} ${Math.max(...numbers) + 1}`;
+    return `${groupName} ${Math.max(...existingNumbers) + 1}`;
   }
 
   /**
@@ -44,5 +52,11 @@ export class TpCompetitionGroupPrecedentService {
       return undefined;
     }
     return rest.every((type) => type === first) ? first : undefined;
+  }
+
+  /** A name's trailing sequence number, or undefined when it has none. */
+  private trailingNumber(name: string): number | undefined {
+    const match = TRAILING_NUMBER.exec(name);
+    return match === null ? undefined : Number(match[1]);
   }
 }
