@@ -69,15 +69,23 @@ when an earlier one fails:
    does not record itself (`max_count`, `max_spp_sum` and `career_threshold`
    rules) are computed by game-data's `MissingTrophyAwardsService`, the same
    service `tools/import-tp`'s bulk run calls at its end. This runs after
-   step 7, so the matches it needs are present. It is idempotent, so
-   re-importing is harmless.
+   step 7 and is skipped, with one error in `extraTrophyAwards`, when step 7
+   reported errors: a trophy already awarded is never recomputed, so an
+   award computed while a match is missing would stay wrong. When no
+   backfill ran in this import (a plain re-import of an existing
+   competition), the step relies on the matches imported earlier, and cannot
+   tell whether any is missing. It is idempotent, so re-importing is
+   harmless.
 
 A failed inscriptions fetch still imports the competition, with no teams
 linked and no awards — when `era` is given explicitly; without one, a failed
 inscriptions fetch leaves no teams to resolve an era from, so the
 competition stage fails instead (see the zero-teams row in the Failures
 table below). A failed awards fetch still imports the competition and links
-its teams. Either failure is reported in its own stage.
+its teams. Either failure is reported in its own stage. Neither counts as an
+unfinished competition: with the awards unknown, no extra trophies are
+awarded and a stored end date is left exactly as stored, neither reset nor
+written.
 
 The result carries `competition`, `participation` and `trophyAwards` (one
 `ImportResult` each), `teams`: one live team import result per registered
@@ -87,7 +95,8 @@ import stopped before settling one. When step 7 ran, the result also carries
 `matchesBackfill`: one `ImportResult` counting the matches written and
 holding every backfilled match's errors. `extraTrophyAwards`: one
 `ImportResult` counting the awards step 8 created (nothing imported when it
-did not run).
+did not run, and one error when it was skipped because step 7 reported
+errors).
 
 A team whose coach was never imported before is still imported: the live
 team import creates the coach from the roster's own coach id and name, with
@@ -104,7 +113,12 @@ already-fetched, already-parsed input:
   non-empty: the latest played date, or a later stored end date. Until then a
   new competition's end date is null, and an overlay resets a stored end date
   to null, even when the call has no new match dates, so a competition stored
-  with an end date but no awards is corrected by its next full import. The
+  with an end date but no awards is corrected by its next full import. A call
+  whose awards are unknown (the live import's awards or inscriptions fetch
+  failed) is neither: a new competition still gets a null end date, but a
+  stored one keeps its end date exactly as stored. A finished overlay with no
+  dated matches has nothing to derive an end date from and leaves it as
+  stored. The
   dates are classified by the same ≤ 3-day cup rule as
   [match import](match-import.md). An already-imported competition has its
   era, type and start date overwritten (and its end date, when finished) from
@@ -186,3 +200,4 @@ Neither entry point throws for an import problem. Every failure is one
 | Trophy award upsert failure                                                                                                         | `trophyAwards`                                        |
 | A backfilled match's fetch, team import or write fails; live only                                                                   | `matchesBackfill`; the other matches still import     |
 | Computing the extra trophy awards fails; live only                                                                                  | `extraTrophyAwards`; TP's own awards stay recorded    |
+| The match backfill reported errors, so the extra trophy awards are skipped; live only                                               | `extraTrophyAwards`; nothing awarded                  |

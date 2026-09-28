@@ -63,7 +63,12 @@ competition's TP trophy awards are followed by an **Extra trophy awards** line
 counting those awarded beyond what TP records; for a competition, match or
 team, also the era used), and an **Errors** section lists
 every problem reported, labelled by stage. Any backfill the import ran gets
-its own lines after the import's own stages. A very long reply is cut off at
+its own lines after the import's own stages: for a match import that created
+its competition, these are the backfilled teams, participation and trophy
+awards, a **Backfilled extra trophy awards** line counting the extra trophies
+awarded once the competition turned out to be finished, and the **Matches
+backfill**. When the match backfill reported errors, that line instead carries
+one error saying the extra trophies were skipped. A very long reply is cut off at
 Discord's embed limit.
 
 It uses the same import code as `tools/import-tp`'s bulk import, registered

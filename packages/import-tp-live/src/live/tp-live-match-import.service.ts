@@ -47,6 +47,8 @@ interface FinishCompetitionOptions {
   era: string;
   externalSystemName: string;
   competition: UpsertedTpCompetition;
+  /** Whether the import's match backfill reported errors. */
+  matchesBackfillFailed: boolean;
 }
 
 /** What one live match import did, one result per stage. */
@@ -76,10 +78,11 @@ export interface TpLiveMatchImportResult {
   matchesBackfill?: ImportResult;
   /**
    * Finishing the competition this import created, once its backfill
-   * recorded TP awards: re-upserting it as finished (settling its end date)
-   * and awarding the trophies TP does not record itself. Present only when
-   * this import created the competition; nothing imported when TP has no
-   * awards for it yet.
+   * fetched TP awards: re-upserting it as finished (settling its end date)
+   * and awarding the trophies TP does not record itself, unless the match
+   * backfill reported errors (one error is recorded instead). Present only
+   * when this import created the competition; nothing imported when TP has no
+   * awards for it yet or its awards could not be fetched.
    */
   extraTrophyAwards?: ImportResult;
 }
@@ -114,10 +117,12 @@ export class TpLiveMatchImportService {
    * never fail this import. Every failure is reported in the returned
    * results, never thrown; a stage whose prerequisite failed is not
    * attempted and reports nothing imported. The competition is created
-   * unfinished, with no end date. When the participants backfill records TP
+   * unfinished, with no end date. When the participants backfill fetched TP
    * awards, the competition is finished after both backfills: re-upserted as
    * finished, which settles its end date, and awarded the trophies TP does
-   * not record, reported in `extraTrophyAwards`.
+   * not record, reported in `extraTrophyAwards` (skipped, with one error,
+   * when the match backfill reported errors). A failed awards fetch leaves the
+   * finished state unknown, so neither happens.
    */
   async importMatch({
     matchId,
@@ -212,16 +217,19 @@ export class TpLiveMatchImportService {
         session: visit,
         bracket,
       });
-      const extraTrophyAwards =
-        participantsBackfill.trophyAwards.imported > 0
-          ? await this.finishCompetition({
-              tournamentSlug,
-              bracket,
-              era: ready.era,
-              externalSystemName,
-              competition: upserted,
-            })
-          : this.importResults.result({ imported: 0, errors: [] });
+      const finished =
+        participantsBackfill.awardsFetched !== undefined &&
+        participantsBackfill.awardsFetched > 0;
+      const extraTrophyAwards = finished
+        ? await this.finishCompetition({
+            tournamentSlug,
+            bracket,
+            era: ready.era,
+            externalSystemName,
+            competition: upserted,
+            matchesBackfillFailed: matchesBackfill.errors.length > 0,
+          })
+        : this.importResults.result({ imported: 0, errors: [] });
       return {
         ...imported,
         participantsBackfill,
@@ -243,12 +251,14 @@ export class TpLiveMatchImportService {
   }
 
   /**
-   * A competition this import created and whose backfill recorded TP's
+   * A competition this import created and whose backfill fetched TP's
    * awards is finished: re-upsert it as a finished overlay over the whole
    * bracket's played dates, so its end date is settled in this same run,
    * then award the trophies TP does not record. A failed re-upsert is
    * reported but does not stop the awards, which need only the
-   * competition's id.
+   * competition's id. The awards are skipped, with one recorded error, when
+   * the match backfill reported errors: a missing match would skew them for
+   * good. That never holds back the end date.
    */
   private async finishCompetition({
     tournamentSlug,
@@ -256,8 +266,11 @@ export class TpLiveMatchImportService {
     era,
     externalSystemName,
     competition,
+    matchesBackfillFailed,
   }: FinishCompetitionOptions): Promise<ImportResult> {
     const errors: ImportError[] = [];
+    // The return value is intentionally ignored: a failed re-upsert records
+    // its error in `errors`, and the extras need only the competition's id.
     await this.competitionUpsert.upsertCompetition({
       tournament: bracket.tournament,
       playedDates: bracket.playedDates,
@@ -267,6 +280,15 @@ export class TpLiveMatchImportService {
       finished: true,
       errors,
     });
+    if (matchesBackfillFailed) {
+      errors.push(
+        this.importResults.error({
+          item: { tournamentSlug },
+          message: `Skipped awarding the extra trophies of competition ${tournamentSlug}: the match backfill reported errors, so some matches may be missing. Import the competition again once its matches import cleanly.`,
+        }),
+      );
+      return this.failed(errors);
+    }
     const extras = await this.extraTrophyAwards.computeExtras({
       competitionId: competition.competitionId,
       tournamentSlug,

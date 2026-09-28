@@ -55,7 +55,8 @@ export interface TpLiveCompetitionImportResult {
   /**
    * Awarding the trophies TP does not record itself (see
    * TpExtraTrophyAwardsService), run only once the competition is finished:
-   * its awards fetch returned at least one award. Nothing imported otherwise.
+   * its awards fetch returned at least one award. Nothing imported otherwise,
+   * and one error when the import's own match backfill reported errors.
    */
   extraTrophyAwards: ImportResult;
   /**
@@ -106,8 +107,12 @@ export class TpLiveCompetitionImportService {
    * failures in `matchesBackfill` and never fails the import. Last, once
    * the competition is imported and finished (TP returned at least one
    * award), the trophies TP does not record itself are awarded, after the
-   * match backfill so every match's events are present. That stage reports
-   * its own failures in `extraTrophyAwards` and never fails the import.
+   * match backfill. They are skipped, with one error, when that backfill
+   * reported errors, since a missing match would skew them for good; when no
+   * backfill ran they rely on the matches imported earlier. That stage
+   * reports its own failures in `extraTrophyAwards` and never fails the
+   * import. A failed awards or inscriptions fetch leaves the competition's
+   * finished state unknown, so its stored end date is left as stored.
    */
   async importCompetition({
     tournamentSlug,
@@ -176,7 +181,7 @@ export class TpLiveCompetitionImportService {
         playedDates: bracket.playedDates,
         era: competitionEra,
         participantRosterIds: participantRosterIds ?? [],
-        awards: awards ?? [],
+        awards,
         externalSystemName,
       });
       const imported: TpLiveCompetitionImportResult = {
@@ -213,9 +218,10 @@ export class TpLiveCompetitionImportService {
       const finished = awards !== undefined && awards.length > 0;
       const extraTrophyAwards =
         finished && core.competitionId !== undefined
-          ? await this.extraTrophyAwards.computeExtras({
+          ? await this.extras({
               competitionId: core.competitionId,
               tournamentSlug,
+              matchesBackfill,
             })
           : imported.extraTrophyAwards;
       return {
@@ -236,6 +242,36 @@ export class TpLiveCompetitionImportService {
         ]),
       };
     }
+  }
+
+  /**
+   * The extra trophy awards, unless the match backfill run in this import
+   * reported errors: some matches may then be missing, and an award computed
+   * from incomplete matches is never corrected later (trophies already
+   * awarded are skipped). The skip is recorded as one error. Without a
+   * backfill in this import, the extras rely on the matches imported earlier.
+   */
+  private async extras({
+    competitionId,
+    tournamentSlug,
+    matchesBackfill,
+  }: {
+    competitionId: number;
+    tournamentSlug: string;
+    matchesBackfill: ImportResult | undefined;
+  }): Promise<ImportResult> {
+    if (matchesBackfill !== undefined && matchesBackfill.errors.length > 0) {
+      return this.failed([
+        this.importResults.error({
+          item: { tournamentSlug },
+          message: `Skipped awarding the extra trophies of competition ${tournamentSlug}: the match backfill reported errors, so some matches may be missing. Import the competition again once its matches import cleanly.`,
+        }),
+      ]);
+    }
+    return this.extraTrophyAwards.computeExtras({
+      competitionId,
+      tournamentSlug,
+    });
   }
 
   /** A core stage's result, with the live fetch's own errors ahead of it. */

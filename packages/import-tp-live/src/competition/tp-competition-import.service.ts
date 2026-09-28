@@ -21,8 +21,13 @@ export interface ImportCompetitionOptions {
   era: string;
   /** TP roster ids of every team registered to the competition. */
   participantRosterIds: number[];
-  /** The competition's parsed awards; empty for one with none yet. */
-  awards: TpAward[];
+  /**
+   * The competition's parsed awards; empty for one with none yet. Undefined
+   * when they are unknown (the awards could not be fetched): nothing is
+   * recorded, and the competition is neither finished nor unfinished, so a
+   * stored end date is left as stored.
+   */
+  awards: TpAward[] | undefined;
   /** The name TP's external system is registered under. */
   externalSystemName: string;
 }
@@ -71,8 +76,8 @@ export class TpCompetitionImportService {
    * live match import's own incidental competition upsert does not, since it
    * only knows one match's date. A competition with at least one award is
    * finished, so the upsert writes its end date; one with none yet is not,
-   * and has any stored end date reset to null (see
-   * `UpsertTpCompetitionOptions.finished`). A stage whose prerequisite
+   * and has any stored end date reset to null; one whose awards are unknown
+   * keeps any stored end date (see `UpsertTpCompetitionOptions.finished`). A stage whose prerequisite
    * failed is not attempted and reports nothing imported: nothing is linked
    * without a competition, and no award is recorded when the team link
    * failed. The result also says whether the competition was newly created;
@@ -93,7 +98,7 @@ export class TpCompetitionImportService {
       era,
       externalSystemName,
       overlayExisting: true,
-      finished: awards.length > 0,
+      finished: awards === undefined ? undefined : awards.length > 0,
       errors: competitionErrors,
     });
     const competitionResult = this.importResults.result({
@@ -134,7 +139,7 @@ export class TpCompetitionImportService {
     const trophyErrors: ImportError[] = [];
     const awarded = await this.trophyAwards.importAwards({
       competition,
-      awards,
+      awards: awards ?? [],
       teamEraIdsByRosterId,
       errors: trophyErrors,
     });

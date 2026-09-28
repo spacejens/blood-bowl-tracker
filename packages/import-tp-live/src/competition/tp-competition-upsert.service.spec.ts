@@ -327,7 +327,7 @@ describe('TpCompetitionUpsertService', () => {
       storedCompetition('2026-01-10', '2026-03-01'),
     );
 
-    await overlay(DATES);
+    await overlay(DATES, false);
 
     expect(competitions.upsert).toHaveBeenCalledWith({
       type: 'season',
@@ -352,7 +352,7 @@ describe('TpCompetitionUpsertService', () => {
     });
     const earlier = new Date('2025-12-20');
 
-    await overlay([earlier]);
+    await overlay([earlier], false);
 
     expect(span.derive).toHaveBeenCalledWith([earlier, new Date('2026-03-01')]);
     expect(competitions.upsert).toHaveBeenCalledWith(
@@ -422,7 +422,7 @@ describe('TpCompetitionUpsertService', () => {
   it('writes only a null end date when overlaying an unfinished competition with no new dated matches', async () => {
     competitions.resolve.mockResolvedValue({ found: true, id: 12 });
 
-    await expect(overlay([])).resolves.toEqual(upsertedCompetition());
+    await expect(overlay([], false)).resolves.toEqual(upsertedCompetition());
     expect(eras.resolve).not.toHaveBeenCalled();
     expect(span.derive).not.toHaveBeenCalled();
     expect(competitions.findById).not.toHaveBeenCalled();
@@ -449,6 +449,47 @@ describe('TpCompetitionUpsertService', () => {
       externalIds: [{ externalSystemId: 1, externalId: '18442' }],
     });
     expect(errors).toEqual([]);
+  });
+
+  // Whether TP has published awards is unknown (a fetch failed), which is not
+  // the same as unfinished: a stored end date must survive it.
+  it('leaves the stored end date alone when overlaying a competition whose finished state is unknown', async () => {
+    competitions.resolve.mockResolvedValue({ found: true, id: 12 });
+    competitions.findById.mockResolvedValue(
+      storedCompetition('2026-01-10', '2026-03-01'),
+    );
+
+    await overlay(DATES);
+
+    expect(competitions.upsert).toHaveBeenCalledWith({
+      type: 'season',
+      eraId: 40,
+      startDate: '2026-01-10',
+      teamEraIds: [],
+      externalIds: [{ externalSystemId: 1, externalId: '18442' }],
+    });
+    expect(errors).toEqual([]);
+  });
+
+  it('writes nothing but the external id when overlaying a competition of unknown finished state with no new dated matches', async () => {
+    competitions.resolve.mockResolvedValue({ found: true, id: 12 });
+
+    await expect(overlay([])).resolves.toEqual(upsertedCompetition());
+    expect(competitions.upsert).toHaveBeenCalledWith({
+      teamEraIds: [],
+      externalIds: [{ externalSystemId: 1, externalId: '18442' }],
+    });
+    expect(competitions.upsert.mock.calls[0]?.[0]).not.toHaveProperty(
+      'endDate',
+    );
+  });
+
+  it('still creates a new competition of unknown finished state with a null end date', async () => {
+    await overlay(DATES);
+
+    expect(competitions.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ endDate: null }),
+    );
   });
 
   it('widens the stored date range with newly observed match dates', async () => {

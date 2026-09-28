@@ -166,4 +166,15 @@ describe('TpCompetitionImportService', () => {
       expect.objectContaining({ finished: false }),
     );
   });
+
+  it('upserts a competition whose awards are unknown with an unknown finished state', async () => {
+    await service.importCompetition({ ...OPTIONS, awards: undefined });
+
+    const options = upsert.upsertCompetition.mock.calls[0]?.[0];
+    expect(options).toEqual(expect.objectContaining({ overlayExisting: true }));
+    expect(options?.finished).toBeUndefined();
+    expect(trophyAwards.importAwards).toHaveBeenCalledWith(
+      expect.objectContaining({ awards: [] }),
+    );
+  });
 });

@@ -701,6 +701,17 @@ describe('TpFeedParserService', () => {
     );
   });
 
+  it('warns and reports unrecognized when a trophy announcement has an empty link', () => {
+    const result = service.parse(
+      sampleMessage({ title: ':trophy:  Award Overall Champion!', url: '' }),
+    );
+
+    expect(result).toEqual({ status: 'unrecognized' });
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('competition-trophy'),
+    );
+  });
+
   it.each([
     ['without the trophy icon', 'Award Overall Champion!'],
     ['with the trophy icon but no award', ':trophy:  Season standings'],

@@ -68,6 +68,11 @@ const CORE: TpCoreCompetitionImportResult = {
   competitionId: 12,
 };
 const fetchFailure: ImportError = { item: 1, message: 'status 429' };
+const CLEAN_MATCHES_BACKFILL: ImportResult = {
+  success: true,
+  imported: 2,
+  errors: [],
+};
 const MATCHES_BACKFILL: ImportResult = {
   success: false,
   imported: 1,
@@ -223,7 +228,7 @@ describe('TpLiveCompetitionImportService', () => {
     expect(competitionImport.importCompetition).not.toHaveBeenCalled();
   });
 
-  it('still imports the competition when the inscriptions fetch fails, with no teams and no awards', async () => {
+  it('still imports the competition when the inscriptions fetch fails, with no teams and unknown awards', async () => {
     participantsBackfill.importRegisteredTeams.mockResolvedValue({
       rosterIds: undefined,
       teams: [],
@@ -241,8 +246,11 @@ describe('TpLiveCompetitionImportService', () => {
 
     expect(awardsFetch.fetchAwards).not.toHaveBeenCalled();
     expect(competitionImport.importCompetition).toHaveBeenCalledWith(
-      expect.objectContaining({ participantRosterIds: [], awards: [] }),
+      expect.objectContaining({ participantRosterIds: [] }),
     );
+    expect(
+      competitionImport.importCompetition.mock.calls[0]?.[0].awards,
+    ).toBeUndefined();
     expect(result.teams).toEqual([]);
     expect(result.participation).toEqual({
       success: false,
@@ -251,7 +259,7 @@ describe('TpLiveCompetitionImportService', () => {
     });
   });
 
-  it('still imports the competition when the awards fetch fails, with no awards', async () => {
+  it('still imports the competition when the awards fetch fails, with unknown awards', async () => {
     awardsFetch.fetchAwards.mockImplementation(({ errors }) => {
       errors.push(fetchFailure);
       return Promise.resolve(undefined);
@@ -263,9 +271,9 @@ describe('TpLiveCompetitionImportService', () => {
 
     const result = await importCompetition();
 
-    expect(competitionImport.importCompetition).toHaveBeenCalledWith(
-      expect.objectContaining({ awards: [] }),
-    );
+    expect(
+      competitionImport.importCompetition.mock.calls[0]?.[0].awards,
+    ).toBeUndefined();
     expect(result.trophyAwards).toEqual({
       success: false,
       imported: 0,
@@ -358,6 +366,7 @@ describe('TpLiveCompetitionImportService', () => {
     });
 
     it('computes the extras after backfilling the matches', async () => {
+      matchesBackfill.backfill.mockResolvedValue(CLEAN_MATCHES_BACKFILL);
       competitionImport.importCompetition.mockResolvedValue({
         ...CORE,
         competitionCreated: true,
@@ -383,6 +392,52 @@ describe('TpLiveCompetitionImportService', () => {
 
       expect(result.extraTrophyAwards).toEqual(failed);
       expect(result.trophyAwards).toEqual(one);
+      expect(result.competition).toEqual(one);
+      expect(result.participation).toEqual(CORE.participation);
+      expect(result.era).toBe('Fourth era');
+    });
+
+    it('computes nothing, recording one error, when the match backfill of this import reported errors', async () => {
+      competitionImport.importCompetition.mockResolvedValue({
+        ...CORE,
+        competitionCreated: true,
+      });
+
+      const result = await importCompetition();
+
+      expect(extraTrophyAwards.computeExtras).not.toHaveBeenCalled();
+      expect(result.extraTrophyAwards).toEqual({
+        success: false,
+        imported: 0,
+        errors: [
+          {
+            item: { tournamentSlug: 's30' },
+            message: expect.stringContaining('match backfill') as unknown,
+          },
+        ],
+      });
+      expect(result.matchesBackfill).toEqual(MATCHES_BACKFILL);
+      expect(result.competition).toEqual(one);
+    });
+
+    it('computes the extras when the match backfill of this import was clean', async () => {
+      matchesBackfill.backfill.mockResolvedValue(CLEAN_MATCHES_BACKFILL);
+      competitionImport.importCompetition.mockResolvedValue({
+        ...CORE,
+        competitionCreated: true,
+      });
+
+      const result = await importCompetition();
+
+      expect(extraTrophyAwards.computeExtras).toHaveBeenCalledTimes(1);
+      expect(result.extraTrophyAwards).toEqual(EXTRAS);
+    });
+
+    it('computes the extras when no match backfill ran', async () => {
+      const result = await importCompetition();
+
+      expect(matchesBackfill.backfill).not.toHaveBeenCalled();
+      expect(result.extraTrophyAwards).toEqual(EXTRAS);
     });
   });
 

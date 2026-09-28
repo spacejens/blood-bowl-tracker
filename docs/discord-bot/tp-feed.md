@@ -57,7 +57,11 @@ in-process import code [`/importtp`](slash-commands/import-tp.md) uses:
 A trophy announcement is only a signal. It imports all of the competition's
 awards, not just the trophy it names. TP posts one per trophy, all at once.
 While one is still waiting to start, further announcements for the same
-competition are merged into it, so a burst runs one import.
+competition are merged into it, so a burst runs one import. That merge only
+covers the time an announcement spends queued plus the delay before its
+import starts: announcements arriving while the first import runs merge into
+a second one instead. A burst therefore normally causes two forced runs, each
+a full, paced backfill of the competition.
 
 Ignored and unrecognised notifications import nothing.
 

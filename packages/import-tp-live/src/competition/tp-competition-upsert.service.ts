@@ -63,8 +63,8 @@ export interface UpsertTpCompetitionOptions {
    * is overwritten and its type and dates re-derived from `era`/`playedDates`
    * merged with its own stored dates (so its date range only ever widens).
    * With none, era, type and start date stay exactly as stored. Either way,
-   * an overlay of an unfinished competition resets its stored `endDate` to
-   * null (see `finished`).
+   * an overlay of a competition known to be unfinished resets its stored
+   * `endDate` to null (see `finished`).
    * The full competition import (live standalone and `tpCompetitions.import`)
    * sees the whole competition's matches and awards and sets this, matching
    * BBL's and TP's bulk import contract (see
@@ -76,15 +76,19 @@ export interface UpsertTpCompetitionOptions {
    */
   overlayExisting?: boolean;
   /**
-   * Whether the competition is finished: TP has published its awards. Only a
-   * finished competition's `endDate` is written from dates, as the latest of
-   * its played dates and any stored end date; with no new played dates there
-   * is nothing to derive it from and it is left as stored. An unfinished one
-   * is created with a null `endDate`, and an overlay resets a stored
-   * `endDate` to null, even with no new played dates. Its start date and type
-   * still derive from its match dates either way.
+   * Whether the competition is finished: TP has published its awards.
+   * Undefined means unknown, e.g. the awards fetch failed, which is not the
+   * same as unfinished. Only a finished competition's `endDate` is written
+   * from dates, as the latest of its played dates and any stored end date;
+   * with no new played dates there is nothing to derive it from and it is
+   * left as stored. An unfinished one (false) is created with a null
+   * `endDate`, and an overlay resets a stored `endDate` to null, even with no
+   * new played dates. An unknown one is created with a null `endDate` too,
+   * but a stored competition's `endDate` is left exactly as stored, never
+   * reset or written. The start date and type still derive from match dates
+   * in every case.
    */
-  finished?: boolean;
+  finished?: boolean | undefined;
   errors: ImportError[];
 }
 
@@ -137,9 +141,10 @@ export class TpCompetitionUpsertService {
    * overwritten and its type and dates are re-derived from those dates
    * merged with its stored dates (so the range only ever widens), the type
    * again preferring the one its group shares; the end date is written only
-   * when `finished`, and reset to null otherwise. When `overlayExisting` is
-   * set with no new match dates, era, type and start date are left as
-   * stored, and the end date is reset to null unless `finished`. Without
+   * when `finished`, reset to null when known unfinished, and left as stored
+   * when unknown. When `overlayExisting` is set with no new match dates, era,
+   * type and start date are left as stored, and the end date is reset to null
+   * when known unfinished, otherwise left as stored. Without
    * `overlayExisting`, a stored competition's fields are all left as stored.
    *
    * A new competition with no dated match fails; an already-stored one never
@@ -153,7 +158,7 @@ export class TpCompetitionUpsertService {
     era,
     externalSystemName,
     overlayExisting = false,
-    finished = false,
+    finished,
     errors,
   }: UpsertTpCompetitionOptions): Promise<UpsertedTpCompetition | undefined> {
     const tpSystem = await this.runner.record({
@@ -232,11 +237,17 @@ export class TpCompetitionUpsertService {
         startDate: span.startDate,
         ...this.endDateField({
           finished,
-          resetsEndDate: !competitionRef.found || overlayExisting,
+          isNew: !competitionRef.found,
+          overlaid: overlayExisting,
           endDate: span.endDate,
         }),
       };
-    } else if (overlayExisting && !finished) {
+    } else if (overlayExisting && finished === false) {
+      // Nothing to derive from, so an overlay of a known-unfinished
+      // competition writes only the end date reset. A finished overlay with no
+      // dated matches has no end date to derive and leaves it as stored (so a
+      // finished competition whose matches are all undated keeps whatever end
+      // date it had, possibly none); an unknown one never touches it.
       fields = { endDate: null };
     }
     const upserted = await this.runner.record({
@@ -266,23 +277,27 @@ export class TpCompetitionUpsertService {
 
   /**
    * The end date to write alongside derived fields: the derived one for a
-   * finished competition, null for an unfinished one that is new or
-   * overlaid, and nothing (leaving the stored value) for an unfinished one
-   * already stored that is not overlaid.
+   * finished competition, null for a new one that is not finished, null for a
+   * stored one known unfinished and overlaid, and nothing (leaving the
+   * stored value) for any other stored one, including one whose finished
+   * state is unknown.
    */
   private endDateField({
     finished,
-    resetsEndDate,
+    isNew,
+    overlaid,
     endDate,
   }: {
-    finished: boolean;
-    resetsEndDate: boolean;
+    finished: boolean | undefined;
+    isNew: boolean;
+    overlaid: boolean;
     endDate: string;
   }): Pick<UpsertCompetition, 'endDate'> {
-    if (finished) {
+    if (finished === true) {
       return { endDate };
     }
-    return resetsEndDate ? { endDate: null } : {};
+    const resets = isNew || (overlaid && finished === false);
+    return resets ? { endDate: null } : {};
   }
 
   /**

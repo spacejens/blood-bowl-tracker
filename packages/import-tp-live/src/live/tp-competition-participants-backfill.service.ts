@@ -62,6 +62,12 @@ export interface TpParticipantsBackfillResult {
   participation: ImportResult;
   /** The awards fetch and recording the trophy awards. */
   trophyAwards: ImportResult;
+  /**
+   * How many awards TP returned: a non-empty list means the competition is
+   * finished. Undefined when that is unknown because the awards fetch failed
+   * or was never reached, which is not the same as none.
+   */
+  awardsFetched: number | undefined;
 }
 
 /**
@@ -143,6 +149,7 @@ export class TpCompetitionParticipantsBackfillService {
             errors: participationErrors,
           }),
           trophyAwards: this.nothing(),
+          awardsFetched: undefined,
         };
       }
 
@@ -156,7 +163,12 @@ export class TpCompetitionParticipantsBackfillService {
         errors: participationErrors,
       });
       if (teamEraIdsByRosterId === undefined) {
-        return { teams, participation, trophyAwards: this.nothing() };
+        return {
+          teams,
+          participation,
+          trophyAwards: this.nothing(),
+          awardsFetched: undefined,
+        };
       }
 
       const trophyErrors: ImportError[] = [];
@@ -181,6 +193,7 @@ export class TpCompetitionParticipantsBackfillService {
           imported: awarded,
           errors: trophyErrors,
         }),
+        awardsFetched: awards?.length,
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -196,6 +209,7 @@ export class TpCompetitionParticipantsBackfillService {
           ],
         }),
         trophyAwards: this.nothing(),
+        awardsFetched: undefined,
       };
     }
   }

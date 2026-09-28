@@ -295,6 +295,7 @@ describe('ImportTpReplyService', () => {
             ],
             participation: imported(1),
             trophyAwards: imported(0),
+            awardsFetched: 0,
           },
           matchesBackfill: imported(6),
           extraTrophyAwards: imported(0),

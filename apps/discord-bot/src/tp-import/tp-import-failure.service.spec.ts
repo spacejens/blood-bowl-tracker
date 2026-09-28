@@ -172,6 +172,7 @@ describe('TpImportFailureService', () => {
             teams: [],
             participation: imported(0),
             trophyAwards: imported(3),
+            awardsFetched: 3,
           },
           extraTrophyAwards: failedWith('database down'),
         },

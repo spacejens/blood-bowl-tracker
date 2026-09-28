@@ -82,10 +82,26 @@ const PARTICIPANTS_BACKFILL: TpParticipantsBackfillResult = {
   teams: [{ rosterId: 163386, ...teamImported }],
   participation: one,
   trophyAwards: nothing,
+  awardsFetched: 0,
 };
 const AWARDED_BACKFILL: TpParticipantsBackfillResult = {
   ...PARTICIPANTS_BACKFILL,
   trophyAwards: one,
+  awardsFetched: 1,
+};
+const UNKNOWN_AWARDS_BACKFILL: TpParticipantsBackfillResult = {
+  ...PARTICIPANTS_BACKFILL,
+  trophyAwards: {
+    success: false,
+    imported: 0,
+    errors: [{ item: 1, message: 'status 429' }],
+  },
+  awardsFetched: undefined,
+};
+const FAILED_MATCHES_BACKFILL: ImportResult = {
+  success: false,
+  imported: 1,
+  errors: [{ item: { matchId: 3 }, message: 'status 403' }],
 };
 const EXTRAS: ImportResult = { success: true, imported: 2, errors: [] };
 const MATCHES_BACKFILL: ImportResult = {
@@ -367,6 +383,11 @@ describe('TpLiveMatchImportService', () => {
     expect(matchesBackfill.backfill).not.toHaveBeenCalled();
     expect(result).not.toHaveProperty('participantsBackfill');
     expect(result).not.toHaveProperty('matchesBackfill');
+    expect(extraTrophyAwards.computeExtras).not.toHaveBeenCalled();
+    expect(competitionUpsert.upsertCompetition).toHaveBeenCalledTimes(1);
+    expect(
+      competitionUpsert.upsertCompetition.mock.calls[0][0],
+    ).not.toHaveProperty('overlayExisting');
   });
 
   describe('when its competition upsert created the competition', () => {
@@ -452,6 +473,61 @@ describe('TpLiveMatchImportService', () => {
         extraTrophyAwards.computeExtras.mock.invocationCallOrder;
       expect(matchesOrder).toBeLessThan(finishOrder);
       expect(finishOrder).toBeLessThan(extrasOrder);
+    });
+
+    it('finishes the competition when TP returned awards, even if none was recorded', async () => {
+      participantsBackfill.backfill.mockResolvedValue({
+        ...PARTICIPANTS_BACKFILL,
+        awardsFetched: 3,
+      });
+
+      const result = await importMatch();
+
+      expect(competitionUpsert.upsertCompetition).toHaveBeenLastCalledWith(
+        expect.objectContaining({ overlayExisting: true, finished: true }),
+      );
+      expect(result.extraTrophyAwards).toEqual(EXTRAS);
+    });
+
+    it('neither settles the end date nor awards extras when the awards are unknown', async () => {
+      participantsBackfill.backfill.mockResolvedValue(UNKNOWN_AWARDS_BACKFILL);
+
+      const result = await importMatch();
+
+      expect(competitionUpsert.upsertCompetition).toHaveBeenCalledTimes(1);
+      expect(extraTrophyAwards.computeExtras).not.toHaveBeenCalled();
+      expect(result.extraTrophyAwards).toEqual(nothing);
+    });
+
+    it('settles the end date but awards no extras, recording one error, when the match backfill reported errors', async () => {
+      participantsBackfill.backfill.mockResolvedValue(AWARDED_BACKFILL);
+      matchesBackfill.backfill.mockResolvedValue(FAILED_MATCHES_BACKFILL);
+
+      const result = await importMatch();
+
+      expect(competitionUpsert.upsertCompetition).toHaveBeenLastCalledWith(
+        expect.objectContaining({ overlayExisting: true, finished: true }),
+      );
+      expect(extraTrophyAwards.computeExtras).not.toHaveBeenCalled();
+      expect(result.extraTrophyAwards).toEqual({
+        success: false,
+        imported: 0,
+        errors: [
+          {
+            item: { tournamentSlug: 's30' },
+            message: expect.stringContaining('match backfill') as unknown,
+          },
+        ],
+      });
+      expect(result.matchesBackfill).toEqual(FAILED_MATCHES_BACKFILL);
+    });
+
+    it('awards the extras when the match backfill was clean', async () => {
+      participantsBackfill.backfill.mockResolvedValue(AWARDED_BACKFILL);
+
+      await importMatch();
+
+      expect(extraTrophyAwards.computeExtras).toHaveBeenCalledTimes(1);
     });
 
     it('still awards the extras, reporting the error, when settling the end date fails', async () => {

@@ -183,6 +183,7 @@ describe('TpCompetitionParticipantsBackfillService', () => {
         ],
         participation: { success: true, imported: 2, errors: [] },
         trophyAwards: one,
+        awardsFetched: 1,
       });
       expect(teamImport.importTeam).toHaveBeenCalledWith(
         expect.objectContaining({ era: 'Fourth era', session }),
@@ -217,6 +218,7 @@ describe('TpCompetitionParticipantsBackfillService', () => {
         teams: [],
         participation: { success: false, imported: 0, errors: [fetchFailure] },
         trophyAwards: nothing,
+        awardsFetched: undefined,
       });
       expect(participants.linkParticipants).not.toHaveBeenCalled();
       expect(awardsFetch.fetchAwards).not.toHaveBeenCalled();
@@ -253,6 +255,24 @@ describe('TpCompetitionParticipantsBackfillService', () => {
         errors: [fetchFailure],
       });
       expect(trophyAwards.importAwards).not.toHaveBeenCalled();
+      expect(result.awardsFetched).toBeUndefined();
+    });
+
+    it('reports zero fetched awards, not an unknown count, when TP has none yet', async () => {
+      awardsFetch.fetchAwards.mockResolvedValue([]);
+      trophyAwards.importAwards.mockResolvedValue(0);
+
+      const result = await backfill();
+
+      expect(result.awardsFetched).toBe(0);
+    });
+
+    it('reports no fetched award count when linking the teams fails', async () => {
+      participants.linkParticipants.mockResolvedValue(undefined);
+
+      const result = await backfill();
+
+      expect(result.awardsFetched).toBeUndefined();
     });
 
     it('catches an unexpected exception instead of throwing, keeping the imported teams', async () => {
@@ -275,6 +295,7 @@ describe('TpCompetitionParticipantsBackfillService', () => {
           ],
         },
         trophyAwards: nothing,
+        awardsFetched: undefined,
       });
     });
   });
