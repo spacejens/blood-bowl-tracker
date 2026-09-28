@@ -7,6 +7,7 @@ import { mock } from 'vitest-mock-extended';
 
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
+import { TpOfficialBatchSyncService } from './tp-official-batch-sync.service';
 import type { TpOfficialKeywordCatalog } from './tp-official-keyword-catalog.service';
 import { TpOfficialKeywordsSyncService } from './tp-official-keywords-sync.service';
 import {
@@ -36,6 +37,7 @@ describe('TpOfficialKeywordsSyncService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpOfficialKeywordsSyncService,
+        TpOfficialBatchSyncService,
         TpImportResultsService,
         TpUpsertRunnerService,
         {
@@ -98,8 +100,60 @@ describe('TpOfficialKeywordsSyncService', () => {
     expect(positionKeywords.sync).not.toHaveBeenCalled();
   });
 
+  it("writes every position's keywords in one call", async () => {
+    const imported = await service.syncKeywords({
+      slots: [
+        positionSlot({ keywordCodes: [4] }),
+        positionSlot({
+          positionId: 12,
+          name: 'Thrower',
+          keywordCodes: [4, 12],
+        }),
+      ],
+      catalog: CATALOG,
+      context: officialTeamsContext(),
+      errors,
+    });
+
+    expect(positionKeywords.sync).toHaveBeenCalledTimes(1);
+    expect(positionKeywords.sync).toHaveBeenCalledWith({
+      entries: [
+        { positionId: 9, rulesSetId: RULES_SET_ID, keywordId: 100 },
+        { positionId: 12, rulesSetId: RULES_SET_ID, keywordId: 100 },
+        { positionId: 12, rulesSetId: RULES_SET_ID, keywordId: 101 },
+      ],
+    });
+    expect(imported).toBe(3);
+    expect(errors).toEqual([]);
+  });
+
+  it('falls back to one call per position when the batch is rejected', async () => {
+    positionKeywords.sync.mockRejectedValueOnce(new Error('batch rejected'));
+
+    const imported = await service.syncKeywords({
+      slots: [
+        positionSlot({ keywordCodes: [4] }),
+        positionSlot({ positionId: 12, name: 'Thrower', keywordCodes: [12] }),
+      ],
+      catalog: CATALOG,
+      context: officialTeamsContext(),
+      errors,
+    });
+
+    expect(positionKeywords.sync).toHaveBeenCalledTimes(3);
+    expect(positionKeywords.sync).toHaveBeenNthCalledWith(2, {
+      entries: [{ positionId: 9, rulesSetId: RULES_SET_ID, keywordId: 100 }],
+    });
+    expect(positionKeywords.sync).toHaveBeenNthCalledWith(3, {
+      entries: [{ positionId: 12, rulesSetId: RULES_SET_ID, keywordId: 101 }],
+    });
+    expect(imported).toBe(2);
+    expect(errors).toEqual([]);
+  });
+
   it("records a rejected position's write and still writes the others", async () => {
     positionKeywords.sync
+      .mockRejectedValueOnce(new Error('batch rejected'))
       .mockRejectedValueOnce(new Error('no characteristics row'))
       .mockResolvedValueOnce({ positionRulesSetKeywordIds: [2] });
 
