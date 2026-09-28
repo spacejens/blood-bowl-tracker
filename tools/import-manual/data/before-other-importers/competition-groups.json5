@@ -34,8 +34,12 @@
 // `iu` -- case-insensitive, Unicode-aware) that TP competition import matches
 // a brand-new competition's RAW source name against. Exactly one group's
 // pattern matching makes that the new competition's group, names it
-// "<group name> <highest existing number + 1>", and takes the type every
-// existing competition in the group shares. Every historical naming variant
+// "<group name> <n>", where n is the trailing number of TP's raw name when
+// it has one no existing competition in the group already carries, so
+// out-of-order imports keep their real number; otherwise the highest
+// existing number + 1, or the bare group name for a group with no
+// competition yet. It also takes the type every existing competition in
+// the group shares. Every historical naming variant
 // of a track goes into its one pattern as alternation (e.g. Major Season's
 // "Season N" / "Major Season N" / "tLoEGBBL Säsong N"), and each pattern is
 // anchored so it cannot claim another track's names (Major Season's must not

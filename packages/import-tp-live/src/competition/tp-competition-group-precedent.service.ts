@@ -27,6 +27,12 @@ export class TpCompetitionGroupPrecedentService {
    * highest existing number + 1, where a sibling name with no trailing number
    * counts as 1 (a track's first instalment is often unnumbered). With no
    * usable raw number and no sibling at all, the group name verbatim.
+   *
+   * The raw number is trusted as belonging to the matched group's own
+   * numbering series -- it is not checked against a naming prefix, so a
+   * group whose curated pattern accepts more than one distinct historical
+   * numbering series could see a raw number from one series treated as
+   * though it belonged to the other.
    */
   nextName({ groupName, rawName, existingNames }: NextNameOptions): string {
     const existingNumbers = existingNames.map(
