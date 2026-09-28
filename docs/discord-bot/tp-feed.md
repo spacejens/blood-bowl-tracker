@@ -4,15 +4,18 @@ Blood Bowl leagues that run on [tourplay.net](https://tourplay.net) ("TP")
 post their own notifications into a Discord channel through TP's Discord
 integration. The bot can watch that channel, parse those notifications, and
 echo a one-line interpretation of each into a second channel, so a maintainer
-can confirm by eye that they are being read correctly.
+can confirm by eye that they are being read correctly, and import what each
+one is about (see [What is imported](#what-is-imported)).
 
 Every notification the bot fully and successfully handles also gets a ✔️
-reaction in the source channel — whether it was interpreted or deliberately
-ignored. A message without the checkmark was never fully handled: the bot
-was down when it arrived, posting its interpretation to the debug channel
-failed, or the notification was not understood at all (reported as
-unrecognised — see below). Unrecognised notifications never get the
-checkmark, even when their debug-channel notice posts successfully.
+reaction in the source channel — whether it was interpreted and imported or
+deliberately ignored. A message without the checkmark was never fully
+handled: the bot was down when it arrived, posting its interpretation to the
+debug channel failed, its import had a real failure (see
+[What is imported](#what-is-imported)), or the notification was not
+understood at all (reported as unrecognised — see below). Unrecognised
+notifications never get the checkmark, even when their debug-channel notice
+posts successfully.
 
 ## What is parsed
 
@@ -78,10 +81,11 @@ Both variables are optional and are documented in
 - `TP_FEED_SOURCE_DISCORD_CHANNEL` — the channel TP's integration posts into.
   Left unset, the bot does not listen for TP notifications at all and the
   feature is entirely off.
-- `TP_FEED_DEBUG_DISCORD_CHANNEL` — the channel the interpretations, and the
-  notices about notifications that did not parse, are posted to. Left unset,
-  notifications are still parsed and unrecognised shapes are still logged, but
-  nothing is posted. Because this is diagnostic output, point it at a
+- `TP_FEED_DEBUG_DISCORD_CHANNEL` — the channel the interpretations, the
+  notices about notifications that did not parse, and failed imports are
+  posted to. Left unset, notifications are still parsed and imported, and
+  unrecognised shapes and failed imports are still logged, but nothing is
+  posted. Because this is diagnostic output, point it at a
   maintainer channel rather than one real members read.
 
 Copy both ids with Developer Mode enabled (User Settings > Advanced >

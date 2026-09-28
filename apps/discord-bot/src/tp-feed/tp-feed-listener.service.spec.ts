@@ -9,10 +9,17 @@ import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { DiscordBotConfigService } from '../discord-bot-config.service';
+import type { TpFeedImportFailure } from './tp-feed-event';
 import { TpFeedFormatterService } from './tp-feed-formatter.service';
+import { TpFeedImportService } from './tp-feed-import.service';
 import { TpFeedListenerService } from './tp-feed-listener.service';
 import { TpFeedParserService } from './tp-feed-parser.service';
 
+const IMPORT_FAILURE: TpFeedImportFailure = {
+  failed: true,
+  headline: 'TP import of team 1 failed',
+  errors: ['Team: no coach'],
+};
 const SOURCE_CHANNEL = '910000000000000000';
 const DEBUG_CHANNEL = '920000000000000000';
 const MESSAGE_URL =
@@ -33,6 +40,7 @@ describe('TpFeedListenerService', () => {
   let config: MockProxy<DiscordBotConfigService>;
   let parser: MockProxy<TpFeedParserService>;
   let formatter: MockProxy<TpFeedFormatterService>;
+  let feedImport: MockProxy<TpFeedImportService>;
 
   /** The handler the service registered, for driving a fake messageCreate. */
   function registeredHandler(): MessageHandler {
@@ -46,6 +54,11 @@ describe('TpFeedListenerService', () => {
     config = mock<DiscordBotConfigService>();
     parser = mock<TpFeedParserService>();
     formatter = mock<TpFeedFormatterService>();
+    feedImport = mock<TpFeedImportService>();
+    feedImport.enqueue.mockResolvedValue({ failed: false });
+    formatter.formatImportFailure.mockReturnValue(
+      'TP import of team 1 failed — https://tp/r/1',
+    );
     config.getTpFeedSourceDiscordChannel.mockReturnValue(SOURCE_CHANNEL);
     config.getTpFeedDebugDiscordChannel.mockReturnValue(DEBUG_CHANNEL);
     parser.parse.mockReturnValue({
@@ -70,6 +83,7 @@ describe('TpFeedListenerService', () => {
         { provide: DiscordBotConfigService, useValue: config },
         { provide: TpFeedParserService, useValue: parser },
         { provide: TpFeedFormatterService, useValue: formatter },
+        { provide: TpFeedImportService, useValue: feedImport },
       ],
     }).compile();
     service = moduleRef.get(TpFeedListenerService);
@@ -127,6 +141,7 @@ describe('TpFeedListenerService', () => {
 
     expect(formatter.format).not.toHaveBeenCalled();
     expect(formatter.formatUnrecognized).not.toHaveBeenCalled();
+    expect(feedImport.enqueue).not.toHaveBeenCalled();
     expect(discordClient.sendMessage).not.toHaveBeenCalled();
     expect(config.getTpFeedDebugDiscordChannel).not.toHaveBeenCalled();
     expect(react).toHaveBeenCalledWith(PROCESSED_REACTION);
@@ -141,6 +156,7 @@ describe('TpFeedListenerService', () => {
 
     expect(formatter.formatUnrecognized).toHaveBeenCalledWith(MESSAGE_URL);
     expect(formatter.format).not.toHaveBeenCalled();
+    expect(feedImport.enqueue).not.toHaveBeenCalled();
     expect(discordClient.sendMessage).toHaveBeenCalledWith(DEBUG_CHANNEL, {
       content: `Unrecognized TP notification — ${MESSAGE_URL}`,
       allowedMentions: { parse: [] },
@@ -180,6 +196,7 @@ describe('TpFeedListenerService', () => {
 
     expect(parser.parse).toHaveBeenCalled();
     expect(formatter.formatUnrecognized).not.toHaveBeenCalled();
+    expect(feedImport.enqueue).not.toHaveBeenCalled();
     expect(discordClient.sendMessage).not.toHaveBeenCalled();
     expect(react).not.toHaveBeenCalled();
   });
@@ -192,8 +209,126 @@ describe('TpFeedListenerService', () => {
     await registeredHandler()(message(SOURCE_CHANNEL, react));
 
     expect(parser.parse).toHaveBeenCalled();
+    expect(feedImport.enqueue).toHaveBeenCalled();
     expect(discordClient.sendMessage).not.toHaveBeenCalled();
     expect(react).toHaveBeenCalledWith(PROCESSED_REACTION);
+  });
+
+  it('enqueues the parsed event before posting its description', async () => {
+    const order: string[] = [];
+    feedImport.enqueue.mockImplementation(() => {
+      order.push('enqueue');
+      return Promise.resolve({ failed: false });
+    });
+    discordClient.sendMessage.mockImplementation(() => {
+      order.push('post');
+      return Promise.resolve();
+    });
+    service.onModuleInit();
+
+    await registeredHandler()(message(SOURCE_CHANNEL));
+
+    expect(feedImport.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'hired', link: 'https://tp/r/1' }),
+    );
+    expect(order).toEqual(['enqueue', 'post']);
+  });
+
+  it('reacts only after the import has finished', async () => {
+    let importFinished = false;
+    let importFinishedWhenReacting: boolean | undefined;
+    feedImport.enqueue.mockImplementation(async () => {
+      await Promise.resolve();
+      importFinished = true;
+      return { failed: false };
+    });
+    const react = vi.fn((_emoji: string) => {
+      importFinishedWhenReacting = importFinished;
+    });
+    service.onModuleInit();
+
+    await registeredHandler()(message(SOURCE_CHANNEL, react));
+
+    expect(importFinishedWhenReacting).toBe(true);
+  });
+
+  it('posts an import failure after the description, and does not react', async () => {
+    const react = vi.fn();
+    feedImport.enqueue.mockResolvedValue(IMPORT_FAILURE);
+    service.onModuleInit();
+
+    await registeredHandler()(message(SOURCE_CHANNEL, react));
+
+    expect(formatter.formatImportFailure).toHaveBeenCalledWith(
+      IMPORT_FAILURE,
+      'https://tp/r/1',
+    );
+    expect(discordClient.sendMessage).toHaveBeenNthCalledWith(
+      1,
+      DEBUG_CHANNEL,
+      expect.objectContaining({ content: 'Hired: #3 Ragnfred Brownlock' }),
+    );
+    expect(discordClient.sendMessage).toHaveBeenNthCalledWith(
+      2,
+      DEBUG_CHANNEL,
+      {
+        content: 'TP import of team 1 failed — https://tp/r/1',
+        allowedMentions: { parse: [] },
+        flags: [MessageFlags.SuppressEmbeds],
+      },
+    );
+    expect(react).not.toHaveBeenCalled();
+  });
+
+  it('still imports with no debug channel, posting nothing and not reacting on failure', async () => {
+    const react = vi.fn();
+    config.getTpFeedDebugDiscordChannel.mockReturnValue(undefined);
+    feedImport.enqueue.mockResolvedValue(IMPORT_FAILURE);
+    service.onModuleInit();
+
+    await registeredHandler()(message(SOURCE_CHANNEL, react));
+
+    expect(feedImport.enqueue).toHaveBeenCalled();
+    expect(discordClient.sendMessage).not.toHaveBeenCalled();
+    expect(react).not.toHaveBeenCalled();
+  });
+
+  it('does not react when the description post failed, even though the import succeeded', async () => {
+    const react = vi.fn();
+    const errorLog = vi
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => undefined);
+    discordClient.sendMessage.mockRejectedValue(new Error('channel gone'));
+    service.onModuleInit();
+
+    await registeredHandler()(message(SOURCE_CHANNEL, react));
+
+    expect(feedImport.enqueue).toHaveBeenCalled();
+    expect(react).not.toHaveBeenCalled();
+    errorLog.mockRestore();
+  });
+
+  it('logs and swallows a failure to post an import failure, and does not react', async () => {
+    const react = vi.fn();
+    const errorLog = vi
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => undefined);
+    feedImport.enqueue.mockResolvedValue(IMPORT_FAILURE);
+    discordClient.sendMessage
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('channel gone'));
+    service.onModuleInit();
+
+    await expect(
+      registeredHandler()(message(SOURCE_CHANNEL, react)),
+    ).resolves.toBeUndefined();
+
+    expect(errorLog).toHaveBeenCalledWith(
+      'Failed to post TP feed message',
+      expect.stringContaining('channel gone'),
+    );
+    expect(react).not.toHaveBeenCalled();
+    errorLog.mockRestore();
   });
 
   it('logs and swallows a failure to post, and does not react', async () => {

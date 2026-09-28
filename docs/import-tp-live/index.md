@@ -9,8 +9,9 @@ procedures use it:
 
 - **The live team import**, `TpLiveTeamImportService.importTeam(...)`, which
   fetches a roster from TP's API first. `apps/discord-bot`'s
-  [`/importtp`](../discord-bot/slash-commands/import-tp.md) calls it, and
-  the three other live entry points below, in-process.
+  [`/importtp`](../discord-bot/slash-commands/import-tp.md) and its
+  [TP notification feed](../discord-bot/tp-feed.md) call it, and the other
+  live entry points below, in-process.
 - **The live match import**, `TpLiveMatchImportService.importMatch(...)` —
   see [match-import.md](match-import.md).
 - **The live match-teams import**,
