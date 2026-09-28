@@ -321,10 +321,10 @@ describe('TpCompetitionUpsertService', () => {
     );
   });
 
-  it('leaves the stored end date untouched when overlaying an unfinished competition', async () => {
+  it('resets the stored end date to null when overlaying an unfinished competition', async () => {
     competitions.resolve.mockResolvedValue({ found: true, id: 12 });
     competitions.findById.mockResolvedValue(
-      storedCompetition('2026-01-10', null),
+      storedCompetition('2026-01-10', '2026-03-01'),
     );
 
     await overlay(DATES);
@@ -333,10 +333,68 @@ describe('TpCompetitionUpsertService', () => {
       type: 'season',
       eraId: 40,
       startDate: '2026-01-10',
+      endDate: null,
       teamEraIds: [],
       externalIds: [{ externalSystemId: 1, externalId: '18442' }],
     });
     expect(errors).toEqual([]);
+  });
+
+  it('still widens the start date when overlaying an unfinished competition stored with a later start', async () => {
+    competitions.resolve.mockResolvedValue({ found: true, id: 12 });
+    competitions.findById.mockResolvedValue(
+      storedCompetition('2026-03-01', null),
+    );
+    span.derive.mockReturnValue({
+      type: 'season',
+      startDate: '2025-12-20',
+      endDate: '2026-03-01',
+    });
+    const earlier = new Date('2025-12-20');
+
+    await overlay([earlier]);
+
+    expect(span.derive).toHaveBeenCalledWith([earlier, new Date('2026-03-01')]);
+    expect(competitions.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ startDate: '2025-12-20', endDate: null }),
+    );
+  });
+
+  it('writes the derived end date when overlaying a finished competition stored with no end date', async () => {
+    competitions.resolve.mockResolvedValue({ found: true, id: 12 });
+    competitions.findById.mockResolvedValue(
+      storedCompetition('2026-01-10', null),
+    );
+
+    await overlay(DATES, true);
+
+    expect(competitions.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ endDate: '2026-06-20' }),
+    );
+  });
+
+  it('writes the end date derived from newer played dates when overlaying a finished competition stored with an earlier end date', async () => {
+    competitions.resolve.mockResolvedValue({ found: true, id: 12 });
+    competitions.findById.mockResolvedValue(
+      storedCompetition('2026-01-10', '2026-03-01'),
+    );
+    span.derive.mockReturnValue({
+      type: 'season',
+      startDate: '2026-01-10',
+      endDate: '2026-04-15',
+    });
+    const later = new Date('2026-04-15');
+
+    await overlay([later], true);
+
+    expect(span.derive).toHaveBeenCalledWith([
+      later,
+      new Date('2026-01-10'),
+      new Date('2026-03-01'),
+    ]);
+    expect(competitions.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ endDate: '2026-04-15' }),
+    );
   });
 
   it("overlays the type its group shares over the date span's", async () => {
@@ -358,11 +416,10 @@ describe('TpCompetitionUpsertService', () => {
     );
   });
 
-  // Zero new played dates means no new information about the competition at
-  // all, so era, type and dates are all left exactly as stored rather than
-  // re-resolved or recomputed from a merge that could misclassify or falsely
-  // close an ongoing one.
-  it('keeps the stored era, type and dates when overlaying a competition with no new dated matches', async () => {
+  // With no new played dates there is nothing to derive era, type or dates
+  // from, so an unfinished overlay writes only the end date reset and leaves
+  // everything else exactly as stored.
+  it('writes only a null end date when overlaying an unfinished competition with no new dated matches', async () => {
     competitions.resolve.mockResolvedValue({ found: true, id: 12 });
 
     await expect(overlay([])).resolves.toEqual(upsertedCompetition());
@@ -370,6 +427,23 @@ describe('TpCompetitionUpsertService', () => {
     expect(span.derive).not.toHaveBeenCalled();
     expect(competitions.findById).not.toHaveBeenCalled();
     expect(classifier.sharedTypeOfCompetitionGroup).not.toHaveBeenCalled();
+    expect(competitions.upsert).toHaveBeenCalledWith({
+      endDate: null,
+      teamEraIds: [],
+      externalIds: [{ externalSystemId: 1, externalId: '18442' }],
+    });
+    expect(errors).toEqual([]);
+  });
+
+  // A finished competition's end date is derived from dates; with none there
+  // is nothing to derive it from, so it is not invented.
+  it('leaves the stored fields, end date included, when overlaying a finished competition with no new dated matches', async () => {
+    competitions.resolve.mockResolvedValue({ found: true, id: 12 });
+
+    await expect(overlay([], true)).resolves.toEqual(upsertedCompetition());
+    expect(eras.resolve).not.toHaveBeenCalled();
+    expect(span.derive).not.toHaveBeenCalled();
+    expect(competitions.findById).not.toHaveBeenCalled();
     expect(competitions.upsert).toHaveBeenCalledWith({
       teamEraIds: [],
       externalIds: [{ externalSystemId: 1, externalId: '18442' }],

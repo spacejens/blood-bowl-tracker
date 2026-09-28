@@ -64,17 +64,19 @@ export class TpCompetitionImportService {
   /**
    * Upserts the competition, links its registered teams, then records its
    * trophy awards for those linked teams. The upsert overlays an
-   * already-imported competition's era, type and dates from this call's own
-   * data, matching BBL's and TP's bulk import contract (see
+   * already-imported competition's era, type and start date (and end date,
+   * when finished) from this call's own data, matching BBL's and TP's bulk
+   * import contract (see
    * tools/import-manual/data/before-other-importers/competitions.json5) — a
    * live match import's own incidental competition upsert does not, since it
    * only knows one match's date. A competition with at least one award is
-   * finished, so the upsert writes its end date; one with none yet is not (see
-   * `UpsertTpCompetitionOptions.finished`). A stage whose prerequisite failed is not
-   * attempted and reports nothing imported: nothing is linked without a
-   * competition, and no award is recorded when the team link failed. The
-   * result also says whether the competition was newly created; nothing
-   * here acts on that.
+   * finished, so the upsert writes its end date; one with none yet is not,
+   * and has any stored end date reset to null (see
+   * `UpsertTpCompetitionOptions.finished`). A stage whose prerequisite
+   * failed is not attempted and reports nothing imported: nothing is linked
+   * without a competition, and no award is recorded when the team link
+   * failed. The result also says whether the competition was newly created;
+   * nothing here acts on that.
    */
   async importCompetition({
     tournament,

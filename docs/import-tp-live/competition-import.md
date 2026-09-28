@@ -102,13 +102,15 @@ already-fetched, already-parsed input:
   name, and its type and start date from its matches' dates. Its end date is
   written only once the competition is finished, meaning the call's awards are
   non-empty: the latest played date, or a later stored end date. Until then a
-  new competition's end date is null, and an overlay leaves a stored one
-  untouched. The dates are
-  classified by the same ≤ 3-day cup rule as
+  new competition's end date is null, and an overlay resets a stored end date
+  to null, even when the call has no new match dates, so a competition stored
+  with an end date but no awards is corrected by its next full import. The
+  dates are classified by the same ≤ 3-day cup rule as
   [match import](match-import.md). An already-imported competition has its
-  era, type and start date overwritten (and its end date, when finished) from this call's data, its stored name kept
-  (TP's raw name never overwrites it) and its external id kept in sync (a
-  live match import's own upsert leaves the
+  era, type and start date overwritten (and its end date, when finished) from
+  this call's data; with no new match dates only the end date reset applies.
+  Its stored name is kept (TP's raw name never overwrites it) and its
+  external id kept in sync (a live match import's own upsert leaves the
   stored era, type and dates alone). A new competition's group is found by
   matching its raw TP name against every curated group's `namePattern` (see
   [docs/import-manual](../import-manual/index.md#competition-groups)):
