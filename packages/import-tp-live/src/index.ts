@@ -37,6 +37,11 @@ export type {
 } from './live/tp-live-match-import.service';
 export { TpLiveMatchImportService } from './live/tp-live-match-import.service';
 export type {
+  ImportLiveMatchTeamsOptions,
+  TpLiveMatchTeamsImportResult,
+} from './live/tp-live-match-teams-import.service';
+export { TpLiveMatchTeamsImportService } from './live/tp-live-match-teams-import.service';
+export type {
   ImportLiveOfficialTeamsOptions,
   TpLiveOfficialTeamsImportResult,
   TpLiveOfficialTeamsRulesSetResult,

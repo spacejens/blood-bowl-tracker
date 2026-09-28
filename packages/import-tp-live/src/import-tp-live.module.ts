@@ -20,6 +20,7 @@ import { TpEraResolutionService } from './live/tp-era-resolution.service';
 import { TpInscriptionsFetchService } from './live/tp-inscriptions-fetch.service';
 import { TpLiveCompetitionImportService } from './live/tp-live-competition-import.service';
 import { TpLiveMatchImportService } from './live/tp-live-match-import.service';
+import { TpLiveMatchTeamsImportService } from './live/tp-live-match-teams-import.service';
 import { TpLiveOfficialTeamsImportService } from './live/tp-live-official-teams-import.service';
 import { TpLiveStarPlayerHiresService } from './live/tp-live-star-player-hires.service';
 import { TpLiveTeamImportService } from './live/tp-live-team-import.service';
@@ -34,7 +35,7 @@ import { TpNameExternalIdService } from './tp-name-external-id.service';
 
 /**
  * Live TP import: fetch one roster, one completed match with its teams and
- * competition, one competition with its registered teams and trophy awards,
+ * competition, both teams of one match in any state, one competition with its registered teams and trophy awards,
  * or TP's official team list for every rules set, from TP's API and import
  * it in-process through TpRosterModule, TpMatchModule, TpCompetitionModule
  * and TpOfficialTeamsModule. The importing app provides
@@ -65,6 +66,7 @@ import { TpNameExternalIdService } from './tp-name-external-id.service';
     TpCompetitionMatchesBackfillService,
     TpBracketFetchService,
     TpLiveMatchImportService,
+    TpLiveMatchTeamsImportService,
     TpLiveStarPlayerHiresService,
     TpNameExternalIdService,
     TpAwardsFetchService,
@@ -77,6 +79,7 @@ import { TpNameExternalIdService } from './tp-name-external-id.service';
   exports: [
     TpLiveTeamImportService,
     TpLiveMatchImportService,
+    TpLiveMatchTeamsImportService,
     TpLiveCompetitionImportService,
     TpLiveOfficialTeamsImportService,
   ],

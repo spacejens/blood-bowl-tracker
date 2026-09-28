@@ -4,7 +4,7 @@
 its teams and competition, one TP competition with its registered teams and
 trophy awards, or TP's official team list for every rules set, straight into
 the database. It is server-side code: it calls `packages/game-data`
-in-process and never goes over RPC. Four live entry points and four RPC
+in-process and never goes over RPC. Five live entry points and four RPC
 procedures use it:
 
 - **The live team import**, `TpLiveTeamImportService.importTeam(...)`, which
@@ -13,6 +13,10 @@ procedures use it:
   the three other live entry points below, in-process.
 - **The live match import**, `TpLiveMatchImportService.importMatch(...)` —
   see [match-import.md](match-import.md).
+- **The live match-teams import**,
+  `TpLiveMatchTeamsImportService.importMatchTeams(...)`, which imports
+  both teams of a match in any state, finished or not — see
+  [match-import.md](match-import.md#importing-a-matchs-teams-live).
 - **The live competition import**,
   `TpLiveCompetitionImportService.importCompetition(...)` — see
   [competition-import.md](competition-import.md).
@@ -46,7 +50,8 @@ procedures use it:
   in `ImportTpLiveModule`.
 - **Match import**: `TpMatchModule`, with `TpMatchImportService` and its
   match-context, upsert, events and outcome services, plus
-  `TpLiveMatchImportService`, its match/bracket fetch services and
+  `TpLiveMatchImportService`, `TpLiveMatchTeamsImportService`, their
+  match/bracket fetch services and
   `TpLiveStarPlayerHiresService` — see [match-import.md](match-import.md).
 - **Competition import**: `TpCompetitionModule`, with
   `TpCompetitionImportService` and its upsert, participant and trophy-award
