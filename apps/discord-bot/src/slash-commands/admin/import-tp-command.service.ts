@@ -9,9 +9,9 @@ import { ApplicationCommandOptionType, MessageFlags } from 'discord.js';
 
 import { DiscordBotConfigService } from '../../discord-bot-config.service';
 import { IMPORT_TP_UNSUPPORTED_URL_MESSAGE } from '../../error-messages';
+import { TpImportDispatchService } from '../../tp-import/tp-import-dispatch.service';
 import { SlashCommandRegistryService } from '../slash-command-registry.service';
 import { ImportTpReplyService } from './import-tp-reply.service';
-import { TpImportDispatchService } from './tp-import-dispatch.service';
 
 /**
  * The `/importtp` slash command: imports whatever TP page a URL points to —

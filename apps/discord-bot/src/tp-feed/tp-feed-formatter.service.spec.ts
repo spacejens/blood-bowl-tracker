@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { TeamInfo } from './tp-feed-event';
+import type { TeamInfo, TpFeedImportFailure } from './tp-feed-event';
 import { TpFeedFormatterService } from './tp-feed-formatter.service';
 
 const home: TeamInfo = {
@@ -194,5 +194,52 @@ describe('TpFeedFormatterService', () => {
     ).toBe(
       'Unrecognized TP notification — https://discord.com/channels/910000000000000000/920000000000000000/930000000000000000',
     );
+  });
+
+  describe('formatImportFailure', () => {
+    it('keeps the link on the headline and lists each error on its own line', () => {
+      const failure: TpFeedImportFailure = {
+        failed: true,
+        headline: 'TP import of team 167242 failed',
+        errors: ['Team: no coach', 'Players: unknown position'],
+      };
+
+      expect(service.formatImportFailure(failure, 'https://tp/r/167242')).toBe(
+        [
+          'TP import of team 167242 failed — https://tp/r/167242',
+          '- Team: no coach',
+          '- Players: unknown position',
+        ].join('\n'),
+      );
+    });
+
+    it('is just the headline and link when there are no errors', () => {
+      expect(
+        service.formatImportFailure(
+          {
+            failed: true,
+            headline: 'TP import failed: the link is not a TP roster page',
+            errors: [],
+          },
+          'https://tp/x',
+        ),
+      ).toBe(
+        'TP import failed: the link is not a TP roster page — https://tp/x',
+      );
+    });
+
+    it("truncates past Discord's message length limit", () => {
+      const text = service.formatImportFailure(
+        {
+          failed: true,
+          headline: 'TP import of competition s31 completed with errors',
+          errors: Array.from({ length: 100 }, () => 'x'.repeat(100)),
+        },
+        'https://tp/c',
+      );
+
+      expect(text).toHaveLength(2000);
+      expect(text.endsWith('…')).toBe(true);
+    });
   });
 });

@@ -2,12 +2,14 @@ import type { ImportResult } from '@blood-bowl-tracker/api-contract';
 import type {
   TpLiveCompetitionImportResult,
   TpLiveMatchImportResult,
+  TpLiveMatchTeamsImportResult,
   TpLiveOfficialTeamsImportResult,
   TpLiveTeamImportResult,
 } from '@blood-bowl-tracker/import-tp-live';
 import {
   TpLiveCompetitionImportService,
   TpLiveMatchImportService,
+  TpLiveMatchTeamsImportService,
   TpLiveOfficialTeamsImportService,
   TpLiveTeamImportService,
 } from '@blood-bowl-tracker/import-tp-live';
@@ -16,7 +18,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { DiscordBotConfigService } from '../../discord-bot-config.service';
+import { DiscordBotConfigService } from '../discord-bot-config.service';
 import { TpImportDispatchService } from './tp-import-dispatch.service';
 
 const EXTERNAL_SYSTEM_NAME = 'tourplay.net';
@@ -44,6 +46,11 @@ const MATCH_RESULT: TpLiveMatchImportResult = {
   events: one,
   outcome: one,
 };
+const MATCH_TEAMS_RESULT: TpLiveMatchTeamsImportResult = {
+  match: { success: true, imported: 0, errors: [] },
+  homeTeam: TEAM_RESULT,
+  awayTeam: TEAM_RESULT,
+};
 const OFFICIAL_TEAMS_RESULT: TpLiveOfficialTeamsImportResult = {
   rulesSets: [],
 };
@@ -53,6 +60,7 @@ describe('TpImportDispatchService', () => {
   let config: MockProxy<DiscordBotConfigService>;
   let competitionImport: MockProxy<TpLiveCompetitionImportService>;
   let matchImport: MockProxy<TpLiveMatchImportService>;
+  let matchTeamsImport: MockProxy<TpLiveMatchTeamsImportService>;
   let teamImport: MockProxy<TpLiveTeamImportService>;
   let officialTeamsImport: MockProxy<TpLiveOfficialTeamsImportService>;
 
@@ -61,6 +69,7 @@ describe('TpImportDispatchService', () => {
     config.getTpExternalSystemName.mockReturnValue(EXTERNAL_SYSTEM_NAME);
     competitionImport = mock<TpLiveCompetitionImportService>();
     matchImport = mock<TpLiveMatchImportService>();
+    matchTeamsImport = mock<TpLiveMatchTeamsImportService>();
     teamImport = mock<TpLiveTeamImportService>();
     officialTeamsImport = mock<TpLiveOfficialTeamsImportService>();
     const moduleRef = await Test.createTestingModule({
@@ -72,6 +81,7 @@ describe('TpImportDispatchService', () => {
           useValue: competitionImport,
         },
         { provide: TpLiveMatchImportService, useValue: matchImport },
+        { provide: TpLiveMatchTeamsImportService, useValue: matchTeamsImport },
         { provide: TpLiveTeamImportService, useValue: teamImport },
         {
           provide: TpLiveOfficialTeamsImportService,
@@ -159,6 +169,28 @@ describe('TpImportDispatchService', () => {
       era: 'Fourth era',
       externalSystemName: EXTERNAL_SYSTEM_NAME,
     });
+  });
+
+  it("imports a match's teams without the match itself", async () => {
+    matchTeamsImport.importMatchTeams.mockResolvedValue(MATCH_TEAMS_RESULT);
+
+    await expect(
+      service.dispatch({
+        page: { kind: 'matchTeams', tournamentSlug: 's31', matchId: 670570 },
+      }),
+    ).resolves.toEqual({
+      kind: 'matchTeams',
+      tournamentSlug: 's31',
+      matchId: 670570,
+      result: MATCH_TEAMS_RESULT,
+    });
+    expect(matchTeamsImport.importMatchTeams).toHaveBeenCalledWith({
+      matchId: 670570,
+      tournamentSlug: 's31',
+      era: undefined,
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
+    });
+    expect(matchImport.importMatch).not.toHaveBeenCalled();
   });
 
   it('imports a roster page', async () => {

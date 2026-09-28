@@ -81,6 +81,31 @@ for all backfilled matches). A backfill failure is reported there and never
 fails the match import itself. The bulk `tpMatches.import` procedure never
 upserts a competition, so it never backfills.
 
+## Importing a match's teams live
+
+```ts
+const result = await tpLiveMatchTeamsImportService.importMatchTeams({
+  matchId: 670570,
+  tournamentSlug: 'tloeg-blood-bowl-league-sasong-31',
+  externalSystemName: 'TP',
+});
+```
+
+`TpLiveMatchTeamsImportService.importMatchTeams(...)` takes the same options
+as `importMatch` and imports only the match's two teams: it fetches the
+match, then imports the home team and then the away team through the
+ordinary live team import (see [index.md](index.md#importing-a-team-live)),
+each with that side's match roster snapshot, the away team under the era the
+home team was imported under — the same era rule as a full match import. It
+accepts a match in any state: a match that has not finished yet is not an
+error, because its teams exist and can be brought up to date before it is
+played. It writes no match, competition or star player hire.
+
+The result carries `match` (the match fetch: only ever failures, never
+counted as imported), `homeTeam` and `awayTeam`. A failed fetch imports no
+team; a home team that was not imported leaves the away team unattempted.
+Nothing is thrown: an unexpected error is reported on `match`.
+
 ## Star player hires
 
 A star player a team hires for one match is on no roster, so the match's
@@ -165,7 +190,7 @@ stage.
 
 ## Failures
 
-Neither entry point throws for an import problem; every failure is one
+None of the entry points throw for an import problem; every failure is one
 `ImportError` in the result.
 
 | Failure                                                                                                                                                                           | Reported in                                 |
@@ -173,6 +198,7 @@ Neither entry point throws for an import problem; every failure is one
 | Match request or parse failure                                                                                                                                                    | `match`                                     |
 | Match not completed (no recorded result); live only                                                                                                                               | `match`                                     |
 | Team import failures (home or away); live only                                                                                                                                    | `homeTeam`/`awayTeam`, as for a team import |
+| `importMatchTeams` only: match request or parse failure, or an unexpected error                                                                                                   | `match`                                     |
 | Hiring team era unresolved, star position or player upsert failure, characteristics lookup failure, missing catalog characteristics, or external-system upsert failure; live only | `starPlayerHires`                           |
 | Tournament or fixture-list request/parse failure; live only                                                                                                                       | `competition`                               |
 | Unknown era, no dated fixtures, or competition upsert failure (including a new competition matching no curated group, or several); live only                                      | `competition`                               |

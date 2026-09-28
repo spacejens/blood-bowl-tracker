@@ -14,8 +14,8 @@ import { ImportTpCommandService } from './import-tp-command.service';
 
 /**
  * Compiles the real `AdminModule` — and through it the real
- * `ImportTpLiveModule` and `TpPathsModule` — together with the real
- * `TpConnectionModule` and config module (per CLAUDE.md's
+ * `TpImportModule`, `ImportTpLiveModule` and `TpPathsModule` — together
+ * with the real `TpConnectionModule` and config module (per CLAUDE.md's
  * module-composition exception), to verify the whole graph wires together:
  * in particular that `TP_CONNECTION_PROVIDER` reaches `ImportTpLiveModule`
  * from the app's `@Global()` module. Only the database is mocked.

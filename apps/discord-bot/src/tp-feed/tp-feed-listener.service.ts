@@ -5,6 +5,7 @@ import { MessageFlags } from 'discord.js';
 
 import { DiscordBotConfigService } from '../discord-bot-config.service';
 import { TpFeedFormatterService } from './tp-feed-formatter.service';
+import { TpFeedImportService } from './tp-feed-import.service';
 import { TpFeedParserService } from './tp-feed-parser.service';
 
 /** Discord's `:heavy_check_mark:`, marking a source message as handled. */
@@ -12,14 +13,16 @@ const PROCESSED_REACTION = '✔️';
 
 /**
  * Wires the TP notification feed to Discord: watches the configured source
- * channel, parses each message, and echoes a one-line interpretation to the
- * configured debug channel — or, for a message that looks like a TP
+ * channel, parses each message, echoes a one-line interpretation to the
+ * configured debug channel and imports what the notification is about through
+ * `TpFeedImportService` — or, for a message that looks like a TP
  * notification but does not parse, a one-line notice linking back to it.
  *
  * The two channels are independently optional. With no source channel the
  * handler is never registered at all, so the feature costs nothing; with a
- * source but no debug channel the parsing (and its drift warnings) still run,
- * which is useful for watching the logs before committing to a channel.
+ * source but no debug channel the parsing (and its drift warnings) and the
+ * imports still run, and import failures are only logged, which is useful
+ * for watching the logs before committing to a channel.
  *
  * The source channel id is read once, at registration, and closed over: the
  * configuration cannot change while the process runs, so re-reading it per
@@ -29,8 +32,8 @@ const PROCESSED_REACTION = '✔️';
  * reaction, so the source channel itself shows at a glance which messages
  * were handled and, by omission, which were not: missed entirely (downtime,
  * a crash, or a message that arrived before the bot was listening), not
- * understood (an unrecognized notification), or not fully processed (a
- * failed debug-channel post).
+ * understood (an unrecognized notification), not fully processed (a
+ * failed debug-channel post), or not imported (a real import failure).
  */
 @Injectable()
 export class TpFeedListenerService implements OnModuleInit {
@@ -41,6 +44,7 @@ export class TpFeedListenerService implements OnModuleInit {
     private readonly config: DiscordBotConfigService,
     private readonly parser: TpFeedParserService,
     private readonly formatter: TpFeedFormatterService,
+    private readonly feedImport: TpFeedImportService,
   ) {}
 
   onModuleInit(): void {
@@ -65,9 +69,10 @@ export class TpFeedListenerService implements OnModuleInit {
    *
    * The ✔️ reaction means the message was fully, successfully handled, so it
    * is added only when processing actually finished: the parser ignored the
-   * message, or it parsed as an event and either there is no debug channel
-   * to post to or the post succeeded. A failed post does not count as
-   * finished processing, so it gets no reaction.
+   * message, or it parsed as an event, its description was posted (or there
+   * is no debug channel), and its import had no real failure. A failed
+   * import is posted to the debug channel when there is one; either way it
+   * withholds the reaction.
    *
    * An unrecognized message is never reacted to: classifying it as
    * unrecognized is not handling it. It is still reported to the debug
@@ -104,15 +109,22 @@ export class TpFeedListenerService implements OnModuleInit {
       }
       return;
     }
-    if (!debugChannelId) {
-      await this.markProcessed(message);
-      return;
+    // Enqueued before the first await, so imports queue in arrival order.
+    const imported = this.feedImport.enqueue(result.event);
+    const described =
+      !debugChannelId ||
+      (await this.postToDebugChannel(
+        debugChannelId,
+        this.formatter.format(result.event),
+      ));
+    const importResult = await imported;
+    if (importResult.failed && debugChannelId) {
+      await this.postToDebugChannel(
+        debugChannelId,
+        this.formatter.formatImportFailure(importResult, result.event.link),
+      );
     }
-    const posted = await this.postToDebugChannel(
-      debugChannelId,
-      this.formatter.format(result.event),
-    );
-    if (posted) {
+    if (described && !importResult.failed) {
       await this.markProcessed(message);
     }
   }
