@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
 
-import type { TpFeedEvent } from './tp-feed-event';
+import type { TpFeedEvent, TpFeedImportFailure } from './tp-feed-event';
 
 /** A `match-end` event, narrowed out of the union for the helper below. */
 type MatchEndEvent = Extract<TpFeedEvent, { kind: 'match-end' }>;
+
+/** Discord's hard cap on one message's content. */
+const MAX_MESSAGE_LENGTH = 2000;
 
 /**
  * Renders one parsed TP notification as a single line of plain text — the
@@ -37,6 +40,23 @@ export class TpFeedFormatterService {
    */
   formatUnrecognized(messageUrl: string): string {
     return `Unrecognized TP notification — ${messageUrl}`;
+  }
+
+  /**
+   * Renders a failed feed import: the headline with the notification's link
+   * kept intact, then one line per error. Error lists are uncapped, so the
+   * text is hard-truncated at Discord's message limit; the headline and link
+   * come first, so they survive.
+   */
+  formatImportFailure(failure: TpFeedImportFailure, link: string): string {
+    const text = [
+      `${failure.headline} — ${link}`,
+      ...failure.errors.map((error) => `- ${error}`),
+    ].join('\n');
+    if (text.length <= MAX_MESSAGE_LENGTH) {
+      return text;
+    }
+    return `${text.slice(0, MAX_MESSAGE_LENGTH - 1)}…`;
   }
 
   /**

@@ -14,9 +14,6 @@ failed, or the notification was not understood at all (reported as
 unrecognised — see below). Unrecognised notifications never get the
 checkmark, even when their debug-channel notice posts successfully.
 
-This is a diagnostic feature. Parsed notifications are not imported into the
-tracked data — nothing downstream reacts to them yet.
-
 ## What is parsed
 
 Five notification kinds are recognised and interpreted:
@@ -40,6 +37,38 @@ message, into the debug channel — TP can change its message format without
 notice, and this is how that drift becomes visible without anyone watching
 the server log. The log warning carries the detail; the debug post is the
 heads-up that there is detail worth reading.
+
+## What is imported
+
+Each interpreted notification also triggers an import, through the same
+in-process import code [`/importtp`](slash-commands/import-tp.md) uses:
+
+| Notification                                   | Import                                          |
+| ---------------------------------------------- | ----------------------------------------------- |
+| End of match                                   | the match, as `/importtp` imports a match page  |
+| Start of match                                 | both participating teams (not the match itself) |
+| New skill/characteristic, player hired, fired  | the affected team, from its roster page link    |
+
+Ignored and unrecognised notifications import nothing.
+
+Imports run one at a time, in the order the notifications arrived, each
+after a delay of about a second — TP can post a notification a moment
+before its own page reflects it, and spacing the requests keeps them paced
+like a person browsing rather than a burst hitting TP and the database at
+once. A failed import never holds up the ones behind it.
+
+Only real problems count as a failed import:
+
+- a match that has not finished yet is expected at the start of a match and
+  is not a failure there — but an end-of-match notification whose match TP
+  still reports as not completed is;
+- a notification whose link is not the expected TP match or roster page is;
+- an import that ran but reported errors in any stage (the same
+  "completed with errors" `/importtp` shows) is, and its errors are listed.
+
+A failed import is always logged. When a debug channel is configured it is
+also posted there as a short `TP import …` line keeping the notification's
+link, followed by one line per error.
 
 ## Configuration
 

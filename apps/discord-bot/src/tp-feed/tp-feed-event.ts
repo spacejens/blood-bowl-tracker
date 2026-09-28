@@ -78,3 +78,20 @@ export type TpFeedParseResult =
   | { status: 'event'; event: TpFeedEvent }
   | { status: 'ignored' }
   | { status: 'unrecognized' };
+
+/**
+ * An import the feed ran for a notification that had a real problem: a
+ * one-line headline (without the notification's link, which the formatter
+ * appends) and each reported error, already labelled with its stage.
+ */
+export interface TpFeedImportFailure {
+  failed: true;
+  headline: string;
+  errors: string[];
+}
+
+/**
+ * What importing one notification's subject came to. Only real failures
+ * are `failed` — an unfinished match at the start of a match is not one.
+ */
+export type TpFeedImportResult = { failed: false } | TpFeedImportFailure;
