@@ -246,13 +246,17 @@ export class TpCompetitionUpsertService {
    * one is classified by its raw name; when that is not confident -- no
    * group's pattern matches, or several do -- one error says which and this
    * resolves undefined, so the competition is skipped rather than left to
-   * fail the database's NOT NULL group constraint.
+   * fail the database's NOT NULL group constraint. A classifier failure also
+   * records one error and is treated as a skip.
    */
   private async groupFields({
     competitionRef,
     tournament,
     errors,
   }: GroupFieldsOptions): Promise<GroupFields | undefined> {
+    const buildSkipMessage = (error: unknown): string =>
+      `Skipping competition "${tournament.name}": ${this.runner.messageOf(error)}`;
+
     if (competitionRef.found) {
       const result = await this.runner.record({
         run: async () => ({
@@ -262,8 +266,7 @@ export class TpCompetitionUpsertService {
         }),
         item: { competition: tournament.id },
         errors,
-        buildErrorMessage: (error) =>
-          `Skipping competition "${tournament.name}": ${this.runner.messageOf(error)}`,
+        buildErrorMessage: buildSkipMessage,
       });
       if (result === undefined) {
         return undefined;
@@ -274,8 +277,7 @@ export class TpCompetitionUpsertService {
       run: () => this.classifier.classifyNew(tournament.name),
       item: { competition: tournament.id },
       errors,
-      buildErrorMessage: (error) =>
-        `Skipping competition "${tournament.name}": ${this.runner.messageOf(error)}`,
+      buildErrorMessage: buildSkipMessage,
     });
     if (classification === undefined) {
       return undefined;
