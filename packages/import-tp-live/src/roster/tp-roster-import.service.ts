@@ -9,6 +9,7 @@ import { Injectable } from '@nestjs/common';
 
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
+import { TpRosterPlayerSkillsService } from './players/tp-roster-player-skills.service';
 import { TpRosterPlayersImportService } from './players/tp-roster-players-import.service';
 import { TpTeamUpsertService } from './team/tp-team-upsert.service';
 import { TpRosterContextService } from './tp-roster-context.service';
@@ -22,12 +23,21 @@ export interface ImportRosterOptions {
   externalSystemName: string;
   /** This roster's players seen only in match snapshots (bulk import only). */
   matchEmbeddedPlayers?: TpRosterPlayer[];
+  /**
+   * The roster's raw TP JSON. When given, each roster player's own skills
+   * (starting and gained) are synced once the players are imported, naming
+   * skills from the skill masters this content embeds. The live import
+   * passes it; `importRawRoster` (the bulk `tpRosters.import` path) cannot,
+   * because tools/import-tp writes player skills in its own later pass,
+   * naming them from its whole download mirror.
+   */
+  rawContent?: unknown;
 }
 
 /** Options for {@link TpRosterImportService.importRawRoster}. */
 export interface ImportRawRosterOptions extends Omit<
   ImportRosterOptions,
-  'roster'
+  'roster' | 'rawContent'
 > {
   /** One TP roster exactly as TP's API returns it. */
   content: unknown;
@@ -64,6 +74,7 @@ export class TpRosterImportService {
     private readonly rosterContext: TpRosterContextService,
     private readonly teamUpsert: TpTeamUpsertService,
     private readonly playersImport: TpRosterPlayersImportService,
+    private readonly playerSkills: TpRosterPlayerSkillsService,
     private readonly importResults: TpImportResultsService,
     private readonly runner: TpUpsertRunnerService,
   ) {}
@@ -93,15 +104,18 @@ export class TpRosterImportService {
 
   /**
    * Resolves the import's context, upserts the team under the era, then
-   * upserts its players into that team era. Nothing is imported when the
-   * context cannot be resolved, and the players are skipped when the team
-   * was not imported.
+   * upserts its players into that team era and, when `rawContent` is given,
+   * syncs their skills. Nothing is imported when the context cannot be
+   * resolved, and the players (and their skills) are skipped when the team
+   * was not imported. A skill gap is reported on the players result and
+   * never un-imports a player.
    */
   async importRoster({
     roster,
     era,
     externalSystemName,
     matchEmbeddedPlayers = [],
+    rawContent,
   }: ImportRosterOptions): Promise<TpRosterImportOutcome> {
     const teamErrors: ImportError[] = [];
     const context = await this.rosterContext.resolve({
@@ -152,6 +166,15 @@ export class TpRosterImportService {
       teamEraId: teamEra.id,
       errors: playerErrors,
     });
+    if (rawContent !== undefined) {
+      await this.playerSkills.syncPlayerSkills({
+        roster,
+        content: rawContent,
+        importedPlayers: players.importedPlayers,
+        context,
+        errors: playerErrors,
+      });
+    }
     return {
       team,
       players: this.importResults.result({

@@ -23,6 +23,16 @@ export interface FetchRosterOptions {
   session?: TpFetchSession;
 }
 
+/** One fetched roster: parsed, and exactly as TP's API returned it. */
+export interface TpFetchedRoster {
+  roster: TpRoster;
+  /**
+   * The raw response, which a consumer scans for data the parse drops (the
+   * skill master names a roster embeds).
+   */
+  content: unknown;
+}
+
 @Injectable()
 export class TpRosterFetchService {
   constructor(
@@ -36,16 +46,17 @@ export class TpRosterFetchService {
 
   /**
    * Fetch one roster from TP's live API, the way TP's own roster page does,
-   * and parse it. A failed request (network error, TP refusing or
-   * rate-limiting it) or a response that does not parse as a roster is
-   * recorded as one ImportError naming the roster id, and yields undefined —
-   * never a thrown exception.
+   * and parse it, returning the parsed roster together with the raw
+   * response. A failed request (network error, TP refusing or rate-limiting
+   * it) or a response that does not parse as a roster is recorded as one
+   * ImportError naming the roster id, and yields undefined — never a thrown
+   * exception.
    */
   async fetchRoster({
     rosterId,
     errors,
     session,
-  }: FetchRosterOptions): Promise<TpRoster | undefined> {
+  }: FetchRosterOptions): Promise<TpFetchedRoster | undefined> {
     let content: unknown;
     try {
       content = await (session ?? this.fetcher.createSession()).fetch(
@@ -66,7 +77,7 @@ export class TpRosterFetchService {
       return undefined;
     }
     try {
-      return this.rosterParser.parse(content);
+      return { roster: this.rosterParser.parse(content), content };
     } catch (error) {
       errors.push(
         this.importResults.error({

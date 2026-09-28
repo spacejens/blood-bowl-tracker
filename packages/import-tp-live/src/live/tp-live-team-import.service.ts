@@ -62,13 +62,14 @@ export class TpLiveTeamImportService {
   ) {}
 
   /**
-   * Import one team, and its players, from TP's live API: fetch and parse
-   * its roster, resolve its era, then upsert it through the same server-side
-   * roster import `tpRosters.import` uses, straight into the database. The
-   * team needs no competition. A match's embedded roster snapshot, when given,
-   * is imported with it. Every failure is reported in the returned results,
-   * never thrown; the players are skipped when the team itself was not
-   * imported.
+   * Import one team, its players and their skills from TP's live API: fetch
+   * and parse its roster, resolve its era, then upsert it through the same
+   * server-side roster import `tpRosters.import` uses, straight into the
+   * database, passing the raw roster along so the players' skills are synced
+   * too. The team needs no competition. A match's embedded roster snapshot,
+   * when given, is imported with it. Every failure is reported in the
+   * returned results, never thrown; the players are skipped when the team
+   * itself was not imported.
    */
   async importTeam({
     rosterId,
@@ -79,14 +80,15 @@ export class TpLiveTeamImportService {
   }: ImportTeamOptions): Promise<TpLiveTeamImportResult> {
     try {
       const errors: ImportError[] = [];
-      const roster = await this.rosterFetch.fetchRoster({
+      const fetched = await this.rosterFetch.fetchRoster({
         rosterId,
         errors,
         session,
       });
-      if (roster === undefined) {
+      if (fetched === undefined) {
         return this.notImported(errors);
       }
+      const { roster, content } = fetched;
       const resolvedEra = await this.eraResolution.resolveEra({
         roster,
         era,
@@ -102,6 +104,7 @@ export class TpLiveTeamImportService {
         era: resolvedEra,
         externalSystemName,
         matchEmbeddedPlayers,
+        rawContent: content,
       });
       return {
         team,

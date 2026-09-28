@@ -9,14 +9,10 @@ import { Injectable } from '@nestjs/common';
 
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
+import { TpKeywordTargetDecoderService } from './tp-keyword-target-decoder.service';
 import type { TpOfficialKeywordCatalog } from './tp-official-keyword-catalog.service';
 import type { TpOfficialPositionSlot } from './tp-official-positions-upsert.service';
 import type { TpOfficialTeamsContext } from './tp-official-teams-context.service';
-
-/** Hatred's own skillMasterId. */
-const HATRED_SKILL_MASTER_ID = 307;
-/** Animosity's own skillMasterId. */
-const ANIMOSITY_SKILL_MASTER_ID = 269;
 
 /**
  * One starting skill, ready to write: its bare name (its identity) kept apart
@@ -67,6 +63,7 @@ interface Reported {
 export class TpOfficialSkillRefsService {
   constructor(
     private readonly skills: SkillsService,
+    private readonly keywordTargets: TpKeywordTargetDecoderService,
     private readonly importResults: TpImportResultsService,
     private readonly runner: TpUpsertRunnerService,
   ) {}
@@ -227,11 +224,11 @@ export class TpOfficialSkillRefsService {
       const target =
         ref.attributeValue === undefined
           ? undefined
-          : this.decodeTypeThreeTarget(
-              ref.skillMasterId,
-              ref.attributeValue,
+          : this.keywordTargets.decode({
+              skillMasterId: ref.skillMasterId,
+              attributeValue: ref.attributeValue,
               catalog,
-            );
+            });
       if (target !== undefined) {
         return { ...base, attributeValue: target };
       }
@@ -284,28 +281,5 @@ export class TpOfficialSkillRefsService {
     return skillId === undefined
       ? undefined
       : { name: `TP skill ${skillMasterId}`, skillId };
-  }
-
-  /**
-   * The keyword a Hatred or Animosity skill names as its target: TP writes it
-   * as an opaque numeric keyword code, named only by the curated catalogue.
-   * Undefined for any other skill, a non-numeric value or an uncurated code.
-   */
-  private decodeTypeThreeTarget(
-    skillMasterId: number,
-    attributeValue: string,
-    catalog: TpOfficialKeywordCatalog,
-  ): string | undefined {
-    if (
-      skillMasterId !== HATRED_SKILL_MASTER_ID &&
-      skillMasterId !== ANIMOSITY_SKILL_MASTER_ID
-    ) {
-      return undefined;
-    }
-    const code = Number(attributeValue);
-    if (!Number.isInteger(code)) {
-      return undefined;
-    }
-    return catalog.byCode.get(code)?.name;
   }
 }

@@ -62,14 +62,16 @@ describe('TpRosterFetchService', () => {
     service = moduleRef.get(TpRosterFetchService);
   });
 
-  it('fetches the roster from the API with its page as referer and returns it parsed', async () => {
+  it('fetches the roster from the API with its page as referer and returns it parsed alongside its raw JSON', async () => {
     const body = { raw: true };
     session.fetch.mockResolvedValue(body);
     parser.parse.mockReturnValue(ROSTER);
 
-    const roster = await service.fetchRoster({ rosterId: 163386, errors });
+    const fetched = await service.fetchRoster({ rosterId: 163386, errors });
 
-    expect(roster).toBe(ROSTER);
+    expect(fetched).toEqual({ roster: ROSTER, content: body });
+    expect(fetched?.roster).toBe(ROSTER);
+    expect(fetched?.content).toBe(body);
     expect(session.fetch).toHaveBeenCalledWith(
       'https://tp.example/api/rosters/163386',
       { referer: 'https://tp.example/blood-bowl/roster/163386' },
