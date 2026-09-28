@@ -45,7 +45,8 @@ an earlier one fails:
    bracket, needed for category classification and for the competition's
    date span.
 6. **Upsert the competition**: its TP id, era (the one the home team was
-   imported under), type and dates derived from the fixture lists' dates by
+   imported under), type and start date derived from the fixture lists' dates (a
+   competition this import creates gets no end date; see below) by
    the same ≤ 3-day cup rule `tools/import-tp`'s bulk import uses. A new
    competition's group, name and preferred type come from matching its raw
    name against the curated groups' name patterns; one matching no group, or
@@ -64,7 +65,7 @@ competition, below.
 
 When step 5 creates the competition (it was never imported before), the
 import then completes it rather than leaving it holding one match, running
-two more steps after the shared core:
+up to three more steps after the shared core:
 
 1. **Backfill its registered teams**: fetch the inscriptions, import each
    registered team live under the competition's era, link them to the
@@ -74,10 +75,17 @@ two more steps after the shared core:
 2. **Backfill its completed matches**: every bracket match with a recorded
    result, one at a time through the same session, the requested match
    included again (harmless: every write is an upsert).
+3. **Finish it**: only when step 1 recorded at least one TP award, which
+   means the competition is finished. Re-upsert the competition as finished
+   over the whole bracket's played dates, which settles its end date, then
+   award the trophies TP does not record itself, the same step 8 a live
+   competition import runs (see [competition-import.md](competition-import.md)).
 
 The result then also carries `participantsBackfill` (`teams`,
 `participation`, `trophyAwards`) and `matchesBackfill` (one `ImportResult`
-for all backfilled matches). A backfill failure is reported there and never
+for all backfilled matches) and `extraTrophyAwards` (one `ImportResult`: the
+finishing re-upsert's errors and the extra awards created; nothing imported
+when TP has no awards yet). A backfill failure is reported there and never
 fails the match import itself. The bulk `tpMatches.import` procedure never
 upserts a competition, so it never backfills.
 
@@ -208,5 +216,6 @@ None of the entry points throw for an import problem; every failure is one
 | Undecidable outcome                                                                                                                                                               | `outcome`                                   |
 | A backfilled team's import, the link or the awards fail, after creating the competition; live only                                                                                | `participantsBackfill`                      |
 | A backfilled match's fetch, team import or write fails, after creating the competition; live only                                                                                 | `matchesBackfill`                           |
+| Settling the end date or computing the extra trophy awards fails, after creating the competition; live only                                                                       | `extraTrophyAwards`                         |
 
 A stage whose prerequisite failed reports nothing imported.

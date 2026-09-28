@@ -22,6 +22,7 @@ import { TpBracketFetchService } from './tp-bracket-fetch.service';
 import { TpCompetitionMatchesBackfillService } from './tp-competition-matches-backfill.service';
 import type { TpParticipantsBackfillResult } from './tp-competition-participants-backfill.service';
 import { TpCompetitionParticipantsBackfillService } from './tp-competition-participants-backfill.service';
+import { TpExtraTrophyAwardsService } from './tp-extra-trophy-awards.service';
 import { TpLiveMatchImportService } from './tp-live-match-import.service';
 import { TpLiveStarPlayerHiresService } from './tp-live-star-player-hires.service';
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
@@ -82,6 +83,11 @@ const PARTICIPANTS_BACKFILL: TpParticipantsBackfillResult = {
   participation: one,
   trophyAwards: nothing,
 };
+const AWARDED_BACKFILL: TpParticipantsBackfillResult = {
+  ...PARTICIPANTS_BACKFILL,
+  trophyAwards: one,
+};
+const EXTRAS: ImportResult = { success: true, imported: 2, errors: [] };
 const MATCHES_BACKFILL: ImportResult = {
   success: true,
   imported: 1,
@@ -98,6 +104,7 @@ describe('TpLiveMatchImportService', () => {
   let starPlayerHires: MockProxy<TpLiveStarPlayerHiresService>;
   let participantsBackfill: MockProxy<TpCompetitionParticipantsBackfillService>;
   let matchesBackfill: MockProxy<TpCompetitionMatchesBackfillService>;
+  let extraTrophyAwards: MockProxy<TpExtraTrophyAwardsService>;
 
   beforeEach(async () => {
     fetcher = mock<TpFetcherService>();
@@ -118,6 +125,8 @@ describe('TpLiveMatchImportService', () => {
     matchesBackfill = mock<TpCompetitionMatchesBackfillService>();
     participantsBackfill.backfill.mockResolvedValue(PARTICIPANTS_BACKFILL);
     matchesBackfill.backfill.mockResolvedValue(MATCHES_BACKFILL);
+    extraTrophyAwards = mock<TpExtraTrophyAwardsService>();
+    extraTrophyAwards.computeExtras.mockResolvedValue(EXTRAS);
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpLiveMatchImportService,
@@ -138,6 +147,7 @@ describe('TpLiveMatchImportService', () => {
           provide: TpCompetitionMatchesBackfillService,
           useValue: matchesBackfill,
         },
+        { provide: TpExtraTrophyAwardsService, useValue: extraTrophyAwards },
       ],
     }).compile();
     service = moduleRef.get(TpLiveMatchImportService);
@@ -375,6 +385,7 @@ describe('TpLiveMatchImportService', () => {
         ...CORE,
         participantsBackfill: PARTICIPANTS_BACKFILL,
         matchesBackfill: MATCHES_BACKFILL,
+        extraTrophyAwards: nothing,
       });
       expect(participantsBackfill.backfill).toHaveBeenCalledWith({
         tournamentSlug: 's30',
@@ -397,6 +408,69 @@ describe('TpLiveMatchImportService', () => {
       const [matchesOrder] = matchesBackfill.backfill.mock.invocationCallOrder;
       expect(writeOrder).toBeLessThan(participantsOrder);
       expect(participantsOrder).toBeLessThan(matchesOrder);
+    });
+
+    it('creates the competition as unfinished', async () => {
+      await importMatch();
+
+      expect(competitionUpsert.upsertCompetition).toHaveBeenCalledTimes(1);
+      expect(
+        competitionUpsert.upsertCompetition.mock.calls[0][0],
+      ).not.toHaveProperty('finished');
+    });
+
+    it('computes no extras when the backfill recorded no TP award', async () => {
+      const result = await importMatch();
+
+      expect(extraTrophyAwards.computeExtras).not.toHaveBeenCalled();
+      expect(result.extraTrophyAwards).toEqual(nothing);
+    });
+
+    it('settles the end date and awards the extras once the backfill recorded TP awards, after both backfills', async () => {
+      participantsBackfill.backfill.mockResolvedValue(AWARDED_BACKFILL);
+
+      const result = await importMatch();
+
+      expect(competitionUpsert.upsertCompetition).toHaveBeenLastCalledWith({
+        tournament: BRACKET.tournament,
+        playedDates: BRACKET.playedDates,
+        era: 'Fourth era',
+        externalSystemName: EXTERNAL_SYSTEM_NAME,
+        overlayExisting: true,
+        finished: true,
+        errors: [],
+      });
+      expect(extraTrophyAwards.computeExtras).toHaveBeenCalledWith({
+        competitionId: 12,
+        tournamentSlug: 's30',
+      });
+      expect(result.extraTrophyAwards).toEqual(EXTRAS);
+      const [matchesOrder] = matchesBackfill.backfill.mock.invocationCallOrder;
+      const [, finishOrder] =
+        competitionUpsert.upsertCompetition.mock.invocationCallOrder;
+      const [extrasOrder] =
+        extraTrophyAwards.computeExtras.mock.invocationCallOrder;
+      expect(matchesOrder).toBeLessThan(finishOrder);
+      expect(finishOrder).toBeLessThan(extrasOrder);
+    });
+
+    it('still awards the extras, reporting the error, when settling the end date fails', async () => {
+      participantsBackfill.backfill.mockResolvedValue(AWARDED_BACKFILL);
+      competitionUpsert.upsertCompetition
+        .mockResolvedValueOnce(upsertedCompetition({ created: true }))
+        .mockImplementationOnce(({ errors }) => {
+          errors.push({ item: 1, message: 'upsert failed' });
+          return Promise.resolve(undefined);
+        });
+
+      const result = await importMatch();
+
+      expect(extraTrophyAwards.computeExtras).toHaveBeenCalledTimes(1);
+      expect(result.extraTrophyAwards).toEqual({
+        success: false,
+        imported: 2,
+        errors: [{ item: 1, message: 'upsert failed' }],
+      });
     });
 
     it('still backfills when its own match row could not be written', async () => {
