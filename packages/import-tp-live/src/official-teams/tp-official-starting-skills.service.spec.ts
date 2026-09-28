@@ -14,6 +14,7 @@ import { mock } from 'vitest-mock-extended';
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpNameExternalIdService } from '../tp-name-external-id.service';
 import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
+import { TpOfficialBatchSyncService } from './tp-official-batch-sync.service';
 import type { TpStartingSkillRef } from './tp-official-skill-refs.service';
 import { TpOfficialStartingSkillsService } from './tp-official-starting-skills.service';
 import {
@@ -56,6 +57,7 @@ describe('TpOfficialStartingSkillsService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpOfficialStartingSkillsService,
+        TpOfficialBatchSyncService,
         TpNameExternalIdService,
         TpImportResultsService,
         TpUpsertRunnerService,
@@ -110,7 +112,7 @@ describe('TpOfficialStartingSkillsService', () => {
     });
   });
 
-  it('upserts and reads each skill once across positions, one write per position', async () => {
+  it("upserts and reads each skill once across positions, writing every position's skills in one call", async () => {
     const written = await sync(
       new Map([
         [9, [BLOCK]],
@@ -120,7 +122,13 @@ describe('TpOfficialStartingSkillsService', () => {
 
     expect(skills.upsert).toHaveBeenCalledTimes(1);
     expect(skillRulesSets.listBySkill).toHaveBeenCalledTimes(1);
-    expect(positionSkills.sync).toHaveBeenCalledTimes(2);
+    expect(positionSkills.sync).toHaveBeenCalledTimes(1);
+    expect(positionSkills.sync).toHaveBeenCalledWith({
+      entries: [
+        { positionId: 9, rulesSetId: RULES_SET_ID, skillId: 500 },
+        { positionId: 12, rulesSetId: RULES_SET_ID, skillId: 500 },
+      ],
+    });
     expect(written).toBe(2);
   });
 
@@ -242,8 +250,37 @@ describe('TpOfficialStartingSkillsService', () => {
     ]);
   });
 
+  it('falls back to one call per position when the batch is rejected', async () => {
+    positionSkills.sync.mockRejectedValueOnce(new Error('batch rejected'));
+
+    const written = await sync(
+      new Map([
+        [9, [BLOCK]],
+        [12, [BLOCK]],
+      ]),
+    );
+
+    expect(positionSkills.sync).toHaveBeenCalledTimes(3);
+    expect(positionSkills.sync).toHaveBeenNthCalledWith(2, {
+      entries: [{ positionId: 9, rulesSetId: RULES_SET_ID, skillId: 500 }],
+    });
+    expect(positionSkills.sync).toHaveBeenNthCalledWith(3, {
+      entries: [{ positionId: 12, rulesSetId: RULES_SET_ID, skillId: 500 }],
+    });
+    expect(written).toBe(2);
+    expect(errors).toEqual([]);
+  });
+
+  it('makes no call when no position has a starting skill', async () => {
+    const written = await sync(new Map());
+
+    expect(positionSkills.sync).not.toHaveBeenCalled();
+    expect(written).toBe(0);
+  });
+
   it("records a rejected position's write and still writes the others", async () => {
     positionSkills.sync
+      .mockRejectedValueOnce(new Error('batch rejected'))
       .mockRejectedValueOnce(new Error('no characteristics row'))
       .mockResolvedValueOnce({ positionRulesSetSkillIds: [2] });
 

@@ -9,6 +9,8 @@ import { Injectable } from '@nestjs/common';
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpNameExternalIdService } from '../tp-name-external-id.service';
 import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
+import type { TpOfficialBatchGroup } from './tp-official-batch-sync.service';
+import { TpOfficialBatchSyncService } from './tp-official-batch-sync.service';
 import type { TpStartingSkillRef } from './tp-official-skill-refs.service';
 import type { TpOfficialTeamsContext } from './tp-official-teams-context.service';
 
@@ -51,6 +53,7 @@ export class TpOfficialStartingSkillsService {
     private readonly skills: SkillsService,
     private readonly skillRulesSets: SkillRulesSetsService,
     private readonly positionSkills: PositionRulesSetSkillsService,
+    private readonly batchSync: TpOfficialBatchSyncService,
     private readonly nameExternalId: TpNameExternalIdService,
     private readonly importResults: TpImportResultsService,
     private readonly runner: TpUpsertRunnerService,
@@ -64,8 +67,9 @@ export class TpOfficialStartingSkillsService {
    * category is reported once and left out; one whose source elite marker
    * disagrees with the curated one is reported once but still recorded. Two
    * refs to one skill merge, unless they disagree on its attribute value,
-   * which drops the skill with one error. One write per position: the
-   * server rejects a batch all-or-nothing. Returns the rows written.
+   * which drops the skill with one error. Every position's associations go
+   * in one write; the server rejects a batch all-or-nothing, so a rejected
+   * batch is retried one position at a time. Returns the rows written.
    */
   async syncStartingSkills({
     refsByPositionId,
@@ -78,7 +82,7 @@ export class TpOfficialStartingSkillsService {
       reportedGaps: new Set(),
       reportedEliteMismatches: new Set(),
     };
-    let written = 0;
+    const groups: TpOfficialBatchGroup<StartingSkillEntry>[] = [];
     for (const [positionId, refs] of refsByPositionId) {
       const entries = await this.entriesFor({
         positionId,
@@ -90,21 +94,21 @@ export class TpOfficialStartingSkillsService {
       if (entries.length === 0) {
         continue;
       }
-      const synced = await this.runner.record({
-        run: () => this.positionSkills.sync({ entries }),
+      groups.push({
+        entries,
         item: { positionId, rulesSet: context.rulesSet },
-        errors,
         buildErrorMessage: (error) =>
           `Failed to write ${entries.length} starting skill(s) of position ${positionId} (${context.rulesSet}): ${this.runner.messageOf(error)}`,
       });
-      if (synced !== undefined) {
-        written += entries.length;
-      }
     }
-    return written;
+    return this.batchSync.syncGroups({
+      groups,
+      sync: (entries) => this.positionSkills.sync({ entries }),
+      errors,
+    });
   }
 
-  /** One position's entries, keyed by skill id so two refs to one skill never collide. */
+  /** One position's entries, keyed by skill id so two refs to one skill never collide in the batch. */
   private async entriesFor(options: {
     positionId: number;
     refs: TpStartingSkillRef[];
