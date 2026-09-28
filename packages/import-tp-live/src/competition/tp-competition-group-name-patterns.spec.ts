@@ -27,15 +27,19 @@ interface CuratedGroup {
   namePattern?: string;
 }
 
-function curatedCandidates(): NamePatternCandidate[] {
-  const file = JSON5.parse<{ competitionGroups: CuratedGroup[] }>(
+function curatedGroups(): CuratedGroup[] {
+  return JSON5.parse<{ competitionGroups: CuratedGroup[] }>(
     readFileSync(CURATED_GROUPS_FILE, 'utf8'),
-  );
-  return file.competitionGroups.flatMap((group, index) =>
-    group.namePattern === undefined
-      ? []
-      : [{ id: index + 1, name: group.name, namePattern: group.namePattern }],
-  );
+  ).competitionGroups;
+}
+
+function curatedCandidates(): NamePatternCandidate[] {
+  return curatedGroups().map((group, index) => {
+    if (group.namePattern === undefined) {
+      throw new Error(`Curated group "${group.name}" has no namePattern`);
+    }
+    return { id: index + 1, name: group.name, namePattern: group.namePattern };
+  });
 }
 
 /**
@@ -80,8 +84,28 @@ const HISTORICAL_NAMES: Record<string, string[]> = {
     'tLoEGBBL Chaos Cup 9',
   ],
   'Stunty Leeg': ['Stunty Leeg 1', 'Stunty Leeg 2'],
+  'Fright Night': ['Fright Night', 'Fright Night 2', 'tLoEGBBL Fright Night 2'],
+  Snöbollskrieg: [
+    'Snöbollskrieg',
+    'Snöbollskrieg 2',
+    'tLoEGBBL - Snöbollskrieg 2026',
+  ],
   'Moot Mania': ['Moot Mania', 'Moot Mania 2', 'Moot Mania 3', 'Moot Mania 4'],
+  // BBL's only instance is "Champions of tLoEG" (plural) -- the group's own
+  // name is singular -- so both spellings are accepted.
+  'Champion of tLoEG': [
+    'Champions of tLoEG',
+    'Champion of tLoEG',
+    'Champions of tLoEG 2',
+    'tLoEGBBL Champions of tLoEG 2',
+  ],
   NAA: ['NAA', 'NAA 2'],
+  'Blitzmania!': [
+    'Blitzmania!',
+    'Blitzmania! 2',
+    'tLoEGBBL Blitzmania! 2',
+    'Blitzmania 2',
+  ],
   Ogretoberfest: [
     'Ogretoberfest',
     'Ogretoberfest 2',
@@ -103,12 +127,15 @@ const HISTORICAL_NAMES: Record<string, string[]> = {
   GBBL: ['GBBL 1', 'GBBL 2'],
 };
 
-/** One-offs (deliberately unpatterned) and names no track should claim. */
+/**
+ * Names no group should claim. "Champions of..." is how BBL's competition
+ * list truncates "Champions of tLoEG"; with no "tLoEG" to anchor on it must
+ * stay unmatched rather than be guessed into Champion of tLoEG.
+ */
 const NEVER_MATCHED = [
-  'Fright Night',
-  'Blitzmania!',
   'Champions of...',
-  'Snöbollskrieg',
+  'Fright Nightmare',
+  'Blitzmania!!',
   'tLoEGBBL Open 2026',
   'tLoEGBBL Säsong',
   'Chaos Cupcake',
@@ -125,12 +152,16 @@ describe('curated competition group name patterns', () => {
     matcher = moduleRef.get(TpCompetitionGroupMatcherService);
   });
 
-  it('gives a pattern to exactly the recurring groups', () => {
+  it('gives every curated group a pattern, with historical names pinned for each', () => {
+    const groups = curatedGroups();
     expect(
-      curatedCandidates()
-        .map((candidate) => candidate.name)
-        .sort(),
-    ).toEqual(Object.keys(HISTORICAL_NAMES).sort());
+      groups
+        .filter((group) => group.namePattern === undefined)
+        .map((group) => group.name),
+    ).toEqual([]);
+    expect(groups.map((group) => group.name).sort()).toEqual(
+      Object.keys(HISTORICAL_NAMES).sort(),
+    );
   });
 
   describe.each(Object.entries(HISTORICAL_NAMES))(
