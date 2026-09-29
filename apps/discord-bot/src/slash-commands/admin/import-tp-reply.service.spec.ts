@@ -521,6 +521,16 @@ describe('ImportTpReplyService', () => {
       ).toBe(true);
     });
 
+    it('falls back to the error name when the message is empty', () => {
+      const error = new TypeError('');
+
+      expect(
+        embed(service.buildUnexpectedFailure(error)).description.endsWith(
+          '- Unexpected error: TypeError',
+        ),
+      ).toBe(true);
+    });
+
     it("cuts a very long message short at Discord's embed limit", () => {
       const { description } = embed(
         service.buildUnexpectedFailure(new Error('x'.repeat(5000))),

@@ -12,8 +12,8 @@ import { TpFeedParserService } from './tp-feed-parser.service';
  * Detects, parses, echoes and imports TP (tourplay.net) notifications
  * posted into a configured Discord channel by TP's own integration.
  *
- * `TpImportModule` supplies the TP import dispatch and failure assessment
- * shared with `/importtp`; `TpPathsModule` the URL classifier.
+ * `TpImportModule` supplies the TP import dispatch, failure assessment
+ * and error-list fitting shared with `/importtp`; `TpPathsModule` the URL classifier.
  * `DiscordClientService` and `DiscordBotConfigService` come from `@Global()`
  * modules `AppModule` already registers. `SleepService` is dependency-free
  * and provided here for the import delay.

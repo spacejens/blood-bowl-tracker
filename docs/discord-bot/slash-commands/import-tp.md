@@ -76,7 +76,8 @@ awards and its match backfill reports errors, the competition import's own
 **Extra trophy awards** line carries the skipped error. When the errors do not
 all fit within Discord's embed limit, the reply lists the first ones that do and
 ends with a line saying how many more were left out, such as "…and 12 more
-errors not shown."; a single error too long to fit on its own is cut short.
+errors not shown."; a single error too long to fit is cut short, with that
+line still saying how many more were left out.
 
 If the import breaks outright instead of collecting its problems — the
 database being unreachable, say — the reply is an embed titled **TP import

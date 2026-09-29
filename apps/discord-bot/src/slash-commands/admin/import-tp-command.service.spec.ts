@@ -198,6 +198,7 @@ describe('ImportTpCommandService', () => {
       service.execute(interaction({ url: ROSTER_URL })),
     ).resolves.toBe(FAILURE_REPLY);
     expect(reply.buildUnexpectedFailure).toHaveBeenCalledWith('boom');
+    expect(reply.build).not.toHaveBeenCalled();
     expect(logged).toHaveBeenCalledWith(
       `/importtp of ${ROSTER_URL} failed unexpectedly`,
       'boom',

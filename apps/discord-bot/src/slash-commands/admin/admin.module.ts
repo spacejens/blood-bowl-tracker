@@ -10,8 +10,8 @@ import { ImportTpReplyService } from './import-tp-reply.service';
  * League-administrator commands, restricted to the deployment's `admin`
  * role: currently `/importtp`.
  *
- * `TpImportModule` supplies the TP import dispatch shared with the TP feed;
- * `TpPathsModule` the URL classifier. `DiscordBotConfigService` is global.
+ * `TpImportModule` supplies the TP import dispatch and error-list fitting shared
+ * with the TP feed; `TpPathsModule` the URL classifier. `DiscordBotConfigService` is global.
  * `SlashCommandRegistryModule` supplies the shared registry singleton.
  */
 @Module({

@@ -7,8 +7,11 @@ import { Injectable } from '@nestjs/common';
  * and says how many were left out, so a reader knows the list is incomplete
  * and by how much, instead of the text simply stopping mid-line.
  *
- * At least one error is always shown: a first line too long for the budget
- * on its own is cut short with `…`, and the note is left off.
+ * At least one error is always shown. When no whole line plus the note fits,
+ * the first line is cut short with `…` so the note still follows it; only
+ * when the budget has no room for both a stub of the first line and the note
+ * (or there is a single line, so nothing is hidden) is the first line alone
+ * cut to the budget and the note left off.
  *
  * Shared by `/importtp`'s reply and the TP feed's failure post. Pure and
  * dependency-free, so specs of its consumers may pass it real.
@@ -36,6 +39,15 @@ export class ErrorListFitService {
       }
     }
     const [first] = lines;
+    if (lines.length > 1) {
+      const note = this.omittedNote(lines.length - 1);
+      // Room for the first line's stub and its `…`, once the note and the
+      // newline joining it are accounted for.
+      const stubLength = budget - note.length - 2;
+      if (stubLength >= 1) {
+        return [`${first.slice(0, stubLength)}…`, note];
+      }
+    }
     return [
       first.length <= budget
         ? first

@@ -92,7 +92,8 @@ also posted there as a short `TP import …` line keeping the notification's
 link, followed by one line per error. A post is limited to Discord's 2000
 characters: when the errors do not all fit, it lists the first ones that do
 and ends with a line saying how many more were left out, such as "…and 12
-more errors not shown."
+more errors not shown."; a single error too long for the post is cut short,
+with that line still saying how many more were left out.
 
 ## Configuration
 

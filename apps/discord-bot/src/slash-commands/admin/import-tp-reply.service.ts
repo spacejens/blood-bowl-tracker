@@ -55,7 +55,8 @@ export class ImportTpReplyService {
    * so showing the raw message is acceptable.
    */
   buildUnexpectedFailure(error: unknown): InteractionReplyOptions {
-    const message = error instanceof Error ? error.message : String(error);
+    const message =
+      error instanceof Error ? error.message || error.name : String(error);
     return this.reply(
       'TP import failed',
       this.withErrors(STATUS_LINES.failed, [`- Unexpected error: ${message}`]),
