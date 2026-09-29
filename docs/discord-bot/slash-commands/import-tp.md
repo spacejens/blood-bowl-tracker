@@ -89,6 +89,13 @@ data still lands, but the admin sees no reply for it. Checking whether the
 import worked then means looking at the data or the server logs directly,
 not the command's reply.
 
+When TP is blocking the bot's requests (it answers 403 "Access denied"),
+the import stops at the first refused request and the reply is a single
+line instead: TP is blocking requests, nothing was imported, and the time
+before which the bot sends TP nothing more. During that back-off (see
+[scrape-tp](../../scrape-tp/index.md#what-a-request-does)) the command
+answers at once without contacting TP. Run it again after the time shown.
+
 ## Retriggering
 
 `/importtp` appears in [`/debuginteractions`](debug-interactions.md)' listing

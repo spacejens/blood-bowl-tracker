@@ -481,4 +481,20 @@ describe('ImportTpReplyService', () => {
     expect(description).toHaveLength(MAX_DESCRIPTION_LENGTH);
     expect(description.endsWith('…')).toBe(true);
   });
+
+  describe('blocked', () => {
+    it('says TP is blocking requests and when TP is next contacted, privately', () => {
+      expect(service.blocked(new Date('2026-09-29T12:05:00.000Z'))).toEqual({
+        content:
+          'TP is blocking requests (HTTP 403 Access denied), so nothing was imported. The bot sends TP nothing more until <t:1790683500:f> (<t:1790683500:R>); try again after that.',
+        flags: MessageFlags.Ephemeral,
+      });
+    });
+
+    it('rounds a retry time with milliseconds up to the next second', () => {
+      expect(
+        service.blocked(new Date('2026-09-29T12:05:00.001Z')).content,
+      ).toContain('<t:1790683501:f>');
+    });
+  });
 });

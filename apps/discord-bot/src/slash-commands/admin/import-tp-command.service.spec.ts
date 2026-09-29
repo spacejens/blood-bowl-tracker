@@ -1,3 +1,4 @@
+import { TpBlockedError } from '@blood-bowl-tracker/import-tp-live';
 import type { TpPageClassification } from '@blood-bowl-tracker/tp-paths';
 import { TpPageClassifierService } from '@blood-bowl-tracker/tp-paths';
 import { Test } from '@nestjs/testing';
@@ -157,5 +158,30 @@ describe('ImportTpCommandService', () => {
       flags: MessageFlags.Ephemeral,
     });
     expect(dispatch.dispatch).not.toHaveBeenCalled();
+  });
+
+  it('answers with the block reply when TP is blocking requests', async () => {
+    const retryAt = new Date('2026-09-29T12:05:00.000Z');
+    const blockedReply: InteractionReplyOptions = {
+      content: 'blocked',
+      flags: 64,
+    };
+    dispatch.dispatch.mockRejectedValue(new TpBlockedError(retryAt));
+    reply.blocked.mockReturnValue(blockedReply);
+
+    await expect(
+      service.execute(interaction({ url: ROSTER_URL })),
+    ).resolves.toBe(blockedReply);
+    expect(reply.blocked).toHaveBeenCalledWith(retryAt);
+    expect(reply.build).not.toHaveBeenCalled();
+  });
+
+  it('lets any other dispatch error propagate', async () => {
+    dispatch.dispatch.mockRejectedValue(new Error('database down'));
+
+    await expect(
+      service.execute(interaction({ url: ROSTER_URL })),
+    ).rejects.toThrow('database down');
+    expect(reply.blocked).not.toHaveBeenCalled();
   });
 });

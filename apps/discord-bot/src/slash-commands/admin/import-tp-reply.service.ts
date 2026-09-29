@@ -19,7 +19,8 @@ const STATUS_LINES: Record<TpImportStatus, string> = {
 
 /**
  * Turns a TP import outcome into `/importtp`'s ephemeral reply: one embed
- * with a status line, a bullet per stage and every stage error. What the
+ * with a status line, a bullet per stage and every stage error, or the short
+ * reply given instead when TP is blocking requests. What the
  * status is and how stages and errors are labelled is decided by
  * `TpImportFailureService`, shared with the TP feed so both agree; this
  * service only renders it.
@@ -40,6 +41,20 @@ export class ImportTpReplyService {
           description: this.enforceDescriptionLimit(this.describe(assessment)),
         },
       ],
+      flags: MessageFlags.Ephemeral,
+    };
+  }
+
+  /**
+   * The reply when TP is blocking requests: nothing was imported, and TP is
+   * not contacted again before `retryAt`. Discord's own timestamp markup
+   * shows the time in each viewer's zone; it is rounded up to the second so
+   * "after that" is never early.
+   */
+  blocked(retryAt: Date): InteractionReplyOptions {
+    const at = Math.ceil(retryAt.getTime() / 1000);
+    return {
+      content: `TP is blocking requests (HTTP 403 Access denied), so nothing was imported. The bot sends TP nothing more until <t:${at}:f> (<t:${at}:R>); try again after that.`,
       flags: MessageFlags.Ephemeral,
     };
   }

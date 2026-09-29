@@ -1,4 +1,5 @@
 import type { SlashCommandDefinition } from '@blood-bowl-tracker/discord-client';
+import { TpBlockedError } from '@blood-bowl-tracker/import-tp-live';
 import { TpPageClassifierService } from '@blood-bowl-tracker/tp-paths';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import type {
@@ -23,7 +24,10 @@ import { ImportTpReplyService } from './import-tp-reply.service';
  * fetches from TP with deliberate pacing between requests, so it routinely
  * outlasts Discord's 3-second acknowledgement window. The reply is always
  * ephemeral. `era` overrides era auto-resolution, which is also the way to
- * force through a competition whose teams' eras cannot be reconciled.
+ * force through a competition whose teams' eras cannot be reconciled. When
+ * TP is blocking requests the import stops at once — during a back-off
+ * before contacting TP at all — and the reply says so and when TP is next
+ * contacted.
  *
  * Classification lives in packages/tp-paths, the import dispatch in
  * `TpImportDispatchService` and the reply in `ImportTpReplyService`; this
@@ -87,6 +91,13 @@ export class ImportTpCommandService implements OnModuleInit {
         flags: MessageFlags.Ephemeral,
       };
     }
-    return this.reply.build(await this.dispatch.dispatch({ page, era }));
+    try {
+      return this.reply.build(await this.dispatch.dispatch({ page, era }));
+    } catch (error) {
+      if (error instanceof TpBlockedError) {
+        return this.reply.blocked(error.retryAt);
+      }
+      throw error;
+    }
   }
 }
