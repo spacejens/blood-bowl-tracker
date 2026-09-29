@@ -143,7 +143,7 @@ Configuration is supplied through an environment file in the app directory.
      frontend and backend API base URLs, each with a trailing slash.
    - `TP_SCRAPING_ENABLED` — required; `true` or `false` (case-insensitive),
      and any other value, or leaving it unset, makes the bot fail to start.
-     The master switch for all TP scraping and importing. Set to `false`, the
+     The master switch for the bot's TP scraping and live importing. Set to `false`, the
      bot sends no request to TP:
      [`/importtp`](slash-commands/import-tp.md) replies that TP scraping is
      disabled, and the [TP notification feed](tp-feed.md) still parses and

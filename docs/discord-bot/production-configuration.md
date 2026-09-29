@@ -45,6 +45,10 @@ or `false`, or the bot fails to start on deploy. Setting it to `false` and
 applying the configuration (which restarts the machine, see below) stops all
 TP traffic from production — `/importtp` refuses and the TP notification feed
 imports nothing — without a code change; set it back to `true` the same way.
+Because merging to `main` deploys automatically, add the variable to
+`.env.production` and apply the configuration _before_ merging the change that
+introduced it, or the new release cannot start; likewise add it to each local
+`apps/discord-bot/.env` before pulling that change.
 
 Push the file to Fly as secrets. The `deploy-production` skill automates
 this via its "Apply production configuration" action (main checkout

@@ -26,7 +26,8 @@ const PROCESSED_REACTION = '✔️';
  *
  * The source channel id is read once, at registration, and closed over: the
  * configuration cannot change while the process runs, so re-reading it per
- * message would buy nothing.
+ * message would buy nothing. The TP scraping switch is a cheap getter and is
+ * simply read per message, after the debug echo.
  *
  * Every source message that is fully, successfully handled also gets a ✔️
  * reaction, so the source channel itself shows at a glance which messages

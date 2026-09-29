@@ -105,6 +105,7 @@ describe('ImportTpCommandService', () => {
     expect(registry.register).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'importtp' }),
     );
+    expect(config.getTpScrapingEnabled).not.toHaveBeenCalled();
   });
 
   it('fails module init, registering nothing, when a required TP setting is missing', () => {

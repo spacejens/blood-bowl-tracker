@@ -149,7 +149,8 @@ Both channel variables are optional and are documented in
   feature is entirely off.
 - `TP_FEED_DEBUG_DISCORD_CHANNEL` — the channel the interpretations, the
   notices about notifications that did not parse, and failed imports are
-  posted to. Left unset, notifications are still parsed and imported, and
+  posted to. Left unset, notifications are still parsed and (while
+  `TP_SCRAPING_ENABLED` is `true`) imported, and
   unrecognised shapes and failed imports are still logged, but nothing is
   posted. Because this is diagnostic output, point it at a
   maintainer channel rather than one real members read.
