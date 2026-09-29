@@ -69,7 +69,8 @@ Imports run one at a time, in the order the notifications arrived, each
 after a delay of about a second — TP can post a notification a moment
 before its own page reflects it, and spacing the requests keeps them paced
 like a person browsing rather than a burst hitting TP and the database at
-once. A failed import never holds up the ones behind it.
+once. A failed import never holds up the ones behind it (an import waiting
+out a TP block does; see below).
 
 Only real problems count as a failed import:
 
@@ -106,6 +107,11 @@ are paused, and one when an import next gets through — not a failure line
 per import. An import TP is still blocking after its third retry is given
 up and reported as a failed import like any other; running `/importtp` on
 its link later brings it in.
+
+The queue is held in memory only. A restart or deploy while imports are
+waiting drops them, with no failure line and no ✔️ reaction, so after a
+restart an admin re-runs `/importtp` on the link of every notification
+without a ✔️.
 
 ## Configuration
 

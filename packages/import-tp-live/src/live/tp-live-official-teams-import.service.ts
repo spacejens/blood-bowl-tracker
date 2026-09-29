@@ -68,7 +68,9 @@ export class TpLiveOfficialTeamsImportService {
    * parsed, then written in-process through the same TpOfficialTeamsImportService
    * `tpOfficialTeams.import` uses, under the given external system name.
    * Every failure is reported in that rules set's result, never thrown, and
-   * never stops the other rules sets. A TP block (`TpBlockedError`) is the one exception: it is rethrown at once, so no further team, match or rules set is attempted against a TP that refuses every request.
+   * never stops the other rules sets. A TP block (`TpBlockedError`) is the
+   * one exception: it is rethrown at once, so no further rules set is
+   * attempted against a TP that refuses every request.
    */
   async importOfficialTeams({
     externalSystemName,

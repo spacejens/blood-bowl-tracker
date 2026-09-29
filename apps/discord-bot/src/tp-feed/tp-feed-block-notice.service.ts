@@ -47,7 +47,7 @@ export class TpFeedBlockNoticeService {
       });
     } catch (error) {
       this.logger.error(
-        'Failed to post TP block notice',
+        'Failed to post TP block/resume notice',
         error instanceof Error ? (error.stack ?? error.message) : String(error),
       );
     }

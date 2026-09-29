@@ -70,7 +70,9 @@ export class TpLiveTeamImportService {
    * too. The team needs no competition. A match's embedded roster snapshot,
    * when given, is imported with it. Every failure is reported in the
    * returned results, never thrown; the players are skipped when the team
-   * itself was not imported. A TP block (`TpBlockedError`) is the one exception: it is rethrown at once, so no further team, match or rules set is attempted against a TP that refuses every request.
+   * itself was not imported. A TP block (`TpBlockedError`) is the one
+   * exception: it is rethrown at once, so no further request is made to a
+   * TP that refuses every request.
    */
   async importTeam({
     rosterId,

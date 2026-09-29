@@ -63,7 +63,9 @@ export class TpLiveMatchTeamsImportService {
    * finished is not refused — its teams exist before it is played. Writes
    * no match, competition or star player hire. Every failure is reported in
    * the returned results, never thrown; a step whose prerequisite failed is
-   * not attempted and reports nothing imported. A TP block (`TpBlockedError`) is the one exception: it is rethrown at once, so no further team, match or rules set is attempted against a TP that refuses every request.
+   * not attempted and reports nothing imported. A TP block
+   * (`TpBlockedError`) is the one exception: it is rethrown at once, so no
+   * further request is made to a TP that refuses every request.
    */
   async importMatchTeams({
     matchId,

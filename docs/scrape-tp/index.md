@@ -72,7 +72,8 @@ const tournament = await session.fetch(
   request the process makes is not delayed. Imports running side by side —
   a feed import and an `/importtp`, say — so never burst TP in parallel.
 - **Blocks.** TP answers a client it is blocking with 403 and a body of
-  `Access denied.`. A 403 throws `TpBlockedError` and starts a back-off:
+  `Access denied.`. Any 403 counts as a block — the body is not inspected.
+  A 403 throws `TpBlockedError` and starts a back-off:
   until its `retryAt`, every request from any session fails at once with
   the same error, without contacting TP. The back-off is 5 minutes after a
   first 403, 15 minutes after a second in a row, and 1 hour after each

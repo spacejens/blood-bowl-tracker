@@ -99,12 +99,15 @@ export class TpLiveCompetitionImportService {
    * inscriptions fetch still imports the competition, with no teams, only
    * when `era` is given explicitly; without one, it leaves no teams to
    * resolve an era from, so the competition stage fails instead. Either
-   * fetch failure is reported in its own stage. With no
-   * era given, the competition is imported under the one era its registered
-   * teams were imported under; teams that disagree, or none resolving one,
-   * fail the competition stage, while the teams stay imported. Every failure
-   * is reported in the returned results, never thrown. A TP block (`TpBlockedError`) is the one exception: it is rethrown at once, so no further team, match or rules set is attempted against a TP that refuses every request. Once the competition
-   * is imported, every completed match of its bracket is backfilled —
+   * fetch failure is reported in its own stage. With no era given, the
+   * competition is imported under the one era its registered teams were
+   * imported under; teams that disagree, or none resolving one, fail the
+   * competition stage, while the teams stay imported. Every failure is
+   * reported in the returned results, never thrown. A TP block
+   * (`TpBlockedError`) is the one exception: it is rethrown at once, so no
+   * further team or match is attempted against a TP that refuses every
+   * request. Once the competition is imported, every completed match of its
+   * bracket is backfilled —
    * reusing the bracket already fetched — when the competition was newly
    * created or `forceMatchBackfill` is set; the backfill reports its own
    * failures in `matchesBackfill` and never fails the import. Last, once

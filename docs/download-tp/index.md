@@ -70,7 +70,7 @@ or incomplete value there is only caught once the official-teams download has
 already run.
 
 The download stops at the first request TP refuses with 403 "Access
-denied" — TP blocking the client — printing when TP may next be contacted
+denied" — TP blocking the client — printing when TP may next be tried
 and exiting with status 1. There is no retry: run it again after that time.
 Files written before the block are kept.
 
@@ -150,11 +150,14 @@ Every response is written to a file named after its API path with `/`
 replaced by `_` and `.json` appended — e.g. `tournament/<slug>/news` becomes
 `tournament_<slug>_news.json` — which is the layout `tools/import-tp` reads.
 
-A probe on 2026-09-29, after live imports started being refused with 403, sent
-one request per header set to `tournament/<slug>` with the matching `referer`,
-from a developer machine that had made none of that day's live imports: the
-Chrome 120 set above, a Chrome 140 user agent with `sec-ch-ua*` client hints,
-and that plus `accept-encoding` and a fuller `accept-language`. All three
+After live imports started being refused with 403 on 2026-09-29, three header
+sets were tried from a developer machine, each as one request to
+`tournament/<slug>` with the matching `referer`. Earlier that day, the Chrome
+120 set above was sent to `tournament/ogretoberfest-14` (referer
+`.../ogretoberfest-14/awards`). A later probe sent a Chrome 140 user agent with
+`sec-ch-ua*` client hints to `tournament/tloegbbl-sasong-30` (referer
+`.../tloegbbl-sasong-30/news`), and 30 seconds later that same set plus
+`accept-encoding` and a fuller `accept-language` to the same URL. All three
 were answered with 403 and the body `Access denied.`. Header changes alone
 therefore do not get past TP from that network, so the header set is unchanged.
 The probe did not show whether TP now refuses every non-browser client or has

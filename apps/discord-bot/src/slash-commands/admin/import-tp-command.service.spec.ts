@@ -23,7 +23,10 @@ const BASE = 'https://tourplay.net/en/blood-bowl/';
 const ROSTER_URL = `${BASE}roster/163386`;
 const ROSTER_PAGE: TpPageClassification = { kind: 'roster', rosterId: 163386 };
 const OUTCOME = { kind: 'roster', rosterId: 163386 } as TpImportOutcome;
-const REPLY: InteractionReplyOptions = { embeds: [], flags: 64 };
+const REPLY: InteractionReplyOptions = {
+  embeds: [],
+  flags: MessageFlags.Ephemeral,
+};
 
 /** An `/importtp` invocation with the given option values. */
 function interaction(options: {
@@ -164,7 +167,7 @@ describe('ImportTpCommandService', () => {
     const retryAt = new Date('2026-09-29T12:05:00.000Z');
     const blockedReply: InteractionReplyOptions = {
       content: 'blocked',
-      flags: 64,
+      flags: MessageFlags.Ephemeral,
     };
     dispatch.dispatch.mockRejectedValue(new TpBlockedError(retryAt));
     reply.blocked.mockReturnValue(blockedReply);

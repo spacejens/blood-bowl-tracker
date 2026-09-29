@@ -81,7 +81,7 @@ describe('TpFeedBlockNoticeService', () => {
 
     await expect(service.announceResumed()).resolves.toBeUndefined();
     expect(Logger.prototype.error).toHaveBeenCalledWith(
-      'Failed to post TP block notice',
+      'Failed to post TP block/resume notice',
       expect.stringContaining('missing access'),
     );
   });
@@ -92,7 +92,7 @@ describe('TpFeedBlockNoticeService', () => {
     await service.announceResumed();
 
     expect(Logger.prototype.error).toHaveBeenCalledWith(
-      'Failed to post TP block notice',
+      'Failed to post TP block/resume notice',
       'nope',
     );
   });

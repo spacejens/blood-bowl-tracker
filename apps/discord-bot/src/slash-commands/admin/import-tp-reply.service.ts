@@ -20,10 +20,9 @@ const STATUS_LINES: Record<TpImportStatus, string> = {
 /**
  * Turns a TP import outcome into `/importtp`'s ephemeral reply: one embed
  * with a status line, a bullet per stage and every stage error, or the short
- * reply given instead when TP is blocking requests. What the
- * status is and how stages and errors are labelled is decided by
- * `TpImportFailureService`, shared with the TP feed so both agree; this
- * service only renders it.
+ * reply given instead when TP is blocking requests. What the status is and
+ * how stages and errors are labelled is decided by `TpImportFailureService`,
+ * shared with the TP feed so both agree; this service only renders it.
  *
  * Pure formatting whose only collaborator is itself pure and
  * dependency-free, so specs may pass both real.

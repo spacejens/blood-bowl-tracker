@@ -130,7 +130,9 @@ export class TpCompetitionParticipantsBackfillService {
    * and record its trophy awards — the same stages the shared competition
    * core runs after its own upsert. A stage whose prerequisite failed is not
    * attempted and reports nothing imported. Every failure is reported in the
-   * result, never thrown. A TP block (`TpBlockedError`) is the one exception: it is rethrown at once, so no further team, match or rules set is attempted against a TP that refuses every request.
+   * result, never thrown. A TP block (`TpBlockedError`) is the one
+   * exception: it is rethrown at once, so no further team is attempted
+   * against a TP that refuses every request.
    */
   async backfill({
     competition,

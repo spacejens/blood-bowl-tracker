@@ -86,7 +86,7 @@ export interface TpLiveMatchImportResult {
    */
   matchesBackfill?: ImportResult;
   /**
-   * Finishing the competition this import created, once its backfill
+   * Finishing the competition this import backfilled, once its backfill
    * fetched TP awards: re-upserting it as finished (settling its end date)
    * and awarding the trophies TP does not record itself, unless the match
    * backfill reported errors (one error is recorded instead). Present only
@@ -118,20 +118,23 @@ export class TpLiveMatchImportService {
    * bracket and upsert the competition, then import the match through the
    * same server-side core `tpMatches.import` uses. When this import creates
    * the competition (or `forceMatchBackfill` is set), it then backfills the
-   * competition's registered teams (with their participation links and its trophy awards) and every
-   * completed match of the bracket, the requested match included again
-   * (harmless: every write is an upsert); otherwise only the requested match
-   * is imported, its bracket siblings used for classification and the
-   * competition's dates only. The backfills report their own failures and
-   * never fail this import. Every failure is reported in the returned
-   * results, never thrown; a stage whose prerequisite failed is not
-   * attempted and reports nothing imported. A TP block (`TpBlockedError`) is the one exception: it is rethrown at once, so no further team, match or rules set is attempted against a TP that refuses every request. The competition is created
-   * unfinished, with no end date. When the participants backfill fetched TP
-   * awards, the competition is finished after both backfills: re-upserted as
-   * finished, which settles its end date, and awarded the trophies TP does
-   * not record, reported in `extraTrophyAwards` (skipped, with one error,
-   * when the match backfill reported errors). A failed awards fetch leaves the
-   * finished state unknown, so neither happens.
+   * competition's registered teams (with their participation links and its
+   * trophy awards) and every completed match of the bracket, the requested
+   * match included again (harmless: every write is an upsert); otherwise
+   * only the requested match is imported, its bracket siblings used for
+   * classification and the competition's dates only. The backfills report
+   * their own failures and never fail this import. Every failure is
+   * reported in the returned results, never thrown; a stage whose
+   * prerequisite failed is not attempted and reports nothing imported. A TP
+   * block (`TpBlockedError`) is the one exception: it is rethrown at once,
+   * so no further team or match is attempted against a TP that refuses
+   * every request. The competition is created unfinished, with no end date.
+   * When the participants backfill fetched TP awards, the competition is
+   * finished after both backfills: re-upserted as finished, which settles
+   * its end date, and awarded the trophies TP does not record, reported in
+   * `extraTrophyAwards` (skipped, with one error, when the match backfill
+   * reported errors). A failed awards fetch leaves the finished state
+   * unknown, so neither happens.
    */
   async importMatch({
     matchId,
@@ -264,8 +267,9 @@ export class TpLiveMatchImportService {
   }
 
   /**
-   * A competition this import created and whose backfill fetched TP's
-   * awards is finished: re-upsert it as a finished overlay over the whole
+   * A competition this import backfilled (because it created it, or
+   * `forceMatchBackfill` was set) and whose backfill fetched TP's awards is
+   * finished: re-upsert it as a finished overlay over the whole
    * bracket's played dates, so its end date is settled in this same run,
    * then award the trophies TP does not record. A failed re-upsert is
    * reported but does not stop the awards, which need only the

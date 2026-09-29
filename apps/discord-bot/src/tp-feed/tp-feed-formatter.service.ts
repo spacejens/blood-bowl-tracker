@@ -11,8 +11,7 @@ const MAX_MESSAGE_LENGTH = 2000;
 /**
  * Renders one parsed TP notification — or a failed import, or a TP
  * block/resume notice — as plain text: the human-readable interpretation
- * this feature exists to let a maintainer eyeball. Pure formatting: no I/O,
- * no branching on anything but the event.
+ * this feature exists to let a maintainer eyeball. Pure formatting: no I/O.
  */
 @Injectable()
 export class TpFeedFormatterService {
