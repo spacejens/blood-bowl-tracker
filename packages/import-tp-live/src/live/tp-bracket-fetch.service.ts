@@ -11,7 +11,10 @@ import {
   TournamentParserService,
 } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
-import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
+import {
+  TpBlockedError,
+  TpFetcherService,
+} from '@blood-bowl-tracker/scrape-tp';
 import { TpTournamentPathsService } from '@blood-bowl-tracker/tp-paths';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -77,7 +80,9 @@ export class TpBracketFetchService {
    * round, so each other round is requested by number. Each fixture becomes
    * a bracket match placed at its phase's order. Any request that fails or
    * does not parse records one ImportError and yields undefined: a partial
-   * bracket could silently misclassify a playoff match.
+   * bracket could silently misclassify a playoff match. A TP block
+   * (`TpBlockedError`) is rethrown instead, so the whole import stops rather
+   * than carrying on against a TP that refuses every request.
    */
   async fetchBracket({
     tournamentSlug,
@@ -190,6 +195,9 @@ export class TpBracketFetchService {
           this.tournamentPaths.scoresFrontendPath(tournamentSlug),
       });
     } catch (error) {
+      if (error instanceof TpBlockedError) {
+        throw error;
+      }
       errors.push(
         this.importResults.error({
           item,

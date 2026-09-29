@@ -69,6 +69,11 @@ afterward, to decide whether to also run `downloadAllLeagues()` — so a missing
 or incomplete value there is only caught once the official-teams download has
 already run.
 
+The download stops at the first request TP refuses with 403 "Access
+denied" — TP blocking the client — printing when TP may next be tried
+and exiting with status 1. There is no retry: run it again after that time.
+Files written before the block are kept.
+
 ## Plain-HTTP fetching
 
 Every request goes through `packages/scrape-tp` (see
@@ -105,11 +110,13 @@ byte-identical to the puppeteer-based tool's.
 Each tournament's download uses one `scrape-tp` session, and the whole
 official-team download (every configured rules set) shares one session too —
 switching rules sets the way a user would switch tabs on the same page — so
-cookies and pacing (a random 0.5–2 second gap between a session's requests)
-carry across a download the way they would across one visit in a browser. The
-investigation needed neither — 38 requests ran back-to-back with none
-rejected — so they are there to keep the traffic looking like one person
-browsing, not to work around an observed block.
+cookies carry across a download the way they would across one visit in a
+browser. Pacing (a random 0.5–2 second gap before every request) is shared by
+every session in the process. The 2026-09-23 investigation needed neither —
+38 requests ran back-to-back with none rejected — but live imports were later
+refused with 403 `Access denied.`, so pacing also keeps independent imports
+from bursting TP together, and a 403 pauses all TP traffic for a growing
+back-off (see [scrape-tp](../scrape-tp/index.md#what-a-request-does)).
 
 Plain HTTP cannot click through pages or observe what a page requests, so
 `download-tp` requests each page's endpoints directly. Paths are relative to
@@ -142,6 +149,20 @@ paths are the exception: they live in `packages/tp-paths`'
 Every response is written to a file named after its API path with `/`
 replaced by `_` and `.json` appended — e.g. `tournament/<slug>/news` becomes
 `tournament_<slug>_news.json` — which is the layout `tools/import-tp` reads.
+
+After live imports started being refused with 403 on 2026-09-29, three header
+sets were tried from a developer machine, each as one request to
+`tournament/<slug>` with the matching `referer`. Earlier that day, the Chrome
+120 set above was sent to `tournament/ogretoberfest-14` (referer
+`.../ogretoberfest-14/awards`). A later probe sent a Chrome 140 user agent with
+`sec-ch-ua*` client hints to `tournament/tloegbbl-sasong-30` (referer
+`.../tloegbbl-sasong-30/news`), and 30 seconds later that same set plus
+`accept-encoding` and a fuller `accept-language` to the same URL. All three
+were answered with 403 and the body `Access denied.`. Header changes alone
+therefore do not get past TP from that network, so the header set is unchanged.
+The probe did not show whether TP now refuses every non-browser client or has
+blocked the addresses involved; a request that succeeds from a real browser on
+the same network would separate the two.
 
 ## Development
 

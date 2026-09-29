@@ -25,6 +25,11 @@ const result = await tpLiveMatchImportService.importMatch({
 - `session`: optional. A `packages/scrape-tp` session to fetch through, so
   every request of the import is paced as one visit. A fresh session is
   started when omitted.
+- `forceMatchBackfill`: optional, default false. Run the backfill below even
+  when the competition already exists, for one whose earlier backfill a TP
+  block interrupted (that block's `TpBlockedError` has `backfillInterrupted`
+  set: a block met while the backfill ran, not before it). Every backfill
+  write is an upsert, so redoing it is safe.
 
 The import runs these stages in order, each reported in the result even when
 an earlier one fails:
@@ -117,7 +122,9 @@ played. It writes no match, competition or star player hire.
 The result carries `match` (the match fetch: only ever failures, never
 counted as imported), `homeTeam` and `awayTeam`. A failed fetch imports no
 team; a home team that was not imported leaves the away team unattempted.
-Nothing is thrown: an unexpected error is reported on `match`.
+Nothing is thrown except a TP block (`TpBlockedError`, see
+[Failures in the index](index.md#failures)): an unexpected error is reported
+on `match`.
 
 ## Star player hires
 
@@ -204,7 +211,9 @@ stage.
 ## Failures
 
 None of the entry points throw for an import problem; every failure is one
-`ImportError` in the result.
+`ImportError` in the result — except a TP block, which the live imports throw
+as `TpBlockedError`, stopping at once, backfills included (see
+[Failures in the index](index.md#failures)).
 
 | Failure                                                                                                                                                                           | Reported in                                 |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |

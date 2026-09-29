@@ -1,3 +1,4 @@
+import { TpBlockedError } from '@blood-bowl-tracker/import-tp-live';
 import type { TpPageClassification } from '@blood-bowl-tracker/tp-paths';
 import { TpPageClassifierService } from '@blood-bowl-tracker/tp-paths';
 import { Logger } from '@nestjs/common';
@@ -23,10 +24,13 @@ const BASE = 'https://tourplay.net/en/blood-bowl/';
 const ROSTER_URL = `${BASE}roster/163386`;
 const ROSTER_PAGE: TpPageClassification = { kind: 'roster', rosterId: 163386 };
 const OUTCOME = { kind: 'roster', rosterId: 163386 } as TpImportOutcome;
-const REPLY: InteractionReplyOptions = { embeds: [], flags: 64 };
+const REPLY: InteractionReplyOptions = {
+  embeds: [],
+  flags: MessageFlags.Ephemeral,
+};
 const FAILURE_REPLY: InteractionReplyOptions = {
   embeds: [{ title: 'TP import failed' }],
-  flags: 64,
+  flags: MessageFlags.Ephemeral,
 };
 
 /** An `/importtp` invocation with the given option values. */
@@ -166,6 +170,23 @@ describe('ImportTpCommandService', () => {
       flags: MessageFlags.Ephemeral,
     });
     expect(dispatch.dispatch).not.toHaveBeenCalled();
+  });
+
+  it('answers with the block reply when TP is blocking requests', async () => {
+    const retryAt = new Date('2026-09-29T12:05:00.000Z');
+    const blockedReply: InteractionReplyOptions = {
+      content: 'blocked',
+      flags: MessageFlags.Ephemeral,
+    };
+    dispatch.dispatch.mockRejectedValue(new TpBlockedError(retryAt));
+    reply.blocked.mockReturnValue(blockedReply);
+
+    await expect(
+      service.execute(interaction({ url: ROSTER_URL })),
+    ).resolves.toBe(blockedReply);
+    expect(reply.blocked).toHaveBeenCalledWith(retryAt);
+    expect(reply.build).not.toHaveBeenCalled();
+    expect(reply.buildUnexpectedFailure).not.toHaveBeenCalled();
   });
 
   it('replies with the unexpected-failure embed, and logs, when the import throws', async () => {

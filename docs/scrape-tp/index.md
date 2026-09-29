@@ -40,14 +40,17 @@ const tournament = await session.fetch(
 
 - `createSession()` starts one logical visit — a whole tournament download,
   say, or one on-demand fetch of an entity. Create one per visit, not one per
-  request: pacing and cookies only carry across requests in the same session.
-  Make one request at a time on a session — pacing and the cookie jar are
-  only meaningful in sequence, so concurrent calls on the same session (e.g.
+  request: cookies only carry across requests in the same session. Pacing and
+  the block back-off are shared by every session in the process.
+  Make one request at a time on a session — the cookie jar is only
+  meaningful in sequence, so concurrent calls on the same session (e.g.
   via `Promise.all`) are not supported.
 - `session.fetch(url, options?)` makes one request and returns its body
   parsed as JSON, typed `unknown` for the caller to narrow. Options:
   `referer` (the TP frontend page URL the request belongs to — pass it on
   every request), `method` (default `GET`) and `body`.
+- `TpBlockedError` (exported) is what `fetch` throws while TP is blocking
+  requests; its `retryAt` says when a request is next sent to TP.
 
 ## What a request does
 
@@ -61,16 +64,28 @@ const tournament = await session.fetch(
   `Cookie` header on the session's later requests. Cookie attributes
   (domain, path, expiry) are ignored: a session only ever talks to TP, and
   only lives for one visit.
-- **Pacing.** Every request after a session's first waits until a random
-  0.5–2 seconds have passed since the session's previous request completed.
-  Time the caller already spent in between counts toward that. Separate
-  sessions do not pace against each other.
-- **Failure.** A non-2xx response throws, naming the URL and status; a 2xx
-  body that is not valid JSON throws too; a request that takes longer than
-  30 seconds is aborted and throws rather than hanging. There is no retry or
-  backoff: the header set was reliable across 38 back-to-back requests, so
-  there is no observed failure to retry for. Whether a failure aborts the
-  caller's work is the caller's decision.
+- **Pacing.** Every request, from any session, passes through one
+  process-wide gate (`TpGateService`, a singleton in `ScrapeTpModule`). It
+  runs requests one at a time in the order they arrive, each after a random
+  0.5–2 seconds have passed since the previous request completed, whichever
+  session made it. Time already spent in between counts. Only the first
+  request the process makes is not delayed. Imports running side by side —
+  a feed import and an `/importtp`, say — so never burst TP in parallel.
+- **Blocks.** TP answers a client it is blocking with 403 and a body of
+  `Access denied.`. Any 403 counts as a block — the body is not inspected.
+  A 403 throws `TpBlockedError` and starts a back-off: until its `retryAt`,
+  every request from any session fails at once with a `TpBlockedError`,
+  without contacting TP. The error's `answeredByTp` tells the two apart:
+  true for the 403 TP sent, false for a request refused during the
+  back-off. The back-off is 5 minutes after a first 403, 15 minutes after
+  a second in a row, and 1 hour after each further one; any 2xx response
+  resets it.
+- **Failure.** Any other non-2xx response throws, naming the URL and status;
+  a 2xx body that is not valid JSON throws too; a request that takes longer
+  than 30 seconds is aborted and throws rather than hanging. Nothing is
+  retried here: a caller that wants to try again after a block waits until
+  `retryAt` itself. Whether a failure aborts the caller's work is the
+  caller's decision.
 
 ## Development
 

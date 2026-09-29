@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { TpBlockedError } from '@blood-bowl-tracker/scrape-tp';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
@@ -19,4 +20,15 @@ async function bootstrap(): Promise<void> {
   }
 }
 
-void bootstrap();
+bootstrap().catch((error: unknown) => {
+  // A block ends the run like any other error; a stack trace would only
+  // bury the one thing worth knowing: when TP may be tried again.
+  if (error instanceof TpBlockedError) {
+    console.error(
+      `download-tp stopped: TP is blocking requests (HTTP 403 Access denied). Files already written are kept; TP may next be tried after ${error.retryAt.toISOString()}.`,
+    );
+  } else {
+    console.error(error);
+  }
+  process.exitCode = 1;
+});

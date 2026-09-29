@@ -5,6 +5,7 @@ import type {
 } from '@blood-bowl-tracker/api-contract';
 import type { TpRosterPlayer } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
+import { TpBlockedError } from '@blood-bowl-tracker/scrape-tp';
 import { Injectable } from '@nestjs/common';
 
 import { TpRosterImportService } from '../roster/tp-roster-import.service';
@@ -69,7 +70,9 @@ export class TpLiveTeamImportService {
    * too. The team needs no competition. A match's embedded roster snapshot,
    * when given, is imported with it. Every failure is reported in the
    * returned results, never thrown; the players are skipped when the team
-   * itself was not imported.
+   * itself was not imported. A TP block (`TpBlockedError`) is the one
+   * exception: it is rethrown at once, so no further request is made to a
+   * TP that refuses every request.
    */
   async importTeam({
     rosterId,
@@ -113,6 +116,9 @@ export class TpLiveTeamImportService {
         teamEra,
       };
     } catch (error) {
+      if (error instanceof TpBlockedError) {
+        throw error;
+      }
       const message = error instanceof Error ? error.message : String(error);
       return this.notImported([
         {

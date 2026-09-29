@@ -23,12 +23,12 @@ const ERRORS_HEADER = '**Errors**';
 
 /**
  * Turns a TP import outcome into `/importtp`'s ephemeral reply: one embed
- * with a status line, a bullet per stage and the stage errors. What the
- * status is and how stages and errors are labelled is decided by
- * `TpImportFailureService`, shared with the TP feed so both agree; this
- * service only renders it. Errors that do not all fit Discord's embed limit
- * are cut to the leading ones that do, with a note counting the rest, by
- * `ErrorListFitService`.
+ * with a status line, a bullet per stage and the stage errors, or the short
+ * reply given instead when TP is blocking requests. What the status is and
+ * how stages and errors are labelled is decided by `TpImportFailureService`,
+ * shared with the TP feed so both agree; this service only renders it. Errors
+ * that do not all fit Discord's embed limit are cut to the leading ones that
+ * do, with a note counting the rest, by `ErrorListFitService`.
  *
  * Pure formatting whose only collaborators are themselves pure and
  * dependency-free, so specs may pass them real.
@@ -68,6 +68,21 @@ export class ImportTpReplyService {
       embeds: [
         { title, description: this.enforceDescriptionLimit(description) },
       ],
+      flags: MessageFlags.Ephemeral,
+    };
+  }
+
+  /**
+   * The reply when TP is blocking requests: the import stopped, possibly
+   * after some of its data was already written, and TP is not contacted
+   * again before `retryAt`. Discord's own timestamp markup shows the time in
+   * each viewer's zone; it is rounded up to the second so "after that" is
+   * never early.
+   */
+  blocked(retryAt: Date): InteractionReplyOptions {
+    const at = Math.ceil(retryAt.getTime() / 1000);
+    return {
+      content: `TP is blocking requests (HTTP 403 Access denied), so the import stopped and may have imported partial data. The bot sends TP nothing more until <t:${at}:f> (<t:${at}:R>); try again after that.`,
       flags: MessageFlags.Ephemeral,
     };
   }

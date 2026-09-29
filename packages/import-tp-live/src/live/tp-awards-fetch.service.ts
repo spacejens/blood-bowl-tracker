@@ -2,7 +2,10 @@ import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import type { TpAward } from '@blood-bowl-tracker/parse-tp';
 import { AwardsParserService } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
-import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
+import {
+  TpBlockedError,
+  TpFetcherService,
+} from '@blood-bowl-tracker/scrape-tp';
 import { TpTournamentPathsService } from '@blood-bowl-tracker/tp-paths';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -37,7 +40,9 @@ export class TpAwardsFetchService {
    * Fetch the tournament's awards, the way TP's own awards page does, and
    * parse them. An unfinished competition's awards parse to an empty list,
    * which is not an error. A request that fails or does not parse records
-   * one ImportError and yields undefined.
+   * one ImportError and yields undefined. A TP block (`TpBlockedError`) is
+   * rethrown instead, so the whole import stops rather than carrying on
+   * against a TP that refuses every request.
    */
   async fetchAwards({
     tournamentSlug,
@@ -58,6 +63,9 @@ export class TpAwardsFetchService {
         },
       );
     } catch (error) {
+      if (error instanceof TpBlockedError) {
+        throw error;
+      }
       errors.push(
         this.importResults.error({
           item,

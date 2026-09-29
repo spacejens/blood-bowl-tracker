@@ -892,6 +892,9 @@ importers:
       vitest:
         specifier: ^5.0.0
         version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+      vitest-mock-extended:
+        specifier: ^5.1.1
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.2)
 
   packages/tp-paths:
     dependencies:

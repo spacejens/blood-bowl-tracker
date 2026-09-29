@@ -1,3 +1,4 @@
+import { TpBlockedError } from '@blood-bowl-tracker/import-tp-live';
 import type { TpPageClassification } from '@blood-bowl-tracker/tp-paths';
 import { TpPageClassifierService } from '@blood-bowl-tracker/tp-paths';
 import { Logger } from '@nestjs/common';
@@ -9,16 +10,30 @@ import { mock } from 'vitest-mock-extended';
 
 import { DiscordBotConfigService } from '../discord-bot-config.service';
 import { SleepService } from '../leader-election/sleep.service';
+import { ClockService } from '../shared/clock.service';
 import type { TpImportOutcome } from '../tp-import/tp-import-dispatch.service';
 import { TpImportDispatchService } from '../tp-import/tp-import-dispatch.service';
 import type { TpImportAssessment } from '../tp-import/tp-import-failure.service';
 import { TpImportFailureService } from '../tp-import/tp-import-failure.service';
+import { TpFeedBlockNoticeService } from './tp-feed-block-notice.service';
 import type { TpFeedEvent } from './tp-feed-event';
 import {
+  TP_FEED_BLOCK_MARGIN_MS,
+  TP_FEED_BLOCK_RETRIES,
   TP_FEED_IMPORT_DELAY_MS,
   TpFeedImportService,
 } from './tp-feed-import.service';
 
+const MINUTE = 60_000;
+const NOW = new Date('2026-09-29T12:00:00.000Z');
+const RETRY_AT = new Date(NOW.getTime() + 5 * MINUTE);
+const blocked = () => new TpBlockedError(RETRY_AT);
+/** A block the gate raised without contacting TP: the back-off was on. */
+const refused = () => new TpBlockedError(RETRY_AT, { answeredByTp: false });
+/** A block met while a newly created competition was being backfilled. */
+const interruptedBackfill = () =>
+  Object.assign(blocked(), { backfillInterrupted: true });
+const AFTER_BLOCK = new Date(RETRY_AT.getTime() + MINUTE);
 const BASE = 'https://tourplay.net/en/blood-bowl/';
 const MATCH_LINK = `${BASE}tloeg-blood-bowl-league-sasong-31/match/670570`;
 const ROSTER_LINK = `${BASE}roster/167242`;
@@ -114,6 +129,8 @@ describe('TpFeedImportService', () => {
   let dispatch: MockProxy<TpImportDispatchService>;
   let failure: MockProxy<TpImportFailureService>;
   let sleep: MockProxy<SleepService>;
+  let clock: MockProxy<ClockService>;
+  let blockNotice: MockProxy<TpFeedBlockNoticeService>;
 
   beforeEach(async () => {
     config = mock<DiscordBotConfigService>();
@@ -127,6 +144,11 @@ describe('TpFeedImportService', () => {
     failure.isRealFailure.mockReturnValue(false);
     sleep = mock<SleepService>();
     sleep.sleep.mockResolvedValue(undefined);
+    clock = mock<ClockService>();
+    clock.now.mockReturnValue(NOW);
+    blockNotice = mock<TpFeedBlockNoticeService>();
+    blockNotice.announceBlocked.mockResolvedValue(undefined);
+    blockNotice.announceResumed.mockResolvedValue(undefined);
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpFeedImportService,
@@ -135,6 +157,8 @@ describe('TpFeedImportService', () => {
         { provide: TpImportDispatchService, useValue: dispatch },
         { provide: TpImportFailureService, useValue: failure },
         { provide: SleepService, useValue: sleep },
+        { provide: ClockService, useValue: clock },
+        { provide: TpFeedBlockNoticeService, useValue: blockNotice },
       ],
     }).compile();
     service = moduleRef.get(TpFeedImportService);
@@ -492,6 +516,244 @@ describe('TpFeedImportService', () => {
 
       await expect(one).resolves.toMatchObject({ failed: true });
       await expect(two).resolves.toEqual({ failed: false });
+    });
+  });
+
+  describe('TP blocks', () => {
+    it('waits out a block and retries, reporting the retried import', async () => {
+      dispatch.dispatch
+        .mockRejectedValueOnce(blocked())
+        .mockResolvedValueOnce(OUTCOME);
+
+      await expect(service.enqueue(HIRED)).resolves.toEqual({ failed: false });
+      expect(dispatch.dispatch).toHaveBeenCalledTimes(2);
+      expect(sleep.sleep.mock.calls).toEqual([
+        [TP_FEED_IMPORT_DELAY_MS],
+        [5 * MINUTE + TP_FEED_BLOCK_MARGIN_MS],
+      ]);
+    });
+
+    it('retries without forcing a backfill when the block interrupted none', async () => {
+      dispatch.dispatch
+        .mockRejectedValueOnce(blocked())
+        .mockResolvedValueOnce(OUTCOME);
+
+      await service.enqueue(HIRED);
+
+      expect(dispatch.dispatch.mock.calls).toEqual([
+        [{ page: ROSTER_PAGE }],
+        [{ page: ROSTER_PAGE }],
+      ]);
+    });
+
+    it("forces the retry to redo a competition's backfill the block interrupted", async () => {
+      dispatch.dispatch
+        .mockRejectedValueOnce(interruptedBackfill())
+        .mockResolvedValueOnce(OUTCOME);
+
+      await service.enqueue(HIRED);
+
+      expect(dispatch.dispatch.mock.calls).toEqual([
+        [{ page: ROSTER_PAGE }],
+        [{ page: ROSTER_PAGE, forceMatchBackfill: true }],
+      ]);
+    });
+
+    it('keeps forcing the backfill on later retries, even when a later block interrupted none', async () => {
+      dispatch.dispatch
+        .mockRejectedValueOnce(interruptedBackfill())
+        .mockRejectedValueOnce(blocked())
+        .mockResolvedValueOnce(OUTCOME);
+
+      await service.enqueue(HIRED);
+
+      expect(dispatch.dispatch.mock.calls).toEqual([
+        [{ page: ROSTER_PAGE }],
+        [{ page: ROSTER_PAGE, forceMatchBackfill: true }],
+        [{ page: ROSTER_PAGE, forceMatchBackfill: true }],
+      ]);
+    });
+
+    it('waits only the margin when the block has already ended', async () => {
+      clock.now.mockReturnValue(new Date(RETRY_AT.getTime() + MINUTE));
+      dispatch.dispatch
+        .mockRejectedValueOnce(blocked())
+        .mockResolvedValueOnce(OUTCOME);
+
+      await service.enqueue(HIRED);
+
+      expect(sleep.sleep).toHaveBeenLastCalledWith(TP_FEED_BLOCK_MARGIN_MS);
+    });
+
+    it('announces a block once and its end once, however many jobs it hits', async () => {
+      vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
+      dispatch.dispatch.mockRejectedValue(blocked());
+
+      await Promise.all([service.enqueue(HIRED), service.enqueue(FIRED)]);
+      clock.now.mockReturnValue(AFTER_BLOCK);
+      dispatch.dispatch.mockResolvedValue(OUTCOME);
+      await service.enqueue(SKILL);
+
+      expect(blockNotice.announceBlocked).toHaveBeenCalledTimes(1);
+      expect(blockNotice.announceBlocked).toHaveBeenCalledWith(RETRY_AT);
+      expect(blockNotice.announceResumed).toHaveBeenCalledTimes(1);
+    });
+
+    it('announces each block episode anew once an import got through in between', async () => {
+      dispatch.dispatch
+        .mockRejectedValueOnce(blocked())
+        .mockResolvedValueOnce(OUTCOME)
+        .mockRejectedValueOnce(blocked())
+        .mockResolvedValueOnce(OUTCOME);
+
+      await service.enqueue(HIRED);
+      await service.enqueue(FIRED);
+
+      expect(blockNotice.announceBlocked).toHaveBeenCalledTimes(2);
+      expect(blockNotice.announceResumed).toHaveBeenCalledTimes(2);
+    });
+
+    it('announces nothing when there was no block', async () => {
+      await service.enqueue(HIRED);
+
+      expect(blockNotice.announceBlocked).not.toHaveBeenCalled();
+      expect(blockNotice.announceResumed).not.toHaveBeenCalled();
+    });
+
+    it('holds the jobs behind it back while it waits out a block', async () => {
+      const wait = deferred<void>();
+      sleep.sleep.mockImplementation((ms) =>
+        ms === TP_FEED_IMPORT_DELAY_MS ? Promise.resolve() : wait.promise,
+      );
+      dispatch.dispatch
+        .mockRejectedValueOnce(blocked())
+        .mockResolvedValue(OUTCOME);
+
+      const one = service.enqueue(HIRED);
+      const two = service.enqueue(FIRED);
+      await flush();
+      expect(dispatch.dispatch).toHaveBeenCalledTimes(1);
+
+      wait.resolve();
+      await Promise.all([one, two]);
+      expect(dispatch.dispatch).toHaveBeenCalledTimes(3);
+    });
+
+    it(`gives up after ${TP_FEED_BLOCK_RETRIES} retries, reporting a failure`, async () => {
+      vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
+      dispatch.dispatch.mockRejectedValue(blocked());
+
+      await expect(service.enqueue(HIRED)).resolves.toEqual({
+        failed: true,
+        headline:
+          'TP import gave up: TP was still blocking requests after 3 retries',
+        errors: [blocked().message],
+      });
+      expect(dispatch.dispatch).toHaveBeenCalledTimes(
+        TP_FEED_BLOCK_RETRIES + 1,
+      );
+      expect(blockNotice.announceBlocked).toHaveBeenCalledTimes(1);
+      expect(blockNotice.announceResumed).not.toHaveBeenCalled();
+    });
+
+    it('does not count a retry the gate refused without contacting TP', async () => {
+      vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
+      dispatch.dispatch
+        .mockRejectedValueOnce(blocked())
+        .mockRejectedValueOnce(refused())
+        .mockRejectedValueOnce(refused())
+        .mockRejectedValueOnce(blocked())
+        .mockRejectedValueOnce(blocked())
+        .mockRejectedValueOnce(refused())
+        .mockRejectedValue(blocked());
+
+      await expect(service.enqueue(HIRED)).resolves.toMatchObject({
+        failed: true,
+        headline:
+          'TP import gave up: TP was still blocking requests after 3 retries',
+      });
+      expect(dispatch.dispatch).toHaveBeenCalledTimes(7);
+    });
+
+    describe('once a job has given up', () => {
+      const GAVE_UP = {
+        failed: true,
+        headline:
+          'TP import gave up: TP was still blocking requests after 3 retries',
+        errors: [blocked().message],
+      };
+      const SKIPPED = {
+        failed: true,
+        headline:
+          'TP import skipped: TP is blocking requests and an earlier import gave up',
+        errors: [blocked().message],
+      };
+
+      beforeEach(() => {
+        vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
+        dispatch.dispatch.mockRejectedValue(blocked());
+      });
+
+      it('fails the jobs behind it at once, without waiting or dispatching, while the block lasts', async () => {
+        const [one, two] = await Promise.all([
+          service.enqueue(HIRED),
+          service.enqueue(FIRED),
+        ]);
+
+        expect(one).toEqual(GAVE_UP);
+        expect(two).toEqual(SKIPPED);
+        expect(dispatch.dispatch).toHaveBeenCalledTimes(
+          TP_FEED_BLOCK_RETRIES + 1,
+        );
+        expect(
+          sleep.sleep.mock.calls.filter(
+            ([ms]) => ms !== TP_FEED_IMPORT_DELAY_MS,
+          ),
+        ).toHaveLength(TP_FEED_BLOCK_RETRIES);
+      });
+
+      it('fails a job at once, without waiting, when TP still blocks it after the back-off', async () => {
+        await service.enqueue(HIRED);
+        clock.now.mockReturnValue(AFTER_BLOCK);
+        dispatch.dispatch.mockClear();
+        sleep.sleep.mockClear();
+
+        await expect(service.enqueue(FIRED)).resolves.toEqual(SKIPPED);
+        expect(dispatch.dispatch).toHaveBeenCalledTimes(1);
+        expect(sleep.sleep.mock.calls).toEqual([[TP_FEED_IMPORT_DELAY_MS]]);
+      });
+
+      it('resumes waiting out blocks once an import gets through again', async () => {
+        await service.enqueue(HIRED);
+        clock.now.mockReturnValue(AFTER_BLOCK);
+        dispatch.dispatch.mockResolvedValueOnce(OUTCOME);
+        await expect(service.enqueue(FIRED)).resolves.toEqual({
+          failed: false,
+        });
+        dispatch.dispatch.mockClear();
+        dispatch.dispatch
+          .mockRejectedValueOnce(
+            new TpBlockedError(new Date(AFTER_BLOCK.getTime() + MINUTE)),
+          )
+          .mockResolvedValueOnce(OUTCOME);
+
+        await expect(service.enqueue(SKILL)).resolves.toEqual({
+          failed: false,
+        });
+        expect(dispatch.dispatch).toHaveBeenCalledTimes(2);
+        expect(blockNotice.announceResumed).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    it('still treats any other dispatch error as an unexpected failure, without retrying', async () => {
+      vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
+      dispatch.dispatch.mockRejectedValue(new Error('database down'));
+
+      await expect(service.enqueue(HIRED)).resolves.toMatchObject({
+        failed: true,
+        headline: 'TP import failed unexpectedly',
+      });
+      expect(dispatch.dispatch).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -3,7 +3,10 @@ import type {
   ImportResult,
 } from '@blood-bowl-tracker/api-contract';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
-import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
+import {
+  TpBlockedError,
+  TpFetcherService,
+} from '@blood-bowl-tracker/scrape-tp';
 import { Injectable } from '@nestjs/common';
 
 import { TpCompetitionImportService } from '../competition/tp-competition-import.service';
@@ -96,14 +99,19 @@ export class TpLiveCompetitionImportService {
    * inscriptions fetch still imports the competition, with no teams, only
    * when `era` is given explicitly; without one, it leaves no teams to
    * resolve an era from, so the competition stage fails instead. Either
-   * fetch failure is reported in its own stage. With no
-   * era given, the competition is imported under the one era its registered
-   * teams were imported under; teams that disagree, or none resolving one,
-   * fail the competition stage, while the teams stay imported. Every failure
-   * is reported in the returned results, never thrown. Once the competition
-   * is imported, every completed match of its bracket is backfilled —
-   * reusing the bracket already fetched — when the competition was newly
-   * created or `forceMatchBackfill` is set; the backfill reports its own
+   * fetch failure is reported in its own stage. With no era given, the
+   * competition is imported under the one era its registered teams were
+   * imported under; teams that disagree, or none resolving one, fail the
+   * competition stage, while the teams stay imported. Every failure is
+   * reported in the returned results, never thrown. A TP block
+   * (`TpBlockedError`) is the one exception: it is rethrown at once, so no
+   * further team or match is attempted against a TP that refuses every
+   * request; a block met during the match backfill has its
+   * `backfillInterrupted` set first, so a retry knows to force the backfill
+   * of a competition that now exists. Once the competition is imported,
+   * every completed match of its bracket is backfilled — reusing the
+   * bracket already fetched — when the competition was newly created or
+   * `forceMatchBackfill` is set; the backfill reports its own
    * failures in `matchesBackfill` and never fails the import. Last, once
    * the competition is imported and finished (TP returned at least one
    * award), the trophies TP does not record itself are awarded, after the
@@ -122,6 +130,7 @@ export class TpLiveCompetitionImportService {
     forceMatchBackfill = false,
   }: ImportLiveCompetitionOptions): Promise<TpLiveCompetitionImportResult> {
     const teams: TpLiveCompetitionTeamResult[] = [];
+    let backfilling = false;
     try {
       const visit = session ?? this.fetcher.createSession();
       const competitionErrors: ImportError[] = [];
@@ -204,17 +213,18 @@ export class TpLiveCompetitionImportService {
         }),
         era: competitionEra,
       };
-      const matchesBackfill =
+      backfilling =
         core.competition.imported > 0 &&
-        (core.competitionCreated || forceMatchBackfill)
-          ? await this.matchesBackfill.backfill({
-              tournamentSlug,
-              era: competitionEra,
-              externalSystemName,
-              session: visit,
-              bracket,
-            })
-          : undefined;
+        (core.competitionCreated || forceMatchBackfill);
+      const matchesBackfill = backfilling
+        ? await this.matchesBackfill.backfill({
+            tournamentSlug,
+            era: competitionEra,
+            externalSystemName,
+            session: visit,
+            bracket,
+          })
+        : undefined;
       const finished = awards !== undefined && awards.length > 0;
       const extraTrophyAwards =
         finished && core.competitionId !== undefined
@@ -230,6 +240,12 @@ export class TpLiveCompetitionImportService {
         ...(matchesBackfill === undefined ? {} : { matchesBackfill }),
       };
     } catch (error) {
+      if (error instanceof TpBlockedError) {
+        if (backfilling) {
+          error.backfillInterrupted = true;
+        }
+        throw error;
+      }
       const message = error instanceof Error ? error.message : String(error);
       return {
         ...this.nothingImported(),

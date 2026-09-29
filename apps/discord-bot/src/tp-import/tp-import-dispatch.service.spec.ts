@@ -172,6 +172,39 @@ describe('TpImportDispatchService', () => {
     });
   });
 
+  it('passes forceMatchBackfill on to a match import', async () => {
+    matchImport.importMatch.mockResolvedValue(MATCH_RESULT);
+
+    await service.dispatch({
+      page: { kind: 'match', tournamentSlug: 's30', matchId: 576264 },
+      forceMatchBackfill: true,
+    });
+
+    expect(matchImport.importMatch).toHaveBeenCalledWith({
+      matchId: 576264,
+      tournamentSlug: 's30',
+      era: undefined,
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
+      forceMatchBackfill: true,
+    });
+  });
+
+  it('forces the matches of a plain competition page to be backfilled when asked to', async () => {
+    competitionImport.importCompetition.mockResolvedValue(COMPETITION_RESULT);
+
+    await service.dispatch({
+      page: { kind: 'competition', tournamentSlug: 's30' },
+      forceMatchBackfill: true,
+    });
+
+    expect(competitionImport.importCompetition).toHaveBeenCalledWith({
+      tournamentSlug: 's30',
+      era: undefined,
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
+      forceMatchBackfill: true,
+    });
+  });
+
   it("imports a match's teams without the match itself", async () => {
     matchTeamsImport.importMatchTeams.mockResolvedValue(MATCH_TEAMS_RESULT);
 

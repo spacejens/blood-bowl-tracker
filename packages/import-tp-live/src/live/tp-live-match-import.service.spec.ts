@@ -3,7 +3,10 @@ import type {
   TpMatchImportResult,
 } from '@blood-bowl-tracker/api-contract';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
-import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
+import {
+  TpBlockedError,
+  TpFetcherService,
+} from '@blood-bowl-tracker/scrape-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -181,11 +184,12 @@ describe('TpLiveMatchImportService', () => {
     service = moduleRef.get(TpLiveMatchImportService);
   });
 
-  const importMatch = () =>
+  const importMatch = (forceMatchBackfill?: boolean) =>
     service.importMatch({
       matchId: MATCH_TP_ID,
       tournamentSlug: 's30',
       externalSystemName: EXTERNAL_SYSTEM_NAME,
+      forceMatchBackfill,
     });
 
   it("imports the match's teams, the star player hires, the competition, then the match, through one session", async () => {
@@ -402,6 +406,47 @@ describe('TpLiveMatchImportService', () => {
     ).not.toHaveProperty('overlayExisting');
   });
 
+  it('backfills nothing for an existing competition when forceMatchBackfill is false', async () => {
+    await importMatch(false);
+
+    expect(participantsBackfill.backfill).not.toHaveBeenCalled();
+    expect(matchesBackfill.backfill).not.toHaveBeenCalled();
+  });
+
+  it('backfills an existing competition when forceMatchBackfill is set', async () => {
+    const result = await importMatch(true);
+
+    expect(participantsBackfill.backfill).toHaveBeenCalledTimes(1);
+    expect(matchesBackfill.backfill).toHaveBeenCalledTimes(1);
+    expect(result.participantsBackfill).toEqual(PARTICIPANTS_BACKFILL);
+    expect(result.matchesBackfill).toEqual(MATCHES_BACKFILL);
+  });
+
+  it('stops at a TP block instead of reporting it', async () => {
+    const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
+    matchData.importTeams.mockRejectedValue(blocked);
+
+    await expect(importMatch()).rejects.toBe(blocked);
+    expect(bracketFetch.fetchBracket).not.toHaveBeenCalled();
+    expect(blocked.backfillInterrupted).toBeUndefined();
+  });
+
+  it('does not mark a block on the bracket as interrupting a backfill', async () => {
+    const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
+    bracketFetch.fetchBracket.mockRejectedValue(blocked);
+
+    await expect(importMatch()).rejects.toBe(blocked);
+    expect(blocked.backfillInterrupted).toBeUndefined();
+  });
+
+  it("marks a block during an existing competition's forced backfill as interrupting it", async () => {
+    const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
+    matchesBackfill.backfill.mockRejectedValue(blocked);
+
+    await expect(importMatch(true)).rejects.toBe(blocked);
+    expect(blocked.backfillInterrupted).toBe(true);
+  });
+
   describe('when its competition upsert created the competition', () => {
     beforeEach(() => {
       competitionUpsert.upsertCompetition.mockResolvedValue(
@@ -442,6 +487,20 @@ describe('TpLiveMatchImportService', () => {
       expect(writeOrder).toBeLessThan(participantsOrder);
       expect(participantsOrder).toBeLessThan(matchesOrder);
     });
+
+    it.each([
+      ['registered teams', () => participantsBackfill.backfill],
+      ['completed matches', () => matchesBackfill.backfill],
+    ])(
+      'marks a block while backfilling its %s as interrupting the backfill',
+      async (_stage, backfill) => {
+        const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
+        backfill().mockRejectedValue(blocked);
+
+        await expect(importMatch()).rejects.toBe(blocked);
+        expect(blocked.backfillInterrupted).toBe(true);
+      },
+    );
 
     it('creates the competition as unfinished', async () => {
       await importMatch();

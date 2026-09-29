@@ -2,7 +2,10 @@ import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import type { TpOfficialRace } from '@blood-bowl-tracker/parse-tp';
 import { OfficialTeamsParserService } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
-import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
+import {
+  TpBlockedError,
+  TpFetcherService,
+} from '@blood-bowl-tracker/scrape-tp';
 import { TpOfficialTeamsPathsService } from '@blood-bowl-tracker/tp-paths';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -37,8 +40,9 @@ export class TpOfficialTeamsFetchService {
    * Fetch one rules set's official team list, the way TP's own teams page
    * does for that rules set's tab, and parse it into its official and legacy
    * races. A rules set TP has no id for, a request that fails, or a response
-   * that does not parse records one ImportError and yields undefined --
-   * never a thrown exception.
+   * that does not parse records one ImportError and yields undefined. A TP
+   * block (`TpBlockedError`) is rethrown instead, so the whole import stops
+   * rather than carrying on against a TP that refuses every request.
    */
   async fetchOfficialTeams({
     rulesSet,
@@ -69,6 +73,9 @@ export class TpOfficialTeamsFetchService {
         },
       );
     } catch (error) {
+      if (error instanceof TpBlockedError) {
+        throw error;
+      }
       errors.push(
         this.importResults.error({
           item,

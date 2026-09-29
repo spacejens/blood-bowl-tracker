@@ -1,7 +1,10 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import { InscriptionsParserService } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
-import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
+import {
+  TpBlockedError,
+  TpFetcherService,
+} from '@blood-bowl-tracker/scrape-tp';
 import { TpTournamentPathsService } from '@blood-bowl-tracker/tp-paths';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -145,5 +148,20 @@ describe('TpInscriptionsFetchService', () => {
           'Could not parse TP inscriptions of category 22308 of tournament s30: Invalid TP inscriptions JSON: 22308.0.roster.id',
       },
     ]);
+  });
+
+  it('lets a TP block stop the import at once, fetching no further category', async () => {
+    const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
+    session.fetch.mockRejectedValue(blocked);
+
+    await expect(
+      service.fetchParticipantRosterIds({
+        tournamentSlug: 's30',
+        categoryIds: [22308, 22309],
+        errors,
+      }),
+    ).rejects.toBe(blocked);
+    expect(session.fetch).toHaveBeenCalledTimes(1);
+    expect(errors).toEqual([]);
   });
 });

@@ -10,15 +10,30 @@ type MatchEndEvent = Extract<TpFeedEvent, { kind: 'match-end' }>;
 const MAX_MESSAGE_LENGTH = 2000;
 
 /**
- * Renders one parsed TP notification as a single line of plain text — the
- * human-readable interpretation this feature exists to let a maintainer
- * eyeball. Pure formatting: no I/O, no branching on anything but its input;
+ * Renders one parsed TP notification — or a failed import, or a TP
+ * block/resume notice — as plain text: the human-readable interpretation
+ * this feature exists to let a maintainer eyeball. Pure formatting: no I/O;
  * its only collaborator, `ErrorListFitService`, is itself pure and
  * dependency-free, so specs may pass it real.
  */
 @Injectable()
 export class TpFeedFormatterService {
   constructor(private readonly errorListFit: ErrorListFitService) {}
+
+  /**
+   * The notice that TP started refusing the bot's requests: TP imports wait
+   * until `retryAt` (Discord's timestamp markup, rounded up to the second)
+   * and are then retried.
+   */
+  formatBlocked(retryAt: Date): string {
+    const at = Math.ceil(retryAt.getTime() / 1000);
+    return `TP is blocking requests (HTTP 403) — TP imports are paused until <t:${at}:f> (<t:${at}:R>), then retried`;
+  }
+
+  /** The notice that TP accepted a request again after a block. */
+  formatResumed(): string {
+    return 'TP is accepting requests again — TP imports have resumed';
+  }
 
   format(event: TpFeedEvent): string {
     switch (event.kind) {

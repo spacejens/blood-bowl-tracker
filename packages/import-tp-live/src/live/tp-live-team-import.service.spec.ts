@@ -4,6 +4,7 @@ import type {
 } from '@blood-bowl-tracker/api-contract';
 import type { TpRoster, TpRosterPlayer } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
+import { TpBlockedError } from '@blood-bowl-tracker/scrape-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -293,5 +294,18 @@ describe('TpLiveTeamImportService', () => {
     expect(result.era).toBeUndefined();
     expect(result).toHaveProperty('teamEra', undefined);
     expect(result.team.success).toBe(false);
+  });
+
+  it('stops at a TP block instead of reporting it', async () => {
+    const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
+    rosterFetch.fetchRoster.mockRejectedValue(blocked);
+
+    await expect(
+      service.importTeam({
+        rosterId: 163386,
+        externalSystemName: EXTERNAL_SYSTEM_NAME,
+      }),
+    ).rejects.toBe(blocked);
+    expect(rosterImport.importRoster).not.toHaveBeenCalled();
   });
 });

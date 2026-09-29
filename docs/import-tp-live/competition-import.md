@@ -36,7 +36,10 @@ const result = await tpLiveCompetitionImportService.importCompetition({
 - `forceMatchBackfill`: optional, default false. Backfill every completed
   match of the competition even when it was already imported (see stage 7
   below). `/importtp` sets it for a competition's scores page. The TP
-  feed's trophy announcement uses it too.
+  feed's trophy announcement uses it too, and so does the feed's retry of
+  an import whose match backfill a TP block interrupted: that block's
+  `TpBlockedError` has `backfillInterrupted` set, which a block met before
+  step 7 does not.
 
 The import runs these stages in order. Each is reported in the result even
 when an earlier one fails:
@@ -182,7 +185,9 @@ per stage.
 ## Failures
 
 Neither entry point throws for an import problem. Every failure is one
-`ImportError` in the result.
+`ImportError` in the result, except a TP block, which the live import throws
+as `TpBlockedError` and which stops it at once, mid-backfill included (see
+[Failures in the index](index.md#failures)).
 
 | Failure                                                                                                                             | Reported in                                           |
 | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |

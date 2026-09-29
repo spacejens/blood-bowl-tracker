@@ -3,6 +3,7 @@ import type {
   ImportResult,
 } from '@blood-bowl-tracker/api-contract';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
+import { TpBlockedError } from '@blood-bowl-tracker/scrape-tp';
 import { Injectable } from '@nestjs/common';
 
 import { TpImportResultsService } from '../tp-import-results.service';
@@ -42,7 +43,8 @@ export class TpCompetitionMatchesBackfillService {
    * One result for the whole backfill: `imported` counts the matches whose
    * row was written, and `errors` holds every stage error of every match. A
    * match that fails, even by throwing, is reported and the rest are still
-   * imported; this never throws.
+   * imported — except for a TP block (`TpBlockedError`), which is rethrown at
+   * once so no further match is attempted.
    */
   async backfill({
     tournamentSlug,
@@ -71,6 +73,9 @@ export class TpCompetitionMatchesBackfillService {
         }
         errors.push(...this.errorsOf(result));
       } catch (error) {
+        if (error instanceof TpBlockedError) {
+          throw error;
+        }
         const message = error instanceof Error ? error.message : String(error);
         errors.push(
           this.importResults.error({

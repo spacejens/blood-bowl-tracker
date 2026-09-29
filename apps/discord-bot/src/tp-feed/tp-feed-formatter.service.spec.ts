@@ -273,4 +273,16 @@ describe('TpFeedFormatterService', () => {
       expect(text.endsWith('…')).toBe(true);
     });
   });
+
+  it('formats the notice that TP started blocking requests', () => {
+    expect(service.formatBlocked(new Date('2026-09-29T12:05:00.000Z'))).toBe(
+      'TP is blocking requests (HTTP 403) — TP imports are paused until <t:1790683500:f> (<t:1790683500:R>), then retried',
+    );
+  });
+
+  it('formats the notice that TP imports resumed', () => {
+    expect(service.formatResumed()).toBe(
+      'TP is accepting requests again — TP imports have resumed',
+    );
+  });
 });

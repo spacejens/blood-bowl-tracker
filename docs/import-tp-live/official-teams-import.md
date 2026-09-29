@@ -75,7 +75,10 @@ curated keyword catalogue.
 Nothing here throws for bad data: every fetch, parse or write failure is one
 `ImportError` in the relevant result, and the rest of the import continues —
 another rules set, race, position or skill is never blocked by one failure.
-An unexpected database error is the one exception: `TpOfficialTeamsImportService`
+A TP block is different: `TpBlockedError` stops the live import at once, so no
+further rules set is fetched (see
+[Failures in the index](index.md#failures)).
+An unexpected database error is another exception: `TpOfficialTeamsImportService`
 (the shared write path) does not catch it, so it propagates out of the
 `tpOfficialTeams.import` procedure the same way it does for the roster, match
 and competition procedures; the live entry point catches it per rules set and

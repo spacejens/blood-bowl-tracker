@@ -4,7 +4,10 @@ import type {
   TpOfficialTeamsImportResult,
 } from '@blood-bowl-tracker/api-contract';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
-import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
+import {
+  TpBlockedError,
+  TpFetcherService,
+} from '@blood-bowl-tracker/scrape-tp';
 import { TpOfficialTeamsPathsService } from '@blood-bowl-tracker/tp-paths';
 import { Injectable } from '@nestjs/common';
 
@@ -65,7 +68,9 @@ export class TpLiveOfficialTeamsImportService {
    * parsed, then written in-process through the same TpOfficialTeamsImportService
    * `tpOfficialTeams.import` uses, under the given external system name.
    * Every failure is reported in that rules set's result, never thrown, and
-   * never stops the other rules sets.
+   * never stops the other rules sets. A TP block (`TpBlockedError`) is the
+   * one exception: it is rethrown at once, so no further rules set is
+   * attempted against a TP that refuses every request.
    */
   async importOfficialTeams({
     externalSystemName,
@@ -121,6 +126,9 @@ export class TpLiveOfficialTeamsImportService {
         session: visit,
       };
     } catch (error) {
+      if (error instanceof TpBlockedError) {
+        throw error;
+      }
       const message = error instanceof Error ? error.message : String(error);
       errors.push(
         this.importResults.error({

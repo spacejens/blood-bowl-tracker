@@ -2,7 +2,10 @@ import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import type { TpAward } from '@blood-bowl-tracker/parse-tp';
 import { AwardsParserService } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
-import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
+import {
+  TpBlockedError,
+  TpFetcherService,
+} from '@blood-bowl-tracker/scrape-tp';
 import { TpTournamentPathsService } from '@blood-bowl-tracker/tp-paths';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -105,5 +108,15 @@ describe('TpAwardsFetchService', () => {
           'Could not parse TP awards of tournament s30: Invalid TP awards JSON: (root)',
       },
     ]);
+  });
+
+  it('lets a TP block stop the import instead of recording it', async () => {
+    const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
+    session.fetch.mockRejectedValue(blocked);
+
+    await expect(
+      service.fetchAwards({ tournamentSlug: 's30', errors }),
+    ).rejects.toBe(blocked);
+    expect(errors).toEqual([]);
   });
 });

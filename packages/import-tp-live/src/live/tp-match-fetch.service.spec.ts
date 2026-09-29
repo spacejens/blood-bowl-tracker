@@ -1,7 +1,10 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import { MatchParserService } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
-import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
+import {
+  TpBlockedError,
+  TpFetcherService,
+} from '@blood-bowl-tracker/scrape-tp';
 import { TpMatchPathsService } from '@blood-bowl-tracker/tp-paths';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -131,5 +134,15 @@ describe('TpMatchFetchService', () => {
     await service.fetchMatch({ matchId: 1, tournamentSlug: 's30', errors });
 
     expect(errors[0].message).toBe('Could not parse TP match 1: bad shape');
+  });
+
+  it('lets a TP block stop the import instead of recording it', async () => {
+    const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
+    session.fetch.mockRejectedValue(blocked);
+
+    await expect(
+      service.fetchMatch({ matchId: 662796, tournamentSlug: 's30', errors }),
+    ).rejects.toBe(blocked);
+    expect(errors).toEqual([]);
   });
 });

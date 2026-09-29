@@ -87,3 +87,6 @@ export type {
 export { TpRosterImportService } from './roster/tp-roster-import.service';
 export type { TpConnectionProvider } from './tp-import-providers';
 export { TP_CONNECTION_PROVIDER } from './tp-import-providers';
+
+/** Re-exported so an app importing live need not depend on scrape-tp itself. */
+export { TpBlockedError } from '@blood-bowl-tracker/scrape-tp';

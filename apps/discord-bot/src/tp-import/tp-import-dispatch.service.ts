@@ -63,6 +63,13 @@ export interface DispatchTpImportOptions {
    * official team list has no era and ignores it.
    */
   era?: string;
+  /**
+   * Redo the competition backfill even though the competition already
+   * exists: for a match page, the match import's backfill of the
+   * competition; for a competition page, its match backfill. Other kinds of
+   * page ignore it.
+   */
+  forceMatchBackfill?: boolean;
 }
 
 /**
@@ -92,6 +99,7 @@ export class TpImportDispatchService {
   async dispatch({
     page,
     era,
+    forceMatchBackfill,
   }: DispatchTpImportOptions): Promise<TpImportOutcome> {
     const externalSystemName = this.config.getTpExternalSystemName();
     switch (page.kind) {
@@ -104,7 +112,8 @@ export class TpImportDispatchService {
             tournamentSlug: page.tournamentSlug,
             era,
             externalSystemName,
-            forceMatchBackfill: page.kind === 'competitionScores',
+            forceMatchBackfill:
+              page.kind === 'competitionScores' || forceMatchBackfill === true,
           }),
         };
       case 'match':
@@ -117,6 +126,7 @@ export class TpImportDispatchService {
             tournamentSlug: page.tournamentSlug,
             era,
             externalSystemName,
+            forceMatchBackfill,
           }),
         };
       case 'matchTeams':
