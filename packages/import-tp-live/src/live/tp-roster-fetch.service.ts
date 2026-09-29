@@ -2,7 +2,10 @@ import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import type { TpRoster } from '@blood-bowl-tracker/parse-tp';
 import { RosterParserService } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
-import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
+import {
+  TpBlockedError,
+  TpFetcherService,
+} from '@blood-bowl-tracker/scrape-tp';
 import { TpRosterPathsService } from '@blood-bowl-tracker/tp-paths';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -49,8 +52,9 @@ export class TpRosterFetchService {
    * and parse it, returning the parsed roster together with the raw
    * response. A failed request (network error, TP refusing or rate-limiting
    * it) or a response that does not parse as a roster is recorded as one
-   * ImportError naming the roster id, and yields undefined — never a thrown
-   * exception.
+   * ImportError naming the roster id, and yields undefined. A TP block
+   * (`TpBlockedError`) is rethrown instead, so the whole import stops rather
+   * than carrying on against a TP that refuses every request.
    */
   async fetchRoster({
     rosterId,
@@ -68,6 +72,9 @@ export class TpRosterFetchService {
         },
       );
     } catch (error) {
+      if (error instanceof TpBlockedError) {
+        throw error;
+      }
       errors.push(
         this.importResults.error({
           item: { rosterId },

@@ -8,7 +8,10 @@ import {
   TournamentParserService,
 } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
-import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
+import {
+  TpBlockedError,
+  TpFetcherService,
+} from '@blood-bowl-tracker/scrape-tp';
 import { TpTournamentPathsService } from '@blood-bowl-tracker/tp-paths';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -232,5 +235,16 @@ describe('TpBracketFetchService', () => {
     expect(errors[0].message).toBe(
       'Could not parse TP round 1 of phase 31255 of tournament s30: bad round',
     );
+  });
+
+  it('lets a TP block stop the import at once instead of recording it', async () => {
+    const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
+    session.fetch.mockRejectedValue(blocked);
+
+    await expect(
+      service.fetchBracket({ tournamentSlug: 's30', errors }),
+    ).rejects.toBe(blocked);
+    expect(session.fetch).toHaveBeenCalledTimes(1);
+    expect(errors).toEqual([]);
   });
 });
