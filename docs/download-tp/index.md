@@ -150,6 +150,17 @@ Every response is written to a file named after its API path with `/`
 replaced by `_` and `.json` appended — e.g. `tournament/<slug>/news` becomes
 `tournament_<slug>_news.json` — which is the layout `tools/import-tp` reads.
 
+A probe on 2026-09-29, after live imports started being refused with 403, sent
+one request per header set to `tournament/<slug>` with the matching `referer`,
+from a developer machine that had made none of that day's live imports: the
+Chrome 120 set above, a Chrome 140 user agent with `sec-ch-ua*` client hints,
+and that plus `accept-encoding` and a fuller `accept-language`. All three
+were answered with 403 and the body `Access denied.`. Header changes alone
+therefore do not get past TP from that network, so the header set is unchanged.
+The probe did not show whether TP now refuses every non-browser client or has
+blocked the addresses involved; a request that succeeds from a real browser on
+the same network would separate the two.
+
 ## Development
 
 ```bash
