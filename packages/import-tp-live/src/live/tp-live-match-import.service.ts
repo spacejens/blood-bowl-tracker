@@ -41,6 +41,13 @@ export interface ImportLiveMatchOptions {
    * is paced as one visit. A fresh session is started when omitted.
    */
   session?: TpFetchSession;
+  /**
+   * Backfill the competition's registered teams and every completed match
+   * even when the competition was already imported. A competition this
+   * import newly creates always has them backfilled; this forces it for one
+   * that exists, such as one whose earlier backfill a TP block interrupted.
+   */
+  forceMatchBackfill?: boolean;
 }
 
 /** Options for {@link TpLiveMatchImportService.finishCompetition}. */
@@ -69,14 +76,13 @@ export interface TpLiveMatchImportResult {
   outcome: ImportResult;
   /**
    * Importing the competition's registered teams, linking them and
-   * recording its awards. Present only when this import created the
-   * competition.
+   * recording its awards. Present only when the backfill ran: this import
+   * created the competition, or `forceMatchBackfill` was set.
    */
   participantsBackfill?: TpParticipantsBackfillResult;
   /**
    * Importing every completed match of the competition's bracket, this
-   * match included again. Present only when this import created the
-   * competition.
+   * match included again. Present only when the backfill ran.
    */
   matchesBackfill?: ImportResult;
   /**
@@ -84,8 +90,8 @@ export interface TpLiveMatchImportResult {
    * fetched TP awards: re-upserting it as finished (settling its end date)
    * and awarding the trophies TP does not record itself, unless the match
    * backfill reported errors (one error is recorded instead). Present only
-   * when this import created the competition; nothing imported when TP has no
-   * awards for it yet or its awards could not be fetched.
+   * when the backfill ran; nothing imported when TP has no awards for it yet
+   * or its awards could not be fetched.
    */
   extraTrophyAwards?: ImportResult;
 }
@@ -111,8 +117,8 @@ export class TpLiveMatchImportService {
    * team hired through the match's inducements, fetch its tournament's whole
    * bracket and upsert the competition, then import the match through the
    * same server-side core `tpMatches.import` uses. When this import creates
-   * the competition, it then backfills the competition's registered teams
-   * (with their participation links and its trophy awards) and every
+   * the competition (or `forceMatchBackfill` is set), it then backfills the
+   * competition's registered teams (with their participation links and its trophy awards) and every
    * completed match of the bracket, the requested match included again
    * (harmless: every write is an upsert); otherwise only the requested match
    * is imported, its bracket siblings used for classification and the
@@ -133,6 +139,7 @@ export class TpLiveMatchImportService {
     era,
     externalSystemName,
     session,
+    forceMatchBackfill = false,
   }: ImportLiveMatchOptions): Promise<TpLiveMatchImportResult> {
     try {
       const visit = session ?? this.fetcher.createSession();
@@ -202,7 +209,7 @@ export class TpLiveMatchImportService {
         starPlayerHires,
         ...core,
       };
-      if (!upserted.created) {
+      if (!upserted.created && !forceMatchBackfill) {
         return imported;
       }
       const participantsBackfill = await this.participantsBackfill.backfill({

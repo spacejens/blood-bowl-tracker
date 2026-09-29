@@ -494,6 +494,19 @@ describe('TpFeedImportService', () => {
       ]);
     });
 
+    it('asks only the retries after a block to redo the competition backfill', async () => {
+      dispatch.dispatch
+        .mockRejectedValueOnce(blocked())
+        .mockResolvedValueOnce(OUTCOME);
+
+      await service.enqueue(HIRED);
+
+      expect(dispatch.dispatch.mock.calls).toEqual([
+        [{ page: ROSTER_PAGE }],
+        [{ page: ROSTER_PAGE, forceMatchBackfill: true }],
+      ]);
+    });
+
     it('waits only the margin when the block has already ended', async () => {
       clock.now.mockReturnValue(new Date(RETRY_AT.getTime() + MINUTE));
       dispatch.dispatch

@@ -184,7 +184,8 @@ export class TpFeedImportService {
    * Dispatches the import. When TP is blocking requests, waits until the
    * block's back-off ends and tries again, up to TP_FEED_BLOCK_RETRIES
    * times; the queue behind this job waits too. Returns the outcome, or the
-   * last block when TP was still blocking after the last retry. Any other
+   * last block when TP was still blocking after the last retry. A retry
+   * forces the competition backfill a block may have cut short. Any other
    * error propagates.
    */
   private async dispatchThroughBlocks(
@@ -192,7 +193,11 @@ export class TpFeedImportService {
   ): Promise<TpImportOutcome | TpBlockedError> {
     for (let retries = 0; ; retries += 1) {
       try {
-        const outcome = await this.dispatch.dispatch({ page: target });
+        const outcome = await this.dispatch.dispatch(
+          retries === 0
+            ? { page: target }
+            : { page: target, forceMatchBackfill: true },
+        );
         await this.markUnblocked();
         return outcome;
       } catch (error) {

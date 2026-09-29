@@ -25,6 +25,9 @@ const result = await tpLiveMatchImportService.importMatch({
 - `session`: optional. A `packages/scrape-tp` session to fetch through, so
   every request of the import is paced as one visit. A fresh session is
   started when omitted.
+- `forceMatchBackfill`: optional, default false. Run the backfill below even
+  when the competition already exists, for one whose earlier backfill a TP
+  block interrupted. Every backfill write is an upsert, so redoing it is safe.
 
 The import runs these stages in order, each reported in the result even when
 an earlier one fails:
