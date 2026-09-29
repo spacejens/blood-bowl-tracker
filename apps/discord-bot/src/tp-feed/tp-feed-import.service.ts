@@ -36,8 +36,10 @@ export const TP_FEED_IMPORT_DELAY_MS = 1000;
  *
  * Trophy announcements for one competition arrive in a burst. While one is
  * queued and has not yet finished its import delay, a further one for the
- * same tournament is not queued again; it shares the queued job's result. No
- * other kind is merged.
+ * same tournament is not queued again; it shares the queued job's result,
+ * marked `alreadyReported` when it is a failure, so the burst's failure is
+ * reported once, by the announcement that queued the job. No other kind is
+ * merged.
  *
  * Only real failures are reported, judged by `TpImportFailureService` so
  * the feed and `/importtp` agree; every one is also logged here, so with no
@@ -70,7 +72,9 @@ export class TpFeedImportService {
     const queued =
       mergeKey === undefined ? undefined : this.queuedTrophyJobs.get(mergeKey);
     if (queued !== undefined) {
-      return queued;
+      return queued.then((result) =>
+        result.failed ? { ...result, alreadyReported: true } : result,
+      );
     }
     const job = this.tail.then(() => this.run(event, mergeKey));
     if (mergeKey !== undefined) {

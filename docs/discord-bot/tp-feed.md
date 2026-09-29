@@ -60,8 +60,10 @@ While one is still waiting to start, further announcements for the same
 competition are merged into it, so announcements arriving together run one
 import. That merge only covers the time an announcement spends queued plus
 the delay before its import starts: an announcement arriving after that
-starts a further import, which merges any later ones the same way. Each
-import is a full, paced backfill of the competition.
+starts a further import, which merges any later ones the same way. When that
+import fails, its failure is posted to the debug channel once, not once per
+merged announcement, though none of the merged announcements gets the ✔️
+reaction. Each import is a full, paced backfill of the competition.
 
 Ignored and unrecognised notifications import nothing.
 
@@ -87,7 +89,11 @@ completed match. That is reported as a failure in the debug channel, with no
 
 A failed import is always logged. When a debug channel is configured it is
 also posted there as a short `TP import …` line keeping the notification's
-link, followed by one line per error.
+link, followed by one line per error. A post is limited to Discord's 2000
+characters: when the errors do not all fit, it lists the first ones that do
+and ends with a line saying how many more were left out, such as "…and 12
+more errors not shown."; when the first error is itself too long for the
+post, it is cut short and the note still says how many more were left out.
 
 ## Configuration
 

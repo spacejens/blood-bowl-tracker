@@ -94,11 +94,17 @@ export type TpFeedParseResult =
  * An import the feed ran for a notification that had a real problem: a
  * one-line headline (without the notification's link, which the formatter
  * appends) and each reported error, already labelled with its stage.
+ *
+ * `alreadyReported` marks the same failure handed to a later notification
+ * that was merged into an already-queued import (see
+ * `TpFeedImportService`): the notification that queued it reports it, and
+ * the ones merged into it do not report it again.
  */
 export interface TpFeedImportFailure {
   failed: true;
   headline: string;
   errors: string[];
+  alreadyReported?: true;
 }
 
 /**

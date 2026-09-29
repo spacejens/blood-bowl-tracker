@@ -306,9 +306,12 @@ describe('TpFeedImportService', () => {
       const one = service.enqueue(TROPHY);
       const two = service.enqueue({ ...TROPHY });
 
-      expect(two).toBe(one);
       first.resolve(OUTCOME);
-      await Promise.all([blocker, one, two]);
+      await expect(Promise.all([blocker, one, two])).resolves.toEqual([
+        { failed: false },
+        { failed: false },
+        { failed: false },
+      ]);
       expect(dispatch.dispatch).toHaveBeenCalledTimes(2);
     });
 
@@ -320,9 +323,11 @@ describe('TpFeedImportService', () => {
       await flush();
       const two = service.enqueue({ ...TROPHY });
 
-      expect(two).toBe(one);
       delay.resolve();
-      await one;
+      await expect(Promise.all([one, two])).resolves.toEqual([
+        { failed: false },
+        { failed: false },
+      ]);
       expect(dispatch.dispatch).toHaveBeenCalledTimes(1);
     });
 
@@ -387,6 +392,34 @@ describe('TpFeedImportService', () => {
       first.resolve(OUTCOME);
       await Promise.all([blocker, one, two]);
       expect(dispatch.dispatch).toHaveBeenCalledTimes(3);
+    });
+
+    it('marks a merged failure as already reported for every announcement after the first, logging it once', async () => {
+      const warn = vi
+        .spyOn(Logger.prototype, 'warn')
+        .mockImplementation(() => {});
+      failure.assess.mockReturnValue(assessment('failed'));
+      failure.isRealFailure.mockReturnValue(true);
+      const delay = deferred<void>();
+      sleep.sleep.mockReturnValueOnce(delay.promise);
+      const expected = {
+        failed: true,
+        headline: 'TP import of team 167242 failed',
+        errors: ['Team: no coach'],
+      };
+
+      const one = service.enqueue(TROPHY);
+      const two = service.enqueue({ ...TROPHY });
+      const three = service.enqueue({ ...TROPHY });
+      delay.resolve();
+
+      await expect(Promise.all([one, two, three])).resolves.toEqual([
+        expected,
+        { ...expected, alreadyReported: true },
+        { ...expected, alreadyReported: true },
+      ]);
+      expect(dispatch.dispatch).toHaveBeenCalledTimes(1);
+      expect(warn).toHaveBeenCalledTimes(1);
     });
   });
 
