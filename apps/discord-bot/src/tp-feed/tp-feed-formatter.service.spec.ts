@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { ErrorListFitService } from '../tp-import/error-list-fit.service';
 import type { TeamInfo, TpFeedImportFailure } from './tp-feed-event';
 import { TpFeedFormatterService } from './tp-feed-formatter.service';
 
@@ -20,7 +21,7 @@ describe('TpFeedFormatterService', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [TpFeedFormatterService],
+      providers: [TpFeedFormatterService, ErrorListFitService],
     }).compile();
     service = moduleRef.get(TpFeedFormatterService);
   });
@@ -237,13 +238,34 @@ describe('TpFeedFormatterService', () => {
       );
     });
 
-    it("truncates past Discord's message length limit", () => {
+    it("lists as many errors as fit Discord's message limit and says how many were left out", () => {
       const text = service.formatImportFailure(
         {
           failed: true,
           headline: 'TP import of competition s31 completed with errors',
           errors: Array.from({ length: 100 }, () => 'x'.repeat(100)),
         },
+        'https://tp/c',
+      );
+
+      const shown = text
+        .split('\n')
+        .filter((line) => line.startsWith('- x')).length;
+      expect(text.length).toBeLessThanOrEqual(2000);
+      expect(
+        text.startsWith(
+          'TP import of competition s31 completed with errors — https://tp/c\n',
+        ),
+      ).toBe(true);
+      expect(shown).toBeGreaterThan(0);
+      expect(text.endsWith(`…and ${100 - shown} more errors not shown.`)).toBe(
+        true,
+      );
+    });
+
+    it("hard-truncates a headline that alone passes Discord's message limit", () => {
+      const text = service.formatImportFailure(
+        { failed: true, headline: 'x'.repeat(2500), errors: [] },
         'https://tp/c',
       );
 

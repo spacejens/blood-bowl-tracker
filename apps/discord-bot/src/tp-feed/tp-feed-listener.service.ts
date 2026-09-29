@@ -71,8 +71,10 @@ export class TpFeedListenerService implements OnModuleInit {
    * is added only when processing actually finished: the parser ignored the
    * message, or it parsed as an event, its description was posted (or there
    * is no debug channel), and its import had no real failure. A failed
-   * import is posted to the debug channel when there is one; either way it
-   * withholds the reaction.
+   * import is posted to the debug channel when there is one — once per
+   * import, so a trophy announcement merged into an already-queued import
+   * does not post that import's failure again; either way it withholds the
+   * reaction.
    *
    * An unrecognized message is never reacted to: classifying it as
    * unrecognized is not handling it. It is still reported to the debug
@@ -118,7 +120,11 @@ export class TpFeedListenerService implements OnModuleInit {
         this.formatter.format(result.event),
       ));
     const importResult = await imported;
-    if (importResult.failed && debugChannelId) {
+    if (
+      importResult.failed &&
+      !importResult.alreadyReported &&
+      debugChannelId
+    ) {
       await this.postToDebugChannel(
         debugChannelId,
         this.formatter.formatImportFailure(importResult, result.event.link),

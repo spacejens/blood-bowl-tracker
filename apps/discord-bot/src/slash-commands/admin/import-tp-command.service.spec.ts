@@ -1,13 +1,14 @@
 import { TpBlockedError } from '@blood-bowl-tracker/import-tp-live';
 import type { TpPageClassification } from '@blood-bowl-tracker/tp-paths';
 import { TpPageClassifierService } from '@blood-bowl-tracker/tp-paths';
+import { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type {
   ChatInputCommandInteraction,
   InteractionReplyOptions,
 } from 'discord.js';
 import { ApplicationCommandOptionType, MessageFlags } from 'discord.js';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
@@ -25,6 +26,10 @@ const ROSTER_PAGE: TpPageClassification = { kind: 'roster', rosterId: 163386 };
 const OUTCOME = { kind: 'roster', rosterId: 163386 } as TpImportOutcome;
 const REPLY: InteractionReplyOptions = {
   embeds: [],
+  flags: MessageFlags.Ephemeral,
+};
+const FAILURE_REPLY: InteractionReplyOptions = {
+  embeds: [{ title: 'TP import failed' }],
   flags: MessageFlags.Ephemeral,
 };
 
@@ -74,6 +79,10 @@ describe('ImportTpCommandService', () => {
       ],
     }).compile();
     service = moduleRef.get(ImportTpCommandService);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('registers itself on module init', () => {
@@ -177,14 +186,43 @@ describe('ImportTpCommandService', () => {
     ).resolves.toBe(blockedReply);
     expect(reply.blocked).toHaveBeenCalledWith(retryAt);
     expect(reply.build).not.toHaveBeenCalled();
+    expect(reply.buildUnexpectedFailure).not.toHaveBeenCalled();
   });
 
-  it('lets any other dispatch error propagate', async () => {
-    dispatch.dispatch.mockRejectedValue(new Error('database down'));
+  it('replies with the unexpected-failure embed, and logs, when the import throws', async () => {
+    const error = new Error('database down');
+    const logged = vi
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => {});
+    dispatch.dispatch.mockRejectedValue(error);
+    reply.buildUnexpectedFailure.mockReturnValue(FAILURE_REPLY);
 
     await expect(
       service.execute(interaction({ url: ROSTER_URL })),
-    ).rejects.toThrow('database down');
-    expect(reply.blocked).not.toHaveBeenCalled();
+    ).resolves.toBe(FAILURE_REPLY);
+    expect(reply.buildUnexpectedFailure).toHaveBeenCalledWith(error);
+    expect(reply.build).not.toHaveBeenCalled();
+    expect(logged).toHaveBeenCalledWith(
+      `/importtp of ${ROSTER_URL} failed unexpectedly`,
+      error.stack,
+    );
+  });
+
+  it('passes a non-Error rejection to the reply and logs it as a string', async () => {
+    const logged = vi
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => {});
+    dispatch.dispatch.mockRejectedValue('boom');
+    reply.buildUnexpectedFailure.mockReturnValue(FAILURE_REPLY);
+
+    await expect(
+      service.execute(interaction({ url: ROSTER_URL })),
+    ).resolves.toBe(FAILURE_REPLY);
+    expect(reply.buildUnexpectedFailure).toHaveBeenCalledWith('boom');
+    expect(reply.build).not.toHaveBeenCalled();
+    expect(logged).toHaveBeenCalledWith(
+      `/importtp of ${ROSTER_URL} failed unexpectedly`,
+      'boom',
+    );
   });
 });

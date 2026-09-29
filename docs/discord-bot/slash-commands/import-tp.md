@@ -73,8 +73,19 @@ instead carries one error saying the extra trophies were skipped. Without TP
 awards there is nothing to skip: that line shows zero and no error. The same
 holds for a scores-page `/importtp` (a forced backfill): when TP returned
 awards and its match backfill reports errors, the competition import's own
-**Extra trophy awards** line carries the skipped error. A very long reply is
-cut off at Discord's embed limit.
+**Extra trophy awards** line carries the skipped error. When the errors do not
+all fit within Discord's embed limit, the reply lists the first ones that do and
+ends with a line saying how many more were left out, such as "…and 12 more
+errors not shown."; when the first error is itself too long to fit, it is cut
+short and the note still says how many more were left out.
+
+If the import breaks outright instead of collecting its problems — the
+database being unreachable, say — the reply is an embed titled **TP import
+failed** with the **Failed** status and the error's message under
+**Errors**, rather than a bare generic failure. The error is also logged on
+the server. Since the command still replies normally, such a run shows as a
+success in [`/debuginteractions`](debug-interactions.md); the reply itself
+is what tells the admin it failed.
 
 It uses the same import code as `tools/import-tp`'s bulk import, registered
 under `TP_EXTERNAL_SYSTEM_NAME`, which must match that tool's configured

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
+import { ErrorListFitService } from '../tp-import/error-list-fit.service';
 import type { TpFeedEvent, TpFeedImportFailure } from './tp-feed-event';
 
 /** A `match-end` event, narrowed out of the union for the helper below. */
@@ -11,10 +12,14 @@ const MAX_MESSAGE_LENGTH = 2000;
 /**
  * Renders one parsed TP notification — or a failed import, or a TP
  * block/resume notice — as plain text: the human-readable interpretation
- * this feature exists to let a maintainer eyeball. Pure formatting: no I/O.
+ * this feature exists to let a maintainer eyeball. Pure formatting: no I/O;
+ * its only collaborator, `ErrorListFitService`, is itself pure and
+ * dependency-free, so specs may pass it real.
  */
 @Injectable()
 export class TpFeedFormatterService {
+  constructor(private readonly errorListFit: ErrorListFitService) {}
+
   /**
    * The notice that TP started refusing the bot's requests: TP imports wait
    * until `retryAt` (Discord's timestamp markup, rounded up to the second)
@@ -61,15 +66,18 @@ export class TpFeedFormatterService {
 
   /**
    * Renders a failed feed import: the headline with the notification's link
-   * kept intact, then one line per error. Error lists are uncapped, so the
-   * text is hard-truncated at Discord's message limit; the headline and link
-   * come first, so they survive.
+   * kept intact, then one line per error. Error lists are uncapped, so they
+   * are fitted into what Discord's message limit leaves after the headline,
+   * ending with a count of the errors not shown. A headline that alone
+   * passes the limit is still hard-truncated as a final safety net.
    */
   formatImportFailure(failure: TpFeedImportFailure, link: string): string {
-    const text = [
-      `${failure.headline} — ${link}`,
-      ...failure.errors.map((error) => `- ${error}`),
-    ].join('\n');
+    const headline = `${failure.headline} — ${link}`;
+    const errorLines = this.errorListFit.fit(
+      failure.errors.map((error) => `- ${error}`),
+      MAX_MESSAGE_LENGTH - headline.length - 1,
+    );
+    const text = [headline, ...errorLines].join('\n');
     if (text.length <= MAX_MESSAGE_LENGTH) {
       return text;
     }

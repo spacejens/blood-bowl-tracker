@@ -1,7 +1,7 @@
 import type { SlashCommandDefinition } from '@blood-bowl-tracker/discord-client';
 import { TpBlockedError } from '@blood-bowl-tracker/import-tp-live';
 import { TpPageClassifierService } from '@blood-bowl-tracker/tp-paths';
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import type {
   ChatInputCommandInteraction,
   InteractionReplyOptions,
@@ -10,6 +10,7 @@ import { ApplicationCommandOptionType, MessageFlags } from 'discord.js';
 
 import { DiscordBotConfigService } from '../../discord-bot-config.service';
 import { IMPORT_TP_UNSUPPORTED_URL_MESSAGE } from '../../error-messages';
+import type { TpImportOutcome } from '../../tp-import/tp-import-dispatch.service';
 import { TpImportDispatchService } from '../../tp-import/tp-import-dispatch.service';
 import { SlashCommandRegistryService } from '../slash-command-registry.service';
 import { ImportTpReplyService } from './import-tp-reply.service';
@@ -32,9 +33,17 @@ import { ImportTpReplyService } from './import-tp-reply.service';
  * Classification lives in packages/tp-paths, the import dispatch in
  * `TpImportDispatchService` and the reply in `ImportTpReplyService`; this
  * service only reads the options and wires the three together.
+ *
+ * An import that throws — rather than collecting its problems as errors —
+ * is logged and answered with `ImportTpReplyService`'s unexpected-failure
+ * embed showing the error, instead of Discord's generic failure reply.
+ * Because the command then returns normally, usage tracking records such a
+ * run as a success.
  */
 @Injectable()
 export class ImportTpCommandService implements OnModuleInit {
+  private readonly logger = new Logger(ImportTpCommandService.name);
+
   constructor(
     private readonly config: DiscordBotConfigService,
     private readonly classifier: TpPageClassifierService,
@@ -91,13 +100,19 @@ export class ImportTpCommandService implements OnModuleInit {
         flags: MessageFlags.Ephemeral,
       };
     }
+    let outcome: TpImportOutcome;
     try {
-      return this.reply.build(await this.dispatch.dispatch({ page, era }));
+      outcome = await this.dispatch.dispatch({ page, era });
     } catch (error) {
       if (error instanceof TpBlockedError) {
         return this.reply.blocked(error.retryAt);
       }
-      throw error;
+      this.logger.error(
+        `/importtp of ${url} failed unexpectedly`,
+        error instanceof Error ? (error.stack ?? error.message) : String(error),
+      );
+      return this.reply.buildUnexpectedFailure(error);
     }
+    return this.reply.build(outcome);
   }
 }

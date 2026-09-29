@@ -280,6 +280,32 @@ describe('TpFeedListenerService', () => {
     expect(react).not.toHaveBeenCalled();
   });
 
+  it("posts a merged burst's shared failure once, and reacts to none of its messages", async () => {
+    const firstReact = vi.fn();
+    const secondReact = vi.fn();
+    parser.parse.mockReturnValue({
+      status: 'event',
+      event: { kind: 'competition-trophy', link: 'https://tp/c/awards' },
+    });
+    formatter.format.mockReturnValue('Competition trophy announced');
+    feedImport.enqueue
+      .mockResolvedValueOnce(IMPORT_FAILURE)
+      .mockResolvedValueOnce({ ...IMPORT_FAILURE, alreadyReported: true });
+    service.onModuleInit();
+
+    await registeredHandler()(message(SOURCE_CHANNEL, firstReact));
+    await registeredHandler()(message(SOURCE_CHANNEL, secondReact));
+
+    expect(formatter.formatImportFailure).toHaveBeenCalledTimes(1);
+    expect(discordClient.sendMessage).toHaveBeenCalledTimes(3);
+    expect(discordClient.sendMessage).toHaveBeenLastCalledWith(
+      DEBUG_CHANNEL,
+      expect.objectContaining({ content: 'Competition trophy announced' }),
+    );
+    expect(firstReact).not.toHaveBeenCalled();
+    expect(secondReact).not.toHaveBeenCalled();
+  });
+
   it('still imports with no debug channel, posting nothing and not reacting on failure', async () => {
     const react = vi.fn();
     config.getTpFeedDebugDiscordChannel.mockReturnValue(undefined);
