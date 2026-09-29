@@ -40,6 +40,12 @@ and make the bot fail to start on an invalid cron expression.
 bulk import registers TP data under; a mismatch leaves `/importtp` unable to
 find anything the bulk import brought in.
 
+`TP_SCRAPING_ENABLED` is mandatory: `.env.production` must set it to `true`
+or `false`, or the bot fails to start on deploy. Setting it to `false` and
+applying the configuration (which restarts the machine, see below) stops all
+TP traffic from production — `/importtp` refuses and the TP notification feed
+imports nothing — without a code change; set it back to `true` the same way.
+
 Push the file to Fly as secrets. The `deploy-production` skill automates
 this via its "Apply production configuration" action (main checkout
 only); the equivalent command by hand is:
