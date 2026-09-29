@@ -141,6 +141,14 @@ Configuration is supplied through an environment file in the app directory.
      `externalSystemName` in `tools/import-tp`'s `import-tp-config.json5`, or
      a live import cannot find what the bulk import registered), and TP's
      frontend and backend API base URLs, each with a trailing slash.
+   - `TP_SCRAPING_ENABLED` — required; `true` or `false` (case-insensitive),
+     and any other value, or leaving it unset, makes the bot fail to start.
+     The master switch for the bot's TP scraping and live importing. Set to `false`, the
+     bot sends no request to TP:
+     [`/importtp`](slash-commands/import-tp.md) replies that TP scraping is
+     disabled, and the [TP notification feed](tp-feed.md) still parses and
+     echoes notifications but imports nothing. The three TP settings above
+     are required either way.
 
 `apps/discord-bot/.env` is git-ignored, so your secrets are never committed.
 Docker Compose loads this file via the `env_file` entry for the `discord-bot`

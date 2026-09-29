@@ -13,7 +13,10 @@ import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { DiscordBotConfigService } from '../../discord-bot-config.service';
-import { IMPORT_TP_UNSUPPORTED_URL_MESSAGE } from '../../error-messages';
+import {
+  IMPORT_TP_DISABLED_MESSAGE,
+  IMPORT_TP_UNSUPPORTED_URL_MESSAGE,
+} from '../../error-messages';
 import type { TpImportOutcome } from '../../tp-import/tp-import-dispatch.service';
 import { TpImportDispatchService } from '../../tp-import/tp-import-dispatch.service';
 import { SlashCommandRegistryService } from '../slash-command-registry.service';
@@ -61,6 +64,7 @@ describe('ImportTpCommandService', () => {
     config = mock<DiscordBotConfigService>();
     config.getTpFrontendBaseUrl.mockReturnValue(BASE);
     config.getTpExternalSystemName.mockReturnValue('tourplay.net');
+    config.getTpScrapingEnabled.mockReturnValue(true);
     classifier = mock<TpPageClassifierService>();
     classifier.classify.mockReturnValue(ROSTER_PAGE);
     dispatch = mock<TpImportDispatchService>();
@@ -91,6 +95,17 @@ describe('ImportTpCommandService', () => {
     expect(registry.register).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'importtp' }),
     );
+  });
+
+  it('registers itself on module init even when TP scraping is disabled', () => {
+    config.getTpScrapingEnabled.mockReturnValue(false);
+
+    service.onModuleInit();
+
+    expect(registry.register).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'importtp' }),
+    );
+    expect(config.getTpScrapingEnabled).not.toHaveBeenCalled();
   });
 
   it('fails module init, registering nothing, when a required TP setting is missing', () => {
@@ -170,6 +185,20 @@ describe('ImportTpCommandService', () => {
       flags: MessageFlags.Ephemeral,
     });
     expect(dispatch.dispatch).not.toHaveBeenCalled();
+  });
+
+  it('replies that TP scraping is disabled, classifying and importing nothing, when it is switched off', async () => {
+    config.getTpScrapingEnabled.mockReturnValue(false);
+
+    await expect(
+      service.execute(interaction({ url: ROSTER_URL })),
+    ).resolves.toEqual({
+      content: IMPORT_TP_DISABLED_MESSAGE,
+      flags: MessageFlags.Ephemeral,
+    });
+    expect(classifier.classify).not.toHaveBeenCalled();
+    expect(dispatch.dispatch).not.toHaveBeenCalled();
+    expect(reply.build).not.toHaveBeenCalled();
   });
 
   it('answers with the block reply when TP is blocking requests', async () => {

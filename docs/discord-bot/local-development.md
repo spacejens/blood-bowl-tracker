@@ -77,8 +77,9 @@ but with the dev application's and dev server's values:
   `webhookId` and the parser ignores it, the same as it would in production.
 
 The remaining variables (`RANDOM_INSIGHTS_CRON`, the
-`RANDOM_INSIGHTS_*_PROBABILITY` tunables, and the `API_TOKEN_IMPORT_*`
-tokens) have nothing to do with bot identity and are set as usual for local
+`RANDOM_INSIGHTS_*_PROBABILITY` tunables, the `API_TOKEN_IMPORT_*` tokens,
+and the TP settings including the mandatory `TP_SCRAPING_ENABLED` switch)
+have nothing to do with bot identity and are set as usual for local
 development.
 
 `apps/discord-bot/.env` is git-ignored, and production values live in the

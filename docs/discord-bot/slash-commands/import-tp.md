@@ -14,6 +14,10 @@ message with the bot. Where that variable is unset, the command is open to
 everyone who can see it. This role is separate from the `debug` role that
 gates the maintainer commands.
 
+Where the deployment sets `TP_SCRAPING_ENABLED` to `false`, the command is
+still listed, but every run gets a private reply that TP scraping is
+disabled, and nothing is fetched from TP or imported.
+
 ## Arguments
 
 - `url` — required. The TP page to import. It must be under the configured

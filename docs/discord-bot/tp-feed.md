@@ -12,7 +12,8 @@ reaction in the source channel — whether it was interpreted and imported or
 deliberately ignored. A message without the checkmark was never fully
 handled: the bot was down when it arrived, posting its interpretation to the
 debug channel failed, its import had a real failure (see
-[What is imported](#what-is-imported)), or the notification was not
+[What is imported](#what-is-imported)), TP scraping was disabled so it was
+not imported (see [Configuration](#configuration)), or the notification was not
 understood at all (reported as unrecognised — see below). Unrecognised
 notifications never get the checkmark, even when their debug-channel notice
 posts successfully.
@@ -140,7 +141,7 @@ without a ✔️.
 
 ## Configuration
 
-Both variables are optional and are documented in
+Both channel variables are optional and are documented in
 `apps/discord-bot/.env.example`.
 
 - `TP_FEED_SOURCE_DISCORD_CHANNEL` — the channel TP's integration posts into.
@@ -148,10 +149,19 @@ Both variables are optional and are documented in
   feature is entirely off.
 - `TP_FEED_DEBUG_DISCORD_CHANNEL` — the channel the interpretations, the
   notices about notifications that did not parse, and failed imports are
-  posted to. Left unset, notifications are still parsed and imported, and
+  posted to. Left unset, notifications are still parsed and (while
+  `TP_SCRAPING_ENABLED` is `true`) imported, and
   unrecognised shapes and failed imports are still logged, but nothing is
   posted. Because this is diagnostic output, point it at a
   maintainer channel rather than one real members read.
+
+The feed's imports also obey the bot's mandatory `TP_SCRAPING_ENABLED` switch
+(see [Configure the application](index.md#4-configure-the-application)).
+Set to `false`, the bot still listens, parses notifications and echoes its
+interpretation to the debug channel, but imports nothing and sends no request
+to TP. Those notifications get no ✔️ reaction, since they were not imported;
+after switching it back to `true`, running `/importtp` on the link of each
+notification without a ✔️ brings them in.
 
 Copy both ids with Developer Mode enabled (User Settings > Advanced >
 Developer Mode), by right-clicking the channel and choosing **Copy Channel

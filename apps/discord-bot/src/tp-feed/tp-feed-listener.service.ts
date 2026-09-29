@@ -26,14 +26,16 @@ const PROCESSED_REACTION = '✔️';
  *
  * The source channel id is read once, at registration, and closed over: the
  * configuration cannot change while the process runs, so re-reading it per
- * message would buy nothing.
+ * message would buy nothing. The TP scraping switch is a cheap getter and is
+ * simply read per message, after the debug echo.
  *
  * Every source message that is fully, successfully handled also gets a ✔️
  * reaction, so the source channel itself shows at a glance which messages
  * were handled and, by omission, which were not: missed entirely (downtime,
  * a crash, or a message that arrived before the bot was listening), not
  * understood (an unrecognized notification), not fully processed (a
- * failed debug-channel post), or not imported (a real import failure).
+ * failed debug-channel post), not imported (a real import failure), or not
+ * imported at all because `TP_SCRAPING_ENABLED` is false.
  */
 @Injectable()
 export class TpFeedListenerService implements OnModuleInit {
@@ -76,6 +78,10 @@ export class TpFeedListenerService implements OnModuleInit {
    * does not post that import's failure again; either way it withholds the
    * reaction.
    *
+   * When `TP_SCRAPING_ENABLED` is false a parsed event is still described in
+   * the debug channel, but never enqueued for import — so nothing reaches TP —
+   * and the reaction is withheld, since the notification was not imported.
+   *
    * An unrecognized message is never reacted to: classifying it as
    * unrecognized is not handling it. It is still reported to the debug
    * channel when one is configured, but the reaction is withheld whether
@@ -107,6 +113,18 @@ export class TpFeedListenerService implements OnModuleInit {
         await this.postToDebugChannel(
           debugChannelId,
           this.formatter.formatUnrecognized(message.url),
+        );
+      }
+      return;
+    }
+    if (!this.config.getTpScrapingEnabled()) {
+      // TP scraping is switched off: the notification is still interpreted
+      // and echoed, but nothing is imported, so it was not fully handled and
+      // gets no reaction.
+      if (debugChannelId) {
+        await this.postToDebugChannel(
+          debugChannelId,
+          this.formatter.format(result.event),
         );
       }
       return;

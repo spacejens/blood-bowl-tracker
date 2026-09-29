@@ -61,6 +61,7 @@ describe('TpFeedListenerService', () => {
     );
     config.getTpFeedSourceDiscordChannel.mockReturnValue(SOURCE_CHANNEL);
     config.getTpFeedDebugDiscordChannel.mockReturnValue(DEBUG_CHANNEL);
+    config.getTpScrapingEnabled.mockReturnValue(true);
     parser.parse.mockReturnValue({
       status: 'event',
       event: {
@@ -453,5 +454,65 @@ describe('TpFeedListenerService', () => {
       'rate limited',
     );
     errorLog.mockRestore();
+  });
+
+  describe('when TP scraping is disabled', () => {
+    beforeEach(() => {
+      config.getTpScrapingEnabled.mockReturnValue(false);
+    });
+
+    it('still echoes the interpretation to the debug channel, but imports nothing and does not react', async () => {
+      const react = vi.fn();
+      service.onModuleInit();
+
+      await registeredHandler()(message(SOURCE_CHANNEL, react));
+
+      expect(parser.parse).toHaveBeenCalled();
+      expect(discordClient.sendMessage).toHaveBeenCalledWith(DEBUG_CHANNEL, {
+        content: 'Hired: #3 Ragnfred Brownlock',
+        allowedMentions: { parse: [] },
+        flags: [MessageFlags.SuppressEmbeds],
+      });
+      expect(discordClient.sendMessage).toHaveBeenCalledTimes(1);
+      expect(feedImport.enqueue).not.toHaveBeenCalled();
+      expect(formatter.formatImportFailure).not.toHaveBeenCalled();
+      expect(react).not.toHaveBeenCalled();
+    });
+
+    it('imports nothing, posts nothing and does not react when no debug channel is configured', async () => {
+      const react = vi.fn();
+      config.getTpFeedDebugDiscordChannel.mockReturnValue(undefined);
+      service.onModuleInit();
+
+      await registeredHandler()(message(SOURCE_CHANNEL, react));
+
+      expect(parser.parse).toHaveBeenCalled();
+      expect(feedImport.enqueue).not.toHaveBeenCalled();
+      expect(discordClient.sendMessage).not.toHaveBeenCalled();
+      expect(react).not.toHaveBeenCalled();
+    });
+
+    it('still reacts to a message the parser ignores', async () => {
+      const react = vi.fn();
+      parser.parse.mockReturnValue({ status: 'ignored' });
+      service.onModuleInit();
+
+      await registeredHandler()(message(SOURCE_CHANNEL, react));
+
+      expect(feedImport.enqueue).not.toHaveBeenCalled();
+      expect(react).toHaveBeenCalledWith(PROCESSED_REACTION);
+    });
+
+    it('still reports an unrecognized message to the debug channel, without reacting', async () => {
+      const react = vi.fn();
+      parser.parse.mockReturnValue({ status: 'unrecognized' });
+      service.onModuleInit();
+
+      await registeredHandler()(message(SOURCE_CHANNEL, react));
+
+      expect(formatter.formatUnrecognized).toHaveBeenCalledWith(MESSAGE_URL);
+      expect(feedImport.enqueue).not.toHaveBeenCalled();
+      expect(react).not.toHaveBeenCalled();
+    });
   });
 });

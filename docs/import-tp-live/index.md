@@ -217,7 +217,9 @@ and `TpCompetitionModule` all need `packages/db`'s `DB`, which the app's
 `@Global()` module: `getBackendApiUrl()` and `getFrontendUrl()`, TP's base
 URLs with trailing slashes included. `apps/discord-bot` provides it from its
 `TpConnectionModule`, built from its `TP_FRONTEND_BASE_URL` and
-`TP_BACKEND_API_URL` settings.
+`TP_BACKEND_API_URL` settings. The bot's mandatory `TP_SCRAPING_ENABLED`
+setting decides whether its `/importtp` command and TP notification feed call
+these entry points at all; the package itself knows nothing about it.
 
 ## Development
 

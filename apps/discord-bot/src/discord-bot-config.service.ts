@@ -77,6 +77,21 @@ export class DiscordBotConfigService {
   }
 
   /**
+   * Master switch for all TP scraping and importing. Mandatory: only "true"
+   * or "false" (case-insensitive, surrounding whitespace ignored) are
+   * accepted, and anything else — including an unset or empty value — throws,
+   * so a typo can never silently turn TP traffic on or off. When false the
+   * bot sends no request to TP: `/importtp` refuses, and the TP feed parses
+   * and echoes notifications but imports nothing.
+   */
+  getTpScrapingEnabled(): boolean {
+    const value = this.getRequired('TP_SCRAPING_ENABLED').trim().toLowerCase();
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    throw new Error('TP_SCRAPING_ENABLED must be "true" or "false"');
+  }
+
+  /**
    * Discord channel id the TP notification feed listens to. Optional: unset or
    * empty turns the whole feature off — the listener never registers a message
    * handler at all, so nothing is parsed and nothing is logged. Like the

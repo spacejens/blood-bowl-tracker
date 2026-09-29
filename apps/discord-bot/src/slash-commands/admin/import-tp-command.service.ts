@@ -9,7 +9,10 @@ import type {
 import { ApplicationCommandOptionType, MessageFlags } from 'discord.js';
 
 import { DiscordBotConfigService } from '../../discord-bot-config.service';
-import { IMPORT_TP_UNSUPPORTED_URL_MESSAGE } from '../../error-messages';
+import {
+  IMPORT_TP_DISABLED_MESSAGE,
+  IMPORT_TP_UNSUPPORTED_URL_MESSAGE,
+} from '../../error-messages';
 import type { TpImportOutcome } from '../../tp-import/tp-import-dispatch.service';
 import { TpImportDispatchService } from '../../tp-import/tp-import-dispatch.service';
 import { SlashCommandRegistryService } from '../slash-command-registry.service';
@@ -29,6 +32,10 @@ import { ImportTpReplyService } from './import-tp-reply.service';
  * TP is blocking requests the import stops at once — during a back-off
  * before contacting TP at all — and the reply says so and when TP is next
  * contacted.
+ *
+ * The command stays registered when `TP_SCRAPING_ENABLED` is false, but then
+ * replies privately that TP scraping is disabled, before classifying the URL
+ * or contacting TP.
  *
  * Classification lives in packages/tp-paths, the import dispatch in
  * `TpImportDispatchService` and the reply in `ImportTpReplyService`; this
@@ -88,6 +95,12 @@ export class ImportTpCommandService implements OnModuleInit {
   async execute(
     interaction: ChatInputCommandInteraction,
   ): Promise<string | InteractionReplyOptions> {
+    if (!this.config.getTpScrapingEnabled()) {
+      return {
+        content: IMPORT_TP_DISABLED_MESSAGE,
+        flags: MessageFlags.Ephemeral,
+      };
+    }
     const url = interaction.options.getString('url', true);
     const era = interaction.options.getString('era')?.trim() || undefined;
     const page = this.classifier.classify(
