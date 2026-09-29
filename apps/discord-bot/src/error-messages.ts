@@ -308,3 +308,5 @@ export const DEBUG_RETRIGGER_ACCESS_DENIED_MESSAGE =
 // Deliberately plain rather than in-universe: this is administrator tooling.
 export const IMPORT_TP_UNSUPPORTED_URL_MESSAGE =
   'That is not a TP page this command can import. Give the URL of a TP competition (or its scores page), match, team roster, or the official teams page.';
+export const IMPORT_TP_DISABLED_MESSAGE =
+  'TP scraping is disabled in this deployment, so nothing can be imported from TP right now.';
