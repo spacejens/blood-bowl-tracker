@@ -354,4 +354,56 @@ describe('DiscordBotConfigService', () => {
       'TP_BACKEND_API_URL is not configured',
     );
   });
+
+  it('reads TP scraping as enabled when set to "true"', () => {
+    vi.mocked(configService.get).mockImplementation((key: string) =>
+      key === 'TP_SCRAPING_ENABLED' ? 'true' : undefined,
+    );
+    expect(service.getTpScrapingEnabled()).toBe(true);
+    expect(configService.get).toHaveBeenCalledWith('TP_SCRAPING_ENABLED');
+  });
+
+  it('reads TP scraping as disabled when set to "false"', () => {
+    vi.mocked(configService.get).mockImplementation((key: string) =>
+      key === 'TP_SCRAPING_ENABLED' ? 'false' : undefined,
+    );
+    expect(service.getTpScrapingEnabled()).toBe(false);
+  });
+
+  it.each([
+    [' TRUE ', true],
+    ['True', true],
+    ['\tfalse\n', false],
+    ['FALSE', false],
+  ])(
+    'accepts TP scraping value %j, ignoring case and surrounding whitespace',
+    (value, expected) => {
+      vi.mocked(configService.get).mockReturnValue(value);
+      expect(service.getTpScrapingEnabled()).toBe(expected);
+    },
+  );
+
+  it('throws when TP scraping enabled is not configured', () => {
+    vi.mocked(configService.get).mockReturnValue(undefined);
+    expect(() => service.getTpScrapingEnabled()).toThrow(
+      'TP_SCRAPING_ENABLED is not configured',
+    );
+  });
+
+  it('throws when TP scraping enabled is an empty string', () => {
+    vi.mocked(configService.get).mockReturnValue('');
+    expect(() => service.getTpScrapingEnabled()).toThrow(
+      'TP_SCRAPING_ENABLED is not configured',
+    );
+  });
+
+  it.each(['yes', '1', '0', 'on', 'off', 'truee', '   '])(
+    'throws for TP scraping enabled value %j',
+    (value) => {
+      vi.mocked(configService.get).mockReturnValue(value);
+      expect(() => service.getTpScrapingEnabled()).toThrow(
+        'TP_SCRAPING_ENABLED must be "true" or "false"',
+      );
+    },
+  );
 });
