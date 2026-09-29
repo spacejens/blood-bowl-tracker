@@ -1,8 +1,12 @@
 import { Test } from '@nestjs/testing';
 import type { Mock } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
+import { TpBlockedError } from './tp-blocked.error';
 import { TpFetcherService } from './tp-fetcher.service';
+import { TpGateService } from './tp-gate.service';
 
 const URL_A = 'https://tp.example/api/tournament/a';
 const URL_B = 'https://tp.example/api/tournament/b';
@@ -13,8 +17,6 @@ type FakeResponseInit = {
   status?: number;
   body?: string;
   setCookies?: string[];
-  /** Simulates a body read that takes this long, via a fake timer. */
-  textDelayMs?: number;
 };
 
 /**
@@ -25,25 +27,21 @@ type FakeResponseInit = {
 function fakeResponse(init: FakeResponseInit = {}): Response {
   const status = init.status ?? 200;
   const body = init.body ?? '{}';
-  const textDelayMs = init.textDelayMs ?? 0;
   return {
     ok: status >= 200 && status < 300,
     status,
     headers: new Headers(
       (init.setCookies ?? []).map((c): [string, string] => ['set-cookie', c]),
     ),
-    text: () =>
-      textDelayMs > 0
-        ? new Promise<string>((resolve) =>
-            setTimeout(() => resolve(body), textDelayMs),
-          )
-        : Promise.resolve(body),
+    text: () => Promise.resolve(body),
   } as unknown as Response;
 }
 
 describe('TpFetcherService', () => {
   let service: TpFetcherService;
   let fetchMock: Mock<typeof fetch>;
+  let gate: MockProxy<TpGateService>;
+  const BLOCKED = new TpBlockedError(new Date('2026-09-29T12:05:00.000Z'));
 
   function sentHeaders(callIndex: number): Record<string, string> {
     return fetchMock.mock.calls[callIndex][1]?.headers as Record<
@@ -52,18 +50,15 @@ describe('TpFetcherService', () => {
     >;
   }
 
-  /** Lets a request finish, advancing fake time past any pacing wait. */
-  async function settle<T>(request: Promise<T>): Promise<T> {
-    await vi.advanceTimersByTimeAsync(2000);
-    return request;
-  }
-
   beforeEach(async () => {
     fetchMock = vi.fn<typeof fetch>();
     fetchMock.mockResolvedValue(fakeResponse());
     vi.stubGlobal('fetch', fetchMock);
+    gate = mock<TpGateService>();
+    gate.run.mockImplementation((request) => request());
+    gate.block.mockReturnValue(BLOCKED);
     const moduleRef = await Test.createTestingModule({
-      providers: [TpFetcherService],
+      providers: [TpFetcherService, { provide: TpGateService, useValue: gate }],
     }).compile();
     service = moduleRef.get(TpFetcherService);
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
@@ -123,15 +118,45 @@ describe('TpFetcherService', () => {
       });
     });
 
-    it('throws naming the URL and status on a non-2xx response, without retrying', async () => {
+    it('throws naming the URL and status on a non-2xx response other than 403, without retrying or blocking', async () => {
+      fetchMock.mockResolvedValue(fakeResponse({ status: 500, body: 'oops' }));
+
+      await expect(service.createSession().fetch(URL_A)).rejects.toThrow(
+        `TP request to ${URL_A} failed with status 500`,
+      );
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(gate.block).not.toHaveBeenCalled();
+      expect(gate.succeeded).not.toHaveBeenCalled();
+    });
+
+    it('records a 403 as a TP block and throws the block error', async () => {
       fetchMock.mockResolvedValue(
         fakeResponse({ status: 403, body: 'Access denied.' }),
       );
 
-      await expect(service.createSession().fetch(URL_A)).rejects.toThrow(
-        `TP request to ${URL_A} failed with status 403`,
-      );
+      await expect(service.createSession().fetch(URL_A)).rejects.toBe(BLOCKED);
+      expect(gate.block).toHaveBeenCalledTimes(1);
       expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('records a 2xx response as a success with the gate', async () => {
+      await service.createSession().fetch(URL_A);
+
+      expect(gate.succeeded).toHaveBeenCalledTimes(1);
+    });
+
+    it('runs every request of every session through the gate', async () => {
+      await service.createSession().fetch(URL_A);
+      await service.createSession().fetch(URL_B);
+
+      expect(gate.run).toHaveBeenCalledTimes(2);
+    });
+
+    it('sends nothing to TP when the gate refuses the request', async () => {
+      gate.run.mockRejectedValue(BLOCKED);
+
+      await expect(service.createSession().fetch(URL_A)).rejects.toBe(BLOCKED);
+      expect(fetchMock).not.toHaveBeenCalled();
     });
 
     it('throws when a 2xx body is not valid JSON', async () => {
@@ -168,7 +193,7 @@ describe('TpFetcherService', () => {
       );
 
       await session.fetch(URL_A);
-      await settle(session.fetch(URL_B));
+      await session.fetch(URL_B);
 
       expect(sentHeaders(1).cookie).toBe('a=1; b=2');
     });
@@ -180,8 +205,8 @@ describe('TpFetcherService', () => {
         .mockResolvedValueOnce(fakeResponse({ setCookies: ['a=2'] }));
 
       await session.fetch(URL_A);
-      await settle(session.fetch(URL_B));
-      await settle(session.fetch(URL_C));
+      await session.fetch(URL_B);
+      await session.fetch(URL_C);
 
       expect(sentHeaders(2).cookie).toBe('a=2');
     });
@@ -193,7 +218,7 @@ describe('TpFetcherService', () => {
       );
 
       await session.fetch(URL_A);
-      await settle(session.fetch(URL_B));
+      await session.fetch(URL_B);
 
       expect(sentHeaders(1).cookie).toBe('ok=1');
     });
@@ -205,96 +230,6 @@ describe('TpFetcherService', () => {
       await service.createSession().fetch(URL_B);
 
       expect(sentHeaders(1)).not.toHaveProperty('cookie');
-    });
-  });
-
-  describe('pacing', () => {
-    it("does not delay a session's first request", async () => {
-      const request = service.createSession().fetch(URL_A);
-      await vi.advanceTimersByTimeAsync(0);
-
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-      await request;
-    });
-
-    it('waits 0.5 s after the previous request at the shortest', async () => {
-      vi.spyOn(Math, 'random').mockReturnValue(0);
-      const session = service.createSession();
-      await session.fetch(URL_A);
-
-      const second = session.fetch(URL_B);
-      await vi.advanceTimersByTimeAsync(499);
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-      await vi.advanceTimersByTimeAsync(1);
-      await second;
-      expect(fetchMock).toHaveBeenCalledTimes(2);
-    });
-
-    it('waits 2 s after the previous request at the longest', async () => {
-      vi.spyOn(Math, 'random').mockReturnValue(1);
-      const session = service.createSession();
-      await session.fetch(URL_A);
-
-      const second = session.fetch(URL_B);
-      await vi.advanceTimersByTimeAsync(1999);
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-      await vi.advanceTimersByTimeAsync(1);
-      await second;
-      expect(fetchMock).toHaveBeenCalledTimes(2);
-    });
-
-    it('counts time already spent since the previous request toward the wait', async () => {
-      vi.spyOn(Math, 'random').mockReturnValue(0.5); // 1250 ms
-      const session = service.createSession();
-      await session.fetch(URL_A);
-      await vi.advanceTimersByTimeAsync(1000);
-
-      const second = session.fetch(URL_B);
-      await vi.advanceTimersByTimeAsync(249);
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-      await vi.advanceTimersByTimeAsync(1);
-      await second;
-      expect(fetchMock).toHaveBeenCalledTimes(2);
-    });
-
-    it('does not wait at all once enough time has already passed', async () => {
-      vi.spyOn(Math, 'random').mockReturnValue(1);
-      const session = service.createSession();
-      await session.fetch(URL_A);
-      await vi.advanceTimersByTimeAsync(3000);
-
-      const second = session.fetch(URL_B);
-      await vi.advanceTimersByTimeAsync(0);
-      expect(fetchMock).toHaveBeenCalledTimes(2);
-      await second;
-    });
-
-    it('does not pace one session against another', async () => {
-      vi.spyOn(Math, 'random').mockReturnValue(1);
-      await service.createSession().fetch(URL_A);
-
-      const other = service.createSession().fetch(URL_B);
-      await vi.advanceTimersByTimeAsync(0);
-      expect(fetchMock).toHaveBeenCalledTimes(2);
-      await other;
-    });
-
-    it('paces from when the response body finishes reading, not from when fetch resolves', async () => {
-      vi.spyOn(Math, 'random').mockReturnValue(0); // shortest delay: 0.5 s
-      fetchMock.mockResolvedValueOnce(fakeResponse({ textDelayMs: 2500 }));
-      const session = service.createSession();
-
-      const first = session.fetch(URL_A);
-      await vi.advanceTimersByTimeAsync(2500); // let the slow body read finish
-      await first;
-
-      const second = session.fetch(URL_B);
-      await vi.advanceTimersByTimeAsync(0);
-      expect(fetchMock).toHaveBeenCalledTimes(1); // still waiting to pace
-
-      await vi.advanceTimersByTimeAsync(500);
-      await second;
-      expect(fetchMock).toHaveBeenCalledTimes(2);
     });
   });
 });

@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
+import { TpGateService } from './tp-gate.service';
+
 /** Options for one request made through a {@link TpFetchSession}. */
 export type TpFetchOptions = {
   /**
@@ -15,16 +17,20 @@ export type TpFetchOptions = {
 
 /**
  * One logical visit to TP — e.g. one whole tournament download. Its requests
- * share a cookie jar and are paced against each other; nothing is shared with
- * any other session. Callers make one request at a time: pacing and the
- * cookie jar are only meaningful in sequence, so concurrent calls on the same
- * session (e.g. via `Promise.all`) are not supported.
+ * share a cookie jar that no other session sees. Pacing and the block back-off
+ * are not per session: every request of every session passes through the
+ * process's one `TpGateService`. Callers make one request at a time on a
+ * session: the cookie jar is only meaningful in sequence, so concurrent calls
+ * on the same session (e.g. via `Promise.all`) are not supported.
  */
 export type TpFetchSession = {
   /**
-   * Requests `url` and returns its body parsed as JSON. Throws when the
-   * response is not 2xx, the body is not valid JSON, or the request does not
-   * complete within {@link REQUEST_TIMEOUT_MS}; never retries.
+   * Requests `url` and returns its body parsed as JSON. Throws
+   * `TpBlockedError` when TP answers 403, and — without contacting TP — for
+   * every request until that block's back-off ends. Throws a plain `Error`
+   * when the response is any other non-2xx status, the body is not valid
+   * JSON, or the request does not complete within {@link REQUEST_TIMEOUT_MS};
+   * never retries.
    */
   fetch(url: string, options?: TpFetchOptions): Promise<unknown>;
 };
@@ -32,7 +38,6 @@ export type TpFetchSession = {
 /** Mutable state private to the one session it was created for. */
 type TpSessionState = {
   cookies: Map<string, string>;
-  lastRequestAt: number | undefined;
 };
 
 /**
@@ -53,38 +58,33 @@ const BROWSER_HEADERS: Readonly<Record<string, string>> = {
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
 };
 
-/** Bounds of the random gap between two requests in the same session. */
-const MIN_DELAY_MS = 500;
-const MAX_DELAY_MS = 2000;
-
 /** A request that hasn't completed within this long is aborted, not retried. */
 const REQUEST_TIMEOUT_MS = 30_000;
 
 /**
- * Makes requests to TP's API that TP accepts from a non-browser client. All
- * request logic lives here; a session is only the per-visit state this
- * service's methods run against.
+ * Makes requests to TP's API that TP accepts from a non-browser client,
+ * each through the process-wide `TpGateService` (queueing, pacing, block
+ * back-off). All request logic lives here; a session is only the per-visit
+ * cookie state this service's methods run against.
  */
 @Injectable()
 export class TpFetcherService {
-  /** Starts one logical visit, with its own empty cookie jar and pacing. */
+  constructor(private readonly gate: TpGateService) {}
+
+  /** Starts one logical visit, with its own empty cookie jar. */
   createSession(): TpFetchSession {
-    const state: TpSessionState = {
-      cookies: new Map<string, string>(),
-      lastRequestAt: undefined,
-    };
+    const state: TpSessionState = { cookies: new Map<string, string>() };
     return {
       fetch: (url, options) => this.fetchInSession(state, url, options),
     };
   }
 
-  private async fetchInSession(
+  private fetchInSession(
     state: TpSessionState,
     url: string,
     options: TpFetchOptions = {},
   ): Promise<unknown> {
-    await this.waitForPacing(state);
-    try {
+    return this.gate.run(async () => {
       const response = await globalThis.fetch(url, {
         method: options.method ?? 'GET',
         headers: this.buildHeaders(state, options.referer),
@@ -92,32 +92,17 @@ export class TpFetcherService {
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
       this.absorbCookies(state, response.headers.getSetCookie());
+      if (response.status === 403) {
+        throw this.gate.block();
+      }
       if (!response.ok) {
         throw new Error(
           `TP request to ${url} failed with status ${response.status}`,
         );
       }
+      this.gate.succeeded();
       return this.parseJson(url, await response.text());
-    } finally {
-      state.lastRequestAt = Date.now();
-    }
-  }
-
-  /**
-   * Waits until a random 0.5–2 s have passed since the session's previous
-   * request completed. Time the caller already spent in between counts, so a
-   * caller that is slow anyway is not slowed further. A session's first
-   * request is never delayed.
-   */
-  private async waitForPacing(state: TpSessionState): Promise<void> {
-    if (state.lastRequestAt === undefined) {
-      return;
-    }
-    const delay = MIN_DELAY_MS + Math.random() * (MAX_DELAY_MS - MIN_DELAY_MS);
-    const remaining = state.lastRequestAt + delay - Date.now();
-    if (remaining > 0) {
-      await new Promise<void>((resolve) => setTimeout(resolve, remaining));
-    }
+    });
   }
 
   private buildHeaders(
