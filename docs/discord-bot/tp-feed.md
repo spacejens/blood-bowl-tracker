@@ -87,7 +87,10 @@ completed match. That is reported as a failure in the debug channel, with no
 
 A failed import is always logged. When a debug channel is configured it is
 also posted there as a short `TP import …` line keeping the notification's
-link, followed by one line per error.
+link, followed by one line per error. A post is limited to Discord's 2000
+characters: when the errors do not all fit, it lists the first ones that do
+and ends with a line saying how many more were left out, such as "…and 12
+more errors not shown."
 
 ## Configuration
 
