@@ -69,6 +69,7 @@ describe('TpCompetitionImportService', () => {
       participation: one,
       trophyAwards: one,
       competitionCreated: false,
+      competitionId: 12,
     });
     expect(upsert.upsertCompetition).toHaveBeenCalledWith({
       tournament: OPTIONS.tournament,
@@ -76,6 +77,7 @@ describe('TpCompetitionImportService', () => {
       era: 'Fourth era',
       externalSystemName: 'TP',
       overlayExisting: true,
+      finished: true,
       errors: [],
     });
     expect(participants.linkParticipants).toHaveBeenCalledWith({
@@ -102,6 +104,7 @@ describe('TpCompetitionImportService', () => {
       participation: nothing,
       trophyAwards: nothing,
       competitionCreated: false,
+      competitionId: undefined,
     });
     expect(participants.linkParticipants).not.toHaveBeenCalled();
     expect(trophyAwards.importAwards).not.toHaveBeenCalled();
@@ -118,6 +121,7 @@ describe('TpCompetitionImportService', () => {
       participation: { success: false, imported: 0, errors: [failure] },
       trophyAwards: nothing,
       competitionCreated: false,
+      competitionId: 12,
     });
     expect(trophyAwards.importAwards).not.toHaveBeenCalled();
   });
@@ -137,6 +141,7 @@ describe('TpCompetitionImportService', () => {
       participation: { success: false, imported: 1, errors: [failure] },
       trophyAwards: { success: false, imported: 0, errors: [failure] },
       competitionCreated: false,
+      competitionId: 12,
     });
   });
 
@@ -150,6 +155,26 @@ describe('TpCompetitionImportService', () => {
       participation: one,
       trophyAwards: one,
       competitionCreated: true,
+      competitionId: 12,
     });
+  });
+
+  it('upserts a competition with no awards yet as unfinished', async () => {
+    await service.importCompetition({ ...OPTIONS, awards: [] });
+
+    expect(upsert.upsertCompetition).toHaveBeenCalledWith(
+      expect.objectContaining({ finished: false }),
+    );
+  });
+
+  it('upserts a competition whose awards are unknown with an unknown finished state', async () => {
+    await service.importCompetition({ ...OPTIONS, awards: undefined });
+
+    const options = upsert.upsertCompetition.mock.calls[0]?.[0];
+    expect(options).toEqual(expect.objectContaining({ overlayExisting: true }));
+    expect(options?.finished).toBeUndefined();
+    expect(trophyAwards.importAwards).toHaveBeenCalledWith(
+      expect.objectContaining({ awards: [] }),
+    );
   });
 });

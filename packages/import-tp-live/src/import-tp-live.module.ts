@@ -5,6 +5,7 @@ import {
   PositionRulesSetsModule,
   PositionsModule,
   RacesModule,
+  TrophyAwardsModule,
 } from '@blood-bowl-tracker/game-data';
 import { ParseTpModule } from '@blood-bowl-tracker/parse-tp';
 import { ScrapeTpModule } from '@blood-bowl-tracker/scrape-tp';
@@ -17,6 +18,7 @@ import { TpBracketFetchService } from './live/tp-bracket-fetch.service';
 import { TpCompetitionMatchesBackfillService } from './live/tp-competition-matches-backfill.service';
 import { TpCompetitionParticipantsBackfillService } from './live/tp-competition-participants-backfill.service';
 import { TpEraResolutionService } from './live/tp-era-resolution.service';
+import { TpExtraTrophyAwardsService } from './live/tp-extra-trophy-awards.service';
 import { TpInscriptionsFetchService } from './live/tp-inscriptions-fetch.service';
 import { TpLiveCompetitionImportService } from './live/tp-live-competition-import.service';
 import { TpLiveMatchImportService } from './live/tp-live-match-import.service';
@@ -55,6 +57,7 @@ import { TpNameExternalIdService } from './tp-name-external-id.service';
     PlayersModule,
     PositionRulesSetsModule,
     PositionsModule,
+    TrophyAwardsModule,
     TpCompetitionModule,
     TpOfficialTeamsModule,
   ],
@@ -73,6 +76,7 @@ import { TpNameExternalIdService } from './tp-name-external-id.service';
     TpAwardsFetchService,
     TpInscriptionsFetchService,
     TpCompetitionParticipantsBackfillService,
+    TpExtraTrophyAwardsService,
     TpLiveCompetitionImportService,
     TpOfficialTeamsFetchService,
     TpLiveOfficialTeamsImportService,

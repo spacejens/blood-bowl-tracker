@@ -356,8 +356,8 @@ export function buildTpMatchesRoutes(tpMatchImport: TpMatchImportService) {
 // tpCompetitions.import: a coarse TP import, like tpRosters.import. Every
 // failure is reported in the result's ImportResults, so it declares no
 // contract error and is not routed through the upsert handler. Only the
-// contract's stages are returned: the core's competitionCreated flag is for
-// the live import alone.
+// contract's stages are returned: the core's competitionCreated flag and
+// competitionId are for the live import alone.
 export function buildTpCompetitionsRoutes(
   tpCompetitionImport: TpCompetitionImportService,
 ) {

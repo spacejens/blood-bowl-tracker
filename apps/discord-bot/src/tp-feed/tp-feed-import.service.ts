@@ -1,3 +1,4 @@
+import type { TpPageClassification } from '@blood-bowl-tracker/tp-paths';
 import { TpPageClassifierService } from '@blood-bowl-tracker/tp-paths';
 import { Injectable, Logger } from '@nestjs/common';
 
@@ -22,13 +23,21 @@ export const TP_FEED_IMPORT_DELAY_MS = 1000;
 /**
  * Imports what a TP notification is about: the match of an end-of-match
  * notification, both teams of a start-of-match one, and the team of a
- * skill, hire or fire one — through the same dispatch `/importtp` uses.
+ * skill, hire or fire one, and, for a competition trophy announcement, the
+ * whole competition as its scores page (forcing every completed match to be
+ * backfilled, so the extra trophies computed from match events see them
+ * all) — through the same dispatch `/importtp` uses.
  *
  * Imports run strictly one at a time, in the order they were enqueued, each
  * after {@link TP_FEED_IMPORT_DELAY_MS}, so a burst of notifications never
  * hits TP or the database in parallel. The queue is a promise chain: each
  * job starts when the previous one settles, and a job never rejects, so a
  * failure never stops the jobs behind it.
+ *
+ * Trophy announcements for one competition arrive in a burst. While one is
+ * queued and has not yet finished its import delay, a further one for the
+ * same tournament is not queued again; it shares the queued job's result. No
+ * other kind is merged.
  *
  * Only real failures are reported, judged by `TpImportFailureService` so
  * the feed and `/importtp` agree; every one is also logged here, so with no
@@ -38,6 +47,10 @@ export const TP_FEED_IMPORT_DELAY_MS = 1000;
 export class TpFeedImportService {
   private readonly logger = new Logger(TpFeedImportService.name);
   private tail: Promise<unknown> = Promise.resolve();
+  private readonly queuedTrophyJobs = new Map<
+    string,
+    Promise<TpFeedImportResult>
+  >();
 
   constructor(
     private readonly config: DiscordBotConfigService,
@@ -53,13 +66,25 @@ export class TpFeedImportService {
    * enqueues before its first `await` keeps arrival order. Never rejects.
    */
   enqueue(event: TpFeedEvent): Promise<TpFeedImportResult> {
-    const job = this.tail.then(() => this.run(event));
+    const mergeKey = this.mergeKey(event);
+    const queued =
+      mergeKey === undefined ? undefined : this.queuedTrophyJobs.get(mergeKey);
+    if (queued !== undefined) {
+      return queued;
+    }
+    const job = this.tail.then(() => this.run(event, mergeKey));
+    if (mergeKey !== undefined) {
+      this.queuedTrophyJobs.set(mergeKey, job);
+    }
     this.tail = job.catch(() => undefined);
     return job;
   }
 
-  private async run(event: TpFeedEvent): Promise<TpFeedImportResult> {
-    const result = await this.attempt(event);
+  private async run(
+    event: TpFeedEvent,
+    mergeKey: string | undefined,
+  ): Promise<TpFeedImportResult> {
+    const result = await this.attempt(event, mergeKey);
     if (result.failed) {
       this.logFailure(event, result);
     }
@@ -77,9 +102,21 @@ export class TpFeedImportService {
     }
   }
 
-  private async attempt(event: TpFeedEvent): Promise<TpFeedImportResult> {
+  private async attempt(
+    event: TpFeedEvent,
+    mergeKey: string | undefined,
+  ): Promise<TpFeedImportResult> {
     try {
-      await this.sleep.sleep(TP_FEED_IMPORT_DELAY_MS);
+      try {
+        await this.sleep.sleep(TP_FEED_IMPORT_DELAY_MS);
+      } finally {
+        if (mergeKey !== undefined) {
+          // From here the import reads TP afresh (or, if the delay failed,
+          // never runs), so a later announcement is no longer covered by it
+          // and must queue its own run.
+          this.queuedTrophyJobs.delete(mergeKey);
+        }
+      }
       const target = this.target(event);
       if (target === undefined) {
         return {
@@ -117,10 +154,7 @@ export class TpFeedImportService {
    * link is not the kind of TP page that notification should point to.
    */
   private target(event: TpFeedEvent): TpImportTarget | undefined {
-    const page = this.classifier.classify(
-      event.link,
-      this.config.getTpFrontendBaseUrl(),
-    );
+    const page = this.classify(event.link);
     switch (event.kind) {
       case 'match-end':
         return page.kind === 'match' ? page : undefined;
@@ -132,6 +166,10 @@ export class TpFeedImportService {
               matchId: page.matchId,
             }
           : undefined;
+      case 'competition-trophy':
+        return page.kind === 'competition'
+          ? { kind: 'competitionScores', tournamentSlug: page.tournamentSlug }
+          : undefined;
       case 'new-skill-or-characteristic':
       case 'hired':
       case 'fired':
@@ -139,9 +177,40 @@ export class TpFeedImportService {
     }
   }
 
-  private expectedPage(event: TpFeedEvent): 'match' | 'roster' {
-    return event.kind === 'match-start' || event.kind === 'match-end'
-      ? 'match'
-      : 'roster';
+  private expectedPage(event: TpFeedEvent): 'match' | 'roster' | 'competition' {
+    switch (event.kind) {
+      case 'match-start':
+      case 'match-end':
+        return 'match';
+      case 'competition-trophy':
+        return 'competition';
+      case 'new-skill-or-characteristic':
+      case 'hired':
+      case 'fired':
+        return 'roster';
+    }
+  }
+
+  /**
+   * The key that merges queued trophy announcements: the tournament slug of
+   * a trophy announcement's competition page. TP posts one announcement per
+   * trophy, all at once, and one import of the competition covers them all.
+   * Undefined for every other kind, and for a link that is not a
+   * competition page (that one fails on its own when it runs).
+   */
+  private mergeKey(event: TpFeedEvent): string | undefined {
+    if (event.kind !== 'competition-trophy') {
+      return undefined;
+    }
+    try {
+      const page = this.classify(event.link);
+      return page.kind === 'competition' ? page.tournamentSlug : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private classify(link: string): TpPageClassification {
+    return this.classifier.classify(link, this.config.getTpFrontendBaseUrl());
   }
 }

@@ -186,6 +186,15 @@ describe('TpFeedFormatterService', () => {
     );
   });
 
+  it('formats a competition trophy announcement', () => {
+    expect(
+      service.format({
+        kind: 'competition-trophy',
+        link: 'https://tp/s30/awards',
+      }),
+    ).toBe('Competition trophy announced — https://tp/s30/awards');
+  });
+
   it('formats an unrecognized notification as a link back to the message', () => {
     expect(
       service.formatUnrecognized(

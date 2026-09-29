@@ -14,7 +14,7 @@ describe('RpcRouterFactoryService tpCompetitions router', () => {
     const one = { success: true, imported: 1, errors: [] };
     const outcome = { competition: one, participation: one, trophyAwards: one };
     harness.mocks.tpCompetitionImportService.importCompetition.mockResolvedValue(
-      { ...outcome, competitionCreated: true },
+      { ...outcome, competitionCreated: true, competitionId: 12 },
     );
     const awards = [{ id: 24112, awardType: 1, rosterId: 179769 }];
 

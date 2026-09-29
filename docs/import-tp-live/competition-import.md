@@ -35,7 +35,8 @@ const result = await tpLiveCompetitionImportService.importCompetition({
   started when omitted.
 - `forceMatchBackfill`: optional, default false. Backfill every completed
   match of the competition even when it was already imported (see stage 7
-  below). `/importtp` sets it for a competition's scores page.
+  below). `/importtp` sets it for a competition's scores page. The TP
+  feed's trophy announcement uses it too.
 
 The import runs these stages in order. Each is reported in the result even
 when an earlier one fails:
@@ -63,13 +64,28 @@ when an earlier one fails:
    match import imports its own match (fetch it, import both teams, write
    it), reusing the bracket already fetched in step 1. Matches not played
    yet are skipped. Re-importing an already-imported match is harmless.
+8. **Award the extra trophies**: only once the competition is imported and
+   finished, meaning step 5 returned at least one award. The trophies TP
+   does not record itself (`max_count`, `max_spp_sum` and `career_threshold`
+   rules) are computed by game-data's `MissingTrophyAwardsService`, the same
+   service `tools/import-tp`'s bulk run calls at its end. This runs after
+   step 7 and is skipped, with one error in `extraTrophyAwards`, when step 7
+   reported errors: a trophy already awarded is never recomputed, so an
+   award computed while a match is missing would stay wrong. When no
+   backfill ran in this import (a plain re-import of an existing
+   competition), the step relies on the matches imported earlier, and cannot
+   tell whether any is missing. It is idempotent, so re-importing is
+   harmless.
 
 A failed inscriptions fetch still imports the competition, with no teams
 linked and no awards — when `era` is given explicitly; without one, a failed
 inscriptions fetch leaves no teams to resolve an era from, so the
 competition stage fails instead (see the zero-teams row in the Failures
 table below). A failed awards fetch still imports the competition and links
-its teams. Either failure is reported in its own stage.
+its teams. Either failure is reported in its own stage. Neither counts as an
+unfinished competition: with the awards unknown, no extra trophies are
+awarded and a stored end date is left exactly as stored, neither reset nor
+written.
 
 The result carries `competition`, `participation` and `trophyAwards` (one
 `ImportResult` each), `teams`: one live team import result per registered
@@ -77,7 +93,10 @@ team, with its `rosterId`, and `era`: the era the competition was imported
 under — the given one or the one the teams agreed on — or undefined when the
 import stopped before settling one. When step 7 ran, the result also carries
 `matchesBackfill`: one `ImportResult` counting the matches written and
-holding every backfilled match's errors.
+holding every backfilled match's errors. `extraTrophyAwards`: one
+`ImportResult` counting the awards step 8 created (nothing imported when it
+did not run, and one error when it was skipped because step 7 reported
+errors).
 
 A team whose coach was never imported before is still imported: the live
 team import creates the coach from the roster's own coach id and name, with
@@ -89,12 +108,23 @@ no NAF number (see [index.md](index.md)).
 already-fetched, already-parsed input:
 
 - **Competition**: upserted by its TP id. A new competition gets its era by
-  name, and its type and dates from its matches' dates. The dates are
-  classified by the same ≤ 3-day cup rule as
+  name, and its type and start date from its matches' dates. Its end date is
+  written only once the competition is finished, meaning the call's awards are
+  non-empty: the latest played date, or a later stored end date. Until then a
+  new competition's end date is null, and an overlay resets a stored end date
+  to null, even when the call has no new match dates, so a competition stored
+  with an end date but no awards is corrected by its next full import. A call
+  whose awards are unknown (the live import's awards or inscriptions fetch
+  failed) is neither: a new competition still gets a null end date, but a
+  stored one keeps its end date exactly as stored. A finished overlay with no
+  dated matches has nothing to derive an end date from and leaves it as
+  stored. The
+  dates are classified by the same ≤ 3-day cup rule as
   [match import](match-import.md). An already-imported competition has its
-  era, type and dates overwritten from this call's data, its stored name kept
-  (TP's raw name never overwrites it) and its external id kept in sync (a
-  live match import's own upsert leaves the
+  era, type and start date overwritten (and its end date, when finished) from
+  this call's data; with no new match dates only the end date reset applies.
+  Its stored name is kept (TP's raw name never overwrites it) and its
+  external id kept in sync (a live match import's own upsert leaves the
   stored era, type and dates alone). A new competition's group is found by
   matching its raw TP name against every curated group's `namePattern` (see
   [docs/import-manual](../import-manual/index.md#competition-groups)):
@@ -169,3 +199,5 @@ Neither entry point throws for an import problem. Every failure is one
 | Unresolvable trophy key                                                                                                             | `trophyAwards`, once per key; further rows summarized |
 | Trophy award upsert failure                                                                                                         | `trophyAwards`                                        |
 | A backfilled match's fetch, team import or write fails; live only                                                                   | `matchesBackfill`; the other matches still import     |
+| Computing the extra trophy awards fails; live only                                                                                  | `extraTrophyAwards`; TP's own awards stay recorded    |
+| The match backfill reported errors, so the extra trophy awards are skipped; live only                                               | `extraTrophyAwards`; nothing awarded                  |

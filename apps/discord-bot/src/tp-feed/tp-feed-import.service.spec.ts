@@ -63,6 +63,26 @@ const SKILL: TpFeedEvent = {
   description: 'Block',
   link: ROSTER_LINK,
 };
+const TROPHY_LINK = `${BASE}tloegbbl-sasong-30/awards`;
+const OTHER_TROPHY_LINK = `${BASE}tloegbbl-sasong-31/awards`;
+const COMPETITION_PAGE: TpPageClassification = {
+  kind: 'competition',
+  tournamentSlug: 'tloegbbl-sasong-30',
+};
+const OTHER_COMPETITION_PAGE: TpPageClassification = {
+  kind: 'competition',
+  tournamentSlug: 'tloegbbl-sasong-31',
+};
+const TROPHY: TpFeedEvent = { kind: 'competition-trophy', link: TROPHY_LINK };
+const OTHER_TROPHY: TpFeedEvent = {
+  kind: 'competition-trophy',
+  link: OTHER_TROPHY_LINK,
+};
+/** Canned classification per link. */
+const PAGES: Record<string, TpPageClassification> = {
+  [TROPHY_LINK]: COMPETITION_PAGE,
+  [OTHER_TROPHY_LINK]: OTHER_COMPETITION_PAGE,
+};
 const OUTCOME = { kind: 'roster', rosterId: 167242 } as TpImportOutcome;
 const assessment = (
   status: TpImportAssessment['status'],
@@ -160,9 +180,33 @@ describe('TpFeedImportService', () => {
       expect(classifier.classify).toHaveBeenCalledWith(ROSTER_LINK, BASE);
       expect(dispatch.dispatch).toHaveBeenCalledWith({ page: ROSTER_PAGE });
     });
+
+    it("imports a trophy announcement's whole competition, forcing its matches to be backfilled", async () => {
+      classifier.classify.mockReturnValue(COMPETITION_PAGE);
+
+      await expect(service.enqueue(TROPHY)).resolves.toEqual({ failed: false });
+      expect(classifier.classify).toHaveBeenCalledWith(TROPHY_LINK, BASE);
+      expect(dispatch.dispatch).toHaveBeenCalledWith({
+        page: {
+          kind: 'competitionScores',
+          tournamentSlug: 'tloegbbl-sasong-30',
+        },
+      });
+    });
   });
 
   describe('failures', () => {
+    it('fails a trophy announcement whose link is not a competition page', async () => {
+      classifier.classify.mockReturnValue(MATCH_PAGE);
+
+      await expect(service.enqueue(TROPHY)).resolves.toEqual({
+        failed: true,
+        headline: 'TP import failed: the link is not a TP competition page',
+        errors: [],
+      });
+      expect(dispatch.dispatch).not.toHaveBeenCalled();
+    });
+
     let warn: MockInstance<Logger['warn']>;
 
     beforeEach(() => {
@@ -240,6 +284,109 @@ describe('TpFeedImportService', () => {
       await expect(service.enqueue(HIRED)).resolves.toMatchObject({
         errors: ['boom'],
       });
+    });
+  });
+
+  describe('merging queued trophy announcements', () => {
+    const BLOCKER: TpFeedEvent = { ...FIRED, link: `${BASE}roster/999` };
+
+    beforeEach(() => {
+      classifier.classify.mockImplementation(
+        (url) => PAGES[url] ?? ROSTER_PAGE,
+      );
+    });
+
+    it('skips a trophy announcement for a competition already queued, reporting the queued result', async () => {
+      const first = deferred<TpImportOutcome>();
+      dispatch.dispatch
+        .mockReturnValueOnce(first.promise)
+        .mockResolvedValue(OUTCOME);
+
+      const blocker = service.enqueue(BLOCKER);
+      const one = service.enqueue(TROPHY);
+      const two = service.enqueue({ ...TROPHY });
+
+      expect(two).toBe(one);
+      first.resolve(OUTCOME);
+      await Promise.all([blocker, one, two]);
+      expect(dispatch.dispatch).toHaveBeenCalledTimes(2);
+    });
+
+    it('merges an announcement that arrives while the queued one is still waiting out its delay', async () => {
+      const delay = deferred<void>();
+      sleep.sleep.mockReturnValueOnce(delay.promise);
+
+      const one = service.enqueue(TROPHY);
+      await flush();
+      const two = service.enqueue({ ...TROPHY });
+
+      expect(two).toBe(one);
+      delay.resolve();
+      await one;
+      expect(dispatch.dispatch).toHaveBeenCalledTimes(1);
+    });
+
+    it('queues a fresh import for an announcement arriving after the queued one started importing', async () => {
+      const running = deferred<TpImportOutcome>();
+      dispatch.dispatch
+        .mockReturnValueOnce(running.promise)
+        .mockResolvedValue(OUTCOME);
+
+      const one = service.enqueue(TROPHY);
+      await flush();
+      expect(dispatch.dispatch).toHaveBeenCalledTimes(1);
+      const two = service.enqueue({ ...TROPHY });
+
+      expect(two).not.toBe(one);
+      running.resolve(OUTCOME);
+      await Promise.all([one, two]);
+      expect(dispatch.dispatch).toHaveBeenCalledTimes(2);
+    });
+
+    it('releases the queued entry when the import delay fails, so a later announcement queues its own import', async () => {
+      sleep.sleep.mockRejectedValueOnce(new Error('sleep broke'));
+      dispatch.dispatch.mockResolvedValue(OUTCOME);
+
+      const one = service.enqueue(TROPHY);
+      const oneResult = await one;
+      const two = service.enqueue({ ...TROPHY });
+
+      expect(oneResult).toMatchObject({ failed: true });
+      expect(two).not.toBe(one);
+      await expect(two).resolves.toEqual({ failed: false });
+      expect(dispatch.dispatch).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not merge announcements for different competitions', async () => {
+      const first = deferred<TpImportOutcome>();
+      dispatch.dispatch
+        .mockReturnValueOnce(first.promise)
+        .mockResolvedValue(OUTCOME);
+
+      const blocker = service.enqueue(BLOCKER);
+      const one = service.enqueue(TROPHY);
+      const two = service.enqueue(OTHER_TROPHY);
+
+      expect(two).not.toBe(one);
+      first.resolve(OUTCOME);
+      await Promise.all([blocker, one, two]);
+      expect(dispatch.dispatch).toHaveBeenCalledTimes(3);
+    });
+
+    it('does not merge other kinds of notification', async () => {
+      const first = deferred<TpImportOutcome>();
+      dispatch.dispatch
+        .mockReturnValueOnce(first.promise)
+        .mockResolvedValue(OUTCOME);
+
+      const blocker = service.enqueue(BLOCKER);
+      const one = service.enqueue(HIRED);
+      const two = service.enqueue({ ...HIRED });
+
+      expect(two).not.toBe(one);
+      first.resolve(OUTCOME);
+      await Promise.all([blocker, one, two]);
+      expect(dispatch.dispatch).toHaveBeenCalledTimes(3);
     });
   });
 

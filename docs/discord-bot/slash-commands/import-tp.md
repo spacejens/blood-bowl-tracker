@@ -38,7 +38,11 @@ a side effect of importing one of its matches — also has every completed
 match TP already records for it imported; a match import that creates its
 competition imports the competition's registered teams too. To backfill the
 completed matches of a competition that was already imported, give its
-scores page URL: that always runs the match backfill.
+scores page URL: that always runs the match backfill. Once TP has published a
+competition's awards (it is finished), the import also awards the trophies TP
+does not record itself, and only then sets the competition's end date. This
+applies to a competition page import and to a match import that creates the
+competition.
 
 ## The reply
 
@@ -54,11 +58,23 @@ one embed titled after the page imported, starting with a status:
 - **Failed** — the main thing was not imported: the competition, the match,
   the team, or every rules set of the official team list.
 
-Below it, a line per import stage says how much it imported (for a
-competition, match or team, also the era used), and an **Errors** section lists
+Below it, a line per import stage says how much it imported (a
+competition's TP trophy awards are followed by an **Extra trophy awards** line
+counting those awarded beyond what TP records; for a competition, match or
+team, also the era used), and an **Errors** section lists
 every problem reported, labelled by stage. Any backfill the import ran gets
-its own lines after the import's own stages. A very long reply is cut off at
-Discord's embed limit.
+its own lines after the import's own stages: for a match import that created
+its competition, these are the backfilled teams, participation and trophy
+awards, a **Backfilled extra trophy awards** line counting the extra trophies
+awarded once the competition turned out to be finished, and the **Matches
+backfill**. When TP returned awards, so the extra trophies were due, but the
+match backfill reported errors, the **Backfilled extra trophy awards** line
+instead carries one error saying the extra trophies were skipped. Without TP
+awards there is nothing to skip: that line shows zero and no error. The same
+holds for a scores-page `/importtp` (a forced backfill): when TP returned
+awards and its match backfill reports errors, the competition import's own
+**Extra trophy awards** line carries the skipped error. A very long reply is
+cut off at Discord's embed limit.
 
 It uses the same import code as `tools/import-tp`'s bulk import, registered
 under `TP_EXTERNAL_SYSTEM_NAME`, which must match that tool's configured

@@ -6,12 +6,15 @@ import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
 import { Injectable } from '@nestjs/common';
 
+import type { UpsertedTpCompetition } from '../competition/tp-competition-upsert.service';
 import { TpCompetitionUpsertService } from '../competition/tp-competition-upsert.service';
 import { TpImportResultsService } from '../tp-import-results.service';
+import type { TpBracket } from './tp-bracket-fetch.service';
 import { TpBracketFetchService } from './tp-bracket-fetch.service';
 import { TpCompetitionMatchesBackfillService } from './tp-competition-matches-backfill.service';
 import type { TpParticipantsBackfillResult } from './tp-competition-participants-backfill.service';
 import { TpCompetitionParticipantsBackfillService } from './tp-competition-participants-backfill.service';
+import { TpExtraTrophyAwardsService } from './tp-extra-trophy-awards.service';
 import { TpLiveStarPlayerHiresService } from './tp-live-star-player-hires.service';
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
 import { TpMatchDataImportService } from './tp-match-data-import.service';
@@ -35,6 +38,17 @@ export interface ImportLiveMatchOptions {
    * is paced as one visit. A fresh session is started when omitted.
    */
   session?: TpFetchSession;
+}
+
+/** Options for {@link TpLiveMatchImportService.finishCompetition}. */
+interface FinishCompetitionOptions {
+  tournamentSlug: string;
+  bracket: TpBracket;
+  era: string;
+  externalSystemName: string;
+  competition: UpsertedTpCompetition;
+  /** Whether the import's match backfill reported errors. */
+  matchesBackfillFailed: boolean;
 }
 
 /** What one live match import did, one result per stage. */
@@ -62,6 +76,15 @@ export interface TpLiveMatchImportResult {
    * competition.
    */
   matchesBackfill?: ImportResult;
+  /**
+   * Finishing the competition this import created, once its backfill
+   * fetched TP awards: re-upserting it as finished (settling its end date)
+   * and awarding the trophies TP does not record itself, unless the match
+   * backfill reported errors (one error is recorded instead). Present only
+   * when this import created the competition; nothing imported when TP has no
+   * awards for it yet or its awards could not be fetched.
+   */
+  extraTrophyAwards?: ImportResult;
 }
 
 @Injectable()
@@ -75,6 +98,7 @@ export class TpLiveMatchImportService {
     private readonly participantsBackfill: TpCompetitionParticipantsBackfillService,
     private readonly matchesBackfill: TpCompetitionMatchesBackfillService,
     private readonly importResults: TpImportResultsService,
+    private readonly extraTrophyAwards: TpExtraTrophyAwardsService,
   ) {}
 
   /**
@@ -92,7 +116,13 @@ export class TpLiveMatchImportService {
    * competition's dates only. The backfills report their own failures and
    * never fail this import. Every failure is reported in the returned
    * results, never thrown; a stage whose prerequisite failed is not
-   * attempted and reports nothing imported.
+   * attempted and reports nothing imported. The competition is created
+   * unfinished, with no end date. When the participants backfill fetched TP
+   * awards, the competition is finished after both backfills: re-upserted as
+   * finished, which settles its end date, and awarded the trophies TP does
+   * not record, reported in `extraTrophyAwards` (skipped, with one error,
+   * when the match backfill reported errors). A failed awards fetch leaves the
+   * finished state unknown, so neither happens.
    */
   async importMatch({
     matchId,
@@ -187,7 +217,25 @@ export class TpLiveMatchImportService {
         session: visit,
         bracket,
       });
-      return { ...imported, participantsBackfill, matchesBackfill };
+      const finished =
+        participantsBackfill.awardsFetched !== undefined &&
+        participantsBackfill.awardsFetched > 0;
+      const extraTrophyAwards = finished
+        ? await this.finishCompetition({
+            tournamentSlug,
+            bracket,
+            era: ready.era,
+            externalSystemName,
+            competition: upserted,
+            matchesBackfillFailed: matchesBackfill.errors.length > 0,
+          })
+        : this.importResults.result({ imported: 0, errors: [] });
+      return {
+        ...imported,
+        participantsBackfill,
+        matchesBackfill,
+        extraTrophyAwards,
+      };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       return {
@@ -200,6 +248,51 @@ export class TpLiveMatchImportService {
         ]),
       };
     }
+  }
+
+  /**
+   * A competition this import created and whose backfill fetched TP's
+   * awards is finished: re-upsert it as a finished overlay over the whole
+   * bracket's played dates, so its end date is settled in this same run,
+   * then award the trophies TP does not record. A failed re-upsert is
+   * reported but does not stop the awards, which need only the
+   * competition's id. The awards are skipped, with one recorded error, when
+   * the match backfill reported errors: a missing match would skew them for
+   * good. That never holds back the end date.
+   */
+  private async finishCompetition({
+    tournamentSlug,
+    bracket,
+    era,
+    externalSystemName,
+    competition,
+    matchesBackfillFailed,
+  }: FinishCompetitionOptions): Promise<ImportResult> {
+    const errors: ImportError[] = [];
+    // The return value is intentionally ignored: a failed re-upsert records
+    // its error in `errors`, and the extras need only the competition's id.
+    await this.competitionUpsert.upsertCompetition({
+      tournament: bracket.tournament,
+      playedDates: bracket.playedDates,
+      era,
+      externalSystemName,
+      overlayExisting: true,
+      finished: true,
+      errors,
+    });
+    if (matchesBackfillFailed) {
+      const skipped =
+        this.extraTrophyAwards.skippedForBackfillErrors(tournamentSlug);
+      return this.failed([...errors, ...skipped.errors]);
+    }
+    const extras = await this.extraTrophyAwards.computeExtras({
+      competitionId: competition.competitionId,
+      tournamentSlug,
+    });
+    return this.importResults.result({
+      imported: extras.imported,
+      errors: [...errors, ...extras.errors],
+    });
   }
 
   private failed(errors: ImportError[]): ImportResult {
