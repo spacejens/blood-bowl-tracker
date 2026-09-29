@@ -7,12 +7,6 @@
       }
     }
   },
-  "permissions": {
-    "allow": [
-      "Bash(git add *)",
-      "Bash(git commit *)"
-    ]
-  },
   "enabledPlugins": {
     "superpowers@superpowers-dev": true
   }
