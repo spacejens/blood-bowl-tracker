@@ -117,7 +117,9 @@ played. It writes no match, competition or star player hire.
 The result carries `match` (the match fetch: only ever failures, never
 counted as imported), `homeTeam` and `awayTeam`. A failed fetch imports no
 team; a home team that was not imported leaves the away team unattempted.
-Nothing is thrown: an unexpected error is reported on `match`.
+Nothing is thrown except a TP block (`TpBlockedError`, see
+[Failures in the index](index.md#failures)): an unexpected error is reported
+on `match`.
 
 ## Star player hires
 
@@ -204,7 +206,9 @@ stage.
 ## Failures
 
 None of the entry points throw for an import problem; every failure is one
-`ImportError` in the result.
+`ImportError` in the result — except a TP block, which the live imports throw
+as `TpBlockedError`, stopping at once, backfills included (see
+[Failures in the index](index.md#failures)).
 
 | Failure                                                                                                                                                                           | Reported in                                 |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |

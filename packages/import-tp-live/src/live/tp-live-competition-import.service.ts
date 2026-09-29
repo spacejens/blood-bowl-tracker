@@ -3,7 +3,10 @@ import type {
   ImportResult,
 } from '@blood-bowl-tracker/api-contract';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
-import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
+import {
+  TpBlockedError,
+  TpFetcherService,
+} from '@blood-bowl-tracker/scrape-tp';
 import { Injectable } from '@nestjs/common';
 
 import { TpCompetitionImportService } from '../competition/tp-competition-import.service';
@@ -100,7 +103,7 @@ export class TpLiveCompetitionImportService {
    * era given, the competition is imported under the one era its registered
    * teams were imported under; teams that disagree, or none resolving one,
    * fail the competition stage, while the teams stay imported. Every failure
-   * is reported in the returned results, never thrown. Once the competition
+   * is reported in the returned results, never thrown. A TP block (`TpBlockedError`) is the one exception: it is rethrown at once, so no further team, match or rules set is attempted against a TP that refuses every request. Once the competition
    * is imported, every completed match of its bracket is backfilled —
    * reusing the bracket already fetched — when the competition was newly
    * created or `forceMatchBackfill` is set; the backfill reports its own
@@ -230,6 +233,9 @@ export class TpLiveCompetitionImportService {
         ...(matchesBackfill === undefined ? {} : { matchesBackfill }),
       };
     } catch (error) {
+      if (error instanceof TpBlockedError) {
+        throw error;
+      }
       const message = error instanceof Error ? error.message : String(error);
       return {
         ...this.nothingImported(),

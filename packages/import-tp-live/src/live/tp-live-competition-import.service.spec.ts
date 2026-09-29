@@ -4,7 +4,10 @@ import type {
 } from '@blood-bowl-tracker/api-contract';
 import type { TpAward } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
-import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
+import {
+  TpBlockedError,
+  TpFetcherService,
+} from '@blood-bowl-tracker/scrape-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -332,6 +335,22 @@ describe('TpLiveCompetitionImportService', () => {
       extraTrophyAwards: nothing,
       era: undefined,
     });
+  });
+
+  it('stops at a TP block on the bracket instead of reporting it', async () => {
+    const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
+    bracketFetch.fetchBracket.mockRejectedValue(blocked);
+
+    await expect(importCompetition()).rejects.toBe(blocked);
+    expect(participantsBackfill.importRegisteredTeams).not.toHaveBeenCalled();
+  });
+
+  it('stops at a TP block while importing registered teams, importing no competition', async () => {
+    const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
+    participantsBackfill.importRegisteredTeams.mockRejectedValue(blocked);
+
+    await expect(importCompetition()).rejects.toBe(blocked);
+    expect(competitionImport.importCompetition).not.toHaveBeenCalled();
   });
 
   describe('extra trophy awards', () => {

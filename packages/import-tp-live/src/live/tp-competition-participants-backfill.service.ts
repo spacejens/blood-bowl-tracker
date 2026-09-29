@@ -3,6 +3,7 @@ import type {
   ImportResult,
 } from '@blood-bowl-tracker/api-contract';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
+import { TpBlockedError } from '@blood-bowl-tracker/scrape-tp';
 import { Injectable } from '@nestjs/common';
 
 import { TpCompetitionParticipantsService } from '../competition/tp-competition-participants.service';
@@ -129,7 +130,7 @@ export class TpCompetitionParticipantsBackfillService {
    * and record its trophy awards — the same stages the shared competition
    * core runs after its own upsert. A stage whose prerequisite failed is not
    * attempted and reports nothing imported. Every failure is reported in the
-   * result, never thrown.
+   * result, never thrown. A TP block (`TpBlockedError`) is the one exception: it is rethrown at once, so no further team, match or rules set is attempted against a TP that refuses every request.
    */
   async backfill({
     competition,
@@ -196,6 +197,9 @@ export class TpCompetitionParticipantsBackfillService {
         awardsFetched: awards?.length,
       };
     } catch (error) {
+      if (error instanceof TpBlockedError) {
+        throw error;
+      }
       const message = error instanceof Error ? error.message : String(error);
       return {
         teams,

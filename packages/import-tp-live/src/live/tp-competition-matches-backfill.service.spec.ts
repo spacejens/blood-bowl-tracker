@@ -1,5 +1,6 @@
 import type { ImportResult } from '@blood-bowl-tracker/api-contract';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
+import { TpBlockedError } from '@blood-bowl-tracker/scrape-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -169,6 +170,14 @@ describe('TpCompetitionMatchesBackfillService', () => {
       ],
     });
     expect(matchData.importMatchData).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops at a TP block instead of going on to the next match', async () => {
+    const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
+    matchData.importMatchData.mockRejectedValueOnce(blocked);
+
+    await expect(backfill()).rejects.toBe(blocked);
+    expect(matchData.importMatchData).toHaveBeenCalledTimes(1);
   });
 
   it('imports nothing for a bracket with no completed match', async () => {

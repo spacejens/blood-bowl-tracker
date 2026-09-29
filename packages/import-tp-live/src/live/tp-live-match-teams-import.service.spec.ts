@@ -1,6 +1,9 @@
 import type { ImportResult } from '@blood-bowl-tracker/api-contract';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
-import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
+import {
+  TpBlockedError,
+  TpFetcherService,
+} from '@blood-bowl-tracker/scrape-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -219,5 +222,13 @@ describe('TpLiveMatchTeamsImportService', () => {
     expect(result.match.errors[0]?.message).toBe(
       `Unexpected error importing the teams of match ${MATCH_TP_ID}: boom`,
     );
+  });
+
+  it('stops at a TP block instead of reporting it', async () => {
+    const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
+    matchFetch.fetchMatch.mockRejectedValue(blocked);
+
+    await expect(importMatchTeams()).rejects.toBe(blocked);
+    expect(teamImport.importTeam).not.toHaveBeenCalled();
   });
 });

@@ -182,7 +182,9 @@ per stage.
 ## Failures
 
 Neither entry point throws for an import problem. Every failure is one
-`ImportError` in the result.
+`ImportError` in the result, except a TP block, which the live import throws
+as `TpBlockedError` and which stops it at once, mid-backfill included (see
+[Failures in the index](index.md#failures)).
 
 | Failure                                                                                                                             | Reported in                                           |
 | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |

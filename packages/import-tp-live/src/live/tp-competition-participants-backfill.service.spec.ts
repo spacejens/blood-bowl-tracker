@@ -4,6 +4,7 @@ import type {
 } from '@blood-bowl-tracker/api-contract';
 import type { TpAward } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
+import { TpBlockedError } from '@blood-bowl-tracker/scrape-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -147,6 +148,14 @@ describe('TpCompetitionParticipantsBackfillService', () => {
       ]);
     });
 
+    it('stops at a TP block, importing no further team', async () => {
+      const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
+      teamImport.importTeam.mockRejectedValueOnce(blocked);
+
+      await expect(importRegisteredTeams()).rejects.toBe(blocked);
+      expect(teamImport.importTeam).toHaveBeenCalledTimes(1);
+    });
+
     it('reports an inscriptions fetch failure and imports no team', async () => {
       inscriptionsFetch.fetchParticipantRosterIds.mockImplementation(
         ({ errors }) => {
@@ -273,6 +282,15 @@ describe('TpCompetitionParticipantsBackfillService', () => {
       const result = await backfill();
 
       expect(result.awardsFetched).toBeUndefined();
+    });
+
+    it('stops at a TP block instead of reporting it, linking nothing', async () => {
+      const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
+      teamImport.importTeam.mockRejectedValueOnce(blocked);
+
+      await expect(backfill()).rejects.toBe(blocked);
+      expect(teamImport.importTeam).toHaveBeenCalledTimes(1);
+      expect(participants.linkParticipants).not.toHaveBeenCalled();
     });
 
     it('catches an unexpected exception instead of throwing, keeping the imported teams', async () => {

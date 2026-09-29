@@ -1,7 +1,10 @@
 import type { TpOfficialTeamsImportResult } from '@blood-bowl-tracker/api-contract';
 import type { TpOfficialRace } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
-import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
+import {
+  TpBlockedError,
+  TpFetcherService,
+} from '@blood-bowl-tracker/scrape-tp';
 import { TpOfficialTeamsPathsService } from '@blood-bowl-tracker/tp-paths';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -187,5 +190,16 @@ describe('TpLiveOfficialTeamsImportService', () => {
     });
     expect(result.rulesSets[1].write).toBe(WRITTEN);
     expect(result.rulesSets[2].write).toBe(WRITTEN);
+  });
+
+  it('stops at a TP block instead of going on to the next rules set', async () => {
+    const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
+    officialTeamsFetch.fetchOfficialTeams.mockRejectedValueOnce(blocked);
+
+    await expect(
+      service.importOfficialTeams({ externalSystemName: EXTERNAL_SYSTEM_NAME }),
+    ).rejects.toBe(blocked);
+    expect(officialTeamsFetch.fetchOfficialTeams).toHaveBeenCalledTimes(1);
+    expect(officialTeamsImport.importOfficialTeams).not.toHaveBeenCalled();
   });
 });

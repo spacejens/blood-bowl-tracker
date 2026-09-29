@@ -3,7 +3,10 @@ import type {
   TpMatchImportResult,
 } from '@blood-bowl-tracker/api-contract';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
-import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
+import {
+  TpBlockedError,
+  TpFetcherService,
+} from '@blood-bowl-tracker/scrape-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -400,6 +403,14 @@ describe('TpLiveMatchImportService', () => {
     expect(
       competitionUpsert.upsertCompetition.mock.calls[0][0],
     ).not.toHaveProperty('overlayExisting');
+  });
+
+  it('stops at a TP block instead of reporting it', async () => {
+    const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
+    matchData.importTeams.mockRejectedValue(blocked);
+
+    await expect(importMatch()).rejects.toBe(blocked);
+    expect(bracketFetch.fetchBracket).not.toHaveBeenCalled();
   });
 
   describe('when its competition upsert created the competition', () => {

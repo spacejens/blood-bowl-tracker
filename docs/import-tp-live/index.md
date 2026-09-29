@@ -172,22 +172,28 @@ them in its own later pass, naming skills from its whole download mirror.
 ## Failures
 
 Neither entry point throws for an import problem. Each is one `ImportError`
-in the result:
+in the result — with one exception for the live imports: when TP blocks
+requests (a 403, see [scrape-tp](../scrape-tp/index.md#what-a-request-does)),
+`TpBlockedError` is thrown out of the entry point at once. Every further
+request would fail the same way, so no further team, match or rules set is
+attempted and nothing about the block is reported per stage. The error is
+re-exported from this package for callers to catch; its `retryAt` says when
+TP is next contacted. The other failures:
 
-| Failure                                                                      | Reported in                                          |
-| ---------------------------------------------------------------------------- | ---------------------------------------------------- |
-| TP request fails (network error, TP refusing or rate-limiting it); live only | `team`, naming the roster id                         |
-| Roster does not parse                                                        | `team`                                               |
-| Race unresolvable, no ongoing era, or several ongoing eras; live only        | `team`, naming the race and the eras found           |
-| Explicitly passed era does not exist; live only                              | `team`, naming the era                               |
-| Era not in the database                                                      | `team`, naming the era and roster                    |
-| Era declares no single rules set                                             | `team`; the import continues without characteristics |
-| External systems cannot be set up                                            | `team`                                               |
-| Race unresolvable, coach or team upsert failure                              | `team`                                               |
-| Position unresolvable, player upsert failure                                 | `players`                                            |
-| Skill id neither named by the roster nor carried by a skill; live only       | `players`, once per id                               |
-| Hatred/Animosity keyword code not curated; live only                         | `players`, once per skill and code                   |
-| Skill upsert, skill lookup, keyword catalogue read or player-skill write     | `players`                                            |
+| Failure                                                                                                 | Reported in                                          |
+| ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| TP request fails (network error, TP rate-limiting it; a 403 block throws instead, see above); live only | `team`, naming the roster id                         |
+| Roster does not parse                                                                                   | `team`                                               |
+| Race unresolvable, no ongoing era, or several ongoing eras; live only                                   | `team`, naming the race and the eras found           |
+| Explicitly passed era does not exist; live only                                                         | `team`, naming the era                               |
+| Era not in the database                                                                                 | `team`, naming the era and roster                    |
+| Era declares no single rules set                                                                        | `team`; the import continues without characteristics |
+| External systems cannot be set up                                                                       | `team`                                               |
+| Race unresolvable, coach or team upsert failure                                                         | `team`                                               |
+| Position unresolvable, player upsert failure                                                            | `players`                                            |
+| Skill id neither named by the roster nor carried by a skill; live only                                  | `players`, once per id                               |
+| Hatred/Animosity keyword code not curated; live only                                                    | `players`, once per skill and code                   |
+| Skill upsert, skill lookup, keyword catalogue read or player-skill write                                | `players`                                            |
 
 When the team is not imported, its players are not attempted and `players`
 reports nothing imported.
