@@ -102,8 +102,9 @@ not the command's reply.
 
 When TP is blocking the bot's requests (it answers 403 "Access denied"),
 the import stops at the first refused request and the reply is a single
-line instead: TP is blocking requests, nothing was imported, and the time
-before which the bot sends TP nothing more. During that back-off (see
+line instead: TP is blocking requests, the import stopped and may have
+imported partial data (writes made before the refused request stay), and the
+time before which the bot sends TP nothing more. During that back-off (see
 [scrape-tp](../../scrape-tp/index.md#what-a-request-does)) the command
 answers at once without contacting TP. Run it again after the time shown.
 

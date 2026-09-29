@@ -73,15 +73,16 @@ export class ImportTpReplyService {
   }
 
   /**
-   * The reply when TP is blocking requests: nothing was imported, and TP is
-   * not contacted again before `retryAt`. Discord's own timestamp markup
-   * shows the time in each viewer's zone; it is rounded up to the second so
-   * "after that" is never early.
+   * The reply when TP is blocking requests: the import stopped, possibly
+   * after some of its data was already written, and TP is not contacted
+   * again before `retryAt`. Discord's own timestamp markup shows the time in
+   * each viewer's zone; it is rounded up to the second so "after that" is
+   * never early.
    */
   blocked(retryAt: Date): InteractionReplyOptions {
     const at = Math.ceil(retryAt.getTime() / 1000);
     return {
-      content: `TP is blocking requests (HTTP 403 Access denied), so nothing was imported. The bot sends TP nothing more until <t:${at}:f> (<t:${at}:R>); try again after that.`,
+      content: `TP is blocking requests (HTTP 403 Access denied), so the import stopped and may have imported partial data. The bot sends TP nothing more until <t:${at}:f> (<t:${at}:R>); try again after that.`,
       flags: MessageFlags.Ephemeral,
     };
   }

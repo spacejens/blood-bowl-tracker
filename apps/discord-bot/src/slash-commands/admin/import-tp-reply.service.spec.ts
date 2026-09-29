@@ -545,7 +545,7 @@ describe('ImportTpReplyService', () => {
     it('says TP is blocking requests and when TP is next contacted, privately', () => {
       expect(service.blocked(new Date('2026-09-29T12:05:00.000Z'))).toEqual({
         content:
-          'TP is blocking requests (HTTP 403 Access denied), so nothing was imported. The bot sends TP nothing more until <t:1790683500:f> (<t:1790683500:R>); try again after that.',
+          'TP is blocking requests (HTTP 403 Access denied), so the import stopped and may have imported partial data. The bot sends TP nothing more until <t:1790683500:f> (<t:1790683500:R>); try again after that.',
         flags: MessageFlags.Ephemeral,
       });
     });
