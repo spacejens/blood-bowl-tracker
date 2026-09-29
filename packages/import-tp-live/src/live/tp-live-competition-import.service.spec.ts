@@ -343,6 +343,7 @@ describe('TpLiveCompetitionImportService', () => {
 
     await expect(importCompetition()).rejects.toBe(blocked);
     expect(participantsBackfill.importRegisteredTeams).not.toHaveBeenCalled();
+    expect(blocked.backfillInterrupted).toBeUndefined();
   });
 
   it('stops at a TP block while importing registered teams, importing no competition', async () => {
@@ -351,6 +352,15 @@ describe('TpLiveCompetitionImportService', () => {
 
     await expect(importCompetition()).rejects.toBe(blocked);
     expect(competitionImport.importCompetition).not.toHaveBeenCalled();
+    expect(blocked.backfillInterrupted).toBeUndefined();
+  });
+
+  it('does not mark a block on the awards as interrupting a backfill', async () => {
+    const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
+    awardsFetch.fetchAwards.mockRejectedValue(blocked);
+
+    await expect(importCompetition()).rejects.toBe(blocked);
+    expect(blocked.backfillInterrupted).toBeUndefined();
   });
 
   describe('extra trophy awards', () => {
@@ -631,6 +641,26 @@ describe('TpLiveCompetitionImportService', () => {
       expect(matchesBackfill.backfill).toHaveBeenCalledWith(
         expect.objectContaining({ era: 'Fourth era' }),
       );
+    });
+
+    it('marks a block while backfilling a newly created competition as interrupting the backfill', async () => {
+      competitionImport.importCompetition.mockResolvedValue({
+        ...CORE,
+        competitionCreated: true,
+      });
+      const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
+      matchesBackfill.backfill.mockRejectedValue(blocked);
+
+      await expect(importCompetition()).rejects.toBe(blocked);
+      expect(blocked.backfillInterrupted).toBe(true);
+    });
+
+    it("marks a block during an existing competition's forced backfill as interrupting it", async () => {
+      const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
+      matchesBackfill.backfill.mockRejectedValue(blocked);
+
+      await expect(importForced()).rejects.toBe(blocked);
+      expect(blocked.backfillInterrupted).toBe(true);
     });
 
     it('backfills no match when the competition itself was not imported, even when forced', async () => {

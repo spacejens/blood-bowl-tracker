@@ -92,8 +92,9 @@ link, followed by one line per error.
 
 ### When TP blocks requests
 
-TP answers a client it is blocking with 403 "Access denied". The first
-refused request stops that import at once (see
+TP answers a client it is blocking with 403 "Access denied" (any 403
+counts; the body is not inspected). The first refused request stops that
+import at once (see
 [import-tp-live's Failures](../import-tp-live/index.md#failures)), and for a
 back-off period — 5 minutes, growing to 15 minutes and then 1 hour while
 TP keeps refusing — the bot sends TP nothing at all (see
@@ -101,18 +102,27 @@ TP keeps refusing — the bot sends TP nothing at all (see
 drop such an import: it waits until the back-off ends and runs it again, up
 to three times, and the imports queued behind it wait too. Only a retry TP
 itself refuses counts toward the three; one the bot turned away without
-contacting TP, because the back-off had been extended meanwhile, does not. A retry forces the
-competition backfill of a match import, so a competition whose backfill the
-block interrupted is completed rather than left partial. The debug
-channel gets one line when TP starts blocking, saying until when imports
-are paused, and one when an import next gets through — not a failure line
-per import. An import TP is still blocking after its third retry is given
-up and reported as a failed import like any other; running `/importtp` on
-its link later brings it in. From then until an import gets through again,
-the imports behind it do not wait: one that starts before the back-off ends
-fails at once without contacting TP, and one TP still refuses after it is
-not retried. Each is reported with the same failure line, so the debug
-channel lists every import to re-run.
+contacting TP, because the back-off had been extended meanwhile, does not.
+
+A retry redoes a competition's backfill only when the block interrupted
+one. For a match import, that means the import had just created the
+competition and TP blocked it while backfilling the competition's teams and
+matches; the competition then already exists, so without being forced the
+retry would skip the backfill and leave it partial. Once forced, every later
+retry of that import forces it too. A block met anywhere else — the
+import's first requests, a team, or a match's teams — retries the import as
+it was. A trophy announcement's competition import backfills every match
+on every run anyway.
+
+The debug channel gets one line when TP starts blocking, saying until when
+imports are paused, and one when an import next gets through — not a
+failure line per import. An import TP is still blocking after its third
+retry is given up and reported as a failed import like any other; running
+`/importtp` on its link later brings it in. From then until an import gets
+through again, the imports behind it do not wait: one that starts before
+the back-off ends fails at once without contacting TP, and one TP still
+refuses after it is not retried. Each is reported with the same failure
+line, so the debug channel lists every import to re-run.
 
 The queue is held in memory only. A restart or deploy while imports are
 waiting drops them, with no failure line and no ✔️ reaction, so after a

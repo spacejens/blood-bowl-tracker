@@ -106,7 +106,9 @@ export class TpLiveCompetitionImportService {
    * reported in the returned results, never thrown. A TP block
    * (`TpBlockedError`) is the one exception: it is rethrown at once, so no
    * further team or match is attempted against a TP that refuses every
-   * request. Once the competition is imported, every completed match of its
+   * request; a block met during the match backfill has its
+   * `backfillInterrupted` set first, so a retry knows to force the backfill
+   * of a competition that now exists. Once the competition is imported, every completed match of its
    * bracket is backfilled —
    * reusing the bracket already fetched — when the competition was newly
    * created or `forceMatchBackfill` is set; the backfill reports its own
@@ -128,6 +130,7 @@ export class TpLiveCompetitionImportService {
     forceMatchBackfill = false,
   }: ImportLiveCompetitionOptions): Promise<TpLiveCompetitionImportResult> {
     const teams: TpLiveCompetitionTeamResult[] = [];
+    let backfilling = false;
     try {
       const visit = session ?? this.fetcher.createSession();
       const competitionErrors: ImportError[] = [];
@@ -210,17 +213,18 @@ export class TpLiveCompetitionImportService {
         }),
         era: competitionEra,
       };
-      const matchesBackfill =
+      backfilling =
         core.competition.imported > 0 &&
-        (core.competitionCreated || forceMatchBackfill)
-          ? await this.matchesBackfill.backfill({
-              tournamentSlug,
-              era: competitionEra,
-              externalSystemName,
-              session: visit,
-              bracket,
-            })
-          : undefined;
+        (core.competitionCreated || forceMatchBackfill);
+      const matchesBackfill = backfilling
+        ? await this.matchesBackfill.backfill({
+            tournamentSlug,
+            era: competitionEra,
+            externalSystemName,
+            session: visit,
+            bracket,
+          })
+        : undefined;
       const finished = awards !== undefined && awards.length > 0;
       const extraTrophyAwards =
         finished && core.competitionId !== undefined
@@ -237,6 +241,9 @@ export class TpLiveCompetitionImportService {
       };
     } catch (error) {
       if (error instanceof TpBlockedError) {
+        if (backfilling) {
+          error.backfillInterrupted = true;
+        }
         throw error;
       }
       const message = error instanceof Error ? error.message : String(error);

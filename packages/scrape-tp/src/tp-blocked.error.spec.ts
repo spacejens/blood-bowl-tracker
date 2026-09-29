@@ -23,6 +23,14 @@ describe('TpBlockedError', () => {
     expect(new TpBlockedError(retryAt).answeredByTp).toBe(true);
   });
 
+  it('carries no interrupted-backfill signal until an import sets one', () => {
+    const error = new TpBlockedError(retryAt);
+
+    expect(error.backfillInterrupted).toBeUndefined();
+    error.backfillInterrupted = true;
+    expect(error.backfillInterrupted).toBe(true);
+  });
+
   it('can say the request was refused without contacting TP', () => {
     expect(
       new TpBlockedError(retryAt, { answeredByTp: false }).answeredByTp,

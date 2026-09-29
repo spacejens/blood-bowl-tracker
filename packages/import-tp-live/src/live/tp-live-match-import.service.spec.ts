@@ -428,6 +428,23 @@ describe('TpLiveMatchImportService', () => {
 
     await expect(importMatch()).rejects.toBe(blocked);
     expect(bracketFetch.fetchBracket).not.toHaveBeenCalled();
+    expect(blocked.backfillInterrupted).toBeUndefined();
+  });
+
+  it('does not mark a block on the bracket as interrupting a backfill', async () => {
+    const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
+    bracketFetch.fetchBracket.mockRejectedValue(blocked);
+
+    await expect(importMatch()).rejects.toBe(blocked);
+    expect(blocked.backfillInterrupted).toBeUndefined();
+  });
+
+  it("marks a block during an existing competition's forced backfill as interrupting it", async () => {
+    const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
+    matchesBackfill.backfill.mockRejectedValue(blocked);
+
+    await expect(importMatch(true)).rejects.toBe(blocked);
+    expect(blocked.backfillInterrupted).toBe(true);
   });
 
   describe('when its competition upsert created the competition', () => {
@@ -470,6 +487,20 @@ describe('TpLiveMatchImportService', () => {
       expect(writeOrder).toBeLessThan(participantsOrder);
       expect(participantsOrder).toBeLessThan(matchesOrder);
     });
+
+    it.each([
+      ['registered teams', () => participantsBackfill.backfill],
+      ['completed matches', () => matchesBackfill.backfill],
+    ])(
+      'marks a block while backfilling its %s as interrupting the backfill',
+      async (_stage, backfill) => {
+        const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
+        backfill().mockRejectedValue(blocked);
+
+        await expect(importMatch()).rejects.toBe(blocked);
+        expect(blocked.backfillInterrupted).toBe(true);
+      },
+    );
 
     it('creates the competition as unfinished', async () => {
       await importMatch();

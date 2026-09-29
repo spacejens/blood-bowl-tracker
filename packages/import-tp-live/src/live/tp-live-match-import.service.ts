@@ -128,7 +128,10 @@ export class TpLiveMatchImportService {
    * prerequisite failed is not attempted and reports nothing imported. A TP
    * block (`TpBlockedError`) is the one exception: it is rethrown at once,
    * so no further team or match is attempted against a TP that refuses
-   * every request. The competition is created unfinished, with no end date.
+   * every request. A block met during the competition's backfill has its
+   * `backfillInterrupted` set first, so a retry knows to force the backfill
+   * of a competition that now exists. The competition is created
+   * unfinished, with no end date.
    * When the participants backfill fetched TP awards, the competition is
    * finished after both backfills: re-upserted as finished, which settles
    * its end date, and awarded the trophies TP does not record, reported in
@@ -144,6 +147,7 @@ export class TpLiveMatchImportService {
     session,
     forceMatchBackfill = false,
   }: ImportLiveMatchOptions): Promise<TpLiveMatchImportResult> {
+    let backfilling = false;
     try {
       const visit = session ?? this.fetcher.createSession();
       const { matchFetch, homeTeam, awayTeam, ready } =
@@ -215,6 +219,7 @@ export class TpLiveMatchImportService {
       if (!upserted.created && !forceMatchBackfill) {
         return imported;
       }
+      backfilling = true;
       const participantsBackfill = await this.participantsBackfill.backfill({
         tournamentSlug,
         categoryIds: bracket.tournament.categoryIds,
@@ -251,6 +256,9 @@ export class TpLiveMatchImportService {
       };
     } catch (error) {
       if (error instanceof TpBlockedError) {
+        if (backfilling) {
+          error.backfillInterrupted = true;
+        }
         throw error;
       }
       const message = error instanceof Error ? error.message : String(error);

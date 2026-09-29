@@ -26,6 +26,14 @@ export class TpBlockedError extends Error {
    */
   readonly answeredByTp: boolean;
 
+  /**
+   * Set by an import that meets this block while backfilling a competition,
+   * before rethrowing it: the competition exists, but its backfill did not
+   * complete, so a retry must force the backfill rather than skip it for an
+   * existing competition. Unset for a block met anywhere else.
+   */
+  backfillInterrupted?: boolean;
+
   constructor(
     retryAt: Date,
     { answeredByTp = true }: TpBlockedErrorOptions = {},

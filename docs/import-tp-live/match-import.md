@@ -27,7 +27,9 @@ const result = await tpLiveMatchImportService.importMatch({
   started when omitted.
 - `forceMatchBackfill`: optional, default false. Run the backfill below even
   when the competition already exists, for one whose earlier backfill a TP
-  block interrupted. Every backfill write is an upsert, so redoing it is safe.
+  block interrupted (that block's `TpBlockedError` has `backfillInterrupted`
+  set: a block met while the backfill ran, not before it). Every backfill
+  write is an upsert, so redoing it is safe.
 
 The import runs these stages in order, each reported in the result even when
 an earlier one fails:

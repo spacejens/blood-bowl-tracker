@@ -30,6 +30,9 @@ const RETRY_AT = new Date(NOW.getTime() + 5 * MINUTE);
 const blocked = () => new TpBlockedError(RETRY_AT);
 /** A block the gate raised without contacting TP: the back-off was on. */
 const refused = () => new TpBlockedError(RETRY_AT, { answeredByTp: false });
+/** A block met while a newly created competition was being backfilled. */
+const interruptedBackfill = () =>
+  Object.assign(blocked(), { backfillInterrupted: true });
 const AFTER_BLOCK = new Date(RETRY_AT.getTime() + MINUTE);
 const BASE = 'https://tourplay.net/en/blood-bowl/';
 const MATCH_LINK = `${BASE}tloeg-blood-bowl-league-sasong-31/match/670570`;
@@ -497,7 +500,7 @@ describe('TpFeedImportService', () => {
       ]);
     });
 
-    it('asks only the retries after a block to redo the competition backfill', async () => {
+    it('retries without forcing a backfill when the block interrupted none', async () => {
       dispatch.dispatch
         .mockRejectedValueOnce(blocked())
         .mockResolvedValueOnce(OUTCOME);
@@ -506,6 +509,34 @@ describe('TpFeedImportService', () => {
 
       expect(dispatch.dispatch.mock.calls).toEqual([
         [{ page: ROSTER_PAGE }],
+        [{ page: ROSTER_PAGE }],
+      ]);
+    });
+
+    it("forces the retry to redo a competition's backfill the block interrupted", async () => {
+      dispatch.dispatch
+        .mockRejectedValueOnce(interruptedBackfill())
+        .mockResolvedValueOnce(OUTCOME);
+
+      await service.enqueue(HIRED);
+
+      expect(dispatch.dispatch.mock.calls).toEqual([
+        [{ page: ROSTER_PAGE }],
+        [{ page: ROSTER_PAGE, forceMatchBackfill: true }],
+      ]);
+    });
+
+    it('keeps forcing the backfill on later retries, even when a later block interrupted none', async () => {
+      dispatch.dispatch
+        .mockRejectedValueOnce(interruptedBackfill())
+        .mockRejectedValueOnce(blocked())
+        .mockResolvedValueOnce(OUTCOME);
+
+      await service.enqueue(HIRED);
+
+      expect(dispatch.dispatch.mock.calls).toEqual([
+        [{ page: ROSTER_PAGE }],
+        [{ page: ROSTER_PAGE, forceMatchBackfill: true }],
         [{ page: ROSTER_PAGE, forceMatchBackfill: true }],
       ]);
     });

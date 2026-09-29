@@ -194,8 +194,10 @@ export class TpFeedImportService {
    * too. Only a retry TP itself answered with a block counts toward
    * TP_FEED_BLOCK_RETRIES, not one the gate refused without contacting TP.
    * Returns the outcome, or the last block when TP was still blocking after
-   * the last retry. A retry forces the competition backfill a block may have
-   * cut short. Any other error propagates.
+   * the last retry. Once a block has interrupted a competition's backfill
+   * (`backfillInterrupted`), every later retry of the job forces that
+   * backfill, which a competition that now exists would otherwise skip;
+   * other retries force nothing. Any other error propagates.
    *
    * Once a job has given up, later jobs fail fast until an import gets
    * through again: one queued before that block's back-off ends is not
@@ -213,12 +215,13 @@ export class TpFeedImportService {
       return gaveUpOn;
     }
     let retries = 0;
+    let forceMatchBackfill = false;
     for (let attempt = 0; ; attempt += 1) {
       try {
         const outcome = await this.dispatch.dispatch(
-          attempt === 0
-            ? { page: target }
-            : { page: target, forceMatchBackfill: true },
+          forceMatchBackfill
+            ? { page: target, forceMatchBackfill }
+            : { page: target },
         );
         this.gaveUpOn = undefined;
         await this.markUnblocked();
@@ -228,6 +231,7 @@ export class TpFeedImportService {
           throw error;
         }
         await this.markBlocked(error.retryAt);
+        forceMatchBackfill ||= error.backfillInterrupted === true;
         if (attempt > 0 && error.answeredByTp) {
           retries += 1;
         }

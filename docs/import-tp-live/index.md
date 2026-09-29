@@ -178,7 +178,14 @@ requests (a 403, see [scrape-tp](../scrape-tp/index.md#what-a-request-does)),
 request would fail the same way, so no further team, match or rules set is
 attempted and nothing about the block is reported per stage. The error is
 re-exported from this package for callers to catch; its `retryAt` says when
-TP is next contacted. The other failures:
+TP is next contacted. When the block interrupts a competition's backfill in
+a live match or competition import (see
+[match-import.md](match-import.md) and
+[competition-import.md](competition-import.md)), its `backfillInterrupted`
+is set to true before it is thrown: the competition now exists, so a caller
+retrying the import passes `forceMatchBackfill` to complete the backfill
+rather than skip it. A block met before the backfill leaves it unset. The
+other failures:
 
 | Failure                                                                                                 | Reported in                                          |
 | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
