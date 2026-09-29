@@ -108,10 +108,10 @@ export class TpLiveCompetitionImportService {
    * further team or match is attempted against a TP that refuses every
    * request; a block met during the match backfill has its
    * `backfillInterrupted` set first, so a retry knows to force the backfill
-   * of a competition that now exists. Once the competition is imported, every completed match of its
-   * bracket is backfilled —
-   * reusing the bracket already fetched — when the competition was newly
-   * created or `forceMatchBackfill` is set; the backfill reports its own
+   * of a competition that now exists. Once the competition is imported,
+   * every completed match of its bracket is backfilled — reusing the
+   * bracket already fetched — when the competition was newly created or
+   * `forceMatchBackfill` is set; the backfill reports its own
    * failures in `matchesBackfill` and never fails the import. Last, once
    * the competition is imported and finished (TP returned at least one
    * award), the trophies TP does not record itself are awarded, after the

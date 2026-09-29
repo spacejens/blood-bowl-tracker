@@ -649,6 +649,12 @@ describe('TpFeedImportService', () => {
           'TP import gave up: TP was still blocking requests after 3 retries',
         errors: [blocked().message],
       };
+      const SKIPPED = {
+        failed: true,
+        headline:
+          'TP import skipped: TP is blocking requests and an earlier import gave up',
+        errors: [blocked().message],
+      };
 
       beforeEach(() => {
         vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
@@ -662,7 +668,7 @@ describe('TpFeedImportService', () => {
         ]);
 
         expect(one).toEqual(GAVE_UP);
-        expect(two).toEqual(GAVE_UP);
+        expect(two).toEqual(SKIPPED);
         expect(dispatch.dispatch).toHaveBeenCalledTimes(
           TP_FEED_BLOCK_RETRIES + 1,
         );
@@ -679,7 +685,7 @@ describe('TpFeedImportService', () => {
         dispatch.dispatch.mockClear();
         sleep.sleep.mockClear();
 
-        await expect(service.enqueue(FIRED)).resolves.toEqual(GAVE_UP);
+        await expect(service.enqueue(FIRED)).resolves.toEqual(SKIPPED);
         expect(dispatch.dispatch).toHaveBeenCalledTimes(1);
         expect(sleep.sleep.mock.calls).toEqual([[TP_FEED_IMPORT_DELAY_MS]]);
       });

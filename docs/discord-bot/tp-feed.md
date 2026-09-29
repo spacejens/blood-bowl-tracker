@@ -121,8 +121,11 @@ retry is given up and reported as a failed import like any other; running
 `/importtp` on its link later brings it in. From then until an import gets
 through again, the imports behind it do not wait: one that starts before
 the back-off ends fails at once without contacting TP, and one TP still
-refuses after it is not retried. Each is reported with the same failure
-line, so the debug channel lists every import to re-run.
+refuses after it is not retried. Each is reported as a failure line like
+any other, so the debug channel lists every import to re-run; the line for
+an import skipped this way says it was skipped because TP is blocking
+requests and an earlier import gave up, rather than that it gave up after
+retries of its own.
 
 The queue is held in memory only. A restart or deploy while imports are
 waiting drops them, with no failure line and no ✔️ reaction, so after a

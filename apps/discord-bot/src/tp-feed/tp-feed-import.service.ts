@@ -166,6 +166,14 @@ export class TpFeedImportService {
           errors: [outcome.message],
         };
       }
+      if ('skippedBecauseOf' in outcome) {
+        return {
+          failed: true,
+          headline:
+            'TP import skipped: TP is blocking requests and an earlier import gave up',
+          errors: [outcome.skippedBecauseOf.message],
+        };
+      }
       const assessment = this.failure.assess(outcome);
       if (!this.failure.isRealFailure(assessment)) {
         return { failed: false };
@@ -194,7 +202,8 @@ export class TpFeedImportService {
    * too. Only a retry TP itself answered with a block counts toward
    * TP_FEED_BLOCK_RETRIES, not one the gate refused without contacting TP.
    * Returns the outcome, or the last block when TP was still blocking after
-   * the last retry. Once a block has interrupted a competition's backfill
+   * the last retry, or the block an earlier job gave up on when this job
+   * failed fast because of it. Once a block has interrupted a competition's backfill
    * (`backfillInterrupted`), every later retry of the job forces that
    * backfill, which a competition that now exists would otherwise skip;
    * other retries force nothing. Any other error propagates.
@@ -206,13 +215,15 @@ export class TpFeedImportService {
    */
   private async dispatchThroughBlocks(
     target: TpImportTarget,
-  ): Promise<TpImportOutcome | TpBlockedError> {
+  ): Promise<
+    TpImportOutcome | TpBlockedError | { skippedBecauseOf: TpBlockedError }
+  > {
     const gaveUpOn = this.gaveUpOn;
     if (
       gaveUpOn !== undefined &&
       this.clock.now().getTime() < gaveUpOn.retryAt.getTime()
     ) {
-      return gaveUpOn;
+      return { skippedBecauseOf: gaveUpOn };
     }
     let retries = 0;
     let forceMatchBackfill = false;
@@ -235,7 +246,10 @@ export class TpFeedImportService {
         if (attempt > 0 && error.answeredByTp) {
           retries += 1;
         }
-        if (this.gaveUpOn !== undefined || retries >= TP_FEED_BLOCK_RETRIES) {
+        if (this.gaveUpOn !== undefined) {
+          return { skippedBecauseOf: this.gaveUpOn };
+        }
+        if (retries >= TP_FEED_BLOCK_RETRIES) {
           this.gaveUpOn = error;
           return error;
         }
