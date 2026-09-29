@@ -78,6 +78,14 @@ all fit within Discord's embed limit, the reply lists the first ones that do and
 ends with a line saying how many more were left out, such as "…and 12 more
 errors not shown."; a single error too long to fit on its own is cut short.
 
+If the import breaks outright instead of collecting its problems — the
+database being unreachable, say — the reply is an embed titled **TP import
+failed** with the **Failed** status and the error's message under
+**Errors**, rather than a bare generic failure. The error is also logged on
+the server. Since the command still replies normally, such a run shows as a
+success in [`/debuginteractions`](debug-interactions.md); the reply itself
+is what tells the admin it failed.
+
 It uses the same import code as `tools/import-tp`'s bulk import, registered
 under `TP_EXTERNAL_SYSTEM_NAME`, which must match that tool's configured
 external system name. See [import-tp-live](../../import-tp-live/index.md)
