@@ -60,8 +60,10 @@ While one is still waiting to start, further announcements for the same
 competition are merged into it, so announcements arriving together run one
 import. That merge only covers the time an announcement spends queued plus
 the delay before its import starts: an announcement arriving after that
-starts a further import, which merges any later ones the same way. Each
-import is a full, paced backfill of the competition.
+starts a further import, which merges any later ones the same way. When that
+import fails, its failure is posted to the debug channel once, not once per
+merged announcement, though none of the merged announcements gets the ✔️
+reaction. Each import is a full, paced backfill of the competition.
 
 Ignored and unrecognised notifications import nothing.
 
