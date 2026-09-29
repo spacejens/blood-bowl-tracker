@@ -8,6 +8,7 @@ import { MessageFlags } from 'discord.js';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
+import { ErrorListFitService } from '../../tp-import/error-list-fit.service';
 import { TpImportFailureService } from '../../tp-import/tp-import-failure.service';
 import { ImportTpReplyService } from './import-tp-reply.service';
 
@@ -39,7 +40,11 @@ describe('ImportTpReplyService', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [ImportTpReplyService, TpImportFailureService],
+      providers: [
+        ImportTpReplyService,
+        TpImportFailureService,
+        ErrorListFitService,
+      ],
     }).compile();
     service = moduleRef.get(ImportTpReplyService);
   });
@@ -457,7 +462,7 @@ describe('ImportTpReplyService', () => {
     });
   });
 
-  it("truncates a description past Discord's embed limit", () => {
+  it("lists as many errors as fit Discord's embed limit and says how many were left out", () => {
     const reply = service.build({
       kind: 'competition',
       tournamentSlug: 's30',
@@ -478,7 +483,51 @@ describe('ImportTpReplyService', () => {
     });
 
     const { description } = embed(reply);
-    expect(description).toHaveLength(MAX_DESCRIPTION_LENGTH);
-    expect(description.endsWith('…')).toBe(true);
+    const shown = description
+      .split('\n')
+      .filter((line) => line.startsWith('- Team ')).length;
+    expect(description.length).toBeLessThanOrEqual(MAX_DESCRIPTION_LENGTH);
+    expect(shown).toBeGreaterThan(0);
+    expect(
+      description.endsWith(`…and ${200 - shown} more errors not shown.`),
+    ).toBe(true);
+  });
+
+  describe('unexpected failure', () => {
+    it('replies ephemerally with a failed status and the error message', () => {
+      expect(
+        service.buildUnexpectedFailure(new Error('database down')),
+      ).toEqual({
+        embeds: [
+          {
+            title: 'TP import failed',
+            description: [
+              '**Failed**',
+              '',
+              '**Errors**',
+              '- Unexpected error: database down',
+            ].join('\n'),
+          },
+        ],
+        flags: MessageFlags.Ephemeral,
+      });
+    });
+
+    it('shows a non-Error as a string', () => {
+      expect(
+        embed(service.buildUnexpectedFailure('boom')).description.endsWith(
+          '- Unexpected error: boom',
+        ),
+      ).toBe(true);
+    });
+
+    it("cuts a very long message short at Discord's embed limit", () => {
+      const { description } = embed(
+        service.buildUnexpectedFailure(new Error('x'.repeat(5000))),
+      );
+
+      expect(description).toHaveLength(MAX_DESCRIPTION_LENGTH);
+      expect(description.endsWith('x…')).toBe(true);
+    });
   });
 });

@@ -73,8 +73,10 @@ instead carries one error saying the extra trophies were skipped. Without TP
 awards there is nothing to skip: that line shows zero and no error. The same
 holds for a scores-page `/importtp` (a forced backfill): when TP returned
 awards and its match backfill reports errors, the competition import's own
-**Extra trophy awards** line carries the skipped error. A very long reply is
-cut off at Discord's embed limit.
+**Extra trophy awards** line carries the skipped error. When the errors do not
+all fit within Discord's embed limit, the reply lists the first ones that do and
+ends with a line saying how many more were left out, such as "…and 12 more
+errors not shown."; a single error too long to fit on its own is cut short.
 
 It uses the same import code as `tools/import-tp`'s bulk import, registered
 under `TP_EXTERNAL_SYSTEM_NAME`, which must match that tool's configured
