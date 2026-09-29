@@ -22,8 +22,8 @@ const BACKOFF_MS: readonly number[] = [5 * 60_000, 15 * 60_000, 60 * 60_000];
  *   previous request finished; time already spent counts. Only the first
  *   request the process makes is not delayed.
  * - **Back-off.** After {@link block} (TP answered 403), every request fails
- *   at once with {@link TpBlockedError}, without being run, until the
- *   back-off ends. The back-off grows with each block in a row and
+ *   at once with {@link TpBlockedError} (its `answeredByTp` false), without
+ *   being run, until the back-off ends. The back-off grows with each block in a row and
  *   {@link succeeded} resets it.
  */
 @Injectable()
@@ -63,7 +63,9 @@ export class TpGateService {
 
   private async take<T>(request: () => Promise<T>): Promise<T> {
     if (this.blockedUntil !== undefined && Date.now() < this.blockedUntil) {
-      throw new TpBlockedError(new Date(this.blockedUntil));
+      throw new TpBlockedError(new Date(this.blockedUntil), {
+        answeredByTp: false,
+      });
     }
     await this.waitForPacing();
     try {

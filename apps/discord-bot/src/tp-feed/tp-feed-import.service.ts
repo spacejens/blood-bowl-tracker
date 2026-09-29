@@ -57,9 +57,12 @@ export const TP_FEED_BLOCK_MARGIN_MS = 1000;
  * When TP blocks requests (`TpBlockedError`), the job waits until the
  * block's back-off ends and retries, up to {@link TP_FEED_BLOCK_RETRIES}
  * times, holding up the queue behind it, so later jobs do not each hit TP
- * and fail. `TpFeedBlockNoticeService` gets one notice when a block starts
- * and one when an import next gets through, not one per job. A job TP still
- * blocks after its last retry is given up and reported as a failure.
+ * and fail. Only retries TP itself refused count; one the gate refused
+ * without contacting TP does not. `TpFeedBlockNoticeService` gets one notice
+ * when a block starts and one when an import next gets through, not one per
+ * job. A job TP still blocks after its last retry is given up and reported
+ * as a failure; from then until an import gets through again, every later
+ * job that meets the block fails the same way at once, without waiting.
  *
  * Only real failures are reported, judged by `TpImportFailureService` so
  * the feed and `/importtp` agree; every one is also logged here, so with no
@@ -70,6 +73,11 @@ export class TpFeedImportService {
   private readonly logger = new Logger(TpFeedImportService.name);
   private tail: Promise<unknown> = Promise.resolve();
   private blocked = false;
+  /**
+   * The block the last job to give up met, until an import gets through
+   * again: while it is set, jobs fail fast instead of waiting out blocks.
+   */
+  private gaveUpOn: TpBlockedError | undefined;
   private readonly queuedTrophyJobs = new Map<
     string,
     Promise<TpFeedImportResult>
@@ -182,22 +190,37 @@ export class TpFeedImportService {
 
   /**
    * Dispatches the import. When TP is blocking requests, waits until the
-   * block's back-off ends and tries again, up to TP_FEED_BLOCK_RETRIES
-   * times; the queue behind this job waits too. Returns the outcome, or the
-   * last block when TP was still blocking after the last retry. A retry
-   * forces the competition backfill a block may have cut short. Any other
-   * error propagates.
+   * block's back-off ends and tries again; the queue behind this job waits
+   * too. Only a retry TP itself answered with a block counts toward
+   * TP_FEED_BLOCK_RETRIES, not one the gate refused without contacting TP.
+   * Returns the outcome, or the last block when TP was still blocking after
+   * the last retry. A retry forces the competition backfill a block may have
+   * cut short. Any other error propagates.
+   *
+   * Once a job has given up, later jobs fail fast until an import gets
+   * through again: one queued before that block's back-off ends is not
+   * dispatched at all, and one dispatched after it that TP still blocks is
+   * not retried.
    */
   private async dispatchThroughBlocks(
     target: TpImportTarget,
   ): Promise<TpImportOutcome | TpBlockedError> {
-    for (let retries = 0; ; retries += 1) {
+    const gaveUpOn = this.gaveUpOn;
+    if (
+      gaveUpOn !== undefined &&
+      this.clock.now().getTime() < gaveUpOn.retryAt.getTime()
+    ) {
+      return gaveUpOn;
+    }
+    let retries = 0;
+    for (let attempt = 0; ; attempt += 1) {
       try {
         const outcome = await this.dispatch.dispatch(
-          retries === 0
+          attempt === 0
             ? { page: target }
             : { page: target, forceMatchBackfill: true },
         );
+        this.gaveUpOn = undefined;
         await this.markUnblocked();
         return outcome;
       } catch (error) {
@@ -205,7 +228,11 @@ export class TpFeedImportService {
           throw error;
         }
         await this.markBlocked(error.retryAt);
-        if (retries >= TP_FEED_BLOCK_RETRIES) {
+        if (attempt > 0 && error.answeredByTp) {
+          retries += 1;
+        }
+        if (this.gaveUpOn !== undefined || retries >= TP_FEED_BLOCK_RETRIES) {
+          this.gaveUpOn = error;
           return error;
         }
         await this.sleep.sleep(this.untilRetry(error.retryAt));

@@ -99,14 +99,20 @@ back-off period — 5 minutes, growing to 15 minutes and then 1 hour while
 TP keeps refusing — the bot sends TP nothing at all (see
 [scrape-tp](../scrape-tp/index.md#what-a-request-does)). The feed does not
 drop such an import: it waits until the back-off ends and runs it again, up
-to three times, and the imports queued behind it wait too. A retry forces the
+to three times, and the imports queued behind it wait too. Only a retry TP
+itself refuses counts toward the three; one the bot turned away without
+contacting TP, because the back-off had been extended meanwhile, does not. A retry forces the
 competition backfill of a match import, so a competition whose backfill the
 block interrupted is completed rather than left partial. The debug
 channel gets one line when TP starts blocking, saying until when imports
 are paused, and one when an import next gets through — not a failure line
 per import. An import TP is still blocking after its third retry is given
 up and reported as a failed import like any other; running `/importtp` on
-its link later brings it in.
+its link later brings it in. From then until an import gets through again,
+the imports behind it do not wait: one that starts before the back-off ends
+fails at once without contacting TP, and one TP still refuses after it is
+not retried. Each is reported with the same failure line, so the debug
+channel lists every import to re-run.
 
 The queue is held in memory only. A restart or deploy while imports are
 waiting drops them, with no failure line and no ✔️ reaction, so after a

@@ -161,6 +161,18 @@ describe('TpGateService', () => {
       expect(request).not.toHaveBeenCalled();
     });
 
+    it('marks a refusal during the back-off as not answered by TP', async () => {
+      await gate.run(blockingRequest).catch(() => undefined);
+
+      await expect(gate.run(request)).rejects.toMatchObject({
+        answeredByTp: false,
+      });
+    });
+
+    it('marks the block TP answered as answered by TP', () => {
+      expect(gate.block().answeredByTp).toBe(true);
+    });
+
     it('lets requests through again once the back-off has passed', async () => {
       await gate.run(blockingRequest).catch(() => undefined);
       await vi.advanceTimersByTimeAsync(5 * MINUTE);
