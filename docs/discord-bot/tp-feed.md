@@ -89,6 +89,22 @@ A failed import is always logged. When a debug channel is configured it is
 also posted there as a short `TP import …` line keeping the notification's
 link, followed by one line per error.
 
+### When TP blocks requests
+
+TP answers a client it is blocking with 403 "Access denied". The first
+refused request stops that import at once (see
+[import-tp-live's Failures](../import-tp-live/index.md#failures)), and for a
+back-off period — 5 minutes, growing to 15 minutes and then 1 hour while
+TP keeps refusing — the bot sends TP nothing at all (see
+[scrape-tp](../scrape-tp/index.md#what-a-request-does)). The feed does not
+drop such an import: it waits until the back-off ends and runs it again, up
+to three times, and the imports queued behind it wait too. The debug
+channel gets one line when TP starts blocking, saying until when imports
+are paused, and one when an import next gets through — not a failure line
+per import. An import TP is still blocking after its third retry is given
+up and reported as a failed import like any other; running `/importtp` on
+its link later brings it in.
+
 ## Configuration
 
 Both variables are optional and are documented in

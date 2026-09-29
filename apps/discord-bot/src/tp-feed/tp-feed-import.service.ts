@@ -1,12 +1,18 @@
+import { TpBlockedError } from '@blood-bowl-tracker/import-tp-live';
 import type { TpPageClassification } from '@blood-bowl-tracker/tp-paths';
 import { TpPageClassifierService } from '@blood-bowl-tracker/tp-paths';
 import { Injectable, Logger } from '@nestjs/common';
 
 import { DiscordBotConfigService } from '../discord-bot-config.service';
 import { SleepService } from '../leader-election/sleep.service';
-import type { TpImportTarget } from '../tp-import/tp-import-dispatch.service';
+import { ClockService } from '../shared/clock.service';
+import type {
+  TpImportOutcome,
+  TpImportTarget,
+} from '../tp-import/tp-import-dispatch.service';
 import { TpImportDispatchService } from '../tp-import/tp-import-dispatch.service';
 import { TpImportFailureService } from '../tp-import/tp-import-failure.service';
+import { TpFeedBlockNoticeService } from './tp-feed-block-notice.service';
 import type {
   TpFeedEvent,
   TpFeedImportFailure,
@@ -19,6 +25,15 @@ import type {
  * also paces a burst of notifications like a person browsing.
  */
 export const TP_FEED_IMPORT_DELAY_MS = 1000;
+
+/**
+ * How many times one feed import is retried after TP blocked it, each after
+ * waiting out the block, before it is given up and reported as failed.
+ */
+export const TP_FEED_BLOCK_RETRIES = 3;
+
+/** Extra wait past a block's end before retrying, so the retry is never early. */
+export const TP_FEED_BLOCK_MARGIN_MS = 1000;
 
 /**
  * Imports what a TP notification is about: the match of an end-of-match
@@ -39,6 +54,13 @@ export const TP_FEED_IMPORT_DELAY_MS = 1000;
  * same tournament is not queued again; it shares the queued job's result. No
  * other kind is merged.
  *
+ * When TP blocks requests (`TpBlockedError`), the job waits until the
+ * block's back-off ends and retries, up to {@link TP_FEED_BLOCK_RETRIES}
+ * times, holding up the queue behind it, so later jobs do not each hit TP
+ * and fail. `TpFeedBlockNoticeService` gets one notice when a block starts
+ * and one when an import next gets through, not one per job. A job TP still
+ * blocks after its last retry is given up and reported as a failure.
+ *
  * Only real failures are reported, judged by `TpImportFailureService` so
  * the feed and `/importtp` agree; every one is also logged here, so with no
  * debug channel to post to a failure is still visible.
@@ -47,6 +69,7 @@ export const TP_FEED_IMPORT_DELAY_MS = 1000;
 export class TpFeedImportService {
   private readonly logger = new Logger(TpFeedImportService.name);
   private tail: Promise<unknown> = Promise.resolve();
+  private blocked = false;
   private readonly queuedTrophyJobs = new Map<
     string,
     Promise<TpFeedImportResult>
@@ -58,6 +81,8 @@ export class TpFeedImportService {
     private readonly dispatch: TpImportDispatchService,
     private readonly failure: TpImportFailureService,
     private readonly sleep: SleepService,
+    private readonly clock: ClockService,
+    private readonly blockNotice: TpFeedBlockNoticeService,
   ) {}
 
   /**
@@ -125,17 +150,23 @@ export class TpFeedImportService {
           errors: [],
         };
       }
-      const assessment = this.failure.assess(
-        await this.dispatch.dispatch({ page: target }),
-      );
+      const outcome = await this.dispatchThroughBlocks(target);
+      if (outcome instanceof TpBlockedError) {
+        return {
+          failed: true,
+          headline: `TP import gave up: TP was still blocking requests after ${TP_FEED_BLOCK_RETRIES} retries`,
+          errors: [outcome.message],
+        };
+      }
+      const assessment = this.failure.assess(outcome);
       if (!this.failure.isRealFailure(assessment)) {
         return { failed: false };
       }
-      const outcome =
+      const verdict =
         assessment.status === 'failed' ? 'failed' : 'completed with errors';
       return {
         failed: true,
-        headline: `TP import of ${assessment.subject} ${outcome}`,
+        headline: `TP import of ${assessment.subject} ${verdict}`,
         errors: assessment.errors.map(
           (error) => `${error.label}: ${error.message}`,
         ),
@@ -147,6 +178,59 @@ export class TpFeedImportService {
         errors: [error instanceof Error ? error.message : String(error)],
       };
     }
+  }
+
+  /**
+   * Dispatches the import. When TP is blocking requests, waits until the
+   * block's back-off ends and tries again, up to TP_FEED_BLOCK_RETRIES
+   * times; the queue behind this job waits too. Returns the outcome, or the
+   * last block when TP was still blocking after the last retry. Any other
+   * error propagates.
+   */
+  private async dispatchThroughBlocks(
+    target: TpImportTarget,
+  ): Promise<TpImportOutcome | TpBlockedError> {
+    for (let retries = 0; ; retries += 1) {
+      try {
+        const outcome = await this.dispatch.dispatch({ page: target });
+        await this.markUnblocked();
+        return outcome;
+      } catch (error) {
+        if (!(error instanceof TpBlockedError)) {
+          throw error;
+        }
+        await this.markBlocked(error.retryAt);
+        if (retries >= TP_FEED_BLOCK_RETRIES) {
+          return error;
+        }
+        await this.sleep.sleep(this.untilRetry(error.retryAt));
+      }
+    }
+  }
+
+  /** Announces a block only when it starts, not for every job it hits. */
+  private async markBlocked(retryAt: Date): Promise<void> {
+    if (this.blocked) {
+      return;
+    }
+    this.blocked = true;
+    await this.blockNotice.announceBlocked(retryAt);
+  }
+
+  /** Announces the first import that got through after a block. */
+  private async markUnblocked(): Promise<void> {
+    if (!this.blocked) {
+      return;
+    }
+    this.blocked = false;
+    await this.blockNotice.announceResumed();
+  }
+
+  private untilRetry(retryAt: Date): number {
+    return (
+      Math.max(0, retryAt.getTime() - this.clock.now().getTime()) +
+      TP_FEED_BLOCK_MARGIN_MS
+    );
   }
 
   /**
