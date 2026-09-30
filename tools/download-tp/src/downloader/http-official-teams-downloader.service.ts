@@ -6,8 +6,12 @@ import { DownloadTpConfigService } from '../config/download-tp-config.service';
 import { ApiResponseStoringService } from './api-response-storing.service';
 import { FileSystemService } from './file-system.service';
 
+/**
+ * Downloads TP's official team list over plain HTTP, through
+ * packages/scrape-tp, requesting each rules set's endpoint directly.
+ */
 @Injectable()
-export class OfficialTeamsDownloaderService {
+export class HttpOfficialTeamsDownloaderService {
   constructor(
     private readonly downloadTpConfigService: DownloadTpConfigService,
     private readonly tpFetcherService: TpFetcherService,

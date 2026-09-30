@@ -4,19 +4,19 @@ import { Module } from '@nestjs/common';
 
 import { ApiResponseStoringService } from './api-response-storing.service';
 import { FileSystemService } from './file-system.service';
-import { LeaguesDownloaderService } from './leagues-downloader.service';
-import { OfficialTeamsDownloaderService } from './official-teams-downloader.service';
+import { HttpLeaguesDownloaderService } from './http-leagues-downloader.service';
+import { HttpOfficialTeamsDownloaderService } from './http-official-teams-downloader.service';
 import { TpApiPathsService } from './tp-api-paths.service';
 
 @Module({
   imports: [ScrapeTpModule, TpPathsModule],
   providers: [
-    LeaguesDownloaderService,
-    OfficialTeamsDownloaderService,
+    HttpLeaguesDownloaderService,
+    HttpOfficialTeamsDownloaderService,
     ApiResponseStoringService,
     TpApiPathsService,
     FileSystemService,
   ],
-  exports: [LeaguesDownloaderService, OfficialTeamsDownloaderService],
+  exports: [HttpLeaguesDownloaderService, HttpOfficialTeamsDownloaderService],
 })
 export class DownloaderModule {}

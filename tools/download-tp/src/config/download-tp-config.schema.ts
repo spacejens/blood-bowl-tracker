@@ -42,12 +42,11 @@ export const tournamentsSchema = z.array(z.string().min(1));
  * `download.rulesSets`: a list of the rules sets to download TP's official
  * team list for. Each value names the `data/teams/<rulesSet>/` output folder
  * and is matched case-insensitively against an era's configured rules-set
- * name on the import side, and separately looked up (case-insensitively) in
- * `TP_RULES_SET_IDS` in `OfficialTeamsDownloaderService` for TP's own
- * numeric `ruleSet` id — it names neither a tab label nor anything else TP
- * itself exposes. May be empty —
- * `OfficialTeamsDownloaderService.downloadOfficialTeams()` then does
- * nothing, which is how a developer skips the official-teams download
- * entirely (e.g. to download only tournaments).
+ * name on the import side, and separately looked up (case-insensitively)
+ * through `packages/tp-paths`' `TpOfficialTeamsPathsService.ruleSetIdFor` for
+ * TP's own numeric `ruleSet` id — it names neither a tab label nor anything
+ * else TP itself exposes. May be empty — the official-teams download then
+ * does nothing, which is how a developer skips it entirely (e.g. to download
+ * only tournaments).
  */
 export const rulesSetsSchema = z.array(z.string().min(1));

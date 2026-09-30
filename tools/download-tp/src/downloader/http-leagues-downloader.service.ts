@@ -39,8 +39,12 @@ type LeagueCrawl = {
   dirName: string;
 };
 
+/**
+ * Downloads each configured tournament over plain HTTP, through
+ * packages/scrape-tp, requesting each page's API endpoints directly.
+ */
 @Injectable()
-export class LeaguesDownloaderService {
+export class HttpLeaguesDownloaderService {
   constructor(
     private readonly downloadTpConfigService: DownloadTpConfigService,
     private readonly tpFetcherService: TpFetcherService,

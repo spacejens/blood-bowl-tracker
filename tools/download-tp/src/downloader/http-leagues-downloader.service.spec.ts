@@ -13,7 +13,7 @@ import { DownloadTpConfigService } from '../config/download-tp-config.service';
 import type { StoredApiRequest } from './api-response-storing.service';
 import { ApiResponseStoringService } from './api-response-storing.service';
 import { FileSystemService } from './file-system.service';
-import { LeaguesDownloaderService } from './leagues-downloader.service';
+import { HttpLeaguesDownloaderService } from './http-leagues-downloader.service';
 import { TpApiPathsService } from './tp-api-paths.service';
 
 const FRONTEND = 'https://tp.example/blood-bowl/';
@@ -48,8 +48,8 @@ function tournamentResponses(slug: string): Record<string, unknown> {
   };
 }
 
-describe('LeaguesDownloaderService', () => {
-  let service: LeaguesDownloaderService;
+describe('HttpLeaguesDownloaderService', () => {
+  let service: HttpLeaguesDownloaderService;
   let configService: MockProxy<DownloadTpConfigService>;
   let tpFetcherService: MockProxy<TpFetcherService>;
   let storingService: MockProxy<ApiResponseStoringService>;
@@ -87,7 +87,7 @@ describe('LeaguesDownloaderService', () => {
     stubResponses(tournamentResponses('season-30'));
     const moduleRef = await Test.createTestingModule({
       providers: [
-        LeaguesDownloaderService,
+        HttpLeaguesDownloaderService,
         // Pure, dependency-free path formatting, passed real so these tests
         // assert on the actual paths requested.
         TpApiPathsService,
@@ -100,7 +100,7 @@ describe('LeaguesDownloaderService', () => {
         { provide: FileSystemService, useValue: fileSystemService },
       ],
     }).compile();
-    service = moduleRef.get(LeaguesDownloaderService);
+    service = moduleRef.get(HttpLeaguesDownloaderService);
   });
 
   it('requests every endpoint in page order, each with the page it belongs to as referer', async () => {
