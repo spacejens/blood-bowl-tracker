@@ -109,7 +109,8 @@ packages/
 
 tools/
   download-tp/        — NestJS CLI application that fetches TP's API over
-                        plain HTTP via packages/scrape-tp and records the
+                        plain HTTP via packages/scrape-tp, or by driving a
+                        real browser with puppeteer, and records the
                         responses as local JSON files for later import by
                         tools/import-tp
   import-<source>/    — one NestJS CLI application per upstream data source; uses
@@ -194,7 +195,7 @@ change — or opens an opportunity — somewhere else. Only participants in that
 pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
 `tools/db-diagram`, `tools/eslint-rules`, `tools/markdownlint-rules`) are omitted.
 
-- **`tools/download-tp`** (downloader) — fetches TP's API via `packages/scrape-tp` into local JSON files; what it records is exactly what `tools/import-tp` can later import, so widening or narrowing the download changes what is importable at all
+- **`tools/download-tp`** (downloader) — fetches TP's API into local JSON files, over plain HTTP via `packages/scrape-tp` or by driving a real browser with puppeteer (chosen in its config; both write the same files); what it records is exactly what `tools/import-tp` can later import, so widening or narrowing the download changes what is importable at all
 - **`packages/scrape-tp`** (shared fetching) — the one implementation of how this repo makes HTTP requests TP accepts: the browser-like header set, per-visit sessions with a cookie jar, and randomized pacing between a session's requests. Consumed by `tools/download-tp` and `packages/import-tp-live` (and through it `apps/discord-bot`'s on-demand `/importtp`), so a change to how requests look reaches both. It deliberately knows no TP URLs or page-to-endpoint mapping — those stay with each consumer — and depends on no other workspace package
 - **`packages/parse-tp`** (shared parsing) — decodes `tools/download-tp`'s JSON; consumed by `tools/import-tp` and `packages/import-tp-live`. It has no BBL counterpart: BBL _interpretation_ (page-type parsing, HTML extraction) stays inside each tool that does it, deliberately, so the review tools can check the importer's reading of a page against their own. Only the mechanical file access is shared, via `packages/read-bbl-mirror`
 - **`packages/import-tp-live`** (TP roster and match import, server-side) — imports one TP roster's team and players, one completed TP match with its teams and competition, one competition with its registered teams and trophy awards (a finished competition import also awards the extra trophies TP does not record), or one rules set's official team list, directly through `packages/game-data`: the live imports (fetch via `packages/scrape-tp`, parse via `packages/parse-tp`, era auto-resolution; a live match import creates the competition it needs) and the implementations behind `tpRosters.import`, `tpMatches.import`, `tpCompetitions.import` and `tpOfficialTeams.import`, which `tools/import-tp`'s bulk run calls once per roster file, match file, competition or rules set — so a change to how a TP team, player, match, competition or official team list is imported reaches bulk and live imports together. `apps/discord-bot` calls the same `TpLive*ImportService` entry points directly, in-process, for its `/importtp` slash command and its TP notification feed (which also imports both teams of a starting match through `TpLiveMatchTeamsImportService`). Deliberately depends on neither `packages/import` nor `packages/api-client` (see `docs/import-tp-live/index.md`)

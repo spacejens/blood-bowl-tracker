@@ -9,13 +9,14 @@ team and match import the discord-bot's on-demand TP import builds on.
 ## Why it exists
 
 TP rejects requests that do not look like they come from its own frontend.
-`tools/download-tp` originally drove a real Chrome through puppeteer to get
-past that, but an investigation found that a set of browser-like headers is
-enough on its own (see
+`tools/download-tp` was first built to drive a real Chrome through puppeteer
+to get past that — and still can, as an alternative download method — but an
+investigation found that a set of browser-like headers is enough on its own
+(see
 [download-tp's Plain-HTTP fetching](../download-tp/index.md#plain-http-fetching)).
 Keeping that knowledge in one shared package means a second consumer cannot
-drift out of sync with the first — and neither needs a browser, which is too
-heavy to bundle into the discord-bot's server environment.
+drift out of sync with the first — and the live import needs no browser,
+which is too heavy to bundle into the discord-bot's server environment.
 
 ## Scope
 

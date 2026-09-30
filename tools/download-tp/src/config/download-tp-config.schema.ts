@@ -17,13 +17,25 @@ export const connectionGroupSchema = z.looseObject({
   backendApiUrl: z.string().min(1).optional().catch(undefined),
 });
 
+/**
+ * The `browser` group. Lenient on the fields themselves so the service can
+ * throw one friendly message naming `browser.enabled` whether the group is
+ * missing or the key is missing or not a boolean. Only an explicit `true`
+ * means headless, so anything else becomes `undefined`.
+ */
+export const browserGroupSchema = z.looseObject({
+  enabled: z.boolean().optional().catch(undefined),
+  headless: z.literal(true).optional().catch(undefined),
+});
+
 /** The `download` group's presence — its contents are checked separately. */
 export const downloadGroupSchema = z.looseObject({});
 
 /**
  * `download.tournaments`: a list of non-empty names. May be empty — a config
  * that only downloads the official team list (see `rulesSetsSchema`) is a
- * supported setup, so main.ts skips the per-tournament scrape entirely.
+ * supported setup, so the download run skips the per-tournament download
+ * entirely.
  */
 export const tournamentsSchema = z.array(z.string().min(1));
 
@@ -31,12 +43,11 @@ export const tournamentsSchema = z.array(z.string().min(1));
  * `download.rulesSets`: a list of the rules sets to download TP's official
  * team list for. Each value names the `data/teams/<rulesSet>/` output folder
  * and is matched case-insensitively against an era's configured rules-set
- * name on the import side, and separately looked up (case-insensitively) in
- * `TP_RULES_SET_IDS` in `OfficialTeamsDownloaderService` for TP's own
- * numeric `ruleSet` id — it names neither a tab label nor anything else TP
- * itself exposes. May be empty —
- * `OfficialTeamsDownloaderService.downloadOfficialTeams()` then does
- * nothing, which is how a developer skips the official-teams download
- * entirely (e.g. to download only tournaments).
+ * name on the import side, and separately looked up (case-insensitively)
+ * through `packages/tp-paths`' `TpOfficialTeamsPathsService.ruleSetIdFor` for
+ * TP's own numeric `ruleSet` id — it names neither a tab label nor anything
+ * else TP itself exposes. May be empty — the official-teams download then
+ * does nothing, which is how a developer skips it entirely (e.g. to download
+ * only tournaments).
  */
 export const rulesSetsSchema = z.array(z.string().min(1));

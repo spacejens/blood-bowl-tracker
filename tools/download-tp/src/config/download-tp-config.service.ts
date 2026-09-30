@@ -4,6 +4,7 @@ import { createConfigLoaderServiceBase } from '@blood-bowl-tracker/config-loader
 import { Injectable } from '@nestjs/common';
 
 import {
+  browserGroupSchema,
   configFileSchema,
   connectionGroupSchema,
   downloadGroupSchema,
@@ -28,6 +29,11 @@ const CONNECTION_MISSING =
   'connection is not set in download-tp-config.json5. Set it to an object, ' +
   "e.g. { frontendUrl: 'https://tourplay.net/en/blood-bowl/', " +
   "backendApiUrl: 'https://tourplay.net/api/' }.";
+
+const BROWSER_ENABLED_MISSING =
+  'browser.enabled is not set in download-tp-config.json5. Set it to true ' +
+  'to download by driving a real browser, or false to fetch over plain ' +
+  'HTTP, e.g. browser: { enabled: true, headless: false }.';
 
 @Injectable()
 export class DownloadTpConfigService extends createConfigLoaderServiceBase({
@@ -58,9 +64,33 @@ export class DownloadTpConfigService extends createConfigLoaderServiceBase({
   }
 
   /**
+   * Which download method to use, from `browser.enabled`: `true` drives a
+   * real browser, `false` fetches over plain HTTP. Required, with no default
+   * — a missing or non-boolean value throws, naming the key.
+   */
+  isBrowserEnabled(): boolean {
+    const browser = browserGroupSchema.safeParse(this.get('browser'));
+    const enabled = browser.success ? browser.data.enabled : undefined;
+    if (enabled === undefined) {
+      throw new Error(BROWSER_ENABLED_MISSING);
+    }
+    return enabled;
+  }
+
+  /**
+   * Whether the browser method runs the browser headless, from
+   * `browser.headless`. Optional: anything other than an explicit `true`
+   * means "show the browser". Only the browser method reads it.
+   */
+  isHeadless(): boolean {
+    const browser = browserGroupSchema.safeParse(this.get('browser'));
+    return browser.success && browser.data.headless === true;
+  }
+
+  /**
    * Tournament names to download, as they appear in the frontend path, from
    * `download.tournaments`. Required to be present, but may be empty — an
-   * empty list means "skip the per-tournament scrape entirely" and is how a
+   * empty list means "skip the per-tournament download entirely" and is how a
    * developer downloads only the official team list.
    */
   getTournaments(): string[] {
@@ -70,7 +100,7 @@ export class DownloadTpConfigService extends createConfigLoaderServiceBase({
       throw new Error(
         'download.tournaments is not set in download-tp-config.json5. Set ' +
           'it to an array of tournament names, e.g. ' +
-          "['tloegbbl-sasong-30'], or [] to skip the per-tournament scrape.",
+          "['tloegbbl-sasong-30'], or [] to skip the per-tournament download.",
       );
     }
     return tournaments.data;
@@ -81,9 +111,9 @@ export class DownloadTpConfigService extends createConfigLoaderServiceBase({
    * `download.rulesSets`. Required to be present, but may be empty — an
    * empty list means "skip the official-teams download entirely". Each value
    * names the `data/teams/<rulesSet>/` output folder and is looked up
-   * (case-insensitively) in `TP_RULES_SET_IDS` in
-   * `OfficialTeamsDownloaderService` for TP's own numeric `ruleSet` id — it
-   * names neither a tab label nor anything else TP itself exposes.
+   * (case-insensitively) through `packages/tp-paths`'
+   * `TpOfficialTeamsPathsService.ruleSetIdFor` for TP's own numeric `ruleSet`
+   * id — it names neither a tab label nor anything else TP itself exposes.
    */
   getRulesSets(): string[] {
     const download = this.downloadGroup();

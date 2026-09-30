@@ -8,12 +8,12 @@ import { mock, type MockProxy } from 'vitest-mock-extended';
 import { DownloadTpConfigService } from '../config/download-tp-config.service';
 import { ApiResponseStoringService } from './api-response-storing.service';
 import { FileSystemService } from './file-system.service';
-import { OfficialTeamsDownloaderService } from './official-teams-downloader.service';
+import { HttpOfficialTeamsDownloaderService } from './http-official-teams-downloader.service';
 
 const FRONTEND = 'https://tp.example/blood-bowl/';
 
-describe('OfficialTeamsDownloaderService', () => {
-  let service: OfficialTeamsDownloaderService;
+describe('HttpOfficialTeamsDownloaderService', () => {
+  let service: HttpOfficialTeamsDownloaderService;
   let configService: MockProxy<DownloadTpConfigService>;
   let tpFetcherService: MockProxy<TpFetcherService>;
   let storingService: MockProxy<ApiResponseStoringService>;
@@ -37,7 +37,7 @@ describe('OfficialTeamsDownloaderService', () => {
 
     const moduleRef = await Test.createTestingModule({
       providers: [
-        OfficialTeamsDownloaderService,
+        HttpOfficialTeamsDownloaderService,
         // Pure, dependency-free path formatting, passed real so these tests
         // assert on the actual paths requested.
         TpOfficialTeamsPathsService,
@@ -47,7 +47,7 @@ describe('OfficialTeamsDownloaderService', () => {
         { provide: FileSystemService, useValue: fileSystemService },
       ],
     }).compile();
-    service = moduleRef.get(OfficialTeamsDownloaderService);
+    service = moduleRef.get(HttpOfficialTeamsDownloaderService);
   });
 
   it('creates one output directory per configured rules set', async () => {
