@@ -219,6 +219,10 @@ Page paths and the rules-set id come from `packages/tp-paths`, shared with the
 plain-HTTP method, and responses are written with the same file naming into
 the same folders.
 
+The browser method has no dedicated handling of TP blocking: it stops with an
+error on the first failed or non-JSON API response. The "TP is blocking"
+message and its retry-time hint belong to the plain-HTTP method only.
+
 ## Development
 
 ```bash

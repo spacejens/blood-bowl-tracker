@@ -76,9 +76,13 @@ export class BrowserLeaguesDownloaderService {
 
   private async downloadLeague(crawl: BrowserLeagueCrawl): Promise<void> {
     await this.viewTournamentPage(crawl, 'news');
-    const fixturesPageResult = await this.viewTournamentPage(crawl, 'scores', {
-      followUpRequests: (apiResponses) => this.missingRoundUrls(apiResponses),
-    });
+    const fixturesPageResult = await this.viewPage(
+      crawl,
+      this.tpTournamentPathsService.scoresFrontendPath(crawl.slug),
+      {
+        followUpRequests: (apiResponses) => this.missingRoundUrls(apiResponses),
+      },
+    );
     await this.downloadMatches(crawl, fixturesPageResult);
     await this.viewTournamentPage(crawl, 'classifications');
     await this.viewTournamentPage(crawl, 'honours', {

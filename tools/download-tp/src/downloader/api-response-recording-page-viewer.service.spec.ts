@@ -354,6 +354,45 @@ describe('ApiResponseRecordingPageViewerService', () => {
     );
   });
 
+  it('closes the browser when navigation fails', async () => {
+    page.goto.mockRejectedValue(new Error('navigation timeout'));
+
+    await expect(
+      service.viewPage({ pageUrl: 'https://tp.example/blood-bowl/x' }),
+    ).rejects.toThrow('navigation timeout');
+
+    expect(browser.close).toHaveBeenCalled();
+  });
+
+  it('does not launch a browser when the backend API URL is not configured', async () => {
+    configService.getBackendApiUrl.mockImplementation(() => {
+      throw new Error('connection.backendApiUrl is not configured');
+    });
+
+    await expect(
+      service.viewPage({ pageUrl: 'https://tp.example/blood-bowl/x' }),
+    ).rejects.toThrow('connection.backendApiUrl is not configured');
+
+    expect(puppeteer.launch).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a response body that is not JSON and still closes the browser', async () => {
+    page.goto.mockImplementation(() => {
+      handlers.requestfinished({
+        url: () => 'https://tp.example/api/tournaments/x',
+        response: () => ({
+          json: () => Promise.reject(new Error('not json')),
+        }),
+      } as never);
+    });
+
+    await expect(
+      service.viewPage({ pageUrl: 'https://tp.example/blood-bowl/x' }),
+    ).rejects.toThrow('not json');
+
+    expect(browser.close).toHaveBeenCalled();
+  });
+
   it('evaluates no follow-up fetch when the resolver returns no URLs', async () => {
     await service.viewPage({
       pageUrl: 'https://tp.example/blood-bowl/x/scores',

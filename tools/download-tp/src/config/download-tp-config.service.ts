@@ -90,7 +90,7 @@ export class DownloadTpConfigService extends createConfigLoaderServiceBase({
   /**
    * Tournament names to download, as they appear in the frontend path, from
    * `download.tournaments`. Required to be present, but may be empty — an
-   * empty list means "skip the per-tournament scrape entirely" and is how a
+   * empty list means "skip the per-tournament download entirely" and is how a
    * developer downloads only the official team list.
    */
   getTournaments(): string[] {
@@ -100,7 +100,7 @@ export class DownloadTpConfigService extends createConfigLoaderServiceBase({
       throw new Error(
         'download.tournaments is not set in download-tp-config.json5. Set ' +
           'it to an array of tournament names, e.g. ' +
-          "['tloegbbl-sasong-30'], or [] to skip the per-tournament scrape.",
+          "['tloegbbl-sasong-30'], or [] to skip the per-tournament download.",
       );
     }
     return tournaments.data;

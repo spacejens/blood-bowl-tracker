@@ -34,7 +34,8 @@ export const downloadGroupSchema = z.looseObject({});
 /**
  * `download.tournaments`: a list of non-empty names. May be empty — a config
  * that only downloads the official team list (see `rulesSetsSchema`) is a
- * supported setup, so the download run skips the per-tournament download entirely.
+ * supported setup, so the download run skips the per-tournament download
+ * entirely.
  */
 export const tournamentsSchema = z.array(z.string().min(1));
 

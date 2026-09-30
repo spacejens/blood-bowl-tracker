@@ -39,7 +39,7 @@
   // only the official team list, both, or (both set to []) neither.
   download: {
     // Tournament names to download, as they appear in the frontend path. Set
-    // to [] to skip the per-tournament scrape entirely.
+    // to [] to skip the per-tournament download entirely.
     tournaments: ['<NAME_FROM_FRONTEND_PATH>'],
 
     // Rules sets to download TP's official per-rules-set team list for. Each
