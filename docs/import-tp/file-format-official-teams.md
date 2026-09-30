@@ -27,19 +27,21 @@ The page's four rules-set tabs (Angular Material toggles matched by
 
 Two consequences:
 
-- The tab labels are marketing copy, not rules set names, so
-  `OfficialTeamsDownloaderService` selects a rules set by the `ruleSet` id it
-  maps each configured rules set name to and requests that URL from inside the
-  open page, rather than by clicking a tab. That rules-set-name → `ruleSet` id
-  map lives in `packages/tp-paths`' `TpOfficialTeamsPathsService`, shared with
-  the live import. Nothing in the downloader depends on the page's DOM.
+- The tab labels are marketing copy, not rules set names, so neither
+  download method clicks a tab. Both map each configured rules set name to
+  its `ruleSet` id and request that URL: `HttpOfficialTeamsDownloaderService`
+  directly over plain HTTP, and `BrowserOfficialTeamsDownloaderService` from
+  inside the open teams page. That rules-set-name → `ruleSet` id map lives in
+  `packages/tp-paths`' `TpOfficialTeamsPathsService`, shared with the live
+  import. Nothing in either downloader depends on the page's DOM.
 - The official BB2025 list and the unofficial "Secret Bowl" one are **the same
   response**; the page splits them client-side by each roster's
   `teamRosterType`. There is no separate Secret Bowl download.
 
 Opening the teams page always loads the default tab's rules set (currently
-BB2025), so the downloader stores only the response for the rules set it is
-downloading. Each `teams/<rulesSet>/` folder therefore holds exactly one file.
+BB2025), so the browser method stores only the response for the rules set it
+is downloading; the plain-HTTP method requests only that one response in the
+first place. Each `teams/<rulesSet>/` folder therefore holds exactly one file.
 
 ## Response shape
 

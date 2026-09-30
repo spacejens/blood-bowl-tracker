@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { AppModule } from './app.module';
 import { BrowserLeaguesDownloaderService } from './downloader/browser-leagues-downloader.service';
+import { BrowserOfficialTeamsDownloaderService } from './downloader/browser-official-teams-downloader.service';
 import { HttpLeaguesDownloaderService } from './downloader/http-leagues-downloader.service';
 import { HttpOfficialTeamsDownloaderService } from './downloader/http-official-teams-downloader.service';
 
@@ -34,6 +35,16 @@ describe('AppModule', () => {
 
     expect(moduleRef.get(BrowserLeaguesDownloaderService)).toBeInstanceOf(
       BrowserLeaguesDownloaderService,
+    );
+  });
+
+  it('registers BrowserOfficialTeamsDownloaderService with its dependencies wired', async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    expect(moduleRef.get(BrowserOfficialTeamsDownloaderService)).toBeInstanceOf(
+      BrowserOfficialTeamsDownloaderService,
     );
   });
 });
