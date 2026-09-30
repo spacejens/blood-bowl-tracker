@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  browserGroupSchema,
   configFileSchema,
   connectionGroupSchema,
   downloadGroupSchema,
@@ -46,6 +47,41 @@ describe('connectionGroupSchema', () => {
     expect(connectionGroupSchema.safeParse({}).success).toBe(true);
     expect(connectionGroupSchema.safeParse(undefined).success).toBe(false);
     expect(connectionGroupSchema.safeParse('nope').success).toBe(false);
+  });
+});
+
+describe('browserGroupSchema', () => {
+  it('reads an explicit enabled flag of either value', () => {
+    expect(browserGroupSchema.parse({ enabled: true }).enabled).toBe(true);
+    expect(browserGroupSchema.parse({ enabled: false }).enabled).toBe(false);
+  });
+
+  it('treats a missing or non-boolean enabled as unset', () => {
+    expect(browserGroupSchema.parse({}).enabled).toBeUndefined();
+    expect(
+      browserGroupSchema.parse({ enabled: 'true' }).enabled,
+    ).toBeUndefined();
+    expect(browserGroupSchema.parse({ enabled: 1 }).enabled).toBeUndefined();
+  });
+
+  it('reads an explicit headless true', () => {
+    expect(browserGroupSchema.parse({ headless: true }).headless).toBe(true);
+  });
+
+  it('treats anything else as not headless', () => {
+    expect(
+      browserGroupSchema.parse({ headless: 'yes' }).headless,
+    ).toBeUndefined();
+    expect(
+      browserGroupSchema.parse({ headless: false }).headless,
+    ).toBeUndefined();
+    expect(browserGroupSchema.parse({}).headless).toBeUndefined();
+  });
+
+  it('fails when the group is not an object', () => {
+    expect(browserGroupSchema.safeParse(undefined).success).toBe(false);
+    expect(browserGroupSchema.safeParse(null).success).toBe(false);
+    expect(browserGroupSchema.safeParse('yes').success).toBe(false);
   });
 });
 

@@ -17,6 +17,17 @@ export const connectionGroupSchema = z.looseObject({
   backendApiUrl: z.string().min(1).optional().catch(undefined),
 });
 
+/**
+ * The `browser` group. Lenient on the fields themselves so the service can
+ * throw one friendly message naming `browser.enabled` whether the group is
+ * missing or the key is missing or not a boolean. Only an explicit `true`
+ * means headless, so anything else becomes `undefined`.
+ */
+export const browserGroupSchema = z.looseObject({
+  enabled: z.boolean().optional().catch(undefined),
+  headless: z.literal(true).optional().catch(undefined),
+});
+
 /** The `download` group's presence — its contents are checked separately. */
 export const downloadGroupSchema = z.looseObject({});
 

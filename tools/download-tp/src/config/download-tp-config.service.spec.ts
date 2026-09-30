@@ -16,6 +16,7 @@ const VALID_CONFIG = `{
     frontendUrl: 'https://tp.example/blood-bowl/',
     backendApiUrl: 'https://tp.example/api/',
   },
+  browser: { enabled: true, headless: true },
   download: { tournaments: ['season-29', 'season-30'] },
 }`;
 
@@ -73,6 +74,8 @@ describe('DownloadTpConfigService', () => {
     const service = await makeService(writeConfig(VALID_CONFIG));
     expect(service.getFrontendUrl()).toBe('https://tp.example/blood-bowl/');
     expect(service.getBackendApiUrl()).toBe('https://tp.example/api/');
+    expect(service.isBrowserEnabled()).toBe(true);
+    expect(service.isHeadless()).toBe(true);
     expect(service.getTournaments()).toEqual(['season-29', 'season-30']);
   });
 
@@ -229,6 +232,96 @@ describe('DownloadTpConfigService', () => {
         writeConfig(`{ download: { rulesSets: ['BB2020'] } }`),
       );
       expect(() => service.getTournaments()).toThrow(/download\.tournaments/);
+    });
+  });
+
+  describe('isBrowserEnabled', () => {
+    it('reads browser.enabled true', async () => {
+      const service = await makeService(
+        writeConfig(`{ browser: { enabled: true } }`),
+      );
+      expect(service.isBrowserEnabled()).toBe(true);
+    });
+
+    it('reads browser.enabled false', async () => {
+      const service = await makeService(
+        writeConfig(`{ browser: { enabled: false, headless: true } }`),
+      );
+      expect(service.isBrowserEnabled()).toBe(false);
+    });
+
+    it('throws naming the key, with an example, when the file is missing', async () => {
+      const service = await makeService(missingPath());
+      expect(() => service.isBrowserEnabled()).toThrow(
+        'browser.enabled is not set in download-tp-config.json5. Set it to ' +
+          'true to download by driving a real browser, or false to fetch ' +
+          'over plain HTTP, e.g. browser: { enabled: true, headless: false }.',
+      );
+    });
+
+    it('throws when browser is not an object', async () => {
+      const service = await makeService(writeConfig(`{ browser: 'yes' }`));
+      expect(() => service.isBrowserEnabled()).toThrow(
+        'browser.enabled is not set in download-tp-config.json5',
+      );
+    });
+
+    it('throws when browser is null', async () => {
+      const service = await makeService(writeConfig(`{ browser: null }`));
+      expect(() => service.isBrowserEnabled()).toThrow(
+        'browser.enabled is not set in download-tp-config.json5',
+      );
+    });
+
+    it('throws when enabled is missing', async () => {
+      const service = await makeService(
+        writeConfig(`{ browser: { headless: false } }`),
+      );
+      expect(() => service.isBrowserEnabled()).toThrow(
+        'browser.enabled is not set in download-tp-config.json5',
+      );
+    });
+
+    it('throws when enabled is not a boolean', async () => {
+      const service = await makeService(
+        writeConfig(`{ browser: { enabled: 'true' } }`),
+      );
+      expect(() => service.isBrowserEnabled()).toThrow(
+        'browser.enabled is not set in download-tp-config.json5',
+      );
+    });
+  });
+
+  describe('isHeadless', () => {
+    it('is true only for an explicit headless true', async () => {
+      const service = await makeService(
+        writeConfig(`{ browser: { enabled: true, headless: true } }`),
+      );
+      expect(service.isHeadless()).toBe(true);
+    });
+
+    it('defaults to false when browser is absent', async () => {
+      const service = await makeService(writeConfig(`{}`));
+      expect(service.isHeadless()).toBe(false);
+    });
+
+    it('defaults to false when browser is not an object', async () => {
+      const service = await makeService(writeConfig(`{ browser: 'yes' }`));
+      expect(service.isHeadless()).toBe(false);
+    });
+
+    it('defaults to false when headless is absent', async () => {
+      const service = await makeService(
+        writeConfig(`{ browser: { enabled: true } }`),
+      );
+      expect(service.isHeadless()).toBe(false);
+    });
+
+    it('returns false for a non-boolean headless value', async () => {
+      const service = await makeService(
+        writeConfig(`{ browser: { enabled: true, headless: 'true' } }`),
+      );
+      expect(service.isHeadless()).toBe(false);
     });
   });
 });

@@ -4,6 +4,7 @@ import { createConfigLoaderServiceBase } from '@blood-bowl-tracker/config-loader
 import { Injectable } from '@nestjs/common';
 
 import {
+  browserGroupSchema,
   configFileSchema,
   connectionGroupSchema,
   downloadGroupSchema,
@@ -28,6 +29,11 @@ const CONNECTION_MISSING =
   'connection is not set in download-tp-config.json5. Set it to an object, ' +
   "e.g. { frontendUrl: 'https://tourplay.net/en/blood-bowl/', " +
   "backendApiUrl: 'https://tourplay.net/api/' }.";
+
+const BROWSER_ENABLED_MISSING =
+  'browser.enabled is not set in download-tp-config.json5. Set it to true ' +
+  'to download by driving a real browser, or false to fetch over plain ' +
+  'HTTP, e.g. browser: { enabled: true, headless: false }.';
 
 @Injectable()
 export class DownloadTpConfigService extends createConfigLoaderServiceBase({
@@ -55,6 +61,30 @@ export class DownloadTpConfigService extends createConfigLoaderServiceBase({
       'backendApiUrl',
       "'https://tourplay.net/api/'",
     );
+  }
+
+  /**
+   * Which download method to use, from `browser.enabled`: `true` drives a
+   * real browser, `false` fetches over plain HTTP. Required, with no default
+   * — a missing or non-boolean value throws, naming the key.
+   */
+  isBrowserEnabled(): boolean {
+    const browser = browserGroupSchema.safeParse(this.get('browser'));
+    const enabled = browser.success ? browser.data.enabled : undefined;
+    if (enabled === undefined) {
+      throw new Error(BROWSER_ENABLED_MISSING);
+    }
+    return enabled;
+  }
+
+  /**
+   * Whether the browser method runs the browser headless, from
+   * `browser.headless`. Optional: anything other than an explicit `true`
+   * means "show the browser". Only the browser method reads it.
+   */
+  isHeadless(): boolean {
+    const browser = browserGroupSchema.safeParse(this.get('browser'));
+    return browser.success && browser.data.headless === true;
   }
 
   /**
