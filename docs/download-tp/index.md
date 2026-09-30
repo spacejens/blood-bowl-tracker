@@ -220,8 +220,9 @@ plain-HTTP method, and responses are written with the same file naming into
 the same folders.
 
 The browser method has no dedicated handling of TP blocking: it stops with an
-error on the first failed or non-JSON API response. The "TP is blocking"
-message and its retry-time hint belong to the plain-HTTP method only.
+error when an API response body is not JSON (such as a block page) or an
+in-page follow-up request fails. The "TP is blocking" message and its
+retry-time hint belong to the plain-HTTP method only.
 
 ## Development
 
