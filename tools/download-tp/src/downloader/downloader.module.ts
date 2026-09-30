@@ -5,6 +5,7 @@ import { Module } from '@nestjs/common';
 import { ApiResponseRecordingPageViewerService } from './api-response-recording-page-viewer.service';
 import { ApiResponseStoringService } from './api-response-storing.service';
 import { ApiResponseStoringPageViewerService } from './api-response-storing-page-viewer.service';
+import { BrowserLeaguesDownloaderService } from './browser-leagues-downloader.service';
 import { FileSystemService } from './file-system.service';
 import { HttpLeaguesDownloaderService } from './http-leagues-downloader.service';
 import { HttpOfficialTeamsDownloaderService } from './http-official-teams-downloader.service';
@@ -15,6 +16,7 @@ import { TpApiPathsService } from './tp-api-paths.service';
   providers: [
     HttpLeaguesDownloaderService,
     HttpOfficialTeamsDownloaderService,
+    BrowserLeaguesDownloaderService,
     ApiResponseRecordingPageViewerService,
     ApiResponseStoringPageViewerService,
     ApiResponseStoringService,
