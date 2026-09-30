@@ -7,6 +7,7 @@ import { ApiResponseStoringService } from './api-response-storing.service';
 import { ApiResponseStoringPageViewerService } from './api-response-storing-page-viewer.service';
 import { BrowserLeaguesDownloaderService } from './browser-leagues-downloader.service';
 import { BrowserOfficialTeamsDownloaderService } from './browser-official-teams-downloader.service';
+import { DownloadRunnerService } from './download-runner.service';
 import { FileSystemService } from './file-system.service';
 import { HttpLeaguesDownloaderService } from './http-leagues-downloader.service';
 import { HttpOfficialTeamsDownloaderService } from './http-official-teams-downloader.service';
@@ -15,6 +16,7 @@ import { TpApiPathsService } from './tp-api-paths.service';
 @Module({
   imports: [ScrapeTpModule, TpPathsModule],
   providers: [
+    DownloadRunnerService,
     HttpLeaguesDownloaderService,
     HttpOfficialTeamsDownloaderService,
     BrowserLeaguesDownloaderService,
@@ -25,6 +27,6 @@ import { TpApiPathsService } from './tp-api-paths.service';
     TpApiPathsService,
     FileSystemService,
   ],
-  exports: [HttpLeaguesDownloaderService, HttpOfficialTeamsDownloaderService],
+  exports: [DownloadRunnerService],
 })
 export class DownloaderModule {}

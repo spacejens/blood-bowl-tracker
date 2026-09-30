@@ -1,22 +1,28 @@
 # download-tp
 
-`tools/download-tp` fetches TP's API over plain HTTP and records the responses
-as local JSON files, for later import by `tools/import-tp`. It is a one-time
-operation per historical season, run locally by a developer — it is never
-deployed.
+`tools/download-tp` fetches TP's API — over plain HTTP, or by driving a real
+browser — and records the responses as local JSON files, for later import by
+`tools/import-tp`. It is a one-time operation per historical season, run
+locally by a developer — it is never deployed.
 
 ## What it does
 
-For each configured tournament it requests, in one continuous session, the
-same API endpoints TP's own frontend requests for the tournament's pages
-(news, scores, classifications, honours, statistics, players, awards), plus
-every match and every participant roster those responses list. Where TP
-paginates by phase, round or category (phases, classifications per phase,
-inscriptions per category) it requests every phase, round and category
-directly, each at that endpoint's first page — matching what the tool always
-fetched. See
-[Plain-HTTP fetching](#plain-http-fetching) for how requests are made and
-which endpoints each page maps to.
+For each configured tournament it downloads the TP API responses behind the
+tournament's frontend pages (news, scores, classifications, honours,
+statistics, players, awards), plus every match and every participant roster
+those responses list. It does this by one of two methods, chosen by
+`browser.enabled`:
+
+- **Plain HTTP** (`false`) — requests, in one continuous session, the same API
+  endpoints TP's own frontend requests for those pages. Where TP paginates by
+  phase, round or category (phases, classifications per phase, inscriptions
+  per category) it requests every phase, round and category directly, each at
+  that endpoint's first page. See [Plain-HTTP fetching](#plain-http-fetching).
+- **Real browser** (`true`) — drives Chrome through those pages and records
+  every API response they make. See [Browser fetching](#browser-fetching).
+
+Both methods write the same file names into the same folders, so
+`tools/import-tp` imports a download regardless of the method that made it.
 
 Downloaded files land in `tools/download-tp/data/<tournament>/`, one folder per
 configured tournament, which is gitignored. That layout matches
@@ -37,17 +43,24 @@ Copy the template and edit it:
 cp tools/download-tp/download-tp-config.example.json5 tools/download-tp/download-tp-config.json5
 ```
 
-| Key                        | Meaning                                                                                               |
-| -------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `connection.frontendUrl`   | Base URL of the TP frontend, including a trailing slash (required)                                    |
-| `connection.backendApiUrl` | Base URL of the TP API, including a trailing slash — every request goes to a path under it (required) |
-| `download.tournaments`     | Tournament names to download, as they appear in the frontend path (required; may be empty)            |
-| `download.rulesSets`       | Rules sets to download TP's official team list for (required; may be empty)                           |
+| Key                        | Meaning                                                                                                                     |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `connection.frontendUrl`   | Base URL of the TP frontend, including a trailing slash (required)                                                          |
+| `connection.backendApiUrl` | Base URL of the TP API, including a trailing slash — every request goes to a path under it (required)                       |
+| `browser.enabled`          | `true` to download by driving a real browser, `false` to fetch over plain HTTP (required; no default)                       |
+| `browser.headless`         | Browser method only: `true` hides the browser, anything else shows it (optional; ignored when `browser.enabled` is `false`) |
+| `download.tournaments`     | Tournament names to download, as they appear in the frontend path (required; may be empty)                                  |
+| `download.rulesSets`       | Rules sets to download TP's official team list for (required; may be empty)                                                 |
 
 `download-tp-config.json5` is git-ignored; only the `.example` template is
 committed. It is looked up at `download-tp-config.json5` in the working
 directory, which is `tools/download-tp/` when the tool is run as documented
 below.
+
+Running the browser method headless is known to produce spurious console
+errors from TP's service worker (`A bad HTTP response code (403) was received
+when fetching the script.`, `Service worker registration failed with:
+JSHandle@error`) — they do not affect the recorded responses.
 
 ## Running it
 
@@ -58,28 +71,39 @@ pnpm --filter @blood-bowl-tracker/download-tp run build
 pnpm --filter @blood-bowl-tracker/download-tp run start
 ```
 
-No browser is needed.
+The plain-HTTP method (`browser.enabled: false`) needs nothing else. The
+browser method (`browser.enabled: true`) drives a real Chrome via puppeteer.
+pnpm does not run puppeteer's install script (its browser download is
+deliberately declined in the workspace's `allowBuilds`, to keep CI installs
+fast), so provision a browser once before the first browser download:
 
-The official team list download runs first (see "What it does" above). It
-reads `connection.frontendUrl` and `download.rulesSets` up front, and
-`connection.backendApiUrl` when it builds the first request — so a missing or
-incomplete value for any of those three fails fast, with a message naming the
-key to set, before any request is sent. `download.tournaments` is only read
-afterward, to decide whether to also run `downloadAllLeagues()` — so a missing
-or incomplete value there is only caught once the official-teams download has
+```bash
+pnpm --filter @blood-bowl-tracker/download-tp exec puppeteer browsers install chrome
+```
+
+`browser.enabled` is read before anything else, so a missing or non-boolean
+value fails with a message naming the key before any request is sent or any
+browser launched. The official team list download runs next (see "What it
+does" above). It reads `download.rulesSets` and `connection.frontendUrl` up
+front, and `connection.backendApiUrl` before its first request or browser
+launch — so a missing or incomplete value for any of those fails fast, with a
+message naming the key to set. `download.tournaments` is only read afterward,
+to decide whether to also download the tournaments — so a missing or
+incomplete value there is only caught once the official-teams download has
 already run.
 
-The download stops at the first request TP refuses with 403 "Access
-denied" — TP blocking the client — printing when TP may next be tried
-and exiting with status 1. There is no retry: run it again after that time.
-Files written before the block are kept.
+With the plain-HTTP method, the download stops at the first request TP refuses
+with 403 "Access denied" — TP blocking the client — printing when TP may next
+be tried and exiting with status 1. There is no retry: run it again after that
+time. Files written before the block are kept.
 
 ## Plain-HTTP fetching
 
-Every request goes through `packages/scrape-tp` (see
-[docs/scrape-tp/index.md](../scrape-tp/index.md)): Node's built-in `fetch()`
-with a browser-like header set, no browser involved. `download-tp` originally
-drove a real Chrome through puppeteer; an investigation on 2026-09-23 found
+With `browser.enabled: false`, every request goes through `packages/scrape-tp`
+(see [docs/scrape-tp/index.md](../scrape-tp/index.md)): Node's built-in
+`fetch()` with a browser-like header set, no browser involved. `download-tp`
+originally only drove a real Chrome through puppeteer (still available as the
+[browser method](#browser-fetching)); an investigation on 2026-09-23 found
 that TP's API accepts plain HTTP provided each request sends this header set,
 sufficient though not individually isolated as necessary:
 
@@ -163,6 +187,37 @@ therefore do not get past TP from that network, so the header set is unchanged.
 The probe did not show whether TP now refuses every non-browser client or has
 blocked the addresses involved; a request that succeeds from a real browser on
 the same network would separate the two.
+
+## Browser fetching
+
+With `browser.enabled: true`, `download-tp` drives a real Chrome through
+puppeteer instead of building API requests itself. Each frontend page is
+opened in a freshly launched browser — shown, or hidden when
+`browser.headless` is `true` — that presents a Chrome 120 macOS user agent and
+hides the automation flag. Every response whose URL starts with
+`connection.backendApiUrl` is recorded, keyed by its path relative to that
+URL. Console errors and warnings are printed; an uncaught error in the page
+itself fails the download.
+
+For each tournament the pages are visited in the order of the table under
+[Plain-HTTP fetching](#plain-http-fetching): news, scores, every match the
+scores responses list, classifications, honours, statistics, players, every
+roster the players responses list, awards. Two pages need more than loading:
+
+- On `<slug>/honours` it clicks the Team, Player and Coach toggles
+  (`.mat-button-toggle-button`), so every view's stats request is made.
+- A scores-page phase response carries only its current round's matches, so
+  every other round listed in its `rounds[]` is requested from inside the open
+  page — reusing its session and headers — with `&round=<n>` appended.
+
+For the official team list it opens the `teams` page once per configured rules
+set and requests that rules set's `rosters/masters?ruleSet=<id>` from inside
+the page. Opening the page always loads its default tab's list too, so only
+the wanted rules set's response is written.
+
+Page paths and the rules-set id come from `packages/tp-paths`, shared with the
+plain-HTTP method, and responses are written with the same file naming into
+the same folders.
 
 ## Development
 

@@ -16,6 +16,24 @@
     backendApiUrl: 'https://<HOSTNAME_AND_API_PATH>/api/',
   },
 
+  // How to download. `enabled` is required.
+  browser: {
+    // true to download by driving a real browser (Chrome, through
+    // puppeteer); false to fetch TP's API directly over plain HTTP. Required,
+    // with no default. Both methods write the same files. The browser method
+    // needs Chrome provisioned once — see docs/download-tp/index.md.
+    enabled: true,
+    // Browser method only: true to run the browser headless (hidden), false
+    // to show it; anything other than true shows it. Ignored when enabled is
+    // false.
+    //
+    // Running headless produces console errors from TP's service worker
+    // ("A bad HTTP response code (403) was received when fetching the
+    // script.", "Service worker registration failed with: JSHandle@error");
+    // they do not affect the recorded responses.
+    headless: false,
+  },
+
   // What to download. Both keys are required to be present, but either may
   // be set to [] to skip that half entirely — download only tournaments,
   // only the official team list, both, or (both set to []) neither.
