@@ -277,22 +277,22 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       unplugin-swc:
         specifier: ^2.0.0
-        version: 2.0.0(@swc/core@1.16.13)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 2.0.0(@swc/core@1.16.13)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest-mock-extended:
         specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.2)
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.3)
 
   packages/api-client:
     dependencies:
@@ -323,19 +323,19 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest-mock-extended:
         specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.2)
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.3)
 
   packages/api-contract:
     dependencies:
@@ -354,16 +354,16 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/api-server:
     dependencies:
@@ -406,22 +406,22 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       unplugin-swc:
         specifier: ^2.0.0
-        version: 2.0.0(@swc/core@1.16.13)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 2.0.0(@swc/core@1.16.13)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest-mock-extended:
         specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.2)
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.3)
 
   packages/config-loader:
     dependencies:
@@ -446,16 +446,16 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/db:
     dependencies:
@@ -489,7 +489,7 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       drizzle-kit:
         specifier: rc
         version: 1.0.0-rc.4
@@ -498,13 +498,13 @@ importers:
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest-mock-extended:
         specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.2)
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.3)
 
   packages/discord-bot-usage:
     dependencies:
@@ -529,19 +529,19 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest-mock-extended:
         specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.2)
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.3)
 
   packages/discord-client:
     dependencies:
@@ -575,22 +575,22 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       unplugin-swc:
         specifier: ^2.0.0
-        version: 2.0.0(@swc/core@1.16.13)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 2.0.0(@swc/core@1.16.13)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest-mock-extended:
         specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.2)
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.3)
 
   packages/domain-enums:
     devDependencies:
@@ -599,16 +599,16 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/game-data:
     dependencies:
@@ -636,19 +636,19 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest-mock-extended:
         specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.2)
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.3)
 
   packages/import:
     dependencies:
@@ -682,19 +682,19 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest-mock-extended:
         specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.2)
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.3)
 
   packages/import-tp-live:
     dependencies:
@@ -737,7 +737,7 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       json5:
         specifier: ^2.2.3
         version: 2.2.3
@@ -746,16 +746,16 @@ importers:
         version: 6.0.3
       unplugin-swc:
         specifier: ^2.0.0
-        version: 2.0.0(@swc/core@1.16.13)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 2.0.0(@swc/core@1.16.13)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest-mock-extended:
         specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.2)
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.3)
 
   packages/parse-tp:
     dependencies:
@@ -780,19 +780,19 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest-mock-extended:
         specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.2)
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.3)
 
   packages/read-bbl-mirror:
     dependencies:
@@ -811,16 +811,16 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/review-harness:
     dependencies:
@@ -851,19 +851,19 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest-mock-extended:
         specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.2)
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.3)
 
   packages/scrape-tp:
     dependencies:
@@ -882,19 +882,19 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest-mock-extended:
         specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.2)
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.3)
 
   packages/tp-paths:
     dependencies:
@@ -916,19 +916,19 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       unplugin-swc:
         specifier: ^2.0.0
-        version: 2.0.0(@swc/core@1.16.13)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 2.0.0(@swc/core@1.16.13)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
 
   tools/cli-shared:
     dependencies:
@@ -953,22 +953,22 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       unplugin-swc:
         specifier: ^2.0.0
-        version: 2.0.0(@swc/core@1.16.13)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 2.0.0(@swc/core@1.16.13)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest-mock-extended:
         specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.2)
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.3)
 
   tools/dev-workflow-cli:
     dependencies:
@@ -999,22 +999,22 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       unplugin-swc:
         specifier: ^2.0.0
-        version: 2.0.0(@swc/core@1.16.13)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 2.0.0(@swc/core@1.16.13)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest-mock-extended:
         specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.2)
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.3)
 
   tools/download-tp:
     dependencies:
@@ -1051,22 +1051,22 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       unplugin-swc:
         specifier: ^2.0.0
-        version: 2.0.0(@swc/core@1.16.13)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 2.0.0(@swc/core@1.16.13)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest-mock-extended:
         specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.2)
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.3)
 
   tools/eslint-rules:
     devDependencies:
@@ -1075,7 +1075,7 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       eslint:
         specifier: ^10.11.0
         version: 10.11.0(jiti@2.7.0)(supports-color@7.2.0)
@@ -1084,10 +1084,10 @@ importers:
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
 
   tools/fs-utils-cli:
     dependencies:
@@ -1115,22 +1115,22 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       unplugin-swc:
         specifier: ^2.0.0
-        version: 2.0.0(@swc/core@1.16.13)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 2.0.0(@swc/core@1.16.13)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest-mock-extended:
         specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.2)
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.3)
 
   tools/import-bbl:
     dependencies:
@@ -1176,22 +1176,22 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       unplugin-swc:
         specifier: ^2.0.0
-        version: 2.0.0(@swc/core@1.16.13)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 2.0.0(@swc/core@1.16.13)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest-mock-extended:
         specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.2)
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.3)
 
   tools/import-manual:
     dependencies:
@@ -1231,22 +1231,22 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       unplugin-swc:
         specifier: ^2.0.0
-        version: 2.0.0(@swc/core@1.16.13)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 2.0.0(@swc/core@1.16.13)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest-mock-extended:
         specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.2)
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.3)
 
   tools/import-tp:
     dependencies:
@@ -1286,22 +1286,22 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       unplugin-swc:
         specifier: ^2.0.0
-        version: 2.0.0(@swc/core@1.16.13)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 2.0.0(@swc/core@1.16.13)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest-mock-extended:
         specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.2)
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.3)
 
   tools/markdownlint-rules:
     devDependencies:
@@ -1310,7 +1310,7 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       eslint:
         specifier: ^10.11.0
         version: 10.11.0(jiti@2.7.0)(supports-color@7.2.0)
@@ -1319,10 +1319,10 @@ importers:
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
 
   tools/production-ops-cli:
     dependencies:
@@ -1356,22 +1356,22 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       unplugin-swc:
         specifier: ^2.0.0
-        version: 2.0.0(@swc/core@1.16.13)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 2.0.0(@swc/core@1.16.13)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest-mock-extended:
         specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.2)
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.3)
 
   tools/review-match:
     dependencies:
@@ -1408,22 +1408,22 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       unplugin-swc:
         specifier: ^2.0.0
-        version: 2.0.0(@swc/core@1.16.13)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 2.0.0(@swc/core@1.16.13)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest-mock-extended:
         specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.2)
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.3)
 
   tools/review-player:
     dependencies:
@@ -1466,22 +1466,22 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       unplugin-swc:
         specifier: ^2.0.0
-        version: 2.0.0(@swc/core@1.16.13)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 2.0.0(@swc/core@1.16.13)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest-mock-extended:
         specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.2)
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.3)
 
   tools/review-race:
     dependencies:
@@ -1521,22 +1521,22 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       unplugin-swc:
         specifier: ^2.0.0
-        version: 2.0.0(@swc/core@1.16.13)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 2.0.0(@swc/core@1.16.13)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest-mock-extended:
         specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.2)
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.3)
 
   tools/review-star-player:
     dependencies:
@@ -1576,22 +1576,22 @@ importers:
         version: 24.13.6
       '@vitest/coverage-v8':
         specifier: ^5.0.0
-        version: 5.0.2(vitest@5.0.2)
+        version: 5.0.3(vitest@5.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       unplugin-swc:
         specifier: ^2.0.0
-        version: 2.0.0(@swc/core@1.16.13)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 2.0.0(@swc/core@1.16.13)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
-        version: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest-mock-extended:
         specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.2)
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.3)
 
 packages:
 
@@ -2945,11 +2945,11 @@ packages:
     resolution: {integrity: sha512-8eQ9R218XORK+KLosnf4bu/QsUXvUyVwTbArg7/0NMB1Pu87OJKvj4nhFblkYE8gQV73mW1dx1ptlPCkwRGa7A==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
-  '@vitest/coverage-v8@5.0.2':
-    resolution: {integrity: sha512-3ffHBEi8DOOBLwIGBhOBZbRfYFYWjMUuxZicONdhuFEFEG5AVsMOSrVeuROskqnqpbOmEJwxM2eTVZ9N3a1t+A==}
+  '@vitest/coverage-v8@5.0.3':
+    resolution: {integrity: sha512-+klsyz7BvT1vCU28Zkfzms1Ia78XD0V41U3FUtRaa3S+vOr/EXvK1O6BvVD7l1RzEjm6SONR2aybOvDDf9u0mQ==}
     peerDependencies:
-      '@vitest/browser': 5.0.2
-      vitest: 5.0.2
+      '@vitest/browser': 5.0.3
+      vitest: 5.0.3
     peerDependenciesMeta:
       '@vitest/browser':
         optional: true
@@ -2962,8 +2962,8 @@ packages:
     resolution: {integrity: sha512-1EOLRfsTMnyAr3+kEAsP4o9dhaDlGPpD7H5iLBBeq//YpNB1VIahkPhB+eRp9N2Dkfw8oySROjE3yf9XDeaIkQ==}
     engines: {node: '>=22'}
 
-  '@vitest/mocker@5.0.2':
-    resolution: {integrity: sha512-Z5FS00Q1SJHkB35xATsmWGdQ5WA1/0MV3CDjqyv7GavHv1OfOj145MNfHOlHk7QLes21dKFDHr8EO2zvL+9WGA==}
+  '@vitest/mocker@5.0.3':
+    resolution: {integrity: sha512-T8sWAIbkSyAjkwTcaEc3Iu0o9A27X1/kdXrizhZkGuSKScRQtRzclfAMpOTcGdXCsqxeWlpGy3XjqaW8CpLORg==}
     peerDependencies:
       msw: ^2.4.9
       vite: ^6.0.0 || ^7.0.0 || ^8.0.0
@@ -2973,8 +2973,8 @@ packages:
       vite:
         optional: true
 
-  '@vitest/spy@5.0.2':
-    resolution: {integrity: sha512-Ijc7T1nT9efNb5LxvjaBrEqw3f/QwUv5EE0nKqZxgqsaV/FxAAZ8baGylA8X/Z2oS4Lp+K74Jr6dTJsDKxJDeg==}
+  '@vitest/spy@5.0.3':
+    resolution: {integrity: sha512-XhFysQTB8AZ+P4gMi+Lpo99vg2AZi0qKpaB9yXQl37+CaMEAPO3iH/wGVnSyL5MPERiLezpqTVtrR6UZH5GCXg==}
 
   '@vladfrangu/async_event_emitter@2.4.7':
     resolution: {integrity: sha512-Xfe6rpCTxSxfbswi/W/Pz7zp1WWSNn4A0eW4mLkQUewCrXXtMj31lCg+iQyTkh/CkusZSq9eDflu7tjEDXUY6g==}
@@ -5381,20 +5381,20 @@ packages:
       typescript: 3.x || 4.x || 5.x || 6.x || 7.x
       vitest: '>=4.0.0'
 
-  vitest@5.0.2:
-    resolution: {integrity: sha512-7MQrx9pDv5aHiUcovIb/70Ys3tgtkUVgCtledvKdCmEO+/1Dicq5ZqoSxOW034m03oqC+oHOKui2dM6qtMLoJg==}
+  vitest@5.0.3:
+    resolution: {integrity: sha512-xMw97S3rjdtj5dkVat7jCsqWBpvchs3RlpQctUqwJD0KkERk40vz2fJ77lDwW/Vzh/pk18eItYAzkodhSes3jQ==}
     engines: {node: ^22.12.0 || ^24.0.0 || >=26.0.0}
     hasBin: true
     peerDependencies:
       '@edge-runtime/vm': '*'
       '@opentelemetry/api': ^1.9.0
       '@types/node': ^22.0.0 || >=24.0.0
-      '@vitest/browser-playwright': 5.0.2
-      '@vitest/browser-preview': 5.0.2
+      '@vitest/browser-playwright': 5.0.3
+      '@vitest/browser-preview': 5.0.3
       '@vitest/browser-webdriverio': ^5.0.0-beta.5 || >=5.0.0
-      '@vitest/coverage-istanbul': 5.0.2
-      '@vitest/coverage-v8': 5.0.2
-      '@vitest/ui': 5.0.2
+      '@vitest/coverage-istanbul': 5.0.3
+      '@vitest/coverage-v8': 5.0.3
+      '@vitest/ui': 5.0.3
       happy-dom: '*'
       jsdom: '*'
       vite: ^6.4.0 || ^7.0.0 || ^8.0.0
@@ -5450,8 +5450,8 @@ packages:
     engines: {node: '>= 8'}
     hasBin: true
 
-  why-is-node-running@3.2.2:
-    resolution: {integrity: sha512-NKUzAelcoCXhXL4dJzKIwXeR8iEVqsA0Lq6Vnd0UXvgaKbzVo4ZTHROF2Jidrv+SgxOQ03fMinnNhzZATxOD3A==}
+  why-is-node-running@3.2.1:
+    resolution: {integrity: sha512-Tb2FUhB4vUsGQlfSquQLYkApkuPAFQXGFzxWKHHumVz2dK+X1RUm/HnID4+TfIGYJ1kTcwOaCk/buYCEJr6YjQ==}
     engines: {node: '>=20.11'}
     hasBin: true
 
@@ -6741,7 +6741,7 @@ snapshots:
       '@typescript-eslint/types': 8.71.0
       eslint-visitor-keys: 5.0.1
 
-  '@vitest/coverage-v8@5.0.2(vitest@5.0.2)':
+  '@vitest/coverage-v8@5.0.3(vitest@5.0.3)':
     dependencies:
       '@bcoe/v8-coverage': 1.0.2
       '@vitest/istanbul-lib-coverage': 1.0.1
@@ -6751,7 +6751,7 @@ snapshots:
       obug: 2.2.1
       std-env: 4.2.0
       tinyrainbow: 3.1.1
-      vitest: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+      vitest: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
 
   '@vitest/istanbul-lib-coverage@1.0.1': {}
 
@@ -6759,16 +6759,16 @@ snapshots:
     dependencies:
       '@vitest/istanbul-lib-coverage': 1.0.1
 
-  '@vitest/mocker@5.0.2(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))':
+  '@vitest/mocker@5.0.3(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
-      '@vitest/spy': 5.0.2
+      '@vitest/spy': 5.0.3
       estree-walker: 3.0.3
       magic-string: 1.4.1
     optionalDependencies:
-      vite: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+      vite: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
 
-  '@vitest/spy@5.0.2': {}
+  '@vitest/spy@5.0.3': {}
 
   '@vladfrangu/async_event_emitter@2.4.7': {}
 
@@ -9202,12 +9202,12 @@ snapshots:
 
   unpipe@1.0.0: {}
 
-  unplugin-swc@2.0.0(@swc/core@1.16.13)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)):
+  unplugin-swc@2.0.0(@swc/core@1.16.13)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)):
     dependencies:
       '@rollup/pluginutils': 5.4.0
       '@swc/core': 1.16.13
       load-tsconfig: 0.2.5
-      unplugin: 3.4.0(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+      unplugin: 3.4.0(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
     transitivePeerDependencies:
       - '@farmfe/core'
       - '@rsbuild/core'
@@ -9220,15 +9220,14 @@ snapshots:
       - vite
       - webpack
 
-  unplugin@3.4.0(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)):
+  unplugin@3.4.0(rolldown@1.2.9)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)):
     dependencies:
       '@jridgewell/remapping': 2.3.5
       picomatch: 4.0.7
       webpack-virtual-modules: 0.6.2
     optionalDependencies:
-      esbuild: 0.25.12
       rolldown: 1.2.9
-      vite: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+      vite: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
 
   uri-js@4.4.1:
     dependencies:
@@ -9238,7 +9237,7 @@ snapshots:
 
   vary@1.1.2: {}
 
-  vite@8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1):
+  vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1):
     dependencies:
       lightningcss: 1.33.0
       picomatch: 4.0.7
@@ -9247,21 +9246,20 @@ snapshots:
       tinyglobby: 0.2.17
     optionalDependencies:
       '@types/node': 24.13.6
-      esbuild: 0.25.12
       fsevents: 2.3.3
       jiti: 2.7.0
       yaml: 2.9.1
 
-  vitest-mock-extended@5.1.1(typescript@6.0.3)(vitest@5.0.2):
+  vitest-mock-extended@5.1.1(typescript@6.0.3)(vitest@5.0.3):
     dependencies:
       ts-essentials: 10.2.1(typescript@6.0.3)
       typescript: 6.0.3
-      vitest: 5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+      vitest: 5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
 
-  vitest@5.0.2(@types/node@24.13.6)(@vitest/coverage-v8@5.0.2)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)):
+  vitest@5.0.3(@types/node@24.13.6)(@vitest/coverage-v8@5.0.3)(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)):
     dependencies:
       '@types/chai': 5.2.3
-      '@vitest/mocker': 5.0.2(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+      '@vitest/mocker': 5.0.3(vite@8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       chai: 6.2.2
       es-module-lexer: 2.3.2
       expect-type: 1.4.0
@@ -9272,11 +9270,11 @@ snapshots:
       tinybench: 6.1.4
       tinyexec: 1.3.0
       tinyglobby: 0.2.17
-      vite: 8.3.1(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
-      why-is-node-running: 3.2.2
+      vite: 8.3.1(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
+      why-is-node-running: 3.2.1
     optionalDependencies:
       '@types/node': 24.13.6
-      '@vitest/coverage-v8': 5.0.2(vitest@5.0.2)
+      '@vitest/coverage-v8': 5.0.3(vitest@5.0.3)
     transitivePeerDependencies:
       - msw
 
@@ -9300,7 +9298,7 @@ snapshots:
     dependencies:
       isexe: 2.0.0
 
-  why-is-node-running@3.2.2: {}
+  why-is-node-running@3.2.1: {}
 
   word-wrap@1.2.5: {}
 
