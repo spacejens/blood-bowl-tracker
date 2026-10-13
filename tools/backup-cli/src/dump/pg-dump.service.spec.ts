@@ -80,6 +80,39 @@ describe('PgDumpService', () => {
     expect(error?.message).not.toContain('hunter2');
   });
 
+  it('redacts the connection string when the runner rejects, e.g. pg_dump killed by a signal', async () => {
+    processRunner.run.mockRejectedValue(
+      new Error(
+        `Command failed: pg_dump --format=custom --dbname=${DATABASE_URL}`,
+      ),
+    );
+
+    const error = await service
+      .dump({ databaseUrl: DATABASE_URL, outputPath })
+      .then(
+        () => undefined,
+        (e: unknown) => e as Error,
+      );
+
+    expect(error?.message).toBe(
+      'Command failed: pg_dump --format=custom --dbname=<database-url>',
+    );
+    expect(error?.cause).toBeUndefined();
+  });
+
+  it('redacts the bare password and stringifies a non-Error rejection', async () => {
+    processRunner.run.mockRejectedValue(`auth failed for hunter2`);
+
+    const error = await service
+      .dump({ databaseUrl: DATABASE_URL, outputPath })
+      .then(
+        () => undefined,
+        (e: unknown) => e as Error,
+      );
+
+    expect(error?.message).toBe('auth failed for <password>');
+  });
+
   it('fails when pg_dump times out', async () => {
     processRunner.run.mockResolvedValue({
       exitCode: TIMED_OUT_EXIT_CODE,
