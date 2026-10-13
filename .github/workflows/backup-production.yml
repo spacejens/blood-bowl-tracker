@@ -83,7 +83,7 @@ jobs:
         run: |
           node tools/backup-cli/dist/main.js create > "$RUNNER_TEMP/create-result.json"
           cat "$RUNNER_TEMP/create-result.json"
-          echo "backup-key=$(jq -r .key "$RUNNER_TEMP/create-result.json")" >> "$GITHUB_OUTPUT"
+          echo "backup-key=$(jq -er .key "$RUNNER_TEMP/create-result.json")" >> "$GITHUB_OUTPUT"
       - name: Prune expired backups
         env:
           BACKUP_STORAGE_ENDPOINT: ${{ vars.BACKUP_STORAGE_ENDPOINT }}

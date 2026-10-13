@@ -318,6 +318,18 @@ describe('BackupStorageService', () => {
       expect(readFileSync(destinationPath, 'utf8')).toBe('keep-me');
     });
 
+    it('releases the response body when the destination cannot be opened', async () => {
+      const destinationPath = join(dir, 'out.dump');
+      writeFileSync(destinationPath, 'keep-me');
+      const body = Readable.from([Buffer.from('new')]);
+      client.send.mockResolvedValueOnce({ Body: body } as never);
+
+      await expect(
+        service.download({ key: 'production/a.dump', destinationPath }),
+      ).rejects.toThrow(/EEXIST/);
+      expect(body.destroyed).toBe(true);
+    });
+
     it('removes the partial file when the stream fails midway', async () => {
       const destinationPath = join(dir, 'out.dump');
       client.send.mockResolvedValueOnce({

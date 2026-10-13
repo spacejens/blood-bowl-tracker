@@ -11,7 +11,7 @@ export const BACKUP_CONFIG_PATH = Symbol('BACKUP_CONFIG_PATH');
 export const BACKUP_ENV = Symbol('BACKUP_ENV');
 
 /** File name this tool's config lives in, named in every error about it. */
-export const CONFIG_FILE_NAME = 'backup-cli-config.json5';
+const CONFIG_FILE_NAME = 'backup-cli-config.json5';
 
 /**
  * `tools/backup-cli/backup-cli-config.json5`, resolved from this file's own
@@ -26,7 +26,7 @@ export const DEFAULT_BACKUP_CONFIG_PATH = join(
   CONFIG_FILE_NAME,
 );
 
-export const DEFAULT_RETENTION_DAYS = 30;
+const DEFAULT_RETENTION_DAYS = 30;
 
 export type BackupEnv = Readonly<Record<string, string | undefined>>;
 

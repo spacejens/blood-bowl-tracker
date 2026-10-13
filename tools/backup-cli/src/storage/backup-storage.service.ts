@@ -154,7 +154,14 @@ export class BackupStorageService {
     }
     // Opening with 'wx' fails with EEXIST before anything is created, so a
     // pre-existing file is never touched.
-    const handle = await open(request.destinationPath, 'wx');
+    let handle;
+    try {
+      handle = await open(request.destinationPath, 'wx');
+    } catch (error) {
+      // Release the socket held by the unread response.
+      response.Body.destroy();
+      throw error;
+    }
     try {
       await pipeline(response.Body, handle.createWriteStream());
     } catch (error) {

@@ -115,7 +115,16 @@ describe('CreateBackupService', () => {
       throw new Error('EBUSY');
     });
 
+    const stderr = vi
+      .spyOn(process.stderr, 'write')
+      .mockImplementation(() => true);
+
     await expect(service.run()).rejects.toThrow('pg_dump exited with code 1');
+    const written = stderr.mock.calls.map((call) => String(call[0])).join('');
+    stderr.mockRestore();
+    expect(written).toContain('Could not remove temporary directory');
+    expect(written).toContain('backup-cli-');
+    expect(written).not.toContain('postgres://');
   });
 
   it('checks storage settings before spending time on a dump', async () => {

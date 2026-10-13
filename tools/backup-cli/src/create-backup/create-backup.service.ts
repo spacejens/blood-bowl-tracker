@@ -49,7 +49,11 @@ export class CreateBackupService {
       try {
         rmSync(workDir, { recursive: true, force: true });
       } catch {
-        // Cleanup is best effort; it must never mask the run's own outcome.
+        // Cleanup is best effort; it must never mask the run's own outcome,
+        // but a leftover production dump is worth surfacing.
+        process.stderr.write(
+          `Warning: Could not remove temporary directory ${workDir}; delete it manually.\n`,
+        );
       }
     }
   }
