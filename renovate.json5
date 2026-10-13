@@ -11,6 +11,20 @@
   // pnpm-workspace.yaml's minimumReleaseAgeExclude, the same way existing
   // entries there already handle this.
   minimumReleaseAge: '1 day',
+  // At most one new Renovate PR per clock hour. Every npm update rewrites
+  // pnpm-lock.yaml, so two PRs created together race: the first to pass CI
+  // and automerge changes the lockfile on main, and the other then
+  // conflicts and needs a rebase plus a fresh CI run, often losing the race
+  // again to the next PR. Renovate's default of 2 per hour produces exactly
+  // those pairs; with 1, each PR normally automerges (about 8 minutes)
+  // before the next is created, and a backlog of N updates drains in about
+  // N hours. prHourlyLimit rather than prConcurrentLimit on purpose:
+  // prConcurrentLimit is repo-level only (no packageRules scope) and counts
+  // every open Renovate PR, so a major or other PR waiting for human review
+  // would block all other updates, whereas prHourlyLimit only counts PR
+  // creation. Security PRs and manual rebases (the PR's rebase checkbox)
+  // bypass this limit.
+  prHourlyLimit: 1,
   // GitHub's native vulnerability alerts (Dependabot alerts) are enabled on
   // this repo (detection only — Dependabot's own automated-security-fixes PR
   // creation stays off, so Renovate remains the only tool opening PRs here),
