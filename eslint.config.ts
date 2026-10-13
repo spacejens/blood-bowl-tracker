@@ -65,6 +65,8 @@ export default tseslint.config(
             'tools/markdownlint-rules/vitest.config.ts',
             'tools/cli-shared/test/*.ts',
             'tools/cli-shared/vitest.config.ts',
+            'tools/backup-cli/test/*.ts',
+            'tools/backup-cli/vitest.config.ts',
             'tools/dev-workflow-cli/test/*.ts',
             'tools/dev-workflow-cli/vitest.config.ts',
             'tools/fs-utils-cli/test/*.ts',

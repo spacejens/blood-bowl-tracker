@@ -1,0 +1,33 @@
+// Configuration for tools/backup-cli.
+//
+// Copy this file to `backup-cli-config.json5` in the same directory and fill
+// in real values:
+//   cp tools/backup-cli/backup-cli-config.example.json5 tools/backup-cli/backup-cli-config.json5
+//
+// `backup-cli-config.json5` is git-ignored. Every setting can instead come
+// from an environment variable (named beside each setting below), which wins
+// over this file when set to a non-empty value. That is how the GitHub
+// Actions workflow supplies them. See docs/backup-cli/index.md.
+{
+  // The private Cloudflare R2 bucket backups are stored in. Use the
+  // READ-ONLY token here for everyday list/download use. Only the
+  // `production-backup` GitHub environment holds the write token.
+  storage: {
+    // https://<account-id>.r2.cloudflarestorage.com (BACKUP_STORAGE_ENDPOINT)
+    endpoint: 'https://<account-id>.r2.cloudflarestorage.com',
+    // Bucket name (BACKUP_STORAGE_BUCKET)
+    bucket: '<bucket-name>',
+    // R2 API token's S3 credentials (BACKUP_STORAGE_ACCESS_KEY_ID /
+    // BACKUP_STORAGE_SECRET_ACCESS_KEY)
+    accessKeyId: '<access-key-id>',
+    secretAccessKey: '<secret-access-key>',
+  },
+
+  // Only `create` needs this: Neon's DIRECT (non-pooled) connection string
+  // (BACKUP_DATABASE_URL). Leave it out for list/download/prune.
+  // database: { url: 'postgresql://...' },
+
+  // How many days `prune` keeps backups for. Defaults to 30.
+  // (BACKUP_RETENTION_DAYS)
+  retentionDays: 30,
+}

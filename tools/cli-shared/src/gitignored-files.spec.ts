@@ -30,6 +30,12 @@ describe('gitignored-files constants', () => {
     expect(GITIGNORED_DRIFT_FILES).toContainEqual(
       'tools/import-bbl/import-bbl-config.production.json5',
     );
+    expect(GITIGNORED_DRIFT_FILES).toContainEqual(
+      'tools/backup-cli/backup-cli-config.json5',
+    );
+    expect(GITIGNORED_SYNC_FILES).not.toContainEqual(
+      'tools/backup-cli/backup-cli-config.json5',
+    );
   });
 
   it('exports GITIGNORED_DATA_DIRS as a readonly array', () => {
