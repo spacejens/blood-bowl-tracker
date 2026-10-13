@@ -20,6 +20,12 @@ const OLDER: StoredBackup = {
   lastModified: '2026-08-01T03:17:00.000Z',
 };
 
+const OLDEST: StoredBackup = {
+  key: 'production/oldest.dump',
+  sizeBytes: 1,
+  lastModified: '2026-07-01T03:17:00.000Z',
+};
+
 describe('PruneBackupsService', () => {
   let service: PruneBackupsService;
   let config: MockProxy<BackupConfigService>;
@@ -62,6 +68,30 @@ describe('PruneBackupsService', () => {
       retentionDays: 30,
     });
     expect(storage.delete).toHaveBeenCalledWith([OLDER.key]);
+  });
+
+  it('names the failing key and the keys already deleted on a partial failure', async () => {
+    config.getRetentionDays.mockReturnValue(30);
+    storage.list.mockResolvedValue([NEWER, OLDER, OLDEST]);
+    retention.selectExpired.mockReturnValue([OLDER, OLDEST]);
+    storage.delete
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('AccessDenied'));
+
+    await expect(service.run()).rejects.toThrow(
+      'Prune failed deleting production/oldest.dump (already deleted: production/old.dump): AccessDenied',
+    );
+  });
+
+  it('reports none deleted when the first delete fails with a non-Error', async () => {
+    config.getRetentionDays.mockReturnValue(30);
+    storage.list.mockResolvedValue([OLDER]);
+    retention.selectExpired.mockReturnValue([OLDER]);
+    storage.delete.mockRejectedValueOnce('boom');
+
+    await expect(service.run()).rejects.toThrow(
+      'Prune failed deleting production/old.dump (already deleted: none): boom',
+    );
   });
 
   it('reads the retention window before touching storage', async () => {

@@ -86,7 +86,17 @@ describe('BackupStorageService', () => {
         Key: 'production/a.dump',
         ContentLength: 10,
       });
-      (input.Body as ReadStream).destroy();
+      expect((input.Body as ReadStream).closed).toBe(true);
+    });
+
+    it('fails cleanly with ENOENT for a missing local file', async () => {
+      await expect(
+        service.upload({
+          key: 'production/a.dump',
+          filePath: join(dir, 'missing.dump'),
+        }),
+      ).rejects.toThrow(/ENOENT/);
+      expect(client.send).not.toHaveBeenCalled();
     });
 
     it('propagates an upload failure', async () => {
@@ -97,6 +107,9 @@ describe('BackupStorageService', () => {
       await expect(
         service.upload({ key: 'production/a.dump', filePath }),
       ).rejects.toThrow('AccessDenied');
+      const body = (sentCommand(0) as PutObjectCommand).input
+        .Body as ReadStream;
+      expect(body.closed).toBe(true);
     });
   });
 
@@ -136,6 +149,51 @@ describe('BackupStorageService', () => {
         Bucket: 'bbt-backups',
         Prefix: BACKUP_KEY_PREFIX,
       });
+    });
+
+    it('skips folder-marker objects', async () => {
+      client.send.mockResolvedValueOnce({
+        Contents: [
+          {
+            Key: 'production/',
+            Size: 0,
+            LastModified: new Date('2026-10-01T00:00:00Z'),
+          },
+          {
+            Key: 'production/sub/',
+            Size: 0,
+            LastModified: new Date('2026-10-01T00:00:00Z'),
+          },
+          {
+            Key: 'production/a.dump',
+            Size: 1,
+            LastModified: new Date('2026-10-01T00:00:00Z'),
+          },
+        ],
+        IsTruncated: false,
+      } as never);
+
+      const backups = await service.list();
+
+      expect(backups.map((b) => b.key)).toEqual(['production/a.dump']);
+    });
+
+    it('breaks equal timestamps by key', async () => {
+      const lastModified = new Date('2026-10-01T00:00:00Z');
+      client.send.mockResolvedValueOnce({
+        Contents: [
+          { Key: 'production/b.dump', Size: 1, LastModified: lastModified },
+          { Key: 'production/a.dump', Size: 1, LastModified: lastModified },
+        ],
+        IsTruncated: false,
+      } as never);
+
+      const backups = await service.list();
+
+      expect(backups.map((b) => b.key)).toEqual([
+        'production/a.dump',
+        'production/b.dump',
+      ]);
     });
 
     it('follows continuation tokens across pages', async () => {
@@ -258,6 +316,49 @@ describe('BackupStorageService', () => {
         service.download({ key: 'production/a.dump', destinationPath }),
       ).rejects.toThrow(/EEXIST/);
       expect(readFileSync(destinationPath, 'utf8')).toBe('keep-me');
+    });
+
+    it('removes the partial file when the stream fails midway', async () => {
+      const destinationPath = join(dir, 'out.dump');
+      client.send.mockResolvedValueOnce({
+        Body: Readable.from(
+          (async function* () {
+            await Promise.resolve();
+            yield Buffer.from('partial');
+            throw new Error('connection reset');
+          })(),
+        ),
+      } as never);
+
+      await expect(
+        service.download({ key: 'production/a.dump', destinationPath }),
+      ).rejects.toThrow('connection reset');
+      expect(existsSync(destinationPath)).toBe(false);
+    });
+
+    it('gives an unknown key a clear error and creates no file', async () => {
+      const destinationPath = join(dir, 'out.dump');
+      client.send.mockRejectedValueOnce(
+        Object.assign(new Error('The specified key does not exist.'), {
+          name: 'NoSuchKey',
+        }),
+      );
+
+      await expect(
+        service.download({ key: 'production/nope.dump', destinationPath }),
+      ).rejects.toThrow(/production\/nope\.dump does not exist/);
+      expect(existsSync(destinationPath)).toBe(false);
+    });
+
+    it('rethrows other request failures unchanged', async () => {
+      client.send.mockRejectedValueOnce('boom');
+
+      await expect(
+        service.download({
+          key: 'production/a.dump',
+          destinationPath: join(dir, 'out.dump'),
+        }),
+      ).rejects.toBe('boom');
     });
 
     it('throws when the object has no readable body', async () => {

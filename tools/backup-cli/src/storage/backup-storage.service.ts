@@ -1,4 +1,5 @@
-import { createReadStream, createWriteStream, statSync } from 'node:fs';
+import { createReadStream, statSync } from 'node:fs';
+import { open, unlink } from 'node:fs/promises';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
@@ -49,6 +50,7 @@ export class BackupStorageService {
 
   async upload(request: UploadRequest): Promise<void> {
     const { client, bucket } = this.connection();
+    const sizeBytes = statSync(request.filePath).size;
     const body = createReadStream(request.filePath);
     try {
       await client.send(
@@ -56,7 +58,7 @@ export class BackupStorageService {
           Bucket: bucket,
           Key: request.key,
           Body: body,
-          ContentLength: statSync(request.filePath).size,
+          ContentLength: sizeBytes,
         }),
       );
     } finally {
@@ -87,7 +89,12 @@ export class BackupStorageService {
         }),
       );
       for (const object of page.Contents ?? []) {
-        if (object.Key !== undefined && object.LastModified !== undefined) {
+        if (
+          object.Key !== undefined &&
+          object.LastModified !== undefined &&
+          object.Key !== BACKUP_KEY_PREFIX &&
+          !object.Key.endsWith('/')
+        ) {
           backups.push({
             key: object.Key,
             sizeBytes: object.Size ?? 0,
@@ -98,8 +105,13 @@ export class BackupStorageService {
       continuationToken =
         page.IsTruncated === true ? page.NextContinuationToken : undefined;
     } while (continuationToken !== undefined);
-    // Same-format UTC ISO strings sort chronologically as plain strings.
-    return backups.sort((a, b) => b.lastModified.localeCompare(a.lastModified));
+    // Same-format UTC ISO strings sort chronologically as plain strings; the
+    // key breaks ties so the order is deterministic.
+    return backups.sort(
+      (a, b) =>
+        b.lastModified.localeCompare(a.lastModified) ||
+        a.key.localeCompare(b.key),
+    );
   }
 
   /**
@@ -117,19 +129,39 @@ export class BackupStorageService {
     }
   }
 
-  /** Streams one backup to a new local file; never overwrites one. */
+  /**
+   * Streams one backup to a new local file; never overwrites one. A partial
+   * file left by a failed transfer is removed so a retry can start clean, but
+   * only when this call created it.
+   */
   async download(request: DownloadRequest): Promise<void> {
     const { client, bucket } = this.connection();
-    const response = await client.send(
-      new GetObjectCommand({ Bucket: bucket, Key: request.key }),
-    );
+    let response;
+    try {
+      response = await client.send(
+        new GetObjectCommand({ Bucket: bucket, Key: request.key }),
+      );
+    } catch (error) {
+      if (error instanceof Error && error.name === 'NoSuchKey') {
+        throw new Error(`Backup ${request.key} does not exist in the bucket.`, {
+          cause: error,
+        });
+      }
+      throw error;
+    }
     if (!(response.Body instanceof Readable)) {
       throw new Error(`Backup ${request.key} returned no readable body.`);
     }
-    await pipeline(
-      response.Body,
-      createWriteStream(request.destinationPath, { flags: 'wx' }),
-    );
+    // Opening with 'wx' fails with EEXIST before anything is created, so a
+    // pre-existing file is never touched.
+    const handle = await open(request.destinationPath, 'wx');
+    try {
+      await pipeline(response.Body, handle.createWriteStream());
+    } catch (error) {
+      await handle.close().catch(() => undefined);
+      await unlink(request.destinationPath).catch(() => undefined);
+      throw error;
+    }
   }
 
   private connection(): Connection {

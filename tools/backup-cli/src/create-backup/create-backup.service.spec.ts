@@ -1,4 +1,4 @@
-import { existsSync, writeFileSync } from 'node:fs';
+import { existsSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 
 import { Test } from '@nestjs/testing';
@@ -9,6 +9,11 @@ import { BackupConfigService } from '../config/backup-config.service';
 import { PgDumpService } from '../dump/pg-dump.service';
 import { BackupStorageService } from '../storage/backup-storage.service';
 import { CreateBackupService } from './create-backup.service';
+
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>();
+  return { ...actual, rmSync: vi.fn(actual.rmSync) };
+});
 
 const DATABASE_URL = 'postgresql://user:pw@ep-x.neon.tech/neondb';
 const KEY = 'production/2026-10-13T03-17-05.123Z.dump';
@@ -100,6 +105,17 @@ describe('CreateBackupService', () => {
 
     await expect(service.run()).rejects.toThrow('AccessDenied');
     expect(existsSync(workDir())).toBe(false);
+  });
+
+  it('does not let a cleanup failure mask the original error', async () => {
+    dumpLeavesFileThen(() => {
+      throw new Error('pg_dump exited with code 1');
+    });
+    vi.mocked(rmSync).mockImplementationOnce(() => {
+      throw new Error('EBUSY');
+    });
+
+    await expect(service.run()).rejects.toThrow('pg_dump exited with code 1');
   });
 
   it('checks storage settings before spending time on a dump', async () => {

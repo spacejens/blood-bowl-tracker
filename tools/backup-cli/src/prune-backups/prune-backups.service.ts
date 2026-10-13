@@ -6,7 +6,7 @@ import { BackupStorageService } from '../storage/backup-storage.service';
 
 export interface PruneBackupsResult {
   readonly retentionDays: number;
-  readonly deleted: string[];
+  readonly deleted: readonly string[];
   readonly kept: number;
 }
 
@@ -25,7 +25,21 @@ export class PruneBackupsService {
     const deleted = this.retention
       .selectExpired(backups, { now: new Date(), retentionDays })
       .map((backup) => backup.key);
-    await this.storage.delete(deleted);
+    const done: string[] = [];
+    for (const key of deleted) {
+      try {
+        await this.storage.delete([key]);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        throw new Error(
+          `Prune failed deleting ${key} (already deleted: ${
+            done.length === 0 ? 'none' : done.join(', ')
+          }): ${reason}`,
+          { cause: error },
+        );
+      }
+      done.push(key);
+    }
     return { retentionDays, deleted, kept: backups.length - deleted.length };
   }
 }

@@ -46,7 +46,11 @@ export class CreateBackupService {
       await this.storage.upload({ key, filePath: outputPath });
       return { key, sizeBytes, createdAt };
     } finally {
-      rmSync(workDir, { recursive: true, force: true });
+      try {
+        rmSync(workDir, { recursive: true, force: true });
+      } catch {
+        // Cleanup is best effort; it must never mask the run's own outcome.
+      }
     }
   }
 }
