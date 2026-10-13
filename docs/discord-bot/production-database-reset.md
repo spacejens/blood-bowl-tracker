@@ -4,7 +4,8 @@ See [Production hosting](production-hosting.md) for the other pages.
 
 Production data is fully reproducible by re-running the importers, so the
 recovery path for a corrupt or schema-drifted production database is to wipe
-it and re-import rather than to restore a backup — there are no backups.
+it and re-import rather than to restore a backup — [daily backups](production-backups.md) are
+taken, but restoring one is not yet a documented procedure.
 This is the production equivalent of `docker compose down -v` locally.
 
 The mechanism is a schema drop against Neon followed by a machine restart.
