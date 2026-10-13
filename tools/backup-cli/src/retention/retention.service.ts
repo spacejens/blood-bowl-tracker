@@ -21,18 +21,27 @@ export class RetentionService {
     backups: readonly StoredBackup[],
     policy: RetentionPolicy,
   ): StoredBackup[] {
+    if (!Number.isFinite(policy.retentionDays)) {
+      throw new Error('retentionDays must be a finite number');
+    }
     if (backups.length === 0) {
       return [];
     }
-    const newest = backups.reduce((latest, candidate) =>
-      Date.parse(candidate.lastModified) > Date.parse(latest.lastModified)
-        ? candidate
-        : latest,
+    const timed = backups.map((backup) => {
+      const time = Date.parse(backup.lastModified);
+      if (Number.isNaN(time)) {
+        throw new Error(
+          `Backup ${backup.key} has an unparseable lastModified timestamp`,
+        );
+      }
+      return { backup, time };
+    });
+    const newest = timed.reduce((latest, candidate) =>
+      candidate.time > latest.time ? candidate : latest,
     );
     const cutoff = policy.now.getTime() - policy.retentionDays * DAY_MS;
-    return backups.filter(
-      (candidate) =>
-        candidate !== newest && Date.parse(candidate.lastModified) < cutoff,
-    );
+    return timed
+      .filter((candidate) => candidate !== newest && candidate.time < cutoff)
+      .map((candidate) => candidate.backup);
   }
 }
