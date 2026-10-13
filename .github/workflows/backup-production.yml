@@ -1,0 +1,93 @@
+# Backs up the production Neon database to a private Cloudflare R2 bucket and
+# prunes backups past the retention window. See
+# docs/discord-bot/production-backups.md.
+#
+# Runs daily on a schedule, on manual dispatch, and when called from another
+# workflow, which waits for it and can read the created backup's key from
+# the `backup-key` output.
+name: Backup production database
+
+on:
+  schedule:
+    # 03:17 UTC daily: a quiet hour for the guild, and off the top of the
+    # hour, when GitHub's scheduler is busiest and most likely to delay runs.
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+  workflow_call:
+    outputs:
+      backup-key:
+        description: Storage key of the backup this run created
+        value: ${{ jobs.backup.outputs.backup-key }}
+
+permissions:
+  contents: read
+
+# Serializes runs (a scheduled run and a dispatched one never overlap) but
+# never cancels one mid-upload or mid-prune: a second run queues instead.
+concurrency:
+  group: backup-production
+  cancel-in-progress: false
+
+env:
+  # pg_dump must be at least the server's major version; a newer pg_dump
+  # dumps an older server fine. Keep this >= the Neon project's major
+  # (production runs PostgreSQL 18).
+  POSTGRES_CLIENT_MAJOR_VERSION: '18'
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # Protected environment holding the database URL and the bucket WRITE
+    # token; nothing else in the repo can read them.
+    environment: production-backup
+    outputs:
+      backup-key: ${{ steps.create.outputs.backup-key }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Enable Corepack
+        run: corepack enable
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      # The runner image's preinstalled client is older than Neon's server,
+      # so install the pinned major from the PostgreSQL apt repository and put
+      # its binaries first on PATH.
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y "postgresql-client-${POSTGRES_CLIENT_MAJOR_VERSION}"
+          echo "/usr/lib/postgresql/${POSTGRES_CLIENT_MAJOR_VERSION}/bin" >> "$GITHUB_PATH"
+      - name: Show pg_dump version
+        run: pg_dump --version
+      - name: Build backup-cli
+        run: pnpm --filter "@blood-bowl-tracker/backup-cli..." run build
+      # The CLI prints {key, sizeBytes, createdAt} as JSON on stdout (no
+      # secrets). A failure exits non-zero, which fails this step and the
+      # job, and the prune step below is then skipped.
+      - name: Create backup
+        id: create
+        env:
+          BACKUP_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          BACKUP_STORAGE_ENDPOINT: ${{ vars.BACKUP_STORAGE_ENDPOINT }}
+          BACKUP_STORAGE_BUCKET: ${{ vars.BACKUP_STORAGE_BUCKET }}
+          BACKUP_STORAGE_ACCESS_KEY_ID: ${{ secrets.BACKUP_STORAGE_WRITE_ACCESS_KEY_ID }}
+          BACKUP_STORAGE_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_STORAGE_WRITE_SECRET_ACCESS_KEY }}
+        run: |
+          node tools/backup-cli/dist/main.js create > "$RUNNER_TEMP/create-result.json"
+          cat "$RUNNER_TEMP/create-result.json"
+          echo "backup-key=$(jq -r .key "$RUNNER_TEMP/create-result.json")" >> "$GITHUB_OUTPUT"
+      - name: Prune expired backups
+        env:
+          BACKUP_STORAGE_ENDPOINT: ${{ vars.BACKUP_STORAGE_ENDPOINT }}
+          BACKUP_STORAGE_BUCKET: ${{ vars.BACKUP_STORAGE_BUCKET }}
+          BACKUP_STORAGE_ACCESS_KEY_ID: ${{ secrets.BACKUP_STORAGE_WRITE_ACCESS_KEY_ID }}
+          BACKUP_STORAGE_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_STORAGE_WRITE_SECRET_ACCESS_KEY }}
+        run: node tools/backup-cli/dist/main.js prune
