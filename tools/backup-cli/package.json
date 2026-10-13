@@ -19,6 +19,7 @@
     "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run format && pnpm run test"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1150.0",
     "@blood-bowl-tracker/cli-shared": "workspace:*",
     "@blood-bowl-tracker/config-loader": "workspace:*",
     "@nestjs/common": "^12.0.0",
