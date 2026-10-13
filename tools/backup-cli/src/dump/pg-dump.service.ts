@@ -16,10 +16,12 @@ export interface PgDumpRequest {
 
 /**
  * Dumps the whole database (every schema) to a local file with `pg_dump`,
- * in custom format so a restore can be selective, and without ownership
- * statements so it restores into a database with different roles. pg_dump
- * writes the file itself (`--file`), so the dump never passes through
- * `ProcessRunnerService`'s in-memory stdout buffer.
+ * in custom format so a restore can be selective. `--no-owner` is passed
+ * for completeness but only affects plain-text dumps; an archive keeps its
+ * ownership entries, so a restore into a database with different roles must
+ * pass `--no-owner` to `pg_restore`. pg_dump writes the file itself
+ * (`--file`), so the dump never passes through `ProcessRunnerService`'s
+ * in-memory stdout buffer.
  */
 @Injectable()
 export class PgDumpService {
@@ -33,6 +35,7 @@ export class PgDumpService {
         [
           '--format=custom',
           '--no-owner',
+          '--no-password',
           `--file=${request.outputPath}`,
           `--dbname=${request.databaseUrl}`,
         ],

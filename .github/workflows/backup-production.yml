@@ -23,7 +23,8 @@ permissions:
   contents: read
 
 # Serializes runs (a scheduled run and a dispatched one never overlap) but
-# never cancels one mid-upload or mid-prune: a second run queues instead.
+# never cancels one mid-upload or mid-prune: a second run waits instead (one waiting run is kept; a third
+# trigger replaces it).
 concurrency:
   group: backup-production
   cancel-in-progress: false

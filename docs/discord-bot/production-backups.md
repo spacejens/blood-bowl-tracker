@@ -18,14 +18,16 @@ account problem at either one does not take the backups with it.
 
 - The workflow runs daily at 03:17 UTC. It also runs on manual dispatch and
   when another workflow calls it. Runs are serialized, and a running backup
-  is never cancelled.
+  is never cancelled. GitHub keeps only one waiting run per workflow, so a
+  third trigger replaces a run that is still waiting.
 - Each run creates one backup named `production/<UTC timestamp>.dump`. It is
   a custom-format `pg_dump` of the whole database, all schemas included.
 - After a successful backup, the run prunes backups older than **30 days**.
   If the backup failed, nothing is pruned.
 - Pruning never deletes the newest backup. A wrong clock or a mistaken
   retention setting therefore cannot leave the bucket empty. Pruning also
-  refuses to delete anything if any stored key has an unparseable timestamp.
+  refuses to delete anything if the upload time the bucket reports for any
+  stored backup cannot be parsed.
 - A failed run fails the workflow, which shows in the Actions tab. Alerting
   on failures is separate, future work.
 

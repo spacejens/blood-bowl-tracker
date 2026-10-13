@@ -18,10 +18,13 @@ bucket, tokens, schedule and retention policy, see
 
 Behaviors worth knowing:
 
+- The dump is a custom-format archive that keeps its ownership entries
+  (`--no-owner` has no effect on archives), so restore it with
+  `pg_restore --no-owner` when the target database has different roles.
 - `create` dumps into a temporary directory and removes it afterwards,
   whether the backup succeeded or not.
-- `prune` throws and deletes nothing if any stored backup has an
-  unparseable timestamp in its key. If a deletion fails part-way, the error
+- `prune` throws and deletes nothing if the upload time the bucket reports
+  for any stored backup cannot be parsed. If a deletion fails part-way, the error
   names the failing key and the keys already deleted.
 - `download` refuses to overwrite an existing destination file, and removes
   its partial file if the download fails.

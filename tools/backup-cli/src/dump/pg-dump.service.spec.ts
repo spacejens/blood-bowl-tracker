@@ -53,6 +53,7 @@ describe('PgDumpService', () => {
       [
         '--format=custom',
         '--no-owner',
+        '--no-password',
         `--file=${outputPath}`,
         `--dbname=${DATABASE_URL}`,
       ],
@@ -111,6 +112,19 @@ describe('PgDumpService', () => {
       );
 
     expect(error?.message).toBe('auth failed for <password>');
+  });
+
+  it('redacts a connection string that is not a parseable URL, without a password to scrub', async () => {
+    processRunner.run.mockRejectedValue(new Error('failed for not-a-url'));
+
+    const error = await service
+      .dump({ databaseUrl: 'not-a-url', outputPath })
+      .then(
+        () => undefined,
+        (e: unknown) => e as Error,
+      );
+
+    expect(error?.message).toBe('failed for <database-url>');
   });
 
   it('fails when pg_dump times out', async () => {
