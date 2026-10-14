@@ -168,9 +168,10 @@ tools/
                         file through the docs/plans symlink) the Claude Code
                         skills call
   backup-cli/         — NestJS CLI application that backs up the production
-                        database to a private Cloudflare R2 bucket and lists,
-                        prunes and downloads those backups; run daily by
-                        .github/workflows/backup-production.yml
+                        database to a private Cloudflare R2 bucket, lists,
+                        prunes, downloads and verifies those backups, and
+                        restores one into the local development database;
+                        run daily by .github/workflows/backup-production.yml
 ```
 
 ## Data flow
