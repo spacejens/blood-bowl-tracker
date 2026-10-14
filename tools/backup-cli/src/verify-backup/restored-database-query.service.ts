@@ -11,7 +11,7 @@ export const PSQL_TIMEOUT_MS = 5 * 60 * 1000;
  * Plain output: no psqlrc, no headers or footers, `|`-separated columns,
  * and a failing statement exits non-zero.
  */
-const PSQL_FLAGS = [
+export const PSQL_FLAGS = [
   '--no-psqlrc',
   '--tuples-only',
   '--no-align',
