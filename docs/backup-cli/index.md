@@ -37,7 +37,7 @@ Behaviors worth knowing:
 - `verify` restores with
   `pg_restore --no-owner --no-privileges --exit-on-error --single-transaction`, so production's
   roles need not exist locally. A non-zero exit, or a restore taking over 30
-  minutes, fails it. The target URL is redacted from every error.
+  minutes, fails it. The target URL appears in every error with its password masked (`<password>`).
 - `verify` then checks, with `psql`, that `drizzle.__drizzle_migrations` is
   non-empty and records exactly the oldest N migrations of this checkout's
   `packages/db/migrations` (a backup older than the checkout is fine; an

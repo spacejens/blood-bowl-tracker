@@ -61,13 +61,13 @@ describe('PgClientService', () => {
     processRunner.run.mockResolvedValue({
       exitCode: 2,
       stdout: '',
-      stderr: `psql: error: connection to "${DATABASE_URL}" failed: s3cret\n`,
+      stderr: `psql: error: connection to "${DATABASE_URL}" failed\n`,
     });
 
     const error = await failure();
 
     expect(error?.message).toBe(
-      'psql exited with code 2: psql: error: connection to "<database-url>" failed: <password>',
+      'psql exited with code 2: psql: error: connection to "postgresql://postgres:<password>@localhost:5432/postgres" failed',
     );
   });
 
@@ -90,15 +90,19 @@ describe('PgClientService', () => {
 
     const error = await failure();
 
-    expect(error?.message).toBe('Command failed: psql --dbname=<database-url>');
+    expect(error?.message).toBe(
+      'Command failed: psql --dbname=postgresql://postgres:<password>@localhost:5432/postgres',
+    );
     expect(error?.cause).toBeUndefined();
   });
 
   it('stringifies a non-Error rejection', async () => {
-    processRunner.run.mockRejectedValue('spawn failed for s3cret');
+    processRunner.run.mockRejectedValue(`spawn failed for ${DATABASE_URL}`);
 
     const error = await failure();
 
-    expect(error?.message).toBe('spawn failed for <password>');
+    expect(error?.message).toBe(
+      'spawn failed for postgresql://postgres:<password>@localhost:5432/postgres',
+    );
   });
 });
