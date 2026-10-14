@@ -1,7 +1,11 @@
 {
   // Full config reference: https://docs.renovatebot.com/configuration-options/
   $schema: 'https://docs.renovatebot.com/renovate-schema.json',
-  extends: ['config:recommended'],
+  // helpers:pinGitHubActionDigests: every action in .github/workflows/ is
+  // pinned to a full commit SHA with its version as a trailing comment
+  // (`@<sha> # v7`); this preset makes Renovate pin any new action the same
+  // way and keep both the SHA and the comment current when it bumps one.
+  extends: ['config:recommended', 'helpers:pinGitHubActionDigests'],
   // Matches pnpm-workspace.yaml's minimumReleaseAge: 1440 (24h) local-install
   // gate, so Renovate never proposes an update pnpm would then refuse to
   // install locally. Exception: a vulnerability-driven update bypasses this
@@ -89,9 +93,12 @@
       // Docker tag updates (docker-compose's postgres/schemaspy) have no
       // PR-time validation at all, so they must never automerge
       // unvalidated. This also excludes the github-actions manager
-      // (actions/checkout, actions/setup-node, flyctl); those are pinned to
-      // floating major/minor tags (@v4, @1.5) so patch and minor updates
-      // essentially never fire for them anyway.
+      // (actions/checkout, actions/setup-node, flyctl), deliberately: every
+      // action is pinned to a full commit SHA, and a new SHA is only trusted
+      // once a human has reviewed it — automerging it would defeat the point
+      // of pinning. CI would not catch a bad one either: it never runs
+      // deploy.yml or the backup workflows, which hold production
+      // credentials.
       matchManagers: ['npm'],
       matchUpdateTypes: ['patch', 'minor'],
       automerge: true,
