@@ -16,6 +16,7 @@ import { DownloadBackupService } from './download-backup/download-backup.service
 import { PgDumpService } from './dump/pg-dump.service';
 import { LocalMigrationsService } from './migrations/local-migrations.service';
 import { DatabaseUrlRedactorService } from './pg-client/database-url-redactor.service';
+import { LocalDatabaseGuardService } from './pg-client/local-database-guard.service';
 import { PgClientService } from './pg-client/pg-client.service';
 import { PruneBackupsService } from './prune-backups/prune-backups.service';
 import { PgRestoreService } from './restore/pg-restore.service';
@@ -43,6 +44,7 @@ describe('AppModule', () => {
       S3ClientFactoryService,
       BackupStorageService,
       DatabaseUrlRedactorService,
+      LocalDatabaseGuardService,
       PgDumpService,
       RetentionService,
       CreateBackupService,

@@ -7,6 +7,7 @@ import { mock, MockProxy } from 'vitest-mock-extended';
 
 import { DownloadBackupService } from '../download-backup/download-backup.service';
 import { LocalMigrationsService } from '../migrations/local-migrations.service';
+import { LocalDatabaseGuardService } from '../pg-client/local-database-guard.service';
 import { PgRestoreService } from '../restore/pg-restore.service';
 import { BackupChecksService } from './backup-checks.service';
 import { RestoredDatabaseQueryService } from './restored-database-query.service';
@@ -34,6 +35,7 @@ describe('VerifyBackupService', () => {
   let query: MockProxy<RestoredDatabaseQueryService>;
   let localMigrations: MockProxy<LocalMigrationsService>;
   let checks: MockProxy<BackupChecksService>;
+  let guard: MockProxy<LocalDatabaseGuardService>;
   let downloadedPath: string | undefined;
 
   beforeEach(async () => {
@@ -42,6 +44,7 @@ describe('VerifyBackupService', () => {
     query = mock<RestoredDatabaseQueryService>();
     localMigrations = mock<LocalMigrationsService>();
     checks = mock<BackupChecksService>();
+    guard = mock<LocalDatabaseGuardService>();
     downloadedPath = undefined;
 
     localMigrations.list.mockReturnValue(['0001_a', '0002_b']);
@@ -69,6 +72,7 @@ describe('VerifyBackupService', () => {
         { provide: RestoredDatabaseQueryService, useValue: query },
         { provide: LocalMigrationsService, useValue: localMigrations },
         { provide: BackupChecksService, useValue: checks },
+        { provide: LocalDatabaseGuardService, useValue: guard },
       ],
     }).compile();
     service = moduleRef.get(VerifyBackupService);
@@ -173,45 +177,23 @@ describe('VerifyBackupService', () => {
     );
   });
 
-  it.each([
-    'postgresql://postgres:postgres@127.0.0.1:5432/postgres',
-    'postgres://postgres@[::1]/postgres',
-    'postgresql://localhost/postgres',
-  ])('accepts the local target %s', async (url) => {
-    await expect(
-      service.run({ targetDatabaseUrl: url }),
-    ).resolves.toMatchObject({ key: KEY });
+  it('checks that the target is local', async () => {
+    await service.run({ targetDatabaseUrl: TARGET });
+
+    expect(guard.assertLocal).toHaveBeenCalledWith(TARGET);
   });
 
-  it.each([
-    'postgresql://user:hunter2@ep-x.neon.tech/neondb',
-    'postgresql://postgres@localhost/postgres?host=ep-x.neon.tech',
-    'postgresql://postgres@localhost/postgres?hostaddr=10.0.0.1',
-    'postgresql://localhost,ep-x.neon.tech/postgres',
-    'postgresql:///postgres',
-  ])(
-    'refuses the non-local target %s before downloading anything',
-    async (url) => {
-      const error = await failure(url);
+  it('downloads nothing when the target is refused', async () => {
+    guard.assertLocal.mockImplementation(() => {
+      throw new Error('Refusing to restore into a non-local database');
+    });
 
-      expect(error?.message).toBe(
-        'Refusing to restore into a non-local database: the target host must be localhost, 127.0.0.1 or ::1.',
-      );
-      expect(error?.message).not.toContain('hunter2');
-      expect(download.run).not.toHaveBeenCalled();
-    },
-  );
-
-  it.each(['not-a-url', 'mysql://localhost/db'])(
-    'refuses a target that is not a postgres connection string: %s',
-    async (url) => {
-      await expect(failure(url)).resolves.toHaveProperty(
-        'message',
-        'The target database must be a postgres:// or postgresql:// connection string.',
-      );
-      expect(download.run).not.toHaveBeenCalled();
-    },
-  );
+    await expect(service.run({ targetDatabaseUrl: TARGET })).rejects.toThrow(
+      'Refusing to restore into a non-local database',
+    );
+    expect(localMigrations.list).not.toHaveBeenCalled();
+    expect(download.run).not.toHaveBeenCalled();
+  });
 
   it('fails before downloading when the checkout has no migrations', async () => {
     localMigrations.list.mockImplementation(() => {

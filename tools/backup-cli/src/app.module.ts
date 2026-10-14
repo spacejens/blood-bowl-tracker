@@ -16,6 +16,7 @@ import {
   MIGRATIONS_DIR,
 } from './migrations/local-migrations.service';
 import { DatabaseUrlRedactorService } from './pg-client/database-url-redactor.service';
+import { LocalDatabaseGuardService } from './pg-client/local-database-guard.service';
 import { PgClientService } from './pg-client/pg-client.service';
 import { PruneBackupsService } from './prune-backups/prune-backups.service';
 import { PgRestoreService } from './restore/pg-restore.service';
@@ -35,6 +36,7 @@ import { VerifyBackupService } from './verify-backup/verify-backup.service';
     S3ClientFactoryService,
     BackupStorageService,
     DatabaseUrlRedactorService,
+    LocalDatabaseGuardService,
     PgDumpService,
     RetentionService,
     CreateBackupService,

@@ -6,6 +6,7 @@ import { Injectable } from '@nestjs/common';
 
 import { DownloadBackupService } from '../download-backup/download-backup.service';
 import { LocalMigrationsService } from '../migrations/local-migrations.service';
+import { LocalDatabaseGuardService } from '../pg-client/local-database-guard.service';
 import { PgRestoreService } from '../restore/pg-restore.service';
 import { BackupChecksService, TableRowCounts } from './backup-checks.service';
 import { RestoredDatabaseQueryService } from './restored-database-query.service';
@@ -24,18 +25,16 @@ export interface VerifyBackupResult {
   readonly tableRowCounts: TableRowCounts;
 }
 
-/** `URL.hostname` keeps the brackets around an IPv6 address. */
-const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
-
 /**
  * `verify`: download a backup, restore it into an empty local database, and
- * sanity-check what came back. The target must be on this machine, with no
- * override, so a mistyped URL can never restore over a real database. The
- * temporary directory is removed whether the run succeeds or fails.
+ * sanity-check what came back. The target must be on this machine (see
+ * `LocalDatabaseGuardService`). The temporary directory is removed whether
+ * the run succeeds or fails.
  */
 @Injectable()
 export class VerifyBackupService {
   constructor(
+    private readonly guard: LocalDatabaseGuardService,
     private readonly download: DownloadBackupService,
     private readonly pgRestore: PgRestoreService,
     private readonly query: RestoredDatabaseQueryService,
@@ -45,7 +44,7 @@ export class VerifyBackupService {
 
   async run(request: VerifyBackupRequest): Promise<VerifyBackupResult> {
     const databaseUrl = request.targetDatabaseUrl;
-    this.assertLocalTarget(databaseUrl);
+    this.guard.assertLocal(databaseUrl);
     // Read before the download so a broken checkout fails fast.
     const local = this.localMigrations.list();
     const workDir = mkdtempSync(join(tmpdir(), 'backup-cli-verify-'));
@@ -80,29 +79,6 @@ export class VerifyBackupService {
           `Warning: Could not remove temporary directory ${workDir}; delete it manually.\n`,
         );
       }
-    }
-  }
-
-  /**
-   * Refuses anything but a postgres URL naming only this machine. libpq's
-   * `host`/`hostaddr` query parameters override the URL's host, so their
-   * presence is refused too. Messages never echo the URL.
-   */
-  private assertLocalTarget(databaseUrl: string): void {
-    const url = URL.canParse(databaseUrl) ? new URL(databaseUrl) : undefined;
-    if (url === undefined || !/^postgres(ql)?:$/.test(url.protocol)) {
-      throw new Error(
-        'The target database must be a postgres:// or postgresql:// connection string.',
-      );
-    }
-    if (
-      !LOCAL_HOSTS.has(url.hostname) ||
-      url.searchParams.has('host') ||
-      url.searchParams.has('hostaddr')
-    ) {
-      throw new Error(
-        'Refusing to restore into a non-local database: the target host must be localhost, 127.0.0.1 or ::1.',
-      );
     }
   }
 }
