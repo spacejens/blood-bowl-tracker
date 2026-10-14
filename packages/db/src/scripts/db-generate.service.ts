@@ -64,7 +64,7 @@ export class DbGenerateService {
     // INSERT (which uses NEW) both see accurate data. Reversing this order
     // was tried and rejected: versioning's history INSERT would then capture
     // NEW before set_updated_at's bump, writing a stale updated_at into the
-    // new history row. See docs/architecture.md "History tracking".
+    // new history row. See docs/database.md "History tracking".
     return [
       `DROP TRIGGER IF EXISTS ${tableName}_versioning ON ${trackedTable};`,
       `CREATE TRIGGER ${tableName}_versioning\n  BEFORE INSERT OR UPDATE OR DELETE ON ${trackedTable}\n  FOR EACH ROW EXECUTE PROCEDURE versioning(\n    'history_period', '${historyRelation}',\n    true, true, true, false, true, 'history_version'\n  );`,

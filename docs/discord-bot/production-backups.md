@@ -1,0 +1,111 @@
+# Database backups
+
+See [Production hosting](production-hosting.md) for the other pages.
+
+`.github/workflows/backup-production.yml` backs up the production Neon
+database daily to a private Cloudflare R2 bucket, using
+[backup-cli](../backup-cli/index.md). Restoring a backup is not yet a
+documented procedure.
+
+## Why R2
+
+The repository is public, so GitHub artifacts and releases cannot hold the
+dumps privately. R2 is S3-compatible, and its free tier charges no egress
+fees. It is also independent of both Fly.io and Neon, so an outage or an
+account problem at either one does not take the backups with it.
+
+## Schedule and retention
+
+- The workflow runs daily at 03:17 UTC. It also runs on manual dispatch and
+  when another workflow calls it. Runs are serialized, and a running backup
+  is never cancelled. GitHub keeps only one waiting run per workflow, so a
+  third trigger replaces a run that is still waiting.
+- Each run creates one backup named `production/<UTC timestamp>.dump`. It is
+  a custom-format `pg_dump` of the whole database, all schemas included.
+- After a successful backup, the run prunes backups older than **30 days**.
+  If the backup failed, nothing is pruned.
+- Pruning never deletes the newest backup. A wrong clock or a mistaken
+  retention setting therefore cannot leave the bucket empty. Pruning also
+  refuses to delete anything if the upload time the bucket reports for any
+  stored backup cannot be parsed.
+- A failed run fails the workflow, which shows in the Actions tab. Alerting
+  on failures is separate, future work.
+
+## Scheduling caveats
+
+- GitHub runs scheduled workflows only from the default branch (`main`).
+  Changes to the schedule take effect once merged.
+- GitHub disables scheduled workflows after 60 days without repository
+  activity. If backups stop appearing, check the Actions tab and re-enable
+  the workflow there.
+
+## Runner and tokens
+
+The workflow runs on a GitHub-hosted, ephemeral runner and uses only the
+**write** token. It installs the PostgreSQL client from the PostgreSQL apt
+repository, because the runner image's client is older than Neon's server.
+`pg_dump` must be at least the server's major version. The workflow pins it
+with `POSTGRES_CLIENT_MAJOR_VERSION`, currently 18 to match production Neon
+(PostgreSQL 18.6). Raise that value whenever Neon's major version goes past
+it. The database URL appears in the `pg_dump` command line, so it is visible
+in the process list of that ephemeral runner only.
+
+## One-time setup
+
+1. **Bucket.** In the Cloudflare dashboard, go to **R2 → Create bucket**.
+   Choose a location hint near Neon's region (`eu-central-1`, so Western
+   Europe). Leave public access **off**: R2 buckets are private unless it is
+   enabled.
+2. **Tokens.** In **R2 → Manage API tokens**, create two tokens, each scoped
+   to this bucket only:
+   - **Write** (**Object Read & Write**), for the workflow. `create` uploads
+     and `prune` deletes, so this token can delete backups. Store it only in
+     the GitHub environment below.
+   - **Read-only** (**Object Read only**), for developers and for any CI job
+     that only reads backups. If this credential leaks, it cannot delete
+     anything.
+
+   Each token shows its access key id and secret access key once only. The
+   bucket's S3 endpoint is `https://<account-id>.r2.cloudflarestorage.com`.
+
+3. **GitHub environment.** In **Settings → Environments → New environment**,
+   create `production-backup` and restrict its deployment branches to `main`.
+   Add these secrets:
+   - `PRODUCTION_DATABASE_URL`: Neon's **direct** connection string, the same
+     value as `DATABASE_URL` in
+     [Configuration and secrets](production-configuration.md)
+   - `BACKUP_STORAGE_WRITE_ACCESS_KEY_ID`
+   - `BACKUP_STORAGE_WRITE_SECRET_ACCESS_KEY`
+
+   Add these variables: `BACKUP_STORAGE_ENDPOINT` and `BACKUP_STORAGE_BUCKET`.
+
+4. **First run.** Trigger the workflow by hand (see below) once the bucket and
+   environment exist, then confirm that the log reports a non-zero
+   `sizeBytes`. This is also the first real test of the PostgreSQL client
+   install step.
+
+## Running a backup on demand
+
+```bash
+gh workflow run backup-production.yml --ref main
+gh run list --workflow backup-production.yml --limit 1
+gh run watch <run-id>
+```
+
+Another workflow can run a backup and wait for it with
+`uses: ./.github/workflows/backup-production.yml`. It can then read the new
+backup's key from the `backup-key` output.
+
+## Listing and downloading backups locally
+
+Put the **read-only** token, the endpoint and the bucket name in
+`tools/backup-cli/backup-cli-config.json5` (see
+[backup-cli](../backup-cli/index.md#configuration)), then run:
+
+```bash
+pnpm --filter "@blood-bowl-tracker/backup-cli..." run build
+node tools/backup-cli/dist/main.js list
+node tools/backup-cli/dist/main.js download ./latest.dump
+```
+
+`download` refuses to overwrite an existing file, so pick a new path.

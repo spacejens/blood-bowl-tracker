@@ -25,5 +25,7 @@ isolated bot identity locally alongside this production deployment, see
 - [Checking on the deployment](production-monitoring.md) — `fly status`,
   `fly logs`, a healthy startup, and common failures
 - [Rolling back](production-rollback.md) — redeploying a previous release
+- [Database backups](production-backups.md) — the daily R2 backup
+  workflow, its tokens and retention, and running a backup on demand
 - [Dropping and recreating the production database](production-database-reset.md)
   — the destructive reset path

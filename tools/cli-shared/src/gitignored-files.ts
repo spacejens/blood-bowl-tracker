@@ -30,12 +30,15 @@ export const GITIGNORED_PRODUCTION_IMPORT_CONFIG_FILES: readonly string[] = [
  * Files `check-drift` compares between the worktree and the main checkout.
  * This is `GITIGNORED_SYNC_FILES` plus the production variants: a developer
  * may have copied one in by hand, and it should still be caught before the
- * worktree is discarded.
+ * worktree is discarded. `tools/backup-cli`'s config is here for the same
+ * reason: it holds production storage credentials, so it is drift-checked but
+ * never auto-synced.
  */
 export const GITIGNORED_DRIFT_FILES: readonly string[] = [
   ...GITIGNORED_SYNC_FILES,
   'apps/discord-bot/.env.production',
   ...GITIGNORED_PRODUCTION_IMPORT_CONFIG_FILES,
+  'tools/backup-cli/backup-cli-config.json5',
 ];
 
 /**

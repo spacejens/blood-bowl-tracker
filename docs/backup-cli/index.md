@@ -1,0 +1,76 @@
+# backup-cli
+
+`tools/backup-cli` is a NestJS CLI application that backs up the production
+database to a private Cloudflare R2 bucket and manages the stored backups.
+The scheduled GitHub Actions workflow `.github/workflows/backup-production.yml`
+runs it. Developers can run it locally to list or fetch backups. For the
+bucket, tokens, schedule and retention policy, see
+[Database backups](../discord-bot/production-backups.md).
+
+## Subcommands
+
+| Subcommand                                   | Purpose                                                                                                                                   |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `create`                                     | `pg_dump --format=custom --no-owner` of the whole database, uploaded as `production/<UTC timestamp>.dump`; prints key, size and timestamp |
+| `list`                                       | Stored backups, newest first                                                                                                              |
+| `prune`                                      | Delete backups older than the retention window (default 30 days), never the newest one                                                    |
+| `download <destination-path> [<backup-key>]` | Fetch the named backup, or the newest, to a new local file                                                                                |
+
+Behaviors worth knowing:
+
+- The dump is a custom-format archive that keeps its ownership entries
+  (`--no-owner` has no effect on archives), so restore it with
+  `pg_restore --no-owner` when the target database has different roles.
+- `create` dumps into a temporary directory and removes it afterwards,
+  whether the backup succeeded or not.
+- `prune` throws and deletes nothing if the upload time the bucket reports
+  for any stored backup cannot be parsed. If a deletion fails part-way, the error
+  names the failing key and the keys already deleted.
+- `download` refuses to overwrite an existing destination file, and removes
+  its partial file if the download fails.
+
+## Running it
+
+```bash
+pnpm --filter "@blood-bowl-tracker/backup-cli..." run build
+node tools/backup-cli/dist/main.js <subcommand>
+```
+
+On success, every subcommand prints JSON on stdout. On failure it prints
+`{"error": ...}` on stderr and exits with status 1, like the repo's other
+CLIs. `create` needs `pg_dump` on `PATH`, at the production server's major
+version or newer.
+
+## Configuration
+
+Settings come from the gitignored `tools/backup-cli/backup-cli-config.json5`,
+which you copy from `backup-cli-config.example.json5`. Any setting can come
+from an environment variable instead. A non-empty variable wins over the
+file. Validation is per setting, so `list` never fails over a missing
+database url that only `create` needs.
+
+| Setting                      | Environment variable               | Needed by |
+| ---------------------------- | ---------------------------------- | --------- |
+| `storage.endpoint`           | `BACKUP_STORAGE_ENDPOINT`          | all       |
+| `storage.bucket`             | `BACKUP_STORAGE_BUCKET`            | all       |
+| `storage.accessKeyId`        | `BACKUP_STORAGE_ACCESS_KEY_ID`     | all       |
+| `storage.secretAccessKey`    | `BACKUP_STORAGE_SECRET_ACCESS_KEY` | all       |
+| `database.url`               | `BACKUP_DATABASE_URL`              | `create`  |
+| `retentionDays` (default 30) | `BACKUP_RETENTION_DAYS`            | `prune`   |
+
+Put the **read-only** R2 token in your local file. It is enough for `list`
+and `download`. `create` and `prune` need the write token, which only the
+`production-backup` GitHub environment holds.
+
+The file holds production credentials, so `sync-gitignored` never copies it
+into a new worktree. Copy it by hand when you need it in a worktree.
+`check-drift` still flags a worktree copy that differs from the main
+checkout's.
+
+## Development
+
+```bash
+pnpm --filter @blood-bowl-tracker/backup-cli run test        # unit tests with coverage
+pnpm --filter @blood-bowl-tracker/backup-cli run test:watch  # unit tests in watch mode
+pnpm --filter @blood-bowl-tracker/backup-cli run verify      # build + lint + typecheck + format + test
+```

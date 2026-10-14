@@ -40,9 +40,10 @@ The two machines give redundancy and failover: a crash, a restart, or a
 deploy that replaces one machine leaves the other to take over within one
 retry interval. There is still no autoscaling and no multi-region
 deployment — both are deliberate non-goals for a single-guild, low-traffic
-bot. There is also no backup
-strategy for the Neon database: production data is reproducible by re-running
-the `tools/import-*` importers, so nothing here needs its own backups. This is
+bot. The Neon database is backed up daily to a private Cloudflare R2
+bucket and kept for 30 days — see [Database backups](production-backups.md).
+Restoring a backup is not yet a documented procedure, so re-running the
+`tools/import-*` importers remains the recovery path. This is
 an emergency recovery option, not a routine one, though: each importer writes
 one record at a time over the `flyctl proxy` tunnel (see
 [Running import tools against production](production-imports.md)),

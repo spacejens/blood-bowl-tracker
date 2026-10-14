@@ -11,6 +11,7 @@ docs/
   glossary.md              # Docs-about-docs: brief definition of every named concept
   spec-conventions.md      # Docs-about-docs: this file
   architecture.md          # Repo-meta: technical stack and package structure
+  database.md              # Repo-meta: schema migrations, history tracking, SPP storage
   development-workflow.md  # Repo-meta: how development work is structured
   game-concepts/           # Spec style: Blood Bowl domain concepts
     teams/
@@ -22,6 +23,7 @@ docs/
   <future-app>/            # Spec style: future apps get their own top-level subfolder
   dev-workflow-cli/        # Tool/how-to: developer/PR workflow CLI used by Claude Code skills
   production-ops-cli/      # Tool/how-to: production database and tunnel operations CLI
+  backup-cli/              # Tool/how-to: production database backup CLI
   fs-utils-cli/            # Tool/how-to: worktree-aware filesystem helper CLI
   download-tp/             # Tool/how-to: TP data downloader
   scrape-tp/               # Tool/how-to: shared TP fetching package
@@ -42,8 +44,8 @@ docs/
 Besides `glossary.md` and this file — tagged `Docs-about-docs` above, since they describe the docs themselves rather than fitting one of the three styles below — `docs/` holds three kinds of document, and different expectations apply to each:
 
 - **Spec docs** — `game-concepts/`, `insights/`, `api/`, `discord-bot/`, and future app subfolders. These are governed by [Spec file conventions](#spec-file-conventions) below: describe why and what, and leave implementation detail to the code.
-- **Tool/how-to docs** — `dev-workflow-cli/`, `production-ops-cli/`, `fs-utils-cli/`, `download-tp/`, `scrape-tp/`, `import-bbl/`, `import-manual/`, `import-tp/`, `import-tp-live/`, `review-match/`, `review-player/`, `review-race/`, `review-star-player/`. These document how to configure, run, and operate a tool. Implementation detail — configuration schemas, CLI flags, file formats, setup and deployment steps — is expected and appropriate here, not something to omit.
-- **Repo-meta docs** — `architecture.md` and `development-workflow.md`. These describe the project's own technical stack, structure, and development process. No fixed rule set applies; follow the existing style of each file.
+- **Tool/how-to docs** — `dev-workflow-cli/`, `production-ops-cli/`, `backup-cli/`, `fs-utils-cli/`, `download-tp/`, `scrape-tp/`, `import-bbl/`, `import-manual/`, `import-tp/`, `import-tp-live/`, `review-match/`, `review-player/`, `review-race/`, `review-star-player/`. These document how to configure, run, and operate a tool. Implementation detail — configuration schemas, CLI flags, file formats, setup and deployment steps — is expected and appropriate here, not something to omit.
+- **Repo-meta docs** — `architecture.md`, `database.md` and `development-workflow.md`. These describe the project's own technical stack, structure, and development process. No fixed rule set applies; follow the existing style of each file.
 
 One accepted exception: `discord-bot/index.md`, `discord-bot/local-development.md`, and `discord-bot/production-hosting.md` — together with the `discord-bot/production-*.md` pages it indexes — are how-to content (Discord app creation, local development, Fly.io/Neon hosting) inside a spec-style folder. That is intentional, not a violation of the spec-style categorization — the folder's conceptual specs are its `slash-commands/*.md` files.
 
