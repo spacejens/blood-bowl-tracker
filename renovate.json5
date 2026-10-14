@@ -96,9 +96,9 @@
       // (actions/checkout, actions/setup-node, flyctl), deliberately: every
       // action is pinned to a full commit SHA, and a new SHA is only trusted
       // once a human has reviewed it — automerging it would defeat the point
-      // of pinning. CI would not catch a bad one either: it never runs
-      // deploy.yml or the backup workflows, which hold production
-      // credentials.
+      // of pinning. CI would not catch a bad one either: it never runs the
+      // workflows that hold production credentials (deploy.yml and the
+      // backup workflows), nor the flyctl action only deploy.yml uses.
       matchManagers: ['npm'],
       matchUpdateTypes: ['patch', 'minor'],
       automerge: true,
