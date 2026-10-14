@@ -10,6 +10,7 @@ import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
+import { DatabaseUrlRedactorService } from '../pg-client/database-url-redactor.service';
 import { PG_DUMP_TIMEOUT_MS, PgDumpService } from './pg-dump.service';
 
 const DATABASE_URL = 'postgresql://user:hunter2@ep-x.neon.tech/neondb';
@@ -27,6 +28,8 @@ describe('PgDumpService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         PgDumpService,
+        // Pure, dependency-free formatting service: passed real.
+        DatabaseUrlRedactorService,
         { provide: ProcessRunnerService, useValue: processRunner },
       ],
     }).compile();

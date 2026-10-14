@@ -14,6 +14,7 @@ import {
 import { CreateBackupService } from './create-backup/create-backup.service';
 import { DownloadBackupService } from './download-backup/download-backup.service';
 import { PgDumpService } from './dump/pg-dump.service';
+import { DatabaseUrlRedactorService } from './pg-client/database-url-redactor.service';
 import { PruneBackupsService } from './prune-backups/prune-backups.service';
 import { RetentionService } from './retention/retention.service';
 import { BackupStorageService } from './storage/backup-storage.service';
@@ -35,6 +36,7 @@ describe('AppModule', () => {
       BackupConfigService,
       S3ClientFactoryService,
       BackupStorageService,
+      DatabaseUrlRedactorService,
       PgDumpService,
       RetentionService,
       CreateBackupService,

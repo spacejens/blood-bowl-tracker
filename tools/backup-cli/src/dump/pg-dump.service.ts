@@ -6,6 +6,8 @@ import {
 } from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
 
+import { DatabaseUrlRedactorService } from '../pg-client/database-url-redactor.service';
+
 /** A hard ceiling on one dump; far above what this database needs today. */
 export const PG_DUMP_TIMEOUT_MS = 30 * 60 * 1000;
 
@@ -25,7 +27,10 @@ export interface PgDumpRequest {
  */
 @Injectable()
 export class PgDumpService {
-  constructor(private readonly processRunner: ProcessRunnerService) {}
+  constructor(
+    private readonly processRunner: ProcessRunnerService,
+    private readonly redactor: DatabaseUrlRedactorService,
+  ) {}
 
   async dump(request: PgDumpRequest): Promise<number> {
     let result;
@@ -47,7 +52,7 @@ export class PgDumpService {
       // original error is deliberately not chained as `cause`.
       // eslint-disable-next-line preserve-caught-error -- the cause would carry the secret
       throw new Error(
-        this.redact(
+        this.redactor.redact(
           error instanceof Error ? error.message : String(error),
           request.databaseUrl,
         ),
@@ -60,7 +65,9 @@ export class PgDumpService {
     }
     if (result.exitCode !== 0) {
       // pg_dump can echo the connection string, password included.
-      const stderr = this.redact(result.stderr, request.databaseUrl).trim();
+      const stderr = this.redactor
+        .redact(result.stderr, request.databaseUrl)
+        .trim();
       throw new Error(`pg_dump exited with code ${result.exitCode}: ${stderr}`);
     }
     const size = existsSync(request.outputPath)
@@ -72,17 +79,5 @@ export class PgDumpService {
       );
     }
     return size;
-  }
-
-  /** Replaces the database URL, and then its bare password, in `text`. */
-  private redact(text: string, databaseUrl: string): string {
-    let redacted = text.split(databaseUrl).join('<database-url>');
-    const password = URL.canParse(databaseUrl)
-      ? new URL(databaseUrl).password
-      : '';
-    if (password !== '') {
-      redacted = redacted.split(password).join('<password>');
-    }
-    return redacted;
   }
 }
