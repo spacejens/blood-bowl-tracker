@@ -120,35 +120,40 @@ Run this section only if "Deploy the stack" was selected in step 0 above.
 
 ### Restore a database backup
 
-Run this section only if "Restore a database backup" was selected in step 0 above. It runs after the "Deploy the stack" section (the `postgres` container must be up) and **before** every import and review section, because it replaces the whole local database — anything an importer wrote before it would be wiped. Selected without "Deploy the stack", it restores into the stack already running.
+Run this section only if "Restore a database backup" was selected in step 0 above. It runs after the "Deploy the stack" section (the `postgres` container must be up) and **before** every import and review section, because it replaces the whole local database — anything an importer wrote before it would be wiped. Selected without "Deploy the stack", it restores into the stack already running, once step 2 has confirmed that stack is this checkout's.
 
 1. Confirm backup-cli has storage credentials — the file, or the `BACKUP_STORAGE_*` environment variables (checked by name only; never print their values):
    ```bash
-   ls tools/backup-cli/backup-cli-config.json5 2>/dev/null || env | grep -c '^BACKUP_STORAGE_'
+   ls tools/backup-cli/backup-cli-config.json5 2>/dev/null || env | grep -c '^BACKUP_STORAGE_[A-Z_]*=.'
    ```
    If the file is missing and fewer than four `BACKUP_STORAGE_*` variables are set, tell the developer that this file holds production (read-only) R2 credentials, so the gitignored-config sync deliberately never copies it into worktrees; they need to copy it from the main checkout themselves (`cp <main-checkout>/tools/backup-cli/backup-cli-config.json5 tools/backup-cli/`). Do not copy it yourself. Stop this section; the other selected sections still run.
-2. Build backup-cli — a fresh worktree only ran `pnpm install`:
+2. If "Deploy the stack" was **not** selected, confirm the stack that is running belongs to this checkout. `docker-compose.yml` fixes the container names and the host port `5433`, so the default restore target is whichever compose project currently holds that port — possibly another worktree's, with its own database:
+   ```bash
+   docker compose ps --status running --services
+   ```
+   Run from this worktree's root, which scopes the listing to this checkout's own compose project. If it does not list `postgres` and `discord-bot`, tell the developer that no stack from this checkout is running (any stack on port `5433` belongs to another checkout, and restoring into it would replace that database), suggest selecting "Deploy the stack" too, and stop this section; the other selected sections still run.
+3. Build backup-cli — a fresh worktree only ran `pnpm install`:
    ```bash
    pnpm --filter "@blood-bowl-tracker/backup-cli..." run build
    ```
-3. List the stored backups (newest first; each `{ key, sizeBytes, lastModified }`):
+4. List the stored backups (newest first; each `{ key, sizeBytes, lastModified }`):
    ```bash
    node tools/backup-cli/dist/main.js list
    ```
    If the list is empty, report that there are no backups and stop this section. Otherwise ask with `AskUserQuestion` (single-select, `header` `Backup`), `question` "Which backup should I restore into the local database?". Options: **Newest backup** (recommended) first, its description giving the newest entry's full key, `lastModified` and size in MB; then one option per next most recent backup, up to three, each labelled with its `lastModified` timestamp and described by its full key and size (never truncate a key with "..."). The automatic "Other" entry lets the developer type any key.
-4. Restore — omit the key for the newest backup:
+5. Restore — always pass the full key the developer chose ("Newest backup" is the first entry of the list from step 4), so a backup that lands between listing and restoring cannot replace the one they saw:
    ```bash
-   node tools/backup-cli/dist/main.js restore [<backup-key>]
+   node tools/backup-cli/dist/main.js restore <backup-key>
    ```
-   It downloads the backup, clears the database `localDatabase.url` names (default: the docker-compose database), restores, and prints `{ "key", "restoredMigrations", "tableRowCounts" }`. It needs `pg_restore` and `psql` on `PATH` at the production server's major version or newer; if they are missing or too old, say so (on macOS, Homebrew's `libpq` or `postgresql@<major>` provides them). On failure it prints `{"error": ...}` on stderr and exits `1`: a download or credential error leaves the database untouched, while an error saying the database "is now empty" means the wipe succeeded and the restore did not — tell the developer to re-run this action. Either way, skip step 5, report the error, and continue with the other selected sections.
-5. Restart the bot so it applies this branch's pending migrations to the restored data (a backup may be older than the branch), then confirm it came back healthy:
+   It downloads the backup, clears the database `localDatabase.url` names (default: the docker-compose database), restores, and prints `{ "key", "restoredMigrations", "tableRowCounts" }`. It needs `pg_restore` and `psql` on `PATH` at the production server's major version or newer; if they are missing or too old, say so (on macOS, Homebrew's `libpq` or `postgresql@<major>` provides them). On failure it prints `{"error": ...}` on stderr and exits `1`: a download or credential error leaves the database untouched, while an error saying the database "is now empty" means the wipe succeeded and the restore did not — tell the developer to re-run this action. Either way, skip step 6, report the error, and continue with the other selected sections.
+6. Restart the bot so it applies this branch's pending migrations to the restored data (a backup may be older than the branch), then confirm it came back healthy:
    ```bash
    docker compose restart discord-bot
    docker compose ps
    docker compose logs --tail 200 discord-bot
    ```
    Poll `docker compose ps` until `discord-bot` is `Up`, as in "Deploy the stack" step 4. In the logs from the restart, expect `Running migrations...`, one `Applying: <name>` line per migration newer than the backup, `Migrations complete.`, then the same leader-lock and startup-message lines as "Deploy the stack" step 5. A failed migration means the branch's migrations do not apply cleanly to production-shaped data — report it prominently.
-6. Report the restored key, the backup's migration count, the key tables' row counts, which migrations the bot applied on top, and the bot's health. Do not tear down any containers — same non-goal as the "Deploy the stack" section.
+7. Report the restored key, the backup's migration count, the key tables' row counts, which migrations the bot applied on top, and the bot's health. Do not tear down any containers — same non-goal as the "Deploy the stack" section.
 
 ### Run the manual import (before other importers)
 
