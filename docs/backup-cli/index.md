@@ -3,8 +3,10 @@
 `tools/backup-cli` is a NestJS CLI application that backs up the production
 database to a private Cloudflare R2 bucket and manages the stored backups.
 The scheduled GitHub Actions workflow `.github/workflows/backup-production.yml`
-runs it, and `.github/workflows/verify-backup.yml` uses it to check every new
-backup. Developers can run it locally to list or fetch backups. For the
+runs it, and `.github/workflows/verify-backup.yml` uses it to check the newest
+backup after each scheduled or manually dispatched run of that workflow. A
+backup taken by another workflow that calls `backup-production.yml` is not
+verified automatically; such a caller must run verification itself. Developers can run it locally to list or fetch backups. For the
 bucket, tokens, schedule and retention policy, see
 [Database backups](../discord-bot/production-backups.md).
 
