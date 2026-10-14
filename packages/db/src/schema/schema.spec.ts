@@ -289,7 +289,8 @@ describe('schema', () => {
     ]);
     // NULLS NOT DISTINCT, not Postgres's NULLS DISTINCT default: without it two
     // baseline rows (both race_id NULL) could coexist for one rules set and
-    // action type, and onConflictDoUpdate could never match a baseline row.
+    // action type, and a natural-key lookup could never settle on a single
+    // baseline row.
     expect(unique.nullsNotDistinct).toBe(true);
   });
 

@@ -462,11 +462,11 @@ export class TrophyAwardsService {
    * `trophy_awards` is history-tracked, and its `BEFORE INSERT` trigger writes
    * a `trophy_awards_history` row for every *attempted* row - including one
    * `DO NOTHING` then discards, leaving a history row whose deferred foreign
-   * key back to `trophy_awards.id` has nothing to point at, which aborts the
-   * statement with a raw Postgres error on every re-import. A plain insert
-   * that loses on the unique constraint raises the error itself, so Postgres
-   * rolls the entire statement back, trigger writes included, and nothing is
-   * orphaned. `spp-award-values.service.ts` and `upsert-by-external-ids.ts`
+   * key back to `trophy_awards.id` has nothing to point at, which fails the
+   * transaction at commit with a raw Postgres error on every re-import. A
+   * plain insert that loses on the unique constraint raises the error itself,
+   * so Postgres rolls the entire statement back, trigger writes included, and
+   * the unique violation can be caught and handled. `spp-award-values.service.ts` and `upsert-by-external-ids.ts`
    * avoid the same trap the same way.
    *
    * A tie is not a special case: two players winning the same trophy in one
