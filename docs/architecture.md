@@ -150,12 +150,13 @@ tools/
   markdownlint-rules/ — custom markdownlint rules shared across the repo
                         (currently max-file-lines), built to dist/ and loaded
                         by the root .markdownlint-cli2.jsonc
-  cli-shared/         — library package with the plumbing the four CLI
+  cli-shared/         — library package with the plumbing the five CLI
                         packages below share: git main-checkout/worktree
                         resolution, child-process running and spawning, the
                         canonical gitignored file/directory lists, and the
-                        shared runCli subcommand-dispatcher driver all four
-                        entrypoints run on; no CLI entry point of its own
+                        shared runCli subcommand-dispatcher driver all five
+                        entrypoints run on (workflow-lint uses only runCli);
+                        no CLI entry point of its own
   dev-workflow-cli/   — NestJS CLI application providing the developer/PR
                         workflow helpers the Claude Code skills in
                         .claude/skills/ call instead of hand-rolling the
@@ -171,6 +172,9 @@ tools/
                         database to a private Cloudflare R2 bucket and lists,
                         prunes and downloads those backups; run daily by
                         .github/workflows/backup-production.yml
+  workflow-lint/      — NestJS CLI application that fails pnpm lint when a
+                        workflow in .github/workflows/ references a remote
+                        action by anything other than a full commit SHA
 ```
 
 ## Data flow
