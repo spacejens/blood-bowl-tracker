@@ -55,8 +55,8 @@ conflict, that history row cannot be kept, and the whole transaction aborts:
   immediately (`23505`).
 
 Either way nothing is persisted — no orphaned history row is left behind —
-but such a statement can never succeed on a conflicting row, and it still
-consumes a sequence value. `packages/game-data`'s `upsertByExternalIds` and
+but such a statement can never succeed on a conflicting row, and when it
+drew a fresh serial id that id is consumed. `packages/game-data`'s `upsertByExternalIds` and
 `packages/discord-bot-usage`'s `selectThenUpsert` both select the row first
 and branch to a plain `insert` or `update` for exactly this reason. These
 outcomes are pinned against real Postgres by
