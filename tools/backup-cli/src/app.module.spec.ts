@@ -6,6 +6,7 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 import { AppModule } from './app.module';
+import { ArchiveParserService } from './archive/archive-parser.service';
 import {
   BACKUP_CONFIG_PATH,
   BACKUP_ENV,
@@ -64,6 +65,7 @@ describe('AppModule', () => {
       VerifyBackupService,
       RestoreBackupService,
       ProductionDatabaseUrlService,
+      ArchiveParserService,
     ]) {
       expect(moduleRef.get(service)).toBeInstanceOf(service);
     }

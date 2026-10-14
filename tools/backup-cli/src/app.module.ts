@@ -1,6 +1,7 @@
 import { CliSharedModule } from '@blood-bowl-tracker/cli-shared';
 import { Module } from '@nestjs/common';
 
+import { ArchiveParserService } from './archive/archive-parser.service';
 import {
   BACKUP_CONFIG_PATH,
   BACKUP_ENV,
@@ -57,6 +58,7 @@ import { VerifyBackupService } from './verify-backup/verify-backup.service';
     VerifyBackupService,
     RestoreBackupService,
     ProductionDatabaseUrlService,
+    ArchiveParserService,
   ],
 })
 export class AppModule {}
