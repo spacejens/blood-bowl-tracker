@@ -10,11 +10,21 @@ import {
 import { CreateBackupService } from './create-backup/create-backup.service';
 import { DownloadBackupService } from './download-backup/download-backup.service';
 import { PgDumpService } from './dump/pg-dump.service';
+import {
+  DEFAULT_MIGRATIONS_DIR,
+  LocalMigrationsService,
+  MIGRATIONS_DIR,
+} from './migrations/local-migrations.service';
 import { DatabaseUrlRedactorService } from './pg-client/database-url-redactor.service';
+import { PgClientService } from './pg-client/pg-client.service';
 import { PruneBackupsService } from './prune-backups/prune-backups.service';
+import { PgRestoreService } from './restore/pg-restore.service';
 import { RetentionService } from './retention/retention.service';
 import { BackupStorageService } from './storage/backup-storage.service';
 import { S3ClientFactoryService } from './storage/s3-client-factory.service';
+import { BackupChecksService } from './verify-backup/backup-checks.service';
+import { RestoredDatabaseQueryService } from './verify-backup/restored-database-query.service';
+import { VerifyBackupService } from './verify-backup/verify-backup.service';
 
 @Module({
   imports: [CliSharedModule],
@@ -30,6 +40,13 @@ import { S3ClientFactoryService } from './storage/s3-client-factory.service';
     CreateBackupService,
     PruneBackupsService,
     DownloadBackupService,
+    { provide: MIGRATIONS_DIR, useValue: DEFAULT_MIGRATIONS_DIR },
+    PgClientService,
+    LocalMigrationsService,
+    BackupChecksService,
+    RestoredDatabaseQueryService,
+    PgRestoreService,
+    VerifyBackupService,
   ],
 })
 export class AppModule {}
