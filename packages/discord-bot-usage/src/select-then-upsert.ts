@@ -88,8 +88,8 @@ function asBaseTable(table: PgTable): PgTable {
  * detected the conflict. On a conflicting row that history row then violates
  * a history-table constraint — the deferred foreign key to the tracked table
  * at commit, or the `(id, history_version)` primary key when an existing id
- * is reused — so the whole transaction aborts: such a statement can never
- * succeed on a conflicting row. Selecting first and issuing a plain `insert`
+ * is reused — so the enclosing transaction can never commit a conflicting
+ * row this way. Selecting first and issuing a plain `insert`
  * or `update` avoids that path entirely; this is the same
  * shape `packages/game-data`'s `upsertByExternalIds` uses against
  * `game_data`'s own history-tracked tables, simplified for a caller with a
