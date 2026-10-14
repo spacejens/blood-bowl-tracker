@@ -82,13 +82,15 @@ function asBaseTable(table: PgTable): PgTable {
 
 /**
  * Insert-or-update by a caller-supplied uniqueness condition, never
- * `ON CONFLICT DO UPDATE`. Against a history-tracked table, a conflicting
- * `INSERT ... ON CONFLICT` still fires the `BEFORE INSERT` trigger for the
- * attempted row before Postgres has detected the conflict, and `versioning()`
- * unconditionally records that attempted insert into the `_history` table —
- * leaving an orphaned history row behind on every single call, not just on
- * one whose values happened not to change. Selecting first and issuing a
- * plain `insert` or `update` avoids that path entirely; this is the same
+ * `INSERT ... ON CONFLICT` (neither `DO UPDATE` nor `DO NOTHING`). Against a
+ * history-tracked table, `versioning()` is a `BEFORE INSERT` trigger that
+ * records the attempted row in the `_history` table before Postgres has
+ * detected the conflict. On a conflicting row that history row then violates
+ * a history-table constraint — the deferred foreign key to the tracked table
+ * at commit, or the `(id, history_version)` primary key when an existing id
+ * is reused — so the whole transaction aborts: such a statement can never
+ * succeed on a conflicting row. Selecting first and issuing a plain `insert`
+ * or `update` avoids that path entirely; this is the same
  * shape `packages/game-data`'s `upsertByExternalIds` uses against
  * `game_data`'s own history-tracked tables, simplified for a caller with a
  * single equality condition and no external-id bookkeeping.
