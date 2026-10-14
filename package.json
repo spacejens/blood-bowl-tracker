@@ -5,10 +5,11 @@
   "packageManager": "pnpm@12.11.2",
   "scripts": {
     "build": "pnpm -r run build",
-    "lint": "pnpm -r run lint && pnpm run lint:markdown",
+    "lint": "pnpm -r run lint && pnpm run lint:markdown && pnpm run lint:workflows",
     "lint:fix": "pnpm -r run lint:fix && pnpm run lint:markdown:fix",
     "lint:markdown": "pnpm --filter @blood-bowl-tracker/markdownlint-rules run build && markdownlint-cli2",
     "lint:markdown:fix": "pnpm --filter @blood-bowl-tracker/markdownlint-rules run build && markdownlint-cli2 --fix",
+    "lint:workflows": "pnpm --filter @blood-bowl-tracker/workflow-lint... run build && node tools/workflow-lint/dist/main.js check",
     "typecheck": "pnpm -r run typecheck",
     "format": "pnpm -r run format",
     "format:fix": "pnpm -r run format:fix",

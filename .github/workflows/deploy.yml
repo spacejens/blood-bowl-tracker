@@ -23,14 +23,14 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
           # Depth 2 makes a merge commit's parents present in the runner's
           # clone, which is what the `HEAD^2` lookup below needs to tell a
           # merge commit from an ordinary one.
           fetch-depth: 2
-      - uses: superfly/flyctl-actions/setup-flyctl@1.6
+      - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1 # 1.6
       # --remote-only builds the image on Fly's builders rather than in the
       # runner, so no Docker layer caching or buildx setup is needed here.
       # Run from the repo root, where fly.toml lives and which is the build
