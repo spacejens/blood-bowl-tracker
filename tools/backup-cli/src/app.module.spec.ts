@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 import { AppModule } from './app.module';
 import { ArchiveParserService } from './archive/archive-parser.service';
+import { PgArchiveService } from './archive/pg-archive.service';
 import {
   BACKUP_CONFIG_PATH,
   BACKUP_ENV,
@@ -66,6 +67,7 @@ describe('AppModule', () => {
       RestoreBackupService,
       ProductionDatabaseUrlService,
       ArchiveParserService,
+      PgArchiveService,
     ]) {
       expect(moduleRef.get(service)).toBeInstanceOf(service);
     }
