@@ -28,6 +28,10 @@ export const DEFAULT_BACKUP_CONFIG_PATH = join(
 
 const DEFAULT_RETENTION_DAYS = 30;
 
+/** The docker-compose database (`docker-compose.yml`'s host port mapping). */
+export const DEFAULT_LOCAL_DATABASE_URL =
+  'postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl';
+
 export type BackupEnv = Readonly<Record<string, string | undefined>>;
 
 /** Everything needed to reach the backup bucket. */
@@ -86,6 +90,30 @@ export class BackupConfigService extends createConfigLoaderServiceBase({
       );
     }
     return url;
+  }
+
+  /**
+   * Connection string of the local database `restore` replaces. Optional:
+   * defaults to the docker-compose database. Whether it is really local is
+   * `LocalDatabaseGuardService`'s check, not this getter's.
+   */
+  getLocalDatabaseUrl(): string {
+    const fromEnv = this.envValue('BACKUP_LOCAL_DATABASE_URL');
+    if (fromEnv !== undefined) {
+      return fromEnv;
+    }
+    const raw = groupSchema.parse(this.get<unknown>('localDatabase')).url;
+    if (raw === undefined) {
+      return DEFAULT_LOCAL_DATABASE_URL;
+    }
+    const parsed = nonEmptyStringSchema.safeParse(raw);
+    if (!parsed.success) {
+      throw new Error(
+        `localDatabase.url in ${CONFIG_FILE_NAME} (or BACKUP_LOCAL_DATABASE_URL) ` +
+          'must be a non-empty string.',
+      );
+    }
+    return parsed.data;
   }
 
   getStorageSettings(): StorageSettings {
