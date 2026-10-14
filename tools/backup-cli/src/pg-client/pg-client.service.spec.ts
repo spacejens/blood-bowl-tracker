@@ -3,7 +3,7 @@ import {
   TIMED_OUT_EXIT_CODE,
 } from '@blood-bowl-tracker/cli-shared';
 import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
 import { DatabaseUrlRedactorService } from './database-url-redactor.service';
@@ -33,6 +33,10 @@ describe('PgClientService', () => {
       ],
     }).compile();
     service = moduleRef.get(PgClientService);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   async function failure(): Promise<Error | undefined> {
@@ -72,7 +76,6 @@ describe('PgClientService', () => {
     await service.run(REQUEST);
 
     const env = processRunner.runWithOptions.mock.calls[0][2].env ?? {};
-    vi.unstubAllEnvs();
     expect(env).not.toHaveProperty('PGHOSTADDR');
     expect(env).not.toHaveProperty('PGHOST');
     expect(env).not.toHaveProperty('PGSERVICE');

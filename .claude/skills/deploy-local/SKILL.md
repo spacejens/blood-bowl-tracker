@@ -127,7 +127,7 @@ Run this section only if "Restore a database backup" was selected in step 0 abov
    ls tools/backup-cli/backup-cli-config.json5 2>/dev/null || env | grep -c '^BACKUP_STORAGE_[A-Z_]*=.'
    ```
    If the file is missing and fewer than four `BACKUP_STORAGE_*` variables are set, tell the developer that this file holds production (read-only) R2 credentials, so the gitignored-config sync deliberately never copies it into worktrees; they need to copy it from the main checkout themselves (`cp <main-checkout>/tools/backup-cli/backup-cli-config.json5 tools/backup-cli/`). Do not copy it yourself. Stop this section; the other selected sections still run.
-2. If "Deploy the stack" was **not** selected, confirm the stack that is running belongs to this checkout. `docker-compose.yml` fixes the container names and the host port `5433`, so the default restore target is whichever compose project currently holds that port — possibly another worktree's, with its own database:
+2. If "Deploy the stack" was **not** selected, confirm the stack that is running belongs to this checkout. `docker-compose.yml` fixes the container names and the host port `5433`, so the default restore target is whichever compose project currently holds that port — possibly another worktree's, with its own database (the check below relies on `docker-compose.yml` having no top-level `name:`, so that each checkout gets its own compose project from its directory name):
    ```bash
    docker compose ps --status running --services
    ```
