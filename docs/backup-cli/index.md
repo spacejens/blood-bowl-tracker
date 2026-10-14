@@ -3,18 +3,20 @@
 `tools/backup-cli` is a NestJS CLI application that backs up the production
 database to a private Cloudflare R2 bucket and manages the stored backups.
 The scheduled GitHub Actions workflow `.github/workflows/backup-production.yml`
-runs it. Developers can run it locally to list or fetch backups. For the
+runs it, and `.github/workflows/verify-backup.yml` uses it to check every new
+backup. Developers can run it locally to list or fetch backups. For the
 bucket, tokens, schedule and retention policy, see
 [Database backups](../discord-bot/production-backups.md).
 
 ## Subcommands
 
-| Subcommand                                   | Purpose                                                                                                                                   |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `create`                                     | `pg_dump --format=custom --no-owner` of the whole database, uploaded as `production/<UTC timestamp>.dump`; prints key, size and timestamp |
-| `list`                                       | Stored backups, newest first                                                                                                              |
-| `prune`                                      | Delete backups older than the retention window (default 30 days), never the newest one                                                    |
-| `download <destination-path> [<backup-key>]` | Fetch the named backup, or the newest, to a new local file                                                                                |
+| Subcommand                                    | Purpose                                                                                                                                                  |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `create`                                      | `pg_dump --format=custom --no-owner` of the whole database, uploaded as `production/<UTC timestamp>.dump`; prints key, size and timestamp                |
+| `list`                                        | Stored backups, newest first                                                                                                                             |
+| `prune`                                       | Delete backups older than the retention window (default 30 days), never the newest one                                                                   |
+| `download <destination-path> [<backup-key>]`  | Fetch the named backup, or the newest, to a new local file                                                                                               |
+| `verify <target-database-url> [<backup-key>]` | Restore the named backup, or the newest, into an empty local database and sanity-check it; prints key, restored migration count and key-table row counts |
 
 Behaviors worth knowing:
 
@@ -28,6 +30,22 @@ Behaviors worth knowing:
   names the failing key and the keys already deleted.
 - `download` refuses to overwrite an existing destination file, and removes
   its partial file if the download fails.
+- `verify` refuses any target whose host is not `localhost`, `127.0.0.1` or
+  `::1`; there is no override, so it can never restore over a real database.
+  The target must be a fresh, empty database. The target URL is an argument,
+  never a setting.
+- `verify` restores with
+  `pg_restore --no-owner --no-privileges --exit-on-error`, so production's
+  roles need not exist locally. A non-zero exit, or a restore taking over 30
+  minutes, fails it. The target URL is redacted from every error.
+- `verify` then checks, with `psql`, that `drizzle.__drizzle_migrations` is
+  non-empty and records exactly the oldest N migrations of this checkout's
+  `packages/db/migrations` (a backup older than the checkout is fine; an
+  unknown or skipped migration fails), and that `game_data.coaches`, `teams`,
+  `players`, `matches` and `competitions` each have at least one row. A
+  failure lists every failed check, not just the first.
+- `verify` downloads into a temporary directory and removes it afterwards,
+  whether verification succeeded or not.
 
 ## Running it
 
@@ -38,8 +56,8 @@ node tools/backup-cli/dist/main.js <subcommand>
 
 On success, every subcommand prints JSON on stdout. On failure it prints
 `{"error": ...}` on stderr and exits with status 1, like the repo's other
-CLIs. `create` needs `pg_dump` on `PATH`, at the production server's major
-version or newer.
+CLIs. `create` needs `pg_dump` on `PATH`, and `verify` needs `pg_restore` and
+`psql`, each at the production server's major version or newer.
 
 ## Configuration
 
@@ -58,8 +76,8 @@ database url that only `create` needs.
 | `database.url`               | `BACKUP_DATABASE_URL`              | `create`  |
 | `retentionDays` (default 30) | `BACKUP_RETENTION_DAYS`            | `prune`   |
 
-Put the **read-only** R2 token in your local file. It is enough for `list`
-and `download`. `create` and `prune` need the write token, which only the
+Put the **read-only** R2 token in your local file. It is enough for `list`,
+`download` and `verify`. `create` and `prune` need the write token, which only the
 `production-backup` GitHub environment holds.
 
 The file holds production credentials, so `sync-gitignored` never copies it
