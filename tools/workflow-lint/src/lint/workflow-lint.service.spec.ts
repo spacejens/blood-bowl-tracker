@@ -126,6 +126,16 @@ describe('WorkflowLintService', () => {
     expect(() => service.run()).toThrow(/Workflows directory not found/);
   });
 
+  it('fails, naming the directory, when it contains no workflow files', async () => {
+    givenFile('README.md', 'not a workflow');
+
+    const service = await makeService();
+
+    expect(() => service.run()).toThrow(
+      new RegExp(`No workflow files found in ${dir}`),
+    );
+  });
+
   it("defaults to this checkout's .github/workflows", () => {
     expect(existsSync(join(DEFAULT_WORKFLOWS_DIR, 'ci.yml'))).toBe(true);
   });

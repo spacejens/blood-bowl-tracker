@@ -61,6 +61,9 @@ export class WorkflowLintService {
       .filter((entry) => entry.isFile() && WORKFLOW_FILE.test(entry.name))
       .map((entry) => entry.name)
       .sort();
+    if (files.length === 0) {
+      throw new Error(`No workflow files found in ${this.dir}`);
+    }
 
     let usesChecked = 0;
     const problems: string[] = [];

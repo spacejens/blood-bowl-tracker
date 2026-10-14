@@ -26,7 +26,9 @@ built in, whatever the working directory.
 | `docker://image[:tag]@sha256:<64 lowercase hex characters>` | Pass |
 | A tag (`@v7`, `@1.6`), a branch (`@main`), no ref, a short or uppercase SHA, a Docker image without a digest | Fail |
 
-A workflow file that does not parse as YAML also fails.
+A workflow file that does not parse as YAML also fails, and so does a
+directory that contains no workflow files at all (a mis-resolved path must not
+pass silently).
 
 The pinned form this repo uses keeps the version readable as a trailing
 comment, which Renovate keeps in sync with the SHA:
