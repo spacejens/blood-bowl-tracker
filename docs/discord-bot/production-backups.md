@@ -39,6 +39,40 @@ account problem at either one does not take the backups with it.
   activity. If backups stop appearing, check the Actions tab and re-enable
   the workflow there.
 
+## Verification
+
+`.github/workflows/verify-backup.yml` checks that each new backup is
+functional. It starts when a run of the backup workflow completes
+successfully, whether that run was scheduled or manually dispatched. A backup
+taken by another workflow that calls the backup workflow is **not** verified
+automatically (a called workflow runs under its caller's name, so it does not
+trigger this one); such a caller must run verification itself. The
+verification workflow can also be started by hand, optionally for a named
+backup key.
+
+Verification restores the newest backup at the time it runs, which is normally
+the one that triggered it.
+
+The job starts a throwaway `postgres:18` service container, downloads the
+newest backup (or the named one) with the **read-only** token, and runs
+`backup-cli verify` against it. That restores the backup and checks that its
+recorded migrations match `main`'s `packages/db/migrations` (older is fine,
+unknown or skipped ones are not) and that the key game-data tables have rows.
+See [backup-cli](../backup-cli/index.md#subcommands) for the details. A failed
+check fails the run, which shows in the Actions tab. Alerting on failures is
+separate, future work.
+
+Verification runs from `main`, so a backup taken just before a migration
+merged still passes: it simply records fewer migrations than `main` has.
+
+The verification job never sees the database URL and cannot delete backups:
+its environment holds only the read-only token.
+
+```bash
+gh workflow run verify-backup.yml --ref main
+gh workflow run verify-backup.yml --ref main -f backup-key=production/<timestamp>.dump
+```
+
 ## Runner and tokens
 
 The workflow runs on a GitHub-hosted, ephemeral runner and uses only the
@@ -79,10 +113,20 @@ in the process list of that ephemeral runner only.
 
    Add these variables: `BACKUP_STORAGE_ENDPOINT` and `BACKUP_STORAGE_BUCKET`.
 
-4. **First run.** Trigger the workflow by hand (see below) once the bucket and
+4. **Verification environment.** Create a second environment,
+   `production-backup-verify`, also restricted to `main`. Add only the
+   **read-only** token as secrets:
+   - `BACKUP_STORAGE_READ_ACCESS_KEY_ID`
+   - `BACKUP_STORAGE_READ_SECRET_ACCESS_KEY`
+
+   Add the same `BACKUP_STORAGE_ENDPOINT` and `BACKUP_STORAGE_BUCKET`
+   variables. Do not add the database URL or the write token here.
+
+5. **First run.** Trigger the workflow by hand (see below) once the bucket and
    environment exist, then confirm that the log reports a non-zero
    `sizeBytes`. This is also the first real test of the PostgreSQL client
-   install step.
+   install step. Its success then starts the verification workflow; confirm
+   that run passes too.
 
 ## Running a backup on demand
 

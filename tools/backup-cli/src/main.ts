@@ -11,8 +11,12 @@ import {
 } from './download-backup/download-backup.service';
 import { PruneBackupsService } from './prune-backups/prune-backups.service';
 import { BackupStorageService } from './storage/backup-storage.service';
+import {
+  VerifyBackupRequest,
+  VerifyBackupService,
+} from './verify-backup/verify-backup.service';
 
-const SUBCOMMANDS = ['create', 'list', 'prune', 'download'] as const;
+const SUBCOMMANDS = ['create', 'list', 'prune', 'download', 'verify'] as const;
 
 type Subcommand = (typeof SUBCOMMANDS)[number];
 
@@ -20,9 +24,15 @@ const DOWNLOAD_USAGE =
   'Usage: node dist/main.js download <destination-path> [<backup-key>] ' +
   '(downloads the newest backup when the key is omitted)';
 
-/** Arguments for `download`; absent for every other subcommand. */
+const VERIFY_USAGE =
+  'Usage: node dist/main.js verify <target-database-url> [<backup-key>] ' +
+  '(restores the newest backup when the key is omitted; the target must be ' +
+  'an empty database on localhost)';
+
+/** Arguments for `download` and `verify`; absent for every other subcommand. */
 interface DispatchArgs {
   readonly download?: DownloadBackupRequest;
+  readonly verify?: VerifyBackupRequest;
 }
 
 function readDownloadRequest(): DownloadBackupRequest {
@@ -36,9 +46,21 @@ function readDownloadRequest(): DownloadBackupRequest {
     : { destinationPath, key };
 }
 
+function readVerifyRequest(): VerifyBackupRequest {
+  const targetDatabaseUrl = process.argv[3];
+  const key = process.argv[4];
+  if (targetDatabaseUrl === undefined || targetDatabaseUrl === '') {
+    throw new Error(VERIFY_USAGE);
+  }
+  return key === undefined || key === ''
+    ? { targetDatabaseUrl }
+    : { targetDatabaseUrl, key };
+}
+
 function readArgs(subcommand: Subcommand): DispatchArgs {
   return {
     download: subcommand === 'download' ? readDownloadRequest() : undefined,
+    verify: subcommand === 'verify' ? readVerifyRequest() : undefined,
   };
 }
 
@@ -59,6 +81,12 @@ function dispatch(
         throw new Error(DOWNLOAD_USAGE);
       }
       return app.get(DownloadBackupService).run(args.download);
+    }
+    case 'verify': {
+      if (args.verify === undefined) {
+        throw new Error(VERIFY_USAGE);
+      }
+      return app.get(VerifyBackupService).run(args.verify);
     }
   }
 }

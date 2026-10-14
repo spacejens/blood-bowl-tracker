@@ -10,6 +10,7 @@ import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
+import { DatabaseUrlRedactorService } from '../pg-client/database-url-redactor.service';
 import { PG_DUMP_TIMEOUT_MS, PgDumpService } from './pg-dump.service';
 
 const DATABASE_URL = 'postgresql://user:hunter2@ep-x.neon.tech/neondb';
@@ -27,6 +28,8 @@ describe('PgDumpService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         PgDumpService,
+        // Pure, dependency-free formatting service: passed real.
+        DatabaseUrlRedactorService,
         { provide: ProcessRunnerService, useValue: processRunner },
       ],
     }).compile();
@@ -76,7 +79,7 @@ describe('PgDumpService', () => {
       );
 
     expect(error?.message).toBe(
-      'pg_dump exited with code 1: pg_dump: error: connection to "<database-url>" failed',
+      'pg_dump exited with code 1: pg_dump: error: connection to "postgresql://user:<password>@ep-x.neon.tech/neondb" failed',
     );
     expect(error?.message).not.toContain('hunter2');
   });
@@ -96,13 +99,13 @@ describe('PgDumpService', () => {
       );
 
     expect(error?.message).toBe(
-      'Command failed: pg_dump --format=custom --dbname=<database-url>',
+      'Command failed: pg_dump --format=custom --dbname=postgresql://user:<password>@ep-x.neon.tech/neondb',
     );
     expect(error?.cause).toBeUndefined();
   });
 
-  it('redacts the bare password and stringifies a non-Error rejection', async () => {
-    processRunner.run.mockRejectedValue(`auth failed for hunter2`);
+  it('stringifies a non-Error rejection', async () => {
+    processRunner.run.mockRejectedValue(`failed for ${DATABASE_URL}`);
 
     const error = await service
       .dump({ databaseUrl: DATABASE_URL, outputPath })
@@ -111,10 +114,12 @@ describe('PgDumpService', () => {
         (e: unknown) => e as Error,
       );
 
-    expect(error?.message).toBe('auth failed for <password>');
+    expect(error?.message).toBe(
+      'failed for postgresql://user:<password>@ep-x.neon.tech/neondb',
+    );
   });
 
-  it('redacts a connection string that is not a parseable URL, without a password to scrub', async () => {
+  it('redacts a connection string that is not a parseable URL', async () => {
     processRunner.run.mockRejectedValue(new Error('failed for not-a-url'));
 
     const error = await service
