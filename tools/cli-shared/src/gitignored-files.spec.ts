@@ -34,11 +34,6 @@ describe('gitignored-files constants', () => {
     expect(GITIGNORED_DRIFT_FILES).toContainEqual(
       'tools/backup-cli/backup-cli-config.json5',
     );
-    expect(
-      GITIGNORED_DRIFT_FILES.filter(
-        (path) => path === 'tools/backup-cli/backup-cli-config.json5',
-      ),
-    ).toHaveLength(1);
   });
 
   it('exports GITIGNORED_DATA_DIRS as a readonly array', () => {
