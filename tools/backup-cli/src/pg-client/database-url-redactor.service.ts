@@ -26,7 +26,11 @@ export class DatabaseUrlRedactorService {
     return text.split(databaseUrl).join(this.mask(databaseUrl));
   }
 
-  private mask(databaseUrl: string): string {
+  /**
+   * `databaseUrl` with its password masked, for naming a database in a
+   * message; a string that is not a URL becomes a fixed placeholder.
+   */
+  mask(databaseUrl: string): string {
     if (!URL.canParse(databaseUrl)) {
       return UNPARSEABLE_PLACEHOLDER;
     }

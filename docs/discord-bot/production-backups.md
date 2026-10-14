@@ -142,6 +142,9 @@ backup's key from the `backup-key` output.
 
 ## Listing and downloading backups locally
 
+To load a backup into your local development database instead, see the
+[`restore` command](../backup-cli/index.md).
+
 Put the **read-only** token, the endpoint and the bucket name in
 `tools/backup-cli/backup-cli-config.json5` (see
 [backup-cli](../backup-cli/index.md#configuration)), then run:

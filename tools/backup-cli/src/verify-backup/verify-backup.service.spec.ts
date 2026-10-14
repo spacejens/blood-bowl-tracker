@@ -1,24 +1,20 @@
-import { existsSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
-
 import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
 import { DownloadBackupService } from '../download-backup/download-backup.service';
 import { LocalMigrationsService } from '../migrations/local-migrations.service';
+import { LocalDatabaseGuardService } from '../pg-client/local-database-guard.service';
 import { PgRestoreService } from '../restore/pg-restore.service';
+import { TempDirService } from '../temp-dir/temp-dir.service';
 import { BackupChecksService } from './backup-checks.service';
 import { RestoredDatabaseQueryService } from './restored-database-query.service';
 import { VerifyBackupService } from './verify-backup.service';
 
-vi.mock('node:fs', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:fs')>();
-  return { ...actual, rmSync: vi.fn(actual.rmSync) };
-});
-
 const TARGET = 'postgresql://postgres:postgres@localhost:5432/postgres';
 const KEY = 'production/2026-10-14T03-17-00.000Z.dump';
+const WORK_DIR = '/tmp/backup-cli-verify-abc123';
+const DUMP_PATH = `${WORK_DIR}/backup.dump`;
 const COUNTS = {
   coaches: 1,
   teams: 1,
@@ -29,33 +25,37 @@ const COUNTS = {
 
 describe('VerifyBackupService', () => {
   let service: VerifyBackupService;
+  let guard: MockProxy<LocalDatabaseGuardService>;
+  let tempDir: MockProxy<TempDirService>;
   let download: MockProxy<DownloadBackupService>;
   let pgRestore: MockProxy<PgRestoreService>;
   let query: MockProxy<RestoredDatabaseQueryService>;
   let localMigrations: MockProxy<LocalMigrationsService>;
   let checks: MockProxy<BackupChecksService>;
-  let downloadedPath: string | undefined;
 
   beforeEach(async () => {
+    guard = mock<LocalDatabaseGuardService>();
+    tempDir = mock<TempDirService>();
     download = mock<DownloadBackupService>();
     pgRestore = mock<PgRestoreService>();
     query = mock<RestoredDatabaseQueryService>();
     localMigrations = mock<LocalMigrationsService>();
     checks = mock<BackupChecksService>();
-    downloadedPath = undefined;
 
+    // Canned pass-through: hands the work a fixed directory. Creating and
+    // removing it is TempDirService's own, separately tested, job.
+    tempDir.run.mockImplementation(
+      (_prefix: string, work: (dir: string) => Promise<unknown>) =>
+        work(WORK_DIR),
+    );
     localMigrations.list.mockReturnValue(['0001_a', '0002_b']);
-    // Canned stand-in for the file the real download writes; echoes the
-    // request rather than reimplementing newest-key selection.
-    download.run.mockImplementation((request) => {
-      downloadedPath = request.destinationPath;
-      writeFileSync(request.destinationPath, 'PGDMP');
-      return Promise.resolve({
+    download.run.mockImplementation((request) =>
+      Promise.resolve({
         key: request.key ?? KEY,
         path: request.destinationPath,
         sizeBytes: 5,
-      });
-    });
+      }),
+    );
     query.appliedMigrations.mockResolvedValue(['0001_a', '0002_b']);
     query.keyTableRowCounts.mockResolvedValue(COUNTS);
     checks.checkMigrations.mockReturnValue([]);
@@ -64,6 +64,8 @@ describe('VerifyBackupService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         VerifyBackupService,
+        { provide: LocalDatabaseGuardService, useValue: guard },
+        { provide: TempDirService, useValue: tempDir },
         { provide: DownloadBackupService, useValue: download },
         { provide: PgRestoreService, useValue: pgRestore },
         { provide: RestoredDatabaseQueryService, useValue: query },
@@ -74,25 +76,22 @@ describe('VerifyBackupService', () => {
     service = moduleRef.get(VerifyBackupService);
   });
 
-  async function failure(url: string): Promise<Error | undefined> {
-    return service.run({ targetDatabaseUrl: url }).then(
-      () => undefined,
-      (e: unknown) => e as Error,
-    );
-  }
-
-  it('downloads the newest backup, restores it, checks it, and reports the result', async () => {
+  it('downloads the newest backup into a temporary directory, restores it, checks it, and reports the result', async () => {
     await expect(service.run({ targetDatabaseUrl: TARGET })).resolves.toEqual({
       key: KEY,
       restoredMigrations: 2,
       tableRowCounts: COUNTS,
     });
+    expect(tempDir.run).toHaveBeenCalledWith(
+      'backup-cli-verify-',
+      expect.any(Function),
+    );
     expect(download.run).toHaveBeenCalledWith({
-      destinationPath: downloadedPath,
+      destinationPath: DUMP_PATH,
       key: undefined,
     });
     expect(pgRestore.restore).toHaveBeenCalledWith({
-      dumpPath: downloadedPath,
+      dumpPath: DUMP_PATH,
       databaseUrl: TARGET,
     });
     expect(query.appliedMigrations).toHaveBeenCalledWith(TARGET);
@@ -115,14 +114,7 @@ describe('VerifyBackupService', () => {
     );
   });
 
-  it('removes its temporary directory after success', async () => {
-    await service.run({ targetDatabaseUrl: TARGET });
-
-    expect(downloadedPath).toBeDefined();
-    expect(existsSync(dirname(downloadedPath ?? ''))).toBe(false);
-  });
-
-  it('removes its temporary directory when the restore fails, and propagates the error', async () => {
+  it('propagates a failed restore without querying the database', async () => {
     pgRestore.restore.mockRejectedValue(
       new Error('pg_restore exited with code 1: boom'),
     );
@@ -130,30 +122,7 @@ describe('VerifyBackupService', () => {
     await expect(service.run({ targetDatabaseUrl: TARGET })).rejects.toThrow(
       'pg_restore exited with code 1: boom',
     );
-    expect(existsSync(dirname(downloadedPath ?? ''))).toBe(false);
     expect(query.appliedMigrations).not.toHaveBeenCalled();
-  });
-
-  it('does not let a cleanup failure mask the original error', async () => {
-    pgRestore.restore.mockRejectedValue(new Error('pg_restore failed'));
-    vi.mocked(rmSync).mockImplementationOnce(() => {
-      throw new Error('EBUSY');
-    });
-    const stderr = vi
-      .spyOn(process.stderr, 'write')
-      .mockImplementation(() => true);
-
-    await expect(service.run({ targetDatabaseUrl: TARGET })).rejects.toThrow(
-      'pg_restore failed',
-    );
-    const written = stderr.mock.calls.map((call) => String(call[0])).join('');
-    stderr.mockRestore();
-    // The mocked removal failed, so remove the leftover directory here.
-    rmSync(dirname(downloadedPath ?? ''), { recursive: true, force: true });
-    expect(written).toContain('Could not remove temporary directory');
-    expect(written).toContain('backup-cli-verify-');
-    expect(written).not.toContain(TARGET);
-    expect(written).not.toContain('postgres:postgres');
   });
 
   it('fails listing every failed check, not just the first', async () => {
@@ -163,55 +132,34 @@ describe('VerifyBackupService', () => {
       'game_data.matches has no rows.',
     ]);
 
-    const error = await failure(TARGET);
-
-    expect(error?.message).toBe(
-      `Backup ${KEY} failed verification:\n` +
-        '- migration problem\n' +
-        '- game_data.teams has no rows.\n' +
-        '- game_data.matches has no rows.',
+    await expect(service.run({ targetDatabaseUrl: TARGET })).rejects.toThrow(
+      new Error(
+        `Backup ${KEY} failed verification:\n` +
+          '- migration problem\n' +
+          '- game_data.teams has no rows.\n' +
+          '- game_data.matches has no rows.',
+      ),
     );
   });
 
-  it.each([
-    'postgresql://postgres:postgres@127.0.0.1:5432/postgres',
-    'postgres://postgres@[::1]/postgres',
-    'postgresql://localhost/postgres',
-  ])('accepts the local target %s', async (url) => {
-    await expect(
-      service.run({ targetDatabaseUrl: url }),
-    ).resolves.toMatchObject({ key: KEY });
+  it('checks that the target is local', async () => {
+    await service.run({ targetDatabaseUrl: TARGET });
+
+    expect(guard.assertLocal).toHaveBeenCalledWith(TARGET);
   });
 
-  it.each([
-    'postgresql://user:hunter2@ep-x.neon.tech/neondb',
-    'postgresql://postgres@localhost/postgres?host=ep-x.neon.tech',
-    'postgresql://postgres@localhost/postgres?hostaddr=10.0.0.1',
-    'postgresql://localhost,ep-x.neon.tech/postgres',
-    'postgresql:///postgres',
-  ])(
-    'refuses the non-local target %s before downloading anything',
-    async (url) => {
-      const error = await failure(url);
+  it('creates no temporary directory and downloads nothing when the target is refused', async () => {
+    guard.assertLocal.mockImplementation(() => {
+      throw new Error('Refusing to restore into a non-local database');
+    });
 
-      expect(error?.message).toBe(
-        'Refusing to restore into a non-local database: the target host must be localhost, 127.0.0.1 or ::1.',
-      );
-      expect(error?.message).not.toContain('hunter2');
-      expect(download.run).not.toHaveBeenCalled();
-    },
-  );
-
-  it.each(['not-a-url', 'mysql://localhost/db'])(
-    'refuses a target that is not a postgres connection string: %s',
-    async (url) => {
-      await expect(failure(url)).resolves.toHaveProperty(
-        'message',
-        'The target database must be a postgres:// or postgresql:// connection string.',
-      );
-      expect(download.run).not.toHaveBeenCalled();
-    },
-  );
+    await expect(service.run({ targetDatabaseUrl: TARGET })).rejects.toThrow(
+      'Refusing to restore into a non-local database',
+    );
+    expect(localMigrations.list).not.toHaveBeenCalled();
+    expect(tempDir.run).not.toHaveBeenCalled();
+    expect(download.run).not.toHaveBeenCalled();
+  });
 
   it('fails before downloading when the checkout has no migrations', async () => {
     localMigrations.list.mockImplementation(() => {
@@ -221,6 +169,7 @@ describe('VerifyBackupService', () => {
     await expect(service.run({ targetDatabaseUrl: TARGET })).rejects.toThrow(
       'No migrations found in /x',
     );
+    expect(tempDir.run).not.toHaveBeenCalled();
     expect(download.run).not.toHaveBeenCalled();
   });
 });

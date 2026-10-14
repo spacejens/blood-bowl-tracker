@@ -1,7 +1,9 @@
 /**
  * Gitignored dev config files copied into a fresh worktree by
  * `sync-gitignored`. Production variants are deliberately absent: a new
- * worktree must never get production secrets copied in automatically.
+ * worktree must never get production secrets copied in automatically. The
+ * backup-cli config is present because it holds only the read-only storage
+ * token (the write token lives in the `production-backup` GitHub environment).
  */
 export const GITIGNORED_SYNC_FILES: readonly string[] = [
   'apps/discord-bot/.env',
@@ -13,6 +15,7 @@ export const GITIGNORED_SYNC_FILES: readonly string[] = [
   'tools/review-player/review-player-config.json5',
   'tools/review-race/review-race-config.json5',
   'tools/review-star-player/review-star-player-config.json5',
+  'tools/backup-cli/backup-cli-config.json5',
 ];
 
 /**
@@ -30,15 +33,12 @@ export const GITIGNORED_PRODUCTION_IMPORT_CONFIG_FILES: readonly string[] = [
  * Files `check-drift` compares between the worktree and the main checkout.
  * This is `GITIGNORED_SYNC_FILES` plus the production variants: a developer
  * may have copied one in by hand, and it should still be caught before the
- * worktree is discarded. `tools/backup-cli`'s config is here for the same
- * reason: it holds production storage credentials, so it is drift-checked but
- * never auto-synced.
+ * worktree is discarded.
  */
 export const GITIGNORED_DRIFT_FILES: readonly string[] = [
   ...GITIGNORED_SYNC_FILES,
   'apps/discord-bot/.env.production',
   ...GITIGNORED_PRODUCTION_IMPORT_CONFIG_FILES,
-  'tools/backup-cli/backup-cli-config.json5',
 ];
 
 /**

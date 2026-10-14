@@ -69,4 +69,16 @@ describe('DatabaseUrlRedactorService', () => {
   it('leaves text alone when it does not contain the URL', () => {
     expect(service.redact('nothing here', DATABASE_URL)).toBe('nothing here');
   });
+
+  it('masks the password of a URL on its own', () => {
+    expect(
+      service.mask(
+        'postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl',
+      ),
+    ).toBe('postgres://blood_bowl:<password>@localhost:5433/blood_bowl');
+  });
+
+  it('masks a string that is not a URL as a fixed placeholder', () => {
+    expect(service.mask('not a url')).toBe('<database-url>');
+  });
 });

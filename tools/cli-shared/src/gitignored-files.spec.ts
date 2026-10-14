@@ -19,6 +19,7 @@ describe('gitignored-files constants', () => {
       'tools/review-player/review-player-config.json5',
       'tools/review-race/review-race-config.json5',
       'tools/review-star-player/review-star-player-config.json5',
+      'tools/backup-cli/backup-cli-config.json5',
     ]);
   });
 
@@ -31,9 +32,6 @@ describe('gitignored-files constants', () => {
       'tools/import-bbl/import-bbl-config.production.json5',
     );
     expect(GITIGNORED_DRIFT_FILES).toContainEqual(
-      'tools/backup-cli/backup-cli-config.json5',
-    );
-    expect(GITIGNORED_SYNC_FILES).not.toContainEqual(
       'tools/backup-cli/backup-cli-config.json5',
     );
   });

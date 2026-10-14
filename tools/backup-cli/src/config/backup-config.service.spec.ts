@@ -10,6 +10,7 @@ import {
   BACKUP_ENV,
   BackupConfigService,
   BackupEnv,
+  DEFAULT_LOCAL_DATABASE_URL,
 } from './backup-config.service';
 
 const FULL_FILE = `{
@@ -157,6 +158,65 @@ describe('BackupConfigService', () => {
 
       expect(() => service.getRetentionDays()).toThrow(
         /retentionDays .* must be a positive integer/,
+      );
+    },
+  );
+
+  it('defaults the local database to the docker-compose database when the file is absent', async () => {
+    const service = await makeService();
+
+    expect(service.getLocalDatabaseUrl()).toBe(
+      'postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl',
+    );
+    expect(DEFAULT_LOCAL_DATABASE_URL).toBe(
+      'postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl',
+    );
+  });
+
+  it('defaults the local database when the file does not set it', async () => {
+    const service = await makeService({ file: FULL_FILE });
+
+    expect(service.getLocalDatabaseUrl()).toBe(DEFAULT_LOCAL_DATABASE_URL);
+  });
+
+  it('reads the local database url from the file', async () => {
+    const service = await makeService({
+      file: "{ localDatabase: { url: 'postgres://me@localhost:5432/scratch' } }",
+    });
+
+    expect(service.getLocalDatabaseUrl()).toBe(
+      'postgres://me@localhost:5432/scratch',
+    );
+  });
+
+  it('lets BACKUP_LOCAL_DATABASE_URL override the file', async () => {
+    const service = await makeService({
+      file: "{ localDatabase: { url: 'postgres://me@localhost:5432/scratch' } }",
+      env: { BACKUP_LOCAL_DATABASE_URL: 'postgres://ci@127.0.0.1:5432/ci' },
+    });
+
+    expect(service.getLocalDatabaseUrl()).toBe(
+      'postgres://ci@127.0.0.1:5432/ci',
+    );
+  });
+
+  it('falls back to the default when BACKUP_LOCAL_DATABASE_URL is empty', async () => {
+    const service = await makeService({
+      env: { BACKUP_LOCAL_DATABASE_URL: '' },
+    });
+
+    expect(service.getLocalDatabaseUrl()).toBe(DEFAULT_LOCAL_DATABASE_URL);
+  });
+
+  it.each([["''"], ['5']])(
+    'rejects a local database url in the file that is not a non-empty string: %s',
+    async (value) => {
+      const service = await makeService({
+        file: `{ localDatabase: { url: ${value} } }`,
+      });
+
+      expect(() => service.getLocalDatabaseUrl()).toThrow(
+        'localDatabase.url in backup-cli-config.json5 (or BACKUP_LOCAL_DATABASE_URL) must be a non-empty string.',
       );
     },
   );

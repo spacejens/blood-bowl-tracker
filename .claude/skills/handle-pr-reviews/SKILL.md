@@ -344,7 +344,7 @@ Skip this phase if no commits were made in Phase 2.
 
 These two skip conditions are independent: either one on its own is reason enough to skip the phase, and neither depends on the other.
 
-**REQUIRED SUB-SKILL:** Use the `deploy-local` skill to offer the developer a local look at the change. `deploy-local` asks up front which of its six actions to perform — deploy the stack, run the manual import before and/or after the other importers, run the BBL import, run the TP import, generate a SchemaSpy diagram — in any combination; selecting none is valid and means no action is taken. Do not ask the developer separately before invoking it.
+**REQUIRED SUB-SKILL:** Use the `deploy-local` skill to offer the developer a local look at the change. `deploy-local` asks up front which of its eleven actions to perform — deploy the stack, restore a database backup, run the manual import before and/or after the other importers, run the BBL import, run the TP import, run the match-event, player, race or star player review tool, generate a SchemaSpy diagram — in any combination; selecting none is valid and means no action is taken. Do not ask the developer separately before invoking it.
 
 ---
 
