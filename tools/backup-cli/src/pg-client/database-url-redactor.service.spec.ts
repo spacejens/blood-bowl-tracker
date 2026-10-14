@@ -41,6 +41,25 @@ describe('DatabaseUrlRedactorService', () => {
     ).toBe('see postgresql://postgres:<password>@localhost/db');
   });
 
+  it('masks a password given as a query parameter and keeps other parameters', () => {
+    const url = 'postgresql://u@h.example/db?sslmode=require&password=secret';
+    expect(service.redact(`x ${url} y`, url)).toBe(
+      'x postgresql://u:<password>@h.example/db?sslmode=require&password=<password> y',
+    );
+  });
+
+  it('masks both the userinfo password and a query password', () => {
+    const url = 'postgresql://u:one@h.example/db?password=two';
+    expect(service.redact(url, url)).toBe(
+      'postgresql://u:<password>@h.example/db?password=<password>',
+    );
+  });
+
+  it('does not add a password parameter when the URL has none', () => {
+    const url = 'postgresql://u:p@h.example/db?sslmode=require';
+    expect(service.redact(url, url)).not.toContain('password=');
+  });
+
   it('replaces an unparseable connection string with a fixed placeholder', () => {
     expect(service.redact('failed for not-a-url', 'not-a-url')).toBe(
       'failed for <database-url>',
