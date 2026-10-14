@@ -39,14 +39,30 @@ triggers (the temporal-tables `versioning()` trigger and a
 is ever added without going through `historyTrackedTable()`.
 
 Writing to a history-tracked table must go through a plain `insert` or
-`update`, never `INSERT ... ON CONFLICT DO UPDATE`: Postgres fires a
-`BEFORE INSERT` row trigger for the attempted row before it even checks for
-a conflict, so `versioning()` — which unconditionally records an `INSERT`
-into the history table — leaves an orphaned history row behind on every
-conflicting upsert, not just a no-op one. `packages/game-data`'s
+`update`, never `INSERT ... ON CONFLICT` — neither `DO UPDATE` nor
+`DO NOTHING`. `versioning()` is a `BEFORE INSERT` row trigger installed to
+include the current version in history, so it writes a history row for the
+attempted row before Postgres even checks for a conflict. When the row does
+conflict, that history row cannot be kept, and the whole transaction aborts:
+
+- If the attempted row drew a fresh serial id, its history row references a
+  tracked row that never comes into existence, so the history table's
+  deferred foreign key to the tracked table fails the transaction at commit
+  (`23503`).
+- If the attempted row reuses an existing id (`ON CONFLICT (id)`), its
+  history row collides with that id's existing history row on the history
+  table's `(id, history_version)` primary key, and the statement fails
+  immediately (`23505`).
+
+Either way nothing is persisted — no orphaned history row is left behind —
+but the enclosing transaction can never commit a conflicting row this way,
+and when it drew a fresh serial id that id is consumed. `packages/game-data`'s
 `upsertByExternalIds` and `packages/discord-bot-usage`'s
-`selectThenUpsert` both select the row first and branch to a plain `insert`
-or `update` for exactly this reason.
+`selectThenUpsert` (like the other natural-key writers in
+`packages/game-data`) both select the row first
+and branch to a plain `insert` or `update` for exactly this reason. These
+outcomes are pinned against real Postgres by
+`packages/game-data/test/history-tracked-conflicting-insert.e2e-spec.ts`.
 
 `db:generate` post-processes the generated `migration.sql` for history
 tables: a brand-new `<table>_history` is created with
@@ -68,7 +84,7 @@ conditional: it skips the `updated_at` bump when `NEW IS NOT DISTINCT FROM
 OLD`. Because it fires first, before anything else has touched the row,
 that comparison is a true "did the caller's `UPDATE` actually change
 anything" check — it bumps `updated_at` only on a real change, and leaves
-it untouched on a genuine no-op upsert.
+it untouched on a genuine no-op update.
 
 `versioning()` then fires second and sees the row exactly as it will be
 written: for a no-op, `NEW` is still identical to `OLD` in every column
@@ -80,7 +96,7 @@ inserts using `NEW`) correctly captures the fresh timestamp rather than a
 stale one. Both triggers always return `NEW`/`OLD`, never `NULL`, so
 `UPDATE ... RETURNING` always returns the row, no-op or not — important
 because `packages/game-data`'s upsert methods rely on getting a row back
-from `RETURNING` on every upsert.
+from `RETURNING` on every update they issue.
 
 Reversing this order (making `versioning()` fire first, e.g. via a `0_`
 name prefix) was tried and rejected: `versioning()`'s history `INSERT` uses

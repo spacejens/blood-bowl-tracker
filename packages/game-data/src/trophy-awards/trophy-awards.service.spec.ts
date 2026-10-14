@@ -140,7 +140,7 @@ describe('TrophyAwardsService', () => {
     expect(db.insert).toHaveBeenCalledWith(trophyAwards);
   });
 
-  it('inserts without an ON CONFLICT clause, so a discarded row cannot orphan a history row', async () => {
+  it('inserts without an ON CONFLICT clause, so a discarded row cannot trip the history foreign key', async () => {
     const { chains } = await build(teamTrophyRow, matchingCompetitionRow, [
       teamAwardRow,
     ]);
