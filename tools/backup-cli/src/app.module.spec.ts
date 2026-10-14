@@ -28,6 +28,7 @@ import { RestoreBackupService } from './restore-backup/restore-backup.service';
 import { BackupInspectionService } from './restore-production/backup-inspection.service';
 import { ProductionRestoreService } from './restore-production/production-restore.service';
 import { RestoreProductionService } from './restore-production/restore-production.service';
+import { RestoreProductionArgsService } from './restore-production/restore-production-args.service';
 import { RetentionService } from './retention/retention.service';
 import { BackupStorageService } from './storage/backup-storage.service';
 import { S3ClientFactoryService } from './storage/s3-client-factory.service';
@@ -74,6 +75,7 @@ describe('AppModule', () => {
       ProductionRestoreService,
       BackupInspectionService,
       RestoreProductionService,
+      RestoreProductionArgsService,
     ]) {
       expect(moduleRef.get(service)).toBeInstanceOf(service);
     }
