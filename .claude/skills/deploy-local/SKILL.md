@@ -132,28 +132,36 @@ Run this section only if "Restore a database backup" was selected in step 0 abov
    docker compose ps --status running --services
    ```
    Run from this worktree's root, which scopes the listing to this checkout's own compose project. If it does not list `postgres` and `discord-bot`, tell the developer that no stack from this checkout is running (any stack on port `5433` belongs to another checkout, and restoring into it would replace that database), suggest selecting "Deploy the stack" too, and stop this section; the other selected sections still run.
-3. Build backup-cli — a fresh worktree only ran `pnpm install`:
+3. Resolve the effective restore target. The restore replaces the database `localDatabase.url` names, and a non-empty `BACKUP_LOCAL_DATABASE_URL` overrides that setting, so the stack check in step 2 only covers the default (this checkout's compose database, `postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl`). Check both overrides without printing the URLs, which can embed a password:
+   ```bash
+   env | grep -c '^BACKUP_LOCAL_DATABASE_URL=.'
+   ```
+   ```bash
+   grep -c 'localDatabase' tools/backup-cli/backup-cli-config.json5
+   ```
+   If neither is set (the first prints `0` and the second prints `0` or the file is missing), the default applies; continue. Otherwise read the effective value (the environment variable wins over the file) and compare it with the default above. If it is the default, continue. If it names any other database, ask with `AskUserQuestion` (single-select, `header` `Target`), `question` "The restore target is overridden to <that URL with its password replaced by `<password>`>, which may not be this checkout's database. Restore into it anyway?", with the options **Restore into that database** and **Skip the restore**; on **Skip the restore**, stop this section; the other selected sections still run.
+4. Build backup-cli — a fresh worktree only ran `pnpm install`:
    ```bash
    pnpm --filter "@blood-bowl-tracker/backup-cli..." run build
    ```
-4. List the stored backups (newest first; each `{ key, sizeBytes, lastModified }`):
+5. List the stored backups (newest first; each `{ key, sizeBytes, lastModified }`):
    ```bash
    node tools/backup-cli/dist/main.js list
    ```
    If the list is empty, report that there are no backups and stop this section. Otherwise ask with `AskUserQuestion` (single-select, `header` `Backup`), `question` "Which backup should I restore into the local database?". Options: **Newest backup** (recommended) first, its description giving the newest entry's full key, `lastModified` and size in MB; then one option per next most recent backup, up to three, each labelled with its `lastModified` timestamp and described by its full key and size (never truncate a key with "..."). The automatic "Other" entry lets the developer type any key.
-5. Restore — always pass the full key the developer chose ("Newest backup" is the first entry of the list from step 4), so a backup that lands between listing and restoring cannot replace the one they saw:
+6. Restore — always pass the full key the developer chose ("Newest backup" is the first entry of the list from step 5), so a backup that lands between listing and restoring cannot replace the one they saw:
    ```bash
    node tools/backup-cli/dist/main.js restore <backup-key>
    ```
-   It downloads the backup, clears the database `localDatabase.url` names (default: the docker-compose database), restores, and prints `{ "key", "restoredMigrations", "tableRowCounts" }`. It needs `pg_restore` and `psql` on `PATH` at the production server's major version or newer; if they are missing or too old, say so (on macOS, Homebrew's `libpq` or `postgresql@<major>` provides them). On failure it prints `{"error": ...}` on stderr and exits `1`: a download or credential error leaves the database untouched, while an error saying the database "is now empty" means the wipe succeeded and the restore did not — tell the developer to re-run this action. Either way, skip step 6, report the error, and continue with the other selected sections.
-6. Restart the bot so it applies this branch's pending migrations to the restored data (a backup may be older than the branch), then confirm it came back healthy:
+   It downloads the backup, clears the database `localDatabase.url` names (default: the docker-compose database), restores, and prints `{ "key", "restoredMigrations", "tableRowCounts" }`. It needs `pg_restore` and `psql` on `PATH` at the production server's major version or newer; if they are missing or too old, say so (on macOS, Homebrew's `libpq` or `postgresql@<major>` provides them). On failure it prints `{"error": ...}` on stderr and exits `1`: a download or credential error leaves the database untouched, while an error saying the database "is now empty" means the wipe succeeded and the restore did not — tell the developer to re-run this action. Either way, skip step 7, report the error, and continue with the other selected sections.
+7. Restart the bot so it applies this branch's pending migrations to the restored data (a backup may be older than the branch), then confirm it came back healthy:
    ```bash
    docker compose restart discord-bot
    docker compose ps
    docker compose logs --tail 200 discord-bot
    ```
    Poll `docker compose ps` until `discord-bot` is `Up`, as in "Deploy the stack" step 4. In the logs from the restart, expect `Running migrations...`, one `Applying: <name>` line per migration newer than the backup, `Migrations complete.`, then the same leader-lock and startup-message lines as "Deploy the stack" step 5. A failed migration means the branch's migrations do not apply cleanly to production-shaped data — report it prominently.
-7. Report the restored key, the backup's migration count, the key tables' row counts, which migrations the bot applied on top, and the bot's health. Do not tear down any containers — same non-goal as the "Deploy the stack" section.
+8. Report the restored key, the backup's migration count, the key tables' row counts, which migrations the bot applied on top, and the bot's health. Do not tear down any containers — same non-goal as the "Deploy the stack" section.
 
 ### Run the manual import (before other importers)
 
