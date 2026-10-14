@@ -27,6 +27,11 @@
   // (BACKUP_DATABASE_URL). Leave it out for list/download/prune.
   // database: { url: 'postgresql://...' },
 
+  // Only `restore` uses this: the LOCAL database it replaces with a backup
+  // (BACKUP_LOCAL_DATABASE_URL). Defaults to the docker-compose database
+  // below; its host must be localhost, 127.0.0.1 or ::1.
+  // localDatabase: { url: 'postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl' },
+
   // How many days `prune` keeps backups for. Defaults to 30.
   // (BACKUP_RETENTION_DAYS)
   retentionDays: 30,

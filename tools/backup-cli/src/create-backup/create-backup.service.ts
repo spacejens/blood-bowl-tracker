@@ -1,5 +1,3 @@
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { Injectable } from '@nestjs/common';
@@ -10,6 +8,7 @@ import {
   BACKUP_KEY_PREFIX,
   BackupStorageService,
 } from '../storage/backup-storage.service';
+import { TempDirService } from '../temp-dir/temp-dir.service';
 
 export interface CreateBackupResult {
   readonly key: string;
@@ -30,6 +29,7 @@ export class CreateBackupService {
     private readonly config: BackupConfigService,
     private readonly pgDump: PgDumpService,
     private readonly storage: BackupStorageService,
+    private readonly tempDir: TempDirService,
   ) {}
 
   async run(): Promise<CreateBackupResult> {
@@ -39,22 +39,11 @@ export class CreateBackupService {
     // ':' is legal in an object key but not in a Windows file name, and the
     // key's last segment is the natural local file name on download.
     const key = `${BACKUP_KEY_PREFIX}${createdAt.replace(/:/g, '-')}.dump`;
-    const workDir = mkdtempSync(join(tmpdir(), 'backup-cli-'));
-    try {
+    return this.tempDir.run('backup-cli-', async (workDir) => {
       const outputPath = join(workDir, 'backup.dump');
       const sizeBytes = await this.pgDump.dump({ databaseUrl, outputPath });
       await this.storage.upload({ key, filePath: outputPath });
       return { key, sizeBytes, createdAt };
-    } finally {
-      try {
-        rmSync(workDir, { recursive: true, force: true });
-      } catch {
-        // Cleanup is best effort; it must never mask the run's own outcome,
-        // but a leftover production dump is worth surfacing.
-        process.stderr.write(
-          `Warning: Could not remove temporary directory ${workDir}; delete it manually.\n`,
-        );
-      }
-    }
+    });
   }
 }

@@ -10,13 +10,24 @@ import {
   DownloadBackupService,
 } from './download-backup/download-backup.service';
 import { PruneBackupsService } from './prune-backups/prune-backups.service';
+import {
+  RestoreBackupRequest,
+  RestoreBackupService,
+} from './restore-backup/restore-backup.service';
 import { BackupStorageService } from './storage/backup-storage.service';
 import {
   VerifyBackupRequest,
   VerifyBackupService,
 } from './verify-backup/verify-backup.service';
 
-const SUBCOMMANDS = ['create', 'list', 'prune', 'download', 'verify'] as const;
+const SUBCOMMANDS = [
+  'create',
+  'list',
+  'prune',
+  'download',
+  'verify',
+  'restore',
+] as const;
 
 type Subcommand = (typeof SUBCOMMANDS)[number];
 
@@ -29,10 +40,11 @@ const VERIFY_USAGE =
   '(restores the newest backup when the key is omitted; the target must be ' +
   'an empty database on localhost)';
 
-/** Arguments for `download` and `verify`; absent for every other subcommand. */
+/** Arguments for `download`, `verify` and `restore`; absent for every other subcommand. */
 interface DispatchArgs {
   readonly download?: DownloadBackupRequest;
   readonly verify?: VerifyBackupRequest;
+  readonly restore?: RestoreBackupRequest;
 }
 
 function readDownloadRequest(): DownloadBackupRequest {
@@ -57,10 +69,17 @@ function readVerifyRequest(): VerifyBackupRequest {
     : { targetDatabaseUrl, key };
 }
 
+/** `restore [<backup-key>]`: the key is optional, so there is no usage error. */
+function readRestoreRequest(): RestoreBackupRequest {
+  const key = process.argv[3];
+  return key === undefined || key === '' ? {} : { key };
+}
+
 function readArgs(subcommand: Subcommand): DispatchArgs {
   return {
     download: subcommand === 'download' ? readDownloadRequest() : undefined,
     verify: subcommand === 'verify' ? readVerifyRequest() : undefined,
+    restore: subcommand === 'restore' ? readRestoreRequest() : undefined,
   };
 }
 
@@ -88,6 +107,8 @@ function dispatch(
       }
       return app.get(VerifyBackupService).run(args.verify);
     }
+    case 'restore':
+      return app.get(RestoreBackupService).run(args.restore ?? {});
   }
 }
 

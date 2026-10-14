@@ -76,4 +76,14 @@ describe('ProcessRunnerService', () => {
     // indefinitely because the child trapped SIGTERM.
     expect(Date.now() - startedAt).toBeLessThan(4_000);
   });
+
+  it('passes a custom environment to the child when given one', async () => {
+    const result = await service.runWithOptions(
+      process.execPath,
+      ['-e', 'process.stdout.write(String(process.env.RUNNER_TEST_VAR))'],
+      { env: { RUNNER_TEST_VAR: 'custom' } },
+    );
+
+    expect(result.stdout).toBe('custom');
+  });
 });

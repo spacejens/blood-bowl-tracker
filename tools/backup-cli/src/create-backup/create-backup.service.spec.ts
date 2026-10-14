@@ -1,6 +1,3 @@
-import { existsSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
-
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
@@ -8,21 +5,20 @@ import { mock, MockProxy } from 'vitest-mock-extended';
 import { BackupConfigService } from '../config/backup-config.service';
 import { PgDumpService } from '../dump/pg-dump.service';
 import { BackupStorageService } from '../storage/backup-storage.service';
+import { TempDirService } from '../temp-dir/temp-dir.service';
 import { CreateBackupService } from './create-backup.service';
-
-vi.mock('node:fs', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:fs')>();
-  return { ...actual, rmSync: vi.fn(actual.rmSync) };
-});
 
 const DATABASE_URL = 'postgresql://user:pw@ep-x.neon.tech/neondb';
 const KEY = 'production/2026-10-13T03-17-05.123Z.dump';
+const WORK_DIR = '/tmp/backup-cli-abc123';
+const OUTPUT_PATH = `${WORK_DIR}/backup.dump`;
 
 describe('CreateBackupService', () => {
   let service: CreateBackupService;
   let config: MockProxy<BackupConfigService>;
   let pgDump: MockProxy<PgDumpService>;
   let storage: MockProxy<BackupStorageService>;
+  let tempDir: MockProxy<TempDirService>;
 
   beforeEach(async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
@@ -37,12 +33,20 @@ describe('CreateBackupService', () => {
     });
     pgDump = mock<PgDumpService>();
     storage = mock<BackupStorageService>();
+    tempDir = mock<TempDirService>();
+    // Canned pass-through: hands the work a fixed directory. Creating and
+    // removing it is TempDirService's own, separately tested, job.
+    tempDir.run.mockImplementation(
+      (_prefix: string, work: (dir: string) => Promise<unknown>) =>
+        work(WORK_DIR),
+    );
     const moduleRef = await Test.createTestingModule({
       providers: [
         CreateBackupService,
         { provide: BackupConfigService, useValue: config },
         { provide: PgDumpService, useValue: pgDump },
         { provide: BackupStorageService, useValue: storage },
+        { provide: TempDirService, useValue: tempDir },
       ],
     }).compile();
     service = moduleRef.get(CreateBackupService);
@@ -52,20 +56,7 @@ describe('CreateBackupService', () => {
     vi.useRealTimers();
   });
 
-  /** Simulates pg_dump leaving a (partial) file at the requested path. */
-  function dumpLeavesFileThen(outcome: () => number): void {
-    pgDump.dump.mockImplementation(async (request) => {
-      writeFileSync(request.outputPath, 'partial');
-      await Promise.resolve();
-      return outcome();
-    });
-  }
-
-  function workDir(): string {
-    return dirname(pgDump.dump.mock.calls[0][0].outputPath);
-  }
-
-  it('dumps, uploads under a timestamped production key, and reports the result', async () => {
+  it('dumps into a temporary directory, uploads under a timestamped production key, and reports the result', async () => {
     pgDump.dump.mockResolvedValue(4096);
 
     await expect(service.run()).resolves.toEqual({
@@ -73,58 +64,32 @@ describe('CreateBackupService', () => {
       sizeBytes: 4096,
       createdAt: '2026-10-13T03:17:05.123Z',
     });
-    const dumpRequest = pgDump.dump.mock.calls[0][0];
-    expect(dumpRequest.databaseUrl).toBe(DATABASE_URL);
+    expect(tempDir.run).toHaveBeenCalledWith(
+      'backup-cli-',
+      expect.any(Function),
+    );
+    expect(pgDump.dump).toHaveBeenCalledWith({
+      databaseUrl: DATABASE_URL,
+      outputPath: OUTPUT_PATH,
+    });
     expect(storage.upload).toHaveBeenCalledWith({
       key: KEY,
-      filePath: dumpRequest.outputPath,
+      filePath: OUTPUT_PATH,
     });
   });
 
-  it('removes its temporary directory after a successful run', async () => {
-    dumpLeavesFileThen(() => 1);
-
-    await service.run();
-
-    expect(existsSync(workDir())).toBe(false);
-  });
-
-  it('does not upload, and removes the partial dump, when pg_dump fails', async () => {
-    dumpLeavesFileThen(() => {
-      throw new Error('pg_dump exited with code 1');
-    });
+  it('does not upload when pg_dump fails', async () => {
+    pgDump.dump.mockRejectedValue(new Error('pg_dump exited with code 1'));
 
     await expect(service.run()).rejects.toThrow('pg_dump exited with code 1');
     expect(storage.upload).not.toHaveBeenCalled();
-    expect(existsSync(workDir())).toBe(false);
   });
 
-  it('propagates an upload failure and removes the dump', async () => {
-    dumpLeavesFileThen(() => 1);
+  it('propagates an upload failure', async () => {
+    pgDump.dump.mockResolvedValue(1);
     storage.upload.mockRejectedValue(new Error('AccessDenied'));
 
     await expect(service.run()).rejects.toThrow('AccessDenied');
-    expect(existsSync(workDir())).toBe(false);
-  });
-
-  it('does not let a cleanup failure mask the original error', async () => {
-    dumpLeavesFileThen(() => {
-      throw new Error('pg_dump exited with code 1');
-    });
-    vi.mocked(rmSync).mockImplementationOnce(() => {
-      throw new Error('EBUSY');
-    });
-
-    const stderr = vi
-      .spyOn(process.stderr, 'write')
-      .mockImplementation(() => true);
-
-    await expect(service.run()).rejects.toThrow('pg_dump exited with code 1');
-    const written = stderr.mock.calls.map((call) => String(call[0])).join('');
-    stderr.mockRestore();
-    expect(written).toContain('Could not remove temporary directory');
-    expect(written).toContain('backup-cli-');
-    expect(written).not.toContain('postgres://');
   });
 
   it('checks storage settings before spending time on a dump', async () => {
@@ -133,6 +98,7 @@ describe('CreateBackupService', () => {
     });
 
     await expect(service.run()).rejects.toThrow('storage.endpoint is not set');
+    expect(tempDir.run).not.toHaveBeenCalled();
     expect(pgDump.dump).not.toHaveBeenCalled();
   });
 });

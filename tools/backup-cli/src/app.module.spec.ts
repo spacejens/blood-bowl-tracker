@@ -16,12 +16,16 @@ import { DownloadBackupService } from './download-backup/download-backup.service
 import { PgDumpService } from './dump/pg-dump.service';
 import { LocalMigrationsService } from './migrations/local-migrations.service';
 import { DatabaseUrlRedactorService } from './pg-client/database-url-redactor.service';
+import { LocalDatabaseGuardService } from './pg-client/local-database-guard.service';
 import { PgClientService } from './pg-client/pg-client.service';
 import { PruneBackupsService } from './prune-backups/prune-backups.service';
 import { PgRestoreService } from './restore/pg-restore.service';
+import { LocalDatabaseWipeService } from './restore-backup/local-database-wipe.service';
+import { RestoreBackupService } from './restore-backup/restore-backup.service';
 import { RetentionService } from './retention/retention.service';
 import { BackupStorageService } from './storage/backup-storage.service';
 import { S3ClientFactoryService } from './storage/s3-client-factory.service';
+import { TempDirService } from './temp-dir/temp-dir.service';
 import { BackupChecksService } from './verify-backup/backup-checks.service';
 import { RestoredDatabaseQueryService } from './verify-backup/restored-database-query.service';
 import { VerifyBackupService } from './verify-backup/verify-backup.service';
@@ -43,6 +47,8 @@ describe('AppModule', () => {
       S3ClientFactoryService,
       BackupStorageService,
       DatabaseUrlRedactorService,
+      LocalDatabaseGuardService,
+      TempDirService,
       PgDumpService,
       RetentionService,
       CreateBackupService,
@@ -53,7 +59,9 @@ describe('AppModule', () => {
       BackupChecksService,
       RestoredDatabaseQueryService,
       PgRestoreService,
+      LocalDatabaseWipeService,
       VerifyBackupService,
+      RestoreBackupService,
     ]) {
       expect(moduleRef.get(service)).toBeInstanceOf(service);
     }

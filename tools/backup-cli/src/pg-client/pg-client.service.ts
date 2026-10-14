@@ -6,6 +6,17 @@ import { Injectable } from '@nestjs/common';
 
 import { DatabaseUrlRedactorService } from './database-url-redactor.service';
 
+/**
+ * libpq variables that can send a connection somewhere other than the
+ * `--dbname` URL the local-database guard checked.
+ */
+const REDIRECTING_ENV_VARS = [
+  'PGHOSTADDR',
+  'PGHOST',
+  'PGSERVICE',
+  'PGSERVICEFILE',
+] as const;
+
 export type PgClientProgram = 'pg_restore' | 'psql';
 
 export interface PgClientRequest {
@@ -32,10 +43,10 @@ export class PgClientService {
   async run(request: PgClientRequest): Promise<string> {
     let result;
     try {
-      result = await this.processRunner.run(
+      result = await this.processRunner.runWithOptions(
         request.program,
         [`--dbname=${request.databaseUrl}`, ...request.args],
-        request.timeoutMs,
+        { timeoutMs: request.timeoutMs, env: this.childEnv() },
       );
     } catch (error) {
       // The runner rejects with the raw execFile error, whose message embeds
@@ -63,5 +74,13 @@ export class PgClientService {
       );
     }
     return result.stdout;
+  }
+
+  private childEnv(): NodeJS.ProcessEnv {
+    const env = { ...process.env };
+    for (const name of REDIRECTING_ENV_VARS) {
+      delete env[name];
+    }
+    return env;
   }
 }
