@@ -1,6 +1,6 @@
 ---
 name: deploy-local
-description: Use to build and start the blood-bowl-tracker stack locally via Docker Compose, and/or run the tools/import-bbl BBL data import or the tools/import-tp TP data import against a running instance, so a developer can see a change running end-to-end — invoked directly, or offered by develop-feature after a PR is created and by handle-pr-reviews after pushing fixes
+description: Use to build and start the blood-bowl-tracker stack locally via Docker Compose, restore a production database backup into it, and/or run the tools/import-bbl BBL data import or the tools/import-tp TP data import against a running instance, so a developer can see a change running end-to-end — invoked directly, or offered by develop-feature after a PR is created and by handle-pr-reviews after pushing fixes
 ---
 
 # deploy-local
@@ -17,12 +17,13 @@ Takes no arguments.
 
 ## Steps
 
-0. Ask the developer which action(s) to perform. There are now **ten** actions and `AskUserQuestion` allows at most 4 options per question, so they are split across **three `multiSelect: true` questions sent in a single `AskUserQuestion` call** — the developer sees all three in sequence and answers once. Ask exactly these three questions, with exactly these options, in this order. Do not add, drop, reword, or reorder any option, and in particular do not add a "Both", "All", "None", or "Neither" option of your own invention — `multiSelect: true` already lets the developer pick any combination, including (by deselecting everything offered) none. See the `AskUserQuestion` option-ceiling and don't-invent-options rules in `CLAUDE.md`'s "Developer prompts" section for the rationale.
+0. Ask the developer which action(s) to perform. There are now **eleven** actions and `AskUserQuestion` allows at most 4 options per question, so they are split across **three `multiSelect: true` questions sent in a single `AskUserQuestion` call** — the developer sees all three in sequence and answers once. Ask exactly these three questions, with exactly these options, in this order. Do not add, drop, reword, or reorder any option, and in particular do not add a "Both", "All", "None", or "Neither" option of your own invention — `multiSelect: true` already lets the developer pick any combination, including (by deselecting everything offered) none. See the `AskUserQuestion` option-ceiling and don't-invent-options rules in `CLAUDE.md`'s "Developer prompts" section for the rationale.
 
    All three questions are one decision split across three, so phrase them that way. The strings below are the `question` text; each also needs a short `header` of its own (`header` is capped at 12 characters, so the question text will not fit there) — e.g. `Run what`, `Run what 2`, and `Run what 3`.
 
    **Question 1 — `question`: "Which action(s) should I run?"** (`multiSelect: true`):
    - **Deploy the stack** (recommended) — build and start the docker-compose stack.
+   - **Restore a database backup** — replace the local database with a production backup from the R2 bucket, instead of importing from scratch.
    - **Run the manual import (before other importers)** — run `tools/import-manual/` against `data/before-other-importers` to seed hand-authored data before the system-specific importers.
    - **Run the BBL import** — run `tools/import-bbl/` to import data into a running instance.
 
@@ -37,7 +38,7 @@ Takes no arguments.
    - **Run the star player review tool** — run `tools/review-star-player/` against the running database and the existing BBL/TP/manual data directories, then open the report.
    - **Generate a SchemaSpy diagram** — run `pnpm run db:diagram` against a running `postgres` and open the result.
 
-   The **union** of the three answers determines which sections below run; the split is purely a presentation constraint and carries no meaning of its own. The developer may select any combination of the ten options, including none. No option is gated: "Generate a SchemaSpy diagram" is always offered, regardless of branch contents or whether `postgres` is currently running — the script's own precondition check handles the not-running case (see that section). If the union is empty (nothing selected in any question), report "No action taken" and stop — this is a valid outcome, not an error. This question always runs, regardless of who invoked this skill (directly, or as a sub-skill of `develop-feature` or `handle-pr-reviews`) — do not skip it because a caller already asked something similar.
+   The **union** of the three answers determines which sections below run; the split is purely a presentation constraint and carries no meaning of its own. The developer may select any combination of the eleven options, including none. No option is gated: "Generate a SchemaSpy diagram" is always offered, regardless of branch contents or whether `postgres` is currently running — the script's own precondition check handles the not-running case (see that section). If the union is empty (nothing selected in any question), report "No action taken" and stop — this is a valid outcome, not an error. This question always runs, regardless of who invoked this skill (directly, or as a sub-skill of `develop-feature` or `handle-pr-reviews`) — do not skip it because a caller already asked something similar.
 
 ### Sync gitignored config into the worktree
 
@@ -117,9 +118,41 @@ Run this section only if "Deploy the stack" was selected in step 0 above.
    - The teardown command: `docker compose down` (add `-v` to also remove the Postgres data volume).
    - That containers are left running for manual inspection — this skill does not tear them down itself.
 
+### Restore a database backup
+
+Run this section only if "Restore a database backup" was selected in step 0 above. It runs after the "Deploy the stack" section (the `postgres` container must be up) and **before** every import and review section, because it replaces the whole local database — anything an importer wrote before it would be wiped. Selected without "Deploy the stack", it restores into the stack already running.
+
+1. Confirm backup-cli has storage credentials — the file, or the `BACKUP_STORAGE_*` environment variables (checked by name only; never print their values):
+   ```bash
+   ls tools/backup-cli/backup-cli-config.json5 2>/dev/null || env | grep -c '^BACKUP_STORAGE_'
+   ```
+   If the file is missing and fewer than four `BACKUP_STORAGE_*` variables are set, tell the developer that this file holds production (read-only) R2 credentials, so the gitignored-config sync deliberately never copies it into worktrees; they need to copy it from the main checkout themselves (`cp <main-checkout>/tools/backup-cli/backup-cli-config.json5 tools/backup-cli/`). Do not copy it yourself. Stop this section; the other selected sections still run.
+2. Build backup-cli — a fresh worktree only ran `pnpm install`:
+   ```bash
+   pnpm --filter "@blood-bowl-tracker/backup-cli..." run build
+   ```
+3. List the stored backups (newest first; each `{ key, sizeBytes, lastModified }`):
+   ```bash
+   node tools/backup-cli/dist/main.js list
+   ```
+   If the list is empty, report that there are no backups and stop this section. Otherwise ask with `AskUserQuestion` (single-select, `header` `Backup`), `question` "Which backup should I restore into the local database?". Options: **Newest backup** (recommended) first, its description giving the newest entry's full key, `lastModified` and size in MB; then one option per next most recent backup, up to three, each labelled with its `lastModified` timestamp and described by its full key and size (never truncate a key with "..."). The automatic "Other" entry lets the developer type any key.
+4. Restore — omit the key for the newest backup:
+   ```bash
+   node tools/backup-cli/dist/main.js restore [<backup-key>]
+   ```
+   It downloads the backup, clears the database `localDatabase.url` names (default: the docker-compose database), restores, and prints `{ "key", "restoredMigrations", "tableRowCounts" }`. It needs `pg_restore` and `psql` on `PATH` at the production server's major version or newer; if they are missing or too old, say so (on macOS, Homebrew's `libpq` or `postgresql@<major>` provides them). On failure it prints `{"error": ...}` on stderr and exits `1`: a download or credential error leaves the database untouched, while an error saying the database "is now empty" means the wipe succeeded and the restore did not — tell the developer to re-run this action. Either way, skip step 5, report the error, and continue with the other selected sections.
+5. Restart the bot so it applies this branch's pending migrations to the restored data (a backup may be older than the branch), then confirm it came back healthy:
+   ```bash
+   docker compose restart discord-bot
+   docker compose ps
+   docker compose logs --tail 200 discord-bot
+   ```
+   Poll `docker compose ps` until `discord-bot` is `Up`, as in "Deploy the stack" step 4. In the logs from the restart, expect `Running migrations...`, one `Applying: <name>` line per migration newer than the backup, `Migrations complete.`, then the same leader-lock and startup-message lines as "Deploy the stack" step 5. A failed migration means the branch's migrations do not apply cleanly to production-shaped data — report it prominently.
+6. Report the restored key, the backup's migration count, the key tables' row counts, which migrations the bot applied on top, and the bot's health. Do not tear down any containers — same non-goal as the "Deploy the stack" section.
+
 ### Run the manual import (before other importers)
 
-Run this section only if "Run the manual import (before other importers)" was selected in step 0 above. Runs after the "Deploy the stack" section if both were selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to seed hand-authored data into an already-running instance before the system-specific importers.
+Run this section only if "Run the manual import (before other importers)" was selected in step 0 above. Runs after the "Deploy the stack" and "Restore a database backup" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to seed hand-authored data into an already-running instance before the system-specific importers.
 
 1. Check `tools/import-manual/import-manual-config.json5` is usable:
    ```bash
@@ -141,7 +174,7 @@ Run this section only if "Run the manual import (before other importers)" was se
 
 ### Run the BBL import
 
-Run this section only if "Run the BBL import" was selected in step 0 above. Runs after the "Deploy the stack" section if both were selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to import into an instance already deployed from a previous run.
+Run this section only if "Run the BBL import" was selected in step 0 above. Runs after the "Deploy the stack", "Restore a database backup" and "Run the manual import (before other importers)" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to import into an instance already deployed from a previous run.
 
 1. Check `tools/import-bbl/import-bbl-config.json5` is usable:
    ```bash
@@ -165,7 +198,7 @@ Run this section only if "Run the BBL import" was selected in step 0 above. Runs
 
 ### Run the TP import
 
-Run this section only if "Run the TP import" was selected in step 0 above. Runs after the "Deploy the stack" and "Run the BBL import" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected.
+Run this section only if "Run the TP import" was selected in step 0 above. Runs after the "Deploy the stack", "Restore a database backup" and "Run the BBL import" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected.
 
 1. Check `tools/import-tp/import-tp-config.json5` is usable:
    ```bash
@@ -189,7 +222,7 @@ Run this section only if "Run the TP import" was selected in step 0 above. Runs 
 
 ### Run the manual import (after other importers)
 
-Run this section only if "Run the manual import (after other importers)" was selected in step 0 above. Runs after the "Deploy the stack", "Run the manual import (before other importers)", "Run the BBL import", and "Run the TP import" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to clean up names or attach external IDs after the system-specific importers already ran.
+Run this section only if "Run the manual import (after other importers)" was selected in step 0 above. Runs after the "Deploy the stack", "Restore a database backup", "Run the manual import (before other importers)", "Run the BBL import", and "Run the TP import" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to clean up names or attach external IDs after the system-specific importers already ran.
 
 1. Check `tools/import-manual/import-manual-config.json5` is usable, copying the template if absent (identical to the "before" subsection's step 1).
 2. Build and run the import against the "after" directory:
@@ -201,7 +234,7 @@ Run this section only if "Run the manual import (after other importers)" was sel
 
 ### Run the match-event review tool
 
-Run this section only if "Run the match-event review tool" was selected in step 0 above. Runs after the "Deploy the stack" and every import section if those were also selected — the report reflects whatever is in the database at that point — and runs standalone (no docker steps of its own) if only this was selected.
+Run this section only if "Run the match-event review tool" was selected in step 0 above. Runs after the "Deploy the stack", "Restore a database backup" and every import section if those were also selected — the report reflects whatever is in the database at that point — and runs standalone (no docker steps of its own) if only this was selected.
 
 1. Check `tools/review-match/review-match-config.json5` is usable:
    ```bash
@@ -228,7 +261,7 @@ Run this section only if "Run the match-event review tool" was selected in step 
 
 ### Run the player review tool
 
-Run this section only if "Run the player review tool" was selected in step 0 above. Runs after the "Deploy the stack", every import section, and the "Run the match-event review tool" section if those were also selected — the report reflects whatever is in the database at that point — and runs standalone (no docker steps of its own) if only this was selected.
+Run this section only if "Run the player review tool" was selected in step 0 above. Runs after the "Deploy the stack", "Restore a database backup", every import section, and the "Run the match-event review tool" section if those were also selected — the report reflects whatever is in the database at that point — and runs standalone (no docker steps of its own) if only this was selected.
 
 1. Check `tools/review-player/review-player-config.json5` is usable:
    ```bash
@@ -255,7 +288,7 @@ Run this section only if "Run the player review tool" was selected in step 0 abo
 
 ### Run the race review tool
 
-Run this section only if "Run the race review tool" was selected in step 0 above. Runs after the "Deploy the stack", every import section, and the "Run the match-event review tool" and "Run the player review tool" sections if those were also selected — the report reflects whatever is in the database at that point — and runs standalone (no docker steps of its own) if only this was selected. It runs before the star player review tool because star player data depends on the races, eras and rules sets this tool covers.
+Run this section only if "Run the race review tool" was selected in step 0 above. Runs after the "Deploy the stack", "Restore a database backup", every import section, and the "Run the match-event review tool" and "Run the player review tool" sections if those were also selected — the report reflects whatever is in the database at that point — and runs standalone (no docker steps of its own) if only this was selected. It runs before the star player review tool because star player data depends on the races, eras and rules sets this tool covers.
 
 1. Check `tools/review-race/review-race-config.json5` is usable:
    ```bash
@@ -282,7 +315,7 @@ Run this section only if "Run the race review tool" was selected in step 0 above
 
 ### Run the star player review tool
 
-Run this section only if "Run the star player review tool" was selected in step 0 above. Runs after the "Deploy the stack", every import section, and the "Run the match-event review tool", "Run the player review tool" and "Run the race review tool" sections if those were also selected — the report reflects whatever is in the database at that point — and runs standalone (no docker steps of its own) if only this was selected. It runs last of the four review tools because star player data depends on the races, eras and rules sets the race review covers.
+Run this section only if "Run the star player review tool" was selected in step 0 above. Runs after the "Deploy the stack", "Restore a database backup", every import section, and the "Run the match-event review tool", "Run the player review tool" and "Run the race review tool" sections if those were also selected — the report reflects whatever is in the database at that point — and runs standalone (no docker steps of its own) if only this was selected. It runs last of the four review tools because star player data depends on the races, eras and rules sets the race review covers.
 
 1. Check `tools/review-star-player/review-star-player-config.json5` is usable:
    ```bash
@@ -309,7 +342,7 @@ Run this section only if "Run the star player review tool" was selected in step 
 
 ### Generate a SchemaSpy diagram
 
-Run this section only if "Generate a SchemaSpy diagram" was selected in step 0 above. It runs **last** — after the "Deploy the stack", both "Run the manual import" sections, "Run the BBL import", "Run the TP import", "Run the match-event review tool", "Run the player review tool", and "Run the race review tool" sections if those were also selected — so the diagram reflects the schema after any deploy work (it does not interact with any import). It also runs standalone (no docker steps of its own) if only this was selected — e.g. the developer wants a diagram of a stack deployed in a previous session.
+Run this section only if "Generate a SchemaSpy diagram" was selected in step 0 above. It runs **last** — after the "Deploy the stack", "Restore a database backup", both "Run the manual import" sections, "Run the BBL import", "Run the TP import", "Run the match-event review tool", "Run the player review tool", and "Run the race review tool" sections if those were also selected — so the diagram reflects the schema after any deploy work (it does not interact with any import). It also runs standalone (no docker steps of its own) if only this was selected — e.g. the developer wants a diagram of a stack deployed in a previous session.
 
 1. Generate the diagram from the repo root:
    ```bash
