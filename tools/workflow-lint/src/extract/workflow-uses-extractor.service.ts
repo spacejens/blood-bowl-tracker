@@ -68,7 +68,9 @@ export class WorkflowUsesExtractorService {
     // that from the type.
     const [offset] = node.range as [number, number, number];
     entries.push({
-      uses: String(node.value),
+      // A non-string value (empty, `~`, a number, a boolean) is reported as
+      // written so it fails the pin check instead of being coerced.
+      uses: typeof node.value === 'string' ? node.value : (node.source ?? ''),
       line: lineCounter.linePos(offset).line,
     });
   }

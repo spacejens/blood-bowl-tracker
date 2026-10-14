@@ -124,6 +124,48 @@ describe('WorkflowUsesExtractorService', () => {
     expect(service.extract(source)).toEqual([]);
   });
 
+  it('reports non-string uses values as their raw source text', () => {
+    const source = yaml([
+      'jobs:', // 1
+      '  empty:', // 2
+      '    uses:', // 3
+      '    runs-on: ubuntu-latest', // 4
+      '  tilde:', // 5
+      '    uses: ~', // 6
+      '  number:', // 7
+      '    steps:', // 8
+      '      - uses: 123', // 9
+      '      - uses: true', // 10
+      '      - uses:', // 11
+      '        name: after empty', // 12
+    ]);
+
+    expect(service.extract(source)).toEqual([
+      { uses: '', line: 3 },
+      { uses: '~', line: 6 },
+      { uses: '123', line: 9 },
+      { uses: 'true', line: 10 },
+      { uses: '', line: 11 },
+    ]);
+  });
+
+  it('keeps line numbers right for a quoted uses after a multi-line run block', () => {
+    const source = yaml([
+      'jobs:', // 1
+      '  build:', // 2
+      '    steps:', // 3
+      '      - run: |', // 4
+      '          echo one', // 5
+      '          echo two', // 6
+      '', // 7
+      '      - uses: "actions/checkout@v7"', // 8
+    ]);
+
+    expect(service.extract(source)).toEqual([
+      { uses: 'actions/checkout@v7', line: 8 },
+    ]);
+  });
+
   it('returns nothing when jobs is not a map', () => {
     expect(service.extract(yaml(['jobs: []']))).toEqual([]);
   });
