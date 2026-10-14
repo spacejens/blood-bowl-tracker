@@ -66,6 +66,12 @@ function settings(empty: readonly Key[]): Record<Key, string> {
   ) as Record<Key, string>;
 }
 
+/**
+ * The subject under test is the workflow YAML files, not a service, so the
+ * reader and runner services are intentionally real providers: mocking them
+ * would leave the workflow steps untested. They have no collaborators of
+ * their own to isolate from.
+ */
 describe.each(CASES)('$file storage pre-flight', (workflow) => {
   let runner: BashScriptRunnerService;
   let job: WorkflowJob;
@@ -105,17 +111,20 @@ describe.each(CASES)('$file storage pre-flight', (workflow) => {
     expect(match?.[1]).toBe(job.environment);
   });
 
-  it('reads the same storage settings as the backup-cli step', () => {
+  it('reads the same storage settings as every backup-cli step', () => {
     const expected = Object.fromEntries(
       KEYS.map((key) => [key, `\${{ ${workflow.githubNames[key]} }}`]),
     );
-    const cliStep = job.steps.find((s) => s.run?.includes(CLI));
-    const cliStorage = Object.fromEntries(
-      KEYS.map((key) => [key, cliStep?.env[key]]),
-    );
+    const cliSteps = job.steps.filter((s) => s.run?.includes(CLI));
 
+    expect(cliSteps.length).toBeGreaterThan(0);
     expect(step.env).toEqual(expected);
-    expect(cliStorage).toEqual(expected);
+    for (const cliStep of cliSteps) {
+      const cliStorage = Object.fromEntries(
+        KEYS.map((key) => [key, cliStep.env[key]]),
+      );
+      expect(cliStorage, `step '${cliStep.name}'`).toEqual(expected);
+    }
   });
 
   it('fails naming every setting and the unconfigured environment when all are empty', () => {

@@ -57,7 +57,7 @@ export class WorkflowJobReaderService {
   }
 
   private step(value: unknown): WorkflowStep {
-    const step: WorkflowStep = { env: this.env(this.field(value, 'env')) };
+    const envOnly: WorkflowStep = { env: this.env(this.field(value, 'env')) };
     const name = this.text(this.field(value, 'name'));
     const run = this.text(this.field(value, 'run'));
     const uses = this.text(this.field(value, 'uses'));
@@ -65,7 +65,7 @@ export class WorkflowJobReaderService {
       ...(name === undefined ? {} : { name }),
       ...(run === undefined ? {} : { run }),
       ...(uses === undefined ? {} : { uses }),
-      ...step,
+      ...envOnly,
     };
   }
 

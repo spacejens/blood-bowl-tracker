@@ -2,15 +2,17 @@
 
 `tools/workflow-lint` holds the repo's checks on its GitHub Actions workflows:
 a NestJS CLI application that fails the build when a workflow references a
-remote action by a tag or branch instead of a full commit SHA, and unit tests
-for the backup workflows' storage pre-flight step (see
-[Backup storage pre-flight tests](#backup-storage-pre-flight-tests)). A tag can be re-pointed by the action's maintainers, or
-by anyone who compromises their account, and the deploy and backup workflows
-hold production credentials; a SHA cannot change, so the code those workflows
-run only changes through a reviewed change in this repo. Renovate keeps the
-pins current (see the Renovate notes in
+remote action by a tag or branch instead of a full commit SHA. A tag can be
+re-pointed by the action's maintainers, or by anyone who compromises their
+account, and the deploy and backup workflows hold production credentials; a
+SHA cannot change, so the code those workflows run only changes through a
+reviewed change in this repo. Renovate keeps the pins current (see the
+Renovate notes in
 [development-workflow.md](../development-workflow.md#code-hygiene)); this check
 makes sure a pin cannot silently regress to a tag.
+
+The package also holds unit tests for the backup workflows' storage pre-flight
+step (see [Backup storage pre-flight tests](#backup-storage-pre-flight-tests)).
 
 ## What it checks
 
