@@ -25,6 +25,7 @@ import { PruneBackupsService } from './prune-backups/prune-backups.service';
 import { PgRestoreService } from './restore/pg-restore.service';
 import { LocalDatabaseWipeService } from './restore-backup/local-database-wipe.service';
 import { RestoreBackupService } from './restore-backup/restore-backup.service';
+import { BackupInspectionService } from './restore-production/backup-inspection.service';
 import { ProductionRestoreService } from './restore-production/production-restore.service';
 import { RetentionService } from './retention/retention.service';
 import { BackupStorageService } from './storage/backup-storage.service';
@@ -70,6 +71,7 @@ describe('AppModule', () => {
       ArchiveParserService,
       PgArchiveService,
       ProductionRestoreService,
+      BackupInspectionService,
     ]) {
       expect(moduleRef.get(service)).toBeInstanceOf(service);
     }
