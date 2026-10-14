@@ -21,6 +21,7 @@ import { PgClientService } from './pg-client/pg-client.service';
 import { PruneBackupsService } from './prune-backups/prune-backups.service';
 import { PgRestoreService } from './restore/pg-restore.service';
 import { LocalDatabaseWipeService } from './restore-backup/local-database-wipe.service';
+import { RestoreBackupService } from './restore-backup/restore-backup.service';
 import { RetentionService } from './retention/retention.service';
 import { BackupStorageService } from './storage/backup-storage.service';
 import { S3ClientFactoryService } from './storage/s3-client-factory.service';
@@ -60,6 +61,7 @@ describe('AppModule', () => {
       PgRestoreService,
       LocalDatabaseWipeService,
       VerifyBackupService,
+      RestoreBackupService,
     ]) {
       expect(moduleRef.get(service)).toBeInstanceOf(service);
     }
