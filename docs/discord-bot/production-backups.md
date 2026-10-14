@@ -4,8 +4,8 @@ See [Production hosting](production-hosting.md) for the other pages.
 
 `.github/workflows/backup-production.yml` backs up the production Neon
 database daily to a private Cloudflare R2 bucket, using
-[backup-cli](../backup-cli/index.md). Restoring a backup is not yet a
-documented procedure.
+[backup-cli](../backup-cli/index.md). To restore one into production, see
+[Restoring a backup into production](production-restore.md).
 
 ## Why R2
 
