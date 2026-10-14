@@ -7,6 +7,9 @@ const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
  * Guards every subcommand that writes into a database it is pointed at
  * (`verify`, `restore`): the target must be on this machine, with no
  * override, so a mistyped URL can never restore over a real database.
+ * `restore-production` is deliberately not pointed at anything: it reads
+ * production's URL from `apps/discord-bot/.env.production` and refuses a
+ * real run without its confirmation phrase.
  */
 @Injectable()
 export class LocalDatabaseGuardService {

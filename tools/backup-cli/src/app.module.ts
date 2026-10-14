@@ -27,6 +27,7 @@ import { LocalDatabaseWipeService } from './restore-backup/local-database-wipe.s
 import { RestoreBackupService } from './restore-backup/restore-backup.service';
 import { BackupInspectionService } from './restore-production/backup-inspection.service';
 import { ProductionRestoreService } from './restore-production/production-restore.service';
+import { RestoreProductionService } from './restore-production/restore-production.service';
 import { RetentionService } from './retention/retention.service';
 import { BackupStorageService } from './storage/backup-storage.service';
 import { S3ClientFactoryService } from './storage/s3-client-factory.service';
@@ -65,6 +66,7 @@ import { VerifyBackupService } from './verify-backup/verify-backup.service';
     PgArchiveService,
     ProductionRestoreService,
     BackupInspectionService,
+    RestoreProductionService,
   ],
 })
 export class AppModule {}
