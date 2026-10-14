@@ -53,7 +53,8 @@ Behaviors worth knowing:
   whether verification succeeded or not.
 - `restore` replaces the database named by `localDatabase.url` (by default
   the docker-compose database) and applies the same localhost-only rule as
-  `verify`, with no override. Unlike `verify`, the target need not be empty.
+  `verify`, with no override: a URL carrying a `host` or `hostaddr` query
+  parameter is refused too. Unlike `verify`, the target need not be empty.
 - `restore` downloads first, so a network or credential failure never
   touches existing data. It then drops every schema except `pg_*` and
   `information_schema` in one atomic statement and recreates an empty
@@ -65,7 +66,8 @@ Behaviors worth knowing:
 - `restore` applies no migrations and checks nothing: it reports the
   backup's applied-migration count and the key tables' row counts. Pending
   migrations are applied by whatever next connects through `packages/db`,
-  for example `docker compose restart discord-bot`, as `deploy-local` does.
+  for example `docker compose restart discord-bot`, as `deploy-local`'s
+  "Restore a database backup" action does.
 - `restore` downloads into a temporary directory and removes it afterwards,
   whether the restore succeeded or not.
 
