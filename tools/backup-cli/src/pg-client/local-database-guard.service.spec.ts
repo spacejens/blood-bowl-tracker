@@ -35,7 +35,6 @@ describe('LocalDatabaseGuardService', () => {
         'Refusing to restore into a non-local database: the target host must be localhost, 127.0.0.1 or ::1.',
       ),
     );
-    expect(() => service.assertLocal(url)).not.toThrow(/hunter2/);
   });
 
   it.each(['not-a-url', 'mysql://localhost/db'])(

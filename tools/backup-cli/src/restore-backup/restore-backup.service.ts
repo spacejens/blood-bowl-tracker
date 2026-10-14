@@ -75,9 +75,17 @@ export class RestoreBackupService {
           { cause: error },
         );
       }
-      const restored = await this.query.appliedMigrations(databaseUrl);
-      const tableRowCounts = await this.query.keyTableRowCounts(databaseUrl);
-      return { key, restoredMigrations: restored.length, tableRowCounts };
+      try {
+        const restored = await this.query.appliedMigrations(databaseUrl);
+        const tableRowCounts = await this.query.keyTableRowCounts(databaseUrl);
+        return { key, restoredMigrations: restored.length, tableRowCounts };
+      } catch (error) {
+        throw new Error(
+          `Restored ${key} into ${target}, but reading the restored database back failed: ` +
+            this.describe(error),
+          { cause: error },
+        );
+      }
     });
   }
 

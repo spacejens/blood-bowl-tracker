@@ -3,7 +3,7 @@ import {
   TIMED_OUT_EXIT_CODE,
 } from '@blood-bowl-tracker/cli-shared';
 import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
 import { DatabaseUrlRedactorService } from './database-url-redactor.service';
@@ -43,22 +43,46 @@ describe('PgClientService', () => {
   }
 
   it('runs the program with --dbname first and returns stdout', async () => {
-    processRunner.run.mockResolvedValue({
+    processRunner.runWithOptions.mockResolvedValue({
       exitCode: 0,
       stdout: '1\n',
       stderr: '',
     });
 
     await expect(service.run(REQUEST)).resolves.toBe('1\n');
-    expect(processRunner.run).toHaveBeenCalledWith(
+    expect(processRunner.runWithOptions).toHaveBeenCalledWith(
       'psql',
       [`--dbname=${DATABASE_URL}`, '--no-psqlrc', '--command=SELECT 1;'],
-      REQUEST.timeoutMs,
+      { timeoutMs: REQUEST.timeoutMs, env: expect.any(Object) as unknown },
     );
   });
 
+  it('removes the libpq variables that could redirect the connection from the child env, keeping the rest', async () => {
+    vi.stubEnv('PGHOSTADDR', '10.0.0.1');
+    vi.stubEnv('PGHOST', 'db.example.com');
+    vi.stubEnv('PGSERVICE', 'prod');
+    vi.stubEnv('PGSERVICEFILE', '/tmp/service');
+    vi.stubEnv('PGSSLMODE', 'require');
+    processRunner.runWithOptions.mockResolvedValue({
+      exitCode: 0,
+      stdout: '',
+      stderr: '',
+    });
+
+    await service.run(REQUEST);
+
+    const env = processRunner.runWithOptions.mock.calls[0][2].env ?? {};
+    vi.unstubAllEnvs();
+    expect(env).not.toHaveProperty('PGHOSTADDR');
+    expect(env).not.toHaveProperty('PGHOST');
+    expect(env).not.toHaveProperty('PGSERVICE');
+    expect(env).not.toHaveProperty('PGSERVICEFILE');
+    expect(env.PGSSLMODE).toBe('require');
+    expect(env.PATH).toBe(process.env.PATH);
+  });
+
   it('fails with redacted, trimmed stderr on a non-zero exit', async () => {
-    processRunner.run.mockResolvedValue({
+    processRunner.runWithOptions.mockResolvedValue({
       exitCode: 2,
       stdout: '',
       stderr: `psql: error: connection to "${DATABASE_URL}" failed\n`,
@@ -72,7 +96,7 @@ describe('PgClientService', () => {
   });
 
   it('fails when the program times out', async () => {
-    processRunner.run.mockResolvedValue({
+    processRunner.runWithOptions.mockResolvedValue({
       exitCode: TIMED_OUT_EXIT_CODE,
       stdout: '',
       stderr: '',
@@ -84,7 +108,7 @@ describe('PgClientService', () => {
   });
 
   it('redacts the URL and drops the cause when the runner rejects', async () => {
-    processRunner.run.mockRejectedValue(
+    processRunner.runWithOptions.mockRejectedValue(
       new Error(`Command failed: psql --dbname=${DATABASE_URL}`),
     );
 
@@ -97,7 +121,9 @@ describe('PgClientService', () => {
   });
 
   it('stringifies a non-Error rejection', async () => {
-    processRunner.run.mockRejectedValue(`spawn failed for ${DATABASE_URL}`);
+    processRunner.runWithOptions.mockRejectedValue(
+      `spawn failed for ${DATABASE_URL}`,
+    );
 
     const error = await failure();
 

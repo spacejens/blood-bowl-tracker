@@ -8,8 +8,8 @@ import {
 
 /**
  * Drops every non-system schema (everything but `pg_*` and
- * `information_schema`), then recreates an empty `public`, matching a fresh
- * database. Dropping whole schemas also removes tables a branch's newer
+ * `information_schema`), then recreates an empty `public`.
+ * Dropping whole schemas also removes tables a branch's newer
  * migrations added, which a restore of an older backup would otherwise leave
  * behind to block those migrations. One `DO` block is one statement, so the
  * wipe is atomic: it either fails without touching anything or clears
@@ -20,7 +20,7 @@ export const WIPE_SQL = [
   'DECLARE target text;',
   'BEGIN',
   "  FOR target IN SELECT nspname FROM pg_namespace WHERE nspname NOT LIKE 'pg\\_%' AND nspname <> 'information_schema' LOOP",
-  "    EXECUTE format('DROP SCHEMA %I CASCADE', target);",
+  "    EXECUTE format('DROP SCHEMA IF EXISTS %I CASCADE', target);",
   '  END LOOP;',
   '  CREATE SCHEMA public;',
   'END $$;',

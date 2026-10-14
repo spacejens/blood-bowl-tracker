@@ -188,13 +188,16 @@ describe('RestoreBackupService', () => {
     );
   });
 
-  it('propagates a failure reading back the restored database', async () => {
-    query.keyTableRowCounts.mockRejectedValue(
-      new Error('psql exited with code 1: relation does not exist'),
-    );
+  it('says the data is in place when reading back the restored database fails, with the password masked', async () => {
+    const cause = new Error('psql exited with code 1: relation does not exist');
+    query.keyTableRowCounts.mockRejectedValue(cause);
 
-    await expect(service.run({})).rejects.toThrow(
-      'psql exited with code 1: relation does not exist',
+    const error = await failure();
+
+    expect(error?.message).toContain(
+      `into ${MASKED}, but reading the restored database back failed: psql exited with code 1: relation does not exist`,
     );
+    expect(error?.message).not.toContain('hunter2');
+    expect(error?.cause).toBe(cause);
   });
 });

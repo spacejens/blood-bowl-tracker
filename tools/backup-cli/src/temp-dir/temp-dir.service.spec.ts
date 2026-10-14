@@ -59,19 +59,22 @@ describe('TempDirService', () => {
       .spyOn(process.stderr, 'write')
       .mockImplementation(() => true);
 
-    await expect(
-      service.run('backup-cli-test-', (dir) => {
-        seen = dir;
-        return Promise.reject(new Error('pg_restore failed'));
-      }),
-    ).rejects.toThrow('pg_restore failed');
-    const written = stderr.mock.calls.map((call) => String(call[0])).join('');
-    stderr.mockRestore();
-    // The mocked removal failed, so remove the leftover directory here.
-    rmSync(seen, { recursive: true, force: true });
-    expect(written).toBe(
-      `Warning: Could not remove temporary directory ${seen}; delete it manually.\n`,
-    );
+    try {
+      await expect(
+        service.run('backup-cli-test-', (dir) => {
+          seen = dir;
+          return Promise.reject(new Error('pg_restore failed'));
+        }),
+      ).rejects.toThrow('pg_restore failed');
+      const written = stderr.mock.calls.map((call) => String(call[0])).join('');
+      expect(written).toBe(
+        `Warning: Could not remove temporary directory ${seen}; delete it manually.\n`,
+      );
+    } finally {
+      stderr.mockRestore();
+      // The mocked removal failed, so remove the leftover directory here.
+      rmSync(seen, { recursive: true, force: true });
+    }
   });
 
   it('still returns the result when the directory cannot be removed after success', async () => {
@@ -83,13 +86,15 @@ describe('TempDirService', () => {
       .spyOn(process.stderr, 'write')
       .mockImplementation(() => true);
 
-    const result = await service.run('backup-cli-test-', (dir) => {
-      seen = dir;
-      return Promise.resolve('ok');
-    });
-    stderr.mockRestore();
-    rmSync(seen, { recursive: true, force: true });
-
-    expect(result).toBe('ok');
+    try {
+      const result = await service.run('backup-cli-test-', (dir) => {
+        seen = dir;
+        return Promise.resolve('ok');
+      });
+      expect(result).toBe('ok');
+    } finally {
+      stderr.mockRestore();
+      rmSync(seen, { recursive: true, force: true });
+    }
   });
 });

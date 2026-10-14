@@ -9,6 +9,12 @@ export interface ProcessResult {
   readonly stderr: string;
 }
 
+export interface ProcessRunOptions {
+  readonly timeoutMs?: number;
+  /** The child's environment; `process.env` when omitted. */
+  readonly env?: NodeJS.ProcessEnv;
+}
+
 /** `exitCode` used for a process killed by our own `timeoutMs`, never a real exit code. */
 export const TIMED_OUT_EXIT_CODE = -1;
 
@@ -44,6 +50,16 @@ export class ProcessRunnerService {
     args: readonly string[],
     timeoutMs?: number,
   ): Promise<ProcessResult> {
+    return this.runWithOptions(command, args, { timeoutMs });
+  }
+
+  /** Like `run`, with the option of a child environment other than `process.env`. */
+  runWithOptions(
+    command: string,
+    args: readonly string[],
+    options: ProcessRunOptions,
+  ): Promise<ProcessResult> {
+    const { timeoutMs, env } = options;
     return new Promise<ProcessResult>((resolve, reject) => {
       let timedOut = false;
       let killTimer: NodeJS.Timeout | undefined;
@@ -52,7 +68,7 @@ export class ProcessRunnerService {
       const child = execFile(
         command,
         [...args],
-        { maxBuffer: 32 * 1024 * 1024 },
+        { maxBuffer: 32 * 1024 * 1024, env },
         (error, stdout, stderr) => {
           clearTimeout(killTimer);
           clearTimeout(escalateTimer);

@@ -51,7 +51,7 @@ describe('LocalDatabaseWipeService', () => {
     expect(WIPE_SQL).toContain("nspname NOT LIKE 'pg\\_%'");
     expect(WIPE_SQL).toContain("nspname <> 'information_schema'");
     expect(WIPE_SQL).toContain(
-      "EXECUTE format('DROP SCHEMA %I CASCADE', target);",
+      "EXECUTE format('DROP SCHEMA IF EXISTS %I CASCADE', target);",
     );
     expect(WIPE_SQL.indexOf('CREATE SCHEMA public;')).toBeGreaterThan(
       WIPE_SQL.indexOf('DROP SCHEMA'),
