@@ -28,6 +28,7 @@ export class PgRestoreService {
         '--no-owner',
         '--no-privileges',
         '--exit-on-error',
+        '--single-transaction',
         '--no-password',
         request.dumpPath,
       ],

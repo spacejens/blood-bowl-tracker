@@ -31,11 +31,11 @@ Behaviors worth knowing:
 - `download` refuses to overwrite an existing destination file, and removes
   its partial file if the download fails.
 - `verify` refuses any target whose host is not `localhost`, `127.0.0.1` or
-  `::1`; there is no override, so it can never restore over a real database.
-  The target must be a fresh, empty database. The target URL is an argument,
-  never a setting.
+  `::1`; there is no override. The target must be a fresh, empty, local
+  database. The restore runs in a single transaction, so a failed restore
+  leaves nothing behind. The target URL is an argument, never a setting.
 - `verify` restores with
-  `pg_restore --no-owner --no-privileges --exit-on-error`, so production's
+  `pg_restore --no-owner --no-privileges --exit-on-error --single-transaction`, so production's
   roles need not exist locally. A non-zero exit, or a restore taking over 30
   minutes, fails it. The target URL is redacted from every error.
 - `verify` then checks, with `psql`, that `drizzle.__drizzle_migrations` is

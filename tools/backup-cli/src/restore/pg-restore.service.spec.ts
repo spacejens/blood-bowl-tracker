@@ -34,6 +34,7 @@ describe('PgRestoreService', () => {
         '--no-owner',
         '--no-privileges',
         '--exit-on-error',
+        '--single-transaction',
         '--no-password',
         '/tmp/x/backup.dump',
       ],

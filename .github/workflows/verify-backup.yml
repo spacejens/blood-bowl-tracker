@@ -2,9 +2,11 @@
 # sanity-checks it, so a backup that cannot be restored is noticed. See
 # docs/discord-bot/production-backups.md.
 #
-# Runs after every successful run of the backup workflow, however that run
-# was started, and on manual dispatch. A workflow that calls the backup
-# workflow does not wait for this one.
+# Runs after every successful scheduled or manually dispatched run of the
+# backup workflow, and on manual dispatch of this workflow. workflow_run does
+# not fire for a backup taken by another workflow that calls the backup
+# workflow (a called workflow runs under its caller's name), so such a caller
+# must run verification itself.
 name: Verify production backup
 
 on:

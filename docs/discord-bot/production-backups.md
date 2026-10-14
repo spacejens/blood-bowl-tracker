@@ -43,10 +43,15 @@ account problem at either one does not take the backups with it.
 
 `.github/workflows/verify-backup.yml` checks that each new backup is
 functional. It starts when a run of the backup workflow completes
-successfully, whether that run was scheduled, dispatched or called from
-another workflow. A workflow that calls the backup workflow does not wait for
-verification. The verification workflow can also be run by hand, optionally
-for a named backup key.
+successfully, whether that run was scheduled or manually dispatched. A backup
+taken by another workflow that calls the backup workflow is **not** verified
+automatically (a called workflow runs under its caller's name, so it does not
+trigger this one); such a caller must run verification itself. The
+verification workflow can also be started by hand, optionally for a named
+backup key.
+
+Verification restores the newest backup at the time it runs, which is normally
+the one that triggered it.
 
 The job starts a throwaway `postgres:18` service container, downloads the
 newest backup (or the named one) with the **read-only** token, and runs

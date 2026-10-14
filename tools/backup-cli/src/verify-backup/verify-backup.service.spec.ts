@@ -152,7 +152,8 @@ describe('VerifyBackupService', () => {
     rmSync(dirname(downloadedPath ?? ''), { recursive: true, force: true });
     expect(written).toContain('Could not remove temporary directory');
     expect(written).toContain('backup-cli-verify-');
-    expect(written).not.toContain('postgres://');
+    expect(written).not.toContain(TARGET);
+    expect(written).not.toContain('postgres:postgres');
   });
 
   it('fails listing every failed check, not just the first', async () => {
