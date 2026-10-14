@@ -82,9 +82,11 @@ export class WorkflowLintService {
       usesChecked += entries.length;
       for (const entry of entries) {
         if (!this.classifier.isPinned(entry.uses)) {
+          const expected = entry.uses.startsWith('docker://')
+            ? 'a sha256 image digest'
+            : 'a full 40-character commit SHA';
           problems.push(
-            `${label}:${entry.line}: '${entry.uses}' is not pinned to a ` +
-              'full 40-character commit SHA',
+            `${label}:${entry.line}: '${entry.uses}' is not pinned to ${expected}`,
           );
         }
       }

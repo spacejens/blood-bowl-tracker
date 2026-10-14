@@ -96,6 +96,20 @@ describe('WorkflowLintService', () => {
     ]);
   });
 
+  it('asks for a sha256 image digest, not a commit SHA, when a docker reference is unpinned', async () => {
+    givenFile('ci.yml', 'ci-content');
+    extractor.extract.mockReturnValue([
+      { uses: 'docker://alpine:3.20', line: 9 },
+    ]);
+    classifier.isPinned.mockReturnValue(false);
+
+    const result = (await makeService()).run();
+
+    expect(result.problems).toEqual([
+      ".github/workflows/ci.yml:9: 'docker://alpine:3.20' is not pinned to a sha256 image digest",
+    ]);
+  });
+
   it('reports a file that fails to parse and keeps checking the rest, in file-name order', async () => {
     givenFile('b.yml', 'b-content');
     givenFile('a.yml', 'a-content');
