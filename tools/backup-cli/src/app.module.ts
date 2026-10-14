@@ -23,6 +23,7 @@ import { PgRestoreService } from './restore/pg-restore.service';
 import { RetentionService } from './retention/retention.service';
 import { BackupStorageService } from './storage/backup-storage.service';
 import { S3ClientFactoryService } from './storage/s3-client-factory.service';
+import { TempDirService } from './temp-dir/temp-dir.service';
 import { BackupChecksService } from './verify-backup/backup-checks.service';
 import { RestoredDatabaseQueryService } from './verify-backup/restored-database-query.service';
 import { VerifyBackupService } from './verify-backup/verify-backup.service';
@@ -37,6 +38,7 @@ import { VerifyBackupService } from './verify-backup/verify-backup.service';
     BackupStorageService,
     DatabaseUrlRedactorService,
     LocalDatabaseGuardService,
+    TempDirService,
     PgDumpService,
     RetentionService,
     CreateBackupService,

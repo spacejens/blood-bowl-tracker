@@ -1,5 +1,3 @@
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { Injectable } from '@nestjs/common';
@@ -8,6 +6,7 @@ import { DownloadBackupService } from '../download-backup/download-backup.servic
 import { LocalMigrationsService } from '../migrations/local-migrations.service';
 import { LocalDatabaseGuardService } from '../pg-client/local-database-guard.service';
 import { PgRestoreService } from '../restore/pg-restore.service';
+import { TempDirService } from '../temp-dir/temp-dir.service';
 import { BackupChecksService, TableRowCounts } from './backup-checks.service';
 import { RestoredDatabaseQueryService } from './restored-database-query.service';
 
@@ -28,13 +27,14 @@ export interface VerifyBackupResult {
 /**
  * `verify`: download a backup, restore it into an empty local database, and
  * sanity-check what came back. The target must be on this machine (see
- * `LocalDatabaseGuardService`). The temporary directory is removed whether
- * the run succeeds or fails.
+ * `LocalDatabaseGuardService`). The download lives in a temporary directory
+ * that is removed whether the run succeeds or fails.
  */
 @Injectable()
 export class VerifyBackupService {
   constructor(
     private readonly guard: LocalDatabaseGuardService,
+    private readonly tempDir: TempDirService,
     private readonly download: DownloadBackupService,
     private readonly pgRestore: PgRestoreService,
     private readonly query: RestoredDatabaseQueryService,
@@ -47,8 +47,7 @@ export class VerifyBackupService {
     this.guard.assertLocal(databaseUrl);
     // Read before the download so a broken checkout fails fast.
     const local = this.localMigrations.list();
-    const workDir = mkdtempSync(join(tmpdir(), 'backup-cli-verify-'));
-    try {
+    return this.tempDir.run('backup-cli-verify-', async (workDir) => {
       const { key, path } = await this.download.run({
         destinationPath: join(workDir, 'backup.dump'),
         key: request.key,
@@ -69,16 +68,6 @@ export class VerifyBackupService {
         );
       }
       return { key, restoredMigrations: restored.length, tableRowCounts };
-    } finally {
-      try {
-        rmSync(workDir, { recursive: true, force: true });
-      } catch {
-        // Cleanup is best effort; it must never mask the run's own outcome,
-        // but a leftover production dump is worth surfacing.
-        process.stderr.write(
-          `Warning: Could not remove temporary directory ${workDir}; delete it manually.\n`,
-        );
-      }
-    }
+    });
   }
 }
