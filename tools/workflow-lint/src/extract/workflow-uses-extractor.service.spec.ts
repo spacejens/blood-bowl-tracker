@@ -166,6 +166,90 @@ describe('WorkflowUsesExtractorService', () => {
     ]);
   });
 
+  it('resolves an aliased uses to its unpinned value, at the alias line', () => {
+    const source = yaml([
+      'env:', // 1
+      '  X: &co actions/checkout@v7', // 2
+      'jobs:', // 3
+      '  a:', // 4
+      '    steps:', // 5
+      '      - uses: *co', // 6
+    ]);
+
+    expect(service.extract(source)).toEqual([
+      { uses: 'actions/checkout@v7', line: 6 },
+    ]);
+  });
+
+  it('resolves an aliased uses to its pinned value so it can pass', () => {
+    const source = yaml([
+      'env:', // 1
+      `  X: &co actions/checkout@${SHA}`, // 2
+      'jobs:', // 3
+      '  a:', // 4
+      '    steps:', // 5
+      '      - uses: *co', // 6
+    ]);
+
+    expect(service.extract(source)).toEqual([
+      { uses: `actions/checkout@${SHA}`, line: 6 },
+    ]);
+  });
+
+  it('follows a whole step given as an alias', () => {
+    const source = yaml([
+      'x-step: &st', // 1
+      '  uses: actions/setup-node@v7', // 2
+      'jobs:', // 3
+      '  a:', // 4
+      '    steps:', // 5
+      '      - *st', // 6
+    ]);
+
+    expect(service.extract(source)).toEqual([
+      { uses: 'actions/setup-node@v7', line: 6 },
+    ]);
+  });
+
+  it('follows a steps list given as an alias', () => {
+    const source = yaml([
+      'x-steps: &s', // 1
+      '  - uses: actions/checkout@v7', // 2
+      'jobs:', // 3
+      '  a:', // 4
+      '    steps: *s', // 5
+    ]);
+
+    expect(service.extract(source)).toEqual([
+      { uses: 'actions/checkout@v7', line: 5 },
+    ]);
+  });
+
+  it('follows a job given as an alias', () => {
+    const source = yaml([
+      'x-job: &j', // 1
+      '  uses: octo-org/shared/.github/workflows/build.yml@v1', // 2
+      'jobs:', // 3
+      '  a: *j', // 4
+    ]);
+
+    expect(service.extract(source)).toEqual([
+      { uses: 'octo-org/shared/.github/workflows/build.yml@v1', line: 4 },
+    ]);
+  });
+
+  it('skips an alias that resolves to something that is not a step', () => {
+    const source = yaml([
+      'x: &n 5',
+      'jobs:',
+      '  a:',
+      '    steps:',
+      '      - *n',
+    ]);
+
+    expect(service.extract(source)).toEqual([]);
+  });
+
   it('returns nothing when jobs is not a map', () => {
     expect(service.extract(yaml(['jobs: []']))).toEqual([]);
   });
