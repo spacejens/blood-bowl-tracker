@@ -109,10 +109,10 @@ Put the **read-only** R2 token in your local file. It is enough for `list`,
 `download`, `verify` and `restore`. `create` and `prune` need the write token,
 which only the `production-backup` GitHub environment holds.
 
-The file holds production credentials, so `sync-gitignored` never copies it
-into a new worktree. Copy it by hand when you need it in a worktree.
-`check-drift` still flags a worktree copy that differs from the main
-checkout's.
+The file holds only the read-only token, so `sync-gitignored` copies it from
+the main checkout into a new worktree like the other dev config, and
+`check-drift` flags a worktree copy that differs from the main checkout's.
+Never put the write token in a local file.
 
 ## Realistic data for tests
 
