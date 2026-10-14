@@ -240,14 +240,143 @@ describe('WorkflowUsesExtractorService', () => {
 
   it('skips an alias that resolves to something that is not a step', () => {
     const source = yaml([
-      'x: &n 5',
-      'jobs:',
-      '  a:',
-      '    steps:',
-      '      - *n',
+      'x: &n 5', // 1
+      'jobs:', // 2
+      '  a:', // 3
+      '    steps:', // 4
+      '      - *n', // 5
     ]);
 
     expect(service.extract(source)).toEqual([]);
+  });
+
+  it('reports a jobs map given as an alias at the alias line', () => {
+    const source = yaml([
+      'x-jobs: &js', // 1
+      '  a:', // 2
+      '    uses: octo-org/shared/.github/workflows/build.yml@v1', // 3
+      '  b:', // 4
+      '    steps:', // 5
+      '      - uses: actions/checkout@v7', // 6
+      'jobs: *js', // 7
+    ]);
+
+    expect(service.extract(source)).toEqual([
+      { uses: 'octo-org/shared/.github/workflows/build.yml@v1', line: 7 },
+      { uses: 'actions/checkout@v7', line: 7 },
+    ]);
+  });
+
+  it('follows an alias nested inside aliased content, at the outer alias line', () => {
+    const source = yaml([
+      'x-step: &st', // 1
+      '  uses: actions/setup-node@v7', // 2
+      'x-steps: &s', // 3
+      '  - *st', // 4
+      'jobs:', // 5
+      '  a:', // 6
+      '    steps: *s', // 7
+    ]);
+
+    expect(service.extract(source)).toEqual([
+      { uses: 'actions/setup-node@v7', line: 7 },
+    ]);
+  });
+
+  it('reports an aliased non-string uses as its raw text, at the alias line', () => {
+    const source = yaml([
+      'x: &n ~', // 1
+      'jobs:', // 2
+      '  a:', // 3
+      '    steps:', // 4
+      '      - uses: *n', // 5
+    ]);
+
+    expect(service.extract(source)).toEqual([{ uses: '~', line: 5 }]);
+  });
+
+  it('throws on an alias to an undefined anchor, with its line', () => {
+    const source = yaml([
+      'jobs:', // 1
+      '  a:', // 2
+      '    steps:', // 3
+      '      - uses: *nope', // 4
+    ]);
+
+    expect(() => service.extract(source)).toThrow(
+      'Invalid YAML: unresolved alias *nope at line 4',
+    );
+  });
+
+  it('throws on an undefined anchor at the jobs, job and steps positions', () => {
+    expect(() => service.extract(yaml(['jobs: *nope']))).toThrow(
+      'Invalid YAML: unresolved alias *nope at line 1',
+    );
+    expect(() => service.extract(yaml(['jobs:', '  a: *nope']))).toThrow(
+      'Invalid YAML: unresolved alias *nope at line 2',
+    );
+    expect(() =>
+      service.extract(yaml(['jobs:', '  a:', '    steps: *nope'])),
+    ).toThrow('Invalid YAML: unresolved alias *nope at line 3');
+    expect(() =>
+      service.extract(yaml(['jobs:', '  a:', '    steps:', '      - *nope'])),
+    ).toThrow('Invalid YAML: unresolved alias *nope at line 4');
+  });
+
+  it('throws on a merge key in a step, which would hide a uses', () => {
+    const source = yaml([
+      'x-base: &base', // 1
+      '  uses: actions/checkout@v7', // 2
+      'jobs:', // 3
+      '  a:', // 4
+      '    steps:', // 5
+      '      - <<: *base', // 6
+    ]);
+
+    expect(() => service.extract(source)).toThrow(
+      'Unsupported YAML: merge key (<<) at line 6; list uses: values explicitly',
+    );
+  });
+
+  it('throws on a merge key in a job, which would hide steps', () => {
+    const source = yaml([
+      'x-base: &base', // 1
+      '  steps:', // 2
+      '    - uses: actions/checkout@v7', // 3
+      'jobs:', // 4
+      '  a:', // 5
+      '    runs-on: ubuntu-latest', // 6
+      '    <<: *base', // 7
+    ]);
+
+    expect(() => service.extract(source)).toThrow(
+      'Unsupported YAML: merge key (<<) at line 7; list uses: values explicitly',
+    );
+  });
+
+  it('throws on an alias used as a mapping key in a step', () => {
+    const source = yaml([
+      'x-key: &k uses', // 1
+      'jobs:', // 2
+      '  a:', // 3
+      '    steps:', // 4
+      '      - *k : actions/checkout@v7', // 5
+    ]);
+
+    expect(() => service.extract(source)).toThrow(
+      'Unsupported YAML: alias used as a mapping key at line 5',
+    );
+  });
+
+  it('throws on an alias used as the steps or jobs key', () => {
+    expect(() =>
+      service.extract(
+        yaml(['x-key: &k steps', 'jobs:', '  a:', '    *k : []']),
+      ),
+    ).toThrow('Unsupported YAML: alias used as a mapping key at line 4');
+    expect(() =>
+      service.extract(yaml(['x-key: &k a', 'jobs:', '  *k : {}'])),
+    ).toThrow('Unsupported YAML: alias used as a mapping key at line 3');
   });
 
   it('returns nothing when jobs is not a map', () => {

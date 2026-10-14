@@ -131,9 +131,7 @@ describe('WorkflowLintService', () => {
 
     const service = await makeService();
 
-    expect(() => service.run()).toThrow(
-      new RegExp(`No workflow files found in ${dir}`),
-    );
+    expect(() => service.run()).toThrow(`No workflow files found in ${dir}`);
   });
 
   it("defaults to this checkout's .github/workflows", () => {

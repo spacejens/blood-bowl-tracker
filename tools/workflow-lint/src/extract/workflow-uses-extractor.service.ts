@@ -40,17 +40,25 @@ export class WorkflowUsesExtractorService {
     }
     const ctx: Context = { doc, lineCounter };
     const root = isMap(doc.contents) ? doc.contents : undefined;
-    const jobs = this.deref(root?.get('jobs', true), ctx).node;
+    if (root) {
+      this.assertPlainKeys(root, ctx);
+    }
+    const { node: jobs, line: jobsLine } = this.deref(
+      root?.get('jobs', true),
+      ctx,
+    );
     if (!isMap(jobs)) {
       return [];
     }
+    this.assertPlainKeys(jobs, ctx);
 
     const entries: UsesEntry[] = [];
     for (const { value } of jobs.items) {
-      const { node: job, line: jobLine } = this.deref(value, ctx);
+      const { node: job, line: jobLine } = this.deref(value, ctx, jobsLine);
       if (!isMap(job)) {
         continue;
       }
+      this.assertPlainKeys(job, ctx);
       this.collect(job, ctx, { line: jobLine, entries });
       const { node: steps, line: stepsLine } = this.deref(
         job.get('steps', true),
@@ -63,6 +71,7 @@ export class WorkflowUsesExtractorService {
       for (const item of steps.items) {
         const { node: step, line } = this.deref(item, ctx, stepsLine);
         if (isMap(step)) {
+          this.assertPlainKeys(step, ctx);
           this.collect(step, ctx, { line, entries });
         }
       }
@@ -86,10 +95,36 @@ export class WorkflowUsesExtractorService {
     if (!isAlias(node)) {
       return { node, line: inherited };
     }
-    return {
-      node: node.resolve(ctx.doc),
-      line: inherited ?? this.lineOf(node, ctx),
-    };
+    const line = inherited ?? this.lineOf(node, ctx);
+    const resolved = node.resolve(ctx.doc);
+    if (resolved === undefined) {
+      // The yaml package reports an alias to a missing anchor only when the
+      // document is converted to JS, not among its parse errors.
+      throw new Error(
+        `Invalid YAML: unresolved alias *${node.source} at line ${this.lineOf(node, ctx)}`,
+      );
+    }
+    return { node: resolved, line };
+  }
+
+  /**
+   * Fails closed on the two key forms the traversal cannot see through: a
+   * merge key (`<<`, which `YAMLMap.get` does not apply) and an alias used as
+   * a key. Either could supply a `uses`, `steps` or job unnoticed.
+   */
+  private assertPlainKeys(map: YAMLMap, ctx: Context): void {
+    for (const { key } of map.items) {
+      if (isAlias(key)) {
+        throw new Error(
+          `Unsupported YAML: alias used as a mapping key at line ${this.lineOf(key, ctx)}`,
+        );
+      }
+      if (isScalar(key) && key.value === '<<') {
+        throw new Error(
+          `Unsupported YAML: merge key (<<) at line ${this.lineOf(key, ctx)}; list uses: values explicitly`,
+        );
+      }
+    }
   }
 
   private lineOf(node: Node | Alias, ctx: Context): number {

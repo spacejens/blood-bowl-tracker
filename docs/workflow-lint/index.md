@@ -28,7 +28,9 @@ built in, whatever the working directory.
 
 A workflow file that does not parse as YAML also fails, and so does a
 directory that contains no workflow files at all (a mis-resolved path must not
-pass silently).
+pass silently). The check also fails closed on YAML it cannot follow: an alias
+to an undefined anchor, a merge key (`<<`) and an alias used as a mapping key
+all fail, so list such `uses:` values explicitly.
 
 The pinned form this repo uses keeps the version readable as a trailing
 comment, which Renovate keeps in sync with the SHA:
