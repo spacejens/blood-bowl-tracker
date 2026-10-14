@@ -18,6 +18,7 @@ import { LocalMigrationsService } from './migrations/local-migrations.service';
 import { DatabaseUrlRedactorService } from './pg-client/database-url-redactor.service';
 import { LocalDatabaseGuardService } from './pg-client/local-database-guard.service';
 import { PgClientService } from './pg-client/pg-client.service';
+import { ProductionDatabaseUrlService } from './production-database/production-database-url.service';
 import { PruneBackupsService } from './prune-backups/prune-backups.service';
 import { PgRestoreService } from './restore/pg-restore.service';
 import { LocalDatabaseWipeService } from './restore-backup/local-database-wipe.service';
@@ -62,6 +63,7 @@ describe('AppModule', () => {
       LocalDatabaseWipeService,
       VerifyBackupService,
       RestoreBackupService,
+      ProductionDatabaseUrlService,
     ]) {
       expect(moduleRef.get(service)).toBeInstanceOf(service);
     }
