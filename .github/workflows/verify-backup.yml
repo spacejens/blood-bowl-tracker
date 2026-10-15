@@ -85,10 +85,10 @@ jobs:
         run: pg_restore --version
       - name: Build backup-cli
         run: pnpm --filter "@blood-bowl-tracker/backup-cli..." run build
-      # Fails early, naming the GitHub environment and every empty storage
-      # setting, so an unconfigured environment is not mistaken for a CLI
-      # problem. Prints only names, never values.
-      - name: Check storage settings
+      # Fails early, naming the GitHub environment and every empty setting
+      # the verification needs, so an unconfigured environment is not mistaken
+      # for a CLI problem. Prints only names, never values.
+      - name: Check required settings
         env:
           BACKUP_STORAGE_ENDPOINT: ${{ vars.BACKUP_STORAGE_ENDPOINT }}
           BACKUP_STORAGE_BUCKET: ${{ vars.BACKUP_STORAGE_BUCKET }}
@@ -103,10 +103,10 @@ jobs:
           [ -n "$BACKUP_STORAGE_SECRET_ACCESS_KEY" ] || missing+=(secrets.BACKUP_STORAGE_READ_SECRET_ACCESS_KEY)
           fix="Fix it in Settings -> Environments -> ${environment} (see docs/discord-bot/production-backups.md)."
           if [ "${#missing[@]}" -eq 4 ]; then
-            echo "::error::Every storage setting is empty (${missing[*]}): GitHub environment '${environment}' looks unconfigured. ${fix}"
+            echo "::error::Every required setting is empty (${missing[*]}): GitHub environment '${environment}' looks unconfigured. ${fix}"
             exit 1
           elif [ "${#missing[@]}" -gt 0 ]; then
-            echo "::error::Storage settings empty in GitHub environment '${environment}': ${missing[*]}. ${fix}"
+            echo "::error::Required settings empty in GitHub environment '${environment}': ${missing[*]}. ${fix}"
             exit 1
           fi
       # Prints {key, restoredMigrations, tableRowCounts} as JSON (no secrets).

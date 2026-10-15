@@ -70,12 +70,14 @@ jobs:
         run: pg_dump --version
       - name: Build backup-cli
         run: pnpm --filter "@blood-bowl-tracker/backup-cli..." run build
-      # Fails early, naming the GitHub environment and every empty storage
-      # setting, so an unconfigured environment is not mistaken for a CLI
-      # problem. Prints only names, never values. The prune step below reads
-      # the same values, so this one check covers both.
-      - name: Check storage settings
+      # Fails early, naming the GitHub environment and every empty setting
+      # the backup needs (the database URL and the storage settings), so an
+      # unconfigured environment is not mistaken for a CLI problem. Prints
+      # only names, never values. The prune step below reads the same storage
+      # values, so this one check covers both.
+      - name: Check required settings
         env:
+          BACKUP_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
           BACKUP_STORAGE_ENDPOINT: ${{ vars.BACKUP_STORAGE_ENDPOINT }}
           BACKUP_STORAGE_BUCKET: ${{ vars.BACKUP_STORAGE_BUCKET }}
           BACKUP_STORAGE_ACCESS_KEY_ID: ${{ secrets.BACKUP_STORAGE_WRITE_ACCESS_KEY_ID }}
@@ -83,16 +85,17 @@ jobs:
         run: |
           environment=production-backup
           missing=()
+          [ -n "$BACKUP_DATABASE_URL" ] || missing+=(secrets.PRODUCTION_DATABASE_URL)
           [ -n "$BACKUP_STORAGE_ENDPOINT" ] || missing+=(vars.BACKUP_STORAGE_ENDPOINT)
           [ -n "$BACKUP_STORAGE_BUCKET" ] || missing+=(vars.BACKUP_STORAGE_BUCKET)
           [ -n "$BACKUP_STORAGE_ACCESS_KEY_ID" ] || missing+=(secrets.BACKUP_STORAGE_WRITE_ACCESS_KEY_ID)
           [ -n "$BACKUP_STORAGE_SECRET_ACCESS_KEY" ] || missing+=(secrets.BACKUP_STORAGE_WRITE_SECRET_ACCESS_KEY)
           fix="Fix it in Settings -> Environments -> ${environment} (see docs/discord-bot/production-backups.md)."
-          if [ "${#missing[@]}" -eq 4 ]; then
-            echo "::error::Every storage setting is empty (${missing[*]}): GitHub environment '${environment}' looks unconfigured. ${fix}"
+          if [ "${#missing[@]}" -eq 5 ]; then
+            echo "::error::Every required setting is empty (${missing[*]}): GitHub environment '${environment}' looks unconfigured. ${fix}"
             exit 1
           elif [ "${#missing[@]}" -gt 0 ]; then
-            echo "::error::Storage settings empty in GitHub environment '${environment}': ${missing[*]}. ${fix}"
+            echo "::error::Required settings empty in GitHub environment '${environment}': ${missing[*]}. ${fix}"
             exit 1
           fi
       # The CLI prints {key, sizeBytes, createdAt} as JSON on stdout (no

@@ -11,8 +11,9 @@ Renovate notes in
 [development-workflow.md](../development-workflow.md#code-hygiene)); this check
 makes sure a pin cannot silently regress to a tag.
 
-The package also holds unit tests for the backup workflows' storage pre-flight
-step (see [Backup storage pre-flight tests](#backup-storage-pre-flight-tests)).
+The package also holds unit tests for the backup workflows' required-settings
+pre-flight step (see
+[Backup pre-flight tests](#backup-pre-flight-tests)).
 
 ## What it checks
 
@@ -66,19 +67,21 @@ action, resolve the tag's commit with
 `gh api repos/<owner>/<repo>/git/ref/tags/<tag> --jq '.object.type+" "+.object.sha'`
 (dereference it once more via `git/tags/<sha>` if the type is `tag`).
 
-## Backup storage pre-flight tests
+## Backup pre-flight tests
 
-`backup-production.yml` and `verify-backup.yml` each run a "Check storage
+`backup-production.yml` and `verify-backup.yml` each run a "Check required
 settings" step before their first `backup-cli` step. It fails the run with an
-error naming the job's GitHub environment and every empty storage setting (see
-[Database backups](../discord-bot/production-backups.md#missing-storage-settings)).
+error naming the job's GitHub environment and every empty setting the job
+needs (see
+[Database backups](../discord-bot/production-backups.md#missing-required-settings)).
 `src/preflight/backup-storage-preflight.spec.ts` reads both real workflow
 files and, for each, checks that the step:
 
 - runs before the first step that invokes `backup-cli`;
 - names the same environment as the job's `environment:`;
-- reads the same four `BACKUP_STORAGE_*` values as the `backup-cli` step;
-- when its script is run with `bash`, fails naming all four settings and the
+- reads each setting from the same place as the `backup-cli` steps that use
+  it;
+- when its script is run with `bash`, fails naming every setting and the
   unconfigured environment when all are empty, fails naming only the empty
   one when one is empty, and succeeds with no output when all are set.
 

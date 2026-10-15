@@ -12,21 +12,17 @@ import {
   WorkflowStep,
 } from './workflow-job-reader.service';
 
-const STEP_NAME = 'Check storage settings';
+const STEP_NAME = 'Check required settings';
 const CLI = 'tools/backup-cli/dist/main.js';
-const KEYS = [
-  'BACKUP_STORAGE_ENDPOINT',
-  'BACKUP_STORAGE_BUCKET',
-  'BACKUP_STORAGE_ACCESS_KEY_ID',
-  'BACKUP_STORAGE_SECRET_ACCESS_KEY',
-] as const;
-type Key = (typeof KEYS)[number];
 
 interface WorkflowCase {
   readonly file: string;
   readonly jobId: string;
-  /** The GitHub name each variable is read from, as the error must print it. */
-  readonly githubNames: Readonly<Record<Key, string>>;
+  /**
+   * Every setting the pre-flight step must check, by environment variable,
+   * mapped to the GitHub name it is read from (as the error must print it).
+   */
+  readonly githubNames: Readonly<Record<string, string>>;
 }
 
 const CASES: readonly WorkflowCase[] = [
@@ -45,6 +41,7 @@ const CASES: readonly WorkflowCase[] = [
     file: 'backup-production.yml',
     jobId: 'backup',
     githubNames: {
+      BACKUP_DATABASE_URL: 'secrets.PRODUCTION_DATABASE_URL',
       BACKUP_STORAGE_ENDPOINT: 'vars.BACKUP_STORAGE_ENDPOINT',
       BACKUP_STORAGE_BUCKET: 'vars.BACKUP_STORAGE_BUCKET',
       BACKUP_STORAGE_ACCESS_KEY_ID:
@@ -56,14 +53,17 @@ const CASES: readonly WorkflowCase[] = [
 ];
 
 /** Distinct, recognizable value per key, so a leaked value is detectable. */
-function sampleValue(key: Key): string {
+function sampleValue(key: string): string {
   return `value-of-${key}`;
 }
 
-function settings(empty: readonly Key[]): Record<Key, string> {
+function settings(
+  keys: readonly string[],
+  empty: readonly string[],
+): Record<string, string> {
   return Object.fromEntries(
-    KEYS.map((key) => [key, empty.includes(key) ? '' : sampleValue(key)]),
-  ) as Record<Key, string>;
+    keys.map((key) => [key, empty.includes(key) ? '' : sampleValue(key)]),
+  );
 }
 
 /**
@@ -72,7 +72,8 @@ function settings(empty: readonly Key[]): Record<Key, string> {
  * would leave the workflow steps untested. They have no collaborators of
  * their own to isolate from.
  */
-describe.each(CASES)('$file storage pre-flight', (workflow) => {
+describe.each(CASES)('$file required-settings pre-flight', (workflow) => {
+  const keys = Object.keys(workflow.githubNames);
   let runner: BashScriptRunnerService;
   let job: WorkflowJob;
   let step: WorkflowStep;
@@ -111,24 +112,29 @@ describe.each(CASES)('$file storage pre-flight', (workflow) => {
     expect(match?.[1]).toBe(job.environment);
   });
 
-  it('reads the same storage settings as every backup-cli step', () => {
+  it('reads every setting from the same place as the backup-cli steps', () => {
     const expected = Object.fromEntries(
-      KEYS.map((key) => [key, `\${{ ${workflow.githubNames[key]} }}`]),
+      keys.map((key) => [key, `\${{ ${workflow.githubNames[key]} }}`]),
     );
     const cliSteps = job.steps.filter((s) => s.run?.includes(CLI));
 
     expect(cliSteps.length).toBeGreaterThan(0);
     expect(step.env).toEqual(expected);
-    for (const cliStep of cliSteps) {
-      const cliStorage = Object.fromEntries(
-        KEYS.map((key) => [key, cliStep.env[key]]),
+    for (const key of keys) {
+      const readers = cliSteps.filter((s) => key in s.env);
+      expect(readers.length, `a backup-cli step reads ${key}`).toBeGreaterThan(
+        0,
       );
-      expect(cliStorage, `step '${cliStep.name}'`).toEqual(expected);
+      for (const reader of readers) {
+        expect(reader.env[key], `${key} in '${reader.name}'`).toBe(
+          expected[key],
+        );
+      }
     }
   });
 
   it('fails naming every setting and the unconfigured environment when all are empty', () => {
-    const result = runner.run(script, settings(KEYS));
+    const result = runner.run(script, settings(keys, keys));
 
     expect(result.status).not.toBe(0);
     expect(result.stdout).toMatch(/^::error::/);
@@ -138,19 +144,19 @@ describe.each(CASES)('$file storage pre-flight', (workflow) => {
       `Settings -> Environments -> ${job.environment}`,
     );
     expect(result.stdout).toContain('docs/discord-bot/production-backups.md');
-    for (const key of KEYS) {
+    for (const key of keys) {
       expect(result.stdout).toContain(workflow.githubNames[key]);
     }
   });
 
-  it.each(KEYS)('fails naming only %s when just it is empty', (empty) => {
-    const result = runner.run(script, settings([empty]));
+  it.each(keys)('fails naming only %s when just it is empty', (empty) => {
+    const result = runner.run(script, settings(keys, [empty]));
 
     expect(result.status).not.toBe(0);
     expect(result.stdout).toMatch(/^::error::/);
     expect(result.stdout).toContain(`'${job.environment}'`);
     expect(result.stdout).not.toContain('looks unconfigured');
-    for (const key of KEYS) {
+    for (const key of keys) {
       if (key === empty) {
         expect(result.stdout).toContain(workflow.githubNames[key]);
       } else {
@@ -161,7 +167,7 @@ describe.each(CASES)('$file storage pre-flight', (workflow) => {
   });
 
   it('succeeds silently when every setting is set', () => {
-    const result = runner.run(script, settings([]));
+    const result = runner.run(script, settings(keys, []));
 
     expect(result).toEqual({ status: 0, stdout: '', stderr: '' });
   });
