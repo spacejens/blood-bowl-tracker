@@ -95,6 +95,11 @@ from an environment variable instead. A non-empty variable wins over the
 file. Validation is per setting, so `list` never fails over a missing
 database url that only `create` needs.
 
+The backup and verification workflows check the settings they need before
+running the CLI and, if any is empty, fail naming the GitHub environment to
+fix (see
+[Database backups](../discord-bot/production-backups.md#missing-required-settings)).
+
 | Setting                                                    | Environment variable               | Needed by |
 | ---------------------------------------------------------- | ---------------------------------- | --------- |
 | `storage.endpoint`                                         | `BACKUP_STORAGE_ENDPOINT`          | all       |
