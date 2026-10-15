@@ -7,6 +7,10 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 import { AppModule } from './app.module';
+import { BackupAlertArgsService } from './backup-alert/backup-alert-args.service';
+import { BackupAlertIssuesService } from './backup-alert/backup-alert-issues.service';
+import { RaiseAlertService } from './backup-alert/raise-alert.service';
+import { ResolveAlertService } from './backup-alert/resolve-alert.service';
 import { CheckCoderabbitActivityService } from './check-coderabbit-activity/check-coderabbit-activity.service';
 import { CheckDependencyDashboardService } from './check-dependency-dashboard/check-dependency-dashboard.service';
 import { CheckDriftService } from './check-drift/check-drift.service';
@@ -81,6 +85,16 @@ describe('AppModule', () => {
     );
     expect(moduleRef.get(WaitForPrReviewArgsService)).toBeInstanceOf(
       WaitForPrReviewArgsService,
+    );
+    expect(moduleRef.get(BackupAlertArgsService)).toBeInstanceOf(
+      BackupAlertArgsService,
+    );
+    expect(moduleRef.get(BackupAlertIssuesService)).toBeInstanceOf(
+      BackupAlertIssuesService,
+    );
+    expect(moduleRef.get(RaiseAlertService)).toBeInstanceOf(RaiseAlertService);
+    expect(moduleRef.get(ResolveAlertService)).toBeInstanceOf(
+      ResolveAlertService,
     );
   });
 
