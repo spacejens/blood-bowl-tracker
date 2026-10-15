@@ -8,6 +8,7 @@ import { LocalMigrationsService } from '../migrations/local-migrations.service';
 import { DatabaseUrlRedactorService } from '../pg-client/database-url-redactor.service';
 import { ProductionDatabaseUrlService } from '../production-database/production-database-url.service';
 import { TempDirService } from '../temp-dir/temp-dir.service';
+import { KEY_TABLES } from '../verify-backup/key-tables';
 import { RestoredDatabaseQueryService } from '../verify-backup/restored-database-query.service';
 import { BackupInspectionService } from './backup-inspection.service';
 import { ProductionRestoreService } from './production-restore.service';
@@ -83,6 +84,7 @@ describe('RestoreProductionService', () => {
       migrations: ['0001_a', '0002_b'],
       tableRowCounts: BACKUP_COUNTS,
     });
+    query.existingKeyTables.mockResolvedValue([...KEY_TABLES]);
     query.keyTableRowCounts
       .mockResolvedValueOnce(PRODUCTION_COUNTS)
       .mockResolvedValueOnce(BACKUP_COUNTS);
@@ -148,7 +150,11 @@ describe('RestoreProductionService', () => {
       workDir: WORK_DIR,
       localMigrations: LOCAL,
     });
-    expect(query.keyTableRowCounts).toHaveBeenCalledWith(PRODUCTION);
+    expect(query.existingKeyTables).toHaveBeenCalledWith(PRODUCTION);
+    expect(query.keyTableRowCounts).toHaveBeenCalledWith(
+      PRODUCTION,
+      KEY_TABLES,
+    );
     expect(archive.writeRestoreScript).not.toHaveBeenCalled();
     expect(productionRestore.restore).not.toHaveBeenCalled();
   });
@@ -185,10 +191,12 @@ describe('RestoreProductionService', () => {
 
     const downloaded = download.run.mock.invocationCallOrder[0];
     const inspected = inspection.inspect.mock.invocationCallOrder[0];
+    const connected = query.existingKeyTables.mock.invocationCallOrder[0];
     const read = query.keyTableRowCounts.mock.invocationCallOrder[0];
     const restored = productionRestore.restore.mock.invocationCallOrder[0];
     expect(downloaded).toBeLessThan(inspected);
-    expect(inspected).toBeLessThan(read);
+    expect(inspected).toBeLessThan(connected);
+    expect(connected).toBeLessThan(read);
     expect(read).toBeLessThan(restored);
   });
 
@@ -214,7 +222,7 @@ describe('RestoreProductionService', () => {
     download.run.mockRejectedValue(new Error('AccessDenied'));
 
     await expect(service.run(REAL)).rejects.toThrow('AccessDenied');
-    expect(query.keyTableRowCounts).not.toHaveBeenCalled();
+    expect(query.existingKeyTables).not.toHaveBeenCalled();
     expect(productionRestore.restore).not.toHaveBeenCalled();
   });
 
@@ -227,9 +235,54 @@ describe('RestoreProductionService', () => {
     expect(productionRestore.restore).not.toHaveBeenCalled();
   });
 
-  it('says nothing changed when production cannot be read, with the password masked', async () => {
+  it('reports a production without game_data as null counts and still restores', async () => {
+    query.existingKeyTables.mockResolvedValue([]);
     query.keyTableRowCounts.mockReset();
-    query.keyTableRowCounts.mockRejectedValue(
+    query.keyTableRowCounts.mockResolvedValue(BACKUP_COUNTS);
+
+    await expect(service.run(REAL)).resolves.toEqual({
+      mode: 'restored',
+      key: KEY,
+      restoredMigrations: 2,
+      tableRowCounts: BACKUP_COUNTS,
+      previousTableRowCounts: {
+        coaches: null,
+        teams: null,
+        players: null,
+        matches: null,
+        competitions: null,
+      },
+    });
+    // Only the read-back after the restore counts rows.
+    expect(query.keyTableRowCounts).toHaveBeenCalledTimes(1);
+    expect(query.keyTableRowCounts).toHaveBeenCalledWith(PRODUCTION);
+    expect(productionRestore.restore).toHaveBeenCalled();
+  });
+
+  it('counts only the key tables production still has, in a dry run', async () => {
+    query.existingKeyTables.mockResolvedValue(['coaches', 'teams']);
+    query.keyTableRowCounts.mockReset();
+    query.keyTableRowCounts.mockResolvedValue({ coaches: 4, teams: 6 });
+
+    await expect(service.run({ dryRun: true })).resolves.toMatchObject({
+      production: {
+        tableRowCounts: {
+          coaches: 4,
+          teams: 6,
+          players: null,
+          matches: null,
+          competitions: null,
+        },
+      },
+    });
+    expect(query.keyTableRowCounts).toHaveBeenCalledWith(PRODUCTION, [
+      'coaches',
+      'teams',
+    ]);
+  });
+
+  it('says nothing changed when production cannot be reached, with the password masked', async () => {
+    query.existingKeyTables.mockRejectedValue(
       new Error('psql exited with code 2: connection refused'),
     );
 
@@ -241,6 +294,22 @@ describe('RestoreProductionService', () => {
         'psql exited with code 2: connection refused',
     );
     expect(error.message).not.toContain('hunter2');
+    expect(query.keyTableRowCounts).not.toHaveBeenCalled();
+    expect(productionRestore.restore).not.toHaveBeenCalled();
+  });
+
+  it('says nothing changed when counting production rows fails', async () => {
+    query.keyTableRowCounts.mockReset();
+    query.keyTableRowCounts.mockRejectedValue(
+      new Error('psql exited with code 1: timeout'),
+    );
+
+    const error = await failure(REAL);
+
+    expect(error.message).toBe(
+      `Could not read ${MASKED} before restoring; nothing was changed. ` +
+        'psql exited with code 1: timeout',
+    );
     expect(productionRestore.restore).not.toHaveBeenCalled();
   });
 

@@ -297,7 +297,7 @@ This replaces all production data in the application schemas with a backup — s
    ```bash
    node tools/backup-cli/dist/main.js restore-production <backup-key> --dry-run
    ```
-   It prints `{ "mode": "dry-run", "key", "backup": { "migrations", "tableRowCounts" }, "production": { "tableRowCounts" } }`. Show the developer the backup's and production's key-table counts side by side, and keep them for step 9. On failure it prints `{"error": ...}` and nothing was touched: report the error and stop. An error listing migrations "absent from packages/db/migrations" usually means this main checkout is behind `origin/main`; say so and let the developer update it themselves — do not pull or fast-forward it as a side effect.
+   It prints `{ "mode": "dry-run", "key", "backup": { "migrations", "tableRowCounts" }, "production": { "tableRowCounts" } }`. Show the developer the backup's and production's key-table counts side by side, and keep them for step 9. A `null` in production's `tableRowCounts` means that key table does not exist in production (a damaged or missing `game_data` schema): say production's table was missing, not that the dry run failed — restoring over it is exactly what this action is for. On failure it prints `{"error": ...}` and nothing was touched: report the error and stop. An error listing migrations "absent from packages/db/migrations" usually means this main checkout is behind `origin/main`; say so and let the developer update it themselves — do not pull or fast-forward it as a side effect.
 4. Require a typed confirmation. Ask the developer, in plain text, to reply with exactly:
 
    ```
@@ -348,7 +348,7 @@ This replaces all production data in the application schemas with a backup — s
    fly logs --no-tail
    ```
    Check the same healthy-startup markers as "Check deployment status": migrations applying (the ones newer than the backup, or nothing pending), then exactly one machine logging `Acquired the leader lock; becoming active` and the other `Another machine holds the leader lock; standing by`. A one-off migration error on one machine right after both start is the documented migration race and self-heals; a repeating loop does not. Compare step 7's `tableRowCounts` with the dry run's backup counts from step 3 — they should match exactly; flag any difference.
-10. Report: the restored backup key, the safety backup key, the restored migration count and which migrations startup applied on top, the key-table counts before (`previousTableRowCounts`) and after, each machine's state and role, and the undo: run this action again and choose the safety backup key.
+10. Report: the restored backup key, the safety backup key, the restored migration count and which migrations startup applied on top, the key-table counts before (`previousTableRowCounts`, where a `null` means that table was missing from production before the restore — report it as missing, not as an error) and after, each machine's state and role, and the undo: run this action again and choose the safety backup key.
 
 ### Drop and recreate the production database
 

@@ -90,8 +90,11 @@ Behaviors worth knowing:
   `game_data`, `discord_bot_usage`, `drizzle` and `public` (an archive never
   lists `public` as a schema, so in practice the first three), whose recorded
   migrations are not exactly the oldest N of this checkout's, or whose key
-  tables are empty. It then reads production's key-table row counts, which
-  also proves the connection. A dry run stops there and prints
+  tables are empty. It then connects to production, listing which key tables
+  exist there, and counts their rows: a connection failure stops the run
+  with nothing changed, but a missing key table or `game_data` schema only
+  reports that table's count as `null`, so a damaged schema never blocks the
+  restore meant to repair it. A dry run stops there and prints
   `{ "mode": "dry-run", "key", "backup": { "migrations", "tableRowCounts" }, "production": { "tableRowCounts" } }`;
   it writes nothing to production.
 - A real run turns the archive into a SQL script

@@ -9,12 +9,19 @@ import { DatabaseUrlRedactorService } from '../pg-client/database-url-redactor.s
 import { ProductionDatabaseUrlService } from '../production-database/production-database-url.service';
 import { TempDirService } from '../temp-dir/temp-dir.service';
 import { TableRowCounts } from '../verify-backup/backup-checks.service';
+import { KEY_TABLES } from '../verify-backup/key-tables';
 import { RestoredDatabaseQueryService } from '../verify-backup/restored-database-query.service';
 import { BackupInspectionService } from './backup-inspection.service';
 import { ProductionRestoreService } from './production-restore.service';
 
 /** The Fly app name: the phrase a real restore must be given. */
 export const RESTORE_PRODUCTION_CONFIRMATION = 'blood-bowl-tracker-discord-bot';
+
+/**
+ * Production's row count per key table, read before restoring; `null` for a
+ * key table that did not exist (a damaged or missing `game_data` schema).
+ */
+export type ProductionTableRowCounts = Readonly<Record<string, number | null>>;
 
 export interface RestoreProductionRequest {
   /** The backup to restore; the newest one when omitted. */
@@ -32,7 +39,7 @@ export interface RestoreProductionDryRunResult {
     readonly migrations: number;
     readonly tableRowCounts: TableRowCounts;
   };
-  readonly production: { readonly tableRowCounts: TableRowCounts };
+  readonly production: { readonly tableRowCounts: ProductionTableRowCounts };
 }
 
 export interface RestoreProductionRestoredResult {
@@ -42,7 +49,7 @@ export interface RestoreProductionRestoredResult {
   readonly restoredMigrations: number;
   readonly tableRowCounts: TableRowCounts;
   /** Production's key-table row counts just before the restore. */
-  readonly previousTableRowCounts: TableRowCounts;
+  readonly previousTableRowCounts: ProductionTableRowCounts;
 }
 
 export type RestoreProductionResult =
@@ -54,7 +61,7 @@ interface RestoreStep {
   readonly workDir: string;
   readonly databaseUrl: string;
   readonly target: string;
-  readonly previousTableRowCounts: TableRowCounts;
+  readonly previousTableRowCounts: ProductionTableRowCounts;
 }
 
 /**
@@ -62,8 +69,10 @@ interface RestoreStep {
  * backup. A real run refuses without the confirmation phrase, before reading
  * anything. The backup is downloaded and inspected first, so a storage
  * failure or an unsuitable backup never touches production; production's
- * key-table counts are then read, which also proves the connection. A dry
- * run stops there. A real run restores in one transaction (see
+ * key-table counts are then read, which also proves the connection. A key
+ * table production lacks counts as `null` rather than failing the run, so a
+ * damaged schema never blocks the restore meant to repair it. A dry run
+ * stops there. A real run restores in one transaction (see
  * `ProductionRestoreService`) and reads back what it restored. Startup
  * migrations, not this command, apply anything newer than the backup.
  */
@@ -140,9 +149,16 @@ export class RestoreProductionService {
   private async readProduction(
     databaseUrl: string,
     target: string,
-  ): Promise<TableRowCounts> {
+  ): Promise<ProductionTableRowCounts> {
     try {
-      return await this.query.keyTableRowCounts(databaseUrl);
+      const existing = await this.query.existingKeyTables(databaseUrl);
+      const counts: TableRowCounts =
+        existing.length === 0
+          ? {}
+          : await this.query.keyTableRowCounts(databaseUrl, existing);
+      return Object.fromEntries(
+        KEY_TABLES.map((table) => [table, counts[table] ?? null]),
+      );
     } catch (error) {
       throw new Error(
         `Could not read ${target} before restoring; nothing was changed. ` +

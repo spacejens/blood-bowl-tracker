@@ -39,7 +39,10 @@ backup into production**. It refuses to run from a worktree. It:
    sets `DATABASE_URL` (without printing it).
 2. Lists the backups and asks which one to restore (default: the newest).
 3. Runs `restore-production --dry-run` and shows the backup's migration count
-   and key-table row counts beside production's current ones.
+   and key-table row counts beside production's current ones. A key table
+   production lacks shows as `null`: the restore still goes ahead, since a
+   damaged schema is one of the things it repairs. Only a failed connection
+   stops it.
 4. Asks you to type `blood-bowl-tracker-discord-bot` to confirm.
 5. Stops both Fly machines.
 6. Runs the backup workflow and waits for it: this is the safety backup, the
