@@ -128,6 +128,23 @@ in the process list of that ephemeral runner only.
    install step. Its success then starts the verification workflow; confirm
    that run passes too.
 
+### Missing required settings
+
+Before running `backup-cli`, both workflows check that the settings they need
+are non-empty: the storage settings in both, plus the database URL in the
+backup workflow. If any is empty, the run fails with an error that names the
+GitHub environment the job reads from (`production-backup` for the backup,
+`production-backup-verify` for verification) and lists each empty setting by
+its GitHub name, such as `vars.BACKUP_STORAGE_ENDPOINT` or
+`secrets.BACKUP_STORAGE_READ_ACCESS_KEY_ID`. The error prints names only,
+never values.
+
+- **Every setting empty** means that environment was never filled in. Add its
+  variables and secrets as in steps 3 and 4 above.
+- The two environments are separate: filling in `production-backup` does not
+  configure verification. Each needs its own `BACKUP_STORAGE_ENDPOINT` and
+  `BACKUP_STORAGE_BUCKET` variables, plus its own token secrets.
+
 ## Running a backup on demand
 
 ```bash

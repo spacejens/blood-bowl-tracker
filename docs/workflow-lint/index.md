@@ -1,14 +1,19 @@
 # workflow-lint
 
-`tools/workflow-lint` is a NestJS CLI application that fails the build when a
-GitHub Actions workflow references a remote action by a tag or branch instead
-of a full commit SHA. A tag can be re-pointed by the action's maintainers, or
-by anyone who compromises their account, and the deploy and backup workflows
-hold production credentials; a SHA cannot change, so the code those workflows
-run only changes through a reviewed change in this repo. Renovate keeps the
-pins current (see the Renovate notes in
+`tools/workflow-lint` holds the repo's checks on its GitHub Actions workflows:
+a NestJS CLI application that fails the build when a workflow references a
+remote action by a tag or branch instead of a full commit SHA. A tag can be
+re-pointed by the action's maintainers, or by anyone who compromises their
+account, and the deploy and backup workflows hold production credentials; a
+SHA cannot change, so the code those workflows run only changes through a
+reviewed change in this repo. Renovate keeps the pins current (see the
+Renovate notes in
 [development-workflow.md](../development-workflow.md#code-hygiene)); this check
 makes sure a pin cannot silently regress to a tag.
+
+The package also holds unit tests for the backup workflows' required-settings
+pre-flight step (see
+[Backup pre-flight tests](#backup-pre-flight-tests)).
 
 ## What it checks
 
@@ -61,6 +66,27 @@ Nothing is auto-fixable, so `pnpm lint:fix` does not run it. To pin an
 action, resolve the tag's commit with
 `gh api repos/<owner>/<repo>/git/ref/tags/<tag> --jq '.object.type+" "+.object.sha'`
 (dereference it once more via `git/tags/<sha>` if the type is `tag`).
+
+## Backup pre-flight tests
+
+`backup-production.yml` and `verify-backup.yml` each run a "Check required
+settings" step before their first `backup-cli` step. It fails the run with an
+error naming the job's GitHub environment and every empty setting the job
+needs (see
+[Database backups](../discord-bot/production-backups.md#missing-required-settings)).
+`src/preflight/backup-storage-preflight.spec.ts` reads both real workflow
+files and, for each, checks that the step:
+
+- runs before the first step that invokes `backup-cli`;
+- names the same environment as the job's `environment:`;
+- reads each setting from the same place as the `backup-cli` steps that use
+  it;
+- when its script is run with `bash`, fails naming every setting and the
+  unconfigured environment when all are empty, fails naming only the empty
+  one when one is empty, and succeeds with no output when all are set.
+
+These run with the package's unit tests (`pnpm test`), not with
+`pnpm run lint:workflows`.
 
 ## Development
 
