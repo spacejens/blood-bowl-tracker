@@ -24,7 +24,7 @@ export const RESTORE_PRODUCTION_CONFIRMATION = 'blood-bowl-tracker-discord-bot';
 export type ProductionTableRowCounts = Readonly<Record<string, number | null>>;
 
 export interface RestoreProductionRequest {
-  /** The backup to restore; the newest one when omitted. */
+  /** The backup to restore; required for a real run, the newest one for a dry run when omitted. */
   readonly key?: string;
   /** Inspect and report only; never writes to production. */
   readonly dryRun: boolean;
@@ -66,8 +66,8 @@ interface RestoreStep {
 
 /**
  * `restore-production`: replace production's application schemas with a
- * backup. A real run refuses without the confirmation phrase, before reading
- * anything. The backup is downloaded and inspected first, so a storage
+ * backup. A real run refuses without the confirmation phrase or an explicit
+ * backup key, before reading anything. The backup is downloaded and inspected first, so a storage
  * failure or an unsuitable backup never touches production; production's
  * key-table counts are then read, which also proves the connection. A key
  * table production lacks counts as `null` rather than failing the run, so a
@@ -101,6 +101,13 @@ export class RestoreProductionService {
         'Refusing to restore into production without ' +
           `--confirm ${RESTORE_PRODUCTION_CONFIRMATION}; nothing was ` +
           'downloaded or changed. Use --dry-run to rehearse.',
+      );
+    }
+    if (!request.dryRun && request.key === undefined) {
+      throw new Error(
+        'Refusing to restore into production without an explicit backup key; ' +
+          'a real restore never defaults to the newest backup. Nothing was ' +
+          'downloaded or changed.',
       );
     }
     const databaseUrl = await this.productionUrl.read();

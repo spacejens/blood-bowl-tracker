@@ -47,7 +47,7 @@ describe('ProductionRestoreService', () => {
     });
   });
 
-  it('drops exactly the four application schemas and recreates an empty public', () => {
+  it('drops exactly the four application schemas and recreates an empty public, giving up on a lock after 60 seconds', () => {
     expect(APPLICATION_SCHEMAS).toEqual([
       'game_data',
       'discord_bot_usage',
@@ -56,6 +56,7 @@ describe('ProductionRestoreService', () => {
     ]);
     expect(PRODUCTION_WIPE_SQL).toBe(
       [
+        "SET LOCAL lock_timeout = '60s';",
         'DROP SCHEMA IF EXISTS game_data CASCADE;',
         'DROP SCHEMA IF EXISTS discord_bot_usage CASCADE;',
         'DROP SCHEMA IF EXISTS drizzle CASCADE;',

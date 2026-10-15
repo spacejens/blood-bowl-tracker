@@ -25,7 +25,7 @@ For the bucket, tokens, schedule and retention policy, see
 | `download <destination-path> [<backup-key>]`                         | Fetch the named backup, or the newest, to a new local file                                                                                                       |
 | `verify <target-database-url> [<backup-key>]`                        | Restore the named backup, or the newest, into an empty local database and sanity-check it; prints key, restored migration count and key-table row counts         |
 | `restore [<backup-key>]`                                             | Replace the local development database (`localDatabase.url`) with the named backup, or the newest; prints key, restored migration count and key-table row counts |
-| `restore-production [<backup-key>] [--dry-run] [--confirm <phrase>]` | Replace production's application schemas with the named backup, or the newest, in one transaction; `--dry-run` only inspects and reports                         |
+| `restore-production [<backup-key>] [--dry-run] [--confirm <phrase>]` | Replace production's application schemas with the named backup in one transaction; `--dry-run` only inspects and reports, and checks the newest without a key    |
 
 Behaviors worth knowing:
 
@@ -83,8 +83,10 @@ Behaviors worth knowing:
   `postgres://` or `postgresql://` URL), never from an argument or setting,
   and never prints it; errors show it with its password masked.
 - A real `restore-production` run refuses, before reading or downloading
-  anything, unless given `--confirm blood-bowl-tracker-discord-bot` (the Fly
-  app name). `--dry-run` and `--confirm` cannot be combined.
+  anything, unless given both an explicit `<backup-key>` (it never defaults
+  to the newest backup, which could be one that landed after you chose) and
+  `--confirm blood-bowl-tracker-discord-bot` (the Fly app name). `--dry-run`
+  and `--confirm` cannot be combined.
 - `restore-production` downloads first, then inspects the archive without a
   database: it refuses a backup that creates any schema other than
   `game_data`, `discord_bot_usage`, `drizzle` and `public` (an archive never
@@ -100,9 +102,11 @@ Behaviors worth knowing:
 - A real run turns the archive into a SQL script
   (`pg_restore --no-owner --no-privileges --file=...`) and runs
   `psql --single-transaction --set=ON_ERROR_STOP=1` with the wipe of those
-  four schemas (recreating an empty `public`) followed by the script. Any
-  failure, including a timeout, rolls back both, so production is either
-  fully restored or unchanged. Neon's own schemas are never touched. It prints
+  four schemas (recreating an empty `public`) followed by the script. The
+  wipe waits at most 60 seconds for a lock (`SET LOCAL lock_timeout`), so a
+  connection still holding one fails the run instead of hanging it. Any
+  failure, including that lock wait or a timeout, rolls back both, so
+  production is either fully restored or unchanged. Neon's own schemas are never touched. It prints
   `{ "mode": "restored", "key", "restoredMigrations", "tableRowCounts", "previousTableRowCounts" }`.
 - `restore-production` applies no migrations: the bot's startup migrations
   apply anything newer than the backup when the machines start. It does not

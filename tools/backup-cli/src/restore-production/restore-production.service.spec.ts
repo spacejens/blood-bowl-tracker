@@ -40,6 +40,7 @@ const PRODUCTION_COUNTS = {
   competitions: 2,
 };
 const REAL: RestoreProductionRequest = {
+  key: KEY,
   dryRun: false,
   confirm: RESTORE_PRODUCTION_CONFIRMATION,
 };
@@ -117,11 +118,11 @@ describe('RestoreProductionService', () => {
   }
 
   it.each([
-    ['no confirmation', { dryRun: false }],
-    ['the wrong phrase', { dryRun: false, confirm: 'yes' }],
+    ['no confirmation', { key: KEY, dryRun: false }],
+    ['the wrong phrase', { key: KEY, dryRun: false, confirm: 'yes' }],
     [
       'the phrase in another case',
-      { dryRun: false, confirm: 'Blood-Bowl-Tracker-Discord-Bot' },
+      { key: KEY, dryRun: false, confirm: 'Blood-Bowl-Tracker-Discord-Bot' },
     ],
   ])(
     'refuses a real run with %s, before reading anything',
@@ -137,6 +138,29 @@ describe('RestoreProductionService', () => {
       expect(download.run).not.toHaveBeenCalled();
     },
   );
+
+  it('refuses a confirmed real run without an explicit key, before reading anything', async () => {
+    const error = await failure({
+      dryRun: false,
+      confirm: RESTORE_PRODUCTION_CONFIRMATION,
+    });
+
+    expect(error.message).toBe(
+      'Refusing to restore into production without an explicit backup key; ' +
+        'a real restore never defaults to the newest backup. Nothing was ' +
+        'downloaded or changed.',
+    );
+    expect(productionUrl.read).not.toHaveBeenCalled();
+    expect(download.run).not.toHaveBeenCalled();
+  });
+
+  it('treats a dry run given a wrong confirmation phrase as a dry run, writing nothing', async () => {
+    await expect(
+      service.run({ dryRun: true, confirm: 'yes' }),
+    ).resolves.toMatchObject({ mode: 'dry-run', key: KEY });
+    expect(archive.writeRestoreScript).not.toHaveBeenCalled();
+    expect(productionRestore.restore).not.toHaveBeenCalled();
+  });
 
   it('dry run reports the backup beside production and writes nothing', async () => {
     await expect(service.run({ dryRun: true })).resolves.toEqual({
@@ -159,7 +183,7 @@ describe('RestoreProductionService', () => {
     expect(productionRestore.restore).not.toHaveBeenCalled();
   });
 
-  it('restores the newest backup into production and reports what came back', async () => {
+  it('restores the given backup into production and reports what came back', async () => {
     await expect(service.run(REAL)).resolves.toEqual({
       mode: 'restored',
       key: KEY,
@@ -173,7 +197,7 @@ describe('RestoreProductionService', () => {
     );
     expect(download.run).toHaveBeenCalledWith({
       destinationPath: DUMP_PATH,
-      key: undefined,
+      key: KEY,
     });
     expect(archive.writeRestoreScript).toHaveBeenCalledWith({
       dumpPath: DUMP_PATH,

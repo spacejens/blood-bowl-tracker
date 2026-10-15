@@ -43,7 +43,7 @@ export class BackupInspectionService {
     if (unexpected.length > 0) {
       throw new Error(
         'The backup contains schemas outside the application schemas ' +
-          `(${APPLICATION_SCHEMAS.join(', ')}): ${unexpected.join(', ')}. ` +
+          `(allowed: ${APPLICATION_SCHEMAS.join(', ')}): ${unexpected.join(', ')}. ` +
           'Refusing to restore it into production.',
       );
     }

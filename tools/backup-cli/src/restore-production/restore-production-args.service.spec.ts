@@ -5,9 +5,9 @@ import {
   RESTORE_PRODUCTION_USAGE,
   RestoreProductionArgsService,
 } from './restore-production-args.service';
+import { RESTORE_PRODUCTION_CONFIRMATION as PHRASE } from './restore-production.service';
 
 const KEY = 'production/2026-10-14T03-17-00.000Z.dump';
-const PHRASE = 'blood-bowl-tracker-discord-bot';
 
 describe('RestoreProductionArgsService', () => {
   let service: RestoreProductionArgsService;
@@ -56,9 +56,25 @@ describe('RestoreProductionArgsService', () => {
     expect(() => service.parse(args)).toThrow(RESTORE_PRODUCTION_USAGE);
   });
 
-  it('refuses --dry-run together with --confirm', () => {
-    expect(() => service.parse(['--dry-run', '--confirm', PHRASE])).toThrow(
+  it.each([
+    ['the phrase', PHRASE],
+    ['a wrong phrase', 'yes'],
+  ])('refuses --dry-run together with --confirm and %s', (_label, phrase) => {
+    expect(() =>
+      service.parse(['--dry-run', '--confirm', phrase, KEY]),
+    ).toThrow(
       `--dry-run and --confirm cannot be combined. ${RESTORE_PRODUCTION_USAGE}`,
     );
+  });
+
+  it('refuses --confirm without an explicit backup key', () => {
+    expect(() => service.parse(['--confirm', PHRASE])).toThrow(
+      'A real restore needs an explicit <backup-key>; it never defaults to ' +
+        `the newest backup. ${RESTORE_PRODUCTION_USAGE}`,
+    );
+  });
+
+  it('names the confirmation phrase in the usage text', () => {
+    expect(RESTORE_PRODUCTION_USAGE).toContain(`--confirm ${PHRASE}`);
   });
 });

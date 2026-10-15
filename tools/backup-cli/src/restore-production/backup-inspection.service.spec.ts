@@ -82,7 +82,7 @@ describe('BackupInspectionService', () => {
 
     await expect(service.inspect(REQUEST)).rejects.toThrow(
       'The backup contains schemas outside the application schemas ' +
-        '(game_data, discord_bot_usage, drizzle, public): neon, zzz. ' +
+        '(allowed: game_data, discord_bot_usage, drizzle, public): neon, zzz. ' +
         'Refusing to restore it into production.',
     );
     expect(archive.extractData).not.toHaveBeenCalled();
