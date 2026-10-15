@@ -47,12 +47,14 @@ functional. It starts when a run of the backup workflow completes
 successfully, whether that run was scheduled or manually dispatched. A backup
 taken by another workflow that calls the backup workflow is **not** verified
 automatically (a called workflow runs under its caller's name, so it does not
-trigger this one); such a caller must run verification itself. The
+trigger this one); such a caller calls the verification workflow itself,
+passing the new backup's key as its required `backup-key` input. The
 verification workflow can also be started by hand, optionally for a named
 backup key.
 
-Verification restores the newest backup at the time it runs, which is normally
-the one that triggered it.
+Verification after a backup run, or started by hand without a key, restores
+the newest backup at the time it runs, which is normally the one that
+triggered it. A called verification restores exactly the backup it was given.
 
 The job starts a throwaway `postgres:18` service container, downloads the
 newest backup (or the named one) with the **read-only** token, and runs
@@ -63,7 +65,9 @@ See [backup-cli](../backup-cli/index.md#subcommands) for the details. A failed
 check fails the run and opens an alert issue (see [Alerts](#alerts)).
 
 Verification runs from `main`, so a backup taken just before a migration
-merged still passes: it simply records fewer migrations than `main` has.
+merged still passes: it simply records fewer migrations than `main` has. A
+called verification runs at its caller's commit, which can likewise carry
+migrations the backup lacks; that passes too.
 
 The verification job never sees the database URL and cannot delete backups:
 its environment holds only the read-only token.
@@ -106,8 +110,8 @@ they fail, so a broken or missing backup is noticed before it is needed:
   empty the default applies.
 - Any failure raises the alert, including a missing setting or a network
   error, not only a bad backup. Read the linked run's log first.
-- A backup taken by another workflow that calls `backup-production.yml`
-  raises and resolves nothing: the caller owns that failure. The calling job
+- A backup or verification run called from another workflow raises and
+  resolves nothing: the caller's failed run is the signal. The calling job
   must still grant `issues: write`, because a called workflow's jobs cannot
   have more permissions than their caller grants.
 - Only the alert jobs, which run `dev-workflow-cli raise-alert` or

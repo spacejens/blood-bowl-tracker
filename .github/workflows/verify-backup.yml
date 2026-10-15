@@ -1,17 +1,25 @@
-# Restores the newest production backup into a throwaway PostgreSQL and
-# sanity-checks it, so a backup that cannot be restored is noticed. See
+# Restores a production backup into a throwaway PostgreSQL and sanity-checks
+# it, so a backup that cannot be restored is noticed. See
 # docs/discord-bot/production-backups.md.
 #
 # Runs after every successful scheduled or manually dispatched run of the
-# backup workflow, and on manual dispatch of this workflow. workflow_run does
-# not fire for a backup taken by another workflow that calls the backup
-# workflow (a called workflow runs under its caller's name), so such a caller
-# must run verification itself.
+# backup workflow (verifying the newest backup), on manual dispatch of this
+# workflow (the newest backup, or a named one), and when called from another
+# workflow with the required `backup-key` of the backup to verify.
+# workflow_run does not fire for a backup taken by another workflow that
+# calls the backup workflow (a called workflow runs under its caller's name),
+# so such a caller calls this workflow itself with the new backup's key.
 #
-# A failed verification opens (or comments on) the "Production backup
-# verification failed" issue, and a successful one closes it; see
-# docs/discord-bot/production-backups.md#alerts. A skipped verification
-# (the backup run did not succeed) and a cancelled one do neither.
+# A failed verification run of this workflow's own opens (or comments on)
+# the "Production backup verification failed" issue, and a successful
+# newest-backup one closes it; see
+# docs/discord-bot/production-backups.md#alerts. A skipped verification (the
+# backup run did not succeed) and a cancelled one do neither. A called
+# verification raises and resolves nothing: the caller's failed run is the
+# signal. The calling job must still grant `issues: write`, because a called
+# workflow's jobs cannot have more permissions than their caller grants.
+# The alert job's `if` condition matches this exact name; renaming it needs
+# that updated.
 name: Verify production backup
 
 on:
@@ -24,6 +32,12 @@ on:
         description: Storage key of the backup to verify (newest when empty)
         required: false
         default: ''
+  workflow_call:
+    inputs:
+      backup-key:
+        description: Storage key of the backup to verify
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -41,9 +55,12 @@ env:
 
 jobs:
   verify:
-    # A failed or cancelled backup run has nothing new to verify.
+    # A failed or cancelled backup run has nothing new to verify. Only
+    # workflow_run carries a backup run's conclusion. A called run reports
+    # its caller's event (push or workflow_dispatch), so this tests for
+    # workflow_run rather than listing the events that always verify.
     if: >-
-      github.event_name == 'workflow_dispatch' ||
+      github.event_name != 'workflow_run' ||
       github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -64,7 +81,10 @@ jobs:
           --health-retries 10
     steps:
       # workflow_run always runs on the default branch, so this checks out
-      # main: its migrations are what the backup is compared against.
+      # main: its migrations are what the backup is compared against. A
+      # called run checks out its caller's commit (for a deploy, the commit
+      # being deployed). A backup that lacks that commit's new migrations
+      # still passes, since an older backup is fine.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
@@ -117,7 +137,8 @@ jobs:
       # Prints {key, restoredMigrations, tableRowCounts} as JSON (no secrets).
       # A failed restore or check exits non-zero and fails the run. The key
       # input is passed through the environment, never interpolated into the
-      # script, and is empty on workflow_run (newest backup).
+      # script. It is empty on workflow_run (newest backup) and always set on
+      # a called run.
       - name: Verify backup
         env:
           BACKUP_STORAGE_ENDPOINT: ${{ vars.BACKUP_STORAGE_ENDPOINT }}
@@ -130,9 +151,14 @@ jobs:
             "postgresql://postgres:postgres@localhost:5432/postgres" \
             ${BACKUP_KEY:+"$BACKUP_KEY"}
 
+  # Only when this workflow runs on its own: inside a called workflow,
+  # github.workflow is the caller's name, and the caller's failed run is the
+  # signal. github.event_name cannot tell the two apart, since a called run
+  # reports its caller's event. failure() is false for a cancelled run, so
+  # cancelling raises nothing.
   alert-on-failure:
     needs: verify
-    if: failure()
+    if: failure() && github.workflow == 'Verify production backup'
     permissions:
       contents: read
       issues: write
@@ -144,7 +170,8 @@ jobs:
   resolve-alert:
     needs: verify
     # Verifying a chosen older backup says nothing about the newest one, so
-    # only a newest-backup verification (empty on workflow_run) resolves.
+    # only a newest-backup verification (empty on workflow_run) resolves. A
+    # called run always passes a key, so it never resolves either.
     if: needs.verify.result == 'success' && inputs.backup-key == ''
     permissions:
       contents: read
