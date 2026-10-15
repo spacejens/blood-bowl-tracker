@@ -46,6 +46,8 @@ export class BackupFreshnessService {
     const newest = timed.reduce((latest, candidate) =>
       candidate.time > latest.time ? candidate : latest,
     );
+    // A future timestamp (clock skew) gives a negative age and passes: only
+    // a backup that is too old is a problem.
     const ageMs = policy.now.getTime() - newest.time;
     const ageHours = Math.round((ageMs / HOUR_MS) * 100) / 100;
     if (ageMs > policy.maxAgeHours * HOUR_MS) {

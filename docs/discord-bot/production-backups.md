@@ -88,7 +88,9 @@ they fail, so a broken or missing backup is noticed before it is needed:
   adds a comment linking the new failed run instead of opening a second one.
 - The next successful run of the same workflow comments on the issue,
   linking that run, and closes it. A maintainer can also close an issue by
-  hand; the next failure then opens a new one.
+  hand; the next failure then opens a new one. If resolving itself fails
+  (for example a `gh` error), the run still counts as successful, so
+  verification is not skipped; the alert stays open until the next success.
 - Cancelled runs neither raise nor resolve an alert. Neither does a skipped
   verification (its backup run did not succeed): the backup's own alert
   covers that.
@@ -97,8 +99,11 @@ they fail, so a broken or missing backup is noticed before it is needed:
   `backup-cli check-freshness` with the read-only token from the
   `production-backup-verify` environment, and fails when there is no backup
   or the newest is older than **36 hours** (the daily backup plus one missed
-  or delayed run). The limit is backup-cli's `maxAgeHours` setting
-  (`BACKUP_MAX_AGE_HOURS`; see [backup-cli](../backup-cli/index.md#configuration)).
+  or delayed run). The limit is backup-cli's `maxAgeHours` setting. To change
+  it, set the optional variable `BACKUP_MAX_AGE_HOURS` in the
+  `production-backup-verify` environment (see
+  [backup-cli](../backup-cli/index.md#configuration)); when it is unset or
+  empty the default applies.
 - Any failure raises the alert, including a missing setting or a network
   error, not only a bad backup. Read the linked run's log first.
 - A backup taken by another workflow that calls `backup-production.yml`
@@ -118,7 +123,9 @@ they fail, so a broken or missing backup is noticed before it is needed:
   its success closes the issue and starts a verification.
 - **`verify`:** the newest backup may not restore. The run's log lists every
   failed check. Once the cause is fixed, re-run verification by hand (see
-  [Verification](#verification)); its success closes the issue.
+  [Verification](#verification)); its success closes the issue. Only a
+  verification of the newest backup closes it: a run dispatched with a
+  `backup-key` input verifies that one backup and leaves the issue open.
 - **`stale`:** check that the backup workflow is still enabled and that its
   recent runs succeeded (see [Scheduling caveats](#scheduling-caveats)).
   Once a new backup exists, run the check by hand to close the issue:
@@ -184,12 +191,13 @@ in the process list of that ephemeral runner only.
 
 ### Missing required settings
 
-Before running `backup-cli`, the backup, verification and freshness workflows
-check that the settings they need are non-empty: the storage settings in all
-three, plus the database URL in the backup workflow. If any is empty, the run fails with an error that names the
-GitHub environment the job reads from (`production-backup` for the backup,
-`production-backup-verify` for verification and the freshness check) and lists each empty setting by
-its GitHub name, such as `vars.BACKUP_STORAGE_ENDPOINT` or
+Before running `backup-cli`, the backup, verification and freshness
+workflows check that the settings they need are non-empty: the storage
+settings in all three, plus the database URL in the backup workflow. If any
+is empty, the run fails with an error that names the GitHub environment the
+job reads from (`production-backup` for the backup, `production-backup-verify`
+for verification and the freshness check) and lists each empty setting by its
+GitHub name, such as `vars.BACKUP_STORAGE_ENDPOINT` or
 `secrets.BACKUP_STORAGE_READ_ACCESS_KEY_ID`. The error prints names only,
 never values.
 

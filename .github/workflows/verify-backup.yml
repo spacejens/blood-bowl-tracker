@@ -143,7 +143,9 @@ jobs:
 
   resolve-alert:
     needs: verify
-    if: needs.verify.result == 'success'
+    # Verifying a chosen older backup says nothing about the newest one, so
+    # only a newest-backup verification (empty on workflow_run) resolves.
+    if: needs.verify.result == 'success' && inputs.backup-key == ''
     permissions:
       contents: read
       issues: write

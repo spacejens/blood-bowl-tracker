@@ -45,7 +45,7 @@ describe('RaiseAlertService', () => {
     expect(created.body).toContain('The backup failed.');
     expect(created.body).toContain(RUN_URL);
     expect(created.body).toContain(
-      'docs/discord-bot/production-backups.md#alerts',
+      'https://github.com/spacejens/blood-bowl-tracker/blob/main/docs/discord-bot/production-backups.md#alerts',
     );
     expect(issues.comment).not.toHaveBeenCalled();
   });

@@ -70,6 +70,8 @@ jobs:
       # the limit exits non-zero and fails the run.
       - name: Check freshness
         env:
+          # Optional variable; empty falls back to backup-cli's default.
+          BACKUP_MAX_AGE_HOURS: ${{ vars.BACKUP_MAX_AGE_HOURS }}
           BACKUP_STORAGE_ENDPOINT: ${{ vars.BACKUP_STORAGE_ENDPOINT }}
           BACKUP_STORAGE_BUCKET: ${{ vars.BACKUP_STORAGE_BUCKET }}
           BACKUP_STORAGE_ACCESS_KEY_ID: ${{ secrets.BACKUP_STORAGE_READ_ACCESS_KEY_ID }}

@@ -12,6 +12,8 @@
 # workflow raises and resolves nothing (the caller owns that failure), but
 # the calling job must still grant `issues: write`: a called workflow's jobs
 # cannot have more permissions than their caller grants.
+# The alert jobs' `if` conditions and verify-backup.yml's workflow_run
+# trigger match this exact name; renaming it needs both updated.
 name: Backup production database
 
 on:

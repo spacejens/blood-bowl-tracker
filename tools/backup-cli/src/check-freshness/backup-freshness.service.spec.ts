@@ -33,6 +33,12 @@ describe('BackupFreshnessService', () => {
     });
   });
 
+  it('accepts a backup stamped in the future (negative age)', () => {
+    const future = backup('production/future.dump', '2026-10-15T09:41:00.000Z');
+
+    expect(service.assess([future], POLICY).ageHours).toBe(-1);
+  });
+
   it('finds the newest backup regardless of list order', () => {
     const fresh = backup('production/fresh.dump', '2026-10-15T03:17:00.000Z');
     const old = backup('production/old.dump', '2026-10-01T03:17:00.000Z');

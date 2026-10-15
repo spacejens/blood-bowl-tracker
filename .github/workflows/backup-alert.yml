@@ -25,6 +25,15 @@ jobs:
   alert:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # A failed resolve must not fail the calling run: the backup run's
+    # conclusion gates verify-backup.yml, so a flaky `gh` call here would
+    # silently skip verification without any alert. The job-level setting
+    # (rather than one on the update step) also covers checkout, install and
+    # build failing; a job that continues on error counts as successful for
+    # the called workflow's, and so the caller job's, result. The issue then
+    # simply stays open until the next success closes it. A failed raise
+    # still fails visibly.
+    continue-on-error: ${{ inputs.command == 'resolve-alert' }}
     # The only job in the backup workflows that may write issues. The calling
     # job must grant the same, since a called workflow's jobs cannot have more
     # permissions than their caller grants.
@@ -42,7 +51,7 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --filter "@blood-bowl-tracker/dev-workflow-cli..."
       - name: Build dev-workflow-cli
         run: pnpm --filter "@blood-bowl-tracker/dev-workflow-cli..." run build
       # Inputs reach the script through the environment, never interpolated

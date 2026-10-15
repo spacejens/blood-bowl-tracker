@@ -53,7 +53,16 @@ export class RaiseAlertService {
         'issue is closed automatically when a later run of the same ' +
         'workflow succeeds; a maintainer can also close it by hand.',
       '',
-      'How to act on it: see docs/discord-bot/production-backups.md#alerts.',
+      `How to act on it: see ${this.docsUrl(request.runUrl)}.`,
     ].join('\n');
+  }
+
+  /**
+   * The alerts section of the backup docs on `main`, in the repository the
+   * (already validated) run URL belongs to.
+   */
+  private docsUrl(runUrl: string): string {
+    const repoUrl = runUrl.replace(/\/actions\/runs\/\d+$/, '');
+    return `${repoUrl}/blob/main/docs/discord-bot/production-backups.md#alerts`;
   }
 }
