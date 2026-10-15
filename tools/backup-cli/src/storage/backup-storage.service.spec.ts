@@ -178,6 +178,28 @@ describe('BackupStorageService', () => {
       expect(backups.map((b) => b.key)).toEqual(['production/a.dump']);
     });
 
+    it('skips objects that are not backup dumps', async () => {
+      client.send.mockResolvedValueOnce({
+        Contents: [
+          {
+            Key: 'production/notes.txt',
+            Size: 1,
+            LastModified: new Date('2026-10-02T00:00:00Z'),
+          },
+          {
+            Key: 'production/a.dump',
+            Size: 1,
+            LastModified: new Date('2026-10-01T00:00:00Z'),
+          },
+        ],
+        IsTruncated: false,
+      } as never);
+
+      const backups = await service.list();
+
+      expect(backups.map((b) => b.key)).toEqual(['production/a.dump']);
+    });
+
     it('breaks equal timestamps by key', async () => {
       const lastModified = new Date('2026-10-01T00:00:00Z');
       client.send.mockResolvedValueOnce({

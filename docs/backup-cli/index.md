@@ -37,6 +37,11 @@ Behaviors worth knowing:
   `pg_restore --no-owner` when the target database has different roles.
 - `create` dumps into a temporary directory and removes it afterwards,
   whether the backup succeeded or not.
+- Every subcommand that reads the bucket's contents (`list`, `prune`,
+  `check-freshness`, and the "newest backup" default of `download`, `verify`,
+  `restore` and `restore-production`) sees only objects under `production/`
+  whose key ends in `.dump`; any other object is neither listed, pruned nor
+  counted towards freshness.
 - `prune` throws and deletes nothing if the upload time the bucket reports
   for any stored backup cannot be parsed. If a deletion fails part-way, the error
   names the failing key and the keys already deleted.

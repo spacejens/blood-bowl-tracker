@@ -19,6 +19,9 @@ import { StoredBackup } from './stored-backup';
 /** Every production backup's key starts with this. */
 export const BACKUP_KEY_PREFIX = 'production/';
 
+/** Every production backup's key ends with this; other objects are not backups. */
+export const BACKUP_KEY_SUFFIX = '.dump';
+
 export interface UploadRequest {
   readonly key: string;
   readonly filePath: string;
@@ -93,7 +96,7 @@ export class BackupStorageService {
           object.Key !== undefined &&
           object.LastModified !== undefined &&
           object.Key !== BACKUP_KEY_PREFIX &&
-          !object.Key.endsWith('/')
+          object.Key.endsWith(BACKUP_KEY_SUFFIX)
         ) {
           backups.push({
             key: object.Key,
