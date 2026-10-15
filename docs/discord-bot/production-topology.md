@@ -44,11 +44,10 @@ bot. The Neon database is backed up daily to a private Cloudflare R2
 bucket and kept for 30 days — see [Database backups](production-backups.md).
 A backup can be [restored into production](production-restore.md);
 otherwise, re-running the `tools/import-*` importers is the recovery path.
-This is
-an emergency recovery option, not a routine one, though: each importer writes
-one record at a time over the `flyctl proxy` tunnel (see
+A full re-import is an emergency option, not a routine one: each importer
+writes one record at a time over the `flyctl proxy` tunnel (see
 [Running import tools against production](production-imports.md)),
-so a full re-import of the whole dataset takes considerably longer against
+so rebuilding the whole dataset takes considerably longer against
 production than it does locally, and the bot serves stale or empty data for
 that whole window.
 

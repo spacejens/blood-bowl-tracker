@@ -292,7 +292,7 @@ This replaces all production data in the application schemas with a backup — s
    ```bash
    node tools/backup-cli/dist/main.js list
    ```
-   It prints a JSON array, newest first, of `{ "key", "sizeBytes", "lastModified" }`. If the list is empty, report that there is nothing to restore and stop. Otherwise ask with `AskUserQuestion` (single-select, `header` `Backup`), `question` "Which backup should I restore into production?". Options: **Newest backup** first, its description giving the newest entry's full key, `lastModified` and size in MB; then one option per next most recent backup, up to three, each labelled with its `lastModified` timestamp and described by its full key and size (never truncate a key with "..."). The automatic "Other" entry lets the developer type any key, e.g. a safety backup to undo an earlier restore. Use the full chosen key in every later step.
+   It prints a JSON array, newest first, of `{ "key", "sizeBytes", "lastModified" }`. If the list is empty, report that there is nothing to restore and stop. Otherwise ask with `AskUserQuestion` (single-select, `header` `Backup`), `question` "Which backup should I restore into production?". Options: **Newest backup** first, its description giving the newest entry's full key, `lastModified` and size in MB; then one option per next most recent backup, up to three, each labelled with its `lastModified` timestamp and described by its full key and size (never truncate a key with "..."). The automatic "Other" entry lets the developer type any key, e.g. a safety backup to undo an earlier restore. Use the full chosen key in every later step. If the chosen backup is close to the 30-day retention limit (its `lastModified` more than about 28 days ago), warn the developer before continuing: the safety backup run in step 6 also prunes backups older than 30 days, so a backup near the edge can be deleted before step 7 downloads it. Suggest a more recent one unless they specifically need that one.
 3. Dry run:
    ```bash
    node tools/backup-cli/dist/main.js restore-production <backup-key> --dry-run
@@ -304,16 +304,20 @@ This replaces all production data in the application schemas with a backup — s
    blood-bowl-tracker-discord-bot
    ```
 
-   Say plainly in the same message that all production data will be overwritten with backup `<backup-key>`, that everything written since that backup will be lost from production, that both machines will be stopped (the bot is offline until step 8), and that a safety backup of the current state is taken first so the restore can be undone. Use a plain conversational prompt rather than `AskUserQuestion` — a button is too easy to click through by habit. Compare the reply character for character; anything else is a refusal: stop this section, report that nothing was changed, and continue with the other selected sections.
-5. Stop both machines. Read their ids from:
+   Say plainly in the same message that all production data will be overwritten with backup `<backup-key>`, that everything written since that backup will be lost from production, that both machines will be stopped (the bot is offline until step 8), and that a safety backup of the current state is taken first so the restore can be undone. Use a plain conversational prompt rather than `AskUserQuestion` — a button is too easy to click through by habit. Compare the reply character for character; anything else is a refusal: stop this section, report that nothing was changed, and continue with the other selected sections **except** the four "against production" import actions — if any of those were also selected in step 0, do not run them automatically. Report that they were skipped because the restore they were expected to follow did not happen, and that the developer can re-invoke the skill to run them deliberately against the existing, unmodified production data if that is actually what they want.
+5. Stop both machines. First make sure no deploy is in flight, since a deploy replaces and starts machines:
+   ```bash
+   gh run list --workflow=deploy.yml --branch main --limit 1 --json databaseId,status,createdAt,url
+   ```
+   If its `status` is anything but `completed`, tell the developer and follow it with `gh run watch <databaseId>` before continuing. Then read the machine ids from:
    ```bash
    fly status --json
    ```
-   Fewer or more than two machines: report it and stop this section (nothing changed yet). Otherwise, for each machine:
+   Fewer or more than two machines: report it and stop this section (nothing changed yet). Otherwise note the current UTC time (`date -u +%Y-%m-%dT%H:%M:%SZ`) as the **stop time** for step 9, then for each machine:
    ```bash
    fly machine stop <machine-id>
    ```
-   Then poll `fly status` every few seconds, up to about 60 seconds, until both report `stopped`. If either does not stop, start any machine that did stop (`fly machine start <machine-id>`), report, and stop this section. Tell the developer not to merge to `main` until step 8: a deploy would start the machines again.
+   If `fly machine stop` reports an error for either machine, do not proceed: start any machine that did stop (`fly machine start <machine-id>`), report the error, and stop this section (nothing changed yet). Otherwise poll `fly status` every few seconds, up to about 60 seconds, until both report `stopped`. If either does not stop, start any machine that did stop, report, and stop this section. Tell the developer not to merge to `main` until step 8, and that Renovate also merges on its own: dependency PRs it automerges (`automerge: true` in `renovate.json5`) land on `main` without anyone clicking merge, and any merge to `main` triggers a deploy that starts the machines again. Step 9 checks whether that happened.
 6. Take the safety backup:
    ```bash
    gh workflow run backup-production.yml --ref main
@@ -330,20 +334,34 @@ This replaces all production data in the application schemas with a backup — s
    ```bash
    node tools/backup-cli/dist/main.js list
    ```
+   Then check that the safety backup would itself be accepted, so the restore can really be undone:
+   ```bash
+   node tools/backup-cli/dist/main.js restore-production <safety-backup-key> --dry-run
+   ```
+   Skip this check when step 3's production counts had every key table `0` or `null` (empty or missing): `restore-production` refuses a backup whose key tables are empty, so that safety backup is expected to fail it; tell the developer that this restore's undo is a re-import rather than the safety backup. Otherwise, if the dry run prints `{"error": ...}`, **do not restore**: start both machines, report that the safety backup is not restorable and why, and stop this section.
 7. Restore:
    ```bash
    node tools/backup-cli/dist/main.js restore-production <backup-key> --confirm blood-bowl-tracker-discord-bot
    ```
    On success it prints `{ "mode": "restored", "key", "restoredMigrations", "tableRowCounts", "previousTableRowCounts" }`. On failure it prints `{"error": ...}`:
    - An error starting "Restored <key> into ..., but reading the restored database back failed" means the data is in place; continue to step 8 and report the error in step 10 without the counts.
-   - Any other error means production is unchanged (download and inspection happen first, and the restore is one transaction). Report it, then ask with `AskUserQuestion` (single-select, `header` `Next step`), `question` "The restore failed and production is unchanged. What now?", options **Retry the restore** (run this step again) and **Start the machines without restoring** (go to step 8 and report that nothing was restored).
+   - Any other error means production is unchanged (download and inspection happen first, and the restore is one transaction). An error mentioning `lock timeout` means another connection held a lock on production's tables for over 60 seconds — check with `fly status` that both machines are still stopped before retrying. Report it, then ask with `AskUserQuestion` (single-select, `header` `Next step`), `question` "The restore failed and production is unchanged. What now?", options **Retry the restore** (run this step again) and **Start the machines without restoring** (go to step 8 and report that nothing was restored).
+   - No JSON output at all (the command was interrupted, killed, or the session dropped) means production's state is **unknown**: the transaction may or may not have committed. Do not start the machines. Tell the developer, and mention that an interrupted run can leave a `backup-cli-restore-production-*` directory holding production data in the system temp directory, which they should delete. Then ask with `AskUserQuestion` (single-select, `header` `Next step`), `question` "The restore was interrupted and production's state is unknown. What now?", options **Retry the restore** (run this step again with the same key: it replaces the application schemas either way) and **Restore the safety backup** (run this step with the safety backup key instead, returning production to its state before the restore). Continue to step 8 only after one of them succeeds.
 8. Start both machines:
    ```bash
    fly machine start <first-machine-id>
    fly machine start <second-machine-id>
    ```
    Startup migrations apply anything newer than the backup.
-9. Verify, polling `fly status` until both machines report `started` (up to about 60 seconds), then:
+9. Verify. First check whether a deploy ran while the machines were meant to be stopped:
+   ```bash
+   gh run list --workflow=deploy.yml --branch main --limit 5 --json databaseId,status,conclusion,createdAt,event,url
+   ```
+   If any run's `createdAt` is after step 5's stop time, report it to the developer (its URL, event and status): a deploy starts the machines, so the bot may have run during the restore window, writing data that the restore then replaced or applying migrations the restore then wiped. Wait for it to finish (`gh run watch <databaseId>`) if it is still running, then restart both machines so startup migrations run against the restored data, and check the logs below from that restart:
+   ```bash
+   fly apps restart blood-bowl-tracker-discord-bot
+   ```
+   Then poll `fly status` until both machines report `started` (up to about 60 seconds), then:
    ```bash
    fly logs --no-tail
    ```
