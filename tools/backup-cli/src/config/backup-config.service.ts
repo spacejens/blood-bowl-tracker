@@ -28,6 +28,9 @@ export const DEFAULT_BACKUP_CONFIG_PATH = join(
 
 const DEFAULT_RETENTION_DAYS = 30;
 
+/** The daily backup's interval plus one missed or delayed run of slack. */
+const DEFAULT_MAX_AGE_HOURS = 36;
+
 /** The docker-compose database (`docker-compose.yml`'s host port mapping). */
 export const DEFAULT_LOCAL_DATABASE_URL =
   'postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl';
@@ -47,6 +50,13 @@ interface StringSetting {
   readonly group: string;
   readonly key: string;
   readonly envVar: string;
+}
+
+/** One optional top-level positive-integer setting, its env var and default. */
+interface PositiveIntegerSetting {
+  readonly key: string;
+  readonly envVar: string;
+  readonly defaultValue: number;
 }
 
 /**
@@ -143,18 +153,33 @@ export class BackupConfigService extends createConfigLoaderServiceBase({
 
   /** How many days `prune` keeps backups for. */
   getRetentionDays(): number {
-    const fromEnv = this.envValue('BACKUP_RETENTION_DAYS');
+    return this.optionalPositiveInteger({
+      key: 'retentionDays',
+      envVar: 'BACKUP_RETENTION_DAYS',
+      defaultValue: DEFAULT_RETENTION_DAYS,
+    });
+  }
+
+  /** How old, in hours, the newest backup may be before `check-freshness` fails. */
+  getMaxAgeHours(): number {
+    return this.optionalPositiveInteger({
+      key: 'maxAgeHours',
+      envVar: 'BACKUP_MAX_AGE_HOURS',
+      defaultValue: DEFAULT_MAX_AGE_HOURS,
+    });
+  }
+
+  private optionalPositiveInteger(setting: PositiveIntegerSetting): number {
+    const fromEnv = this.envValue(setting.envVar);
     const raw =
-      fromEnv === undefined
-        ? this.get<unknown>('retentionDays')
-        : Number(fromEnv);
+      fromEnv === undefined ? this.get<unknown>(setting.key) : Number(fromEnv);
     if (raw === undefined) {
-      return DEFAULT_RETENTION_DAYS;
+      return setting.defaultValue;
     }
     const parsed = positiveIntegerSchema.safeParse(raw);
     if (!parsed.success) {
       throw new Error(
-        `retentionDays in ${CONFIG_FILE_NAME} (or BACKUP_RETENTION_DAYS) ` +
+        `${setting.key} in ${CONFIG_FILE_NAME} (or ${setting.envVar}) ` +
           'must be a positive integer.',
       );
     }

@@ -220,4 +220,61 @@ describe('BackupConfigService', () => {
       );
     },
   );
+
+  it('defaults the maximum backup age to 36 hours', async () => {
+    const service = await makeService({ file: '{}' });
+
+    expect(service.getMaxAgeHours()).toBe(36);
+  });
+
+  it('defaults the maximum backup age when the file is absent', async () => {
+    const service = await makeService();
+
+    expect(service.getMaxAgeHours()).toBe(36);
+  });
+
+  it('reads the maximum backup age from the file', async () => {
+    const service = await makeService({ file: '{ maxAgeHours: 48 }' });
+
+    expect(service.getMaxAgeHours()).toBe(48);
+  });
+
+  it('lets BACKUP_MAX_AGE_HOURS override the file', async () => {
+    const service = await makeService({
+      file: '{ maxAgeHours: 48 }',
+      env: { BACKUP_MAX_AGE_HOURS: '12' },
+    });
+
+    expect(service.getMaxAgeHours()).toBe(12);
+  });
+
+  it('falls back to the file when BACKUP_MAX_AGE_HOURS is empty', async () => {
+    const service = await makeService({
+      file: '{ maxAgeHours: 48 }',
+      env: { BACKUP_MAX_AGE_HOURS: '' },
+    });
+
+    expect(service.getMaxAgeHours()).toBe(48);
+  });
+
+  it.each([['0'], ['-3'], ['abc'], ['1.5']])(
+    'rejects a non-positive-integer maximum backup age %s',
+    async (value) => {
+      const service = await makeService({
+        env: { BACKUP_MAX_AGE_HOURS: value },
+      });
+
+      expect(() => service.getMaxAgeHours()).toThrow(
+        /maxAgeHours .* must be a positive integer/,
+      );
+    },
+  );
+
+  it('rejects a maximum backup age in the file that is not a number', async () => {
+    const service = await makeService({ file: "{ maxAgeHours: '36' }" });
+
+    expect(() => service.getMaxAgeHours()).toThrow(
+      'maxAgeHours in backup-cli-config.json5 (or BACKUP_MAX_AGE_HOURS) must be a positive integer.',
+    );
+  });
 });

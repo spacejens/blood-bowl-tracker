@@ -35,4 +35,9 @@
   // How many days `prune` keeps backups for. Defaults to 30.
   // (BACKUP_RETENTION_DAYS)
   retentionDays: 30,
+
+  // How old, in hours, the newest backup may be before `check-freshness`
+  // fails. Defaults to 36: the daily backup plus one missed or delayed run.
+  // (BACKUP_MAX_AGE_HOURS)
+  // maxAgeHours: 36,
 }
