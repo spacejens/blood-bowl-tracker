@@ -125,6 +125,18 @@ moment it's created — so deleting a tracked row is always blocked, not
 just rows that have accumulated history. This is intentional and
 permanent: there is no supported way to hard-delete a tracked row.
 
+### Curated sets that shrink
+
+Because a tracked row cannot be deleted, a curated set that loses a member is
+synced by flagging rows, not deleting them. The three trophy award rule tables
+(`trophy_award_rule_match_event_types`,
+`trophy_award_rule_excluded_match_event_types`,
+`trophy_award_rule_eligible_positions`) carry a `removed` flag.
+`TrophyRuleCurationSyncService` in `packages/game-data` inserts a newly curated
+row, sets `removed` on a row the curation no longer lists, clears it when the
+curation lists that row again, and writes nothing for an unchanged curation.
+Every reader filters on `removed = false`.
+
 ## Star Player Points
 
 [Star Player Points](glossary.md#star-player-points-spp) are denormalized

@@ -6,6 +6,7 @@ import { mock } from 'vitest-mock-extended';
 
 import { LikePatternService } from '../shared/like-pattern.service';
 import { TrophiesService } from './trophies.service';
+import { TrophyRuleCurationSyncService } from './trophy-rule-curation-sync.service';
 
 async function makeService(rows: unknown[]) {
   const { db, chains } = mockDb(rows);
@@ -14,6 +15,10 @@ async function makeService(rows: unknown[]) {
       TrophiesService,
       { provide: DB, useValue: db },
       { provide: LikePatternService, useValue: mock<LikePatternService>() },
+      {
+        provide: TrophyRuleCurationSyncService,
+        useValue: mock<TrophyRuleCurationSyncService>(),
+      },
     ],
   }).compile();
   return { service: moduleRef.get(TrophiesService), chains };
