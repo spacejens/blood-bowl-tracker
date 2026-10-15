@@ -19,7 +19,7 @@ describe('RestoreProductionArgsService', () => {
     service = moduleRef.get(RestoreProductionArgsService);
   });
 
-  it('defaults to a real run of the newest backup with no confirmation', () => {
+  it('parses no arguments as a non-dry-run request without key or confirmation', () => {
     expect(service.parse([])).toEqual({ dryRun: false });
   });
 
