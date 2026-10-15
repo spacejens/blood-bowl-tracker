@@ -129,7 +129,7 @@ Stands in for `develop-feature`'s Specification (Phase 2) and Planning (Phase 3)
    ```bash
    gh run view <run-id> --log-failed
    ```
-   `<run-id>` is the number after `/runs/` in that URL. This repo's CI (`.github/workflows/ci.yml`) runs `lint`, `typecheck`, `test`, `format`, `docker-build`, and `schemaspy-build` as separate jobs behind a `gatekeeper` job, so the failing job's *name* already narrows what broke before you read a single log line. Ignore a `gatekeeper` failure on its own — it only aggregates the other six.
+   `<run-id>` is the number after `/runs/` in that URL. This repo's CI (`.github/workflows/ci.yml`) runs `lint`, `typecheck`, `test`, `format`, `docker-build`, `schemaspy-build`, `migration-changes`, and `migration-check` as separate jobs behind a `gatekeeper` job, so the failing job's *name* already narrows what broke before you read a single log line. Ignore a `gatekeeper` failure on its own — it only aggregates the other jobs.
 
    If the logs are inconclusive, reproduce locally in the worktree — the dependency is already installed there by Phase 1:
    ```bash
