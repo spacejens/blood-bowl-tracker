@@ -67,5 +67,5 @@ nothing is deployed, so there is nothing to roll back. The failed Deploy run
 is the signal: called backup and verification runs raise no
 [backup alert](production-backups.md#alerts). Fix the cause, then re-run the
 failed run or dispatch the workflow as above. There is deliberately no input
-that skips the backup or the verification: a release that cannot be backed
-up first waits until it can.
+that skips the backup or the verification: within the Deploy workflow, a
+release that cannot be backed up and verified first waits until it can.

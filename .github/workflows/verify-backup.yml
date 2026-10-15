@@ -10,9 +10,9 @@
 # calls the backup workflow (a called workflow runs under its caller's name),
 # so such a caller calls this workflow itself with the new backup's key.
 #
-# A failed verification run of this workflow's own opens (or comments on)
-# the "Production backup verification failed" issue, and a successful
-# newest-backup one closes it; see
+# A failed verification, when this workflow runs on its own, opens (or
+# comments on) the "Production backup verification failed" issue, and a
+# successful newest-backup one closes it; see
 # docs/discord-bot/production-backups.md#alerts. A skipped verification (the
 # backup run did not succeed) and a cancelled one do neither. A called
 # verification raises and resolves nothing: the caller's failed run is the
@@ -57,8 +57,8 @@ jobs:
   verify:
     # A failed or cancelled backup run has nothing new to verify. Only
     # workflow_run carries a backup run's conclusion. A called run reports
-    # its caller's event (push or workflow_dispatch), so this tests for
-    # workflow_run rather than listing the events that always verify.
+    # its caller's event, so this tests for workflow_run rather than
+    # listing the events that always verify.
     if: >-
       github.event_name != 'workflow_run' ||
       github.event.workflow_run.conclusion == 'success'
@@ -171,8 +171,11 @@ jobs:
     needs: verify
     # Verifying a chosen older backup says nothing about the newest one, so
     # only a newest-backup verification (empty on workflow_run) resolves. A
-    # called run always passes a key, so it never resolves either.
-    if: needs.verify.result == 'success' && inputs.backup-key == ''
+    # called run always passes a key, and also reports its caller's workflow
+    # name, so it never resolves even if the key were ever empty.
+    if: >-
+      needs.verify.result == 'success' && inputs.backup-key == '' &&
+      github.workflow == 'Verify production backup'
     permissions:
       contents: read
       issues: write

@@ -20,14 +20,18 @@ account problem at either one does not take the backups with it.
   before every production deploy, when `.github/workflows/deploy.yml` calls
   it (see [Deploying](production-deploying.md#backup-before-every-deploy)).
   Runs are serialized, and a running backup is never cancelled. GitHub keeps
-  only one waiting run per workflow, so a third trigger replaces a run that
+  only one waiting run per concurrency group, so a third trigger replaces a run that
   is still waiting.
 - A deploy's backup shares that queue. If a backup is running and another is
   already waiting, a new trigger replaces the waiting run, which is
-  cancelled. When the cancelled run is a deploy's backup, that deploy fails
-  without deploying anything; re-run it. This is rare (deploys are
-  serialized and the scheduled backup runs once a day), so it is accepted
-  rather than engineered around.
+  cancelled. The same applies to a deploy's verification, because
+  `verify-backup.yml` has its own concurrency group (`verify-backup`, one
+  running and one waiting, never cancelled mid-run), so newer pending
+  verifications can displace it. When the replaced run is a deploy's backup
+  or verification, that deploy fails or is cancelled (a replaced pending
+  run is cancelled) without deploying anything; re-run it. This is rare
+  (deploys are serialized and the scheduled backup runs once a day), so it
+  is accepted rather than engineered around.
 - Each run creates one backup named `production/<UTC timestamp>.dump`. It is
   a custom-format `pg_dump` of the whole database, all schemas included.
 - After a successful backup, the run prunes backups older than **30 days**.
