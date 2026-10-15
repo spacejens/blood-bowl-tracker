@@ -57,14 +57,20 @@ it is restored. It:
 4. Asks you to type `blood-bowl-tracker-discord-bot` to confirm.
 5. Stops both Fly machines.
 6. Runs the backup workflow and waits for it: this is the safety backup, the
-   exact state before the restore. It then dry-runs the safety backup to
-   check it could be restored (skipped when production's key tables were
-   empty or missing, since such a backup is refused). If either fails, the
-   machines are started again and nothing is restored.
-7. Runs `restore-production --confirm blood-bowl-tracker-discord-bot`. If it
+   exact state before the restore. If the workflow fails, the machines are
+   started again and nothing is restored. It then dry-runs the safety backup
+   to check it could be restored. That check is skipped when any of
+   production's key tables was empty or missing, since such a backup is
+   refused; the undo is then a re-import. If the check fails anyway (for
+   example because production's migrations table was damaged), it shows the
+   error and asks whether to continue without a restorable safety backup or
+   stop and start the machines again.
+7. Checks both machines are still stopped (a deploy may have started them),
+   stopping them again if not, then runs
+   `restore-production --confirm blood-bowl-tracker-discord-bot`. If it
    fails, production is unchanged; you can retry or start the machines.
 8. Starts both machines; startup migrations apply anything newer than the
-   backup.
+   backup. A machine a deploy already started is left running.
 9. Checks whether a deploy ran while the machines were stopped (restarting
    them if so), then that both machines are healthy with one leader, the
    migration log lines, and the restored row counts against the dry run.
@@ -110,8 +116,9 @@ cannot replace it.
 `restore-production <backup-key> --dry-run` covers the download, the
 inspection of the backup, and the read of production's row counts, but
 writes nothing. It does not cover turning the backup into a restore script
-or the restore transaction itself; the rehearsal below covers those. Run it whenever you want to practise the path or check
-that a backup would be accepted.
+or the restore transaction itself; the rehearsal below covers those. Run it
+whenever you want to practise the path or check that a backup would be
+accepted.
 
 The single-transaction mechanism can be rehearsed against a throwaway local
 Postgres, without production: dump a scratch database with
@@ -137,15 +144,21 @@ The report names the safety backup's key. To undo the restore, run the same
 action again and pick that key. That run takes its own safety backup first,
 so it can be undone in turn.
 
+When the safety backup's check was skipped or failed (step 6), the safety
+backup cannot be restored this way, and the report says so: undoing the
+restore means a [drop and re-import](production-database-reset.md), and
+whatever production held before the restore that a re-import does not
+reproduce is lost.
+
 ## Failures
 
 - **Storage or download failure, or a refused backup:** nothing was touched.
   Start the machines if they were already stopped.
 - **The restore failed:** the transaction rolled back and production is as it
   was before the restore. Retry, or start the machines. This includes a
-  `lock timeout`: the wipe waits at most 60 seconds for a lock held by
-  another connection, then gives up and rolls back, leaving production
-  unchanged. Check both machines are really stopped before retrying.
+  `lock timeout`: the wipe waits at most 60 seconds for each lock held by
+  another connection (the limit applies per lock wait), then gives up and
+  rolls back, leaving production unchanged. Check both machines are really stopped before retrying.
 - **The run was interrupted (Ctrl-C, a dropped session) and printed
   nothing:** production's state is unknown, since the transaction may or may
   not have committed. Keep the machines stopped and either retry the restore

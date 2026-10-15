@@ -7,10 +7,11 @@ import { APPLICATION_SCHEMAS } from './application-schemas';
 /**
  * Drops every application schema, including tables newer migrations added
  * that the backup lacks, and recreates an empty `public` for the restore
- * script to fill. The lock timeout makes a drop that waits on a lock held
- * elsewhere (a machine still connected, a long query) fail within a minute,
- * rolling everything back, instead of hanging; the restore script's own
- * `SET lock_timeout = 0` lifts it again once the wipe is done.
+ * script to fill. The lock timeout applies to each lock wait separately: a
+ * drop that waits more than a minute on any one lock held elsewhere (a
+ * machine still connected, a long query) fails, rolling everything back,
+ * instead of hanging; the restore script's own `SET lock_timeout = 0` lifts
+ * it again once the wipe is done.
  */
 export const PRODUCTION_WIPE_SQL = [
   "SET LOCAL lock_timeout = '60s';",

@@ -103,10 +103,12 @@ Behaviors worth knowing:
   (`pg_restore --no-owner --no-privileges --file=...`) and runs
   `psql --single-transaction --set=ON_ERROR_STOP=1` with the wipe of those
   four schemas (recreating an empty `public`) followed by the script. The
-  wipe waits at most 60 seconds for a lock (`SET LOCAL lock_timeout`), so a
-  connection still holding one fails the run instead of hanging it. Any
-  failure, including that lock wait or a timeout, rolls back both, so
-  production is either fully restored or unchanged. Neon's own schemas are never touched. It prints
+  wipe waits at most 60 seconds for each lock it needs
+  (`SET LOCAL lock_timeout`, which applies per lock wait, not to the wipe as
+  a whole), so a connection still holding one fails the run instead of
+  hanging it. Any failure, including that lock wait or a timeout, rolls back
+  both, so production is either fully restored or unchanged. Neon's own
+  schemas are never touched. It prints
   `{ "mode": "restored", "key", "restoredMigrations", "tableRowCounts", "previousTableRowCounts" }`.
 - `restore-production` applies no migrations: the bot's startup migrations
   apply anything newer than the backup when the machines start. It does not
