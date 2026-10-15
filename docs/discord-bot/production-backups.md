@@ -73,6 +73,36 @@ gh workflow run verify-backup.yml --ref main
 gh workflow run verify-backup.yml --ref main -f backup-key=production/<timestamp>.dump
 ```
 
+### Migration check on pull requests
+
+The `migration-check` job in `.github/workflows/ci.yml` uses the same
+restore. When a pull request changes `packages/db/migrations/`, it restores
+the newest backup into a throwaway `postgres:18` service with
+`backup-cli verify`, then applies the PR's migrations to it with
+`pnpm --filter @blood-bowl-tracker/db run db:migrate`. A migration that only
+fails on real data, such as a new `NOT NULL` constraint or a backfill, then
+fails the PR. See
+[development-workflow.md](../development-workflow.md#continuous-integration)
+for how it fits into CI.
+
+- It runs from the PR's merge commit, so the backup is compared against
+  `main`'s migrations plus the PR's. A backup recording fewer migrations
+  passes `verify`; `db:migrate` then applies the rest.
+- A backup that fails to restore fails the check too, even though the PR
+  did not cause it. The log tells them apart: "Verify newest backup" fails
+  for a backup problem, "Apply pending migrations" for a migration problem.
+- It uses the `production-backup-verify` environment, so that environment
+  must allow pull-request runs (see [One-time setup](#one-time-setup),
+  step 4). Missing settings fail it the same way as verification (see
+  [Missing required settings](#missing-required-settings)).
+- Fork PRs skip it, because forks get no secrets.
+- **Trust trade-off:** any pull request opened from a branch of this
+  repository can read the backups, for example by changing the workflow or
+  the code it runs. The token is read-only, so it cannot delete or change
+  backups, but the dump contents are readable. This is accepted for a
+  single-maintainer repository; do not grant other people write access
+  without revisiting it.
+
 ## Alerts
 
 Three workflows open a GitHub issue, labeled `bug` and `backup-alert`, when
@@ -175,8 +205,14 @@ in the process list of that ephemeral runner only.
    Add these variables: `BACKUP_STORAGE_ENDPOINT` and `BACKUP_STORAGE_BUCKET`.
 
 4. **Verification environment.** Create a second environment,
-   `production-backup-verify`, also restricted to `main`. Add only the
-   **read-only** token as secrets:
+   `production-backup-verify`. Restrict its deployment branches to `main`
+   plus the branch-name pattern `refs/pull/*/merge`, which pull-request runs
+   present, so CI's `migration-check` job can use it (see
+   [Migration check on pull requests](#migration-check-on-pull-requests)).
+   If a pull-request run still fails with "is not allowed to deploy to
+   production-backup-verify due to environment protection rules", set the
+   environment's deployment branches to **No restriction** instead. Add only
+   the **read-only** token as secrets:
    - `BACKUP_STORAGE_READ_ACCESS_KEY_ID`
    - `BACKUP_STORAGE_READ_SECRET_ACCESS_KEY`
 
@@ -192,11 +228,12 @@ in the process list of that ephemeral runner only.
 ### Missing required settings
 
 Before running `backup-cli`, the backup, verification and freshness
-workflows check that the settings they need are non-empty: the storage
-settings in all three, plus the database URL in the backup workflow. If any
-is empty, the run fails with an error that names the GitHub environment the
-job reads from (`production-backup` for the backup, `production-backup-verify`
-for verification and the freshness check) and lists each empty setting by its
+workflows, and CI's `migration-check` job, check that the settings they need
+are non-empty: the storage settings in all four, plus the database URL in
+the backup workflow. If any is empty, the run fails with an error that names
+the GitHub environment the job reads from (`production-backup` for the
+backup, `production-backup-verify` for verification, the freshness check and
+the migration check) and lists each empty setting by its
 GitHub name, such as `vars.BACKUP_STORAGE_ENDPOINT` or
 `secrets.BACKUP_STORAGE_READ_ACCESS_KEY_ID`. The error prints names only,
 never values.
