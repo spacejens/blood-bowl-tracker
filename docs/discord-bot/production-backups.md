@@ -17,9 +17,21 @@ account problem at either one does not take the backups with it.
 ## Schedule and retention
 
 - The workflow runs daily at 03:17 UTC. It also runs on manual dispatch and
-  when another workflow calls it. Runs are serialized, and a running backup
-  is never cancelled. GitHub keeps only one waiting run per workflow, so a
-  third trigger replaces a run that is still waiting.
+  before every production deploy, when `.github/workflows/deploy.yml` calls
+  it (see [Deploying](production-deploying.md#backup-before-every-deploy)).
+  Runs are serialized, and a running backup is never cancelled. GitHub keeps
+  only one waiting run per concurrency group, so a third trigger replaces a run that
+  is still waiting.
+- A deploy's backup shares that queue. If a backup is running and another is
+  already waiting, a new trigger replaces the waiting run, which is
+  cancelled. The same applies to a deploy's verification, because
+  `verify-backup.yml` has its own concurrency group (`verify-backup`, one
+  running and one waiting, never cancelled mid-run), so newer pending
+  verifications can displace it. When the replaced run is a deploy's backup
+  or verification, that deploy fails or is cancelled (a replaced pending
+  run is cancelled) without deploying anything; re-run it. This is rare
+  (deploys are serialized and the scheduled backup runs once a day), so it
+  is accepted rather than engineered around.
 - Each run creates one backup named `production/<UTC timestamp>.dump`. It is
   a custom-format `pg_dump` of the whole database, all schemas included.
 - After a successful backup, the run prunes backups older than **30 days**.
@@ -47,12 +59,17 @@ functional. It starts when a run of the backup workflow completes
 successfully, whether that run was scheduled or manually dispatched. A backup
 taken by another workflow that calls the backup workflow is **not** verified
 automatically (a called workflow runs under its caller's name, so it does not
-trigger this one); such a caller must run verification itself. The
+trigger this one); such a caller calls the verification workflow itself,
+passing the new backup's key as its required `backup-key` input. The
 verification workflow can also be started by hand, optionally for a named
 backup key.
 
-Verification restores the newest backup at the time it runs, which is normally
-the one that triggered it.
+Verification after a backup run, or started by hand without a key, restores
+the newest backup at the time it runs, which is normally the one that
+triggered it. A called verification restores exactly the backup it was given.
+The deploy workflow is such a caller: it verifies the backup it just took
+before deploying (see
+[Deploying](production-deploying.md#backup-before-every-deploy)).
 
 The job starts a throwaway `postgres:18` service container, downloads the
 newest backup (or the named one) with the **read-only** token, and runs
@@ -63,7 +80,9 @@ See [backup-cli](../backup-cli/index.md#subcommands) for the details. A failed
 check fails the run and opens an alert issue (see [Alerts](#alerts)).
 
 Verification runs from `main`, so a backup taken just before a migration
-merged still passes: it simply records fewer migrations than `main` has.
+merged still passes: it simply records fewer migrations than `main` has. A
+called verification runs at its caller's commit, which can likewise carry
+migrations the backup lacks; that passes too.
 
 The verification job never sees the database URL and cannot delete backups:
 its environment holds only the read-only token.
@@ -148,8 +167,8 @@ they fail, so a broken or missing backup is noticed before it is needed:
   empty the default applies.
 - Any failure raises the alert, including a missing setting or a network
   error, not only a bad backup. Read the linked run's log first.
-- A backup taken by another workflow that calls `backup-production.yml`
-  raises and resolves nothing: the caller owns that failure. The calling job
+- A backup or verification run called from another workflow raises and
+  resolves nothing: the caller's failed run is the signal. The calling job
   must still grant `issues: write`, because a called workflow's jobs cannot
   have more permissions than their caller grants.
 - Only the alert jobs, which run `dev-workflow-cli raise-alert` or
@@ -231,6 +250,10 @@ in the process list of that ephemeral runner only.
    Add the same `BACKUP_STORAGE_ENDPOINT` and `BACKUP_STORAGE_BUCKET`
    variables. Do not add the database URL or the write token here.
 
+   Both environments must allow runs from `main`: the deploy workflow, which
+   runs on `main`, uses them for its pre-deploy backup and verification, and
+   a deploy whose backup or verification cannot run does not proceed.
+
 5. **First run.** Trigger the workflow by hand (see below) once the bucket and
    environment exist, then confirm that the log reports a non-zero
    `sizeBytes`. This is also the first real test of the PostgreSQL client
@@ -266,9 +289,10 @@ gh run watch <run-id>
 
 Another workflow can run a backup and wait for it with
 `uses: ./.github/workflows/backup-production.yml`. It can then read the new
-backup's key from the `backup-key` output.
-The calling job must grant `issues: write` (see [Alerts](#alerts)), and a
-called backup raises no alert.
+backup's key from the `backup-key` output and pass it as the `backup-key`
+input of `uses: ./.github/workflows/verify-backup.yml`, as
+`.github/workflows/deploy.yml` does. Each calling job must grant
+`issues: write` (see [Alerts](#alerts)); neither called run raises an alert.
 
 ## Listing and downloading backups locally
 
