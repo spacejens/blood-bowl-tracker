@@ -55,14 +55,16 @@ Every pull request triggers the GitHub Actions workflow in `.github/workflows/ci
 
 Each of those four is self-contained: it checks out the code, provisions pnpm via Corepack and Node via `.nvmrc`, installs with `--frozen-lockfile`, and rebuilds the workspace before running its check.
 
-Two further jobs have no `pnpm verify` counterpart — they check things only CI is set up to check:
+Further jobs have no `pnpm verify` counterpart — they check things only CI is set up to check:
 
 - **`docker-build`** — builds the `apps/discord-bot` Docker image with `docker compose up -d --build discord-bot`, then starts it against a throwaway Postgres and waits for Nest's `Nest application successfully started` log line and for a TCP connect to port 3000 to succeed. A broken Dockerfile surfaces on the PR rather than on the deploy that follows a merge — and so does a build that succeeds but whose container cannot start, such as a runtime-stage `COPY` list missing a workspace package. No Discord token is involved: the job copies `apps/discord-bot/.env.example` to `.env` as a placeholder, and the container's background Discord connection attempts are expected to fail and are not checked.
 - **`schemaspy-build`** — starts postgres, runs the `packages/db` migrations against it, and generates the diagram with `pnpm run db:diagram`. SchemaSpy has no Dockerfile of its own, so what this validates is that the prebuilt public image pulls and runs successfully against this repo's actual schema and config.
+- **`migration-changes`** — diffs the PR against its base branch and reports whether anything under `packages/db/migrations/` changed. It needs no secrets; it only decides whether `migration-check` runs.
+- **`migration-check`** — runs only when `migration-changes` found migration changes. It restores the newest production backup into a throwaway `postgres:18` service with `backup-cli verify`, then applies the PR's migrations to it with the db package's `db:migrate`, so a migration that only fails on real data (a new `NOT NULL` constraint, a backfill) fails the PR instead of the deploy. A failure in the "Verify newest backup" step is a problem with the backup; one in "Apply pending migrations" is the PR's migration. It uses the `production-backup-verify` environment (read-only bucket token); see [Database backups](discord-bot/production-backups.md#migration-check-on-pull-requests) for the one-time environment change it needs and its trust trade-off. Fork PRs skip it, since forks get no secrets, so a fork PR touching migrations passes without the check.
 
-All six jobs run in parallel.
+All of these run in parallel, except that `migration-check` waits for `migration-changes`.
 
-A seventh job, **`gatekeeper`**, depends on all six and fails if any of them failed or was cancelled. It is the single status check branch protection requires — so the six jobs behind it can be added, removed, or renamed later by editing only the workflow file, without ever touching the branch protection ruleset.
+A final job, **`gatekeeper`**, depends on all of them and fails if any of them failed or was cancelled; a skipped job (such as `migration-check` on a PR without migration changes) counts as passing. It is the single status check branch protection requires — so the jobs behind it can be added, removed, or renamed later by editing only the workflow file, without ever touching the branch protection ruleset.
 
 ### Requiring the gatekeeper check (one-time, manual)
 

@@ -69,12 +69,12 @@ action, resolve the tag's commit with
 
 ## Backup pre-flight tests
 
-`backup-production.yml`, `verify-backup.yml` and
-`check-backup-freshness.yml` each run a "Check required settings" step before
-their first `backup-cli` step. It fails the run with an error naming the job's
+`backup-production.yml`, `verify-backup.yml`,
+`check-backup-freshness.yml` and the `migration-check` job in `ci.yml` each
+run a "Check required settings" step before their first `backup-cli` step. It fails the run with an error naming the job's
 GitHub environment and every empty setting the job needs (see
 [Database backups](../discord-bot/production-backups.md#missing-required-settings)).
-`src/preflight/backup-storage-preflight.spec.ts` reads all three real
+`src/preflight/backup-storage-preflight.spec.ts` reads all four real
 workflow files and, for each, checks that the step:
 
 - runs before the first step that invokes `backup-cli`;
@@ -88,7 +88,12 @@ workflow files and, for each, checks that the step:
 `src/preflight/backup-alert-callers.spec.ts` also checks that every job
 calling `backup-alert.yml` passes a `kind` and `command` that
 `dev-workflow-cli` knows. The allowed kind ids are repeated in the spec,
-because this package does not depend on `dev-workflow-cli`.
+because this package does not depend on `dev-workflow-cli`. It also checks
+that `backup-alert.yml` sets `continue-on-error` for `resolve-alert` only, so
+a failed resolve cannot fail the calling backup run (which gates
+verification) while a failed raise still does. That keeps the setting from
+being lost or widened; it cannot show how GitHub Actions treats the job at
+runtime.
 
 These run with the package's unit tests (`pnpm test`), not with
 `pnpm run lint:workflows`.

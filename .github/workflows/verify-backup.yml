@@ -49,8 +49,8 @@ concurrency:
 
 env:
   # pg_restore must be at least the dump's major version. Keep this equal to
-  # POSTGRES_CLIENT_MAJOR_VERSION in backup-production.yml and to the
-  # service container's image below.
+  # POSTGRES_CLIENT_MAJOR_VERSION in backup-production.yml and ci.yml's
+  # migration-check job, and to the service container's image below.
   POSTGRES_CLIENT_MAJOR_VERSION: '18'
 
 jobs:

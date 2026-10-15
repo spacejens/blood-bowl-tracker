@@ -65,6 +65,30 @@ const EXPECTED_CALLERS = [
   'verify-backup.yml: resolve-alert/verify',
 ];
 
+/** The shared alert workflow's single job, as parsed from its YAML. */
+function alertJob(): Record<string, unknown> {
+  const root = record(
+    parse(
+      readFileSync(join(DEFAULT_WORKFLOWS_DIR, 'backup-alert.yml'), 'utf8'),
+    ),
+  );
+  return record(record(root.jobs).alert);
+}
+
+describe('backup-alert.yml failure handling', () => {
+  // The backup run's conclusion gates verify-backup.yml, so a failed resolve
+  // must not fail the calling run, while a failed raise must stay visible.
+  // Whether GitHub then counts the called job as successful is runtime
+  // behavior no spec can show; this only keeps the setting from being lost
+  // or widened to the raise path.
+  const RESOLVE_ONLY =
+    /^\$\{\{\s*inputs\.command\s*==\s*'resolve-alert'\s*\}\}$/;
+
+  it('lets only a failed resolve-alert continue on error', () => {
+    expect(String(alertJob()['continue-on-error'])).toMatch(RESOLVE_ONLY);
+  });
+});
+
 describe('jobs calling backup-alert.yml', () => {
   const callers = alertCallers();
 

@@ -11,6 +11,10 @@ automatically; such a caller must run verification itself, as the deploy
 workflow does before every deploy.
 `.github/workflows/check-backup-freshness.yml` runs its `check-freshness`
 subcommand daily, so a backup that silently stopped appearing is noticed.
+CI's `migration-check` job in `.github/workflows/ci.yml` also runs `verify`,
+restoring the newest backup so a pull request's migrations can be applied
+to real data (see
+[Migration check on pull requests](../discord-bot/production-backups.md#migration-check-on-pull-requests)).
 Developers can run it locally to list or fetch backups, or to restore one
 into their local development database. The `deploy-production` skill uses it
 to restore a backup into production (see

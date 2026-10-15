@@ -216,8 +216,165 @@ jobs:
         if: always()
         run: docker compose down
 
+  # Decides whether this PR touches packages/db/migrations, so the
+  # migration-check job below (which reads production backups) only runs
+  # when there is something to check. Kept in its own job because the
+  # environment of migration-check applies before any of its steps run.
+  migration-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.changes.outputs.changed }}
+    steps:
+      # Full history, so the PR's merge commit can be diffed against the
+      # base branch.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      # The base branch name is passed through the environment, never
+      # interpolated into the script.
+      - name: Detect migration changes
+        id: changes
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          changed_files="$(git diff --name-only "origin/${BASE_REF}...HEAD" -- packages/db/migrations)"
+          if [ -n "$changed_files" ]; then
+            echo "Changed migration files:"
+            echo "$changed_files"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No changes under packages/db/migrations."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # Restores the newest production backup into a throwaway PostgreSQL and
+  # applies this PR's migrations to it, so a migration that only fails on
+  # real data (a new NOT NULL constraint, a backfill) fails here instead of
+  # in production. See docs/discord-bot/production-backups.md.
+  #
+  # Skipped for fork PRs, which get no secrets: a fork PR touching
+  # migrations passes without this check.
+  migration-check:
+    needs: migration-changes
+    if: >-
+      needs.migration-changes.outputs.changed == 'true' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # Holds only the bucket READ-ONLY token: this job can never delete
+    # backups and never sees the database URL.
+    environment: production-backup-verify
+    env:
+      # pg_restore must be at least the dump's major version. Keep this equal
+      # to POSTGRES_CLIENT_MAJOR_VERSION in backup-production.yml and
+      # verify-backup.yml, and to the service container's image below.
+      POSTGRES_CLIENT_MAJOR_VERSION: '18'
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      # The PR's merge ref, so main's latest migrations are included too.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Enable Corepack
+        run: corepack enable
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      # The runner image's preinstalled client is older than the dump, so
+      # install the pinned major from the PostgreSQL apt repository and put
+      # its binaries first on PATH.
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y "postgresql-client-${POSTGRES_CLIENT_MAJOR_VERSION}"
+          echo "/usr/lib/postgresql/${POSTGRES_CLIENT_MAJOR_VERSION}/bin" >> "$GITHUB_PATH"
+      - name: Show pg_restore version
+        run: pg_restore --version
+      # packages/db needs no build: db:migrate runs drizzle-kit, which reads
+      # drizzle.config.ts and the migrations folder directly.
+      - name: Build backup-cli
+        run: pnpm --filter "@blood-bowl-tracker/backup-cli..." run build
+      # Fails early, naming the GitHub environment and every empty setting
+      # the restore needs, so an unconfigured environment is not mistaken
+      # for a CLI problem. Prints only names, never values.
+      - name: Check required settings
+        env:
+          BACKUP_STORAGE_ENDPOINT: ${{ vars.BACKUP_STORAGE_ENDPOINT }}
+          BACKUP_STORAGE_BUCKET: ${{ vars.BACKUP_STORAGE_BUCKET }}
+          BACKUP_STORAGE_ACCESS_KEY_ID: ${{ secrets.BACKUP_STORAGE_READ_ACCESS_KEY_ID }}
+          BACKUP_STORAGE_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_STORAGE_READ_SECRET_ACCESS_KEY }}
+        run: |
+          environment=production-backup-verify
+          missing=()
+          [ -n "$BACKUP_STORAGE_ENDPOINT" ] || missing+=(vars.BACKUP_STORAGE_ENDPOINT)
+          [ -n "$BACKUP_STORAGE_BUCKET" ] || missing+=(vars.BACKUP_STORAGE_BUCKET)
+          [ -n "$BACKUP_STORAGE_ACCESS_KEY_ID" ] || missing+=(secrets.BACKUP_STORAGE_READ_ACCESS_KEY_ID)
+          [ -n "$BACKUP_STORAGE_SECRET_ACCESS_KEY" ] || missing+=(secrets.BACKUP_STORAGE_READ_SECRET_ACCESS_KEY)
+          fix="Fix it in Settings -> Environments -> ${environment} (see docs/discord-bot/production-backups.md)."
+          if [ "${#missing[@]}" -eq 4 ]; then
+            echo "::error::Every required setting is empty (${missing[*]}): GitHub environment '${environment}' looks unconfigured. ${fix}"
+            exit 1
+          elif [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error::Required settings empty in GitHub environment '${environment}': ${missing[*]}. ${fix}"
+            exit 1
+          fi
+      # Restores the newest backup into the service database and
+      # sanity-checks it; a backup recording fewer migrations than this
+      # checkout is accepted. A failure here is about the backup, not this
+      # PR's migrations.
+      - name: Verify newest backup
+        env:
+          BACKUP_STORAGE_ENDPOINT: ${{ vars.BACKUP_STORAGE_ENDPOINT }}
+          BACKUP_STORAGE_BUCKET: ${{ vars.BACKUP_STORAGE_BUCKET }}
+          BACKUP_STORAGE_ACCESS_KEY_ID: ${{ secrets.BACKUP_STORAGE_READ_ACCESS_KEY_ID }}
+          BACKUP_STORAGE_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_STORAGE_READ_SECRET_ACCESS_KEY }}
+        run: |
+          node tools/backup-cli/dist/main.js verify \
+            "postgresql://postgres:postgres@localhost:5432/postgres"
+      # Applies this PR's pending migrations to the restored data. A failure
+      # here is a migration that does not work on production data. The
+      # repository is public, and a Postgres error can quote row values (a
+      # duplicate key, a rejected value) from the restored dump, so the
+      # output is withheld from the log; reproduce locally with
+      # `backup-cli restore` followed by `db:migrate`.
+      - name: Apply pending migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+        run: |
+          if ! pnpm --filter @blood-bowl-tracker/db run db:migrate > "$RUNNER_TEMP/migrate.log" 2>&1; then
+            echo "::error::Applying the pending migrations to the restored production backup failed. The output is withheld because it can contain production data and this repository is public. Reproduce locally: restore the newest backup with backup-cli and run db:migrate (see docs/backup-cli/index.md)."
+            exit 1
+          fi
+
   gatekeeper:
-    needs: [lint, typecheck, test, format, docker-build, schemaspy-build]
+    needs:
+      [
+        lint,
+        typecheck,
+        test,
+        format,
+        docker-build,
+        schemaspy-build,
+        migration-changes,
+        migration-check,
+      ]
     if: always()
     runs-on: ubuntu-latest
     steps:
