@@ -349,12 +349,19 @@ jobs:
           node tools/backup-cli/dist/main.js verify \
             "postgresql://postgres:postgres@localhost:5432/postgres"
       # Applies this PR's pending migrations to the restored data. A failure
-      # here is a migration that does not work on production data.
+      # here is a migration that does not work on production data. The
+      # repository is public, and a Postgres error can quote row values (a
+      # duplicate key, a rejected value) from the restored dump, so the
+      # output is withheld from the log; reproduce locally with
+      # `backup-cli restore` followed by `db:migrate`.
       - name: Apply pending migrations
-        run: pnpm --filter @blood-bowl-tracker/db run db:migrate
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
-
+        run: |
+          if ! pnpm --filter @blood-bowl-tracker/db run db:migrate > "$RUNNER_TEMP/migrate.log" 2>&1; then
+            echo "::error::Applying the pending migrations to the restored production backup failed. The output is withheld because it can contain production data and this repository is public. Reproduce locally: restore the newest backup with backup-cli and run db:migrate (see docs/backup-cli/index.md)."
+            exit 1
+          fi
 
   gatekeeper:
     needs:

@@ -91,6 +91,15 @@ for how it fits into CI.
 - A backup that fails to restore fails the check too, even though the PR
   did not cause it. The log tells them apart: "Verify newest backup" fails
   for a backup problem, "Apply pending migrations" for a migration problem.
+  A "Verify newest backup" failure that lists migrations absent from
+  `packages/db/migrations` can also mean the PR is stale (re-running the job
+  reuses the old merge commit, which lacks a migration deployed since): push
+  or merge `main` into the branch instead of treating it as a backup fault.
+- The "Apply pending migrations" step withholds the migration output from
+  the log. The repository is public and a Postgres error can quote row values
+  from the restored dump. Reproduce a failure locally with
+  `backup-cli restore` and then `db:migrate` (see
+  [backup-cli](../backup-cli/index.md)).
 - It uses the `production-backup-verify` environment, so that environment
   must allow pull-request runs (see [One-time setup](#one-time-setup),
   step 4). Missing settings fail it the same way as verification (see
@@ -99,7 +108,10 @@ for how it fits into CI.
 - **Trust trade-off:** any pull request opened from a branch of this
   repository can read the backups, for example by changing the workflow or
   the code it runs. The token is read-only, so it cannot delete or change
-  backups, but the dump contents are readable. This is accepted for a
+  backups, but the dump contents are readable. The environment also shows
+  as a deployment on each such pull request, and choosing **No restriction**
+  for its deployment branches (step 4) lets any branch's workflow use the
+  token. This is accepted for a
   single-maintainer repository; do not grant other people write access
   without revisiting it.
 
