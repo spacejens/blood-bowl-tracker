@@ -6,6 +6,8 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 import { AppModule } from './app.module';
+import { ArchiveParserService } from './archive/archive-parser.service';
+import { PgArchiveService } from './archive/pg-archive.service';
 import {
   BACKUP_CONFIG_PATH,
   BACKUP_ENV,
@@ -18,10 +20,15 @@ import { LocalMigrationsService } from './migrations/local-migrations.service';
 import { DatabaseUrlRedactorService } from './pg-client/database-url-redactor.service';
 import { LocalDatabaseGuardService } from './pg-client/local-database-guard.service';
 import { PgClientService } from './pg-client/pg-client.service';
+import { ProductionDatabaseUrlService } from './production-database/production-database-url.service';
 import { PruneBackupsService } from './prune-backups/prune-backups.service';
 import { PgRestoreService } from './restore/pg-restore.service';
 import { LocalDatabaseWipeService } from './restore-backup/local-database-wipe.service';
 import { RestoreBackupService } from './restore-backup/restore-backup.service';
+import { BackupInspectionService } from './restore-production/backup-inspection.service';
+import { ProductionRestoreService } from './restore-production/production-restore.service';
+import { RestoreProductionService } from './restore-production/restore-production.service';
+import { RestoreProductionArgsService } from './restore-production/restore-production-args.service';
 import { RetentionService } from './retention/retention.service';
 import { BackupStorageService } from './storage/backup-storage.service';
 import { S3ClientFactoryService } from './storage/s3-client-factory.service';
@@ -62,6 +69,13 @@ describe('AppModule', () => {
       LocalDatabaseWipeService,
       VerifyBackupService,
       RestoreBackupService,
+      ProductionDatabaseUrlService,
+      ArchiveParserService,
+      PgArchiveService,
+      ProductionRestoreService,
+      BackupInspectionService,
+      RestoreProductionService,
+      RestoreProductionArgsService,
     ]) {
       expect(moduleRef.get(service)).toBeInstanceOf(service);
     }

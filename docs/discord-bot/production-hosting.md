@@ -27,5 +27,7 @@ isolated bot identity locally alongside this production deployment, see
 - [Rolling back](production-rollback.md) — redeploying a previous release
 - [Database backups](production-backups.md) — the daily R2 backup
   workflow, its tokens and retention, and running a backup on demand
+- [Restoring a backup into production](production-restore.md) — the
+  safety-backed, single-transaction restore and its rehearsal
 - [Dropping and recreating the production database](production-database-reset.md)
   — the destructive reset path

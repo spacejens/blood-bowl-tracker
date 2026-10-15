@@ -1,6 +1,8 @@
 import { CliSharedModule } from '@blood-bowl-tracker/cli-shared';
 import { Module } from '@nestjs/common';
 
+import { ArchiveParserService } from './archive/archive-parser.service';
+import { PgArchiveService } from './archive/pg-archive.service';
 import {
   BACKUP_CONFIG_PATH,
   BACKUP_ENV,
@@ -18,10 +20,15 @@ import {
 import { DatabaseUrlRedactorService } from './pg-client/database-url-redactor.service';
 import { LocalDatabaseGuardService } from './pg-client/local-database-guard.service';
 import { PgClientService } from './pg-client/pg-client.service';
+import { ProductionDatabaseUrlService } from './production-database/production-database-url.service';
 import { PruneBackupsService } from './prune-backups/prune-backups.service';
 import { PgRestoreService } from './restore/pg-restore.service';
 import { LocalDatabaseWipeService } from './restore-backup/local-database-wipe.service';
 import { RestoreBackupService } from './restore-backup/restore-backup.service';
+import { BackupInspectionService } from './restore-production/backup-inspection.service';
+import { ProductionRestoreService } from './restore-production/production-restore.service';
+import { RestoreProductionService } from './restore-production/restore-production.service';
+import { RestoreProductionArgsService } from './restore-production/restore-production-args.service';
 import { RetentionService } from './retention/retention.service';
 import { BackupStorageService } from './storage/backup-storage.service';
 import { S3ClientFactoryService } from './storage/s3-client-factory.service';
@@ -55,6 +62,13 @@ import { VerifyBackupService } from './verify-backup/verify-backup.service';
     LocalDatabaseWipeService,
     VerifyBackupService,
     RestoreBackupService,
+    ProductionDatabaseUrlService,
+    ArchiveParserService,
+    PgArchiveService,
+    ProductionRestoreService,
+    BackupInspectionService,
+    RestoreProductionService,
+    RestoreProductionArgsService,
   ],
 })
 export class AppModule {}

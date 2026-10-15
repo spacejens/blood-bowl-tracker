@@ -88,11 +88,75 @@ describe('RestoredDatabaseQueryService', () => {
       });
     });
 
+    it('counts only the tables it is given', async () => {
+      pgClient.run.mockResolvedValue('teams|6\nmatches|12\n');
+
+      await expect(
+        service.keyTableRowCounts(DATABASE_URL, ['teams', 'matches']),
+      ).resolves.toEqual({ teams: 6, matches: 12 });
+      expect(pgClient.run).toHaveBeenCalledWith(
+        expect.objectContaining({
+          args: [
+            ...PSQL_FLAGS,
+            "--command=SELECT 'teams', count(*) FROM game_data.teams" +
+              " UNION ALL SELECT 'matches', count(*) FROM game_data.matches;",
+          ],
+        }),
+      );
+    });
+
+    it('returns no counts without querying when given no tables', async () => {
+      await expect(
+        service.keyTableRowCounts(DATABASE_URL, []),
+      ).resolves.toEqual({});
+      expect(pgClient.run).not.toHaveBeenCalled();
+    });
+
     it('fails on output it cannot parse', async () => {
       pgClient.run.mockResolvedValue('coaches|\n');
 
       await expect(service.keyTableRowCounts(DATABASE_URL)).rejects.toThrow(
         'Unexpected psql output line: coaches|',
+      );
+    });
+  });
+
+  describe('existingKeyTables', () => {
+    it('lists the key tables that exist, in key-table order, without touching them', async () => {
+      pgClient.run.mockResolvedValue('teams\ncoaches\n\n');
+
+      await expect(service.existingKeyTables(DATABASE_URL)).resolves.toEqual([
+        'coaches',
+        'teams',
+      ]);
+      expect(pgClient.run).toHaveBeenCalledWith({
+        program: 'psql',
+        args: [
+          ...PSQL_FLAGS,
+          '--command=SELECT tablename FROM pg_catalog.pg_tables ' +
+            "WHERE schemaname = 'game_data' AND tablename IN " +
+            "('coaches', 'teams', 'players', 'matches', 'competitions');",
+        ],
+        databaseUrl: DATABASE_URL,
+        timeoutMs: PSQL_TIMEOUT_MS,
+      });
+    });
+
+    it('lists nothing when the game_data schema is missing', async () => {
+      pgClient.run.mockResolvedValue('');
+
+      await expect(service.existingKeyTables(DATABASE_URL)).resolves.toEqual(
+        [],
+      );
+    });
+
+    it('propagates a connection failure', async () => {
+      pgClient.run.mockRejectedValue(
+        new Error('psql exited with code 2: connection refused'),
+      );
+
+      await expect(service.existingKeyTables(DATABASE_URL)).rejects.toThrow(
+        'connection refused',
       );
     });
   });

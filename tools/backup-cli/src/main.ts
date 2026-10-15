@@ -14,6 +14,8 @@ import {
   RestoreBackupRequest,
   RestoreBackupService,
 } from './restore-backup/restore-backup.service';
+import { RestoreProductionService } from './restore-production/restore-production.service';
+import { RestoreProductionArgsService } from './restore-production/restore-production-args.service';
 import { BackupStorageService } from './storage/backup-storage.service';
 import {
   VerifyBackupRequest,
@@ -27,6 +29,7 @@ const SUBCOMMANDS = [
   'download',
   'verify',
   'restore',
+  'restore-production',
 ] as const;
 
 type Subcommand = (typeof SUBCOMMANDS)[number];
@@ -40,11 +43,13 @@ const VERIFY_USAGE =
   '(restores the newest backup when the key is omitted; the target must be ' +
   'an empty database on localhost)';
 
-/** Arguments for `download`, `verify` and `restore`; absent for every other subcommand. */
+/** Arguments for `download`, `verify`, `restore` and `restore-production`; absent for every other subcommand. */
 interface DispatchArgs {
   readonly download?: DownloadBackupRequest;
   readonly verify?: VerifyBackupRequest;
   readonly restore?: RestoreBackupRequest;
+  /** Raw tokens; parsed by `RestoreProductionArgsService` once the context exists. */
+  readonly restoreProduction?: readonly string[];
 }
 
 function readDownloadRequest(): DownloadBackupRequest {
@@ -80,6 +85,8 @@ function readArgs(subcommand: Subcommand): DispatchArgs {
     download: subcommand === 'download' ? readDownloadRequest() : undefined,
     verify: subcommand === 'verify' ? readVerifyRequest() : undefined,
     restore: subcommand === 'restore' ? readRestoreRequest() : undefined,
+    restoreProduction:
+      subcommand === 'restore-production' ? process.argv.slice(3) : undefined,
   };
 }
 
@@ -109,6 +116,12 @@ function dispatch(
     }
     case 'restore':
       return app.get(RestoreBackupService).run(args.restore ?? {});
+    case 'restore-production': {
+      const request = app
+        .get(RestoreProductionArgsService)
+        .parse(args.restoreProduction ?? []);
+      return app.get(RestoreProductionService).run(request);
+    }
   }
 }
 

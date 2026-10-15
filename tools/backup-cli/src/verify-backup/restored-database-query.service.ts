@@ -34,12 +34,39 @@ export class RestoredDatabaseQueryService {
     return this.lines(stdout);
   }
 
-  /** Row count of every key table, keyed by bare table name. */
-  async keyTableRowCounts(databaseUrl: string): Promise<TableRowCounts> {
+  /**
+   * The key tables present in `game_data`, in `KEY_TABLES` order. Reading
+   * the catalog never fails on a missing schema or table, so this also
+   * proves the connection against a database whose schema is damaged.
+   * `pg_tables` lists every table regardless of the role's privileges,
+   * unlike `information_schema.tables`.
+   */
+  async existingKeyTables(databaseUrl: string): Promise<string[]> {
+    const names = KEY_TABLES.map((table) => `'${table}'`).join(', ');
+    const present = new Set(
+      this.lines(
+        await this.query(
+          databaseUrl,
+          'SELECT tablename FROM pg_catalog.pg_tables ' +
+            `WHERE schemaname = 'game_data' AND tablename IN (${names});`,
+        ),
+      ),
+    );
+    return KEY_TABLES.filter((table) => present.has(table));
+  }
+
+  /** Row count of each given key table (all of them by default), keyed by bare table name. */
+  async keyTableRowCounts(
+    databaseUrl: string,
+    tables: readonly string[] = KEY_TABLES,
+  ): Promise<TableRowCounts> {
+    if (tables.length === 0) {
+      return {};
+    }
     const sql =
-      KEY_TABLES.map(
-        (table) => `SELECT '${table}', count(*) FROM game_data.${table}`,
-      ).join(' UNION ALL ') + ';';
+      tables
+        .map((table) => `SELECT '${table}', count(*) FROM game_data.${table}`)
+        .join(' UNION ALL ') + ';';
     const counts: Record<string, number> = {};
     for (const line of this.lines(await this.query(databaseUrl, sql))) {
       const [, table, count] = ROW_COUNT_LINE.exec(line) ?? [];
