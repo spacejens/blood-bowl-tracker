@@ -69,12 +69,13 @@ action, resolve the tag's commit with
 
 ## Backup pre-flight tests
 
-`backup-production.yml` and `verify-backup.yml` each run a "Check required
+`backup-production.yml`, `verify-backup.yml` and
+`check-backup-freshness.yml` each run a "Check required
 settings" step before their first `backup-cli` step. It fails the run with an
 error naming the job's GitHub environment and every empty setting the job
 needs (see
 [Database backups](../discord-bot/production-backups.md#missing-required-settings)).
-`src/preflight/backup-storage-preflight.spec.ts` reads both real workflow
+`src/preflight/backup-storage-preflight.spec.ts` reads all three real workflow
 files and, for each, checks that the step:
 
 - runs before the first step that invokes `backup-cli`;

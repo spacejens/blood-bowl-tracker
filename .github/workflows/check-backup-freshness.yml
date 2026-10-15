@@ -1,0 +1,100 @@
+# Fails when the newest production backup is missing or older than
+# backup-cli's maxAgeHours (36 by default), so backups that silently stopped
+# are noticed. A failed run opens (or comments on) the "Newest production
+# backup is stale" issue, and a successful one closes it. See
+# docs/discord-bot/production-backups.md#alerts.
+name: Check backup freshness
+
+on:
+  schedule:
+    # 08:41 UTC daily: a few hours after the 03:17 backup, so a delayed
+    # backup run has finished, and off the top of the hour.
+    - cron: '41 8 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One check at a time; a running one is never cancelled.
+concurrency:
+  group: check-backup-freshness
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Protected environment holding only the bucket READ-ONLY token: this
+    # job can never delete backups and never sees the database URL.
+    environment: production-backup-verify
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Enable Corepack
+        run: corepack enable
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build backup-cli
+        run: pnpm --filter "@blood-bowl-tracker/backup-cli..." run build
+      # Fails early, naming the GitHub environment and every empty setting
+      # the check needs, so an unconfigured environment is not mistaken for a
+      # stale backup. Prints only names, never values.
+      - name: Check required settings
+        env:
+          BACKUP_STORAGE_ENDPOINT: ${{ vars.BACKUP_STORAGE_ENDPOINT }}
+          BACKUP_STORAGE_BUCKET: ${{ vars.BACKUP_STORAGE_BUCKET }}
+          BACKUP_STORAGE_ACCESS_KEY_ID: ${{ secrets.BACKUP_STORAGE_READ_ACCESS_KEY_ID }}
+          BACKUP_STORAGE_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_STORAGE_READ_SECRET_ACCESS_KEY }}
+        run: |
+          environment=production-backup-verify
+          missing=()
+          [ -n "$BACKUP_STORAGE_ENDPOINT" ] || missing+=(vars.BACKUP_STORAGE_ENDPOINT)
+          [ -n "$BACKUP_STORAGE_BUCKET" ] || missing+=(vars.BACKUP_STORAGE_BUCKET)
+          [ -n "$BACKUP_STORAGE_ACCESS_KEY_ID" ] || missing+=(secrets.BACKUP_STORAGE_READ_ACCESS_KEY_ID)
+          [ -n "$BACKUP_STORAGE_SECRET_ACCESS_KEY" ] || missing+=(secrets.BACKUP_STORAGE_READ_SECRET_ACCESS_KEY)
+          fix="Fix it in Settings -> Environments -> ${environment} (see docs/discord-bot/production-backups.md)."
+          if [ "${#missing[@]}" -eq 4 ]; then
+            echo "::error::Every required setting is empty (${missing[*]}): GitHub environment '${environment}' looks unconfigured. ${fix}"
+            exit 1
+          elif [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error::Required settings empty in GitHub environment '${environment}': ${missing[*]}. ${fix}"
+            exit 1
+          fi
+      # Prints {key, createdAt, ageHours, maxAgeHours} as JSON (no secrets).
+      # No backups, an unparseable upload time, or a newest backup older than
+      # the limit exits non-zero and fails the run.
+      - name: Check freshness
+        env:
+          BACKUP_STORAGE_ENDPOINT: ${{ vars.BACKUP_STORAGE_ENDPOINT }}
+          BACKUP_STORAGE_BUCKET: ${{ vars.BACKUP_STORAGE_BUCKET }}
+          BACKUP_STORAGE_ACCESS_KEY_ID: ${{ secrets.BACKUP_STORAGE_READ_ACCESS_KEY_ID }}
+          BACKUP_STORAGE_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_STORAGE_READ_SECRET_ACCESS_KEY }}
+        run: node tools/backup-cli/dist/main.js check-freshness
+
+  # failure() is false for a cancelled run, so cancelling raises nothing.
+  alert-on-failure:
+    needs: check
+    if: failure()
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/backup-alert.yml
+    with:
+      command: raise-alert
+      kind: stale
+
+  resolve-alert:
+    needs: check
+    if: needs.check.result == 'success'
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/backup-alert.yml
+    with:
+      command: resolve-alert
+      kind: stale
