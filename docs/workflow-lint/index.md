@@ -69,13 +69,13 @@ action, resolve the tag's commit with
 
 ## Backup pre-flight tests
 
-`backup-production.yml` and `verify-backup.yml` each run a "Check required
-settings" step before their first `backup-cli` step. It fails the run with an
-error naming the job's GitHub environment and every empty setting the job
-needs (see
+`backup-production.yml`, `verify-backup.yml` and
+`check-backup-freshness.yml` each run a "Check required settings" step before
+their first `backup-cli` step. It fails the run with an error naming the job's
+GitHub environment and every empty setting the job needs (see
 [Database backups](../discord-bot/production-backups.md#missing-required-settings)).
-`src/preflight/backup-storage-preflight.spec.ts` reads both real workflow
-files and, for each, checks that the step:
+`src/preflight/backup-storage-preflight.spec.ts` reads all three real
+workflow files and, for each, checks that the step:
 
 - runs before the first step that invokes `backup-cli`;
 - names the same environment as the job's `environment:`;
@@ -84,6 +84,11 @@ files and, for each, checks that the step:
 - when its script is run with `bash`, fails naming every setting and the
   unconfigured environment when all are empty, fails naming only the empty
   one when one is empty, and succeeds with no output when all are set.
+
+`src/preflight/backup-alert-callers.spec.ts` also checks that every job
+calling `backup-alert.yml` passes a `kind` and `command` that
+`dev-workflow-cli` knows. The allowed kind ids are repeated in the spec,
+because this package does not depend on `dev-workflow-cli`.
 
 These run with the package's unit tests (`pnpm test`), not with
 `pnpm run lint:workflows`.

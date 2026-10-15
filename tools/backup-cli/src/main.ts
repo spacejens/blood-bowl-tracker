@@ -4,6 +4,7 @@ import { runCli } from '@blood-bowl-tracker/cli-shared';
 import { INestApplicationContext } from '@nestjs/common';
 
 import { AppModule } from './app.module';
+import { CheckFreshnessService } from './check-freshness/check-freshness.service';
 import { CreateBackupService } from './create-backup/create-backup.service';
 import {
   DownloadBackupRequest,
@@ -26,6 +27,7 @@ const SUBCOMMANDS = [
   'create',
   'list',
   'prune',
+  'check-freshness',
   'download',
   'verify',
   'restore',
@@ -102,6 +104,8 @@ function dispatch(
       return app.get(BackupStorageService).list();
     case 'prune':
       return app.get(PruneBackupsService).run();
+    case 'check-freshness':
+      return app.get(CheckFreshnessService).run();
     case 'download': {
       if (args.download === undefined) {
         throw new Error(DOWNLOAD_USAGE);

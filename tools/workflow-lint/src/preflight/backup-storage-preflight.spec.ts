@@ -50,6 +50,17 @@ const CASES: readonly WorkflowCase[] = [
         'secrets.BACKUP_STORAGE_WRITE_SECRET_ACCESS_KEY',
     },
   },
+  {
+    file: 'check-backup-freshness.yml',
+    jobId: 'check',
+    githubNames: {
+      BACKUP_STORAGE_ENDPOINT: 'vars.BACKUP_STORAGE_ENDPOINT',
+      BACKUP_STORAGE_BUCKET: 'vars.BACKUP_STORAGE_BUCKET',
+      BACKUP_STORAGE_ACCESS_KEY_ID: 'secrets.BACKUP_STORAGE_READ_ACCESS_KEY_ID',
+      BACKUP_STORAGE_SECRET_ACCESS_KEY:
+        'secrets.BACKUP_STORAGE_READ_SECRET_ACCESS_KEY',
+    },
+  },
 ];
 
 /** Distinct, recognizable value per key, so a leaked value is detectable. */

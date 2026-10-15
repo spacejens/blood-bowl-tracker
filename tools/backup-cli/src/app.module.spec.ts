@@ -8,6 +8,8 @@ import { describe, expect, it } from 'vitest';
 import { AppModule } from './app.module';
 import { ArchiveParserService } from './archive/archive-parser.service';
 import { PgArchiveService } from './archive/pg-archive.service';
+import { BackupFreshnessService } from './check-freshness/backup-freshness.service';
+import { CheckFreshnessService } from './check-freshness/check-freshness.service';
 import {
   BACKUP_CONFIG_PATH,
   BACKUP_ENV,
@@ -60,6 +62,8 @@ describe('AppModule', () => {
       RetentionService,
       CreateBackupService,
       PruneBackupsService,
+      BackupFreshnessService,
+      CheckFreshnessService,
       DownloadBackupService,
       PgClientService,
       LocalMigrationsService,

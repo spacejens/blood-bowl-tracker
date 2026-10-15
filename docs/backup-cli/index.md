@@ -5,12 +5,14 @@ database to a private Cloudflare R2 bucket and manages the stored backups.
 The scheduled GitHub Actions workflow `.github/workflows/backup-production.yml`
 runs it, and `.github/workflows/verify-backup.yml` uses it to check the newest
 backup after each successful scheduled or manually dispatched run of that
-workflow; a failed or cancelled run triggers no verification. A backup taken by
-another workflow that calls `backup-production.yml` is not verified
-automatically; such a caller must run verification itself. Developers can run
-it locally to list or fetch backups, or to restore one into their local
-development database. The `deploy-production` skill uses it to restore a
-backup into production (see
+workflow; a failed or cancelled run triggers no verification. A backup taken
+by another workflow that calls `backup-production.yml` is not verified
+automatically; such a caller must run verification itself.
+`.github/workflows/check-backup-freshness.yml` runs its `check-freshness`
+subcommand daily, so a backup that silently stopped appearing is noticed.
+Developers can run it locally to list or fetch backups, or to restore one
+into their local development database. The `deploy-production` skill uses it
+to restore a backup into production (see
 [Restoring a backup into production](../discord-bot/production-restore.md)).
 For the bucket, tokens, schedule and retention policy, see
 [Database backups](../discord-bot/production-backups.md).
@@ -22,6 +24,7 @@ For the bucket, tokens, schedule and retention policy, see
 | `create`                                                             | `pg_dump --format=custom --no-owner` of the whole database, uploaded as `production/<UTC timestamp>.dump`; prints key, size and timestamp                        |
 | `list`                                                               | Stored backups, newest first                                                                                                                                     |
 | `prune`                                                              | Delete backups older than the retention window (default 30 days), never the newest one                                                                           |
+| `check-freshness`                                                    | Fail unless the newest backup is at most `maxAgeHours` (default 36) hours old; prints key, upload time, age in hours and the limit                               |
 | `download <destination-path> [<backup-key>]`                         | Fetch the named backup, or the newest, to a new local file                                                                                                       |
 | `verify <target-database-url> [<backup-key>]`                        | Restore the named backup, or the newest, into an empty local database and sanity-check it; prints key, restored migration count and key-table row counts         |
 | `restore [<backup-key>]`                                             | Replace the local development database (`localDatabase.url`) with the named backup, or the newest; prints key, restored migration count and key-table row counts |
@@ -34,9 +37,21 @@ Behaviors worth knowing:
   `pg_restore --no-owner` when the target database has different roles.
 - `create` dumps into a temporary directory and removes it afterwards,
   whether the backup succeeded or not.
+- Every subcommand that reads the bucket's contents (`list`, `prune`,
+  `check-freshness`, and the "newest backup" default of `download`, `verify`,
+  `restore` and `restore-production`) sees only objects under `production/`
+  whose key ends in `.dump`; any other object is neither listed, pruned nor
+  counted towards freshness.
 - `prune` throws and deletes nothing if the upload time the bucket reports
   for any stored backup cannot be parsed. If a deletion fails part-way, the error
   names the failing key and the keys already deleted.
+- `check-freshness` fails when the bucket holds no backups, when any stored
+  backup's upload time cannot be parsed, or when the newest backup is older
+  than `maxAgeHours` (exactly at the limit passes; an upload time in the
+  future passes too). The newest is picked by
+  upload time. On success it prints
+  `{ "key", "createdAt", "ageHours", "maxAgeHours" }`, with `ageHours`
+  rounded to two decimals.
 - `download` refuses to overwrite an existing destination file, and removes
   its partial file if the download fails.
 - `verify` refuses any target whose host is not `localhost`, `127.0.0.1` or
@@ -44,9 +59,10 @@ Behaviors worth knowing:
   database. The restore runs in a single transaction, so a failed restore
   leaves nothing behind. The target URL is an argument, never a setting.
 - `verify` restores with
-  `pg_restore --no-owner --no-privileges --exit-on-error --single-transaction`, so production's
-  roles need not exist locally. A non-zero exit, or a restore taking over 30
-  minutes, fails it. The target URL appears in every error with its password masked (`<password>`).
+  `pg_restore --no-owner --no-privileges --exit-on-error --single-transaction`,
+  so production's roles need not exist locally. A non-zero exit, or a restore
+  taking over 30 minutes, fails it. The target URL appears in every error with
+  its password masked (`<password>`).
 - `verify` then checks, with `psql`, that `drizzle.__drizzle_migrations` is
   non-empty and records exactly the oldest N migrations of this checkout's
   `packages/db/migrations` (a backup older than the checkout is fine; an
@@ -138,25 +154,26 @@ from an environment variable instead. A non-empty variable wins over the
 file. Validation is per setting, so `list` never fails over a missing
 database url that only `create` needs.
 
-The backup and verification workflows check the settings they need before
-running the CLI and, if any is empty, fail naming the GitHub environment to
-fix (see
+The backup, verification and freshness workflows check the settings they
+need before running the CLI and, if any is empty, fail naming the GitHub
+environment to fix (see
 [Database backups](../discord-bot/production-backups.md#missing-required-settings)).
 
-| Setting                                                    | Environment variable               | Needed by |
-| ---------------------------------------------------------- | ---------------------------------- | --------- |
-| `storage.endpoint`                                         | `BACKUP_STORAGE_ENDPOINT`          | all       |
-| `storage.bucket`                                           | `BACKUP_STORAGE_BUCKET`            | all       |
-| `storage.accessKeyId`                                      | `BACKUP_STORAGE_ACCESS_KEY_ID`     | all       |
-| `storage.secretAccessKey`                                  | `BACKUP_STORAGE_SECRET_ACCESS_KEY` | all       |
-| `database.url`                                             | `BACKUP_DATABASE_URL`              | `create`  |
-| `localDatabase.url` (default: the docker-compose database) | `BACKUP_LOCAL_DATABASE_URL`        | `restore` |
-| `retentionDays` (default 30)                               | `BACKUP_RETENTION_DAYS`            | `prune`   |
+| Setting                                                    | Environment variable               | Needed by         |
+| ---------------------------------------------------------- | ---------------------------------- | ----------------- |
+| `storage.endpoint`                                         | `BACKUP_STORAGE_ENDPOINT`          | all               |
+| `storage.bucket`                                           | `BACKUP_STORAGE_BUCKET`            | all               |
+| `storage.accessKeyId`                                      | `BACKUP_STORAGE_ACCESS_KEY_ID`     | all               |
+| `storage.secretAccessKey`                                  | `BACKUP_STORAGE_SECRET_ACCESS_KEY` | all               |
+| `database.url`                                             | `BACKUP_DATABASE_URL`              | `create`          |
+| `localDatabase.url` (default: the docker-compose database) | `BACKUP_LOCAL_DATABASE_URL`        | `restore`         |
+| `retentionDays` (default 30)                               | `BACKUP_RETENTION_DAYS`            | `prune`           |
+| `maxAgeHours` (default 36)                                 | `BACKUP_MAX_AGE_HOURS`             | `check-freshness` |
 
 Put the **read-only** R2 token in your local file. It is enough for `list`,
-`download`, `verify`, `restore` and `restore-production`. `create` and
-`prune` need the write token, which only the `production-backup` GitHub
-environment holds. `restore-production` takes its database from
+`check-freshness`, `download`, `verify`, `restore` and `restore-production`.
+`create` and `prune` need the write token, which only the `production-backup`
+GitHub environment holds. `restore-production` takes its database from
 `apps/discord-bot/.env.production`, not from this file.
 
 The file holds only the read-only token, so `sync-gitignored` copies it from

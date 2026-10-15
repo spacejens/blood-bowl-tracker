@@ -7,6 +7,11 @@
 # not fire for a backup taken by another workflow that calls the backup
 # workflow (a called workflow runs under its caller's name), so such a caller
 # must run verification itself.
+#
+# A failed verification opens (or comments on) the "Production backup
+# verification failed" issue, and a successful one closes it; see
+# docs/discord-bot/production-backups.md#alerts. A skipped verification
+# (the backup run did not succeed) and a cancelled one do neither.
 name: Verify production backup
 
 on:
@@ -124,3 +129,27 @@ jobs:
           node tools/backup-cli/dist/main.js verify \
             "postgresql://postgres:postgres@localhost:5432/postgres" \
             ${BACKUP_KEY:+"$BACKUP_KEY"}
+
+  alert-on-failure:
+    needs: verify
+    if: failure()
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/backup-alert.yml
+    with:
+      command: raise-alert
+      kind: verify
+
+  resolve-alert:
+    needs: verify
+    # Verifying a chosen older backup says nothing about the newest one, so
+    # only a newest-backup verification (empty on workflow_run) resolves.
+    if: needs.verify.result == 'success' && inputs.backup-key == ''
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/backup-alert.yml
+    with:
+      command: resolve-alert
+      kind: verify

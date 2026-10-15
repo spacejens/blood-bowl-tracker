@@ -3,6 +3,8 @@ import { Module } from '@nestjs/common';
 
 import { ArchiveParserService } from './archive/archive-parser.service';
 import { PgArchiveService } from './archive/pg-archive.service';
+import { BackupFreshnessService } from './check-freshness/backup-freshness.service';
+import { CheckFreshnessService } from './check-freshness/check-freshness.service';
 import {
   BACKUP_CONFIG_PATH,
   BACKUP_ENV,
@@ -52,6 +54,8 @@ import { VerifyBackupService } from './verify-backup/verify-backup.service';
     RetentionService,
     CreateBackupService,
     PruneBackupsService,
+    BackupFreshnessService,
+    CheckFreshnessService,
     DownloadBackupService,
     { provide: MIGRATIONS_DIR, useValue: DEFAULT_MIGRATIONS_DIR },
     PgClientService,

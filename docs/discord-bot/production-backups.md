@@ -28,8 +28,8 @@ account problem at either one does not take the backups with it.
   retention setting therefore cannot leave the bucket empty. Pruning also
   refuses to delete anything if the upload time the bucket reports for any
   stored backup cannot be parsed.
-- A failed run fails the workflow, which shows in the Actions tab. Alerting
-  on failures is separate, future work.
+- A failed run fails the workflow and opens an alert issue (see
+  [Alerts](#alerts)).
 
 ## Scheduling caveats
 
@@ -37,7 +37,8 @@ account problem at either one does not take the backups with it.
   Changes to the schedule take effect once merged.
 - GitHub disables scheduled workflows after 60 days without repository
   activity. If backups stop appearing, check the Actions tab and re-enable
-  the workflow there.
+  the workflow there. This applies to the freshness check too, so a disabled
+  schedule silences its alert as well.
 
 ## Verification
 
@@ -59,8 +60,7 @@ newest backup (or the named one) with the **read-only** token, and runs
 recorded migrations match `main`'s `packages/db/migrations` (older is fine,
 unknown or skipped ones are not) and that the key game-data tables have rows.
 See [backup-cli](../backup-cli/index.md#subcommands) for the details. A failed
-check fails the run, which shows in the Actions tab. Alerting on failures is
-separate, future work.
+check fails the run and opens an alert issue (see [Alerts](#alerts)).
 
 Verification runs from `main`, so a backup taken just before a migration
 merged still passes: it simply records fewer migrations than `main` has.
@@ -72,6 +72,67 @@ its environment holds only the read-only token.
 gh workflow run verify-backup.yml --ref main
 gh workflow run verify-backup.yml --ref main -f backup-key=production/<timestamp>.dump
 ```
+
+## Alerts
+
+Three workflows open a GitHub issue, labeled `bug` and `backup-alert`, when
+they fail, so a broken or missing backup is noticed before it is needed:
+
+| Kind     | Raised when                                | Issue title                             |
+| -------- | ------------------------------------------ | --------------------------------------- |
+| `backup` | a scheduled or dispatched backup run fails | `Production backup failed`              |
+| `verify` | a verification run fails                   | `Production backup verification failed` |
+| `stale`  | a run of the daily freshness check fails   | `Newest production backup is stale`     |
+
+- Each kind has at most one open issue. A further failure while it is open
+  adds a comment linking the new failed run instead of opening a second one.
+- The next successful run of the same workflow comments on the issue,
+  linking that run, and closes it. A maintainer can also close an issue by
+  hand; the next failure then opens a new one. If resolving itself fails
+  (for example a `gh` error), the run still counts as successful, so
+  verification is not skipped; the alert stays open until the next success.
+- Cancelled runs neither raise nor resolve an alert. Neither does a skipped
+  verification (its backup run did not succeed): the backup's own alert
+  covers that.
+- The freshness check, `.github/workflows/check-backup-freshness.yml`, runs
+  daily at 08:41 UTC and on manual dispatch. It runs
+  `backup-cli check-freshness` with the read-only token from the
+  `production-backup-verify` environment, and fails when there is no backup
+  or the newest is older than **36 hours** (the daily backup plus one missed
+  or delayed run). The limit is backup-cli's `maxAgeHours` setting. To change
+  it, set the optional variable `BACKUP_MAX_AGE_HOURS` in the
+  `production-backup-verify` environment (see
+  [backup-cli](../backup-cli/index.md#configuration)); when it is unset or
+  empty the default applies.
+- Any failure raises the alert, including a missing setting or a network
+  error, not only a bad backup. Read the linked run's log first.
+- A backup taken by another workflow that calls `backup-production.yml`
+  raises and resolves nothing: the caller owns that failure. The calling job
+  must still grant `issues: write`, because a called workflow's jobs cannot
+  have more permissions than their caller grants.
+- Only the alert jobs, which run `dev-workflow-cli raise-alert` or
+  `resolve-alert` (see [dev-workflow-cli](../dev-workflow-cli/index.md)),
+  get `issues: write`. The backup, verification and freshness jobs keep
+  read-only repository access.
+
+### Acting on an alert
+
+- **`backup`:** open the linked run. A "Check required settings" failure
+  names what to fix (see [Missing required settings](#missing-required-settings)).
+  Otherwise fix the cause, then [run a backup on demand](#running-a-backup-on-demand);
+  its success closes the issue and starts a verification.
+- **`verify`:** the newest backup may not restore. The run's log lists every
+  failed check. Once the cause is fixed, re-run verification by hand (see
+  [Verification](#verification)); its success closes the issue. Only a
+  verification of the newest backup closes it: a run dispatched with a
+  `backup-key` input verifies that one backup and leaves the issue open.
+- **`stale`:** check that the backup workflow is still enabled and that its
+  recent runs succeeded (see [Scheduling caveats](#scheduling-caveats)).
+  Once a new backup exists, run the check by hand to close the issue:
+
+  ```bash
+  gh workflow run check-backup-freshness.yml --ref main
+  ```
 
 ## Runner and tokens
 
@@ -130,12 +191,13 @@ in the process list of that ephemeral runner only.
 
 ### Missing required settings
 
-Before running `backup-cli`, both workflows check that the settings they need
-are non-empty: the storage settings in both, plus the database URL in the
-backup workflow. If any is empty, the run fails with an error that names the
-GitHub environment the job reads from (`production-backup` for the backup,
-`production-backup-verify` for verification) and lists each empty setting by
-its GitHub name, such as `vars.BACKUP_STORAGE_ENDPOINT` or
+Before running `backup-cli`, the backup, verification and freshness
+workflows check that the settings they need are non-empty: the storage
+settings in all three, plus the database URL in the backup workflow. If any
+is empty, the run fails with an error that names the GitHub environment the
+job reads from (`production-backup` for the backup, `production-backup-verify`
+for verification and the freshness check) and lists each empty setting by its
+GitHub name, such as `vars.BACKUP_STORAGE_ENDPOINT` or
 `secrets.BACKUP_STORAGE_READ_ACCESS_KEY_ID`. The error prints names only,
 never values.
 
@@ -156,6 +218,8 @@ gh run watch <run-id>
 Another workflow can run a backup and wait for it with
 `uses: ./.github/workflows/backup-production.yml`. It can then read the new
 backup's key from the `backup-key` output.
+The calling job must grant `issues: write` (see [Alerts](#alerts)), and a
+called backup raises no alert.
 
 ## Listing and downloading backups locally
 

@@ -1,0 +1,74 @@
+# Raises or resolves a production backup alert issue with dev-workflow-cli's
+# raise-alert / resolve-alert. Called by the backup, verification and
+# freshness workflows; see docs/discord-bot/production-backups.md#alerts.
+#
+# A called workflow runs with its caller's github context, so the run URL
+# below is the calling run: the issue links the run that failed or succeeded.
+name: Backup alert
+
+on:
+  workflow_call:
+    inputs:
+      command:
+        description: raise-alert or resolve-alert
+        required: true
+        type: string
+      kind:
+        description: backup, verify or stale
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # A failed resolve must not fail the calling run: the backup run's
+    # conclusion gates verify-backup.yml, so a flaky `gh` call here would
+    # silently skip verification without any alert. The job-level setting
+    # (rather than one on the update step) also covers checkout, install and
+    # build failing; a job that continues on error counts as successful for
+    # the called workflow's, and so the caller job's, result. The issue then
+    # simply stays open until the next success closes it. A failed raise
+    # still fails visibly.
+    continue-on-error: ${{ inputs.command == 'resolve-alert' }}
+    # The only job in the backup workflows that may write issues. The calling
+    # job must grant the same, since a called workflow's jobs cannot have more
+    # permissions than their caller grants.
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Enable Corepack
+        run: corepack enable
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --filter "@blood-bowl-tracker/dev-workflow-cli..."
+      - name: Build dev-workflow-cli
+        run: pnpm --filter "@blood-bowl-tracker/dev-workflow-cli..." run build
+      # Inputs reach the script through the environment, never interpolated
+      # into it. Prints the JSON result; a gh failure fails this job.
+      - name: Update alert issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          COMMAND: ${{ inputs.command }}
+          KIND: ${{ inputs.kind }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          case "$COMMAND" in
+            raise-alert | resolve-alert) ;;
+            *)
+              echo "::error::Unknown command '$COMMAND': expected raise-alert or resolve-alert."
+              exit 1
+              ;;
+          esac
+          node tools/dev-workflow-cli/dist/main.js "$COMMAND" "$KIND" "$RUN_URL"

@@ -5,6 +5,15 @@
 # Runs daily on a schedule, on manual dispatch, and when called from another
 # workflow, which waits for it and can read the created backup's key from
 # the `backup-key` output.
+#
+# A failed scheduled or dispatched run opens (or comments on) the
+# "Production backup failed" issue, and a successful one closes it; see
+# docs/discord-bot/production-backups.md#alerts. A run called from another
+# workflow raises and resolves nothing (the caller owns that failure), but
+# the calling job must still grant `issues: write`: a called workflow's jobs
+# cannot have more permissions than their caller grants.
+# The alert jobs' `if` conditions and verify-backup.yml's workflow_run
+# trigger match this exact name; renaming it needs both updated.
 name: Backup production database
 
 on:
@@ -120,3 +129,29 @@ jobs:
           BACKUP_STORAGE_ACCESS_KEY_ID: ${{ secrets.BACKUP_STORAGE_WRITE_ACCESS_KEY_ID }}
           BACKUP_STORAGE_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_STORAGE_WRITE_SECRET_ACCESS_KEY }}
         run: node tools/backup-cli/dist/main.js prune
+
+  # Only when this workflow runs on its own: inside a called workflow,
+  # github.workflow is the caller's name. github.event_name cannot tell the
+  # two apart, since a dispatched caller reports workflow_dispatch too.
+  # failure() is false for a cancelled run, so cancelling raises nothing.
+  alert-on-failure:
+    needs: backup
+    if: failure() && github.workflow == 'Backup production database'
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/backup-alert.yml
+    with:
+      command: raise-alert
+      kind: backup
+
+  resolve-alert:
+    needs: backup
+    if: needs.backup.result == 'success' && github.workflow == 'Backup production database'
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/backup-alert.yml
+    with:
+      command: resolve-alert
+      kind: backup
