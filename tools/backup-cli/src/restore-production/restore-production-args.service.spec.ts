@@ -1,11 +1,11 @@
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { RESTORE_PRODUCTION_CONFIRMATION as PHRASE } from './restore-production.service';
 import {
   RESTORE_PRODUCTION_USAGE,
   RestoreProductionArgsService,
 } from './restore-production-args.service';
-import { RESTORE_PRODUCTION_CONFIRMATION as PHRASE } from './restore-production.service';
 
 const KEY = 'production/2026-10-14T03-17-00.000Z.dump';
 
