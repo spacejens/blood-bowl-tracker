@@ -88,7 +88,12 @@ workflow files and, for each, checks that the step:
 `src/preflight/backup-alert-callers.spec.ts` also checks that every job
 calling `backup-alert.yml` passes a `kind` and `command` that
 `dev-workflow-cli` knows. The allowed kind ids are repeated in the spec,
-because this package does not depend on `dev-workflow-cli`.
+because this package does not depend on `dev-workflow-cli`. It also checks
+that `backup-alert.yml` sets `continue-on-error` for `resolve-alert` only, so
+a failed resolve cannot fail the calling backup run (which gates
+verification) while a failed raise still does. That keeps the setting from
+being lost or widened; it cannot show how GitHub Actions treats the job at
+runtime.
 
 These run with the package's unit tests (`pnpm test`), not with
 `pnpm run lint:workflows`.
