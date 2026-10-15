@@ -17,9 +17,17 @@ account problem at either one does not take the backups with it.
 ## Schedule and retention
 
 - The workflow runs daily at 03:17 UTC. It also runs on manual dispatch and
-  when another workflow calls it. Runs are serialized, and a running backup
-  is never cancelled. GitHub keeps only one waiting run per workflow, so a
-  third trigger replaces a run that is still waiting.
+  before every production deploy, when `.github/workflows/deploy.yml` calls
+  it (see [Deploying](production-deploying.md#backup-before-every-deploy)).
+  Runs are serialized, and a running backup is never cancelled. GitHub keeps
+  only one waiting run per workflow, so a third trigger replaces a run that
+  is still waiting.
+- A deploy's backup shares that queue. If a backup is running and another is
+  already waiting, a new trigger replaces the waiting run, which is
+  cancelled. When the cancelled run is a deploy's backup, that deploy fails
+  without deploying anything; re-run it. This is rare (deploys are
+  serialized and the scheduled backup runs once a day), so it is accepted
+  rather than engineered around.
 - Each run creates one backup named `production/<UTC timestamp>.dump`. It is
   a custom-format `pg_dump` of the whole database, all schemas included.
 - After a successful backup, the run prunes backups older than **30 days**.
@@ -55,6 +63,9 @@ backup key.
 Verification after a backup run, or started by hand without a key, restores
 the newest backup at the time it runs, which is normally the one that
 triggered it. A called verification restores exactly the backup it was given.
+The deploy workflow is such a caller: it verifies the backup it just took
+before deploying (see
+[Deploying](production-deploying.md#backup-before-every-deploy)).
 
 The job starts a throwaway `postgres:18` service container, downloads the
 newest backup (or the named one) with the **read-only** token, and runs
@@ -187,6 +198,10 @@ in the process list of that ephemeral runner only.
    Add the same `BACKUP_STORAGE_ENDPOINT` and `BACKUP_STORAGE_BUCKET`
    variables. Do not add the database URL or the write token here.
 
+   Both environments must allow runs from `main`: the deploy workflow, which
+   runs on `main`, uses them for its pre-deploy backup and verification, and
+   a deploy whose backup or verification cannot run does not proceed.
+
 5. **First run.** Trigger the workflow by hand (see below) once the bucket and
    environment exist, then confirm that the log reports a non-zero
    `sizeBytes`. This is also the first real test of the PostgreSQL client
@@ -221,9 +236,10 @@ gh run watch <run-id>
 
 Another workflow can run a backup and wait for it with
 `uses: ./.github/workflows/backup-production.yml`. It can then read the new
-backup's key from the `backup-key` output.
-The calling job must grant `issues: write` (see [Alerts](#alerts)), and a
-called backup raises no alert.
+backup's key from the `backup-key` output and pass it as the `backup-key`
+input of `uses: ./.github/workflows/verify-backup.yml`, as
+`.github/workflows/deploy.yml` does. Each calling job must grant
+`issues: write` (see [Alerts](#alerts)); neither called run raises an alert.
 
 ## Listing and downloading backups locally
 

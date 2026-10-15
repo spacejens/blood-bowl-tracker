@@ -4,6 +4,13 @@
 # dispatch, which redeploys the current main without a new commit. CI does not
 # gate this: ci.yml runs on pull requests, so the checks already passed on the
 # branch before the merge that triggers this workflow.
+#
+# Every run first takes a fresh backup of the production database and
+# verifies exactly that backup (restored into a throwaway PostgreSQL and
+# sanity-checked) before deploying: startup migrations only roll forward, so
+# the verified backup is the known-good state to return to. If either fails,
+# the deploy job is skipped and nothing is deployed. There is deliberately no
+# input to skip them.
 name: Deploy
 
 on:
@@ -20,7 +27,31 @@ concurrency:
   group: deploy-production
 
 jobs:
+  # Both called workflows open an alert issue only when run on their own;
+  # called from here they raise nothing, and this failed run is the signal.
+  # issues: write is still required, because a called workflow's jobs cannot
+  # have more permissions than their caller grants. Their secrets come from
+  # their own protected environments, which must allow runs from main.
+  backup:
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/backup-production.yml
+
+  # Verifies exactly the backup just taken, by key, not the newest one.
+  verify:
+    needs: backup
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/verify-backup.yml
+    with:
+      backup-key: ${{ needs.backup.outputs.backup-key }}
+
+  # Skipped when the backup or its verification failed, so nothing has been
+  # deployed and nothing needs rolling back.
   deploy:
+    needs: verify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

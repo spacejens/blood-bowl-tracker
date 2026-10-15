@@ -7,7 +7,8 @@ runs it, and `.github/workflows/verify-backup.yml` uses it to check the newest
 backup after each successful scheduled or manually dispatched run of that
 workflow; a failed or cancelled run triggers no verification. A backup taken
 by another workflow that calls `backup-production.yml` is not verified
-automatically; such a caller must run verification itself.
+automatically; such a caller must run verification itself, as the deploy
+workflow does before every deploy.
 `.github/workflows/check-backup-freshness.yml` runs its `check-freshness`
 subcommand daily, so a backup that silently stopped appearing is noticed.
 Developers can run it locally to list or fetch backups, or to restore one
