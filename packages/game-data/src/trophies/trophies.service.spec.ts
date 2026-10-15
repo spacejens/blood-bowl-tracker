@@ -671,6 +671,22 @@ describe('TrophiesService', () => {
   });
 
   describe('findAwardRuleCuration', () => {
+    it('reads only curated rows that are not soft-removed', async () => {
+      const { chains } = await build([], [], []);
+
+      await service.findAwardRuleCuration(1);
+
+      // Included types, excluded types, eligible positions: each read is
+      // scoped to the trophy AND to rows still part of the rule.
+      expect(chains).toHaveLength(3);
+      for (const chain of chains) {
+        expect(extractAllFilterValues(firstCallArg(chain.where))).toEqual([
+          1,
+          false,
+        ]);
+      }
+    });
+
     it("reads a trophy's curated rule event types, flattened for display", async () => {
       await build(
         [{ actionType: 'foul', consequenceType: null }],

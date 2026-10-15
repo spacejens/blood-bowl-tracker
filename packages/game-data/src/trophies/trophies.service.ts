@@ -5,6 +5,7 @@ import type {
 } from '@blood-bowl-tracker/api-contract';
 import type { Db, Trophy } from '@blood-bowl-tracker/db';
 import {
+  and,
   competitionGroups,
   competitions,
   countDistinct,
@@ -235,7 +236,12 @@ export class TrophiesService {
         consequenceType: trophyAwardRuleMatchEventTypes.consequenceType,
       })
       .from(trophyAwardRuleMatchEventTypes)
-      .where(eq(trophyAwardRuleMatchEventTypes.trophyId, trophyId))
+      .where(
+        and(
+          eq(trophyAwardRuleMatchEventTypes.trophyId, trophyId),
+          eq(trophyAwardRuleMatchEventTypes.removed, false),
+        ),
+      )
       .orderBy(
         trophyAwardRuleMatchEventTypes.actionType,
         trophyAwardRuleMatchEventTypes.consequenceType,
@@ -246,7 +252,12 @@ export class TrophiesService {
         consequenceType: trophyAwardRuleExcludedMatchEventTypes.consequenceType,
       })
       .from(trophyAwardRuleExcludedMatchEventTypes)
-      .where(eq(trophyAwardRuleExcludedMatchEventTypes.trophyId, trophyId))
+      .where(
+        and(
+          eq(trophyAwardRuleExcludedMatchEventTypes.trophyId, trophyId),
+          eq(trophyAwardRuleExcludedMatchEventTypes.removed, false),
+        ),
+      )
       .orderBy(
         trophyAwardRuleExcludedMatchEventTypes.actionType,
         trophyAwardRuleExcludedMatchEventTypes.consequenceType,
@@ -257,7 +268,12 @@ export class TrophiesService {
           trophyAwardRuleEligiblePositions.positionNameExternalId,
       })
       .from(trophyAwardRuleEligiblePositions)
-      .where(eq(trophyAwardRuleEligiblePositions.trophyId, trophyId))
+      .where(
+        and(
+          eq(trophyAwardRuleEligiblePositions.trophyId, trophyId),
+          eq(trophyAwardRuleEligiblePositions.removed, false),
+        ),
+      )
       .orderBy(trophyAwardRuleEligiblePositions.positionNameExternalId);
     return {
       includedActionTypes: included

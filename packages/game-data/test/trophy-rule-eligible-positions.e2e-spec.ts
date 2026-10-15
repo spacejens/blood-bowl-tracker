@@ -68,6 +68,8 @@ interface Fixtures {
 interface SeedOptions {
   /** Curated eligible positions, as `Name`-system external ids. */
   eligible: readonly string[];
+  /** Eligible-position rows already soft-removed from the rule. */
+  removed?: readonly string[];
 }
 
 async function seed(db: Db, options: SeedOptions): Promise<Fixtures> {
@@ -159,6 +161,16 @@ async function seed(db: Db, options: SeedOptions): Promise<Fixtures> {
       options.eligible.map((positionNameExternalId) => ({
         trophyId: trophy.id,
         positionNameExternalId,
+      })),
+    );
+  }
+  const removed = options.removed ?? [];
+  if (removed.length > 0) {
+    await db.insert(trophyAwardRuleEligiblePositions).values(
+      removed.map((positionNameExternalId) => ({
+        trophyId: trophy.id,
+        positionNameExternalId,
+        removed: true,
       })),
     );
   }
@@ -291,5 +303,20 @@ describe('trophy award rule eligible positions (real Postgres)', () => {
     // to every player — an authoring typo awards nobody rather than the wrong
     // player.
     await expect(awardedPlayerIds(fixtures.trophyId)).resolves.toEqual([]);
+  });
+
+  it('ignores a soft-removed eligible position', async () => {
+    const fixtures = await seed(db, {
+      eligible: [],
+      removed: ['Ogre: Ogre Runt Punter'],
+    });
+
+    await service.computeMissingAwards(fixtures.competitionId);
+
+    // A removed row restricts nothing. Were it read, only the Runt Punter
+    // would be eligible and Paddan would win instead.
+    await expect(awardedPlayerIds(fixtures.trophyId)).resolves.toEqual([
+      fixtures.gnoblarId,
+    ]);
   });
 });
