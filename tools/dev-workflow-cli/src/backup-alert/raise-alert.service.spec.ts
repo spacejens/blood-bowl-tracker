@@ -50,6 +50,22 @@ describe('RaiseAlertService', () => {
     expect(issues.comment).not.toHaveBeenCalled();
   });
 
+  it('derives the docs url from the repository of the run url', async () => {
+    issues.findOpen.mockResolvedValue([]);
+    issues.create.mockResolvedValue(ISSUE_URL);
+
+    await service.run({
+      kind: KIND,
+      runUrl: 'https://github.com/some-fork/blood.bowl_2/actions/runs/9',
+    });
+
+    const created = issues.create.mock.calls[0][0];
+    expect(created.body).toContain(
+      'https://github.com/some-fork/blood.bowl_2/blob/main/docs/discord-bot/production-backups.md#alerts',
+    );
+    expect(created.body).not.toContain('spacejens');
+  });
+
   it('comments on the oldest open issue instead of opening another', async () => {
     issues.findOpen.mockResolvedValue([
       { number: 9, title: KIND.title },

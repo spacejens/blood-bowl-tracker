@@ -18,6 +18,7 @@ const KIND_IDS = ['backup', 'verify', 'stale'];
 const COMMANDS = ['raise-alert', 'resolve-alert'];
 
 interface AlertCaller {
+  readonly file: string;
   readonly where: string;
   readonly kind: unknown;
   readonly command: unknown;
@@ -43,6 +44,7 @@ function alertCallers(): AlertCaller[] {
       const { uses, with: inputs } = record(job);
       if (uses === ALERT_WORKFLOW) {
         callers.push({
+          file,
           where: `${file} job '${jobId}'`,
           kind: record(inputs).kind,
           command: record(inputs).command,
@@ -53,11 +55,25 @@ function alertCallers(): AlertCaller[] {
   return callers;
 }
 
+/** Every `<workflow file>: <command>/<kind>` pair that must exist, once. */
+const EXPECTED_CALLERS = [
+  'backup-production.yml: raise-alert/backup',
+  'backup-production.yml: resolve-alert/backup',
+  'check-backup-freshness.yml: raise-alert/stale',
+  'check-backup-freshness.yml: resolve-alert/stale',
+  'verify-backup.yml: raise-alert/verify',
+  'verify-backup.yml: resolve-alert/verify',
+];
+
 describe('jobs calling backup-alert.yml', () => {
   const callers = alertCallers();
 
-  it('exist, so this check is not vacuous', () => {
-    expect(callers.length).toBeGreaterThan(0);
+  it('are exactly the expected workflow/command/kind pairs', () => {
+    const actual = callers.map(
+      (caller) =>
+        `${caller.file}: ${String(caller.command)}/${String(caller.kind)}`,
+    );
+    expect(actual.sort()).toEqual(EXPECTED_CALLERS);
   });
 
   it('pass a kind that dev-workflow-cli knows', () => {

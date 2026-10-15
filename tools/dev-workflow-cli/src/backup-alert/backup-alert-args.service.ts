@@ -7,7 +7,7 @@ const BACKUP_ALERT_USAGE =
   `<${BACKUP_ALERT_KINDS.map((kind) => kind.id).join('|')}> <run-url>`;
 
 /** `https://github.com/<owner>/<repo>/actions/runs/<id>`, nothing more. */
-const RUN_URL = /^https:\/\/github\.com\/[^/\s]+\/[^/\s]+\/actions\/runs\/\d+$/;
+const RUN_URL = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/actions\/runs\/\d+$/;
 
 export interface BackupAlertRequest {
   readonly kind: BackupAlertKind;

@@ -59,6 +59,9 @@ describe('BackupAlertArgsService', () => {
     ['https://github.com/spacejens/blood-bowl-tracker/issues/5'],
     [`${RUN_URL}/extra`],
     ['not a url'],
+    ['https://github.com/own%er/repo/actions/runs/1'],
+    ['https://github.com/owner/re$po/actions/runs/1'],
+    ['https://github.com/owner/re po/actions/runs/1'],
   ])('rejects %s as a run url', (url) => {
     expect(() => service.parse(argv('backup', url))).toThrow(
       /not a GitHub Actions run URL/,
