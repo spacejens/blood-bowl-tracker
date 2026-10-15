@@ -38,6 +38,8 @@ export class RestoredDatabaseQueryService {
    * The key tables present in `game_data`, in `KEY_TABLES` order. Reading
    * the catalog never fails on a missing schema or table, so this also
    * proves the connection against a database whose schema is damaged.
+   * `pg_tables` lists every table regardless of the role's privileges,
+   * unlike `information_schema.tables`.
    */
   async existingKeyTables(databaseUrl: string): Promise<string[]> {
     const names = KEY_TABLES.map((table) => `'${table}'`).join(', ');
@@ -45,8 +47,8 @@ export class RestoredDatabaseQueryService {
       this.lines(
         await this.query(
           databaseUrl,
-          'SELECT table_name FROM information_schema.tables ' +
-            `WHERE table_schema = 'game_data' AND table_name IN (${names});`,
+          'SELECT tablename FROM pg_catalog.pg_tables ' +
+            `WHERE schemaname = 'game_data' AND tablename IN (${names});`,
         ),
       ),
     );
@@ -58,6 +60,9 @@ export class RestoredDatabaseQueryService {
     databaseUrl: string,
     tables: readonly string[] = KEY_TABLES,
   ): Promise<TableRowCounts> {
+    if (tables.length === 0) {
+      return {};
+    }
     const sql =
       tables
         .map((table) => `SELECT '${table}', count(*) FROM game_data.${table}`)

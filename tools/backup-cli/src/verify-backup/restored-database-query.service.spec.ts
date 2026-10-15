@@ -105,6 +105,13 @@ describe('RestoredDatabaseQueryService', () => {
       );
     });
 
+    it('returns no counts without querying when given no tables', async () => {
+      await expect(
+        service.keyTableRowCounts(DATABASE_URL, []),
+      ).resolves.toEqual({});
+      expect(pgClient.run).not.toHaveBeenCalled();
+    });
+
     it('fails on output it cannot parse', async () => {
       pgClient.run.mockResolvedValue('coaches|\n');
 
@@ -126,8 +133,8 @@ describe('RestoredDatabaseQueryService', () => {
         program: 'psql',
         args: [
           ...PSQL_FLAGS,
-          '--command=SELECT table_name FROM information_schema.tables ' +
-            "WHERE table_schema = 'game_data' AND table_name IN " +
+          '--command=SELECT tablename FROM pg_catalog.pg_tables ' +
+            "WHERE schemaname = 'game_data' AND tablename IN " +
             "('coaches', 'teams', 'players', 'matches', 'competitions');",
         ],
         databaseUrl: DATABASE_URL,
