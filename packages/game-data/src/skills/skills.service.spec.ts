@@ -66,11 +66,29 @@ describe('SkillsService', () => {
       [{ ...fakeSkill, name: 'Block!' }],
     );
 
-    const result = await service.upsert({ ...data, name: 'Block!' });
+    const result = await service.upsert({
+      ...data,
+      name: 'Block!',
+      renameExisting: true,
+    });
 
     expect(result.created).toBe(false);
     expect(result.skill.name).toBe('Block!');
     expect(db.update).toHaveBeenCalledWith(skills);
+  });
+
+  it('keeps the stored name when an update does not ask to rename', async () => {
+    const pair = data.externalIds[0];
+    const { db, chains } = await build([{ ownerId: 1, ...pair }], [fakeSkill]);
+
+    const result = await service.upsert({
+      name: 'Raw Spelling',
+      externalIds: [pair],
+    });
+
+    expect(db.update).not.toHaveBeenCalled();
+    expect(chains).toHaveLength(2);
+    expect(result).toEqual({ skill: fakeSkill, created: false });
   });
 
   it('rejects an upsert whose external IDs name two different skills', async () => {

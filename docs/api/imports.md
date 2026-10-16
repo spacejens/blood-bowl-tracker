@@ -50,7 +50,7 @@ against the connection in use, rather than assuming the 500 default is safe.
 An upsert writes only the fields the payload actually contains. A field left
 out is not mentioned to the database at all, so the stored value survives — a
 payload carrying just `name` and `externalIds` renames a row and touches
-nothing else. A field sent as `null` is a real write of `null`, which is how a
+nothing else (with the exception below). A field sent as `null` is a real write of `null`, which is how a
 caller clears a nullable value; the two are deliberately distinguishable.
 `externalIds` is always required, because it addresses the row rather than
 describing it.
@@ -65,6 +65,14 @@ constraint violation.
 Link-list fields (`rulesSetIds`, `teamEraIds`, `eras`, `raceEras`) work the
 same way by being additive: they only ever insert missing links, so an omitted
 or empty list leaves existing links intact.
+
+Coach, competition and skill names are curated in `tools/import-manual`, so for
+those three `name` is written when the upsert creates the row and ignored when
+it updates one, unless the payload also carries `renameExisting: true`. The
+manual importer sends it on every such entry; the BBL, TP and live TP importers
+never do. A re-run of a source importer therefore cannot replace a curated name
+with the source's raw one, not even briefly, while a fresh database still gets
+the source's name on create.
 
 Match events are a partial exception to "an upsert writes only the fields the
 payload actually contains": `matchId` is always required, but it identifies

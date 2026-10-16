@@ -2,6 +2,7 @@ import { COMPETITION_TYPES } from '@blood-bowl-tracker/domain-enums';
 import { z } from 'zod';
 
 import { ExternalIdSchema } from './external-id';
+import { RenameExistingSchema } from './shared/rename-existing';
 
 const IsoDate = z
   .string()
@@ -30,6 +31,7 @@ export const CompetitionSchema = z.object({
 
 export const UpsertCompetitionSchema = z.object({
   name: z.string().min(1).optional(),
+  renameExisting: RenameExistingSchema,
   type: z.enum(COMPETITION_TYPES).optional(),
   eraId: z.number().int().optional(),
   teamEraIds: z.array(z.number().int()).default([]),
