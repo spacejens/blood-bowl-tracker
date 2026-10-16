@@ -357,6 +357,18 @@ only those trophies are seeded. See
 [docs/import-tp/file-format.md](../import-tp/file-format.md) for the full
 value table and the evidence behind the scope.
 
+## Re-running on a populated database
+
+The tool runs against a database that is never dropped. Every coach,
+competition and skill entry is sent with `renameExisting: true`, so its `name`
+renames an existing row. The BBL, TP and live TP importers never send it: they
+set those names only when they create the row, so a later run of theirs cannot
+undo a curated name (see
+[Upserts overlay](../api/imports.md#upserts-overlay-they-do-not-replace)).
+Nothing is ever deleted: a row a source system drops or re-keys stays, and is
+fixed by a data migration or a once-applied manual batch, not by an entry here
+(see [Re-running importers](../database.md#re-running-importers)).
+
 ## Known curated data files
 
 Every `.json5` file in the two phase directories exists for a specific reason —

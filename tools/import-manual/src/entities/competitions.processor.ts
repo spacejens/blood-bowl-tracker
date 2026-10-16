@@ -56,6 +56,9 @@ export class CompetitionsProcessor {
       const upserted = await this.competitionsImport.upsertCompetitionResult(
         {
           name: entry.name,
+          // Names are curated here; the source importers only ever set one
+          // when they create the row.
+          renameExisting: true,
           type: entry.type,
           eraId: era.id,
           startDate: entry.startDate,

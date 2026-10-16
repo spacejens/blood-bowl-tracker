@@ -23,6 +23,9 @@ export class SkillsProcessor {
       const upserted = await this.skillsImport.upsert(
         {
           name: entry.name,
+          // Names are curated here; the source importers only ever set one
+          // when they create the row.
+          renameExisting: true,
           externalIds: this.refResolver.toExternalIds(
             entry.externalIds,
             ctx.systemIds,

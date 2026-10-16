@@ -61,6 +61,7 @@ describe('SkillsProcessor', () => {
     expect(skillsImport.upsert).toHaveBeenCalledWith(
       {
         name: 'Piling On',
+        renameExisting: true,
         externalIds: [{ externalSystemId: 1, externalId: 'Piling On' }],
       },
       ctx.errors,
