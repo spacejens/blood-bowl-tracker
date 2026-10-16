@@ -4,7 +4,8 @@
 #
 # Runs daily on a schedule, on manual dispatch, and when called from another
 # workflow, which waits for it and can read the created backup's key from
-# the `backup-key` output.
+# the `backup-key` output. deploy.yml calls it before every deploy and then
+# verifies that backup by key with verify-backup.yml.
 #
 # A failed scheduled or dispatched run opens (or comments on) the
 # "Production backup failed" issue, and a successful one closes it; see

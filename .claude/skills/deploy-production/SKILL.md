@@ -212,7 +212,7 @@ Run this section only if "Roll back to a previous release" was selected in step 
 
 Run this section only if "Trigger a redeploy without a new merge" was selected in step 0 above. Runs after the "Check deployment status", "Apply production configuration", "Restart the machine", and "Roll back to a previous release" sections if those were also selected; runs standalone if it is the only one picked.
 
-This dispatches the same `.github/workflows/deploy.yml` workflow that merges to `main` trigger, so it deploys whatever `main` currently points at — useful after a rollback that needs undoing, or to retry a deploy that failed transiently. (Applying changed Fly secrets does not need this: "Apply production configuration" already restarts the machines to pick them up on its own.) It is not a way to deploy a branch: the workflow always builds the ref it is dispatched against, and this skill always dispatches `main`.
+This dispatches the same `.github/workflows/deploy.yml` workflow that merges to `main` trigger, so it deploys whatever `main` currently points at — useful after a rollback that needs undoing, or to retry a deploy that failed transiently. Like every deploy, the dispatched run first takes a fresh production backup and verifies it, so it takes a few minutes longer. (Applying changed Fly secrets does not need this: "Apply production configuration" already restarts the machines to pick them up on its own.) It is not a way to deploy a branch: the workflow always builds the ref it is dispatched against, and this skill always dispatches `main`.
 
 0. Two checks before anything else, both stopping **this section only** if they fail (any other section selected in step 0 still runs normally):
 
@@ -251,7 +251,7 @@ This dispatches the same `.github/workflows/deploy.yml` workflow that merges to 
    ```bash
    gh run view <databaseId-from-step-3> --log-failed
    ```
-   The most common failure is an expired or missing `FLY_API_TOKEN` secret, which surfaces as an authentication error from `flyctl`. Fixing it is a manual step (see `docs/discord-bot/production-first-time-setup.md`) — this skill does not mint or store tokens.
+   The most common failure is an expired or missing `FLY_API_TOKEN` secret, which surfaces as an authentication error from `flyctl`. Fixing it is a manual step (see `docs/discord-bot/production-first-time-setup.md`) — this skill does not mint or store tokens. If the failing job is `backup` or `verify` rather than `deploy`, nothing was deployed: read that job's log and see `docs/discord-bot/production-backups.md` (a missing storage setting names the GitHub environment to fix); the workflow has no way to skip them.
 5. On success, verify the deployment the same way the rollback section does:
    ```bash
    fly status
