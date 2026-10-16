@@ -368,9 +368,10 @@ export class TrophiesService {
    * The trophy row's scalar rule columns and its junction-table event types
    * must commit or roll back together — a trophy left holding a new rule
    * kind beside a stale set of event-type rows from its old rule is an
-   * inconsistent, half-migrated state. The rule-curation sync (`TrophyRuleCurationSyncService`) therefore runs as
-   * `upsertByExternalIds`' `afterUpsert` hook, inside the transaction that
-   * helper already opens, rather than in a second one of its own. Handing the
+   * inconsistent, half-migrated state. The rule-curation sync
+   * (`TrophyRuleCurationSyncService`) therefore runs as `upsertByExternalIds`'
+   * `afterUpsert` hook, inside the transaction that helper already opens,
+   * rather than in a second one of its own. Handing the
    * sync to the helper this way — instead of opening an outer transaction
    * here and passing it down — also keeps the helper's lost-external-id-race
    * retry, which only it can safely own.

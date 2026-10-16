@@ -26,12 +26,9 @@ interface RuleCuration {
   eligible: string[] | undefined;
 }
 
-/** A stored curated row as the diff needs it. */
-interface StoredCuratedRow {
-  id: number;
-  key: string;
-  removed: boolean;
-}
+type EventTypeTable =
+  | typeof trophyAwardRuleMatchEventTypes
+  | typeof trophyAwardRuleExcludedMatchEventTypes;
 
 /** What one table needs written to hold exactly the curated set. */
 interface CurationDiff<T> {
@@ -62,10 +59,20 @@ export class TrophyRuleCurationSyncService {
   async sync(tx: DbOrTx, trophyId: number, data: UpsertTrophy): Promise<void> {
     const curation = this.effectiveRuleCuration(data);
     if (curation.included !== undefined) {
-      await this.syncIncluded(tx, trophyId, curation.included);
+      await this.syncEventTypes({
+        tx,
+        table: trophyAwardRuleMatchEventTypes,
+        trophyId,
+        desired: curation.included,
+      });
     }
     if (curation.excluded !== undefined) {
-      await this.syncExcluded(tx, trophyId, curation.excluded);
+      await this.syncEventTypes({
+        tx,
+        table: trophyAwardRuleExcludedMatchEventTypes,
+        trophyId,
+        desired: curation.excluded,
+      });
     }
     if (curation.eligible !== undefined) {
       await this.syncEligible(tx, trophyId, curation.eligible);
@@ -97,12 +104,13 @@ export class TrophyRuleCurationSyncService {
     };
   }
 
-  private async syncIncluded(
-    tx: DbOrTx,
-    trophyId: number,
-    desired: readonly RuleEventType[],
-  ): Promise<void> {
-    const table = trophyAwardRuleMatchEventTypes;
+  private async syncEventTypes(options: {
+    tx: DbOrTx;
+    table: EventTypeTable;
+    trophyId: number;
+    desired: readonly RuleEventType[];
+  }): Promise<void> {
+    const { tx, table, trophyId, desired } = options;
     const stored = await tx
       .select({
         id: table.id,
@@ -112,81 +120,26 @@ export class TrophyRuleCurationSyncService {
       })
       .from(table)
       .where(eq(table.trophyId, trophyId));
-    const diff = this.diff(
-      stored.map((row) => ({
-        id: row.id,
-        key: this.eventTypeKey(row),
-        removed: row.removed,
-      })),
-      new Map(desired.map((entry) => [this.eventTypeKey(entry), entry])),
-    );
-    if (diff.toInsert.length > 0) {
-      await tx.insert(table).values(
-        diff.toInsert.map((entry) => ({
-          trophyId,
-          actionType: entry.actionType ?? null,
-          consequenceType: entry.consequenceType ?? null,
-        })),
-      );
-    }
-    if (diff.reviveIds.length > 0) {
-      await tx
-        .update(table)
-        .set({ removed: false })
-        .where(inArray(table.id, diff.reviveIds));
-    }
-    if (diff.removeIds.length > 0) {
-      await tx
-        .update(table)
-        .set({ removed: true })
-        .where(inArray(table.id, diff.removeIds));
-    }
-  }
-
-  private async syncExcluded(
-    tx: DbOrTx,
-    trophyId: number,
-    desired: readonly RuleEventType[],
-  ): Promise<void> {
-    const table = trophyAwardRuleExcludedMatchEventTypes;
-    const stored = await tx
-      .select({
-        id: table.id,
-        actionType: table.actionType,
-        consequenceType: table.consequenceType,
-        removed: table.removed,
-      })
-      .from(table)
-      .where(eq(table.trophyId, trophyId));
-    const diff = this.diff(
-      stored.map((row) => ({
-        id: row.id,
-        key: this.eventTypeKey(row),
-        removed: row.removed,
-      })),
-      new Map(desired.map((entry) => [this.eventTypeKey(entry), entry])),
-    );
-    if (diff.toInsert.length > 0) {
-      await tx.insert(table).values(
-        diff.toInsert.map((entry) => ({
-          trophyId,
-          actionType: entry.actionType ?? null,
-          consequenceType: entry.consequenceType ?? null,
-        })),
-      );
-    }
-    if (diff.reviveIds.length > 0) {
-      await tx
-        .update(table)
-        .set({ removed: false })
-        .where(inArray(table.id, diff.reviveIds));
-    }
-    if (diff.removeIds.length > 0) {
-      await tx
-        .update(table)
-        .set({ removed: true })
-        .where(inArray(table.id, diff.removeIds));
-    }
+    const diff = this.diff({
+      stored,
+      keyOf: (row) => this.eventTypeKey(row),
+      desired: new Map(
+        desired.map((entry) => [this.eventTypeKey(entry), entry]),
+      ),
+    });
+    await this.applyDiff({
+      diff,
+      insert: (entries) =>
+        tx.insert(table).values(
+          entries.map((entry) => ({
+            trophyId,
+            actionType: entry.actionType ?? null,
+            consequenceType: entry.consequenceType ?? null,
+          })),
+        ),
+      setRemoved: (ids, removed) =>
+        tx.update(table).set({ removed }).where(inArray(table.id, ids)),
+    });
   }
 
   /**
@@ -208,56 +161,70 @@ export class TrophyRuleCurationSyncService {
       })
       .from(table)
       .where(eq(table.trophyId, trophyId));
-    const diff = this.diff(
-      stored.map((row) => ({
-        id: row.id,
-        key: row.positionNameExternalId,
-        removed: row.removed,
-      })),
-      new Map(desired.map((id) => [id, id])),
-    );
+    const diff = this.diff({
+      stored,
+      keyOf: (row) => row.positionNameExternalId,
+      desired: new Map(desired.map((id) => [id, id])),
+    });
+    await this.applyDiff({
+      diff,
+      insert: (ids) =>
+        tx.insert(table).values(
+          ids.map((positionNameExternalId) => ({
+            trophyId,
+            positionNameExternalId,
+          })),
+        ),
+      setRemoved: (ids, removed) =>
+        tx.update(table).set({ removed }).where(inArray(table.id, ids)),
+    });
+  }
+
+  /**
+   * Write one table's diff through that table's own typed insert and update:
+   * inserts first, then revivals, then removals. Nothing is written for an
+   * empty part of the diff.
+   */
+  private async applyDiff<T>(options: {
+    diff: CurationDiff<T>;
+    insert: (entries: T[]) => PromiseLike<unknown>;
+    setRemoved: (ids: number[], removed: boolean) => PromiseLike<unknown>;
+  }): Promise<void> {
+    const { diff, insert, setRemoved } = options;
     if (diff.toInsert.length > 0) {
-      await tx.insert(table).values(
-        diff.toInsert.map((positionNameExternalId) => ({
-          trophyId,
-          positionNameExternalId,
-        })),
-      );
+      await insert(diff.toInsert);
     }
     if (diff.reviveIds.length > 0) {
-      await tx
-        .update(table)
-        .set({ removed: false })
-        .where(inArray(table.id, diff.reviveIds));
+      await setRemoved(diff.reviveIds, false);
     }
     if (diff.removeIds.length > 0) {
-      await tx
-        .update(table)
-        .set({ removed: true })
-        .where(inArray(table.id, diff.removeIds));
+      await setRemoved(diff.removeIds, true);
     }
   }
 
   /**
    * Compare stored rows with the curated set, both keyed by the pair a row
-   * names. A key stored at all — removed or not — is never inserted again:
+   * names. A key stored at all, removed or not, is never inserted again:
    * the table's unique constraint covers removed rows too, so a re-listed
-   * key is revived instead.
+   * key is revived instead. Duplicate entries in the curated set collapse to
+   * one through the map's keys.
    */
-  private diff<T>(
-    stored: readonly StoredCuratedRow[],
-    desired: ReadonlyMap<string, T>,
-  ): CurationDiff<T> {
-    const storedKeys = new Set(stored.map((row) => row.key));
+  private diff<S extends { id: number; removed: boolean }, T>(options: {
+    stored: readonly S[];
+    keyOf: (row: S) => string;
+    desired: ReadonlyMap<string, T>;
+  }): CurationDiff<T> {
+    const { stored, keyOf, desired } = options;
+    const storedKeys = new Set(stored.map(keyOf));
     return {
       toInsert: [...desired]
         .filter(([key]) => !storedKeys.has(key))
         .map(([, value]) => value),
       reviveIds: stored
-        .filter((row) => row.removed && desired.has(row.key))
+        .filter((row) => row.removed && desired.has(keyOf(row)))
         .map((row) => row.id),
       removeIds: stored
-        .filter((row) => !row.removed && !desired.has(row.key))
+        .filter((row) => !row.removed && !desired.has(keyOf(row)))
         .map((row) => row.id),
     };
   }
