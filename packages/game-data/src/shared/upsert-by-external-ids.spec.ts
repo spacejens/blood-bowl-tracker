@@ -728,4 +728,76 @@ describe('upsertByExternalIds', () => {
       expect(updateSet).toHaveBeenCalledWith({ name: 'Foo' });
     });
   });
+
+  describe('createOnlyValues', () => {
+    it('writes createOnlyValues into the insert of a new row', async () => {
+      const { db, insertValues } = makeDb({
+        resolveRows: [],
+        entityRow: { id: 7, name: 'Foo' },
+      });
+
+      await upsertByExternalIds({
+        ...baseOpts(db),
+        values: {},
+        createOnlyValues: { name: 'Foo' },
+      });
+
+      expect(insertValues).toHaveBeenNthCalledWith(1, { name: 'Foo' });
+    });
+
+    it('lets values win over createOnlyValues on create', async () => {
+      const { db, insertValues } = makeDb({
+        resolveRows: [],
+        entityRow: { id: 7, name: 'Bar' },
+      });
+
+      await upsertByExternalIds({
+        ...baseOpts(db),
+        values: { name: 'Bar' },
+        createOnlyValues: { name: 'Foo' },
+      });
+
+      expect(insertValues).toHaveBeenNthCalledWith(1, { name: 'Bar' });
+    });
+
+    it('ignores createOnlyValues when updating an existing row', async () => {
+      const { db, update } = makeDb({
+        resolveRows: [{ ownerId: 5, externalSystemId: 1, externalId: 'a' }],
+        entityRow: { id: 5, name: 'Stored' },
+        reselectRows: [{ id: 5, name: 'Stored' }],
+      });
+
+      const result = await upsertByExternalIds({
+        ...baseOpts(db),
+        values: {},
+        createOnlyValues: { name: 'Raw' },
+      });
+
+      // Nothing else to write, so no UPDATE at all: the stored name stays
+      // and no history row is produced.
+      expect(update).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        row: { id: 5, name: 'Stored' },
+        created: false,
+      });
+    });
+
+    it('counts createOnlyValues toward the required-field check on create', async () => {
+      const { db, insertValues } = makeDb({
+        resolveRows: [],
+        entityRow: { id: 9, name: 'Season One' },
+      });
+
+      await upsertByExternalIds({
+        ...eraOpts(db, { leagueId: 1, startDate: '2020-01-01' }),
+        createOnlyValues: { name: 'Season One' },
+      });
+
+      expect(insertValues).toHaveBeenNthCalledWith(1, {
+        name: 'Season One',
+        leagueId: 1,
+        startDate: '2020-01-01',
+      });
+    });
+  });
 });
