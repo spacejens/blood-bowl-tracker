@@ -115,9 +115,11 @@ const trophyAwardRuleExcludedMatchEventTypesTable = historyTrackedTable({
  *    point a foreign key at. A curated string needs nothing to resolve
  *    against at curation time; it is matched at computation time, when the
  *    positions do exist.
- *  - Stability. `positions.name` is overwritten by whichever importer wrote
- *    last (BBL calls the position "Ogre Blockers", TP "Ogre Blocker"), so
- *    matching on the bare name would depend on which importer is mid-run.
+ *  - Stability. `positions.name` is the curated name once the row exists,
+ *    but a position first created by a source importer carries that
+ *    importer's spelling (BBL calls the position "Ogre Blockers", TP "Ogre
+ *    Blocker"), so matching on the bare name would depend on which importer
+ *    created it.
  *    External ids are only ever added, never rewritten, so the Name id is
  *    stable from the moment the position is first created.
  *

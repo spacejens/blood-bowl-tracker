@@ -66,8 +66,8 @@ Link-list fields (`rulesSetIds`, `teamEraIds`, `eras`, `raceEras`) work the
 same way by being additive: they only ever insert missing links, so an omitted
 or empty list leaves existing links intact.
 
-Coach, competition and skill names are curated in `tools/import-manual`, so for
-those three `name` is written when the upsert creates the row and ignored when
+Coach, competition, skill and position names are curated in
+`tools/import-manual`, so for those four `name` is written when the upsert creates the row and ignored when
 it updates one, unless the payload also carries `renameExisting: true`. The
 manual importer sends it on every such entry; the BBL, TP and live TP importers
 never do. A re-run of a source importer therefore cannot replace a curated name

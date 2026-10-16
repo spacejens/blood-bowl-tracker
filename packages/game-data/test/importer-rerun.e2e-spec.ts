@@ -11,6 +11,8 @@ import {
   externalSystems,
   leagues,
   leaguesHistory,
+  positions,
+  positionsHistory,
   races,
   racesHistory,
   skills,
@@ -28,6 +30,7 @@ import { CoachesService } from '../src/coaches/coaches.service';
 import { CompetitionsService } from '../src/competitions/competitions.service';
 import { ErasService } from '../src/eras/eras.service';
 import { LeaguesService } from '../src/leagues/leagues.service';
+import { PositionsService } from '../src/positions/positions.service';
 import { RacesService } from '../src/races/races.service';
 import { LikePatternService } from '../src/shared/like-pattern.service';
 import { MatchEventCountsService } from '../src/shared/match-event-counts.service';
@@ -50,6 +53,7 @@ interface Services {
   races: RacesService;
   coaches: CoachesService;
   skills: SkillsService;
+  positions: PositionsService;
   competitions: CompetitionsService;
 }
 
@@ -131,6 +135,16 @@ const RERUN_CASES: readonly RerunCase[] = [
       s.skills.upsert({ name: 'Block', externalIds: externalIds(f, 's') }),
   },
   {
+    label: 'position',
+    tables: [[positions, positionsHistory]],
+    upsert: (s, f) =>
+      s.positions.upsert({
+        name: 'Ogre Blocker',
+        isStarPlayer: false,
+        externalIds: externalIds(f, 'p'),
+      }),
+  },
+  {
     label: 'competition',
     tables: [[competitions, competitionsHistory]],
     upsert: (s, f) =>
@@ -177,6 +191,18 @@ const RENAME_CASES: readonly RenameCase[] = [
     upsert: async (s, f, p) =>
       (await s.skills.upsert({ ...p, externalIds: externalIds(f, 's') })).skill
         .name,
+  },
+  {
+    label: 'position',
+    tables: [[positions, positionsHistory]],
+    upsert: async (s, f, p) =>
+      (
+        await s.positions.upsert({
+          ...p,
+          isStarPlayer: false,
+          externalIds: externalIds(f, 'p'),
+        })
+      ).position.name,
   },
   {
     label: 'competition',
@@ -250,6 +276,7 @@ describe('importer re-runs (real Postgres)', () => {
         RacesService,
         CoachesService,
         SkillsService,
+        PositionsService,
         CompetitionsService,
         { provide: LikePatternService, useValue: mock<LikePatternService>() },
         {
@@ -273,6 +300,7 @@ describe('importer re-runs (real Postgres)', () => {
       races: moduleRef.get(RacesService),
       coaches: moduleRef.get(CoachesService),
       skills: moduleRef.get(SkillsService),
+      positions: moduleRef.get(PositionsService),
       competitions: moduleRef.get(CompetitionsService),
     };
   });

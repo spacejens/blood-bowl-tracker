@@ -360,7 +360,7 @@ value table and the evidence behind the scope.
 ## Re-running on a populated database
 
 The tool runs against a database that is never dropped. Every coach,
-competition and skill entry is sent with `renameExisting: true`, so its `name`
+competition, skill and position entry is sent with `renameExisting: true`, so its `name`
 renames an existing row. The BBL, TP and live TP importers never send it: they
 set those names only when they create the row, so a later run of theirs cannot
 undo a curated name (see
