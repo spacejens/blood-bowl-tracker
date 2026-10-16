@@ -745,6 +745,21 @@ describe('upsertByExternalIds', () => {
       expect(insertValues).toHaveBeenNthCalledWith(1, { name: 'Foo' });
     });
 
+    it('leaves out createOnlyValues keys that are undefined on create', async () => {
+      const { db, insertValues } = makeDb({
+        resolveRows: [],
+        entityRow: { id: 7, name: 'Foo' },
+      });
+
+      await upsertByExternalIds({
+        ...baseOpts(db),
+        values: { name: 'Foo' },
+        createOnlyValues: { name: undefined },
+      });
+
+      expect(insertValues).toHaveBeenNthCalledWith(1, { name: 'Foo' });
+    });
+
     it('lets values win over createOnlyValues on create', async () => {
       const { db, insertValues } = makeDb({
         resolveRows: [],

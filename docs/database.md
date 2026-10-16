@@ -153,8 +153,10 @@ every write path is safe to repeat:
 - Curated names belong to `tools/import-manual`. A source importer sets a
   coach, competition, skill or position name only when it creates the row (see
   [imports](api/imports.md#upserts-overlay-they-do-not-replace)).
-- Dropping the database and importing from scratch stays the recovery path,
-  and ends in the same state: a create still takes the source's name.
+- Dropping the database and importing from scratch stays the recovery path:
+  a create still takes the source's name. A scratch import ends in the same
+  state as a long-lived database, where a merged row keeps the name it was
+  created with (or the curated one) rather than the last source's spelling.
 
 ## Star Player Points
 

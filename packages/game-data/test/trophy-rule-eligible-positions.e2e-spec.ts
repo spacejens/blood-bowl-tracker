@@ -119,9 +119,10 @@ async function seed(db: Db, options: SeedOptions): Promise<Fixtures> {
     .returning();
   const positionIdByNameId = new Map<string, number>();
   for (const [name, nameId] of [
-    // The stored name is TP's spelling; BBL calls the same position "Ogre
-    // Blockers". That disagreement is exactly why the restriction is curated
-    // as a Name external id and not as the position's name.
+    // The stored name depends on which spelling created the row (TP says "Ogre
+    // Blocker", BBL "Ogre Blockers"). That disagreement is exactly why the
+    // restriction is curated as a Name external id and not as the position's
+    // name.
     ['Ogre Blocker', 'Ogre: Ogre Blocker'],
     ['Ogre Runt Punter', 'Ogre: Ogre Runt Punter'],
     ['Gnoblar Lineman', 'Ogre: Gnoblar Lineman'],

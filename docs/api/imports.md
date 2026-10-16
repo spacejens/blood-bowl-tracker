@@ -50,8 +50,9 @@ against the connection in use, rather than assuming the 500 default is safe.
 An upsert writes only the fields the payload actually contains. A field left
 out is not mentioned to the database at all, so the stored value survives — a
 payload carrying just `name` and `externalIds` renames a row and touches
-nothing else (with the exception below). A field sent as `null` is a real write of `null`, which is how a
-caller clears a nullable value; the two are deliberately distinguishable.
+nothing else (with the exception below). A field sent as `null` is a real
+write of `null`, which is how a caller clears a nullable value; the two are
+deliberately distinguishable.
 `externalIds` is always required, because it addresses the row rather than
 describing it.
 
