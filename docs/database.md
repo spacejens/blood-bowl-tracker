@@ -137,6 +137,25 @@ row, sets `removed` on a row the curation no longer lists, clears it when the
 curation lists that row again, and writes nothing for an unchanged curation.
 Every reader filters on `removed = false`.
 
+## Re-running importers
+
+The importers run repeatedly against a database that is never dropped, so
+every write path is safe to repeat:
+
+- A record re-sent with the same external IDs updates its row in place; one
+  that matches nothing creates a row. No import ever deletes a row.
+- An unchanged re-run writes nothing: no `updated_at` bump and no history row
+  (see [History tracking](#history-tracking)). This is pinned against real
+  Postgres by `packages/game-data/test/importer-rerun.e2e-spec.ts` and
+  `trophy-rule-curation-rerun.e2e-spec.ts`.
+- A row a source system drops or re-keys stays. It is fixed by a data
+  migration or a once-applied manual batch, never by an importer.
+- Curated names belong to `tools/import-manual`. A source importer sets a
+  coach, competition or skill name only when it creates the row (see
+  [imports](api/imports.md#upserts-overlay-they-do-not-replace)).
+- Dropping the database and importing from scratch stays the recovery path,
+  and ends in the same state: a create still takes the source's name.
+
 ## Star Player Points
 
 [Star Player Points](glossary.md#star-player-points-spp) are denormalized
