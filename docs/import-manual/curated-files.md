@@ -165,7 +165,8 @@ systems could not supply:
 
 - `coaches.json5` — TP usernames replaced with a readable coach name. These
   names are pseudonymized (see [Data layout](index.md#data-layout)), so this is
-  where a coach's displayed pseudonym is set.
+  where a coach's displayed pseudonym is set. Source importers set a coach's name only when they
+  create the coach, so a name set here sticks.
 - `competitions.json5` — rename-only: classification lives in the
   before-other-importers phase (see above). Its 36 entries normalize the
   recurring numbered competitions the two source systems named inconsistently
@@ -173,9 +174,10 @@ systems could not supply:
 Season N`; stray prefixes are stripped from Ogretoberfest, Chaos Cup and
   Dungeon Bowl entries; each track's unnumbered first instalment — e.g. bare
   `Chaos Cup` — is numbered `1`; and BBL's three identically-named `Reserves
-Rumble` events become `Reserves Rumble 1`–`3`). Renaming cannot move to the
-  earlier phase: it can only run once the importers have (re-)created their
-  rows under the raw source names.
+Rumble` events become `Reserves Rumble 1`–`3`). The before-other-importers
+  file already creates these under their canonical names and source importers
+  never rename an existing competition, so this pass only changes a row a
+  source importer created before it was curated there.
 - `position-characteristics.json5` — hand-curated Move/Strength/Agility/Armour
   values for the three older rules sets no importer can supply correctly (CRP,
   CRP+, BB2016); `tools/import-bbl` deliberately writes no row for a rules set

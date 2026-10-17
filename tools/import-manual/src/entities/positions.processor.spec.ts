@@ -98,7 +98,12 @@ describe('PositionsProcessor', () => {
 
     expect(count).toBe(1);
     expect(positions.upsert).toHaveBeenCalledWith(
-      { name: 'Zombie', isStarPlayer: false, externalIds: cannedExternalIds },
+      {
+        name: 'Zombie',
+        renameExisting: true,
+        isStarPlayer: false,
+        externalIds: cannedExternalIds,
+      },
       ctx.errors,
     );
     // The processor must pair each pair's resolved race/era ids together
@@ -225,6 +230,7 @@ describe('PositionsProcessor', () => {
 
     expect(positions.upsert.mock.calls[0][0]).toEqual({
       name: 'Blitzer',
+      renameExisting: true,
       isStarPlayer: undefined,
       externalIds: [],
     });

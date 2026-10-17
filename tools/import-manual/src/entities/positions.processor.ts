@@ -19,6 +19,9 @@ export class PositionsProcessor {
       const upserted = await this.positionsImport.upsert(
         {
           name: entry.name,
+          // Names are curated here; the source importers only ever set one
+          // when they create the row.
+          renameExisting: true,
           isStarPlayer: entry.isStarPlayer,
           externalIds: this.refResolver.toExternalIds(
             entry.externalIds,

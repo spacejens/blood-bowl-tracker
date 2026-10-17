@@ -582,8 +582,9 @@
       // its third position, the Gnoblar Lineman. Each is the position's
       // "Name"-system external id, which is stable from the moment the
       // position is first created; `positions.name` is not, because BBL
-      // calls the position "Ogre Blockers" and TP "Ogre Blocker", so the
-      // stored name depends on which importer wrote last.
+      // calls the position "Ogre Blockers" and TP "Ogre Blocker", so a
+      // position created by a source importer carries that importer's
+      // spelling until a curated entry names it.
       awardRuleEligiblePositions: [
         'Ogre: Ogre Blocker',
         'Ogre: Ogre Runt Punter',

@@ -57,7 +57,10 @@ export class CoachesService {
       db: this.db,
       entityTable: coaches,
       entityIdColumn: coaches.id,
-      values: { name: data.name },
+      // A coach's name is curated by tools/import-manual once the row exists;
+      // only an upsert that says so may overwrite it.
+      values: data.renameExisting === true ? { name: data.name } : {},
+      createOnlyValues: { name: data.name },
       externalIdTable: coachExternalIds,
       ownerIdColumn: coachExternalIds.coachId,
       externalSystemIdColumn: coachExternalIds.externalSystemId,

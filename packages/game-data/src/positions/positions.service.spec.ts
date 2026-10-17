@@ -149,6 +149,7 @@ describe('PositionsService', () => {
 
     await service.upsert({
       name: 'Blitzer',
+      renameExisting: true,
       externalIds: [
         { externalSystemId: 1, externalId: '10-7' },
         { externalSystemId: 2, externalId: 'Orc: Lineman' },
@@ -156,6 +157,42 @@ describe('PositionsService', () => {
     });
 
     expect(firstCallArg(chains[2].set)).toEqual({ name: 'Blitzer' });
+  });
+
+  it('keeps the stored name when an update does not ask to rename', async () => {
+    const { chains } = await build(
+      [{ ownerId: 1, externalSystemId: 1, externalId: '10-7' }],
+      [fakePosition],
+      [fakePosition],
+    );
+
+    await service.upsert({
+      name: 'Raw Spelling',
+      isStarPlayer: false,
+      externalIds: [{ externalSystemId: 1, externalId: '10-7' }],
+    });
+
+    expect(firstCallArg(chains[2].set)).toEqual({ isStarPlayer: false });
+  });
+
+  it('renames on update when the payload asks to', async () => {
+    const { chains } = await build(
+      [{ ownerId: 1, externalSystemId: 1, externalId: '10-7' }],
+      [fakePosition],
+      [fakePosition],
+    );
+
+    await service.upsert({
+      name: 'Curated',
+      renameExisting: true,
+      isStarPlayer: false,
+      externalIds: [{ externalSystemId: 1, externalId: '10-7' }],
+    });
+
+    expect(firstCallArg(chains[2].set)).toEqual({
+      name: 'Curated',
+      isStarPlayer: false,
+    });
   });
 
   it('updates only isStarPlayer when it is the sole supplied column, even when false', async () => {

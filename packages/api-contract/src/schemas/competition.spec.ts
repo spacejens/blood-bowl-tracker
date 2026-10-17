@@ -188,4 +188,14 @@ describe('COMPETITION_TYPES', () => {
       }),
     ).toThrow();
   });
+
+  it('keeps an explicit rename intent rather than stripping it', () => {
+    expect(
+      UpsertCompetitionSchema.parse({
+        name: 'Chaos Cup 1',
+        renameExisting: true,
+        externalIds: [{ externalSystemId: 1, externalId: '7' }],
+      }).renameExisting,
+    ).toBe(true);
+  });
 });

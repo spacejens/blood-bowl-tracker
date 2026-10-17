@@ -23,9 +23,9 @@
 // "First Stunty Leeg era" each span CRP, CRP+ and BB2016 together, so one row
 // covers all three for those eras.
 //
-// Each entry re-states the position's existing `name` verbatim, because the
-// upsert overlays it -- a mismatched name would rename the position rather
-// than leave it alone. `isStarPlayer` is likewise re-stated (false, for every
+// Each entry re-states the position's curated `name` verbatim, because the
+// manual importer renames existing rows -- a mismatched name would rename the
+// position rather than leave it alone. `isStarPlayer` is likewise re-stated (false, for every
 // entry below -- none of these are star players), since on a fresh database
 // this phase creates the row and positions.is_star_player is NOT NULL.
 //
@@ -36,10 +36,12 @@
 // First Stunty Leeg era (which also spans BB2016, CRP and CRP+), for every
 // Stunty-Leeg-handbook-sourced position curated there (Tasks 10-11).
 //
+// Source importers set a position's name only when they create the row, so
+// the curated name from races-and-positions.json5 is the one that sticks.
 // Because this file runs in the after-other-importers phase, its `name`
 // re-statements (see below) win over anything a before-other-importers file
 // (e.g. races-and-positions.json5) curates for the same position: this phase
-// runs later and the upsert overlays whatever name is given here. A future
+// runs later and renames whatever name is given here. A future
 // rename curated in a before-phase file for a position also listed below
 // would therefore be silently reverted by this file on the next import.
 // This overlap is active today for four positions renamed across rules-set

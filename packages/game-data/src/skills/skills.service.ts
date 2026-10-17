@@ -77,7 +77,10 @@ export class SkillsService {
       db: this.db,
       entityTable: skills,
       entityIdColumn: skills.id,
-      values: { name: data.name },
+      // A skill's name is curated by tools/import-manual once the row exists;
+      // only an upsert that says so may overwrite it.
+      values: data.renameExisting === true ? { name: data.name } : {},
+      createOnlyValues: { name: data.name },
       externalIdTable: skillExternalIds,
       ownerIdColumn: skillExternalIds.skillId,
       externalSystemIdColumn: skillExternalIds.externalSystemId,

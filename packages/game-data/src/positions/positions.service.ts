@@ -93,7 +93,13 @@ export class PositionsService {
       db: this.db,
       entityTable: positions,
       entityIdColumn: positions.id,
-      values: { name: data.name, isStarPlayer: data.isStarPlayer },
+      values: {
+        // A position's display name is curated by tools/import-manual once
+        // the row exists; only an upsert that says so may overwrite it.
+        ...(data.renameExisting === true ? { name: data.name } : {}),
+        isStarPlayer: data.isStarPlayer,
+      },
+      createOnlyValues: { name: data.name },
       externalIdTable: positionExternalIds,
       ownerIdColumn: positionExternalIds.positionId,
       externalSystemIdColumn: positionExternalIds.externalSystemId,

@@ -10,9 +10,10 @@
 //
 // The `name` values below are pseudonyms -- first name plus last initial --
 // not the coaches' full real names, because this repository is public.
-// Matching resolves coaches by `externalIds` and never by `name`, and both the
-// BBL and TP importers overwrite this `name` on their own upsert anyway, so
-// the pseudonyms have no effect on import correctness.
+// Matching resolves coaches by `externalIds` and never by `name`. The BBL and
+// TP importers set a coach's name only when they create the coach, so the name
+// written here is the one shown; after-other-importers/coaches.json5 re-states
+// it.
 {
   externalSystems: [
     { name: 'tloeg.bbleague.se', category: 'imported_data_source' },

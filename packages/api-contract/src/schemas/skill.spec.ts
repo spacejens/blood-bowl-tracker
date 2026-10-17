@@ -34,4 +34,14 @@ describe('skill schemas', () => {
       }).success,
     ).toBe(false);
   });
+
+  it('keeps an explicit rename intent rather than stripping it', () => {
+    expect(
+      UpsertSkillSchema.parse({
+        name: 'Block',
+        renameExisting: true,
+        externalIds: [{ externalSystemId: 1, externalId: 'Name: Block' }],
+      }).renameExisting,
+    ).toBe(true);
+  });
 });

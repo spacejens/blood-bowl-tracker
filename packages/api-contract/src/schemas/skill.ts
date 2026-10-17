@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { ExternalIdSchema } from './external-id';
+import { RenameExistingSchema } from './shared/rename-existing';
 
 /**
  * A named player ability. Only a name: a skill's category can differ between
@@ -18,6 +19,7 @@ export const UpsertSkillSchema = z.object({
   // overlays only what the entry supplies, so a caller that says nothing
   // about the name leaves the stored one untouched.
   name: z.string().min(1).optional(),
+  renameExisting: RenameExistingSchema,
   externalIds: z.array(ExternalIdSchema).min(1),
 });
 

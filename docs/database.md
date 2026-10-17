@@ -125,6 +125,39 @@ moment it's created — so deleting a tracked row is always blocked, not
 just rows that have accumulated history. This is intentional and
 permanent: there is no supported way to hard-delete a tracked row.
 
+### Curated sets that shrink
+
+Because a tracked row cannot be deleted, a curated set that loses a member is
+synced by flagging rows, not deleting them. The three trophy award rule tables
+(`trophy_award_rule_match_event_types`,
+`trophy_award_rule_excluded_match_event_types`,
+`trophy_award_rule_eligible_positions`) carry a `removed` flag.
+`TrophyRuleCurationSyncService` in `packages/game-data` inserts a newly curated
+row, sets `removed` on a row the curation no longer lists, clears it when the
+curation lists that row again, and writes nothing for an unchanged curation.
+Every reader filters on `removed = false`.
+
+## Re-running importers
+
+The importers run repeatedly against a database that is never dropped, so
+every write path is safe to repeat:
+
+- A record re-sent with the same external IDs updates its row in place; one
+  that matches nothing creates a row. No import ever deletes a row.
+- An unchanged re-run writes nothing: no `updated_at` bump and no history row
+  (see [History tracking](#history-tracking)). This is pinned against real
+  Postgres by `packages/game-data/test/importer-rerun.e2e-spec.ts` and
+  `trophy-rule-curation-rerun.e2e-spec.ts`.
+- A row a source system drops or re-keys stays. It is fixed by a data
+  migration or a once-applied manual batch, never by an importer.
+- Curated names belong to `tools/import-manual`. A source importer sets a
+  coach, competition, skill or position name only when it creates the row (see
+  [imports](api/imports.md#upserts-overlay-they-do-not-replace)).
+- Dropping the database and importing from scratch stays the recovery path:
+  a create still takes the source's name. A scratch import ends in the same
+  state as a long-lived database, where a merged row keeps the name it was
+  created with (or the curated one) rather than the last source's spelling.
+
 ## Star Player Points
 
 [Star Player Points](glossary.md#star-player-points-spp) are denormalized
