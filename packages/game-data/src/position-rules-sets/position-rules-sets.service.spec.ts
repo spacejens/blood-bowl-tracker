@@ -73,6 +73,38 @@ const crpEntry = {
 
 describe('PositionRulesSetsService', () => {
   describe('sync', () => {
+    it('leaves an existing row alone when the batch is insert-only', async () => {
+      // Query 0: formats. Query 1: the existing row. Nothing to insert and
+      // nothing to update, so no transaction at all.
+      const db = mockDb(
+        [bb2020Formats],
+        [{ id: 21, positionId: 3, rulesSetId: 4 }],
+      );
+      const service = await makeService(db);
+
+      const result = await service.sync({
+        entries: [bb2020Entry],
+        insertOnly: true,
+      });
+
+      expect(result).toEqual({ positionRulesSetIds: [21] });
+      expect(db.chains).toHaveLength(2);
+      expect(db.transaction).not.toHaveBeenCalled();
+    });
+
+    it('still inserts a missing row when the batch is insert-only', async () => {
+      const db = mockDb([bb2020Formats], [], [{ id: 22 }]);
+      const service = await makeService(db);
+
+      const result = await service.sync({
+        entries: [bb2020Entry],
+        insertOnly: true,
+      });
+
+      expect(result).toEqual({ positionRulesSetIds: [22] });
+      expect(db.transaction).toHaveBeenCalled();
+    });
+
     it('returns no ids and issues no query for an empty entries list', async () => {
       const db = mockDb();
       const service = await makeService(db);

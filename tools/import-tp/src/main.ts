@@ -98,7 +98,8 @@ async function run(): Promise<ImportResult> {
     // and starting skills. This runs in the same TP importer invocation
     // that writes position availability, which is a separate (and later)
     // invocation than the BBL importer's -- so for every position both
-    // sources describe, TP's characteristics overwrite BBL's. That ordering
+    // sources describe, TP's characteristics overwrite BBL's (BBL only ever
+    // inserts these rows, so its re-runs leave TP's values alone). That ordering
     // is deliberate: TP's values are per-rules-set and authoritative, where
     // BBL's are a converted single snapshot. It runs before the rosters,
     // because players resolve their position against what it upserts.

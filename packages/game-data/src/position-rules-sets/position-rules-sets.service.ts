@@ -241,6 +241,9 @@ export class PositionRulesSetsService {
    * once — without this check, two such entries would both route to the
    * insert path below and collide on the table's unique constraint, raising
    * a raw database error instead of this method's own, clearer one.
+   *
+   * With `insertOnly`, an existing pair is left untouched (its id is still
+   * returned).
    */
   async sync(
     data: SyncPositionRulesSets,
@@ -299,6 +302,7 @@ export class PositionRulesSetsService {
 
     const toInsert: NewPositionRulesSet[] = [];
     const toUpdate: { id: number; values: CharacteristicValues }[] = [];
+    const untouchedIds: number[] = [];
     for (const entry of data.entries) {
       const existingId = existingIdByKey.get(this.naturalKey(entry));
       if (existingId === undefined) {
@@ -307,6 +311,10 @@ export class PositionRulesSetsService {
           rulesSetId: entry.rulesSetId,
           ...this.characteristicValues(entry),
         });
+      } else if (data.insertOnly === true) {
+        // Insert-only: the stored row stays as it is, but its id is still
+        // reported so the result covers every entry.
+        untouchedIds.push(existingId);
       } else {
         toUpdate.push({
           id: existingId,
@@ -315,11 +323,15 @@ export class PositionRulesSetsService {
       }
     }
 
+    if (toInsert.length === 0 && toUpdate.length === 0) {
+      return { positionRulesSetIds: untouchedIds };
+    }
+
     // One transaction around the insert and every update: the caller treats
     // this single call as one batch that either wholly succeeds or wholly
     // fails.
     return this.db.transaction(async (tx) => {
-      const positionRulesSetIds: number[] = [];
+      const positionRulesSetIds: number[] = [...untouchedIds];
 
       if (toInsert.length > 0) {
         const inserted = await tx

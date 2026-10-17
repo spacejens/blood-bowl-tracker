@@ -47,7 +47,9 @@ stored name, which `tools/import-manual` may have curated (see
   player use; the same rule as race-era availability), not hardcoded to
   BB2020: an era spanning a rules-set change yields a row per rules set in
   that span, all carrying the same scraped values, since BBL is a single
-  BB2020-era snapshot. The three pre-BB2020 rules sets are the exception:
+  BB2020-era snapshot. BBL only inserts these rows (`insertOnly`): a row that
+  already exists is left alone, so a re-run never rewrites the values TP's
+  later run writes for the same pair. The three pre-BB2020 rules sets are the exception:
   BBL writes no row for a rules set with bare Agility and Armour
   (`agilityFormat: 'bare'` — CRP, CRP+, BB2016), because one BB2020
   snapshot cannot describe them; values come only from `tools/import-manual`'s

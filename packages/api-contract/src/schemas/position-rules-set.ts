@@ -28,6 +28,14 @@ export const PositionRulesSetEntrySchema = z.object({
  */
 export const SyncPositionRulesSetsSchema = z.object({
   entries: z.array(PositionRulesSetEntrySchema),
+  /**
+   * When true, an entry whose (position, rules set) pair already has a row
+   * leaves that row untouched; only missing pairs are inserted. BBL sends it:
+   * its single BB2020 snapshot must not rewrite the per-rules-set values TP
+   * writes later in the same import sequence. TP and the manual importer
+   * omit it and overwrite.
+   */
+  insertOnly: z.boolean().optional(),
 });
 
 export const SyncPositionRulesSetsResultSchema = z.object({
