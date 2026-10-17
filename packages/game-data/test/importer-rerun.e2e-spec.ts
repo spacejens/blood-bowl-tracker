@@ -17,6 +17,10 @@ import {
   racesHistory,
   skills,
   skillsHistory,
+  teamEras,
+  teamErasHistory,
+  teams,
+  teamsHistory,
 } from '@blood-bowl-tracker/db';
 import {
   closeTestDb,
@@ -35,8 +39,11 @@ import { RacesService } from '../src/races/races.service';
 import { LikePatternService } from '../src/shared/like-pattern.service';
 import { MatchEventCountsService } from '../src/shared/match-event-counts.service';
 import { MatchOutcomeCountsService } from '../src/shared/match-outcome-counts.service';
+import { TeamRaceCoachNamesService } from '../src/shared/team-race-coach-names.service';
 import { TrophyAwardCountsService } from '../src/shared/trophy-award-counts.service';
 import { SkillsService } from '../src/skills/skills.service';
+import { TeamsService } from '../src/teams/teams.service';
+import { TeamsStatisticsService } from '../src/teams/teams-statistics.service';
 import { connectTestDb } from './e2e-database';
 
 /**
@@ -55,6 +62,7 @@ interface Services {
   skills: SkillsService;
   positions: PositionsService;
   competitions: CompetitionsService;
+  teams: TeamsService;
 }
 
 interface Fixtures {
@@ -62,6 +70,8 @@ interface Fixtures {
   leagueId: number;
   eraId: number;
   groupId: number;
+  raceId: number;
+  coachId: number;
 }
 
 type TablePair = readonly [PgTable, PgTable];
@@ -159,6 +169,21 @@ const RERUN_CASES: readonly RerunCase[] = [
         externalIds: externalIds(f, 'k'),
       }),
   },
+  {
+    label: 'team',
+    tables: [
+      [teams, teamsHistory],
+      [teamEras, teamErasHistory],
+    ],
+    upsert: (s, f) =>
+      s.teams.upsert({
+        name: 'Rerun Team',
+        raceId: f.raceId,
+        coachId: f.coachId,
+        eras: [f.eraId],
+        externalIds: externalIds(f, 't'),
+      }),
+  },
 ];
 
 interface RenamePayload {
@@ -178,6 +203,32 @@ interface RenameCase {
 }
 
 const RENAME_CASES: readonly RenameCase[] = [
+  {
+    label: 'race',
+    tables: [[races, racesHistory]],
+    upsert: async (s, f, p) =>
+      (
+        await s.races.upsert({
+          ...p,
+          eras: [],
+          externalIds: externalIds(f, 'r'),
+        })
+      ).race.name,
+  },
+  {
+    label: 'team',
+    tables: [[teams, teamsHistory]],
+    upsert: async (s, f, p) =>
+      (
+        await s.teams.upsert({
+          ...p,
+          raceId: f.raceId,
+          coachId: f.coachId,
+          eras: [],
+          externalIds: externalIds(f, 't'),
+        })
+      ).team.name,
+  },
   {
     label: 'coach',
     tables: [[coaches, coachesHistory]],
@@ -262,11 +313,21 @@ describe('importer re-runs (real Postgres)', () => {
         namePattern: '^Chaos Cup(?:\\s*\\d+)?$',
       })
       .returning();
+    const [race] = await db
+      .insert(races)
+      .values({ name: 'Fixture Race' })
+      .returning();
+    const [coach] = await db
+      .insert(coaches)
+      .values({ name: 'Fixture Coach' })
+      .returning();
     fixtures = {
       systemId: system.id,
       leagueId: league.id,
       eraId: era.id,
       groupId: group.id,
+      raceId: race.id,
+      coachId: coach.id,
     };
 
     const moduleRef = await Test.createTestingModule({
@@ -278,6 +339,15 @@ describe('importer re-runs (real Postgres)', () => {
         SkillsService,
         PositionsService,
         CompetitionsService,
+        TeamsService,
+        {
+          provide: TeamsStatisticsService,
+          useValue: mock<TeamsStatisticsService>(),
+        },
+        {
+          provide: TeamRaceCoachNamesService,
+          useValue: mock<TeamRaceCoachNamesService>(),
+        },
         { provide: LikePatternService, useValue: mock<LikePatternService>() },
         {
           provide: MatchEventCountsService,
@@ -302,6 +372,7 @@ describe('importer re-runs (real Postgres)', () => {
       skills: moduleRef.get(SkillsService),
       positions: moduleRef.get(PositionsService),
       competitions: moduleRef.get(CompetitionsService),
+      teams: moduleRef.get(TeamsService),
     };
   });
 

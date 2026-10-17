@@ -28,4 +28,14 @@ describe('race schemas', () => {
     expect(parsed.name).toBeUndefined();
     expect(parsed.eras).toEqual([]);
   });
+
+  it('keeps an explicit rename intent rather than stripping it', () => {
+    expect(
+      UpsertRaceSchema.parse({
+        name: 'Bretonnian',
+        renameExisting: true,
+        externalIds: [{ externalSystemId: 1, externalId: 'Bretonnian' }],
+      }).renameExisting,
+    ).toBe(true);
+  });
 });

@@ -151,7 +151,8 @@ every write path is safe to repeat:
 - A row a source system drops or re-keys stays. It is fixed by a data
   migration or a once-applied manual batch, never by an importer.
 - Curated names belong to `tools/import-manual`. A source importer sets a
-  coach, competition, skill or position name only when it creates the row (see
+  coach, competition, skill, position, team or race name only when it creates
+  the row (see
   [imports](api/imports.md#upserts-overlay-they-do-not-replace)).
 - Dropping the database and importing from scratch stays the recovery path:
   a create still takes the source's name. A scratch import ends in the same
