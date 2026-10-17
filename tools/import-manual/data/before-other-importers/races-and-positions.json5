@@ -309,6 +309,7 @@
         { system: 'tourplay.net', id: '933' },
         { system: 'tourplay.net', id: '261' },
         { system: 'Name', id: 'Chaos Chosen: Chosen Blocker' },
+        { system: 'Name', id: 'Chaos Chosen: Chosen Blockers' },
       ],
     },
     {
@@ -337,12 +338,13 @@
     },
     {
       // Chaos Dwarf: BBL 'Bull Centaur' / TP 'Bull Centaur Blitzer'
-      name: 'Bull Centaur Blitzer',
+      name: 'Bull Centaur',
       isStarPlayer: false,
       externalIds: [
         { system: 'tloeg.bbleague.se', id: '10-3' },
         { system: 'tourplay.net', id: '680' },
         { system: 'Name', id: 'Chaos Dwarf: Bull Centaur Blitzer' },
+        { system: 'Name', id: 'Chaos Dwarf: Bull Centaur' },
       ],
     },
     {
@@ -353,6 +355,7 @@
         { system: 'tloeg.bbleague.se', id: '11-3' },
         { system: 'tourplay.net', id: '678' },
         { system: 'Name', id: 'Chaos Dwarf: Chaos Dwarf Blocker' },
+        { system: 'Name', id: 'Chaos Dwarf: Chaos Dwarf Blockers' },
       ],
     },
     {
@@ -363,6 +366,7 @@
         { system: 'tloeg.bbleague.se', id: '309-3' },
         { system: 'tourplay.net', id: '681' },
         { system: 'Name', id: 'Chaos Dwarf: Minotaur' },
+        { system: 'Name', id: 'Chaos Dwarf: Enslaved Minotaur' },
       ],
     },
     {
@@ -373,6 +377,7 @@
         { system: 'tloeg.bbleague.se', id: '42-3' },
         { system: 'tourplay.net', id: '676' },
         { system: 'Name', id: 'Chaos Dwarf: Hobgoblin Lineman' },
+        { system: 'Name', id: 'Chaos Dwarf: Hobgoblin Linemen' },
       ],
     },
     {
@@ -696,6 +701,7 @@
         { system: 'tloeg.bbleague.se', id: '26-6' },
         { system: 'tourplay.net', id: '288' },
         { system: 'Name', id: 'Elven Union: Elf Blitzer' },
+        { system: 'Name', id: 'Elven Union: Elven Blitzers' },
       ],
     },
     {
@@ -706,6 +712,7 @@
         { system: 'tloeg.bbleague.se', id: '27-6' },
         { system: 'tourplay.net', id: '287' },
         { system: 'Name', id: 'Elven Union: Elf Catcher' },
+        { system: 'Name', id: 'Elven Union: Elven Catchers' },
       ],
     },
     {
@@ -716,6 +723,7 @@
         { system: 'tloeg.bbleague.se', id: '28-6' },
         { system: 'tourplay.net', id: '285' },
         { system: 'Name', id: 'Elven Union: Elf Lineman' },
+        { system: 'Name', id: 'Elven Union: Elven Linemen' },
       ],
     },
     {
@@ -726,6 +734,7 @@
         { system: 'tloeg.bbleague.se', id: '29-6' },
         { system: 'tourplay.net', id: '286' },
         { system: 'Name', id: 'Elven Union: Elf Thrower' },
+        { system: 'Name', id: 'Elven Union: Elven Throwers' },
       ],
     },
     {
@@ -741,6 +750,7 @@
         { system: 'tourplay.net', id: '961' },
         { system: 'tourplay.net', id: '289' },
         { system: 'Name', id: 'Goblin: Goblin Lineman' },
+        { system: 'Name', id: 'Goblin: Goblin Linemen' },
       ],
     },
     {
@@ -771,6 +781,7 @@
         { system: 'tourplay.net', id: '972' },
         { system: 'tourplay.net', id: '300' },
         { system: 'Name', id: 'Halfling: Altern Forest Treeman' },
+        { system: 'Name', id: 'Halfling: Hafling Treeman' },
       ],
     },
     {
@@ -799,6 +810,7 @@
         { system: 'tloeg.bbleague.se', id: '20-9' },
         { system: 'tourplay.net', id: '410' },
         { system: 'Name', id: 'High Elf: High Elf Blitzer' },
+        { system: 'Name', id: 'High Elf: High Elf Blitzers' },
       ],
     },
     {
@@ -809,6 +821,7 @@
         { system: 'tloeg.bbleague.se', id: '56-9' },
         { system: 'tourplay.net', id: '409' },
         { system: 'Name', id: 'High Elf: High Elf Catcher' },
+        { system: 'Name', id: 'High Elf: High Elf Catchers' },
       ],
     },
     {
@@ -819,6 +832,7 @@
         { system: 'tloeg.bbleague.se', id: '41-9' },
         { system: 'tourplay.net', id: '407' },
         { system: 'Name', id: 'High Elf: High Elf Lineman' },
+        { system: 'Name', id: 'High Elf: High Elf Linemen' },
       ],
     },
     {
@@ -829,6 +843,7 @@
         { system: 'tloeg.bbleague.se', id: '76-9' },
         { system: 'tourplay.net', id: '408' },
         { system: 'Name', id: 'High Elf: High Elf Thrower' },
+        { system: 'Name', id: 'High Elf: High Elf Throwers' },
       ],
     },
     {
@@ -929,6 +944,7 @@
         { system: 'tourplay.net', id: '986' },
         { system: 'tourplay.net', id: '314' },
         { system: 'Name', id: 'Lizardmen: Saurus Blocker' },
+        { system: 'Name', id: 'Lizardmen: Saurus Blockers' },
       ],
     },
     {
@@ -956,6 +972,7 @@
         { system: 'tloeg.bbleague.se', id: '32-13' },
         { system: 'tourplay.net', id: '989' },
         { system: 'Name', id: 'Necromantic Horror: Ghoul Runner' },
+        { system: 'Name', id: 'Necromantic Horror: Ghoul Runners' },
       ],
     },
     {
@@ -976,6 +993,7 @@
         { system: 'tloeg.bbleague.se', id: '104-13' },
         { system: 'tourplay.net', id: '988' },
         { system: 'Name', id: 'Necromantic Horror: Zombie Lineman' },
+        { system: 'Name', id: 'Necromantic Horror: Zombie' },
       ],
     },
     {
@@ -998,6 +1016,7 @@
         { system: 'tourplay.net', id: '1060' },
         { system: 'tourplay.net', id: '532' },
         { system: 'Name', id: 'Norse: Norse Berserker' },
+        { system: 'Name', id: 'Norse: Norse Berserkers' },
       ],
     },
     {
@@ -1036,6 +1055,7 @@
         { system: 'tourplay.net', id: '323' },
         { system: 'tourplay.net', id: '995' },
         { system: 'Name', id: 'Nurgle: Bloater' },
+        { system: 'Name', id: 'Nurgle: Bloaters' },
       ],
     },
     {
@@ -1047,6 +1067,7 @@
         { system: 'tourplay.net', id: '322' },
         { system: 'tourplay.net', id: '994' },
         { system: 'Name', id: 'Nurgle: Pestigor' },
+        { system: 'Name', id: 'Nurgle: Pestigors' },
       ],
     },
     {
@@ -1058,6 +1079,7 @@
         { system: 'tourplay.net', id: '321' },
         { system: 'tourplay.net', id: '993' },
         { system: 'Name', id: 'Nurgle: Rotter Lineman' },
+        { system: 'Name', id: 'Nurgle: Rotter Linemen' },
       ],
     },
     {
@@ -1068,6 +1090,7 @@
         { system: 'tloeg.bbleague.se', id: '109-21' },
         { system: 'tourplay.net', id: '325' },
         { system: 'Name', id: 'Ogre: Gnoblar Lineman' },
+        { system: 'Name', id: 'Ogre: Gnoblar Linemen' },
       ],
     },
     {
@@ -1078,6 +1101,7 @@
         { system: 'tloeg.bbleague.se', id: '71-21' },
         { system: 'tourplay.net', id: '327' },
         { system: 'Name', id: 'Ogre: Ogre Blocker' },
+        { system: 'Name', id: 'Ogre: Ogre Blockers' },
       ],
     },
     {
@@ -1102,6 +1126,7 @@
         { system: 'tloeg.bbleague.se', id: '33-16' },
         { system: 'tourplay.net', id: '1012' },
         { system: 'Name', id: 'Orc: Goblin Lineman' },
+        { system: 'Name', id: 'Orc: Goblin Linemen' },
       ],
     },
     {
@@ -1219,6 +1244,7 @@
         { system: 'tloeg.bbleague.se', id: '51-11' },
         { system: 'tourplay.net', id: '1052' },
         { system: 'Name', id: 'Tomb Kings: Tomb Kings Blitzer' },
+        { system: 'Name', id: 'Tomb Kings: Anointed Blitzer' },
       ],
     },
     {
@@ -1229,6 +1255,7 @@
         { system: 'tloeg.bbleague.se', id: '54-11' },
         { system: 'tourplay.net', id: '1051' },
         { system: 'Name', id: 'Tomb Kings: Tomb Kings Thrower' },
+        { system: 'Name', id: 'Tomb Kings: Anointed Thrower' },
       ],
     },
     {
@@ -1239,6 +1266,7 @@
         { system: 'tloeg.bbleague.se', id: '53-11' },
         { system: 'tourplay.net', id: '1050' },
         { system: 'Name', id: 'Tomb Kings: Skeleton Lineman' },
+        { system: 'Name', id: 'Tomb Kings: Skeleton Linemen' },
       ],
     },
     {
@@ -1249,6 +1277,7 @@
         { system: 'tloeg.bbleague.se', id: '52-11' },
         { system: 'tourplay.net', id: '1053' },
         { system: 'Name', id: 'Tomb Kings: Tomb Guardian' },
+        { system: 'Name', id: 'Tomb Kings: Tomb Guardians' },
       ],
     },
     {
@@ -1264,6 +1293,7 @@
         { system: 'tourplay.net', id: '1038' },
         { system: 'tourplay.net', id: '366' },
         { system: 'Name', id: 'Underworld Denizens: Skaven Blitzer' },
+        { system: 'Name', id: 'Underworld Denizens: Underworld Skaven Blitzers' },
       ],
     },
     {
@@ -1294,6 +1324,7 @@
         { system: 'tourplay.net', id: '1035' },
         { system: 'tourplay.net', id: '363' },
         { system: 'Name', id: 'Underworld Denizens: Skaven Clanrat' },
+        { system: 'Name', id: 'Underworld Denizens: Underworld Skaven Lineman' },
       ],
     },
     {
@@ -1309,6 +1340,7 @@
         { system: 'tourplay.net', id: '1036' },
         { system: 'tourplay.net', id: '364' },
         { system: 'Name', id: 'Underworld Denizens: Skaven Thrower' },
+        { system: 'Name', id: 'Underworld Denizens: Underworld Skaven Thrower' },
       ],
     },
     {
@@ -1378,6 +1410,7 @@
         { system: 'tourplay.net', id: '421' },
         { system: 'tourplay.net', id: '580' },
         { system: 'Name', id: 'Vampire: Thrall Lineman' },
+        { system: 'Name', id: 'Vampire: Thrall Linemen' },
       ],
     },
     {
@@ -1389,6 +1422,7 @@
         { system: 'tourplay.net', id: '422' },
         { system: 'tourplay.net', id: '583' },
         { system: 'Name', id: 'Vampire: Vampire Blitzer' },
+        { system: 'Name', id: 'Vampire: Vampire Blitzers' },
       ],
     },
 

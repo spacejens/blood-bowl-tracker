@@ -132,15 +132,16 @@ generation's id on the one existing curated row** in
 - Add the new id to the existing entry's `externalIds`; never remove the older
   one. Order the array BBL id, newest TP id, older TP id(s), `Name` id.
 - Where the name changed, set the entry's `name` to the **current** name.
-  Leave the `Name` id alone: it is the id under which this row was first
-  curated, and the BBL/TP importers add their own `<race>: <source name>` ids
-  onto the same row as they run — those derived ids, not this one, are what
-  `position-characteristics.json5` and `position-availability.json5`
-  reference.
-- If the renamed position also appears in `position-availability.json5`, set
-  that entry's `name` to the current name too. The after-other-importers phase
-  overlays the position's name, so leaving the old spelling there silently
-  renames the merged row back on every import.
+  Keep the `Name` id it was first curated under, and also list every
+  `<race>: <source name>` id the BBL/TP importers derive for the same row
+  (after it): those derived ids are what `position-characteristics.json5` and
+  `position-availability.json5` reference, and listing them here makes every
+  pairing visible to the curated-data tests.
+- Every `position-availability.json5` entry sharing a `Name` id with an entry
+  here carries the same `name` (a test enforces it). The after-other-importers
+  phase renames the position, so a different spelling there would flip the
+  row's name on every run. Which spelling: the one TP uses for the position;
+  when TP uses both, the one in this file.
 - `position-characteristics.json5` requires no change: each entry is keyed by
   the position's `Name` external id, not a display name, so the renamed row's
   merged identity (with both old and new ids registered) resolves the reference

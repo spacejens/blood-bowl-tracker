@@ -537,8 +537,9 @@ describe('curated data files', () => {
         { system: 'tourplay.net', id: '986' },
         { system: 'tourplay.net', id: '314' },
         { system: 'Name', id: 'Lizardmen: Saurus Blocker' },
+        { system: 'Name', id: 'Lizardmen: Saurus Blockers' },
       ],
-      overlay: null,
+      overlay: { nameId: 'Lizardmen: Saurus Blockers', name: 'Saurus Blocker' },
     },
     {
       race: 'Lizardmen',
@@ -576,8 +577,9 @@ describe('curated data files', () => {
         { system: 'tourplay.net', id: '961' },
         { system: 'tourplay.net', id: '289' },
         { system: 'Name', id: 'Goblin: Goblin Lineman' },
+        { system: 'Name', id: 'Goblin: Goblin Linemen' },
       ],
-      overlay: null,
+      overlay: { nameId: 'Goblin: Goblin Linemen', name: 'Goblin Lineman' },
     },
     {
       race: 'Goblin',
@@ -598,8 +600,12 @@ describe('curated data files', () => {
         { system: 'tourplay.net', id: '972' },
         { system: 'tourplay.net', id: '300' },
         { system: 'Name', id: 'Halfling: Altern Forest Treeman' },
+        { system: 'Name', id: 'Halfling: Hafling Treeman' },
       ],
-      overlay: null,
+      overlay: {
+        nameId: 'Halfling: Hafling Treeman',
+        name: 'Altern Forest Treeman',
+      },
     },
     {
       race: 'Norse',
@@ -620,8 +626,15 @@ describe('curated data files', () => {
         { system: 'tourplay.net', id: '1038' },
         { system: 'tourplay.net', id: '366' },
         { system: 'Name', id: 'Underworld Denizens: Skaven Blitzer' },
+        {
+          system: 'Name',
+          id: 'Underworld Denizens: Underworld Skaven Blitzers',
+        },
       ],
-      overlay: null,
+      overlay: {
+        nameId: 'Underworld Denizens: Underworld Skaven Blitzers',
+        name: 'Skaven Blitzer',
+      },
     },
     {
       race: 'Underworld Denizens',
@@ -642,8 +655,15 @@ describe('curated data files', () => {
         { system: 'tourplay.net', id: '1035' },
         { system: 'tourplay.net', id: '363' },
         { system: 'Name', id: 'Underworld Denizens: Skaven Clanrat' },
+        {
+          system: 'Name',
+          id: 'Underworld Denizens: Underworld Skaven Lineman',
+        },
       ],
-      overlay: null,
+      overlay: {
+        nameId: 'Underworld Denizens: Underworld Skaven Lineman',
+        name: 'Skaven Clanrat',
+      },
     },
     {
       race: 'Underworld Denizens',
@@ -653,8 +673,15 @@ describe('curated data files', () => {
         { system: 'tourplay.net', id: '1036' },
         { system: 'tourplay.net', id: '364' },
         { system: 'Name', id: 'Underworld Denizens: Skaven Thrower' },
+        {
+          system: 'Name',
+          id: 'Underworld Denizens: Underworld Skaven Thrower',
+        },
       ],
-      overlay: null,
+      overlay: {
+        nameId: 'Underworld Denizens: Underworld Skaven Thrower',
+        name: 'Skaven Thrower',
+      },
     },
     {
       race: 'Underworld Denizens',
@@ -713,4 +740,56 @@ describe('curated data files', () => {
       }
     },
   );
+
+  it('names a position identically in both phases wherever they share a Name id', () => {
+    // The before phase creates the row and the after phase renames it, both
+    // with renameExisting, so two spellings would rename the row back and
+    // forth on every run. Pairings through BBL/TP-derived Name ids are
+    // visible here because races-and-positions.json5 lists those ids too.
+    const beforeNames = new Map<string, string>();
+    for (const position of readFile(
+      'before-other-importers',
+      'races-and-positions.json5',
+    ).positions) {
+      for (const ref of position.externalIds) {
+        if (ref.system === 'Name') {
+          beforeNames.set(ref.id, position.name);
+        }
+      }
+    }
+    const disagreements: string[] = [];
+    for (const position of readFile(
+      'after-other-importers',
+      'position-availability.json5',
+    ).positions) {
+      for (const ref of position.externalIds) {
+        const before = beforeNames.get(ref.id);
+        if (
+          ref.system === 'Name' &&
+          before !== undefined &&
+          before !== position.name
+        ) {
+          disagreements.push(`${ref.id}: "${before}" vs "${position.name}"`);
+        }
+      }
+    }
+    expect(disagreements).toEqual([]);
+  });
+
+  it('pre-registers the derived Name id of every after-phase position rename', () => {
+    // A representative derived id: BBL names the Ogre roster's blocker
+    // "Ogre Blockers", TP "Ogre Blocker"; the curated row carries both ids.
+    const entry = readFile(
+      'before-other-importers',
+      'races-and-positions.json5',
+    ).positions.find((position) =>
+      position.externalIds.some(
+        (ref) => ref.system === 'Name' && ref.id === 'Ogre: Ogre Blocker',
+      ),
+    );
+    expect(entry?.externalIds).toContainEqual({
+      system: 'Name',
+      id: 'Ogre: Ogre Blockers',
+    });
+  });
 });
