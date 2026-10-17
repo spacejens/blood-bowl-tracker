@@ -63,6 +63,11 @@ stored name, which `tools/import-manual` may have curated (see
   the rest of the run. A position whose characteristics table could not be
   read records an error and is skipped; its identity still imports. Imported
   after rules sets, positions, and positions_race_eras (all referenced).
+- **Position starting skills** — the `Skills` column of the same `p=pt` page,
+  written to `position_rules_set_skills`. Starting skills are inserted only
+  (`insertOnly`): an existing (position, rules set, skill) row keeps its
+  attribute value, so TP's later spelling of it is not rewritten on a BBL
+  re-run.
 - **Teams** — from team pages (`p=tm`). Keyed by the team's alphanumeric page
   id (`t` param) under the configured BBL external system (`BBL` by default),
   and by its `<h1>` name under the `Name` external system. Each team's race and

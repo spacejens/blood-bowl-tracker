@@ -9,6 +9,13 @@ import {
 } from './position-rules-set-skill';
 
 describe('position rules set skill schemas', () => {
+  it('keeps an insert-only flag rather than stripping it', () => {
+    expect(
+      SyncPositionRulesSetSkillsSchema.parse({ entries: [], insertOnly: true })
+        .insertOnly,
+    ).toBe(true);
+  });
+
   it('parses an entry', () => {
     const parsed = PositionRulesSetSkillEntrySchema.parse({
       positionId: 3,

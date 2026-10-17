@@ -81,6 +81,8 @@ export class PositionRulesSetSkillsService {
    *
    * Every validation runs over the whole batch before any write, so one bad
    * entry fails the call rather than half-applying it.
+   *
+   * With `insertOnly`, an existing row's attribute value is never updated.
    */
   async sync(
     data: SyncPositionRulesSetSkills,
@@ -221,6 +223,7 @@ export class PositionRulesSetSkillsService {
       }
       resultIds[index] = existing.id;
       if (
+        data.insertOnly !== true &&
         row.attributeValue !== undefined &&
         row.attributeValue !== existing.attributeValue
       ) {

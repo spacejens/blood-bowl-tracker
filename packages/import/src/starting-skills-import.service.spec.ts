@@ -104,6 +104,7 @@ describe('StartingSkillsImportService', () => {
             attributeValue: undefined,
           },
         ],
+        insertOnly: true,
       },
       errors,
     );
@@ -145,6 +146,7 @@ describe('StartingSkillsImportService', () => {
         entries: [
           { positionId: 3, rulesSetId: 4, skillId: 5, attributeValue: '4+' },
         ],
+        insertOnly: true,
       },
       errors,
     );
@@ -196,6 +198,7 @@ describe('StartingSkillsImportService', () => {
             attributeValue: undefined,
           },
         ],
+        insertOnly: true,
       },
       errors,
     );
@@ -236,6 +239,7 @@ describe('StartingSkillsImportService', () => {
         entries: [
           { positionId: 3, rulesSetId: 4, skillId: 5, attributeValue: '4+' },
         ],
+        insertOnly: true,
       },
       errors,
     );
@@ -564,6 +568,7 @@ describe('StartingSkillsImportService', () => {
             attributeValue: undefined,
           },
         ],
+        insertOnly: true,
       },
       errors,
     );
