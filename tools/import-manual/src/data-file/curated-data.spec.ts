@@ -747,12 +747,16 @@ describe('curated data files', () => {
     // forth on every run. Pairings through BBL/TP-derived Name ids are
     // visible here because races-and-positions.json5 lists those ids too.
     const beforeNames = new Map<string, string>();
+    const duplicateIds: string[] = [];
     for (const position of readFile(
       'before-other-importers',
       'races-and-positions.json5',
     ).positions) {
       for (const ref of position.externalIds) {
         if (ref.system === 'Name') {
+          if (beforeNames.has(ref.id)) {
+            duplicateIds.push(ref.id);
+          }
           beforeNames.set(ref.id, position.name);
         }
       }
@@ -773,6 +777,7 @@ describe('curated data files', () => {
         }
       }
     }
+    expect(duplicateIds).toEqual([]);
     expect(disagreements).toEqual([]);
   });
 

@@ -165,6 +165,11 @@ optionally the roster's players seen only in match snapshots, and optionally
 `deferSppTotal`: when true the players' `spp_total` is left alone, because the
 caller writes it afterwards through `players.syncReportedSppAdjustments` (the
 bulk importer does; the live import does not, so it stores TP's raw total).
+The live import stores TP's raw total while the bulk run stores the corrected
+total, so a live import of a player the bulk run already imported rewrites
+`spp_total` (raw, then corrected on the next bulk run), adding history rows
+each way; this is accepted because the live import never runs the adjustments
+step.
 Output: the `team` and `players` results, plus the team's team eras, each
 imported player's `lineUpId` → player id (and whether it was inserted) and the
 career SPP total TP reports for it, and the

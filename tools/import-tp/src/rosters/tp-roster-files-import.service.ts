@@ -120,8 +120,7 @@ export class TpRosterFilesImportService {
         reportedSppTotalsByPlayerId.set(
           player.playerId,
           Math.max(
-            reportedSppTotalsByPlayerId.get(player.playerId) ??
-              player.reportedSppTotal,
+            reportedSppTotalsByPlayerId.get(player.playerId) ?? 0,
             player.reportedSppTotal,
           ),
         );

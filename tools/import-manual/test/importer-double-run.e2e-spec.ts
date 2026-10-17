@@ -22,22 +22,27 @@ import { curatedPicks, runSourceStandIn } from './source-stand-in.test-helpers';
  * identical second run changes no row and adds no history row in any
  * game_data table.
  *
- * Covers: every curated data file in both phases as really authored, so two
- * files that disagree about a row show up as a flip; the server-side
- * semantics re-runs depend on (`renameExisting`, the `insertOnly` syncs, the
- * `reportedTotal` SPP sync); that a source re-sending a raw spelling never
- * changes a curated coach, competition, skill, position, team or race name,
- * not even between the two manual phases; and that a fresh run ends with
- * TP's characteristics and starting-skill attribute.
+ * Covers: every curated data file in both phases as really authored (apart
+ * from the position-availability race-era syncs, which fail in the harness and
+ * are never exercised), so two files that disagree about a row show up as a
+ * flip; the server-side semantics re-runs depend on (`renameExisting`, the
+ * `insertOnly` syncs, the `reportedTotal` SPP sync); that a source
+ * re-sending a raw spelling never changes a curated coach, competition,
+ * skill, position, team or race name, not even between the two manual
+ * phases; and that a fresh run ends with TP's characteristics and
+ * starting-skill attribute.
  *
  * Cannot cover: the real BBL and TP pipelines (HTML/JSON parsing, the
  * orchestration in their `main.ts`, the server-side `tpRosters`,
  * `tpMatches`, `tpCompetitions` and `tpOfficialTeams` imports), because their
  * source dumps are not in the repository; flips that originate in the source
- * data itself; and tables derived from match events. Without BBL and TP, the
- * after phase has entries that reference rows only they create; those fail
- * with recorded errors, so the suite asserts the after-phase errors are the
- * same on both runs rather than empty.
+ * data itself; and tables derived from match events. The tables race_eras,
+ * positions_race_eras, era_rules_sets, matches, match_events, player_skills,
+ * trophy_awards and competition_teams stay empty in the harness, so their
+ * comparisons pass vacuously. Without BBL and TP,
+ * the after phase has entries that reference rows only they create; those
+ * fail with recorded errors, so the suite asserts the after-phase errors are
+ * of the two known kinds and the same on both runs rather than empty.
  */
 
 const DATA = join(__dirname, '../data');
@@ -74,7 +79,9 @@ describe('the importer sequence, run twice (real Postgres, real api-server)', ()
   });
 
   afterAll(async () => {
-    await stopImporterStack(stack);
+    if (stack) {
+      await stopImporterStack(stack);
+    }
   });
 
   it('imports the before phase without errors, both times', () => {
@@ -84,8 +91,15 @@ describe('the importer sequence, run twice (real Postgres, real api-server)', ()
 
   it('records the same after-phase errors both times', () => {
     // Entries that reference rows only the real BBL/TP importers create fail
-    // here; what matters is that a re-run behaves identically.
+    // here; what matters is that a re-run behaves identically, and that the
+    // failures are the two known kinds: race-era syncs that need BBL race ids
+    // and a trophy award that needs a TP id.
     expect(messages(second.after)).toEqual(messages(first.after));
+    for (const message of messages(first.after)) {
+      expect(message).toMatch(
+        /^Cannot (?:sync race-eras for position ".+": could not resolve reference tloeg\.bbleague\.se\|\d+|import award of trophy ".+": could not resolve reference tourplay\.net\|\d+)\.$/,
+      );
+    }
   });
 
   it('never lets a source re-run change a curated name between the manual passes', () => {

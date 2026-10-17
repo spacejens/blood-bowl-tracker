@@ -99,10 +99,11 @@ async function run(): Promise<ImportResult> {
     // that writes position availability, which is a separate (and later)
     // invocation than the BBL importer's -- so for every position both
     // sources describe, TP's characteristics overwrite BBL's (BBL only ever
-    // inserts these rows, so its re-runs leave TP's values alone). That ordering
-    // is deliberate: TP's values are per-rules-set and authoritative, where
-    // BBL's are a converted single snapshot. It runs before the rosters,
-    // because players resolve their position against what it upserts.
+    // inserts these rows, so its re-runs leave TP's values alone). That
+    // ordering is deliberate: TP's values are per-rules-set and authoritative,
+    // where BBL's are a converted single snapshot. It runs before the
+    // rosters, because players resolve their position against what it
+    // upserts.
     const officialTeamsOutcome = await app
       .get(TpOfficialTeamsFilesImportService)
       .importOfficialTeams({ officialTeams, skillMastersByMasterId });
@@ -320,8 +321,8 @@ async function run(): Promise<ImportResult> {
 
     // Runs after the match-files step: the adjustment is the gap between
     // TP's own reported career total (returned by the roster import, which
-    // leaves players.spp_total to this step) and what the player's events explain -- the spp_value
-    // those events just wrote, PLUS an estimate of the SPP earned in
+    // leaves players.spp_total to this step) and what the player's events
+    // explain -- the spp_value those events just wrote, PLUS an estimate of the SPP earned in
     // competitions still in progress that have not been imported, priced from
     // the career action counts the players step collected. Star players hired
     // via an inducements_roll carry no reported total, so the server skips

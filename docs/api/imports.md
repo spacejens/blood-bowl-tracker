@@ -71,9 +71,10 @@ Coach, competition, skill, position, team and race names are curated in
 `tools/import-manual`, so for those six `name` is written when the upsert
 creates the row and ignored when it updates one, unless the payload also
 carries `renameExisting: true`. The manual importer sends it on every such
-entry; the BBL, TP and live TP importers never do. A re-run of a source importer therefore cannot replace a curated name
-with the source's raw one, not even briefly, while a fresh database still gets
-the source's name on create.
+entry; the BBL, TP and live TP importers never do. A re-run of a source
+importer therefore cannot replace a curated name with the source's raw one,
+not even briefly, while a fresh database still gets the source's name on
+create.
 
 Match events are a partial exception to "an upsert writes only the fields the
 payload actually contains": `matchId` is always required, but it identifies

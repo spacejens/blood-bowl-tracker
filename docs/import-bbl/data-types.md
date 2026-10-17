@@ -49,7 +49,12 @@ stored name, which `tools/import-manual` may have curated (see
   that span, all carrying the same scraped values, since BBL is a single
   BB2020-era snapshot. BBL only inserts these rows (`insertOnly`): a row that
   already exists is left alone, so a re-run never rewrites the values TP's
-  later run writes for the same pair. The three pre-BB2020 rules sets are the exception:
+  later run writes for the same pair. Because the writes are insert-only, a
+  later change to BBL's conversion code or a corrected BBL mirror never reaches
+  rows that already exist (including BBL-only pairs TP never covers); correct
+  them through a data migration, or by dropping and re-importing, as
+  [Re-running importers](../database.md#re-running-importers) describes.
+  The three pre-BB2020 rules sets are the exception:
   BBL writes no row for a rules set with bare Agility and Armour
   (`agilityFormat: 'bare'` — CRP, CRP+, BB2016), because one BB2020
   snapshot cannot describe them; values come only from `tools/import-manual`'s
@@ -67,7 +72,11 @@ stored name, which `tools/import-manual` may have curated (see
   written to `position_rules_set_skills`. Starting skills are inserted only
   (`insertOnly`): an existing (position, rules set, skill) row keeps its
   attribute value, so TP's later spelling of it is not rewritten on a BBL
-  re-run.
+  re-run. Because the writes are insert-only, a later change to BBL's
+  conversion code or a corrected BBL mirror never reaches rows that already
+  exist (including BBL-only pairs TP never covers); correct them through a
+  data migration, or by dropping and re-importing, as
+  [Re-running importers](../database.md#re-running-importers) describes.
 - **Teams** — from team pages (`p=tm`). Keyed by the team's alphanumeric page
   id (`t` param) under the configured BBL external system (`BBL` by default),
   and by its `<h1>` name under the `Name` external system. Each team's race and
@@ -126,15 +135,15 @@ false` is reached only through `teamCodeOverrides`/`playerIdOverrides`. Its
   there is no `Name` external id, since matches have no natural name. The
   played date is the row's "result added" date. Imported after competitions
   (referenced by `competitionId`). Per-team results and per-player events are
-  both imported by later steps: see the MatchesModule bullet in Architecture
-  above for per-team results and outcomes, and the MatchEventsModule bullet for
-  per-player events.
+  both imported by later steps: see the MatchesModule bullet in
+  [Architecture](index.md#architecture) for per-team results and outcomes, and
+  the MatchEventsModule bullet for per-player events.
   A pair configured under an era's `matches.merges` (per-era; see
-  Configuration above) is imported as a single match rather than two: BBL
-  cannot record a match with
-  more than two teams, so each four-team "Bierhallentodball" final exists as
-  two two-team rows that this import folds back into one N-team match (both
-  external ids, four teams, and the union of both rows' events). A match id
+  [Configuration](index.md#configuration)) is imported as a single match
+  rather than two: BBL cannot record a match with more than two teams, so each
+  four-team "Bierhallentodball" final exists as two two-team rows that this
+  import folds back into one N-team match (both external ids, four teams, and
+  the union of both rows' events). A match id
   may appear in only one `matches.merges` pair across all eras. The merged
   match's played date is the earliest of the pair's two source dates.
 

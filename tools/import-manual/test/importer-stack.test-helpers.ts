@@ -16,6 +16,9 @@ import { ManualImportService } from '../src/import/manual-import.service';
 /** The bearer token the in-process api-server accepts from this suite. */
 const E2E_API_TOKEN = 'import-manual-e2e-token';
 
+/** The token variable's value before the stack set it, restored on stop. */
+let previousApiToken: string | undefined;
+
 /** A real api-server over HTTP, the real manual importer and a client. */
 export interface ImporterStack {
   server: INestApplication;
@@ -35,6 +38,7 @@ export async function startImporterStack(
   databaseUrl: string,
 ): Promise<ImporterStack> {
   // ApiTokenAuthService reads the importer tokens from the environment.
+  previousApiToken = process.env.API_TOKEN_IMPORT_MANUAL;
   process.env.API_TOKEN_IMPORT_MANUAL = E2E_API_TOKEN;
   const serverModule = await Test.createTestingModule({
     imports: [
@@ -69,6 +73,11 @@ export async function stopImporterStack(stack: ImporterStack): Promise<void> {
   await stack.importers.close();
   await stack.server.close();
   await closeTestDb(stack.db);
+  if (previousApiToken === undefined) {
+    delete process.env.API_TOKEN_IMPORT_MANUAL;
+  } else {
+    process.env.API_TOKEN_IMPORT_MANUAL = previousApiToken;
+  }
 }
 
 /**

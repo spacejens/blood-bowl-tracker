@@ -351,4 +351,5 @@ evidence sets, and matches and players (which have no resolve procedure).
 ## Data types
 
 What the importer reads and how each entity is keyed: see
-[data-types.md](data-types.md).
+[data-types.md](data-types.md). See also [file-format.md](file-format.md) and
+[prototype.md](prototype.md).

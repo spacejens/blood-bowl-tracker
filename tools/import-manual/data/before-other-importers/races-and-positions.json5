@@ -337,7 +337,9 @@
       ],
     },
     {
-      // Chaos Dwarf: BBL 'Bull Centaur' / TP 'Bull Centaur Blitzer'
+      // Chaos Dwarf: BBL 'Bull Centaur' / TP 'Bull Centaur Blitzer' (TP's
+      // BB2025 roster says 'Bull Centaur', its BB2020 one 'Bull Centaur
+      // Blitzer'; the current name is used)
       name: 'Bull Centaur',
       isStarPlayer: false,
       externalIds: [

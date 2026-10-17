@@ -143,8 +143,9 @@ generation's id on the one existing curated row** in
 - Every `position-availability.json5` entry sharing a `Name` id with an entry
   here carries the same `name` (a test enforces it). The after-other-importers
   phase renames the position, so a different spelling there would flip the
-  row's name on every run. Which spelling: the one TP uses for the position;
-  when TP uses both, the one in this file.
+  row's name on every run. Which spelling: the position's current (BB2025)
+  name as TP uses it, falling back to the name in the before-phase file when
+  TP has no data for the position.
 - `position-characteristics.json5` requires no change: each entry is keyed by
   the position's `Name` external id, not a display name, so the renamed row's
   merged identity (with both old and new ids registered) resolves the reference
