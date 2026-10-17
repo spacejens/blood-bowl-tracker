@@ -415,6 +415,22 @@ describe('SyncReportedSppAdjustmentsSchema', () => {
     ).toEqual({ players: [{ playerId: 1, careerCounts: counts }] });
   });
 
+  it('accepts a reported total per player', () => {
+    expect(
+      SyncReportedSppAdjustmentsSchema.parse({
+        players: [{ playerId: 1, reportedTotal: 20 }],
+      }).players[0].reportedTotal,
+    ).toBe(20);
+  });
+
+  it('rejects a fractional reported total', () => {
+    expect(
+      SyncReportedSppAdjustmentsSchema.safeParse({
+        players: [{ playerId: 1, reportedTotal: 1.5 }],
+      }).success,
+    ).toBe(false);
+  });
+
   it('rejects a non-integer player id', () => {
     expect(() =>
       SyncReportedSppAdjustmentsSchema.parse({ players: [{ playerId: 1.5 }] }),

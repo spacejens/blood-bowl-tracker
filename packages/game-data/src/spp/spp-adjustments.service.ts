@@ -6,7 +6,7 @@ import type {
   SyncSppAdjustmentsResult,
 } from '@blood-bowl-tracker/api-contract';
 import type { Db } from '@blood-bowl-tracker/db';
-import { and, DB, inArray, isNotNull, players } from '@blood-bowl-tracker/db';
+import { DB, inArray, players } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { SppForcedRateService } from './spp-forced-rate.service';
@@ -28,7 +28,8 @@ interface AdjustmentWrite {
  * the site's own mixed-rate figure is never stored. TP already reports an
  * era-correct total, so the gap is measured against the era-correct event sum
  * plus an estimate of SPP earned in competitions not yet imported, and
- * `spp_total` is rewritten with that estimate backed out — otherwise the
+ * `spp_total` is written as the reported total with that estimate backed out
+ * (this step is its only writer for the bulk TP import) — otherwise the
  * deep-dive display and the leaderboards would rank on a figure that imported
  * data cannot account for.
  *
@@ -91,25 +92,29 @@ export class SppAdjustmentsService {
       number,
       SppCareerCounts | undefined
     >();
+    const reportedByPlayerId = new Map<number, number>();
     for (const entry of data.players) {
       careerCountsByPlayerId.set(entry.playerId, entry.careerCounts);
+      if (entry.reportedTotal === undefined) {
+        reportedByPlayerId.delete(entry.playerId);
+      } else {
+        reportedByPlayerId.set(entry.playerId, entry.reportedTotal);
+      }
     }
-    const ids = [...careerCountsByPlayerId.keys()];
+    // Only players whose source reported a total can have an adjustment
+    // computed; the rest keep spp_adjustment NULL. The stored spp_total is
+    // never read: this sync is its only writer, so a re-run with the same
+    // payload writes the same values.
+    const ids = [...reportedByPlayerId.keys()];
     if (ids.length === 0) {
       return { updatedPlayerIds: [], nonzeroAdjustments: [] };
     }
 
-    // Only players whose source actually reported a total can have an
-    // adjustment computed; the rest keep spp_adjustment NULL. The name comes
-    // along for the nonzero-adjustment summary below.
+    // The name comes along for the nonzero-adjustment summary below.
     const rows = await this.db
-      .select({
-        id: players.id,
-        name: players.name,
-        sppTotal: players.sppTotal,
-      })
+      .select({ id: players.id, name: players.name })
       .from(players)
-      .where(and(inArray(players.id, ids), isNotNull(players.sppTotal)));
+      .where(inArray(players.id, ids));
     if (rows.length === 0) {
       return { updatedPlayerIds: [], nonzeroAdjustments: [] };
     }
@@ -129,9 +134,7 @@ export class SppAdjustmentsService {
     const writes = new Map<number, AdjustmentWrite>();
     const nonzeroAdjustments: SppAdjustmentSummary[] = [];
     for (const row of rows) {
-      // sppTotal is typed nullable on the column, but the isNotNull filter
-      // above means every row here has one.
-      const reported = row.sppTotal ?? 0;
+      const reported = reportedByPlayerId.get(row.id) ?? 0;
       const importedSum = eraCorrectSums.get(row.id) ?? 0;
       const estimatedOngoing = ongoingEstimates.get(row.id) ?? 0;
       // The corrected total: the reported figure with the ongoing-competition
