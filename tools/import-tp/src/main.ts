@@ -233,6 +233,7 @@ async function run(): Promise<ImportResult> {
       playerIdsByLineUpId,
       insertedPlayerIds,
       mercenaryPositionUsages,
+      reportedSppTotalsByPlayerId,
     } = rosterImport;
 
     // Star players hired through an inducements_roll are on no roster file,
@@ -318,8 +319,8 @@ async function run(): Promise<ImportResult> {
       });
 
     // Runs after the match-files step: the adjustment is the gap between
-    // TP's own reported career total (already stored on players.spp_total by
-    // the players step) and what the player's events explain -- the spp_value
+    // TP's own reported career total (returned by the roster import, which
+    // leaves players.spp_total to this step) and what the player's events explain -- the spp_value
     // those events just wrote, PLUS an estimate of the SPP earned in
     // competitions still in progress that have not been imported, priced from
     // the career action counts the players step collected. Star players hired
@@ -333,6 +334,7 @@ async function run(): Promise<ImportResult> {
           ...starPlayerIdsByRosterAndMaster.values(),
         ],
         careerCountsByPlayerId: careerSppCountsByPlayerId,
+        reportedSppTotalsByPlayerId,
       });
 
     // Also runs after the match-files step, and for the same structural

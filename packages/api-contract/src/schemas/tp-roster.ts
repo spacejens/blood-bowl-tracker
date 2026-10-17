@@ -29,6 +29,13 @@ export const ImportTpRosterSchema = z.object({
   externalSystemName: z.string().min(1),
   /** This roster's players seen only in match snapshots, if any. */
   matchEmbeddedPlayers: z.array(TpMatchEmbeddedPlayerSchema).default([]),
+  /**
+   * When true, the players' `spp_total` is left alone: the caller writes it
+   * afterwards through `players.syncReportedSppAdjustments`, from the
+   * `reportedSppTotal` this import returns. tools/import-tp sends it; the
+   * live import, which runs no adjustments step, does not.
+   */
+  deferSppTotal: z.boolean().optional(),
 });
 
 /** One player the import upserted, by TP `lineUps[].id`. */
@@ -36,6 +43,8 @@ export const TpImportedPlayerSchema = z.object({
   lineUpId: z.number().int(),
   playerId: z.number().int(),
   created: z.boolean(),
+  /** The career SPP total TP reports for the player (roster or snapshot, the higher). */
+  reportedSppTotal: z.number().int(),
 });
 
 /**

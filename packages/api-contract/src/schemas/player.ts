@@ -116,7 +116,9 @@ export const UpsertPlayerSchema = z
     teamEraId: z.number().int().optional(),
     positionId: z.number().int().optional(),
     // The source's own reported Star Player Points total, where the source
-    // publishes a trustworthy one (TP does). BBL's published figure is NOT
+    // publishes a trustworthy one (TP does). The bulk TP import does not send
+    // it: it defers the total to players.syncReportedSppAdjustments, so only
+    // the live TP import writes it here. BBL's published figure is NOT
     // sent here: it was recalculated at BB2020 rates by the site's migration,
     // so BBL's spp_total is instead derived server-side as the era-correct
     // event sum plus the recovered spp_adjustment (see

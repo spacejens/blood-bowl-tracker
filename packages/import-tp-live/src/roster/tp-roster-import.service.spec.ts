@@ -43,7 +43,9 @@ describe('TpRosterImportService', () => {
     ]);
     playersImport.importPlayers.mockResolvedValue({
       imported: 1,
-      importedPlayers: [{ lineUpId: 5001, playerId: 700, created: true }],
+      importedPlayers: [
+        { lineUpId: 5001, playerId: 700, created: true, reportedSppTotal: 12 },
+      ],
       mercenaryPositionUsages: [],
     });
     const moduleRef = await Test.createTestingModule({
@@ -77,7 +79,9 @@ describe('TpRosterImportService', () => {
         { id: 31, eraId: ERA_ID },
       ],
       teamEra: { id: 31, eraId: ERA_ID },
-      importedPlayers: [{ lineUpId: 5001, playerId: 700, created: true }],
+      importedPlayers: [
+        { lineUpId: 5001, playerId: 700, created: true, reportedSppTotal: 12 },
+      ],
       mercenaryPositionUsages: [],
     });
     expect(context.resolve).toHaveBeenCalledWith(
@@ -100,6 +104,19 @@ describe('TpRosterImportService', () => {
 
     expect(playersImport.importPlayers).toHaveBeenCalledWith(
       expect.objectContaining({ matchEmbeddedPlayers: [departed] }),
+    );
+  });
+
+  it('passes the defer flag through to the players import', async () => {
+    await service.importRoster({
+      roster: tpRoster(),
+      era: 'Fourth era',
+      externalSystemName: 'TP',
+      deferSppTotal: true,
+    });
+
+    expect(playersImport.importPlayers).toHaveBeenCalledWith(
+      expect.objectContaining({ deferSppTotal: true }),
     );
   });
 
@@ -209,7 +226,9 @@ describe('TpRosterImportService', () => {
     expect(playerSkills.syncPlayerSkills).toHaveBeenCalledWith({
       roster: tpRoster(),
       content: RAW,
-      importedPlayers: [{ lineUpId: 5001, playerId: 700, created: true }],
+      importedPlayers: [
+        { lineUpId: 5001, playerId: 700, created: true, reportedSppTotal: 12 },
+      ],
       context: rosterContext(),
       errors: [],
     });

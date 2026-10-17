@@ -32,6 +32,12 @@ export interface ImportRosterOptions {
    * naming them from its whole download mirror.
    */
   rawContent?: unknown;
+  /**
+   * When true, the players' `spp_total` is left alone: the caller writes it
+   * afterwards through `players.syncReportedSppAdjustments`, from the
+   * `reportedSppTotal` this import returns.
+   */
+  deferSppTotal?: boolean;
 }
 
 /** Options for {@link TpRosterImportService.importRawRoster}. */
@@ -116,6 +122,7 @@ export class TpRosterImportService {
     externalSystemName,
     matchEmbeddedPlayers = [],
     rawContent,
+    deferSppTotal,
   }: ImportRosterOptions): Promise<TpRosterImportOutcome> {
     const teamErrors: ImportError[] = [];
     const context = await this.rosterContext.resolve({
@@ -164,6 +171,7 @@ export class TpRosterImportService {
       matchEmbeddedPlayers,
       context,
       teamEraId: teamEra.id,
+      deferSppTotal,
       errors: playerErrors,
     });
     if (rawContent !== undefined) {

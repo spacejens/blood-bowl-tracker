@@ -34,6 +34,11 @@ export interface RosterFilesImportOutcome {
   /** Players this run inserted, for the lasting-injury history backfill. */
   insertedPlayerIds: number[];
   mercenaryPositionUsages: TpMercenaryPositionUsage[];
+  /**
+   * The career SPP total TP reports per DB player id, the highest across
+   * every roster import of the player, for the reported-adjustments step.
+   */
+  reportedSppTotalsByPlayerId: Map<number, number>;
 }
 
 @Injectable()
@@ -71,6 +76,7 @@ export class TpRosterFilesImportService {
     >();
     const playerIdsByLineUpId = new Map<number, number>();
     const insertedPlayerIds: number[] = [];
+    const reportedSppTotalsByPlayerId = new Map<number, number>();
     const mercenaryPositionUsages: TpMercenaryPositionUsage[] = [];
 
     for (const entry of this.distinctByEraAndRoster(rosters)) {
@@ -82,6 +88,9 @@ export class TpRosterFilesImportService {
               roster: entry.content,
               era: entry.era,
               externalSystemName,
+              // spp_total is written by the reported-adjustments step, its
+              // only writer in this run.
+              deferSppTotal: true,
               matchEmbeddedPlayers: (
                 matchEmbeddedPlayersByRosterId.get(rosterId) ?? []
               ).map((player) => this.toMatchEmbeddedPlayer(player)),
@@ -108,6 +117,14 @@ export class TpRosterFilesImportService {
       }
       for (const player of outcome.importedPlayers) {
         playerIdsByLineUpId.set(player.lineUpId, player.playerId);
+        reportedSppTotalsByPlayerId.set(
+          player.playerId,
+          Math.max(
+            reportedSppTotalsByPlayerId.get(player.playerId) ??
+              player.reportedSppTotal,
+            player.reportedSppTotal,
+          ),
+        );
         if (player.created) {
           insertedPlayerIds.push(player.playerId);
         }
@@ -128,6 +145,7 @@ export class TpRosterFilesImportService {
       playerIdsByLineUpId,
       insertedPlayerIds,
       mercenaryPositionUsages,
+      reportedSppTotalsByPlayerId,
     };
   }
 

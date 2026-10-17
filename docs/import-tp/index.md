@@ -315,10 +315,13 @@ Teams, players, competitions, matches and TP's official team list are imported s
   held in memory at a time; a file under a competition that was not imported,
   or that did not parse during the competitions scan, is skipped.
 - **TpSppAdjustmentsImportService** — reconciles `players.spp_adjustment` for
-  every imported player. Unlike BBL, TP's own career SPP total is already
-  trusted and stored as `players.spp_total` by the players step, so this step
-  only measures the gap between that total and what the player's imported
-  events explain — it never rewrites `spp_total`. Because TP's total is
+  every imported player. TP's own career SPP total is trusted. The roster
+  import does not store it (this run sends `deferSppTotal`); it returns each
+  player's total, and this step sends it as `reportedTotal`, writing
+  `spp_total` (the reported total with not-yet-imported SPP backed out) and the
+  gap to what the player's imported events explain. It is the only writer of
+  `spp_total` in this run, so a re-run writes nothing new; a player created by
+  this run has no total until this step. Because TP's total is
   career-wide and can include competitions not yet downloaded, each player's
   TP-reported career action counts are sent along so the server can price and
   discount those not-yet-imported events instead of misattributing them as

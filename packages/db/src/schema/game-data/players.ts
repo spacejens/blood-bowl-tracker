@@ -18,7 +18,9 @@ const playersTable = historyTrackedTable({
       .references(() => positions.id)
       .notNull(),
     // A player's Star Player Points total, sourced independently of the
-    // per-event `match_events.spp_value` sum. TP reports it directly. For
+    // per-event `match_events.spp_value` sum. TP reports it directly: the live
+    // import stores it as reported, the bulk import writes it with the
+    // not-yet-imported SPP backed out. For
     // BBL it is computed as `era-correct event sum + spp_adjustment`: BBL's
     // own published figure mixes award rates across eras (its site
     // recalculated pre-BB2020 totals at BB2020 rates), so it is never stored
