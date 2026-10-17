@@ -23,3 +23,12 @@ renames it back and forth.
 A row a source system drops or re-keys stays, and is fixed by a data migration
 or a once-applied manual batch, not by an entry here (see
 [Re-running importers](../database.md#re-running-importers)).
+
+## Tested
+
+`test/importer-double-run.e2e-spec.ts` runs this tool's real before and after
+phases with a small stand-in for the BBL and TP importers between them,
+twice, against a real Postgres, and asserts the second run changes no row and
+adds no history row. It needs Docker (`pnpm run test:e2e`; `pnpm run test`
+runs it after the unit tests). The real BBL and TP pipelines are not part of
+it: their source data is not in the repository.

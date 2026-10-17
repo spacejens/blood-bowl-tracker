@@ -147,7 +147,9 @@ every write path is safe to repeat:
 - An unchanged re-run writes nothing: no `updated_at` bump and no history row
   (see [History tracking](#history-tracking)). This is pinned against real
   Postgres by `packages/game-data/test/importer-rerun.e2e-spec.ts` and
-  `trophy-rule-curation-rerun.e2e-spec.ts`.
+  `trophy-rule-curation-rerun.e2e-spec.ts`; the whole manual-before, source,
+  manual-after sequence is run twice by
+  `tools/import-manual/test/importer-double-run.e2e-spec.ts`.
 - A row a source system drops or re-keys stays. It is fixed by a data
   migration or a once-applied manual batch, never by an importer.
 - Curated names belong to `tools/import-manual`. A source importer sets a
