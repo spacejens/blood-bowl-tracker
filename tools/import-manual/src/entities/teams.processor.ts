@@ -49,6 +49,9 @@ export class TeamsProcessor {
       const upserted = await this.teamsImport.upsert(
         {
           name: entry.name,
+          // Names are curated here; the source importers only ever set one
+          // when they create the row.
+          renameExisting: true,
           raceId: race.id,
           coachId: coach.id,
           eras,

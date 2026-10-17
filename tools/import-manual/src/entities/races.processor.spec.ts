@@ -97,6 +97,7 @@ describe('RacesProcessor', () => {
     expect(races.upsert).toHaveBeenCalledWith(
       {
         name: 'Necromantic Horror',
+        renameExisting: true,
         eras: [50],
         externalIds: cannedExternalIds,
       },
@@ -192,6 +193,7 @@ describe('RacesProcessor', () => {
     expect(count).toBe(1);
     expect(races.upsert.mock.calls[0][0]).toEqual({
       name: 'Ogre',
+      renameExisting: true,
       eras: [],
       externalIds: [],
     });

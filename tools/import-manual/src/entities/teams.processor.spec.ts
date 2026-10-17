@@ -97,6 +97,7 @@ describe('TeamsProcessor', () => {
     expect(teams.upsert).toHaveBeenCalledWith(
       {
         name: 'Grave Diggers',
+        renameExisting: true,
         raceId: 40,
         coachId: 12,
         eras: [50],
@@ -206,6 +207,7 @@ describe('TeamsProcessor', () => {
     expect(teams.upsert).toHaveBeenCalledWith(
       {
         name: 'Gyttjevrålarna FC',
+        renameExisting: true,
         raceId: undefined,
         coachId: undefined,
         eras: [],

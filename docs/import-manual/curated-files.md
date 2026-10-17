@@ -40,9 +40,12 @@ real-world entity differently:
   the after-other-importers phase.
 - `races-and-positions.json5` — BBL/TP race and regular position name
   variants. `positions_race_eras` availability restoration is curated
-  separately, in `position-availability.json5` (see below).
+  separately, in `position-availability.json5` (see below). Source importers
+  set a race's or position's name only when they create it, so the names here
+  stick.
 - `coaches.json5` — BBL's partial name vs. TP's full name for the same coach.
-- `teams.json5` — team name variants.
+- `teams.json5` — team name variants. Source importers set a team's name only
+  when they create the team, so the name here sticks.
 - `star-players.json5` — star player `Position` rows. Both BBL and TP
   importers attach a `Name` external id equal to the star's bare name across
   all three star-position code paths (the roster-catalog path, the

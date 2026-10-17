@@ -103,9 +103,10 @@ What must already be in the database:
 
 The team's coach need not exist yet. It is upserted from the roster's own
 coach: its TP coach id (`player.applicationUserId`) and name
-(`player.userNameToShow`), keyed by both the TP id and the Name system. A
-coach already known by either id gets its name refreshed from the roster; an
-unknown one is created. TP's roster carries no NAF number, so a coach created
+(`player.userNameToShow`), keyed by both the TP id and the Name system. An
+unknown coach is created under the roster's name; a known one keeps its stored
+name. The team's own name is likewise set only when the team is created. TP's
+roster carries no NAF number, so a coach created
 live has none until a later bulk import (`tools/import-tp` or
 `tools/import-bbl`) adds it.
 

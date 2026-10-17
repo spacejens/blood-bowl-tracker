@@ -43,8 +43,9 @@ export class TpTeamUpsertService {
    * Upserts the roster's team under the context's era. A team is keyed by
    * its roster id (TP external id) and its name (Name external id); its race
    * resolves by TP race code. Its coach is upserted from the roster's own
-   * coach id and name — created when unknown, its name refreshed when known
-   * — so a coach never imported before does not block the team. A blank
+   * coach id and name — created under the roster's name when unknown; a
+   * known coach, like a known team, keeps its stored name — so a coach
+   * never imported before does not block the team. A blank
    * (trimmed-empty) coach name omits both the `name` field and the Name
    * external id from the upsert, so an already-known coach still resolves
    * by TP id alone without its stored name or Name-system identity being
