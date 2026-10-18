@@ -215,7 +215,7 @@ export class StartingSkillsImportService {
                     `Skill "${name}" has no curated category for rules set ` +
                     `"${rulesSetName}", so it cannot be recorded as a ` +
                     'starting skill there. Curate one in tools/import-manual ' +
-                    '(data/before-other-importers/skills.json5).',
+                    '(skills.json5 in a new batch under data/batches/).',
                 }),
               );
             }
@@ -236,7 +236,7 @@ export class StartingSkillsImportService {
                     `"${rulesSetName}", but the source data marks it as ` +
                     `${ref.isElite ? 'elite' : 'not elite'}. Correct the ` +
                     'curated value in tools/import-manual ' +
-                    '(data/before-other-importers/skills.json5). The starting ' +
+                    '(skills.json5 in a new batch under data/batches/). The starting ' +
                     'skill itself is still recorded -- only the elite marker ' +
                     'disagrees.',
                 }),

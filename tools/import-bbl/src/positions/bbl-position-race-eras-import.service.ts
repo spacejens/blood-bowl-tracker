@@ -197,7 +197,7 @@ export class BblPositionRaceErasImportService {
           // era counts. An era's silence is not evidence of availability —
           // genuine availability with no evidence in the source data is
           // restored by hand in
-          // tools/import-manual/data/after-other-importers/position-availability.json5.
+          // tools/import-manual/data/batches/002-after-initial-sources/position-availability.json5.
           const include =
             override !== undefined
               ? override

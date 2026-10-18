@@ -34,7 +34,7 @@ export interface SyncPositionCharacteristicsOptions {
  * rules sets are skipped outright: BBL writes no position_rules_sets row for
  * them at all, rather than a guess that something reading the table back
  * mid-pipeline would believe. Their values come only from the hand-curated
- * after-other-importers/position-characteristics.json5 in tools/import-manual.
+ * batches/002-after-initial-sources/position-characteristics.json5 in tools/import-manual.
  * Rows are inserted only, never updated: see the sync call below.
  *
  * `agilityFormat === 'bare'` is the data-driven signal for exactly those

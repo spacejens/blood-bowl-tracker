@@ -287,7 +287,7 @@ describe('TpRosterPlayerSkillsService', () => {
       {
         item: { skillMasterId: 307, attributeValue: '999' },
         message:
-          'TP skill 307 (Hatred) names keyword code "999" as its target, and no curated keyword carries that code, so it is left out of that player\'s skills. Curate it in tools/import-manual (data/before-other-importers/keywords.json5).',
+          'TP skill 307 (Hatred) names keyword code "999" as its target, and no curated keyword carries that code, so it is left out of that player\'s skills. Curate it in tools/import-manual (keywords.json5 in a new batch under data/batches/).',
       },
     ]);
   });

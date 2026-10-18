@@ -148,7 +148,7 @@ describe('TpOfficialStartingSkillsService', () => {
       {
         item: { skill: 'Block', rulesSet: 'BB2020' },
         message:
-          'Skill "Block" has no curated category for rules set "BB2020", so it cannot be recorded as a starting skill there. Curate one in tools/import-manual (data/before-other-importers/skills.json5).',
+          'Skill "Block" has no curated category for rules set "BB2020", so it cannot be recorded as a starting skill there. Curate one in tools/import-manual (skills.json5 in a new batch under data/batches/).',
       },
     ]);
   });
@@ -163,7 +163,7 @@ describe('TpOfficialStartingSkillsService', () => {
       {
         item: { skill: 'Block', rulesSet: 'BB2020' },
         message:
-          'Skill "Block" is curated as elite for rules set "BB2020", but the source data marks it as not elite. Correct the curated value in tools/import-manual (data/before-other-importers/skills.json5). The starting skill itself is still recorded -- only the elite marker disagrees.',
+          'Skill "Block" is curated as elite for rules set "BB2020", but the source data marks it as not elite. Correct the curated value in tools/import-manual (skills.json5 in a new batch under data/batches/). The starting skill itself is still recorded -- only the elite marker disagrees.',
       },
     ]);
   });

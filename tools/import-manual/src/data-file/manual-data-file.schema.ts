@@ -207,7 +207,7 @@ const CompetitionEntrySchema = z.object({
   era: ExternalRefSchema.optional(),
   // competitions.start_date is NOT NULL with no default, so an entry that
   // creates a competition row -- which is exactly what
-  // data/before-other-importers/competitions.json5 does, ahead of the BBL and
+  // data/batches/001-before-initial-sources/competitions.json5 does, ahead of the BBL and
   // TP importers -- has to supply one. Both stay optional, and
   // endDate nullable, for the same overlay reason every other field here is:
   // a rename-only entry says nothing about dates and leaves the stored ones
@@ -277,8 +277,8 @@ const TrophyEntrySchema = z.object({
   // "the Ogre who...", so only the Ogre positions are eligible. Each entry is
   // a position's "Name"-system external id ("<raceName>: <positionName>", what
   // NameExternalIdService.forPosition builds), NOT an external-id
-  // cross-reference: this file is read in the before-other-importers phase,
-  // where no `positions` row exists yet for a reference to resolve against.
+  // cross-reference: trophies are curated in a before batch, read before any `positions` row exists,
+  // so there is nothing for a reference to resolve against.
   // The ids are matched at award-computation time instead, when the positions
   // do exist. Default `[]` for the same reason the two arrays above have one:
   // an entry that says nothing restricts nothing, and sending `[]` clears any
@@ -326,7 +326,7 @@ const CompetitionGroupEntrySchema = z.object({
 /**
  * One hand-curated trophy award: who won which trophy in which competition.
  * This exists only for trophies classified `manual` in
- * `before-other-importers/trophies.json5` — no statistic determines their
+ * `batches/001-before-initial-sources/trophies.json5` — no statistic determines their
  * winner, so nothing can compute them and no source records them.
  *
  * `trophy` is the trophy's exact curated `name`, not an external-id
@@ -339,7 +339,7 @@ const CompetitionGroupEntrySchema = z.object({
  * `competition` and `player` are ordinary external-id cross-references,
  * resolved against the database like every other reference in this tool.
  * Both name entities the BBL/TP importers create, which is why this file
- * lives in `after-other-importers/`.
+ * lives in `batches/002-after-initial-sources/`.
  *
  * There is no `teamEra` reference and deliberately so: a player never changes
  * teams, so the award's team era is the winning player's own, and the API

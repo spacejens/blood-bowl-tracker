@@ -84,7 +84,7 @@ describe('TpOfficialKeywordsSyncService', () => {
       {
         item: { position: 9, keywordCode: 99 },
         message:
-          'TP keyword code 99 (first seen on position "Blitzer") is not curated, so it is left off that position. Curate it in tools/import-manual (data/before-other-importers/keywords.json5).',
+          'TP keyword code 99 (first seen on position "Blitzer") is not curated, so it is left off that position. Curate it in tools/import-manual (keywords.json5 in a new batch under data/batches/).',
       },
     ]);
   });

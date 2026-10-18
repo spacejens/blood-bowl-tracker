@@ -234,7 +234,7 @@ export class TpPlayerSkillsImportService {
               'downloaded roster or match file names it and no skill is ' +
               'curated with it as a tourplay.net external id, so it is ' +
               "left out of that player's skills. Curate one in " +
-              'tools/import-manual (data/before-other-importers/skills.json5).',
+              'tools/import-manual (skills.json5 in a new batch under data/batches/).',
           }),
         );
       }
@@ -372,7 +372,7 @@ export class TpPlayerSkillsImportService {
               `"${ref.attributeValue}" as its target, and no curated ` +
               'keyword carries that code, so it is left out of that ' +
               "player's skills. Curate it in tools/import-manual " +
-              '(data/before-other-importers/keywords.json5).',
+              '(keywords.json5 in a new batch under data/batches/).',
           }),
         );
       }

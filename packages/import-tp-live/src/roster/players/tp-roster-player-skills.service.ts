@@ -238,7 +238,7 @@ export class TpRosterPlayerSkillsService {
             `code "${ref.attributeValue}" as its target, and no curated ` +
             'keyword carries that code, so it is left out of that ' +
             "player's skills. Curate it in tools/import-manual " +
-            '(data/before-other-importers/keywords.json5).',
+            '(keywords.json5 in a new batch under data/batches/).',
         }),
       );
     }

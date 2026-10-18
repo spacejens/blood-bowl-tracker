@@ -68,7 +68,7 @@ export interface UpsertTpCompetitionOptions {
    * The full competition import (live standalone and `tpCompetitions.import`)
    * sees the whole competition's matches and awards and sets this, matching
    * BBL's and TP's bulk import contract (see
-   * `tools/import-manual/data/before-other-importers/competitions.json5`). A
+   * `tools/import-manual/data/batches/001-before-initial-sources/competitions.json5`). A
    * live match import triggering this as a side effect of importing one
    * match leaves it false: it only knows that one match's date, not the
    * competition's full span, nor whether it is finished, so it leaves a

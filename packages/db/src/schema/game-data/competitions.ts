@@ -29,7 +29,7 @@ const competitionsTable = historyTrackedTable({
     // database default: an unclassified competition must fail loudly on
     // create rather than silently land in whichever group happens to be
     // id 1. Classification is curated per instance in
-    // tools/import-manual/data/before-other-importers/competitions.json5,
+    // tools/import-manual/data/batches/001-before-initial-sources/competitions.json5,
     // which runs ahead of the BBL/TP importers so this column is already
     // correct by the time they run; a competition those importers reach
     // first, with no curated row, surfaces as a per-record import error

@@ -11,7 +11,7 @@
  * tools.
  *
  * Players are on the list because one thing does: tools/import-manual's
- * curated `after-other-importers/trophy-awards.json5` names the winner of a
+ * curated `batches/002-after-initial-sources/trophy-awards.json5` names the winner of a
  * `manual`-kind trophy by the player's external id, which the BBL/TP
  * importers created in an earlier phase.
  *

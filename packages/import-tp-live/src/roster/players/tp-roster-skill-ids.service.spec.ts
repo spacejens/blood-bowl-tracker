@@ -140,7 +140,7 @@ describe('TpRosterSkillIdsService', () => {
       {
         item: { rosterId: 163386, skillMasterId: 99 },
         message:
-          "Could not resolve TP skill 99 (roster 163386): the roster does not name it and no skill carries it as a TP external id, so it is left out of that player's skills. Import a roster or match that names it, or curate it in tools/import-manual (data/before-other-importers/skills.json5).",
+          "Could not resolve TP skill 99 (roster 163386): the roster does not name it and no skill carries it as a TP external id, so it is left out of that player's skills. Import a roster or match that names it, or curate it in tools/import-manual (skills.json5 in a new batch under data/batches/).",
       },
     ]);
   });

@@ -15,7 +15,7 @@ export class CompetitionGroupsProcessor {
   ) {}
 
   /**
-   * Upsert every declared group, exactly like every other before-other-importers
+   * Upsert every declared group, exactly like every other before-batch
    * processor: resolve its cross-references, then upsert.
    *
    * A group's own external id is not authored in the data file -- it is derived
@@ -23,7 +23,7 @@ export class CompetitionGroupsProcessor {
    * way BblLeaguesImportService derives a league's. Because that id is the
    * same every run, the upsert is idempotent and a phase that re-processes
    * the catalog re-resolves the very same rows rather than duplicating them.
-   * The catalog is curated once, in data/before-other-importers, alongside
+   * The catalog is curated once, in batch 001, alongside
    * the competitions that classify into it.
    *
    * A group's `league` is a normal external-id cross-reference, resolved
