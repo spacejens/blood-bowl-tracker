@@ -14,7 +14,7 @@ import {
 
 const HASH = 'a'.repeat(64);
 const row = {
-  name: '001-before-initial-sources',
+  name: '001-initial-seed',
   contentHash: HASH,
   appliedAt: new Date('2026-10-18T00:00:00Z'),
 };

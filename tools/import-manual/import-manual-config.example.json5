@@ -9,7 +9,7 @@
 //
 // Unlike import-tp/import-bbl, there is no `dataDir` key: the command line
 // picks what to import, e.g.
-//   node dist/main.js after-sources
+//   node dist/main.js apply
 // (see docs/import-manual/batches.md for every command).
 {
   // Runtime settings for reaching the api-server to import into. This group

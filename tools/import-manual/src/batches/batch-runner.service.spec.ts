@@ -17,14 +17,13 @@ function batch(name: string): ManualBatch {
   return {
     name,
     number: Number(name.slice(0, 3)),
-    phase: name.slice(4).startsWith('before') ? 'before' : 'after',
     dir: `${DATA}/batches/${name}`,
   };
 }
 
-const B1 = batch('001-before-a');
-const B2 = batch('002-after-b');
-const B3 = batch('003-after-c');
+const B1 = batch('001-a');
+const B2 = batch('002-b');
+const B3 = batch('003-c');
 
 /** The canned hash the stubbed hasher answers for one batch's content. */
 const hashOf = (b: ManualBatch) => `hash-of-${b.name}`;
@@ -83,113 +82,195 @@ async function makeService(seed: Seed = {}) {
   };
 }
 
-describe('BatchRunnerService.runPhase', () => {
-  it('applies and records the unapplied batches of the phase, in order', async () => {
-    const { runner, ledger, manualImport } = await makeService({
-      recorded: [recordedAs(B1)],
+describe('BatchRunnerService.apply', () => {
+  describe('without a batch name', () => {
+    it('applies and records every unapplied batch, in order', async () => {
+      const { runner, ledger, manualImport } = await makeService();
+
+      const outcome = await runner.apply({ dataDir: DATA });
+
+      expect(outcome).toEqual({
+        applied: [B1.name, B2.name, B3.name],
+        skipped: [],
+        failed: undefined,
+        imported: 3,
+      });
+      expect(manualImport.run.mock.calls).toEqual([
+        [B1.dir],
+        [B2.dir],
+        [B3.dir],
+      ]);
+      expect(ledger.record.mock.calls).toEqual([
+        [recordedAs(B1)],
+        [recordedAs(B2)],
+        [recordedAs(B3)],
+      ]);
+      // Each batch is recorded right after its own import, before the next.
+      expect(ledger.record.mock.invocationCallOrder[0]).toBeLessThan(
+        manualImport.run.mock.invocationCallOrder[1],
+      );
     });
 
-    const outcome = await runner.runPhase('after', DATA);
+    it('skips recorded batches', async () => {
+      const { runner, manualImport } = await makeService({
+        recorded: [recordedAs(B1), recordedAs(B2)],
+      });
 
-    expect(outcome).toEqual({
-      applied: [B2.name, B3.name],
-      skipped: [],
-      failed: undefined,
-      imported: 2,
+      const outcome = await runner.apply({ dataDir: DATA });
+
+      expect(outcome.skipped).toEqual([B1.name, B2.name]);
+      expect(outcome.applied).toEqual([B3.name]);
+      expect(manualImport.run.mock.calls).toEqual([[B3.dir]]);
     });
-    expect(manualImport.run.mock.calls).toEqual([[B2.dir], [B3.dir]]);
-    expect(ledger.record.mock.calls).toEqual([
-      [recordedAs(B2)],
-      [recordedAs(B3)],
-    ]);
-    // Each batch is recorded right after its own import, before the next one.
-    expect(ledger.record.mock.invocationCallOrder[0]).toBeLessThan(
-      manualImport.run.mock.invocationCallOrder[1],
-    );
+
+    it('applies nothing when every batch is recorded', async () => {
+      const { runner, ledger, manualImport } = await makeService({
+        recorded: [recordedAs(B1), recordedAs(B2), recordedAs(B3)],
+      });
+
+      expect(await runner.apply({ dataDir: DATA })).toEqual({
+        applied: [],
+        skipped: [B1.name, B2.name, B3.name],
+        failed: undefined,
+        imported: 0,
+      });
+      expect(manualImport.run).not.toHaveBeenCalled();
+      expect(ledger.record).not.toHaveBeenCalled();
+    });
+
+    it('stops at the first batch with errors and leaves it unrecorded', async () => {
+      const errors = [{ item: {}, message: 'Cannot import x.' }];
+      const { runner, ledger, manualImport } = await makeService({
+        recorded: [recordedAs(B1)],
+        results: { [B2.dir]: { success: false, imported: 4, errors } },
+      });
+
+      expect(await runner.apply({ dataDir: DATA })).toEqual({
+        applied: [],
+        skipped: [B1.name],
+        failed: { name: B2.name, errors },
+        imported: 4,
+      });
+      expect(manualImport.run.mock.calls).toEqual([[B2.dir]]);
+      expect(ledger.record).not.toHaveBeenCalled();
+    });
   });
 
-  it('applies only the before batches in the before phase', async () => {
-    const { runner, manualImport } = await makeService();
+  describe('with a batch name', () => {
+    it('applies exactly that batch when every lower-numbered batch is recorded', async () => {
+      const { runner, ledger, manualImport } = await makeService({
+        recorded: [recordedAs(B1)],
+      });
 
-    const outcome = await runner.runPhase('before', DATA);
+      const outcome = await runner.apply({ dataDir: DATA, batch: B2.name });
 
-    expect(outcome.applied).toEqual([B1.name]);
-    expect(manualImport.run.mock.calls).toEqual([[B1.dir]]);
-  });
-
-  it('skips recorded batches', async () => {
-    const { runner, manualImport } = await makeService({
-      recorded: [recordedAs(B1), recordedAs(B2)],
+      expect(outcome).toEqual({
+        applied: [B2.name],
+        skipped: [],
+        failed: undefined,
+        imported: 1,
+      });
+      expect(manualImport.run.mock.calls).toEqual([[B2.dir]]);
+      expect(ledger.record.mock.calls).toEqual([[recordedAs(B2)]]);
     });
 
-    const outcome = await runner.runPhase('after', DATA);
+    it('applies the first batch on an empty ledger', async () => {
+      const { runner, manualImport } = await makeService();
 
-    expect(outcome.skipped).toEqual([B2.name]);
-    expect(outcome.applied).toEqual([B3.name]);
-    expect(manualImport.run.mock.calls).toEqual([[B3.dir]]);
-  });
+      const outcome = await runner.apply({ dataDir: DATA, batch: B1.name });
 
-  it('applies nothing when every batch of the phase is recorded', async () => {
-    const { runner, ledger, manualImport } = await makeService({
-      recorded: [recordedAs(B1), recordedAs(B2), recordedAs(B3)],
+      expect(outcome.applied).toEqual([B1.name]);
+      expect(manualImport.run.mock.calls).toEqual([[B1.dir]]);
     });
 
-    expect(await runner.runPhase('after', DATA)).toEqual({
-      applied: [],
-      skipped: [B2.name, B3.name],
-      failed: undefined,
-      imported: 0,
-    });
-    expect(manualImport.run).not.toHaveBeenCalled();
-    expect(ledger.record).not.toHaveBeenCalled();
-  });
+    it('skips a batch that is already recorded', async () => {
+      const { runner, ledger, manualImport } = await makeService({
+        recorded: [recordedAs(B1)],
+      });
 
-  it('stops at the first batch with errors and leaves it unrecorded', async () => {
-    const errors = [{ item: {}, message: 'Cannot import x.' }];
-    const { runner, ledger, manualImport } = await makeService({
-      recorded: [recordedAs(B1)],
-      results: { [B2.dir]: { success: false, imported: 4, errors } },
+      expect(await runner.apply({ dataDir: DATA, batch: B1.name })).toEqual({
+        applied: [],
+        skipped: [B1.name],
+        failed: undefined,
+        imported: 0,
+      });
+      expect(manualImport.run).not.toHaveBeenCalled();
+      expect(ledger.record).not.toHaveBeenCalled();
     });
 
-    expect(await runner.runPhase('after', DATA)).toEqual({
-      applied: [],
-      skipped: [],
-      failed: { name: B2.name, errors },
-      imported: 4,
-    });
-    expect(manualImport.run.mock.calls).toEqual([[B2.dir]]);
-    expect(ledger.record).not.toHaveBeenCalled();
-  });
+    it('rejects an unknown batch name', async () => {
+      const { runner, manualImport } = await makeService();
 
-  it('refuses to run when a recorded batch of either phase has changed', async () => {
-    const { runner, manualImport } = await makeService({
-      recorded: [{ name: B1.name, contentHash: 'stale' }],
+      await expect(
+        runner.apply({ dataDir: DATA, batch: '007-typo' }),
+      ).rejects.toThrow('There is no batch named "007-typo" in data/batches.');
+      expect(manualImport.run).not.toHaveBeenCalled();
     });
 
-    await expect(runner.runPhase('after', DATA)).rejects.toThrow(
-      /001-before-a has changed.*new batch/,
-    );
-    expect(manualImport.run).not.toHaveBeenCalled();
-  });
+    it('refuses while a lower-numbered batch is unrecorded, naming each one', async () => {
+      const { runner, manualImport, ledger } = await makeService();
 
-  it('refuses to run when a recorded batch no longer exists', async () => {
-    const { runner } = await makeService({
-      recorded: [recordedAs(B1), { name: '009-after-gone', contentHash: 'x' }],
+      const attempt = runner.apply({ dataDir: DATA, batch: B3.name });
+
+      await expect(attempt).rejects.toThrow(
+        /001-a, 002-b.*Apply them first.*mark-applied/s,
+      );
+      expect(manualImport.run).not.toHaveBeenCalled();
+      expect(ledger.record).not.toHaveBeenCalled();
     });
 
-    await expect(runner.runPhase('after', DATA)).rejects.toThrow(
-      /009-after-gone.*no longer exists/,
-    );
+    it('names only the lower-numbered batches that are unrecorded', async () => {
+      const { runner } = await makeService({ recorded: [recordedAs(B1)] });
+
+      const attempt = runner.apply({ dataDir: DATA, batch: B3.name });
+
+      await expect(attempt).rejects.toThrow(/002-b/);
+      await expect(attempt).rejects.not.toThrow(/001-a/);
+    });
+
+    it('leaves a failing batch unrecorded', async () => {
+      const errors = [{ item: {}, message: 'Cannot import x.' }];
+      const { runner, ledger } = await makeService({
+        results: { [B1.dir]: { success: false, imported: 2, errors } },
+      });
+
+      expect(await runner.apply({ dataDir: DATA, batch: B1.name })).toEqual({
+        applied: [],
+        skipped: [],
+        failed: { name: B1.name, errors },
+        imported: 2,
+      });
+      expect(ledger.record).not.toHaveBeenCalled();
+    });
   });
 
-  it('refuses the after phase while a before batch is unrecorded', async () => {
-    const { runner, manualImport } = await makeService();
+  it.each([[undefined], [B2.name]])(
+    'refuses to run (batch %s) when a recorded batch has changed',
+    async (batchName) => {
+      const { runner, manualImport } = await makeService({
+        recorded: [{ name: B1.name, contentHash: 'stale' }],
+      });
 
-    await expect(runner.runPhase('after', DATA)).rejects.toThrow(
-      /001-before-a.*before-sources.*mark-applied/,
-    );
-    expect(manualImport.run).not.toHaveBeenCalled();
-  });
+      await expect(
+        runner.apply({ dataDir: DATA, batch: batchName }),
+      ).rejects.toThrow(/001-a has changed.*new batch/);
+      expect(manualImport.run).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([[undefined], [B1.name]])(
+    'refuses to run (batch %s) when a recorded batch no longer exists',
+    async (batchName) => {
+      const { runner, manualImport } = await makeService({
+        recorded: [recordedAs(B1), { name: '009-gone', contentHash: 'x' }],
+      });
+
+      await expect(
+        runner.apply({ dataDir: DATA, batch: batchName }),
+      ).rejects.toThrow(/009-gone.*no longer exists/);
+      expect(manualImport.run).not.toHaveBeenCalled();
+    },
+  );
 });
 
 describe('BatchRunnerService.markApplied', () => {
@@ -223,8 +304,8 @@ describe('BatchRunnerService.markApplied', () => {
     const { runner, ledger } = await makeService();
 
     await expect(
-      runner.markApplied([B1.name, '007-after-typo'], DATA),
-    ).rejects.toThrow(/007-after-typo/);
+      runner.markApplied([B1.name, '007-typo'], DATA),
+    ).rejects.toThrow(/007-typo/);
     expect(ledger.record).not.toHaveBeenCalled();
   });
 
@@ -234,7 +315,7 @@ describe('BatchRunnerService.markApplied', () => {
     });
 
     await expect(runner.markApplied([B1.name], DATA)).rejects.toThrow(
-      /001-before-a has changed/,
+      /001-a has changed/,
     );
     expect(ledger.record).not.toHaveBeenCalled();
   });

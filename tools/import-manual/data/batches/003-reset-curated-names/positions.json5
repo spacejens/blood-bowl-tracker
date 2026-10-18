@@ -10,8 +10,8 @@
 // ends with. On a fresh import it changes nothing.
 //
 // Each entry carries only `name` and `externalIds`. The name is the one the
-// last batch 001/002 entry sharing an external id with the row gives it (the
-// after phase runs last, and files run in alphabetical order); the external
+// last batch 001/002 entry sharing an external id with the row gives it (later
+// batches are applied after earlier ones, and files run in alphabetical order); the external
 // ids are every id those entries declare. curated-data-batch-003.spec.ts
 // enforces both, so this file cannot drift from the batches it restates.
 {

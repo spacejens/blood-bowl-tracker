@@ -18,22 +18,23 @@ import type { StandInOutcome } from './source-stand-in.test-helpers';
 import { curatedPicks, runSourceStandIn } from './source-stand-in.test-helpers';
 
 /**
- * Runs the importer sequence (`before-sources`, a BBL/TP stand-in,
- * `after-sources`, then the later after batches by directory) twice against one real Postgres, through the real api-server
+ * Runs the importer sequence (`apply 001-initial-seed`, a BBL/TP stand-in,
+ * a plain `apply`, then the batches after the stopping point by directory)
+ * twice against one real Postgres, through the real api-server
  * served over HTTP and the real manual importer, and asserts that the
  * identical second run changes no row and adds no history row in any
- * game_data table. The second `before-sources` must apply nothing, and
+ * game_data table. The second `apply 001-initial-seed` must apply nothing, and
  * `manual_import_batches` (a game_data table, so part of the snapshot) gains
  * no row on the second run.
  *
- * Covers: every curated data file in both phases as really authored (apart
+ * Covers: every curated data file in every batch as really authored (apart
  * from the position-availability race-era syncs, which fail in the harness and
  * are never exercised), so two files that disagree about a row show up as a
  * flip; the server-side semantics re-runs depend on (`renameExisting`, the
  * `insertOnly` syncs, the `reportedSppTotal` SPP sync); that a source
  * re-sending a raw spelling never changes a curated coach, competition,
- * skill, position, team or race name, not even between the two manual
- * phases; and that a fresh run ends with TP's characteristics and
+ * skill, position, team or race name, not even between the manual
+ * passes; and that a fresh run ends with TP's characteristics and
  * starting-skill attribute.
  *
  * Cannot cover: the real BBL and TP pipelines (HTML/JSON parsing, the
@@ -45,7 +46,7 @@ import { curatedPicks, runSourceStandIn } from './source-stand-in.test-helpers';
  * trophy_awards and competition_teams stay empty in the harness, so their
  * comparisons pass vacuously. Without BBL and TP,
  * batch 002 has entries that reference rows only they create; those fail with
- * recorded errors, so after-sources stops there and the suite asserts the
+ * recorded errors, so a plain apply stops there and the suite asserts the
  * errors are of the two known kinds and the same on both runs rather than
  * empty.
  */
@@ -53,47 +54,47 @@ import { curatedPicks, runSourceStandIn } from './source-stand-in.test-helpers';
 const DATA = join(__dirname, '../data');
 
 interface RunOutcome {
-  before: BatchRunOutcome;
+  seed: BatchRunOutcome;
   standIn: StandInOutcome;
-  after: BatchRunOutcome;
-  /** The after batches numbered above where after-sources stopped. */
-  laterAfter: ImportResult[];
+  rest: BatchRunOutcome;
+  /** The batches numbered above where the plain apply stopped. */
+  later: ImportResult[];
 }
 
 /**
- * Without the real BBL and TP importers, after-sources stops at its first
- * batch (002 has entries that reference rows only they create) and leaves it
- * unrecorded. The after batches numbered above it are run by directory --
- * which records nothing -- so their content still takes part in the
- * double-run comparison.
+ * Without the real BBL and TP importers, a plain apply stops at its first
+ * unrecorded batch (002 has entries that reference rows only they create)
+ * and leaves it unrecorded. The batches numbered above it are run by
+ * directory -- which records nothing -- so their content still takes part in
+ * the double-run comparison.
  */
-async function laterAfterBatches(
+async function laterBatches(
   stack: ImporterStack,
-  after: BatchRunOutcome,
+  rest: BatchRunOutcome,
 ): Promise<ManualBatch[]> {
-  const failed = after.failed;
+  const failed = rest.failed;
   if (failed === undefined) {
     return [];
   }
   const batches = await stack.catalog.discover(DATA);
   const stoppedAt = batches.find((batch) => batch.name === failed.name);
   return batches.filter(
-    (batch) =>
-      batch.phase === 'after' &&
-      stoppedAt !== undefined &&
-      batch.number > stoppedAt.number,
+    (batch) => stoppedAt !== undefined && batch.number > stoppedAt.number,
   );
 }
 
 async function runSequence(stack: ImporterStack): Promise<RunOutcome> {
-  const before = await stack.batches.runPhase('before', DATA);
+  const seed = await stack.batches.apply({
+    dataDir: DATA,
+    batch: '001-initial-seed',
+  });
   const standIn = await runSourceStandIn(stack.client, stack.db);
-  const after = await stack.batches.runPhase('after', DATA);
-  const laterAfter: ImportResult[] = [];
-  for (const batch of await laterAfterBatches(stack, after)) {
-    laterAfter.push(await stack.manual.run(batch.dir));
+  const rest = await stack.batches.apply({ dataDir: DATA });
+  const later: ImportResult[] = [];
+  for (const batch of await laterBatches(stack, rest)) {
+    later.push(await stack.manual.run(batch.dir));
   }
-  return { before, standIn, after, laterAfter };
+  return { seed, standIn, rest, later };
 }
 
 const messages = (errors: ImportError[]) =>
@@ -126,31 +127,31 @@ describe('the importer sequence, run twice (real Postgres, real api-server)', ()
   });
 
   it('applies and records batch 001 on the first run, and skips it on the second', () => {
-    expect(first.before).toMatchObject({
-      applied: ['001-before-initial-sources'],
+    expect(first.seed).toMatchObject({
+      applied: ['001-initial-seed'],
       skipped: [],
       failed: undefined,
     });
-    expect(second.before).toEqual({
+    expect(second.seed).toEqual({
       applied: [],
-      skipped: ['001-before-initial-sources'],
+      skipped: ['001-initial-seed'],
       failed: undefined,
       imported: 0,
     });
   });
 
-  it('stops the after phase at batch 002 with the same known errors both times', () => {
+  it('stops a plain apply at batch 002 with the same known errors both times', () => {
     // Entries that reference rows only the real BBL/TP importers create fail
     // here; what matters is that a re-run behaves identically, and that the
     // failures are the two known kinds: race-era syncs that need BBL race ids
     // and a trophy award that needs a TP id.
     for (const run of [first, second]) {
-      expect(run.after.applied).toEqual([]);
-      expect(run.after.failed?.name).toBe('002-after-initial-sources');
+      expect(run.rest.applied).toEqual([]);
+      expect(run.rest.failed?.name).toBe('002-initial-cleanup');
     }
-    const firstMessages = messages(first.after.failed?.errors ?? []);
+    const firstMessages = messages(first.rest.failed?.errors ?? []);
     expect(firstMessages.length).toBeGreaterThan(0);
-    expect(messages(second.after.failed?.errors ?? [])).toEqual(firstMessages);
+    expect(messages(second.rest.failed?.errors ?? [])).toEqual(firstMessages);
     for (const message of firstMessages) {
       expect(message).toMatch(
         /^Cannot (?:sync race-eras for position ".+": could not resolve reference tloeg\.bbleague\.se\|\d+|import award of trophy ".+": could not resolve reference tourplay\.net\|\d+)\.$/,
@@ -158,18 +159,16 @@ describe('the importer sequence, run twice (real Postgres, real api-server)', ()
     }
   });
 
-  it('imports the later after batches without errors, both times', () => {
-    expect(second.laterAfter).toHaveLength(first.laterAfter.length);
-    for (const result of [...first.laterAfter, ...second.laterAfter]) {
+  it('imports the batches after the stopping point without errors, both times', () => {
+    expect(second.later).toHaveLength(first.later.length);
+    for (const result of [...first.later, ...second.later]) {
       expect(messages(result.errors)).toEqual([]);
     }
   });
 
   it('records only the batches that applied cleanly, and nothing more on the second run', () => {
-    expect(recordedBatches(afterFirst)).toEqual(['001-before-initial-sources']);
-    expect(recordedBatches(afterSecond)).toEqual([
-      '001-before-initial-sources',
-    ]);
+    expect(recordedBatches(afterFirst)).toEqual(['001-initial-seed']);
+    expect(recordedBatches(afterSecond)).toEqual(['001-initial-seed']);
   });
 
   it('never lets a source re-run change a curated name between the manual passes', () => {

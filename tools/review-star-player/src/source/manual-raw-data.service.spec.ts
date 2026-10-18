@@ -40,7 +40,7 @@ afterEach(() => {
 describe('ManualRawDataService', () => {
   it('returns only the star player entries of star-players.json5', async () => {
     write(
-      'batches/001-before-a/star-players.json5',
+      'batches/001-a/star-players.json5',
       `{ positions: [
         { name: 'Griff Oberwald', isStarPlayer: true,
           externalIds: [{ system: 'Name', id: 'Griff Oberwald' }] },
@@ -59,7 +59,7 @@ describe('ManualRawDataService', () => {
 
   it('stringifies a numeric external id', async () => {
     write(
-      'batches/001-before-a/star-players.json5',
+      'batches/001-a/star-players.json5',
       "{ positions: [{ name: 'X', isStarPlayer: true, externalIds: [{ system: 'tourplay.net', id: 42 }] }] }",
     );
     const service = await makeService();
@@ -71,7 +71,7 @@ describe('ManualRawDataService', () => {
 
   it("returns position-availability.json5's raceEras pairs", async () => {
     write(
-      'batches/002-after-b/position-availability.json5',
+      'batches/002-b/position-availability.json5',
       `{ positions: [{ name: 'Griff Oberwald', externalIds: [],
         raceEras: [{ race: { system: 'Name', id: 'Human' },
                      era: { system: 'Name', id: 'BB2020 era' } }] }] }`,
@@ -92,15 +92,15 @@ describe('ManualRawDataService', () => {
     ]);
   });
 
-  it('pools characteristics from the after-phase and gap-fill files', async () => {
+  it('pools characteristics from the batch 002 and gap-fill files', async () => {
     write(
-      'batches/002-after-b/position-characteristics.json5',
+      'batches/002-b/position-characteristics.json5',
       `{ positionRulesSets: [{ position: { system: 'Name', id: 'Griff Oberwald' },
         rulesSet: { system: 'Name', id: 'BB2020' },
         move: 7, strength: 4, agility: 2, passing: 3, armour: 9 }] }`,
     );
     write(
-      'batches/001-before-a/position-characteristics-gap-fill.json5',
+      'batches/001-a/position-characteristics-gap-fill.json5',
       `{ positionRulesSets: [{ position: { system: 'Name', id: 'Griff Oberwald' },
         rulesSet: { system: 'Name', id: 'CRP' },
         move: 7, strength: 4, agility: 3, armour: 9 }] }`,
@@ -125,7 +125,7 @@ describe('ManualRawDataService', () => {
   });
 
   it('degrades a malformed file to an empty list', async () => {
-    write('batches/001-before-a/star-players.json5', '{ positions: [');
+    write('batches/001-a/star-players.json5', '{ positions: [');
     const service = await makeService();
 
     expect(await service.starPlayers()).toEqual([]);
@@ -133,13 +133,13 @@ describe('ManualRawDataService', () => {
 
   it('reads each file only once', async () => {
     write(
-      'batches/001-before-a/star-players.json5',
+      'batches/001-a/star-players.json5',
       "{ positions: [{ name: 'X', isStarPlayer: true, externalIds: [] }] }",
     );
     const service = await makeService();
 
     await service.starPlayers();
-    rmSync(join(dir, 'batches/001-before-a'), {
+    rmSync(join(dir, 'batches/001-a'), {
       recursive: true,
       force: true,
     });
@@ -149,7 +149,7 @@ describe('ManualRawDataService', () => {
 
   it('drops a characteristics entry with no position or rules-set reference', async () => {
     write(
-      'batches/002-after-b/position-characteristics.json5',
+      'batches/002-b/position-characteristics.json5',
       '{ positionRulesSets: [{ move: 1 }] }',
     );
     const service = await makeService();
@@ -159,7 +159,7 @@ describe('ManualRawDataService', () => {
 
   it('reads a curated keyword entry with a tourplay.net code', async () => {
     write(
-      'batches/001-before-a/keywords.json5',
+      'batches/001-a/keywords.json5',
       `{ keywords: [
         { name: 'Goblin', kind: 'species',
           externalIds: [
@@ -177,7 +177,7 @@ describe('ManualRawDataService', () => {
 
   it('reads a curated keyword entry with no tourplay.net code as code: null', async () => {
     write(
-      'batches/001-before-a/keywords.json5',
+      'batches/001-a/keywords.json5',
       `{ keywords: [
         { name: 'Big Guy', kind: 'positional',
           externalIds: [{ system: 'Name', id: 'Big Guy' }] },
@@ -198,14 +198,14 @@ describe('ManualRawDataService', () => {
 
   it('pools star entries across batches, later batches winning on the same ids', async () => {
     write(
-      'batches/001-before-a/star-players.json5',
+      'batches/001-a/star-players.json5',
       `{ positions: [
         { name: 'Griff', isStarPlayer: true, externalIds: [{ system: 'Name', id: 'Griff' }] },
         { name: 'Morg', isStarPlayer: true, externalIds: [{ system: 'Name', id: 'Morg' }] },
       ] }`,
     );
     write(
-      'batches/003-after-c/positions.json5',
+      'batches/003-c/positions.json5',
       `{ positions: [
         { name: 'Griff Oberwald', isStarPlayer: true, externalIds: [{ system: 'Name', id: 'Griff' }] },
         { name: 'Morg the restated', externalIds: [{ system: 'Name', id: 'Morg' }] },

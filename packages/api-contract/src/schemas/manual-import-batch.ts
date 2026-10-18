@@ -3,7 +3,7 @@ import { z } from 'zod';
 /**
  * One batch of tools/import-manual's curated data recorded as applied to the
  * database. `name` is the batch's directory name (e.g.
- * "002-after-initial-sources"); `contentHash` is the SHA-256 hex digest the
+ * "002-initial-cleanup"); `contentHash` is the SHA-256 hex digest the
  * importer computes over the batch's parsed content, so the importer can tell
  * when an applied batch was edited.
  */

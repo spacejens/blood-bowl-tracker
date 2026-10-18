@@ -8,13 +8,13 @@ import { ManualDataFileSchema } from './manual-data-file.schema';
 
 const DATA_ROOT = join(__dirname, '../../data');
 
-/** Batch 001: the curated data applied before the source importers. */
-export const BATCH_001 = 'batches/001-before-initial-sources';
-/** Batch 002: the curated data applied after the source importers. */
-export const BATCH_002 = 'batches/002-after-initial-sources';
+/** Batch 001: the curated data the first import starts from, applied before the BBL and TP importers. */
+export const BATCH_001 = 'batches/001-initial-seed';
+/** Batch 002: the curated data applied once the BBL and TP importers have run. */
+export const BATCH_002 = 'batches/002-initial-cleanup';
 
 /** Batch 003: every curated name restated once, for a long-lived database. */
-export const BATCH_003 = 'batches/003-after-reset-curated-names';
+export const BATCH_003 = 'batches/003-reset-curated-names';
 
 /** Every batch directory, as `batches/<name>`, in name order. */
 export function listBatches(): string[] {

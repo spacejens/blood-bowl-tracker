@@ -4,12 +4,11 @@ import type { ImportError } from '@blood-bowl-tracker/import';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { BatchRunnerService } from '../batches/batch-runner.service';
-import type { BatchPhase } from '../batches/manual-batch';
 import { ManualImportService } from '../import/manual-import.service';
 import { MANUAL_DATA_DIR } from './manual-data-dir';
 
 const USAGE =
-  'Usage: node dist/main.js before-sources | after-sources | ' +
+  'Usage: node dist/main.js apply [<batch>] | ' +
   'mark-applied <batch>... | <data-directory>';
 
 /** The command line a run was given. */
@@ -27,8 +26,8 @@ export interface CliOutcome {
 }
 
 /**
- * Maps the command line onto a run: `before-sources` / `after-sources` apply
- * the unapplied batches of that phase, `mark-applied <batch>...` records
+ * Maps the command line onto a run: `apply` applies every unapplied batch and
+ * `apply <batch>` applies exactly that one, `mark-applied <batch>...` records
  * batches without importing them, and any other argument is a directory
  * imported ad hoc, which records nothing.
  */
@@ -46,10 +45,8 @@ export class ImportManualCliService {
       case undefined:
       case '':
         throw new Error(USAGE);
-      case 'before-sources':
-        return this.runPhase('before');
-      case 'after-sources':
-        return this.runPhase('after');
+      case 'apply':
+        return this.apply(rest[0]);
       case 'mark-applied':
         return this.markApplied(rest);
       default:
@@ -57,8 +54,8 @@ export class ImportManualCliService {
     }
   }
 
-  private async runPhase(phase: BatchPhase): Promise<CliOutcome> {
-    const outcome = await this.runner.runPhase(phase, this.dataDir);
+  private async apply(batch: string | undefined): Promise<CliOutcome> {
+    const outcome = await this.runner.apply({ dataDir: this.dataDir, batch });
     const stdout = [
       ...outcome.skipped.map(
         (name) => `Skipped batch ${name} (already applied).`,
@@ -77,6 +74,7 @@ export class ImportManualCliService {
       stderr: [
         ...this.errorLines(outcome.failed.errors),
         `Batch ${outcome.failed.name} was not recorded as applied; later batches were not attempted.`,
+        'On a fresh database apply the first batch, run the BBL and TP importers, then apply the rest.',
       ],
       exitCode: 1,
     };

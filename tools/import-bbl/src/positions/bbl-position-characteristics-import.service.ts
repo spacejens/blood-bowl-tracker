@@ -34,11 +34,11 @@ export interface SyncPositionCharacteristicsOptions {
  * rules sets are skipped outright: BBL writes no position_rules_sets row for
  * them at all, rather than a guess that something reading the table back
  * mid-pipeline would believe. Their values come only from the hand-curated
- * batches/002-after-initial-sources/position-characteristics.json5 in tools/import-manual.
+ * batches/002-initial-cleanup/position-characteristics.json5 in tools/import-manual.
  * Rows are inserted only, never updated: see the sync call below.
  *
  * `agilityFormat === 'bare'` is the data-driven signal for exactly those
- * three: it is curated in tools/import-manual's *before* phase, so it is
+ * three: it is curated by tools/import-manual's batch 001, so it is
  * already stored by the time BBL runs, and it is the same signal
  * CharacteristicNotationConversionService keys its conversion on — no list of
  * "old" rules sets has to be maintained here either. `BblPositionSkillsImportService`

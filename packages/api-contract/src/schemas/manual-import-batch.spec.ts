@@ -11,7 +11,7 @@ describe('RecordManualImportBatchSchema', () => {
   it('accepts a batch name and a lowercase hex SHA-256 digest', () => {
     expect(
       RecordManualImportBatchSchema.safeParse({
-        name: '001-before-initial-sources',
+        name: '001-initial-seed',
         contentHash,
       }).success,
     ).toBe(true);
@@ -38,7 +38,7 @@ describe('RecordManualImportBatchSchema', () => {
 describe('ManualImportBatchSchema', () => {
   it('coerces appliedAt to a Date', () => {
     const parsed = ManualImportBatchSchema.parse({
-      name: '001-before-initial-sources',
+      name: '001-initial-seed',
       contentHash: 'a'.repeat(64),
       appliedAt: '2026-10-18T00:00:00.000Z',
     });

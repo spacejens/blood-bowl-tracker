@@ -6,13 +6,13 @@ import { ManualImportService } from '../import/manual-import.service';
 import { BatchCatalogService } from './batch-catalog.service';
 import { BatchContentHashService } from './batch-content-hash.service';
 import { BatchLedgerService } from './batch-ledger.service';
-import type { BatchPhase, ManualBatch, RecordedBatch } from './manual-batch';
+import type { ManualBatch, RecordedBatch } from './manual-batch';
 
-/** What one phase run did. */
+/** What one apply run did. */
 export interface BatchRunOutcome {
   /** Batches imported without errors and recorded, in order. */
   applied: string[];
-  /** Batches of the phase already recorded, so not imported. */
+  /** Batches already recorded, so not imported. */
   skipped: string[];
   /**
    * The batch that imported with errors, left unrecorded; no later batch was
@@ -28,6 +28,13 @@ export interface BatchRunOutcome {
 export interface MarkAppliedOutcome {
   recorded: string[];
   alreadyRecorded: string[];
+}
+
+/** What to apply: every unrecorded batch, or just `batch`. */
+export interface ApplyOptions {
+  dataDir: string;
+  /** The exact directory name of the one batch to apply. */
+  batch?: string;
 }
 
 interface HashedBatch {
@@ -46,26 +53,24 @@ export class BatchRunnerService {
   ) {}
 
   /**
-   * Apply, in number order, every batch of `phase` the ledger does not
-   * record, recording each one only once it imported with zero errors.
+   * Apply batches, recording each one only once it imported with zero errors.
+   * Without `options.batch`, every batch the ledger does not record is
+   * applied in number order. With it, exactly that batch is applied, and only
+   * when every lower-numbered batch is already recorded (a batch the ledger
+   * records is skipped instead).
    *
-   * Before importing anything, every batch of both phases is checked against
-   * the ledger: a recorded batch whose content hash changed, or that no
-   * longer exists, is an error -- an applied batch is a historical record, so
-   * a change belongs in a new batch. Both phases are checked because a
-   * long-lived database only ever runs the after phase. The after phase also
-   * refuses to run while a before batch is unrecorded: on a fresh database
-   * the before phase (and the source importers) must run first, and on one
-   * that already holds those batches they are recorded with mark-applied.
+   * Before importing anything, every batch is checked against the ledger: a
+   * recorded batch whose content hash changed, or that no longer exists, is
+   * an error -- an applied batch is a historical record, so a change belongs
+   * in a new batch.
    */
-  async runPhase(phase: BatchPhase, dataDir: string): Promise<BatchRunOutcome> {
-    const batches = await this.hashAll(await this.catalog.discover(dataDir));
+  async apply(options: ApplyOptions): Promise<BatchRunOutcome> {
+    const batches = await this.hashAll(
+      await this.catalog.discover(options.dataDir),
+    );
     const recorded = await this.recordedByName();
     this.assertRecordedExist(batches, recorded);
     this.assertRecordedUnchanged(batches, recorded);
-    if (phase === 'after') {
-      this.assertBeforePhaseRecorded(batches, recorded);
-    }
 
     const outcome: BatchRunOutcome = {
       applied: [],
@@ -73,10 +78,8 @@ export class BatchRunnerService {
       failed: undefined,
       imported: 0,
     };
-    for (const { batch, contentHash } of batches) {
-      if (batch.phase !== phase) {
-        continue;
-      }
+    for (const hashed of this.select(batches, recorded, options.batch)) {
+      const { batch, contentHash } = hashed;
       if (recorded.has(batch.name)) {
         outcome.skipped.push(batch.name);
         continue;
@@ -105,7 +108,7 @@ export class BatchRunnerService {
   ): Promise<MarkAppliedOutcome> {
     if (names.length === 0) {
       throw new Error(
-        'mark-applied needs at least one batch name, e.g. mark-applied 001-before-initial-sources.',
+        'mark-applied needs at least one batch name, e.g. mark-applied 001-initial-seed.',
       );
     }
     const byName = new Map(
@@ -175,19 +178,32 @@ export class BatchRunnerService {
     }
   }
 
-  private assertBeforePhaseRecorded(
+  /** The batches an apply run goes through, in number order. */
+  private select(
     batches: HashedBatch[],
     recorded: Map<string, RecordedBatch>,
-  ): void {
-    const missing = batches
-      .filter(
-        ({ batch }) => batch.phase === 'before' && !recorded.has(batch.name),
-      )
-      .map(({ batch }) => batch.name);
-    if (missing.length > 0) {
-      throw new Error(
-        `Before batch(es) ${missing.join(', ')} are not recorded as applied. On a fresh database run before-sources (then the BBL and TP importers) first; on a database that already holds them, record them with mark-applied.`,
-      );
+    name: string | undefined,
+  ): HashedBatch[] {
+    if (name === undefined) {
+      return batches;
     }
+    const target = batches.find(({ batch }) => batch.name === name);
+    if (target === undefined) {
+      throw new Error(`There is no batch named "${name}" in data/batches.`);
+    }
+    if (!recorded.has(name)) {
+      const missing = batches
+        .filter(
+          ({ batch }) =>
+            batch.number < target.batch.number && !recorded.has(batch.name),
+        )
+        .map(({ batch }) => batch.name);
+      if (missing.length > 0) {
+        throw new Error(
+          `Batch ${name} can only be applied once every lower-numbered batch is recorded as applied, but ${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} not. Apply ${missing.length === 1 ? 'it' : 'them'} first; on a database that already holds ${missing.length === 1 ? 'it' : 'them'}, record ${missing.length === 1 ? 'it' : 'them'} with mark-applied.`,
+        );
+      }
+    }
+    return [target];
   }
 }

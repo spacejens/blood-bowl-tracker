@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
  * BBL names a race after its team page -- "<Race> Team" / "<Race> Teams" --
  * while TP, and this project's canonical race rows, name the same race just
  * "<Race>" (see the header of
- * tools/import-manual/data/batches/001-before-initial-sources/races-and-positions.json5,
+ * tools/import-manual/data/batches/001-initial-seed/races-and-positions.json5,
  * which pairs the two sources' races by stripping exactly this suffix).
  *
  * Both importers key a position by "<raceName>: <positionName>" under the Name

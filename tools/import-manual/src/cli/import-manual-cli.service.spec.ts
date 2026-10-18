@@ -35,63 +35,88 @@ const run = (cli: ImportManualCliService, ...args: string[]) =>
   cli.execute({ args, cwd: '/somewhere' });
 
 describe('ImportManualCliService', () => {
-  it('runs the before phase against the tool data directory', async () => {
+  it('applies every unapplied batch against the tool data directory', async () => {
     const { cli, runner } = await makeService();
-    runner.runPhase.mockResolvedValue({
-      applied: ['001-before-initial-sources'],
+    runner.apply.mockResolvedValue({
+      applied: ['001-initial-seed', '002-initial-cleanup'],
       skipped: [],
       failed: undefined,
       imported: 12,
     });
 
-    expect(await run(cli, 'before-sources')).toEqual({
+    expect(await run(cli, 'apply')).toEqual({
       stdout: [
-        'Applied batch 001-before-initial-sources.',
+        'Applied batch 001-initial-seed.',
+        'Applied batch 002-initial-cleanup.',
         'Imported 12 record(s) successfully.',
       ],
       stderr: [],
       exitCode: 0,
     });
-    expect(runner.runPhase).toHaveBeenCalledWith('before', DATA);
+    expect(runner.apply).toHaveBeenCalledWith({
+      dataDir: DATA,
+      batch: undefined,
+    });
   });
 
-  it('reports skipped batches of the after phase', async () => {
+  it('applies exactly the named batch', async () => {
     const { cli, runner } = await makeService();
-    runner.runPhase.mockResolvedValue({
+    runner.apply.mockResolvedValue({
+      applied: ['001-initial-seed'],
+      skipped: [],
+      failed: undefined,
+      imported: 7,
+    });
+
+    const outcome = await run(cli, 'apply', '001-initial-seed');
+
+    expect(runner.apply).toHaveBeenCalledWith({
+      dataDir: DATA,
+      batch: '001-initial-seed',
+    });
+    expect(outcome.stdout).toEqual([
+      'Applied batch 001-initial-seed.',
+      'Imported 7 record(s) successfully.',
+    ]);
+  });
+
+  it('reports skipped batches', async () => {
+    const { cli, runner } = await makeService();
+    runner.apply.mockResolvedValue({
       applied: [],
-      skipped: ['002-after-initial-sources'],
+      skipped: ['002-initial-cleanup'],
       failed: undefined,
       imported: 0,
     });
 
-    const outcome = await run(cli, 'after-sources');
+    const outcome = await run(cli, 'apply');
 
-    expect(runner.runPhase).toHaveBeenCalledWith('after', DATA);
     expect(outcome.stdout).toEqual([
-      'Skipped batch 002-after-initial-sources (already applied).',
+      'Skipped batch 002-initial-cleanup (already applied).',
       'Imported 0 record(s) successfully.',
     ]);
     expect(outcome.exitCode).toBe(0);
   });
 
-  it('reports a failed batch with its errors and exits 1', async () => {
+  it('reports a failed batch with its errors and a fresh-database hint, and exits 1', async () => {
     const { cli, runner } = await makeService();
-    runner.runPhase.mockResolvedValue({
-      applied: ['003-after-x'],
+    runner.apply.mockResolvedValue({
+      applied: ['003-x'],
       skipped: [],
       failed: {
-        name: '004-after-y',
+        name: '004-y',
         errors: [{ item: {}, message: 'Cannot import race "R".' }],
       },
       imported: 5,
     });
 
-    expect(await run(cli, 'after-sources')).toEqual({
-      stdout: ['Applied batch 003-after-x.'],
+    expect(await run(cli, 'apply')).toEqual({
+      stdout: ['Applied batch 003-x.'],
       stderr: [
         'Import completed with 1 errors:',
         '  - Cannot import race "R".',
-        'Batch 004-after-y was not recorded as applied; later batches were not attempted.',
+        'Batch 004-y was not recorded as applied; later batches were not attempted.',
+        'On a fresh database apply the first batch, run the BBL and TP importers, then apply the rest.',
       ],
       exitCode: 1,
     });
@@ -100,27 +125,22 @@ describe('ImportManualCliService', () => {
   it('marks the named batches applied', async () => {
     const { cli, runner } = await makeService();
     runner.markApplied.mockResolvedValue({
-      recorded: ['002-after-initial-sources'],
-      alreadyRecorded: ['001-before-initial-sources'],
+      recorded: ['002-initial-cleanup'],
+      alreadyRecorded: ['001-initial-seed'],
     });
 
     expect(
-      await run(
-        cli,
-        'mark-applied',
-        '001-before-initial-sources',
-        '002-after-initial-sources',
-      ),
+      await run(cli, 'mark-applied', '001-initial-seed', '002-initial-cleanup'),
     ).toEqual({
       stdout: [
-        'Batch 001-before-initial-sources was already recorded as applied.',
-        'Recorded batch 002-after-initial-sources as applied, without importing it.',
+        'Batch 001-initial-seed was already recorded as applied.',
+        'Recorded batch 002-initial-cleanup as applied, without importing it.',
       ],
       stderr: [],
       exitCode: 0,
     });
     expect(runner.markApplied).toHaveBeenCalledWith(
-      ['001-before-initial-sources', '002-after-initial-sources'],
+      ['001-initial-seed', '002-initial-cleanup'],
       DATA,
     );
   });
@@ -139,7 +159,7 @@ describe('ImportManualCliService', () => {
       exitCode: 0,
     });
     expect(manualImport.run).toHaveBeenCalledWith('/somewhere/scratch/extra');
-    expect(runner.runPhase).not.toHaveBeenCalled();
+    expect(runner.apply).not.toHaveBeenCalled();
   });
 
   it('reports a directory import with errors and exits 1', async () => {
@@ -157,19 +177,36 @@ describe('ImportManualCliService', () => {
     });
   });
 
+  it.each(['before-sources', 'after-sources'])(
+    'treats the removed command %s as a directory path',
+    async (command) => {
+      const { cli, runner, manualImport } = await makeService();
+      manualImport.run.mockResolvedValue({
+        success: true,
+        imported: 0,
+        errors: [],
+      });
+
+      await run(cli, command);
+
+      expect(manualImport.run).toHaveBeenCalledWith(`/somewhere/${command}`);
+      expect(runner.apply).not.toHaveBeenCalled();
+    },
+  );
+
   it.each([[[]], [['']]])('throws the usage text for %j', async (args) => {
     const { cli } = await makeService();
 
-    await expect(cli.execute({ args, cwd: '/' })).rejects.toThrow(/Usage:/);
+    await expect(cli.execute({ args, cwd: '/' })).rejects.toThrow(
+      /Usage:.*apply \[<batch>\].*mark-applied/,
+    );
   });
 });
 
 describe('DEFAULT_MANUAL_DATA_DIR', () => {
   it('is the directory holding the committed batches', () => {
     expect(
-      existsSync(
-        join(DEFAULT_MANUAL_DATA_DIR, 'batches', '001-before-initial-sources'),
-      ),
+      existsSync(join(DEFAULT_MANUAL_DATA_DIR, 'batches', '001-initial-seed')),
     ).toBe(true);
   });
 });

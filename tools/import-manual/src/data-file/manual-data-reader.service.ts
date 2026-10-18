@@ -95,7 +95,7 @@ export class ManualDataReader {
    *
    * Symlinks count as files: `Dirent.isFile()` never follows them, so it
    * alone would silently skip a curated file that is a symlink to another
-   * phase's copy -- a curated file can be exactly that, when two phases
+   * batch's copy -- a curated file can be exactly that, when two batches
    * need to reference the same catalog. `stat()` does follow symlinks, so
    * it is used instead to decide "is this path, after following any
    * symlink, actually a file" -- which also means a symlink to a

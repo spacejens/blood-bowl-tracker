@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createRouterHarness } from './rpc-router-factory.test-helpers';
 
 const batch = {
-  name: '001-before-initial-sources',
+  name: '001-initial-seed',
   contentHash: 'a'.repeat(64),
   appliedAt: new Date('2026-10-18T00:00:00Z'),
 };

@@ -28,77 +28,64 @@ describe('BatchCatalogService', () => {
   }
 
   it('lists the batch directories in number order', async () => {
-    batch('010-after-later');
-    batch('002-after-initial-sources');
-    batch('001-before-initial-sources');
+    batch('010-later');
+    batch('002-initial-cleanup');
+    batch('001-initial-seed');
 
     expect(await catalog.discover(dataDir)).toEqual([
       {
-        name: '001-before-initial-sources',
+        name: '001-initial-seed',
         number: 1,
-        phase: 'before',
-        dir: join(dataDir, 'batches', '001-before-initial-sources'),
+        dir: join(dataDir, 'batches', '001-initial-seed'),
       },
       {
-        name: '002-after-initial-sources',
+        name: '002-initial-cleanup',
         number: 2,
-        phase: 'after',
-        dir: join(dataDir, 'batches', '002-after-initial-sources'),
+        dir: join(dataDir, 'batches', '002-initial-cleanup'),
       },
       {
-        name: '010-after-later',
+        name: '010-later',
         number: 10,
-        phase: 'after',
-        dir: join(dataDir, 'batches', '010-after-later'),
+        dir: join(dataDir, 'batches', '010-later'),
       },
     ]);
   });
 
   it('ignores files beside the batch directories', async () => {
-    batch('001-before-a');
+    batch('001-a');
     writeFileSync(join(dataDir, 'batches', '.DS_Store'), '');
 
     expect((await catalog.discover(dataDir)).map((b) => b.name)).toEqual([
-      '001-before-a',
+      '001-a',
     ]);
   });
 
-  it.each([
-    '01-before-a',
-    '001-during-a',
-    '001-before-Upper',
-    '001-before-',
-    '001-before-a_b',
-  ])('rejects the directory name %s', async (name) => {
-    batch(name);
+  it.each(['01-a', '001', '001-', '001-Upper', '001-a_b', '001-a--b'])(
+    'rejects the directory name %s',
+    async (name) => {
+      batch(name);
 
-    await expect(catalog.discover(dataDir)).rejects.toThrow(name);
+      await expect(catalog.discover(dataDir)).rejects.toThrow(name);
+    },
+  );
+
+  it('names the expected directory pattern in the error', async () => {
+    batch('1-a');
+
+    await expect(catalog.discover(dataDir)).rejects.toThrow(/NNN-<slug>/);
+  });
+
+  it('accepts a multi-word slug', async () => {
+    batch('004-reset-curated-names');
+
+    expect(await catalog.discover(dataDir)).toHaveLength(1);
   });
 
   it('rejects two batches with the same number', async () => {
-    batch('002-after-a');
-    batch('002-after-b');
+    batch('002-a');
+    batch('002-b');
 
-    await expect(catalog.discover(dataDir)).rejects.toThrow(
-      /002-after-a.*002-after-b/,
-    );
-  });
-
-  it('rejects a before batch numbered above an after batch', async () => {
-    batch('001-before-a');
-    batch('002-after-b');
-    batch('003-before-c');
-
-    await expect(catalog.discover(dataDir)).rejects.toThrow(
-      /003-before-c.*002-after-b/,
-    );
-  });
-
-  it('accepts batches of only one phase', async () => {
-    batch('001-after-a');
-    batch('002-after-b');
-
-    expect(await catalog.discover(dataDir)).toHaveLength(2);
+    await expect(catalog.discover(dataDir)).rejects.toThrow(/002-a.*002-b/);
   });
 
   it('fails when there is no batches directory', async () => {

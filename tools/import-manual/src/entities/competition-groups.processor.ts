@@ -15,7 +15,7 @@ export class CompetitionGroupsProcessor {
   ) {}
 
   /**
-   * Upsert every declared group, exactly like every other before-batch
+   * Upsert every declared group, exactly like every other
    * processor: resolve its cross-references, then upsert.
    *
    * A group's own external id is not authored in the data file -- it is derived

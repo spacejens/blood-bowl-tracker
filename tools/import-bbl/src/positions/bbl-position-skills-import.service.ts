@@ -10,7 +10,7 @@ import {
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
-/** Rules sets fully curated by batches/002-after-initial-sources/position-skills.json5,
+/** Rules sets fully curated by batches/002-initial-cleanup/position-skills.json5,
  * so BBL's single scraped snapshot must never write to them. Exported so
  * bbl-position-skills-import.service.spec.ts can pin this list directly
  * against curated-data-skills.spec.ts's "curates exactly the rules sets
@@ -36,7 +36,7 @@ export interface SyncPositionSkillsOptions {
 /**
  * Writes each position's starting skills under every rules set it played
  * under, EXCEPT the three older rules sets (CRP, CRP+, BB2016) that
- * batches/002-after-initial-sources/position-skills.json5 curates completely.
+ * batches/002-initial-cleanup/position-skills.json5 curates completely.
  * `BblPositionCharacteristicsImportService` excludes the same three rules
  * sets, but for a different reason: it has nothing trustworthy to write for
  * a bare-notation rules set at all (see that class's own doc comment). This

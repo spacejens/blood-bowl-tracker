@@ -3,19 +3,16 @@ import { join } from 'node:path';
 
 import { Injectable } from '@nestjs/common';
 
-import type { BatchPhase, ManualBatch } from './manual-batch';
+import type { ManualBatch } from './manual-batch';
 
-const BATCH_NAME = /^(\d{3})-(before|after)-[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const BATCH_NAME = /^(\d{3})-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 @Injectable()
 export class BatchCatalogService {
   /**
    * Every batch directory under `<dataDir>/batches`, in number order. Files
    * beside the directories (e.g. `.DS_Store`) are ignored; a directory not
-   * named `NNN-<before|after>-<slug>`, two batches sharing a number, or a
-   * `before` batch numbered above an `after` batch is an error -- a full
-   * import applies every `before` batch, then the source importers, then
-   * every `after` batch, so the numbers must read in that order too.
+   * named `NNN-<slug>` or two batches sharing a number is an error.
    */
   async discover(dataDir: string): Promise<ManualBatch[]> {
     const root = join(dataDir, 'batches');
@@ -25,7 +22,6 @@ export class BatchCatalogService {
       .map((entry) => this.parse(root, entry.name))
       .sort((a, b) => a.number - b.number || a.name.localeCompare(b.name));
     this.assertUniqueNumbers(batches);
-    this.assertPhaseOrder(batches);
     return batches;
   }
 
@@ -33,11 +29,10 @@ export class BatchCatalogService {
     const match = BATCH_NAME.exec(name);
     if (match === null) {
       throw new Error(
-        `Batch directory "${name}" in ${root} is not named NNN-<before|after>-<slug> (three digits, the phase, then a lowercase hyphenated slug).`,
+        `Batch directory "${name}" in ${root} is not named NNN-<slug> (three digits, then a lowercase hyphenated slug).`,
       );
     }
-    const phase: BatchPhase = match[2] === 'before' ? 'before' : 'after';
-    return { name, number: Number(match[1]), phase, dir: join(root, name) };
+    return { name, number: Number(match[1]), dir: join(root, name) };
   }
 
   private assertUniqueNumbers(batches: ManualBatch[]): void {
@@ -47,21 +42,6 @@ export class BatchCatalogService {
           `Batches "${batches[i - 1].name}" and "${batches[i].name}" share the number ${String(batches[i].number).padStart(3, '0')}.`,
         );
       }
-    }
-  }
-
-  private assertPhaseOrder(batches: ManualBatch[]): void {
-    const firstAfter = batches.find((batch) => batch.phase === 'after');
-    const lateBefore = batches.find(
-      (batch) =>
-        batch.phase === 'before' &&
-        firstAfter !== undefined &&
-        batch.number > firstAfter.number,
-    );
-    if (lateBefore !== undefined && firstAfter !== undefined) {
-      throw new Error(
-        `Batch "${lateBefore.name}" is a before batch numbered above the after batch "${firstAfter.name}"; every before batch must be numbered below every after batch.`,
-      );
     }
   }
 }

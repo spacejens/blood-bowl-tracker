@@ -64,9 +64,9 @@ export class TpSkillResolverService {
    * external id is simply absent from the result, which is what makes a
    * caller report it unresolved.
    *
-   * Depends on that curation phase having already run: a curated id only
-   * resolves once the before batch (001) has upserted the skill it
-   * belongs to, which is why that phase runs before this importer.
+   * Depends on batch 001 having already been applied: a curated id only
+   * resolves once that batch has upserted the skill it belongs to, which is
+   * why it is applied before this importer runs.
    */
   async resolveUnnamedMasterIds(options: {
     masterIds: Iterable<number>;

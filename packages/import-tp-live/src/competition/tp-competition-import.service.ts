@@ -72,7 +72,7 @@ export class TpCompetitionImportService {
    * already-imported competition's era, type and start date (and end date,
    * when finished) from this call's own data, matching BBL's and TP's bulk
    * import contract (see
-   * tools/import-manual/data/batches/001-before-initial-sources/competitions.json5) — a
+   * tools/import-manual/data/batches/001-initial-seed/competitions.json5) — a
    * live match import's own incidental competition upsert does not, since it
    * only knows one match's date. A competition with at least one award is
    * finished, so the upsert writes its end date; one with none yet is not,
