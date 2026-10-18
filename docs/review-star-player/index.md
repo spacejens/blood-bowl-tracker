@@ -47,10 +47,10 @@ awareness or HTML parsing, so depending on it does not weaken the boundary above
    2. **Star player has no TP data** — stars with no `position_external_ids` row
       for the TP external system. Same DB-only check as above, scoped to the TP
       external system.
-   3. **Star player has no manual curation entry** — reads the curated
-      `star-players.json5` file itself (there is no external-id space for manual
-      curation to check in the database): every star is compared by name or
-      external id against the file's entries.
+   3. **Star player has no manual curation entry** — reads every curated
+      star entry (`isStarPlayer: true`) across the batches itself (there is no
+      external-id space for manual curation to check in the database): every
+      star is compared by name or external id against those entries.
    4. **Star player's characteristics changed between rules sets** — stars whose
       move, strength, agility, passing or armour differs between two rules sets
       they have `position_rules_sets` rows for. A pure DB self-join.
@@ -171,7 +171,7 @@ cp tools/review-star-player/review-star-player-config.example.json5 tools/review
 | `database.url` | Connection string of the database holding the imported data (required) |
 | `starsPerStratum` | Star players sampled per stratum (default 3) |
 | `bbl.dataDir` / `tp.dataDir` | The same downloaded data directories `tools/import-bbl` / `tools/import-tp` read |
-| `manual.dataDir` | `tools/import-manual`'s committed `data/` directory, holding `before-other-importers/` and `after-other-importers/` |
+| `manual.dataDir` | `tools/import-manual`'s committed `data/` directory, holding `batches/` (every batch is read) |
 | `bbl.externalSystemName` / `tp.externalSystemName` | External-system names the imports registered records under (default `BBL` / `TP`; this project's own imports register `tloeg.bbleague.se` / `tourplay.net`) |
 | `overrides.bbl` / `overrides.tp` / `overrides.manual` | Star players always included — BBL's numeric typID, TP's own spelling of the star's name, or (for manual) the star's stored name |
 | `outputPath` | Base path each report is written next to, timestamped (default `output/report.html`) |

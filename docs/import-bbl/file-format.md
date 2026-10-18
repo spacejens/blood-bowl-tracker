@@ -73,7 +73,7 @@ the cell is split on commas only.
 This scraped skill list is a single BB2020-era snapshot, deliberately NOT
 written to CRP, CRP+ or BB2016: those three older rules sets are curated
 exclusively by `tools/import-manual`'s
-[`position-skills.json5`](../import-manual/curated-files.md#known-after-other-importers-cleanup-files),
+[`position-skills.json5`](../import-manual/curated-files.md#known-batch-002-cleanup-files),
 and `position_rules_set_skills` is additive per `(position, rules set)`
 rather than overwritable, so the BBL snapshot would otherwise merge into a
 union with the curated list instead of being excluded from it. See
@@ -358,7 +358,7 @@ self-disambiguating (e.g. `Major 1st` vs. `Minor 1st`), which is why the
 curated catalog keys BBL team trophies by the exact label text itself (no
 prefix, matching every other curated-data file and every real BBL importer) —
 cross-reference
-`tools/import-manual/data/before-other-importers/trophies.json5`. The player
+`tools/import-manual/data/batches/001-before-initial-sources/trophies.json5`. The player
 trophy labels that BBL actually awards in more than one competition group are
 _not_ self-disambiguating: `Deadliest Player` or `Legendary Player` mean a
 different trophy depending on the tier. Every curated row for one of these
@@ -377,7 +377,7 @@ trophy.
 
 Group-scoped resolution above requires trusting a competition's curated
 competition group, which is only true for a competition already present in
-`tools/import-manual/data/before-other-importers/competitions.json5`.
+`tools/import-manual/data/batches/001-before-initial-sources/competitions.json5`.
 `competitions.competition_group_id` is `NOT NULL` with no database default,
 so a BBL competition this importer has to create fresh — because it is not
 yet in that curated catalog — fails its own upsert outright, reported as a
@@ -391,7 +391,7 @@ team-participation and match-event steps iterate the id map directly, so a
 competition absent from it is simply never visited, and they skip it without
 a trace. The fix, when this shows up in import output, is to add a curated
 row for the competition to
-[`competitions.json5`](../../tools/import-manual/data/before-other-importers/competitions.json5)
+[`competitions.json5`](../../tools/import-manual/data/batches/001-before-initial-sources/competitions.json5)
 first, then re-run the import.
 
 Ogretoberfest nuance: BBL tracks Ogretoberfest only as a player trophy

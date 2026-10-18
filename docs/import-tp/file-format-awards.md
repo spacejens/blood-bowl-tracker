@@ -61,7 +61,7 @@ disambiguator is the award's `name` field when present (`Best Stunty`,
 `Wooden Spoon`, which share one numeric code within a file) and the numeric
 `awardType` otherwise (`1`, `2`, `3`); `groupName` is the curated competition
 group's literal name. These ids are authored as literal strings in
-`tools/import-manual/data/before-other-importers/trophies.json5`:
+`tools/import-manual/data/batches/001-before-initial-sources/trophies.json5`:
 
 | Trophy                | TP external id              |
 | --------------------- | --------------------------- |
@@ -93,7 +93,7 @@ The competition import consumes these ids, both live and through
 [import-tp-live's competition import](../import-tp-live/competition-import.md)).
 It resolves the catalog trophy by `${disambiguator}-${groupName}`, with the
 group coming from the competition's own `competitionGroupId`, either curated
-in tools/import-manual's before-other-importers phase or auto-matched from
+in tools/import-manual's batch 001, applied before the source importers, or auto-matched from
 the competition's name. It takes the winning
 team's team era from `inscription.roster.id` among the competition's linked
 registered teams, and writes a `trophy_awards` row with `playerId: null`. An

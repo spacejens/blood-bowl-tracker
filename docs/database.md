@@ -147,11 +147,11 @@ every write path is safe to repeat:
 - An unchanged re-run writes nothing: no `updated_at` bump and no history row
   (see [History tracking](#history-tracking)). This is pinned against real
   Postgres by `packages/game-data/test/importer-rerun.e2e-spec.ts` and
-  `trophy-rule-curation-rerun.e2e-spec.ts`; the whole manual-before, source,
-  manual-after sequence is run twice by
+  `trophy-rule-curation-rerun.e2e-spec.ts`; the whole `before-sources`, source,
+  `after-sources` sequence is run twice by
   `tools/import-manual/test/importer-double-run.e2e-spec.ts`.
 - A row a source system drops or re-keys stays. It is fixed by a data
-  migration or a once-applied manual batch, never by an importer.
+  migration or a once-applied [manual batch](import-manual/batches.md), never by an importer.
 - Curated names belong to `tools/import-manual`. A source importer sets a
   coach, competition, skill, position, team or race name only when it
   creates the row (see
@@ -180,8 +180,8 @@ which have no such figure, set `computeSppValue` and let the server resolve
 a value from `spp_award_values`; TP-sourced events supply `sppValue`
 directly, which takes precedence even if `computeSppValue` is also set.
 
-`spp_award_values` is seeded by `tools/import-manual` in the
-`before-other-importers` phase, so the table exists before any BBL or TP
+`spp_award_values` is seeded by `tools/import-manual` in batch 001,
+before the source importers, so the table exists before any BBL or TP
 match data is imported.
 
 `rules_sets` also carries five `characteristic_format` columns
@@ -230,7 +230,7 @@ which skills the cost applies to. It is a plain boolean rather than another
 `skill_category` value because it cuts across categories, and it is `false`
 on every row for every rules set older than BB2025, none of which has the
 concept at all. Like the category, it is curated
-in `tools/import-manual` (`data/before-other-importers/skills.json5`); the TP
+in `tools/import-manual` (`data/batches/001-before-initial-sources/skills.json5`; a change goes into a new batch); the TP
 importer only reads it back, to cross-check the marker TP's own source data
 carries, while BBL has no such marker at all and always supplies `false`.
 

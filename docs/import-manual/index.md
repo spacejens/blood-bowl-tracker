@@ -15,11 +15,15 @@ It is meant to run twice around the system-specific importers:
 - **after** them, to clean up names or attach external IDs the system data
   could not supply.
 
+Its data is organised in once-applied, numbered batches; see
+[Batches](batches.md).
+
 ## Configuration
 
 Configuration is supplied through a JSON5 file, `import-manual-config.json5`, in
 the tool directory (`tools/import-manual/`). It holds only the connection
-settings — the directory to import is a command-line argument, not a config key.
+settings — what to import is chosen on the command line (see
+[Batches](batches.md#commands)), not by a config key.
 Top-level keys:
 
 - `connection` — runtime settings for reaching the api-server to import into.
@@ -43,8 +47,8 @@ See `import-manual-config.example.json5` for a worked example.
 
 ## Data files
 
-The tool reads every `.json5` file directly inside the target directory
-(non-recursive), in alphabetical filename order, and pools their sections
+The tool reads every `.json5` file directly inside a batch directory
+(or the directory given on the command line) (non-recursive), in alphabetical filename order, and pools their sections
 together before importing. A single file may mix any of these optional
 top-level sections:
 
@@ -103,10 +107,11 @@ Fields that point at another entity (an era's `league` and `rulesSets`; a
 race's or team's `eras`; a position's `raceEras`; a team's `race` and `coach`;
 a competition's `era`) are written as external-id pairs pointing at the target
 — never a numeric
-database ID. A reference resolves against the records processed earlier in the
-same run (across all files in the directory), by any pair the target declared.
-A reference to something not present anywhere in the directory being imported is
-a hard error (one per unresolved reference).
+database ID. A reference resolves against the database, so the target only has
+to have been imported at some point, by an earlier batch, the same batch, or a
+source importer, and it matches by any pair the target declared. A reference to
+something not present in the database when it is resolved is a hard error (one
+per unresolved reference).
 
 An entry only has to supply the fields it actually changes. Every
 `Upsert<Entity>` API schema overlays: a field the entry omits is left exactly
@@ -126,7 +131,8 @@ a genuinely new entity.
 
 ### Worked example
 
-`data/before-other-importers/necromantic-2020.json5`:
+a new batch, e.g.
+`data/batches/004-after-necromantic-2020/necromantic-2020.json5`:
 
 ```jsonc
 {
@@ -201,7 +207,7 @@ canonical spelling) and `kind` classification exist purely as curated data.
 Its `tourplay.net` external id is the numeric code that source publishes, and
 is what lets `tools/import-tp` resolve a code it reads back to this row. See
 [Keywords](../game-concepts/keywords/index.md) for the concept, and
-[Curated data files](curated-files.md#known-before-other-importers-dedup-files)
+[Curated data files](curated-files.md#known-batch-001-dedup-files)
 for what the curated file itself holds.
 
 ### Position characteristics
@@ -219,23 +225,23 @@ example, a `passing` value against a rules set with no Passing characteristic,
 or a missing `passing` against one that has one. This section is processed
 after the rules sets and positions it references.
 
-Two files declare `positionRulesSets` entries, in different phases and for
+Two files declare `positionRulesSets` entries, in different batches and for
 different reasons.
 
-`data/after-other-importers/position-characteristics.json5` holds the values
+`data/batches/002-after-initial-sources/position-characteristics.json5` holds the values
 for the three older rules sets no importer can supply correctly (CRP, CRP+,
 BB2016). No importer writes those keys at all: `tools/import-bbl` skips any
 rules set whose `agilityFormat` is `'bare'` — exactly those three — rather
 than storing the BB2020 snapshot it cannot convert faithfully, and
 `tools/import-tp`'s sources only ever cover BB2020 and later. It still has to
-sit in the **after** phase, for the same reason `position-availability.json5`
+sit in an **after** batch, for the same reason `position-availability.json5`
 does: its `position` references use the "`<raceName>: <positionName>`" `Name`
 external id that only `tools/import-bbl`'s position importer creates, so
 curating earlier would create orphan position rows for the importers' own
 upserts to collide with.
 
-`data/before-other-importers/position-characteristics-gap-fill.json5` holds
-**gap-fill** entries, and sits in the **before** phase for a different reason:
+`data/batches/001-before-initial-sources/position-characteristics-gap-fill.json5` holds
+**gap-fill** entries, and sits in a **before** batch for a different reason:
 each of its `(position, rules set)` pairs is one no source importer can
 ever produce a row for, so there is no snapshot that could overwrite it, and
 curating early means the row already exists when a source importer needs to
@@ -247,7 +253,7 @@ the values. Whether an entry
 qualifies is a case-by-case judgment call every
 time, never a rule about the rules set: BBL can write BB2020-keyed rows too,
 given real usage evidence, so "it is a BB2020 entry" is not the test. Because
-nothing else in the before phase declares the positions these entries
+nothing else in a before batch declares the positions these entries
 reference, this file also registers each of them — with the external ids the
 source importers will send, so their own upsert lands on the same row, the same
 technique `star-players.json5` uses.
@@ -315,16 +321,17 @@ like any other cross-reference, so the group only has to have been imported
 at some point — not necessarily in this run.
 
 Because references resolve against the database rather than a per-process map,
-a phase whose entries name a group does not have to process the group catalog
+a batch whose entries name a group does not have to process the group catalog
 itself — the group only needs to have been imported by some earlier run or
-phase. The catalog is curated in `data/before-other-importers`, alongside the
+batch. The catalog is curated in `data/batches/001-before-initial-sources`, alongside the
 competitions that classify into it.
 
 A competition entry's own `name` is optional (unlike a trophy's, which is
 required): omitting it means "do not rename" — the upsert leaves the existing
-row's name untouched. The curated data uses that for the after-other-importers
-rename pass only; every entry in `data/before-other-importers/competitions.json5`
-carries a name, because that phase creates the rows.
+row's name untouched. The curated data uses that for batch 002's
+rename pass only; every entry in
+`data/batches/001-before-initial-sources/competitions.json5` carries a name,
+because that batch creates the rows.
 
 ### Trophies
 
@@ -364,41 +371,31 @@ nothing is ever deleted.
 
 ## Known curated data files
 
-Every `.json5` file in the two phase directories exists for a specific reason —
+Every `.json5` file in the batch directories exists for a specific reason —
 mostly to unify records the BBL and TP importers would otherwise create as
 separate, duplicate rows. See [Curated data files](curated-files.md) for what
 each file holds, and for the conventions to follow when adding to them.
 
 ## Data layout
 
-The tool works from two well-known subdirectories:
+The data lives in numbered batch directories under
+`tools/import-manual/data/batches/` — see [Batches](batches.md) for the
+layout, the naming and ordering rules, and how a change becomes a new batch.
 
-```text
-tools/import-manual/data/before-other-importers/
-tools/import-manual/data/after-other-importers/
-```
+The batches are **committed to git** — unlike `tools/import-bbl/data` and
+`tools/import-tp/data`, which hold bulky regenerable scrapes and stay
+gitignored. A fresh checkout or a new worktree therefore already has the
+reconciled dataset, and edits to it go through normal PR review.
 
-Both subdirectories, and the `.json5` files in them, are **committed to git**
-— unlike `tools/import-bbl/data` and `tools/import-tp/data`, which
-hold bulky regenerable scrapes and stay gitignored. A fresh checkout or a new
-worktree therefore already has the reconciled dataset: there is nothing to
-create by hand and nothing to sync in from another checkout, and edits to it go
-through normal PR review.
-
-Coach `name` values in the committed data are **pseudonyms** — a first name plus
-a last initial — because this repository is public. This applies to
-`data/before-other-importers/coaches.json5`,
-`data/after-other-importers/coaches.json5`, and the coach names mentioned in
-`data/before-other-importers/teams.json5`'s comments. Matching and re-import
-correctness are driven entirely by `externalIds`, never by `name`, so the
-pseudonyms have no functional effect on importing; the only visible consequence
-is that the coaches fixed up by `data/after-other-importers/coaches.json5` are
-displayed under their pseudonym in the running app. Keep new hand-authored
-entries to the same convention, and do not "fix" a pseudonym back to a real
-name.
-
-Author your `.json5` files under whichever phase they belong to. You can also
-point the tool at any other directory by passing its path.
+Coach `name` values in the committed data are **pseudonyms** — a first name
+plus a last initial — because this repository is public. This applies to
+every batch's `coaches.json5` and to the coach names mentioned in batch 001's
+`teams.json5` comments. Matching and re-import correctness are driven
+entirely by `externalIds`, never by `name`, so the pseudonyms have no
+functional effect on importing; the only visible consequence is that coaches
+are displayed under their pseudonym in the running app. Keep new
+hand-authored entries to the same convention, and do not "fix" a pseudonym
+back to a real name.
 
 ## Run it
 
@@ -409,17 +406,21 @@ point the tool at any other directory by passing its path.
    ```
 
    `tools/import-manual/import-manual-config.json5` is git-ignored.
-2. Build the tool, then run it against a directory (the sole argument):
+2. Build the tool, then run it:
 
    ```bash
    pnpm --filter @blood-bowl-tracker/import-manual run build
-   ( cd tools/import-manual && node dist/main.js data/before-other-importers )
+   ( cd tools/import-manual && node dist/main.js before-sources )
    ```
 
-   This performs a real import against a running api-server (see
-   `connection.apiBaseUrl`). Sample success output:
+   `before-sources` / `after-sources` apply the not-yet-applied batches of
+   that phase; see [Batches](batches.md#commands) for every command, its
+   output and the order to run them in. This performs a real import against
+   a running api-server (see `connection.apiBaseUrl`). Sample success
+   output:
 
    ```text
+   Applied batch 001-before-initial-sources.
    Imported 5 record(s) successfully.
    ```
 
@@ -436,8 +437,11 @@ run `flyctl proxy 3001:3000` from the repository root in another terminal,
 and set `IMPORT_CONFIG_ENV=production` for the run:
 
 ```bash
-( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js data/before-other-importers )
+( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js after-sources )
 ```
+
+On a long-lived database run only `after-sources`; see
+[Batches](batches.md#operating-procedure).
 
 See [Running import tools against production](../discord-bot/production-imports.md).
 
@@ -445,6 +449,13 @@ See [Running import tools against production](../discord-bot/production-imports.
 
 - **ImportManualConfigService** — loads `import-manual-config.json5` (JSON5),
   exposing the api-server base URL via `getApiBaseUrl()`.
+- **BatchCatalogService** — finds and validates the batch directories.
+- **BatchContentHashService** — computes a batch's content hash.
+- **BatchLedgerService** — the applied-batch ledger, kept over the API.
+- **BatchRunnerService** — applies a phase's unapplied batches and handles
+  `mark-applied`.
+- **ImportManualCliService** — maps the command line onto those services or
+  onto an ad hoc directory run.
 - **ManualDataReader** — reads every `.json5` file in the target directory,
   validates each against a Zod file-shape schema, and pools all sections.
 - **ReferenceResolverService** — translates each data file's `{ system, id }`
@@ -462,7 +473,7 @@ See [Running import tools against production](../discord-bot/production-imports.
   additionally calls `syncRaceEras` to set race/era availability. The
   position-characteristics processor runs after both rules sets and
   positions, resolving both refs before syncing the whole batch, the same way
-  the SPP award values processor does. Every file in a phase directory is
+  the SPP award values processor does. Every file in a batch directory is
   pooled section-by-section by the reader before any processor runs, so the
   gap-fill file can declare the position it references alongside the
   reference itself. The competitions processor depends on eras and
@@ -472,6 +483,5 @@ See [Running import tools against production](../discord-bot/production-imports.
 - **ManualImportService** — orchestrates the reader, the bootstrap, and the
   entity processors in dependency order, aggregating one `ImportResult`.
 
-`main.ts` takes the data directory as its sole CLI argument and runs the
-orchestrator, mirroring `tools/import-tp/src/main.ts`'s console/exit-code
-contract.
+`main.ts` hands the command line to `ImportManualCliService` and prints its
+outcome, mirroring `tools/import-tp/src/main.ts`'s console/exit-code contract.

@@ -133,10 +133,10 @@ id, so the roster's own JSON is scanned for the skill names it embeds; a
 named skill is upserted under the Name system and every TP id the roster
 gives it. An id the roster does not name resolves through a skill already
 carrying it as a TP external id — registered by an earlier import, or
-curated in `tools/import-manual` (`data/before-other-importers/skills.json5`).
+curated in `tools/import-manual` (`data/batches/001-before-initial-sources/skills.json5`; curate a new one in a new batch, see [Batches](../import-manual/batches.md)).
 A Hatred or Animosity target, which TP writes as an opaque keyword code, is
 named through the curated keyword catalogue
-(`data/before-other-importers/keywords.json5`). A player seen only in a
+(`data/batches/001-before-initial-sources/keywords.json5`; curate a missing one in a new batch, see [Batches](../import-manual/batches.md)). A player seen only in a
 match snapshot carries no skill data, so contributes none.
 
 ## Era resolution

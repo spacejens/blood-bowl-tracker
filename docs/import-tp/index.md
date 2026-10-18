@@ -205,8 +205,8 @@ Teams, players, competitions, matches and TP's official team list are imported s
   an error and skipped. Because TP supplies no characteristics for a mercenary anywhere — the
   name is in no roster catalog, and the match-embedded `lineUps[]` entry for a hire carries no
   `ma/st/ag/pa/av` — each hire's characteristics come from the curated `position_rules_sets` row
-  `tools/import-manual` writes in its before-other-importers phase
-  (`data/before-other-importers/position-characteristics-gap-fill.json5`).
+  `tools/import-manual` writes in batch 001, applied before the source importers
+  (`data/batches/001-before-initial-sources/position-characteristics-gap-fill.json5`).
   `TpMercenaryCharacteristicsService` reads that row from the database, once per distinct
   mercenary name per roster import, and caches it by rules set id for the run's hires. It keeps
   no copy of the values itself: two copies of the same numbers could drift, and reading the real
@@ -412,7 +412,7 @@ including Big Guy. The server-side official team list import resolves every posi
 against its own curated keyword catalogue (`TpOfficialKeywordCatalogService`, in
 `packages/import-tp-live`) and syncs the resulting `(position, rules set, keyword)` rows. A code
 with no curated match is reported once as an import error, naming the position it was first seen
-on and pointing at `tools/import-manual/data/before-other-importers/keywords.json5`; the
+on and pointing at `tools/import-manual/data/batches/001-before-initial-sources/keywords.json5`; the
 position's other keywords are still written. `tools/import-tp`'s own `TpKeywordCatalogService`
 reads the same curated catalogue independently (via `KeywordsImportService.listKeywords`), keyed
 by each keyword's `tourplay.net` external id, but only to decode a `Hatred`/`Animosity` skill's
