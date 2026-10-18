@@ -234,7 +234,9 @@ keywords.
      same downloaded roster file the characteristics panel already reads),
      alongside the raw `positionTypes` and `isBigGuy` values so a reviewer can
      check the decode without reading the JSON by hand, next to the curated
-     catalogue that names them — a code no curated keyword carries is highlighted, and
+     catalogue that names them (pooled from every curated batch, a later
+     batch's restatement of a keyword replacing the earlier entry) — a code no
+     curated keyword carries is highlighted, and
      a player no downloaded TP roster file carries gets a note instead of a
      table. Only TP publishes keyword codes at all — BBL has no such concept
      — so there is no BBL sub-section here. Right: what
