@@ -10,7 +10,6 @@ import { FetchDiscordMessageService } from './fetch-discord-message/fetch-discor
 import { FetchRecentDiscordMessagesService } from './fetch-recent-discord-messages/fetch-recent-discord-messages.service';
 import { ProductionEnvFileService } from './production-env-file/production-env-file.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
-import { ResetProductionSchemaService } from './reset-production-schema/reset-production-schema.service';
 import { RunProductionQueryService } from './run-production-query/run-production-query.service';
 
 @Module({
@@ -23,7 +22,6 @@ import { RunProductionQueryService } from './run-production-query/run-production
     CheckProductionConfigPortService,
     ProductionTunnelService,
     RunProductionQueryService,
-    ResetProductionSchemaService,
   ],
 })
 export class AppModule {}

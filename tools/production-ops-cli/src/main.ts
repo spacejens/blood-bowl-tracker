@@ -14,7 +14,6 @@ import {
   MIN_COUNT,
 } from './fetch-recent-discord-messages/fetch-recent-discord-messages.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
-import { ResetProductionSchemaService } from './reset-production-schema/reset-production-schema.service';
 import { RunProductionQueryService } from './run-production-query/run-production-query.service';
 
 const SUBCOMMANDS = [
@@ -22,7 +21,6 @@ const SUBCOMMANDS = [
   'start-production-tunnel',
   'stop-production-tunnel',
   'run-production-query',
-  'reset-production-schema',
   'fetch-recent-discord-messages',
   'fetch-discord-message',
 ] as const;
@@ -187,8 +185,6 @@ function dispatch(
         .get(RunProductionQueryService)
         .run(args.runProductionQueryStdin);
     }
-    case 'reset-production-schema':
-      return app.get(ResetProductionSchemaService).run();
     case 'fetch-recent-discord-messages': {
       if (args.fetchRecentDiscordMessages === undefined) {
         throw new Error(FETCH_RECENT_DISCORD_MESSAGES_USAGE);
