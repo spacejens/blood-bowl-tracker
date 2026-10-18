@@ -62,12 +62,12 @@ Preconditions 1 and 3 are true blocking preconditions for every action below —
    - **Drop and recreate the production database** — DESTRUCTIVE: wipe the Neon schema and let the bot's startup migrations rebuild it.
 
    **Question 3 — `question`: "Which action(s) should I run? (continued)"** (`multiSelect: true`):
-   - **Run the manual import (before other importers) against production** — run `tools/import-manual/` against `data/before-other-importers` over a `flyctl proxy` tunnel.
+   - **Run the manual import (before-sources) against production** — run `tools/import-manual/`'s `before-sources` command over a `flyctl proxy` tunnel (only meaningful right after a database reset).
    - **Run the BBL import against production** — run `tools/import-bbl/` over a `flyctl proxy` tunnel.
    - **Run the TP import against production** — run `tools/import-tp/` over a `flyctl proxy` tunnel.
 
    **Question 4 — `question`: "Which action(s) should I run? (continued)"** (`multiSelect: true`):
-   - **Run the manual import (after other importers) against production** — run `tools/import-manual/` against `data/after-other-importers` over a `flyctl proxy` tunnel.
+   - **Run the manual import (after-sources) against production** — run `tools/import-manual/`'s `after-sources` command over a `flyctl proxy` tunnel; applies only batches production does not hold yet.
    - **Run read-only queries against production** — open a read-only `psql` session against the production database to answer a question the developer describes.
 
    The **union** of the four answers determines which sections below run; the split is purely a presentation constraint and carries no meaning of its own. The developer may select any combination of the twelve options, including none. Sections run in the order they appear below, which is the order the options are listed above. No option is gated on any other: each section runs standalone if it is the only one picked. The one exception: "Restore a backup into production" and "Drop and recreate the production database" are mutually exclusive — if both are selected, run neither, report that they contradict each other (one replaces production with a backup, the other empties it), and run the remaining selected sections. If the union is empty (nothing selected in any of the four questions), report "No action taken" and stop — this is a valid outcome, not an error.
@@ -436,10 +436,10 @@ Run this section only if "Drop and recreate the production database" was selecte
    ```
    A successful reset shows every migration applying in order (not "nothing pending") on at least one machine, then a normal startup with the usual active/standby leader-election outcome across the two. If the other machine's logs show a migration error immediately after the restart, that's the documented race — it should recover on Fly's automatic retry once the winning machine's migration has committed; give it another `fly status`/`fly logs --no-tail` pass before treating it as a real failure. **"Nothing pending" on every machine against a freshly dropped database means the `drizzle` schema survived** — report that specifically rather than as a generic success, and do not chain into the imports. This also means any of the four "against production" import actions that were selected back in step 0 must **not** run automatically either — the reset they were expected to follow did not actually happen. Report the failure, report that those imports were skipped as a result, and stop before reaching any import section; do not proceed to step 8 below.
 8. On success, offer to chain straight into the production imports — otherwise production sits empty until someone remembers to re-import. Skip any import action already selected in step 0 (it will run on its own below), and skip this question entirely if all four were already selected. Ask with `AskUserQuestion`, `multiSelect: true`, `question`: "The database is empty. Which imports should I run now?", offering the not-already-selected subset of exactly these four options, in this order:
-   - **Run the manual import (before other importers) against production**
+   - **Run the manual import (before-sources) against production**
    - **Run the BBL import against production**
    - **Run the TP import against production**
-   - **Run the manual import (after other importers) against production**
+   - **Run the manual import (after-sources) against production**
 
    Add nothing else to that list — no "All", no "None"; deselecting everything already means "none", and that is a valid answer meaning production stays empty for now. Anything selected here joins the set from step 0 and runs in the same fixed order as the sections below.
 
@@ -511,13 +511,13 @@ Everything here automates the flow documented in `docs/discord-bot/production-im
    ```
    Any HTTP status at all (including `404` or `405`) means the tunnel is up — the RPC server answered. `curl` exiting with a connection error means it is not up yet. If it never comes up, report the tunnel command's own output, kill it (see "Production imports: closing the tunnel" below), and stop — running an importer against a dead tunnel just produces `ECONNREFUSED` for every record.
 
-### Run the manual import (before other importers) against production
+### Run the manual import (before-sources) against production
 
-Run this section only if "Run the manual import (before other importers) against production" was selected in step 0 (or chained from the database reset). It runs after "Production imports: shared setup", which must have completed successfully. Runs standalone (no other import) if it is the only import picked — the shared setup and teardown still run around it.
+Run this section only if "Run the manual import (before-sources) against production" was selected in step 0 (or chained from the database reset). It runs after "Production imports: shared setup", which must have completed successfully. Runs standalone (no other import) if it is the only import picked — the shared setup and teardown still run around it.
 
-1. Run the importer against the "before" data directory, with the production config selected by the environment variable:
+1. Run the `before-sources` command, with the production config selected by the environment variable:
    ```bash
-   ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js data/before-other-importers )
+   ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js before-sources )
    ```
    `IMPORT_CONFIG_ENV` must be set on the same command as the tool — setting it in an earlier, separate shell call has no effect, and the tool would then silently use the local config and write to whatever `apiBaseUrl` that names.
 2. Report the outcome. Per `tools/import-manual/src/main.ts` the tool exits `0` printing `Imported <N> record(s) successfully.` on stdout; or exits `1`, either printing `Import completed with <N> errors:` followed by each error message on stderr, or `Import failed:` with the thrown error for an unexpected failure. Report the exit code and the captured output either way.
@@ -550,15 +550,16 @@ Run this section only if "Run the TP import against production" was selected in 
 
 Unlike the BBL and manual imports, a team and its players are not imported by this local tool build at all: `tools/import-tp` only sends each roster file's raw content over the `tpRosters.import` RPC procedure, which `packages/import-tp-live` implements and which runs inside whatever `api-server` image is currently deployed to production — so a local-only change to team/player import logic has no effect on a production TP import until it is merged and deployed (see [docs/import-tp-live/index.md](../../../docs/import-tp-live/index.md)).
 
-### Run the manual import (after other importers) against production
+### Run the manual import (after-sources) against production
 
-Run this section only if "Run the manual import (after other importers) against production" was selected in step 0 (or chained from the database reset). Runs last of the four imports, after every other selected import — its whole purpose is to clean up names and attach external IDs once the system-specific importers have run. Runs standalone if it is the only import picked.
+Run this section only if "Run the manual import (after-sources) against production" was selected in step 0 (or chained from the database reset). Runs last of the four imports, after every other selected import — its whole purpose is to clean up names and attach external IDs once the system-specific importers have run. Runs standalone if it is the only import picked.
 
-1. Run the importer against the "after" data directory:
+1. Run the `after-sources` command:
    ```bash
-   ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js data/after-other-importers )
+   ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js after-sources )
    ```
 2. Report the outcome using the same success/error/`Import failed:` formats as the manual "before" section, plus the same production failure interpretations and no-rollback caveat.
+3. If it fails with `Import failed:` naming unrecorded before batch(es) on a database that was imported before batch tracking existed, tell the developer the one-time remedy `( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js mark-applied 001-before-initial-sources 002-after-initial-sources )` and run it only on their explicit confirmation. It also needs the api-server release with the `manualImportBatches` procedures deployed — an older release answers the ledger calls with 404.
 
 ### Production imports: closing the tunnel
 

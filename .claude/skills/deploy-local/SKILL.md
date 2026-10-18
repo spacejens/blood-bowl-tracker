@@ -24,12 +24,12 @@ Takes no arguments.
    **Question 1 — `question`: "Which action(s) should I run?"** (`multiSelect: true`):
    - **Deploy the stack** (recommended) — build and start the docker-compose stack.
    - **Restore a database backup** — replace the local database with a production backup from the R2 bucket, instead of importing from scratch.
-   - **Run the manual import (before other importers)** — run `tools/import-manual/` against `data/before-other-importers` to seed hand-authored data before the system-specific importers.
+   - **Run the manual import (before-sources)** — run `tools/import-manual/`'s `before-sources` command to apply the not-yet-applied before batches of hand-authored data before the system-specific importers.
    - **Run the BBL import** — run `tools/import-bbl/` to import data into a running instance.
 
    **Question 2 — `question`: "Which action(s) should I run? (continued)"** (`multiSelect: true`):
    - **Run the TP import** — run `tools/import-tp/` to import data into a running instance.
-   - **Run the manual import (after other importers)** — run `tools/import-manual/` against `data/after-other-importers` to clean up names or attach external IDs after the system-specific importers.
+   - **Run the manual import (after-sources)** — run `tools/import-manual/`'s `after-sources` command to apply the not-yet-applied after batches once the system-specific importers have run.
    - **Run the match-event review tool** — run `tools/review-match/` against the running database and the existing BBL/TP data directories, then open the report.
 
    **Question 3 — `question`: "Which action(s) should I run? (continued)"** (`multiSelect: true`):
@@ -163,9 +163,9 @@ Run this section only if "Restore a database backup" was selected in step 0 abov
    Poll `docker compose ps` until `discord-bot` is `Up`, as in "Deploy the stack" step 4. In the logs from the restart, expect `Running migrations...`, one `Applying: <name>` line per migration newer than the backup, `Migrations complete.`, then the same leader-lock and startup-message lines as "Deploy the stack" step 5. A failed migration means the branch's migrations do not apply cleanly to production-shaped data — report it prominently.
 8. Report the restored key, the backup's migration count, the key tables' row counts, which migrations the bot applied on top, and the bot's health. Do not tear down any containers — same non-goal as the "Deploy the stack" section.
 
-### Run the manual import (before other importers)
+### Run the manual import (before-sources)
 
-Run this section only if "Run the manual import (before other importers)" was selected in step 0 above. Runs after the "Deploy the stack" and "Restore a database backup" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to seed hand-authored data into an already-running instance before the system-specific importers.
+Run this section only if "Run the manual import (before-sources)" was selected in step 0 above. Runs after the "Deploy the stack" and "Restore a database backup" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to seed hand-authored data into an already-running instance before the system-specific importers.
 
 1. Check `tools/import-manual/import-manual-config.json5` is usable:
    ```bash
@@ -178,16 +178,16 @@ Run this section only if "Run the manual import (before other importers)" was se
    fi
    ```
    The `apiToken` value must also match `API_TOKEN_IMPORT_MANUAL` in `apps/discord-bot/.env` (see the "Deploy the stack" section's `.env` check above) — a valid-looking but mismatched token also fails with `401`.
-2. Build and run the import against the "before" directory — a fresh worktree only ran `pnpm install` (no build) during setup, so `dist/` may not exist yet:
+2. Build and run the `before-sources` command — a fresh worktree only ran `pnpm install` (no build) during setup, so `dist/` may not exist yet:
    ```bash
    pnpm --filter @blood-bowl-tracker/import-manual run build
-   ( cd tools/import-manual && node dist/main.js data/before-other-importers )
+   ( cd tools/import-manual && node dist/main.js before-sources )
    ```
-3. Report the outcome to the developer. Per `tools/import-manual/src/main.ts`, the tool exits `0` and prints `Imported <N> record(s) successfully.` on stdout; or exits `1`, either printing per-error detail (`Import completed with <N> errors:` followed by each error message) on stderr for errors the import collected, or printing `Import failed:` with the thrown error for an unexpected failure (e.g. the API is unreachable, a malformed data file, or a missing directory). Report the exit code and the captured output either way. Because this import performs real database writes, a failure partway through may leave earlier steps' writes in place — there is no automatic rollback. Do not tear down any containers regardless of the import's outcome — same non-goal as the "Deploy the stack" section.
+3. Report the outcome to the developer. Per `tools/import-manual/src/main.ts`, the tool exits `0` and prints `Imported <N> record(s) successfully.` on stdout; or exits `1`, either printing per-error detail (`Import completed with <N> errors:` followed by each error message) on stderr for errors the import collected, or printing `Import failed:` with the thrown error for an unexpected failure (e.g. the API is unreachable, a malformed data file, or a missing directory). The tool also prints one `Skipped batch <name> (already applied).` or `Applied batch <name>.` line per batch; a failing batch is left unrecorded, with `Batch <name> was not recorded as applied; later batches were not attempted.` on stderr. `after-sources` fails with `Import failed:` if a before batch is unrecorded — run `before-sources` first; a restored production backup that predates batch tracking needs `node dist/main.js mark-applied 001-before-initial-sources 002-after-initial-sources` instead, which you offer to the developer rather than run unasked. Report the exit code and the captured output either way. Because this import performs real database writes, a failure partway through may leave earlier steps' writes in place — there is no automatic rollback. Do not tear down any containers regardless of the import's outcome — same non-goal as the "Deploy the stack" section.
 
 ### Run the BBL import
 
-Run this section only if "Run the BBL import" was selected in step 0 above. Runs after the "Deploy the stack", "Restore a database backup" and "Run the manual import (before other importers)" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to import into an instance already deployed from a previous run.
+Run this section only if "Run the BBL import" was selected in step 0 above. Runs after the "Deploy the stack", "Restore a database backup" and "Run the manual import (before-sources)" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to import into an instance already deployed from a previous run.
 
 1. Check `tools/import-bbl/import-bbl-config.json5` is usable:
    ```bash
@@ -233,15 +233,15 @@ Run this section only if "Run the TP import" was selected in step 0 above. Runs 
    ```
 3. Report the outcome to the developer. Per `tools/import-tp/src/main.ts`, the tool exits `0` and prints a one-line success summary (`Imported <N> record(s) successfully.`) on stdout; or exits `1`, either printing per-error detail (`Import completed with <N> errors:` followed by each error message) on stderr for errors the import collected, or printing `Import failed:` with the thrown error for an unexpected failure (e.g. the API is unreachable). Report the exit code and the captured output either way. Because this import performs real database writes, a failure partway through may leave earlier steps' writes in place — there is no automatic rollback. Do not tear down any containers regardless of the import's outcome — same non-goal as the "Deploy the stack" section.
 
-### Run the manual import (after other importers)
+### Run the manual import (after-sources)
 
-Run this section only if "Run the manual import (after other importers)" was selected in step 0 above. Runs after the "Deploy the stack", "Restore a database backup", "Run the manual import (before other importers)", "Run the BBL import", and "Run the TP import" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to clean up names or attach external IDs after the system-specific importers already ran.
+Run this section only if "Run the manual import (after-sources)" was selected in step 0 above. Runs after the "Deploy the stack", "Restore a database backup", "Run the manual import (before-sources)", "Run the BBL import", and "Run the TP import" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to clean up names or attach external IDs after the system-specific importers already ran.
 
 1. Check `tools/import-manual/import-manual-config.json5` is usable, copying the template if absent (identical to the "before" subsection's step 1).
-2. Build and run the import against the "after" directory:
+2. Build and run the `after-sources` command:
    ```bash
    pnpm --filter @blood-bowl-tracker/import-manual run build
-   ( cd tools/import-manual && node dist/main.js data/after-other-importers )
+   ( cd tools/import-manual && node dist/main.js after-sources )
    ```
 3. Report the outcome to the developer using the same success/error/`Import failed:` message formats as the "before" subsection's step 3. No automatic rollback; never tear down containers regardless of outcome.
 
