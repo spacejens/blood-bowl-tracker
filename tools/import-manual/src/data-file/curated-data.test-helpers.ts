@@ -13,6 +13,9 @@ export const BATCH_001 = 'batches/001-before-initial-sources';
 /** Batch 002: the curated data applied after the source importers. */
 export const BATCH_002 = 'batches/002-after-initial-sources';
 
+/** Batch 003: every curated name restated once, for a long-lived database. */
+export const BATCH_003 = 'batches/003-after-reset-curated-names';
+
 /** Every batch directory, as `batches/<name>`, in name order. */
 export function listBatches(): string[] {
   return readdirSync(join(DATA_ROOT, 'batches'), { withFileTypes: true })
@@ -62,4 +65,25 @@ export function readFile(batch: string, name: string): ManualDataFile {
   return ManualDataFileSchema.parse(
     JSON5.parse(readFileSync(join(DATA_ROOT, batch, name), 'utf8')),
   );
+}
+
+/**
+ * One batch's files exactly as JSON5 parses them -- no validation, no schema
+ * defaults -- pooled by section in filename order. For asserting what a file
+ * actually spells out, which `readBatch`'s defaulted result cannot show.
+ */
+export function readRawBatch(
+  batch: string,
+): Record<string, Record<string, unknown>[]> {
+  const dir = join(DATA_ROOT, batch);
+  const pooled: Record<string, Record<string, unknown>[]> = {};
+  for (const name of jsonFiles(dir)) {
+    const parsed = JSON5.parse<Record<string, Record<string, unknown>[]>>(
+      readFileSync(join(dir, name), 'utf8'),
+    );
+    for (const [section, entries] of Object.entries(parsed)) {
+      (pooled[section] ??= []).push(...entries);
+    }
+  }
+  return pooled;
 }
