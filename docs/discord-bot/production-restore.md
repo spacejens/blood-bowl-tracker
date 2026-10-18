@@ -15,13 +15,16 @@ all application data or changes nothing.
   mistaken manual change) and a recent backup is better than a full re-import.
 - Undoing a restore: restore the safety backup it took, the same way.
 
-A [drop and re-import](production-database-reset.md) remains the way to
-rebuild production from the source data instead.
+A full re-import from the source data, through the
+[production import runs](production-imports.md), is only a last resort for
+a production database that has no usable backup at all. It cannot bring
+back data the importers do not produce, such as the Discord bot's usage
+records.
 
 ## What gets replaced
 
 Only the application schemas, `game_data`, `discord_bot_usage`, `drizzle`
-and `public`, the same set the reset drops; the restore recreates `public`
+and `public`; the restore recreates `public`
 empty before filling it from the backup (an archive never lists `public` as a
 schema of its own). Neon's own schemas are never touched. Everything written
 to production after the backup was taken is lost; the safety backup keeps it
@@ -146,9 +149,10 @@ so it can be undone in turn.
 
 When the safety backup's check was skipped or failed (step 6), the safety
 backup cannot be restored this way, and the report says so: undoing the
-restore means a [drop and re-import](production-database-reset.md), and
-whatever production held before the restore that a re-import does not
-reproduce is lost.
+restore means restoring an older backup or, with none usable, the
+last-resort full re-import described under [When to use it](#when-to-use-it),
+and whatever production held before the restore that neither reproduces is
+lost.
 
 ## Failures
 

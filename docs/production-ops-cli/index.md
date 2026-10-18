@@ -8,7 +8,7 @@ complex enough that it cannot verify they stay inside the worktree — see
 [develop-feature/SKILL.md's "Worktree isolation and shell commands" section](../../.claude/skills/develop-feature/SKILL.md#worktree-isolation-and-shell-commands)
 for what that means in practice. But the pattern is also useful on its own merits, independent of
 that constraint: packaging multi-step logic (a detached tunnel process, a
-validated read-only query, a schema reset) behind one tested command is more
+validated read-only query) behind one tested command is more
 repeatable and reliable than re-deriving the equivalent shell inline every
 time a skill needs it.
 
@@ -20,7 +20,6 @@ time a skill needs it.
 | `start-production-tunnel` | Start `deploy-production`'s `flyctl proxy` tunnel as a detached, pid-tracked process |
 | `stop-production-tunnel` | Stop the tunnel started by `start-production-tunnel`, using its persisted pid |
 | `run-production-query` | Run a read-only, timeout-enforced SQL query against production, reading it from stdin |
-| `reset-production-schema` | Drop and recreate the production database schemas |
 | `fetch-recent-discord-messages` | Fetch the N (1-100) most recent raw messages of a Discord channel, embeds included |
 | `fetch-discord-message` | Fetch one raw Discord message, embeds included, by its message link |
 
