@@ -26,3 +26,10 @@ image older than the most recent schema migration starts that older code
 against a newer schema it was never written against. Only roll back to a
 release whose schema the current Neon database is still compatible with; for
 anything older, fix forward instead of rolling back.
+
+A Fly rollback undoes code only: it never reverts a migration or any other
+change to the data. The backup every deploy takes before it runs (see
+[Backup before every deploy](production-deploying.md#backup-before-every-deploy))
+is the known-good state of the data. If a deploy damaged data, recover it by
+[restoring that backup](production-restore.md), not by rolling back or
+re-importing.
