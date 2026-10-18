@@ -17,9 +17,11 @@ all application data or changes nothing.
 
 A full re-import from the source data, through the
 [production import runs](production-imports.md), is only a last resort for
-a production database that has no usable backup at all. It cannot bring
-back data the importers do not produce, such as the Discord bot's usage
-records.
+a production database that has no usable backup at all. It is only valid
+against a database that holds no data yet: no tooling here empties
+production, and running the importers over a populated database can
+overwrite later curation instead of rebuilding it. It cannot bring back
+data the importers do not produce, such as the Discord bot's usage records.
 
 ## What gets replaced
 
