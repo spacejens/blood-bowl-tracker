@@ -50,10 +50,12 @@ association missing from a later batch, but never removes one that batch no
 longer lists, so the join is not authoritative-by-replacement. This matches
 how this tracker's other `sync` procedures behave. The database is long-lived,
 so an association that should no longer hold is not corrected by a later
-import. It takes a migration, and because a tracked row cannot be deleted, that
-migration retires the row with a removal flag rather than removing it (see
-[Curated sets that shrink](../../database.md#curated-sets-that-shrink) and
-[Changing data in a long-lived database](../../database.md#changing-data-in-a-long-lived-database)).
+import, and retiring one is not currently supported: a tracked row cannot be
+deleted (see
+[History tracking](../../database.md#history-tracking)), and the join has no
+removal flag. Supporting it would first take a schema change adding one, with
+readers filtering on it, as the trophy award rule tables do (see
+[Curated sets that shrink](../../database.md#curated-sets-that-shrink)).
 
 ## Where the catalogue comes from
 
