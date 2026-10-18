@@ -10,6 +10,8 @@ Each skill's own `SKILL.md` under `.claude/skills/` is the source of truth for i
 
 Builds a feature end-to-end: from a GitHub issue (`/develop-feature 42`) or a free-form description (`/develop-feature Add player stats endpoint`), through brainstorming a spec, writing an implementation plan, implementing it task-by-task with tests, self-review, opening a PR, and then waiting for the automated review bot's review and driving it to completion through `handle-pr-reviews`. This is the default entry point for any new feature or bug fix.
 
+A change that alters stored data or the schema ships its own fix to existing data: a migration or a manual batch, never a re-import — see [Changing data in a long-lived database](database.md#changing-data-in-a-long-lived-database). `develop-feature` checks this for every task it implements.
+
 ## handle-pr-reviews
 
 Processes reviewer feedback on an already-open PR (`/handle-pr-reviews`, or `/handle-pr-reviews <N>` for a specific PR). Finds unhandled inline and top-level comments, fixes or rejects each with verification, pushes the results, and replies to every comment. Run this after a PR — from `develop-feature` or otherwise — receives review feedback, including Claude's own self-review comments.
