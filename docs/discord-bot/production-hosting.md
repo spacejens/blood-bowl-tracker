@@ -29,5 +29,3 @@ isolated bot identity locally alongside this production deployment, see
   workflow, its tokens and retention, and running a backup on demand
 - [Restoring a backup into production](production-restore.md) — the
   safety-backed, single-transaction restore and its rehearsal
-- [Dropping and recreating the production database](production-database-reset.md)
-  — the destructive reset path
