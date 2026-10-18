@@ -87,8 +87,8 @@ describe('TpSppAdjustmentsImportService', () => {
 
     const [payload] = adjustments.syncReportedSppAdjustments.mock.calls[0];
     expect(payload.players).toEqual([
-      { playerId: 1, reportedTotal: 14, careerCounts: undefined },
-      { playerId: 2, reportedTotal: undefined, careerCounts: undefined },
+      { playerId: 1, reportedSppTotal: 14, careerCounts: undefined },
+      { playerId: 2, reportedSppTotal: undefined, careerCounts: undefined },
     ]);
   });
 

@@ -221,7 +221,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 17]]));
 
     const result = await h.service.syncReportedAdjustments({
-      players: [{ playerId: 1, reportedTotal: 20 }],
+      players: [{ playerId: 1, reportedSppTotal: 20 }],
     });
 
     expect(result.updatedPlayerIds).toEqual([1]);
@@ -237,7 +237,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 17]]));
 
     await h.service.syncReportedAdjustments({
-      players: [{ playerId: 1, reportedTotal: 10 }],
+      players: [{ playerId: 1, reportedSppTotal: 10 }],
     });
 
     expect(writtenValues(h.db, 1)).toEqual([
@@ -266,8 +266,8 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
 
     const result = await h.service.syncReportedAdjustments({
       players: [
-        { playerId: 1, reportedTotal: 8 },
-        { playerId: 2, reportedTotal: 8 },
+        { playerId: 1, reportedSppTotal: 8 },
+        { playerId: 2, reportedSppTotal: 8 },
       ],
     });
 
@@ -311,9 +311,9 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
 
     await h.service.syncReportedAdjustments({
       players: [
-        { playerId: 1, reportedTotal: 20 },
-        { playerId: 2, reportedTotal: 15 },
-        { playerId: 3, reportedTotal: 30 },
+        { playerId: 1, reportedSppTotal: 20 },
+        { playerId: 2, reportedSppTotal: 15 },
+        { playerId: 3, reportedSppTotal: 30 },
       ],
     });
 
@@ -340,7 +340,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     h.totals.totalsForPlayers.mockResolvedValue(new Map());
 
     await h.service.syncReportedAdjustments({
-      players: [{ playerId: 1, reportedTotal: 0 }],
+      players: [{ playerId: 1, reportedSppTotal: 0 }],
     });
 
     expect(writtenValues(h.db, 1)).toEqual([{ sppAdjustment: 0, sppTotal: 0 }]);
@@ -358,7 +358,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     h.ongoing.estimateForPlayers.mockResolvedValue(new Map([[1, 9]]));
 
     await h.service.syncReportedAdjustments({
-      players: [{ playerId: 1, reportedTotal: 20 }],
+      players: [{ playerId: 1, reportedSppTotal: 20 }],
     });
 
     expect(writtenValues(h.db, 1)).toEqual([
@@ -377,7 +377,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     h.ongoing.estimateForPlayers.mockResolvedValue(new Map([[1, 12]]));
 
     await h.service.syncReportedAdjustments({
-      players: [{ playerId: 1, reportedTotal: 20 }],
+      players: [{ playerId: 1, reportedSppTotal: 20 }],
     });
 
     expect(writtenValues(h.db, 1)).toEqual([{ sppAdjustment: 0, sppTotal: 8 }]);
@@ -397,7 +397,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     h.ongoing.estimateForPlayers.mockResolvedValue(new Map([[1, 30]]));
 
     await h.service.syncReportedAdjustments({
-      players: [{ playerId: 1, reportedTotal: 20 }],
+      players: [{ playerId: 1, reportedSppTotal: 20 }],
     });
 
     expect(writtenValues(h.db, 1)).toEqual([{ sppAdjustment: 0, sppTotal: 8 }]);
@@ -417,7 +417,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 20]]));
 
     await h.service.syncReportedAdjustments({
-      players: [{ playerId: 1, reportedTotal: 20, careerCounts }],
+      players: [{ playerId: 1, reportedSppTotal: 20, careerCounts }],
     });
 
     expect(h.ongoing.estimateForPlayers).toHaveBeenCalledWith([
@@ -433,7 +433,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     h.ongoing.estimateForPlayers.mockResolvedValue(new Map());
 
     await h.service.syncReportedAdjustments({
-      players: [{ playerId: 1, reportedTotal: 20 }],
+      players: [{ playerId: 1, reportedSppTotal: 20 }],
     });
 
     expect(writtenValues(h.db, 1)).toEqual([
@@ -464,9 +464,9 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
 
     const result = await h.service.syncReportedAdjustments({
       players: [
-        { playerId: 1, reportedTotal: 20 },
-        { playerId: 2, reportedTotal: 30 },
-        { playerId: 3, reportedTotal: 5 },
+        { playerId: 1, reportedSppTotal: 20 },
+        { playerId: 2, reportedSppTotal: 30 },
+        { playerId: 3, reportedSppTotal: 5 },
       ],
     });
 
@@ -503,8 +503,8 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
 
     const result = await h.service.syncReportedAdjustments({
       players: [
-        { playerId: 1, reportedTotal: 20, careerCounts },
-        { playerId: 2, reportedTotal: 30 },
+        { playerId: 1, reportedSppTotal: 20, careerCounts },
+        { playerId: 2, reportedSppTotal: 30 },
       ],
     });
 
@@ -521,7 +521,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 20]]));
 
     const result = await h.service.syncReportedAdjustments({
-      players: [{ playerId: 1, reportedTotal: 20 }],
+      players: [{ playerId: 1, reportedSppTotal: 20 }],
     });
 
     expect(result.nonzeroAdjustments).toEqual([]);
@@ -542,8 +542,8 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
 
     await h.service.syncReportedAdjustments({
       players: [
-        { playerId: 1, reportedTotal: 20 },
-        { playerId: 1, reportedTotal: 20, careerCounts },
+        { playerId: 1, reportedSppTotal: 20 },
+        { playerId: 1, reportedSppTotal: 20, careerCounts },
       ],
     });
 
@@ -559,7 +559,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 5]]));
 
     const result = await h.service.syncReportedAdjustments({
-      players: [{ playerId: 1, reportedTotal: 5 }, { playerId: 2 }],
+      players: [{ playerId: 1, reportedSppTotal: 5 }, { playerId: 2 }],
     });
 
     expect(result.updatedPlayerIds).toEqual([1]);
@@ -581,7 +581,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     const h = await makeService(mockDb([]));
 
     const result = await h.service.syncReportedAdjustments({
-      players: [{ playerId: 1, reportedTotal: 5 }],
+      players: [{ playerId: 1, reportedSppTotal: 5 }],
     });
 
     expect(result).toEqual({ updatedPlayerIds: [], nonzeroAdjustments: [] });
@@ -597,7 +597,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 17]]));
 
     await h.service.syncReportedAdjustments({
-      players: [{ playerId: 1, reportedTotal: 20 }],
+      players: [{ playerId: 1, reportedSppTotal: 20 }],
     });
 
     expect(writtenValues(h.db, 1)).toEqual([
@@ -613,8 +613,8 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
 
     await h.service.syncReportedAdjustments({
       players: [
-        { playerId: 1, reportedTotal: 4 },
-        { playerId: 1, reportedTotal: 9 },
+        { playerId: 1, reportedSppTotal: 4 },
+        { playerId: 1, reportedSppTotal: 9 },
       ],
     });
 

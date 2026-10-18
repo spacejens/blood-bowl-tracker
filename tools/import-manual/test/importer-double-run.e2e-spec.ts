@@ -26,7 +26,7 @@ import { curatedPicks, runSourceStandIn } from './source-stand-in.test-helpers';
  * from the position-availability race-era syncs, which fail in the harness and
  * are never exercised), so two files that disagree about a row show up as a
  * flip; the server-side semantics re-runs depend on (`renameExisting`, the
- * `insertOnly` syncs, the `reportedTotal` SPP sync); that a source
+ * `insertOnly` syncs, the `reportedSppTotal` SPP sync); that a source
  * re-sending a raw spelling never changes a curated coach, competition,
  * skill, position, team or race name, not even between the two manual
  * phases; and that a fresh run ends with TP's characteristics and

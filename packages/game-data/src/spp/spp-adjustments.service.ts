@@ -95,10 +95,10 @@ export class SppAdjustmentsService {
     const reportedByPlayerId = new Map<number, number>();
     for (const entry of data.players) {
       careerCountsByPlayerId.set(entry.playerId, entry.careerCounts);
-      if (entry.reportedTotal === undefined) {
+      if (entry.reportedSppTotal === undefined) {
         reportedByPlayerId.delete(entry.playerId);
       } else {
-        reportedByPlayerId.set(entry.playerId, entry.reportedTotal);
+        reportedByPlayerId.set(entry.playerId, entry.reportedSppTotal);
       }
     }
     // Only players whose source reported a total can have an adjustment

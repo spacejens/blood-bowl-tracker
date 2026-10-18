@@ -256,7 +256,7 @@ export const SppCareerCountsSchema = z.object({
 
 /**
  * Recompute `players.spp_adjustment` and `players.spp_total` from the career
- * total TP reports, sent per player as `reportedTotal`. This sync is the only
+ * total TP reports, sent per player as `reportedSppTotal`. This sync is the only
  * writer of `spp_total` for the bulk TP import: the total is the reported
  * figure with the estimated ongoing SPP removed, never below the confirmed
  * imported total. A player sent without a reported total is skipped.
@@ -277,7 +277,7 @@ export const SyncReportedSppAdjustmentsSchema = z.object({
        * reports none (an induced star player): that player is skipped and
        * keeps a NULL adjustment.
        */
-      reportedTotal: z.number().int().optional(),
+      reportedSppTotal: z.number().int().optional(),
       careerCounts: SppCareerCountsSchema.optional(),
     }),
   ),

@@ -221,7 +221,7 @@ export async function runSourceStandIn(
     externalIds: tpId('stand-in-player'),
   });
   await client.players.syncReportedSppAdjustments({
-    players: [{ playerId: player.id, reportedTotal: 12 }],
+    players: [{ playerId: player.id, reportedSppTotal: 12 }],
   });
 
   const [characteristics] = await db

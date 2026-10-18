@@ -317,7 +317,7 @@ Teams, players, competitions, matches and TP's official team list are imported s
 - **TpSppAdjustmentsImportService** — reconciles `players.spp_adjustment` for
   every imported player. TP's own career SPP total is trusted. The roster
   import does not store it (this run sends `deferSppTotal`); it returns each
-  player's total, and this step sends it as `reportedTotal`, writing
+  player's total, and this step sends it as `reportedSppTotal`, writing
   `spp_total` (the reported total with not-yet-imported SPP backed out) and the
   gap to what the player's imported events explain. It is the only writer of
   `spp_total` in this run, so a re-run writes nothing new; a player created by

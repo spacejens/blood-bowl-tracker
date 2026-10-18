@@ -79,7 +79,7 @@ export class TpSppAdjustmentsImportService {
         {
           players: chunk.map((playerId) => ({
             playerId,
-            reportedTotal: reportedSppTotalsByPlayerId?.get(playerId),
+            reportedSppTotal: reportedSppTotalsByPlayerId?.get(playerId),
             careerCounts: careerCountsByPlayerId?.get(playerId),
           })),
         },
