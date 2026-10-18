@@ -47,9 +47,9 @@ See `import-manual-config.example.json5` for a worked example.
 
 ## Data files
 
-The tool reads every `.json5` file directly inside a batch directory
-(or the directory given on the command line) (non-recursive), in alphabetical filename order, and pools their sections
-together before importing. A single file may mix any of these optional
+The tool reads every `.json5` file directly inside a batch directory (or the
+directory given on the command line), non-recursively, in alphabetical filename
+order, and pools their sections together before importing. A single file may mix any of these optional
 top-level sections:
 
 ```text
@@ -131,7 +131,7 @@ a genuinely new entity.
 
 ### Worked example
 
-a new batch, e.g.
+In a new batch, e.g.
 `data/batches/004-after-necromantic-2020/necromantic-2020.json5`:
 
 ```jsonc

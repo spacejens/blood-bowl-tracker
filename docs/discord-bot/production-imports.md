@@ -83,7 +83,10 @@ To run an import against production:
    To bring a long-lived production database up to date with new curated
    data, run only `after-sources` — it applies the batches not yet recorded
    there. Once, before the first such run, record the batches production
-   already holds:
+   already holds — but only if production's last manual import ran from the
+   current content of both batches (otherwise import
+   `data/batches/001-before-initial-sources` and
+   `data/batches/002-after-initial-sources` by directory first):
    `( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js mark-applied 001-before-initial-sources 002-after-initial-sources )`.
    Both need the api-server release with the `manualImportBatches` procedures
    deployed first. See

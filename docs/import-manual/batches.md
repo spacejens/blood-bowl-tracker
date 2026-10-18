@@ -49,7 +49,10 @@ The initial batches:
 Never edit an applied batch — not even to fix a typo. Put the change in a new
 batch with the next free number (an `after` batch), restating only what
 changes; an entry overlays the existing row (see
-[Data files](index.md#data-files)). The importer refuses to run when an
+[Data files](index.md#data-files)). An entry that restates a race, star player
+or keyword should carry exactly the external ids the earlier entry has: the
+review tools match a later batch's entry to an earlier one by their full set
+of external ids. The importer refuses to run when an
 applied batch's content no longer matches what was recorded, and when a
 recorded batch has been renamed or removed.
 
@@ -98,7 +101,9 @@ On success the last line is `Imported <N> record(s) successfully.`; collected
 errors are printed one per line under `Import completed with <N> errors:`,
 followed by which batch was left unrecorded, and the tool exits non-zero. An
 unexpected failure (unreachable API, malformed file, a changed applied batch,
-an invalid batch name) is printed as `Import failed:`.
+an invalid batch name, duplicate batch numbers, a `before` batch numbered
+above an `after` batch, `mark-applied` with no names or an unknown name) is
+printed as `Import failed:`.
 
 `mark-applied` records the named batches with their current content hashes
 without importing anything, for a database that already holds their data. A
@@ -115,9 +120,15 @@ Passing a directory instead imports that directory ad hoc and records nothing
   the batches added since the last run.
 - **Once, on a database that already holds the initial batches** (production,
   imported before batches existed): `mark-applied 001-before-initial-sources
-  002-after-initial-sources`, then `after-sources` to apply batch 003. The
-  api-server must already run a release with the `manualImportBatches`
-  procedures (see [production imports](../discord-bot/production-imports.md)).
+  002-after-initial-sources`, then `after-sources` to apply batch 003. Only do
+  this if the database's last manual import ran from the current content of
+  both batches; `mark-applied` records them as applied without importing, so
+  anything merged since would never reach the database. Otherwise first import
+  the two directories ad hoc (`node dist/main.js data/batches/001-before-initial-sources`,
+  then `data/batches/002-after-initial-sources`; both are idempotent upserts)
+  and mark them applied afterwards. The api-server must already run a release
+  with the `manualImportBatches` procedures (see
+  [production imports](../discord-bot/production-imports.md)).
 
 ## Tested
 

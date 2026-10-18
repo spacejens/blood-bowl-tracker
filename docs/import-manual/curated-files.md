@@ -152,7 +152,10 @@ generation's id on the one existing curated row** in
 - `position-characteristics.json5` requires no change: each entry is keyed by
   the position's `Name` external id, not a display name, so the renamed row's
   merged identity (with both old and new ids registered) resolves the reference
-  correctly. The same holds for batch 001's `position-characteristics-gap-fill.json5`, except that its own `positions` entries carry a display `name` that must be kept current like any other. batch 002's `position-skills.json5` is keyed the same way, by the
+  correctly. The same holds for batch 001's
+  `position-characteristics-gap-fill.json5`, except that its own `positions`
+  entries carry a display `name` that must be kept current like any other.
+  Batch 002's `position-skills.json5` is keyed the same way, by the
   position's `Name` external id, so it needs the identical no-change treatment.
 - Leave a comment on the entry naming each source, its id, and which generation
   that id belongs to, so the next curator can tell a genuine rename from a
