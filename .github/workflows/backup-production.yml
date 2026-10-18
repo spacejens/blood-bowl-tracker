@@ -12,7 +12,9 @@
 # docs/discord-bot/production-backups.md#alerts. A run called from another
 # workflow raises and resolves nothing (the caller owns that failure), but
 # the calling job must still grant `issues: write`: a called workflow's jobs
-# cannot have more permissions than their caller grants.
+# cannot have more permissions than their caller grants. The calling job
+# must also pass every secret declared under workflow_call by name, or this
+# job sees it empty.
 # The alert jobs' `if` conditions and verify-backup.yml's workflow_run
 # trigger match this exact name; renaming it needs both updated.
 name: Backup production database
@@ -24,6 +26,20 @@ on:
     - cron: '17 3 * * *'
   workflow_dispatch:
   workflow_call:
+    # A caller must pass each of these by name (NAME: ${{ secrets.NAME }});
+    # the values come from this job's production-backup environment. Required
+    # only checks that the name was passed, not that it has a value: the
+    # "Check required settings" step checks the values.
+    secrets:
+      PRODUCTION_DATABASE_URL:
+        description: Neon direct connection string of the production database
+        required: true
+      BACKUP_STORAGE_WRITE_ACCESS_KEY_ID:
+        description: Access key id of the bucket write token
+        required: true
+      BACKUP_STORAGE_WRITE_SECRET_ACCESS_KEY:
+        description: Secret access key of the bucket write token
+        required: true
     outputs:
       backup-key:
         description: Storage key of the backup this run created
@@ -84,7 +100,9 @@ jobs:
       # the backup needs (the database URL and the storage settings), so an
       # unconfigured environment is not mistaken for a CLI problem. Prints
       # only names, never values. The prune step below reads the same storage
-      # values, so this one check covers both.
+      # values, so this one check covers both. When this run was called by
+      # another workflow (github.workflow is then the caller's name) and a
+      # secret is empty, it adds that the caller must pass the secrets by name.
       - name: Check required settings
         env:
           BACKUP_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
@@ -92,6 +110,7 @@ jobs:
           BACKUP_STORAGE_BUCKET: ${{ vars.BACKUP_STORAGE_BUCKET }}
           BACKUP_STORAGE_ACCESS_KEY_ID: ${{ secrets.BACKUP_STORAGE_WRITE_ACCESS_KEY_ID }}
           BACKUP_STORAGE_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_STORAGE_WRITE_SECRET_ACCESS_KEY }}
+          WORKFLOW_NAME: ${{ github.workflow }}
         run: |
           environment=production-backup
           missing=()
@@ -100,14 +119,17 @@ jobs:
           [ -n "$BACKUP_STORAGE_BUCKET" ] || missing+=(vars.BACKUP_STORAGE_BUCKET)
           [ -n "$BACKUP_STORAGE_ACCESS_KEY_ID" ] || missing+=(secrets.BACKUP_STORAGE_WRITE_ACCESS_KEY_ID)
           [ -n "$BACKUP_STORAGE_SECRET_ACCESS_KEY" ] || missing+=(secrets.BACKUP_STORAGE_WRITE_SECRET_ACCESS_KEY)
+          [ "${#missing[@]}" -gt 0 ] || exit 0
           fix="Fix it in Settings -> Environments -> ${environment} (see docs/discord-bot/production-backups.md)."
           if [ "${#missing[@]}" -eq 5 ]; then
             echo "::error::Every required setting is empty (${missing[*]}): GitHub environment '${environment}' looks unconfigured. ${fix}"
-            exit 1
-          elif [ "${#missing[@]}" -gt 0 ]; then
+          else
             echo "::error::Required settings empty in GitHub environment '${environment}': ${missing[*]}. ${fix}"
-            exit 1
           fi
+          if [ "$WORKFLOW_NAME" != 'Backup production database' ] && [[ " ${missing[*]} " == *" secrets."* ]]; then
+            echo "::error::This run was called by workflow '${WORKFLOW_NAME}'. A called workflow sees its environment's secrets only when the calling job passes each one by name under 'secrets:'; check that job's secrets block (see docs/discord-bot/production-backups.md#calling-from-another-workflow)."
+          fi
+          exit 1
       # The CLI prints {key, sizeBytes, createdAt} as JSON on stdout (no
       # secrets). A failure exits non-zero, which fails this step and the
       # job, and the prune step below is then skipped.

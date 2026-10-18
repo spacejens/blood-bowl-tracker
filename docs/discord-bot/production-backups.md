@@ -252,7 +252,10 @@ in the process list of that ephemeral runner only.
 
    Both environments must allow runs from `main`: the deploy workflow, which
    runs on `main`, uses them for its pre-deploy backup and verification, and
-   a deploy whose backup or verification cannot run does not proceed.
+   a deploy whose backup or verification cannot run does not proceed. The
+   environments alone are not enough for those called runs: the deploy
+   workflow must also pass the secrets by name (see
+   [Calling from another workflow](#calling-from-another-workflow)).
 
 5. **First run.** Trigger the workflow by hand (see below) once the bucket and
    environment exist, then confirm that the log reports a non-zero
@@ -275,6 +278,12 @@ never values.
 
 - **Every setting empty** means that environment was never filled in. Add its
   variables and secrets as in steps 3 and 4 above.
+- **Only the `secrets.*` settings empty, in a run called from another
+  workflow** (such as Deploy), while the variables resolve and standalone runs
+  pass, means the calling job did not pass those secrets by name. The error
+  then adds a line naming the calling workflow. Fix that job's `secrets:`
+  block, not the environment (see
+  [Calling from another workflow](#calling-from-another-workflow)).
 - The two environments are separate: filling in `production-backup` does not
   configure verification. Each needs its own `BACKUP_STORAGE_ENDPOINT` and
   `BACKUP_STORAGE_BUCKET` variables, plus its own token secrets.
@@ -287,12 +296,44 @@ gh run list --workflow backup-production.yml --limit 1
 gh run watch <run-id>
 ```
 
+### Calling from another workflow
+
 Another workflow can run a backup and wait for it with
 `uses: ./.github/workflows/backup-production.yml`. It can then read the new
 backup's key from the `backup-key` output and pass it as the `backup-key`
 input of `uses: ./.github/workflows/verify-backup.yml`, as
 `.github/workflows/deploy.yml` does. Each calling job must grant
 `issues: write` (see [Alerts](#alerts)); neither called run raises an alert.
+
+Each calling job must also pass the called workflow's secrets **by name**.
+The values still come from the called job's own protected environment, but
+GitHub hands them over only for names the caller passes; any other secret
+arrives as an empty string, with no error. Both workflows declare their
+secrets under `workflow_call` as required, so a calling job that leaves one
+out fails at startup:
+
+```yaml
+backup:
+  uses: ./.github/workflows/backup-production.yml
+  secrets:
+    PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+    BACKUP_STORAGE_WRITE_ACCESS_KEY_ID: ${{ secrets.BACKUP_STORAGE_WRITE_ACCESS_KEY_ID }}
+    BACKUP_STORAGE_WRITE_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_STORAGE_WRITE_SECRET_ACCESS_KEY }}
+verify:
+  uses: ./.github/workflows/verify-backup.yml
+  secrets:
+    BACKUP_STORAGE_READ_ACCESS_KEY_ID: ${{ secrets.BACKUP_STORAGE_READ_ACCESS_KEY_ID }}
+    BACKUP_STORAGE_READ_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_STORAGE_READ_SECRET_ACCESS_KEY }}
+```
+
+- Pass only these names. `secrets: inherit` is deliberately not used,
+  because it would also hand over every repository secret, such as
+  `FLY_API_TOKEN`.
+- "Required" only checks that a name was passed, not that it has a value.
+  The "Check required settings" step still checks the values. In a called
+  run with an empty secret, its error adds a line naming the calling
+  workflow and pointing here (see
+  [Missing required settings](#missing-required-settings)).
 
 ## Listing and downloading backups locally
 

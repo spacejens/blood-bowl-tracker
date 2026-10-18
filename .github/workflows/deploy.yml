@@ -30,13 +30,24 @@ jobs:
   # Both called workflows open an alert issue only when run on their own;
   # called from here they raise nothing, and this failed run is the signal.
   # issues: write is still required, because a called workflow's jobs cannot
-  # have more permissions than their caller grants. Their secrets come from
-  # their own protected environments, which must allow runs from main.
+  # have more permissions than their caller grants.
+  #
+  # Each called job reads its secrets from its own protected environment,
+  # which must allow runs from main, but GitHub hands them over only when
+  # this calling job passes each one by name under `secrets:`. Without that
+  # they arrive empty. Only the names each job needs are passed; `secrets:
+  # inherit` is deliberately not used, as it would also hand over every
+  # repository secret (such as FLY_API_TOKEN). The called workflows declare
+  # these names as required, so a missing entry fails at startup.
   backup:
     permissions:
       contents: read
       issues: write
     uses: ./.github/workflows/backup-production.yml
+    secrets:
+      PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+      BACKUP_STORAGE_WRITE_ACCESS_KEY_ID: ${{ secrets.BACKUP_STORAGE_WRITE_ACCESS_KEY_ID }}
+      BACKUP_STORAGE_WRITE_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_STORAGE_WRITE_SECRET_ACCESS_KEY }}
 
   # Verifies exactly the backup just taken, by key, not the newest one.
   verify:
@@ -47,6 +58,9 @@ jobs:
     uses: ./.github/workflows/verify-backup.yml
     with:
       backup-key: ${{ needs.backup.outputs.backup-key }}
+    secrets:
+      BACKUP_STORAGE_READ_ACCESS_KEY_ID: ${{ secrets.BACKUP_STORAGE_READ_ACCESS_KEY_ID }}
+      BACKUP_STORAGE_READ_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_STORAGE_READ_SECRET_ACCESS_KEY }}
 
   # Skipped when the backup or its verification failed, so nothing has been
   # deployed and nothing needs rolling back.

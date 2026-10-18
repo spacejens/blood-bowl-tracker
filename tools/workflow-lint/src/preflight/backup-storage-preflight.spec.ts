@@ -23,12 +23,19 @@ interface WorkflowCase {
    * mapped to the GitHub name it is read from (as the error must print it).
    */
   readonly githubNames: Readonly<Record<string, string>>;
+  /**
+   * Set for workflows other callers can invoke: the workflow's own name, which
+   * the step compares with the running workflow's name to tell a standalone
+   * run from a called one.
+   */
+  readonly ownName?: string;
 }
 
 const CASES: readonly WorkflowCase[] = [
   {
     file: 'verify-backup.yml',
     jobId: 'verify',
+    ownName: 'Verify production backup',
     githubNames: {
       BACKUP_STORAGE_ENDPOINT: 'vars.BACKUP_STORAGE_ENDPOINT',
       BACKUP_STORAGE_BUCKET: 'vars.BACKUP_STORAGE_BUCKET',
@@ -40,6 +47,7 @@ const CASES: readonly WorkflowCase[] = [
   {
     file: 'backup-production.yml',
     jobId: 'backup',
+    ownName: 'Backup production database',
     githubNames: {
       BACKUP_DATABASE_URL: 'secrets.PRODUCTION_DATABASE_URL',
       BACKUP_STORAGE_ENDPOINT: 'vars.BACKUP_STORAGE_ENDPOINT',
@@ -82,11 +90,20 @@ function sampleValue(key: string): string {
 function settings(
   keys: readonly string[],
   empty: readonly string[],
+  workflowName?: string,
 ): Record<string, string> {
-  return Object.fromEntries(
-    keys.map((key) => [key, empty.includes(key) ? '' : sampleValue(key)]),
-  );
+  return {
+    ...Object.fromEntries(
+      keys.map((key) => [key, empty.includes(key) ? '' : sampleValue(key)]),
+    ),
+    ...(workflowName === undefined ? {} : { WORKFLOW_NAME: workflowName }),
+  };
 }
+
+const CALLED_BY_HINT = 'This run was called by';
+const CALLING_DOCS =
+  'docs/discord-bot/production-backups.md#calling-from-another-workflow';
+const CALLED_CASES = CASES.filter((c) => c.ownName !== undefined);
 
 /**
  * The subject under test is the workflow YAML files, not a service, so the
@@ -141,7 +158,11 @@ describe.each(CASES)('$file required-settings pre-flight', (workflow) => {
     const cliSteps = job.steps.filter((s) => s.run?.includes(CLI));
 
     expect(cliSteps.length).toBeGreaterThan(0);
-    expect(step.env).toEqual(expected);
+    expect(step.env).toEqual(
+      workflow.ownName === undefined
+        ? expected
+        : { ...expected, WORKFLOW_NAME: '${{ github.workflow }}' },
+    );
     for (const key of keys) {
       const readers = cliSteps.filter((s) => key in s.env);
       expect(readers.length, `a backup-cli step reads ${key}`).toBeGreaterThan(
@@ -156,7 +177,7 @@ describe.each(CASES)('$file required-settings pre-flight', (workflow) => {
   });
 
   it('fails naming every setting and the unconfigured environment when all are empty', () => {
-    const result = runner.run(script, settings(keys, keys));
+    const result = runner.run(script, settings(keys, keys, workflow.ownName));
 
     expect(result.status).not.toBe(0);
     expect(result.stdout).toMatch(/^::error::/);
@@ -166,18 +187,23 @@ describe.each(CASES)('$file required-settings pre-flight', (workflow) => {
       `Settings -> Environments -> ${job.environment}`,
     );
     expect(result.stdout).toContain('docs/discord-bot/production-backups.md');
+    expect(result.stdout).not.toContain(CALLED_BY_HINT);
     for (const key of keys) {
       expect(result.stdout).toContain(workflow.githubNames[key]);
     }
   });
 
   it.each(keys)('fails naming only %s when just it is empty', (empty) => {
-    const result = runner.run(script, settings(keys, [empty]));
+    const result = runner.run(
+      script,
+      settings(keys, [empty], workflow.ownName),
+    );
 
     expect(result.status).not.toBe(0);
     expect(result.stdout).toMatch(/^::error::/);
     expect(result.stdout).toContain(`'${job.environment}'`);
     expect(result.stdout).not.toContain('looks unconfigured');
+    expect(result.stdout).not.toContain(CALLED_BY_HINT);
     for (const key of keys) {
       if (key === empty) {
         expect(result.stdout).toContain(workflow.githubNames[key]);
@@ -189,7 +215,88 @@ describe.each(CASES)('$file required-settings pre-flight', (workflow) => {
   });
 
   it('succeeds silently when every setting is set', () => {
-    const result = runner.run(script, settings(keys, []));
+    const result = runner.run(script, settings(keys, [], workflow.ownName));
+
+    expect(result).toEqual({ status: 0, stdout: '', stderr: '' });
+  });
+});
+
+describe.each(CALLED_CASES)('$file pre-flight when called', (workflow) => {
+  const keys = Object.keys(workflow.githubNames);
+  const secretKeys = keys.filter((key) =>
+    workflow.githubNames[key].startsWith('secrets.'),
+  );
+  const varKeys = keys.filter((key) =>
+    workflow.githubNames[key].startsWith('vars.'),
+  );
+  const CALLER = 'Deploy';
+  let runner: BashScriptRunnerService;
+  let script: string;
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [WorkflowJobReaderService, BashScriptRunnerService],
+    }).compile();
+    runner = moduleRef.get(BashScriptRunnerService);
+    const job = moduleRef
+      .get(WorkflowJobReaderService)
+      .readJob(
+        readFileSync(join(DEFAULT_WORKFLOWS_DIR, workflow.file), 'utf8'),
+        workflow.jobId,
+      );
+    script = job.steps.find((s) => s.name === STEP_NAME)?.run as string;
+    expect(script).toBeDefined();
+  });
+
+  function expectNoSampleValues(stdout: string): void {
+    for (const key of keys) {
+      expect(stdout).not.toContain(sampleValue(key));
+    }
+  }
+
+  it.each(secretKeys)(
+    'adds the called-by hint when secret %s is empty',
+    (empty) => {
+      const result = runner.run(script, settings(keys, [empty], CALLER));
+
+      expect(result.status).not.toBe(0);
+      expect(result.stdout).toMatch(/^::error::/);
+      expect(result.stdout).toContain('Required settings empty');
+      expect(result.stdout).toContain(workflow.githubNames[empty]);
+      const hint = result.stdout
+        .split('\n')
+        .find((line) => line.includes(CALLED_BY_HINT));
+      expect(hint).toContain(`workflow '${CALLER}'`);
+      expect(hint).toContain(CALLING_DOCS);
+      expectNoSampleValues(result.stdout);
+    },
+  );
+
+  it('reports both the unconfigured environment and the called-by hint when all are empty', () => {
+    const result = runner.run(script, settings(keys, keys, CALLER));
+
+    expect(result.status).not.toBe(0);
+    expect(result.stdout).toContain('looks unconfigured');
+    expect(result.stdout).toContain(CALLED_BY_HINT);
+    expect(result.stdout).toContain(`workflow '${CALLER}'`);
+    expect(result.stdout).toContain(CALLING_DOCS);
+  });
+
+  it.each(varKeys)(
+    'omits the called-by hint when only variable %s is empty',
+    (empty) => {
+      const result = runner.run(script, settings(keys, [empty], CALLER));
+
+      expect(result.status).not.toBe(0);
+      expect(result.stdout).toMatch(/^::error::/);
+      expect(result.stdout).toContain(workflow.githubNames[empty]);
+      expect(result.stdout).not.toContain(CALLED_BY_HINT);
+      expectNoSampleValues(result.stdout);
+    },
+  );
+
+  it('succeeds silently when every setting is set', () => {
+    const result = runner.run(script, settings(keys, [], CALLER));
 
     expect(result).toEqual({ status: 0, stdout: '', stderr: '' });
   });
