@@ -523,7 +523,7 @@ Run this section only if "Run the manual import (before-sources) against product
 2. Report the outcome. Per `tools/import-manual/src/main.ts` the tool exits `0` printing `Imported <N> record(s) successfully.` on stdout; or exits `1`, either printing `Import completed with <N> errors:` followed by each error message on stderr, or `Import failed:` with the thrown error for an unexpected failure. Report the exit code and the captured output either way.
 3. Interpret common failures against production specifically, per `docs/discord-bot/production-imports.md`: `ECONNREFUSED` on `localhost:3001` means the tunnel died mid-run; `401` means the `apiToken` in the `.production.json5` file does not match the corresponding `API_TOKEN_IMPORT_*` secret pushed to Fly.
 4. These are real writes to the production database with no rollback, so a failure partway through leaves earlier records in place. Do not attempt to undo them. If the developer wants a clean slate, that is the "Drop and recreate the production database" action, chosen deliberately.
-5. A failure here does **not** skip the remaining selected imports — report it and continue to the next section, then close the tunnel as usual.
+5. A failure here **does** stop the dependent imports: a before batch that failed is left unrecorded, so the BBL and TP imports would run without the records they match against, and `after-sources` would then refuse to run. Skip the remaining selected BBL, TP and `after-sources` imports, report why, close the tunnel as usual, and tell the developer to rerun `before-sources` successfully before continuing.
 
 ### Run the BBL import against production
 
@@ -535,7 +535,7 @@ Run this section only if "Run the BBL import against production" was selected in
    ```
 2. Report the outcome. Per `tools/import-bbl/src/main.ts` the tool exits `0` printing `Imported <N> coach(es) successfully.` on stdout; or exits `1`, either printing `Import completed with <N> errors:` followed by each error message on stderr, or `Import failed:` with the thrown error. Report the exit code and the captured output.
 3. This import is by far the longest of the four against production — each record is a separate call over the tunnel, so a full run takes considerably longer than it does locally. Do not treat a long-running import as a hang; only a stalled tunnel (repeated `ECONNREFUSED`) is a failure.
-4. The same production failure interpretations, no-rollback caveat, and continue-on-failure behaviour as the manual "before" section apply here.
+4. The same production failure interpretations and no-rollback caveat as the manual "before" section apply here. A failure here does not skip the remaining selected imports — report it and continue, unless the manual "before" import failed (then this one was already skipped).
 
 ### Run the TP import against production
 
@@ -546,7 +546,7 @@ Run this section only if "Run the TP import against production" was selected in 
    ( cd tools/import-tp && IMPORT_CONFIG_ENV=production node dist/main.js )
    ```
 2. Report the outcome. Per `tools/import-tp/src/main.ts` the tool exits `0` printing `Imported <N> record(s) successfully.` on stdout; or exits `1`, either printing `Import completed with <N> errors:` followed by each error message on stderr, or `Import failed:` with the thrown error. Report the exit code and the captured output.
-3. The same production failure interpretations, no-rollback caveat, and continue-on-failure behaviour as the manual "before" section apply here.
+3. The same production failure interpretations and no-rollback caveat as the manual "before" section apply here. A failure here does not skip the remaining selected imports — report it and continue, unless the manual "before" import failed (then this one was already skipped).
 
 Unlike the BBL and manual imports, a team and its players are not imported by this local tool build at all: `tools/import-tp` only sends each roster file's raw content over the `tpRosters.import` RPC procedure, which `packages/import-tp-live` implements and which runs inside whatever `api-server` image is currently deployed to production — so a local-only change to team/player import logic has no effect on a production TP import until it is merged and deployed (see [docs/import-tp-live/index.md](../../../docs/import-tp-live/index.md)).
 
