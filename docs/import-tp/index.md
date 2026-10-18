@@ -346,9 +346,11 @@ It must run after match events for a structural reason: `match_events` rows
 foreign-key into `players.id`, so players are necessarily imported first, and
 the accumulated data does not exist yet at player-insert time. It is scoped to
 inserted players so an existing one does not collect a spurious history
-version pair on every import. Correctness is guaranteed from the next full
-database drop and re-import onward; no attempt is made to retroactively repair
-a database carrying lasting-injury columns from a partial rollout.
+version pair on every import. It therefore covers only players inserted
+after it was introduced: the importer does not retroactively repair a
+long-lived database carrying lasting-injury columns from a partial rollout,
+which would take a data migration (see
+[Changing data in a long-lived database](../database.md#changing-data-in-a-long-lived-database)).
 
 `main.ts` orchestrates these in dependency order — league, then rule sets, then eras, then
 the competition scan (producing `matchesByCompetitionTpId`, consumed by the hired-star and match-file steps below),
