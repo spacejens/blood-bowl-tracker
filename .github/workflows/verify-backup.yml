@@ -17,7 +17,9 @@
 # backup run did not succeed) and a cancelled one do neither. A called
 # verification raises and resolves nothing: the caller's failed run is the
 # signal. The calling job must still grant `issues: write`, because a called
-# workflow's jobs cannot have more permissions than their caller grants.
+# workflow's jobs cannot have more permissions than their caller grants, and
+# must pass every secret declared under workflow_call by name, or this job
+# sees it empty.
 # The alert job's `if` condition matches this exact name; renaming it needs
 # that updated.
 name: Verify production backup
@@ -38,6 +40,17 @@ on:
         description: Storage key of the backup to verify
         required: true
         type: string
+    # A caller must pass each of these by name (NAME: ${{ secrets.NAME }});
+    # the values come from this job's production-backup-verify environment.
+    # Required only checks that the name was passed, not that it has a
+    # value: the "Check required settings" step checks the values.
+    secrets:
+      BACKUP_STORAGE_READ_ACCESS_KEY_ID:
+        description: Access key id of the bucket read-only token
+        required: true
+      BACKUP_STORAGE_READ_SECRET_ACCESS_KEY:
+        description: Secret access key of the bucket read-only token
+        required: true
 
 permissions:
   contents: read
@@ -112,13 +125,17 @@ jobs:
         run: pnpm --filter "@blood-bowl-tracker/backup-cli..." run build
       # Fails early, naming the GitHub environment and every empty setting
       # the verification needs, so an unconfigured environment is not mistaken
-      # for a CLI problem. Prints only names, never values.
+      # for a CLI problem. Prints only names, never values. When this run was
+      # called by another workflow (github.workflow is then the caller's name)
+      # and a secret is empty, it adds that the caller must pass the secrets
+      # by name.
       - name: Check required settings
         env:
           BACKUP_STORAGE_ENDPOINT: ${{ vars.BACKUP_STORAGE_ENDPOINT }}
           BACKUP_STORAGE_BUCKET: ${{ vars.BACKUP_STORAGE_BUCKET }}
           BACKUP_STORAGE_ACCESS_KEY_ID: ${{ secrets.BACKUP_STORAGE_READ_ACCESS_KEY_ID }}
           BACKUP_STORAGE_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_STORAGE_READ_SECRET_ACCESS_KEY }}
+          WORKFLOW_NAME: ${{ github.workflow }}
         run: |
           environment=production-backup-verify
           missing=()
@@ -126,14 +143,17 @@ jobs:
           [ -n "$BACKUP_STORAGE_BUCKET" ] || missing+=(vars.BACKUP_STORAGE_BUCKET)
           [ -n "$BACKUP_STORAGE_ACCESS_KEY_ID" ] || missing+=(secrets.BACKUP_STORAGE_READ_ACCESS_KEY_ID)
           [ -n "$BACKUP_STORAGE_SECRET_ACCESS_KEY" ] || missing+=(secrets.BACKUP_STORAGE_READ_SECRET_ACCESS_KEY)
+          [ "${#missing[@]}" -gt 0 ] || exit 0
           fix="Fix it in Settings -> Environments -> ${environment} (see docs/discord-bot/production-backups.md)."
           if [ "${#missing[@]}" -eq 4 ]; then
             echo "::error::Every required setting is empty (${missing[*]}): GitHub environment '${environment}' looks unconfigured. ${fix}"
-            exit 1
-          elif [ "${#missing[@]}" -gt 0 ]; then
+          else
             echo "::error::Required settings empty in GitHub environment '${environment}': ${missing[*]}. ${fix}"
-            exit 1
           fi
+          if [ "$WORKFLOW_NAME" != 'Verify production backup' ] && [[ " ${missing[*]} " == *" secrets."* ]]; then
+            echo "::error::This run was called by workflow '${WORKFLOW_NAME}'. A called workflow sees its environment's secrets only when the calling job passes each one by name under 'secrets:'; check that job's secrets block (see docs/discord-bot/production-backups.md#calling-from-another-workflow)."
+          fi
+          exit 1
       # Prints {key, restoredMigrations, tableRowCounts} as JSON (no secrets).
       # A failed restore or check exits non-zero and fails the run. The key
       # input is passed through the environment, never interpolated into the
