@@ -94,10 +94,10 @@ run:
 
 1. checks every recorded batch still exists with the content it was recorded
    with, and fails otherwise;
-2. for `apply <batch-name>`, fails while any lower-numbered batch is
-   unrecorded, naming them: apply them first, or `mark-applied` them if the
-   database already holds their data. A single batch that is already recorded
-   is skipped;
+2. for `apply <batch-name>`, skips the batch if it is already recorded;
+   otherwise fails while any lower-numbered batch is unrecorded, naming them:
+   apply them first, or `mark-applied` them if the database already holds
+   their data;
 3. imports each unrecorded batch (all of them, or the one named) in number
    order, printing `Skipped batch <name> (already applied).` or
    `Applied batch <name>.`;
@@ -118,7 +118,9 @@ is printed as `Import failed:`.
 
 `mark-applied` records the named batches with their current content hashes
 without importing anything, for a database that already holds their data. A
-batch already recorded with the same content is reported and left alone.
+batch already recorded with the same content is reported and left alone. It
+does not check batch order: mark every lower-numbered batch the database holds,
+because a later plain `apply` imports any batch still unrecorded.
 
 Passing a directory instead imports that directory ad hoc and records nothing
 — useful for trying out data before it becomes a batch.
@@ -130,10 +132,10 @@ Passing a directory instead imports that directory ad hoc and records nothing
   A plain `apply` on a fresh database before the source importers fails at
   002, which references rows only the sources create, and leaves it
   unrecorded; it is safe to rerun after the sources.
-- **Long-lived database (production):** a plain `apply`. It applies just the
-  batches not yet recorded.
 - **Once, on a database that already holds the initial batches** (production,
-  imported before batches existed): `mark-applied 001-initial-seed
+  imported before batches existed), before its first `apply`: a plain `apply`
+  on a database with an empty ledger re-imports every batch, including 001 and
+  002, so record them first with `mark-applied 001-initial-seed
   002-initial-cleanup`, then `apply` to apply batch 003. Only do
   this if the database's last manual import ran from the current content of
   both batches; `mark-applied` records them as applied without importing, so
@@ -143,6 +145,8 @@ Passing a directory instead imports that directory ad hoc and records nothing
   and mark them applied afterwards. The api-server must already run a release
   with the `manualImportBatches` procedures (see
   [production imports](../discord-bot/production-imports.md)).
+- **Long-lived database (production), afterwards:** a plain `apply`. It
+  applies just the batches not yet recorded.
 
 ## Tested
 
