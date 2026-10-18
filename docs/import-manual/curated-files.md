@@ -133,7 +133,12 @@ the other row's era does not cover — even though it is genuinely one position.
 
 The fix, and the convention for any future rename, is to register **every
 generation's id on the one existing curated row** in
-`races-and-positions.json5` rather than letting a second row appear:
+`races-and-positions.json5` rather than letting a second row appear. Batches
+001 and 002 are applied once and never edited (see
+[Batches](batches.md#changing-curated-data)), so a rename made today goes in a
+new `after` batch: an entry for the position carrying its current `name` and
+the complete set of external ids, new ones included. The bullets below describe
+what that entry must contain, as they did for the original files:
 
 - Add the new id to the existing entry's `externalIds`; never remove the older
   one. Order the array BBL id, newest TP id, older TP id(s), `Name` id.
