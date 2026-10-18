@@ -25,10 +25,13 @@ change has to reach the data already there rather than rely on a rebuild. Each
 kind of change has one route:
 
 - **A migration** in `packages/db/migrations/`, for every schema change and for
-  every fix to rows that already exist (a backfill, a corrected value, a
-  re-keyed row). It runs once per database, at startup.
-- **A [manual batch](import-manual/batches.md)**, for hand-curated data: a new
-  batch applied once, never an edit to a batch a database already holds.
+  every fix to existing rows that is not hand-curated data (a backfill, a
+  corrected value in importer-sourced data, a re-keyed row). It runs once per
+  database, at startup.
+- **A [manual batch](import-manual/batches.md)**, for all hand-curated data,
+  including a correction to a curated value that is already in the database: a
+  new batch applied once, never an edit to a batch a database already holds,
+  and never a migration.
 - **An importer**, only for what its source system sends. It creates and
   updates rows from that source and never repairs rows the source no longer
   describes (see [Re-running importers](#re-running-importers)), so it is never
