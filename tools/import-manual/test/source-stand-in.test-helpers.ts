@@ -12,9 +12,10 @@ import {
   skillRulesSets,
 } from '@blood-bowl-tracker/db';
 
-import { readFile } from '../src/data-file/curated-data.test-helpers';
-
-const BEFORE = 'before-other-importers';
+import {
+  BATCH_001,
+  readFile,
+} from '../src/data-file/curated-data.test-helpers';
 
 interface CuratedRef {
   name: string;
@@ -36,14 +37,16 @@ function named(
 
 /** One real curated entry per entity whose name the manual importer owns. */
 export function curatedPicks(): Record<CuratedKind, CuratedRef> {
-  const racesAndPositions = readFile(BEFORE, 'races-and-positions.json5');
+  const racesAndPositions = readFile(BATCH_001, 'races-and-positions.json5');
   return {
-    coach: readFile(BEFORE, 'coaches.json5').coaches[0],
-    competition: named(readFile(BEFORE, 'competitions.json5').competitions[0]),
-    skill: readFile(BEFORE, 'skills.json5').skills[0],
+    coach: readFile(BATCH_001, 'coaches.json5').coaches[0],
+    competition: named(
+      readFile(BATCH_001, 'competitions.json5').competitions[0],
+    ),
+    skill: readFile(BATCH_001, 'skills.json5').skills[0],
     race: racesAndPositions.races[0],
     position: racesAndPositions.positions[0],
-    team: readFile(BEFORE, 'teams.json5').teams[0],
+    team: readFile(BATCH_001, 'teams.json5').teams[0],
   };
 }
 

@@ -10,6 +10,9 @@ import { ExpressAdapter } from '@nestjs/platform-express';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 
+import { BatchCatalogService } from '../src/batches/batch-catalog.service';
+import { BatchRunnerService } from '../src/batches/batch-runner.service';
+import { BatchesModule } from '../src/batches/batches.module';
 import { ManualImportModule } from '../src/import/manual-import.module';
 import { ManualImportService } from '../src/import/manual-import.service';
 
@@ -26,6 +29,8 @@ export interface ImporterStack {
   db: Db;
   client: ApiClient;
   manual: ManualImportService;
+  batches: BatchRunnerService;
+  catalog: BatchCatalogService;
 }
 
 /**
@@ -57,6 +62,7 @@ export async function startImporterStack(
         apiToken: E2E_API_TOKEN,
       }),
       ManualImportModule,
+      BatchesModule,
     ],
   }).compile();
   return {
@@ -65,6 +71,8 @@ export async function startImporterStack(
     db: serverModule.get<Db>(DB),
     client: importers.get<ApiClient>(API_CLIENT),
     manual: importers.get(ManualImportService),
+    batches: importers.get(BatchRunnerService),
+    catalog: importers.get(BatchCatalogService),
   };
 }
 

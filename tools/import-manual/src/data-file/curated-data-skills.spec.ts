@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { readFile } from './curated-data.test-helpers';
+import { BATCH_001, BATCH_002, readFile } from './curated-data.test-helpers';
 import type {
   ExternalRef,
   PositionRulesSetSkillRef,
@@ -14,7 +14,7 @@ function skillRef(item: PositionRulesSetSkillRef): ExternalRef {
 }
 
 describe('curated data files - skills', () => {
-  const skillsFile = () => readFile('before-other-importers', 'skills.json5');
+  const skillsFile = () => readFile(BATCH_001, 'skills.json5');
 
   it('registers the Name external system it references', () => {
     expect(skillsFile().externalSystems).toContainEqual({
@@ -103,7 +103,7 @@ describe('curated data files - skills', () => {
     const data = skillsFile();
     const skillNames = new Set(data.skills.map((skill) => skill.name));
 
-    // before-other-importers runs as its own, earlier invocation than
+    // batch 001 runs as its own, earlier invocation than
     // BBL/TP import (see docs/import-manual/index.md), and
     // ExternalIdResolverService.resolve is a pure lookup with no fallback.
     // A skillRulesSets row referencing a skill this file never registers
@@ -145,7 +145,7 @@ describe('curated data files - skills', () => {
     // SkillsService.upsert overwrites a matched row's name with whatever it's
     // given, so BBL/TP running after this file (each with their own raw
     // spelling for a merged skill) could otherwise flip a curated canonical
-    // name back to a variant one. after-other-importers/skills.json5 exists
+    // name back to a variant one. batch 002's skills.json5 exists
     // solely to re-assert the canonical spelling last; it must never
     // diverge from -- or add a skill beyond -- what's already registered
     // here, or it stops being a safe no-op re-assertion.
@@ -153,7 +153,7 @@ describe('curated data files - skills', () => {
     const beforeByName = new Map(
       before.skills.map((skill) => [skill.name, skill]),
     );
-    const after = readFile('after-other-importers', 'skills.json5');
+    const after = readFile(BATCH_002, 'skills.json5');
 
     const sortedIds = (ids: { system: string; id: string }[]) =>
       [...ids].map((ref) => `${ref.system}|${ref.id}`).sort();
@@ -180,8 +180,7 @@ describe('curated data files - skills', () => {
     }
   });
 
-  const positionSkillsFile = () =>
-    readFile('after-other-importers', 'position-skills.json5');
+  const positionSkillsFile = () => readFile(BATCH_002, 'position-skills.json5');
 
   it('references positions, rules sets and skills through the Name system', () => {
     const data = positionSkillsFile();
@@ -199,7 +198,7 @@ describe('curated data files - skills', () => {
   it('only curates pairs that already have curated characteristics', () => {
     const pairs = new Set(
       readFile(
-        'after-other-importers',
+        BATCH_002,
         'position-characteristics.json5',
       ).positionRulesSets.map(
         (entry) => `${entry.position.id}|${entry.rulesSet.id}`,
@@ -215,7 +214,7 @@ describe('curated data files - skills', () => {
 
   it('names only skills the curated category table gives that rules set', () => {
     const curated = new Set(
-      readFile('before-other-importers', 'skills.json5').skillRulesSets.map(
+      readFile(BATCH_001, 'skills.json5').skillRulesSets.map(
         (entry) => `${entry.skill.id}|${entry.rulesSet.id}`,
       ),
     );
@@ -333,7 +332,7 @@ describe('curated data files - skills', () => {
   });
 
   it('the after-file also registers the tourplay.net external system it re-asserts', () => {
-    const after = readFile('after-other-importers', 'skills.json5');
+    const after = readFile(BATCH_002, 'skills.json5');
     expect(after.externalSystems).toContainEqual({
       name: 'tourplay.net',
       category: 'imported_data_source',

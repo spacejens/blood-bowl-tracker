@@ -16,7 +16,9 @@ describe('ManualRawKeywordsService', () => {
 
   beforeEach(async () => {
     tempDir = await mkdtemp(join(tmpdir(), 'manual-keywords-'));
-    mkdirSync(join(tempDir, 'before-other-importers'), { recursive: true });
+    mkdirSync(join(tempDir, 'batches', '001-before-initial-sources'), {
+      recursive: true,
+    });
 
     const config = mock<ReviewPlayerConfigService>();
     config.getDataDir.mockReturnValue(tempDir);
@@ -37,7 +39,7 @@ describe('ManualRawKeywordsService', () => {
 
   it('reads a curated keyword entry with a tourplay.net code', async () => {
     writeFileSync(
-      join(tempDir, 'before-other-importers', 'keywords.json5'),
+      join(tempDir, 'batches', '001-before-initial-sources', 'keywords.json5'),
       `
 {
   keywords: [
@@ -61,7 +63,7 @@ describe('ManualRawKeywordsService', () => {
 
   it('reads a curated keyword entry with no tourplay.net id as code: null', async () => {
     writeFileSync(
-      join(tempDir, 'before-other-importers', 'keywords.json5'),
+      join(tempDir, 'batches', '001-before-initial-sources', 'keywords.json5'),
       `
 {
   keywords: [
@@ -86,7 +88,7 @@ describe('ManualRawKeywordsService', () => {
 
   it('returns [] when the file is not valid JSON5', async () => {
     writeFileSync(
-      join(tempDir, 'before-other-importers', 'keywords.json5'),
+      join(tempDir, 'batches', '001-before-initial-sources', 'keywords.json5'),
       '{ this is not valid json5 ]',
     );
 
@@ -95,7 +97,7 @@ describe('ManualRawKeywordsService', () => {
 
   it('returns [] when the parsed JSON5 is not an object', async () => {
     writeFileSync(
-      join(tempDir, 'before-other-importers', 'keywords.json5'),
+      join(tempDir, 'batches', '001-before-initial-sources', 'keywords.json5'),
       '42',
     );
 
@@ -104,7 +106,7 @@ describe('ManualRawKeywordsService', () => {
 
   it('skips an entry whose name or kind is not a string', async () => {
     writeFileSync(
-      join(tempDir, 'before-other-importers', 'keywords.json5'),
+      join(tempDir, 'batches', '001-before-initial-sources', 'keywords.json5'),
       `
 {
   keywords: [
@@ -124,7 +126,7 @@ describe('ManualRawKeywordsService', () => {
 
   it('treats a non-array keywords or externalIds value as empty', async () => {
     writeFileSync(
-      join(tempDir, 'before-other-importers', 'keywords.json5'),
+      join(tempDir, 'batches', '001-before-initial-sources', 'keywords.json5'),
       `
 {
   keywords: 'not-an-array'
@@ -137,7 +139,7 @@ describe('ManualRawKeywordsService', () => {
 
   it('ignores an externalIds entry with a non-tourplay.net system', async () => {
     writeFileSync(
-      join(tempDir, 'before-other-importers', 'keywords.json5'),
+      join(tempDir, 'batches', '001-before-initial-sources', 'keywords.json5'),
       `
 {
   keywords: [

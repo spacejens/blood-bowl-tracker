@@ -6,7 +6,11 @@ import JSON5 from 'json5';
 
 import { ReviewPlayerConfigService } from '../config/review-player-config.service';
 
-const KEYWORDS_FILE = join('before-other-importers', 'keywords.json5');
+const KEYWORDS_FILE = join(
+  'batches',
+  '001-before-initial-sources',
+  'keywords.json5',
+);
 
 /** The external-id system the curated keyword catalogue keys its TP code by. */
 const TOURPLAY_SYSTEM = 'tourplay.net';
@@ -21,7 +25,7 @@ export interface ManualRawKeywordEntry {
 
 /**
  * Reads the hand-curated BB2025 keyword catalogue at
- * `<manual.dataDir>/before-other-importers/keywords.json5`. This tool has no
+ * `<manual.dataDir>/batches/001-before-initial-sources/keywords.json5` (the batch that curates the catalogue). This tool has no
  * `manual-raw-data.service.ts` of its own (unlike `tools/review-race`), so
  * this is a small, single-purpose reader rather than a multi-file one.
  * Deliberately independent of `tools/import-manual`: it reads and shapes the

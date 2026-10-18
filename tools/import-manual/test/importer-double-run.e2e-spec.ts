@@ -1,9 +1,11 @@
 /// <reference types="node" />
 import { join } from 'node:path';
 
-import type { ImportResult } from '@blood-bowl-tracker/import';
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import type { BatchRunOutcome } from '../src/batches/batch-runner.service';
+import type { ManualBatch } from '../src/batches/manual-batch';
 import { testDatabaseUrl } from './e2e-database';
 import type { ImporterStack } from './importer-stack.test-helpers';
 import {
@@ -16,11 +18,13 @@ import type { StandInOutcome } from './source-stand-in.test-helpers';
 import { curatedPicks, runSourceStandIn } from './source-stand-in.test-helpers';
 
 /**
- * Runs the importer sequence (manual before phase, a BBL/TP stand-in, manual
- * after phase) twice against one real Postgres, through the real api-server
+ * Runs the importer sequence (`before-sources`, a BBL/TP stand-in,
+ * `after-sources`, then the later after batches by directory) twice against one real Postgres, through the real api-server
  * served over HTTP and the real manual importer, and asserts that the
  * identical second run changes no row and adds no history row in any
- * game_data table.
+ * game_data table. The second `before-sources` must apply nothing, and
+ * `manual_import_batches` (a game_data table, so part of the snapshot) gains
+ * no row on the second run.
  *
  * Covers: every curated data file in both phases as really authored (apart
  * from the position-availability race-era syncs, which fail in the harness and
@@ -40,28 +44,65 @@ import { curatedPicks, runSourceStandIn } from './source-stand-in.test-helpers';
  * positions_race_eras, era_rules_sets, matches, match_events, player_skills,
  * trophy_awards and competition_teams stay empty in the harness, so their
  * comparisons pass vacuously. Without BBL and TP,
- * the after phase has entries that reference rows only they create; those
- * fail with recorded errors, so the suite asserts the after-phase errors are
- * of the two known kinds and the same on both runs rather than empty.
+ * batch 002 has entries that reference rows only they create; those fail with
+ * recorded errors, so after-sources stops there and the suite asserts the
+ * errors are of the two known kinds and the same on both runs rather than
+ * empty.
  */
 
 const DATA = join(__dirname, '../data');
 
 interface RunOutcome {
-  before: ImportResult;
+  before: BatchRunOutcome;
   standIn: StandInOutcome;
-  after: ImportResult;
+  after: BatchRunOutcome;
+  /** The after batches numbered above where after-sources stopped. */
+  laterAfter: ImportResult[];
+}
+
+/**
+ * Without the real BBL and TP importers, after-sources stops at its first
+ * batch (002 has entries that reference rows only they create) and leaves it
+ * unrecorded. The after batches numbered above it are run by directory --
+ * which records nothing -- so their content still takes part in the
+ * double-run comparison.
+ */
+async function laterAfterBatches(
+  stack: ImporterStack,
+  after: BatchRunOutcome,
+): Promise<ManualBatch[]> {
+  const failed = after.failed;
+  if (failed === undefined) {
+    return [];
+  }
+  const batches = await stack.catalog.discover(DATA);
+  const stoppedAt = batches.find((batch) => batch.name === failed.name);
+  return batches.filter(
+    (batch) =>
+      batch.phase === 'after' &&
+      stoppedAt !== undefined &&
+      batch.number > stoppedAt.number,
+  );
 }
 
 async function runSequence(stack: ImporterStack): Promise<RunOutcome> {
-  const before = await stack.manual.run(join(DATA, 'before-other-importers'));
+  const before = await stack.batches.runPhase('before', DATA);
   const standIn = await runSourceStandIn(stack.client, stack.db);
-  const after = await stack.manual.run(join(DATA, 'after-other-importers'));
-  return { before, standIn, after };
+  const after = await stack.batches.runPhase('after', DATA);
+  const laterAfter: ImportResult[] = [];
+  for (const batch of await laterAfterBatches(stack, after)) {
+    laterAfter.push(await stack.manual.run(batch.dir));
+  }
+  return { before, standIn, after, laterAfter };
 }
 
-const messages = (result: ImportResult) =>
-  result.errors.map((error) => error.message).sort();
+const messages = (errors: ImportError[]) =>
+  errors.map((error) => error.message).sort();
+
+const recordedBatches = (snapshot: Record<string, string[]>) =>
+  (snapshot.manual_import_batches ?? []).map(
+    (row) => (JSON.parse(row) as { name: string }).name,
+  );
 
 describe('the importer sequence, run twice (real Postgres, real api-server)', () => {
   let stack: ImporterStack;
@@ -84,22 +125,51 @@ describe('the importer sequence, run twice (real Postgres, real api-server)', ()
     }
   });
 
-  it('imports the before phase without errors, both times', () => {
-    expect(messages(first.before)).toEqual([]);
-    expect(messages(second.before)).toEqual([]);
+  it('applies and records batch 001 on the first run, and skips it on the second', () => {
+    expect(first.before).toMatchObject({
+      applied: ['001-before-initial-sources'],
+      skipped: [],
+      failed: undefined,
+    });
+    expect(second.before).toEqual({
+      applied: [],
+      skipped: ['001-before-initial-sources'],
+      failed: undefined,
+      imported: 0,
+    });
   });
 
-  it('records the same after-phase errors both times', () => {
+  it('stops the after phase at batch 002 with the same known errors both times', () => {
     // Entries that reference rows only the real BBL/TP importers create fail
     // here; what matters is that a re-run behaves identically, and that the
     // failures are the two known kinds: race-era syncs that need BBL race ids
     // and a trophy award that needs a TP id.
-    expect(messages(second.after)).toEqual(messages(first.after));
-    for (const message of messages(first.after)) {
+    for (const run of [first, second]) {
+      expect(run.after.applied).toEqual([]);
+      expect(run.after.failed?.name).toBe('002-after-initial-sources');
+    }
+    const firstMessages = messages(first.after.failed?.errors ?? []);
+    expect(firstMessages.length).toBeGreaterThan(0);
+    expect(messages(second.after.failed?.errors ?? [])).toEqual(firstMessages);
+    for (const message of firstMessages) {
       expect(message).toMatch(
         /^Cannot (?:sync race-eras for position ".+": could not resolve reference tloeg\.bbleague\.se\|\d+|import award of trophy ".+": could not resolve reference tourplay\.net\|\d+)\.$/,
       );
     }
+  });
+
+  it('imports the later after batches without errors, both times', () => {
+    expect(second.laterAfter).toHaveLength(first.laterAfter.length);
+    for (const result of [...first.laterAfter, ...second.laterAfter]) {
+      expect(messages(result.errors)).toEqual([]);
+    }
+  });
+
+  it('records only the batches that applied cleanly, and nothing more on the second run', () => {
+    expect(recordedBatches(afterFirst)).toEqual(['001-before-initial-sources']);
+    expect(recordedBatches(afterSecond)).toEqual([
+      '001-before-initial-sources',
+    ]);
   });
 
   it('never lets a source re-run change a curated name between the manual passes', () => {

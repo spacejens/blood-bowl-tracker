@@ -1,3 +1,6 @@
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -6,7 +9,7 @@ import { mock } from 'vitest-mock-extended';
 import { BatchRunnerService } from '../batches/batch-runner.service';
 import { ManualImportService } from '../import/manual-import.service';
 import { ImportManualCliService } from './import-manual-cli.service';
-import { MANUAL_DATA_DIR } from './manual-data-dir';
+import { DEFAULT_MANUAL_DATA_DIR, MANUAL_DATA_DIR } from './manual-data-dir';
 
 const DATA = '/repo/tools/import-manual/data';
 
@@ -158,5 +161,15 @@ describe('ImportManualCliService', () => {
     const { cli } = await makeService();
 
     await expect(cli.execute({ args, cwd: '/' })).rejects.toThrow(/Usage:/);
+  });
+});
+
+describe('DEFAULT_MANUAL_DATA_DIR', () => {
+  it('is the directory holding the committed batches', () => {
+    expect(
+      existsSync(
+        join(DEFAULT_MANUAL_DATA_DIR, 'batches', '001-before-initial-sources'),
+      ),
+    ).toBe(true);
   });
 });
