@@ -21,6 +21,7 @@ export * from './game-data/keywords';
 export * from './game-data/keywords-external-ids';
 export * from './game-data/leagues';
 export * from './game-data/leagues-external-ids';
+export * from './game-data/manual-import-batches';
 export * from './game-data/match-events';
 export * from './game-data/match-events-external-ids';
 export * from './game-data/match-external-ids';
