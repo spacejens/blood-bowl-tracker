@@ -40,6 +40,12 @@ export {
   LeaguesService,
   LeagueUpsertConflictError,
 } from './leagues/leagues.service';
+export { ManualImportBatchesModule } from './manual-import-batches/manual-import-batches.module';
+export type { ManualImportBatchRow } from './manual-import-batches/manual-import-batches.service';
+export {
+  ManualImportBatchContentMismatchError,
+  ManualImportBatchesService,
+} from './manual-import-batches/manual-import-batches.service';
 export { MatchEventsModule } from './match-events/match-events.module';
 export {
   MatchEventsService,

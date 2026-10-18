@@ -24,7 +24,7 @@ export interface TpKeywordCatalog {
  * TP publishes keywords only as codes -- as a position's `race` array and as
  * a Hatred or Animosity skill's type-3 attribute value -- and names none of
  * them anywhere. The names live in tools/import-manual
- * (data/before-other-importers/keywords.json5), each with its code as a
+ * (keywords.json5 in a new batch under data/batches/), each with its code as a
  * `tourplay.net` external id; this service turns that into the code -> row
  * map every keyword consumer in this tool needs.
  *

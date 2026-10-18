@@ -14,10 +14,15 @@ describe('ManualRawDataService', () => {
   let service: ManualRawDataService;
   let tempDir: string;
 
+  function writeIn(batch: string, file: string, contents: string): void {
+    mkdirSync(join(tempDir, 'batches', batch), { recursive: true });
+    writeFileSync(join(tempDir, 'batches', batch, file), contents);
+  }
+
   beforeEach(async () => {
     tempDir = await mkdtemp(join(tmpdir(), 'manual-data-'));
-    mkdirSync(join(tempDir, 'before-other-importers'), { recursive: true });
-    mkdirSync(join(tempDir, 'after-other-importers'), { recursive: true });
+    mkdirSync(join(tempDir, 'batches/001-a'), { recursive: true });
+    mkdirSync(join(tempDir, 'batches/002-b'), { recursive: true });
 
     const config = mock<RaceReviewConfigService>();
     config.getDataDir.mockReturnValue(tempDir);
@@ -51,7 +56,7 @@ describe('ManualRawDataService', () => {
 }
 `;
     writeFileSync(
-      join(tempDir, 'before-other-importers', 'races-and-positions.json5'),
+      join(tempDir, 'batches/001-a', 'races-and-positions.json5'),
       json5Content,
     );
 
@@ -82,7 +87,7 @@ describe('ManualRawDataService', () => {
 }
 `;
     writeFileSync(
-      join(tempDir, 'after-other-importers', 'position-availability.json5'),
+      join(tempDir, 'batches/002-b', 'position-availability.json5'),
       json5Content,
     );
 
@@ -116,7 +121,7 @@ describe('ManualRawDataService', () => {
 }
 `;
     writeFileSync(
-      join(tempDir, 'after-other-importers', 'position-characteristics.json5'),
+      join(tempDir, 'batches/002-b', 'position-characteristics.json5'),
       json5Content,
     );
 
@@ -150,7 +155,7 @@ describe('ManualRawDataService', () => {
 }
 `;
     writeFileSync(
-      join(tempDir, 'after-other-importers', 'position-characteristics.json5'),
+      join(tempDir, 'batches/002-b', 'position-characteristics.json5'),
       json5Content,
     );
 
@@ -159,9 +164,9 @@ describe('ManualRawDataService', () => {
     expect(characteristics[0].passing).toEqual(2);
   });
 
-  it('characteristics() pools the after-phase file and the before-phase gap-fill file', async () => {
+  it('characteristics() pools the batch 002 file and the batch 001 gap-fill file', async () => {
     writeFileSync(
-      join(tempDir, 'after-other-importers', 'position-characteristics.json5'),
+      join(tempDir, 'batches/002-b', 'position-characteristics.json5'),
       `
 {
   positionRulesSets: [
@@ -175,11 +180,7 @@ describe('ManualRawDataService', () => {
 `,
     );
     writeFileSync(
-      join(
-        tempDir,
-        'before-other-importers',
-        'position-characteristics-gap-fill.json5',
-      ),
+      join(tempDir, 'batches/001-a', 'position-characteristics-gap-fill.json5'),
       `
 {
   positionRulesSets: [
@@ -216,9 +217,9 @@ describe('ManualRawDataService', () => {
     });
   });
 
-  it('characteristics() returns the after-phase entries when the gap-fill file is missing', async () => {
+  it('characteristics() returns the batch 002 entries when the gap-fill file is missing', async () => {
     writeFileSync(
-      join(tempDir, 'after-other-importers', 'position-characteristics.json5'),
+      join(tempDir, 'batches/002-b', 'position-characteristics.json5'),
       `
 {
   positionRulesSets: [
@@ -247,7 +248,7 @@ describe('ManualRawDataService', () => {
 }
 `;
     writeFileSync(
-      join(tempDir, 'after-other-importers', 'position-availability.json5'),
+      join(tempDir, 'batches/002-b', 'position-availability.json5'),
       json5Content,
     );
 
@@ -273,7 +274,7 @@ describe('ManualRawDataService', () => {
 }
 `;
     writeFileSync(
-      join(tempDir, 'after-other-importers', 'position-availability.json5'),
+      join(tempDir, 'batches/002-b', 'position-availability.json5'),
       json5Content,
     );
 
@@ -302,7 +303,7 @@ describe('ManualRawDataService', () => {
 }
 `;
     writeFileSync(
-      join(tempDir, 'after-other-importers', 'position-characteristics.json5'),
+      join(tempDir, 'batches/002-b', 'position-characteristics.json5'),
       json5Content,
     );
 
@@ -328,7 +329,7 @@ describe('ManualRawDataService', () => {
 }
 `;
     writeFileSync(
-      join(tempDir, 'before-other-importers', 'races-and-positions.json5'),
+      join(tempDir, 'batches/001-a', 'races-and-positions.json5'),
       json5Content,
     );
 
@@ -340,7 +341,7 @@ describe('ManualRawDataService', () => {
 
   it('returns {} when the parsed JSON5 is not an object (e.g. a bare number)', async () => {
     writeFileSync(
-      join(tempDir, 'before-other-importers', 'races-and-positions.json5'),
+      join(tempDir, 'batches/001-a', 'races-and-positions.json5'),
       '42',
     );
 
@@ -358,7 +359,7 @@ describe('ManualRawDataService', () => {
 }
 `;
     writeFileSync(
-      join(tempDir, 'before-other-importers', 'races-and-positions.json5'),
+      join(tempDir, 'batches/001-a', 'races-and-positions.json5'),
       json5Content,
     );
 
@@ -375,7 +376,7 @@ describe('ManualRawDataService', () => {
 }
 `;
     writeFileSync(
-      join(tempDir, 'after-other-importers', 'position-availability.json5'),
+      join(tempDir, 'batches/002-b', 'position-availability.json5'),
       json5Content,
     );
 
@@ -392,7 +393,7 @@ describe('ManualRawDataService', () => {
   it('returns [] when JSON5 is syntactically invalid', async () => {
     const malformedJson5 = `{ this is not valid json5 ]`;
     writeFileSync(
-      join(tempDir, 'before-other-importers', 'races-and-positions.json5'),
+      join(tempDir, 'batches/001-a', 'races-and-positions.json5'),
       malformedJson5,
     );
 
@@ -410,7 +411,7 @@ describe('ManualRawDataService', () => {
 }
 `;
     writeFileSync(
-      join(tempDir, 'before-other-importers', 'races-and-positions.json5'),
+      join(tempDir, 'batches/001-a', 'races-and-positions.json5'),
       json5Content,
     );
 
@@ -421,7 +422,7 @@ describe('ManualRawDataService', () => {
     // Delete the file
     const filePath = join(
       tempDir,
-      'before-other-importers',
+      'batches/001-a',
       'races-and-positions.json5',
     );
     await rm(filePath);
@@ -444,7 +445,7 @@ describe('ManualRawDataService', () => {
 }
 `;
     writeFileSync(
-      join(tempDir, 'before-other-importers', 'races-and-positions.json5'),
+      join(tempDir, 'batches/001-a', 'races-and-positions.json5'),
       json5Content,
     );
 
@@ -469,7 +470,7 @@ describe('ManualRawDataService', () => {
 }
 `;
     writeFileSync(
-      join(tempDir, 'after-other-importers', 'position-skills.json5'),
+      join(tempDir, 'batches/002-b', 'position-skills.json5'),
       json5Content,
     );
 
@@ -504,7 +505,7 @@ describe('ManualRawDataService', () => {
 }
 `;
     writeFileSync(
-      join(tempDir, 'after-other-importers', 'position-skills.json5'),
+      join(tempDir, 'batches/002-b', 'position-skills.json5'),
       json5Content,
     );
 
@@ -541,7 +542,7 @@ describe('ManualRawDataService', () => {
 }
 `;
     writeFileSync(
-      join(tempDir, 'after-other-importers', 'position-skills.json5'),
+      join(tempDir, 'batches/002-b', 'position-skills.json5'),
       json5Content,
     );
 
@@ -563,7 +564,7 @@ describe('ManualRawDataService', () => {
 }
 `;
     writeFileSync(
-      join(tempDir, 'after-other-importers', 'position-skills.json5'),
+      join(tempDir, 'batches/002-b', 'position-skills.json5'),
       json5Content,
     );
 
@@ -587,7 +588,7 @@ describe('ManualRawDataService', () => {
 }
 `;
     writeFileSync(
-      join(tempDir, 'before-other-importers', 'races-and-positions.json5'),
+      join(tempDir, 'batches/001-a', 'races-and-positions.json5'),
       json5Content,
     );
 
@@ -612,7 +613,7 @@ describe('ManualRawDataService', () => {
 }
 `;
     writeFileSync(
-      join(tempDir, 'before-other-importers', 'keywords.json5'),
+      join(tempDir, 'batches/001-a', 'keywords.json5'),
       json5Content,
     );
 
@@ -634,12 +635,83 @@ describe('ManualRawDataService', () => {
 }
 `;
     writeFileSync(
-      join(tempDir, 'before-other-importers', 'keywords.json5'),
+      join(tempDir, 'batches/001-a', 'keywords.json5'),
       json5Content,
     );
 
     expect(await service.keywords()).toEqual([
       { name: 'Big Guy', kind: 'positional', code: null },
     ]);
+  });
+
+  it('pools a section across every file of every batch, in batch order', async () => {
+    writeIn(
+      '002-b',
+      'races.json5',
+      "{ races: [{ name: 'Orc', externalIds: [{ system: 'Name', id: 'Orc' }] }] }",
+    );
+    writeIn(
+      '001-a',
+      'teams.json5',
+      "{ races: [{ name: 'Elf', externalIds: [{ system: 'Name', id: 'Elf' }] }] }",
+    );
+
+    expect((await service.races()).map((race) => race.name)).toEqual([
+      'Elf',
+      'Orc',
+    ]);
+  });
+
+  it('lets a later batch replace an entry with the same external ids', async () => {
+    writeIn(
+      '001-a',
+      'races-and-positions.json5',
+      "{ races: [{ name: 'Bretonnians', externalIds: [{ system: 'tloeg.bbleague.se', id: '26' }] }] }",
+    );
+    writeIn(
+      '003-c',
+      'races.json5',
+      "{ races: [{ name: 'Bretonnian', externalIds: [{ system: 'tloeg.bbleague.se', id: '26' }] }] }",
+    );
+
+    expect(await service.races()).toEqual([
+      {
+        name: 'Bretonnian',
+        externalIds: [{ system: 'tloeg.bbleague.se', id: '26' }],
+      },
+    ]);
+  });
+
+  it('keeps entries with no external ids apart', async () => {
+    writeIn(
+      '001-a',
+      'races.json5',
+      "{ races: [{ name: 'A', externalIds: [] }, { name: 'B', externalIds: [] }] }",
+    );
+
+    expect((await service.races()).map((race) => race.name)).toEqual([
+      'A',
+      'B',
+    ]);
+  });
+
+  it('availability() ignores positions entries that carry no raceEras', async () => {
+    writeIn(
+      '003-c',
+      'positions.json5',
+      "{ positions: [{ name: 'Lineman', externalIds: [{ system: 'Name', id: 'Orc: Lineman' }] }] }",
+    );
+
+    expect(await service.availability()).toEqual([]);
+  });
+
+  it('ignores files beside the batch directories', async () => {
+    mkdirSync(join(tempDir, 'batches'), { recursive: true });
+    writeFileSync(
+      join(tempDir, 'batches', 'notes.json5'),
+      "{ races: [{ name: 'X', externalIds: [] }] }",
+    );
+
+    expect(await service.races()).toEqual([]);
   });
 });

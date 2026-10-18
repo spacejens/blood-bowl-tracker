@@ -67,7 +67,7 @@ describe('ManualDataReader', () => {
 
   it('follows a symlinked .json5 file', async () => {
     // readdir never follows symlinks, so a curated file that is a symlink to
-    // another phase's copy would be silently skipped. No curated data uses
+    // another batch's copy would be silently skipped. No curated data uses
     // one today, but the reader still supports it.
     write(
       'real.json5',
@@ -224,5 +224,45 @@ describe('ManualDataReader', () => {
 
     expect(data.keywords).toHaveLength(2);
     expect(data.keywords.map((k) => k.name)).toEqual(['Goblin', 'Big Guy']);
+  });
+
+  describe('readRaw', () => {
+    it('pools the parsed sections of every file, in filename order', async () => {
+      write(
+        'b.json5',
+        `{ coaches: [{ name: 'Sue', externalIds: [{ system: 'Name', id: 'name:sue' }] }] }`,
+      );
+      write(
+        'a.json5',
+        `// a comment the raw content must not carry
+         { coaches: [{ name: 'Bob', externalIds: [{ system: 'Name', id: 'name:bob' }] }] }`,
+      );
+
+      expect(await reader.readRaw(dir)).toEqual({
+        coaches: [
+          { name: 'Bob', externalIds: [{ system: 'Name', id: 'name:bob' }] },
+          { name: 'Sue', externalIds: [{ system: 'Name', id: 'name:sue' }] },
+        ],
+      });
+    });
+
+    it('adds none of the schema defaults', async () => {
+      write(
+        'races.json5',
+        `{ races: [{ name: 'Orc', externalIds: [{ system: 'Name', id: 'Orc' }] }] }`,
+      );
+
+      expect(await reader.readRaw(dir)).toEqual({
+        races: [{ name: 'Orc', externalIds: [{ system: 'Name', id: 'Orc' }] }],
+      });
+    });
+
+    it('still rejects an invalid file shape', async () => {
+      write('bad.json5', `{ notASection: [] }`);
+
+      await expect(reader.readRaw(dir)).rejects.toThrow(
+        /Invalid manual data file/,
+      );
+    });
   });
 });

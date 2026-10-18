@@ -240,6 +240,12 @@ The categorized tree of [insights](#insight) that the `/insights` command's `cat
 
 See [discord-bot/slash-commands/insights.md](discord-bot/slash-commands/insights.md).
 
+### Manual import batch
+
+A numbered directory of `tools/import-manual`'s hand-curated data, applied to a database once, in number order (the first before the BBL and TP importers, the rest after them), and then kept unchanged as a historical record. The database records which batches it holds, so a long-lived database receives only new batches.
+
+See [import-manual/batches.md](import-manual/batches.md).
+
 ### Upsert
 
 The operation importable entities expose to importers: given a candidate identity (see [external ID](#external-id)), the server finds a matching existing record and updates it, or creates a new record if none matches. An upsert overlays fields onto an existing record rather than replacing the whole record.

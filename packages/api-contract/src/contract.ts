@@ -29,6 +29,11 @@ import {
 } from './schemas/keyword';
 import { LeagueSchema, UpsertLeagueSchema } from './schemas/league';
 import {
+  ManualImportBatchSchema,
+  RecordManualImportBatchResultSchema,
+  RecordManualImportBatchSchema,
+} from './schemas/manual-import-batch';
+import {
   MatchSchema,
   ResolveMatchOutcomesResultSchema,
   ResolveMatchOutcomesSchema,
@@ -444,6 +449,27 @@ export const contract = {
       UpsertExternalSystemSchema,
       ExternalSystemSchema,
     ),
+  },
+  manualImportBatches: {
+    // tools/import-manual's ledger of applied curated-data batches. Neither
+    // procedure is an entity upsert: a batch carries no external ids, only
+    // its directory name and a content hash.
+    //
+    // Read-only, so it declares no errors -- like competitionGroups.list. The
+    // whole ledger in one call: it holds one row per batch, a handful.
+    list: oc.input(z.object({})).output(z.array(ManualImportBatchSchema)),
+    // Records one batch as applied. Recording it again with the same hash
+    // answers created: false, so a retry is safe. CONFLICT is declared for a
+    // batch already recorded with a different hash -- an applied batch was
+    // edited -- which the importer reports instead of overwriting the record.
+    record: oc
+      .input(RecordManualImportBatchSchema)
+      .errors({
+        CONFLICT: {
+          message: 'Batch already recorded with different content',
+        },
+      })
+      .output(RecordManualImportBatchResultSchema),
   },
   tpCompetitions: {
     // A coarse, TP-specific import, like tpRosters.import and

@@ -144,7 +144,7 @@ deliberately have no resolve procedure: nothing references them by external
 id across files, phases or tools.
 
 Players resolve for one caller in particular:
-`tools/import-manual`'s curated `after-other-importers/trophy-awards.json5`
+`tools/import-manual`'s curated `batches/002-initial-cleanup/trophy-awards.json5`
 names the winner of a `manual`-kind trophy by the player's external id,
 which the BBL/TP importers created in an earlier phase.
 
@@ -194,6 +194,14 @@ checking `skillRulesSets.list` for the `unique` category instead.
 `playerSkills.list`: given a player id, answers every skill recorded for that
 player — starting and gained alike — which `upsert` cannot answer either,
 since it only ever writes the skills it is given, not the player's full set.
+
+`manualImportBatches.list` and `manualImportBatches.record` are
+`tools/import-manual`'s ledger of applied curated-data batches (see
+[import-manual batches](../import-manual/batches.md)). Neither is an entity
+upsert: a batch has no external ids, only its directory name and a content
+hash. `record` answers `created: false` for a batch already recorded with the
+same hash, so a retry is safe, and `CONFLICT` for one recorded with a
+different hash — an applied batch was edited.
 
 One procedure is a coarse, source-specific import rather than an entity
 upsert: `tpRosters.import` takes one TP roster exactly as TP's API returns

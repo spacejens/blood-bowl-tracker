@@ -6,6 +6,7 @@ import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { AppModule } from './app.module';
+import { ImportManualCliService } from './cli/import-manual-cli.service';
 import { IMPORT_MANUAL_CONFIG_PATH } from './config/import-manual-config.service';
 import { ManualImportService } from './import/manual-import.service';
 
@@ -20,7 +21,7 @@ describe('AppModule', () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it('registers ManualImportService with its dependencies wired', async () => {
+  it('registers ImportManualCliService with its dependencies wired', async () => {
     const configPath = join(dir, 'import-manual-config.json5');
     writeFileSync(
       configPath,
@@ -37,6 +38,9 @@ describe('AppModule', () => {
 
     expect(moduleRef.get(ManualImportService)).toBeInstanceOf(
       ManualImportService,
+    );
+    expect(moduleRef.get(ImportManualCliService)).toBeInstanceOf(
+      ImportManualCliService,
     );
   });
 });

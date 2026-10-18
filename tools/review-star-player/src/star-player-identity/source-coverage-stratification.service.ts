@@ -91,7 +91,7 @@ export class SourceCoverageStratificationService implements StarPlayerStratifier
   }
 
   /**
-   * "Has no curated entry" is answered against `star-players.json5` itself,
+   * "Has no curated entry" is answered against every curated star entry across the batches,
    * using the same name-or-external-id rule the raw panel uses: every star in
    * random order is checked against every curated entry, stopping once
    * `limit` unmatched stars have been collected. Filtering after ordering

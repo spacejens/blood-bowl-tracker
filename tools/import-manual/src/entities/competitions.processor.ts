@@ -21,7 +21,7 @@ export class CompetitionsProcessor {
    * the entry, while an omitted
    * one passes `competitionGroupId: undefined` through. `startDate`/`endDate`
    * pass straight through for the same reason: an entry that creates the
-   * competition row (the before-other-importers phase) must supply a
+   * competition row (as batch 001 does) must supply a
    * startDate because the column is NOT NULL, while a rename-only entry
    * omits both and leaves the stored dates alone.
    * `teamEraIds` is always `[]`: manual data never declares competition/team

@@ -68,16 +68,29 @@ To run an import against production:
    `3001` is the local port the tunnel listens on; `3000` after the colon is
    the production machine's own listening port (see `fly.toml`), which is
    unrelated to this change and stays `3000`.
-4. In a second terminal, run the importers in the same order the
-   `deploy-local` skill uses locally — manual "before", BBL, TP, manual
-   "after" — each from its own tool directory:
+4. In a second terminal, for a full import into a freshly reset database, run
+   the importers in the same order the `deploy-local` skill uses locally —
+   manual batch 001, BBL, TP, remaining manual batches — each from its own tool
+   directory:
 
    ```bash
-   ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js data/before-other-importers )
+   ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js apply 001-initial-seed )
    ( cd tools/import-bbl    && IMPORT_CONFIG_ENV=production node dist/main.js )
    ( cd tools/import-tp     && IMPORT_CONFIG_ENV=production node dist/main.js )
-   ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js data/after-other-importers )
+   ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js apply )
    ```
+
+   To bring a long-lived production database up to date with new curated
+   data, run only a plain `apply` — it applies the batches not yet recorded
+   there. Once, before the first such run, record the batches production
+   already holds — but only if production's last manual import ran from the
+   current content of both batches (otherwise import
+   `data/batches/001-initial-seed` and
+   `data/batches/002-initial-cleanup` by directory first):
+   `( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js mark-applied 001-initial-seed 002-initial-cleanup )`.
+   Both need the api-server release with the `manualImportBatches` procedures
+   deployed first. See
+   [import-manual batches](../import-manual/batches.md#operating-procedure).
 
 5. Stop the tunnel (Ctrl-C) when the imports are done.
 

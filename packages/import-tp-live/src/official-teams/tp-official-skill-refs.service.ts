@@ -214,7 +214,7 @@ export class TpOfficialSkillRefsService {
               'name was supplied for it and no skill carries it as a TP ' +
               "external id, so it is left out of that position's starting " +
               'skills. Import a roster or match that names it, or curate it ' +
-              'in tools/import-manual (data/before-other-importers/skills.json5).',
+              'in tools/import-manual (skills.json5 in a new batch under data/batches/).',
           }),
         );
       }
@@ -247,7 +247,7 @@ export class TpOfficialSkillRefsService {
               `"${slot.name}" names keyword code "${ref.attributeValue}" as ` +
               'its target, and no curated keyword carries that code, so it ' +
               "is left out of that position's starting skills. Curate it in " +
-              'tools/import-manual (data/before-other-importers/keywords.json5).',
+              'tools/import-manual (keywords.json5 in a new batch under data/batches/).',
           }),
         );
       }

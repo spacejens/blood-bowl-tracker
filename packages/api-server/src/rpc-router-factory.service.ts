@@ -13,6 +13,7 @@ import {
   KeywordUpsertConflictError,
   LeaguesService,
   LeagueUpsertConflictError,
+  ManualImportBatchesService,
   MatchesService,
   MatchEventsService,
   MatchEventUpsertConflictError,
@@ -63,6 +64,7 @@ import {
   buildCompetitionGroupsListRoute,
   buildExternalSystemsRoutes,
   buildKeywordsListRoute,
+  buildManualImportBatchesRoutes,
   buildMatchResolveOutcomesRoute,
   buildPlayerSkillsRoutes,
   buildPlayerSppAdjustmentRoutes,
@@ -127,6 +129,7 @@ export class RpcRouterFactoryService {
     private readonly tpMatchImport: TpMatchImportService,
     private readonly tpCompetitionImport: TpCompetitionImportService,
     private readonly tpOfficialTeamsImport: TpOfficialTeamsImportService,
+    private readonly manualImportBatchesService: ManualImportBatchesService,
     private readonly upsertHandler: UpsertHandlerService,
   ) {}
 
@@ -524,6 +527,9 @@ export class RpcRouterFactoryService {
       externalSystems: buildExternalSystemsRoutes(
         this.upsertHandler,
         this.externalSystemsService,
+      ),
+      manualImportBatches: buildManualImportBatchesRoutes(
+        this.manualImportBatchesService,
       ),
       tpRosters: buildTpRostersRoutes(this.tpRosterImport),
       tpMatches: buildTpMatchesRoutes(this.tpMatchImport),

@@ -66,7 +66,7 @@ export class TpOfficialKeywordsSyncService {
               message:
                 `TP keyword code ${code} (first seen on position "${slot.name}") ` +
                 'is not curated, so it is left off that position. Curate it in ' +
-                'tools/import-manual (data/before-other-importers/keywords.json5).',
+                'tools/import-manual (keywords.json5 in a new batch under data/batches/).',
             }),
           );
         }

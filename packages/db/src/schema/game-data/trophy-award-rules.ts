@@ -111,8 +111,8 @@ const trophyAwardRuleExcludedMatchEventTypesTable = historyTrackedTable({
  *  - Ordering. Award computation runs as the last step of the BBL and TP
  *    importers, so a rule's restriction has to be in the database before
  *    they run — which means curating it in tools/import-manual's
- *    `before-other-importers` phase, where no `positions` row exists yet to
- *    point a foreign key at. A curated string needs nothing to resolve
+ *    batch 001, read before any `positions` row exists, so there is no
+ *    row to point a foreign key at. A curated string needs nothing to resolve
  *    against at curation time; it is matched at computation time, when the
  *    positions do exist.
  *  - Stability. `positions.name` is the curated name once the row exists,

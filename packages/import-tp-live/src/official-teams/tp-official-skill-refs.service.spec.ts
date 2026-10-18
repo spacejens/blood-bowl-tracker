@@ -162,7 +162,7 @@ describe('TpOfficialSkillRefsService', () => {
       {
         item: { position: 9, skillMasterId: 99 },
         message:
-          'Could not resolve TP skill 99 (first seen on position "Blitzer", rules set "BB2020"): no name was supplied for it and no skill carries it as a TP external id, so it is left out of that position\'s starting skills. Import a roster or match that names it, or curate it in tools/import-manual (data/before-other-importers/skills.json5).',
+          'Could not resolve TP skill 99 (first seen on position "Blitzer", rules set "BB2020"): no name was supplied for it and no skill carries it as a TP external id, so it is left out of that position\'s starting skills. Import a roster or match that names it, or curate it in tools/import-manual (skills.json5 in a new batch under data/batches/).',
       },
     ]);
   });
@@ -214,7 +214,7 @@ describe('TpOfficialSkillRefsService', () => {
       {
         item: { position: 9, skillMasterId: 307, attributeValue: '999' },
         message:
-          'TP skill 307 (Hatred) on position "Blitzer" names keyword code "999" as its target, and no curated keyword carries that code, so it is left out of that position\'s starting skills. Curate it in tools/import-manual (data/before-other-importers/keywords.json5).',
+          'TP skill 307 (Hatred) on position "Blitzer" names keyword code "999" as its target, and no curated keyword carries that code, so it is left out of that position\'s starting skills. Curate it in tools/import-manual (keywords.json5 in a new batch under data/batches/).',
       },
     ]);
   });

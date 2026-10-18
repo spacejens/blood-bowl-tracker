@@ -19,7 +19,7 @@ import { TpCompetitionGroupMatcherService } from './tp-competition-group-matcher
  */
 const CURATED_GROUPS_FILE = join(
   __dirname,
-  '../../../../tools/import-manual/data/before-other-importers/competition-groups.json5',
+  '../../../../tools/import-manual/data/batches/001-initial-seed/competition-groups.json5',
 );
 
 interface CuratedGroup {

@@ -19,7 +19,7 @@ export class TrophyAwardsProcessor {
 
   /**
    * Record every hand-curated trophy award. These exist only for trophies
-   * classified `manual` in `before-other-importers/trophies.json5`, whose
+   * classified `manual` in `batches/001-initial-seed/trophies.json5`, whose
    * winner no statistic determines and no source records.
    *
    * Three lookups per entry, each of which skips the entry (with one

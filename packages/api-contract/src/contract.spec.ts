@@ -26,6 +26,16 @@ describe('contract', () => {
     ]);
   });
 
+  it('defines manualImportBatches.list as read-only', () => {
+    expect(errorCodesOf(contract.manualImportBatches.list)).toEqual([]);
+  });
+
+  it('defines manualImportBatches.record with only CONFLICT', () => {
+    expect(errorCodesOf(contract.manualImportBatches.record)).toEqual([
+      'CONFLICT',
+    ]);
+  });
+
   it('defines externalSystems.upsert with no declared errors', () => {
     expect(errorCodesOf(contract.externalSystems.upsert)).toEqual([]);
   });
@@ -338,6 +348,7 @@ describe('resolve procedures', () => {
     'trophyAwards',
     'sppAwardValues',
     'externalSystems',
+    'manualImportBatches',
   ] as const;
 
   it.each(notResolvable)('does not expose resolve on %s', (name) => {

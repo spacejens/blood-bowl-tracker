@@ -10,6 +10,7 @@ export * from './schemas/external-system';
 export * from './schemas/import-result';
 export * from './schemas/keyword';
 export * from './schemas/league';
+export * from './schemas/manual-import-batch';
 export * from './schemas/match';
 export * from './schemas/match-event';
 export * from './schemas/player';

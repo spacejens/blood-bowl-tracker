@@ -1,15 +1,18 @@
 # Curated data files
 
-`tools/import-manual`'s committed data lives in two phase directories, and every
+`tools/import-manual`'s committed data lives in numbered batch directories, and every
 file in them exists for a specific reason — mostly to unify records the BBL and
 TP importers would otherwise create as separate, duplicate rows. This page is
 the reference for what each file holds. See [import-manual](index.md) for how
 the tool is configured and run, and [Data layout](index.md#data-layout) for how
-the two phases are laid out on disk.
+the batches are laid out on disk.
 
-## Known before-other-importers dedup files
+Files below are named by the batch that holds them; batches 001 and 002 are
+historical and never edited (see [Batches](batches.md)).
 
-A few `data/before-other-importers/*.json5` files exist specifically to unify
+## Known batch 001 dedup files
+
+A few `data/batches/001-initial-seed/*.json5` files exist specifically to unify
 records the BBL and TP importers would otherwise create as separate,
 duplicate rows because the two source systems name or key the same
 real-world entity differently:
@@ -30,14 +33,14 @@ real-world entity differently:
 - `eras.json5` — the 8 eras the BBL and TP configs define, copied verbatim
   from `tools/import-bbl/import-bbl-config.json5` and
   `tools/import-tp/import-tp-config.json5`, which remain authoritative. It
-  exists here purely so `competitions.json5` in the same phase has an era to
+  exists here purely so `competitions.json5` in the same batch has an era to
   reference.
 - `competitions.json5` — all 86 known competition instances, each with its
   curated [competition group](index.md#competition-groups) and the real
   data needed to create the row. Classification has to happen
   here, ahead of the BBL and TP importers, because `tools/import-tp`'s awards
   import resolves a trophy by the competition's group name. Renaming stays in
-  the after-other-importers phase.
+  batch 002.
 - `races-and-positions.json5` — BBL/TP race and regular position name
   variants. `positions_race_eras` availability restoration is curated
   separately, in `position-availability.json5` (see below). Source importers
@@ -75,7 +78,7 @@ real-world entity differently:
   winner comes from. Pick `direct_source` when the source data already records
   the winner and the BBL/TP importers create the award; `manual` when nothing
   determines the winner mechanically (a coaches' vote, a D3 roll) and each
-  winner is curated by hand in `after-other-importers/trophy-awards.json5`
+  winner is curated by hand in batch 002's `trophy-awards.json5`
   (see below). Both describe how the league hands the trophy out in their own
   words.
 
@@ -87,7 +90,7 @@ real-world entity differently:
 - `position-characteristics-gap-fill.json5` — gap-fill `position_rules_sets`
   rows: `(position, rules set)` pairs no source importer can ever produce,
   curated early so a source importer can read them back. Also registers the
-  positions those rows reference, since nothing else in this phase does.
+  positions those rows reference, since nothing else in this batch does.
   Currently one entry, Giant Mercenary under BB2020, which `tools/import-tp`
   reads for its mercenary hires.
 - `skills.json5` — the skills that exist only in CRP/CRP+/BB2016, plus the
@@ -130,7 +133,12 @@ the other row's era does not cover — even though it is genuinely one position.
 
 The fix, and the convention for any future rename, is to register **every
 generation's id on the one existing curated row** in
-`races-and-positions.json5` rather than letting a second row appear:
+`races-and-positions.json5` rather than letting a second row appear. Batches
+001 and 002 are applied once and never edited (see
+[Batches](batches.md#changing-curated-data)), so a rename made today goes in a
+new batch: an entry for the position carrying its current `name` and
+the complete set of external ids, new ones included. The bullets below describe
+what that entry must contain, as they did for the original files:
 
 - Add the new id to the existing entry's `externalIds`; never remove the older
   one. Order the array BBL id, newest TP id, older TP id(s), `Name` id.
@@ -141,15 +149,18 @@ generation's id on the one existing curated row** in
   `position-availability.json5` reference, and listing them here makes every
   pairing visible to the curated-data tests.
 - Every `position-availability.json5` entry sharing a `Name` id with an entry
-  here carries the same `name` (a test enforces it). The after-other-importers
-  phase renames the position, so a different spelling there would flip the
+  here carries the same `name` (a test enforces it). Batch 002
+  renames the position, so a different spelling there would flip the
   row's name on every run. Which spelling: the position's current (BB2025)
-  name as TP uses it, falling back to the name in the before-phase file when
+  name as TP uses it, falling back to the name in the batch 001 file when
   TP has no data for the position.
 - `position-characteristics.json5` requires no change: each entry is keyed by
   the position's `Name` external id, not a display name, so the renamed row's
   merged identity (with both old and new ids registered) resolves the reference
-  correctly. The same holds for `before-other-importers/position-characteristics-gap-fill.json5`, except that its own `positions` entries carry a display `name` that must be kept current like any other. `after-other-importers/position-skills.json5` is keyed the same way, by the
+  correctly. The same holds for batch 001's
+  `position-characteristics-gap-fill.json5`, except that its own `positions`
+  entries carry a display `name` that must be kept current like any other.
+  Batch 002's `position-skills.json5` is keyed the same way, by the
   position's `Name` external id, so it needs the identical no-change treatment.
 - Leave a comment on the entry naming each source, its id, and which generation
   that id belongs to, so the next curator can tell a genuine rename from a
@@ -162,9 +173,9 @@ deliberately left unpaired rather than guessed at, for the same reason
 silently conflates two different positions' histories, which is far harder to
 notice and undo than a missing merge.
 
-## Known after-other-importers cleanup files
+## Known batch 002 cleanup files
 
-`data/after-other-importers/*.json5` files run once the BBL and TP importers
+`data/batches/002-initial-cleanup/*.json5` files run once the BBL and TP importers
 have created their records, to fix up names or attach external IDs the source
 systems could not supply:
 
@@ -173,13 +184,13 @@ systems could not supply:
   where a coach's displayed pseudonym is set. Source importers set a coach's name only when they
   create the coach, so a name set here sticks.
 - `competitions.json5` — rename-only: classification lives in the
-  before-other-importers phase (see above). Its 36 entries normalize the
+  batch 001 (see above). Its 36 entries normalize the
   recurring numbered competitions the two source systems named inconsistently
   (`Season N` / `Major Season N` / `tLoEGBBL Säsong N` all become `Major
 Season N`; stray prefixes are stripped from Ogretoberfest, Chaos Cup and
   Dungeon Bowl entries; each track's unnumbered first instalment — e.g. bare
   `Chaos Cup` — is numbered `1`; and BBL's three identically-named `Reserves
-Rumble` events become `Reserves Rumble 1`–`3`). The before-other-importers
+Rumble` events become `Reserves Rumble 1`–`3`). Batch 001
   file already creates these under their canonical names and source importers
   never rename an existing competition, so this pass only changes a row a
   source importer created before it was curated there.
@@ -187,15 +198,15 @@ Rumble` events become `Reserves Rumble 1`–`3`). The before-other-importers
   values for the three older rules sets no importer can supply correctly (CRP,
   CRP+, BB2016); `tools/import-bbl` deliberately writes no row for a rules set
   whose `agilityFormat` is `'bare'`, which is exactly those three. It sits in
-  the **after** phase because its position references use the
+  a batch applied after the sources because its position references use the
   "`<raceName>: <positionName>`" `Name` external id that only
   `tools/import-bbl` creates, so those positions have to exist first. A
   _gap-fill_ entry — a `(position, rules set)` pair no importer can ever write
-  — goes in `before-other-importers/position-characteristics-gap-fill.json5`
+  — goes in batch 001's `position-characteristics-gap-fill.json5`
   instead (see [Position characteristics](index.md#position-characteristics)).
 - `position-availability.json5` — hand-restored `positions_race_eras`
   availability the source data cannot evidence, from the rulebook rosters.
-  It sits in the **after** phase for the same reason as the file above,
+  It is applied after the sources for the same reason as the file above,
   spelled out in more detail: many of its position references use the
   "`<raceName>: <positionName>`" `Name` external id that only
   `tools/import-bbl`'s position importer creates. Curating before the
@@ -206,9 +217,9 @@ Rumble` events become `Reserves Rumble 1`–`3`). The before-other-importers
   already established the position's identity, so these references resolve
   onto the existing row, not a duplicate.
 - `trophy-awards.json5` — hand-curated winners of the two
-  [`manual`-kind](#known-before-other-importers-dedup-files) trophies
+  [`manual`-kind](#known-batch-001-dedup-files) trophies
   (Season MVP, Gudarnas Förkämpe), for which no importer records a
-  winner. It sits in the **after** phase because each entry references a
+  winner. It is applied after the sources because each entry references a
   competition and a player by external id, both created by the BBL/TP
   importers.
 - `position-skills.json5` — hand-curated starting skills
@@ -228,7 +239,7 @@ a from-empty-database run of the BBL and TP importers against the same
 downloaded data should see few or no "no curated category for rules set"
 `ImportError`s. Any that do occur can only ever name `BB2020`, `DB2021`, or
 `BB2025` — the only rules sets BBL and TP write starting skills to.
-[`skills.json5`](#known-before-other-importers-dedup-files) does not curate
+[`skills.json5`](#known-batch-001-dedup-files) does not curate
 CRP/CRP+/BB2016 categories for every skill name — but BBL is deliberately
 excluded from writing to those three rules sets (see
 [import-bbl/file-format.md](../import-bbl/file-format.md)), and TP's own
@@ -253,3 +264,10 @@ starting skills anyway. Unlike the missing-category error, the starting skill
 is still recorded: only the curated flag disagrees. Such an error means either
 that BB2025 changed which skills are elite, or that TP started publishing the
 marker on a skill this file has not caught up with — fix the curated row.
+
+## Batch 003
+
+`data/batches/003-reset-curated-names/` restates the curated name of
+every coach, team, race, position, competition and skill that batches 001 and
+002 curate; see [Batches](batches.md) for what it does and why. A new curated
+rename goes into a new batch, restating `name` and the row's `externalIds`.

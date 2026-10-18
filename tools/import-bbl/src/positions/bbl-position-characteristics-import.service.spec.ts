@@ -213,7 +213,7 @@ describe('BblPositionCharacteristicsImportService', () => {
     });
 
     // Nothing at all is sent, and the skipped position is not counted as
-    // imported — the curated after-phase file is the only source for CRP.
+    // imported — the curated batch 002 file is the only source for CRP.
     expect(
       positionRulesSetsImport.syncPositionRulesSets,
     ).not.toHaveBeenCalled();

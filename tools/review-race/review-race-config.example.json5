@@ -43,7 +43,7 @@
   },
   manual: {
     // tools/import-manual's committed data directory: the folder holding the
-    // `before-other-importers/` and `after-other-importers/` subfolders. It
+    // `batches/` directory; every batch in it is read, in order. It
     // is tracked by git, so a worktree checkout already has it -- no data
     // symlink is needed for this source.
     dataDir: '../import-manual/data',

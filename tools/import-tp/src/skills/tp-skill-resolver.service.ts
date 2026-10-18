@@ -60,13 +60,13 @@ export class TpSkillResolverService {
    * Database skill ids for every referenced skillMasterId the scan cannot
    * name, resolved in ONE batched call through the `tourplay.net` external id
    * curated for it in tools/import-manual
-   * (data/before-other-importers/skills.json5). An id with no curated
+   * (skills.json5 in a new batch under data/batches/). An id with no curated
    * external id is simply absent from the result, which is what makes a
    * caller report it unresolved.
    *
-   * Depends on that curation phase having already run: a curated id only
-   * resolves once `before-other-importers` has upserted the skill it
-   * belongs to, which is why that phase runs before this importer.
+   * Depends on batch 001 having already been applied: a curated id only
+   * resolves once that batch has upserted the skill it belongs to, which is
+   * why it is applied before this importer runs.
    */
   async resolveUnnamedMasterIds(options: {
     masterIds: Iterable<number>;

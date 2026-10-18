@@ -1,14 +1,22 @@
 import { describe, expect, it } from 'vitest';
 
-import { readFile, readPhase } from './curated-data.test-helpers';
+import {
+  BATCH_001,
+  BATCH_002,
+  listBatches,
+  readBatch,
+  readFile,
+} from './curated-data.test-helpers';
 
 describe('curated data files', () => {
-  it('parses every before-other-importers file', () => {
-    expect(() => readPhase('before-other-importers')).not.toThrow();
+  it.each(listBatches())('parses every file of %s', (batch) => {
+    expect(() => readBatch(batch)).not.toThrow();
   });
 
-  it('parses every after-other-importers file', () => {
-    expect(() => readPhase('after-other-importers')).not.toThrow();
+  it('keeps the two initial batches', () => {
+    expect(listBatches()).toEqual(
+      expect.arrayContaining([BATCH_001, BATCH_002]),
+    );
   });
 
   it('keeps a trophy-awards file for the manual trophies', () => {
@@ -16,10 +24,7 @@ describe('curated data files', () => {
     // established, so nothing here pins its length or contents -- only that
     // it parses and that every entry carries the three references the
     // importer resolves.
-    const awards = readFile(
-      'after-other-importers',
-      'trophy-awards.json5',
-    ).trophyAwards;
+    const awards = readFile(BATCH_002, 'trophy-awards.json5').trophyAwards;
     for (const award of awards) {
       expect(award.trophy.length).toBeGreaterThan(0);
       expect(award.competition.system.length).toBeGreaterThan(0);
@@ -29,17 +34,17 @@ describe('curated data files', () => {
     }
     // Every entry must name one of the two trophies nothing can
     // compute -- any other trophy's winner comes from the source or a rule.
-    const manualTrophies = readPhase('before-other-importers')
+    const manualTrophies = readBatch(BATCH_001)
       .trophies.filter((trophy) => trophy.awardRuleKind === 'manual')
       .map((trophy) => trophy.name);
     expect(manualTrophies.sort()).toEqual(['Gudarnas Förkämpe', 'Season MVP']);
-    for (const award of readPhase('after-other-importers').trophyAwards) {
+    for (const award of readBatch(BATCH_002).trophyAwards) {
       expect(manualTrophies).toContain(award.trophy);
     }
   });
 
   it('curates both real leagues with BBL-compatible external ids', () => {
-    const leagues = readPhase('before-other-importers').leagues;
+    const leagues = readBatch(BATCH_001).leagues;
     expect(leagues.map((league) => league.name).sort()).toEqual([
       'GBBL',
       'tLoEG',
@@ -53,7 +58,7 @@ describe('curated data files', () => {
   });
 
   it('curates all 14 competition groups against a real league', () => {
-    const data = readPhase('before-other-importers');
+    const data = readBatch(BATCH_001);
     const leagueIds = new Set(
       data.leagues.flatMap((league) =>
         league.externalIds.map((ref) => `${ref.system}|${ref.id}`),
@@ -82,12 +87,12 @@ describe('curated data files', () => {
     }
   });
 
-  it('keeps the after-other-importers phase to rename-only competition entries', () => {
+  it('keeps batch 002 to rename-only competition entries', () => {
     // Classification is curated in
-    // data/before-other-importers/competitions.json5: a competition's group
+    // batch 001's competitions.json5: a competition's group
     // must be correct before the BBL/TP importers run. What is left here can
     // only run afterwards -- renaming a row the importers created.
-    const competitions = readPhase('after-other-importers').competitions;
+    const competitions = readBatch(BATCH_002).competitions;
 
     expect(competitions).toHaveLength(36);
     for (const competition of competitions) {
@@ -101,7 +106,7 @@ describe('curated data files', () => {
   });
 
   it('curates every era each competition can reference', () => {
-    const data = readPhase('before-other-importers');
+    const data = readBatch(BATCH_001);
     const leagueIds = new Set(
       data.leagues.flatMap((league) =>
         league.externalIds.map((ref) => `${ref.system}|${ref.id}`),
@@ -120,7 +125,7 @@ describe('curated data files', () => {
   });
 
   it('classifies all 86 known competition instances into curated groups', () => {
-    const before = readPhase('before-other-importers');
+    const before = readBatch(BATCH_001);
     const groupNames = new Set(
       before.competitionGroups.map((group) => group.name),
     );
@@ -158,7 +163,7 @@ describe('curated data files', () => {
   });
 
   it('classifies every curated trophy into a curated group or league', () => {
-    const data = readPhase('before-other-importers');
+    const data = readBatch(BATCH_001);
     const groupNames = new Set(
       data.competitionGroups.map((group) => group.name),
     );
@@ -187,12 +192,12 @@ describe('curated data files', () => {
   });
 
   it('declares the tourplay.net external system in the trophy catalog', () => {
-    // Reads trophies.json5 in isolation (not readPhase's pooled result):
+    // Reads trophies.json5 in isolation (not readBatch's pooled result):
     // coaches.json5, races-and-positions.json5, star-players.json5, and
     // teams.json5 all separately declare tourplay.net too, so asserting
     // against the pooled externalSystems would pass even without this file's
     // own declaration.
-    const data = readFile('before-other-importers', 'trophies.json5');
+    const data = readFile(BATCH_001, 'trophies.json5');
 
     expect(data.externalSystems).toContainEqual({
       name: 'tourplay.net',
@@ -215,7 +220,7 @@ describe('curated data files', () => {
     // trophy that ever carried two tourplay.net ids would have the second
     // silently overwrite the first in an object, hiding the duplicate
     // instead of failing this assertion.
-    const trophies = readPhase('before-other-importers').trophies;
+    const trophies = readBatch(BATCH_001).trophies;
     const tpIds = trophies.flatMap((trophy) =>
       trophy.externalIds
         .filter((ref) => ref.system === 'tourplay.net')
@@ -246,7 +251,7 @@ describe('curated data files', () => {
     // TP ids already use, with no bare-label exception for Major Season.
     // Pinned here so the format cannot drift away from what
     // BblTrophyAwardsImportService looks up.
-    const trophies = readPhase('before-other-importers').trophies;
+    const trophies = readBatch(BATCH_001).trophies;
     const compositeIds = trophies.flatMap((trophy) =>
       trophy.externalIds
         .filter(
@@ -276,7 +281,7 @@ describe('curated data files', () => {
 
   it('pre-registers the Halfling roster lineman as one row across its rename', () => {
     const positions = readFile(
-      'before-other-importers',
+      BATCH_001,
       'races-and-positions.json5',
     ).positions;
     const entry = positions.find(
@@ -292,8 +297,8 @@ describe('curated data files', () => {
     // 969, on BB2025), and BBL still uses the older name (typId 39, race 8).
     // Registering all three ids up front lands every source's upsert on this
     // single row instead of three. The Name id matches this file's own
-    // convention of pre-registering one so the after-other-importers
-    // availability phase (which references this same Name id) can never race
+    // convention of pre-registering one so batch 002's
+    // availability entries (which references this same Name id) can never race
     // BBL/TP into creating an orphan row before either source has run.
     expect(entry?.externalIds).toEqual([
       { system: 'tloeg.bbleague.se', id: '39-8' },
@@ -305,14 +310,14 @@ describe('curated data files', () => {
   });
 
   it('classifies every curated trophy with an award rule', () => {
-    const trophies = readPhase('before-other-importers').trophies;
+    const trophies = readBatch(BATCH_001).trophies;
     for (const trophy of trophies) {
       expect(trophy.awardRuleKind, trophy.name).toBeDefined();
     }
   });
 
   it('gives every source-recorded and manual trophy a stated procedure', () => {
-    const trophies = readPhase('before-other-importers').trophies.filter(
+    const trophies = readBatch(BATCH_001).trophies.filter(
       (trophy) =>
         trophy.awardRuleKind === 'direct_source' ||
         trophy.awardRuleKind === 'manual',
@@ -326,7 +331,7 @@ describe('curated data files', () => {
   });
 
   it('gives every maximum-based trophy a role and the same tie cutoff', () => {
-    const trophies = readPhase('before-other-importers').trophies.filter(
+    const trophies = readBatch(BATCH_001).trophies.filter(
       (trophy) =>
         trophy.awardRuleKind === 'max_count' ||
         trophy.awardRuleKind === 'max_spp_sum',
@@ -341,7 +346,7 @@ describe('curated data files', () => {
   });
 
   it('gives every career trophy a threshold and a measure', () => {
-    const trophies = readPhase('before-other-importers').trophies.filter(
+    const trophies = readBatch(BATCH_001).trophies.filter(
       (trophy) => trophy.awardRuleKind === 'career_threshold',
     );
     expect(trophies.map((trophy) => trophy.name)).toEqual([
@@ -371,7 +376,7 @@ describe('curated data files', () => {
   });
 
   it('restricts exactly one trophy to specific positions, the Ogre ones', () => {
-    const trophies = readPhase('before-other-importers').trophies;
+    const trophies = readBatch(BATCH_001).trophies;
     const restricted = trophies.filter(
       (trophy) => trophy.awardRuleEligiblePositions.length > 0,
     );
@@ -397,7 +402,7 @@ describe('curated data files', () => {
   });
 
   it('names every eligible position by a "<race>: <position>" Name id', () => {
-    const data = readPhase('before-other-importers');
+    const data = readBatch(BATCH_001);
     const raceNames = new Set(data.races.map((race) => race.name));
     const ids = data.trophies.flatMap(
       (trophy) => trophy.awardRuleEligiblePositions,
@@ -415,8 +420,8 @@ describe('curated data files', () => {
   });
 
   it('counts every foul, whatever it did', () => {
-    const trophies = readPhase('before-other-importers').trophies.filter(
-      (trophy) => trophy.name.endsWith('Top Fouler'),
+    const trophies = readBatch(BATCH_001).trophies.filter((trophy) =>
+      trophy.name.endsWith('Top Fouler'),
     );
     expect(trophies).toHaveLength(2);
     for (const trophy of trophies) {
@@ -430,7 +435,7 @@ describe('curated data files', () => {
   });
 
   it('gives every other max_count trophy its exact match-event types', () => {
-    const trophies = readPhase('before-other-importers').trophies;
+    const trophies = readBatch(BATCH_001).trophies;
     const findAll = (...names: string[]) =>
       names.map((name) => {
         const trophy = trophies.find((candidate) => candidate.name === name);
@@ -481,7 +486,7 @@ describe('curated data files', () => {
   });
 
   it('excludes MVP awards from the Bierhallenführer SPP sum', () => {
-    const trophy = readPhase('before-other-importers').trophies.find(
+    const trophy = readBatch(BATCH_001).trophies.find(
       (candidate) => candidate.name === 'Bierhallenführer',
     );
     expect(trophy?.awardRuleExcludedMatchEventTypes).toEqual([
@@ -491,7 +496,7 @@ describe('curated data files', () => {
 
   it('curates the Halfling roster lineman under its post-rename name', () => {
     const positions = readFile(
-      'after-other-importers',
+      BATCH_002,
       'position-availability.json5',
     ).positions;
     const entry = positions.find((position) =>
@@ -502,7 +507,7 @@ describe('curated data files', () => {
       ),
     );
 
-    // This phase overlays the position's name, so it has to re-state the
+    // This batch overlays the position's name, so it has to re-state the
     // merged row's final name rather than the older spelling its Name id uses.
     expect(entry?.name).toBe('Halfling Hopeful');
   });
@@ -513,7 +518,7 @@ describe('curated data files', () => {
    * source's id (so a BB2025-only id upserts onto the existing row instead of
    * splitting off a second, disconnected one). Four of these also got renamed
    * between rules-set generations and so carry an `overlay` -- the
-   * after-other-importers position-availability.json5 entry that re-states
+   * batch 002 position-availability.json5 entry that re-states
    * the row's post-rename name against its BBL/TP-rebuilt Name id (which
    * differs from the row's own original Name id below by pluralization).
    */
@@ -704,7 +709,7 @@ describe('curated data files', () => {
     (row) => {
       it('registers every source id on one row in races-and-positions.json5', () => {
         const positions = readFile(
-          'before-other-importers',
+          BATCH_001,
           'races-and-positions.json5',
         ).positions;
         const ownNameId = row.externalIds.find(
@@ -726,7 +731,7 @@ describe('curated data files', () => {
 
         it('curates the row under its post-rename name in position-availability.json5', () => {
           const positions = readFile(
-            'after-other-importers',
+            BATCH_002,
             'position-availability.json5',
           ).positions;
           const entry = positions.find((position) =>
@@ -741,17 +746,15 @@ describe('curated data files', () => {
     },
   );
 
-  it('names a position identically in both phases wherever they share a Name id', () => {
-    // The before phase creates the row and the after phase renames it, both
+  it('names a position identically in both batches wherever they share a Name id', () => {
+    // Batch 001 creates the row and batch 002 renames it, both
     // with renameExisting, so two spellings would rename the row back and
     // forth on every run. Pairings through BBL/TP-derived Name ids are
     // visible here because races-and-positions.json5 lists those ids too.
     const beforeNames = new Map<string, string>();
     const duplicateIds: string[] = [];
-    for (const position of readFile(
-      'before-other-importers',
-      'races-and-positions.json5',
-    ).positions) {
+    for (const position of readFile(BATCH_001, 'races-and-positions.json5')
+      .positions) {
       for (const ref of position.externalIds) {
         if (ref.system === 'Name') {
           if (beforeNames.has(ref.id)) {
@@ -762,10 +765,8 @@ describe('curated data files', () => {
       }
     }
     const disagreements: string[] = [];
-    for (const position of readFile(
-      'after-other-importers',
-      'position-availability.json5',
-    ).positions) {
+    for (const position of readFile(BATCH_002, 'position-availability.json5')
+      .positions) {
       for (const ref of position.externalIds) {
         const before = beforeNames.get(ref.id);
         if (
@@ -781,11 +782,11 @@ describe('curated data files', () => {
     expect(disagreements).toEqual([]);
   });
 
-  it('pre-registers the derived Name id of every after-phase position rename', () => {
+  it('pre-registers the derived Name id of every batch 002 position rename', () => {
     // A representative derived id: BBL names the Ogre roster's blocker
     // "Ogre Blockers", TP "Ogre Blocker"; the curated row carries both ids.
     const entry = readFile(
-      'before-other-importers',
+      BATCH_001,
       'races-and-positions.json5',
     ).positions.find((position) =>
       position.externalIds.some(

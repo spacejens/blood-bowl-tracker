@@ -1,16 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
-import { readFile, readPhase } from './curated-data.test-helpers';
+import {
+  BATCH_001,
+  BATCH_002,
+  readBatch,
+  readFile,
+} from './curated-data.test-helpers';
 
 describe('curated data files - characteristics', () => {
   it('curates the gap-fill file with both the position and its BB2020 stat line', () => {
-    const data = readFile(
-      'before-other-importers',
-      'position-characteristics-gap-fill.json5',
-    );
+    const data = readFile(BATCH_001, 'position-characteristics-gap-fill.json5');
 
     // The file must register the position itself: nothing else in the
-    // before phase declares it, and without it the positionRulesSets
+    // batch 001 declares it, and without it the positionRulesSets
     // reference cannot resolve.
     const positionIds = data.positions.map((entry) => entry.name);
     for (const entry of data.positionRulesSets) {
@@ -30,10 +32,7 @@ describe('curated data files - characteristics', () => {
   });
 
   it('registers every gap-fill position under the external ids the source importers send', () => {
-    const data = readFile(
-      'before-other-importers',
-      'position-characteristics-gap-fill.json5',
-    );
+    const data = readFile(BATCH_001, 'position-characteristics-gap-fill.json5');
 
     for (const position of data.positions) {
       // A mercenary position is a star-player position on both sides.
@@ -55,7 +54,7 @@ describe('curated data files - characteristics', () => {
 
   it('curates CRP characteristics with no Passing value', () => {
     const entries = readFile(
-      'after-other-importers',
+      BATCH_002,
       'position-characteristics.json5',
     ).positionRulesSets;
     const crp = entries.filter((entry) => entry.rulesSet.id === 'CRP');
@@ -69,10 +68,7 @@ describe('curated data files - characteristics', () => {
   });
 
   it('curates every characteristics entry against a known rules set and a "Name" position id', () => {
-    const data = readFile(
-      'after-other-importers',
-      'position-characteristics.json5',
-    );
+    const data = readFile(BATCH_002, 'position-characteristics.json5');
 
     expect(data.externalSystems).toContainEqual({
       name: 'Name',
@@ -88,7 +84,7 @@ describe('curated data files - characteristics', () => {
 
   it('never curates the same position twice under one rules set', () => {
     const entries = readFile(
-      'after-other-importers',
+      BATCH_002,
       'position-characteristics.json5',
     ).positionRulesSets;
     const keys = entries.map(
@@ -103,14 +99,14 @@ describe('curated data files - characteristics', () => {
   it('never curates the same (position, rules set) pair in both characteristics files', () => {
     const afterKeys = new Set(
       readFile(
-        'after-other-importers',
+        BATCH_002,
         'position-characteristics.json5',
       ).positionRulesSets.map(
         (entry) => `${entry.position.id}|${entry.rulesSet.id}`,
       ),
     );
     const gapFillKeys = readFile(
-      'before-other-importers',
+      BATCH_001,
       'position-characteristics-gap-fill.json5',
     ).positionRulesSets.map(
       (entry) => `${entry.position.id}|${entry.rulesSet.id}`,
@@ -128,7 +124,7 @@ describe('curated data files - characteristics', () => {
 
   it('curates CRP characteristics for the six teams on the first roster page', () => {
     const entries = readFile(
-      'after-other-importers',
+      BATCH_002,
       'position-characteristics.json5',
     ).positionRulesSets;
     const findCrp = (positionId: string) =>
@@ -192,24 +188,20 @@ describe('curated data files - characteristics', () => {
 
   it('keys every curated position by the canonical race name', () => {
     const ids = [
-      ...readFile(
-        'before-other-importers',
-        'races-and-positions.json5',
-      ).positions.flatMap((position) =>
-        position.externalIds
-          .filter((ref) => ref.system === 'Name')
-          .map((ref) => ref.id),
+      ...readFile(BATCH_001, 'races-and-positions.json5').positions.flatMap(
+        (position) =>
+          position.externalIds
+            .filter((ref) => ref.system === 'Name')
+            .map((ref) => ref.id),
+      ),
+      ...readFile(BATCH_002, 'position-availability.json5').positions.flatMap(
+        (position) =>
+          position.externalIds
+            .filter((ref) => ref.system === 'Name')
+            .map((ref) => ref.id),
       ),
       ...readFile(
-        'after-other-importers',
-        'position-availability.json5',
-      ).positions.flatMap((position) =>
-        position.externalIds
-          .filter((ref) => ref.system === 'Name')
-          .map((ref) => ref.id),
-      ),
-      ...readFile(
-        'after-other-importers',
+        BATCH_002,
         'position-characteristics.json5',
       ).positionRulesSets.map((entry) => entry.position.id),
     ];
@@ -227,7 +219,7 @@ describe('curated data files - characteristics', () => {
 
   it('curates CRP characteristics for the core-rulebook teams', () => {
     const entries = readFile(
-      'after-other-importers',
+      BATCH_002,
       'position-characteristics.json5',
     ).positionRulesSets;
     const crpRaces = new Set(
@@ -244,7 +236,7 @@ describe('curated data files - characteristics', () => {
 
   it('curates CRP+ characteristics with no Passing value', () => {
     const entries = readFile(
-      'after-other-importers',
+      BATCH_002,
       'position-characteristics.json5',
     ).positionRulesSets;
     const crpPlus = entries.filter((entry) => entry.rulesSet.id === 'CRP+');
@@ -263,10 +255,7 @@ describe('curated data files - characteristics', () => {
   });
 
   it('curates position availability against real races and eras only', () => {
-    const data = readFile(
-      'after-other-importers',
-      'position-availability.json5',
-    );
+    const data = readFile(BATCH_002, 'position-availability.json5');
 
     expect(data.externalSystems).toContainEqual({
       name: 'Name',
@@ -298,7 +287,7 @@ describe('curated data files - characteristics', () => {
 
   it('never curates the same position/race/era availability twice', () => {
     const positions = readFile(
-      'after-other-importers',
+      BATCH_002,
       'position-availability.json5',
     ).positions;
     const keys = positions.flatMap((position) =>
@@ -313,7 +302,7 @@ describe('curated data files - characteristics', () => {
 
   it('curates CRP-era availability for the CRP+-only team lists', () => {
     const positions = readFile(
-      'after-other-importers',
+      BATCH_002,
       'position-availability.json5',
     ).positions;
     const hasFirstEraFor = (prefix: string) =>
@@ -334,7 +323,7 @@ describe('curated data files - characteristics', () => {
 
   it('curates availability for the Stunty Leeg era', () => {
     const positions = readFile(
-      'after-other-importers',
+      BATCH_002,
       'position-availability.json5',
     ).positions;
     const stuntyEraRows = positions.flatMap((position) =>
@@ -351,7 +340,7 @@ describe('curated data files - characteristics', () => {
 
   it('curates every BB2020 characteristics entry with a Passing value', () => {
     const entries = readFile(
-      'before-other-importers',
+      BATCH_001,
       'position-characteristics-gap-fill.json5',
     ).positionRulesSets;
     const bb2020 = entries.filter((entry) => entry.rulesSet.id === 'BB2020');
@@ -376,7 +365,7 @@ describe('curated data files - characteristics', () => {
 
   it('curates BB2016 characteristics with no Passing value', () => {
     const entries = readFile(
-      'after-other-importers',
+      BATCH_002,
       'position-characteristics.json5',
     ).positionRulesSets;
     const bb2016 = entries.filter((entry) => entry.rulesSet.id === 'BB2016');
@@ -428,7 +417,7 @@ describe('curated data files - characteristics', () => {
       'SL - Skinks: SL - Raptors',
     ];
     const entries = readFile(
-      'after-other-importers',
+      BATCH_002,
       'position-characteristics.json5',
     ).positionRulesSets;
     const bb2016 = new Set(
@@ -457,11 +446,11 @@ describe('curated data files - characteristics', () => {
     const exceptions: string[] = [];
 
     const characteristics = readFile(
-      'after-other-importers',
+      BATCH_002,
       'position-characteristics.json5',
     ).positionRulesSets;
     const availability = readFile(
-      'after-other-importers',
+      BATCH_002,
       'position-availability.json5',
     ).positions;
 
@@ -529,10 +518,7 @@ describe('curated data files - characteristics', () => {
   });
 
   it('declares agilityFormat as bare for exactly CRP, CRP+ and BB2016', () => {
-    const rulesSets = readFile(
-      'before-other-importers',
-      'spp-award-values.json5',
-    ).rulesSets;
+    const rulesSets = readFile(BATCH_001, 'spp-award-values.json5').rulesSets;
 
     // tools/import-bbl's BblPositionCharacteristicsImportService relies on
     // agilityFormat === 'bare' as the signal for "one of the three rules
@@ -549,22 +535,22 @@ describe('curated data files - characteristics', () => {
     expect(bare).toEqual(['BB2016', 'CRP', 'CRP+']);
   });
 
-  it("resolves the gap-fill file's positionRulesSets references against its own phase", () => {
+  it("resolves the gap-fill file's positionRulesSets references against its own batch", () => {
     const gapFill = readFile(
-      'before-other-importers',
+      BATCH_001,
       'position-characteristics-gap-fill.json5',
     );
-    const phase = readPhase('before-other-importers');
+    const batch = readBatch(BATCH_001);
 
     const rulesSetNameIds = new Set(
-      phase.rulesSets.flatMap((rulesSet) =>
+      batch.rulesSets.flatMap((rulesSet) =>
         rulesSet.externalIds
           .filter((ref) => ref.system === 'Name')
           .map((ref) => ref.id),
       ),
     );
     const positionNameIds = new Set(
-      phase.positions.flatMap((position) =>
+      batch.positions.flatMap((position) =>
         position.externalIds
           .filter((ref) => ref.system === 'Name')
           .map((ref) => ref.id),
@@ -574,10 +560,10 @@ describe('curated data files - characteristics', () => {
     expect(gapFill.positionRulesSets.length).toBeGreaterThan(0);
     for (const entry of gapFill.positionRulesSets) {
       // Both references use the 'Name' system, so resolving them means
-      // finding a matching id among the phase's pooled rulesSets/positions --
+      // finding a matching id among the batch's pooled rulesSets/positions --
       // not just this one file's own, since the position may be declared
       // alongside the reference (as the gap-fill file's own header explains)
-      // but the rules set is declared elsewhere in the same phase.
+      // but the rules set is declared elsewhere in the same batch.
       expect(rulesSetNameIds.has(entry.rulesSet.id)).toBe(true);
       expect(positionNameIds.has(entry.position.id)).toBe(true);
     }

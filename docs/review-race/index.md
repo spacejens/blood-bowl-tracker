@@ -25,8 +25,8 @@ cannot agree with itself about one. Locating and byte-decoding a BBL mirror file
 shared on the same basis, via `packages/read-bbl-mirror`: it carries no BBL-page-type
 awareness or HTML parsing, so depending on it does not weaken the boundary above.
 
-The manual curation data under `tools/import-manual/data/before-other-importers/` and
-`after-other-importers/` is treated here as a **raw source**, not as part of the
+The manual curation data under `tools/import-manual/data/batches/` — every batch, pooled in
+order, a later batch's entry replacing an earlier one with the same key — is treated here as a **raw source**, not as part of the
 imported database. This is why the tool is the first review tool to treat it as an
 independent source: races and position characteristics that are hand-curated — precisely
 the older rules sets' characteristics and the availability data neither BBL nor TP can
@@ -218,7 +218,7 @@ cp tools/review-race/review-race-config.example.json5 tools/review-race/review-r
 | `database.url` | Connection string of the database holding the imported data (required) |
 | `racesPerStratum` | Races sampled per stratum (default 3) |
 | `bbl.dataDir` / `tp.dataDir` | The same downloaded data directories `tools/import-bbl` / `tools/import-tp` read |
-| `manual.dataDir` | `tools/import-manual`'s committed `data/` directory, holding `before-other-importers/` and `after-other-importers/` |
+| `manual.dataDir` | `tools/import-manual`'s committed `data/` directory, holding `batches/` (every batch is read) |
 | `bbl.externalSystemName` / `tp.externalSystemName` | External-system names the imports registered records under (default `BBL` / `TP`; this project's own imports register `tloeg.bbleague.se` / `tourplay.net`) |
 | `overrides.bbl` / `overrides.tp` / `overrides.manual` | Races always included — BBL's numeric race id, TP's `teamRace` code, or (for manual) the race's own name |
 | `outputPath` | Base path each report is written next to, timestamped (default `output/report.html`) |

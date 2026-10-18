@@ -224,7 +224,7 @@ describe('TrophiesProcessor', () => {
 
     // Passed straight through as curated strings: these are "Name"-system
     // external ids the award computation matches later, not cross-references
-    // this processor resolves (no `positions` row exists in this phase).
+    // this processor resolves (no `positions` row exists in this batch).
     expect(trophies.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         awardRuleEligiblePositions: [

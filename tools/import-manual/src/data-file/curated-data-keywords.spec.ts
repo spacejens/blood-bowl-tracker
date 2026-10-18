@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { readFile } from './curated-data.test-helpers';
+import { BATCH_001, readFile } from './curated-data.test-helpers';
 
-const keywordsFile = () => readFile('before-other-importers', 'keywords.json5');
+const keywordsFile = () => readFile(BATCH_001, 'keywords.json5');
 
 describe('curated keywords', () => {
   it('registers the external systems it references', () => {

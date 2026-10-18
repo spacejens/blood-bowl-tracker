@@ -34,8 +34,8 @@ export type MercenaryCurated =
  * own data leaves empty everywhere: the name appears in no roster catalog,
  * and the `lineUps[]` entry for an actual hire carries no `ma/st/ag/pa/av`.
  * The values come from the curated `position_rules_sets` row that
- * tools/import-manual writes in its before-other-importers phase
- * (`data/before-other-importers/position-characteristics-gap-fill.json5`),
+ * tools/import-manual writes in its batch 001
+ * (`data/batches/001-initial-seed/position-characteristics-gap-fill.json5`),
  * read straight from the database, so no second copy of the numbers exists.
  *
  * Holds no state between calls: this runs inside long-lived processes

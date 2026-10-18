@@ -1,0 +1,32 @@
+// Batch 003: restates the curated name of every team batches 001 and
+// 002 curate, for a database that already holds those batches.
+//
+// A source importer names a team only when it creates the row, so a
+// long-lived database can still carry a source's spelling for a row whose
+// curated name came later -- TP's "Gyttjevrålarna FC" for the team curated as
+// "Gyttjevrålarna", BBL's "Bretonnians" for the race curated as "Bretonnian".
+// Batches are applied once and never re-applied, so this batch restates every
+// curated name a single time and leaves each row on the name a fresh import
+// ends with. On a fresh import it changes nothing.
+//
+// Each entry carries only `name` and `externalIds`. The name is the one the
+// last batch 001/002 entry sharing an external id with the row gives it (later
+// batches are applied after earlier ones, and files run in alphabetical order); the external
+// ids are every id those entries declare. curated-data-batch-003.spec.ts
+// enforces both, so this file cannot drift from the batches it restates.
+{
+  externalSystems: [
+    { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
+    { name: 'tourplay.net', category: 'imported_data_source' },
+  ],
+  teams: [
+    { name: 'Appenzeller Yodelers', externalIds: [{ system: 'tloeg.bbleague.se', id: 'app' }, { system: 'tourplay.net', id: '150975' }] },
+    { name: 'Firestarters', externalIds: [{ system: 'tloeg.bbleague.se', id: 'twi' }, { system: 'tourplay.net', id: '24801' }] },
+    { name: 'Colette Crusaders', externalIds: [{ system: 'tloeg.bbleague.se', id: 'car' }, { system: 'tourplay.net', id: '141018' }] },
+    { name: 'Drakenhof Biteclub', externalIds: [{ system: 'tloeg.bbleague.se', id: 'dra' }, { system: 'tourplay.net', id: '36047' }, { system: 'tourplay.net', id: '58917' }] },
+    { name: 'Toltorp Titans', externalIds: [{ system: 'tloeg.bbleague.se', id: 'tyn' }, { system: 'tourplay.net', id: '46579' }] },
+    { name: 'Kallebäcks Komposterare', externalIds: [{ system: 'tloeg.bbleague.se', id: 'äng' }, { system: 'tourplay.net', id: '24070' }] },
+    { name: 'Gyttjevrålarna', externalIds: [{ system: 'tloeg.bbleague.se', id: 'gyt' }, { system: 'tloeg.bbleague.se', id: 'jac' }, { system: 'tourplay.net', id: '85424' }, { system: 'tourplay.net', id: '168304' }] },
+    { name: "Santa's Little Helpers", externalIds: [{ system: 'tloeg.bbleague.se', id: 'san' }, { system: 'tourplay.net', id: '179567' }] },
+  ],
+}
