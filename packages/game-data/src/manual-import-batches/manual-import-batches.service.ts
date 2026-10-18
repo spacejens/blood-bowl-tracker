@@ -48,22 +48,26 @@ export class ManualImportBatchesService {
     name: string;
     contentHash: string;
   }): Promise<{ batch: ManualImportBatchRow; created: boolean }> {
+    // One atomic insert: a concurrent record of the same name loses the race
+    // quietly and falls through to the lookup, instead of failing on the
+    // unique constraint.
+    const [inserted] = await this.db
+      .insert(manualImportBatches)
+      .values(data)
+      .onConflictDoNothing({ target: manualImportBatches.name })
+      .returning(columns);
+    if (inserted !== undefined) {
+      return { batch: inserted, created: true };
+    }
     const [existing] = await this.db
       .select(columns)
       .from(manualImportBatches)
       .where(eq(manualImportBatches.name, data.name));
-    if (existing !== undefined) {
-      if (existing.contentHash !== data.contentHash) {
-        throw new ManualImportBatchContentMismatchError(
-          `Batch ${data.name} is already recorded with content hash ${existing.contentHash}, not ${data.contentHash}.`,
-        );
-      }
-      return { batch: existing, created: false };
+    if (existing.contentHash !== data.contentHash) {
+      throw new ManualImportBatchContentMismatchError(
+        `Batch ${data.name} is already recorded with content hash ${existing.contentHash}, not ${data.contentHash}.`,
+      );
     }
-    const [inserted] = await this.db
-      .insert(manualImportBatches)
-      .values(data)
-      .returning(columns);
-    return { batch: inserted, created: true };
+    return { batch: existing, created: false };
   }
 }

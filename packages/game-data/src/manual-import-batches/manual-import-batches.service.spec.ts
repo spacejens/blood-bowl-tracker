@@ -35,33 +35,34 @@ describe('ManualImportBatchesService', () => {
   });
 
   it('inserts a batch that is not recorded yet', async () => {
-    // query 0: the lookup by name finds nothing; query 1: the insert.
-    const { service, db } = await makeService([], [row]);
+    // query 0: the insert returns the new row.
+    const { service, db } = await makeService([row]);
 
     await expect(
       service.record({ name: row.name, contentHash: HASH }),
     ).resolves.toEqual({ batch: row, created: true });
-    expect(db.db.insert).toHaveBeenCalled();
-    expect(extractFilterValues(firstCallArg(db.chains[0].where))).toContain(
-      row.name,
-    );
+    expect(db.db.insert).toHaveBeenCalledTimes(1);
+    expect(db.db.select).not.toHaveBeenCalled();
+    expect(db.chains[0].onConflictDoNothing).toHaveBeenCalled();
   });
 
   it('answers created: false for a batch already recorded with the same content', async () => {
-    const { service, db } = await makeService([row]);
+    // query 0: the insert hits the conflict and returns nothing; query 1: the lookup.
+    const { service, db } = await makeService([], [row]);
 
     await expect(
       service.record({ name: row.name, contentHash: HASH }),
     ).resolves.toEqual({ batch: row, created: false });
-    expect(db.db.insert).not.toHaveBeenCalled();
+    expect(extractFilterValues(firstCallArg(db.chains[1].where))).toContain(
+      row.name,
+    );
   });
 
   it('rejects a batch already recorded with different content', async () => {
-    const { service, db } = await makeService([row]);
+    const { service } = await makeService([], [row]);
 
     await expect(
       service.record({ name: row.name, contentHash: 'b'.repeat(64) }),
     ).rejects.toBeInstanceOf(ManualImportBatchContentMismatchError);
-    expect(db.db.insert).not.toHaveBeenCalled();
   });
 });
