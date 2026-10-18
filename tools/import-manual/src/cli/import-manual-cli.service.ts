@@ -46,6 +46,9 @@ export class ImportManualCliService {
       case '':
         throw new Error(USAGE);
       case 'apply':
+        if (rest.length > 1) {
+          throw new Error(USAGE);
+        }
         return this.apply(rest[0]);
       case 'mark-applied':
         return this.markApplied(rest);

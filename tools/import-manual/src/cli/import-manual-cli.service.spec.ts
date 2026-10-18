@@ -177,22 +177,17 @@ describe('ImportManualCliService', () => {
     });
   });
 
-  it.each(['before-sources', 'after-sources'])(
-    'treats the removed command %s as a directory path',
-    async (command) => {
-      const { cli, runner, manualImport } = await makeService();
-      manualImport.run.mockResolvedValue({
-        success: true,
-        imported: 0,
-        errors: [],
-      });
+  it('throws the usage text when apply is given more than one batch', async () => {
+    const { cli, runner } = await makeService();
 
-      await run(cli, command);
-
-      expect(manualImport.run).toHaveBeenCalledWith(`/somewhere/${command}`);
-      expect(runner.apply).not.toHaveBeenCalled();
-    },
-  );
+    await expect(
+      cli.execute({
+        args: ['apply', '002-initial-cleanup', '003-reset-curated-names'],
+        cwd: '/',
+      }),
+    ).rejects.toThrow(/Usage:.*apply \[<batch>\]/);
+    expect(runner.apply).not.toHaveBeenCalled();
+  });
 
   it.each([[[]], [['']]])('throws the usage text for %j', async (args) => {
     const { cli } = await makeService();

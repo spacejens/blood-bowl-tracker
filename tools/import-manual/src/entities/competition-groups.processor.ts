@@ -21,7 +21,7 @@ export class CompetitionGroupsProcessor {
    * A group's own external id is not authored in the data file -- it is derived
    * in code from the group's name under the synthetic "Name" system, the same
    * way BblLeaguesImportService derives a league's. Because that id is the
-   * same every run, the upsert is idempotent and a phase that re-processes
+   * same every run, the upsert is idempotent and a run that re-processes
    * the catalog re-resolves the very same rows rather than duplicating them.
    * The catalog is curated once, in batch 001, alongside
    * the competitions that classify into it.
