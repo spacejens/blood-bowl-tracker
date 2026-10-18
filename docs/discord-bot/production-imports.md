@@ -68,8 +68,11 @@ To run an import against production:
    `3001` is the local port the tunnel listens on; `3000` after the colon is
    the production machine's own listening port (see `fly.toml`), which is
    unrelated to this change and stays `3000`.
-4. In a second terminal, for a full import into a freshly reset database, run
-   the importers in the same order the `deploy-local` skill uses locally —
+4. In a second terminal, for a full import into an empty database — the
+   last-resort recovery path when no usable backup exists (see
+   [Restoring a backup into production](production-restore.md#when-to-use-it)),
+   not a routine run — run the importers in the same order the `deploy-local`
+   skill uses locally —
    manual batch 001, BBL, TP, remaining manual batches — each from its own tool
    directory:
 

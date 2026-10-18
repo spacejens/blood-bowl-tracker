@@ -17,6 +17,36 @@ Always review the generated SQL before committing. Drizzle-kit may generate `DRO
 
 Migrations are applied automatically at application startup. `createDb` in `packages/db` calls `drizzle-orm`'s `migrate()` before returning the database instance, so every deployment applies any pending migrations before the app begins handling requests. Migrations are roll-forward only; there is no rollback mechanism.
 
+### Changing data in a long-lived database
+
+The production database is never dropped. It is backed up daily and before
+every deploy (see [Database backups](discord-bot/production-backups.md)), so a
+change has to reach the data already there rather than rely on a rebuild. Each
+kind of change has one route:
+
+- **A migration** in `packages/db/migrations/`, for every schema change and for
+  every fix to existing rows that is not hand-curated data (a backfill, a
+  corrected value in importer-sourced data, a re-keyed row). It runs once per
+  database, at startup.
+- **A [manual batch](import-manual/batches.md)**, for all hand-curated data,
+  including a correction to a curated value that is already in the database: a
+  new batch applied once, never an edit to a batch a database already holds,
+  and never a migration.
+- **An importer**, only for what its source system sends. It creates and
+  updates rows from that source and never repairs rows the source no longer
+  describes (see [Re-running importers](#re-running-importers)), so it is never
+  the way to correct existing rows.
+
+Because tracked rows cannot be deleted (see [History tracking](#history-tracking)),
+a fix that retires a row flags it rather than removing it, as
+[Curated sets that shrink](#curated-sets-that-shrink) does.
+
+Migrations are roll-forward only, so a migration that damages data is not
+undone by reverting it: fix forward with another migration, or restore the
+backup taken before that deploy (see
+[Restoring a backup into production](discord-bot/production-restore.md)).
+Re-importing everything is not a way to apply a change.
+
 ## History tracking
 
 Every table in `packages/db/src/schema` — both the `game_data` schema
@@ -156,8 +186,10 @@ every write path is safe to repeat:
   coach, competition, skill, position, team or race name only when it
   creates the row (see
   [imports](api/imports.md#upserts-overlay-they-do-not-replace)).
-- Dropping the database and importing from scratch stays the recovery path:
-  a create still takes the source's name. A scratch import ends in the same
+- Importing from scratch into an empty database is the last-resort recovery
+  path, for when no usable backup exists;
+  [restoring a backup](discord-bot/production-restore.md) comes first. A
+  create still takes the source's name, so a scratch import ends in the same
   state as a long-lived database, where a merged row keeps the name it was
   created with (or the curated one) rather than the last source's spelling.
 
