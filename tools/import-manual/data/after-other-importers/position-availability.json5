@@ -25,9 +25,10 @@
 //
 // Each entry re-states the position's curated `name` verbatim, because the
 // manual importer renames existing rows -- a mismatched name would rename the
-// position rather than leave it alone. `isStarPlayer` is likewise re-stated (false, for every
-// entry below -- none of these are star players), since on a fresh database
-// this phase creates the row and positions.is_star_player is NOT NULL.
+// position rather than leave it alone. `isStarPlayer` is likewise re-stated
+// (false, for every entry below -- none of these are star players), since on a
+// fresh database this phase creates the row and positions.is_star_player is
+// NOT NULL.
 //
 // Restoration set: every position with a curated CRP `position_rules_sets`
 // entry in data/after-other-importers/position-characteristics.json5 (Tasks
@@ -37,23 +38,12 @@
 // Stunty-Leeg-handbook-sourced position curated there (Tasks 10-11).
 //
 // Source importers set a position's name only when they create the row, so
-// the curated name from races-and-positions.json5 is the one that sticks.
-// Because this file runs in the after-other-importers phase, its `name`
-// re-statements (see below) win over anything a before-other-importers file
-// (e.g. races-and-positions.json5) curates for the same position: this phase
-// runs later and renames whatever name is given here. A future
-// rename curated in a before-phase file for a position also listed below
-// would therefore be silently reverted by this file on the next import.
-// This overlap is active today for four positions renamed across rules-set
-// generations -- Dwarf Lineman, Skink Lineman, Norse Raider, and Troll --
-// whose before-phase entry in races-and-positions.json5 and after-phase
-// entry here both re-state the same current name on purpose, so the two
-// files agree and neither reverts the other's rename.
-//
-// Each entry's `name` equals the name races-and-positions.json5 gives the
-// same row (curated-data.spec.ts enforces it for every shared Name id): this
-// phase renames the row, so a different spelling here would rename it back
-// and forth on every run.
+// only the two manual phases ever rename a position, and this phase runs
+// last. Both files must therefore carry the same name for every position
+// they share: a different spelling in either file would rename the row back
+// and forth on every import. Each entry's `name` equals the name
+// races-and-positions.json5 gives the same row, and curated-data.spec.ts
+// enforces it for every shared Name id.
 {
   externalSystems: [
     { name: 'Name', category: 'bookkeeping' },
