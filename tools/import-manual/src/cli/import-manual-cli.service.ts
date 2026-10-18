@@ -1,0 +1,118 @@
+import { resolve } from 'node:path';
+
+import type { ImportError } from '@blood-bowl-tracker/import';
+import { Inject, Injectable } from '@nestjs/common';
+
+import { BatchRunnerService } from '../batches/batch-runner.service';
+import type { BatchPhase } from '../batches/manual-batch';
+import { ManualImportService } from '../import/manual-import.service';
+import { MANUAL_DATA_DIR } from './manual-data-dir';
+
+const USAGE =
+  'Usage: node dist/main.js before-sources | after-sources | ' +
+  'mark-applied <batch>... | <data-directory>';
+
+/** The command line a run was given. */
+export interface CliInvocation {
+  args: string[];
+  /** The directory a directory argument is resolved against. */
+  cwd: string;
+}
+
+/** What main.ts prints, and the exit code it ends with. */
+export interface CliOutcome {
+  stdout: string[];
+  stderr: string[];
+  exitCode: number;
+}
+
+/**
+ * Maps the command line onto a run: `before-sources` / `after-sources` apply
+ * the unapplied batches of that phase, `mark-applied <batch>...` records
+ * batches without importing them, and any other argument is a directory
+ * imported ad hoc, which records nothing.
+ */
+@Injectable()
+export class ImportManualCliService {
+  constructor(
+    @Inject(MANUAL_DATA_DIR) private readonly dataDir: string,
+    private readonly runner: BatchRunnerService,
+    private readonly manualImport: ManualImportService,
+  ) {}
+
+  async execute(invocation: CliInvocation): Promise<CliOutcome> {
+    const [command, ...rest] = invocation.args;
+    switch (command) {
+      case undefined:
+      case '':
+        throw new Error(USAGE);
+      case 'before-sources':
+        return this.runPhase('before');
+      case 'after-sources':
+        return this.runPhase('after');
+      case 'mark-applied':
+        return this.markApplied(rest);
+      default:
+        return this.runDirectory(resolve(invocation.cwd, command));
+    }
+  }
+
+  private async runPhase(phase: BatchPhase): Promise<CliOutcome> {
+    const outcome = await this.runner.runPhase(phase, this.dataDir);
+    const stdout = [
+      ...outcome.skipped.map(
+        (name) => `Skipped batch ${name} (already applied).`,
+      ),
+      ...outcome.applied.map((name) => `Applied batch ${name}.`),
+    ];
+    if (outcome.failed === undefined) {
+      return {
+        stdout: [...stdout, this.successLine(outcome.imported)],
+        stderr: [],
+        exitCode: 0,
+      };
+    }
+    return {
+      stdout,
+      stderr: [
+        ...this.errorLines(outcome.failed.errors),
+        `Batch ${outcome.failed.name} was not recorded as applied; later batches were not attempted.`,
+      ],
+      exitCode: 1,
+    };
+  }
+
+  private async markApplied(names: string[]): Promise<CliOutcome> {
+    const outcome = await this.runner.markApplied(names, this.dataDir);
+    return {
+      stdout: [
+        ...outcome.alreadyRecorded.map(
+          (name) => `Batch ${name} was already recorded as applied.`,
+        ),
+        ...outcome.recorded.map(
+          (name) => `Recorded batch ${name} as applied, without importing it.`,
+        ),
+      ],
+      stderr: [],
+      exitCode: 0,
+    };
+  }
+
+  private async runDirectory(dir: string): Promise<CliOutcome> {
+    const result = await this.manualImport.run(dir);
+    return result.success
+      ? { stdout: [this.successLine(result.imported)], stderr: [], exitCode: 0 }
+      : { stdout: [], stderr: this.errorLines(result.errors), exitCode: 1 };
+  }
+
+  private successLine(imported: number): string {
+    return `Imported ${imported} record(s) successfully.`;
+  }
+
+  private errorLines(errors: ImportError[]): string[] {
+    return [
+      `Import completed with ${errors.length} errors:`,
+      ...errors.map((error) => `  - ${error.message}`),
+    ];
+  }
+}
