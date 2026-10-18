@@ -238,13 +238,13 @@ Run this section only if "Run the TP import" was selected in step 0 above. Runs 
 
 Run this section only if "Run the manual import (remaining batches)" was selected in step 0 above. Runs after the "Deploy the stack", "Restore a database backup", "Run the manual import (first batch)", "Run the BBL import", and "Run the TP import" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to clean up names or attach external IDs after the system-specific importers already ran.
 
-1. Check `tools/import-manual/import-manual-config.json5` is usable, copying the template if absent (identical to the "before" subsection's step 1).
+1. Check `tools/import-manual/import-manual-config.json5` is usable, copying the template if absent (identical to the "Run the manual import (first batch)" section's step 1).
 2. Build and run the plain `apply` command, which applies every batch not yet applied, in number order:
    ```bash
    pnpm --filter @blood-bowl-tracker/import-manual run build
    ( cd tools/import-manual && node dist/main.js apply )
    ```
-3. Report the outcome to the developer using the same success/error/`Import failed:` message formats as the "before" subsection's step 3. No automatic rollback; never tear down containers regardless of outcome.
+3. Report the outcome to the developer using the same success/error/`Import failed:` message formats as the "Run the manual import (first batch)" section's step 3. No automatic rollback; never tear down containers regardless of outcome.
 
 ### Run the match-event review tool
 
