@@ -24,9 +24,8 @@ records.
 ## What gets replaced
 
 Only the application schemas, `game_data`, `discord_bot_usage`, `drizzle`
-and `public`; the restore recreates `public`
-empty before filling it from the backup (an archive never lists `public` as a
-schema of its own). Neon's own schemas are never touched. Everything written
+and `public`; the restore recreates `public` empty before filling it from the
+backup (an archive never lists `public` as a schema of its own). Neon's own schemas are never touched. Everything written
 to production after the backup was taken is lost; the safety backup keeps it
 recoverable.
 
@@ -64,7 +63,8 @@ it is restored. It:
    started again and nothing is restored. It then dry-runs the safety backup
    to check it could be restored. That check is skipped when any of
    production's key tables was empty or missing, since such a backup is
-   refused; the undo is then a re-import. If the check fails anyway (for
+   refused; the undo is then restoring an older backup or, with none usable,
+   a full re-import. If the check fails anyway (for
    example because production's migrations table was damaged), it shows the
    error and asks whether to continue without a restorable safety backup or
    stop and start the machines again.
