@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { ExternalIdSchema } from './external-id';
+import { RenameExistingSchema } from './shared/rename-existing';
 
 export const RaceSchema = z.object({
   id: z.number(),
@@ -11,6 +12,7 @@ export const RaceSchema = z.object({
 
 export const UpsertRaceSchema = z.object({
   name: z.string().min(1).optional(),
+  renameExisting: RenameExistingSchema,
   eras: z.array(z.number().int()).default([]),
   externalIds: z.array(ExternalIdSchema).min(1),
 });

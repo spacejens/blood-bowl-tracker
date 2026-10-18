@@ -110,6 +110,7 @@ describe('TpRosterFilesImportService', () => {
       roster: { raw: 1 },
       era: 'Fourth era',
       externalSystemName: 'TP',
+      deferSppTotal: true,
       matchEmbeddedPlayers: [
         {
           id: 5009,
@@ -127,6 +128,25 @@ describe('TpRosterFilesImportService', () => {
     expect(options.buildErrorMessage(new Error('boom'))).toBe(
       'Failed to import roster 1 (era "Fourth era"): boom',
     );
+  });
+
+  it('keeps the highest reported total per player across outcomes', async () => {
+    const listing = (reportedSppTotal: number) =>
+      outcome({
+        importedPlayers: [
+          { lineUpId: 5001, playerId: 9, created: false, reportedSppTotal },
+        ],
+      });
+    importRunner.recordUpsertResult
+      .mockResolvedValueOnce(listing(10))
+      .mockResolvedValueOnce(listing(7));
+
+    const result = await service.importRosterFiles({
+      rosters: [entry(1, 'Fourth era'), entry(1, 'Third era')],
+      matchEmbeddedPlayersByRosterId: new Map(),
+    });
+
+    expect(result.reportedSppTotalsByPlayerId).toEqual(new Map([[9, 10]]));
   });
 
   it('sends a roster found in several competitions of one era once', async () => {
@@ -191,8 +211,18 @@ describe('TpRosterFilesImportService', () => {
     importRunner.recordUpsertResult.mockResolvedValue(
       outcome({
         importedPlayers: [
-          { lineUpId: 5001, playerId: 700, created: true },
-          { lineUpId: 5002, playerId: 701, created: false },
+          {
+            lineUpId: 5001,
+            playerId: 700,
+            created: true,
+            reportedSppTotal: 12,
+          },
+          {
+            lineUpId: 5002,
+            playerId: 701,
+            created: false,
+            reportedSppTotal: 3,
+          },
         ],
       }),
     );

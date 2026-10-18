@@ -34,7 +34,8 @@ for (const { rulesSet, fetch, write } of rulesSets) {
    one no TP era declares is still imported, without race/era availability.
 2. **Races** — grouped by display name, every variant `teamRaceCode` as a TP
    external id plus the name as a Name external id, available in the rules
-   set's TP eras.
+   set's TP eras. A race's and a position's name is set only when this import
+   creates it.
 3. **Positions and stars** — grouped by (race, name); TP position ids as TP
    external ids; a regular position's Name id is `Race: Position`, a star's
    its bare name (plus its name as a TP id), so both land on the same rows as

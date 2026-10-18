@@ -1,10 +1,15 @@
 import { DB } from '@blood-bowl-tracker/db';
+import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
+import {
+  extractAllFilterValues,
+  firstCallArg,
+} from '../shared/query-assertions.test-helpers';
 import { MaxCountTrophyRuleService } from './max-count-trophy-rule.service';
 import { MaxSppSumTrophyRuleService } from './max-spp-sum-trophy-rule.service';
 import { MissingTrophyAwardsService } from './missing-trophy-awards.service';
@@ -29,6 +34,7 @@ interface Mocks {
 async function makeService(rowsPerQuery: unknown[][]): Promise<{
   service: MissingTrophyAwardsService;
   mocks: Mocks;
+  chains: QueryChain[];
 }> {
   const db = mockDb(...rowsPerQuery);
   const mocks: Mocks = {
@@ -57,7 +63,11 @@ async function makeService(rowsPerQuery: unknown[][]): Promise<{
       { provide: DB, useValue: db.db },
     ],
   }).compile();
-  return { service: moduleRef.get(MissingTrophyAwardsService), mocks };
+  return {
+    service: moduleRef.get(MissingTrophyAwardsService),
+    mocks,
+    chains: db.chains,
+  };
 }
 
 const COMPETITION_SCOPE = [{ competitionGroupId: 4, leagueId: 1 }];
@@ -300,5 +310,25 @@ describe('MissingTrophyAwardsService', () => {
       createdAwardCount: 0,
       awardedTrophyIds: [],
     });
+  });
+
+  it('reads only curated rule rows that are not soft-removed', async () => {
+    const { service, chains } = await makeService([
+      COMPETITION_SCOPE,
+      [trophyRow({ id: 11, awardRuleKind: 'max_spp_sum' })],
+      [],
+      [],
+      [],
+      [],
+    ]);
+
+    await service.computeMissingAwards(3);
+
+    // 3 included types, 4 excluded types, 5 curated eligible positions.
+    for (const index of [3, 4, 5]) {
+      expect(extractAllFilterValues(firstCallArg(chains[index].where))).toEqual(
+        [11, false],
+      );
+    }
   });
 });

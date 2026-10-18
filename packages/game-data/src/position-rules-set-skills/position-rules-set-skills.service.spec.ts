@@ -49,6 +49,41 @@ describe('PositionRulesSetSkillsService', () => {
       expect(db.transaction).not.toHaveBeenCalled();
     });
 
+    it("keeps an existing row's attribute value when the batch is insert-only", async () => {
+      const db = mockDb(
+        [positionRulesSetRow],
+        [skillRulesSetRow],
+        [{ id: 51, positionRulesSetId: 21, skillId: 7, attributeValue: null }],
+      );
+      const service = await makeService(db);
+
+      const result = await service.sync({
+        entries: [{ ...entry, attributeValue: '4+' }],
+        insertOnly: true,
+      });
+
+      expect(result).toEqual({ positionRulesSetSkillIds: [51] });
+      expect(db.chains).toHaveLength(3);
+      expect(db.transaction).not.toHaveBeenCalled();
+    });
+
+    it('skips the update when an existing row has a different non-null value and the batch is insert-only', async () => {
+      const db = mockDb(
+        [positionRulesSetRow],
+        [skillRulesSetRow],
+        [{ id: 51, positionRulesSetId: 21, skillId: 7, attributeValue: '3+' }],
+      );
+      const service = await makeService(db);
+
+      const result = await service.sync({
+        entries: [{ ...entry, attributeValue: '4+' }],
+        insertOnly: true,
+      });
+
+      expect(result).toEqual({ positionRulesSetSkillIds: [51] });
+      expect(db.transaction).not.toHaveBeenCalled();
+    });
+
     it("inserts a starting skill against the position's own association row", async () => {
       const db = mockDb(
         [positionRulesSetRow],

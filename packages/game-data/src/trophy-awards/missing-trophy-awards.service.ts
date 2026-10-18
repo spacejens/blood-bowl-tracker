@@ -186,7 +186,12 @@ export class MissingTrophyAwardsService {
         consequenceType: trophyAwardRuleMatchEventTypes.consequenceType,
       })
       .from(trophyAwardRuleMatchEventTypes)
-      .where(inArray(trophyAwardRuleMatchEventTypes.trophyId, pendingIds));
+      .where(
+        and(
+          inArray(trophyAwardRuleMatchEventTypes.trophyId, pendingIds),
+          eq(trophyAwardRuleMatchEventTypes.removed, false),
+        ),
+      );
     const excluded = await this.db
       .select({
         trophyId: trophyAwardRuleExcludedMatchEventTypes.trophyId,
@@ -195,7 +200,10 @@ export class MissingTrophyAwardsService {
       })
       .from(trophyAwardRuleExcludedMatchEventTypes)
       .where(
-        inArray(trophyAwardRuleExcludedMatchEventTypes.trophyId, pendingIds),
+        and(
+          inArray(trophyAwardRuleExcludedMatchEventTypes.trophyId, pendingIds),
+          eq(trophyAwardRuleExcludedMatchEventTypes.removed, false),
+        ),
       );
     const includedByTrophy = groupEventTypes(included);
     const excludedByTrophy = groupEventTypes(excluded);
@@ -267,7 +275,12 @@ export class MissingTrophyAwardsService {
           trophyAwardRuleEligiblePositions.positionNameExternalId,
       })
       .from(trophyAwardRuleEligiblePositions)
-      .where(inArray(trophyAwardRuleEligiblePositions.trophyId, pendingIds));
+      .where(
+        and(
+          inArray(trophyAwardRuleEligiblePositions.trophyId, pendingIds),
+          eq(trophyAwardRuleEligiblePositions.removed, false),
+        ),
+      );
     if (curated.length === 0) {
       return new Map();
     }

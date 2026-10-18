@@ -106,6 +106,7 @@ describe('TpRosterPlayersImportService', () => {
       players?: TpRosterPlayer[];
       embedded?: TpRosterPlayer[];
       context?: ReturnType<typeof rosterContext>;
+      deferSppTotal?: boolean;
     } = {},
   ) =>
     service.importPlayers({
@@ -113,6 +114,7 @@ describe('TpRosterPlayersImportService', () => {
       matchEmbeddedPlayers: options.embedded ?? [],
       context: options.context ?? rosterContext(),
       teamEraId: TEAM_ERA_ID,
+      deferSppTotal: options.deferSppTotal,
       errors,
     });
 
@@ -130,7 +132,9 @@ describe('TpRosterPlayersImportService', () => {
     });
     expect(outcome).toEqual({
       imported: 1,
-      importedPlayers: [{ lineUpId: 5001, playerId: 700, created: true }],
+      importedPlayers: [
+        { lineUpId: 5001, playerId: 700, created: true, reportedSppTotal: 12 },
+      ],
       mercenaryPositionUsages: [],
     });
     expect(errors).toEqual([]);
@@ -168,6 +172,36 @@ describe('TpRosterPlayersImportService', () => {
     });
 
     expect(mocks.players.upsert.mock.calls[0][0].sppTotal).toBe(20);
+  });
+
+  it('reports the highest total as the reported total', async () => {
+    const service = await makeService();
+
+    const outcome = await run(service, {
+      players: [rosterPlayer({ totalStarPlayerPoints: 12 })],
+      embedded: [rosterPlayer({ totalStarPlayerPoints: 20 })],
+    });
+
+    expect(outcome.importedPlayers[0].reportedSppTotal).toBe(20);
+  });
+
+  it('sends no sppTotal when the caller defers it, but still reports it', async () => {
+    const service = await makeService();
+
+    const outcome = await run(service, { deferSppTotal: true });
+
+    expect(mocks.players.upsert.mock.calls[0][0]).not.toHaveProperty(
+      'sppTotal',
+    );
+    expect(outcome.importedPlayers[0].reportedSppTotal).toBe(12);
+  });
+
+  it('sends the raw total when the caller does not defer it', async () => {
+    const service = await makeService();
+
+    await run(service, { deferSppTotal: false });
+
+    expect(mocks.players.upsert.mock.calls[0][0].sppTotal).toBe(12);
   });
 
   it('skips a player whose position does not resolve (error recorded by the position service)', async () => {
@@ -591,7 +625,7 @@ describe('TpRosterPlayersImportService', () => {
       const outcome = await run(service);
 
       expect(outcome.importedPlayers).toEqual([
-        { lineUpId: 5001, playerId: 900, created: false },
+        { lineUpId: 5001, playerId: 900, created: false, reportedSppTotal: 12 },
       ]);
     });
 
@@ -606,7 +640,7 @@ describe('TpRosterPlayersImportService', () => {
       const outcome = await run(service);
 
       expect(outcome.importedPlayers).toEqual([
-        { lineUpId: 5001, playerId: 900, created: true },
+        { lineUpId: 5001, playerId: 900, created: true, reportedSppTotal: 12 },
       ]);
     });
   });

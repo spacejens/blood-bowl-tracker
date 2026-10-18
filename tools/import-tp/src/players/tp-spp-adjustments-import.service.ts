@@ -22,16 +22,23 @@ export interface ImportSppAdjustmentsOptions {
    * ongoing-competition estimate.
    */
   careerCountsByPlayerId?: Map<number, SppCareerCounts>;
+  /**
+   * TP's reported career total per DB player id, from the roster import. A
+   * player missing here (an induced star) is skipped server-side.
+   */
+  reportedSppTotalsByPlayerId?: Map<number, number>;
 }
 
 /**
  * Reconciles `players.spp_adjustment` for every player this TP run imported.
  *
- * TP reports an independently trusted, era-correct career total, which the
- * players step already stored as `players.spp_total` — so this step only
- * measures the gap between that total and what the player's events explain,
- * and never rewrites `spp_total`. Players TP reported no total for (e.g. an
- * induced star player) are skipped server-side and keep a NULL adjustment.
+ * TP reports an independently trusted, era-correct career total. The roster
+ * import returns it rather than storing it, and this step sends it per
+ * player: the server writes `spp_total` (the reported total with the
+ * ongoing-competition estimate backed out) and the remaining gap as
+ * `spp_adjustment`. It is the only writer of `spp_total` in a TP run. Players
+ * TP reported no total for (e.g. an induced star player) are skipped and keep
+ * a NULL adjustment.
  *
  * TP's total is career-wide, including competitions still in progress that have
  * not been downloaded/imported yet, so each player's career action counts are
@@ -54,6 +61,7 @@ export class TpSppAdjustmentsImportService {
   async importSppAdjustments({
     playerIds,
     careerCountsByPlayerId,
+    reportedSppTotalsByPlayerId,
   }: ImportSppAdjustmentsOptions): Promise<{
     result: ImportResult;
     nonzeroAdjustments: SppAdjustmentSummary[];
@@ -71,6 +79,7 @@ export class TpSppAdjustmentsImportService {
         {
           players: chunk.map((playerId) => ({
             playerId,
+            reportedSppTotal: reportedSppTotalsByPlayerId?.get(playerId),
             careerCounts: careerCountsByPlayerId?.get(playerId),
           })),
         },

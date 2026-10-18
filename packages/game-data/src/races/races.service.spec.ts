@@ -126,10 +126,42 @@ describe('RacesService', () => {
         [],
         [],
       );
-      const result = await service.upsert(baseData);
+      const result = await service.upsert({
+        ...baseData,
+        renameExisting: true,
+      });
       expect(result.created).toBe(false);
       expect(chains).toHaveLength(4);
       expect(db.update).toHaveBeenCalledWith(races);
+    });
+
+    it('keeps the stored name when an update does not ask to rename', async () => {
+      // The lookup matches race 1 and the payload carries nothing else to
+      // write, so the row is re-selected instead of updated: no history row.
+      const { db } = await build(
+        [{ ownerId: 1, externalSystemId: 1, externalId: 'Orc' }],
+        [fakeRace],
+        [],
+        [],
+      );
+
+      const result = await service.upsert({ ...baseData, name: 'Orcs' });
+
+      expect(db.update).not.toHaveBeenCalled();
+      expect(result.race.name).toBe('Orc');
+    });
+
+    it('renames on update when the payload asks to', async () => {
+      const { chains } = await build(
+        [{ ownerId: 1, externalSystemId: 1, externalId: 'Orc' }],
+        [fakeRace],
+        [],
+        [],
+      );
+
+      await service.upsert({ ...baseData, name: 'Orcs', renameExisting: true });
+
+      expect(firstCallArg(chains[1].set)).toEqual({ name: 'Orcs' });
     });
 
     it('throws RaceUpsertConflictError when external IDs match different races', async () => {

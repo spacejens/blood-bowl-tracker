@@ -191,7 +191,10 @@ export class RacesService {
       db: this.db,
       entityTable: races,
       entityIdColumn: races.id,
-      values: { name: data.name },
+      // A race's name is curated by tools/import-manual once the row exists;
+      // only an upsert that says so may overwrite it.
+      values: data.renameExisting === true ? { name: data.name } : {},
+      createOnlyValues: { name: data.name },
       externalIdTable: raceExternalIds,
       ownerIdColumn: raceExternalIds.raceId,
       externalSystemIdColumn: raceExternalIds.externalSystemId,

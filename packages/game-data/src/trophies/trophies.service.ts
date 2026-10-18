@@ -5,6 +5,7 @@ import type {
 } from '@blood-bowl-tracker/api-contract';
 import type { Db, Trophy } from '@blood-bowl-tracker/db';
 import {
+  and,
   competitionGroups,
   competitions,
   countDistinct,
@@ -23,7 +24,6 @@ import {
 import { Inject, Injectable } from '@nestjs/common';
 
 import { countRows } from '../shared/count-all';
-import type { DbOrTx } from '../shared/db-or-tx';
 import type { FactScope } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
 import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
@@ -33,6 +33,7 @@ import type {
   TrophyAwardRuleKind,
   TrophyAwardRuleMeasure,
 } from '../trophy-awards/trophy-rule-types';
+import { TrophyRuleCurationSyncService } from './trophy-rule-curation-sync.service';
 
 export class TrophyUpsertConflictError extends UpsertConflictError {}
 
@@ -63,22 +64,12 @@ export type TrophyHeader = {
   awardRuleMeasure: TrophyAwardRuleMeasure | null;
 };
 
-/**
- * One upsert's curated rule arrays after `effectiveRuleCuration` has resolved
- * what an omitted array means for that upsert's award rule kind. `undefined`
- * leaves the corresponding table alone; an array replaces its rows wholesale.
- */
-type RuleCuration = {
-  included: UpsertTrophy['awardRuleMatchEventTypes'];
-  excluded: UpsertTrophy['awardRuleExcludedMatchEventTypes'];
-  eligible: UpsertTrophy['awardRuleEligiblePositions'];
-};
-
 @Injectable()
 export class TrophiesService {
   constructor(
     @Inject(DB) private readonly db: Db,
     private readonly likePattern: LikePatternService,
+    private readonly ruleCurationSync: TrophyRuleCurationSyncService,
   ) {}
 
   /**
@@ -235,7 +226,12 @@ export class TrophiesService {
         consequenceType: trophyAwardRuleMatchEventTypes.consequenceType,
       })
       .from(trophyAwardRuleMatchEventTypes)
-      .where(eq(trophyAwardRuleMatchEventTypes.trophyId, trophyId))
+      .where(
+        and(
+          eq(trophyAwardRuleMatchEventTypes.trophyId, trophyId),
+          eq(trophyAwardRuleMatchEventTypes.removed, false),
+        ),
+      )
       .orderBy(
         trophyAwardRuleMatchEventTypes.actionType,
         trophyAwardRuleMatchEventTypes.consequenceType,
@@ -246,7 +242,12 @@ export class TrophiesService {
         consequenceType: trophyAwardRuleExcludedMatchEventTypes.consequenceType,
       })
       .from(trophyAwardRuleExcludedMatchEventTypes)
-      .where(eq(trophyAwardRuleExcludedMatchEventTypes.trophyId, trophyId))
+      .where(
+        and(
+          eq(trophyAwardRuleExcludedMatchEventTypes.trophyId, trophyId),
+          eq(trophyAwardRuleExcludedMatchEventTypes.removed, false),
+        ),
+      )
       .orderBy(
         trophyAwardRuleExcludedMatchEventTypes.actionType,
         trophyAwardRuleExcludedMatchEventTypes.consequenceType,
@@ -257,7 +258,12 @@ export class TrophiesService {
           trophyAwardRuleEligiblePositions.positionNameExternalId,
       })
       .from(trophyAwardRuleEligiblePositions)
-      .where(eq(trophyAwardRuleEligiblePositions.trophyId, trophyId))
+      .where(
+        and(
+          eq(trophyAwardRuleEligiblePositions.trophyId, trophyId),
+          eq(trophyAwardRuleEligiblePositions.removed, false),
+        ),
+      )
       .orderBy(trophyAwardRuleEligiblePositions.positionNameExternalId);
     return {
       includedActionTypes: included
@@ -362,9 +368,10 @@ export class TrophiesService {
    * The trophy row's scalar rule columns and its junction-table event types
    * must commit or roll back together — a trophy left holding a new rule
    * kind beside a stale set of event-type rows from its old rule is an
-   * inconsistent, half-migrated state. The event-type sync therefore runs as
-   * `upsertByExternalIds`' `afterUpsert` hook, inside the transaction that
-   * helper already opens, rather than in a second one of its own. Handing the
+   * inconsistent, half-migrated state. The rule-curation sync
+   * (`TrophyRuleCurationSyncService`) therefore runs as `upsertByExternalIds`'
+   * `afterUpsert` hook, inside the transaction that helper already opens,
+   * rather than in a second one of its own. Handing the
    * sync to the helper this way — instead of opening an outer transaction
    * here and passing it down — also keeps the helper's lost-external-id-race
    * retry, which only it can safely own.
@@ -400,138 +407,10 @@ export class TrophiesService {
       ConflictErrorClass: TrophyUpsertConflictError,
       entityLabelPlural: 'trophies',
       buildExternalIdRow: (trophyId, pair) => ({ trophyId, ...pair }),
-      afterUpsert: (tx, row) => this.syncRuleCuration(tx, row.id, data),
+      afterUpsert: (tx, row) => this.ruleCurationSync.sync(tx, row.id, data),
     });
 
     return { trophy, created };
-  }
-
-  /**
-   * Replace every curated part of the trophy's award rule — its event types
-   * and its eligible positions — on the transaction handle
-   * `upsertByExternalIds` hands its `afterUpsert` hook, so a failed sync rolls
-   * back the trophy row's own just-written changes too rather than leaving
-   * half of an old rule beside half of a new one. The two junction tables are
-   * synced together for that reason: a rule is only consistent when all of its
-   * parts describe the same rule.
-   */
-  private async syncRuleCuration(
-    tx: DbOrTx,
-    trophyId: number,
-    data: UpsertTrophy,
-  ): Promise<void> {
-    const curation = this.effectiveRuleCuration(data);
-    await this.syncRuleEventTypes(tx, trophyId, curation);
-    await this.syncRuleEligiblePositions(tx, trophyId, curation);
-  }
-
-  /**
-   * The three curated rule arrays as this upsert should apply them, where
-   * `undefined` still means "leave that table's rows alone".
-   *
-   * Omitting an array normally means exactly that, matching how the scalar
-   * columns overlay rather than reset. An upsert that declares a non-computed
-   * kind (`direct_source` or `manual`) is the exception: such a trophy's
-   * winner is recorded by the source or curated by hand, so nothing about it
-   * is computed and it can hold no match-event types and no eligible
-   * positions at all. Every array there is forced to "none", whether it was
-   * omitted or supplied: an omitted one must not leave the event types and
-   * position restrictions of the computed rule the trophy no longer has, and
-   * a supplied one must not persist curation the kind cannot use in the first
-   * place. Rejecting a supplied array instead would make every caller that
-   * reclassifies a trophy blank the arrays by hand first.
-   */
-  private effectiveRuleCuration(data: UpsertTrophy): RuleCuration {
-    const computes =
-      data.awardRuleKind !== 'direct_source' && data.awardRuleKind !== 'manual';
-    const cleared = <T>(value: T[] | undefined): T[] | undefined =>
-      computes ? value : [];
-    return {
-      included: cleared(data.awardRuleMatchEventTypes),
-      excluded: cleared(data.awardRuleExcludedMatchEventTypes),
-      eligible: cleared(data.awardRuleEligiblePositions),
-    };
-  }
-
-  /**
-   * Replace the trophy's curated eligible positions, on the same transaction
-   * handle and with the same omitted-leaves-alone / empty-clears semantics as
-   * the event-type sync below. The rows store the position's `Name`-system
-   * external id rather than a position id, because this is curated in
-   * tools/import-manual's `before-other-importers` phase, where no `positions`
-   * row exists yet — see the table's own comment.
-   */
-  private async syncRuleEligiblePositions(
-    tx: DbOrTx,
-    trophyId: number,
-    curation: RuleCuration,
-  ): Promise<void> {
-    const eligible = curation.eligible;
-    if (eligible === undefined) {
-      return;
-    }
-    await tx
-      .delete(trophyAwardRuleEligiblePositions)
-      .where(eq(trophyAwardRuleEligiblePositions.trophyId, trophyId));
-    if (eligible.length > 0) {
-      await tx.insert(trophyAwardRuleEligiblePositions).values(
-        eligible.map((positionNameExternalId) => ({
-          trophyId,
-          positionNameExternalId,
-        })),
-      );
-    }
-  }
-
-  /**
-   * Replace the trophy's curated included and excluded rule event types.
-   * Delete-then-insert rather than a diff: the rows are a small curated set
-   * with no identity of their own beyond the pair they name.
-   *
-   * An omitted array leaves that table's rows untouched — the same overlay
-   * semantics the scalar columns have — while an empty array clears them,
-   * which is how a trophy reclassified away from a computed kind drops its
-   * stale rule. `effectiveRuleCuration` above is what turns an omission into
-   * an empty array when the upsert's own kind computes nothing.
-   */
-  private async syncRuleEventTypes(
-    tx: DbOrTx,
-    trophyId: number,
-    curation: RuleCuration,
-  ): Promise<void> {
-    const included = curation.included;
-    const excluded = curation.excluded;
-    if (included === undefined && excluded === undefined) {
-      return;
-    }
-    if (included !== undefined) {
-      await tx
-        .delete(trophyAwardRuleMatchEventTypes)
-        .where(eq(trophyAwardRuleMatchEventTypes.trophyId, trophyId));
-      if (included.length > 0) {
-        await tx.insert(trophyAwardRuleMatchEventTypes).values(
-          included.map((entry) => ({
-            trophyId,
-            actionType: entry.actionType ?? null,
-            consequenceType: entry.consequenceType ?? null,
-          })),
-        );
-      }
-    }
-    if (excluded !== undefined) {
-      await tx
-        .delete(trophyAwardRuleExcludedMatchEventTypes)
-        .where(eq(trophyAwardRuleExcludedMatchEventTypes.trophyId, trophyId));
-      if (excluded.length > 0) {
-        await tx.insert(trophyAwardRuleExcludedMatchEventTypes).values(
-          excluded.map((entry) => ({
-            trophyId,
-            actionType: entry.actionType ?? null,
-            consequenceType: entry.consequenceType ?? null,
-          })),
-        );
-      }
-    }
   }
 
   /**

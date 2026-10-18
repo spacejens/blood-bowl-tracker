@@ -60,6 +60,13 @@ describe('position rules set schemas', () => {
     ).toThrow();
   });
 
+  it('keeps an insert-only flag rather than stripping it', () => {
+    expect(
+      SyncPositionRulesSetsSchema.parse({ entries: [], insertOnly: true })
+        .insertOnly,
+    ).toBe(true);
+  });
+
   it('wraps entries in the sync input and ids in the sync result', () => {
     expect(SyncPositionRulesSetsSchema.parse({ entries: [] })).toEqual({
       entries: [],

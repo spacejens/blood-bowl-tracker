@@ -59,9 +59,8 @@ export type StartingSkillNames = Map<number, Map<number, StartingSkillRef[]>>;
  * and the curated files land on one row), check the curated category exists
  * for that rules set, and sync the association.
  *
- * Shared rather than duplicated per tool: BBL and TP differ only in how they
- * arrive at the names (an HTML column vs. an id lookup), not in what happens
- * afterwards.
+ * Used by the BBL importer; TP's starting skills are written server-side by
+ * `packages/import-tp-live`. Every association is inserted only, never updated.
  *
  * A skill with no curated skill_rules_sets row for a rules set is an
  * ImportError pointing the developer at tools/import-manual, reported once per
@@ -257,7 +256,10 @@ export class StartingSkillsImportService {
         }
         const result =
           await this.positionRulesSetSkillsImport.syncPositionRulesSetSkills(
-            { entries },
+            // Insert-only: this service's only caller is the BBL importer, whose
+            // attribute-value spellings must not rewrite TP's on a re-run. TP's
+            // starting skills go through import-tp-live, which overwrites.
+            { entries, insertOnly: true },
             errors,
           );
         if (result) {

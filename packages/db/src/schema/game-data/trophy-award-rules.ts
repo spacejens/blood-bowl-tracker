@@ -1,5 +1,12 @@
 import { sql } from 'drizzle-orm';
-import { check, integer, serial, unique, varchar } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  check,
+  integer,
+  serial,
+  unique,
+  varchar,
+} from 'drizzle-orm/pg-core';
 
 import { historyTrackedTable } from '../history';
 import { actionTypeEnum, consequenceTypeEnum } from './match-events';
@@ -20,6 +27,7 @@ import { trophies } from './trophies';
  *
  * Empty for a `direct_source`/`manual` trophy, and legitimately empty for a
  * `max_spp_sum` trophy that sums every SPP-bearing event.
+ * A row with `removed` set is no longer part of the rule.
  */
 const trophyAwardRuleMatchEventTypesTable = historyTrackedTable({
   schema: gameData,
@@ -31,6 +39,13 @@ const trophyAwardRuleMatchEventTypesTable = historyTrackedTable({
       .notNull(),
     actionType: actionTypeEnum('action_type'),
     consequenceType: consequenceTypeEnum('consequence_type'),
+    /**
+     * Soft removal. A tracked row can never be deleted (see
+     * docs/database.md), so a row the trophy's curated rule no longer lists
+     * is flagged instead, and cleared again if the rule lists it once more.
+     * Every reader filters on `removed = false`.
+     */
+    removed: boolean('removed').notNull().default(false),
   },
   extraConfig: (t) => ({
     oneType: check(
@@ -59,6 +74,13 @@ const trophyAwardRuleExcludedMatchEventTypesTable = historyTrackedTable({
       .notNull(),
     actionType: actionTypeEnum('action_type'),
     consequenceType: consequenceTypeEnum('consequence_type'),
+    /**
+     * Soft removal. A tracked row can never be deleted (see
+     * docs/database.md), so a row the trophy's curated rule no longer lists
+     * is flagged instead, and cleared again if the rule lists it once more.
+     * Every reader filters on `removed = false`.
+     */
+    removed: boolean('removed').notNull().default(false),
   },
   extraConfig: (t) => ({
     oneType: check(
@@ -93,9 +115,11 @@ const trophyAwardRuleExcludedMatchEventTypesTable = historyTrackedTable({
  *    point a foreign key at. A curated string needs nothing to resolve
  *    against at curation time; it is matched at computation time, when the
  *    positions do exist.
- *  - Stability. `positions.name` is overwritten by whichever importer wrote
- *    last (BBL calls the position "Ogre Blockers", TP "Ogre Blocker"), so
- *    matching on the bare name would depend on which importer is mid-run.
+ *  - Stability. `positions.name` is the curated name once the row exists,
+ *    but a position first created by a source importer carries that
+ *    importer's spelling (BBL calls the position "Ogre Blockers", TP "Ogre
+ *    Blocker"), so matching on the bare name would depend on which importer
+ *    created it.
  *    External ids are only ever added, never rewritten, so the Name id is
  *    stable from the moment the position is first created.
  *
@@ -115,6 +139,13 @@ const trophyAwardRuleEligiblePositionsTable = historyTrackedTable({
     positionNameExternalId: varchar('position_name_external_id', {
       length: 255,
     }).notNull(),
+    /**
+     * Soft removal. A tracked row can never be deleted (see
+     * docs/database.md), so a row the trophy's curated rule no longer lists
+     * is flagged instead, and cleared again if the rule lists it once more.
+     * Every reader filters on `removed = false`.
+     */
+    removed: boolean('removed').notNull().default(false),
   },
   extraConfig: (t) => ({
     uniquePosition: unique(

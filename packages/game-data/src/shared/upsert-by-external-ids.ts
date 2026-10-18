@@ -39,6 +39,15 @@ export interface UpsertByExternalIdsOptions<
    * caller actively clears a nullable column.
    */
   values: Partial<InferInsertModel<TEntityTable>>;
+  /**
+   * Column values written only when this upsert creates the row, and ignored
+   * when it updates an existing one. Used for a field whose stored value is
+   * curated elsewhere once the row exists — a source importer's name for a
+   * coach, say — so a re-run creates the row with the source's value but
+   * never overwrites the curated one. A key also present in `values` takes
+   * `values`' value. `undefined` keys are stripped exactly as in `values`.
+   */
+  createOnlyValues?: Partial<InferInsertModel<TEntityTable>>;
   /** The external-id join table (e.g. `eraExternalIds`). */
   externalIdTable: TExternalIdTable;
   /** The owner FK column on the join table (e.g. `eraExternalIds.eraId`). */
@@ -274,7 +283,11 @@ async function runUpsertAttempt<
 
   let rows: InferSelectModel<TEntityTable>[];
   if (created) {
-    const missing = missingRequiredColumns(opts.entityTable, values);
+    const insertValues = {
+      ...stripUndefined(opts.createOnlyValues ?? {}),
+      ...values,
+    };
+    const missing = missingRequiredColumns(opts.entityTable, insertValues);
     if (missing.length > 0) {
       throw new MissingRequiredFieldError(
         `Cannot create new ${opts.entityLabelPlural}: missing required field(s): ${missing.join(', ')}`,
@@ -282,7 +295,7 @@ async function runUpsertAttempt<
     }
     rows = (await handle
       .insert(opts.entityTable)
-      .values(values as unknown as InferInsertModel<TEntityTable>)
+      .values(insertValues as unknown as InferInsertModel<TEntityTable>)
       .returning()) as InferSelectModel<TEntityTable>[];
   } else if (Object.keys(values).length === 0) {
     // Nothing to write: drizzle rejects `.set({})`, and there is nothing to
@@ -332,7 +345,8 @@ async function runUpsertAttempt<
  *
  * `values` is partial: keys whose value is `undefined` are stripped before the
  * database sees them, so an update never overwrites a column the payload said
- * nothing about, while an explicit `null` still writes `null`.
+ * nothing about, while an explicit `null` still writes `null`. A caller's
+ * `createOnlyValues` join `values` on insert only; an update never sees them.
  *
  * A caller with further writes of its own that must land in the same
  * transaction supplies `afterUpsert` rather than opening an outer transaction

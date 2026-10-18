@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { ImportTpRosterSchema, TpRosterImportResultSchema } from './tp-roster';
+import {
+  ImportTpRosterSchema,
+  TpImportedPlayerSchema,
+  TpRosterImportResultSchema,
+} from './tp-roster';
 
 const embedded = {
   id: 5001,
@@ -14,6 +18,25 @@ const embedded = {
 };
 
 describe('ImportTpRosterSchema', () => {
+  it('keeps the defer flag and reports each player total', () => {
+    expect(
+      ImportTpRosterSchema.parse({
+        roster: {},
+        era: 'Season 1',
+        externalSystemName: 'TP',
+        deferSppTotal: true,
+      }).deferSppTotal,
+    ).toBe(true);
+    expect(
+      TpImportedPlayerSchema.parse({
+        lineUpId: 1,
+        playerId: 2,
+        created: true,
+        reportedSppTotal: 14,
+      }).reportedSppTotal,
+    ).toBe(14);
+  });
+
   it('accepts raw roster JSON and defaults matchEmbeddedPlayers to none', () => {
     const parsed = ImportTpRosterSchema.parse({
       roster: { id: 163386, anything: ['raw'] },
@@ -60,7 +83,14 @@ describe('TpRosterImportResultSchema', () => {
         team: { ...empty, imported: 1 },
         players: empty,
         teamEras: [{ id: 31, eraId: 40 }],
-        importedPlayers: [{ lineUpId: 5001, playerId: 700, created: true }],
+        importedPlayers: [
+          {
+            lineUpId: 5001,
+            playerId: 700,
+            created: true,
+            reportedSppTotal: 12,
+          },
+        ],
         mercenaryPositionUsages: [
           { positionId: 55, teamRaceCode: 'orc', era: 'Fourth era' },
         ],

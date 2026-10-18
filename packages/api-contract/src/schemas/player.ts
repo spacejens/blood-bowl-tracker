@@ -116,7 +116,9 @@ export const UpsertPlayerSchema = z
     teamEraId: z.number().int().optional(),
     positionId: z.number().int().optional(),
     // The source's own reported Star Player Points total, where the source
-    // publishes a trustworthy one (TP does). BBL's published figure is NOT
+    // publishes a trustworthy one (TP does). The bulk TP import does not send
+    // it: it defers the total to players.syncReportedSppAdjustments, so only
+    // the live TP import writes it here. BBL's published figure is NOT
     // sent here: it was recalculated at BB2020 rates by the site's migration,
     // so BBL's spp_total is instead derived server-side as the era-correct
     // event sum plus the recovered spp_adjustment (see
@@ -253,11 +255,11 @@ export const SppCareerCountsSchema = z.object({
 });
 
 /**
- * Recompute `players.spp_adjustment` for players whose already-stored
- * `players.spp_total` is an independently trusted, era-correct figure — TP.
- * `players.spp_total` is rewritten to remove the estimated ongoing SPP,
- * without dropping below the confirmed imported total. A player with no
- * stored total is skipped.
+ * Recompute `players.spp_adjustment` and `players.spp_total` from the career
+ * total TP reports, sent per player as `reportedSppTotal`. This sync is the only
+ * writer of `spp_total` for the bulk TP import: the total is the reported
+ * figure with the estimated ongoing SPP removed, never below the confirmed
+ * imported total. A player sent without a reported total is skipped.
  *
  * `careerCounts` is optional: when present, the server subtracts an estimate of
  * the SPP the player's not-yet-imported (ongoing competition) events would
@@ -270,6 +272,12 @@ export const SyncReportedSppAdjustmentsSchema = z.object({
   players: z.array(
     z.object({
       playerId: z.number().int(),
+      /**
+       * The career SPP total TP reports for the player. Omitted when TP
+       * reports none (an induced star player): that player is skipped and
+       * keeps a NULL adjustment.
+       */
+      reportedSppTotal: z.number().int().optional(),
       careerCounts: SppCareerCountsSchema.optional(),
     }),
   ),

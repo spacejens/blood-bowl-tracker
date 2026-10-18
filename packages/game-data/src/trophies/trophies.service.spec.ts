@@ -19,6 +19,7 @@ import {
   sqlText,
 } from '../shared/query-assertions.test-helpers';
 import { TrophiesService, TrophyUpsertConflictError } from './trophies.service';
+import { TrophyRuleCurationSyncService } from './trophy-rule-curation-sync.service';
 
 const fakeTrophy = {
   id: 1,
@@ -31,6 +32,7 @@ const fakeTrophy = {
 describe('TrophiesService', () => {
   let service: TrophiesService;
   let likePattern: MockProxy<LikePatternService>;
+  let ruleCurationSync: MockProxy<TrophyRuleCurationSyncService>;
 
   async function build(...rowsPerQuery: QueryOutcome[]): Promise<{
     db: Db;
@@ -41,6 +43,7 @@ describe('TrophiesService', () => {
       providers: [
         TrophiesService,
         { provide: LikePatternService, useValue: likePattern },
+        { provide: TrophyRuleCurationSyncService, useValue: ruleCurationSync },
         { provide: DB, useValue: db },
       ],
     }).compile();
@@ -50,6 +53,7 @@ describe('TrophiesService', () => {
 
   beforeEach(() => {
     likePattern = mock<LikePatternService>();
+    ruleCurationSync = mock<TrophyRuleCurationSyncService>();
   });
 
   const baseData = {
@@ -69,10 +73,8 @@ describe('TrophiesService', () => {
     const result = await service.upsert(baseData);
 
     expect(result).toEqual({ trophy: fakeTrophy, created: true });
-    // Three for the trophy row itself, then three clearing deletes: the kind
-    // is `direct_source`, which computes nothing, so the two event-type
-    // tables and the eligible-position table must hold no rows for it.
-    expect(chains).toHaveLength(6);
+    // The trophy row's own three queries; the rule sync is mocked.
+    expect(chains).toHaveLength(3);
     expect(db.insert).toHaveBeenCalledWith(trophies);
     expect(db.update).not.toHaveBeenCalled();
   });
@@ -122,228 +124,28 @@ describe('TrophiesService', () => {
     });
   });
 
-  it('replaces the curated rule event types when they are supplied, atomically with the trophy row', async () => {
-    const { db, chains } = await build([], [fakeTrophy]);
+  it('hands the rule curation to the sync service on the upsert transaction', async () => {
+    const { db } = await build([], [fakeTrophy]);
 
-    await service.upsert({
-      name: 'Top Fouler',
-      recipientKind: 'player',
-      awardRuleKind: 'max_count',
-      awardRuleRole: 'acting',
-      awardRuleTieCutoff: 4,
-      awardRuleMatchEventTypes: [
-        { actionType: 'foul' },
-        { consequenceType: 'casualty' },
-      ],
-      awardRuleExcludedMatchEventTypes: [],
-      externalIds: [
-        { externalSystemId: 1, externalId: 'Top Fouler-Major Season' },
-      ],
-    });
+    await service.upsert(baseData);
 
-    // Query order: 0 external-id lookup, 1 entity insert, 2 new-external-id
-    // insert, then the junction sync's own queries — 3 the included-types
-    // delete, 4 the included-types insert, 5 the excluded-types delete (the
-    // supplied excluded array is empty, so no matching insert follows).
-    expect(chains).toHaveLength(6);
-    expect(extractFilterValues(firstCallArg(chains[3].where))).toBe(
+    // mockDb hands its own handle to the transaction callback, so the sync
+    // receiving `db` proves it ran inside the one transaction.
+    expect(ruleCurationSync.sync).toHaveBeenCalledWith(
+      db,
       fakeTrophy.id,
+      baseData,
     );
-    expect(firstCallArg(chains[4].values)).toEqual([
-      { trophyId: 1, actionType: 'foul', consequenceType: null },
-      { trophyId: 1, actionType: null, consequenceType: 'casualty' },
-    ]);
-    expect(extractFilterValues(firstCallArg(chains[5].where))).toBe(
-      fakeTrophy.id,
-    );
-    // All of it inside the single transaction the trophy-row upsert opens, so
-    // the scalar rule columns and the event types commit or roll back together.
     expect(db.transaction).toHaveBeenCalledTimes(1);
   });
 
-  it('replaces the curated eligible positions when they are supplied', async () => {
-    const { db, chains } = await build([], [fakeTrophy]);
+  it('propagates a rule-curation sync failure out of the one transaction', async () => {
+    const failure = new Error('rule sync failed');
+    ruleCurationSync.sync.mockRejectedValue(failure);
+    const { db } = await build([], [fakeTrophy]);
 
-    await service.upsert({
-      name: 'Bierhallenführer',
-      recipientKind: 'player',
-      awardRuleKind: 'max_spp_sum',
-      awardRuleRole: 'acting',
-      awardRuleTieCutoff: 4,
-      awardRuleEligiblePositions: [
-        'Ogre: Ogre Blocker',
-        'Ogre: Ogre Runt Punter',
-      ],
-      externalIds: [{ externalSystemId: 1, externalId: 'Bierhallenführer' }],
-    });
-
-    // Query order: 0 external-id lookup, 1 entity insert, 2 new-external-id
-    // insert, then the eligible-position sync's own two — 3 the delete, 4 the
-    // insert. Both event-type arrays are omitted, so that sync issues nothing.
-    expect(chains).toHaveLength(5);
-    expect(extractFilterValues(firstCallArg(chains[3].where))).toBe(
-      fakeTrophy.id,
-    );
-    expect(firstCallArg(chains[4].values)).toEqual([
-      { trophyId: 1, positionNameExternalId: 'Ogre: Ogre Blocker' },
-      { trophyId: 1, positionNameExternalId: 'Ogre: Ogre Runt Punter' },
-    ]);
-    // Same one transaction as the trophy row: a restriction must never commit
-    // apart from the rule kind it restricts.
+    await expect(service.upsert(baseData)).rejects.toThrow(failure);
     expect(db.transaction).toHaveBeenCalledTimes(1);
-  });
-
-  it('clears the curated eligible positions when an empty array is supplied', async () => {
-    const { db, chains } = await build([], [fakeTrophy]);
-
-    await service.upsert({
-      name: 'Bierhallenführer',
-      recipientKind: 'player',
-      awardRuleKind: 'max_spp_sum',
-      awardRuleEligiblePositions: [],
-      externalIds: [{ externalSystemId: 1, externalId: 'Bierhallenführer' }],
-    });
-
-    // The delete runs, but no insert follows it — which is how a rule that
-    // stops restricting positions drops its stale rows.
-    expect(chains).toHaveLength(4);
-    expect(db.delete).toHaveBeenCalledTimes(1);
-  });
-
-  it('leaves the curated rule event types alone when they are omitted, still inside the one transaction', async () => {
-    const { db, chains } = await build([], [fakeTrophy]);
-
-    await service.upsert({
-      name: 'Top Fouler',
-      recipientKind: 'player',
-      awardRuleKind: 'max_count',
-      externalIds: [
-        { externalSystemId: 1, externalId: 'Top Fouler-Major Season' },
-      ],
-    });
-
-    // Only the three queries of the trophy-row upsert itself — external-id
-    // lookup, entity insert, new-external-id insert. Omitting both rule arrays
-    // means the junction sync issues no delete and no insert of its own, so
-    // the curated rows already in those tables are left untouched. The same
-    // goes for the omitted eligible-positions array.
-    expect(chains).toHaveLength(3);
-    expect(db.delete).not.toHaveBeenCalled();
-    // Still exactly one transaction: the arrays being omitted changes what the
-    // sync writes, not whether the write path is transactional.
-    expect(db.transaction).toHaveBeenCalledTimes(1);
-  });
-
-  it('clears every computed rule part when a trophy is reclassified to a non-computed kind', async () => {
-    const { db, chains } = await build(
-      [{ ownerId: 1, externalSystemId: 1, externalId: 'Gudarnas Förkämpe' }],
-      [fakeTrophy],
-    );
-
-    await service.upsert({
-      name: 'Gudarnas Förkämpe',
-      recipientKind: 'player',
-      awardRuleKind: 'manual',
-      awardProcedure: 'The Chaos Cup winner rolls a D3 among three players.',
-      externalIds: [{ externalSystemId: 1, externalId: 'Gudarnas Förkämpe' }],
-    });
-
-    // 0 external-id lookup, 1 the entity update, then one delete per rule
-    // table: included types, excluded types, eligible positions. A `manual`
-    // trophy computes nothing, so an omitted array means "none" rather than
-    // "leave alone" — otherwise the rows of the computed rule this trophy
-    // used to be classified under would outlive the reclassification.
-    expect(chains).toHaveLength(5);
-    expect(db.delete).toHaveBeenCalledTimes(3);
-    // Cleared, not re-stated: nothing is inserted back into any of the three.
-    expect(db.insert).not.toHaveBeenCalled();
-    expect(db.transaction).toHaveBeenCalledTimes(1);
-  });
-
-  it('clears each rule table once when a non-computed kind also states its empty arrays', async () => {
-    const { db, chains } = await build(
-      [{ ownerId: 1, externalSystemId: 1, externalId: 'Chaos Cup' }],
-      [fakeTrophy],
-    );
-
-    await service.upsert({
-      ...baseData,
-      awardRuleMatchEventTypes: [],
-      awardRuleExcludedMatchEventTypes: [],
-      awardRuleEligiblePositions: [],
-    });
-
-    // Explicitly empty and omitted resolve to the same thing here, so stating
-    // them changes nothing about what is written.
-    expect(chains).toHaveLength(5);
-    expect(db.delete).toHaveBeenCalledTimes(3);
-  });
-
-  it('discards the curated rule rows a non-computed upsert supplies anyway', async () => {
-    const { db, chains } = await build(
-      [{ ownerId: 1, externalSystemId: 1, externalId: 'Chaos Cup' }],
-      [fakeTrophy],
-    );
-
-    await service.upsert({
-      ...baseData,
-      awardRuleMatchEventTypes: [{ actionType: 'touchdown' }],
-      awardRuleEligiblePositions: ['Blitzer'],
-    });
-
-    // 0 lookup, 1 update, then one delete per rule table and no insert: a
-    // `direct_source` trophy computes nothing, so curation it cannot use is
-    // dropped whether it was omitted or stated outright.
-    expect(chains).toHaveLength(5);
-    expect(db.delete).toHaveBeenCalledTimes(3);
-    expect(db.insert).not.toHaveBeenCalled();
-  });
-
-  it('leaves every rule table alone when the upsert states no award rule kind', async () => {
-    const { db, chains } = await build(
-      [{ ownerId: 1, externalSystemId: 1, externalId: 'Chaos Cup' }],
-      [fakeTrophy],
-    );
-
-    await service.upsert({
-      name: 'Chaos Cup',
-      externalIds: [{ externalSystemId: 1, externalId: 'Chaos Cup' }],
-    });
-
-    // An upsert that does not touch the classification cannot know what the
-    // stored kind is, so it falls back to the plain overlay semantics: the
-    // trophy's curated rule rows are neither read nor written.
-    expect(chains).toHaveLength(2);
-    expect(db.delete).not.toHaveBeenCalled();
-  });
-
-  it('propagates the event-type sync failure from inside the same transaction as the trophy row write', async () => {
-    const failure = new Error('junction insert failed');
-    // Query order for a create-path upsert with an included rule array:
-    // 0 external-id lookup (no match), 1 entity insert (`.returning()`),
-    // 2 new-external-id insert, 3 event-type delete, 4 event-type insert —
-    // made to reject here, to exercise the sync-failure path.
-    const { db, chains } = await build([], [fakeTrophy], [], [], failure);
-
-    await expect(
-      service.upsert({
-        name: 'Top Fouler',
-        recipientKind: 'player',
-        awardRuleKind: 'max_count',
-        awardRuleMatchEventTypes: [{ actionType: 'foul' }],
-        externalIds: [
-          { externalSystemId: 1, externalId: 'Top Fouler-Major Season' },
-        ],
-      }),
-    ).rejects.toThrow(failure);
-
-    // The failure happened inside the one transaction the whole call runs
-    // in (mockDb's `transaction` really invokes its callback, so a rejection
-    // from inside it propagates out of `db.transaction` itself, matching
-    // real Postgres rolling the whole transaction back) — there was never a
-    // second, already-committed transaction holding just the trophy row.
-    expect(db.transaction).toHaveBeenCalledTimes(1);
-    expect(chains).toHaveLength(5);
   });
 
   describe('resolveByName', () => {
@@ -671,6 +473,22 @@ describe('TrophiesService', () => {
   });
 
   describe('findAwardRuleCuration', () => {
+    it('reads only curated rows that are not soft-removed', async () => {
+      const { chains } = await build([], [], []);
+
+      await service.findAwardRuleCuration(1);
+
+      // Included types, excluded types, eligible positions: each read is
+      // scoped to the trophy AND to rows still part of the rule.
+      expect(chains).toHaveLength(3);
+      for (const chain of chains) {
+        expect(extractAllFilterValues(firstCallArg(chain.where))).toEqual([
+          1,
+          false,
+        ]);
+      }
+    });
+
     it("reads a trophy's curated rule event types, flattened for display", async () => {
       await build(
         [{ actionType: 'foul', consequenceType: null }],

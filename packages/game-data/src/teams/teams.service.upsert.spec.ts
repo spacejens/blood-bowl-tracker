@@ -211,11 +211,48 @@ describe('TeamsService', () => {
 
     await service.upsert({
       name: '40 Grinders II',
+      renameExisting: true,
       eras: [],
       externalIds: [{ externalSystemId: 1, externalId: '40g' }],
     });
 
     expect(firstCallArg(chains[1].set)).toEqual({ name: '40 Grinders II' });
+  });
+
+  it('leaves the name out of an update that does not ask to rename', async () => {
+    const { chains } = await build(
+      [{ ownerId: 1, externalSystemId: 1, externalId: '40g' }],
+      [fakeTeam],
+      [],
+      [],
+      [{ id: 100, eraId: 20 }],
+    );
+
+    await service.upsert({ ...baseData, name: 'Raw Source Name' });
+
+    expect(firstCallArg(chains[1].set)).toEqual({ raceId: 5, coachId: 9 });
+  });
+
+  it('renames on update when the payload asks to', async () => {
+    const { chains } = await build(
+      [{ ownerId: 1, externalSystemId: 1, externalId: '40g' }],
+      [fakeTeam],
+      [],
+      [],
+      [{ id: 100, eraId: 20 }],
+    );
+
+    await service.upsert({
+      ...baseData,
+      name: '40 Grinders II',
+      renameExisting: true,
+    });
+
+    expect(firstCallArg(chains[1].set)).toEqual({
+      name: '40 Grinders II',
+      raceId: 5,
+      coachId: 9,
+    });
   });
 
   describe('countAll', () => {

@@ -17,6 +17,9 @@ export class CoachesProcessor {
       const upserted = await this.coachesImport.upsert(
         {
           name: entry.name,
+          // Names are curated here; the source importers only ever set one
+          // when they create the row.
+          renameExisting: true,
           externalIds: this.refResolver.toExternalIds(
             entry.externalIds,
             ctx.systemIds,

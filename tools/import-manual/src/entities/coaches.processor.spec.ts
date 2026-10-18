@@ -83,7 +83,7 @@ describe('CoachesProcessor', () => {
       ctx.systemIds,
     );
     expect(coaches.upsert).toHaveBeenCalledWith(
-      { name: 'Bob', externalIds: cannedExternalIds },
+      { name: 'Bob', renameExisting: true, externalIds: cannedExternalIds },
       ctx.errors,
     );
   });

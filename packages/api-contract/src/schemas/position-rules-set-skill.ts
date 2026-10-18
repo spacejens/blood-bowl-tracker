@@ -30,6 +30,13 @@ export const PositionRulesSetSkillEntrySchema = z.object({
  */
 export const SyncPositionRulesSetSkillsSchema = z.object({
   entries: z.array(PositionRulesSetSkillEntrySchema),
+  /**
+   * When true, an entry matching an existing row leaves its attribute value
+   * untouched; only missing rows are inserted. BBL sends it, so its spelling
+   * of an attribute value never rewrites TP's on a re-run. TP and the manual
+   * importer omit it and overwrite.
+   */
+  insertOnly: z.boolean().optional(),
 });
 
 export const SyncPositionRulesSetSkillsResultSchema = z.object({

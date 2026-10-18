@@ -75,6 +75,23 @@ describe('TpSppAdjustmentsImportService', () => {
     );
   });
 
+  it('sends each player its reported total, undefined when TP gave none', async () => {
+    adjustments.syncReportedSppAdjustments.mockResolvedValue({
+      updatedPlayerIds: [1],
+    });
+
+    await service.importSppAdjustments({
+      playerIds: [1, 2],
+      reportedSppTotalsByPlayerId: new Map([[1, 14]]),
+    });
+
+    const [payload] = adjustments.syncReportedSppAdjustments.mock.calls[0];
+    expect(payload.players).toEqual([
+      { playerId: 1, reportedSppTotal: 14, careerCounts: undefined },
+      { playerId: 2, reportedSppTotal: undefined, careerCounts: undefined },
+    ]);
+  });
+
   it('chunks an id list larger than DEFAULT_BATCH_CHUNK_SIZE', async () => {
     const ids = Array.from(
       { length: DEFAULT_BATCH_CHUNK_SIZE + 2 },

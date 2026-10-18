@@ -136,6 +136,7 @@ describe('BblPositionCharacteristicsImportService', () => {
             armour: 10,
           },
         ],
+        insertOnly: true,
       },
       expect.any(Array),
     );

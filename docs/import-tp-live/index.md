@@ -103,9 +103,10 @@ What must already be in the database:
 
 The team's coach need not exist yet. It is upserted from the roster's own
 coach: its TP coach id (`player.applicationUserId`) and name
-(`player.userNameToShow`), keyed by both the TP id and the Name system. A
-coach already known by either id gets its name refreshed from the roster; an
-unknown one is created. TP's roster carries no NAF number, so a coach created
+(`player.userNameToShow`), keyed by both the TP id and the Name system. An
+unknown coach is created under the roster's name; a known one keeps its stored
+name. The team's own name is likewise set only when the team is created. TP's
+roster carries no NAF number, so a coach created
 live has none until a later bulk import (`tools/import-tp` or
 `tools/import-bbl`) adds it.
 
@@ -160,9 +161,18 @@ it in sync with the name `tools/import-tp` is configured with.
 
 Input: the roster JSON exactly as TP's API returns it (parsed server-side),
 the era name, the name TP's external system is registered under, and
-optionally the roster's players seen only in match snapshots. Output: the
-`team` and `players` results, plus the team's team eras, each imported
-player's `lineUpId` → player id (and whether it was inserted), and the
+optionally the roster's players seen only in match snapshots, and optionally
+`deferSppTotal`: when true the players' `spp_total` is left alone, because the
+caller writes it afterwards through `players.syncReportedSppAdjustments` (the
+bulk importer does; the live import does not, so it stores TP's raw total).
+The live import stores TP's raw total while the bulk run stores the corrected
+total, so a live import of a player the bulk run already imported rewrites
+`spp_total` (raw, then corrected on the next bulk run), adding history rows
+each way; this is accepted because the live import never runs the adjustments
+step.
+Output: the `team` and `players` results, plus the team's team eras, each
+imported player's `lineUpId` → player id (and whether it was inserted) and the
+career SPP total TP reports for it, and the
 mercenary hires' position usages. The bulk importer's later steps resolve
 teams and players by these. See
 [import-tp's architecture](../import-tp/index.md#architecture) for how the

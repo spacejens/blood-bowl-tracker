@@ -110,7 +110,11 @@ describe('CoachesService', () => {
         [fakeCoach],
       );
 
-      const result = await service.upsert({ name: 'Roze Madder', externalIds });
+      const result = await service.upsert({
+        name: 'Roze Madder',
+        renameExisting: true,
+        externalIds,
+      });
 
       expect(result).toEqual({ coach: fakeCoach, created: false });
       expect(chains).toHaveLength(3);
@@ -142,7 +146,11 @@ describe('CoachesService', () => {
         [fakeCoach],
       );
 
-      await service.upsert({ name: 'Roze Madder', externalIds });
+      await service.upsert({
+        name: 'Roze Madder',
+        renameExisting: true,
+        externalIds,
+      });
 
       expect(chains).toHaveLength(2);
       expect(db.insert).not.toHaveBeenCalled();
@@ -154,7 +162,11 @@ describe('CoachesService', () => {
         [fakeCoach],
       );
 
-      await service.upsert({ name: 'Roze Madder', externalIds });
+      await service.upsert({
+        name: 'Roze Madder',
+        renameExisting: true,
+        externalIds,
+      });
 
       expect(chains).toHaveLength(3);
       expect(firstCallArg(chains[2].values)).toEqual([
@@ -177,6 +189,32 @@ describe('CoachesService', () => {
       expect(db.update).not.toHaveBeenCalled();
       expect(result).toEqual({ coach: fakeCoach, created: false });
       expect(chains).toHaveLength(2);
+    });
+
+    it('keeps the stored name when an update does not ask to rename', async () => {
+      // query 0: the lookup matches coach 1; query 1: re-select of the
+      // untouched row. No UPDATE, so no history row and no updated_at bump.
+      const { db, chains } = await build(
+        [{ ownerId: 1, externalSystemId: 1, externalId: 'id:47' }],
+        [fakeCoach],
+      );
+
+      const result = await service.upsert({
+        name: 'Raw Source Name',
+        externalIds: [{ externalSystemId: 1, externalId: 'id:47' }],
+      });
+
+      expect(db.update).not.toHaveBeenCalled();
+      expect(chains).toHaveLength(2);
+      expect(result).toEqual({ coach: fakeCoach, created: false });
+    });
+
+    it('creates with the payload name even without a rename intent', async () => {
+      const { chains } = await build([], [fakeCoach]);
+
+      await service.upsert({ name: 'Roze Madder', externalIds });
+
+      expect(firstCallArg(chains[1].values)).toEqual({ name: 'Roze Madder' });
     });
   });
 

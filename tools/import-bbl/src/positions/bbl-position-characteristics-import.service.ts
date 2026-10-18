@@ -35,6 +35,7 @@ export interface SyncPositionCharacteristicsOptions {
  * them at all, rather than a guess that something reading the table back
  * mid-pipeline would believe. Their values come only from the hand-curated
  * after-other-importers/position-characteristics.json5 in tools/import-manual.
+ * Rows are inserted only, never updated: see the sync call below.
  *
  * `agilityFormat === 'bare'` is the data-driven signal for exactly those
  * three: it is curated in tools/import-manual's *before* phase, so it is
@@ -130,8 +131,10 @@ export class BblPositionCharacteristicsImportService {
         continue;
       }
 
+      // Insert-only: TP's later run writes per-rules-set values for the same
+      // pairs, and a BBL re-run must not rewrite them with its snapshot.
       const result = await this.positionRulesSetsImport.syncPositionRulesSets(
-        { entries },
+        { entries, insertOnly: true },
         errors,
       );
       if (result) {

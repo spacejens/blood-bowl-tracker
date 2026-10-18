@@ -60,10 +60,13 @@ export class TeamsService {
       entityTable: teams,
       entityIdColumn: teams.id,
       values: {
-        name: data.name,
+        // A team's name is curated by tools/import-manual once the row
+        // exists; only an upsert that says so may overwrite it.
+        ...(data.renameExisting === true ? { name: data.name } : {}),
         raceId: data.raceId,
         coachId: data.coachId,
       },
+      createOnlyValues: { name: data.name },
       externalIdTable: teamExternalIds,
       ownerIdColumn: teamExternalIds.teamId,
       externalSystemIdColumn: teamExternalIds.externalSystemId,

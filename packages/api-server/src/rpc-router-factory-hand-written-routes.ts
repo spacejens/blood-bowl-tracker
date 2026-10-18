@@ -332,6 +332,7 @@ export function buildTpRostersRoutes(tpRosterImport: TpRosterImportService) {
         era: input.era,
         externalSystemName: input.externalSystemName,
         matchEmbeddedPlayers: input.matchEmbeddedPlayers,
+        deferSppTotal: input.deferSppTotal,
       }),
     ),
   };

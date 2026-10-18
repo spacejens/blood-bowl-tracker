@@ -71,6 +71,7 @@ describe('TpRosterPlayerSkillsService', () => {
       lineUpId: player.id,
       playerId: 700 + index,
       created: true,
+      reportedSppTotal: 0,
     }));
 
   const sync = (
@@ -187,7 +188,7 @@ describe('TpRosterPlayerSkillsService', () => {
 
     const written = await sync(
       [noSkillsGroup, notImported],
-      [{ lineUpId: 5001, playerId: 700, created: true }],
+      [{ lineUpId: 5001, playerId: 700, created: true, reportedSppTotal: 0 }],
     );
 
     expect(written).toBe(0);

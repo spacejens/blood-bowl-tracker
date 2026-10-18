@@ -28,6 +28,9 @@ export class RacesProcessor {
       const upserted = await this.racesImport.upsert(
         {
           name: entry.name,
+          // Names are curated here; the source importers only ever set one
+          // when they create the row.
+          renameExisting: true,
           eras,
           externalIds: this.refResolver.toExternalIds(
             entry.externalIds,

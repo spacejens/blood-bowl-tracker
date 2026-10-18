@@ -357,6 +357,11 @@ only those trophies are seeded. See
 [docs/import-tp/file-format.md](../import-tp/file-format.md) for the full
 value table and the evidence behind the scope.
 
+## Re-running on a populated database
+
+See [re-running.md](re-running.md): which names this tool owns, and why
+nothing is ever deleted.
+
 ## Known curated data files
 
 Every `.json5` file in the two phase directories exists for a specific reason —

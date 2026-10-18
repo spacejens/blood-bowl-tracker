@@ -216,12 +216,12 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     // estimate (the mock default resolves an empty map), so correctedTotal
     // collapses to max(importedSum, reported) = reported here.
     const h = await makeService(
-      mockDb([{ id: 1, name: 'Karcheres', sppTotal: 20 }], [{ id: 1 }]),
+      mockDb([{ id: 1, name: 'Karcheres' }], [{ id: 1 }]),
     );
     h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 17]]));
 
     const result = await h.service.syncReportedAdjustments({
-      players: [{ playerId: 1 }],
+      players: [{ playerId: 1, reportedSppTotal: 20 }],
     });
 
     expect(result.updatedPlayerIds).toEqual([1]);
@@ -232,43 +232,17 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
 
   it('clamps a reported total below the event sum to 0, and the corrected total up to the event sum', async () => {
     const h = await makeService(
-      mockDb([{ id: 1, name: 'Karcheres', sppTotal: 10 }], [{ id: 1 }]),
+      mockDb([{ id: 1, name: 'Karcheres' }], [{ id: 1 }]),
     );
     h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 17]]));
 
-    await h.service.syncReportedAdjustments({ players: [{ playerId: 1 }] });
+    await h.service.syncReportedAdjustments({
+      players: [{ playerId: 1, reportedSppTotal: 10 }],
+    });
 
     expect(writtenValues(h.db, 1)).toEqual([
       { sppAdjustment: 0, sppTotal: 17 },
     ]);
-  });
-
-  it('skips players with no reported total', async () => {
-    // The select filters spp_total IS NOT NULL, so player 2 comes back with
-    // no row and is never updated.
-    const h = await makeService(
-      mockDb([{ id: 1, name: 'Karcheres', sppTotal: 5 }], [{ id: 1 }]),
-    );
-    h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 5]]));
-
-    const result = await h.service.syncReportedAdjustments({
-      players: [{ playerId: 1 }, { playerId: 2 }],
-    });
-
-    expect(result.updatedPlayerIds).toEqual([1]);
-    expect(h.totals.totalsForPlayers).toHaveBeenCalledWith([1]);
-  });
-
-  it('returns early when none of the requested players has a reported total', async () => {
-    const h = await makeService(mockDb([]));
-
-    const result = await h.service.syncReportedAdjustments({
-      players: [{ playerId: 1 }],
-    });
-
-    expect(result.updatedPlayerIds).toEqual([]);
-    expect(h.db.chains).toHaveLength(1);
-    expect(h.totals.totalsForPlayers).not.toHaveBeenCalled();
   });
 
   it('groups players sharing an adjustment and corrected total into one update', async () => {
@@ -277,8 +251,8 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     const h = await makeService(
       mockDb(
         [
-          { id: 1, name: 'Karcheres', sppTotal: 8 },
-          { id: 2, name: 'Fenriz', sppTotal: 8 },
+          { id: 1, name: 'Karcheres' },
+          { id: 2, name: 'Fenriz' },
         ],
         [{ id: 1 }, { id: 2 }],
       ),
@@ -291,7 +265,10 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     );
 
     const result = await h.service.syncReportedAdjustments({
-      players: [{ playerId: 1 }, { playerId: 2 }],
+      players: [
+        { playerId: 1, reportedSppTotal: 8 },
+        { playerId: 2, reportedSppTotal: 8 },
+      ],
     });
 
     expect(result.updatedPlayerIds).toEqual([1, 2]);
@@ -309,9 +286,9 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     const h = await makeService(
       mockDb(
         [
-          { id: 1, name: 'Karcheres', sppTotal: 20 },
-          { id: 2, name: 'Fenriz', sppTotal: 15 },
-          { id: 3, name: 'Grod', sppTotal: 30 },
+          { id: 1, name: 'Karcheres' },
+          { id: 2, name: 'Fenriz' },
+          { id: 3, name: 'Grod' },
         ],
         [{ id: 1 }],
         [{ id: 2 }],
@@ -333,7 +310,11 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     );
 
     await h.service.syncReportedAdjustments({
-      players: [{ playerId: 1 }, { playerId: 2 }, { playerId: 3 }],
+      players: [
+        { playerId: 1, reportedSppTotal: 20 },
+        { playerId: 2, reportedSppTotal: 15 },
+        { playerId: 3, reportedSppTotal: 30 },
+      ],
     });
 
     expect(writtenValues(h.db, 1)).toEqual([
@@ -352,15 +333,15 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     expect(h.db.chains).toHaveLength(0);
   });
 
-  it('treats a null reported total and a missing event sum as 0', async () => {
-    // The isNotNull filter is mocked away, so this exercises the defensive
-    // `?? 0` fallbacks for both row.sppTotal and the missing map entry.
+  it('treats a reported total of 0 and a missing event sum as 0', async () => {
     const h = await makeService(
-      mockDb([{ id: 1, name: 'Karcheres', sppTotal: null }], [{ id: 1 }]),
+      mockDb([{ id: 1, name: 'Karcheres' }], [{ id: 1 }]),
     );
     h.totals.totalsForPlayers.mockResolvedValue(new Map());
 
-    await h.service.syncReportedAdjustments({ players: [{ playerId: 1 }] });
+    await h.service.syncReportedAdjustments({
+      players: [{ playerId: 1, reportedSppTotal: 0 }],
+    });
 
     expect(writtenValues(h.db, 1)).toEqual([{ sppAdjustment: 0, sppTotal: 0 }]);
   });
@@ -371,12 +352,14 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     // adjustment = max(0, 11-8) = 3, so spp_total becomes 11, not the
     // reported 20.
     const h = await makeService(
-      mockDb([{ id: 1, name: 'Karcheres', sppTotal: 20 }], [{ id: 1 }]),
+      mockDb([{ id: 1, name: 'Karcheres' }], [{ id: 1 }]),
     );
     h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 8]]));
     h.ongoing.estimateForPlayers.mockResolvedValue(new Map([[1, 9]]));
 
-    await h.service.syncReportedAdjustments({ players: [{ playerId: 1 }] });
+    await h.service.syncReportedAdjustments({
+      players: [{ playerId: 1, reportedSppTotal: 20 }],
+    });
 
     expect(writtenValues(h.db, 1)).toEqual([
       { sppAdjustment: 3, sppTotal: 11 },
@@ -388,12 +371,14 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     // (20 - 12 = 8 = importedSum), so correctedTotal = importedSum exactly
     // and adjustment clamps to 0, but the write still happens (absolute set).
     const h = await makeService(
-      mockDb([{ id: 1, name: 'Karcheres', sppTotal: 20 }], [{ id: 1 }]),
+      mockDb([{ id: 1, name: 'Karcheres' }], [{ id: 1 }]),
     );
     h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 8]]));
     h.ongoing.estimateForPlayers.mockResolvedValue(new Map([[1, 12]]));
 
-    await h.service.syncReportedAdjustments({ players: [{ playerId: 1 }] });
+    await h.service.syncReportedAdjustments({
+      players: [{ playerId: 1, reportedSppTotal: 20 }],
+    });
 
     expect(writtenValues(h.db, 1)).toEqual([{ sppAdjustment: 0, sppTotal: 8 }]);
   });
@@ -406,12 +391,14 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     // and the adjustment is written as an explicit 0 (an absolute write, so
     // a previously-recorded wrong value is cleared).
     const h = await makeService(
-      mockDb([{ id: 1, name: 'Karcheres', sppTotal: 20 }], [{ id: 1 }]),
+      mockDb([{ id: 1, name: 'Karcheres' }], [{ id: 1 }]),
     );
     h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 8]]));
     h.ongoing.estimateForPlayers.mockResolvedValue(new Map([[1, 30]]));
 
-    await h.service.syncReportedAdjustments({ players: [{ playerId: 1 }] });
+    await h.service.syncReportedAdjustments({
+      players: [{ playerId: 1, reportedSppTotal: 20 }],
+    });
 
     expect(writtenValues(h.db, 1)).toEqual([{ sppAdjustment: 0, sppTotal: 8 }]);
   });
@@ -425,12 +412,12 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
       casualty: 0,
     };
     const h = await makeService(
-      mockDb([{ id: 1, name: 'Karcheres', sppTotal: 20 }], [{ id: 1 }]),
+      mockDb([{ id: 1, name: 'Karcheres' }], [{ id: 1 }]),
     );
     h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 20]]));
 
     await h.service.syncReportedAdjustments({
-      players: [{ playerId: 1, careerCounts }],
+      players: [{ playerId: 1, reportedSppTotal: 20, careerCounts }],
     });
 
     expect(h.ongoing.estimateForPlayers).toHaveBeenCalledWith([
@@ -440,12 +427,14 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
 
   it('treats a player with no estimate as having none', async () => {
     const h = await makeService(
-      mockDb([{ id: 1, name: 'Karcheres', sppTotal: 20 }], [{ id: 1 }]),
+      mockDb([{ id: 1, name: 'Karcheres' }], [{ id: 1 }]),
     );
     h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 17]]));
     h.ongoing.estimateForPlayers.mockResolvedValue(new Map());
 
-    await h.service.syncReportedAdjustments({ players: [{ playerId: 1 }] });
+    await h.service.syncReportedAdjustments({
+      players: [{ playerId: 1, reportedSppTotal: 20 }],
+    });
 
     expect(writtenValues(h.db, 1)).toEqual([
       { sppAdjustment: 3, sppTotal: 20 },
@@ -456,9 +445,9 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     const h = await makeService(
       mockDb(
         [
-          { id: 1, name: 'Karcheres', sppTotal: 20 },
-          { id: 2, name: 'Fenriz', sppTotal: 30 },
-          { id: 3, name: 'Grod', sppTotal: 5 },
+          { id: 1, name: 'Karcheres' },
+          { id: 2, name: 'Fenriz' },
+          { id: 3, name: 'Grod' },
         ],
         [{ id: 1 }],
         [{ id: 2 }],
@@ -474,7 +463,11 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     );
 
     const result = await h.service.syncReportedAdjustments({
-      players: [{ playerId: 1 }, { playerId: 2 }, { playerId: 3 }],
+      players: [
+        { playerId: 1, reportedSppTotal: 20 },
+        { playerId: 2, reportedSppTotal: 30 },
+        { playerId: 3, reportedSppTotal: 5 },
+      ],
     });
 
     expect(result.nonzeroAdjustments).toEqual([
@@ -494,8 +487,8 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     const h = await makeService(
       mockDb(
         [
-          { id: 1, name: 'Karcheres', sppTotal: 20 },
-          { id: 2, name: 'Fenriz', sppTotal: 30 },
+          { id: 1, name: 'Karcheres' },
+          { id: 2, name: 'Fenriz' },
         ],
         [{ id: 1 }],
         [{ id: 2 }],
@@ -509,7 +502,10 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     );
 
     const result = await h.service.syncReportedAdjustments({
-      players: [{ playerId: 1, careerCounts }, { playerId: 2 }],
+      players: [
+        { playerId: 1, reportedSppTotal: 20, careerCounts },
+        { playerId: 2, reportedSppTotal: 30 },
+      ],
     });
 
     expect(result.nonzeroAdjustments).toEqual([
@@ -520,12 +516,12 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
 
   it('reports an empty summary when nothing is left unexplained', async () => {
     const h = await makeService(
-      mockDb([{ id: 1, name: 'Karcheres', sppTotal: 20 }], [{ id: 1 }]),
+      mockDb([{ id: 1, name: 'Karcheres' }], [{ id: 1 }]),
     );
     h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 20]]));
 
     const result = await h.service.syncReportedAdjustments({
-      players: [{ playerId: 1 }],
+      players: [{ playerId: 1, reportedSppTotal: 20 }],
     });
 
     expect(result.nonzeroAdjustments).toEqual([]);
@@ -540,12 +536,15 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
       casualty: 0,
     };
     const h = await makeService(
-      mockDb([{ id: 1, name: 'Karcheres', sppTotal: 20 }], [{ id: 1 }]),
+      mockDb([{ id: 1, name: 'Karcheres' }], [{ id: 1 }]),
     );
     h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 20]]));
 
     await h.service.syncReportedAdjustments({
-      players: [{ playerId: 1 }, { playerId: 1, careerCounts }],
+      players: [
+        { playerId: 1, reportedSppTotal: 20 },
+        { playerId: 1, reportedSppTotal: 20, careerCounts },
+      ],
     });
 
     expect(h.ongoing.estimateForPlayers).toHaveBeenCalledWith([
@@ -553,13 +552,72 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     ]);
   });
 
-  it('reports an empty summary when no requested player has a reported total', async () => {
-    const h = await makeService(mockDb([]));
+  it('skips an entry with no reported total without looking it up', async () => {
+    const h = await makeService(
+      mockDb([{ id: 1, name: 'Karcheres' }], [{ id: 1 }]),
+    );
+    h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 5]]));
+
+    const result = await h.service.syncReportedAdjustments({
+      players: [{ playerId: 1, reportedSppTotal: 5 }, { playerId: 2 }],
+    });
+
+    expect(result.updatedPlayerIds).toEqual([1]);
+    expect(h.totals.totalsForPlayers).toHaveBeenCalledWith([1]);
+  });
+
+  it('issues no query when no entry carries a reported total', async () => {
+    const h = await makeService(mockDb());
 
     const result = await h.service.syncReportedAdjustments({
       players: [{ playerId: 1 }],
     });
 
     expect(result).toEqual({ updatedPlayerIds: [], nonzeroAdjustments: [] });
+    expect(h.db.chains).toHaveLength(0);
+  });
+
+  it('returns early when none of the requested players exists', async () => {
+    const h = await makeService(mockDb([]));
+
+    const result = await h.service.syncReportedAdjustments({
+      players: [{ playerId: 1, reportedSppTotal: 5 }],
+    });
+
+    expect(result).toEqual({ updatedPlayerIds: [], nonzeroAdjustments: [] });
+    expect(h.totals.totalsForPlayers).not.toHaveBeenCalled();
+  });
+
+  it('measures against the payload total, whatever the stored column holds', async () => {
+    // The select returns only id and name: the stored spp_total is never
+    // read, so a re-run with the same payload writes the same values.
+    const h = await makeService(
+      mockDb([{ id: 1, name: 'Karcheres' }], [{ id: 1 }]),
+    );
+    h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 17]]));
+
+    await h.service.syncReportedAdjustments({
+      players: [{ playerId: 1, reportedSppTotal: 20 }],
+    });
+
+    expect(writtenValues(h.db, 1)).toEqual([
+      { sppAdjustment: 3, sppTotal: 20 },
+    ]);
+  });
+
+  it('keeps the last reported total for a repeated player id', async () => {
+    const h = await makeService(
+      mockDb([{ id: 1, name: 'Karcheres' }], [{ id: 1 }]),
+    );
+    h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 0]]));
+
+    await h.service.syncReportedAdjustments({
+      players: [
+        { playerId: 1, reportedSppTotal: 4 },
+        { playerId: 1, reportedSppTotal: 9 },
+      ],
+    });
+
+    expect(writtenValues(h.db, 1)).toEqual([{ sppAdjustment: 9, sppTotal: 9 }]);
   });
 });

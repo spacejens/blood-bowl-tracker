@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { ExternalIdSchema } from './external-id';
+import { RenameExistingSchema } from './shared/rename-existing';
 
 export const PositionSchema = z.object({
   id: z.number(),
@@ -11,6 +12,7 @@ export const PositionSchema = z.object({
 
 export const UpsertPositionSchema = z.object({
   name: z.string().min(1).optional(),
+  renameExisting: RenameExistingSchema,
   isStarPlayer: z.boolean().optional(),
   externalIds: z.array(ExternalIdSchema).min(1),
 });

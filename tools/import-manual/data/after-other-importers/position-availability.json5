@@ -23,11 +23,12 @@
 // "First Stunty Leeg era" each span CRP, CRP+ and BB2016 together, so one row
 // covers all three for those eras.
 //
-// Each entry re-states the position's existing `name` verbatim, because the
-// upsert overlays it -- a mismatched name would rename the position rather
-// than leave it alone. `isStarPlayer` is likewise re-stated (false, for every
-// entry below -- none of these are star players), since on a fresh database
-// this phase creates the row and positions.is_star_player is NOT NULL.
+// Each entry re-states the position's curated `name` verbatim, because the
+// manual importer renames existing rows -- a mismatched name would rename the
+// position rather than leave it alone. `isStarPlayer` is likewise re-stated
+// (false, for every entry below -- none of these are star players), since on a
+// fresh database this phase creates the row and positions.is_star_player is
+// NOT NULL.
 //
 // Restoration set: every position with a curated CRP `position_rules_sets`
 // entry in data/after-other-importers/position-characteristics.json5 (Tasks
@@ -36,17 +37,13 @@
 // First Stunty Leeg era (which also spans BB2016, CRP and CRP+), for every
 // Stunty-Leeg-handbook-sourced position curated there (Tasks 10-11).
 //
-// Because this file runs in the after-other-importers phase, its `name`
-// re-statements (see below) win over anything a before-other-importers file
-// (e.g. races-and-positions.json5) curates for the same position: this phase
-// runs later and the upsert overlays whatever name is given here. A future
-// rename curated in a before-phase file for a position also listed below
-// would therefore be silently reverted by this file on the next import.
-// This overlap is active today for four positions renamed across rules-set
-// generations -- Dwarf Lineman, Skink Lineman, Norse Raider, and Troll --
-// whose before-phase entry in races-and-positions.json5 and after-phase
-// entry here both re-state the same current name on purpose, so the two
-// files agree and neither reverts the other's rename.
+// Source importers set a position's name only when they create the row, so
+// only the two manual phases ever rename a position, and this phase runs
+// last. Both files must therefore carry the same name for every position
+// they share: a different spelling in either file would rename the row back
+// and forth on every import. Each entry's `name` equals the name
+// races-and-positions.json5 gives the same row, and curated-data.spec.ts
+// enforces it for every shared Name id.
 {
   externalSystems: [
     { name: 'Name', category: 'bookkeeping' },
@@ -77,7 +74,7 @@
       ],
     },
     {
-      name: 'Assassin',
+      name: 'Dark Elf Assassin',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'Dark Elf: Assassin' }],
       raceEras: [
@@ -224,7 +221,7 @@
 
     // --- CRP-era availability: Elven Union Team (First era) ---
     {
-      name: 'Elven Linemen',
+      name: 'Elf Lineman',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'Elven Union: Elven Linemen' }],
       raceEras: [
@@ -235,7 +232,7 @@
       ],
     },
     {
-      name: 'Elven Throwers',
+      name: 'Elf Thrower',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'Elven Union: Elven Throwers' }],
       raceEras: [
@@ -246,7 +243,7 @@
       ],
     },
     {
-      name: 'Elven Catchers',
+      name: 'Elf Catcher',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'Elven Union: Elven Catchers' }],
       raceEras: [
@@ -257,7 +254,7 @@
       ],
     },
     {
-      name: 'Elven Blitzers',
+      name: 'Elf Blitzer',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'Elven Union: Elven Blitzers' }],
       raceEras: [
@@ -270,7 +267,7 @@
 
     // --- CRP-era availability: Chaos Chosen Team (First era) ---
     {
-      name: 'Beastman Runner Lineman',
+      name: 'Beastman Lineman',
       isStarPlayer: false,
       externalIds: [
         { system: 'Name', id: 'Chaos Chosen: Beastman Runner Lineman' },
@@ -283,7 +280,7 @@
       ],
     },
     {
-      name: 'Chosen Blockers',
+      name: 'Chaos Chosen',
       isStarPlayer: false,
       externalIds: [
         { system: 'Name', id: 'Chaos Chosen: Chosen Blockers' },
@@ -309,7 +306,7 @@
 
     // --- CRP-era availability: Chaos Dwarf Team (First era) ---
     {
-      name: 'Hobgoblin Linemen',
+      name: 'Hobgoblin Lineman',
       isStarPlayer: false,
       externalIds: [
         { system: 'Name', id: 'Chaos Dwarf: Hobgoblin Linemen' },
@@ -322,7 +319,7 @@
       ],
     },
     {
-      name: 'Chaos Dwarf Blockers',
+      name: 'Chaos Dwarf Blocker',
       isStarPlayer: false,
       externalIds: [
         { system: 'Name', id: 'Chaos Dwarf: Chaos Dwarf Blockers' },
@@ -346,7 +343,7 @@
       ],
     },
     {
-      name: 'Enslaved Minotaur',
+      name: 'Minotaur',
       isStarPlayer: false,
       externalIds: [
         { system: 'Name', id: 'Chaos Dwarf: Enslaved Minotaur' },
@@ -361,7 +358,7 @@
 
     // --- CRP-era availability: Goblin Team (First era) ---
     {
-      name: 'Goblin Linemen',
+      name: 'Goblin Lineman',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'Goblin: Goblin Linemen' }],
       raceEras: [
@@ -429,7 +426,7 @@
 
     // --- CRP-era availability: Halfling Team (First era) ---
     {
-      name: 'Hafling Treeman',
+      name: 'Altern Forest Treeman',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'Halfling: Hafling Treeman' }],
       raceEras: [
@@ -455,7 +452,7 @@
 
     // --- CRP-era availability: High Elf Team (First era) ---
     {
-      name: 'High Elf Linemen',
+      name: 'High Elf Lineman',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'High Elf: High Elf Linemen' }],
       raceEras: [
@@ -466,7 +463,7 @@
       ],
     },
     {
-      name: 'High Elf Throwers',
+      name: 'High Elf Thrower',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'High Elf: High Elf Throwers' }],
       raceEras: [
@@ -477,7 +474,7 @@
       ],
     },
     {
-      name: 'High Elf Catchers',
+      name: 'High Elf Catcher',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'High Elf: High Elf Catchers' }],
       raceEras: [
@@ -488,7 +485,7 @@
       ],
     },
     {
-      name: 'High Elf Blitzers',
+      name: 'High Elf Blitzer',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'High Elf: High Elf Blitzers' }],
       raceEras: [
@@ -558,7 +555,7 @@
 
     // --- CRP-era availability: Tomb Kings Team (First era) ---
     {
-      name: 'Skeleton Linemen',
+      name: 'Skeleton Lineman',
       isStarPlayer: false,
       externalIds: [
         { system: 'Name', id: 'Tomb Kings: Skeleton Linemen' },
@@ -571,7 +568,7 @@
       ],
     },
     {
-      name: 'Anointed Thrower',
+      name: 'Tomb Kings Thrower',
       isStarPlayer: false,
       externalIds: [
         { system: 'Name', id: 'Tomb Kings: Anointed Thrower' },
@@ -584,7 +581,7 @@
       ],
     },
     {
-      name: 'Anointed Blitzer',
+      name: 'Tomb Kings Blitzer',
       isStarPlayer: false,
       externalIds: [
         { system: 'Name', id: 'Tomb Kings: Anointed Blitzer' },
@@ -597,7 +594,7 @@
       ],
     },
     {
-      name: 'Tomb Guardians',
+      name: 'Tomb Guardian',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'Tomb Kings: Tomb Guardians' }],
       raceEras: [
@@ -626,7 +623,7 @@
       ],
     },
     {
-      name: 'Saurus Blockers',
+      name: 'Saurus Blocker',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'Lizardmen: Saurus Blockers' }],
       raceEras: [
@@ -650,7 +647,7 @@
 
     // --- CRP-era availability: Necromantic Horror Team (First era) ---
     {
-      name: 'Zombie',
+      name: 'Zombie Lineman',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'Necromantic Horror: Zombie' }],
       raceEras: [
@@ -661,7 +658,7 @@
       ],
     },
     {
-      name: 'Ghoul Runners',
+      name: 'Ghoul Runner',
       isStarPlayer: false,
       externalIds: [
         { system: 'Name', id: 'Necromantic Horror: Ghoul Runners' },
@@ -751,7 +748,7 @@
       ],
     },
     {
-      name: 'Norse Berserkers',
+      name: 'Norse Berserker',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'Norse: Norse Berserkers' }],
       raceEras: [
@@ -786,7 +783,7 @@
 
     // --- CRP-era availability: Nurgle Team (First era) ---
     {
-      name: 'Rotter Linemen',
+      name: 'Rotter Lineman',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'Nurgle: Rotter Linemen' }],
       raceEras: [
@@ -797,7 +794,7 @@
       ],
     },
     {
-      name: 'Pestigors',
+      name: 'Pestigor',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'Nurgle: Pestigors' }],
       raceEras: [
@@ -808,7 +805,7 @@
       ],
     },
     {
-      name: 'Bloaters',
+      name: 'Bloater',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'Nurgle: Bloaters' }],
       raceEras: [
@@ -832,7 +829,7 @@
 
     // --- CRP-era availability: Skaven Team (First era) ---
     {
-      name: 'Skaven Clanrat Lineman',
+      name: 'Skaven Clanrat',
       isStarPlayer: false,
       externalIds: [
         { system: 'Name', id: 'Skaven: Skaven Clanrat Lineman' },
@@ -904,7 +901,7 @@
       ],
     },
     {
-      name: 'Zombie',
+      name: 'Zombie Lineman',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'Shambling Undead: Zombie' }],
       raceEras: [
@@ -915,7 +912,7 @@
       ],
     },
     {
-      name: 'Ghoul Runners',
+      name: 'Ghoul Runner',
       isStarPlayer: false,
       externalIds: [
         { system: 'Name', id: 'Shambling Undead: Ghoul Runners' },
@@ -954,7 +951,7 @@
 
     // --- CRP-era availability: Ogre Team (First era) ---
     {
-      name: 'Gnoblar Linemen',
+      name: 'Gnoblar Lineman',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'Ogre: Gnoblar Linemen' }],
       raceEras: [
@@ -965,7 +962,7 @@
       ],
     },
     {
-      name: 'Ogre Blockers',
+      name: 'Ogre Blocker',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'Ogre: Ogre Blockers' }],
       raceEras: [
@@ -989,7 +986,7 @@
       ],
     },
     {
-      name: 'Goblin Linemen',
+      name: 'Goblin Lineman',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'Orc: Goblin Linemen' }],
       raceEras: [
@@ -1033,7 +1030,7 @@
       ],
     },
     {
-      name: 'Untrained Troll',
+      name: 'Troll',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'Orc: Untrained Troll' }],
       raceEras: [
@@ -1046,7 +1043,7 @@
 
     // --- CRP-era availability: Vampire Team (First era) ---
     {
-      name: 'Thrall Linemen',
+      name: 'Thrall Lineman',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'Vampire: Thrall Linemen' }],
       raceEras: [
@@ -1057,7 +1054,7 @@
       ],
     },
     {
-      name: 'Vampire Blitzers',
+      name: 'Vampire Blitzer',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'Vampire: Vampire Blitzers' }],
       raceEras: [
@@ -1175,7 +1172,7 @@
 
     // --- CRP+-era availability: Underworld Denizens (First era) ---
     {
-      name: 'Underworld Goblin Lineman',
+      name: 'Goblin Lineman',
       isStarPlayer: false,
       externalIds: [
         {
@@ -1191,7 +1188,7 @@
       ],
     },
     {
-      name: 'Underworld Skaven Lineman',
+      name: 'Skaven Clanrat',
       isStarPlayer: false,
       externalIds: [
         {
@@ -1207,7 +1204,7 @@
       ],
     },
     {
-      name: 'Underworld Skaven Thrower',
+      name: 'Skaven Thrower',
       isStarPlayer: false,
       externalIds: [
         {
@@ -1223,7 +1220,7 @@
       ],
     },
     {
-      name: 'Underworld Skaven Blitzers',
+      name: 'Skaven Blitzer',
       isStarPlayer: false,
       externalIds: [
         {
@@ -1609,7 +1606,7 @@
     // pre-registered by races-and-positions.json5, so it is referenced here
     // by its tloeg.bbleague.se id rather than declared inline above.
     {
-      name: 'Renegade Human Lineman',
+      name: 'Renegade Human',
       isStarPlayer: false,
       externalIds: [
         { system: 'Name', id: 'Chaos Renegade: Renegade Human Lineman' },
@@ -1661,7 +1658,7 @@
       ],
     },
     {
-      name: 'Renegade Troll',
+      name: 'Troll',
       isStarPlayer: false,
       externalIds: [
         { system: 'Name', id: 'Chaos Renegade: Renegade Troll' },
@@ -1674,7 +1671,7 @@
       ],
     },
     {
-      name: 'Renegade Ogre',
+      name: 'Ogre',
       isStarPlayer: false,
       externalIds: [
         { system: 'Name', id: 'Chaos Renegade: Renegade Ogre' },
@@ -1687,7 +1684,7 @@
       ],
     },
     {
-      name: 'Renegade Minotaur',
+      name: 'Minotaur',
       isStarPlayer: false,
       externalIds: [
         { system: 'Name', id: 'Chaos Renegade: Renegade Minotaur' },

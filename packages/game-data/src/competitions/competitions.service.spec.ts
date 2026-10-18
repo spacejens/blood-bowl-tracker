@@ -153,6 +153,7 @@ describe('CompetitionsService', () => {
 
       await service.upsert({
         ...baseData,
+        renameExisting: true,
         startDate: undefined,
         endDate: undefined,
       });
@@ -250,11 +251,54 @@ describe('CompetitionsService', () => {
 
       await service.upsert({
         name: 'Major Season 12',
+        renameExisting: true,
         teamEraIds: [],
         externalIds: [{ externalSystemId: 1, externalId: '35' }],
       });
 
       expect(firstCallArg(chains[1].set)).toEqual({ name: 'Major Season 12' });
+    });
+
+    it('leaves the name out of an update that does not ask to rename', async () => {
+      const { db, chains } = await build(
+        [
+          { ownerId: 1, externalSystemId: 1, externalId: '73' },
+          { ownerId: 1, externalSystemId: 2, externalId: 'Major Season 24' },
+        ],
+        [fakeCompetition],
+        [],
+      );
+
+      await service.upsert({ ...baseData, name: 'Raw Source Name' });
+
+      expect(db.update).toHaveBeenCalledWith(competitions);
+      expect(firstCallArg(chains[1].set)).toEqual({
+        type: 'season',
+        eraId: 20,
+        startDate: '2024-01-15',
+        endDate: '2024-06-30',
+      });
+    });
+
+    it('renames on update when the payload asks to', async () => {
+      const { chains } = await build(
+        [
+          { ownerId: 1, externalSystemId: 1, externalId: '73' },
+          { ownerId: 1, externalSystemId: 2, externalId: 'Major Season 24' },
+        ],
+        [fakeCompetition],
+        [],
+      );
+
+      await service.upsert({
+        ...baseData,
+        name: 'Major Season 24',
+        renameExisting: true,
+      });
+
+      expect(firstCallArg(chains[1].set)).toMatchObject({
+        name: 'Major Season 24',
+      });
     });
   });
 

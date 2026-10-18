@@ -15,7 +15,9 @@ describe('RpcRouterFactoryService tpRosters router', () => {
       team: { success: true, imported: 1, errors: [] },
       players: { success: true, imported: 2, errors: [] },
       teamEras: [{ id: 31, eraId: 40 }],
-      importedPlayers: [{ lineUpId: 5001, playerId: 700, created: true }],
+      importedPlayers: [
+        { lineUpId: 5001, playerId: 700, created: true, reportedSppTotal: 12 },
+      ],
       mercenaryPositionUsages: [],
     };
     harness.mocks.tpRosterImportService.importRawRoster.mockResolvedValue(
@@ -27,6 +29,7 @@ describe('RpcRouterFactoryService tpRosters router', () => {
       roster: raw,
       era: 'Fourth era',
       externalSystemName: 'TP',
+      deferSppTotal: true,
     });
 
     expect(result).toEqual(outcome);
@@ -37,6 +40,7 @@ describe('RpcRouterFactoryService tpRosters router', () => {
       era: 'Fourth era',
       externalSystemName: 'TP',
       matchEmbeddedPlayers: [],
+      deferSppTotal: true,
     });
   });
 });

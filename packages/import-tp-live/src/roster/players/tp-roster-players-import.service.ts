@@ -31,6 +31,12 @@ export interface ImportRosterPlayersOptions {
   context: TpRosterContext;
   /** The team's team-era row for the context's era. */
   teamEraId: number;
+  /**
+   * When true, the players' `spp_total` is left alone: the caller writes it
+   * afterwards through `players.syncReportedSppAdjustments`, from the
+   * `reportedSppTotal` this import returns.
+   */
+  deferSppTotal?: boolean;
   errors: ImportError[];
 }
 
@@ -60,7 +66,8 @@ export class TpRosterPlayersImportService {
    * match snapshots — a player who has since left is still referenced by
    * match events); the roster file wins for any id both list, being the
    * freshest, except for the career SPP total, which only ever grows and so
-   * takes the highest value seen. Players carry only a TP external id (their
+   * takes the highest value seen; it is returned per player, and stored unless
+   * the caller defers it. Players carry only a TP external id (their
    * `lineUps[].id`), never a Name one: player names are not unique.
    */
   async importPlayers({
@@ -68,6 +75,7 @@ export class TpRosterPlayersImportService {
     matchEmbeddedPlayers,
     context,
     teamEraId,
+    deferSppTotal,
     errors,
   }: ImportRosterPlayersOptions): Promise<TpRosterPlayersOutcome> {
     const merged = this.mergePlayers(roster.players, matchEmbeddedPlayers);
@@ -99,6 +107,7 @@ export class TpRosterPlayersImportService {
         position,
         context,
         teamEraId,
+        deferSppTotal,
         baselineCache,
         errors,
       });
@@ -117,6 +126,7 @@ export class TpRosterPlayersImportService {
         lineUpId: player.id,
         playerId: upserted.player.id,
         created: upserted.created,
+        reportedSppTotal: player.totalStarPlayerPoints,
       });
       if (position.mercenary !== undefined) {
         outcome.mercenaryPositionUsages.push({
@@ -177,11 +187,19 @@ export class TpRosterPlayersImportService {
     position: ResolvedPlayerPosition;
     context: TpRosterContext;
     teamEraId: number;
+    deferSppTotal: boolean | undefined;
     baselineCache: IncreaseBaselineCache;
     errors: ImportError[];
   }): Promise<UpsertPlayer> {
-    const { player, position, context, teamEraId, baselineCache, errors } =
-      options;
+    const {
+      player,
+      position,
+      context,
+      teamEraId,
+      deferSppTotal,
+      baselineCache,
+      errors,
+    } = options;
     const { rulesSet } = context;
     let characteristics: TpPlayerCharacteristicsPayload | undefined =
       this.characteristicsBuilder.forRosterPlayer({
@@ -239,7 +257,11 @@ export class TpRosterPlayersImportService {
       name: player.name,
       teamEraId,
       positionId: position.positionId,
-      sppTotal: player.totalStarPlayerPoints,
+      // Deferred: the bulk import writes spp_total through the reported
+      // adjustments step instead, so each run has one writer.
+      ...(deferSppTotal === true
+        ? {}
+        : { sppTotal: player.totalStarPlayerPoints }),
       ...characteristics,
       ...lastingInjuries,
       ...increaseCounts,

@@ -40,9 +40,12 @@ real-world entity differently:
   the after-other-importers phase.
 - `races-and-positions.json5` — BBL/TP race and regular position name
   variants. `positions_race_eras` availability restoration is curated
-  separately, in `position-availability.json5` (see below).
+  separately, in `position-availability.json5` (see below). Source importers
+  set a race's or position's name only when they create it, so the names here
+  stick.
 - `coaches.json5` — BBL's partial name vs. TP's full name for the same coach.
-- `teams.json5` — team name variants.
+- `teams.json5` — team name variants. Source importers set a team's name only
+  when they create the team, so the name here sticks.
 - `star-players.json5` — star player `Position` rows. Both BBL and TP
   importers attach a `Name` external id equal to the star's bare name across
   all three star-position code paths (the roster-catalog path, the
@@ -132,15 +135,17 @@ generation's id on the one existing curated row** in
 - Add the new id to the existing entry's `externalIds`; never remove the older
   one. Order the array BBL id, newest TP id, older TP id(s), `Name` id.
 - Where the name changed, set the entry's `name` to the **current** name.
-  Leave the `Name` id alone: it is the id under which this row was first
-  curated, and the BBL/TP importers add their own `<race>: <source name>` ids
-  onto the same row as they run — those derived ids, not this one, are what
-  `position-characteristics.json5` and `position-availability.json5`
-  reference.
-- If the renamed position also appears in `position-availability.json5`, set
-  that entry's `name` to the current name too. The after-other-importers phase
-  overlays the position's name, so leaving the old spelling there silently
-  renames the merged row back on every import.
+  Keep the `Name` id it was first curated under, and also list every
+  `<race>: <source name>` id the BBL/TP importers derive for the same row
+  (after it): those derived ids are what `position-characteristics.json5` and
+  `position-availability.json5` reference, and listing them here makes every
+  pairing visible to the curated-data tests.
+- Every `position-availability.json5` entry sharing a `Name` id with an entry
+  here carries the same `name` (a test enforces it). The after-other-importers
+  phase renames the position, so a different spelling there would flip the
+  row's name on every run. Which spelling: the position's current (BB2025)
+  name as TP uses it, falling back to the name in the before-phase file when
+  TP has no data for the position.
 - `position-characteristics.json5` requires no change: each entry is keyed by
   the position's `Name` external id, not a display name, so the renamed row's
   merged identity (with both old and new ids registered) resolves the reference
@@ -165,7 +170,8 @@ systems could not supply:
 
 - `coaches.json5` — TP usernames replaced with a readable coach name. These
   names are pseudonymized (see [Data layout](index.md#data-layout)), so this is
-  where a coach's displayed pseudonym is set.
+  where a coach's displayed pseudonym is set. Source importers set a coach's name only when they
+  create the coach, so a name set here sticks.
 - `competitions.json5` — rename-only: classification lives in the
   before-other-importers phase (see above). Its 36 entries normalize the
   recurring numbered competitions the two source systems named inconsistently
@@ -173,9 +179,10 @@ systems could not supply:
 Season N`; stray prefixes are stripped from Ogretoberfest, Chaos Cup and
   Dungeon Bowl entries; each track's unnumbered first instalment — e.g. bare
   `Chaos Cup` — is numbered `1`; and BBL's three identically-named `Reserves
-Rumble` events become `Reserves Rumble 1`–`3`). Renaming cannot move to the
-  earlier phase: it can only run once the importers have (re-)created their
-  rows under the raw source names.
+Rumble` events become `Reserves Rumble 1`–`3`). The before-other-importers
+  file already creates these under their canonical names and source importers
+  never rename an existing competition, so this pass only changes a row a
+  source importer created before it was curated there.
 - `position-characteristics.json5` — hand-curated Move/Strength/Agility/Armour
   values for the three older rules sets no importer can supply correctly (CRP,
   CRP+, BB2016); `tools/import-bbl` deliberately writes no row for a rules set

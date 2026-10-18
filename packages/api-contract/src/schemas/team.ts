@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { ExternalIdSchema } from './external-id';
+import { RenameExistingSchema } from './shared/rename-existing';
 
 export const TeamEraSchema = z.object({
   id: z.number(),
@@ -18,6 +19,7 @@ export const TeamSchema = z.object({
 
 export const UpsertTeamSchema = z.object({
   name: z.string().min(1).optional(),
+  renameExisting: RenameExistingSchema,
   raceId: z.number().int().optional(),
   coachId: z.number().int().optional(),
   eras: z.array(z.number().int()).default([]),

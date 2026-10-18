@@ -19,8 +19,10 @@
 // data/before-other-importers/competitions.json5: a competition's
 // competition_group_id has to be correct before the BBL and TP importers
 // run, because tools/import-tp's awards import resolves a trophy by the
-// competition's group name. Renaming cannot run there: it can only run once
-// the importers have (re-)created their rows under the raw source names.
+// competition's group name. The before-other-importers file already creates
+// these under their canonical names, and source importers never rename an
+// existing competition, so this file only changes a competition a source
+// importer created before it was curated there.
 // Nothing here references a league or a group -- if an entry ever needs to,
 // the API's resolve procedure can answer it directly from this phase, same
 // as any other phase.

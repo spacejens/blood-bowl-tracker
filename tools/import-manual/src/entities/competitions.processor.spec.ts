@@ -125,6 +125,7 @@ describe('CompetitionsProcessor', () => {
     expect(competitions.upsertCompetitionResult).toHaveBeenCalledWith(
       {
         name: 'Major Season 12',
+        renameExisting: true,
         type: 'season',
         eraId: 3,
         teamEraIds: [],
@@ -261,6 +262,7 @@ describe('CompetitionsProcessor', () => {
     expect(competitions.upsertCompetitionResult).toHaveBeenCalledWith(
       {
         name: 'Major Season 12',
+        renameExisting: true,
         type: undefined,
         eraId: undefined,
         teamEraIds: [],
@@ -317,7 +319,10 @@ describe('CompetitionsProcessor', () => {
       expect.objectContaining({ ref: groupRef, systemIds: ctx.systemIds }),
     );
     expect(competitions.upsertCompetitionResult).toHaveBeenCalledWith(
-      expect.objectContaining({ competitionGroupId: 4 }),
+      expect.objectContaining({
+        competitionGroupId: 4,
+        renameExisting: true,
+      }),
       ctx.errors,
     );
   });

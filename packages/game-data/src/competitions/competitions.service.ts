@@ -54,13 +54,16 @@ export class CompetitionsService {
       entityTable: competitions,
       entityIdColumn: competitions.id,
       values: {
-        name: data.name,
+        // A competition's name is curated by tools/import-manual once the
+        // row exists; only an upsert that says so may overwrite it.
+        ...(data.renameExisting === true ? { name: data.name } : {}),
         type: data.type,
         eraId: data.eraId,
         startDate: data.startDate,
         endDate: data.endDate,
         competitionGroupId: data.competitionGroupId,
       },
+      createOnlyValues: { name: data.name },
       externalIdTable: competitionExternalIds,
       ownerIdColumn: competitionExternalIds.competitionId,
       externalSystemIdColumn: competitionExternalIds.externalSystemId,
