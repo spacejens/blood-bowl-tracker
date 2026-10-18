@@ -23,7 +23,12 @@ phase, and a lowercase hyphenated slug.
   run after them.
 - Numbers order the batches and must be unique, and every `before` batch must
   be numbered below every `after` batch. Since batch 002 is an `after` batch,
-  every new batch is an `after` batch.
+  every new batch is an `after` batch. On a scratch import a new batch
+  therefore lands after BBL and TP: if it supplies curation a source importer
+  needs (a TP keyword or skill, say), that importer reports the missing
+  curation and leaves the affected record out, so rerun it after
+  `after-sources`. The source importers are idempotent upserts, so the rerun
+  repairs the omission.
 - Within a batch, every `.json5` file directly in the directory is read in
   alphabetical order and pooled exactly as described in
   [Data files](index.md#data-files).
