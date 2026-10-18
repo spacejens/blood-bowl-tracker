@@ -42,7 +42,7 @@ TP position id on one position row. No curation is needed for those.
 A handful of `skillMasterId`s carry no name in any downloaded mirror file at
 all, so the scan can never learn them however much history is downloaded.
 Each is curated instead as a `tourplay.net` external id on the skill it means,
-in `tools/import-manual/data/batches/001-before-initial-sources/skills.json5` (curate
+in `tools/import-manual/data/batches/001-initial-seed/skills.json5` (curate
 a new one in a new batch, see [Batches](../import-manual/batches.md)), and
 `packages/import-tp-live`'s `TpOfficialSkillRefsService` resolves it through
 the ordinary external-id mechanism for the official team list's starting

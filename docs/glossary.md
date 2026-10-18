@@ -242,7 +242,7 @@ See [discord-bot/slash-commands/insights.md](discord-bot/slash-commands/insights
 
 ### Manual import batch
 
-A numbered directory of `tools/import-manual`'s hand-curated data, applied to a database once — before or after the BBL and TP importers, as its name says — and then kept unchanged as a historical record. The database records which batches it holds, so a long-lived database receives only new batches.
+A numbered directory of `tools/import-manual`'s hand-curated data, applied to a database once, in number order (the first before the BBL and TP importers, the rest after them), and then kept unchanged as a historical record. The database records which batches it holds, so a long-lived database receives only new batches.
 
 See [import-manual/batches.md](import-manual/batches.md).
 

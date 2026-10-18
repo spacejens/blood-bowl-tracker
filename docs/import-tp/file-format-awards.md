@@ -61,7 +61,7 @@ disambiguator is the award's `name` field when present (`Best Stunty`,
 `Wooden Spoon`, which share one numeric code within a file) and the numeric
 `awardType` otherwise (`1`, `2`, `3`); `groupName` is the curated competition
 group's literal name. These ids are authored as literal strings in
-`tools/import-manual/data/batches/001-before-initial-sources/trophies.json5`:
+`tools/import-manual/data/batches/001-initial-seed/trophies.json5`:
 
 | Trophy                | TP external id              |
 | --------------------- | --------------------------- |

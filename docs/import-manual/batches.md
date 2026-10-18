@@ -3,43 +3,44 @@
 `tools/import-manual`'s curated data lives in numbered batches under
 `tools/import-manual/data/batches/`. Each batch is applied to a database once
 and then kept unchanged as a historical record; the database records which
-batches it holds. A full import from scratch applies every batch, in order,
-around the BBL and TP importers.
+batches it holds. A full import from scratch applies the first batch, then the BBL and TP importers, then the rest, in
+order.
 
 ## Layout
 
 ```text
 tools/import-manual/data/batches/
-  001-before-initial-sources/
-  002-after-initial-sources/
-  003-after-reset-curated-names/
+  001-initial-seed/
+  002-initial-cleanup/
+  003-reset-curated-names/
 ```
 
-A batch directory is named `NNN-<phase>-<slug>`: a three-digit number, the
-phase, and a lowercase hyphenated slug.
+A batch directory is named `NNN-<slug>`: a three-digit number and a lowercase
+hyphenated slug.
 
-- `before` batches run before the BBL and TP importers, so the records they
-  pre-register already exist for those importers to match; `after` batches
-  run after them.
-- Numbers order the batches and must be unique, and every `before` batch must
-  be numbered below every `after` batch. Since batch 002 is an `after` batch,
-  every new batch is an `after` batch. On a scratch import a new batch
-  therefore lands after BBL and TP: if it supplies curation a source importer
-  needs (a TP keyword or skill, say), that importer reports the missing
-  curation and leaves the affected record out, so rerun it after
-  `after-sources`. The source importers are idempotent upserts, so the rerun
-  repairs the omission.
+- Numbers order the batches and must be unique. A batch is applied after every
+  lower-numbered one. Batch 002 references rows only the BBL and TP importers
+  create, so it can only be applied after them; a batch numbered above it
+  therefore also lands after them on a scratch import. If such a batch
+  supplies curation a source importer needs (a TP keyword or skill, say), that
+  importer reports the missing curation and leaves the affected record out, so
+  rerun it after `apply`. The source importers are idempotent upserts, so the
+  rerun repairs the omission. To avoid the rerun, a curator can sequence the
+  scratch import so the prerequisite batch is applied before the sources:
+  `apply <batch>` applies exactly one batch, provided every lower-numbered
+  batch is recorded or applied first.
 - Within a batch, every `.json5` file directly in the directory is read in
   alphabetical order and pooled exactly as described in
   [Data files](index.md#data-files).
 
 The initial batches:
 
-- **001-before-initial-sources** and **002-after-initial-sources** — the
-  curated data as it stood when batches were introduced, before and after the
-  source importers. What each file is for is described in
-  [Curated data files](curated-files.md).
-- **003-after-reset-curated-names** — restates, with only `name` and
+- **001-initial-seed** and **002-initial-cleanup** — the curated data as it
+  stood when batches were introduced: 001 holds the records the BBL and TP
+  importers should find already registered and match against, 002 the cleanup
+  that needs the rows those importers create. What each file is for is
+  described in [Curated data files](curated-files.md).
+- **003-reset-curated-names** — restates, with only `name` and
   `externalIds`, the curated name of every coach, team, race, position,
   competition and skill batches 001 and 002 curate. A long-lived database can
   carry a source's spelling for a row whose curated name came later (TP's
@@ -52,7 +53,7 @@ The initial batches:
 ## Changing curated data
 
 Never edit an applied batch — not even to fix a typo. Put the change in a new
-batch with the next free number (an `after` batch), restating only what
+batch with the next free number, restating only what
 changes; an entry overlays the existing row (see
 [Data files](index.md#data-files)). An entry that restates a race, star player
 or keyword should carry exactly the external ids the earlier entry has: the
@@ -81,34 +82,39 @@ Run from `tools/import-manual/` after building the tool
 (`pnpm --filter @blood-bowl-tracker/import-manual run build`):
 
 ```bash
-node dist/main.js before-sources                 # apply unapplied before batches
-node dist/main.js after-sources                  # apply unapplied after batches
+node dist/main.js apply                          # apply every unrecorded batch, in number order
+node dist/main.js apply <batch-name>             # apply exactly that one batch
 node dist/main.js mark-applied <batch>...        # record batches without importing
 node dist/main.js <directory>                    # ad hoc import, records nothing
 ```
 
-`before-sources` and `after-sources` read the tool's own `data/batches/`
-whatever the working directory. Each:
+`apply` reads the tool's own `data/batches/` whatever the working directory.
+`<batch-name>` is the exact directory name (`apply 001-initial-seed`). Each
+run:
 
-1. checks every recorded batch, of both phases, still exists with the content
-   it was recorded with, and fails otherwise;
-2. for `after-sources`, fails while any `before` batch is unrecorded (run
-   `before-sources` first on a fresh database, or `mark-applied` on one that
-   already holds those batches);
-3. imports each unrecorded batch of its phase in number order, printing
-   `Skipped batch <name> (already applied).` or `Applied batch <name>.`;
+1. checks every recorded batch still exists with the content it was recorded
+   with, and fails otherwise;
+2. for `apply <batch-name>`, fails while any lower-numbered batch is
+   unrecorded, naming them: apply them first, or `mark-applied` them if the
+   database already holds their data. A single batch that is already recorded
+   is skipped;
+3. imports each unrecorded batch (all of them, or the one named) in number
+   order, printing `Skipped batch <name> (already applied).` or
+   `Applied batch <name>.`;
 4. records a batch only when it imported with zero errors. The first batch
    with errors is left unrecorded and no later batch is attempted, since later
    batches may depend on it; fix the cause and run the command again — every
-   write is an idempotent upsert, so re-importing the batch is safe.
+   write is an idempotent upsert, so re-importing the batch is safe. On such a
+   failure stderr also prints the hint "On a fresh database apply the first
+   batch, run the BBL and TP importers, then apply the rest."
 
 On success the last line is `Imported <N> record(s) successfully.`; collected
 errors are printed one per line under `Import completed with <N> errors:`,
 followed by which batch was left unrecorded, and the tool exits non-zero. An
 unexpected failure (unreachable API, malformed file, a changed applied batch,
-an invalid batch name, duplicate batch numbers, a `before` batch numbered
-above an `after` batch, `mark-applied` with no names or an unknown name) is
-printed as `Import failed:`.
+an invalid batch name, duplicate batch numbers, `apply` of an unknown batch or
+past an unrecorded lower one, `mark-applied` with no names or an unknown name)
+is printed as `Import failed:`.
 
 `mark-applied` records the named batches with their current content hashes
 without importing anything, for a database that already holds their data. A
@@ -119,29 +125,32 @@ Passing a directory instead imports that directory ad hoc and records nothing
 
 ## Operating procedure
 
-- **Scratch database:** `before-sources`, the BBL importer, the TP importer,
-  `after-sources`.
-- **Long-lived database (production):** `after-sources` only. It applies just
-  the batches added since the last run.
+- **Scratch database:** `apply 001-initial-seed`, the BBL importer, the TP
+  importer, then a plain `apply`, which applies 002, 003 and anything newer.
+  A plain `apply` on a fresh database before the source importers fails at
+  002, which references rows only the sources create, and leaves it
+  unrecorded; it is safe to rerun after the sources.
+- **Long-lived database (production):** a plain `apply`. It applies just the
+  batches not yet recorded.
 - **Once, on a database that already holds the initial batches** (production,
-  imported before batches existed): `mark-applied 001-before-initial-sources
-  002-after-initial-sources`, then `after-sources` to apply batch 003. Only do
+  imported before batches existed): `mark-applied 001-initial-seed
+  002-initial-cleanup`, then `apply` to apply batch 003. Only do
   this if the database's last manual import ran from the current content of
   both batches; `mark-applied` records them as applied without importing, so
   anything merged since would never reach the database. Otherwise first import
-  the two directories ad hoc (`node dist/main.js data/batches/001-before-initial-sources`,
-  then `data/batches/002-after-initial-sources`; both are idempotent upserts)
+  the two directories ad hoc (`node dist/main.js data/batches/001-initial-seed`,
+  then `data/batches/002-initial-cleanup`; both are idempotent upserts)
   and mark them applied afterwards. The api-server must already run a release
   with the `manualImportBatches` procedures (see
   [production imports](../discord-bot/production-imports.md)).
 
 ## Tested
 
-`test/importer-double-run.e2e-spec.ts` runs `before-sources`, a BBL/TP
-stand-in and `after-sources` twice against a real Postgres. Without the real
+`test/importer-double-run.e2e-spec.ts` runs `apply 001-initial-seed`, a BBL/TP
+stand-in and a plain `apply`, twice against a real Postgres. Without the real
 source importers batch 002 always fails on its references to rows only they
-create, so `after-sources` stops there; the later after batches are then run
-by directory so their content still takes part. The suite asserts the second
-`before-sources` applies nothing, `manual_import_batches` gains no row on the
-second run, and no other `game_data` row changes. See also
-[re-running.md](re-running.md#tested).
+create, so the plain `apply` stops there and leaves it unrecorded; the batches
+numbered above it are then run by directory so their content still takes part.
+The suite asserts the second `apply 001-initial-seed` applies nothing,
+`manual_import_batches` gains no row on the second run, and no other
+`game_data` row changes. See also [re-running.md](re-running.md#tested).

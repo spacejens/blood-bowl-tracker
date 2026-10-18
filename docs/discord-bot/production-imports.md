@@ -70,24 +70,24 @@ To run an import against production:
    unrelated to this change and stays `3000`.
 4. In a second terminal, for a full import into a freshly reset database, run
    the importers in the same order the `deploy-local` skill uses locally —
-   manual "before", BBL, TP, manual "after" — each from its own tool
+   manual batch 001, BBL, TP, remaining manual batches — each from its own tool
    directory:
 
    ```bash
-   ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js before-sources )
+   ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js apply 001-initial-seed )
    ( cd tools/import-bbl    && IMPORT_CONFIG_ENV=production node dist/main.js )
    ( cd tools/import-tp     && IMPORT_CONFIG_ENV=production node dist/main.js )
-   ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js after-sources )
+   ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js apply )
    ```
 
    To bring a long-lived production database up to date with new curated
-   data, run only `after-sources` — it applies the batches not yet recorded
+   data, run only a plain `apply` — it applies the batches not yet recorded
    there. Once, before the first such run, record the batches production
    already holds — but only if production's last manual import ran from the
    current content of both batches (otherwise import
-   `data/batches/001-before-initial-sources` and
-   `data/batches/002-after-initial-sources` by directory first):
-   `( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js mark-applied 001-before-initial-sources 002-after-initial-sources )`.
+   `data/batches/001-initial-seed` and
+   `data/batches/002-initial-cleanup` by directory first):
+   `( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js mark-applied 001-initial-seed 002-initial-cleanup )`.
    Both need the api-server release with the `manualImportBatches` procedures
    deployed first. See
    [import-manual batches](../import-manual/batches.md#operating-procedure).

@@ -144,7 +144,7 @@ deliberately have no resolve procedure: nothing references them by external
 id across files, phases or tools.
 
 Players resolve for one caller in particular:
-`tools/import-manual`'s curated `batches/002-after-initial-sources/trophy-awards.json5`
+`tools/import-manual`'s curated `batches/002-initial-cleanup/trophy-awards.json5`
 names the winner of a `manual`-kind trophy by the player's external id,
 which the BBL/TP importers created in an earlier phase.
 

@@ -12,7 +12,7 @@ historical and never edited (see [Batches](batches.md)).
 
 ## Known batch 001 dedup files
 
-A few `data/batches/001-before-initial-sources/*.json5` files exist specifically to unify
+A few `data/batches/001-initial-seed/*.json5` files exist specifically to unify
 records the BBL and TP importers would otherwise create as separate,
 duplicate rows because the two source systems name or key the same
 real-world entity differently:
@@ -136,7 +136,7 @@ generation's id on the one existing curated row** in
 `races-and-positions.json5` rather than letting a second row appear. Batches
 001 and 002 are applied once and never edited (see
 [Batches](batches.md#changing-curated-data)), so a rename made today goes in a
-new `after` batch: an entry for the position carrying its current `name` and
+new batch: an entry for the position carrying its current `name` and
 the complete set of external ids, new ones included. The bullets below describe
 what that entry must contain, as they did for the original files:
 
@@ -175,7 +175,7 @@ notice and undo than a missing merge.
 
 ## Known batch 002 cleanup files
 
-`data/batches/002-after-initial-sources/*.json5` files run once the BBL and TP importers
+`data/batches/002-initial-cleanup/*.json5` files run once the BBL and TP importers
 have created their records, to fix up names or attach external IDs the source
 systems could not supply:
 
@@ -198,7 +198,7 @@ Rumble` events become `Reserves Rumble 1`–`3`). Batch 001
   values for the three older rules sets no importer can supply correctly (CRP,
   CRP+, BB2016); `tools/import-bbl` deliberately writes no row for a rules set
   whose `agilityFormat` is `'bare'`, which is exactly those three. It sits in
-  an **after** batch because its position references use the
+  a batch applied after the sources because its position references use the
   "`<raceName>: <positionName>`" `Name` external id that only
   `tools/import-bbl` creates, so those positions have to exist first. A
   _gap-fill_ entry — a `(position, rules set)` pair no importer can ever write
@@ -206,7 +206,7 @@ Rumble` events become `Reserves Rumble 1`–`3`). Batch 001
   instead (see [Position characteristics](index.md#position-characteristics)).
 - `position-availability.json5` — hand-restored `positions_race_eras`
   availability the source data cannot evidence, from the rulebook rosters.
-  It sits in an **after** batch for the same reason as the file above,
+  It is applied after the sources for the same reason as the file above,
   spelled out in more detail: many of its position references use the
   "`<raceName>: <positionName>`" `Name` external id that only
   `tools/import-bbl`'s position importer creates. Curating before the
@@ -219,7 +219,7 @@ Rumble` events become `Reserves Rumble 1`–`3`). Batch 001
 - `trophy-awards.json5` — hand-curated winners of the two
   [`manual`-kind](#known-batch-001-dedup-files) trophies
   (Season MVP, Gudarnas Förkämpe), for which no importer records a
-  winner. It sits in an **after** batch because each entry references a
+  winner. It is applied after the sources because each entry references a
   competition and a player by external id, both created by the BBL/TP
   importers.
 - `position-skills.json5` — hand-curated starting skills
@@ -267,7 +267,7 @@ marker on a skill this file has not caught up with — fix the curated row.
 
 ## Batch 003
 
-`data/batches/003-after-reset-curated-names/` restates the curated name of
+`data/batches/003-reset-curated-names/` restates the curated name of
 every coach, team, race, position, competition and skill that batches 001 and
 002 curate; see [Batches](batches.md) for what it does and why. A new curated
 rename goes into a new batch, restating `name` and the row's `externalIds`.

@@ -135,7 +135,7 @@ plus the Secret Bowl `Bretonnian_2020`. This matches what
   skill, published as a plain name beside (not inside) `skills`. The importer
   merges it into that entry's starting skills as a name-carrying reference,
   where it resolves against the curated `unique` category in
-  `tools/import-manual/data/batches/001-before-initial-sources/skills.json5` like any
+  `tools/import-manual/data/batches/001-initial-seed/skills.json5` like any
   other starting skill; a missing one is curated in a new batch (see
   [Batches](../import-manual/batches.md)).
 

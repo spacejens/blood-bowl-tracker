@@ -7,13 +7,12 @@ lets a developer author a small amount of data by hand — new
 leagues/eras/rules-sets/races/positions/coaches/teams, or extra external IDs on
 records another importer will also touch.
 
-It is meant to run twice around the system-specific importers:
-
-- **before** them, so a hand-authored record (e.g. a race's full position list,
-  or a team pre-registered with a BBL numeric ID) already exists for those
-  importers to match against instead of creating a duplicate; and
-- **after** them, to clean up names or attach external IDs the system data
-  could not supply.
+Its first batch is applied before the system-specific importers, so a
+hand-authored record (e.g. a race's full position list, or a team
+pre-registered with a BBL numeric ID) already exists for those importers to
+match against instead of creating a duplicate. The rest are applied after
+them, to clean up names or attach external IDs the system data could not
+supply.
 
 Its data is organised in once-applied, numbered batches; see
 [Batches](batches.md).
@@ -132,7 +131,7 @@ a genuinely new entity.
 ### Worked example
 
 In a new batch, e.g.
-`data/batches/004-after-necromantic-2020/necromantic-2020.json5`:
+`data/batches/004-necromantic-2020/necromantic-2020.json5`:
 
 ```jsonc
 {
@@ -228,20 +227,20 @@ after the rules sets and positions it references.
 Two files declare `positionRulesSets` entries, in different batches and for
 different reasons.
 
-`data/batches/002-after-initial-sources/position-characteristics.json5` holds the values
+`data/batches/002-initial-cleanup/position-characteristics.json5` holds the values
 for the three older rules sets no importer can supply correctly (CRP, CRP+,
 BB2016). No importer writes those keys at all: `tools/import-bbl` skips any
 rules set whose `agilityFormat` is `'bare'` — exactly those three — rather
 than storing the BB2020 snapshot it cannot convert faithfully, and
 `tools/import-tp`'s sources only ever cover BB2020 and later. It still has to
-sit in an **after** batch, for the same reason `position-availability.json5`
+sit in a batch applied after the sources (batch 002), for the same reason `position-availability.json5`
 does: its `position` references use the "`<raceName>: <positionName>`" `Name`
 external id that only `tools/import-bbl`'s position importer creates, so
 curating earlier would create orphan position rows for the importers' own
 upserts to collide with.
 
-`data/batches/001-before-initial-sources/position-characteristics-gap-fill.json5` holds
-**gap-fill** entries, and sits in a **before** batch for a different reason:
+`data/batches/001-initial-seed/position-characteristics-gap-fill.json5` holds
+**gap-fill** entries, and sits in batch 001, applied before the sources, for a different reason:
 each of its `(position, rules set)` pairs is one no source importer can
 ever produce a row for, so there is no snapshot that could overwrite it, and
 curating early means the row already exists when a source importer needs to
@@ -253,7 +252,7 @@ the values. Whether an entry
 qualifies is a case-by-case judgment call every
 time, never a rule about the rules set: BBL can write BB2020-keyed rows too,
 given real usage evidence, so "it is a BB2020 entry" is not the test. Because
-nothing else in a before batch declares the positions these entries
+nothing else in batch 001 declares the positions these entries
 reference, this file also registers each of them — with the external ids the
 source importers will send, so their own upsert lands on the same row, the same
 technique `star-players.json5` uses.
@@ -323,14 +322,14 @@ at some point — not necessarily in this run.
 Because references resolve against the database rather than a per-process map,
 a batch whose entries name a group does not have to process the group catalog
 itself — the group only needs to have been imported by some earlier run or
-batch. The catalog is curated in `data/batches/001-before-initial-sources`, alongside the
+batch. The catalog is curated in `data/batches/001-initial-seed`, alongside the
 competitions that classify into it.
 
 A competition entry's own `name` is optional (unlike a trophy's, which is
 required): omitting it means "do not rename" — the upsert leaves the existing
 row's name untouched. The curated data uses that for batch 002's
 rename pass only; every entry in
-`data/batches/001-before-initial-sources/competitions.json5` carries a name,
+`data/batches/001-initial-seed/competitions.json5` carries a name,
 because that batch creates the rows.
 
 ### Trophies
@@ -410,17 +409,17 @@ back to a real name.
 
    ```bash
    pnpm --filter @blood-bowl-tracker/import-manual run build
-   ( cd tools/import-manual && node dist/main.js before-sources )
+   ( cd tools/import-manual && node dist/main.js apply 001-initial-seed )
    ```
 
-   `before-sources` / `after-sources` apply the not-yet-applied batches of
-   that phase; see [Batches](batches.md#commands) for every command, its
+   `apply` applies the not-yet-applied batches, `apply <batch>` one batch;
+   see [Batches](batches.md#commands) for every command, its
    output and the order to run them in. This performs a real import against
    a running api-server (see `connection.apiBaseUrl`). Sample success
    output:
 
    ```text
-   Applied batch 001-before-initial-sources.
+   Applied batch 001-initial-seed.
    Imported 5 record(s) successfully.
    ```
 
@@ -437,10 +436,10 @@ run `flyctl proxy 3001:3000` from the repository root in another terminal,
 and set `IMPORT_CONFIG_ENV=production` for the run:
 
 ```bash
-( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js after-sources )
+( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js apply )
 ```
 
-On a long-lived database run only `after-sources`; see
+On a long-lived database run only a plain `apply`; see
 [Batches](batches.md#operating-procedure).
 
 See [Running import tools against production](../discord-bot/production-imports.md).
@@ -452,7 +451,7 @@ See [Running import tools against production](../discord-bot/production-imports.
 - **BatchCatalogService** — finds and validates the batch directories.
 - **BatchContentHashService** — computes a batch's content hash.
 - **BatchLedgerService** — the applied-batch ledger, kept over the API.
-- **BatchRunnerService** — applies a phase's unapplied batches and handles
+- **BatchRunnerService** — applies the unapplied batches and handles
   `mark-applied`.
 - **ImportManualCliService** — maps the command line onto those services or
   onto an ad hoc directory run.
