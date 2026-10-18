@@ -36,3 +36,9 @@ deploy damaged data, recover it by
 [restoring that backup](production-restore.md), not by rolling back or
 re-importing. A restore replaces everything written since that backup (see
 [What gets replaced](production-restore.md#what-gets-replaced)).
+
+When the damage came from a migration, the backup predates it, so startup
+applies that migration again when the restored machines start (see
+[Restoring a backup into production](production-restore.md)). Restoring alone
+does not recover this case: fix or replace the faulty migration on `main`
+first, so the code that starts after the restore no longer runs it as written.
