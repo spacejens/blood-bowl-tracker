@@ -113,6 +113,7 @@ describe('createApiClient', () => {
       'externalSystems',
       'keywords',
       'leagues',
+      'manualImportBatches',
       'matchEvents',
       'matches',
       'playerSkills',

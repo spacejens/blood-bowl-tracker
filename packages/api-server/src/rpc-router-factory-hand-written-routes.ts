@@ -3,6 +3,8 @@ import {
   CompetitionGroupsService,
   ExternalSystemsService,
   KeywordsService,
+  ManualImportBatchContentMismatchError,
+  ManualImportBatchesService,
   MatchOutcomesService,
   MissingTrophyAwardsService,
   PlayerLastingInjuryBackfillService,
@@ -382,6 +384,34 @@ export function buildTpOfficialTeamsRoutes(
   return {
     import: implement(contract.tpOfficialTeams.import).handler(({ input }) =>
       tpOfficialTeamsImport.importOfficialTeams(input),
+    ),
+  };
+}
+
+// manualImportBatches: tools/import-manual's ledger of applied batches. Not
+// an entity, so neither procedure goes through the upsert handler. `record`
+// maps its one domain failure -- a batch already recorded with a different
+// content hash -- to CONFLICT; anything else propagates untouched.
+export function buildManualImportBatchesRoutes(
+  manualImportBatchesService: ManualImportBatchesService,
+) {
+  return {
+    list: implement(contract.manualImportBatches.list).handler(() =>
+      manualImportBatchesService.listAll(),
+    ),
+    record: implement(contract.manualImportBatches.record).handler(
+      async ({ input, errors }) => {
+        try {
+          const { batch, created } =
+            await manualImportBatchesService.record(input);
+          return { ...batch, created };
+        } catch (err) {
+          if (err instanceof ManualImportBatchContentMismatchError) {
+            throw errors.CONFLICT({ message: err.message });
+          }
+          throw err;
+        }
+      },
     ),
   };
 }

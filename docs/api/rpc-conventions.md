@@ -195,6 +195,14 @@ checking `skillRulesSets.list` for the `unique` category instead.
 player — starting and gained alike — which `upsert` cannot answer either,
 since it only ever writes the skills it is given, not the player's full set.
 
+`manualImportBatches.list` and `manualImportBatches.record` are
+`tools/import-manual`'s ledger of applied curated-data batches (see
+[import-manual batches](../import-manual/batches.md)). Neither is an entity
+upsert: a batch has no external ids, only its directory name and a content
+hash. `record` answers `created: false` for a batch already recorded with the
+same hash, so a retry is safe, and `CONFLICT` for one recorded with a
+different hash — an applied batch was edited.
+
 One procedure is a coarse, source-specific import rather than an entity
 upsert: `tpRosters.import` takes one TP roster exactly as TP's API returns
 it and upserts its team and players server-side, in-process through
