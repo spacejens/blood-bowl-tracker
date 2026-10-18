@@ -52,8 +52,8 @@ stored name, which `tools/import-manual` may have curated (see
   later run writes for the same pair. Because the writes are insert-only, a
   later change to BBL's conversion code or a corrected BBL mirror never reaches
   rows that already exist (including BBL-only pairs TP never covers); correct
-  them through a data migration, or by dropping and re-importing, as
-  [Re-running importers](../database.md#re-running-importers) describes.
+  them through a data migration (see
+  [Changing data in a long-lived database](../database.md#changing-data-in-a-long-lived-database)).
   The three pre-BB2020 rules sets are the exception:
   BBL writes no row for a rules set with bare Agility and Armour
   (`agilityFormat: 'bare'` — CRP, CRP+, BB2016), because one BB2020
@@ -75,8 +75,8 @@ stored name, which `tools/import-manual` may have curated (see
   re-run. Because the writes are insert-only, a later change to BBL's
   conversion code or a corrected BBL mirror never reaches rows that already
   exist (including BBL-only pairs TP never covers); correct them through a
-  data migration, or by dropping and re-importing, as
-  [Re-running importers](../database.md#re-running-importers) describes.
+  data migration (see
+  [Changing data in a long-lived database](../database.md#changing-data-in-a-long-lived-database)).
 - **Teams** — from team pages (`p=tm`). Keyed by the team's alphanumeric page
   id (`t` param) under the configured BBL external system (`BBL` by default),
   and by its `<h1>` name under the `Name` external system. Each team's race and

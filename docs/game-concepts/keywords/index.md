@@ -49,8 +49,10 @@ its keywords are recorded the same way.
 association missing from a later batch, but never removes one that batch no
 longer lists, so the join is not authoritative-by-replacement. This matches
 how this tracker's other `sync` procedures behave. The database is long-lived,
-so an association that should no longer hold is corrected by a data
-migration, not by a later import (see
+so an association that should no longer hold is not corrected by a later
+import. It takes a migration, and because a tracked row cannot be deleted, that
+migration retires the row with a removal flag rather than removing it (see
+[Curated sets that shrink](../../database.md#curated-sets-that-shrink) and
 [Changing data in a long-lived database](../../database.md#changing-data-in-a-long-lived-database)).
 
 ## Where the catalogue comes from

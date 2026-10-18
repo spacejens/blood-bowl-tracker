@@ -37,7 +37,7 @@ back uses it (see [Rolling back](production-rollback.md)), but it is not the nor
 path: whatever it deploys is replaced by the next merge to `main`.
 
 For status checks, applying configuration, restarts, rollbacks,
-dispatching a redeploy, resetting the database, and running the importers
+dispatching a redeploy, restoring a backup into production, and running the importers
 against production, use the `deploy-production` skill
 (`.claude/skills/deploy-production/SKILL.md`), which wraps the commands
 documented on this page.

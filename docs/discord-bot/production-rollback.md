@@ -28,8 +28,11 @@ release whose schema the current Neon database is still compatible with; for
 anything older, fix forward instead of rolling back.
 
 A Fly rollback undoes code only: it never reverts a migration or any other
-change to the data. The backup every deploy takes before it runs (see
-[Backup before every deploy](production-deploying.md#backup-before-every-deploy))
-is the known-good state of the data. If a deploy damaged data, recover it by
+change to the data. The backup the Deploy workflow takes before every deploy
+(see
+[Backup before every deploy](production-deploying.md#backup-before-every-deploy);
+a manual `fly deploy` takes none) is the known-good state of the data. If a
+deploy damaged data, recover it by
 [restoring that backup](production-restore.md), not by rolling back or
-re-importing.
+re-importing. A restore replaces everything written since that backup (see
+[What gets replaced](production-restore.md#what-gets-replaced)).
