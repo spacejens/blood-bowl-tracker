@@ -68,7 +68,7 @@ describe('DiscordRestService', () => {
       expect(result).toBe(body);
     });
 
-    it('builds a v10 client with a 30s timeout, authorized with the bot token', async () => {
+    it('builds a v10 client on the global fetch with a 30s timeout, authorized with the bot token', async () => {
       rest.get.mockResolvedValue({});
 
       await service.getMessage('222', '333');
@@ -76,6 +76,7 @@ describe('DiscordRestService', () => {
       expect(vi.mocked(REST)).toHaveBeenLastCalledWith({
         version: '10',
         timeout: 30_000,
+        makeRequest: fetch,
       });
       expect(rest.setToken).toHaveBeenCalledWith('secret-bot-token');
     });
@@ -169,7 +170,7 @@ describe('DiscordRestService', () => {
       expect(result).toBe(body);
     });
 
-    it('builds a v10 client with a 30s timeout, authorized with the bot token', async () => {
+    it('builds a v10 client on the global fetch with a 30s timeout, authorized with the bot token', async () => {
       rest.get.mockResolvedValue([]);
 
       await service.getRecentMessages('123456789', 5);
@@ -177,6 +178,7 @@ describe('DiscordRestService', () => {
       expect(vi.mocked(REST)).toHaveBeenLastCalledWith({
         version: '10',
         timeout: 30_000,
+        makeRequest: fetch,
       });
       expect(rest.setToken).toHaveBeenCalledWith('secret-bot-token');
     });

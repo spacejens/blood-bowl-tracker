@@ -3,6 +3,7 @@ import {
   DiscordAPIError,
   HTTPError,
   REST,
+  RESTOptions,
   RouteLike,
   Routes,
 } from 'discord.js';
@@ -69,9 +70,15 @@ export class DiscordRestService {
    */
   private async createClient(): Promise<REST> {
     const token = await this.botToken.read();
+    // Node's global fetch rather than discord.js's default undici request
+    // strategy: with the workspace's undici 8 override, that strategy builds
+    // `Headers` from response headers carrying a symbol key and throws. The
+    // cast bridges the DOM and undici `RequestInit` typings, which describe
+    // the same request.
     return new REST({
       version: DISCORD_API_VERSION,
       timeout: REQUEST_TIMEOUT_MS,
+      makeRequest: fetch as unknown as RESTOptions['makeRequest'],
     }).setToken(token);
   }
 
