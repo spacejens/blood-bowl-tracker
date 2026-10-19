@@ -1,15 +1,22 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
   INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE,
   INSIGHTS_ERA_NOT_FOUND_MESSAGE,
   INSIGHTS_LEAGUE_NOT_FOUND_MESSAGE,
 } from '../error-messages';
+import type { MakeServiceResult } from './insights-command.service.test-helpers';
 import { makeService } from './insights-command.service.test-helpers';
 
 describe('InsightsCommandService — resolving a scope from an id', () => {
+  let harness: MakeServiceResult;
+
+  beforeEach(async () => {
+    harness = await makeService();
+  });
+
   it('resolves nothing to the all-time scope', async () => {
-    const { service } = await makeService();
+    const { service } = harness;
     await expect(service.resolveScopeById(null)).resolves.toEqual({
       kind: 'ok',
       resolved: {},
@@ -17,7 +24,7 @@ describe('InsightsCommandService — resolving a scope from an id', () => {
   });
 
   it('resolves a league id to its name', async () => {
-    const { service, leagues } = await makeService();
+    const { service, leagues } = harness;
     leagues.findById.mockResolvedValue({ id: 5, name: 'GBBL' });
     await expect(
       service.resolveScopeById({ kind: 'league', id: 5 }),
@@ -29,7 +36,7 @@ describe('InsightsCommandService — resolving a scope from an id', () => {
   });
 
   it('reports a league that no longer exists', async () => {
-    const { service } = await makeService();
+    const { service } = harness;
     await expect(
       service.resolveScopeById({ kind: 'league', id: 5 }),
     ).resolves.toEqual({
@@ -39,7 +46,7 @@ describe('InsightsCommandService — resolving a scope from an id', () => {
   });
 
   it('resolves an era id to its name', async () => {
-    const { service, eras } = await makeService();
+    const { service, eras } = harness;
     eras.findById.mockResolvedValue({
       id: 12,
       name: 'Era Twelve',
@@ -62,7 +69,7 @@ describe('InsightsCommandService — resolving a scope from an id', () => {
   });
 
   it('reports an era that no longer exists', async () => {
-    const { service } = await makeService();
+    const { service } = harness;
     await expect(
       service.resolveScopeById({ kind: 'era', id: 12 }),
     ).resolves.toEqual({
@@ -72,7 +79,7 @@ describe('InsightsCommandService — resolving a scope from an id', () => {
   });
 
   it('resolves a competition id to its name', async () => {
-    const { service, competitions } = await makeService();
+    const { service, competitions } = harness;
     competitions.findById.mockResolvedValue({
       id: 7,
       name: 'Spike Cup',
@@ -99,7 +106,7 @@ describe('InsightsCommandService — resolving a scope from an id', () => {
   });
 
   it('reports a competition that no longer exists', async () => {
-    const { service } = await makeService();
+    const { service } = harness;
     await expect(
       service.resolveScopeById({ kind: 'competition', id: 7 }),
     ).resolves.toEqual({
@@ -109,8 +116,7 @@ describe('InsightsCommandService — resolving a scope from an id', () => {
   });
 
   it('labels a match category without any lookup that can fail', async () => {
-    const { service, categoryLabel, leagues, eras, competitions } =
-      await makeService();
+    const { service, categoryLabel, leagues, eras, competitions } = harness;
     await expect(
       service.resolveScopeById({ kind: 'matchCategory', value: 'cup_final' }),
     ).resolves.toEqual({

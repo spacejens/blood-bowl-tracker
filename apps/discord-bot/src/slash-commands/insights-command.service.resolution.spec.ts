@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   INSIGHTS_CATEGORY_UNSUPPORTED_FOR_ERA_MESSAGE,
   INSIGHTS_UNMATCHED_CATEGORY_MESSAGE,
 } from '../error-messages';
+import type { MakeServiceResult } from './insights-command.service.test-helpers';
 import {
   asLeaf,
   asNode,
@@ -13,13 +14,18 @@ import {
 } from './insights-command.service.test-helpers';
 
 describe('InsightsCommandService — fact-path resolution', () => {
+  let harness: MakeServiceResult;
+
+  beforeEach(async () => {
+    harness = await makeService();
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
   it('resolves an exact leaf path to that fact, suffixed with "All time" when no era is given', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree, factTree } =
-      await makeService();
+    const { service, factTreeDeps, factTreeUtils, tree, factTree } = harness;
     const leaf = asLeaf(tree.coach.toplist.matches.played);
     stubLeafCategory(factTreeUtils, leaf);
     const result = await service.execute(
@@ -45,7 +51,7 @@ describe('InsightsCommandService — fact-path resolution', () => {
   });
 
   it('suffixes eras.list with the league scope when no league is explicitly given', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = await makeService();
+    const { service, factTreeDeps, factTreeUtils, tree } = harness;
     stubLeafCategory(factTreeUtils, asLeaf(tree.eras.list));
     const result = await service.execute(chatInput('eras.list'));
     expect(factTreeDeps.erasList.resolve).toHaveBeenCalledWith({
@@ -64,7 +70,7 @@ describe('InsightsCommandService — fact-path resolution', () => {
   });
 
   it('returns the apothecary fallback for an unknown path', async () => {
-    const { service, factTreeUtils } = await makeService();
+    const { service, factTreeUtils } = harness;
     factTreeUtils.resolvePath.mockReturnValue(undefined);
     const result = await service.execute(chatInput('coach.nope'));
     expect(result).toBe(INSIGHTS_UNMATCHED_CATEGORY_MESSAGE);
@@ -72,7 +78,7 @@ describe('InsightsCommandService — fact-path resolution', () => {
   });
 
   it('resolves player.toplist.mvps with no era, suffixed with "All time"', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = await makeService();
+    const { service, factTreeDeps, factTreeUtils, tree } = harness;
     stubLeafCategory(factTreeUtils, asLeaf(tree.player.toplist.mvps));
     const result = await service.execute(chatInput('player.toplist.mvps'));
     expect(factTreeDeps.playerToplist.resolveMvps).toHaveBeenCalledWith({
@@ -92,8 +98,7 @@ describe('InsightsCommandService — fact-path resolution', () => {
   });
 
   it('passes a string reply through unchanged (e.g. a timeout fallback message from the resolved fact)', async () => {
-    const { service, factTreeDeps, eras, factTreeUtils, tree } =
-      await makeService();
+    const { service, factTreeDeps, eras, factTreeUtils, tree } = harness;
     stubLeafCategory(factTreeUtils, asLeaf(tree.coach.toplist.matches.played));
     eras.findById.mockResolvedValue({
       id: 20,
@@ -115,8 +120,8 @@ describe('InsightsCommandService — fact-path resolution', () => {
     expect(result).toBe(TIMEOUT_STAND_IN);
   });
 
-  it('passes a reply with an empty embeds array through unchanged', async () => {
-    const { service } = await makeService();
+  it('passes a reply with an empty embeds array through unchanged', () => {
+    const { service } = harness;
     const reply = { embeds: [] };
 
     const result = (
@@ -129,7 +134,7 @@ describe('InsightsCommandService — fact-path resolution', () => {
   });
 
   it('resolves player.toplist.completions with no era, suffixed with "All time"', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = await makeService();
+    const { service, factTreeDeps, factTreeUtils, tree } = harness;
     stubLeafCategory(factTreeUtils, asLeaf(tree.player.toplist.completions));
     const result = await service.execute(
       chatInput('player.toplist.completions'),
@@ -151,7 +156,7 @@ describe('InsightsCommandService — fact-path resolution', () => {
   });
 
   it('resolves team.toplist.deflections with no era, suffixed with "All time"', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = await makeService();
+    const { service, factTreeDeps, factTreeUtils, tree } = harness;
     stubLeafCategory(factTreeUtils, asLeaf(tree.team.toplist.deflections));
     const result = await service.execute(chatInput('team.toplist.deflections'));
     expect(factTreeDeps.teamToplist.resolveDeflections).toHaveBeenCalledWith({
@@ -171,7 +176,7 @@ describe('InsightsCommandService — fact-path resolution', () => {
   });
 
   it('resolves player.toplist.sent_off with no era, suffixed with "All time"', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = await makeService();
+    const { service, factTreeDeps, factTreeUtils, tree } = harness;
     stubLeafCategory(factTreeUtils, asLeaf(tree.player.toplist.sent_off));
     const result = await service.execute(chatInput('player.toplist.sent_off'));
     expect(factTreeDeps.playerToplist.resolveTimesSentOff).toHaveBeenCalledWith(
@@ -189,7 +194,7 @@ describe('InsightsCommandService — fact-path resolution', () => {
   });
 
   it('resolves team.toplist.deaths.suffered with no era, suffixed with "All time"', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = await makeService();
+    const { service, factTreeDeps, factTreeUtils, tree } = harness;
     stubLeafCategory(factTreeUtils, asLeaf(tree.team.toplist.deaths.suffered));
     const result = await service.execute(
       chatInput('team.toplist.deaths.suffered'),
@@ -209,7 +214,7 @@ describe('InsightsCommandService — fact-path resolution', () => {
   });
 
   it('resolveCategory resolves a path without an interaction', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = await makeService();
+    const { service, factTreeDeps, factTreeUtils, tree } = harness;
     stubLeafCategory(factTreeUtils, asLeaf(tree.stats));
     const result = await service.resolveCategory('stats', {});
     expect(factTreeDeps.statsSummary.resolve).toHaveBeenCalledWith({
@@ -224,7 +229,7 @@ describe('InsightsCommandService — fact-path resolution', () => {
   });
 
   it('resolveCategory returns the apothecary fallback for an unknown path', async () => {
-    const { service, factTreeUtils } = await makeService();
+    const { service, factTreeUtils } = harness;
     factTreeUtils.resolvePath.mockReturnValue(undefined);
     expect(await service.resolveCategory('nope.nope', {})).toBe(
       INSIGHTS_UNMATCHED_CATEGORY_MESSAGE,
@@ -232,7 +237,7 @@ describe('InsightsCommandService — fact-path resolution', () => {
   });
 
   it('resolveCategory reports a category that does not support an era scope', async () => {
-    const { service, factTreeUtils, tree } = await makeService();
+    const { service, factTreeUtils, tree } = harness;
     stubLeafCategory(factTreeUtils, asLeaf(tree.eras.list));
     const result = await service.resolveCategory('eras.list', {
       era: {
@@ -246,7 +251,7 @@ describe('InsightsCommandService — fact-path resolution', () => {
   });
 
   it('picks among the leaves of a branch path', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = await makeService();
+    const { service, factTreeDeps, factTreeUtils, tree } = harness;
     factTreeUtils.resolvePath.mockReturnValue(asNode(tree.coach));
     factTreeUtils.collectLeaves.mockReturnValue([
       asLeaf(tree.coach.toplist.matches.won),

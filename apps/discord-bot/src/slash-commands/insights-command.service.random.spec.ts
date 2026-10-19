@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { MakeServiceResult } from './insights-command.service.test-helpers';
 import {
   asLeaf,
   asNode,
@@ -15,13 +16,18 @@ const ERA = {
 };
 
 describe('InsightsCommandService — random pick', () => {
+  let harness: MakeServiceResult;
+
+  beforeEach(async () => {
+    harness = await makeService();
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
   it('picks a random leaf under a branch path', async () => {
-    const { service, factTreeDeps, factTreeUtils, factTree, tree } =
-      await makeService();
+    const { service, factTreeDeps, factTreeUtils, factTree, tree } = harness;
     factTreeUtils.resolvePath.mockReturnValue(asNode(tree.coach));
     factTreeUtils.collectLeaves.mockReturnValue([
       asLeaf(tree.coach.toplist.matches.played),
@@ -37,8 +43,7 @@ describe('InsightsCommandService — random pick', () => {
   });
 
   it('picks a random leaf across the whole tree when no category is given', async () => {
-    const { service, factTreeDeps, factTreeUtils, factTree, tree } =
-      await makeService();
+    const { service, factTreeDeps, factTreeUtils, factTree, tree } = harness;
     factTreeUtils.collectLeaves.mockReturnValue([
       asLeaf(tree.coach.toplist.matches.played),
       asLeaf(tree.stats),
@@ -51,8 +56,7 @@ describe('InsightsCommandService — random pick', () => {
   });
 
   it('resolveRandomFact picks a random leaf across the whole tree', async () => {
-    const { service, factTreeDeps, factTreeUtils, factTree, tree } =
-      await makeService();
+    const { service, factTreeDeps, factTreeUtils, factTree, tree } = harness;
     factTreeUtils.collectLeaves.mockReturnValue([
       asLeaf(tree.coach.toplist.matches.played),
       asLeaf(tree.stats),
@@ -64,8 +68,7 @@ describe('InsightsCommandService — random pick', () => {
   });
 
   it('restricts the random pick to era-supporting leaves when an era but no category is given', async () => {
-    const { service, factTreeDeps, factTreeUtils, eras, tree } =
-      await makeService();
+    const { service, factTreeDeps, factTreeUtils, eras, tree } = harness;
     eras.findById.mockResolvedValue(ERA);
     // eras.list does not support era scoping, so the filtered pool is just
     // [stats] and the last element of the filtered pool is stats.
@@ -84,8 +87,7 @@ describe('InsightsCommandService — random pick', () => {
   });
 
   it('excludes team.toplist.eras.active from the random pool when an era is given', async () => {
-    const { service, factTreeDeps, factTreeUtils, eras, tree } =
-      await makeService();
+    const { service, factTreeDeps, factTreeUtils, eras, tree } = harness;
     eras.findById.mockResolvedValue(ERA);
     factTreeUtils.collectLeaves.mockReturnValue([
       asLeaf(tree.team.toplist.matches.played),
@@ -98,8 +100,7 @@ describe('InsightsCommandService — random pick', () => {
   });
 
   it('includes the race facts in the era-scoped random pool', async () => {
-    const { service, factTreeDeps, factTreeUtils, eras, tree } =
-      await makeService();
+    const { service, factTreeDeps, factTreeUtils, eras, tree } = harness;
     eras.findById.mockResolvedValue(ERA);
     factTreeUtils.collectLeaves.mockReturnValue([
       asLeaf(tree.coach.toplist.eras.active),
@@ -115,8 +116,7 @@ describe('InsightsCommandService — random pick', () => {
   });
 
   it('excludes coach.toplist.eras.active from the random pool when an era is given', async () => {
-    const { service, factTreeDeps, factTreeUtils, eras, tree } =
-      await makeService();
+    const { service, factTreeDeps, factTreeUtils, eras, tree } = harness;
     eras.findById.mockResolvedValue(ERA);
     factTreeUtils.collectLeaves.mockReturnValue([
       asLeaf(tree.coach.toplist.matches.played),
@@ -129,8 +129,7 @@ describe('InsightsCommandService — random pick', () => {
   });
 
   it('includes the offense facts in the era-scoped random pool', async () => {
-    const { service, factTreeDeps, factTreeUtils, eras, tree } =
-      await makeService();
+    const { service, factTreeDeps, factTreeUtils, eras, tree } = harness;
     eras.findById.mockResolvedValue(ERA);
     factTreeUtils.collectLeaves.mockReturnValue([
       asLeaf(tree.coach.toplist.eras.active),
@@ -148,8 +147,7 @@ describe('InsightsCommandService — random pick', () => {
   });
 
   it('includes the violence facts in the era-scoped random pool', async () => {
-    const { service, factTreeDeps, factTreeUtils, eras, tree } =
-      await makeService();
+    const { service, factTreeDeps, factTreeUtils, eras, tree } = harness;
     eras.findById.mockResolvedValue(ERA);
     factTreeUtils.collectLeaves.mockReturnValue([
       asLeaf(tree.coach.toplist.eras.active),
@@ -163,8 +161,7 @@ describe('InsightsCommandService — random pick', () => {
   });
 
   it('includes the injuries-suffered facts in the era-scoped random pool', async () => {
-    const { service, factTreeDeps, factTreeUtils, eras, tree } =
-      await makeService();
+    const { service, factTreeDeps, factTreeUtils, eras, tree } = harness;
     eras.findById.mockResolvedValue(ERA);
     factTreeUtils.collectLeaves.mockReturnValue([
       asLeaf(tree.coach.toplist.eras.active),

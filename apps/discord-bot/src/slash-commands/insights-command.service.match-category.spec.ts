@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   INSIGHTS_CATEGORY_UNSUPPORTED_FOR_MATCH_CATEGORY_MESSAGE,
   INSIGHTS_SCOPE_CONFLICT_MESSAGE,
 } from '../error-messages';
+import type { MakeServiceResult } from './insights-command.service.test-helpers';
 import {
   asLeaf,
   asNode,
@@ -13,12 +14,18 @@ import {
 } from './insights-command.service.test-helpers';
 
 describe('InsightsCommandService — match category scoping', () => {
+  let harness: MakeServiceResult;
+
+  beforeEach(async () => {
+    harness = await makeService();
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
   it('rejects a request that supplies both a league and a match category', async () => {
-    const { service, leagues } = await makeService();
+    const { service, leagues } = harness;
     const result = await service.execute(
       chatInput('team.toplist.touchdowns.scored', {
         league: '9',
@@ -30,7 +37,7 @@ describe('InsightsCommandService — match category scoping', () => {
   });
 
   it('rejects a request that supplies both an era and a match category', async () => {
-    const { service, eras } = await makeService();
+    const { service, eras } = harness;
     const result = await service.execute(
       chatInput('team.toplist.touchdowns.scored', {
         era: '20',
@@ -42,7 +49,7 @@ describe('InsightsCommandService — match category scoping', () => {
   });
 
   it('rejects a request that supplies both a competition and a match category', async () => {
-    const { service, competitions } = await makeService();
+    const { service, competitions } = harness;
     const result = await service.execute(
       chatInput('team.toplist.touchdowns.scored', {
         competition: '30',
@@ -54,7 +61,7 @@ describe('InsightsCommandService — match category scoping', () => {
   });
 
   it('rejects a request that supplies all four scope options', async () => {
-    const { service } = await makeService();
+    const { service } = harness;
     const result = await service.execute(
       chatInput('team.toplist.touchdowns.scored', {
         league: '9',
@@ -67,7 +74,7 @@ describe('InsightsCommandService — match category scoping', () => {
   });
 
   it('scopes an in-scope category to the match category and names it in the title', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = await makeService();
+    const { service, factTreeDeps, factTreeUtils, tree } = harness;
     stubLeafCategory(
       factTreeUtils,
       asLeaf(tree.team.toplist.touchdowns.scored),
@@ -97,7 +104,7 @@ describe('InsightsCommandService — match category scoping', () => {
   });
 
   it('scopes a coach toplist that supports no competition but does support a match category', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = await makeService();
+    const { service, factTreeDeps, factTreeUtils, tree } = harness;
     stubLeafCategory(factTreeUtils, asLeaf(tree.coach.toplist.matches.played));
     await service.execute(
       chatInput('coach.toplist.matches.played', {
@@ -115,7 +122,7 @@ describe('InsightsCommandService — match category scoping', () => {
   });
 
   it('rejects a match category on a category that does not support it (coach.toplist.teams)', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = await makeService();
+    const { service, factTreeDeps, factTreeUtils, tree } = harness;
     stubLeafCategory(factTreeUtils, asLeaf(tree.coach.toplist.teams));
     const result = await service.execute(
       chatInput('coach.toplist.teams', { matchCategory: 'season_final' }),
@@ -127,7 +134,7 @@ describe('InsightsCommandService — match category scoping', () => {
   });
 
   it('rejects a match category on stats', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = await makeService();
+    const { service, factTreeDeps, factTreeUtils, tree } = harness;
     stubLeafCategory(factTreeUtils, asLeaf(tree.stats));
     const result = await service.execute(
       chatInput('stats', { matchCategory: 'season_final' }),
@@ -139,7 +146,7 @@ describe('InsightsCommandService — match category scoping', () => {
   });
 
   it('picks only match-category-capable leaves from a branch path', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = await makeService();
+    const { service, factTreeDeps, factTreeUtils, tree } = harness;
     factTreeUtils.resolvePath.mockReturnValue(asNode(tree.coach.toplist));
     factTreeUtils.collectLeaves.mockReturnValue([
       asLeaf(tree.coach.toplist.teams),
@@ -158,7 +165,7 @@ describe('InsightsCommandService — match category scoping', () => {
   });
 
   it('restricts a random fact to match-category-capable leaves', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = await makeService();
+    const { service, factTreeDeps, factTreeUtils, tree } = harness;
     factTreeUtils.collectLeaves.mockReturnValue([
       asLeaf(tree.eras.list),
       asLeaf(tree.stats),
@@ -178,7 +185,7 @@ describe('InsightsCommandService — match category scoping', () => {
   });
 
   it('treats an unrecognised match-category value as no match-category scope', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = await makeService();
+    const { service, factTreeDeps, factTreeUtils, tree } = harness;
     stubLeafCategory(factTreeUtils, asLeaf(tree.stats));
     const result = await service.execute(
       chatInput('stats', { matchCategory: 'not_a_category' }),
