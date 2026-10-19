@@ -360,24 +360,25 @@ prefix, matching every other curated-data file and every real BBL importer) —
 cross-reference
 `tools/import-manual/data/batches/001-initial-seed/trophies.json5`. The player
 trophy labels that BBL actually awards in more than one competition group are
-_not_ self-disambiguating: `Deadliest Player` or `Legendary Player` mean a
-different trophy depending on the tier. Every curated row for one of these
-labels — including its Major Season row — is keyed by the composite
-`${label}-${groupName}` id instead of the bare label, so the awards importer's
-composite-key attempt always resolves them regardless of group, with no
-Major-Season-specific exception. A handful of other player trophy labels are
-already self-disambiguating on their own (`Bierhallenführer`,
-`Gudarnas Förkämpe`, each tied to one specific event) and keep a bare-label id
-exactly like team trophies do; for these, the importer's composite attempt is
-expected to miss and its bare-label fallback is what actually resolves them.
+_not_ self-disambiguating: `Deadliest Player` means a different trophy
+depending on the tier. Every curated row for such a label — including its
+Major Season row — is keyed by the composite `${label}-${groupName}` id instead
+of the bare label, so the awards importer's composite-key attempt always
+resolves them regardless of group, with no Major-Season-specific exception. A
+handful of other player trophy labels keep a bare-label id exactly like team
+trophies do: `Bierhallenführer` and `Gudarnas Förkämpe` are each tied to one
+specific event, and `Legendary Player` and `Trogen Tjänst` are lifetime
+achievements held as one league-scoped row each. For these, the importer's
+composite attempt is expected to miss and its bare-label fallback is what
+actually resolves them.
 One label is an exception to the 1:1 mapping this implies: `Korpen` is the pre-rename label for the
 Minor season award and resolves onto the same curated `Minor` trophy as `Minor 1st`
 — the curated catalog carries both labels as external ids on that one
 trophy.
 
 Group-scoped resolution above requires trusting a competition's curated
-competition group, which is only true for a competition already present in
-`tools/import-manual/data/batches/001-initial-seed/competitions.json5`.
+competition group, which is only true for a competition already curated in the
+manual-import batches' `competitions.json5` files.
 `competitions.competition_group_id` is `NOT NULL` with no database default,
 so a BBL competition this importer has to create fresh — because it is not
 yet in that curated catalog — fails its own upsert outright, reported as a
@@ -389,10 +390,10 @@ them say so. The matches, match-outcome, and trophy-award steps each record
 their own stage-specific import error naming the missing competition; the
 team-participation and match-event steps iterate the id map directly, so a
 competition absent from it is simply never visited, and they skip it without
-a trace. The fix, when this shows up in import output, is to add a curated
-row for the competition to
-[`competitions.json5`](../../tools/import-manual/data/batches/001-initial-seed/competitions.json5)
-first, then re-run the import.
+a trace. The fix, when this shows up in import output, is to add the curated
+competition row in a new
+[manual-import batch](../import-manual/batches.md), apply it, then re-run the
+import.
 
 Ogretoberfest nuance: BBL tracks Ogretoberfest only as a player trophy
 (`Bierhallenführer`); there is no BBL team trophy for it, so the curated

@@ -280,8 +280,9 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   `eraIdsByName` map it uses to resolve `eraId`.
 
 - **TeamParticipationModule** — derives the team↔era, competition↔team, and
-  race↔era links from real match participation (it imports no new source
-  pages of its own). `BblTeamParticipationImportService` reads each
+  race↔era links from real match participation (it reads each competition's
+  standings pages through `BblCompetitionStandingsReaderService` as well as the
+  shared match readers). `BblTeamParticipationImportService` reads each
   competition's matches via the shared `BblMatchListReaderService` for grouping,
   resolves each match's two team ids from `BblMatchDetailReaderService`, and
   resolves those ids to imported teams via the teams import's `teamsByCode` map,
@@ -346,7 +347,7 @@ them: payload carriers that get re-upserted later (`competitionsByBblId`,
 `teamsByCode`, `racesByRaceId`), a race's display name (`racesByBblId`), a
 team-to-race relationship (`teamRaceIdsByCode`), `team_eras` and `race_eras`
 rows (which have no external ids of their own), derived classification and
-evidence sets, and matches and players (which have no resolve procedure).
+evidence sets, and matches (which have no resolve procedure).
 
 ## Data types
 
