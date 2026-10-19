@@ -23,16 +23,17 @@ constant time, and rejections are logged at warn level (the caller is unknown
 by definition, so only the method and path are logged).
 
 Callers send the header through `packages/api-client`:
-`createApiClient(baseUrl, apiToken)` attaches
+`createApiClient(baseUrl, apiToken, fetchImpl)` attaches
 `Authorization: Bearer <apiToken>` to every request, and
 `ApiClientModule.forRootAsync`'s factory supplies both values from the tool's
 own config (`connection.apiBaseUrl` and `connection.apiToken`).
 
 ## Client transport resilience
 
-`packages/api-client` does not call the global `fetch` directly. It hands
-`RPCLink` a wrapper (`resilientFetch`) that bounds every individual attempt
-at 180 seconds and retries a failed attempt up to five times — six attempts
+`packages/api-client` does not call the global `fetch` directly.
+`ApiClientModule` injects `ResilientFetchService` into its `API_CLIENT`
+factory and passes its `fetch` through `createApiClient` to `RPCLink`. That
+wrapper bounds every individual attempt at 180 seconds and retries a failed attempt up to five times — six attempts
 in all — waiting 1s, 2s, 4s, 8s and then 16s in between. The timeout, retry
 count, and backoff base are all fixed constants in the client; there is
 deliberately no configuration surface for them. The timeout is generous
@@ -42,8 +43,8 @@ sequentially, so a healthy chunk can legitimately take well over a minute —
 the timeout only needs to catch a connection that has actually stalled, not
 shave time off a slow-but-working one. It bounds the whole request/response
 exchange, including the caller reading the response body after
-`resilientFetch` returns — a response still being read 180 seconds after the
-request started aborts mid-stream, outside the retry loop, and reaches the
+`ResilientFetchService.fetch` returns — a response still being read 180
+seconds after the request started aborts mid-stream, outside the retry loop, and reaches the
 caller unretried.
 
 An attempt is retried when `fetch` itself throws (a network failure, a

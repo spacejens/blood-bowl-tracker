@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 
 import { ApiClientConfigService } from './api-client-config.service';
 import { createApiClient } from './client';
+import { ResilientFetchService } from './resilient-fetch.service';
 
 export const API_CLIENT = Symbol('API_CLIENT');
 const API_CLIENT_OPTIONS = Symbol('API_CLIENT_OPTIONS');
@@ -24,9 +25,16 @@ export class ApiClientModule {
     return {
       module: ApiClientModule,
       providers: [
+        ResilientFetchService,
         {
           provide: API_CLIENT,
-          useFactory: () => createApiClient(options.baseUrl, options.apiToken),
+          useFactory: (resilientFetch: ResilientFetchService) =>
+            createApiClient(
+              options.baseUrl,
+              options.apiToken,
+              (request, init) => resilientFetch.fetch(request, init),
+            ),
+          inject: [ResilientFetchService],
         },
       ],
       exports: [API_CLIENT],
@@ -39,6 +47,7 @@ export class ApiClientModule {
       imports: [ConfigModule],
       providers: [
         ApiClientConfigService,
+        ResilientFetchService,
         {
           provide: API_CLIENT_OPTIONS,
           useFactory: options.useFactory,
@@ -46,9 +55,16 @@ export class ApiClientModule {
         },
         {
           provide: API_CLIENT,
-          useFactory: (connection: ApiClientModuleOptions) =>
-            createApiClient(connection.baseUrl, connection.apiToken),
-          inject: [API_CLIENT_OPTIONS],
+          useFactory: (
+            connection: ApiClientModuleOptions,
+            resilientFetch: ResilientFetchService,
+          ) =>
+            createApiClient(
+              connection.baseUrl,
+              connection.apiToken,
+              (request, init) => resilientFetch.fetch(request, init),
+            ),
+          inject: [API_CLIENT_OPTIONS, ResilientFetchService],
         },
       ],
       exports: [API_CLIENT],
