@@ -1,6 +1,7 @@
+import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { resilientFetch } from './resilient-fetch';
+import { ResilientFetchService } from './resilient-fetch.service';
 
 const makeRequest = (signal?: AbortSignal): Request =>
   new Request('http://localhost:3000/rpc', {
@@ -12,10 +13,15 @@ const makeRequest = (signal?: AbortSignal): Request =>
 const makeResponse = (status: number): Response =>
   new Response('{}', { status });
 
-describe('resilientFetch', () => {
+describe('ResilientFetchService', () => {
+  let service: ResilientFetchService;
   let fetchMock: ReturnType<typeof vi.fn>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [ResilientFetchService],
+    }).compile();
+    service = moduleRef.get(ResilientFetchService);
     vi.useFakeTimers();
     fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
@@ -31,7 +37,7 @@ describe('resilientFetch', () => {
     const response = makeResponse(200);
     fetchMock.mockResolvedValue(response);
 
-    const result = await resilientFetch(makeRequest(), {});
+    const result = await service.fetch(makeRequest(), {});
 
     expect(result).toBe(response);
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -41,7 +47,7 @@ describe('resilientFetch', () => {
     const response = makeResponse(400);
     fetchMock.mockResolvedValue(response);
 
-    const result = await resilientFetch(makeRequest(), {});
+    const result = await service.fetch(makeRequest(), {});
 
     expect(result).toBe(response);
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -51,7 +57,7 @@ describe('resilientFetch', () => {
     const response = makeResponse(302);
     fetchMock.mockResolvedValue(response);
 
-    const result = await resilientFetch(makeRequest(), {});
+    const result = await service.fetch(makeRequest(), {});
 
     expect(result).toBe(response);
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -61,7 +67,7 @@ describe('resilientFetch', () => {
     const response = makeResponse(500);
     fetchMock.mockResolvedValue(response);
 
-    const result = await resilientFetch(makeRequest(), {});
+    const result = await service.fetch(makeRequest(), {});
 
     expect(result).toBe(response);
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -70,7 +76,7 @@ describe('resilientFetch', () => {
   it('forwards the init options to fetch', async () => {
     fetchMock.mockResolvedValue(makeResponse(200));
 
-    await resilientFetch(makeRequest(), { redirect: 'manual' });
+    await service.fetch(makeRequest(), { redirect: 'manual' });
 
     const init = fetchMock.mock.calls[0][1] as RequestInit;
     expect(init.redirect).toBe('manual');
@@ -81,7 +87,7 @@ describe('resilientFetch', () => {
     const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
     fetchMock.mockResolvedValue(makeResponse(200));
 
-    await resilientFetch(makeRequest(), {});
+    await service.fetch(makeRequest(), {});
 
     expect(timeoutSpy).toHaveBeenCalledWith(180_000);
   });
@@ -92,7 +98,7 @@ describe('resilientFetch', () => {
       .mockRejectedValueOnce(new Error('fetch failed'))
       .mockResolvedValue(response);
 
-    const promise = resilientFetch(makeRequest(), {});
+    const promise = service.fetch(makeRequest(), {});
     await vi.advanceTimersByTimeAsync(999);
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
@@ -106,7 +112,7 @@ describe('resilientFetch', () => {
     const controller = new AbortController();
     fetchMock.mockResolvedValueOnce(makeResponse(503));
 
-    const promise = resilientFetch(makeRequest(controller.signal), {});
+    const promise = service.fetch(makeRequest(controller.signal), {});
     promise.catch(() => undefined);
 
     await vi.advanceTimersByTimeAsync(500);
@@ -122,7 +128,7 @@ describe('resilientFetch', () => {
     controller.abort();
     fetchMock.mockResolvedValueOnce(makeResponse(503));
 
-    const promise = resilientFetch(makeRequest(controller.signal), {});
+    const promise = service.fetch(makeRequest(controller.signal), {});
 
     await expect(promise).rejects.toBeInstanceOf(Error);
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -133,7 +139,7 @@ describe('resilientFetch', () => {
     controller.abort();
     fetchMock.mockRejectedValue(new Error('aborted'));
 
-    const promise = resilientFetch(makeRequest(controller.signal), {});
+    const promise = service.fetch(makeRequest(controller.signal), {});
 
     await expect(promise).rejects.toThrow('aborted');
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -145,7 +151,7 @@ describe('resilientFetch', () => {
       .mockResolvedValueOnce(makeResponse(503))
       .mockResolvedValue(response);
 
-    const promise = resilientFetch(makeRequest(), {});
+    const promise = service.fetch(makeRequest(), {});
     await vi.advanceTimersByTimeAsync(1000);
 
     await expect(promise).resolves.toBe(response);
@@ -159,7 +165,7 @@ describe('resilientFetch', () => {
       .mockResolvedValueOnce(discarded)
       .mockResolvedValue(makeResponse(200));
 
-    const promise = resilientFetch(makeRequest(), {});
+    const promise = service.fetch(makeRequest(), {});
     await vi.advanceTimersByTimeAsync(1000);
     await promise;
 
@@ -174,7 +180,7 @@ describe('resilientFetch', () => {
     const response = makeResponse(200);
     fetchMock.mockResolvedValueOnce(discarded).mockResolvedValue(response);
 
-    const promise = resilientFetch(makeRequest(), {});
+    const promise = service.fetch(makeRequest(), {});
     await vi.advanceTimersByTimeAsync(1000);
 
     await expect(promise).resolves.toBe(response);
@@ -186,7 +192,7 @@ describe('resilientFetch', () => {
     const cancelSpy = vi.spyOn(returned.body as ReadableStream, 'cancel');
     fetchMock.mockResolvedValue(returned);
 
-    const result = await resilientFetch(makeRequest(), {});
+    const result = await service.fetch(makeRequest(), {});
 
     expect(result).toBe(returned);
     expect(cancelSpy).not.toHaveBeenCalled();
@@ -203,7 +209,7 @@ describe('resilientFetch', () => {
       .mockResolvedValueOnce(makeResponse(503))
       .mockResolvedValue(finalResponse);
 
-    const promise = resilientFetch(makeRequest(), {});
+    const promise = service.fetch(makeRequest(), {});
     await vi.advanceTimersByTimeAsync(31_000);
     await promise;
 
@@ -215,7 +221,7 @@ describe('resilientFetch', () => {
       .mockRejectedValueOnce(new Error('fetch failed'))
       .mockResolvedValue(makeResponse(200));
 
-    const promise = resilientFetch(makeRequest(), {});
+    const promise = service.fetch(makeRequest(), {});
     await vi.advanceTimersByTimeAsync(1000);
     await promise;
 
@@ -228,7 +234,7 @@ describe('resilientFetch', () => {
   it('backs off 1s, 2s, 4s, 8s and 16s across five retries', async () => {
     fetchMock.mockRejectedValue(new Error('fetch failed'));
 
-    const promise = resilientFetch(makeRequest(), {});
+    const promise = service.fetch(makeRequest(), {});
     promise.catch(() => undefined);
 
     const schedule = [1000, 2000, 4000, 8000, 16000];
@@ -254,7 +260,7 @@ describe('resilientFetch', () => {
       .mockRejectedValueOnce(new Error('fifth failure'))
       .mockRejectedValue(new Error('final failure'));
 
-    const promise = resilientFetch(makeRequest(), {});
+    const promise = service.fetch(makeRequest(), {});
     const assertion = expect(promise).rejects.toThrow('final failure');
     await vi.advanceTimersByTimeAsync(31_000);
     await assertion;
@@ -272,7 +278,7 @@ describe('resilientFetch', () => {
       .mockResolvedValueOnce(makeResponse(503))
       .mockResolvedValue(finalResponse);
 
-    const promise = resilientFetch(makeRequest(), {});
+    const promise = service.fetch(makeRequest(), {});
     await vi.advanceTimersByTimeAsync(31_000);
 
     await expect(promise).resolves.toBe(finalResponse);

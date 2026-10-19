@@ -34,12 +34,14 @@ reviews:
 
         Key conventions to enforce:
         - Logic lives in NestJS @Injectable() services. A loose exported
-          function is only acceptable in the four cases CLAUDE.md enumerates
+          function is only acceptable in the five cases CLAUDE.md enumerates
           (generic over entity/table type; pure assembly wrapped by a factory
-          service; a module's useFactory provider bootstrap; a
-          framework-agnostic package). A function that takes an
-          already-injected provider as a parameter and calls it must be a
-          service.
+          service; a bootstrap function that runs before DI can supply it,
+          i.e. at module-definition time, before the Nest context exists, or
+          as a module's useFactory; a framework-agnostic package; a class
+          factory for a base service, within that exemption's stated limits).
+          A function that takes an already-injected provider as a parameter and
+          calls it must be a service.
         - Functions and methods take at most 3 parameters; beyond that, use a
           single named options object. NestJS DI constructors are exempt.
         - Source *.ts files stay under 500 lines and *.spec.ts under 1000
