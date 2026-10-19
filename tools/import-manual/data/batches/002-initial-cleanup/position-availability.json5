@@ -31,11 +31,11 @@
 // NOT NULL.
 //
 // Restoration set: every position with a curated CRP `position_rules_sets`
-// entry in data/after-other-importers/position-characteristics.json5 (Tasks
-// 3-5) is positive rulebook evidence that position was available to its race
-// under First era (which spans CRP, CRP+ and BB2016). The same is true, under
-// First Stunty Leeg era (which also spans BB2016, CRP and CRP+), for every
-// Stunty-Leeg-handbook-sourced position curated there (Tasks 10-11).
+// entry in data/after-other-importers/position-characteristics.json5 is
+// positive rulebook evidence that position was available to its race under
+// First era (which spans CRP, CRP+ and BB2016). The same is true, under First
+// Stunty Leeg era (which also spans BB2016, CRP and CRP+), for every
+// Stunty-Leeg-handbook-sourced position curated there.
 //
 // Source importers set a position's name only when they create the row, so
 // only the two manual phases ever rename a position, and this phase runs
