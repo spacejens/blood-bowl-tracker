@@ -39,12 +39,14 @@ there is no id to mistype and no "not found" reply.
 Each fact declares which of the four scopes it supports; a fact that does not
 support the scope in play is skipped, and asking for it by name replies with a
 per-scope refusal message. Exact per-fact scope support is declared on each
-fact in `apps/discord-bot/src/insights/fact-tree.ts`. Facts that list or count
-things other than matches (teams, rostered players, skills, eras, trophies,
-competition groups, star player hires) cannot take a match category (competition counts are the exception, see
-below). `stats`
-is excluded deliberately: only two of the counts it reports have a category at
-all, so a category-scoped `stats` would mix scoped and all-time numbers.
+fact in `apps/discord-bot/src/insights/fact-tree.ts`. Facts whose values are
+not derived from matches or match events (counts of teams, rostered players,
+skills, eras, trophies, competition groups, star player hires) cannot take a
+match category. Facts that count competitions played, or that total match-event
+points per player, can, because those values do come from matches (see below).
+`stats` is excluded deliberately: only two of the counts it reports have a
+category at all, so a category-scoped `stats` would mix scoped and all-time
+numbers.
 
 Note that `coach.toplist.competitions.played` and
 `team.toplist.competitions.played` change meaning under a match category: they
