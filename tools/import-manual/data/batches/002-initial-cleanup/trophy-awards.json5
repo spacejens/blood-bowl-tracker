@@ -1,7 +1,7 @@
 // Hand-curated trophy awards: who won which trophy in which competition.
 //
 // This file exists for exactly one purpose: the trophies whose award rule is
-// classified `manual` in before-other-importers/trophies.json5. Every other
+// classified `manual` in 001-initial-seed/trophies.json5. Every other
 // trophy in the catalog is either recorded by the source data itself
 // (`direct_source`) or computed from imported match events
 // (`max_count`/`max_spp_sum`/`career_threshold`), so no human ever has to
@@ -26,19 +26,19 @@
 // Most historical winners are not known yet; this file is the place to record
 // them as they are, one entry at a time.
 //
-// WHY THIS FILE LIVES IN after-other-importers
+// WHY THIS FILE LIVES IN 002-initial-cleanup
 //
 // An entry references a competition and a player by external id, and both
 // are created by the BBL and TP importers, not by this tool. Curating them
 // before those importers ran would resolve nothing (every entry would be
-// skipped with an "could not resolve reference" error), so this phase --
-// which runs after them -- is the only one where these references exist.
+// skipped with an "could not resolve reference" error), so this batch --
+// which is applied after them -- is the earliest where these references exist.
 // Same reasoning as position-availability.json5 in this directory.
 //
 // ENTRY SHAPE
 //
 //   trophy       The trophy's exact curated `name` from
-//                before-other-importers/trophies.json5, as a plain string --
+//                001-initial-seed/trophies.json5, as a plain string --
 //                NOT an external-id reference. Trophies carry no shared
 //                "Name"-system id (the same name under a different
 //                competition tier is a genuinely different trophy), and this
@@ -51,7 +51,7 @@
 //   competition  An external-id reference to the competition the trophy was
 //                awarded for, in whichever source system imported it. BBL
 //                competitions are keyed by the numeric id in their site link
-//                (see after-other-importers/competitions.json5 for the full
+//                (see 001-initial-seed/competitions.json5 for the full
 //                list of which number is which season).
 //
 //   player       An external-id reference to the winning player, in whichever
@@ -64,7 +64,7 @@
 // a wrong competition inside the SAME group -- e.g. curating competition id
 // 10 when 11 was meant, both "Major Season" -- which is the more likely
 // typo. Double-check the competition id against
-// after-other-importers/competitions.json5 before curating an entry.
+// 001-initial-seed/competitions.json5 before curating an entry.
 //
 // WORKED EXAMPLE -- the shape to copy, not live data. Delete the comment
 // markers, replace the ids, and drop it into the array below:

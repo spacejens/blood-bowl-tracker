@@ -1,7 +1,7 @@
 // Hand-curated starting skills (position_rules_set_skills) for the three older
 // rules sets no importer can supply (CRP, CRP+, BB2016).
 //
-// Placed in after-other-importers next to position-characteristics.json5 for
+// Placed in 002-initial-cleanup next to position-characteristics.json5 for
 // consistency and the same safety margin, though the ordering matters less
 // here than it does there: position_rules_set_skills entries are additive per
 // (position, rules set) rather than a single overwritable value, so an
@@ -14,10 +14,10 @@
 // exactly that reason -- see BblPositionSkillsImportService.
 //
 // Every entry's (position, rules set) pair MUST already be curated in
-// after-other-importers/position-characteristics.json5: a starting skill hangs
+// 002-initial-cleanup/position-characteristics.json5: a starting skill hangs
 // off the position_rules_sets row, and the API rejects an entry whose pair has
 // none. Every skill MUST have a category row for that rules set in
-// before-other-importers/skills.json5, for the same reason. Both are asserted
+// 001-initial-seed/skills.json5, for the same reason. Both are asserted
 // by curated-data-skills.spec.ts.
 //
 // A position whose "Skills" cell reads "None" in the source table simply gets

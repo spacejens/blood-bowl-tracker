@@ -6,7 +6,7 @@
 // player use in a matching era. Genuine availability the source data cannot
 // show is restored here from the rulebook rosters.
 //
-// This file lives in after-other-importers, never before, and that is load
+// This file lives in 002-initial-cleanup, never in 001, and that is load
 // bearing: many of the position references below use the "<raceName>:
 // <positionName>" Name external id that NameExternalIdService.forPosition
 // builds, and that id is only created by tools/import-bbl's position
@@ -27,23 +27,25 @@
 // manual importer renames existing rows -- a mismatched name would rename the
 // position rather than leave it alone. `isStarPlayer` is likewise re-stated
 // (false, for every entry below -- none of these are star players), since on a
-// fresh database this phase creates the row and positions.is_star_player is
+// fresh database this batch creates the row and positions.is_star_player is
 // NOT NULL.
 //
 // Restoration set: every position with a curated CRP `position_rules_sets`
-// entry in data/after-other-importers/position-characteristics.json5 is
+// entry in 002-initial-cleanup/position-characteristics.json5 is
 // positive rulebook evidence that position was available to its race under
 // First era (which spans CRP, CRP+ and BB2016). The same is true, under First
 // Stunty Leeg era (which also spans BB2016, CRP and CRP+), for every
 // Stunty-Leeg-handbook-sourced position curated there.
 //
 // Source importers set a position's name only when they create the row, so
-// only the two manual phases ever rename a position, and this phase runs
-// last. Both files must therefore carry the same name for every position
-// they share: a different spelling in either file would rename the row back
-// and forth on every import. Each entry's `name` equals the name
-// races-and-positions.json5 gives the same row, and curated-data.spec.ts
-// enforces it for every shared Name id.
+// only the manual batches ever rename a position (003-reset-curated-names
+// only restates the curated names), and this batch is applied after
+// 001-initial-seed. This file and 001-initial-seed/races-and-positions.json5
+// must therefore carry the same name for every position they share: a
+// different spelling in either file would rename the row back and forth on
+// every import. Each entry's `name` equals the name races-and-positions.json5
+// gives the same row, and curated-data.spec.ts enforces it for every shared
+// Name id.
 {
   externalSystems: [
     { name: 'Name', category: 'bookkeeping' },
@@ -109,7 +111,7 @@
 
     // --- CRP-era availability: Dwarf Team (First era) ---
     {
-      // Renamed 'Dwarf Lineman' in BB2025; this phase overlays the position's
+      // Renamed 'Dwarf Lineman' in BB2025; this batch overlays the position's
       // name, so it has to re-state the merged row's final name rather than
       // the older spelling its Name id uses.
       name: 'Dwarf Lineman',
@@ -607,7 +609,7 @@
 
     // --- CRP-era availability: Lizardmen Team (First era) ---
     {
-      // Renamed 'Skink Lineman' in BB2025; this phase overlays the position's
+      // Renamed 'Skink Lineman' in BB2025; this batch overlays the position's
       // name, so it has to re-state the merged row's final name rather than
       // the older spelling its Name id uses.
       name: 'Skink Lineman',
@@ -712,7 +714,7 @@
 
     // --- CRP-era availability: Norse Team (First era) ---
     {
-      // Renamed 'Norse Raider' in BB2025; this phase overlays the position's
+      // Renamed 'Norse Raider' in BB2025; this batch overlays the position's
       // name, so it has to re-state the merged row's final name rather than
       // the older spelling its Name id uses.
       name: 'Norse Raider',
@@ -1236,7 +1238,7 @@
       ],
     },
     {
-      // Renamed 'Troll' in BB2025; this phase overlays the position's name,
+      // Renamed 'Troll' in BB2025; this batch overlays the position's name,
       // so it has to re-state the merged row's final name rather than the
       // older spelling its Name id uses.
       name: 'Troll',
