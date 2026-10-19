@@ -2,8 +2,7 @@
 //
 // These exist here, ahead of the BBL and TP importers, because
 // competition-groups.json5 needs a league to reference and it runs in this
-// same batch -- ahead of tools/import-bbl's own
-// config-driven league creation.
+// same batch -- ahead of tools/import-bbl's own config-driven league creation.
 //
 // The external id deliberately matches BBL's own convention exactly
 // (BblLeaguesImportService keys a league by its plain name under the

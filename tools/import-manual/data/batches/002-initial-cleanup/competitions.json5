@@ -15,11 +15,10 @@
 // All of them are renamed here to the canonical form.
 //
 // Group classification, and the real name/type/era/dates every competition
-// instance is created with, is curated in
-// 001-initial-seed/competitions.json5: a competition's
-// competition_group_id has to be correct before the BBL and TP importers
-// run, because tools/import-tp's awards import resolves a trophy by the
-// competition's group name. The 001-initial-seed file already creates
+// instance is created with, is curated in 001-initial-seed/competitions.json5:
+// a competition's competition_group_id has to be correct before the BBL and TP
+// importers run, because tools/import-tp's awards import resolves a trophy by
+// the competition's group name. The 001-initial-seed file already creates
 // these under their canonical names, and source importers never rename an
 // existing competition, so this file only changes a competition a source
 // importer created before it was curated there.

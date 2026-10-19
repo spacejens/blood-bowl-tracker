@@ -38,12 +38,14 @@
 // Stunty-Leeg-handbook-sourced position curated there.
 //
 // Source importers set a position's name only when they create the row, so
-// only the manual batches ever rename a position, and this batch is applied
-// after 001-initial-seed. Both files must therefore carry the same name for every position
-// they share: a different spelling in either file would rename the row back
-// and forth on every import. Each entry's `name` equals the name
-// races-and-positions.json5 gives the same row, and curated-data.spec.ts
-// enforces it for every shared Name id.
+// only the manual batches ever rename a position (003-reset-curated-names
+// only restates the curated names), and this batch is applied after
+// 001-initial-seed. This file and 001-initial-seed/races-and-positions.json5
+// must therefore carry the same name for every position they share: a
+// different spelling in either file would rename the row back and forth on
+// every import. Each entry's `name` equals the name races-and-positions.json5
+// gives the same row, and curated-data.spec.ts enforces it for every shared
+// Name id.
 {
   externalSystems: [
     { name: 'Name', category: 'bookkeeping' },

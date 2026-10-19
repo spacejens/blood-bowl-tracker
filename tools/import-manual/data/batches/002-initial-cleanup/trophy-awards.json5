@@ -32,7 +32,7 @@
 // are created by the BBL and TP importers, not by this tool. Curating them
 // before those importers ran would resolve nothing (every entry would be
 // skipped with an "could not resolve reference" error), so this batch --
-// which is applied after them -- is the only one where these references exist.
+// which is applied after them -- is the earliest where these references exist.
 // Same reasoning as position-availability.json5 in this directory.
 //
 // ENTRY SHAPE
