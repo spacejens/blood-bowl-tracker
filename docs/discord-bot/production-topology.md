@@ -46,7 +46,7 @@ Damaged or lost data is recovered by
 [restoring a backup into production](production-restore.md). A full
 re-import with the `tools/import-*` importers is the last resort, only for
 when no usable backup exists, and never a routine one: each importer
-writes one record at a time over the `flyctl proxy` tunnel (see
+sends batched upserts over the `flyctl proxy` tunnel (see
 [Running import tools against production](production-imports.md)),
 so rebuilding the whole dataset takes considerably longer against
 production than it does locally, and the bot serves stale or empty data for
