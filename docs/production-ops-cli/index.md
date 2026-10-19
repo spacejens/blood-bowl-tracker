@@ -32,6 +32,8 @@ node tools/production-ops-cli/dist/main.js <subcommand>
 
 Run from the repo root. On success, every subcommand prints JSON on stdout; failures print a JSON error on stderr and exit with status 1. `fetch-recent-discord-messages` and `fetch-discord-message` additionally require `apps/discord-bot/.env.production` to be present in the worktree, synced from the main checkout (see [deploy-production/SKILL.md](../../.claude/skills/deploy-production/SKILL.md)).
 
+`fetch-recent-discord-messages` and `fetch-discord-message` call Discord through the discord.js `REST` client (API v10, 30-second request timeout), shared via one `DiscordRestService`, so they get discord.js's rate-limit handling and retries. A Discord API failure is reported with the requested message or channel, the HTTP status, and Discord's error code and message; the bot token never appears in output.
+
 ## Development
 
 ```bash
