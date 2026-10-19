@@ -273,15 +273,21 @@ thing carries none of the coupling risk the "never pass a real collaborator"
 rule guards against, since there is no concrete *behavior* to drift from —
 only pure formatting.
 
-This extends to a formatting service whose only injected collaborator is
-itself another pure, dependency-free formatting/decision service — e.g.
-`PlayerKillsSectionService` (`apps/discord-bot/src/deepdive/facts/`), whose
-sole dependency is `PlayerRowButtonService`, a pure decision service with no
-collaborators of its own. Passing both real still carries no coupling risk:
-neither has I/O or external state to drift from, so the chain is still pure
-end to end. It does not extend to a service with any dependency that has I/O,
-external state, or its own further real dependencies — those chains must
-still be mocked as normal, at the first link that isn't pure.
+This extends to a **pure chain** of any depth: a formatting service whose
+collaborators are themselves pure formatting/decision services, where every
+link is deterministic, has no I/O or external state, and depends only on the
+next link of the chain (or on nothing). E.g. `PlayerKillsSectionService`
+(`apps/discord-bot/src/deepdive/facts/`) depends only on
+`PlayerKillerInfoFormatterService`, which in turn depends only on
+`PlayerRowButtonService`, a pure decision service with no constructor
+dependencies. Passing the chain real still carries no coupling risk: no link
+has I/O or external state to drift from. Pass the whole chain real, end to
+end — never mix a chain with a mocked link. A mocked link defeats the point
+of asserting the actual rendered output, and leaves the real links' DI
+metadata resolving against a stand-in. It does not extend to a service with
+any dependency that has I/O, external state, or further impure dependencies
+— those chains must still be mocked as normal, at the first link that isn't
+pure.
 
 **A pure, dependency-free decision service may also be passed real as one
 collaborator among an otherwise-mocked subject's dependencies.** The two
@@ -301,6 +307,18 @@ entity service mocked normally. A mock is free to return canned values as
 usual; the risk is specifically a mock that reimplements the classification
 logic itself, which then risks drifting from the real implementation as new
 cases are added.
+
+**A pure chain may likewise be passed real inside an otherwise-mocked
+subject.** When the subject under test has I/O-bearing collaborators (mocked
+as normal) and also depends on a pure chain, the chain's members are passed
+real, end to end, while every other collaborator stays mocked. Examples:
+`PlayerDeepdiveService`
+(`apps/discord-bot/src/deepdive/facts/player-deepdive.test-helpers.ts`) and
+`OnThisDateFactsService`
+(`apps/discord-bot/src/insights/facts/on-this-date.service.spec.ts`) mock
+their database, timeout and entity-component collaborators, and pass
+`PlayerKillerInfoFormatterService` → `PlayerRowButtonService` (plus their
+other pure formatting services) real.
 
 ## Function parameter limit
 
