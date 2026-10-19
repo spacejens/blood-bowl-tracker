@@ -36,8 +36,10 @@ rule-set codes are — and are not — used. See
 
 ## Entity identifiers
 
-- TP's own numeric ids are sent as TP external ids: `tournament.id` for
-  competitions, `match.matchId` for matches and roster `id` for teams.
+- TP's own ids are sent as TP external ids: `tournament.id` for
+  competitions, `match.matchId` for matches, roster `id` for teams,
+  `coachTpId` for coaches, `player.id` (the line-up id) for players,
+  `lineUpMasterId` for positions and `skillMasterId` for skills.
   Era and rule-set identity are fully operator-config-supplied (see
   [index.md](./index.md)), since TP's data carries no human-readable name for
   either.

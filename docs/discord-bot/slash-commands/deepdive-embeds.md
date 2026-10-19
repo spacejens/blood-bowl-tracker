@@ -118,8 +118,9 @@ set can be resolved for the player's era at all.
 
 ### Keywords
 
-Last of this group of condition lines — after the
-characteristics line above and the lasting injuries line below — one unprefixed line naming the player's position's BB2025-style
+Last of this group of condition lines — after the characteristics,
+characteristic advancements, lasting injuries and skill lines — one
+unprefixed line naming the player's position's BB2025-style
 keywords under the one [rules set](../../glossary.md#rules-set) their era
 resolves to: `Keywords: Goblin, Undead`. A player has no keywords of their
 own — these are the [position](../../glossary.md#position)'s, the same

@@ -392,8 +392,10 @@ The ordering in `main.ts` matters — a race has to be upserted before a team
 referencing it can be resolved — but resolution itself reads the database,
 not a client-side id map built earlier in the same run.
 
-Some maps deliberately remain, because no external-id resolve can answer
-them: the competition scan's `competitionsByTpId` (each directory's
+Some maps deliberately remain. The player id map (`playerIdsByLineUpId`)
+collects the ids the roster import's player upserts return and is handed to the
+later steps that need them (skills, career SPP, match events). The others cannot
+be answered by an external-id resolve: the competition scan's `competitionsByTpId` (each directory's
 tournament and era), parsed
 match data, a race's display name (`raceNamesById`), `team_eras` rows (which
 have no external ids of their own), classification and evidence sets, and
@@ -414,7 +416,7 @@ including Big Guy. The server-side official team list import resolves every posi
 against its own curated keyword catalogue (`TpOfficialKeywordCatalogService`, in
 `packages/import-tp-live`) and syncs the resulting `(position, rules set, keyword)` rows. A code
 with no curated match is reported once as an import error, naming the position it was first seen
-on and pointing at `tools/import-manual/data/batches/001-initial-seed/keywords.json5`; the
+on and pointing at adding it to `keywords.json5` in a new `tools/import-manual` batch under `data/batches/`; the
 position's other keywords are still written. `tools/import-tp`'s own `TpKeywordCatalogService`
 reads the same curated catalogue independently (via `KeywordsImportService.listKeywords`), keyed
 by each keyword's `tourplay.net` external id, but only to decode a `Hatred`/`Animosity` skill's

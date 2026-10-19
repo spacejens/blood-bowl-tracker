@@ -45,8 +45,9 @@ bucket and kept for 30 days — see [Database backups](production-backups.md).
 Damaged or lost data is recovered by
 [restoring a backup into production](production-restore.md). A full
 re-import with the `tools/import-*` importers is the last resort, only for
-when no usable backup exists, and never a routine one: each importer
-sends batched upserts over the `flyctl proxy` tunnel (see
+when no usable backup exists, and never a routine one: importers batch only
+their high-volume records (matches and match events) and still make many
+round trips over the `flyctl proxy` tunnel (see
 [Running import tools against production](production-imports.md)),
 so rebuilding the whole dataset takes considerably longer against
 production than it does locally, and the bot serves stale or empty data for

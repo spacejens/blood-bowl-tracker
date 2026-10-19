@@ -17,8 +17,8 @@ player of that rules set arrives in it. Clicking a race on the page issues no
 further request — the page only re-renders what it already has — so there is
 nothing to scrape per race.
 
-The page's four rules-set tabs (Angular Material toggles matched by
-`.mat-button-toggle-button`) map to the `ruleSet` query parameter:
+The page's four rules-set tabs are labels only; the downloader does not read
+them. Each maps to the `ruleSet` query parameter:
 
 - `Blood Bowl Official BB2025 · BB7` → `ruleSet=25` (BB2025)
 - `Secret Bowl Unofficial BB2025 · BB7` → `ruleSet=25` (BB2025)

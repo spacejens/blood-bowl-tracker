@@ -281,8 +281,9 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
 
 - **TeamParticipationModule** — derives the team↔era, competition↔team, and
   race↔era links from real match participation (it reads each competition's
-  standings pages through `BblCompetitionStandingsReaderService` as well as the
-  shared match readers). `BblTeamParticipationImportService` reads each
+  standings page, one per competition, through `BblCompetitionStandingsReaderService` as well as the
+  shared match readers; the standings page adds registered teams that played no
+  matches). `BblTeamParticipationImportService` reads each
   competition's matches via the shared `BblMatchListReaderService` for grouping,
   resolves each match's two team ids from `BblMatchDetailReaderService`, and
   resolves those ids to imported teams via the teams import's `teamsByCode` map,
@@ -290,7 +291,8 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   the competition (`competition_teams`), and records each team's race against the
   era (`race_eras`). Runs after teams, races, and competitions (whose payload
   maps it re-upserts to attach the links). Team ids that don't match an imported
-  team, and matches with no detail page, are recorded as errors and skipped.
+  team, matches with no detail page, and standings rows with no team code are
+  recorded as errors and skipped.
 
 - **MatchEventsModule** — `BblMatchEventsReaderService` reads each match's raw
   event occurrences; `MatchEventCorrelationService` correlates casualty
@@ -342,8 +344,10 @@ locally, so the network cost is one round trip per step, not per record.
 The ordering in `main.ts` matters: a race has to be upserted before a team
 referencing it can be resolved.
 
-Some maps deliberately remain, because no external-id resolve can answer
-them: payload carriers that get re-upserted later (`competitionsByBblId`,
+Some maps deliberately remain. The player id map (`playerIdsByPid`) collects
+the ids the player upserts return and is handed to the later steps that need
+them (match events, trophy awards). The others cannot be answered by an
+external-id resolve: payload carriers that get re-upserted later (`competitionsByBblId`,
 `teamsByCode`, `racesByRaceId`), a race's display name (`racesByBblId`), a
 team-to-race relationship (`teamRaceIdsByCode`), `team_eras` and `race_eras`
 rows (which have no external ids of their own), derived classification and

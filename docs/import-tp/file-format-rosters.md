@@ -33,8 +33,10 @@ teamRaceCode, raceName, coachTpId, positions, starPositions, players }`:
   `packages/import-tp-live`, shared by the live team import and this bulk
   import's `tpRosters.import` call) upserts the coach from `coachTpId` and
   `coachName` — creating it if unknown; an existing coach keeps its stored name —
-  so this file, not `TpCoachesImportService`'s separate inscriptions-based
-  coach import, is what a team's coach identity and name ultimately come from.
+  so this file supplies the identity link (`coachTpId`). The name comes from
+  `TpCoachesImportService`'s inscriptions-based coach import (which runs first)
+  for coaches known there, and from this file only for coaches the roster import
+  creates.
 - `positions` — extracted from `rosterMaster.lineUpMasters[]`, each entry
   becomes `{ tpPositionId: id, name: position, characteristics: { move: ma,
 strength: st, agility: ag, passing: pa, armour: av } }`. Parsed here, but
