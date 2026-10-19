@@ -8,7 +8,7 @@ A [player](../../glossary.md#player) is an individual on a [team era](../team-er
   available for the team era's [race era](../../glossary.md#race-era) — i.e. the
   position must have a relation to that race era. (This is still aspirational:
   no validation code enforces it yet.)
-- A player has a set of **current [lasting injuries](../../glossary.md#lasting-injury)**: whether they must miss
+- A player has a **current [lasting injury](../../glossary.md#lasting-injury) state**: whether they must miss
   their next game, how many niggling injuries they carry, and how many
   reductions each of their five [characteristics](../../glossary.md#characteristics)
   currently sits under. This is live state, not history: newer
