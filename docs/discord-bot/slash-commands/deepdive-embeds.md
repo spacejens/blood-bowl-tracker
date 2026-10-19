@@ -38,39 +38,40 @@ drill-down button to that team's deepdive, ahead of the era header buttons.
 
 ## `team`
 
-The team
-name as the title, then its race, its coach, its era list, its career span
-(the first and last dates across every match it has played), then — only
-when the team has recorded trophies, with the whole section omitted
-otherwise rather than a placeholder line — a blank line and one
-heading per era, newest era first, each heading naming the era and its date
-range, with an ongoing era marked as still running, each followed by that
-era's awards newest-first, one line per award naming the competition and
-trophy, plus the winning player and their position for a trophy won by one
-of its players — the two kinds are interleaved within an era rather than
-split, since both are that era's trophies, and the team, race, coach and
-era are left off the rows because the header, the embed's own subject and
-the section heading already name them. A blank line separates each era
-section from the next. The list is capped, and when it is truncated the
-embed says exactly how many awards are not shown, computed from the
-team's true award count. Then a blank line, then a ranked list of its top
-five players by career
-[SPP](../../glossary.md#star-player-points-spp) total — each player's own
-stored total, manual adjustments included and exactly as the player deepdive
-reports it, ranked across every [era](../../glossary.md#era) the team has
-played (a player fielded in more than one era has one record per era, each
-ranked separately). Star players are not listed:
-each hire of a star is its own player record, so one star would otherwise
-take several of the five slots. Ties at the fifth-place cutoff are all
-shown, up to ten players (the same convention `/insights` toplists use,
-though at most ten players are fetched, so the toplists' truncation note
-never actually appears here). Each trophy is rendered as a drill-down button to the trophy,
-plus a button to the player for a player award; those come before the
-top-players buttons, which in turn come before the race/coach/era header
-buttons, so the most specific content keeps button priority. A team that
-exists but has recorded no matches shows a short "hasn't played yet" message
+The team name as the title, then its race, its coach, its era list, its career span
+(the first and last dates across every match it has played).
+
+A team that exists but has recorded no matches shows a short "hasn't played yet" message
 in place of the career span, trophies and player list, but still shows its
 race and coach.
+
+### Trophies
+
+Then — only when the team has recorded trophies, with the whole section omitted
+otherwise rather than a placeholder line — a blank line and one
+heading per era.
+
+- Eras are listed newest first, each heading naming the era and its date range, with an ongoing era marked as still running.
+- Each era heading is followed by that era's awards newest-first, one line per award naming the competition and trophy, plus the winning player and their position for a trophy won by one of its players.
+- The two kinds are interleaved within an era rather than split, since both are that era's trophies.
+- The team, race, coach and era are left off the rows because the header, the embed's own subject and the section heading already name them.
+- A blank line separates each era section from the next.
+- The list is capped, and when it is truncated the embed says exactly how many awards are not shown, computed from the team's true award count.
+
+### Top players
+
+Then a blank line, then a ranked list of its top five players by career
+[SPP](../../glossary.md#star-player-points-spp) total.
+
+- The total is each player's own stored total, manual adjustments included and exactly as the player deepdive reports it.
+- Players are ranked across every [era](../../glossary.md#era) the team has played (a player fielded in more than one era has one record per era, each ranked separately).
+- Star players are not listed: each hire of a star is its own player record, so one star would otherwise take several of the five slots.
+- Ties at the fifth-place cutoff are all shown, up to ten players (the same convention `/insights` toplists use, though at most ten players are fetched, so the toplists' truncation note never actually appears here).
+
+### Buttons
+
+- Each trophy is rendered as a drill-down button to the trophy, plus a button to the player for a player award.
+- Those trophy buttons come before the top-players buttons, which in turn come before the race/coach/era header buttons, so the most specific content keeps button priority.
 
 ## `player`
 
@@ -200,37 +201,29 @@ star player points.
 Then — only when the player has a recorded kill event, including a
 prevented or unresolved death attempt, with the whole section omitted
 otherwise rather than a placeholder line — a blank line, a kills
-heading, and one line per kill, newest match first. A kill whose victim is a
-specific indexed player names that player with their position, team, race
-and coach; one where only the victim's side is known names the team, with
-its race and coach; one where a multi-team match leaves the side ambiguous
-names the candidate teams, "or"-joined; and one with nothing attributable at
-all reads as an anonymous opponent in mysterious circumstances. A death this
-player caused but that was prevented carries
-a note saying the death was saved by an apothecary or by regeneration — the
-team is known and the victim player is
-never named, in the normal case; a defensive fallback (not expected from any
-known importer behaviour) can instead render a prevented kill through the
-generic resolution logic like any other unresolvable kill, when the
-recorded team can't be matched or the save reason is missing. Any of them
-notes when the fatal (or prevented) event was a foul, the same note the status line
-uses — including the prevented row. The list also includes a death attempt
-with no recorded outcome at all; its victim's team is resolved the same way
-an event with an ambiguous or unattributed killer team already is resolved
-elsewhere in this document. One line is shown per kill event, so a victim
-killed more than once by this player appears once per kill. The list is
-capped, and when it is
-truncated the embed says exactly how many kills are not shown,
-computed from the player's true kill count. The same note can also appear
-even when the kill count itself was not capped: long team, player, race or
-coach names can exhaust the embed's description-length budget before all of
-the fetched rows fit, in which case the rows that do not fit are dropped the
-same way and the note reports them too. Either way the note's count is always exact
-— it is computed from the player's true kill total, not from how many rows
-happened to be fetched or rendered — regardless of which of the two
-overflow reasons caused rows to be dropped. The player's true kill count
-always equals the kill sub-counts of the casualty and foul lines added
-together, exactly — not merely typically.
+heading, and one line per kill, newest match first. One line is shown per kill
+event, so a victim killed more than once by this player appears once per kill.
+
+#### Naming the victim
+
+- A kill whose victim is a specific indexed player names that player with their position, team, race and coach.
+- A kill where only the victim's side is known names the team, with its race and coach.
+- A kill where a multi-team match leaves the side ambiguous names the candidate teams, "or"-joined.
+- A kill with nothing attributable at all reads as an anonymous opponent in mysterious circumstances.
+- The list also includes a death attempt with no recorded outcome at all; its victim's team is resolved the same way an event with an ambiguous or unattributed killer team already is resolved elsewhere in this document.
+
+#### Prevented deaths and fouls
+
+- A death this player caused but that was prevented carries a note saying the death was saved by an apothecary or by regeneration — the team is known and the victim player is never named, in the normal case.
+- A defensive fallback (not expected from any known importer behaviour) can instead render a prevented kill through the generic resolution logic like any other unresolvable kill, when the recorded team can't be matched or the save reason is missing.
+- Any kill line notes when the fatal (or prevented) event was a foul, the same note the status line uses — including the prevented row.
+
+#### Truncation and the kill count
+
+- The list is capped, and when it is truncated the embed says exactly how many kills are not shown, computed from the player's true kill count.
+- The same note can also appear even when the kill count itself was not capped: long team, player, race or coach names can exhaust the embed's description-length budget before all of the fetched rows fit, in which case the rows that do not fit are dropped the same way and the note reports them too.
+- Either way the note's count is always exact — it is computed from the player's true kill total, not from how many rows happened to be fetched or rendered — regardless of which of the two overflow reasons caused rows to be dropped.
+- The player's true kill count always equals the kill sub-counts of the casualty and foul lines added together, exactly — not merely typically.
 
 ### Button ordering
 
