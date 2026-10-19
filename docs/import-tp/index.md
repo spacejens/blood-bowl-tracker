@@ -186,8 +186,8 @@ Teams, players, competitions, matches and TP's official team list are imported s
   system name, and the roster's match-snapshot-only players. The server
   upserts the team (keyed by roster id + name; race resolved by TP external
   id, skipped with an error if unresolved; coach upserted from the roster's
-  own coach id and name, created if unknown and its name refreshed if
-  already known — see [import-tp-live/index.md](../import-tp-live/index.md))
+  own coach id and name, created if unknown; an existing coach keeps its
+  stored name — see [import-tp-live/index.md](../import-tp-live/index.md))
   and its players. A team seen under several eras is sent once per era; the
   server's era sync only ever adds, so its eras accumulate. Returns
   `teamErasByRosterId`, `playerIdsByLineUpId`, `insertedPlayerIds` and
@@ -397,7 +397,7 @@ them: the competition scan's `competitionsByTpId` (each directory's
 tournament and era), parsed
 match data, a race's display name (`raceNamesById`), `team_eras` rows (which
 have no external ids of their own), classification and evidence sets, and
-matches and players (which have no resolve procedure).
+matches (which have no resolve procedure).
 
 ### Position keywords
 
