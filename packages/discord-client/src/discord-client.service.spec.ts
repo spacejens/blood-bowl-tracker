@@ -7,73 +7,9 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
-interface MockChannel {
-  isSendable: ReturnType<typeof vi.fn>;
-  send: ReturnType<typeof vi.fn>;
-}
-
-interface MockGuild {
-  commands: { set: ReturnType<typeof vi.fn> };
-}
-
-interface MockClient {
-  channels: { fetch: ReturnType<typeof vi.fn> };
-  application: { commands: { set: ReturnType<typeof vi.fn> } };
-  guilds: { cache: Map<string, MockGuild> };
-  once: ReturnType<typeof vi.fn>;
-  on: ReturnType<typeof vi.fn>;
-  off: ReturnType<typeof vi.fn>;
-  login: ReturnType<typeof vi.fn>;
-  destroy: ReturnType<typeof vi.fn>;
-  user: { tag: string | undefined };
-}
-
-interface MockRest {
-  setToken: ReturnType<typeof vi.fn>;
-  post: ReturnType<typeof vi.fn>;
-}
-
-const mockChannel: MockChannel = {
-  isSendable: vi.fn(),
-  send: vi.fn(),
-};
-
-const mockClient: MockClient = {
-  channels: { fetch: vi.fn() },
-  application: { commands: { set: vi.fn() } },
-  guilds: { cache: new Map<string, MockGuild>() },
-  once: vi.fn(),
-  on: vi.fn(),
-  off: vi.fn(),
-  login: vi.fn(),
-  destroy: vi.fn(),
-  user: { tag: 'test-bot#0001' },
-};
-
-const mockRest: MockRest = {
-  setToken: vi.fn(),
-  post: vi.fn(),
-};
-
-vi.mock('discord.js', () => ({
-  Client: vi.fn(function () {
-    return mockClient;
-  }),
-  REST: vi.fn(function () {
-    return mockRest;
-  }),
-  // A distinguishable fake route, so tests can assert the right endpoint was
-  // targeted without depending on discord-api-types' real route building.
-  Routes: {
-    channelMessages: vi.fn((id: string) => `/fake/channels/${id}/messages`),
-  },
-  GatewayIntentBits: { Guilds: 1, GuildMessages: 512, MessageContent: 32768 },
-  // Real discord-api-types values, so assertions can compare against the
-  // genuine enum members the service passes to Discord.
-  InteractionContextType: { Guild: 0, BotDM: 1, PrivateChannel: 2 },
-  ApplicationIntegrationType: { GuildInstall: 0, UserInstall: 1 },
-  MessageFlags: { Ephemeral: 64 },
-}));
+vi.mock('discord.js', async () =>
+  (await import('./discord-js-mock.test-helpers.js')).discordJsModuleMock(),
+);
 
 import {
   ApplicationIntegrationType,
@@ -84,6 +20,8 @@ import {
   Routes,
 } from 'discord.js';
 
+import type { DiscordJsMocks } from './discord-js-mock.test-helpers';
+import { installDiscordJsMocks } from './discord-js-mock.test-helpers';
 import {
   ADMIN_COMMAND_ROLE_ID,
   DISCORD_BOT_TOKEN,
@@ -95,11 +33,12 @@ import {
 
 describe('DiscordClientService', () => {
   let service: DiscordClientService;
+  let discord: DiscordJsMocks;
 
   const flush = () => new Promise((resolve) => setImmediate(resolve));
 
   function interactionHandler(): (interaction: unknown) => void {
-    const call = mockClient.on.mock.calls.find(
+    const call = discord.client.on.mock.calls.find(
       ([event]) => event === 'interactionCreate',
     );
     if (!call) throw new Error('interactionCreate handler not registered');
@@ -107,7 +46,7 @@ describe('DiscordClientService', () => {
   }
 
   function messageHandler(): (message: unknown) => void {
-    const call = mockClient.on.mock.calls.find(
+    const call = discord.client.on.mock.calls.find(
       ([event]) => event === 'messageCreate',
     );
     if (!call) throw new Error('messageCreate handler not registered');
@@ -115,18 +54,22 @@ describe('DiscordClientService', () => {
   }
 
   beforeEach(async () => {
+    // Clears call history on the module mock's own spies (`Client`, `REST`,
+    // `Routes.channelMessages`), which several tests assert on, and on the
+    // `Logger.prototype` spies some tests install. The discord.js mocks
+    // themselves are built fresh just below.
     vi.clearAllMocks();
-    mockClient.guilds.cache = new Map();
-    mockClient.once.mockImplementation((event: string, cb: () => void) => {
+    discord = installDiscordJsMocks();
+    discord.client.once.mockImplementation((event: string, cb: () => void) => {
       if (event === 'ready') cb();
-      return mockClient;
+      return discord.client;
     });
-    mockClient.login.mockResolvedValue('my-token');
-    mockClient.application.commands.set.mockResolvedValue(undefined);
-    mockClient.destroy.mockResolvedValue(undefined);
-    mockChannel.isSendable.mockReturnValue(true);
-    mockRest.setToken.mockReturnValue(mockRest);
-    mockRest.post.mockResolvedValue(undefined);
+    discord.client.login.mockResolvedValue('my-token');
+    discord.client.application.commands.set.mockResolvedValue(undefined);
+    discord.client.destroy.mockResolvedValue(undefined);
+    discord.channel.isSendable.mockReturnValue(true);
+    discord.rest.setToken.mockReturnValue(discord.rest);
+    discord.rest.post.mockResolvedValue(undefined);
     const moduleRef = await Test.createTestingModule({
       providers: [
         DiscordClientService,
@@ -144,15 +87,18 @@ describe('DiscordClientService', () => {
   it('logs in with the provided token on module init', async () => {
     service.onModuleInit();
     await service.connect();
-    expect(mockClient.login).toHaveBeenCalledWith('my-token');
+    expect(discord.client.login).toHaveBeenCalledWith('my-token');
   });
 
   it('does not log in during onModuleInit', () => {
     service.onModuleInit();
 
-    expect(mockClient.login).not.toHaveBeenCalled();
-    expect(mockClient.on).toHaveBeenCalledWith('error', expect.any(Function));
-    expect(mockClient.on).toHaveBeenCalledWith(
+    expect(discord.client.login).not.toHaveBeenCalled();
+    expect(discord.client.on).toHaveBeenCalledWith(
+      'error',
+      expect.any(Function),
+    );
+    expect(discord.client.on).toHaveBeenCalledWith(
       'interactionCreate',
       expect.any(Function),
     );
@@ -162,35 +108,35 @@ describe('DiscordClientService', () => {
     service.onModuleInit();
     await service.connect();
 
-    expect(mockClient.login).toHaveBeenCalledWith('my-token');
+    expect(discord.client.login).toHaveBeenCalledWith('my-token');
   });
 
   it('sends a message to a sendable channel', async () => {
-    mockClient.channels.fetch.mockResolvedValue(mockChannel);
+    discord.client.channels.fetch.mockResolvedValue(discord.channel);
     await service.sendMessage('123', 'hello');
-    expect(mockClient.channels.fetch).toHaveBeenCalledWith('123');
-    expect(mockChannel.send).toHaveBeenCalledWith('hello');
+    expect(discord.client.channels.fetch).toHaveBeenCalledWith('123');
+    expect(discord.channel.send).toHaveBeenCalledWith('hello');
   });
 
   it('sends an embed payload as-is to a sendable channel', async () => {
-    mockClient.channels.fetch.mockResolvedValue(mockChannel);
+    discord.client.channels.fetch.mockResolvedValue(discord.channel);
     const payload = {
       embeds: [{ title: 'I have knowledge of', description: 'Leagues: 3' }],
     };
     await service.sendMessage('123', payload);
-    expect(mockChannel.send).toHaveBeenCalledWith(payload);
+    expect(discord.channel.send).toHaveBeenCalledWith(payload);
   });
 
   it('throws when the channel is not found', async () => {
-    mockClient.channels.fetch.mockResolvedValue(null);
+    discord.client.channels.fetch.mockResolvedValue(null);
     await expect(service.sendMessage('123', 'hello')).rejects.toThrow(
       'Discord channel not found: 123',
     );
   });
 
   it('throws when the channel is not sendable', async () => {
-    mockChannel.isSendable.mockReturnValue(false);
-    mockClient.channels.fetch.mockResolvedValue(mockChannel);
+    discord.channel.isSendable.mockReturnValue(false);
+    discord.client.channels.fetch.mockResolvedValue(discord.channel);
     await expect(service.sendMessage('123', 'hello')).rejects.toThrow(
       'Discord channel is not sendable: 123',
     );
@@ -202,17 +148,20 @@ describe('DiscordClientService', () => {
     await service.sendMessageOverRest('123', body);
 
     expect(REST).toHaveBeenCalledWith({ version: '10' });
-    expect(mockRest.setToken).toHaveBeenCalledWith('my-token');
+    expect(discord.rest.setToken).toHaveBeenCalledWith('my-token');
     expect(Routes.channelMessages).toHaveBeenCalledWith('123');
-    expect(mockRest.post).toHaveBeenCalledWith('/fake/channels/123/messages', {
-      body,
-    });
-    expect(mockClient.channels.fetch).not.toHaveBeenCalled();
-    expect(mockClient.login).not.toHaveBeenCalled();
+    expect(discord.rest.post).toHaveBeenCalledWith(
+      '/fake/channels/123/messages',
+      {
+        body,
+      },
+    );
+    expect(discord.client.channels.fetch).not.toHaveBeenCalled();
+    expect(discord.client.login).not.toHaveBeenCalled();
   });
 
   it('propagates a rejection from the REST client', async () => {
-    mockRest.post.mockRejectedValue(new Error('401 Unauthorized'));
+    discord.rest.post.mockRejectedValue(new Error('401 Unauthorized'));
 
     await expect(
       service.sendMessageOverRest('123', { content: 'hi' }),
@@ -228,13 +177,16 @@ describe('DiscordClientService', () => {
 
   it('destroys the client on module destroy', async () => {
     await service.onModuleDestroy();
-    expect(mockClient.destroy).toHaveBeenCalled();
+    expect(discord.client.destroy).toHaveBeenCalled();
   });
 
   it('registers a persistent error handler on module init', async () => {
     service.onModuleInit();
     await service.connect();
-    expect(mockClient.on).toHaveBeenCalledWith('error', expect.any(Function));
+    expect(discord.client.on).toHaveBeenCalledWith(
+      'error',
+      expect.any(Function),
+    );
   });
 
   it('logs when the underlying client emits an error event', async () => {
@@ -243,7 +195,9 @@ describe('DiscordClientService', () => {
       .mockImplementation(() => undefined);
     service.onModuleInit();
     await service.connect();
-    const call = mockClient.on.mock.calls.find(([event]) => event === 'error');
+    const call = discord.client.on.mock.calls.find(
+      ([event]) => event === 'error',
+    );
     if (!call) throw new Error('error handler not registered');
     const errorHandler = call[1] as (error: unknown) => void;
 
@@ -276,23 +230,20 @@ describe('DiscordClientService', () => {
   });
 
   it('logs "unknown" when the ready client has no username tag', async () => {
-    const originalUser = mockClient.user;
-    mockClient.user = { tag: undefined };
+    discord.client.user = { tag: undefined };
     const logSpy = vi
       .spyOn(Logger.prototype, 'log')
       .mockImplementation(() => undefined);
-    try {
-      service.onModuleInit();
-      await service.connect();
-      expect(logSpy).toHaveBeenCalledWith('Logged in as unknown');
-    } finally {
-      mockClient.user = originalUser;
-    }
+
+    service.onModuleInit();
+    await service.connect();
+
+    expect(logSpy).toHaveBeenCalledWith('Logged in as unknown');
   });
 
   it('wraps a non-Error login rejection in an Error', async () => {
-    mockClient.once.mockImplementation(() => mockClient);
-    mockClient.login.mockRejectedValue('token invalid');
+    discord.client.once.mockImplementation(() => discord.client);
+    discord.client.login.mockRejectedValue('token invalid');
     service.onModuleInit();
     const result = service.connect();
     await expect(result).rejects.toBeInstanceOf(Error);
@@ -300,8 +251,8 @@ describe('DiscordClientService', () => {
   });
 
   it('rejects init when login fails', async () => {
-    mockClient.once.mockImplementation(() => mockClient);
-    mockClient.login.mockRejectedValue(new Error('Invalid token'));
+    discord.client.once.mockImplementation(() => discord.client);
+    discord.client.login.mockRejectedValue(new Error('Invalid token'));
     service.onModuleInit();
     await expect(service.connect()).rejects.toThrow('Invalid token');
   });
@@ -415,11 +366,13 @@ describe('DiscordClientService', () => {
     vi.useFakeTimers();
     try {
       let readyHandler: (() => void) | undefined;
-      mockClient.once.mockImplementation((event: string, cb: () => void) => {
-        if (event === 'ready') readyHandler = cb;
-        return mockClient;
-      });
-      mockClient.login.mockReturnValue(new Promise<string>(() => {}));
+      discord.client.once.mockImplementation(
+        (event: string, cb: () => void) => {
+          if (event === 'ready') readyHandler = cb;
+          return discord.client;
+        },
+      );
+      discord.client.login.mockReturnValue(new Promise<string>(() => {}));
       service.onModuleInit();
       const initPromise = service.connect();
       const assertion = expect(initPromise).rejects.toThrow(
@@ -432,8 +385,8 @@ describe('DiscordClientService', () => {
       // would still be possible unless the timeout tore both down — a
       // duplicate gateway session if this machine has already released the
       // lock and a standby has taken over.
-      expect(mockClient.off).toHaveBeenCalledWith('ready', readyHandler);
-      expect(mockClient.destroy).toHaveBeenCalled();
+      expect(discord.client.off).toHaveBeenCalledWith('ready', readyHandler);
+      expect(discord.client.destroy).toHaveBeenCalled();
     } finally {
       vi.useRealTimers();
     }
@@ -447,8 +400,8 @@ describe('DiscordClientService', () => {
         execute: vi.fn().mockResolvedValue('stats'),
       },
     ]);
-    expect(mockClient.application.commands.set).toHaveBeenCalledTimes(1);
-    expect(mockClient.application.commands.set).toHaveBeenCalledWith([
+    expect(discord.client.application.commands.set).toHaveBeenCalledTimes(1);
+    expect(discord.client.application.commands.set).toHaveBeenCalledWith([
       {
         name: 'stats',
         description: 'Show stats',
@@ -461,7 +414,7 @@ describe('DiscordClientService', () => {
   it('clears the leftover guild-scoped commands from every guild', async () => {
     const guildA = { commands: { set: vi.fn().mockResolvedValue(undefined) } };
     const guildB = { commands: { set: vi.fn().mockResolvedValue(undefined) } };
-    mockClient.guilds.cache = new Map([
+    discord.client.guilds.cache = new Map([
       ['a', guildA],
       ['b', guildB],
     ]);
@@ -488,7 +441,7 @@ describe('DiscordClientService', () => {
       id: 'b',
       commands: { set: vi.fn().mockResolvedValue(undefined) },
     };
-    mockClient.guilds.cache = new Map([
+    discord.client.guilds.cache = new Map([
       ['a', guildA],
       ['b', guildB],
     ]);
@@ -662,7 +615,7 @@ describe('DiscordClientService', () => {
         execute: vi.fn().mockResolvedValue('ok'),
       },
     ]);
-    expect(mockClient.application.commands.set).toHaveBeenCalledWith([
+    expect(discord.client.application.commands.set).toHaveBeenCalledWith([
       {
         name: 'insights',
         description: 'Share an insight',
@@ -690,7 +643,7 @@ describe('DiscordClientService', () => {
       },
     ]);
 
-    expect(mockClient.application.commands.set).toHaveBeenCalledWith([
+    expect(discord.client.application.commands.set).toHaveBeenCalledWith([
       {
         name: 'debugstuff',
         description: 'Debug: stuff',
@@ -1009,7 +962,7 @@ describe('DiscordClientService', () => {
   it('registers a messageCreate listener on module init', () => {
     service.onModuleInit();
 
-    expect(mockClient.on).toHaveBeenCalledWith(
+    expect(discord.client.on).toHaveBeenCalledWith(
       'messageCreate',
       expect.any(Function),
     );
