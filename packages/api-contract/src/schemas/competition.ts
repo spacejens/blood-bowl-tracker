@@ -43,7 +43,7 @@ export const UpsertCompetitionSchema = z.object({
   startDate: IsoDate.optional(),
   endDate: IsoDate.nullable().optional(),
   // Optional in this Zod schema for update's overlay semantics: an omitted
-  // value on update leaves the stored group alone. On create it is now
+  // value on update leaves the stored group alone. On create it is
   // effectively required — the column is NOT NULL with no database default,
   // so an omitted value on create throws MissingRequiredFieldError. Real
   // classification is curated in tools/import-manual.

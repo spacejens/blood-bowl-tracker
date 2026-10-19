@@ -61,7 +61,7 @@ function makeRulesSet({
 }
 
 // CRP predates BB2020: no Passing at all, and Agility/Armour written as bare
-// numbers. That bare notation is exactly what the service now refuses to
+// numbers. That bare notation is exactly what the service refuses to
 // write a snapshot for. BB2020 has Passing and writes both as roll-to-beat
 // targets.
 const rulesSetsByName = new Map([
@@ -302,7 +302,7 @@ describe('BblPositionCharacteristicsImportService', () => {
     });
 
     // Notation conversion only ever rewrites bare-notation values, and those
-    // rules sets no longer get an entry, so BBL's own BB2020 figures are
+    // rules sets get no entry, so BBL's own BB2020 figures are
     // stored unchanged for every rules set that survives the filter.
     const { entries } =
       positionRulesSetsImport.syncPositionRulesSets.mock.calls[0][0];

@@ -40,7 +40,6 @@ import {
   gougedEye,
   griff,
   makePlayerDeath,
-  makePlayerRowButton,
   makePlayers,
   makeService,
   makeTrophyAwards,
@@ -509,49 +508,13 @@ describe('PlayerDeepdiveService', () => {
         'Touchdowns scored: 3',
       ].join('\n'),
     );
-    // The exact row->button mapping (playerId 77 -> "Varag Ghoul-Chewer") is
-    // covered by "asks PlayerRowButtonService for a named killer entry"
-    // below; here we only need to see that a drill-down button was offered
-    // at all, so the canned default from `makePlayerRowButton()` is enough.
     expect(result.components[0].components[0]).toMatchObject({
-      custom_id: `${PLAYER_BUTTON_CUSTOM_ID_PREFIX}1`,
-      label: 'Griff Oberwald',
-    });
-  });
-
-  it('asks PlayerRowButtonService for a named killer entry', async () => {
-    const { service, playerRowButton } = await makeService({
-      players: makePlayers({ player: griff }),
-      playerDeath: makePlayerDeath({
-        kind: 'player',
-        playerId: 88,
-        playerName: 'Morg N Thorg',
-        positionId: 61,
-        positionName: 'Morg N Thorg',
-        isStarPlayer: true,
-        ...gougedEye,
-        viaFoul: false,
-      }),
-    });
-
-    await service.resolve(1);
-
-    expect(playerRowButton.buildPlayerRowButton).toHaveBeenCalledWith({
-      playerId: 88,
-      playerName: 'Morg N Thorg',
-      positionId: 61,
-      positionName: 'Morg N Thorg',
-      isStarPlayer: true,
+      custom_id: `${PLAYER_BUTTON_CUSTOM_ID_PREFIX}77`,
+      label: 'Varag Ghoul-Chewer',
     });
   });
 
   it('offers the star player deepdive for a star killer', async () => {
-    const playerRowButton = makePlayerRowButton();
-    playerRowButton.buildPlayerRowButton.mockReturnValue({
-      customIdPrefix: STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
-      entityId: '61',
-      label: 'Morg N Thorg',
-    });
     const { service, entityComponents } = await makeService({
       players: makePlayers({ player: griff }),
       playerDeath: makePlayerDeath({
@@ -564,7 +527,6 @@ describe('PlayerDeepdiveService', () => {
         ...gougedEye,
         viaFoul: false,
       }),
-      playerRowButton,
     });
 
     await service.resolve(1);
@@ -930,7 +892,7 @@ describe('PlayerDeepdiveService', () => {
   });
 
   // The Kills section has its own spec file — see
-  // `player-deepdive-kills.service.spec.ts` — split out purely for this
+  // `player-deepdive-kills.service.spec.ts` — kept apart for this
   // file's size (see `player-deepdive.test-helpers.ts`).
 
   it('adds a star player drill-down button, last, for a star hire', async () => {

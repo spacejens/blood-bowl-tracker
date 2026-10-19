@@ -4,18 +4,14 @@ import { describe, expect, it } from 'vitest';
 import * as db from './index';
 
 /**
- * The old `packages/game-data/src/shared/enum-sync.spec.ts` (deleted once
- * db enums and api-contract schemas both started deriving from
- * `@blood-bowl-tracker/domain-enums`) reflectively discovered every drizzle
- * enum export from packages/db and asserted each had a value-matching
- * api-contract counterpart. That caught a db enum whose values had drifted
- * from api-contract, but that specific drift is now structurally impossible
- * — both sides import the same array.
+ * db enums and api-contract schemas both derive their values from
+ * `@blood-bowl-tracker/domain-enums`, so a db enum cannot drift from its
+ * api-contract counterpart — both sides import the same array.
  *
- * What is still possible, and still uncaught by anything else, is a new db
+ * What is still possible, and uncaught by anything else, is a new db
  * enum built from a hand-rolled inline array instead of a domain-enums
  * export (e.g. `gameData.enum('new_thing', ['a', 'b'])` written directly in
- * a schema file). This spec is the replacement guardrail for that.
+ * a schema file). This spec guards against that.
  *
  * Ideally this would assert *referential* identity between a db enum's
  * `enumValues` and a domain-enums export — proving the array was passed

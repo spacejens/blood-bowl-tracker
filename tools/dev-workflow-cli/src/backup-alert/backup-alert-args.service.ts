@@ -16,7 +16,7 @@ export interface BackupAlertRequest {
 }
 
 /**
- * Turns `raise-alert` / `resolve-alert` argv into a request. Split out of
+ * Turns `raise-alert` / `resolve-alert` argv into a request. Kept separate from
  * `main.ts` so validation is unit-testable: argv is a parameter here.
  */
 @Injectable()

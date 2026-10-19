@@ -1,46 +1,19 @@
 import type { RecordInteractionInput } from '@blood-bowl-tracker/discord-bot-usage';
 import { UsageTrackingService } from '@blood-bowl-tracker/discord-bot-usage';
 import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-interface MockClient {
-  on: ReturnType<typeof vi.fn>;
-  once: ReturnType<typeof vi.fn>;
-  off: ReturnType<typeof vi.fn>;
-  login: ReturnType<typeof vi.fn>;
-  destroy: ReturnType<typeof vi.fn>;
-  application: { commands: { set: ReturnType<typeof vi.fn> } };
-  guilds: { cache: Map<string, unknown> };
-  user: { tag: string };
-}
+vi.mock('discord.js', async () =>
+  (await import('./discord-js-mock.test-helpers.js')).discordJsModuleMock(),
+);
 
-const mockClient: MockClient = {
-  on: vi.fn(),
-  once: vi.fn(),
-  off: vi.fn(),
-  login: vi.fn(),
-  destroy: vi.fn(),
-  application: { commands: { set: vi.fn() } },
-  guilds: { cache: new Map<string, unknown>() },
-  user: { tag: 'test-bot#0001' },
-};
-
-vi.mock('discord.js', () => ({
-  Client: vi.fn(function () {
-    return mockClient;
-  }),
-  REST: vi.fn(function () {
-    return { setToken: vi.fn(), post: vi.fn() };
-  }),
-  Routes: { channelMessages: vi.fn((id: string) => `/fake/${id}`) },
-  GatewayIntentBits: { Guilds: 1 },
-  InteractionContextType: { Guild: 0, BotDM: 1, PrivateChannel: 2 },
-  ApplicationIntegrationType: { GuildInstall: 0, UserInstall: 1 },
-  MessageFlags: { Ephemeral: 64 },
-}));
-
+import type { DiscordJsMocks } from './discord-js-mock.test-helpers';
+import {
+  installDiscordJsMocks,
+  resetDiscordJsMocks,
+} from './discord-js-mock.test-helpers';
 import {
   DISCORD_BOT_TOKEN,
   DiscordClientService,
@@ -52,11 +25,12 @@ const OCCURRED_AT = new Date('2026-09-09T12:00:00.000Z');
 describe('DiscordClientService usage tracking', () => {
   let service: DiscordClientService;
   let usageTracking: MockProxy<UsageTrackingService>;
+  let discord: DiscordJsMocks;
 
   const flush = () => new Promise((resolve) => setImmediate(resolve));
 
   function interactionHandler(): (interaction: unknown) => void {
-    const call = mockClient.on.mock.calls.find(
+    const call = discord.client.on.mock.calls.find(
       ([event]) => event === 'interactionCreate',
     );
     if (!call) throw new Error('interactionCreate handler not registered');
@@ -90,8 +64,8 @@ describe('DiscordClientService usage tracking', () => {
   }
 
   beforeEach(async () => {
-    vi.clearAllMocks();
-    mockClient.destroy.mockResolvedValue(undefined);
+    discord = installDiscordJsMocks();
+    discord.client.destroy.mockResolvedValue(undefined);
     usageTracking = mock<UsageTrackingService>();
     usageTracking.recordInteraction.mockResolvedValue(undefined);
     const moduleRef = await Test.createTestingModule({
@@ -104,6 +78,10 @@ describe('DiscordClientService usage tracking', () => {
     }).compile();
     service = moduleRef.get(DiscordClientService);
     service.onModuleInit();
+  });
+
+  afterEach(() => {
+    resetDiscordJsMocks();
   });
 
   it('records a successful command with its Discord context', async () => {

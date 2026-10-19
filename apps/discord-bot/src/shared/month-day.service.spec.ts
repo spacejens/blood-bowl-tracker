@@ -50,15 +50,13 @@ describe('MonthDayService', () => {
   describe('today', () => {
     it('reads today from the clock using UTC accessors, not local ones', () => {
       // CI (GitHub Actions ubuntu-latest) already runs with TZ=UTC, and this
-      // repo's Vitest config does not pin any other timezone. That means a
-      // Date.UTC-based fixture makes getMonth()/getDate() (the pre-fix,
-      // local-time bug) return the exact same values as
-      // getUTCMonth()/getUTCDate() (the fix) on the machine this test
-      // actually runs on. Asserting only the returned value would therefore
-      // pass identically whether or not the bug were still present. Spying
-      // on which Date accessor is actually invoked is what makes this test
-      // discriminate the UTC-safe implementation from the local-time bug,
-      // regardless of the ambient timezone of whatever machine runs it.
+      // repo's Vitest config does not pin any other timezone, so on the
+      // machine this test runs on, getMonth()/getDate() return the same
+      // values as getUTCMonth()/getUTCDate() for a Date.UTC-based fixture.
+      // Asserting only the returned value would therefore also pass with
+      // local-time accessors. Spying on which Date accessor is invoked is
+      // what makes this test fail if the service reads local time,
+      // regardless of the ambient timezone.
       const now = new Date(Date.UTC(2024, 1, 29, 23, 30));
       clock.now.mockReturnValue(now);
       const getMonth = vi.spyOn(now, 'getMonth');

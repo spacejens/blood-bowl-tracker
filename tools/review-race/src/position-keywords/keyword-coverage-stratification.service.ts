@@ -39,7 +39,7 @@ const SEVERAL_KEYWORDS_THRESHOLD = 3;
  * is the closest DB-visible signal that something was dropped; a position
  * carrying three or more keywords is a useful stratum for the opposite
  * failure — an extra or misresolved code. Positional keywords stack on top
- * of species keywords, so roughly a fifth of BB2025 positions now reach this
+ * of species keywords, so roughly a fifth of BB2025 positions reach this
  * threshold — this stratum is a sizeable, not a rare, slice of positions —
  * but a longer keyword list is still where one wrong or duplicated entry is
  * easiest for a human reviewer to miss among several correct-looking ones.

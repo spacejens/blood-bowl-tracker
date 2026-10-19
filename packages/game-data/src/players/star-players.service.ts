@@ -187,7 +187,7 @@ export class StarPlayersService {
 
   /**
    * Every known star player, name-ascending — the whole imported catalog,
-   * hired or not, for the same reason `searchByNamePrefix` no longer filters
+   * hired or not, for the same reason `searchByNamePrefix` does not filter
    * on hires. Not itself scoped by league/era/competition, unlike
    * `ErasService.listErasWithLeague`/`TrophiesService.listAllWithLeague` — see
    * this class's own doc comment for why a league/era-scoped query over stars

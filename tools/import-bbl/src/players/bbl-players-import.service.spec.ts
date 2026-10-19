@@ -558,7 +558,7 @@ describe('BblPlayersImportService', () => {
 
     const { errors } = resultArgs(mocks.importResults);
     expect(errors).toHaveLength(1);
-    // Message is passed through with this caller's prefix: the assertion now
+    // Message is passed through with this caller's prefix: the exact match
     // fails if production stops surfacing the real error text.
     expect(errors[0].message).toBe(
       'Failed to upsert external system: network timeout',

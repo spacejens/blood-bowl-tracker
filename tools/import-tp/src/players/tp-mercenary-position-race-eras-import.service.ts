@@ -18,10 +18,10 @@ export interface SyncMercenaryPositionRaceErasOptions {
 /**
  * Post-players step: populate `positions_race_eras` for TP mercenary Big Guy
  * positions (e.g. "Giant Mercenary"). Unlike regular and star positions --
- * which TP's official team list now describes directly -- a mercenary hire
+ * which TP's official team list describes directly -- a mercenary hire
  * appears on no official-list catalog at all (`lineUpMasters` nor
  * `starPlayersMasters`), per `TpMercenaryCharacteristicsService`'s own doc
- * comment. So mercenary race/era availability must still be derived from
+ * comment. So mercenary race/era availability must be derived from
  * actual usage:
  * The server-side roster import (`TpRosterPlayersImportService`) emits one
  * `MercenaryPositionUsage` per imported mercenary Big Guy hire, returned to

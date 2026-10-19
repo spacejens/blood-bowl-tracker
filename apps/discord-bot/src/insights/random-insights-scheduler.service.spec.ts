@@ -74,7 +74,7 @@ describe('RandomInsightsSchedulerService', () => {
     await job.fireOnTick();
     // The job's onTick fires postRandomInsight without awaiting it (a
     // deliberate fire-and-forget so a slow tick can't block the scheduler),
-    // and it now awaits scope resolution before resolving the fact. Flush
+    // and it awaits scope resolution before resolving the fact. Flush
     // the microtask queue so that work has actually landed before asserting.
     await new Promise((resolve) => setImmediate(resolve));
 

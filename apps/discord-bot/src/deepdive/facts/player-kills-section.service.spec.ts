@@ -1,8 +1,6 @@
 import type { PlayerKillEntry } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { MockProxy } from 'vitest-mock-extended';
-import { mock } from 'vitest-mock-extended';
 
 import {
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
@@ -51,20 +49,15 @@ const namedVictim: PlayerKillEntry = {
 
 describe('PlayerKillsSectionService', () => {
   let service: PlayerKillsSectionService;
-  let playerRowButton: MockProxy<PlayerRowButtonService>;
 
   beforeEach(async () => {
-    playerRowButton = mock<PlayerRowButtonService>();
-    playerRowButton.buildPlayerRowButton.mockReturnValue({
-      customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
-      entityId: '88',
-      label: 'Griff Oberwald',
-    });
     const moduleRef = await Test.createTestingModule({
+      // The whole chain is a pure chain (no I/O, no external state), so every
+      // link is passed real, as CLAUDE.md's pure-chain carve-out describes.
       providers: [
         PlayerKillsSectionService,
         PlayerKillerInfoFormatterService,
-        { provide: PlayerRowButtonService, useValue: playerRowButton },
+        PlayerRowButtonService,
       ],
     }).compile();
     service = moduleRef.get(PlayerKillsSectionService);
@@ -186,24 +179,7 @@ describe('PlayerKillsSectionService', () => {
     ]);
   });
 
-  it('asks PlayerRowButtonService for a named victim entry', () => {
-    build([namedVictim]);
-
-    expect(playerRowButton.buildPlayerRowButton).toHaveBeenCalledWith({
-      playerId: 88,
-      playerName: 'Griff Oberwald',
-      positionId: 60,
-      positionName: 'Blitzer',
-      isStarPlayer: false,
-    });
-  });
-
   it('offers the star player deepdive for a star victim', () => {
-    playerRowButton.buildPlayerRowButton.mockReturnValue({
-      customIdPrefix: STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
-      entityId: '61',
-      label: 'Morg N Thorg',
-    });
     const starVictim: PlayerKillEntry = {
       kind: 'player',
       playerId: 99,
@@ -222,19 +198,18 @@ describe('PlayerKillsSectionService', () => {
         label: 'Morg N Thorg',
       },
     ]);
-    expect(playerRowButton.buildPlayerRowButton).toHaveBeenCalledWith({
-      playerId: 99,
-      playerName: 'Morg N Thorg',
-      positionId: 61,
-      positionName: 'Morg N Thorg',
-      isStarPlayer: true,
-    });
   });
 
-  it('never asks for a player button when the victim is only a team', () => {
-    build([{ kind: 'team', ...gougedEye, viaFoul: false }]);
+  it('never offers a player button when the victim is only a team', () => {
+    const { entries } = build([{ kind: 'team', ...gougedEye, viaFoul: false }]);
 
-    expect(playerRowButton.buildPlayerRowButton).not.toHaveBeenCalled();
+    expect(
+      entries.filter(
+        (entry) =>
+          entry.customIdPrefix === PLAYER_BUTTON_CUSTOM_ID_PREFIX ||
+          entry.customIdPrefix === STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+      ),
+    ).toEqual([]);
   });
 
   it('offers a team button when only the victim side is known', () => {

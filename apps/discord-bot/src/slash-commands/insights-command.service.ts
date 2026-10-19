@@ -93,7 +93,7 @@ export class InsightsCommandService implements OnModuleInit {
 
   /**
    * The four scope options shared by every command that can be narrowed to a
-   * single league, era, competition or match category. Extracted so other
+   * single league, era, competition or match category. Shared so other
    * commands (e.g. `/onthisdate`) scope identically by construction, rather
    * than by convention.
    */
@@ -135,7 +135,7 @@ export class InsightsCommandService implements OnModuleInit {
   /**
    * Resolves the shared league/era/competition/match-category options from a
    * slash-command interaction: at most one may be given, and a given option
-   * must name something that exists. Extracted from `execute()` so other
+   * must name something that exists. Separate from `execute()` so other
    * commands can reuse the exact same scoping rules and not-found messages.
    */
   async resolveScopeOptions(
@@ -262,7 +262,7 @@ export class InsightsCommandService implements OnModuleInit {
 
   /**
    * Resolve one specific fact-tree path under an already-resolved scope.
-   * Extracted from `execute()` so callers outside a slash-command interaction
+   * Separate from `execute()` so callers outside a slash-command interaction
    * (the startup notifier) can request a specific insight; the returned
    * fallback messages are the same ones the slash command replies with.
    */

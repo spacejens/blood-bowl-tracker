@@ -504,7 +504,7 @@ describe('upsertByExternalIds', () => {
 
   describe('concurrent external-id race', () => {
     // rulesSetExternalIds' table name is `rules_sets_external_ids`; the
-    // classifier now matches on this table name rather than the (fragile,
+    // classifier matches on this table name rather than the (fragile,
     // possibly-truncated) constraint name.
     const tableName = 'rules_sets_external_ids';
 

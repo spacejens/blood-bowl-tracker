@@ -32,7 +32,7 @@ const MISMATCH = 'eligibility-mismatch';
  * with zero characteristics rows at all — that is the far more common case
  * `tools/import-bbl`'s star-player exception produces by over-linking a star
  * to essentially every era its races span. This stratum narrows to the
- * subset with mixed coverage, so it no longer duplicates that stratum's
+ * subset with mixed coverage, so it does not duplicate that stratum's
  * candidate set: a star with characteristics for none of its eligible rules
  * sets matches `missing-rules-set` only, not this one. It is a DB-only
  * query: comparing against what BBL's "Can play for" line or TP's masks

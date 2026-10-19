@@ -79,7 +79,7 @@ function victim(
 }
 
 /**
- * The victim-only shape `OnThisDateService.getTopKilledPlayers` now returns,
+ * The victim-only shape `OnThisDateService.getTopKilledPlayers` returns,
  * with the killer carried on the object anyway (an extra runtime property
  * beyond `OnThisDateVictim`) so the default `getKillersForVictims` stub below
  * can echo it straight back — mirroring the real split without each test
@@ -488,15 +488,15 @@ describe('OnThisDateFactsService.resolveToday', () => {
 });
 
 /**
- * `EventCountLinesService` and `PlayerKillerInfoFormatterService` (whose only
- * collaborator, `PlayerRowButtonService`, is itself a pure decision service)
- * are pure and dependency-free, so this suite passes all three real per the
- * documented `CLAUDE.md` carve-out — the same one
- * `player-deepdive.test-helpers.ts` already uses for the equivalent deepdive
- * services. Every other collaborator stays mocked. This locks down the
- * actual rendered wording a reader would see, including Fix 1's
- * lower-cased, formatter-routed killer clause for the unknown/null and team
- * cases — the kind of duplication bug a fully-mocked spec cannot catch.
+ * `EventCountLinesService` is pure and dependency-free, and
+ * `PlayerKillerInfoFormatterService` → `PlayerRowButtonService` is a pure
+ * chain: the formatter depends only on the row-button decision service, which
+ * has no dependencies. This suite passes all three real under `CLAUDE.md`'s
+ * carve-out for a pure chain inside an otherwise-mocked subject, as
+ * `player-deepdive.test-helpers.ts` does for the deepdive's chain; every other
+ * collaborator stays mocked. It locks down the actual rendered wording a
+ * reader would see, including the lower-cased, formatter-routed killer clause
+ * for the unknown/null and team cases, which a fully-mocked spec cannot catch.
  */
 describe('OnThisDateFactsService with real formatting collaborators', () => {
   it('renders the real killer wording for an unresolved and a team-only kill', async () => {
