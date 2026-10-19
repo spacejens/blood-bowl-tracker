@@ -30,14 +30,14 @@ own config (`connection.apiBaseUrl` and `connection.apiToken`).
 
 ## Client transport resilience
 
-`packages/api-client` does not call the global `fetch` directly.
+`RPCLink` uses the fetch function it is given rather than the global `fetch`.
 `ApiClientModule` injects `ResilientFetchService` into its `API_CLIENT`
 factory and passes its `fetch` through `createApiClient` to `RPCLink`. That
-wrapper bounds every individual attempt at 180 seconds and retries a failed
-attempt up to five times — six attempts in all — waiting 1s, 2s, 4s, 8s and
-then 16s in between. The timeout, retry
-count, and backoff base are all fixed constants in the client; there is
-deliberately no configuration surface for them. The timeout is generous
+method wraps the global `fetch`, calling it once per attempt: it bounds every
+individual attempt at 180 seconds and retries a failed attempt up to five
+times — six attempts in all — waiting 1s, 2s, 4s, 8s and then 16s in between.
+The timeout, retry count, and backoff base are all fixed constants in the
+client; there is deliberately no configuration surface for them. The timeout is generous
 rather than tight because `matches`/`matchEvents` upserts arrive
 in chunks of up to 500 items and the server processes a batch's items
 sequentially, so a healthy chunk can legitimately take well over a minute —
