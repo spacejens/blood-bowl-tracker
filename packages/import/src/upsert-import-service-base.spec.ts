@@ -7,7 +7,7 @@ import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { ImportRunnerService } from './import-runner.service';
-import { stubImportRunner } from './import-runner.test-helpers';
+import { recordUpsertResultOptions } from './import-runner.test-helpers';
 import type { ImportError } from './types';
 import type { UpsertResource } from './upsert-import-service-base';
 import { createUpsertImportServiceBase } from './upsert-import-service-base';
@@ -50,7 +50,6 @@ describe('createUpsertImportServiceBase', () => {
   beforeEach(async () => {
     client = mockDeep<ApiClient>();
     runner = mock<ImportRunnerService>();
-    stubImportRunner(runner);
     const moduleRef = await Test.createTestingModule({
       providers: [
         TestEntityImportService,
@@ -61,63 +60,54 @@ describe('createUpsertImportServiceBase', () => {
     service = moduleRef.get(TestEntityImportService);
   });
 
-  it('calls the configured client resource and returns its result', async () => {
-    client.leagues.upsert.mockResolvedValue({
-      id: 1,
-      name: 'Test League',
-      createdAt: new Date('2026-01-01'),
-      created: true,
-    });
-    const errors: ImportError[] = [];
+  const upserted = {
+    id: 1,
+    name: 'Test League',
+    createdAt: new Date('2026-01-01'),
+    created: true,
+  };
 
-    const result = await service.upsert(data, errors);
+  it('returns the runner result unchanged', async () => {
+    runner.recordUpsertResult.mockResolvedValue(upserted);
 
-    expect(result).toEqual({
-      id: 1,
-      name: 'Test League',
-      createdAt: new Date('2026-01-01'),
-      created: true,
-    });
-    expect(client.leagues.upsert).toHaveBeenCalledWith(data);
-    expect(errors).toHaveLength(0);
+    const result = await service.upsert(data, []);
+
+    expect(result).toBe(upserted);
   });
 
-  it('records the configured error message and returns undefined on failure', async () => {
-    client.leagues.upsert.mockRejectedValue(new Error('conflict'));
-    const errors: ImportError[] = [];
+  it('returns undefined when the runner recorded a failure', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    const result = await service.upsert(data, errors);
+    const result = await service.upsert(data, []);
 
     expect(result).toBeUndefined();
-    expect(errors).toEqual([
-      { item: data, message: 'Failed to import thing "Test League": conflict' },
-    ]);
-  });
-
-  it('stringifies a non-Error rejection in the recorded message', async () => {
-    client.leagues.upsert.mockRejectedValue('boom');
-    const errors: ImportError[] = [];
-
-    await service.upsert(data, errors);
-
-    expect(errors).toEqual([
-      { item: data, message: 'Failed to import thing "Test League": boom' },
-    ]);
   });
 
   it('passes the item and the caller error list through to the runner', async () => {
-    client.leagues.upsert.mockResolvedValue({
-      id: 1,
-      name: 'Test League',
-      createdAt: new Date('2026-01-01'),
-      created: true,
-    });
+    runner.recordUpsertResult.mockResolvedValue(undefined);
+    client.leagues.upsert.mockResolvedValue(upserted);
     const errors: ImportError[] = [];
 
     await service.upsert(data, errors);
 
-    expect(runner.recordUpsertResult).toHaveBeenCalledWith(
-      expect.objectContaining({ item: data, errors }),
+    const options = recordUpsertResultOptions(runner);
+    expect(options.item).toBe(data);
+    expect(options.errors).toBe(errors);
+    await expect(options.upsert()).resolves.toBe(upserted);
+    expect(client.leagues.upsert).toHaveBeenCalledWith(data);
+  });
+
+  it('builds the configured error message', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
+
+    await service.upsert(data, []);
+
+    const { buildErrorMessage } = recordUpsertResultOptions(runner);
+    expect(buildErrorMessage(new Error('conflict'))).toBe(
+      'Failed to import thing "Test League": conflict',
+    );
+    expect(buildErrorMessage('boom')).toBe(
+      'Failed to import thing "Test League": boom',
     );
   });
 

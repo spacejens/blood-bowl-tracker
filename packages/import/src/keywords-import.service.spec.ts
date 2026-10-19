@@ -6,7 +6,7 @@ import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { ImportRunnerService } from './import-runner.service';
-import { stubImportRunner } from './import-runner.test-helpers';
+import { recordUpsertResultOptions } from './import-runner.test-helpers';
 import { KeywordsImportService } from './keywords-import.service';
 import type { ImportError } from './types';
 
@@ -31,7 +31,6 @@ describe('KeywordsImportService', () => {
   beforeEach(async () => {
     client = mockDeep<ApiClient>();
     runner = mock<ImportRunnerService>();
-    stubImportRunner(runner);
     const moduleRef = await Test.createTestingModule({
       providers: [
         KeywordsImportService,
@@ -50,26 +49,32 @@ describe('KeywordsImportService', () => {
       createdAt: new Date(),
       created: true,
     };
+    runner.recordUpsertResult.mockResolvedValue(upserted);
     client.keywords.upsert.mockResolvedValue(upserted);
     const errors: ImportError[] = [];
 
     const result = await service.upsert(data, errors);
 
+    expect(result).toBe(upserted);
+    const options = recordUpsertResultOptions(runner);
+    expect(options.item).toBe(data);
+    expect(options.errors).toBe(errors);
+    await expect(options.upsert()).resolves.toBe(upserted);
     expect(client.keywords.upsert).toHaveBeenCalledWith(data);
-    expect(result).toEqual(upserted);
-    expect(errors).toHaveLength(0);
   });
 
   it('records an error naming the keyword when the upsert fails', async () => {
-    client.keywords.upsert.mockRejectedValue(new Error('boom'));
-    const errors: ImportError[] = [];
+    runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    const result = await service.upsert(data, errors);
+    await service.upsert(data, []);
 
-    expect(result).toBeUndefined();
-    expect(errors).toHaveLength(1);
-    expect(errors[0].message).toContain('Failed to import keyword "Goblin"');
-    expect(errors[0].message).toContain('boom');
+    const { buildErrorMessage } = recordUpsertResultOptions(runner);
+    expect(buildErrorMessage(new Error('boom'))).toBe(
+      'Failed to import keyword "Goblin": boom',
+    );
+    expect(buildErrorMessage('boom')).toBe(
+      'Failed to import keyword "Goblin": boom',
+    );
   });
 
   it('reads the catalogue for one external system', async () => {
@@ -81,24 +86,39 @@ describe('KeywordsImportService', () => {
         externalId: '111',
       },
     ];
+    runner.recordUpsertResult.mockResolvedValue(rows);
     client.keywords.list.mockResolvedValue(rows);
     const errors: ImportError[] = [];
 
     const result = await service.listKeywords(1, errors);
 
+    expect(result).toBe(rows);
+    const options = recordUpsertResultOptions(runner);
+    expect(options.item).toEqual({ externalSystemId: 1 });
+    expect(options.errors).toBe(errors);
+    await expect(options.upsert()).resolves.toBe(rows);
     expect(client.keywords.list).toHaveBeenCalledWith({ externalSystemId: 1 });
-    expect(result).toEqual(rows);
-    expect(errors).toHaveLength(0);
+  });
+
+  it('returns undefined when the catalogue read was recorded as a failure', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
+
+    const result = await service.listKeywords(1, []);
+
+    expect(result).toBeUndefined();
   });
 
   it('records an error when the catalogue read fails', async () => {
-    client.keywords.list.mockRejectedValue(new Error('boom'));
-    const errors: ImportError[] = [];
+    runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    const result = await service.listKeywords(1, errors);
+    await service.listKeywords(1, []);
 
-    expect(result).toBeUndefined();
-    expect(errors).toHaveLength(1);
-    expect(errors[0].message).toContain('boom');
+    const { buildErrorMessage } = recordUpsertResultOptions(runner);
+    expect(buildErrorMessage(new Error('boom'))).toBe(
+      'Failed to read the keyword catalogue: boom',
+    );
+    expect(buildErrorMessage('nope')).toBe(
+      'Failed to read the keyword catalogue: nope',
+    );
   });
 });
