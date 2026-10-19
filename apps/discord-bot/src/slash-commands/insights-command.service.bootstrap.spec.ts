@@ -26,13 +26,29 @@ describe('InsightsCommandService — bootstrap and autocomplete', () => {
   });
 
   it('returns category autocomplete choices for the focused partial path', async () => {
-    const { service } = await makeService();
+    const { service, factTreeUtils, factTree } = await makeService();
+    factTreeUtils.nextSegmentCompletions.mockReturnValue(['coach.toplist']);
     const choices = await service.autocomplete(
       autocompleteInteraction('category', 'coach.'),
+    );
+    expect(factTreeUtils.nextSegmentCompletions).toHaveBeenCalledWith(
+      factTree,
+      'coach.',
     );
     expect(choices).toEqual([
       { name: 'coach.toplist', value: 'coach.toplist' },
     ]);
+  });
+
+  it('caps category autocomplete choices at 25', async () => {
+    const { service, factTreeUtils } = await makeService();
+    factTreeUtils.nextSegmentCompletions.mockReturnValue(
+      Array.from({ length: 30 }, (_v, i) => `p${i}`),
+    );
+    const choices = await service.autocomplete(
+      autocompleteInteraction('category', 'p'),
+    );
+    expect(choices).toHaveLength(25);
   });
 
   it('registers the insights command with the registry on init', async () => {

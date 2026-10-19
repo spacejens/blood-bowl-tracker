@@ -39,8 +39,11 @@ import { TeamToplistService } from '../insights/facts/team-toplist.service';
 import { TrophiesListService } from '../insights/facts/trophies-list.service';
 import { DateRangeFormatterService } from '../shared/date-range-formatter.service';
 import { makeDateRangeFormatter } from '../shared/date-range-formatter-mock.test-helpers';
+import type { FactTreeLookup } from './fact-tree-lookup.test-helpers';
 import { InsightsCommandService } from './insights-command.service';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
+
+export * from './fact-tree-lookup.test-helpers';
 
 /**
  * Test-only helpers for the `/insights` command service specs.
@@ -466,6 +469,8 @@ export interface MakeServiceResult {
   categoryLabel: MockProxy<MatchCategoryLabelService>;
   dateRangeFormatter: MockProxy<DateRangeFormatterService>;
   factTreeDeps: FactTreeMocks;
+  factTree: FactNode;
+  tree: FactTreeLookup;
 }
 
 export async function makeService(): Promise<MakeServiceResult> {
@@ -516,6 +521,8 @@ export async function makeService(): Promise<MakeServiceResult> {
     categoryLabel,
     dateRangeFormatter,
     factTreeDeps,
+    factTree,
+    tree: factTree as unknown as FactTreeLookup,
   };
 }
 
