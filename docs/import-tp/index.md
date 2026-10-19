@@ -367,30 +367,36 @@ long-lived database carrying lasting-injury columns from a partial rollout,
 which would take a data migration (see
 [Changing data in a long-lived database](../database.md#changing-data-in-a-long-lived-database)).
 
-`main.ts` orchestrates these in dependency order — league, then rule sets, then eras, then
-the competition scan (producing `matchesByCompetitionTpId`, consumed by the hired-star and match-file steps below),
-then coaches, then the roster files and TP's official team list, each scanned and parsed once
-client-side (the roster import call re-sends each file's raw content, which
-`TpRosterImportService.importRawRoster` parses a second time, server-side), then the skill-name
-scan, then the official team list import (races, positions, characteristics, keywords and
-starting skills, all in one `tpOfficialTeams.import` call per rules set), then the keyword
-catalogue, then roster import — teams and players together, one
-`tpRosters.import` call per distinct era/roster pair (a roster id in more than one era is sent
-once per era; see [import-tp-live's architecture](../import-tp-live/index.md#what-it-owns)) —
-then induced star hires, then roster player facts (skills and career SPP counts), then player
-skills sync, then mercenary position/race/era sync, then competitions (with their registered teams and trophy awards),
-then match files (one `tpMatches.import` call per file, importing the match, its teams, its
-events and its outcome together — see
-[import-tp-live's match import](../import-tp-live/match-import.md)), then SPP adjustments, then
-the lasting-injury backfill, and finally missing trophy awards — aggregating each step's
-`ImportResult` into one overall result, mirroring `tools/import-bbl/src/main.ts`.
-The official team list import runs after coaches; it has no FK dependency on the earlier import
-steps. Roster import runs after it (each player resolves a position against the positions the
-official team list import already upserted).
-Competitions run after that because linking a registered team and awarding it a trophy both need
-its team era. Match files run after competitions because resolving a match's context needs its
-competition imported and both teams' team eras resolvable. SPP adjustments run last of the match-related steps because
-they depend on `match_events.spp_value`, which match-file import is what populates.
+`main.ts` orchestrates these in dependency order, aggregating each step's
+`ImportResult` into one overall result, mirroring `tools/import-bbl/src/main.ts`. The order is:
+
+1. League.
+2. Rule sets.
+3. Eras.
+4. The competition scan (producing `matchesByCompetitionTpId`, consumed by the hired-star and match-file steps below).
+5. Coaches.
+6. The roster files and TP's official team list, each scanned and parsed once client-side (the roster import call re-sends each file's raw content, which `TpRosterImportService.importRawRoster` parses a second time, server-side).
+7. The skill-name scan.
+8. The official team list import (races, positions, characteristics, keywords and starting skills, all in one `tpOfficialTeams.import` call per rules set).
+9. The keyword catalogue.
+10. Roster import — teams and players together, one `tpRosters.import` call per distinct era/roster pair (a roster id in more than one era is sent once per era; see [import-tp-live's architecture](../import-tp-live/index.md#what-it-owns)).
+11. Induced star hires.
+12. Roster player facts (skills and career SPP counts).
+13. Player skills sync.
+14. Mercenary position/race/era sync.
+15. Competitions (with their registered teams and trophy awards).
+16. Match files (one `tpMatches.import` call per file, importing the match, its teams, its events and its outcome together — see [import-tp-live's match import](../import-tp-live/match-import.md)).
+17. SPP adjustments.
+18. The lasting-injury backfill.
+19. Finally, missing trophy awards.
+
+Why the order is what it is:
+
+- The official team list import runs after coaches; it has no FK dependency on the earlier import steps.
+- Roster import runs after it (each player resolves a position against the positions the official team list import already upserted).
+- Competitions run after that because linking a registered team and awarding it a trophy both need its team era.
+- Match files run after competitions because resolving a match's context needs its competition imported and both teams' team eras resolvable.
+- SPP adjustments run last of the match-related steps because they depend on `match_events.spp_value`, which match-file import is what populates.
 
 ### Reference resolution
 
