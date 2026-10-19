@@ -163,8 +163,9 @@ describe('TrophyAwardsService.upsert (real Postgres)', () => {
     expect(first.created).toBe(true);
 
     // The re-import case: when the same award is upserted twice, the second
-    // insert really does lose the natural-key unique constraint inside Postgres, and
-    // the service reads the existing row back instead of erroring.
+    // insert really does conflict with the natural-key unique constraint
+    // inside Postgres, and the service reads the existing row back instead of
+    // erroring.
     const second = await service.upsert(data);
     expect(second.created).toBe(false);
     expect(second.trophyAward.id).toBe(first.trophyAward.id);
