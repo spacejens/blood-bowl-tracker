@@ -6,7 +6,7 @@
 // player use in a matching era. Genuine availability the source data cannot
 // show is restored here from the rulebook rosters.
 //
-// This file lives in after-other-importers, never before, and that is load
+// This file lives in 002-initial-cleanup, never in 001, and that is load
 // bearing: many of the position references below use the "<raceName>:
 // <positionName>" Name external id that NameExternalIdService.forPosition
 // builds, and that id is only created by tools/import-bbl's position
@@ -31,7 +31,7 @@
 // NOT NULL.
 //
 // Restoration set: every position with a curated CRP `position_rules_sets`
-// entry in data/after-other-importers/position-characteristics.json5 is
+// entry in 002-initial-cleanup/position-characteristics.json5 is
 // positive rulebook evidence that position was available to its race under
 // First era (which spans CRP, CRP+ and BB2016). The same is true, under First
 // Stunty Leeg era (which also spans BB2016, CRP and CRP+), for every

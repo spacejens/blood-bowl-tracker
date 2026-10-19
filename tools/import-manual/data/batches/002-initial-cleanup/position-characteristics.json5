@@ -1,7 +1,7 @@
 // Hand-curated position characteristics (position_rules_sets) for the three
 // older rules sets no importer can supply correctly (CRP, CRP+, BB2016).
 //
-// This file lives in after-other-importers, never before, and that is load
+// This file lives in 002-initial-cleanup, never in 001, and that is load
 // bearing, though not because of write order: tools/import-bbl skips every
 // rules set whose agilityFormat is 'bare' -- exactly CRP, CRP+ and BB2016 --
 // when it writes its BB2020-snapshot stat line, so no importer writes these
@@ -12,11 +12,11 @@
 // those ids, which the importers' own upserts would then collide with.
 // A genuine gap-fill entry -- a (position, rules set) pair no importer can
 // ever write -- belongs in
-// data/before-other-importers/position-characteristics-gap-fill.json5 instead;
+// 001-initial-seed/position-characteristics-gap-fill.json5 instead;
 // see that file's header for the invariant it has to satisfy.
 //
 // CRP, CRP+ and BB2016 declare passingFormat: 'absent' (see
-// data/before-other-importers/spp-award-values.json5), so their entries omit
+// 001-initial-seed/spp-award-values.json5), so their entries omit
 // `passing` entirely -- the processor sends the omission on as an explicit
 // null and the API rejects a value here.
 //
