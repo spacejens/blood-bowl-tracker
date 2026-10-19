@@ -63,7 +63,7 @@ Prints one of four JSON outcomes:
 - `{"found": false, "rateLimited": true, "rateLimitComment": {...}, "availableAtEpochSeconds": <number>}` — a CodeRabbit rate-limit warning comment was found instead of a review, so the wait returned early rather than running out its remaining time.
   - `availableAtEpochSeconds` is a best-effort epoch parsed from the comment's own stated wait time, plus a fixed 60-second buffer.
   - The buffer is there because CodeRabbit's own window can slip past the time it announced, so retrying exactly on time risks a wasted poll and a state-check race at the boundary.
-  - The key is omitted from the printed JSON entirely (not `null`) when no duration could be parsed:
+  - The `availableAtEpochSeconds` key is omitted from the printed JSON entirely (not `null`) when no duration could be parsed:
 
     ```json
     {"found": false, "rateLimited": true, "rateLimitComment": {...}}
@@ -117,7 +117,7 @@ The file holds one current `holder` (or `null` when free) and a FIFO `queue`:
 
 - `acquire-review-lock` appends the holder id to the queue if it is not already queued or holding, then polls (every `--interval-ms`, default 30 seconds) until that id is at the front of the queue **and** the lock is free.
   - Free means either `holder` is `null`, or the current holder's `heartbeatAt` is more than 100 minutes old, which reclaims a lock left behind by a killed or crashed session.
-  - It prints `{"acquired": true, "waitedMs": <n>}`.
+  - `acquire-review-lock` prints `{"acquired": true, "waitedMs": <n>}`.
   - With no `--timeout-ms` it waits indefinitely, which is the intended use: waiting quietly is cheaper than competing for the review quota.
   - With `--timeout-ms` it prints `{"acquired": false, "timedOut": true}` on expiry and leaves the caller's ticket in the queue.
   - Every other queued session's own ticket is subject to the same 100-minute staleness reclaim on each poll, so a killed session waiting (not just holding) cannot permanently block everyone behind it in the queue.
@@ -152,11 +152,12 @@ The login match is a case-insensitive substring test (`test("coderabbit"; "i")`)
 
 This is a read-only historical check over the PR's whole lifetime: it is not scoped to a watermark or a time window, and it does not distinguish a real review from a rate-limit notice or any other CodeRabbit comment. That is deliberate — any CodeRabbit-authored activity at all means the automatic-review path has engaged with the PR at least once, which is the only question this answers.
 
-Its caller is `finish-renovate-pr`, which runs it once before its review loop:
+Its caller is `finish-renovate-pr`, which runs it once before its review loop.
 
 - CodeRabbit does not reliably auto-review PRs opened by bot accounts such as Renovate.
 - A `false` here tells the skill to pass `--trigger-after` on the loop's first `wait-for-pr-review` call so a `@coderabbitai review` comment is posted immediately instead of waiting out a 20-minute timeout for a review that would never arrive.
-- Skills operating on developer-authored PRs deliberately do **not** use this — nudging unconditionally there would pre-empt CodeRabbit's normal automatic review and spend rate-limit budget for nothing.
+
+Skills operating on developer-authored PRs deliberately do **not** use this — nudging unconditionally there would pre-empt CodeRabbit's normal automatic review and spend rate-limit budget for nothing.
 
 A failing `gh` lookup, or output that is neither `true` nor `false`, is an error (exit 1) rather than a `false` — callers decide how to handle it (see `finish-renovate-pr`'s Phase 4 Integration step 5, which warns and continues with no trigger).
 
