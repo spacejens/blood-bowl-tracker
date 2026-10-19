@@ -195,6 +195,14 @@ function defaultOptions(
 }
 
 describe('BblMatchOutcomesImportService', () => {
+  it('returns the ImportResult built by ImportResultService unchanged', async () => {
+    const { service } = await makeService();
+
+    const { result } = await service.importMatchOutcomes(defaultOptions());
+
+    expect(result).toBe(CANNED_RESULT);
+  });
+
   it('sends the trophy winner as a tie-break for a cup final', async () => {
     const { service, mocks } = await makeService({
       placements: new Map([

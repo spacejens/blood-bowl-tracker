@@ -261,7 +261,7 @@ describe('PlayerSkillsImportService', () => {
     expect(synced).toBe(1);
   });
 
-  it('records a non-fatal error naming the chunk size when a chunk fails', async () => {
+  it('builds a failure message naming the chunk size', async () => {
     runner.recordUpsertResult.mockResolvedValue(undefined);
 
     const synced = await service.syncPlayerSkills([entry()], errors);

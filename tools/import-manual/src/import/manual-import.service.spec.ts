@@ -258,7 +258,7 @@ describe('ManualImportService', () => {
   });
 
   it('returns the ImportResult built by ImportResultService unchanged', async () => {
-    const { service } = await makeService({});
+    const { service } = await makeService();
 
     await expect(service.run('/data/dir')).resolves.toBe(CANNED_RESULT);
   });

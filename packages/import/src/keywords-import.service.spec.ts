@@ -108,7 +108,7 @@ describe('KeywordsImportService', () => {
     expect(result).toBeUndefined();
   });
 
-  it('records an error when the catalogue read fails', async () => {
+  it('builds a failure message naming the keyword catalogue read', async () => {
     runner.recordUpsertResult.mockResolvedValue(undefined);
 
     await service.listKeywords(1, []);

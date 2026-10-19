@@ -43,8 +43,7 @@ describe('InsightsCommandService — random pick', () => {
       asLeaf(tree.coach.toplist.matches.played),
       asLeaf(tree.stats),
     ]);
-    // The last element of the pool is picked, so the index comes from
-    // Math.random.
+    // Math.random 0.999999 selects the last element of the pool (stats).
     vi.spyOn(Math, 'random').mockReturnValue(0.999999);
     await service.execute(chatInput(null));
     expect(factTreeUtils.collectLeaves).toHaveBeenCalledWith(factTree);

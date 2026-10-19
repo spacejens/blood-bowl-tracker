@@ -4,10 +4,10 @@ import type { FactLeaf, FactNode } from '../insights/fact-tree.types';
 import type { FactTreeUtilsService } from '../insights/fact-tree-utils.service';
 
 /**
- * The real built fact tree, typed for plain property access in specs
- * (`tree.coach.toplist.matches.played`). It is the same object the service
- * receives as FACT_TREE, cast so a spec can pick a canned node without
- * parsing a path.
+ * A fact tree node typed for plain property access in specs
+ * (`tree.coach.toplist.matches.played`): every segment yields another
+ * `FactTreeLookup`, so a spec can pick a node without parsing a path. Use
+ * `asLeaf` or `asNode` to get the real node type back.
  */
 export interface FactTreeLookup {
   readonly [segment: string]: FactTreeLookup;
@@ -15,7 +15,11 @@ export interface FactTreeLookup {
 
 /** A leaf reached through `FactTreeLookup` property access, as the `FactLeaf` it is. */
 export function asLeaf(node: FactTreeLookup): FactLeaf {
-  return node as unknown as FactLeaf;
+  const candidate = node as unknown as Partial<FactLeaf> | undefined;
+  if (typeof candidate?.resolve !== 'function') {
+    throw new Error('asLeaf: the selected fact tree node is not a leaf');
+  }
+  return candidate as FactLeaf;
 }
 
 /** A branch reached through `FactTreeLookup` property access, as the `FactNode` it is. */
