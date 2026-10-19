@@ -215,7 +215,8 @@ Teams, players, competitions, matches and TP's official team list are imported s
   mercenary position with no curated row at all, or a hire under a rules set no row covers, is
   recorded as an `ImportError` rather than silently leaving the characteristics unset. Players
   carry only a TP external id (no Name external id — player names aren't unique). Returns
-  `playerIdsByLineUpId`, consumed by match-event import to resolve a `matchEvents[].lineUpId`.
+  `playerIdsByLineUpId`, consumed by the later skills, career SPP and SPP-adjustment steps
+  (match events resolve their players from the database instead).
   Also consumes `matchEmbeddedPlayersByRosterId`
   from `main.ts`'s pre-scan of `matchesByCompetitionTpId` (each match's
   `homeRosterPlayers`/`awayRosterPlayers` — a per-match roster snapshot
@@ -394,7 +395,7 @@ not a client-side id map built earlier in the same run.
 
 Some maps deliberately remain. The player id map (`playerIdsByLineUpId`)
 collects the ids the roster import's player upserts return and is handed to the
-later steps that need them (skills, career SPP, match events). The others cannot
+later steps that need them (skills, career SPP, SPP adjustments). The others cannot
 be answered by an external-id resolve: the competition scan's `competitionsByTpId` (each directory's
 tournament and era), parsed
 match data, a race's display name (`raceNamesById`), `team_eras` rows (which
