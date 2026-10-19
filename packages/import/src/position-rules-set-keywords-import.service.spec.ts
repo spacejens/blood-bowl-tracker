@@ -6,7 +6,7 @@ import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { ImportRunnerService } from './import-runner.service';
-import { stubImportRunner } from './import-runner.test-helpers';
+import { recordUpsertResultOptions } from './import-runner.test-helpers';
 import { PositionRulesSetKeywordsImportService } from './position-rules-set-keywords-import.service';
 import type { ImportError } from './types';
 
@@ -18,7 +18,6 @@ describe('PositionRulesSetKeywordsImportService', () => {
   beforeEach(async () => {
     client = mockDeep<ApiClient>();
     runner = mock<ImportRunnerService>();
-    stubImportRunner(runner);
     const moduleRef = await Test.createTestingModule({
       providers: [
         PositionRulesSetKeywordsImportService,
@@ -33,43 +32,55 @@ describe('PositionRulesSetKeywordsImportService', () => {
     entries: [{ positionId: 3, rulesSetId: 4, keywordId: 7 }],
   };
 
-  it('syncs position keywords', async () => {
-    client.positionRulesSetKeywords.sync.mockResolvedValue({
-      positionRulesSetKeywordIds: [21],
+  describe('syncPositionRulesSetKeywords', () => {
+    it('returns the runner result unchanged', async () => {
+      const synced = { positionRulesSetKeywordIds: [21] };
+      runner.recordUpsertResult.mockResolvedValue(synced);
+
+      const result = await service.syncPositionRulesSetKeywords(data, []);
+
+      expect(result).toBe(synced);
     });
-    const errors: ImportError[] = [];
 
-    const result = await service.syncPositionRulesSetKeywords(data, errors);
+    it('returns undefined when the runner recorded a failure', async () => {
+      runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    expect(result).toEqual({ positionRulesSetKeywordIds: [21] });
-    expect(client.positionRulesSetKeywords.sync).toHaveBeenCalledWith(data);
-    expect(errors).toHaveLength(0);
-  });
+      const result = await service.syncPositionRulesSetKeywords(data, []);
 
-  it('records an error naming the entry count when a sync fails', async () => {
-    client.positionRulesSetKeywords.sync.mockRejectedValue(new Error('boom'));
-    const errors: ImportError[] = [];
+      expect(result).toBeUndefined();
+    });
 
-    const result = await service.syncPositionRulesSetKeywords(data, errors);
+    it('hands the runner the data as item, the caller error list, and an upsert that calls the client', async () => {
+      runner.recordUpsertResult.mockResolvedValue(undefined);
+      client.positionRulesSetKeywords.sync.mockResolvedValue({
+        positionRulesSetKeywordIds: [21],
+      });
+      const errors: ImportError[] = [];
 
-    expect(result).toBeUndefined();
-    expect(errors).toEqual([
-      {
-        item: data,
-        message: 'Failed to sync 1 position keyword(s): boom',
-      },
-    ]);
-  });
+      await service.syncPositionRulesSetKeywords(data, errors);
 
-  it('records an error using String(err) for a non-Error rejection', async () => {
-    client.positionRulesSetKeywords.sync.mockRejectedValue('nope');
-    const errors: ImportError[] = [];
+      const options = recordUpsertResultOptions(runner);
+      expect(options.item).toBe(data);
+      expect(options.errors).toBe(errors);
+      await expect(options.upsert()).resolves.toEqual({
+        positionRulesSetKeywordIds: [21],
+      });
+      expect(client.positionRulesSetKeywords.sync).toHaveBeenCalledWith(data);
+    });
 
-    await service.syncPositionRulesSetKeywords(data, errors);
+    it('builds a failure message naming the entry count', async () => {
+      runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    expect(errors[0].message).toBe(
-      'Failed to sync 1 position keyword(s): nope',
-    );
+      await service.syncPositionRulesSetKeywords(data, []);
+
+      const { buildErrorMessage } = recordUpsertResultOptions(runner);
+      expect(buildErrorMessage(new Error('boom'))).toBe(
+        'Failed to sync 1 position keyword(s): boom',
+      );
+      expect(buildErrorMessage('nope')).toBe(
+        'Failed to sync 1 position keyword(s): nope',
+      );
+    });
   });
 
   describe('listPositionRulesSetKeywords', () => {
@@ -82,39 +93,50 @@ describe('PositionRulesSetKeywordsImportService', () => {
       },
     ];
 
-    it("returns the position's keywords on success", async () => {
+    it('returns the runner result unchanged', async () => {
+      runner.recordUpsertResult.mockResolvedValue(rows);
+
+      const result = await service.listPositionRulesSetKeywords(42, []);
+
+      expect(result).toBe(rows);
+    });
+
+    it('returns undefined when the runner recorded a failure', async () => {
+      runner.recordUpsertResult.mockResolvedValue(undefined);
+
+      const result = await service.listPositionRulesSetKeywords(42, []);
+
+      expect(result).toBeUndefined();
+    });
+
+    it('hands the runner the id as item, the caller error list, and an upsert that calls the client', async () => {
+      runner.recordUpsertResult.mockResolvedValue(undefined);
       client.positionRulesSetKeywords.list.mockResolvedValue(rows);
       const errors: ImportError[] = [];
 
-      const result = await service.listPositionRulesSetKeywords(42, errors);
+      await service.listPositionRulesSetKeywords(42, errors);
 
+      const options = recordUpsertResultOptions(runner);
+      expect(options.item).toEqual({ positionId: 42 });
+      expect(options.errors).toBe(errors);
+      await expect(options.upsert()).resolves.toBe(rows);
       expect(client.positionRulesSetKeywords.list).toHaveBeenCalledWith({
         positionId: 42,
       });
-      expect(result).toEqual(rows);
-      expect(errors).toEqual([]);
     });
 
-    it('records an error and returns undefined when the read fails', async () => {
-      client.positionRulesSetKeywords.list.mockRejectedValue(new Error('boom'));
-      const errors: ImportError[] = [];
+    it('builds a failure message naming the id', async () => {
+      runner.recordUpsertResult.mockResolvedValue(undefined);
 
-      const result = await service.listPositionRulesSetKeywords(42, errors);
+      await service.listPositionRulesSetKeywords(42, []);
 
-      expect(result).toBeUndefined();
-      expect(errors).toHaveLength(1);
-      expect(errors[0].message).toContain('42');
-      expect(errors[0].message).toContain('boom');
-    });
-
-    it('records an error using String(err) for a non-Error rejection', async () => {
-      client.positionRulesSetKeywords.list.mockRejectedValue('nope');
-      const errors: ImportError[] = [];
-
-      const result = await service.listPositionRulesSetKeywords(42, errors);
-
-      expect(result).toBeUndefined();
-      expect(errors[0].message).toContain('nope');
+      const { buildErrorMessage } = recordUpsertResultOptions(runner);
+      expect(buildErrorMessage(new Error('boom'))).toBe(
+        "Failed to read position 42's keywords: boom",
+      );
+      expect(buildErrorMessage('nope')).toBe(
+        "Failed to read position 42's keywords: nope",
+      );
     });
   });
 });
