@@ -114,23 +114,14 @@ Discord's response window.
 `/insights`' `eras.list` view lists every era and attaches one button per era.
 Pressing a button opens the same era deepdive shown by `/deepdive era:<era>` —
 the button and the command share a single resolver, so their output is always
-identical. Likewise, each of the eleven coach toplists
-(`coach.toplist.matches.played`, `coach.toplist.matches.won`, `coach.toplist.matches.lost`, `coach.toplist.matches.drawn`, `coach.toplist.teams`,
-`coach.toplist.competitions.played`, `coach.toplist.eras.active`,
-`coach.toplist.fouls.committed`,
-`coach.toplist.timeBetweenMatches.longest.descending`,
-`coach.toplist.timeBetweenMatches.longest.ascending`,
-`coach.toplist.timeBetweenMatches.average`) attaches one button per listed
+identical. Likewise, each `coach.toplist.*` fact attaches one button per listed
 coach, opening the same `/deepdive coach:<coach>` view. See
 [`/insights`](insights.md).
 
-Each of the twenty-two `team.toplist.*` facts attaches one button per listed team,
+Each `team.toplist.*` fact attaches one button per listed team,
 opening the same `/deepdive team:<team>` view.
 
-All six race toplists (`race.toplist.teams.descending`,
-`race.toplist.teams.ascending`, `race.toplist.matches.played`,
-`race.toplist.matches.won`, `race.toplist.matches.lost`,
-`race.toplist.matches.drawn`) attach
+Every `race.toplist.*` fact attaches
 one button per listed race, opening the same `/deepdive race:<race>` view.
 
 `position.toplist.players` attaches one button per listed position, opening

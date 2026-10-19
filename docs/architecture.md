@@ -265,8 +265,8 @@ These files:
 Helpers live in the workspace that uses them. A helper is promoted to a shared
 package only if the same helper is genuinely needed in two or more workspaces —
 `mockDb` is one such helper, living in `packages/db` and used by
-`packages/game-data`, `tools/review-match`, `tools/review-player`, and
-`packages/review-harness`'s own specs. It is reachable as
+the specs of `packages/game-data`, the review tools and
+`packages/review-harness`. It is reachable as
 `@blood-bowl-tracker/db/test-helpers` (a separate export subpath whose compiled
 output carries its own `{"type": "module"}` marker, so importing the package's
 main entry point never pulls Vitest into a consumer's runtime graph).
