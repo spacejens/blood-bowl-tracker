@@ -1,7 +1,7 @@
 # `/deepdive`
 
 `/deepdive` is a lookup and drill-down command for a single recorded subject.
-Today it supports eleven targets — an era, a coach, a team, a player, a star
+Today it supports these targets — an era, a coach, a team, a player, a star
 player, a race, a position, a competition, a competition group, a trophy, and
 a league — and is designed to grow further optional, mutually exclusive
 targets in future work.
@@ -20,24 +20,20 @@ are plain messages with no embed, so they have no headline to prefix.
 
 ## Arguments
 
-The command takes eleven optional string arguments, `era`, `coach`, `team`, `player`,
+The command takes optional string arguments, `era`, `coach`, `team`, `player`,
 `star-player`, `race`, `position`, `competition`, `competition-group`, `trophy`, and
-`league`, each autocompleted by name
-(`era` suggestions are labelled `<era> (<league>)`; `coach` and `team` suggestions are labelled
-`<name> (#<id>)`; `player` suggestions are labelled `<name> (<team>)`
-because player names are not unique across teams; `star-player` suggestions are
-a bare name with no parenthetical, because a star has no single team to name in
-one; `race` suggestions are a bare name with no parenthetical; `position`
-suggestions exclude star positions — those are looked up via `star-player`
-instead — and are labelled `<position> (<race>)`, because position names
-repeat across races — nearly every race has a "Lineman" — and a position
-available to several races produces one suggestion per race, all selecting
-the same position; a position with no race recorded is not suggested, since
-there would be no race to name; `competition` suggestions are labelled
-`<competition> (<league>)`; `competition-group` suggestions are labelled
-`<name> (<league>)`; `trophy` suggestions are labelled `<name>
-(<competition group>)`, or `<name> (<league>)` for a trophy the league awards
-directly; `league` suggestions are a bare name with no parenthetical):
+`league`, each autocompleted by name. A suggestion carries a disambiguator
+wherever names repeat: player names repeat across teams, position names repeat
+across races (nearly every race has a "Lineman"), and a position available to
+several races produces one suggestion per race, all selecting the same
+position. Entries scoped to a league name that league. A star player has no
+single team to name, so stars are shown bare. A position with no race recorded
+is not suggested, since there would be no race to name, and star positions are
+excluded from `position` suggestions — they are looked up via `star-player`
+instead. Exact label formats are built in
+`apps/discord-bot/src/slash-commands/deepdive-autocomplete.service.ts`.
+
+The arguments are mutually exclusive:
 
 - **No argument** — the bot replies with a short usage prompt, because a
   deepdive needs a target. This is framed as "specify a target", not a hard
@@ -111,47 +107,28 @@ Discord's response window.
 
 ## Relationship to `/insights`
 
-`/insights`' `eras.list` view lists every era and attaches one button per era.
-Pressing a button opens the same era deepdive shown by `/deepdive era:<era>` —
+Toplists and lists in `/insights` of an entity type that has a deepdive attach
+one button per listed entity, opening the same view `/deepdive` shows for it —
 the button and the command share a single resolver, so their output is always
-identical. Likewise, each `coach.toplist.*` fact attaches one button per listed
-coach, opening the same `/deepdive coach:<coach>` view. See
-[`/insights`](insights.md).
+identical. See [`/insights`](insights.md).
 
-Each `team.toplist.*` fact attaches one button per listed team,
-opening the same `/deepdive team:<team>` view.
+- Skills have no `/deepdive` view, so skill toplists carry no button.
+- The consequence-only player toplists (the "happened to the player"
+  categories) still get buttons, even though the player deepdive embed never
+  shows those categories.
+- No `/insights` fact lists leagues, so the `league` target has no `/insights`
+  button coverage.
 
-Every `race.toplist.*` fact attaches
-one button per listed race, opening the same `/deepdive race:<race>` view.
-
-`position.toplist.players` attaches one button per listed position, opening
-the same `/deepdive position:<position>` view.
-
-The `skill.toplist.players.*` facts are the exception: skills have no
-`/deepdive` view, so their rows carry no button.
-
-Each of the `player.toplist.*` facts attaches one button per listed
-player, opening the same `/deepdive player:<player>` view. Note the button set
-is broader than the deepdive's own category list: the consequence-only toplists
-(`player.toplist.casualties.suffered`, `player.toplist.injuries.serious.suffered`,
-`player.toplist.injuries.lasting.suffered`, `player.toplist.sent_off`) still get
-buttons, even though those "happened to the player" categories are never shown
-in the deepdive embed itself.
-
-`starPlayers.list`, `starPlayers.toplist.hires.total` and
-`starPlayers.toplist.hires.distinctTeams` each attach one button per listed
-star, opening the same `/deepdive star-player:<star>` view. No `/insights`
-fact lists leagues today, so the `league` target has no `/insights` button
-coverage yet.
-
-`trophies.list` attaches one button per listed trophy, opening the same
-`/deepdive trophy:<trophy>` view.
+Which facts attach links is set where each fact builds its reply: the
+`entityLink` passed to `LeaderboardService`
+(`apps/discord-bot/src/insights/leaderboard.service.ts`) for toplists, and
+`EntityComponentsService` in the list facts under
+`apps/discord-bot/src/insights/facts/`.
 
 This is the intended pattern going forward: as `/deepdive` grows more lookup
 targets, most `/insights` views that list items of a supported target type are
 expected to gain a button per listed item, opening that item's deepdive the
-same way `eras.list`, `trophies.list`, the coach toplists, and the team
-toplists do today.
+same way the existing lists and toplists do.
 
 Drill-down links render as buttons while a view lists at most 25 items —
 Discord's per-message button ceiling. A longer list switches entirely to
