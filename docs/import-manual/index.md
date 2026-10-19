@@ -360,7 +360,7 @@ id, keyed `${disambiguator}-${groupName}`: the raw TP award's
 group name — because TP's `awardType` codes are not globally unique per
 trophy on their own. TP's award data covers no other catalog entry today, so
 only those trophies are seeded. See
-[docs/import-tp/file-format.md](../import-tp/file-format.md) for the full
+[docs/import-tp/file-format-awards.md](../import-tp/file-format-awards.md) for the full
 value table and the evidence behind the scope.
 
 ## Re-running on a populated database

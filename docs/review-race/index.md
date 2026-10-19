@@ -6,7 +6,7 @@ availability, position availability, position characteristics, position starting
 skills and position keywords next to what the importers actually stored in
 `positions_race_eras`, `position_rules_sets`, `position_rules_set_skills` and
 `position_rules_set_keywords`. Like
-`tools/review-match` and `tools/review-player` it is a review aid for a human — it
+the other review tools it is a review aid for a human — it
 cannot decide what is "correct" on its own, because the interpretation logic it
 deliberately does not run is the thing being reviewed.
 
@@ -19,7 +19,7 @@ JSON5 shapes — is duplicated on purpose: sharing it would let a bug agree with
 instead of showing up as a difference. That rule covers the **domain-specific** half
 only. The domain-agnostic scaffolding (HTML fragment assembly, timestamped report
 writing, JSON5 config loading, the `DataTypeReviewer`/`Stratifier` plug-in contracts
-and the app-module wiring) is shared with `tools/review-match` and `tools/review-player`
+and the app-module wiring) is shared with the other review tools
 through `packages/review-harness` — it never touches a raw source's meaning, so it
 cannot agree with itself about one. Locating and byte-decoding a BBL mirror file is
 shared on the same basis, via `packages/read-bbl-mirror`: it carries no BBL-page-type
@@ -34,15 +34,15 @@ evidence — need to be checked against imported data as an independent source o
 which is what this tool does.
 
 Races are the sampled unit, and each race's entry nests its positions, matching how a
-human checks a rulebook. The report document is shared with `tools/review-match` and
-`tools/review-player` through `packages/review-harness`: `report-builder.service.ts` and
+human checks a rulebook. The report document is shared with the
+other review tools through `packages/review-harness`: `report-builder.service.ts` and
 `review.service.ts` are thin subclasses of the harness's `ReportBuilderBase`/`ReviewServiceBase`,
 adding only the per-race section. `harness.module.ts` stays local because it _is_ this
 tool's own composition.
 
 ## What it does
 
-1. Samples races across thirteen strata (`racesPerStratum` races, default 3, per stratum —
+1. Samples races across the strata below (`racesPerStratum` races, default 3, per stratum —
    see Configuration; a race is the sampled unit; "modern rules set" means
    `passing_format` is not `'absent'`):
    1. **Race no longer available under modern rules sets** — races whose eras map to no
@@ -79,10 +79,10 @@ tool's own composition.
       of BB2025 positions (roughly a fifth), not a rare one — but a longer keyword list
       is still where a wrong or duplicated code is easiest for a human reviewer to miss.
       Also DB-only.
-   9. **Race has no BBL data** — races with no `race_external_ids` row for the BBL
+   9. **Race has no BBL data** — races with no `races_external_ids` row for the BBL
       external system. A DB-only check — it does not look at the downloaded BBL mirror
       files.
-   10. **Race has no TP data** — races with no `race_external_ids` row for the TP external
+   10. **Race has no TP data** — races with no `races_external_ids` row for the TP external
       system. Same DB-only check as above, scoped to the TP external system.
    11. **Race has no manual curation entry** — unlike strata 9 and 10, this reads the
       curated `races-and-positions.json5` file itself (there is no external-id space for

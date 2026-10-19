@@ -5,12 +5,12 @@ A [player](../../glossary.md#player) is an individual on a [team era](../team-er
 - A player has a name.
 - A player belongs to exactly one [team era](../team-eras/index.md), and therefore to exactly one [team](../teams/index.md) and exactly one [era](../eras/index.md).
 - A player has exactly one [position](../positions/index.md), which must be
-  available for the team era's [race era](../races/index.md) — i.e. the
+  available for the team era's [race era](../positions/index.md) — i.e. the
   position must have a relation to that race era. (This is still aspirational:
   no validation code enforces it yet.)
 - A player has a set of **current lasting injuries**: whether they must miss
   their next game, how many niggling injuries they carry, and how many
-  reductions each of their five [characteristics](../positions/index.md)
+  reductions each of their five characteristics
   currently sits under. This is live state, not history: newer
   [rules sets](../rules-sets/index.md) let these heal between
   [competitions](../competitions/index.md), so what a player has ever suffered
@@ -24,7 +24,7 @@ A [player](../../glossary.md#player) is an individual on a [team era](../team-er
   characteristic was already at its floor or at the rules' cap on reductions,
   moved nothing and counts zero.
 - A player also has a set of **characteristic increase counts**: how many
-  times each of their five [characteristics](../positions/index.md) has been
+  times each of their five characteristics has been
   increased by an advancement. These are plain counts rather than per-increase
   records, because neither source publishes a reliable per-increase event: TP
   never records characteristic increases at all (they are only inferable by

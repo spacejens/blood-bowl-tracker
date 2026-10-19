@@ -35,7 +35,7 @@ real-world entity differently:
   `tools/import-tp/import-tp-config.json5`, which remain authoritative. It
   exists here purely so `competitions.json5` in the same batch has an era to
   reference.
-- `competitions.json5` — all 86 known competition instances, each with its
+- `competitions.json5` — every known competition instance, each with its
   curated [competition group](index.md#competition-groups) and the real
   data needed to create the row. Classification has to happen
   here, ahead of the BBL and TP importers, because `tools/import-tp`'s awards
@@ -68,7 +68,7 @@ real-world entity differently:
 - `trophies.json5` — the curated catalog of known trophies,
   split between team and player recipients, from BBL's own `p=tt`/`p=ppr`
   legend pages plus the TP-only Ogretoberfest and the three Dungeon Bowl
-  placements. 12 of the player entries are group-scoped duplicates of a BBL
+  placements. Some of the player entries are group-scoped duplicates of a BBL
   player-trophy label that BBL awards in more than one competition group,
   keyed by a composite `${label}-${groupName}` external id.
   Not a dedup file in the usual sense — nothing else creates trophies yet, so
@@ -110,7 +110,7 @@ real-world entity differently:
 - `keywords.json5` — the sole source of every BB2025 keyword's name and
   `kind` (`species`/`positional`/`special`). No downloaded source names a
   keyword at all — `tourplay.net` exposes only the opaque numeric codes it
-  assigns each one — so this file's 41 hand-curated rows are the entire
+  assigns each one — so this file's hand-curated rows are the entire
   catalogue, each carrying its `tourplay.net` numeric code as an external id.
   That id is what `tools/import-tp` resolves a `race` array code, or a
   Hatred/Animosity target code, back against.
