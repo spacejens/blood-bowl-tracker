@@ -10,7 +10,7 @@ A [competition](../../glossary.md#competition) is an organized event in which te
 
 ## Subtypes
 
-[Seasons](../../glossary.md#season) and [cups](../../glossary.md#cup) are the two subtypes of competition. They share the same structure; no additional data distinguishes them at this time.
+[Seasons](../../glossary.md#season) and [cups](../../glossary.md#cup) are the two subtypes of competition. They share the same structure; a competition's `type` (`season` or `cup`) records which it is.
 
 ## Competition groups
 
