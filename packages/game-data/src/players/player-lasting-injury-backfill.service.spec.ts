@@ -320,7 +320,7 @@ describe('PlayerLastingInjuryBackfillService', () => {
   });
 
   it('locks the player row for update before the in-transaction recheck', async () => {
-    // Fix for a TOCTOU race: the idempotency check must run under a row lock
+    // Guards a TOCTOU race: the idempotency check must run under a row lock
     // inside the same transaction that performs the writes, not as a plain
     // read before the transaction opens. This asserts the lock is actually
     // requested with FOR UPDATE semantics on the correct table.
@@ -342,9 +342,9 @@ describe('PlayerLastingInjuryBackfillService', () => {
 
     // mockDb's transaction() hands the callback the same mock db as `tx`, so
     // without this the lock+recheck could be moved to run before
-    // this.db.transaction(...) opens -- exactly the bug this fix exists to
-    // prevent -- and this test would still pass. Comparing call order against
-    // when the transaction itself was invoked catches that regression.
+    // this.db.transaction(...) opens -- reopening the race -- and this test
+    // would still pass. Comparing call order against when the transaction
+    // itself was invoked catches that.
     expect(db.chains[2].from.mock.invocationCallOrder[0]).toBeGreaterThan(
       db.transaction.mock.invocationCallOrder[0],
     );

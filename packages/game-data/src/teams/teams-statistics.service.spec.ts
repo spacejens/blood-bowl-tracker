@@ -212,7 +212,7 @@ describe('TeamsStatisticsService', () => {
       await expect(
         service.countTrophiesByTeam(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(rows);
-      // The query itself now lives on the shared service, covered by its own
+      // The query itself lives on the shared service, covered by its own
       // spec; this service must not issue one of its own.
       expect(db.select).not.toHaveBeenCalled();
     });

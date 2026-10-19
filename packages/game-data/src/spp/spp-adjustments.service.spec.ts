@@ -246,7 +246,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
   });
 
   it('groups players sharing an adjustment and corrected total into one update', async () => {
-    // Grouping is keyed on BOTH written fields now, so the two players share
+    // Grouping is keyed on BOTH written fields, so the two players share
     // identical reported/imported-sum inputs to land in the same group.
     const h = await makeService(
       mockDb(

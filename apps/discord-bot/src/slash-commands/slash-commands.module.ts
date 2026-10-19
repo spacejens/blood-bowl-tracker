@@ -35,7 +35,7 @@ import { SlashCommandRegistryModule } from './slash-command-registry.module';
   // InsightsModule re-exports the game-data modules the other deepdives need;
   // trophies and trophy awards are used only here, so they are imported
   // directly rather than widening the insights surface. Competition groups
-  // now arrive transitively through InsightsModule (it needs
+  // arrive transitively through InsightsModule (it needs
   // CompetitionGroupsService itself, for the competitionGroups.list fact).
   // PlayerRowButtonService and PlayerKillerInfoFormatterService also arrive
   // transitively through InsightsModule, which provides and exports both for

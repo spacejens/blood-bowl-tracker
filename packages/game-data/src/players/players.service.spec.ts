@@ -267,8 +267,8 @@ describe('PlayersService', () => {
 
     // The following tests exercise PlayersService.upsert's propagation of a
     // characteristics-validation rejection, not the validation logic itself
-    // (which is PlayerCharacteristicsValidationService's own spec's job, now
-    // that it is mocked here rather than passed real). Each configures the
+    // (which is PlayerCharacteristicsValidationService's own spec's job, and
+    // it is mocked here rather than passed real). Each configures the
     // mock to reject the way the real service would for an equivalent input,
     // and asserts upsert both rejects with it and writes nothing.
 

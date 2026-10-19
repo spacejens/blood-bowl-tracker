@@ -652,25 +652,13 @@
 
     // ================================================================
     // BB2020, DB2021, BB2025 -- the modern rules sets BBL and TP import
-    // from directly. Their skill NAMES were first harvested via two
-    // throwaway scripts (a BBL regex script and a TP JSON-walking script,
-    // neither committed), then reconciled against the real, already-
-    // reviewed-and-merged production parsers (PositionPageParser for BBL;
-    // SkillMasterNamesParserService + OfficialTeamsParserService for TP)
-    // run over the same locally downloaded data dumps. That reconciliation
-    // corrected a handful of the throwaway scripts' own fabrications
-    // (spellings/explanations invented with no HTML or TP data backing
-    // them). Every name below is now backed by one of those two real
-    // parsers' actual output over the current data dumps -- BBL's own
-    // garbled-concatenation scraping bugs are fixed at the parser level
-    // (PositionPageParser splits them into their real component skills),
-    // so no placeholder entries for those garbled strings are curated
-    // here. Their CATEGORIES were not in that data at all, so every
-    // category below was originally curated from public game-rules
-    // knowledge, not from any PDF this project had at the time -- none of
-    // the four older-era PDFs cover the modern rules sets. Every category
-    // has since been confirmed against the printed rulebook for its rules
-    // set (BB2020, DB2021, BB2025), rules-set by rules-set.
+    // from directly. Every skill NAME below matches the production parsers'
+    // output over the current data dumps (PositionPageParser for BBL;
+    // SkillMasterNamesParserService + OfficialTeamsParserService for TP).
+    // BBL's garbled-concatenation strings are split into their real skills
+    // by PositionPageParser, so no placeholder entries for them are curated
+    // here. CATEGORIES are not in that data; each one is checked against
+    // the printed rulebook for its rules set.
     // ================================================================
 
     // --- BB2020: harvested from BBL/TP data dumps ---

@@ -205,7 +205,7 @@ describe('ReviewLockStateService', () => {
     // real openSync(path, 'wx') keeps throwing EEXIST), but the next 5
     // statSync calls are made to report it as gone, hitting the
     // `ageMs === undefined` branch over and over — the "rapid, repeated
-    // create/remove race" this fix paces against.
+    // create/remove race" the retry loop must pace against.
     let vanishedCallsRemaining = 5;
     statMock.mockImplementation((...args) => {
       if (vanishedCallsRemaining > 0) {
@@ -221,12 +221,11 @@ describe('ReviewLockStateService', () => {
         result: null,
       }));
 
-      // Flush microtasks (but advance no real timer delay). The old, unpaced
-      // code re-enters the loop synchronously on every `ageMs === undefined`
-      // hit — no `await` in that branch — so it would burn through all 5
-      // mocked "vanished" responses in this single tick before ever reaching
-      // an `await`. The fixed code awaits `sleep(MUTEX_RETRY_MS)` on the very
-      // first hit, which suspends execution before a second `statSync` call
+      // Flush microtasks (but advance no real timer delay). A loop that
+      // re-entered synchronously on every `ageMs === undefined` hit — no
+      // `await` in that branch — would burn through all 5 mocked "vanished"
+      // responses in this single tick. Awaiting `sleep(MUTEX_RETRY_MS)` on
+      // the first hit suspends execution before a second `statSync` call
       // can happen.
       await vi.advanceTimersByTimeAsync(0);
       expect(statMock).toHaveBeenCalledTimes(1);
@@ -236,7 +235,7 @@ describe('ReviewLockStateService', () => {
       // "vanished" responses is ever actually consumed — the point of this
       // test is that the branch pauses after that first hit rather than
       // spinning through all of them synchronously (asserted above); the
-      // remaining stubbed responses exist only so an unpaced regression
+      // remaining stubbed responses exist only so an unpaced loop
       // would have something to spin through.
       rmSync(mutexPath);
       await vi.advanceTimersByTimeAsync(5 * 50 + 50);
@@ -256,9 +255,9 @@ describe('ReviewLockStateService', () => {
     // tryCreateMutex's real openSync(path, 'wx') keeps throwing EEXIST and
     // never succeeds. statSync is mocked to report it as permanently gone,
     // simulating a persistent create/remove race in which this process can
-    // never resolve ageMs. Before this fix, that branch just paced itself
-    // forever without ever checking MUTEX_MAX_WAIT_MS, so it would hang
-    // rather than reach the forced-clear-then-throw failure path.
+    // never resolve ageMs. That branch must still honour MUTEX_MAX_WAIT_MS:
+    // pacing forever without checking it would hang this test rather than
+    // reach the forced-clear-then-throw failure path.
     writeFileSync(mutexPath, '', 'utf8');
     const statMock = vi.mocked(statSync);
     const realStatSync = statMock.getMockImplementation();

@@ -22,8 +22,8 @@ import {
 } from './player-deepdive.test-helpers';
 
 /**
- * `PlayerDeepdiveService`'s Kills section, split out of
- * `player-deepdive.service.spec.ts` purely for that file's size — see
+ * `PlayerDeepdiveService`'s Kills section, kept apart from
+ * `player-deepdive.service.spec.ts` for that file's size — see
  * `player-deepdive.test-helpers.ts` for why, and for the shared fixtures both
  * files use.
  */

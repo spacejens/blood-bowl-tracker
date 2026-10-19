@@ -10,7 +10,7 @@ export const POST_REVIEW_QUESTIONS_USAGE =
 
 /**
  * Turns `post-review-questions`'s argv and stdin into its input object.
- * Split out of `main.ts` so the parsing and its validation are
+ * Kept separate from `main.ts` so the parsing and its validation are
  * unit-testable — argv and stdin come in as parameters rather than being
  * read from `process` here.
  */
