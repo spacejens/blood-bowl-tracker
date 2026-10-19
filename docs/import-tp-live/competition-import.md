@@ -15,31 +15,22 @@ const result = await tpLiveCompetitionImportService.importCompetition({
 });
 ```
 
+### Options
+
 - `tournamentSlug`: the tournament, as named in TP's frontend URLs.
-- `era`: optional. The era to import the competition and its teams under,
-  by name. When given, every registered team and the competition itself are
-  imported under it. When omitted, each registered team resolves its own era
-  exactly as a plain live team import does (see
-  [index.md](index.md#era-resolution)), and the competition is imported
-  under the one era every team that resolved an era agrees on. If the teams
-  resolved different eras, or none resolved one (including a competition
-  with no registered teams), the competition stage fails with an error
-  saying so, and the competition, its participation links and its trophy
-  awards are not imported; the teams already imported stay imported. Pass
-  the era explicitly to force such an import through.
-- `externalSystemName`: required. The name TP's external system is
-  registered under, passed to every team import and the competition import.
-  Keep it in sync with the bulk import's configured name.
-- `session`: optional. A `packages/scrape-tp` session to fetch through, so
-  every request of the import is paced as one visit. A fresh session is
-  started when omitted.
-- `forceMatchBackfill`: optional, default false. Backfill every completed
-  match of the competition even when it was already imported (see stage 7
-  below). `/importtp` sets it for a competition's scores page. The TP
-  feed's trophy announcement uses it too, and so does the feed's retry of
-  an import whose match backfill a TP block interrupted: that block's
-  `TpBlockedError` has `backfillInterrupted` set, which a block met before
-  step 7 does not.
+- `era`: optional. The era to import the competition and its teams under, by name.
+  - When given, every registered team and the competition itself are imported under it.
+  - When omitted, each registered team resolves its own era exactly as a plain live team import does (see [index.md](index.md#era-resolution)), and the competition is imported under the one era every team that resolved an era agrees on.
+  - If the teams resolved different eras, or none resolved one (including a competition with no registered teams), the competition stage fails with an error saying so, and the competition, its participation links and its trophy awards are not imported; the teams already imported stay imported.
+  - Pass the era explicitly to force such an import through.
+- `externalSystemName`: required. The name TP's external system is registered under, passed to every team import and the competition import. Keep it in sync with the bulk import's configured name.
+- `session`: optional. A `packages/scrape-tp` session to fetch through, so every request of the import is paced as one visit. A fresh session is started when omitted.
+- `forceMatchBackfill`: optional, default false. Backfill every completed match of the competition even when it was already imported (see stage 7 below).
+  - `/importtp` sets it for a competition's scores page.
+  - The TP feed's trophy announcement uses it too.
+  - So does the feed's retry of an import whose match backfill a TP block interrupted: that block's `TpBlockedError` has `backfillInterrupted` set, which a block met before step 7 does not.
+
+### Stages
 
 The import runs these stages in order. Each is reported in the result even
 when an earlier one fails:
@@ -68,38 +59,28 @@ when an earlier one fails:
    it), reusing the bracket already fetched in step 1. Matches not played
    yet are skipped. Re-importing an already-imported match is harmless.
 8. **Award the extra trophies**: only once the competition is imported and
-   finished, meaning step 5 returned at least one award. The trophies TP
-   does not record itself (`max_count`, `max_spp_sum` and `career_threshold`
-   rules) are computed by game-data's `MissingTrophyAwardsService`, the same
-   service `tools/import-tp`'s bulk run calls at its end. This runs after
-   step 7 and is skipped, with one error in `extraTrophyAwards`, when step 7
-   reported errors: a trophy already awarded is never recomputed, so an
-   award computed while a match is missing would stay wrong. When no
-   backfill ran in this import (a plain re-import of an existing
-   competition), the step relies on the matches imported earlier, and cannot
-   tell whether any is missing. It is idempotent, so re-importing is
-   harmless.
+   finished, meaning step 5 returned at least one award.
+   - The trophies TP does not record itself (`max_count`, `max_spp_sum` and `career_threshold` rules) are computed by game-data's `MissingTrophyAwardsService`, the same service `tools/import-tp`'s bulk run calls at its end.
+   - This runs after step 7 and is skipped, with one error in `extraTrophyAwards`, when step 7 reported errors: a trophy already awarded is never recomputed, so an award computed while a match is missing would stay wrong.
+   - When no backfill ran in this import (a plain re-import of an existing competition), the step relies on the matches imported earlier, and cannot tell whether any is missing.
+   - It is idempotent, so re-importing is harmless.
 
-A failed inscriptions fetch still imports the competition, with no teams
-linked and no awards — when `era` is given explicitly; without one, a failed
-inscriptions fetch leaves no teams to resolve an era from, so the
-competition stage fails instead (see the zero-teams row in the Failures
-table below). A failed awards fetch still imports the competition and links
-its teams. Either failure is reported in its own stage. Neither counts as an
-unfinished competition: with the awards unknown, no extra trophies are
-awarded and a stored end date is left exactly as stored, neither reset nor
-written.
+### Fetch failures
 
-The result carries `competition`, `participation` and `trophyAwards` (one
-`ImportResult` each), `teams`: one live team import result per registered
-team, with its `rosterId`, and `era`: the era the competition was imported
-under — the given one or the one the teams agreed on — or undefined when the
-import stopped before settling one. When step 7 ran, the result also carries
-`matchesBackfill`: one `ImportResult` counting the matches written and
-holding every backfilled match's errors. `extraTrophyAwards`: one
-`ImportResult` counting the awards step 8 created (nothing imported when it
-did not run, and one error when it was skipped because step 7 reported
-errors).
+- A failed inscriptions fetch still imports the competition, with no teams linked and no awards — when `era` is given explicitly; without one, a failed inscriptions fetch leaves no teams to resolve an era from, so the competition stage fails instead (see the zero-teams row in the Failures table below).
+- A failed awards fetch still imports the competition and links its teams.
+- Either failure is reported in its own stage.
+- Neither counts as an unfinished competition: with the awards unknown, no extra trophies are awarded and a stored end date is left exactly as stored, neither reset nor written.
+
+### Result
+
+The result carries:
+
+- `competition`, `participation` and `trophyAwards` (one `ImportResult` each).
+- `teams`: one live team import result per registered team, with its `rosterId`.
+- `era`: the era the competition was imported under — the given one or the one the teams agreed on — or undefined when the import stopped before settling one.
+- When step 7 ran, `matchesBackfill`: one `ImportResult` counting the matches written and holding every backfilled match's errors.
+- `extraTrophyAwards`: one `ImportResult` counting the awards step 8 created (nothing imported when it did not run, and one error when it was skipped because step 7 reported errors).
 
 A team whose coach was never imported before is still imported: the live
 team import creates the coach from the roster's own coach id and name, with
@@ -108,42 +89,36 @@ no NAF number (see [index.md](index.md)).
 ## The shared core
 
 `TpCompetitionImportService.importCompetition` runs three stages over
-already-fetched, already-parsed input:
+already-fetched, already-parsed input.
 
-- **Competition**: upserted by its TP id. A new competition gets its era by
-  name, and its type and start date from its matches' dates. Its end date is
-  written only once the competition is finished, meaning the call's awards are
-  non-empty: the latest played date, or a later stored end date. Until then a
-  new competition's end date is null, and an overlay resets a stored end date
-  to null, even when the call has no new match dates, so a competition stored
-  with an end date but no awards is corrected by its next full import. A call
-  whose awards are unknown (the live import's awards or inscriptions fetch
-  failed) is neither: a new competition still gets a null end date, but a
-  stored one keeps its end date exactly as stored. A finished overlay with no
-  dated matches has nothing to derive an end date from and leaves it as
-  stored. The
-  dates are classified by the same ≤ 3-day cup rule as
-  [match import](match-import.md). An already-imported competition has its
-  era, type and start date overwritten (and its end date, when finished) from
-  this call's data; with no new match dates only the end date reset applies.
-  Its stored name is kept (TP's raw name never overwrites it) and its
-  external id kept in sync (a live match import's own upsert leaves the
-  stored era, type and dates alone). A new competition's group is found by
-  matching its raw TP name against every curated group's `namePattern` (see
-  [docs/import-manual](../import-manual/index.md#competition-groups)):
-  exactly one match gives it that group, a name continuing the group's
-  numbering (`"<group> <n>"`, where `n` is the trailing number of TP's raw
-  name when it has one no existing competition in the group already carries,
-  so out-of-order imports keep their real number; otherwise the highest
-  existing number + 1, or the bare group name for a group with no
-  competition yet), and the type every existing competition in the group
-  shares. No match, or several, skips the competition with an error saying
-  which, and it needs curating by hand. On
-  both create and overlay, a type the group's competitions all share wins
-  over the ≤ 3-day date rule, which applies only when they disagree or there
-  are none. It also reports whether the competition was newly created; the
-  live import reads that to decide on step 7, and the `tpCompetitions.import`
-  procedure drops it.
+### Competition
+
+- **Competition**: upserted by its TP id.
+  - **New competition**
+    - A new competition gets its era by name, and its type and start date from its matches' dates.
+  - **End date**
+    - Its end date is written only once the competition is finished, meaning the call's awards are non-empty: the latest played date, or a later stored end date.
+    - Until then a new competition's end date is null, and an overlay resets a stored end date to null, even when the call has no new match dates, so a competition stored with an end date but no awards is corrected by its next full import.
+    - A call whose awards are unknown (the live import's awards or inscriptions fetch failed) is neither: a new competition still gets a null end date, but a stored one keeps its end date exactly as stored.
+    - A finished overlay with no dated matches has nothing to derive an end date from and leaves it as stored.
+  - **Type**
+    - The matches' dates are classified by the same ≤ 3-day cup rule as [match import](match-import.md).
+    - On both create and overlay, a type the group's competitions all share wins over the ≤ 3-day date rule, which applies only when they disagree or there are none.
+  - **Overlay**
+    - An already-imported competition has its era, type and start date overwritten (and its end date, when finished) from this call's data.
+    - With no new match dates only the end date reset applies.
+    - The competition's stored name is kept (TP's raw name never overwrites it) and its external id kept in sync (a live match import's own upsert leaves the stored era, type and dates alone).
+  - **Group**
+    - A new competition's group is found by matching its raw TP name against every curated group's `namePattern` (see [docs/import-manual](../import-manual/index.md#competition-groups)):
+      - exactly one match gives it that group
+      - a name continuing the group's numbering (`"<group> <n>"`, where `n` is the trailing number of TP's raw name when it has one no existing competition in the group already carries, so out-of-order imports keep their real number; otherwise the highest existing number + 1, or the bare group name for a group with no competition yet)
+      - the type every existing competition in the group shares
+    - No match, or several, skips the competition with an error saying which, and it needs curating by hand.
+  - **Created flag**
+    - This stage also reports whether the competition was newly created; the live import reads that to decide on step 7, and the `tpCompetitions.import` procedure drops it.
+
+### Participation and trophy awards
+
 - **Participation**: each registered roster is resolved to its team, and
   then to that team's era in the competition's era. Every resolved team era
   is added to the competition (`competition_teams`). The sync only ever
