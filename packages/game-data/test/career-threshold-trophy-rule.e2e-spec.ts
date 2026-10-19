@@ -313,7 +313,7 @@ describe('CareerThresholdTrophyRuleService (real Postgres)', () => {
   });
 
   it('attributes a later crossing to the later competition even when the earlier one is asked first', async () => {
-    // Seeded so the old "whichever competition is processed first wins" rule
+    // Seeded so a "whichever competition is processed first wins" rule
     // would hand this trophy to competition A: the player plays there, but
     // only reaches the threshold in B.
     const player = await addPlayer(db, fixtures, { name: 'Late Crosser' });
