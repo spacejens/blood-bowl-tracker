@@ -34,7 +34,6 @@ import { PlayerKeywordsSectionService } from './player-keywords-section.service'
 import { PlayerKillerInfoFormatterService } from './player-killer-info-formatter.service';
 import { PlayerKillsSectionService } from './player-kills-section.service';
 import { PlayerSkillsSectionService } from './player-skills-section.service';
-import { makePlayerRowButton } from './team-deepdive.test-helpers';
 
 /**
  * Test-only helper. Do not import from production code.
@@ -45,13 +44,17 @@ import { makePlayerRowButton } from './team-deepdive.test-helpers';
  * (the Kills section) to keep each file under the repo's 1000-line spec
  * ceiling — see `CLAUDE.md`'s "Maximum file size".
  *
- * `makeService` compiles `PlayerDeepdiveService` alongside the *real*
- * `PlayerKillsSectionService` and `PlayerKillerInfoFormatterService` (a
- * documented exception — see `CLAUDE.md`'s "Testing services"): both are pure
- * apart from `PlayerRowButtonService`, itself a pure decision service, so the
- * whole chain stays pure end to end. That same testing module must also
- * supply `PlayerRowButtonService` — as the mock below — or Nest fails to
- * resolve the real formatter's own dependency.
+ * `makeService` compiles `PlayerDeepdiveService` with its pure formatting
+ * collaborators passed real: the chain `PlayerKillsSectionService` →
+ * `PlayerKillerInfoFormatterService` → `PlayerRowButtonService`, plus the
+ * dependency-free `EventCountLinesService`,
+ * `CharacteristicDisplayFormattingService`, `PlayerSkillsSectionService` and
+ * `PlayerKeywordsSectionService`. This follows `CLAUDE.md`'s "Testing
+ * services" carve-out for a pure chain inside an otherwise-mocked subject:
+ * every collaborator with I/O or external state (the game-data services,
+ * `DatabaseTimeoutService` and `EntityComponentsService`) is a mock, built
+ * fresh per call. `DateRangeFormatterService` is stubbed with a canned era
+ * label.
  */
 
 export const griff = {
@@ -146,7 +149,6 @@ export interface MakeServiceOptions {
   trophyAwards?: MockProxy<TrophyAwardsService>;
   playerDeath?: MockProxy<PlayerDeathService>;
   stars?: MockProxy<StarPlayersService>;
-  playerRowButton?: MockProxy<PlayerRowButtonService>;
   positionRulesSets?: MockProxy<PositionRulesSetsService>;
   dateRangeFormatter?: MockProxy<DateRangeFormatterService>;
   playerSkills?: MockProxy<PlayerSkillsService>;
@@ -163,9 +165,6 @@ function makeStars(): MockProxy<StarPlayersService> {
   stars.findByPlayerId.mockResolvedValue(undefined);
   return stars;
 }
-
-// Re-export makePlayerRowButton from team-deepdive.test-helpers to avoid duplication.
-export { makePlayerRowButton };
 
 /**
  * A `PositionRulesSetsService` mock. Defaults to `undefined` — "no rules set
@@ -212,7 +211,6 @@ export async function makeService({
   trophyAwards = makeTrophyAwards(),
   playerDeath = makePlayerDeath(),
   stars = makeStars(),
-  playerRowButton = makePlayerRowButton(),
   positionRulesSets = makePositionRulesSets(),
   dateRangeFormatter = makeDateRangeFormatter(
     'Season 5 (2020-01-01 – 2023-12-31)',
@@ -225,7 +223,6 @@ export async function makeService({
   trophyAwards: MockProxy<TrophyAwardsService>;
   playerDeath: MockProxy<PlayerDeathService>;
   stars: MockProxy<StarPlayersService>;
-  playerRowButton: MockProxy<PlayerRowButtonService>;
   positionRulesSets: MockProxy<PositionRulesSetsService>;
   dateRangeFormatter: MockProxy<DateRangeFormatterService>;
   playerSkills: MockProxy<PlayerSkillsService>;
@@ -234,11 +231,14 @@ export async function makeService({
   const moduleRef = await Test.createTestingModule({
     providers: [
       PlayerDeepdiveService,
+      // A pure chain, passed real end to end (see CLAUDE.md's pure-chain
+      // carve-out) so the specs assert the actual rendered text and buttons.
       PlayerKillsSectionService,
       PlayerKillerInfoFormatterService,
-      EventCountLinesService,
+      PlayerRowButtonService,
       // Pure and dependency-free (see CLAUDE.md's formatting-service
-      // carve-out): passed real so the specs assert the actual rendered text.
+      // carve-out): passed real for the same reason.
+      EventCountLinesService,
       CharacteristicDisplayFormattingService,
       PlayerSkillsSectionService,
       PlayerKeywordsSectionService,
@@ -248,7 +248,6 @@ export async function makeService({
       { provide: TrophyAwardsService, useValue: trophyAwards },
       { provide: PlayerDeathService, useValue: playerDeath },
       { provide: StarPlayersService, useValue: stars },
-      { provide: PlayerRowButtonService, useValue: playerRowButton },
       { provide: PositionRulesSetsService, useValue: positionRulesSets },
       { provide: DateRangeFormatterService, useValue: dateRangeFormatter },
       { provide: PlayerSkillsService, useValue: playerSkills },
@@ -264,7 +263,6 @@ export async function makeService({
     trophyAwards,
     playerDeath,
     stars,
-    playerRowButton,
     positionRulesSets,
     dateRangeFormatter,
     playerSkills,
