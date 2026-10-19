@@ -19,7 +19,7 @@ import {
 } from '../error-messages';
 import { buildFactTree } from '../insights/fact-tree';
 import { FACT_TREE } from '../insights/fact-tree.token';
-import type { FactLeaf, FactNode } from '../insights/fact-tree.types';
+import type { FactNode } from '../insights/fact-tree.types';
 import { FactTreeUtilsService } from '../insights/fact-tree-utils.service';
 import { CoachToplistService } from '../insights/facts/coach-toplist.service';
 import { CompetitionGroupsListService } from '../insights/facts/competition-groups-list.service';
@@ -39,8 +39,11 @@ import { TeamToplistService } from '../insights/facts/team-toplist.service';
 import { TrophiesListService } from '../insights/facts/trophies-list.service';
 import { DateRangeFormatterService } from '../shared/date-range-formatter.service';
 import { makeDateRangeFormatter } from '../shared/date-range-formatter-mock.test-helpers';
+import type { FactTreeLookup } from './fact-tree-lookup.test-helpers';
 import { InsightsCommandService } from './insights-command.service';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
+
+export * from './fact-tree-lookup.test-helpers';
 
 /**
  * Test-only helpers for the `/insights` command service specs.
@@ -54,71 +57,12 @@ import { SlashCommandRegistryService } from './slash-command-registry.service';
  * actual computation is a controlled mock, so these specs never construct
  * or DI-provide a real fact service, LeaderboardService, or
  * DatabaseTimeoutService.
+ *
+ * `FactTreeUtilsService` is a bare mock: a spec that reaches path resolution
+ * or leaf collection stubs those calls with canned nodes taken from the real
+ * tree (see `stubLeafCategory`, `asLeaf` and `asNode`), so the navigation
+ * algorithm itself is covered only by its own spec.
  */
-
-function isLeaf(node: FactNode): node is FactLeaf {
-  return typeof (node as FactLeaf).resolve === 'function';
-}
-
-/**
- * A faithful, argument-driven reimplementation of `FactTreeUtilsService`'s
- * pure tree-navigation algorithms (mirrors `fact-tree-utils.service.ts`,
- * itself covered at 100% by its own dedicated spec). Used as
- * `FactTreeUtilsService`'s mock default so InsightsCommandService's
- * category-path routing is exercised for real against whatever tree a test
- * builds, rather than hardcoded to match assertions — without constructing
- * or DI-providing the real service (forbidden per the migration
- * conventions' failure mode #1).
- */
-function resolvePathImpl(tree: FactNode, path: string): FactNode | undefined {
-  const segments = path.split('.').filter((segment) => segment.length > 0);
-  let current: FactNode = tree;
-  for (const segment of segments) {
-    if (isLeaf(current)) {
-      return undefined;
-    }
-    const next = current[segment];
-    if (next === undefined) {
-      return undefined;
-    }
-    current = next;
-  }
-  return current;
-}
-
-function collectLeavesImpl(node: FactNode): FactLeaf[] {
-  if (isLeaf(node)) {
-    return [node];
-  }
-  return Object.values(node).flatMap((child) => collectLeavesImpl(child));
-}
-
-function nextSegmentCompletionsImpl(
-  tree: FactNode,
-  partialPath: string,
-): string[] {
-  const segments = partialPath.split('.');
-  const partialLast = segments[segments.length - 1];
-  const parentSegments = segments.slice(0, -1);
-  const parentPath = parentSegments.join('.');
-  const parent =
-    parentPath.length === 0 ? tree : resolvePathImpl(tree, parentPath);
-  if (parent === undefined || isLeaf(parent)) {
-    return [];
-  }
-  const prefix = parentSegments.length === 0 ? '' : `${parentPath}.`;
-  return Object.keys(parent)
-    .filter((key) => key.startsWith(partialLast))
-    .map((key) => `${prefix}${key}`);
-}
-
-function makeFactTreeUtilsMock(): MockProxy<FactTreeUtilsService> {
-  const utils = mock<FactTreeUtilsService>();
-  utils.resolvePath.mockImplementation(resolvePathImpl);
-  utils.collectLeaves.mockImplementation(collectLeavesImpl);
-  utils.nextSegmentCompletions.mockImplementation(nextSegmentCompletionsImpl);
-  return utils;
-}
 
 /**
  * A canned rendered reply standing in for a real fact service's rendering
@@ -152,10 +96,9 @@ export interface FactTreeMocks {
 
 /**
  * The fact services `buildFactTree` wires into leaves, each a `MockProxy`
- * with a default resolved reply — the same title/description content the
- * pre-migration game-data-fake-driven tree produced via real computation,
- * now canned directly since that computation belongs to these services' own
- * specs, not InsightsCommandService's.
+ * with a default resolved reply. The replies are canned because the real
+ * computation belongs to these services' own specs, not
+ * InsightsCommandService's.
  */
 function makeFactTreeMocks(): FactTreeMocks {
   const coachToplist = mock<CoachToplistService>();
@@ -466,6 +409,8 @@ export interface MakeServiceResult {
   categoryLabel: MockProxy<MatchCategoryLabelService>;
   dateRangeFormatter: MockProxy<DateRangeFormatterService>;
   factTreeDeps: FactTreeMocks;
+  factTree: FactNode;
+  tree: FactTreeLookup;
 }
 
 export async function makeService(): Promise<MakeServiceResult> {
@@ -482,7 +427,7 @@ export async function makeService(): Promise<MakeServiceResult> {
   competitions.searchByNamePrefix.mockResolvedValue([]);
 
   const registry = mock<SlashCommandRegistryService>();
-  const factTreeUtils = makeFactTreeUtilsMock();
+  const factTreeUtils = mock<FactTreeUtilsService>();
   const categoryLabel = mock<MatchCategoryLabelService>();
   // A sentinel label, not a copy of the real service's formatting: it proves
   // each choice's name comes from the label service without re-deriving what
@@ -516,6 +461,8 @@ export async function makeService(): Promise<MakeServiceResult> {
     categoryLabel,
     dateRangeFormatter,
     factTreeDeps,
+    factTree,
+    tree: factTree as unknown as FactTreeLookup,
   };
 }
 

@@ -63,20 +63,6 @@ function resultArgs(importResults: MockProxy<ImportResultService>): {
   return importResults.result.mock.calls[0][0];
 }
 
-/**
- * Reflects the real ImportResultService.result() shape (a pure field copy,
- * not branching logic to guard against drift) so a test can assert on the
- * returned result's errors/success directly, rather than only on the args
- * recorded via resultArgs().
- */
-function useRealResult(importResults: MockProxy<ImportResultService>): void {
-  importResults.result.mockImplementation((args) => ({
-    success: args.errors.length === 0,
-    imported: args.imported,
-    errors: args.errors,
-  }));
-}
-
 /** A resolution with no merged pairs: every match resolves independently. */
 function noMergeResolution(): MatchMergeResolution {
   return {
@@ -209,6 +195,14 @@ function defaultOptions(
 }
 
 describe('BblMatchOutcomesImportService', () => {
+  it('returns the ImportResult built by ImportResultService unchanged', async () => {
+    const { service } = await makeService();
+
+    const { result } = await service.importMatchOutcomes(defaultOptions());
+
+    expect(result).toBe(CANNED_RESULT);
+  });
+
   it('sends the trophy winner as a tie-break for a cup final', async () => {
     const { service, mocks } = await makeService({
       placements: new Map([
@@ -361,14 +355,13 @@ describe('BblMatchOutcomesImportService', () => {
     const { service, mocks } = await makeService({
       placements: new Map([[COMPETITION_BBL_ID, { first: 'zzz' }]]),
     });
-    useRealResult(mocks.importResults);
     const options = defaultOptions({
       categoriesByBblId: new Map([[MATCH_BBL_ID, 'cup_final']]),
     });
 
-    const { result } = await service.importMatchOutcomes(options);
+    await service.importMatchOutcomes(options);
 
-    expect(result.errors[0].message).toContain(
+    expect(resultArgs(mocks.importResults).errors[0].message).toContain(
       'could not resolve team code "zzz"',
     );
   });
@@ -377,12 +370,11 @@ describe('BblMatchOutcomesImportService', () => {
     const { service, mocks } = await makeService({
       overrides: new Map([[MATCH_BBL_ID, 'zzz']]),
     });
-    useRealResult(mocks.importResults);
     const options = defaultOptions();
 
-    const { result } = await service.importMatchOutcomes(options);
+    await service.importMatchOutcomes(options);
 
-    expect(result.errors[0].message).toContain(
+    expect(resultArgs(mocks.importResults).errors[0].message).toContain(
       'could not resolve team code "zzz"',
     );
   });
@@ -473,13 +465,8 @@ describe('BblMatchOutcomesImportService', () => {
       },
     });
     const options = defaultOptions();
-    mocks.importResults.result.mockReturnValue({
-      success: false,
-      imported: 0,
-      errors: [],
-    });
 
-    const { result } = await service.importMatchOutcomes(options);
+    await service.importMatchOutcomes(options);
 
     expect(resultArgs(mocks.importResults).errors[0].message).toContain(
       `Could not determine the outcome of match ${MATCH_BBL_ID}`,
@@ -487,7 +474,6 @@ describe('BblMatchOutcomesImportService', () => {
     expect(resultArgs(mocks.importResults).errors[0].message).toContain(
       'matches.resultOverrides',
     );
-    expect(result.success).toBe(false);
   });
 
   it('points at the existing override, not "add one", when it named a non-participant and the match stayed unresolved', async () => {
@@ -500,11 +486,6 @@ describe('BblMatchOutcomesImportService', () => {
       },
     });
     const options = defaultOptions();
-    mocks.importResults.result.mockReturnValue({
-      success: false,
-      imported: 0,
-      errors: [],
-    });
 
     await service.importMatchOutcomes(options);
 

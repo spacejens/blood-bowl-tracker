@@ -7,7 +7,7 @@ import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { ImportRunnerService } from './import-runner.service';
-import { stubImportRunner } from './import-runner.test-helpers';
+import { recordUpsertResultOptions } from './import-runner.test-helpers';
 import { PlayerSkillsImportService } from './player-skills-import.service';
 import type { ImportError } from './types';
 
@@ -30,7 +30,6 @@ describe('PlayerSkillsImportService', () => {
   beforeEach(async () => {
     client = mockDeep<ApiClient>();
     runner = mock<ImportRunnerService>();
-    stubImportRunner(runner);
     errors = [];
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -46,12 +45,11 @@ describe('PlayerSkillsImportService', () => {
     const synced = await service.syncPlayerSkills([], errors);
 
     expect(synced).toBe(0);
-    expect(client.playerSkills.sync).not.toHaveBeenCalled();
-    expect(errors).toEqual([]);
+    expect(runner.recordUpsertResult).not.toHaveBeenCalled();
   });
 
   it('forwards the entries and returns how many were synced', async () => {
-    client.playerSkills.sync.mockResolvedValue({
+    runner.recordUpsertResult.mockResolvedValue({
       playerSkillIds: [51, 52],
     });
 
@@ -61,17 +59,20 @@ describe('PlayerSkillsImportService', () => {
     );
 
     expect(synced).toBe(2);
+    const options = recordUpsertResultOptions(runner);
+    expect(options.item).toEqual({ playerSkills: 2 });
+    expect(options.errors).toBe(errors);
+    await options.upsert();
     expect(client.playerSkills.sync).toHaveBeenCalledWith({
       entries: [
         entry(),
         entry({ skillId: 11, source: 'chosen', advancementOrder: 1 }),
       ],
     });
-    expect(errors).toEqual([]);
   });
 
   it('drops a duplicate natural key, keeping the gained entry over the starting one', async () => {
-    client.playerSkills.sync.mockResolvedValue({ playerSkillIds: [51] });
+    runner.recordUpsertResult.mockResolvedValue({ playerSkillIds: [51] });
 
     const synced = await service.syncPlayerSkills(
       [
@@ -82,14 +83,14 @@ describe('PlayerSkillsImportService', () => {
     );
 
     expect(synced).toBe(1);
+    await recordUpsertResultOptions(runner).upsert();
     expect(client.playerSkills.sync).toHaveBeenCalledWith({
       entries: [entry({ source: 'advancement', advancementOrder: 2 })],
     });
-    expect(errors).toEqual([]);
   });
 
   it('keeps the lower advancement order when two gained entries share a natural key', async () => {
-    client.playerSkills.sync.mockResolvedValue({ playerSkillIds: [51] });
+    runner.recordUpsertResult.mockResolvedValue({ playerSkillIds: [51] });
 
     await service.syncPlayerSkills(
       [
@@ -99,13 +100,14 @@ describe('PlayerSkillsImportService', () => {
       errors,
     );
 
+    await recordUpsertResultOptions(runner).upsert();
     expect(client.playerSkills.sync).toHaveBeenCalledWith({
       entries: [entry({ source: 'chosen', advancementOrder: 1 })],
     });
   });
 
   it('drops a starting candidate that arrives after an existing gained entry', async () => {
-    client.playerSkills.sync.mockResolvedValue({ playerSkillIds: [51] });
+    runner.recordUpsertResult.mockResolvedValue({ playerSkillIds: [51] });
 
     await service.syncPlayerSkills(
       [
@@ -115,13 +117,14 @@ describe('PlayerSkillsImportService', () => {
       errors,
     );
 
+    await recordUpsertResultOptions(runner).upsert();
     expect(client.playerSkills.sync).toHaveBeenCalledWith({
       entries: [entry({ source: 'chosen', advancementOrder: 1 })],
     });
   });
 
   it('drops a gained candidate with no advancement order of its own', async () => {
-    client.playerSkills.sync.mockResolvedValue({ playerSkillIds: [51] });
+    runner.recordUpsertResult.mockResolvedValue({ playerSkillIds: [51] });
 
     await service.syncPlayerSkills(
       [
@@ -131,13 +134,14 @@ describe('PlayerSkillsImportService', () => {
       errors,
     );
 
+    await recordUpsertResultOptions(runner).upsert();
     expect(client.playerSkills.sync).toHaveBeenCalledWith({
       entries: [entry({ source: 'chosen', advancementOrder: 1 })],
     });
   });
 
   it('keeps a gained candidate that replaces an existing gained entry which also has no advancement order', async () => {
-    client.playerSkills.sync.mockResolvedValue({ playerSkillIds: [51] });
+    runner.recordUpsertResult.mockResolvedValue({ playerSkillIds: [51] });
 
     await service.syncPlayerSkills(
       [
@@ -147,13 +151,14 @@ describe('PlayerSkillsImportService', () => {
       errors,
     );
 
+    await recordUpsertResultOptions(runner).upsert();
     expect(client.playerSkills.sync).toHaveBeenCalledWith({
       entries: [entry({ source: 'chosen', advancementOrder: 5 })],
     });
   });
 
   it('drops a gained candidate whose advancement order is equal to or greater than the existing one', async () => {
-    client.playerSkills.sync.mockResolvedValue({ playerSkillIds: [51] });
+    runner.recordUpsertResult.mockResolvedValue({ playerSkillIds: [51] });
 
     await service.syncPlayerSkills(
       [
@@ -163,12 +168,10 @@ describe('PlayerSkillsImportService', () => {
       errors,
     );
 
+    await recordUpsertResultOptions(runner).upsert();
     expect(client.playerSkills.sync).toHaveBeenCalledWith({
       entries: [entry({ source: 'chosen', advancementOrder: 1 })],
     });
-
-    client.playerSkills.sync.mockClear();
-    client.playerSkills.sync.mockResolvedValue({ playerSkillIds: [52] });
 
     await service.syncPlayerSkills(
       [
@@ -178,13 +181,14 @@ describe('PlayerSkillsImportService', () => {
       errors,
     );
 
-    expect(client.playerSkills.sync).toHaveBeenCalledWith({
+    await recordUpsertResultOptions(runner, 1).upsert();
+    expect(client.playerSkills.sync.mock.calls[1][0]).toEqual({
       entries: [entry({ source: 'chosen', advancementOrder: 1 })],
     });
   });
 
   it('treats a missing attributeValue and an explicit null as the same key', async () => {
-    client.playerSkills.sync.mockResolvedValue({ playerSkillIds: [51] });
+    runner.recordUpsertResult.mockResolvedValue({ playerSkillIds: [51] });
 
     await service.syncPlayerSkills(
       [
@@ -194,13 +198,14 @@ describe('PlayerSkillsImportService', () => {
       errors,
     );
 
+    await recordUpsertResultOptions(runner).upsert();
     expect(client.playerSkills.sync).toHaveBeenCalledTimes(1);
     const [call] = client.playerSkills.sync.mock.calls;
     expect(call[0].entries).toHaveLength(1);
   });
 
   it('keeps two entries of the same skill that carry different attribute values', async () => {
-    client.playerSkills.sync.mockResolvedValue({
+    runner.recordUpsertResult.mockResolvedValue({
       playerSkillIds: [51, 52],
     });
 
@@ -220,40 +225,62 @@ describe('PlayerSkillsImportService', () => {
       errors,
     );
 
+    await recordUpsertResultOptions(runner).upsert();
     const [call] = client.playerSkills.sync.mock.calls;
     expect(call[0].entries).toHaveLength(2);
   });
 
   it('sends entries in chunks of the configured size', async () => {
-    client.playerSkills.sync.mockResolvedValue({ playerSkillIds: [] });
+    runner.recordUpsertResult.mockResolvedValue({ playerSkillIds: [] });
     const many = Array.from({ length: 501 }, (_value, index) =>
       entry({ skillId: index + 1 }),
     );
 
     const synced = await service.syncPlayerSkills(many, errors);
 
-    expect(client.playerSkills.sync).toHaveBeenCalledTimes(2);
-    expect(client.playerSkills.sync.mock.calls[0][0].entries).toHaveLength(500);
-    expect(client.playerSkills.sync.mock.calls[1][0].entries).toHaveLength(1);
+    expect(runner.recordUpsertResult).toHaveBeenCalledTimes(2);
+    expect(recordUpsertResultOptions(runner, 0).item).toEqual({
+      playerSkills: 500,
+    });
+    expect(recordUpsertResultOptions(runner, 1).item).toEqual({
+      playerSkills: 1,
+    });
     expect(synced).toBe(501);
   });
 
-  it('records a non-fatal error naming the chunk size when a chunk fails', async () => {
-    client.playerSkills.sync.mockRejectedValue(new Error('boom'));
+  it('counts only the chunks the runner reports as synced', async () => {
+    runner.recordUpsertResult
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce({ playerSkillIds: [] });
+    const many = Array.from({ length: 501 }, (_value, index) =>
+      entry({ skillId: index + 1 }),
+    );
+
+    const synced = await service.syncPlayerSkills(many, errors);
+
+    expect(synced).toBe(1);
+  });
+
+  it('builds a failure message naming the chunk size', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
 
     const synced = await service.syncPlayerSkills([entry()], errors);
 
     expect(synced).toBe(0);
-    expect(errors).toHaveLength(1);
-    expect(errors[0].message).toContain('1 player skill');
-    expect(errors[0].message).toContain('boom');
+    const { buildErrorMessage } = recordUpsertResultOptions(runner);
+    expect(buildErrorMessage(new Error('boom'))).toBe(
+      'Failed to sync 1 player skill(s): boom',
+    );
   });
 
   it('stringifies a non-Error rejection from the call', async () => {
-    client.playerSkills.sync.mockRejectedValue('nope');
+    runner.recordUpsertResult.mockResolvedValue(undefined);
 
     await service.syncPlayerSkills([entry()], errors);
 
-    expect(errors[0].message).toContain('nope');
+    const { buildErrorMessage } = recordUpsertResultOptions(runner);
+    expect(buildErrorMessage('nope')).toBe(
+      'Failed to sync 1 player skill(s): nope',
+    );
   });
 });

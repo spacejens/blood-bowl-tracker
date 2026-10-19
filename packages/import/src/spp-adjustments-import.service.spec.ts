@@ -6,7 +6,7 @@ import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { ImportRunnerService } from './import-runner.service';
-import { stubImportRunner } from './import-runner.test-helpers';
+import { recordUpsertResultOptions } from './import-runner.test-helpers';
 import { SppAdjustmentsImportService } from './spp-adjustments-import.service';
 import type { ImportError } from './types';
 
@@ -19,7 +19,6 @@ describe('SppAdjustmentsImportService', () => {
   beforeEach(async () => {
     client = mockDeep<ApiClient>();
     runner = mock<ImportRunnerService>();
-    stubImportRunner(runner);
     errors = [];
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -31,84 +30,116 @@ describe('SppAdjustmentsImportService', () => {
     service = moduleRef.get(SppAdjustmentsImportService);
   });
 
-  it('passes the scraped-adjustment payload through to the client', async () => {
-    client.players.syncScrapedSppAdjustments.mockResolvedValue({
-      updatedPlayerIds: [1],
+  describe('syncScrapedSppAdjustments', () => {
+    const data = {
+      players: [
+        { playerId: 1, scrapedTotal: 16 },
+        { playerId: 2, scrapedTotal: null },
+      ],
+    };
+
+    it('returns the runner result unchanged', async () => {
+      const synced = { updatedPlayerIds: [1] };
+      runner.recordUpsertResult.mockResolvedValue(synced);
+
+      const result = await service.syncScrapedSppAdjustments(data, errors);
+
+      expect(result).toBe(synced);
     });
-    const data = { players: [{ playerId: 1, scrapedTotal: 16 }] };
 
-    const result = await service.syncScrapedSppAdjustments(data, errors);
+    it('returns undefined when the runner recorded a failure', async () => {
+      runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    expect(result).toEqual({ updatedPlayerIds: [1] });
-    expect(client.players.syncScrapedSppAdjustments).toHaveBeenCalledWith(data);
-    expect(errors).toEqual([]);
-  });
+      const result = await service.syncScrapedSppAdjustments(data, errors);
 
-  it('records a non-fatal error when the scraped sync call fails', async () => {
-    client.players.syncScrapedSppAdjustments.mockRejectedValue(
-      new Error('boom'),
-    );
-
-    const result = await service.syncScrapedSppAdjustments(
-      { players: [{ playerId: 1, scrapedTotal: null }] },
-      errors,
-    );
-
-    expect(result).toBeUndefined();
-    expect(errors).toHaveLength(1);
-    expect(errors[0].message).toContain('1 player(s)');
-    expect(errors[0].message).toContain('boom');
-  });
-
-  it('stringifies a non-Error rejection from the scraped sync call', async () => {
-    client.players.syncScrapedSppAdjustments.mockRejectedValue('nope');
-
-    await service.syncScrapedSppAdjustments(
-      { players: [{ playerId: 1, scrapedTotal: 16 }] },
-      errors,
-    );
-
-    expect(errors[0].message).toContain('nope');
-  });
-
-  it('passes the reported-adjustment payload through to the client', async () => {
-    client.players.syncReportedSppAdjustments.mockResolvedValue({
-      updatedPlayerIds: [2],
+      expect(result).toBeUndefined();
     });
-    const data = { players: [{ playerId: 2 }] };
 
-    const result = await service.syncReportedSppAdjustments(data, errors);
+    it('hands the runner the data as item, the caller error list, and an upsert that calls the client', async () => {
+      runner.recordUpsertResult.mockResolvedValue(undefined);
+      client.players.syncScrapedSppAdjustments.mockResolvedValue({
+        updatedPlayerIds: [1],
+      });
 
-    expect(result).toEqual({ updatedPlayerIds: [2] });
-    expect(client.players.syncReportedSppAdjustments).toHaveBeenCalledWith(
-      data,
-    );
+      await service.syncScrapedSppAdjustments(data, errors);
+
+      const options = recordUpsertResultOptions(runner);
+      expect(options.item).toBe(data);
+      expect(options.errors).toBe(errors);
+      await expect(options.upsert()).resolves.toEqual({
+        updatedPlayerIds: [1],
+      });
+      expect(client.players.syncScrapedSppAdjustments).toHaveBeenCalledWith(
+        data,
+      );
+    });
+
+    it('builds a failure message naming the batch size', async () => {
+      runner.recordUpsertResult.mockResolvedValue(undefined);
+
+      await service.syncScrapedSppAdjustments(data, errors);
+
+      const { buildErrorMessage } = recordUpsertResultOptions(runner);
+      expect(buildErrorMessage(new Error('boom'))).toBe(
+        'Failed to sync scraped SPP adjustments for 2 player(s): boom',
+      );
+      expect(buildErrorMessage('nope')).toBe(
+        'Failed to sync scraped SPP adjustments for 2 player(s): nope',
+      );
+    });
   });
 
-  it('stringifies a non-Error rejection from the reported sync call', async () => {
-    client.players.syncReportedSppAdjustments.mockRejectedValue('nope');
+  describe('syncReportedSppAdjustments', () => {
+    const data = { players: [{ playerId: 3 }, { playerId: 4 }] };
 
-    await service.syncReportedSppAdjustments(
-      { players: [{ playerId: 2 }] },
-      errors,
-    );
+    it('returns the runner result unchanged', async () => {
+      const synced = { updatedPlayerIds: [2] };
+      runner.recordUpsertResult.mockResolvedValue(synced);
 
-    expect(errors[0].message).toContain('nope');
-  });
+      const result = await service.syncReportedSppAdjustments(data, errors);
 
-  it('records an error when the reported sync call fails', async () => {
-    client.players.syncReportedSppAdjustments.mockRejectedValue(
-      new Error('fail'),
-    );
+      expect(result).toBe(synced);
+    });
 
-    const result = await service.syncReportedSppAdjustments(
-      { players: [{ playerId: 3 }, { playerId: 4 }] },
-      errors,
-    );
+    it('returns undefined when the runner recorded a failure', async () => {
+      runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    expect(result).toBeUndefined();
-    expect(errors).toHaveLength(1);
-    expect(errors[0].message).toContain('2 player(s)');
-    expect(errors[0].message).toContain('fail');
+      const result = await service.syncReportedSppAdjustments(data, errors);
+
+      expect(result).toBeUndefined();
+    });
+
+    it('hands the runner the data as item, the caller error list, and an upsert that calls the client', async () => {
+      runner.recordUpsertResult.mockResolvedValue(undefined);
+      client.players.syncReportedSppAdjustments.mockResolvedValue({
+        updatedPlayerIds: [2],
+      });
+
+      await service.syncReportedSppAdjustments(data, errors);
+
+      const options = recordUpsertResultOptions(runner);
+      expect(options.item).toBe(data);
+      expect(options.errors).toBe(errors);
+      await expect(options.upsert()).resolves.toEqual({
+        updatedPlayerIds: [2],
+      });
+      expect(client.players.syncReportedSppAdjustments).toHaveBeenCalledWith(
+        data,
+      );
+    });
+
+    it('builds a failure message naming the batch size', async () => {
+      runner.recordUpsertResult.mockResolvedValue(undefined);
+
+      await service.syncReportedSppAdjustments(data, errors);
+
+      const { buildErrorMessage } = recordUpsertResultOptions(runner);
+      expect(buildErrorMessage(new Error('boom'))).toBe(
+        'Failed to sync reported SPP adjustments for 2 player(s): boom',
+      );
+      expect(buildErrorMessage('nope')).toBe(
+        'Failed to sync reported SPP adjustments for 2 player(s): nope',
+      );
+    });
   });
 });

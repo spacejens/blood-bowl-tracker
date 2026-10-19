@@ -1,4 +1,5 @@
 import type { RulesSet } from '@blood-bowl-tracker/api-contract';
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   StartingSkillsImportService,
@@ -12,6 +13,29 @@ import {
   BblPositionSkillsImportService,
   CURATION_OWNED_RULES_SET_NAMES,
 } from './bbl-position-skills-import.service';
+
+/**
+ * The canned ImportResult the mocked ImportResultService.result returns.
+ * ImportResultService's own `success: errors.length === 0` derivation is
+ * covered by packages/import/src/import-result.service.spec.ts; this spec
+ * asserts what the service under test *passes to* result() (via
+ * `resultArgs()`) and that it returns result()'s value unchanged. The
+ * deliberately impossible field values make any leftover assertion that reads
+ * the returned object instead of the recorded call arguments fail loudly.
+ */
+const CANNED_RESULT: ImportResult = {
+  success: false,
+  imported: -1,
+  errors: [{ item: { canned: true }, message: 'canned import result' }],
+};
+
+/** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
+function resultArgs(importResults: MockProxy<ImportResultService>): {
+  imported: number;
+  errors: ImportError[];
+} {
+  return importResults.result.mock.calls[0][0];
+}
 
 /** A minimal RulesSet fixture -- only `id` and `name` matter to this service. */
 function makeRulesSet(id: number, name: string): RulesSet {
@@ -35,11 +59,7 @@ describe('BblPositionSkillsImportService', () => {
   beforeEach(async () => {
     startingSkills = mock<StartingSkillsImportService>();
     importResults = mock<ImportResultService>();
-    importResults.result.mockImplementation(({ imported, errors }) => ({
-      success: errors.length === 0,
-      imported,
-      errors,
-    }));
+    importResults.result.mockReturnValue(CANNED_RESULT);
     const moduleRef = await Test.createTestingModule({
       providers: [
         BblPositionSkillsImportService,
@@ -53,7 +73,7 @@ describe('BblPositionSkillsImportService', () => {
   it("gives every rules set a position plays under the page's one skill list", async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(4);
 
-    const { result } = await service.syncPositionSkills({
+    await service.syncPositionSkills({
       rulesSetIdsByPositionId: new Map([[3, new Set([7, 8])]]),
       skillsByPositionId: new Map([
         [3, [{ name: 'Block' }, { name: 'Dodge' }]],
@@ -61,7 +81,7 @@ describe('BblPositionSkillsImportService', () => {
       rulesSetsByName: new Map(),
     });
 
-    expect(result.imported).toBe(4);
+    expect(resultArgs(importResults)).toEqual({ imported: 4, errors: [] });
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
       new Map([
         [
@@ -216,6 +236,18 @@ describe('BblPositionSkillsImportService', () => {
     // tools/import-bbl). A change to either side without updating the other
     // fails at least one of the two tests.
     expect(CURATION_OWNED_RULES_SET_NAMES).toEqual(['CRP', 'CRP+', 'BB2016']);
+  });
+
+  it('returns the ImportResult built by ImportResultService unchanged', async () => {
+    startingSkills.syncStartingSkills.mockResolvedValue(0);
+
+    const { result } = await service.syncPositionSkills({
+      rulesSetIdsByPositionId: new Map(),
+      skillsByPositionId: new Map(),
+      rulesSetsByName: new Map(),
+    });
+
+    expect(result).toBe(CANNED_RESULT);
   });
 
   it('marks every BBL skill as not elite', async () => {

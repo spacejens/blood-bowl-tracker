@@ -1,4 +1,5 @@
 import type { SppCareerCounts } from '@blood-bowl-tracker/api-contract';
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   DEFAULT_BATCH_CHUNK_SIZE,
   ImportResultService,
@@ -19,6 +20,29 @@ const careerCounts: SppCareerCounts = {
   casualty: 5,
 };
 
+/**
+ * The canned ImportResult the mocked ImportResultService.result returns.
+ * ImportResultService's own `success: errors.length === 0` derivation is
+ * covered by packages/import/src/import-result.service.spec.ts; this spec
+ * asserts what the service under test *passes to* result() (via
+ * `resultArgs()`) and that it returns result()'s value unchanged. The
+ * deliberately impossible field values make any leftover assertion that reads
+ * the returned object instead of the recorded call arguments fail loudly.
+ */
+const CANNED_RESULT: ImportResult = {
+  success: false,
+  imported: -1,
+  errors: [{ item: { canned: true }, message: 'canned import result' }],
+};
+
+/** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
+function resultArgs(importResults: MockProxy<ImportResultService>): {
+  imported: number;
+  errors: ImportError[];
+} {
+  return importResults.result.mock.calls[0][0];
+}
+
 describe('TpSppAdjustmentsImportService', () => {
   let service: TpSppAdjustmentsImportService;
   let adjustments: MockProxy<SppAdjustmentsImportService>;
@@ -27,11 +51,7 @@ describe('TpSppAdjustmentsImportService', () => {
   beforeEach(async () => {
     adjustments = mock<SppAdjustmentsImportService>();
     importResults = mock<ImportResultService>();
-    importResults.result.mockImplementation(({ imported, errors }) => ({
-      success: errors.length === 0,
-      imported,
-      errors,
-    }));
+    importResults.result.mockReturnValue(CANNED_RESULT);
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpSppAdjustmentsImportService,
@@ -47,7 +67,7 @@ describe('TpSppAdjustmentsImportService', () => {
       updatedPlayerIds: [1, 2],
     });
 
-    const outcome = await service.importSppAdjustments({
+    await service.importSppAdjustments({
       playerIds: [1, 2, 2],
     });
 
@@ -55,8 +75,7 @@ describe('TpSppAdjustmentsImportService', () => {
       { players: [{ playerId: 1 }, { playerId: 2 }] },
       [],
     );
-    expect(outcome.result.imported).toBe(2);
-    expect(outcome.result.success).toBe(true);
+    expect(resultArgs(importResults).imported).toBe(2);
   });
 
   it('attaches each player its career counts when known', async () => {
@@ -103,10 +122,12 @@ describe('TpSppAdjustmentsImportService', () => {
       })
       .mockResolvedValueOnce({ updatedPlayerIds: [1, 2] });
 
-    const outcome = await service.importSppAdjustments({ playerIds: ids });
+    await service.importSppAdjustments({ playerIds: ids });
 
     expect(adjustments.syncReportedSppAdjustments).toHaveBeenCalledTimes(2);
-    expect(outcome.result.imported).toBe(DEFAULT_BATCH_CHUNK_SIZE + 2);
+    expect(resultArgs(importResults).imported).toBe(
+      DEFAULT_BATCH_CHUNK_SIZE + 2,
+    );
   });
 
   it('counts only the surviving chunk when one call fails', async () => {
@@ -118,16 +139,16 @@ describe('TpSppAdjustmentsImportService', () => {
       .mockResolvedValueOnce(undefined)
       .mockResolvedValueOnce({ updatedPlayerIds: [1] });
 
-    const outcome = await service.importSppAdjustments({ playerIds: ids });
+    await service.importSppAdjustments({ playerIds: ids });
 
-    expect(outcome.result.imported).toBe(1);
+    expect(resultArgs(importResults).imported).toBe(1);
   });
 
   it('makes no call at all for an empty id list', async () => {
     const outcome = await service.importSppAdjustments({ playerIds: [] });
 
     expect(adjustments.syncReportedSppAdjustments).not.toHaveBeenCalled();
-    expect(outcome.result.imported).toBe(0);
+    expect(resultArgs(importResults).imported).toBe(0);
     expect(outcome.nonzeroAdjustments).toEqual([]);
   });
 
@@ -226,5 +247,11 @@ describe('TpSppAdjustmentsImportService', () => {
 
   it('formats nothing when no adjustment is left unexplained', () => {
     expect(service.summaryLines([])).toEqual([]);
+  });
+
+  it('returns the ImportResult built by ImportResultService unchanged', async () => {
+    const outcome = await service.importSppAdjustments({ playerIds: [] });
+
+    expect(outcome.result).toBe(CANNED_RESULT);
   });
 });

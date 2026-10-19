@@ -6,7 +6,7 @@ import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { ImportRunnerService } from './import-runner.service';
-import { stubImportRunner } from './import-runner.test-helpers';
+import { recordUpsertResultOptions } from './import-runner.test-helpers';
 import { LastingInjuriesImportService } from './lasting-injuries-import.service';
 import type { ImportError } from './types';
 
@@ -19,7 +19,6 @@ describe('LastingInjuriesImportService', () => {
   beforeEach(async () => {
     client = mockDeep<ApiClient>();
     runner = mock<ImportRunnerService>();
-    stubImportRunner(runner);
     errors = [];
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -31,27 +30,20 @@ describe('LastingInjuriesImportService', () => {
     service = moduleRef.get(LastingInjuriesImportService);
   });
 
-  it('forwards the player ids and returns the result', async () => {
-    client.players.syncLastingInjuryHistory.mockResolvedValue({
-      backfilledPlayerIds: [7],
-    });
+  it('returns the runner result unchanged', async () => {
+    const synced = { backfilledPlayerIds: [7] };
+    runner.recordUpsertResult.mockResolvedValue(synced);
 
     const result = await service.syncLastingInjuryHistory(
       { playerIds: [7, 8] },
       errors,
     );
 
-    expect(client.players.syncLastingInjuryHistory).toHaveBeenCalledWith({
-      playerIds: [7, 8],
-    });
-    expect(result).toEqual({ backfilledPlayerIds: [7] });
-    expect(errors).toEqual([]);
+    expect(result).toBe(synced);
   });
 
-  it('records a non-fatal error naming the batch size when the call fails', async () => {
-    client.players.syncLastingInjuryHistory.mockRejectedValue(
-      new Error('boom'),
-    );
+  it('returns undefined when the runner recorded a failure', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
 
     const result = await service.syncLastingInjuryHistory(
       { playerIds: [7, 8] },
@@ -59,16 +51,38 @@ describe('LastingInjuriesImportService', () => {
     );
 
     expect(result).toBeUndefined();
-    expect(errors).toHaveLength(1);
-    expect(errors[0].message).toContain('2 player(s)');
-    expect(errors[0].message).toContain('boom');
   });
 
-  it('stringifies a non-Error rejection from the call', async () => {
-    client.players.syncLastingInjuryHistory.mockRejectedValue('nope');
+  it('hands the runner the payload as item, the caller error list, and an upsert that calls the client', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
+    client.players.syncLastingInjuryHistory.mockResolvedValue({
+      backfilledPlayerIds: [7],
+    });
 
-    await service.syncLastingInjuryHistory({ playerIds: [7] }, errors);
+    await service.syncLastingInjuryHistory({ playerIds: [7, 8] }, errors);
 
-    expect(errors[0].message).toContain('nope');
+    const options = recordUpsertResultOptions(runner);
+    expect(options.item).toEqual({ playerIds: [7, 8] });
+    expect(options.errors).toBe(errors);
+    await expect(options.upsert()).resolves.toEqual({
+      backfilledPlayerIds: [7],
+    });
+    expect(client.players.syncLastingInjuryHistory).toHaveBeenCalledWith({
+      playerIds: [7, 8],
+    });
+  });
+
+  it('builds a failure message naming the batch size', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
+
+    await service.syncLastingInjuryHistory({ playerIds: [7, 8] }, errors);
+
+    const { buildErrorMessage } = recordUpsertResultOptions(runner);
+    expect(buildErrorMessage(new Error('boom'))).toBe(
+      'Failed to backfill lasting-injury history for 2 player(s): boom',
+    );
+    expect(buildErrorMessage('nope')).toBe(
+      'Failed to backfill lasting-injury history for 2 player(s): nope',
+    );
   });
 });

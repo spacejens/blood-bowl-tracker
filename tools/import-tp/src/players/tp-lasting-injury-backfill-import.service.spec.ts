@@ -1,3 +1,4 @@
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   DEFAULT_BATCH_CHUNK_SIZE,
   ImportResultService,
@@ -10,6 +11,29 @@ import { mock } from 'vitest-mock-extended';
 
 import { TpLastingInjuryBackfillImportService } from './tp-lasting-injury-backfill-import.service';
 
+/**
+ * The canned ImportResult the mocked ImportResultService.result returns.
+ * ImportResultService's own `success: errors.length === 0` derivation is
+ * covered by packages/import/src/import-result.service.spec.ts; this spec
+ * asserts what the service under test *passes to* result() (via
+ * `resultArgs()`) and that it returns result()'s value unchanged. The
+ * deliberately impossible field values make any leftover assertion that reads
+ * the returned object instead of the recorded call arguments fail loudly.
+ */
+const CANNED_RESULT: ImportResult = {
+  success: false,
+  imported: -1,
+  errors: [{ item: { canned: true }, message: 'canned import result' }],
+};
+
+/** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
+function resultArgs(importResults: MockProxy<ImportResultService>): {
+  imported: number;
+  errors: ImportError[];
+} {
+  return importResults.result.mock.calls[0][0];
+}
+
 describe('TpLastingInjuryBackfillImportService', () => {
   let service: TpLastingInjuryBackfillImportService;
   let backfill: MockProxy<LastingInjuriesImportService>;
@@ -18,11 +42,7 @@ describe('TpLastingInjuryBackfillImportService', () => {
   beforeEach(async () => {
     backfill = mock<LastingInjuriesImportService>();
     importResults = mock<ImportResultService>();
-    importResults.result.mockImplementation(({ imported, errors }) => ({
-      success: errors.length === 0,
-      imported,
-      errors,
-    }));
+    importResults.result.mockReturnValue(CANNED_RESULT);
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpLastingInjuryBackfillImportService,
@@ -38,15 +58,14 @@ describe('TpLastingInjuryBackfillImportService', () => {
       backfilledPlayerIds: [1],
     });
 
-    const outcome = await service.importLastingInjuryHistory([1, 2]);
+    await service.importLastingInjuryHistory([1, 2]);
 
     expect(backfill.syncLastingInjuryHistory).toHaveBeenCalledTimes(1);
     expect(backfill.syncLastingInjuryHistory).toHaveBeenCalledWith(
       { playerIds: [1, 2] },
       [],
     );
-    expect(outcome.result.imported).toBe(1);
-    expect(outcome.result.success).toBe(true);
+    expect(resultArgs(importResults)).toEqual({ imported: 1, errors: [] });
   });
 
   it('chunks a list larger than DEFAULT_BATCH_CHUNK_SIZE, summing across chunks', async () => {
@@ -58,13 +77,13 @@ describe('TpLastingInjuryBackfillImportService', () => {
       .mockResolvedValueOnce({ backfilledPlayerIds: [1, 2] })
       .mockResolvedValueOnce({ backfilledPlayerIds: [3] });
 
-    const outcome = await service.importLastingInjuryHistory(ids);
+    await service.importLastingInjuryHistory(ids);
 
     expect(backfill.syncLastingInjuryHistory).toHaveBeenCalledTimes(2);
     const [first, second] = backfill.syncLastingInjuryHistory.mock.calls;
     expect(first[0].playerIds).toHaveLength(DEFAULT_BATCH_CHUNK_SIZE);
     expect(second[0].playerIds).toHaveLength(3);
-    expect(outcome.result.imported).toBe(3);
+    expect(resultArgs(importResults).imported).toBe(3);
   });
 
   it('keeps going after a failed chunk and counts the surviving one', async () => {
@@ -76,17 +95,22 @@ describe('TpLastingInjuryBackfillImportService', () => {
       .mockResolvedValueOnce(undefined)
       .mockResolvedValueOnce({ backfilledPlayerIds: [1] });
 
-    const outcome = await service.importLastingInjuryHistory(ids);
+    await service.importLastingInjuryHistory(ids);
 
     expect(backfill.syncLastingInjuryHistory).toHaveBeenCalledTimes(2);
-    expect(outcome.result.imported).toBe(1);
+    expect(resultArgs(importResults).imported).toBe(1);
   });
 
   it('makes no call at all when this run inserted no players', async () => {
-    const outcome = await service.importLastingInjuryHistory([]);
+    await service.importLastingInjuryHistory([]);
 
     expect(backfill.syncLastingInjuryHistory).not.toHaveBeenCalled();
-    expect(outcome.result.imported).toBe(0);
-    expect(outcome.result.success).toBe(true);
+    expect(resultArgs(importResults)).toEqual({ imported: 0, errors: [] });
+  });
+
+  it('returns the ImportResult built by ImportResultService unchanged', async () => {
+    const outcome = await service.importLastingInjuryHistory([]);
+
+    expect(outcome.result).toBe(CANNED_RESULT);
   });
 });

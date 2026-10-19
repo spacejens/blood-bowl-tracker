@@ -6,7 +6,7 @@ import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { ImportRunnerService } from './import-runner.service';
-import { stubImportRunner } from './import-runner.test-helpers';
+import { recordUpsertResultOptions } from './import-runner.test-helpers';
 import { SppAwardValuesImportService } from './spp-award-values-import.service';
 import type { ImportError } from './types';
 
@@ -18,7 +18,6 @@ describe('SppAwardValuesImportService', () => {
   beforeEach(async () => {
     client = mockDeep<ApiClient>();
     runner = mock<ImportRunnerService>();
-    stubImportRunner(runner);
     const moduleRef = await Test.createTestingModule({
       providers: [
         SppAwardValuesImportService,
@@ -40,37 +39,50 @@ describe('SppAwardValuesImportService', () => {
     ],
   };
 
-  it('returns the result and calls the client with the given data on success', async () => {
-    client.sppAwardValues.sync.mockResolvedValue({ sppAwardValueIds: [11] });
-    const errors: ImportError[] = [];
+  it('returns the runner result unchanged', async () => {
+    const synced = { sppAwardValueIds: [11] };
+    runner.recordUpsertResult.mockResolvedValue(synced);
 
-    const result = await service.syncSppAwardValues(data, errors);
+    const result = await service.syncSppAwardValues(data, []);
 
-    expect(result).toEqual({ sppAwardValueIds: [11] });
-    expect(client.sppAwardValues.sync).toHaveBeenCalledWith(data);
-    expect(errors).toHaveLength(0);
+    expect(result).toBe(synced);
   });
 
-  it('returns undefined and records an error when the client call fails', async () => {
-    client.sppAwardValues.sync.mockRejectedValue(new Error('boom'));
-    const errors: ImportError[] = [];
+  it('returns undefined when the runner recorded a failure', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    const result = await service.syncSppAwardValues(data, errors);
+    const result = await service.syncSppAwardValues(data, []);
 
     expect(result).toBeUndefined();
-    expect(errors).toEqual([
-      { item: data, message: 'Failed to sync 1 SPP award value(s): boom' },
-    ]);
   });
 
-  it('records an error using String(err) when the client rejects with a non-Error value', async () => {
-    client.sppAwardValues.sync.mockRejectedValue('nope');
+  it('hands the runner the data as item, the caller error list, and an upsert that calls the client', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
+    client.sppAwardValues.sync.mockResolvedValue({ sppAwardValueIds: [11] });
     const errors: ImportError[] = [];
 
     await service.syncSppAwardValues(data, errors);
 
-    expect(errors).toEqual([
-      { item: data, message: 'Failed to sync 1 SPP award value(s): nope' },
-    ]);
+    const options = recordUpsertResultOptions(runner);
+    expect(options.item).toBe(data);
+    expect(options.errors).toBe(errors);
+    await expect(options.upsert()).resolves.toEqual({
+      sppAwardValueIds: [11],
+    });
+    expect(client.sppAwardValues.sync).toHaveBeenCalledWith(data);
+  });
+
+  it('builds a failure message naming the batch size', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
+
+    await service.syncSppAwardValues(data, []);
+
+    const { buildErrorMessage } = recordUpsertResultOptions(runner);
+    expect(buildErrorMessage(new Error('boom'))).toBe(
+      'Failed to sync 1 SPP award value(s): boom',
+    );
+    expect(buildErrorMessage('nope')).toBe(
+      'Failed to sync 1 SPP award value(s): nope',
+    );
   });
 });

@@ -445,15 +445,6 @@ describe('BblMatchesImportService', () => {
         isSecondary: () => false,
         effectivePlayedAt: (_bblId, rawDate) => rawDate,
       });
-      // Reflects the real ImportResultService.result() shape (a pure field
-      // copy, not branching logic to guard against drift) so these tests can
-      // assert on the returned result's errors directly, rather than only on
-      // the args recorded via resultArgs().
-      mocks.importResults.result.mockImplementation((args) => ({
-        success: args.errors.length === 0,
-        imported: args.imported,
-        errors: args.errors,
-      }));
       competitionsByBblId = new Map([['55', cupCompetition]]);
     });
 
@@ -504,18 +495,18 @@ describe('BblMatchesImportService', () => {
       mocks.classifier.classify.mockImplementation(() => {
         throw new Error('looks like a knock-out stage');
       });
-      const { result } = await service.importMatches(competitionsByBblId);
+      await service.importMatches(competitionsByBblId);
       expect(mocks.matchesImport.upsertMatchResult).not.toHaveBeenCalled();
-      expect(result.errors).toHaveLength(1);
+      expect(resultArgs(mocks.importResults).errors).toHaveLength(1);
     });
 
     it('records an error and skips the match when the competition has no type', async () => {
       // competitionsByBblId entry built without `type`
       const { type: _type, ...withoutType } = cupCompetition;
       competitionsByBblId = new Map([['55', withoutType]]);
-      const { result } = await service.importMatches(competitionsByBblId);
+      await service.importMatches(competitionsByBblId);
       expect(mocks.matchesImport.upsertMatchResult).not.toHaveBeenCalled();
-      expect(result.errors).toHaveLength(1);
+      expect(resultArgs(mocks.importResults).errors).toHaveLength(1);
     });
 
     it('reads the override list once per import run, not once per match', async () => {

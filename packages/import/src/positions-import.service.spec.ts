@@ -6,7 +6,7 @@ import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { ImportRunnerService } from './import-runner.service';
-import { stubImportRunner } from './import-runner.test-helpers';
+import { recordUpsertResultOptions } from './import-runner.test-helpers';
 import { PositionsImportService } from './positions-import.service';
 import type { ImportError } from './types';
 
@@ -18,7 +18,6 @@ describe('PositionsImportService', () => {
   beforeEach(async () => {
     client = mockDeep<ApiClient>();
     runner = mock<ImportRunnerService>();
-    stubImportRunner(runner);
     const moduleRef = await Test.createTestingModule({
       providers: [
         PositionsImportService,
@@ -36,11 +35,24 @@ describe('PositionsImportService', () => {
   };
 
   it('upserts through the positions resource', async () => {
-    runner.recordUpsertResult.mockResolvedValue(undefined);
+    const upserted = {
+      id: 3,
+      name: 'Lineman',
+      isStarPlayer: false,
+      createdAt: new Date(),
+      created: true,
+    };
+    runner.recordUpsertResult.mockResolvedValue(upserted);
+    client.positions.upsert.mockResolvedValue(upserted);
+    const errors: ImportError[] = [];
 
-    await service.upsert(data, []);
+    const result = await service.upsert(data, errors);
 
-    await runner.recordUpsertResult.mock.calls[0][0].upsert();
+    expect(result).toBe(upserted);
+    const options = recordUpsertResultOptions(runner);
+    expect(options.item).toBe(data);
+    expect(options.errors).toBe(errors);
+    await expect(options.upsert()).resolves.toBe(upserted);
     expect(client.positions.upsert).toHaveBeenCalledWith(data);
   });
 
@@ -49,11 +61,11 @@ describe('PositionsImportService', () => {
 
     await service.upsert(data, []);
 
-    const options = runner.recordUpsertResult.mock.calls[0][0];
-    expect(options.buildErrorMessage(new Error('conflict'))).toBe(
+    const { buildErrorMessage } = recordUpsertResultOptions(runner);
+    expect(buildErrorMessage(new Error('conflict'))).toBe(
       'Failed to import position "Lineman": conflict',
     );
-    expect(options.buildErrorMessage('boom')).toBe(
+    expect(buildErrorMessage('boom')).toBe(
       'Failed to import position "Lineman": boom',
     );
   });
@@ -65,32 +77,34 @@ describe('PositionsImportService', () => {
     };
 
     it('returns the result and calls the client with the given data on success', async () => {
-      client.positions.syncRaceEras.mockResolvedValue({
-        positionId: 1,
-        raceEraIds: [42],
-      });
+      const synced = { positionId: 1, raceEraIds: [42] };
+      runner.recordUpsertResult.mockResolvedValue(synced);
+      client.positions.syncRaceEras.mockResolvedValue(synced);
       const errors: ImportError[] = [];
 
       const result = await service.syncRaceEras(syncData, errors);
 
-      expect(result).toEqual({ positionId: 1, raceEraIds: [42] });
+      expect(result).toBe(synced);
+      const options = recordUpsertResultOptions(runner);
+      expect(options.item).toBe(syncData);
+      expect(options.errors).toBe(errors);
+      await expect(options.upsert()).resolves.toBe(synced);
       expect(client.positions.syncRaceEras).toHaveBeenCalledWith(syncData);
-      expect(errors).toHaveLength(0);
     });
 
     it('returns undefined and records an error when the client call fails', async () => {
-      client.positions.syncRaceEras.mockRejectedValue(new Error('conflict'));
-      const errors: ImportError[] = [];
+      runner.recordUpsertResult.mockResolvedValue(undefined);
 
-      const result = await service.syncRaceEras(syncData, errors);
+      const result = await service.syncRaceEras(syncData, []);
 
       expect(result).toBeUndefined();
-      expect(errors).toEqual([
-        {
-          item: syncData,
-          message: 'Failed to sync race eras for position 1: conflict',
-        },
-      ]);
+      const { buildErrorMessage } = recordUpsertResultOptions(runner);
+      expect(buildErrorMessage(new Error('conflict'))).toBe(
+        'Failed to sync race eras for position 1: conflict',
+      );
+      expect(buildErrorMessage('boom')).toBe(
+        'Failed to sync race eras for position 1: boom',
+      );
     });
   });
 });

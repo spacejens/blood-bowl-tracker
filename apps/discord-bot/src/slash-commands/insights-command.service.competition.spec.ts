@@ -6,8 +6,10 @@ import {
   INSIGHTS_SCOPE_CONFLICT_MESSAGE,
 } from '../error-messages';
 import {
+  asLeaf,
   chatInput,
   makeService,
+  stubLeafCategory,
 } from './insights-command.service.test-helpers';
 
 describe('InsightsCommandService — competition scoping', () => {
@@ -40,8 +42,18 @@ describe('InsightsCommandService — competition scoping', () => {
   });
 
   it('scopes an in-scope category to the resolved competition and names it in the title', async () => {
-    const { service, factTreeDeps, competitions, dateRangeFormatter } =
-      await makeService();
+    const {
+      service,
+      factTreeDeps,
+      factTreeUtils,
+      competitions,
+      dateRangeFormatter,
+      tree,
+    } = await makeService();
+    stubLeafCategory(
+      factTreeUtils,
+      asLeaf(tree.team.toplist.touchdowns.scored),
+    );
     competitions.findById.mockResolvedValue({
       id: 30,
       name: 'Major Season 24',
@@ -76,7 +88,11 @@ describe('InsightsCommandService — competition scoping', () => {
   });
 
   it('rejects a competition on a category that does not support it (coach.toplist.competitions.played)', async () => {
-    const { service, competitions } = await makeService();
+    const { service, competitions, factTreeUtils, tree } = await makeService();
+    stubLeafCategory(
+      factTreeUtils,
+      asLeaf(tree.coach.toplist.competitions.played),
+    );
     competitions.findById.mockResolvedValue({
       id: 30,
       name: 'Major Season 24',
@@ -92,7 +108,8 @@ describe('InsightsCommandService — competition scoping', () => {
   });
 
   it('rejects a competition on eras.list (not competition-supporting)', async () => {
-    const { service, competitions } = await makeService();
+    const { service, competitions, factTreeUtils, tree } = await makeService();
+    stubLeafCategory(factTreeUtils, asLeaf(tree.eras.list));
     competitions.findById.mockResolvedValue({
       id: 30,
       name: 'Major Season 24',
@@ -108,7 +125,8 @@ describe('InsightsCommandService — competition scoping', () => {
   });
 
   it('restricts the random pick to competition-supporting leaves when a competition but no category is given', async () => {
-    const { service, competitions } = await makeService();
+    const { service, competitions, factTreeDeps, factTreeUtils, tree } =
+      await makeService();
     competitions.findById.mockResolvedValue({
       id: 30,
       name: 'Major Season 24',
@@ -117,13 +135,22 @@ describe('InsightsCommandService — competition scoping', () => {
       startDate: '2023-10-01',
       endDate: '2023-10-02',
     });
-    vi.spyOn(Math, 'random').mockReturnValue(0.999999);
-    const result = await service.execute(
-      chatInput(null, { competition: '30' }),
-    );
-    expect(result).not.toBe(
-      INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE,
-    );
+    factTreeUtils.collectLeaves.mockReturnValue([
+      asLeaf(tree.coach.toplist.competitions.played),
+      asLeaf(tree.team.toplist.touchdowns.scored),
+    ]);
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    await service.execute(chatInput(null, { competition: '30' }));
+    expect(
+      factTreeDeps.coachToplist.resolveCompetitionsPlayed,
+    ).not.toHaveBeenCalled();
+    expect(
+      factTreeDeps.teamToplist.resolveTouchdownsScored,
+    ).toHaveBeenCalledWith({
+      leagueId: undefined,
+      eraId: undefined,
+      competitionId: 30,
+    });
   });
 
   it('dates the competition in the title suffix', async () => {

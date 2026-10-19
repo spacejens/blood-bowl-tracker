@@ -2,18 +2,17 @@ import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { DeepMockProxy } from 'vitest-mock-extended';
+import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { ImportRunnerService } from './import-runner.service';
-import { stubImportRunner } from './import-runner.test-helpers';
+import { recordUpsertResultOptions } from './import-runner.test-helpers';
 import { MissingTrophyAwardsImportService } from './missing-trophy-awards-import.service';
 import type { ImportError } from './types';
 
 async function makeModule() {
   const client = mockDeep<ApiClient>();
   const runner = mock<ImportRunnerService>();
-  stubImportRunner(runner);
   const moduleRef = await Test.createTestingModule({
     providers: [
       MissingTrophyAwardsImportService,
@@ -21,75 +20,75 @@ async function makeModule() {
       { provide: ImportRunnerService, useValue: runner },
     ],
   }).compile();
-  return { service: moduleRef.get(MissingTrophyAwardsImportService), client };
+  return {
+    service: moduleRef.get(MissingTrophyAwardsImportService),
+    client,
+    runner,
+  };
 }
 
 describe('MissingTrophyAwardsImportService', () => {
   let service: MissingTrophyAwardsImportService;
   let client: DeepMockProxy<ApiClient>;
+  let runner: MockProxy<ImportRunnerService>;
 
   beforeEach(async () => {
-    ({ service, client } = await makeModule());
+    ({ service, client, runner } = await makeModule());
   });
 
-  it('records the result of the compute call', async () => {
+  it('returns the runner result unchanged', async () => {
     const computed = {
       competitionId: 3,
       createdAwardCount: 2,
       awardedTrophyIds: [10],
     };
-    client.trophyAwards.computeMissing.mockResolvedValue(computed);
+    runner.recordUpsertResult.mockResolvedValue(computed);
 
-    const errors: ImportError[] = [];
-    await expect(
-      service.computeMissing({ competitionId: 3 }, errors),
-    ).resolves.toEqual(computed);
-    expect(errors).toHaveLength(0);
+    const result = await service.computeMissing({ competitionId: 3 }, []);
+
+    expect(result).toBe(computed);
   });
 
-  it('calls the computeMissing procedure', async () => {
-    client.trophyAwards.computeMissing.mockResolvedValue({
-      competitionId: 7,
+  it('returns undefined when the runner recorded a failure', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
+
+    const result = await service.computeMissing({ competitionId: 5 }, []);
+
+    expect(result).toBeUndefined();
+  });
+
+  it('hands the runner the competition id as item, the caller error list, and an upsert that calls computeMissing', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
+    const computed = {
+      competitionId: 5,
       createdAwardCount: 0,
       awardedTrophyIds: [],
-    });
+    };
+    client.trophyAwards.computeMissing.mockResolvedValue(computed);
+    const errors: ImportError[] = [];
 
-    await service.computeMissing({ competitionId: 7 }, []);
+    await service.computeMissing({ competitionId: 5 }, errors);
 
+    const options = recordUpsertResultOptions(runner);
+    expect(options.item).toEqual({ competitionId: 5 });
+    expect(options.errors).toBe(errors);
+    await expect(options.upsert()).resolves.toBe(computed);
     expect(client.trophyAwards.computeMissing).toHaveBeenCalledWith({
-      competitionId: 7,
+      competitionId: 5,
     });
   });
 
-  it('resolves to undefined and records an error when the client call fails', async () => {
-    client.trophyAwards.computeMissing.mockRejectedValue(new Error('conflict'));
-    const errors: ImportError[] = [];
+  it('builds a failure message naming the competition', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    const result = await service.computeMissing({ competitionId: 5 }, errors);
+    await service.computeMissing({ competitionId: 5 }, []);
 
-    expect(result).toBeUndefined();
-    expect(errors).toEqual([
-      {
-        item: { competitionId: 5 },
-        message:
-          'Failed to compute missing trophy awards for competition 5: conflict',
-      },
-    ]);
-  });
-
-  it('records an error using String(err) for a non-Error rejection', async () => {
-    client.trophyAwards.computeMissing.mockRejectedValue('boom');
-    const errors: ImportError[] = [];
-
-    const result = await service.computeMissing({ competitionId: 5 }, errors);
-
-    expect(result).toBeUndefined();
-    expect(errors).toEqual([
-      {
-        item: { competitionId: 5 },
-        message:
-          'Failed to compute missing trophy awards for competition 5: boom',
-      },
-    ]);
+    const { buildErrorMessage } = recordUpsertResultOptions(runner);
+    expect(buildErrorMessage(new Error('conflict'))).toBe(
+      'Failed to compute missing trophy awards for competition 5: conflict',
+    );
+    expect(buildErrorMessage('boom')).toBe(
+      'Failed to compute missing trophy awards for competition 5: boom',
+    );
   });
 });
