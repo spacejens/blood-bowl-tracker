@@ -22,7 +22,7 @@ Runs a fixed set of code cleanup checks — Node version updates, unused depende
 
 ### Dependency and action updates
 
-- Ordinary dependency and Docker image updates are not part of it — Renovate opens those PRs on its own, configured by `renovate.json5` at the repo root, once the [Renovate GitHub App](https://github.com/apps/renovate) is installed on this repo.
+- Ordinary dependency and Docker image updates are not part of this skill — Renovate opens those PRs on its own, configured by `renovate.json5` at the repo root, once the [Renovate GitHub App](https://github.com/apps/renovate) is installed on this repo.
 - Installing the app is a one-time manual setup step; `renovate.json5` alone does not install or grant it access.
 - Every action in `.github/workflows/` is pinned to a full commit SHA, with its version as a trailing comment; Renovate keeps those pins current.
 - Action updates always wait for a human to merge them.
@@ -37,7 +37,7 @@ Takes one stuck Renovate dependency-update PR to a mergeable state (`/finish-ren
 - This skill investigates why a given one is stuck:
   - reading Renovate's own PR body and changelog links
   - reading the failing CI job's logs
-  - checking how the dependency is actually used here
+  - reading how the dependency is actually used here
 - It makes whatever code changes the update needs, and pushes them back onto Renovate's own branch so the existing PR is updated in place.
 - It never opens a new PR, so the PR's number, its `renovate:<updateType>` label, and its review history all survive.
 
@@ -54,7 +54,7 @@ Verifies that work the developer says is finished is actually finished — check
 
 ## deploy-local
 
-Builds and starts the full stack locally via Docker Compose, confirms both containers come up healthy, so a developer can see a change running end-to-end (`/deploy-local`).
+Builds and starts the full stack locally via Docker Compose, and confirms both containers come up healthy (`/deploy-local`), so a developer can see a change running end-to-end.
 
 It can also run, against the running instance:
 
@@ -64,10 +64,9 @@ It can also run, against the running instance:
 - the match/player/race/star player review tools
 - SchemaSpy diagram generation
 
-Beyond that.
+It is invoked directly, or offered by `develop-feature` after a PR is created and by `handle-pr-reviews` after pushing fixes.
 
-- It is invoked directly, or offered by `develop-feature` after a PR is created and by `handle-pr-reviews` after pushing fixes.
-- It leaves the containers running — it's a manual-inspection tool, not a one-shot smoke test.
+It leaves the containers running — it's a manual-inspection tool, not a one-shot smoke test.
 
 ## deploy-production
 
@@ -82,10 +81,9 @@ Operates the already-deployed production Discord bot on Fly.io and Neon (`/deplo
 - run read-only queries against the production database
 - run the manual/BBL/TP importers against production
 
-Beyond those operations.
+It does not perform normal deploys — those happen automatically in GitHub Actions on every merge to `main` (`.github/workflows/deploy.yml`); the closest thing offered here is dispatching that same workflow against the current `main`.
 
-- It does not perform normal deploys — those happen automatically in GitHub Actions on every merge to `main` (`.github/workflows/deploy.yml`); the closest thing offered here is dispatching that same workflow against the current `main`.
-- Applying the configuration file, restarting, rolling back, and triggering a redeploy are restricted to the main checkout — they are repo-wide, branch-independent operations, not tied to any particular piece of feature work.
+Applying the configuration file, restarting, rolling back, and triggering a redeploy are restricted to the main checkout — they are repo-wide, branch-independent operations, not tied to any particular piece of feature work.
 
 See `docs/discord-bot/production-hosting.md` for the underlying commands this skill wraps.
 
