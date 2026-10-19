@@ -40,9 +40,9 @@ import { SlashCommandRegistryModule } from './slash-command-registry.module';
   // PlayerRowButtonService and PlayerKillerInfoFormatterService also arrive
   // transitively through InsightsModule, which provides and exports both for
   // its own on-this-date insight, so neither is redeclared here.
-  // DebugModule supplies the debug-prefixed commands (currently
-  // /debuginteractions; see #834/#836/#837/#838 for the rest) and their own
-  // dependencies, including DiscordBotUsageModule.
+  // DebugModule supplies the debug-prefixed commands (/debuginteractions,
+  // /debugtopusers, /debugfilterusage) and their own dependencies, including
+  // DiscordBotUsageModule.
   // AdminModule supplies the admin-role commands (/importtp) and their own
   // dependencies, including packages/import-tp-live.
   // SlashCommandRegistryModule supplies the shared SlashCommandRegistryService

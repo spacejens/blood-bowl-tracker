@@ -703,15 +703,15 @@ describe('BblPlayersImportService', () => {
   });
 
   it('records a page-parse error via the main loop for a team whose race id cannot be resolved, without aborting the run for other pages', async () => {
-    // Regression test for bfa7bc34: the pre-pass loop that collects position
-    // refs now wraps its resolveDefiniteRaceId call in try/catch and silently
-    // skips a bad team (`continue`), rather than letting the throw abort the
-    // whole importPlayers run before any ImportResult is produced. The main
-    // loop below re-processes the same page inside its own try/catch, which
-    // is what actually records the error via pageParseError.build. This test
-    // proves both: the run completes (doesn't reject) and still imports a
-    // player from another page, and the bad page's error is recorded exactly
-    // once by the main loop, not the pre-pass.
+    // The pre-pass loop that collects position refs wraps its
+    // resolveDefiniteRaceId call in try/catch and silently skips a bad team
+    // (`continue`), so the throw cannot abort the whole importPlayers run
+    // before any ImportResult is produced. The main loop re-processes the
+    // same page inside its own try/catch, which is what actually records the
+    // error via pageParseError.build. This test proves both: the run
+    // completes (doesn't reject) and still imports a player from another
+    // page, and the bad page's error is recorded exactly once by the main
+    // loop, not the pre-pass.
     const badTeam: UpsertTeam = {
       name: 'Bad Team',
       raceId: 999,
