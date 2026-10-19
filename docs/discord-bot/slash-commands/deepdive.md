@@ -20,20 +20,22 @@ are plain messages with no embed, so they have no headline to prefix.
 
 ## Arguments
 
-The command takes optional string arguments, `era`, `coach`, `team`, `player`,
-`star-player`, `race`, `position`, `competition`, `competition-group`, `trophy`, and
-`league`, each autocompleted by name. A suggestion carries a disambiguator
+The command takes optional string arguments, each autocompleted by name: `era`,
+`coach`, `team`, `player`, `star-player`, `race`, `position`, `competition`,
+`competition-group`, `trophy` and `league`. A suggestion carries a disambiguator
 wherever names repeat: player names repeat across teams, position names repeat
 across races (nearly every race has a "Lineman"), and a position available to
 several races produces one suggestion per race, all selecting the same
-position. Entries scoped to a league name that league. A star player has no
-single team to name, so stars are shown bare. A position with no race recorded
-is not suggested, since there would be no race to name, and star positions are
-excluded from `position` suggestions — they are looked up via `star-player`
-instead. Exact label formats are built in
+position. Entries scoped to a league name that league; trophies name the owning
+competition group, or the league when awarded directly; coach and team
+suggestions carry their id. A star player has no single team to name, so stars
+are shown bare. A position with no race recorded is not suggested, since there
+would be no race to name, and star positions are excluded from `position`
+suggestions — they are looked up via `star-player` instead. Exact label formats
+are built in
 `apps/discord-bot/src/slash-commands/deepdive-autocomplete.service.ts`.
 
-The arguments are mutually exclusive:
+The command validates its arguments:
 
 - **No argument** — the bot replies with a short usage prompt, because a
   deepdive needs a target. This is framed as "specify a target", not a hard
@@ -41,7 +43,7 @@ The arguments are mutually exclusive:
   contract.
 - **More than one argument** (e.g. both `era` and `coach`) — the bot rejects
   the call with an error message instead of guessing which target was
-  intended, since the arguments are mutually exclusive.
+  intended.
 
 ## Targets
 
@@ -120,8 +122,10 @@ identical. See [`/insights`](insights.md).
   button coverage.
 
 Which facts attach links is set where each fact builds its reply: the
-`entityLink` passed to `LeaderboardService`
-(`apps/discord-bot/src/insights/leaderboard.service.ts`) for toplists, and
+`entityLink` passed through `ToplistFactoryService`
+(`apps/discord-bot/src/insights/facts/toplist-factory.service.ts`) to
+`LeaderboardService` (`apps/discord-bot/src/insights/leaderboard.service.ts`)
+for toplists, and
 `EntityComponentsService` in the list facts under
 `apps/discord-bot/src/insights/facts/`.
 

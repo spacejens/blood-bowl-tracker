@@ -41,7 +41,8 @@ support the scope in play is skipped, and asking for it by name replies with a
 per-scope refusal message. Exact per-fact scope support is declared on each
 fact in `apps/discord-bot/src/insights/fact-tree.ts`. Facts that list or count
 things other than matches (teams, rostered players, skills, eras, trophies,
-competition groups, star player hires) cannot take a match category. `stats`
+competition groups, star player hires) cannot take a match category (competition counts are the exception, see
+below). `stats`
 is excluded deliberately: only two of the counts it reports have a category at
 all, so a category-scoped `stats` would mix scoped and all-time numbers.
 
@@ -60,11 +61,10 @@ schema rather than here — see `packages/db/src/schema/game-data/match-events.t
 - `stats` — a combined embed of entity counts (title "Statistics"): leagues,
   eras, external systems, rules sets, races, positions, coaches, competitions
   (with a season/cup breakdown), teams, players, matches, and match events.
-  When an era is selected the
-  title gains the usual `— <era>` suffix and the body changes: Leagues and Eras
-  both read 1
-  (intentionally kept, rather than dropped, for a consistent line set between
-  all-time and era-scoped output); External systems becomes the count of
+  When an era is selected the title gains the usual `— <era>` suffix and the
+  body changes: Leagues and Eras both read 1 (intentionally kept, rather than
+  dropped, for a consistent line set between all-time and era-scoped output);
+  External systems becomes the count of
   distinct external systems linked directly to the era whose category is an
   imported data source — excluding bookkeeping systems such as the synthetic
   `Name` system, and excluding systems only referenced through a coach (e.g.
@@ -111,7 +111,7 @@ schema rather than here — see `packages/db/src/schema/game-data/match-events.t
   Same exclusions as above, plus the same minimum-5-matches floor
   as `.longest.ascending`.
 
-Each coach listed by the twelve `coach.toplist.*` facts above also gets a
+Each coach listed by the `coach.toplist.*` facts above also gets a
 button, in the same order as the list, that opens that coach's
 [`/deepdive`](deepdive.md) detail view.
 
@@ -177,7 +177,7 @@ button, in the same order as the list, that opens that coach's
   ranked by amount, each row showing the losing team and the ISO `YYYY-MM-DD`
   date of the match it occurred in. A team can appear more than once.
 
-Each team listed by the twenty-two `team.toplist.*` facts above also gets a
+Each team listed by the `team.toplist.*` facts above also gets a
 button, in the same order as the list, that opens that team's
 [`/deepdive`](deepdive.md) detail view. For the biggest-events fact, buttons are
 deduplicated so a team that appears on multiple rows gets a single button.
@@ -225,7 +225,7 @@ deduplicated so a team that appears on multiple rows gets a single button.
   view instead sums only the scoped match events' SPP, which omits any manual
   adjustment folded into that stored total.
 
-Each player listed by the fourteen `player.toplist.*` facts above also gets a
+Each player listed by the `player.toplist.*` facts above also gets a
 button, in the same order as the list, that opens that player's
 [`/deepdive`](deepdive.md) detail view.
 
@@ -312,8 +312,9 @@ button, in the same order as the list, that opens that player's
   different front offices outranks one repeatedly re-hired by a single team.
   Each listed star also gets a button that opens that star's
   [`/deepdive`](deepdive.md) detail view, where the per-team breakdown showing
-  _which_ teams those are lives. It takes none of the scope options, for the same "star player
-  exception" reason as `starPlayers.toplist.hires.total` above.
+  _which_ teams those are lives. It takes none of the scope options, for the
+  same "star player exception" reason as `starPlayers.toplist.hires.total`
+  above.
 - `eras.list` — a single embed listing every recorded era in chronological
   order by start date, regardless of league (ties broken by league, then era
   name). Each line reads `<era> (<league>): <start> – <end>`
@@ -369,7 +370,7 @@ competitions`). Each listed group also gets a button that opens that
   [`/onthisdate`](on-this-date.md) command. See
   [On this date](../../insights/on-this-date.md) for the underlying rules.
 
-Each date listed by the two `date.toplist.*` facts also gets a button, in the
+Each date listed by the `date.toplist.*` facts also gets a button, in the
 same order as the list, that opens that date's
 [`/onthisdate`](on-this-date.md) view. Unlike every other drill-down button,
 these carry the toplist's own scope: clicking a row on a toplist scoped to one

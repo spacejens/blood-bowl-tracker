@@ -8,5 +8,3 @@ fields.
 
 The body carries much more — location, state, flags, and each category's full
 ruleset configuration — that is deliberately unparsed until something needs it.
-Of those, `nameNormalized` is the slug TP uses for the competition
-subdirectory name.

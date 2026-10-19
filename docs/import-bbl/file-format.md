@@ -35,7 +35,7 @@ code** — the code is the source of truth at that point.
 
 ## Page types seen in the reference dataset
 
-Fully handled in code: `tm`, `pt` and `tl` (see the notes below, which keep
+Fully handled in code: `tm`, `pt` and `tl` (see the notes on each, which keep
 only what the code cannot express).
 
 Not yet handled (candidates for future work): `mp` (per-match scores, gate, TD
