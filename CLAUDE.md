@@ -236,6 +236,12 @@ the compile happens:
 - Mocks are built fresh per test — never module-level — and each test stubs only
   the methods it needs. Never pass a *real* collaborator: a test about one
   service must not silently exercise another service's concrete behavior.
+  This also covers mocks of objects a service constructs itself rather than
+  receives by injection, such as a third-party library client replaced through
+  `vi.mock`: a helper builds a fresh set per test and hands it to the module
+  mock (see `packages/discord-client/src/discord-js-mock.test-helpers.ts`).
+  `vi.clearAllMocks()` alone is not a substitute, because it keeps
+  implementations set by earlier tests.
 - **A mock returns the canned responses the test expects — it never
   reimplements the collaborator's real logic.** Copying a collaborator's
   algorithm into its mock (so the mock "computes" the right answer) just
