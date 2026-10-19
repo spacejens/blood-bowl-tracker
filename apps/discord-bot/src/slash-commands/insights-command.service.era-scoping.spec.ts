@@ -7,8 +7,8 @@ import {
 import type {
   FactTreeLookup,
   FactTreeMocks,
+  MakeServiceResult,
 } from './insights-command.service.test-helpers';
-import type { MakeServiceResult } from './insights-command.service.test-helpers';
 import {
   asLeaf,
   chatInput,
