@@ -9,7 +9,7 @@ import { vi } from 'vitest';
  *
  * ```ts
  * vi.mock('discord.js', async () =>
- *   (await import('./discord-js-mock.test-helpers')).discordJsModuleMock(),
+ *   (await import('./discord-js-mock.test-helpers.js')).discordJsModuleMock(),
  * );
  * ```
  *
