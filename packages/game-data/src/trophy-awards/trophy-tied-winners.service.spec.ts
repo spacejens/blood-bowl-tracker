@@ -86,7 +86,7 @@ describe('TrophyTiedWinnersService', () => {
           { playerId: 2, teamEraId: 20, eventCount: 5 },
           { playerId: 3, teamEraId: 30, eventCount: 1 },
         ],
-        2,
+        4,
       ),
     ).toEqual([
       { playerId: 1, teamEraId: 10 },
