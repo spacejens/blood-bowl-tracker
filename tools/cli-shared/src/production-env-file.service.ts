@@ -25,8 +25,9 @@ export class ProductionEnvFileService {
     if (!existsSync(envPath)) {
       throw new Error(
         `${ENV_PRODUCTION_PATH} not found in this checkout. It is gitignored ` +
-          'and lives in the main checkout: run from there, or copy it into ' +
-          'this worktree first (see .claude/skills/deploy-production/SKILL.md).',
+          'and lives in the main checkout: create it there (see ' +
+          'docs/discord-bot/production-configuration.md) or, from a ' +
+          'worktree, copy it in (see .claude/skills/deploy-production/SKILL.md).',
       );
     }
     const values = parse(readFileSync(envPath, 'utf8'));
