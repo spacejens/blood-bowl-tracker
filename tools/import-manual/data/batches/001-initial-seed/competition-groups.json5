@@ -8,7 +8,7 @@
 //
 // Every group names its league by that league's own external id, resolved
 // against the database through the API's resolve procedure -- the group only
-// needs the league to have been imported by some earlier run or phase, not
+// needs the league to have been imported by some earlier run or batch, not
 // necessarily this one. leagues.json5 sits in this same directory so that,
 // within a fresh database's first run, it is imported ahead of these groups.
 //

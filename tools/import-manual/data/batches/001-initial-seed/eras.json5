@@ -1,7 +1,7 @@
 // The eras every curated competition instance belongs to.
 //
 // These exist here, ahead of the BBL and TP importers, purely so
-// competitions.json5 in this same phase has an era to reference: a
+// competitions.json5 in this same batch has an era to reference: a
 // competition row cannot be created without an eraId (competitions.era_id is
 // NOT NULL with no default). Each era is keyed by its plain name under the
 // synthetic "Name" system -- exactly what BblErasImportService and
@@ -12,7 +12,7 @@
 // Names and dates are copied verbatim from tools/import-bbl/import-bbl-config.json5
 // and tools/import-tp/import-tp-config.json5, which remain authoritative.
 // rulesSets is deliberately not declared: that catalog is not curated in this
-// phase, and the API's rules-set sync is additive, so the real importers add
+// batch, and the API's rules-set sync is additive, so the real importers add
 // the links.
 {
   externalSystems: [
