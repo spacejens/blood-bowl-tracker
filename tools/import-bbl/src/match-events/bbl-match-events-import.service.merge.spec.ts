@@ -3,7 +3,7 @@ import type {
   UpsertTeam,
 } from '@blood-bowl-tracker/api-contract';
 import type { BatchBuffer } from '@blood-bowl-tracker/import';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { BblMatchEvents } from '../matches/match-events-page-parser';
 import {
@@ -23,6 +23,12 @@ import {
  * two source event pages into one pass.
  */
 describe('BblMatchEventsImportService merge scenarios', () => {
+  let harness: Awaited<ReturnType<typeof makeService>>;
+
+  beforeEach(async () => {
+    harness = await makeService();
+  });
+
   it('scenario merge: an event pairing a primary-source action with a secondary-source consequence resolves each side to its own team era', async () => {
     const PRIMARY = '1061';
     const SECONDARY = '1062';
@@ -59,7 +65,7 @@ describe('BblMatchEventsImportService merge scenarios', () => {
       b2: 104,
     };
 
-    const { service, mocks } = await makeService();
+    const { service, mocks } = harness;
     mocks.teamsImport.upsert.mockImplementation((data) =>
       Promise.resolve(
         makeTeamRecord([
@@ -203,7 +209,7 @@ describe('BblMatchEventsImportService merge scenarios', () => {
       b2: 104,
     };
 
-    const { service, mocks } = await makeService();
+    const { service, mocks } = harness;
     mocks.teamsImport.upsert.mockImplementation((data) =>
       Promise.resolve(
         makeTeamRecord([
