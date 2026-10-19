@@ -1,19 +1,19 @@
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { ChildProcessService } from './child-process.service';
 
 describe('ChildProcessService', () => {
-  const makeService = async (): Promise<ChildProcessService> => {
+  let service: ChildProcessService;
+
+  beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
       providers: [ChildProcessService],
     }).compile();
-    return moduleRef.get(ChildProcessService);
-  };
+    service = moduleRef.get(ChildProcessService);
+  });
 
-  it('spawns a detached process and returns its pid', async () => {
-    const service = await makeService();
-
+  it('spawns a detached process and returns its pid', () => {
     const pid = service.spawnDetached(process.execPath, [
       '-e',
       'setTimeout(() => {}, 5000)',
@@ -23,16 +23,13 @@ describe('ChildProcessService', () => {
     expect(service.kill(pid)).toBe(true);
   });
 
-  it('throws when the command cannot be spawned at all', async () => {
-    const service = await makeService();
-
+  it('throws when the command cannot be spawned at all', () => {
     expect(() =>
       service.spawnDetached('this-command-does-not-exist-anywhere', []),
     ).toThrow();
   });
 
   it('kill returns false when the pid no longer exists', async () => {
-    const service = await makeService();
     const pid = service.spawnDetached(process.execPath, ['-e', '']);
 
     // Poll rather than sleep a fixed interval — a slow CI box could still
@@ -51,9 +48,7 @@ describe('ChildProcessService', () => {
     expect(stillAlive).toBe(false);
   });
 
-  it('kill rethrows an error that is not the process-already-gone case', async () => {
-    const service = await makeService();
-
+  it('kill rethrows an error that is not the process-already-gone case', () => {
     expect(() =>
       service.kill(process.pid, 'NOT-A-REAL-SIGNAL' as NodeJS.Signals),
     ).toThrow();
