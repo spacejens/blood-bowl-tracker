@@ -74,6 +74,21 @@ class FakeDiscordAPIError extends Error {
   }
 }
 
+/**
+ * Stand-in for `@discordjs/rest`'s `HTTPError`, which carries the status code
+ * and uses only the status text as its message.
+ */
+class FakeHTTPError extends Error {
+  constructor(
+    public readonly status: number,
+    statusText: string,
+    public readonly method: string,
+    public readonly url: string,
+  ) {
+    super(statusText);
+  }
+}
+
 /** The replacement `discord.js` module, for the spec's `vi.mock` factory. */
 export function discordJsModuleMock(): Record<string, unknown> {
   return {
@@ -92,5 +107,6 @@ export function discordJsModuleMock(): Record<string, unknown> {
       ),
     },
     DiscordAPIError: FakeDiscordAPIError,
+    HTTPError: FakeHTTPError,
   };
 }

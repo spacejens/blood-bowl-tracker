@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { DiscordAPIError, REST } from 'discord.js';
+import { DiscordAPIError, HTTPError, REST } from 'discord.js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
@@ -88,6 +88,28 @@ describe('DiscordRestService', () => {
       await expect(service.getMessage('222', '333')).rejects.toThrow(
         'Discord API request for message 333 in channel 222 failed with ' +
           'status 404 (code 10008): Unknown Message',
+      );
+    });
+
+    it('names the message and status on an HTTP error, even with an empty status text', async () => {
+      rest.get.mockRejectedValue(
+        new HTTPError(502, '', 'GET', '/fake/url', {}),
+      );
+
+      await expect(service.getMessage('222', '333')).rejects.toThrow(
+        'Discord API request for message 333 in channel 222 failed with ' +
+          'status 502: ',
+      );
+    });
+
+    it('names the message, status and status text on an HTTP error', async () => {
+      rest.get.mockRejectedValue(
+        new HTTPError(502, 'Bad Gateway', 'GET', '/fake/url', {}),
+      );
+
+      await expect(service.getMessage('222', '333')).rejects.toThrow(
+        'Discord API request for message 333 in channel 222 failed with ' +
+          'status 502: Bad Gateway',
       );
     });
 

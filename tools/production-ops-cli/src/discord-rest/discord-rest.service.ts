@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { DiscordAPIError, REST, RouteLike, Routes } from 'discord.js';
+import {
+  DiscordAPIError,
+  HTTPError,
+  REST,
+  RouteLike,
+  Routes,
+} from 'discord.js';
 
 import { DiscordBotTokenService } from '../discord-bot-token/discord-bot-token.service';
 
@@ -77,6 +83,9 @@ export class DiscordRestService {
         `${prefix} with status ${error.status} (code ${String(error.code)}): ` +
         error.message
       );
+    }
+    if (error instanceof HTTPError) {
+      return `${prefix} with status ${error.status}: ${error.message}`;
     }
     const message = error instanceof Error ? error.message : String(error);
     return `${prefix}: ${message}`;
