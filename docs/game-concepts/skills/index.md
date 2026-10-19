@@ -62,6 +62,7 @@ with a **source** marking how the player came by each:
 | Source | Meaning |
 | --- | --- |
 | Starting | Came from the player's position (or [star player](../star-players/index.md) template). |
+| Advancement | Gained through an advancement, but the source does not say whether it was chosen or rolled. |
 | Chosen | Gained through an advancement, freely picked. |
 | Random | Gained through an advancement, randomly rolled. |
 

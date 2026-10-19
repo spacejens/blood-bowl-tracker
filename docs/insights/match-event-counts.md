@@ -23,7 +23,9 @@ Not every count exists for both grouping entities, and that is by design — not
 - Fouls committed are additionally counted by **coach**, reached from the per-team count by way of
   the team's coach. It is the only coach-grouped count today: coaches are ranked on fouls because
   someone wanted to read that list, not because every player/team count needs a coach twin. The
-  coach grouping is also league/era-scoped only — coach toplists take no competition scope.
+  match-event-backed coach grouping takes league, era and match-category scopes
+  only; the trophies-by-coach toplist is the one coach toplist that takes a
+  competition scope.
 
 The shared count helper makes filling in the grid mechanically trivial. Do not. A count exists
 because someone wants to read it, not because the grid has a hole.

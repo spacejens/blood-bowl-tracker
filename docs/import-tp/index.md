@@ -186,8 +186,8 @@ Teams, players, competitions, matches and TP's official team list are imported s
   system name, and the roster's match-snapshot-only players. The server
   upserts the team (keyed by roster id + name; race resolved by TP external
   id, skipped with an error if unresolved; coach upserted from the roster's
-  own coach id and name, created if unknown and its name refreshed if
-  already known — see [import-tp-live/index.md](../import-tp-live/index.md))
+  own coach id and name, created if unknown; an existing coach keeps its
+  stored name — see [import-tp-live/index.md](../import-tp-live/index.md))
   and its players. A team seen under several eras is sent once per era; the
   server's era sync only ever adds, so its eras accumulate. Returns
   `teamErasByRosterId`, `playerIdsByLineUpId`, `insertedPlayerIds` and
@@ -215,7 +215,8 @@ Teams, players, competitions, matches and TP's official team list are imported s
   mercenary position with no curated row at all, or a hire under a rules set no row covers, is
   recorded as an `ImportError` rather than silently leaving the characteristics unset. Players
   carry only a TP external id (no Name external id — player names aren't unique). Returns
-  `playerIdsByLineUpId`, consumed by match-event import to resolve a `matchEvents[].lineUpId`.
+  `playerIdsByLineUpId`, consumed by the later skills, career SPP and SPP-adjustment steps
+  (match events resolve their players from the database instead).
   Also consumes `matchEmbeddedPlayersByRosterId`
   from `main.ts`'s pre-scan of `matchesByCompetitionTpId` (each match's
   `homeRosterPlayers`/`awayRosterPlayers` — a per-match roster snapshot
@@ -392,12 +393,14 @@ The ordering in `main.ts` matters — a race has to be upserted before a team
 referencing it can be resolved — but resolution itself reads the database,
 not a client-side id map built earlier in the same run.
 
-Some maps deliberately remain, because no external-id resolve can answer
-them: the competition scan's `competitionsByTpId` (each directory's
+Some maps deliberately remain. The player id map (`playerIdsByLineUpId`)
+collects the ids the roster import's player upserts return and is handed to the
+later steps that need them (skills, career SPP, SPP adjustments). The others cannot
+be answered by an external-id resolve: the competition scan's `competitionsByTpId` (each directory's
 tournament and era), parsed
 match data, a race's display name (`raceNamesById`), `team_eras` rows (which
 have no external ids of their own), classification and evidence sets, and
-matches and players (which have no resolve procedure).
+matches (which have no resolve procedure).
 
 ### Position keywords
 
@@ -414,7 +417,7 @@ including Big Guy. The server-side official team list import resolves every posi
 against its own curated keyword catalogue (`TpOfficialKeywordCatalogService`, in
 `packages/import-tp-live`) and syncs the resulting `(position, rules set, keyword)` rows. A code
 with no curated match is reported once as an import error, naming the position it was first seen
-on and pointing at `tools/import-manual/data/batches/001-initial-seed/keywords.json5`; the
+on and pointing at adding it to `keywords.json5` in a new `tools/import-manual` batch under `data/batches/`; the
 position's other keywords are still written. `tools/import-tp`'s own `TpKeywordCatalogService`
 reads the same curated catalogue independently (via `KeywordsImportService.listKeywords`), keyed
 by each keyword's `tourplay.net` external id, but only to decode a `Hatred`/`Animosity` skill's

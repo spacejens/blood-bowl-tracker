@@ -17,8 +17,8 @@ player of that rules set arrives in it. Clicking a race on the page issues no
 further request — the page only re-renders what it already has — so there is
 nothing to scrape per race.
 
-The page's four rules-set tabs (Angular Material toggles matched by
-`.mat-button-toggle-button`) map to the `ruleSet` query parameter:
+The page's four rules-set tabs are labels only; the downloader does not read
+them. Each maps to the `ruleSet` query parameter:
 
 - `Blood Bowl Official BB2025 · BB7` → `ruleSet=25` (BB2025)
 - `Secret Bowl Unofficial BB2025 · BB7` → `ruleSet=25` (BB2025)
@@ -29,17 +29,17 @@ Two consequences:
 
 - The tab labels are marketing copy, not rules set names, so
   `OfficialTeamsDownloaderService` selects a rules set by the `ruleSet` id it
-  maps each configured rules set name to and requests that URL from inside the
-  open page, rather than by clicking a tab. That rules-set-name → `ruleSet` id
-  map lives in `packages/tp-paths`' `TpOfficialTeamsPathsService`, shared with
-  the live import. Nothing in the downloader depends on the page's DOM.
+  maps each configured rules set name to, and requests that API URL directly
+  over plain HTTP (with the teams page as referer) in one shared session. That
+  rules-set-name → `ruleSet` id map lives in `packages/tp-paths`'
+  `TpOfficialTeamsPathsService`, shared with the live import. The downloader
+  never loads the page, so nothing in it depends on the page's DOM.
 - The official BB2025 list and the unofficial "Secret Bowl" one are **the same
   response**; the page splits them client-side by each roster's
   `teamRosterType`. There is no separate Secret Bowl download.
 
-Opening the teams page always loads the default tab's rules set (currently
-BB2025), so the downloader stores only the response for the rules set it is
-downloading. Each `teams/<rulesSet>/` folder therefore holds exactly one file.
+The downloader stores one response per configured rules set, so each
+`teams/<rulesSet>/` folder holds exactly one file.
 
 ## Response shape
 

@@ -454,8 +454,8 @@ same way, rather than an all-time one. If the scoped league, era or competition
 has been deleted since the toplist was posted, the button replies with the same
 not-found message the corresponding `/insights` option would.
 
-The bot's startup message posts a random fact from this tree — the same
-behavior as invoking `/insights` with no argument.
+The bot's startup message carries only the deployment embed; it does not
+post a fact from this tree.
 
 Leaderboards show the top five ranks; ties share a rank, so a leaderboard can
 list more than five entries. If the database does not respond in time, the
