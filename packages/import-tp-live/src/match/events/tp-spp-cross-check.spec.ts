@@ -1,6 +1,7 @@
 import type { UpsertMatchEvent } from '@blood-bowl-tracker/api-contract';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
+import type { TpMatchEventKindBuildersService } from './tp-match-event-kind-builders.service';
 import {
   ACTOR_LINE_UP_ID,
   ACTOR_PLAYER_ID,
@@ -41,8 +42,13 @@ describe('TP SPP cross-check', () => {
   /** Sum of the events' own starPoints below: 3 + 1 + 0 + 2. */
   const EXPECTED_TOTAL_SPP = 6;
 
-  it('sums the imported per-event spp values to the expected total', async () => {
-    const service = await makeKindBuilders();
+  let service: TpMatchEventKindBuildersService;
+
+  beforeEach(async () => {
+    service = await makeKindBuilders();
+  });
+
+  it('sums the imported per-event spp values to the expected total', () => {
     const built: UpsertMatchEvent[] = [];
 
     // touchdown, starPoints 3

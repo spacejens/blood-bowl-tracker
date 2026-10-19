@@ -1,10 +1,11 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   INSIGHTS_CATEGORY_UNSUPPORTED_FOR_LEAGUE_MESSAGE,
   INSIGHTS_LEAGUE_NOT_FOUND_MESSAGE,
   INSIGHTS_SCOPE_CONFLICT_MESSAGE,
 } from '../error-messages';
+import type { MakeServiceResult } from './insights-command.service.test-helpers';
 import {
   asLeaf,
   autocompleteInteraction,
@@ -14,13 +15,18 @@ import {
 } from './insights-command.service.test-helpers';
 
 describe('InsightsCommandService — league scoping and rejection', () => {
+  let harness: MakeServiceResult;
+
+  beforeEach(async () => {
+    harness = await makeService();
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
   it('scopes a league-supporting category to the league and names it in the title', async () => {
-    const { service, factTreeDeps, factTreeUtils, leagues, tree } =
-      await makeService();
+    const { service, factTreeDeps, factTreeUtils, leagues, tree } = harness;
     stubLeafCategory(factTreeUtils, asLeaf(tree.coach.toplist.matches.played));
     leagues.findById.mockResolvedValue({ id: 5, name: 'GBBL' });
     const result = await service.execute(
@@ -41,8 +47,7 @@ describe('InsightsCommandService — league scoping and rejection', () => {
   });
 
   it('scopes eras.list to the league and names it in the title', async () => {
-    const { service, factTreeDeps, factTreeUtils, leagues, tree } =
-      await makeService();
+    const { service, factTreeDeps, factTreeUtils, leagues, tree } = harness;
     stubLeafCategory(factTreeUtils, asLeaf(tree.eras.list));
     leagues.findById.mockResolvedValue({ id: 5, name: 'GBBL' });
     const result = await service.execute(
@@ -67,7 +72,7 @@ describe('InsightsCommandService — league scoping and rejection', () => {
 
   it('restricts the random pick to league-supporting leaves', async () => {
     const { service, factTreeDeps, factTreeUtils, factTree, leagues, tree } =
-      await makeService();
+      harness;
     leagues.findById.mockResolvedValue({ id: 5, name: 'GBBL' });
     factTreeUtils.collectLeaves.mockReturnValue([
       asLeaf(tree.coach.toplist.eras.active), // supportsLeague: false
@@ -83,7 +88,7 @@ describe('InsightsCommandService — league scoping and rejection', () => {
   });
 
   it('rejects a league on a non-league-supporting category (coach.toplist.eras.active)', async () => {
-    const { service, factTreeUtils, leagues, tree } = await makeService();
+    const { service, factTreeUtils, leagues, tree } = harness;
     stubLeafCategory(factTreeUtils, asLeaf(tree.coach.toplist.eras.active));
     leagues.findById.mockResolvedValue({ id: 5, name: 'GBBL' });
     const result = await service.execute(
@@ -93,7 +98,7 @@ describe('InsightsCommandService — league scoping and rejection', () => {
   });
 
   it('rejects a league id that resolves to no league', async () => {
-    const { service, leagues } = await makeService();
+    const { service, leagues } = harness;
     leagues.findById.mockResolvedValue(undefined);
     const result = await service.execute(
       chatInput('coach.toplist.matches.played', { league: '999' }),
@@ -102,7 +107,7 @@ describe('InsightsCommandService — league scoping and rejection', () => {
   });
 
   it('autocompletes leagues with name-only labels and id values', async () => {
-    const { service, leagues } = await makeService();
+    const { service, leagues } = harness;
     leagues.searchByNamePrefix.mockResolvedValue([
       { id: 5, name: 'GBBL' },
       { id: 6, name: 'GBBL North' },
@@ -121,7 +126,7 @@ describe('InsightsCommandService — league scoping and rejection', () => {
     ['competition+league', { competition: '2', league: '5' }],
     ['all three', { era: '1', competition: '2', league: '5' }],
   ])('rejects %s with the conflict message', async (_label, scope) => {
-    const { service } = await makeService();
+    const { service } = harness;
     const result = await service.execute(
       chatInput('coach.toplist.matches.played', scope),
     );
