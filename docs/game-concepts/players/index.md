@@ -10,7 +10,7 @@ A [player](../../glossary.md#player) is an individual on a [team era](../team-er
   no validation code enforces it yet.)
 - A player has a set of **current lasting injuries**: whether they must miss
   their next game, how many niggling injuries they carry, and how many
-  reductions each of their five [characteristics](../../database.md)
+  reductions each of their five characteristics
   currently sits under. This is live state, not history: newer
   [rules sets](../rules-sets/index.md) let these heal between
   [competitions](../competitions/index.md), so what a player has ever suffered
@@ -24,7 +24,7 @@ A [player](../../glossary.md#player) is an individual on a [team era](../team-er
   characteristic was already at its floor or at the rules' cap on reductions,
   moved nothing and counts zero.
 - A player also has a set of **characteristic increase counts**: how many
-  times each of their five [characteristics](../../database.md) has been
+  times each of their five characteristics has been
   increased by an advancement. These are plain counts rather than per-increase
   records, because neither source publishes a reliable per-increase event: TP
   never records characteristic increases at all (they are only inferable by

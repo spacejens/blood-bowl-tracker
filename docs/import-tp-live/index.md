@@ -181,8 +181,7 @@ them in its own later pass, naming skills from its whole download mirror.
 
 ## Failures
 
-No entry point throws for an import problem. Each is one `ImportError`
-in the result — with one exception for the live imports: when TP blocks
+Every import problem is one `ImportError` in the result — with one exception for the live imports: when TP blocks
 requests (a 403, see [scrape-tp](../scrape-tp/index.md#what-a-request-does)),
 `TpBlockedError` is thrown out of the entry point at once. Every further
 request would fail the same way, so no further team, match or rules set is

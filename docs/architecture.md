@@ -66,7 +66,7 @@ packages/
   import/             — NestJS module with import orchestration logic:
                         generic upsert bookkeeping (ImportRunnerService,
                         BatchBufferService, ExternalIdResolverService) plus
-                        one entity-specific import service per entity (coaches,
+                        entity-specific import services (coaches,
                         teams, players, matches, trophies, and so on) that
                         call api-client; also owns the config-service factories the import
                         tools' own config, external-system-name and source
@@ -137,7 +137,7 @@ tools/
                         hand-curated source data beside imported star player
                         identity, per-rules-set characteristics and hire
                         eligibility as a static HTML report; sibling of the
-                        other three review tools, likewise a developer review
+                        other review tools, likewise a developer review
                         aid
   db-diagram/         — shell script (db-diagram.sh, not an npm workspace
                         package) that generates a SchemaSpy ER diagram and
@@ -265,8 +265,7 @@ These files:
 Helpers live in the workspace that uses them. A helper is promoted to a shared
 package only if the same helper is genuinely needed in two or more workspaces —
 `mockDb` is one such helper, living in `packages/db` and used by
-the specs of `packages/game-data`, the review tools and
-`packages/review-harness`. It is reachable as
+the specs of every workspace that builds drizzle queries. It is reachable as
 `@blood-bowl-tracker/db/test-helpers` (a separate export subpath whose compiled
 output carries its own `{"type": "module"}` marker, so importing the package's
 main entry point never pulls Vitest into a consumer's runtime graph).

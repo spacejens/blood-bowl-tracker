@@ -130,7 +130,7 @@ the same `/deepdive position:<position>` view.
 The `skill.toplist.players.*` facts are the exception: skills have no
 `/deepdive` view, so their rows carry no button.
 
-Each of the fourteen `player.toplist.*` facts attaches one button per listed
+Each of the `player.toplist.*` facts attaches one button per listed
 player, opening the same `/deepdive player:<player>` view. Note the button set
 is broader than the deepdive's own category list: the consequence-only toplists
 (`player.toplist.casualties.suffered`, `player.toplist.injuries.serious.suffered`,
