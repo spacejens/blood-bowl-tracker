@@ -16,9 +16,8 @@ import {
 } from './bbl-match-events-import.test-helpers';
 
 /**
- * Merge-specific scenarios for BblMatchEventsImportService, split out of
- * bbl-match-events-import.service.spec.ts to keep both files under the
- * *.spec.ts line ceiling. Each test wires its own mocks directly (rather than
+ * Merge-specific scenarios for BblMatchEventsImportService (the rest live in
+ * bbl-match-events-import.service.spec.ts). Each test wires its own mocks directly (rather than
  * the single-match `runImport` helper) because merged-pair imports combine
  * two source event pages into one pass.
  */

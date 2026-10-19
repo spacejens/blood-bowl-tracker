@@ -266,10 +266,9 @@ describe('MatchEventCorrelationService', () => {
       // `fer`'s serious_injury (same source page) and `pro`'s
       // serious_injury (the other source page). Each acting team's
       // pairing looks unambiguous in isolation; considered together they
-      // are a genuine cross-team ambiguity, so nothing may merge. Before
-      // the fix, `fer` came first in `teamCodes` order and silently
-      // claimed the consequence, and `pro`'s equally plausible action was
-      // never compared.
+      // are a genuine cross-team ambiguity, so nothing may merge. Letting
+      // the first team in `teamCodes` order (`fer`) claim the consequence
+      // without comparing `pro`'s equally plausible action fails this test.
       const combined = service.combineOccurrences(
         makeEvents({
           bblId: '1311',

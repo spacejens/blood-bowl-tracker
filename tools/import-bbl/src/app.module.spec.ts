@@ -23,7 +23,7 @@ describe('AppModule', () => {
   it('registers BblCoachesImportService with its dependencies wired', async () => {
     // AppModule.register() always resolves the config file from cwd (there's
     // no way to inject a path through it), and ApiClientModule.forRootAsync's
-    // factory calls getApiBaseUrl() during module compile — which now
+    // factory calls getApiBaseUrl() during module compile — which
     // requires the connection group to be present. Point the config path at
     // a minimal fixture so this DI-wiring test doesn't depend on whatever
     // (gitignored) config file happens to exist at cwd.
