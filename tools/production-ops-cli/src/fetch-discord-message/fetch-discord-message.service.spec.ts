@@ -1,152 +1,74 @@
 import { Test } from '@nestjs/testing';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
-import { DiscordBotTokenService } from '../discord-bot-token/discord-bot-token.service';
+import { DiscordRestService } from '../discord-rest/discord-rest.service';
 import { FetchDiscordMessageService } from './fetch-discord-message.service';
 
 describe('FetchDiscordMessageService', () => {
   let service: FetchDiscordMessageService;
-  let botToken: MockProxy<DiscordBotTokenService>;
-  let fetchMock: ReturnType<typeof vi.fn>;
-  let originalFetch: typeof globalThis.fetch;
+  let discordRest: MockProxy<DiscordRestService>;
 
   beforeEach(async () => {
-    botToken = mock<DiscordBotTokenService>();
-    botToken.read.mockResolvedValue('secret-bot-token');
-
-    originalFetch = globalThis.fetch;
-    fetchMock = vi.fn();
-    Object.defineProperty(globalThis, 'fetch', {
-      value: fetchMock,
-      configurable: true,
-      writable: true,
-    });
+    discordRest = mock<DiscordRestService>();
 
     const moduleRef = await Test.createTestingModule({
       providers: [
         FetchDiscordMessageService,
-        { provide: DiscordBotTokenService, useValue: botToken },
+        { provide: DiscordRestService, useValue: discordRest },
       ],
     }).compile();
     service = moduleRef.get(FetchDiscordMessageService);
   });
 
-  afterEach(() => {
-    Object.defineProperty(globalThis, 'fetch', {
-      value: originalFetch,
-      configurable: true,
-      writable: true,
-    });
-  });
-
-  it('calls the v10 single-message endpoint with the link’s channel and message ids, returning the parsed body unchanged', async () => {
+  it('fetches the link’s channel and message ids, returning Discord’s body unchanged', async () => {
     const body = { id: '333', embeds: [{ title: 'Match result' }] };
-    fetchMock.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: () => Promise.resolve(body),
-    });
+    discordRest.getMessage.mockResolvedValue(body);
 
     const result = await service.run(
       'https://discord.com/channels/111/222/333',
     );
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://discord.com/api/v10/channels/222/messages/333',
-      {
-        headers: { Authorization: 'Bot secret-bot-token' },
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher, not a real AbortSignal
-        signal: expect.any(AbortSignal),
-      },
-    );
-    expect(result).toEqual(body);
+    expect(discordRest.getMessage).toHaveBeenCalledWith('222', '333');
+    expect(result).toBe(body);
   });
 
   it('accepts a canary.discord.com message link, the same as a plain discord.com one', async () => {
-    const body = { id: '333' };
-    fetchMock.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: () => Promise.resolve(body),
-    });
+    discordRest.getMessage.mockResolvedValue({ id: '333' });
 
-    const result = await service.run(
-      'https://canary.discord.com/channels/111/222/333',
-    );
+    await service.run('https://canary.discord.com/channels/111/222/333');
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://discord.com/api/v10/channels/222/messages/333',
-      {
-        headers: { Authorization: 'Bot secret-bot-token' },
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher, not a real AbortSignal
-        signal: expect.any(AbortSignal),
-      },
-    );
-    expect(result).toEqual(body);
+    expect(discordRest.getMessage).toHaveBeenCalledWith('222', '333');
   });
 
-  it('bounds the request with an AbortSignal timeout, so a stalled response cannot hang forever', async () => {
-    const body = { id: '333' };
-    fetchMock.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: () => Promise.resolve(body),
-    });
-
-    await service.run('https://discord.com/channels/111/222/333');
-
-    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(options.signal).toBeInstanceOf(AbortSignal);
-    expect(options.signal?.aborted).toBe(false);
-  });
-
-  it('throws with the status and Discord error body on a non-2xx response', async () => {
-    fetchMock.mockResolvedValue({
-      ok: false,
-      status: 404,
-      text: () => Promise.resolve('{"message":"Unknown Message","code":10008}'),
-    });
+  it('propagates a Discord failure unchanged', async () => {
+    discordRest.getMessage.mockRejectedValue(
+      new Error('Discord API request for message 333 in channel 222 failed'),
+    );
 
     await expect(
       service.run('https://discord.com/channels/111/222/333'),
-    ).rejects.toThrow(/404.*Unknown Message/s);
-  });
-
-  it('never includes the bot token in the failure message', async () => {
-    fetchMock.mockResolvedValue({
-      ok: false,
-      status: 401,
-      text: () => Promise.resolve('{"message":"401: Unauthorized"}'),
-    });
-
-    const error: unknown = await service
-      .run('https://discord.com/channels/111/222/333')
-      .catch((e: unknown) => e);
-
-    expect(error).toBeInstanceOf(Error);
-    expect((error as Error).message).not.toContain('secret-bot-token');
+    ).rejects.toThrow(/message 333 in channel 222 failed/);
   });
 
   it('rejects a link that is not a Discord message link, before reading the token or calling Discord', async () => {
     await expect(service.run('https://example.com/whatever')).rejects.toThrow(
       /discord\.com\/channels/,
     );
-    expect(botToken.read).not.toHaveBeenCalled();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(discordRest.getMessage).not.toHaveBeenCalled();
   });
 
   it('rejects a channel link with no message id', async () => {
     await expect(
       service.run('https://discord.com/channels/111/222'),
     ).rejects.toThrow(/discord\.com\/channels/);
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(discordRest.getMessage).not.toHaveBeenCalled();
   });
 
   it('rejects a link whose ids are not numeric', async () => {
     await expect(
       service.run('https://discord.com/channels/guild/channel/message'),
     ).rejects.toThrow(/discord\.com\/channels/);
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(discordRest.getMessage).not.toHaveBeenCalled();
   });
 });
