@@ -2,18 +2,17 @@ import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { DeepMockProxy } from 'vitest-mock-extended';
+import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { ImportRunnerService } from './import-runner.service';
-import { stubImportRunner } from './import-runner.test-helpers';
+import { recordUpsertResultOptions } from './import-runner.test-helpers';
 import { MatchOutcomesImportService } from './match-outcomes-import.service';
 import type { ImportError } from './types';
 
 async function makeModule() {
   const client = mockDeep<ApiClient>();
   const runner = mock<ImportRunnerService>();
-  stubImportRunner(runner);
   const moduleRef = await Test.createTestingModule({
     providers: [
       MatchOutcomesImportService,
@@ -21,62 +20,71 @@ async function makeModule() {
       { provide: ImportRunnerService, useValue: runner },
     ],
   }).compile();
-  return { service: moduleRef.get(MatchOutcomesImportService), client };
+  return { service: moduleRef.get(MatchOutcomesImportService), client, runner };
 }
 
 describe('MatchOutcomesImportService', () => {
   let service: MatchOutcomesImportService;
   let client: DeepMockProxy<ApiClient>;
+  let runner: MockProxy<ImportRunnerService>;
 
   beforeEach(async () => {
-    ({ service, client } = await makeModule());
+    ({ service, client, runner } = await makeModule());
   });
 
   const data = { competitionId: 7, overrides: [], tieBreaks: [] };
 
-  it('returns the RPC result and calls the client with the given data on success', async () => {
-    const expected = {
+  it('returns the runner result unchanged', async () => {
+    const resolved = {
       competitionId: 7,
       resolvedMatchIds: [1],
       unresolvedMatchIds: [],
     };
-    client.matches.resolveOutcomes.mockResolvedValue(expected);
+    runner.recordUpsertResult.mockResolvedValue(resolved);
+
+    const result = await service.resolveOutcomes(data, []);
+
+    expect(result).toBe(resolved);
+  });
+
+  it('returns undefined when the runner recorded a failure', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
+
+    const result = await service.resolveOutcomes(data, []);
+
+    expect(result).toBeUndefined();
+  });
+
+  it('hands the runner the competition id as item, the caller error list, and an upsert that calls the client', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
+    const resolved = {
+      competitionId: 7,
+      resolvedMatchIds: [1],
+      unresolvedMatchIds: [],
+    };
+    client.matches.resolveOutcomes.mockResolvedValue(resolved);
     const errors: ImportError[] = [];
 
-    const result = await service.resolveOutcomes(data, errors);
+    await service.resolveOutcomes(data, errors);
 
-    expect(result).toEqual(expected);
+    const options = recordUpsertResultOptions(runner);
+    expect(options.item).toEqual({ competitionId: 7 });
+    expect(options.errors).toBe(errors);
+    await expect(options.upsert()).resolves.toBe(resolved);
     expect(client.matches.resolveOutcomes).toHaveBeenCalledWith(data);
-    expect(errors).toHaveLength(0);
   });
 
-  it('resolves to undefined and records an error when the client call fails', async () => {
-    client.matches.resolveOutcomes.mockRejectedValue(new Error('conflict'));
-    const errors: ImportError[] = [];
+  it('builds a failure message naming the competition', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    const result = await service.resolveOutcomes(data, errors);
+    await service.resolveOutcomes(data, []);
 
-    expect(result).toBeUndefined();
-    expect(errors).toEqual([
-      {
-        item: { competitionId: 7 },
-        message: 'Failed to resolve match outcomes for competition 7: conflict',
-      },
-    ]);
-  });
-
-  it('records an error using String(err) for a non-Error rejection', async () => {
-    client.matches.resolveOutcomes.mockRejectedValue('boom');
-    const errors: ImportError[] = [];
-
-    const result = await service.resolveOutcomes(data, errors);
-
-    expect(result).toBeUndefined();
-    expect(errors).toEqual([
-      {
-        item: { competitionId: 7 },
-        message: 'Failed to resolve match outcomes for competition 7: boom',
-      },
-    ]);
+    const { buildErrorMessage } = recordUpsertResultOptions(runner);
+    expect(buildErrorMessage(new Error('conflict'))).toBe(
+      'Failed to resolve match outcomes for competition 7: conflict',
+    );
+    expect(buildErrorMessage('boom')).toBe(
+      'Failed to resolve match outcomes for competition 7: boom',
+    );
   });
 });
