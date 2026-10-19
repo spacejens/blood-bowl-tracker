@@ -38,6 +38,7 @@ import { CareerThresholdTrophyRuleService } from '../src/trophy-awards/threshold
 import { TrophyAwardsService } from '../src/trophy-awards/trophy-awards.service';
 import { TrophyRuleEventTypeFilterService } from '../src/trophy-awards/trophy-rule-event-type-filter.service';
 import { TrophyRulePositionFilterService } from '../src/trophy-awards/trophy-rule-position-filter.service';
+import { TrophyTiedWinnersService } from '../src/trophy-awards/trophy-tied-winners.service';
 import { connectTestDb } from './e2e-database';
 
 /**
@@ -261,6 +262,7 @@ describe('trophy award rule eligible positions (real Postgres)', () => {
         TrophyAwardsService,
         TrophyRuleEventTypeFilterService,
         TrophyRulePositionFilterService,
+        TrophyTiedWinnersService,
         MatchScopeFilterService,
         { provide: DB, useValue: db },
       ],

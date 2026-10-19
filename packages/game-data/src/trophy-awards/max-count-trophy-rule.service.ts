@@ -24,6 +24,7 @@ import type {
   TrophyRuleEventTypes,
   TrophyRuleWinner,
 } from './trophy-rule-types';
+import { TrophyTiedWinnersService } from './trophy-tied-winners.service';
 
 /**
  * One `max_count` rule evaluation: which competition, which participant of a
@@ -50,6 +51,7 @@ export class MaxCountTrophyRuleService {
     @Inject(DB) private readonly db: Db,
     private readonly eventTypeFilter: TrophyRuleEventTypeFilterService,
     private readonly positionFilter: TrophyRulePositionFilterService,
+    private readonly tiedWinners: TrophyTiedWinnersService,
     private readonly matchScopeFilter: MatchScopeFilterService,
   ) {}
 
@@ -107,28 +109,6 @@ export class MaxCountTrophyRuleService {
       .orderBy(desc(count(matchEvents.id)))
       .limit(tieCutoff + 1);
 
-    return selectTiedWinners(rows, tieCutoff);
+    return this.tiedWinners.select(rows, tieCutoff);
   }
-}
-
-/**
- * The shared max/tie decision: the top figure wins, unless it is zero or more
- * players share it than the cutoff allows.
- */
-export function selectTiedWinners(
-  rows: readonly { playerId: number; teamEraId: number; eventCount: number }[],
-  tieCutoff: number,
-): TrophyRuleWinner[] {
-  const best = rows[0];
-  if (best === undefined || best.eventCount < 1) {
-    return [];
-  }
-  const winners = rows.filter((row) => row.eventCount === best.eventCount);
-  if (winners.length > tieCutoff) {
-    return [];
-  }
-  return winners.map((row) => ({
-    playerId: row.playerId,
-    teamEraId: row.teamEraId,
-  }));
 }

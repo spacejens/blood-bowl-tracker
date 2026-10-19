@@ -18,7 +18,6 @@ import {
 import { Inject, Injectable } from '@nestjs/common';
 
 import { MatchScopeFilterService } from '../shared/match-scope-filter.service';
-import { selectTiedWinners } from './max-count-trophy-rule.service';
 import { TrophyRuleEventTypeFilterService } from './trophy-rule-event-type-filter.service';
 import { TrophyRulePositionFilterService } from './trophy-rule-position-filter.service';
 import type {
@@ -27,6 +26,7 @@ import type {
   TrophyRuleEventTypes,
   TrophyRuleWinner,
 } from './trophy-rule-types';
+import { TrophyTiedWinnersService } from './trophy-tied-winners.service';
 
 /**
  * One `max_spp_sum` rule evaluation. `types` empty on both sides means "every
@@ -54,6 +54,7 @@ export class MaxSppSumTrophyRuleService {
     @Inject(DB) private readonly db: Db,
     private readonly eventTypeFilter: TrophyRuleEventTypeFilterService,
     private readonly positionFilter: TrophyRulePositionFilterService,
+    private readonly tiedWinners: TrophyTiedWinnersService,
     private readonly matchScopeFilter: MatchScopeFilterService,
   ) {}
 
@@ -119,6 +120,6 @@ export class MaxSppSumTrophyRuleService {
       .orderBy(desc(sppSum))
       .limit(tieCutoff + 1);
 
-    return selectTiedWinners(rows, tieCutoff);
+    return this.tiedWinners.select(rows, tieCutoff);
   }
 }
