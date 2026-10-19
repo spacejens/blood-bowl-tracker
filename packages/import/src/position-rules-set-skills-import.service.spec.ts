@@ -6,7 +6,7 @@ import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { ImportRunnerService } from './import-runner.service';
-import { stubImportRunner } from './import-runner.test-helpers';
+import { recordUpsertResultOptions } from './import-runner.test-helpers';
 import { PositionRulesSetSkillsImportService } from './position-rules-set-skills-import.service';
 import type { ImportError } from './types';
 
@@ -18,7 +18,6 @@ describe('PositionRulesSetSkillsImportService', () => {
   beforeEach(async () => {
     client = mockDeep<ApiClient>();
     runner = mock<ImportRunnerService>();
-    stubImportRunner(runner);
     const moduleRef = await Test.createTestingModule({
       providers: [
         PositionRulesSetSkillsImportService,
@@ -33,79 +32,104 @@ describe('PositionRulesSetSkillsImportService', () => {
     entries: [{ positionId: 3, rulesSetId: 4, skillId: 5 }],
   };
 
-  it('returns the result and calls the client on success', async () => {
-    client.positionRulesSetSkills.sync.mockResolvedValue({
-      positionRulesSetSkillIds: [21],
+  describe('syncPositionRulesSetSkills', () => {
+    it('returns the runner result unchanged', async () => {
+      const synced = { positionRulesSetSkillIds: [21] };
+      runner.recordUpsertResult.mockResolvedValue(synced);
+
+      const result = await service.syncPositionRulesSetSkills(data, []);
+
+      expect(result).toBe(synced);
     });
-    const errors: ImportError[] = [];
 
-    const result = await service.syncPositionRulesSetSkills(data, errors);
+    it('returns undefined when the runner recorded a failure', async () => {
+      runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    expect(result).toEqual({ positionRulesSetSkillIds: [21] });
-    expect(client.positionRulesSetSkills.sync).toHaveBeenCalledWith(data);
-    expect(errors).toHaveLength(0);
-  });
+      const result = await service.syncPositionRulesSetSkills(data, []);
 
-  it('records an error when the sync fails', async () => {
-    client.positionRulesSetSkills.sync.mockRejectedValue(new Error('boom'));
-    const errors: ImportError[] = [];
+      expect(result).toBeUndefined();
+    });
 
-    const result = await service.syncPositionRulesSetSkills(data, errors);
+    it('hands the runner the data as item, the caller error list, and an upsert that calls the client', async () => {
+      runner.recordUpsertResult.mockResolvedValue(undefined);
+      client.positionRulesSetSkills.sync.mockResolvedValue({
+        positionRulesSetSkillIds: [21],
+      });
+      const errors: ImportError[] = [];
 
-    expect(result).toBeUndefined();
-    expect(errors).toEqual([
-      {
-        item: data,
-        message: 'Failed to sync 1 starting skill(s): boom',
-      },
-    ]);
-  });
+      await service.syncPositionRulesSetSkills(data, errors);
 
-  it('records an error using String(err) for a non-Error rejection', async () => {
-    client.positionRulesSetSkills.sync.mockRejectedValue('nope');
-    const errors: ImportError[] = [];
+      const options = recordUpsertResultOptions(runner);
+      expect(options.item).toBe(data);
+      expect(options.errors).toBe(errors);
+      await expect(options.upsert()).resolves.toEqual({
+        positionRulesSetSkillIds: [21],
+      });
+      expect(client.positionRulesSetSkills.sync).toHaveBeenCalledWith(data);
+    });
 
-    await service.syncPositionRulesSetSkills(data, errors);
+    it('builds a failure message naming the entry count', async () => {
+      runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    expect(errors[0].message).toBe('Failed to sync 1 starting skill(s): nope');
+      await service.syncPositionRulesSetSkills(data, []);
+
+      const { buildErrorMessage } = recordUpsertResultOptions(runner);
+      expect(buildErrorMessage(new Error('boom'))).toBe(
+        'Failed to sync 1 starting skill(s): boom',
+      );
+      expect(buildErrorMessage('nope')).toBe(
+        'Failed to sync 1 starting skill(s): nope',
+      );
+    });
   });
 
   describe('listPositionRulesSetSkills', () => {
     const rows = [{ rulesSetId: 900, skillId: 5, attributeValue: null }];
 
-    it("returns the position's starting skills on success", async () => {
+    it('returns the runner result unchanged', async () => {
+      runner.recordUpsertResult.mockResolvedValue(rows);
+
+      const result = await service.listPositionRulesSetSkills(42, []);
+
+      expect(result).toBe(rows);
+    });
+
+    it('returns undefined when the runner recorded a failure', async () => {
+      runner.recordUpsertResult.mockResolvedValue(undefined);
+
+      const result = await service.listPositionRulesSetSkills(42, []);
+
+      expect(result).toBeUndefined();
+    });
+
+    it('hands the runner the id as item, the caller error list, and an upsert that calls the client', async () => {
+      runner.recordUpsertResult.mockResolvedValue(undefined);
       client.positionRulesSetSkills.list.mockResolvedValue(rows);
       const errors: ImportError[] = [];
 
-      const result = await service.listPositionRulesSetSkills(42, errors);
+      await service.listPositionRulesSetSkills(42, errors);
 
+      const options = recordUpsertResultOptions(runner);
+      expect(options.item).toEqual({ positionRulesSetSkills: 42 });
+      expect(options.errors).toBe(errors);
+      await expect(options.upsert()).resolves.toBe(rows);
       expect(client.positionRulesSetSkills.list).toHaveBeenCalledWith({
         positionId: 42,
       });
-      expect(result).toEqual(rows);
-      expect(errors).toEqual([]);
     });
 
-    it('records an error and returns undefined when the read fails', async () => {
-      client.positionRulesSetSkills.list.mockRejectedValue(new Error('boom'));
-      const errors: ImportError[] = [];
+    it('builds a failure message naming the id', async () => {
+      runner.recordUpsertResult.mockResolvedValue(undefined);
 
-      const result = await service.listPositionRulesSetSkills(42, errors);
+      await service.listPositionRulesSetSkills(42, []);
 
-      expect(result).toBeUndefined();
-      expect(errors).toHaveLength(1);
-      expect(errors[0].message).toContain('42');
-      expect(errors[0].message).toContain('boom');
-    });
-
-    it('records an error using String(err) for a non-Error rejection', async () => {
-      client.positionRulesSetSkills.list.mockRejectedValue('nope');
-      const errors: ImportError[] = [];
-
-      const result = await service.listPositionRulesSetSkills(42, errors);
-
-      expect(result).toBeUndefined();
-      expect(errors[0].message).toContain('nope');
+      const { buildErrorMessage } = recordUpsertResultOptions(runner);
+      expect(buildErrorMessage(new Error('boom'))).toBe(
+        'Failed to list starting skills for position 42: boom',
+      );
+      expect(buildErrorMessage('nope')).toBe(
+        'Failed to list starting skills for position 42: nope',
+      );
     });
   });
 });

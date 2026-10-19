@@ -32,16 +32,14 @@ export type ConfigLoaderConstructor = new (filePath: string) => ConfigLoader;
  * failure in an error naming the path, and validate the result against the
  * caller's top-level schema.
  *
- * A class-factory rather than a service: it does not compute a value from
- * injected collaborators — it *builds* the `@Injectable()` class that NestJS
- * DI manages, which each tool's config service then extends. That shape is
- * not one of the four exemptions listed in CLAUDE.md's "Service vs. loose
- * function"; in particular it is not the "generic over entity/table type"
- * exemption, since the parameter here is a runtime config object
- * (`pathToken`, `schema`), not a compile-time generic. The `@Injectable()`
- * decorator and the `@Inject(pathToken)` parameter decorator live on the
- * base, and NestJS finds their metadata through the subclass's prototype
- * chain, which is why a subclass needs no constructor of its own.
+ * A class factory rather than a service (CLAUDE.md's "Service vs. loose
+ * function", case 5): it does not compute a value from injected collaborators.
+ * It *builds* the `@Injectable()` class that NestJS DI manages, which each
+ * tool's config service then extends, from a declarative config object
+ * (`pathToken`, `schema`). The `@Injectable()` decorator and the
+ * `@Inject(pathToken)` parameter decorator live on the base, and NestJS finds
+ * their metadata through the subclass's prototype chain, which is why a
+ * subclass needs no constructor of its own.
  */
 export function createConfigLoaderServiceBase(
   config: ConfigLoaderConfig,

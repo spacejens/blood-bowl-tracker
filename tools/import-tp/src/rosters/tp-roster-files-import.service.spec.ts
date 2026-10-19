@@ -308,19 +308,20 @@ describe('TpRosterFilesImportService', () => {
         players: { success: false, imported: 0, errors: [playerError] },
       }),
     );
-    importResults.result.mockImplementation((options) => ({
-      success: options.errors.length === 0,
-      ...options,
-    }));
 
-    const result = await service.importRosterFiles({
+    await service.importRosterFiles({
       rosters: [entry(1, 'Fourth era'), entry(2, 'Fourth era')],
       matchEmbeddedPlayersByRosterId: new Map(),
     });
 
-    expect(result.teamResult.errors).toEqual([teamError]);
-    expect(result.playerResult.errors).toEqual([playerError]);
-    expect(result.teamResult.imported).toBe(2);
+    expect(importResults.result).toHaveBeenNthCalledWith(1, {
+      imported: 2,
+      errors: [teamError],
+    });
+    expect(importResults.result).toHaveBeenNthCalledWith(2, {
+      imported: 0,
+      errors: [playerError],
+    });
   });
 
   it('keeps distinct team and player errors across calls', async () => {
@@ -329,28 +330,35 @@ describe('TpRosterFilesImportService', () => {
     // collapse these two into one.
     const teamErrorA = { item: { rosterId: 1 }, message: 'boom' };
     const teamErrorB = { item: { rosterId: 2 }, message: 'boom' };
+    const playerErrorA = { item: { playerId: 1 }, message: 'boom' };
+    const playerErrorB = { item: { playerId: 2 }, message: 'boom' };
     importRunner.recordUpsertResult
       .mockResolvedValueOnce(
         outcome({
           team: { success: false, imported: 0, errors: [teamErrorA] },
+          players: { success: false, imported: 0, errors: [playerErrorA] },
         }),
       )
       .mockResolvedValueOnce(
         outcome({
           team: { success: false, imported: 0, errors: [teamErrorB] },
+          players: { success: false, imported: 0, errors: [playerErrorB] },
         }),
       );
-    importResults.result.mockImplementation((options) => ({
-      success: options.errors.length === 0,
-      ...options,
-    }));
 
-    const result = await service.importRosterFiles({
+    await service.importRosterFiles({
       rosters: [entry(1, 'Fourth era'), entry(2, 'Fourth era')],
       matchEmbeddedPlayersByRosterId: new Map(),
     });
 
-    expect(result.teamResult.errors).toEqual([teamErrorA, teamErrorB]);
+    expect(importResults.result).toHaveBeenNthCalledWith(1, {
+      imported: 0,
+      errors: [teamErrorA, teamErrorB],
+    });
+    expect(importResults.result).toHaveBeenNthCalledWith(2, {
+      imported: 0,
+      errors: [playerErrorA, playerErrorB],
+    });
   });
 
   it('records a failed call on the team result and carries on', async () => {

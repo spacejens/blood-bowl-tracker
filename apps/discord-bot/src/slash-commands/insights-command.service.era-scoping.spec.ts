@@ -4,10 +4,15 @@ import {
   INSIGHTS_CATEGORY_UNSUPPORTED_FOR_ERA_MESSAGE,
   INSIGHTS_ERA_NOT_FOUND_MESSAGE,
 } from '../error-messages';
-import type { FactTreeMocks } from './insights-command.service.test-helpers';
+import type {
+  FactTreeLookup,
+  FactTreeMocks,
+} from './insights-command.service.test-helpers';
 import {
+  asLeaf,
   chatInput,
   makeService,
+  stubLeafCategory,
 } from './insights-command.service.test-helpers';
 
 describe('InsightsCommandService — era scoping and rejection', () => {
@@ -16,7 +21,9 @@ describe('InsightsCommandService — era scoping and rejection', () => {
   });
 
   it('scopes an era-supporting category to the resolved era and names it in the title', async () => {
-    const { service, factTreeDeps, eras } = await makeService();
+    const { service, factTreeDeps, eras, factTreeUtils, tree } =
+      await makeService();
+    stubLeafCategory(factTreeUtils, asLeaf(tree.coach.toplist.matches.played));
     eras.findById.mockResolvedValue({
       id: 20,
       name: 'BB2020',
@@ -41,7 +48,8 @@ describe('InsightsCommandService — era scoping and rejection', () => {
   });
 
   it('rejects an era on a non-era-supporting category (eras.list)', async () => {
-    const { service, eras } = await makeService();
+    const { service, eras, factTreeUtils, tree } = await makeService();
+    stubLeafCategory(factTreeUtils, asLeaf(tree.eras.list));
     eras.findById.mockResolvedValue({
       id: 20,
       name: 'BB2020',
@@ -54,12 +62,14 @@ describe('InsightsCommandService — era scoping and rejection', () => {
 
   it.each<{
     factPath: string;
+    selectLeaf: (tree: FactTreeLookup) => FactTreeLookup;
     selectMock: (deps: FactTreeMocks) => { mock: { calls: unknown[][] } };
     expectedTitle: string;
     expectedDescription: string;
   }>([
     {
       factPath: 'team.toplist.competitions.played',
+      selectLeaf: (t) => t.team.toplist.competitions.played,
       selectMock: (deps) => deps.teamToplist.resolveCompetitionsPlayed,
       expectedTitle:
         'Teams by competitions played — BB2020 (2020-01-01 – 2023-12-31)',
@@ -67,6 +77,7 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     },
     {
       factPath: 'coach.toplist.competitions.played',
+      selectLeaf: (t) => t.coach.toplist.competitions.played,
       selectMock: (deps) => deps.coachToplist.resolveCompetitionsPlayed,
       expectedTitle:
         'Coaches by competitions played — BB2020 (2020-01-01 – 2023-12-31)',
@@ -74,12 +85,14 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     },
     {
       factPath: 'player.toplist.mvps',
+      selectLeaf: (t) => t.player.toplist.mvps,
       selectMock: (deps) => deps.playerToplist.resolveMvps,
       expectedTitle: 'Players by MVP awards — BB2020 (2020-01-01 – 2023-12-31)',
       expectedDescription: '1. Griff Oberwald — 7',
     },
     {
       factPath: 'race.toplist.teams.descending',
+      selectLeaf: (t) => t.race.toplist.teams.descending,
       selectMock: (deps) => deps.raceToplist.resolveTeamsDescending,
       expectedTitle:
         'Races by teams (descending) — BB2020 (2020-01-01 – 2023-12-31)',
@@ -87,6 +100,7 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     },
     {
       factPath: 'race.toplist.teams.ascending',
+      selectLeaf: (t) => t.race.toplist.teams.ascending,
       selectMock: (deps) => deps.raceToplist.resolveTeamsAscending,
       expectedTitle:
         'Races by teams (ascending) — BB2020 (2020-01-01 – 2023-12-31)',
@@ -94,6 +108,7 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     },
     {
       factPath: 'race.toplist.matches.played',
+      selectLeaf: (t) => t.race.toplist.matches.played,
       selectMock: (deps) => deps.raceToplist.resolveMatchesPlayed,
       expectedTitle:
         'Races by matches played — BB2020 (2020-01-01 – 2023-12-31)',
@@ -101,8 +116,16 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     },
   ])(
     'scopes $factPath to the resolved era and names it in the title',
-    async ({ factPath, selectMock, expectedTitle, expectedDescription }) => {
-      const { service, factTreeDeps, eras } = await makeService();
+    async ({
+      factPath,
+      selectLeaf,
+      selectMock,
+      expectedTitle,
+      expectedDescription,
+    }) => {
+      const { service, factTreeDeps, factTreeUtils, eras, tree } =
+        await makeService();
+      stubLeafCategory(factTreeUtils, asLeaf(selectLeaf(tree)));
       eras.findById.mockResolvedValue({
         id: 20,
         name: 'BB2020',
@@ -121,7 +144,8 @@ describe('InsightsCommandService — era scoping and rejection', () => {
   );
 
   it('rejects an era on team.toplist.eras.active (not era-supporting)', async () => {
-    const { service, eras } = await makeService();
+    const { service, eras, factTreeUtils, tree } = await makeService();
+    stubLeafCategory(factTreeUtils, asLeaf(tree.team.toplist.eras.active));
     eras.findById.mockResolvedValue({
       id: 20,
       name: 'BB2020',
@@ -135,7 +159,8 @@ describe('InsightsCommandService — era scoping and rejection', () => {
   });
 
   it('rejects an era on coach.toplist.eras.active (not era-supporting)', async () => {
-    const { service, eras } = await makeService();
+    const { service, eras, factTreeUtils, tree } = await makeService();
+    stubLeafCategory(factTreeUtils, asLeaf(tree.coach.toplist.eras.active));
     eras.findById.mockResolvedValue({
       id: 20,
       name: 'BB2020',
@@ -159,7 +184,12 @@ describe('InsightsCommandService — era scoping and rejection', () => {
   });
 
   it('scopes player.toplist.touchdowns.scored to the resolved era and names it in the title', async () => {
-    const { service, factTreeDeps, eras } = await makeService();
+    const { service, factTreeDeps, eras, factTreeUtils, tree } =
+      await makeService();
+    stubLeafCategory(
+      factTreeUtils,
+      asLeaf(tree.player.toplist.touchdowns.scored),
+    );
     eras.findById.mockResolvedValue({
       id: 20,
       name: 'BB2020',
@@ -189,7 +219,9 @@ describe('InsightsCommandService — era scoping and rejection', () => {
   });
 
   it('scopes team.toplist.interceptions to the resolved era and names it in the title', async () => {
-    const { service, factTreeDeps, eras } = await makeService();
+    const { service, factTreeDeps, eras, factTreeUtils, tree } =
+      await makeService();
+    stubLeafCategory(factTreeUtils, asLeaf(tree.team.toplist.interceptions));
     eras.findById.mockResolvedValue({
       id: 20,
       name: 'BB2020',
@@ -216,7 +248,12 @@ describe('InsightsCommandService — era scoping and rejection', () => {
   });
 
   it('scopes player.toplist.casualties.caused to the resolved era and names it in the title', async () => {
-    const { service, factTreeDeps, eras } = await makeService();
+    const { service, factTreeDeps, eras, factTreeUtils, tree } =
+      await makeService();
+    stubLeafCategory(
+      factTreeUtils,
+      asLeaf(tree.player.toplist.casualties.caused),
+    );
     eras.findById.mockResolvedValue({
       id: 20,
       name: 'BB2020',
@@ -246,7 +283,12 @@ describe('InsightsCommandService — era scoping and rejection', () => {
   });
 
   it('scopes team.toplist.injuries.serious.caused to the resolved era and names it in the title', async () => {
-    const { service, factTreeDeps, eras } = await makeService();
+    const { service, factTreeDeps, eras, factTreeUtils, tree } =
+      await makeService();
+    stubLeafCategory(
+      factTreeUtils,
+      asLeaf(tree.team.toplist.injuries.serious.caused),
+    );
     eras.findById.mockResolvedValue({
       id: 20,
       name: 'BB2020',
@@ -276,7 +318,12 @@ describe('InsightsCommandService — era scoping and rejection', () => {
   });
 
   it('scopes player.toplist.casualties.suffered to the resolved era and names it in the title', async () => {
-    const { service, factTreeDeps, eras } = await makeService();
+    const { service, factTreeDeps, eras, factTreeUtils, tree } =
+      await makeService();
+    stubLeafCategory(
+      factTreeUtils,
+      asLeaf(tree.player.toplist.casualties.suffered),
+    );
     eras.findById.mockResolvedValue({
       id: 20,
       name: 'BB2020',
@@ -306,7 +353,12 @@ describe('InsightsCommandService — era scoping and rejection', () => {
   });
 
   it('scopes team.toplist.injuries.lasting.suffered to the resolved era and names it in the title', async () => {
-    const { service, factTreeDeps, eras } = await makeService();
+    const { service, factTreeDeps, eras, factTreeUtils, tree } =
+      await makeService();
+    stubLeafCategory(
+      factTreeUtils,
+      asLeaf(tree.team.toplist.injuries.lasting.suffered),
+    );
     eras.findById.mockResolvedValue({
       id: 20,
       name: 'BB2020',

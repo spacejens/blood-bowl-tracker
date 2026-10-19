@@ -5,8 +5,11 @@ import {
   INSIGHTS_SCOPE_CONFLICT_MESSAGE,
 } from '../error-messages';
 import {
+  asLeaf,
+  asNode,
   chatInput,
   makeService,
+  stubLeafCategory,
 } from './insights-command.service.test-helpers';
 
 describe('InsightsCommandService — match category scoping', () => {
@@ -64,7 +67,11 @@ describe('InsightsCommandService — match category scoping', () => {
   });
 
   it('scopes an in-scope category to the match category and names it in the title', async () => {
-    const { service, factTreeDeps } = await makeService();
+    const { service, factTreeDeps, factTreeUtils, tree } = await makeService();
+    stubLeafCategory(
+      factTreeUtils,
+      asLeaf(tree.team.toplist.touchdowns.scored),
+    );
     const result = await service.execute(
       chatInput('team.toplist.touchdowns.scored', {
         matchCategory: 'season_final',
@@ -90,7 +97,8 @@ describe('InsightsCommandService — match category scoping', () => {
   });
 
   it('scopes a coach toplist that supports no competition but does support a match category', async () => {
-    const { service, factTreeDeps } = await makeService();
+    const { service, factTreeDeps, factTreeUtils, tree } = await makeService();
+    stubLeafCategory(factTreeUtils, asLeaf(tree.coach.toplist.matches.played));
     await service.execute(
       chatInput('coach.toplist.matches.played', {
         matchCategory: 'cup_final',
@@ -107,7 +115,8 @@ describe('InsightsCommandService — match category scoping', () => {
   });
 
   it('rejects a match category on a category that does not support it (coach.toplist.teams)', async () => {
-    const { service, factTreeDeps } = await makeService();
+    const { service, factTreeDeps, factTreeUtils, tree } = await makeService();
+    stubLeafCategory(factTreeUtils, asLeaf(tree.coach.toplist.teams));
     const result = await service.execute(
       chatInput('coach.toplist.teams', { matchCategory: 'season_final' }),
     );
@@ -118,7 +127,8 @@ describe('InsightsCommandService — match category scoping', () => {
   });
 
   it('rejects a match category on stats', async () => {
-    const { service, factTreeDeps } = await makeService();
+    const { service, factTreeDeps, factTreeUtils, tree } = await makeService();
+    stubLeafCategory(factTreeUtils, asLeaf(tree.stats));
     const result = await service.execute(
       chatInput('stats', { matchCategory: 'season_final' }),
     );
@@ -129,33 +139,47 @@ describe('InsightsCommandService — match category scoping', () => {
   });
 
   it('picks only match-category-capable leaves from a branch path', async () => {
-    const { service, factTreeDeps } = await makeService();
-    for (let i = 0; i < 20; i++) {
-      await service.execute(
-        chatInput('coach.toplist', { matchCategory: 'season_final' }),
-      );
-    }
+    const { service, factTreeDeps, factTreeUtils, tree } = await makeService();
+    factTreeUtils.resolvePath.mockReturnValue(asNode(tree.coach.toplist));
+    factTreeUtils.collectLeaves.mockReturnValue([
+      asLeaf(tree.coach.toplist.teams),
+      asLeaf(tree.coach.toplist.eras.active),
+      asLeaf(tree.coach.toplist.matches.played),
+    ]);
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    await service.execute(
+      chatInput('coach.toplist', { matchCategory: 'season_final' }),
+    );
     expect(factTreeDeps.coachToplist.resolveTeams).not.toHaveBeenCalled();
     expect(factTreeDeps.coachToplist.resolveErasActive).not.toHaveBeenCalled();
+    expect(factTreeDeps.coachToplist.resolveMatchesPlayed).toHaveBeenCalledWith(
+      expect.objectContaining({ category: 'season_final' }),
+    );
   });
 
   it('restricts a random fact to match-category-capable leaves', async () => {
-    const { service, factTreeDeps } = await makeService();
-    for (let i = 0; i < 40; i++) {
-      await service.execute(chatInput(null, { matchCategory: 'cup_final' }));
-    }
+    const { service, factTreeDeps, factTreeUtils, tree } = await makeService();
+    factTreeUtils.collectLeaves.mockReturnValue([
+      asLeaf(tree.eras.list),
+      asLeaf(tree.stats),
+      asLeaf(tree.race.toplist.teams.descending),
+      asLeaf(tree.coach.toplist.matches.played),
+    ]);
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    await service.execute(chatInput(null, { matchCategory: 'cup_final' }));
     expect(factTreeDeps.erasList.resolve).not.toHaveBeenCalled();
     expect(factTreeDeps.statsSummary.resolve).not.toHaveBeenCalled();
     expect(
       factTreeDeps.raceToplist.resolveTeamsDescending,
     ).not.toHaveBeenCalled();
-    expect(
-      factTreeDeps.raceToplist.resolveTeamsAscending,
-    ).not.toHaveBeenCalled();
+    expect(factTreeDeps.coachToplist.resolveMatchesPlayed).toHaveBeenCalledWith(
+      expect.objectContaining({ category: 'cup_final' }),
+    );
   });
 
   it('treats an unrecognised match-category value as no match-category scope', async () => {
-    const { service, factTreeDeps } = await makeService();
+    const { service, factTreeDeps, factTreeUtils, tree } = await makeService();
+    stubLeafCategory(factTreeUtils, asLeaf(tree.stats));
     const result = await service.execute(
       chatInput('stats', { matchCategory: 'not_a_category' }),
     );

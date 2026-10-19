@@ -1,4 +1,4 @@
-import type { ImportError } from '@blood-bowl-tracker/import';
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
   ImportResultService,
@@ -93,11 +93,7 @@ async function makeService(
   const inducedStarPlayers = mock<TpInducedStarPlayersImportService>();
   inducedStarPlayers.importHires.mockResolvedValue(importHiresResult);
   const importResults = mockImportResultService();
-  importResults.result.mockImplementation(({ imported, errors }) => ({
-    success: errors.length === 0,
-    imported,
-    errors,
-  }));
+  importResults.result.mockReturnValue(CANNED_RESULT);
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -132,10 +128,37 @@ async function makeService(
   };
 }
 
+/**
+ * The canned ImportResult the mocked ImportResultService.result returns.
+ * ImportResultService's own `success: errors.length === 0` derivation is
+ * covered by packages/import/src/import-result.service.spec.ts; this spec
+ * asserts what the service under test *passes to* result() (via
+ * `resultArgs()`) and that it returns result()'s value unchanged. The
+ * deliberately impossible field values make any leftover assertion that reads
+ * the returned object instead of the recorded call arguments fail loudly.
+ */
+const CANNED_RESULT: ImportResult = {
+  success: false,
+  imported: -1,
+  errors: [{ item: { canned: true }, message: 'canned import result' }],
+};
+
+/** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
+function resultArgs(importResults: MockProxy<ImportResultService>): {
+  imported: number;
+  errors: ImportError[];
+} {
+  return importResults.result.mock.calls[0][0];
+}
+
 describe('TpInducedStarPlayersStepService', () => {
   it('does nothing for no hire groups', async () => {
-    const { service, externalSystemBootstrap, inducedStarPlayers } =
-      await makeService();
+    const {
+      service,
+      externalSystemBootstrap,
+      inducedStarPlayers,
+      importResults,
+    } = await makeService();
 
     const outcome = await service.importStarHires({
       groups: [],
@@ -145,7 +168,8 @@ describe('TpInducedStarPlayersStepService', () => {
 
     expect(externalSystemBootstrap.bootstrap).not.toHaveBeenCalled();
     expect(inducedStarPlayers.importHires).not.toHaveBeenCalled();
-    expect(outcome.result).toEqual({ success: true, imported: 0, errors: [] });
+    expect(resultArgs(importResults)).toEqual({ imported: 0, errors: [] });
+    expect(outcome.result).toBe(CANNED_RESULT);
     expect(outcome.starPlayerIdsByRosterAndMaster.size).toBe(0);
     expect(outcome.insertedPlayerIds).toEqual([]);
   });
@@ -202,39 +226,41 @@ describe('TpInducedStarPlayersStepService', () => {
       item: { externalSystems: ['TP', 'Name'] },
       message: 'boom',
     };
-    const { service, inducedStarPlayers } = await makeService({
+    const { service, inducedStarPlayers, importResults } = await makeService({
       bootstrap: () => Promise.resolve({ ok: false, error: bootstrapError }),
     });
 
-    const outcome = await service.importStarHires({
+    await service.importStarHires({
       groups: [group()],
       teamErasByRosterId: new Map(),
       characteristicsByPositionId: CHARACTERISTICS_BY_POSITION_ID,
     });
 
     expect(inducedStarPlayers.importHires).not.toHaveBeenCalled();
-    expect(outcome.result.errors).toEqual([bootstrapError]);
+    expect(resultArgs(importResults).errors).toEqual([bootstrapError]);
   });
 
   it('records one error when the era config cannot be read', async () => {
-    const { service } = await makeService({
+    const { service, importResults } = await makeService({
       getEras: () => {
         throw new Error('bad config');
       },
     });
 
-    const outcome = await service.importStarHires({
+    await service.importStarHires({
       groups: [group()],
       teamErasByRosterId: new Map(),
       characteristicsByPositionId: CHARACTERISTICS_BY_POSITION_ID,
     });
 
-    expect(outcome.result.errors).toHaveLength(1);
-    expect(outcome.result.errors[0].item).toEqual({ externalSystems: ['TP'] });
+    expect(resultArgs(importResults).errors).toHaveLength(1);
+    expect(resultArgs(importResults).errors[0].item).toEqual({
+      externalSystems: ['TP'],
+    });
   });
 
   it("returns the hires' star player ids, inserted ids and imported count", async () => {
-    const { service } = await makeService({
+    const { service, importResults } = await makeService({
       importHiresResult: {
         imported: 3,
         starPlayerIdsByRosterAndMaster: new Map([['1:77', 900]]),
@@ -248,7 +274,7 @@ describe('TpInducedStarPlayersStepService', () => {
       characteristicsByPositionId: CHARACTERISTICS_BY_POSITION_ID,
     });
 
-    expect(outcome.result.imported).toBe(3);
+    expect(resultArgs(importResults).imported).toBe(3);
     expect(outcome.starPlayerIdsByRosterAndMaster).toEqual(
       new Map([['1:77', 900]]),
     );

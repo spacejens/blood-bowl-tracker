@@ -2,11 +2,14 @@ import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { DeepMockProxy } from 'vitest-mock-extended';
+import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { ImportRunnerService } from './import-runner.service';
-import { stubImportRunner } from './import-runner.test-helpers';
+import {
+  recordUpsertOptions,
+  recordUpsertResultOptions,
+} from './import-runner.test-helpers';
 import { PlayersImportService } from './players-import.service';
 import type { ImportError } from './types';
 
@@ -39,7 +42,6 @@ const upsertResult = {
 async function makeModule() {
   const client = mockDeep<ApiClient>();
   const runner = mock<ImportRunnerService>();
-  stubImportRunner(runner);
   const moduleRef = await Test.createTestingModule({
     providers: [
       PlayersImportService,
@@ -47,15 +49,16 @@ async function makeModule() {
       { provide: ImportRunnerService, useValue: runner },
     ],
   }).compile();
-  return { service: moduleRef.get(PlayersImportService), client };
+  return { service: moduleRef.get(PlayersImportService), client, runner };
 }
 
 describe('PlayersImportService', () => {
   let service: PlayersImportService;
   let client: DeepMockProxy<ApiClient>;
+  let runner: MockProxy<ImportRunnerService>;
 
   beforeEach(async () => {
-    ({ service, client } = await makeModule());
+    ({ service, client, runner } = await makeModule());
   });
 
   const data = {
@@ -65,54 +68,52 @@ describe('PlayersImportService', () => {
     externalIds: [{ externalSystemId: 1, externalId: '12345' }],
   };
 
-  it('returns true and calls the client with the given data on success', async () => {
+  it('returns true when the runner records success', async () => {
+    runner.recordUpsert.mockResolvedValue(true);
+    await expect(service.upsertPlayer(data, [])).resolves.toBe(true);
+  });
+
+  it('returns false when the runner records a failure', async () => {
+    runner.recordUpsert.mockResolvedValue(false);
+    await expect(service.upsertPlayer(data, [])).resolves.toBe(false);
+  });
+
+  it('hands the runner the data as item, the caller error list, and an upsert that calls the client', async () => {
+    runner.recordUpsert.mockResolvedValue(true);
     client.players.upsert.mockResolvedValue(upsertResult);
     const errors: ImportError[] = [];
 
-    const result = await service.upsertPlayer(data, errors);
+    await service.upsertPlayer(data, errors);
 
-    expect(result).toBe(true);
+    const options = recordUpsertOptions(runner);
+    expect(options.item).toBe(data);
+    expect(options.errors).toBe(errors);
+    await options.upsert();
     expect(client.players.upsert).toHaveBeenCalledWith(data);
-    expect(errors).toHaveLength(0);
   });
 
-  it('returns false and records an error when the client call fails', async () => {
-    client.players.upsert.mockRejectedValue(new Error('conflict'));
-    const errors: ImportError[] = [];
+  it('builds a failure message naming the player', async () => {
+    runner.recordUpsert.mockResolvedValue(false);
 
-    const result = await service.upsertPlayer(data, errors);
+    await service.upsertPlayer(data, []);
 
-    expect(result).toBe(false);
-    expect(errors).toEqual([
-      {
-        item: data,
-        message: 'Failed to import player "Griff Oberwald": conflict',
-      },
-    ]);
-  });
-
-  it('records an error using String(err) when the client rejects with a non-Error value', async () => {
-    client.players.upsert.mockRejectedValue('boom');
-    const errors: ImportError[] = [];
-
-    const result = await service.upsertPlayer(data, errors);
-
-    expect(result).toBe(false);
-    expect(errors).toEqual([
-      {
-        item: data,
-        message: 'Failed to import player "Griff Oberwald": boom',
-      },
-    ]);
+    const { buildErrorMessage } = recordUpsertOptions(runner);
+    expect(buildErrorMessage(new Error('conflict'))).toBe(
+      'Failed to import player "Griff Oberwald": conflict',
+    );
+    expect(buildErrorMessage('boom')).toBe(
+      'Failed to import player "Griff Oberwald": boom',
+    );
   });
 });
 
 describe('PlayersImportService.upsertPlayerResult', () => {
   let service: PlayersImportService;
   let client: DeepMockProxy<ApiClient>;
+  let runner: MockProxy<ImportRunnerService>;
 
   beforeEach(async () => {
-    ({ service, client } = await makeModule());
+    ({ service, client, runner } = await makeModule());
   });
 
   const data = {
@@ -122,59 +123,47 @@ describe('PlayersImportService.upsertPlayerResult', () => {
     externalIds: [{ externalSystemId: 1, externalId: '12345' }],
   };
 
-  it('resolves to the upserted player, including its DB id, on success', async () => {
-    client.players.upsert.mockResolvedValue({ ...upsertResult, id: 42 });
+  it('returns the runner result unchanged', async () => {
+    runner.recordUpsertResult.mockResolvedValue(upsertResult);
+
+    const result = await service.upsertPlayerResult(data, []);
+
+    expect(result).toBe(upsertResult);
+  });
+
+  it('returns undefined when the runner recorded a failure', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
+
+    const result = await service.upsertPlayerResult(data, []);
+
+    expect(result).toBeUndefined();
+  });
+
+  it('hands the runner the data as item, the caller error list, and an upsert that calls the client', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
+    client.players.upsert.mockResolvedValue(upsertResult);
     const errors: ImportError[] = [];
 
-    const result = await service.upsertPlayerResult(data, errors);
+    await service.upsertPlayerResult(data, errors);
 
-    expect(result).toEqual(expect.objectContaining({ id: 42 }));
+    const options = recordUpsertResultOptions(runner);
+    expect(options.item).toBe(data);
+    expect(options.errors).toBe(errors);
+    await expect(options.upsert()).resolves.toBe(upsertResult);
     expect(client.players.upsert).toHaveBeenCalledWith(data);
-    expect(errors).toHaveLength(0);
   });
 
-  it('resolves to undefined and records an error when the client call fails', async () => {
-    client.players.upsert.mockRejectedValue(new Error('conflict'));
-    const errors: ImportError[] = [];
+  it('builds a failure message naming the player', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    const result = await service.upsertPlayerResult(data, errors);
+    await service.upsertPlayerResult(data, []);
 
-    expect(result).toBeUndefined();
-    expect(errors).toEqual([
-      {
-        item: data,
-        message: 'Failed to import player "Griff Oberwald": conflict',
-      },
-    ]);
-  });
-
-  it('records an error using String(err) when the client rejects with a non-Error value', async () => {
-    client.players.upsert.mockRejectedValue('boom');
-    const errors: ImportError[] = [];
-
-    const result = await service.upsertPlayerResult(data, errors);
-
-    expect(result).toBeUndefined();
-    expect(errors).toEqual([
-      {
-        item: data,
-        message: 'Failed to import player "Griff Oberwald": boom',
-      },
-    ]);
-  });
-
-  it('resolves to the id and the created flag', async () => {
-    client.players.upsert.mockResolvedValue({
-      ...upsertResult,
-      id: 900,
-      created: true,
-    });
-
-    await expect(
-      service.upsertPlayerResult(
-        { externalIds: [{ externalSystemId: 1, externalId: 'pid-7' }] },
-        [],
-      ),
-    ).resolves.toMatchObject({ id: 900, created: true });
+    const { buildErrorMessage } = recordUpsertResultOptions(runner);
+    expect(buildErrorMessage(new Error('conflict'))).toBe(
+      'Failed to import player "Griff Oberwald": conflict',
+    );
+    expect(buildErrorMessage('boom')).toBe(
+      'Failed to import player "Griff Oberwald": boom',
+    );
   });
 });

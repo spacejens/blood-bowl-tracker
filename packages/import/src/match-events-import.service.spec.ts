@@ -9,7 +9,7 @@ import { mock, mockDeep } from 'vitest-mock-extended';
 import type { BatchBuffer } from './batch-buffer.service';
 import { BatchBufferService } from './batch-buffer.service';
 import { ImportRunnerService } from './import-runner.service';
-import { stubImportRunner } from './import-runner.test-helpers';
+import { recordUpsertOptions } from './import-runner.test-helpers';
 import { MatchEventsImportService } from './match-events-import.service';
 import type { ImportError } from './types';
 
@@ -23,7 +23,6 @@ describe('MatchEventsImportService', () => {
     client = mockDeep<ApiClient>();
     runner = mock<ImportRunnerService>();
     batchBuffer = mock<BatchBufferService>();
-    stubImportRunner(runner);
     const moduleRef = await Test.createTestingModule({
       providers: [
         MatchEventsImportService,
@@ -43,56 +42,55 @@ describe('MatchEventsImportService', () => {
     externalIds: [{ externalSystemId: 1, externalId: '1000-vor-td-0' }],
   };
 
-  it('returns true and calls the client on success', async () => {
-    client.matchEvents.upsert.mockResolvedValue({
-      id: 1,
-      matchId: 10,
-      actingMatchTeamId: 500,
-      consequenceMatchTeamId: null,
-      actingPlayerId: 9,
-      consequencePlayerId: null,
-      actionType: 'touchdown',
-      consequenceType: null,
-      createdAt: new Date('2026-01-01'),
-      created: true,
-    });
+  const upserted = {
+    id: 1,
+    matchId: 10,
+    actingMatchTeamId: 500,
+    consequenceMatchTeamId: null,
+    actingPlayerId: 9,
+    consequencePlayerId: null,
+    actionType: 'touchdown' as const,
+    consequenceType: null,
+    createdAt: new Date('2026-01-01'),
+    created: true,
+  };
+
+  it('returns true when the runner records success', async () => {
+    runner.recordUpsert.mockResolvedValue(true);
+    await expect(service.upsertMatchEvent(data, [])).resolves.toBe(true);
+  });
+
+  it('returns false when the runner records a failure', async () => {
+    runner.recordUpsert.mockResolvedValue(false);
+    await expect(service.upsertMatchEvent(data, [])).resolves.toBe(false);
+  });
+
+  it('hands the runner the data as item, the caller error list, and an upsert that calls the client', async () => {
+    runner.recordUpsert.mockResolvedValue(true);
+    client.matchEvents.upsert.mockResolvedValue(upserted);
     const errors: ImportError[] = [];
 
-    const result = await service.upsertMatchEvent(data, errors);
+    await service.upsertMatchEvent(data, errors);
 
-    expect(result).toBe(true);
+    const options = recordUpsertOptions(runner);
+    expect(options.item).toBe(data);
+    expect(options.errors).toBe(errors);
+    await options.upsert();
     expect(client.matchEvents.upsert).toHaveBeenCalledWith(data);
-    expect(errors).toHaveLength(0);
   });
 
-  it('returns false and records an error on failure', async () => {
-    client.matchEvents.upsert.mockRejectedValue(new Error('conflict'));
-    const errors: ImportError[] = [];
+  it('builds a failure message naming the match event', async () => {
+    runner.recordUpsert.mockResolvedValue(false);
 
-    const result = await service.upsertMatchEvent(data, errors);
+    await service.upsertMatchEvent(data, []);
 
-    expect(result).toBe(false);
-    expect(errors).toEqual([
-      {
-        item: data,
-        message: 'Failed to import match event "1000-vor-td-0": conflict',
-      },
-    ]);
-  });
-
-  it('records an error using String(err) for a non-Error rejection', async () => {
-    client.matchEvents.upsert.mockRejectedValue('boom');
-    const errors: ImportError[] = [];
-
-    const result = await service.upsertMatchEvent(data, errors);
-
-    expect(result).toBe(false);
-    expect(errors).toEqual([
-      {
-        item: data,
-        message: 'Failed to import match event "1000-vor-td-0": boom',
-      },
-    ]);
+    const { buildErrorMessage } = recordUpsertOptions(runner);
+    expect(buildErrorMessage(new Error('conflict'))).toBe(
+      'Failed to import match event "1000-vor-td-0": conflict',
+    );
+    expect(buildErrorMessage('boom')).toBe(
+      'Failed to import match event "1000-vor-td-0": boom',
+    );
   });
 
   it('createBatch builds a buffer whose upsertBatch calls the client', async () => {

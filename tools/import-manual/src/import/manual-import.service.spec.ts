@@ -1,3 +1,4 @@
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import { ImportResultService } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
@@ -26,6 +27,29 @@ import { TrophiesProcessor } from '../entities/trophies.processor';
 import { TrophyAwardsProcessor } from '../entities/trophy-awards.processor';
 import type { ProcessContext } from '../references/process-context';
 import { ManualImportService } from './manual-import.service';
+
+/**
+ * The canned ImportResult the mocked ImportResultService.result returns.
+ * ImportResultService's own `success: errors.length === 0` derivation is
+ * covered by packages/import/src/import-result.service.spec.ts; this spec
+ * asserts what the service under test *passes to* result() (via
+ * `resultArgs()`) and that it returns result()'s value unchanged. The
+ * deliberately impossible field values make any leftover assertion that reads
+ * the returned object instead of the recorded call arguments fail loudly.
+ */
+const CANNED_RESULT: ImportResult = {
+  success: false,
+  imported: -1,
+  errors: [{ item: { canned: true }, message: 'canned import result' }],
+};
+
+/** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
+function resultArgs(importResults: MockProxy<ImportResultService>): {
+  imported: number;
+  errors: ImportError[];
+} {
+  return importResults.result.mock.calls[0][0];
+}
 
 function emptyData(): ManualDataFile {
   return {
@@ -91,6 +115,7 @@ async function makeService(overrides: Overrides = {}): Promise<{
   reader: MockProxy<ManualDataReader>;
   externalSystems: MockProxy<ExternalSystemsProcessor>;
   procs: ProcessorMocks;
+  importResults: MockProxy<ImportResultService>;
 }> {
   const reader = mock<ManualDataReader>();
   reader.read.mockImplementation(
@@ -158,11 +183,7 @@ async function makeService(overrides: Overrides = {}): Promise<{
   );
 
   const importResults = mock<ImportResultService>();
-  importResults.result.mockImplementation(({ imported, errors }) => ({
-    success: errors.length === 0,
-    imported,
-    errors,
-  }));
+  importResults.result.mockReturnValue(CANNED_RESULT);
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -204,12 +225,13 @@ async function makeService(overrides: Overrides = {}): Promise<{
     reader,
     externalSystems,
     procs,
+    importResults,
   };
 }
 
 describe('ManualImportService', () => {
-  it('sums processor counts and reports success when there are no errors', async () => {
-    const { service } = await makeService({
+  it('sums processor counts and hands no errors to the result', async () => {
+    const { service, importResults } = await makeService({
       counts: {
         rulesSets: 1,
         skills: 1,
@@ -230,11 +252,15 @@ describe('ManualImportService', () => {
       },
     });
 
-    const result = await service.run('/data/dir');
+    await service.run('/data/dir');
 
-    expect(result.imported).toBe(17);
-    expect(result.success).toBe(true);
-    expect(result.errors).toHaveLength(0);
+    expect(resultArgs(importResults)).toEqual({ imported: 17, errors: [] });
+  });
+
+  it('returns the ImportResult built by ImportResultService unchanged', async () => {
+    const { service } = await makeService();
+
+    await expect(service.run('/data/dir')).resolves.toBe(CANNED_RESULT);
   });
 
   it('reads the directory, bootstraps, and shares one context across processors', async () => {
@@ -350,16 +376,17 @@ describe('ManualImportService', () => {
     ]);
   });
 
-  it('reports failure when a processor collected an error', async () => {
-    const { service } = await makeService({
+  it("hands a processor's collected error to the result", async () => {
+    const { service, importResults } = await makeService({
       counts: { rulesSets: 1 },
       errorFrom: { processor: 'eras', message: 'unresolved league' },
     });
 
-    const result = await service.run('/data/dir');
+    await service.run('/data/dir');
 
-    expect(result.success).toBe(false);
-    expect(result.errors).toEqual([{ item: {}, message: 'unresolved league' }]);
+    expect(resultArgs(importResults).errors).toEqual([
+      { item: {}, message: 'unresolved league' },
+    ]);
   });
 
   it('propagates a bootstrap failure (thrown, not collected)', async () => {
