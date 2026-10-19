@@ -24,9 +24,9 @@ import { FilterUsageReportService } from './filter-usage-report.service';
 import { OptionValueResolverService } from './option-value-resolver.service';
 
 /**
- * The `debug`-prefixed commands planned under #834: `/debuginteractions`
- * (with its retrigger buttons), `/debugtopusers` and `/debugfilterusage`,
- * grouped here so they share one module.
+ * Groups the `debug`-prefixed commands - `/debuginteractions` (with its
+ * retrigger buttons), `/debugtopusers` and `/debugfilterusage` - so they
+ * share one module.
  *
  * `DiscordBotUsageModule` supplies `InteractionEventsQueryService`. Importing
  * it here (packages/discord-client already imports it for the write side) is
