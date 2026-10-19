@@ -16,8 +16,7 @@ interface ResolveTeamEraOptions {
 /**
  * Resolves TP roster/era references and builds `UpsertMatchEvent`(s) for
  * every TP match event kind. The individual `build*Event` implementations
- * live in the injected {@link TpMatchEventKindBuildersService} — kept
- * separate to stay under this repo's 500-line source file ceiling; from the
+ * live in the injected {@link TpMatchEventKindBuildersService}; from the
  * outside, only `resolveTeamEraId` and `buildEventData` are the public API.
  */
 @Injectable()

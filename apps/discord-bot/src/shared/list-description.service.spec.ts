@@ -41,8 +41,8 @@ describe('ListDescriptionService.build', () => {
   it('leads with a blank line before the overflow note when there are no lines', () => {
     // Unreachable by any current caller (each returns its own no-data message
     // before calling build, and overflowNote is only non-null past ~125
-    // entries), but pinning the behavior documents it for a
-    // general-purpose shared service rather than one caller's private method.
+    // entries), but this is a general-purpose shared service, so pinning the
+    // behavior documents it for future callers.
     expect(service.build([], '…and 3 more without a link.')).toBe(
       '\n…and 3 more without a link.',
     );

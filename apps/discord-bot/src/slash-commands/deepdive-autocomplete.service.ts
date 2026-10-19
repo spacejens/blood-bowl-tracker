@@ -19,8 +19,8 @@ const MAX_AUTOCOMPLETE_CHOICES = 25;
 
 /**
  * Turns what a coach has typed into `/deepdive`'s autocomplete choices, one
- * branch per option. Kept separate from `DeepdiveCommandService` so that file stays
- * under the repo's 500-line ceiling: this half depends only on the entity
+ * branch per option. Kept separate from `DeepdiveCommandService` so that file
+ * stays under the repo's 500-line ceiling: this half depends only on the entity
  * search services, the other half only on the deepdive fact resolvers.
  *
  * Every choice's `value` is the entity id as a string, because that is what

@@ -62,9 +62,9 @@ describe('TrophyAwardRuleDescriptionService', () => {
 
   it('renders a compound count rule as the AND it actually is (Top Fouler)', () => {
     // Real curated rule from trophies.json5: a `foul` action that ALSO
-    // caused one of the eleven casualty-suffered consequence types. The old
-    // flattened-list rendering read as an unrelated 12-item OR list; this
-    // must read as the AND the rule actually evaluates.
+    // caused one of the eleven casualty-suffered consequence types. A
+    // flattened-list rendering would read as an unrelated 12-item OR list;
+    // this must read as the AND the rule actually evaluates.
     expect(
       service.describe({
         ...base,

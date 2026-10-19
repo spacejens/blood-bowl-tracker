@@ -17,9 +17,9 @@ import {
 
 /**
  * Merge-specific scenarios for BblMatchEventsImportService (the rest live in
- * bbl-match-events-import.service.spec.ts). Each test wires its own mocks directly (rather than
- * the single-match `runImport` helper) because merged-pair imports combine
- * two source event pages into one pass.
+ * bbl-match-events-import.service.spec.ts). Each test wires its own mocks
+ * directly (rather than the single-match `runImport` helper) because
+ * merged-pair imports combine two source event pages into one pass.
  */
 describe('BblMatchEventsImportService merge scenarios', () => {
   it('scenario merge: an event pairing a primary-source action with a secondary-source consequence resolves each side to its own team era', async () => {

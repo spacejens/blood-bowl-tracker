@@ -33,8 +33,8 @@ import {
  *
  * Kept separate from `DeepdiveCommandService` for the same reason
  * `DeepdiveAutocompleteService` is: that file would otherwise exceed the
- * repo's 500-line ceiling. This half depends only on the deepdive fact resolvers, the other
- * half only on the Discord command/interaction plumbing.
+ * repo's 500-line ceiling. This half depends only on the deepdive fact
+ * resolvers, the other half only on the Discord command/interaction plumbing.
  *
  * Every target parses its value the same way, through `resolveTarget`: a
  * non-integer is rejected up front with that target's not-found message,
