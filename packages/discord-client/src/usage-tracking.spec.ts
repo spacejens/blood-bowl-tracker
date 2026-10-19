@@ -1,7 +1,7 @@
 import type { RecordInteractionInput } from '@blood-bowl-tracker/discord-bot-usage';
 import { UsageTrackingService } from '@blood-bowl-tracker/discord-bot-usage';
 import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
@@ -10,7 +10,10 @@ vi.mock('discord.js', async () =>
 );
 
 import type { DiscordJsMocks } from './discord-js-mock.test-helpers';
-import { installDiscordJsMocks } from './discord-js-mock.test-helpers';
+import {
+  installDiscordJsMocks,
+  resetDiscordJsMocks,
+} from './discord-js-mock.test-helpers';
 import {
   DISCORD_BOT_TOKEN,
   DiscordClientService,
@@ -75,6 +78,10 @@ describe('DiscordClientService usage tracking', () => {
     }).compile();
     service = moduleRef.get(DiscordClientService);
     service.onModuleInit();
+  });
+
+  afterEach(() => {
+    resetDiscordJsMocks();
   });
 
   it('records a successful command with its Discord context', async () => {

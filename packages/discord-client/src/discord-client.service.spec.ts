@@ -4,7 +4,7 @@ import {
 } from '@blood-bowl-tracker/discord-bot-usage';
 import { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
 vi.mock('discord.js', async () =>
@@ -21,7 +21,10 @@ import {
 } from 'discord.js';
 
 import type { DiscordJsMocks } from './discord-js-mock.test-helpers';
-import { installDiscordJsMocks } from './discord-js-mock.test-helpers';
+import {
+  installDiscordJsMocks,
+  resetDiscordJsMocks,
+} from './discord-js-mock.test-helpers';
 import {
   ADMIN_COMMAND_ROLE_ID,
   DISCORD_BOT_TOKEN,
@@ -82,6 +85,10 @@ describe('DiscordClientService', () => {
       ],
     }).compile();
     service = moduleRef.get(DiscordClientService);
+  });
+
+  afterEach(() => {
+    resetDiscordJsMocks();
   });
 
   it('logs in with the provided token on module init', async () => {

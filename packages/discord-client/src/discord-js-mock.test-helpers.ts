@@ -17,7 +17,10 @@ import { vi } from 'vitest';
  * built by `installDiscordJsMocks()`, which each spec calls in its
  * `beforeEach` before compiling the service. Every test therefore gets brand
  * new, inert `vi.fn()`s with no implementation left over from an earlier
- * test; each spec stubs the behaviour it needs itself.
+ * test; each spec stubs the behaviour it needs itself. Each spec also calls
+ * `resetDiscordJsMocks()` in its `afterEach`, so a spec that forgets
+ * `installDiscordJsMocks()` fails loudly instead of reusing the previous
+ * test's set.
  *
  * This module must not import `discord.js`: it is loaded from inside the
  * module mock's factory.
@@ -57,7 +60,8 @@ export interface DiscordJsMocks {
   rest: MockRest;
 }
 
-/** The current test's set; only ever assigned by `installDiscordJsMocks()`. */
+/** The current test's set; assigned by `installDiscordJsMocks()` and cleared by
+ * `resetDiscordJsMocks()`. */
 let installed: DiscordJsMocks | undefined;
 
 function current(): DiscordJsMocks {
@@ -90,6 +94,11 @@ export function installDiscordJsMocks(): DiscordJsMocks {
     rest: { setToken: vi.fn(), post: vi.fn() },
   };
   return installed;
+}
+
+/** Discards the current set, so the mocked constructors throw until reinstalled. */
+export function resetDiscordJsMocks(): void {
+  installed = undefined;
 }
 
 /** The replacement `discord.js` module, for a spec's `vi.mock` factory. */

@@ -1,6 +1,6 @@
 import { UsageTrackingService } from '@blood-bowl-tracker/discord-bot-usage';
 import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
@@ -9,7 +9,10 @@ vi.mock('discord.js', async () =>
 );
 
 import type { DiscordJsMocks } from './discord-js-mock.test-helpers';
-import { installDiscordJsMocks } from './discord-js-mock.test-helpers';
+import {
+  installDiscordJsMocks,
+  resetDiscordJsMocks,
+} from './discord-js-mock.test-helpers';
 import {
   ADMIN_COMMAND_ROLE_ID,
   DISCORD_BOT_TOKEN,
@@ -92,6 +95,10 @@ describe('DiscordClientService restricted commands', () => {
     discord.client.application.commands.set.mockResolvedValue(undefined);
     usageTracking = mock<UsageTrackingService>();
     usageTracking.recordInteraction.mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    resetDiscordJsMocks();
   });
 
   it('runs a restricted command for a member holding the role', async () => {
