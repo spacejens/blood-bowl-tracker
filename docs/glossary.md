@@ -108,7 +108,7 @@ See [game-concepts/keywords](game-concepts/keywords/index.md).
 
 ### Lasting Injury
 
-A [player](#player)'s current, outstanding injury state: whether they must miss their next [match](#match), how many niggling injuries they carry, and how many reductions each of their [characteristics](#characteristics) sits under. It is live state that newer [rules sets](#rules-set) let heal between [competitions](#competition), distinct from the history of injuries recorded as [match events](#match-event).
+A [player](#player)'s current, outstanding injury state: whether they must miss their next [match](#match), how many niggling injuries they carry, and how many reductions each of their [characteristics](#characteristics) sits under. It is live state that newer [rules sets](#rules-set) allow to heal between [competitions](#competition), distinct from the history of injuries recorded as [match events](#match-event).
 
 See [game-concepts/players](game-concepts/players/index.md).
 
