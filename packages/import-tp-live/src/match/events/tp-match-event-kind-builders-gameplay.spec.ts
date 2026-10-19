@@ -79,8 +79,8 @@ function injury(options: {
  * standalone casualty_caused, and injury (including its three
  * action-credit branches and the two injury-type mapping tables).
  * Administrative events are covered in
- * `tp-match-event-kind-builders-admin.spec.ts` — split out to stay under
- * this repo's 1000-line spec file ceiling.
+ * `tp-match-event-kind-builders-admin.spec.ts` — kept in a separate file to
+ * stay under this repo's 1000-line spec file ceiling.
  */
 describe('TpMatchEventKindBuildersService gameplay events', () => {
   let service: TpMatchEventKindBuildersService;

@@ -134,7 +134,7 @@ export class DbGenerateService {
 
   /**
    * A history table keeps columns that no longer exist on its tracked table,
-   * made nullable, so old history rows survive. Because the TS schema now
+   * made nullable, so old history rows survive. Because the TS schema
    * mirrors only current columns, drizzle-kit emits a DROP COLUMN for the
    * history table when a tracked column is removed; we rewrite that to a
    * DROP NOT NULL so the column physically survives (nullable) instead. This

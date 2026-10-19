@@ -80,10 +80,10 @@ const INJURY_ACTION_SEVERITY_BY_TYPE: Record<TpInjuryType, ActionType> = {
 
 /**
  * Builds the concrete `UpsertMatchEvent`(s) for every TP match event kind.
- * Split out of `TpMatchEventsBuilderService` (which owns `resolveTeamEraId`
- * and the public `buildEventData` dispatcher) purely to stay under this
- * repo's 500-line source file ceiling — conceptually these are all private
- * implementation details of the builder, just hosted in a collaborating
+ * Kept separate from `TpMatchEventsBuilderService` (which owns
+ * `resolveTeamEraId` and the public `buildEventData` dispatcher) to stay under
+ * this repo's 500-line source file ceiling — conceptually these are all
+ * private implementation details of the builder, hosted in a collaborating
  * service that `TpMatchEventsBuilderService` injects.
  */
 @Injectable()
@@ -401,7 +401,7 @@ export class TpMatchEventKindBuildersService {
    * Build the administrative TP match events (weather, inducements, winnings,
    * fan factor, journeyman signing, expensive mistake, dedicated fans, secret
    * objective, prayers to Nuffle, concession) for one event. Delegates to
-   * {@link TpAdminMatchEventBuilderService}, split out purely to stay under
+   * {@link TpAdminMatchEventBuilderService}, kept separate to stay under
    * this repo's 500-line source file ceiling.
    */
   buildAdminEvents(
