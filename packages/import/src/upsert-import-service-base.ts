@@ -47,19 +47,19 @@ export type UpsertImportServiceConstructor<TData, TResult> = new (
 ) => UpsertImportService<TData, TResult>;
 
 /**
- * Builds the shared body of an entity's import service: run the client's
- * upsert through `ImportRunnerService.recordUpsertResult`, so a failure
- * becomes one `ImportError` in the caller's list and `undefined`, and one bad
- * row never aborts a batch.
+ * Builds the shared body of an entity's import service: run the client's upsert
+ * through `ImportRunnerService.recordUpsertResult`, so a failure becomes one
+ * `ImportError` in the caller's list and `undefined`, and one bad row never
+ * aborts a batch.
  *
  * A class factory rather than a service (CLAUDE.md's "Service vs. loose
- * function", case 5): it returns the `@Injectable()` base class each
- * entity's import service extends, which is what NestJS DI manages, built
- * from a declarative config object (`resource`, `buildErrorMessage`). The
- * compile-time generics only type that config. The
- * `@Injectable()` decorator and the `@Inject(API_CLIENT)` parameter decorator
- * live on the base, and NestJS finds their metadata through the subclass's
- * prototype chain, which is why a subclass needs no constructor of its own.
+ * function", case 5): it returns the `@Injectable()` base class each entity's
+ * import service extends, which is what NestJS DI manages, built from a
+ * declarative config object (`resource`, `buildErrorMessage`). The compile-time
+ * generics only type that config. The `@Injectable()` decorator and the
+ * `@Inject(API_CLIENT)` parameter decorator live on the base, and NestJS finds
+ * their metadata through the subclass's prototype chain, which is why a
+ * subclass needs no constructor of its own.
  */
 export function createUpsertImportServiceBase<TData, TResult>(
   config: UpsertImportServiceConfig<TData, TResult>,

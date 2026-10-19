@@ -23,17 +23,16 @@ export type ExternalSystemLookupServiceConstructor = new (
 /**
  * Builds the shared body of a review tool's external-system lookup: resolving
  * each source's `external_systems.id` from its configured name, once per
- * process. Every query that joins a source's external ids needs this id, so
- * it is memoized here rather than re-queried per stratum.
+ * process. Every query that joins a source's external ids needs this id, so it
+ * is memoized here rather than re-queried per stratum.
  *
  * A class factory rather than a service (CLAUDE.md's "Service vs. loose
- * function", case 5), like `createReviewConfigServiceBase`: what it returns
- * is the `@Injectable()`
- * class each review tool's lookup service extends, so NestJS DI manages the
- * result directly. The tool's own config service class is passed in because
- * it is the DI token the base injects through; `fileName` is the tool's
- * config file name, named in the not-found error so a developer is pointed at
- * the file they actually have to edit.
+ * function", case 5), like `createReviewConfigServiceBase`: what it returns is
+ * the `@Injectable()` class each review tool's lookup service extends, so
+ * NestJS DI manages the result directly. The tool's own config service class is
+ * passed in because it is the DI token the base injects through; `fileName` is
+ * the tool's config file name, named in the not-found error so a developer is
+ * pointed at the file they actually have to edit.
  */
 export function createExternalSystemLookupServiceBase(
   configServiceClass: Type<ReviewConfigService>,

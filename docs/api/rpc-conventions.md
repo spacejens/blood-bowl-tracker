@@ -33,8 +33,9 @@ own config (`connection.apiBaseUrl` and `connection.apiToken`).
 `packages/api-client` does not call the global `fetch` directly.
 `ApiClientModule` injects `ResilientFetchService` into its `API_CLIENT`
 factory and passes its `fetch` through `createApiClient` to `RPCLink`. That
-wrapper bounds every individual attempt at 180 seconds and retries a failed attempt up to five times — six attempts
-in all — waiting 1s, 2s, 4s, 8s and then 16s in between. The timeout, retry
+wrapper bounds every individual attempt at 180 seconds and retries a failed
+attempt up to five times — six attempts in all — waiting 1s, 2s, 4s, 8s and
+then 16s in between. The timeout, retry
 count, and backoff base are all fixed constants in the client; there is
 deliberately no configuration surface for them. The timeout is generous
 rather than tight because `matches`/`matchEvents` upserts arrive
@@ -44,8 +45,8 @@ the timeout only needs to catch a connection that has actually stalled, not
 shave time off a slow-but-working one. It bounds the whole request/response
 exchange, including the caller reading the response body after
 `ResilientFetchService.fetch` returns — a response still being read 180
-seconds after the request started aborts mid-stream, outside the retry loop, and reaches the
-caller unretried.
+seconds after the request started aborts mid-stream, outside the retry loop,
+and reaches the caller unretried.
 
 An attempt is retried when `fetch` itself throws (a network failure, a
 connection reset, or the timeout aborting a stalled request) or when the

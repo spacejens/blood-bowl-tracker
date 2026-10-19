@@ -140,7 +140,9 @@ five cases applies:
      schemas, defaults, or a one-line selector/formatter like
      `(client) => client.leagues`, never a collaborator to call or a place to
      hide application logic;
-   - all behaviour lives inside the returned class, not in the factory body.
+   - no application logic in the factory body; all behaviour lives inside the
+     returned class (deriving a constant from the config, such as a file name,
+     is fine).
 
    References: `createConfigLoaderServiceBase` (`packages/config-loader/`);
    `createUpsertImportServiceBase`, `createImportConfigServiceBase`,

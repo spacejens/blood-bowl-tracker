@@ -61,17 +61,16 @@ export type ReviewConfigServiceConstructor = new (
  * substituted into the error messages.
  *
  * A class factory rather than a service (CLAUDE.md's "Service vs. loose
- * function", case 5): what it returns is the `@Injectable()` class each
- * review tool's config service extends, so NestJS DI manages the result
- * directly instead of injecting this function's output anywhere. The
- * parameter is a declarative config object (`pathToken`, `fileName`,
- * `overrideLabel`). The
+ * function", case 5): what it returns is the `@Injectable()` class each review
+ * tool's config service extends, so NestJS DI manages the result directly
+ * instead of injecting this function's output anywhere. The parameter is a
+ * declarative config object (`pathToken`, `fileName`, `overrideLabel`). The
  * `@Injectable()` decorator and the base's `@Inject(pathToken)` parameter
  * decorator are found through the subclass's prototype chain, which is why a
  * subclass needs no constructor of its own.
  *
- * Loading is eager (once, in the base's constructor) but validation is lazy
- * and per-field, so a developer only ever sees an error about the setting they
+ * Loading is eager (once, in the base's constructor) but validation is lazy and
+ * per-field, so a developer only ever sees an error about the setting they
  * actually need.
  */
 export function createReviewConfigServiceBase(

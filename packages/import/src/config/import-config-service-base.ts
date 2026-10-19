@@ -43,12 +43,11 @@ export type ImportConfigServiceConstructor = new (
  * var substituted into the error messages.
  *
  * A class factory rather than a service (CLAUDE.md's "Service vs. loose
- * function", case 5): what it returns is the `@Injectable()` class each
- * import tool's config service extends, so NestJS DI manages the result
- * directly instead of injecting this function's output anywhere. The
- * parameter is a declarative config object (`pathToken`, `fileBaseName`,
- * `apiTokenEnvVar`). The
- * `@Injectable()` decorator and the base's `@Inject(pathToken)` parameter
+ * function", case 5): what it returns is the `@Injectable()` class each import
+ * tool's config service extends, so NestJS DI manages the result directly
+ * instead of injecting this function's output anywhere. The parameter is a
+ * declarative config object (`pathToken`, `fileBaseName`, `apiTokenEnvVar`).
+ * The `@Injectable()` decorator and the base's `@Inject(pathToken)` parameter
  * decorator are found through the subclass's prototype chain, which is why a
  * subclass needs no constructor of its own.
  */

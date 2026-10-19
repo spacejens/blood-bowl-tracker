@@ -35,9 +35,9 @@ export type ExternalSystemNameConfigServiceConstructor = new (
  * function", case 5): it produces the `@Injectable()` base class a tool's own
  * external-system-name service extends, which is what NestJS DI ends up
  * managing, from a declarative config object (`configService`,
- * `defaultSystemName`). The
- * `@Injectable()` and `@Inject(configService)` metadata is found through the
- * subclass's prototype chain, so a subclass needs no constructor of its own.
+ * `defaultSystemName`). The `@Injectable()` and `@Inject(configService)`
+ * metadata is found through the subclass's prototype chain, so a subclass needs
+ * no constructor of its own.
  */
 export function createExternalSystemNameConfigServiceBase(
   config: ExternalSystemNameConfigServiceConfig,
