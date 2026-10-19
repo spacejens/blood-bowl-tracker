@@ -10,8 +10,7 @@
 //                     "pre-register so a later upsert matches" pattern
 //                     races-and-positions.json5 and
 //                     position-characteristics-gap-fill.json5 already use for
-//                     races and positions: this file's `before-other-
-//                     importers` phase runs as its own, EARLIER invocation
+//                     races and positions: this file's batch 001 is applied as its own, EARLIER invocation
 //                     than the BBL/TP import (see docs/import-manual/index.md,
 //                     "Run it"), so on a from-empty-database run, a skill like
 //                     "Block" or "Dodge" does not exist yet when this file's
@@ -44,7 +43,7 @@
 // (4+)", "Mighty Blow (+1)") is NOT a distinct skill: the value is specific
 // to the position that grants it, not to the skill's identity, so it is
 // curated as a per-position attributeValue in
-// after-other-importers/position-skills.json5 instead -- only the bare skill
+// 002-initial-cleanup/position-skills.json5 instead -- only the bare skill
 // name is registered here.
 //
 // 'unique' is a category like any other: it is the only marker a star

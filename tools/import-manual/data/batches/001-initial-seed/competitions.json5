@@ -1,12 +1,12 @@
 // Every known competition instance: its curated competition group and the
 // real name/type/era/dates it is created with.
 //
-// This runs in the BEFORE-other-importers phase, ahead of tools/import-bbl
+// This file is in batch 001, applied BEFORE tools/import-bbl
 // and tools/import-tp, because competitions.competition_group_id must already
 // be correct when those tools run: tools/import-tp's awards import resolves a
 // trophy by `${disambiguator}-${groupName}`, and the group name comes from
-// the competition's own group. Classifying in the after-other-importers
-// phase instead, once the source importers have already run, is too late.
+// the competition's own group. Classifying in 002-initial-cleanup
+// instead, once the source importers have already run, is too late.
 //
 // A create needs every NOT NULL column competitions has no default for --
 // name, type, era_id and start_date -- so each entry carries real values,
@@ -34,10 +34,10 @@
 // classification here survives untouched.
 //
 // The names here are the raw source names, except for the 36 instances the
-// after-other-importers phase renames -- those carry their canonical name, so
-// this file never creates a row under a name a later phase immediately
+// 002-initial-cleanup batch renames -- those carry their canonical name, so
+// this file never creates a row under a name a later batch immediately
 // replaces. Renaming itself stays in
-// data/after-other-importers/competitions.json5: it can only run once the
+// 002-initial-cleanup/competitions.json5: it can only run once the
 // importers have created their rows with the raw source names.
 //
 // Source-data facts worth recording here: BBL's `s` id sequence has no s=9 at
@@ -52,7 +52,7 @@
   competitions: [
     // -- The Major Season track, seasons 1-18 (BBL, First era). BBL named
     // them plain "Season N" back when there was no Minor Season to
-    // distinguish from, so the after-other-importers phase renames each to
+    // distinguish from, so the 002-initial-cleanup batch renames each to
     // the canonical "Major Season N" -- which is the name curated here, so
     // the row is never created under the raw name. The numeric id is the
     // competition's BBL `s` value from the p=se competition list -- the only
@@ -408,7 +408,7 @@
     },
 
     // -- Major Season 19-24 (BBL). BBL's own names are already canonical, so
-    // the after-other-importers phase does not rename these; the name here is
+    // the 002-initial-cleanup batch does not rename these; the name here is
     // the raw one off the p=se list. 19-21 still fall inside First era by
     // match date (Second era only starts 2021-09-01), 22-24 in Second era.
     {

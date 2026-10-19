@@ -5,7 +5,7 @@
 // entry; an entry naming a race overrides the baseline for it.
 //
 // Rules sets are declared here rather than referenced, because nothing has
-// created them yet at before-other-importers time: the BBL and TP importers
+// created them yet when batch 001 is applied: the BBL and TP importers
 // create them later from their own configs. Each is keyed under the "Name"
 // system by its bare name -- exactly what NameExternalIdService.forRulesSet
 // returns -- so those later upserts land on these same rows.

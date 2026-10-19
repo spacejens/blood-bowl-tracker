@@ -16,9 +16,9 @@
 // evidence. So "it is a BB2020 entry" is not a reason to put something here.
 // CRP, CRP+ and BB2016 are a separate case: BBL never writes a row for those
 // three at all, but that alone still doesn't make an entry belong HERE --
-// the fully-curated after-other-importers/position-characteristics.json5
+// the fully-curated 002-initial-cleanup/position-characteristics.json5
 // already owns them; this file is only for a pair no importer, source or
-// curated-after-phase, ever supplies. Before adding an entry, establish that
+// later batch, ever supplies. Before adding an entry, establish that
 // neither BBL nor TP can produce a candidate for that position at all.
 //
 // Giant Mercenary is the one entry that qualifies today. BBL never creates a
@@ -37,7 +37,7 @@
 //
 // Note: tools/review-race's per-race characteristics panels structurally
 // exclude all star players (Giant Mercenary is one), so this entry does not
-// appear there regardless of which phase curates it -- a pre-existing,
+// appear there regardless of which batch curates it -- a pre-existing,
 // unrelated limitation of that tool, not something this file's placement
 // affects. tools/review-race's own unit tests (manual-raw-data.service.spec.ts)
 // verify the pooling of this file with position-characteristics.json5

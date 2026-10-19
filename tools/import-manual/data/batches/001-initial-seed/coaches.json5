@@ -12,7 +12,7 @@
 // not the coaches' full real names, because this repository is public.
 // Matching resolves coaches by `externalIds` and never by `name`. The BBL and
 // TP importers set a coach's name only when they create the coach, so the name
-// written here is the one shown; after-other-importers/coaches.json5 re-states
+// written here is the one shown; 002-initial-cleanup/coaches.json5 re-states
 // it.
 {
   externalSystems: [
