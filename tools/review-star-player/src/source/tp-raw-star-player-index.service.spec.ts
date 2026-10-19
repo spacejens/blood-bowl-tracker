@@ -22,19 +22,6 @@ function writeRulesSet(rulesSet: string, contents: unknown): void {
   );
 }
 
-async function makeService(): Promise<TpRawStarPlayerIndexService> {
-  const config = mock<StarPlayerReviewConfigService>();
-  config.getDataDir.mockReturnValue(dir);
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      TpRawStarPlayerIndexService,
-      { provide: StarPlayerReviewConfigService, useValue: config },
-      StarPlayerNameMatcherService,
-    ],
-  }).compile();
-  return moduleRef.get(TpRawStarPlayerIndexService);
-}
-
 const WOOD_ELF = {
   teamRace: 'WoodElf_BB2025',
   teamRosterType: 0,
@@ -79,12 +66,26 @@ afterEach(() => {
 });
 
 describe('TpRawStarPlayerIndexService', () => {
+  let service: TpRawStarPlayerIndexService;
+
+  beforeEach(async () => {
+    const config = mock<StarPlayerReviewConfigService>();
+    config.getDataDir.mockReturnValue(dir);
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        TpRawStarPlayerIndexService,
+        { provide: StarPlayerReviewConfigService, useValue: config },
+        StarPlayerNameMatcherService,
+      ],
+    }).compile();
+    service = moduleRef.get(TpRawStarPlayerIndexService);
+  });
+
   it('indexes a star by name with its rules-set entry', async () => {
     writeRulesSet('BB2025', {
       rosterMasters: [WOOD_ELF, DWARF],
       starplayerMasters: [ELDRIL],
     });
-    const service = await makeService();
 
     expect(await service.starFor('Eldril Sidewinder')).toEqual({
       name: 'Eldril Sidewinder',
@@ -117,7 +118,6 @@ describe('TpRawStarPlayerIndexService', () => {
         { ...ELDRIL, availableLeagues: 0, availableTeamSpecialRules: 4 },
       ],
     });
-    const service = await makeService();
 
     const star = await service.starFor('Eldril Sidewinder');
 
@@ -133,7 +133,6 @@ describe('TpRawStarPlayerIndexService', () => {
         { ...ELDRIL, availableLeagues: 0, availableTeamSpecialRules: 4 },
       ],
     });
-    const service = await makeService();
 
     const star = await service.starFor('Eldril Sidewinder');
 
@@ -145,7 +144,6 @@ describe('TpRawStarPlayerIndexService', () => {
       rosterMasters: [{ ...WOOD_ELF, teamRosterType: 4 }],
       starplayerMasters: [ELDRIL],
     });
-    const service = await makeService();
 
     const star = await service.starFor('Eldril Sidewinder');
 
@@ -161,7 +159,6 @@ describe('TpRawStarPlayerIndexService', () => {
       rosterMasters: [WOOD_ELF],
       starplayerMasters: [ELDRIL],
     });
-    const service = await makeService();
 
     const star = await service.starFor('Eldril Sidewinder');
 
@@ -180,7 +177,6 @@ describe('TpRawStarPlayerIndexService', () => {
       rosterMasters: [WOOD_ELF],
       starplayerMasters: [{ ...ELDRIL, cost: 200000 }],
     });
-    const service = await makeService();
 
     const star = await service.starFor('Eldril Sidewinder');
 
@@ -209,7 +205,6 @@ describe('TpRawStarPlayerIndexService', () => {
       }),
       'utf8',
     );
-    const service = await makeService();
 
     expect(await service.allNames()).toEqual(['Aaron Apple', 'Zed Zebra']);
   });
@@ -221,7 +216,6 @@ describe('TpRawStarPlayerIndexService', () => {
         { ...ELDRIL, position: 'Dolfar Longstride (& Grak)' },
       ],
     });
-    const service = await makeService();
 
     const star = await service.starFor('Dolfar Longstride');
 
@@ -230,7 +224,6 @@ describe('TpRawStarPlayerIndexService', () => {
 
   it('returns null for a star TP does not carry', async () => {
     writeRulesSet('BB2025', { rosterMasters: [], starplayerMasters: [] });
-    const service = await makeService();
 
     expect(await service.starFor('Nobody At All')).toBeNull();
   });
@@ -240,7 +233,6 @@ describe('TpRawStarPlayerIndexService', () => {
       rosterMasters: [WOOD_ELF],
       starplayerMasters: [ELDRIL, { ...ELDRIL, position: 'Griff Oberwald' }],
     });
-    const service = await makeService();
 
     expect(await service.allNames()).toEqual([
       'Eldril Sidewinder',
@@ -249,8 +241,6 @@ describe('TpRawStarPlayerIndexService', () => {
   });
 
   it('degrades to an empty index when the teams directory is absent', async () => {
-    const service = await makeService();
-
     expect(await service.allNames()).toEqual([]);
   });
 
@@ -258,7 +248,6 @@ describe('TpRawStarPlayerIndexService', () => {
     const rulesSetDir = join(dir, 'teams', 'BB2025');
     mkdirSync(rulesSetDir, { recursive: true });
     writeFileSync(join(rulesSetDir, 'broken.json'), '{ not json', 'utf8');
-    const service = await makeService();
 
     expect(await service.allNames()).toEqual([]);
   });
@@ -268,7 +257,6 @@ describe('TpRawStarPlayerIndexService', () => {
       rosterMasters: [WOOD_ELF],
       starplayerMasters: [{ ...ELDRIL, position: '' }],
     });
-    const service = await makeService();
 
     expect(await service.allNames()).toEqual([]);
   });
@@ -279,7 +267,6 @@ describe('TpRawStarPlayerIndexService', () => {
       rosterMasters: [WOOD_ELF],
       starplayerMasters: [withoutMove],
     });
-    const service = await makeService();
 
     const star = await service.starFor('Eldril Sidewinder');
 
@@ -288,7 +275,6 @@ describe('TpRawStarPlayerIndexService', () => {
 
   it('propagates a non-ENOENT error reading the teams directory', async () => {
     writeFileSync(join(dir, 'teams'), 'not a directory', 'utf8');
-    const service = await makeService();
 
     await expect(service.allNames()).rejects.toThrow();
   });
@@ -309,7 +295,6 @@ describe('TpRawStarPlayerIndexService', () => {
         },
       ],
     });
-    const service = await makeService();
 
     const star = await service.starFor('Eldril Sidewinder');
 
@@ -324,7 +309,6 @@ describe('TpRawStarPlayerIndexService', () => {
       rosterMasters: [WOOD_ELF],
       starplayerMasters: [ELDRIL],
     });
-    const service = await makeService();
 
     const star = await service.starFor('Eldril Sidewinder');
 
@@ -336,7 +320,6 @@ describe('TpRawStarPlayerIndexService', () => {
       rosterMasters: [WOOD_ELF],
       starplayerMasters: [{ ...ELDRIL, race: [111, 110] }],
     });
-    const service = await makeService();
 
     const star = await service.starFor('Eldril Sidewinder');
 
@@ -348,7 +331,6 @@ describe('TpRawStarPlayerIndexService', () => {
       rosterMasters: [WOOD_ELF],
       starplayerMasters: [ELDRIL],
     });
-    const service = await makeService();
 
     const star = await service.starFor('Eldril Sidewinder');
 
@@ -360,7 +342,6 @@ describe('TpRawStarPlayerIndexService', () => {
       rosterMasters: [WOOD_ELF],
       starplayerMasters: [{ ...ELDRIL, race: 'not-an-array' }],
     });
-    const service = await makeService();
 
     const star = await service.starFor('Eldril Sidewinder');
 
@@ -374,7 +355,6 @@ describe('TpRawStarPlayerIndexService', () => {
       // TP never puts in the race array.
       starplayerMasters: [{ ...ELDRIL, race: [130], positionTypes: 64 }],
     });
-    const service = await makeService();
 
     const star = await service.starFor('Eldril Sidewinder');
 
@@ -390,7 +370,6 @@ describe('TpRawStarPlayerIndexService', () => {
         { ...ELDRIL, race: [116], positionTypes: null, isBigGuy: true },
       ],
     });
-    const service = await makeService();
 
     const star = await service.starFor('Eldril Sidewinder');
 
@@ -406,7 +385,6 @@ describe('TpRawStarPlayerIndexService', () => {
       rosterMasters: [{ ...DWARF, teamRace: 'Dwarf' }],
       starplayerMasters: [{ ...ELDRIL, isBigGuy: true }],
     });
-    const service = await makeService();
 
     const star = await service.starFor('Eldril Sidewinder');
 
@@ -421,7 +399,6 @@ describe('TpRawStarPlayerIndexService', () => {
       rosterMasters: [{ ...DWARF, teamRace: 'Dwarf' }],
       starplayerMasters: [{ ...ELDRIL, positionTypes: 32 }],
     });
-    const service = await makeService();
 
     const star = await service.starFor('Eldril Sidewinder');
 
@@ -435,7 +412,6 @@ describe('TpRawStarPlayerIndexService', () => {
       rosterMasters: [{ ...DWARF, teamRace: 'Dwarf' }],
       starplayerMasters: [{ ...ELDRIL, positionTypes: 128 }],
     });
-    const service = await makeService();
 
     const star = await service.starFor('Eldril Sidewinder');
 
@@ -447,7 +423,6 @@ describe('TpRawStarPlayerIndexService', () => {
       rosterMasters: [{ ...DWARF, teamRace: 'Dwarf' }],
       starplayerMasters: [{ ...ELDRIL, positionTypes: 128, isBigGuy: true }],
     });
-    const service = await makeService();
 
     const star = await service.starFor('Eldril Sidewinder');
 
@@ -459,7 +434,6 @@ describe('TpRawStarPlayerIndexService', () => {
       rosterMasters: [WOOD_ELF],
       starplayerMasters: [ELDRIL],
     });
-    const service = await makeService();
 
     const star = await service.starFor('Eldril Sidewinder');
 
@@ -473,7 +447,6 @@ describe('TpRawStarPlayerIndexService', () => {
       rosterMasters: [WOOD_ELF],
       starplayerMasters: [{ ...ELDRIL, race: [116], positionTypes: 'special' }],
     });
-    const service = await makeService();
 
     const star = await service.starFor('Eldril Sidewinder');
 
@@ -486,7 +459,6 @@ describe('TpRawStarPlayerIndexService', () => {
       rosterMasters: [WOOD_ELF],
       starplayerMasters: [ELDRIL],
     });
-    const service = await makeService();
 
     await service.starFor('Eldril Sidewinder');
     rmSync(join(dir, 'teams'), { recursive: true, force: true });

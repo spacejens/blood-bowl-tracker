@@ -24,10 +24,6 @@ let databaseTimeout: MockProxy<DatabaseTimeoutService>;
 let entityComponents: MockProxy<EntityComponentsService>;
 let leaderboardService: LeaderboardService;
 
-function service(): LeaderboardService {
-  return leaderboardService;
-}
-
 /**
  * Compiles a fresh LeaderboardService, optionally with a caller-supplied
  * EntityComponentsService mock (defaulting to one whose buildEntityComponents
@@ -75,7 +71,7 @@ describe('topRanksWithTies', () => {
       { name: 'b', count: 5 },
       { name: 'c', count: 2 },
     ];
-    expect(service().topRanksWithTies(rows, 5, 50)).toEqual({
+    expect(leaderboardService.topRanksWithTies(rows, 5, 50)).toEqual({
       rows: [
         { name: 'a', count: 9, rank: 1 },
         { name: 'b', count: 5, rank: 2 },
@@ -92,7 +88,7 @@ describe('topRanksWithTies', () => {
       { name: 'b', count: 9 },
       { name: 'c', count: 4 },
     ];
-    expect(service().topRanksWithTies(rows, 5, 50)).toEqual({
+    expect(leaderboardService.topRanksWithTies(rows, 5, 50)).toEqual({
       rows: [
         { name: 'a', count: 9, rank: 1 },
         { name: 'b', count: 9, rank: 1 },
@@ -110,7 +106,7 @@ describe('topRanksWithTies', () => {
       { name: 'c', count: 7 },
       { name: 'd', count: 1 },
     ];
-    expect(service().topRanksWithTies(rows, 2, 50)).toEqual({
+    expect(leaderboardService.topRanksWithTies(rows, 2, 50)).toEqual({
       rows: [
         { name: 'a', count: 9, rank: 1 },
         { name: 'b', count: 7, rank: 2 },
@@ -123,7 +119,7 @@ describe('topRanksWithTies', () => {
 
   it('returns all rows when there are fewer than topEntries', () => {
     const rows = [{ name: 'a', count: 3 }];
-    expect(service().topRanksWithTies(rows, 5, 50)).toEqual({
+    expect(leaderboardService.topRanksWithTies(rows, 5, 50)).toEqual({
       rows: [{ name: 'a', count: 3, rank: 1 }],
       truncatedCount: 0,
       tieGroupOpenEnded: false,
@@ -131,7 +127,7 @@ describe('topRanksWithTies', () => {
   });
 
   it('returns an empty array for no rows', () => {
-    expect(service().topRanksWithTies([], 5, 50)).toEqual({
+    expect(leaderboardService.topRanksWithTies([], 5, 50)).toEqual({
       rows: [],
       truncatedCount: 0,
       tieGroupOpenEnded: false,
@@ -143,7 +139,7 @@ describe('topRanksWithTies', () => {
       name: `team-${i}`,
       count: 1,
     }));
-    const result = service().topRanksWithTies(rows, 5, 50);
+    const result = leaderboardService.topRanksWithTies(rows, 5, 50);
     expect(result.rows).toHaveLength(50);
     expect(result.rows.every((row) => row.rank === 1)).toBe(true);
     expect(result.truncatedCount).toBe(250);
@@ -155,7 +151,7 @@ describe('topRanksWithTies', () => {
       { name: 'a', count: 2 },
       { name: 'b', count: 1 },
     ];
-    expect(service().topRanksWithTies(rows, 5, 2)).toEqual({
+    expect(leaderboardService.topRanksWithTies(rows, 5, 2)).toEqual({
       rows: [
         { name: 'a', count: 2, rank: 1 },
         { name: 'b', count: 1, rank: 2 },
@@ -178,7 +174,7 @@ describe('topRanksWithTies', () => {
       { name: 'g', count: 10 },
       { name: 'h', count: 10 },
     ];
-    expect(service().topRanksWithTies(rows, 5, 10)).toEqual({
+    expect(leaderboardService.topRanksWithTies(rows, 5, 10)).toEqual({
       rows: [
         { name: 'a', count: 15, rank: 1 },
         { name: 'b', count: 14, rank: 2 },
@@ -208,7 +204,7 @@ describe('topRanksWithTies', () => {
       { name: 't5', count: 5 },
       { name: 't6', count: 5 },
     ];
-    expect(service().topRanksWithTies(rows, 5, 10)).toEqual({
+    expect(leaderboardService.topRanksWithTies(rows, 5, 10)).toEqual({
       rows: [
         { name: 'a', count: 20, rank: 1 },
         { name: 'b', count: 19, rank: 2 },
@@ -238,9 +234,9 @@ describe('topRanksWithTies', () => {
       { name: 'f', count: 5 },
       { name: 'g', count: 5 },
     ];
-    expect(service().topRanksWithTies(rows, 5, 10).tieGroupOpenEnded).toBe(
-      true,
-    );
+    expect(
+      leaderboardService.topRanksWithTies(rows, 5, 10).tieGroupOpenEnded,
+    ).toBe(true);
   });
 
   it('does not flag open-ended when the boundary tie breaks before the input ends', () => {
@@ -254,15 +250,15 @@ describe('topRanksWithTies', () => {
       { name: 'f', count: 5 },
       { name: 'g', count: 4 },
     ];
-    expect(service().topRanksWithTies(rows, 5, 10).tieGroupOpenEnded).toBe(
-      false,
-    );
+    expect(
+      leaderboardService.topRanksWithTies(rows, 5, 10).tieGroupOpenEnded,
+    ).toBe(false);
   });
 });
 
 describe('formatLeaderboardEmbed', () => {
   it('builds an embed with one line per ranked row', () => {
-    const result = service().formatLeaderboardEmbed({
+    const result = leaderboardService.formatLeaderboardEmbed({
       title: 'Coaches by matches',
       rankedRows: [
         { name: 'a', count: 9, rank: 1 },
@@ -282,7 +278,7 @@ describe('formatLeaderboardEmbed', () => {
   });
 
   it('uses the supplied no-data message when there are no rows', () => {
-    const result = service().formatLeaderboardEmbed({
+    const result = leaderboardService.formatLeaderboardEmbed({
       title: 'Coaches by matches',
       rankedRows: [],
       noDataMessage: 'Nobody has laced up their boots yet.',
@@ -298,7 +294,7 @@ describe('formatLeaderboardEmbed', () => {
   });
 
   it('appends a truncation note when rows were cut off by the entry cap', () => {
-    const result = service().formatLeaderboardEmbed({
+    const result = leaderboardService.formatLeaderboardEmbed({
       title: 'Teams by eras active',
       rankedRows: [
         { name: 'a', count: 2, rank: 1 },
@@ -318,7 +314,7 @@ describe('formatLeaderboardEmbed', () => {
   });
 
   it('renders an exact tie remainder as a numbered "more tied" line', () => {
-    const result = service().formatLeaderboardEmbed({
+    const result = leaderboardService.formatLeaderboardEmbed({
       title: 'Teams by eras active',
       rankedRows: [
         { name: 'a', count: 2, rank: 1 },
@@ -338,7 +334,7 @@ describe('formatLeaderboardEmbed', () => {
   });
 
   it('renders an approximate tie remainder as "lots more tied"', () => {
-    const result = service().formatLeaderboardEmbed({
+    const result = leaderboardService.formatLeaderboardEmbed({
       title: 'Teams by eras active',
       rankedRows: [{ name: 'a', count: 2, rank: 1 }],
       noDataMessage: 'No data placeholder',
@@ -355,7 +351,7 @@ describe('formatLeaderboardEmbed', () => {
   });
 
   it('omits the remainder line for an exact count of zero', () => {
-    const result = service().formatLeaderboardEmbed({
+    const result = leaderboardService.formatLeaderboardEmbed({
       title: 'Teams by eras active',
       rankedRows: [{ name: 'a', count: 2, rank: 1 }],
       noDataMessage: 'No data placeholder',
@@ -367,7 +363,7 @@ describe('formatLeaderboardEmbed', () => {
   });
 
   it('omits components entirely when no entityLink is configured', () => {
-    const result = service().formatLeaderboardEmbed({
+    const result = leaderboardService.formatLeaderboardEmbed({
       title: 'Coaches',
       rankedRows: [{ coachId: 7, name: 'Roze Madder', count: 9, rank: 1 }],
       noDataMessage: 'no data',
@@ -488,7 +484,7 @@ describe('formatLeaderboardEmbed', () => {
   });
 
   it('renders each line via a supplied formatRow', () => {
-    const result = service().formatLeaderboardEmbed({
+    const result = leaderboardService.formatLeaderboardEmbed({
       title: 'Teams by money lost to expensive mistakes',
       rankedRows: [
         { name: 'a', count: 150000, rank: 1 },
@@ -515,7 +511,7 @@ describe('resolveToplist', () => {
       name: `t${i}`,
       count: 1,
     }));
-    const result = await service().resolveToplist({
+    const result = await leaderboardService.resolveToplist({
       title: 'Teams by eras active',
       fetchRows: () => Promise.resolve(rows),
       timeoutMessage: 'timeout placeholder',
@@ -540,7 +536,7 @@ describe('resolveToplist', () => {
       { coachId: 1, name: 'a', count: 9 },
       { coachId: 2, name: 'b', count: 4 },
     ];
-    await service().resolveToplist({
+    await leaderboardService.resolveToplist({
       title: 'Coaches by matches',
       fetchRows: () => Promise.resolve(rows),
       timeoutMessage: 'timeout placeholder',
@@ -566,7 +562,7 @@ describe('resolveToplist', () => {
 
   it('threads formatRow through to the embed lines', async () => {
     const rows = [{ teamId: 1, name: 'a', count: 150000 }];
-    const result = await service().resolveToplist({
+    const result = await leaderboardService.resolveToplist({
       title: 'Teams by money lost to expensive mistakes',
       fetchRows: () => Promise.resolve(rows),
       timeoutMessage: 'timeout placeholder',
@@ -590,7 +586,7 @@ describe('resolveToplist', () => {
       name: `t${i}`,
       count: 1,
     }));
-    const result = await service().resolveToplist({
+    const result = await leaderboardService.resolveToplist({
       title: 'Teams by eras active',
       fetchRows: () => Promise.resolve(rows),
       timeoutMessage: 'timeout placeholder',
@@ -639,7 +635,7 @@ describe('resolveToplist', () => {
       { name: 'u8', count: 32 },
     ];
     expect(rows).toHaveLength(TOPLIST_FETCH_LIMIT); // guard: fetch is saturated
-    const result = await service().resolveToplist({
+    const result = await leaderboardService.resolveToplist({
       title: 'Teams by eras active',
       fetchRows: () => Promise.resolve(rows),
       timeoutMessage: 'timeout placeholder',
@@ -670,7 +666,7 @@ describe('resolveToplist', () => {
 
   it('requests exactly TOPLIST_FETCH_LIMIT rows from fetchRows', async () => {
     const fetchRows = vi.fn().mockResolvedValue([{ name: 'a', count: 1 }]);
-    await service().resolveToplist({
+    await leaderboardService.resolveToplist({
       title: 'Teams by eras active',
       fetchRows,
       timeoutMessage: 'timeout placeholder',
@@ -687,7 +683,7 @@ describe('resolveToplist', () => {
       name: `t${i}`,
       count: 1,
     }));
-    const result = (await service().resolveToplist({
+    const result = (await leaderboardService.resolveToplist({
       title: 'Teams by eras active',
       fetchRows: () => Promise.resolve(rows),
       timeoutMessage: 'timeout placeholder',
@@ -705,7 +701,7 @@ describe('resolveToplist', () => {
     // timeout race is DatabaseTimeoutService's own responsibility and is
     // covered by database-timeout.service.spec.ts.
     stubDatabaseTimeout(databaseTimeout);
-    const result = await service().resolveToplist({
+    const result = await leaderboardService.resolveToplist({
       title: 'Teams by eras active',
       fetchRows: () => new Promise<{ name: string; count: number }[]>(() => {}),
       timeoutMessage: 'timeout placeholder',

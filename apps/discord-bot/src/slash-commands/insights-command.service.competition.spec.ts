@@ -1,10 +1,11 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE,
   INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE,
   INSIGHTS_SCOPE_CONFLICT_MESSAGE,
 } from '../error-messages';
+import type { MakeServiceResult } from './insights-command.service.test-helpers';
 import {
   asLeaf,
   chatInput,
@@ -13,12 +14,18 @@ import {
 } from './insights-command.service.test-helpers';
 
 describe('InsightsCommandService — competition scoping', () => {
+  let harness: MakeServiceResult;
+
+  beforeEach(async () => {
+    harness = await makeService();
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
   it('rejects a request that supplies both an era and a competition', async () => {
-    const { service, eras, competitions } = await makeService();
+    const { service, eras, competitions } = harness;
     const result = await service.execute(
       chatInput('coach.toplist.matches.played', {
         era: '20',
@@ -32,7 +39,7 @@ describe('InsightsCommandService — competition scoping', () => {
   });
 
   it('rejects a competition id that does not resolve to a real competition', async () => {
-    const { service, competitions } = await makeService();
+    const { service, competitions } = harness;
     competitions.findById.mockResolvedValue(undefined);
     const result = await service.execute(
       chatInput('team.toplist.competitions.played', { competition: '999' }),
@@ -49,7 +56,7 @@ describe('InsightsCommandService — competition scoping', () => {
       competitions,
       dateRangeFormatter,
       tree,
-    } = await makeService();
+    } = harness;
     stubLeafCategory(
       factTreeUtils,
       asLeaf(tree.team.toplist.touchdowns.scored),
@@ -88,7 +95,7 @@ describe('InsightsCommandService — competition scoping', () => {
   });
 
   it('rejects a competition on a category that does not support it (coach.toplist.competitions.played)', async () => {
-    const { service, competitions, factTreeUtils, tree } = await makeService();
+    const { service, competitions, factTreeUtils, tree } = harness;
     stubLeafCategory(
       factTreeUtils,
       asLeaf(tree.coach.toplist.competitions.played),
@@ -108,7 +115,7 @@ describe('InsightsCommandService — competition scoping', () => {
   });
 
   it('rejects a competition on eras.list (not competition-supporting)', async () => {
-    const { service, competitions, factTreeUtils, tree } = await makeService();
+    const { service, competitions, factTreeUtils, tree } = harness;
     stubLeafCategory(factTreeUtils, asLeaf(tree.eras.list));
     competitions.findById.mockResolvedValue({
       id: 30,
@@ -126,7 +133,7 @@ describe('InsightsCommandService — competition scoping', () => {
 
   it('restricts the random pick to competition-supporting leaves when a competition but no category is given', async () => {
     const { service, competitions, factTreeDeps, factTreeUtils, tree } =
-      await makeService();
+      harness;
     competitions.findById.mockResolvedValue({
       id: 30,
       name: 'Major Season 24',
@@ -153,8 +160,8 @@ describe('InsightsCommandService — competition scoping', () => {
     });
   });
 
-  it('dates the competition in the title suffix', async () => {
-    const { service, dateRangeFormatter } = await makeService();
+  it('dates the competition in the title suffix', () => {
+    const { service, dateRangeFormatter } = harness;
     dateRangeFormatter.formatNamed.mockReturnValue(
       'Chaos Cup 23 (2023-10-01 – 2023-10-02)',
     );
@@ -183,8 +190,8 @@ describe('InsightsCommandService — competition scoping', () => {
     });
   });
 
-  it('dates an ongoing competition in the title suffix as present', async () => {
-    const { service, dateRangeFormatter } = await makeService();
+  it('dates an ongoing competition in the title suffix as present', () => {
+    const { service, dateRangeFormatter } = harness;
     dateRangeFormatter.formatNamed.mockReturnValue(
       'Chaos Cup 23 (2023-10-01 – present)',
     );

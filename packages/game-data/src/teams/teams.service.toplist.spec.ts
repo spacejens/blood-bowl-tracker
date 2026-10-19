@@ -17,7 +17,10 @@ describe('TeamsService toplist delegation', () => {
   let statistics: MockProxy<TeamsStatisticsService>;
   let teamRaceCoachNames: MockProxy<TeamRaceCoachNamesService>;
 
-  async function build(): Promise<void> {
+  beforeEach(async () => {
+    likePattern = mock<LikePatternService>();
+    statistics = mock<TeamsStatisticsService>();
+    teamRaceCoachNames = mock<TeamRaceCoachNamesService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
         TeamsService,
@@ -28,12 +31,6 @@ describe('TeamsService toplist delegation', () => {
       ],
     }).compile();
     service = moduleRef.get(TeamsService);
-  }
-
-  beforeEach(() => {
-    likePattern = mock<LikePatternService>();
-    statistics = mock<TeamsStatisticsService>();
-    teamRaceCoachNames = mock<TeamRaceCoachNamesService>();
   });
 
   it.each([
@@ -57,7 +54,6 @@ describe('TeamsService toplist delegation', () => {
     async (method) => {
       const rows = [{ teamId: 1, name: '40 grinders', count: 6 }];
       statistics[method].mockResolvedValue(rows);
-      await build();
 
       await expect(service[method](FACT_SCOPE_ALL_TIME, 21)).resolves.toEqual(
         rows,
@@ -70,7 +66,6 @@ describe('TeamsService toplist delegation', () => {
   it('countErasByTeam delegates to TeamsStatisticsService and returns its result', async () => {
     const rows = [{ teamId: 1, name: '40 grinders', count: 3 }];
     statistics.countErasByTeam.mockResolvedValue(rows);
-    await build();
 
     await expect(service.countErasByTeam(21)).resolves.toEqual(rows);
 

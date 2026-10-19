@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
@@ -13,30 +13,29 @@ import { DEFAULT_MANUAL_DATA_DIR, MANUAL_DATA_DIR } from './manual-data-dir';
 
 const DATA = '/repo/tools/import-manual/data';
 
-async function makeService(): Promise<{
-  cli: ImportManualCliService;
-  runner: MockProxy<BatchRunnerService>;
-  manualImport: MockProxy<ManualImportService>;
-}> {
-  const runner = mock<BatchRunnerService>();
-  const manualImport = mock<ManualImportService>();
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      ImportManualCliService,
-      { provide: MANUAL_DATA_DIR, useValue: DATA },
-      { provide: BatchRunnerService, useValue: runner },
-      { provide: ManualImportService, useValue: manualImport },
-    ],
-  }).compile();
-  return { cli: moduleRef.get(ImportManualCliService), runner, manualImport };
-}
-
 const run = (cli: ImportManualCliService, ...args: string[]) =>
   cli.execute({ args, cwd: '/somewhere' });
 
 describe('ImportManualCliService', () => {
+  let cli: ImportManualCliService;
+  let runner: MockProxy<BatchRunnerService>;
+  let manualImport: MockProxy<ManualImportService>;
+
+  beforeEach(async () => {
+    runner = mock<BatchRunnerService>();
+    manualImport = mock<ManualImportService>();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ImportManualCliService,
+        { provide: MANUAL_DATA_DIR, useValue: DATA },
+        { provide: BatchRunnerService, useValue: runner },
+        { provide: ManualImportService, useValue: manualImport },
+      ],
+    }).compile();
+    cli = moduleRef.get(ImportManualCliService);
+  });
+
   it('applies every unapplied batch against the tool data directory', async () => {
-    const { cli, runner } = await makeService();
     runner.apply.mockResolvedValue({
       applied: ['001-initial-seed', '002-initial-cleanup'],
       skipped: [],
@@ -60,7 +59,6 @@ describe('ImportManualCliService', () => {
   });
 
   it('applies exactly the named batch', async () => {
-    const { cli, runner } = await makeService();
     runner.apply.mockResolvedValue({
       applied: ['001-initial-seed'],
       skipped: [],
@@ -81,7 +79,6 @@ describe('ImportManualCliService', () => {
   });
 
   it('reports skipped batches', async () => {
-    const { cli, runner } = await makeService();
     runner.apply.mockResolvedValue({
       applied: [],
       skipped: ['002-initial-cleanup'],
@@ -99,7 +96,6 @@ describe('ImportManualCliService', () => {
   });
 
   it('reports a failed batch with its errors and a fresh-database hint, and exits 1', async () => {
-    const { cli, runner } = await makeService();
     runner.apply.mockResolvedValue({
       applied: ['003-x'],
       skipped: [],
@@ -123,7 +119,6 @@ describe('ImportManualCliService', () => {
   });
 
   it('marks the named batches applied', async () => {
-    const { cli, runner } = await makeService();
     runner.markApplied.mockResolvedValue({
       recorded: ['002-initial-cleanup'],
       alreadyRecorded: ['001-initial-seed'],
@@ -146,7 +141,6 @@ describe('ImportManualCliService', () => {
   });
 
   it('imports any other argument as a directory, relative to cwd, recording nothing', async () => {
-    const { cli, runner, manualImport } = await makeService();
     manualImport.run.mockResolvedValue({
       success: true,
       imported: 3,
@@ -163,7 +157,6 @@ describe('ImportManualCliService', () => {
   });
 
   it('reports a directory import with errors and exits 1', async () => {
-    const { cli, manualImport } = await makeService();
     manualImport.run.mockResolvedValue({
       success: false,
       imported: 0,
@@ -178,8 +171,6 @@ describe('ImportManualCliService', () => {
   });
 
   it('throws the usage text when apply is given more than one batch', async () => {
-    const { cli, runner } = await makeService();
-
     await expect(
       cli.execute({
         args: ['apply', '002-initial-cleanup', '003-reset-curated-names'],
@@ -190,8 +181,6 @@ describe('ImportManualCliService', () => {
   });
 
   it.each([[[]], [['']]])('throws the usage text for %j', async (args) => {
-    const { cli } = await makeService();
-
     await expect(cli.execute({ args, cwd: '/' })).rejects.toThrow(
       /Usage:.*apply \[<batch>\].*mark-applied/,
     );
