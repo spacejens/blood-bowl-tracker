@@ -19,8 +19,8 @@ machine and so sits outside the GitHub Actions deploy path — the next merge
 to `main` redeploys the newest code over it. A rollback buys time; the
 offending change still has to be reverted or fixed on `main`.
 
-Migrations are roll-forward only (see [Configuration and
-secrets](production-configuration.md)), and `packages/db`'s `createDb` runs
+Migrations are roll-forward only (see
+[Migrations](../database.md#migrations)), and `packages/db`'s `createDb` runs
 them at startup on every deploy — including a rollback. Rolling back to an
 image older than the most recent schema migration starts that older code
 against a newer schema it was never written against. Only roll back to a
