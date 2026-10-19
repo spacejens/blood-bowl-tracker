@@ -24,8 +24,8 @@ export interface ReviewAppModuleOptions {
  *
  * A loose function rather than an `@Injectable()` service on purpose: it runs
  * at module-definition time and produces the DynamicModule NestJS then builds
- * the injector from, so it cannot itself be injected — the same exemption
- * `createDb` (`packages/db/src/db.ts`) relies on.
+ * the injector from, so it cannot itself be injected — CLAUDE.md's "Service
+ * vs. loose function", case 3 (bootstrap function).
  */
 export function createReviewAppModule(
   options: ReviewAppModuleOptions,

@@ -36,18 +36,16 @@ export type SourceConfigServiceConstructor = new (
 /**
  * Builds the shared body of an import tool's source config service: resolve
  * `dataDir` to an absolute path (a relative value against the current working
- * directory), or throw the tool's own friendly error naming its config file
- * and what the folder should hold.
+ * directory), or throw the tool's own friendly error naming its config file and
+ * what the folder should hold.
  *
- * A class-factory rather than a service: its return value is the
- * `@Injectable()` base class a tool's source config service extends, not a
- * computed result handed to a caller. CLAUDE.md's "Service vs. loose
- * function" lists four exemptions and none of them covers this shape; the
- * "generic over entity/table type" one in particular does not, because the
- * parameter is a runtime config object (`configService`, `fileName`,
- * `dataDirDescription`) and not a compile-time generic. The `@Injectable()`
- * and `@Inject(configService)` metadata is found through the subclass's
- * prototype chain, so a subclass needs no constructor of its own.
+ * A class factory rather than a service (CLAUDE.md's "Service vs. loose
+ * function", case 5): its return value is the `@Injectable()` base class a
+ * tool's source config service extends, not a computed result handed to a
+ * caller, built from a declarative config object (`configService`, `fileName`,
+ * `dataDirDescription`). The `@Injectable()` and `@Inject(configService)`
+ * metadata is found through the subclass's prototype chain, so a subclass needs
+ * no constructor of its own.
  */
 export function createSourceConfigServiceBase(
   config: SourceConfigServiceConfig,

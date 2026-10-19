@@ -85,7 +85,7 @@ Entry point is `src/main.ts`; the root module is `src/app.module.ts`. Import new
 
 Prefer a NestJS `@Injectable()` service for all logic in NestJS-enabled
 packages/apps. A loose exported function is only appropriate when one of these
-four cases applies:
+five cases applies:
 
 1. **Generic over entity/table type.** The function does I/O but is
    parameterized by a compile-time generic (a raw DB handle, `PgTable`, or
@@ -106,15 +106,50 @@ four cases applies:
    Reference: `FactTreeFactoryService`/`buildFactTree` in
    `apps/discord-bot/src/insights/`.
 
-3. **Provider bootstrap function used as a module's `useFactory`.** A function
-   that constructs the very instance NestJS DI will then manage and inject
-   elsewhere cannot itself depend on injection — that would be circular.
-   References: `createDb` (`packages/db/src/db.ts`) and `createApiClient`
-   (`packages/api-client/src/client.ts`).
+3. **Bootstrap function that runs before DI can supply it.** A function that
+   runs at module-definition time (building `@Module` metadata, a
+   `DynamicModule`, or a provider object), or before any Nest context exists
+   (a CLI entrypoint that creates the context), or that constructs the very
+   instance NestJS DI will then manage (a module's `useFactory`), cannot itself
+   depend on injection: there is no injector yet, or using it would be
+   circular. References: `createDb` (`packages/db/src/db.ts`) and
+   `createApiClient` (`packages/api-client/src/client.ts`) as `useFactory`
+   bootstraps; `createRegistryProvider` and `createReviewAppModule`
+   (`packages/review-harness/src/`) at module-definition time; `runCli`
+   (`tools/cli-shared/src/run-cli.ts`) before the Nest context exists. The
+   exemption covers only the bootstrap step itself. Logic a bootstrap merely
+   *hands to* the instance it builds is still a service, injected into the
+   module's factory and passed in. Example: the retrying `fetch` that
+   `createApiClient` gives `RPCLink` is `ResilientFetchService`
+   (`packages/api-client/src/resilient-fetch.service.ts`).
 
 4. **Framework-agnostic package.** `packages/api-contract` and
    `tools/eslint-rules` have no NestJS dependency at all. Adding one solely to
    satisfy this convention would be a real architectural regression.
+
+5. **Class factory for a base service.** A function that takes per-subclass
+   configuration (a config object, or a couple of plain arguments) and returns
+   an `@Injectable()` base class that concrete services `extends`. DI manages
+   the subclass, which is usually a declarative one-liner. An abstract class
+   with template methods would force every subclass to override methods just
+   to return constant data. What actually varies per subclass is declarative
+   configuration, and a config object expresses that directly. To keep future
+   cases predictable, the exemption holds only while all three of these do:
+   - the function returns only the class: no other value, no side effects;
+   - the configuration is declarative data, such as DI tokens, file names,
+     schemas, defaults, or a one-line selector/formatter like
+     `(client) => client.leagues`, never a collaborator to call or a place to
+     hide application logic;
+   - no application logic in the factory body; all behaviour lives inside the
+     returned class (deriving a constant from the config, such as a file name,
+     is fine).
+
+   References: `createConfigLoaderServiceBase` (`packages/config-loader/`);
+   `createUpsertImportServiceBase`, `createImportConfigServiceBase`,
+   `createSourceConfigServiceBase` and
+   `createExternalSystemNameConfigServiceBase` (`packages/import/`);
+   `createReviewConfigServiceBase` and `createExternalSystemLookupServiceBase`
+   (`packages/review-harness/`).
 
 **Everything else becomes a service — including pure data-transformation
 functions with no dependencies of their own** (string escaping, formatting, tree
