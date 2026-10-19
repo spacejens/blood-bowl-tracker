@@ -71,7 +71,7 @@ Then a blank line, then a ranked list of its top five players by career
 ### Buttons
 
 - Each trophy is rendered as a drill-down button to the trophy, plus a button to the player for a player award.
-- Those trophy buttons come before the top-players buttons, which in turn come before the race/coach/era header buttons, so the most specific content keeps button priority.
+- Those buttons come before the top-players buttons, which in turn come before the race/coach/era header buttons, so the most specific content keeps button priority.
 
 ## `player`
 
