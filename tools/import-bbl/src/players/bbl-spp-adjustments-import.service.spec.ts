@@ -1,3 +1,4 @@
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   DEFAULT_BATCH_CHUNK_SIZE,
   ImportResultService,
@@ -10,6 +11,29 @@ import { mock } from 'vitest-mock-extended';
 
 import { BblSppAdjustmentsImportService } from './bbl-spp-adjustments-import.service';
 
+/**
+ * The canned ImportResult the mocked ImportResultService.result returns.
+ * ImportResultService's own `success: errors.length === 0` derivation is
+ * covered by packages/import/src/import-result.service.spec.ts; this spec
+ * asserts what the service under test *passes to* result() (via
+ * `resultArgs()`) and that it returns result()'s value unchanged. The
+ * deliberately impossible field values make any leftover assertion that reads
+ * the returned object instead of the recorded call arguments fail loudly.
+ */
+const CANNED_RESULT: ImportResult = {
+  success: false,
+  imported: -1,
+  errors: [{ item: { canned: true }, message: 'canned import result' }],
+};
+
+/** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
+function resultArgs(importResults: MockProxy<ImportResultService>): {
+  imported: number;
+  errors: ImportError[];
+} {
+  return importResults.result.mock.calls[0][0];
+}
+
 describe('BblSppAdjustmentsImportService', () => {
   let service: BblSppAdjustmentsImportService;
   let adjustments: MockProxy<SppAdjustmentsImportService>;
@@ -18,11 +42,7 @@ describe('BblSppAdjustmentsImportService', () => {
   beforeEach(async () => {
     adjustments = mock<SppAdjustmentsImportService>();
     importResults = mock<ImportResultService>();
-    importResults.result.mockImplementation(({ imported, errors }) => ({
-      success: errors.length === 0,
-      imported,
-      errors,
-    }));
+    importResults.result.mockReturnValue(CANNED_RESULT);
     const moduleRef = await Test.createTestingModule({
       providers: [
         BblSppAdjustmentsImportService,
@@ -38,7 +58,7 @@ describe('BblSppAdjustmentsImportService', () => {
       updatedPlayerIds: [1, 2],
     });
 
-    const outcome = await service.importSppAdjustments(
+    await service.importSppAdjustments(
       new Map([
         [1, 16],
         [2, null],
@@ -55,8 +75,7 @@ describe('BblSppAdjustmentsImportService', () => {
       },
       [],
     );
-    expect(outcome.result.imported).toBe(2);
-    expect(outcome.result.success).toBe(true);
+    expect(resultArgs(importResults)).toEqual({ imported: 2, errors: [] });
   });
 
   it('chunks a player list larger than DEFAULT_BATCH_CHUNK_SIZE, summing imported across chunks', async () => {
@@ -73,14 +92,16 @@ describe('BblSppAdjustmentsImportService', () => {
       })
       .mockResolvedValueOnce({ updatedPlayerIds: [1, 2, 3] });
 
-    const outcome = await service.importSppAdjustments(scraped);
+    await service.importSppAdjustments(scraped);
 
     expect(adjustments.syncScrapedSppAdjustments).toHaveBeenCalledTimes(2);
     const [firstCall, secondCall] =
       adjustments.syncScrapedSppAdjustments.mock.calls;
     expect(firstCall[0].players).toHaveLength(DEFAULT_BATCH_CHUNK_SIZE);
     expect(secondCall[0].players).toHaveLength(3);
-    expect(outcome.result.imported).toBe(DEFAULT_BATCH_CHUNK_SIZE + 3);
+    expect(resultArgs(importResults).imported).toBe(
+      DEFAULT_BATCH_CHUNK_SIZE + 3,
+    );
   });
 
   it('keeps going after a failed chunk and counts the surviving one', async () => {
@@ -92,17 +113,22 @@ describe('BblSppAdjustmentsImportService', () => {
       .mockResolvedValueOnce(undefined)
       .mockResolvedValueOnce({ updatedPlayerIds: [1] });
 
-    const outcome = await service.importSppAdjustments(scraped);
+    await service.importSppAdjustments(scraped);
 
     expect(adjustments.syncScrapedSppAdjustments).toHaveBeenCalledTimes(2);
-    expect(outcome.result.imported).toBe(1);
+    expect(resultArgs(importResults).imported).toBe(1);
   });
 
   it('makes no call at all for an empty map', async () => {
-    const outcome = await service.importSppAdjustments(new Map());
+    await service.importSppAdjustments(new Map());
 
     expect(adjustments.syncScrapedSppAdjustments).not.toHaveBeenCalled();
-    expect(outcome.result.imported).toBe(0);
-    expect(outcome.result.success).toBe(true);
+    expect(resultArgs(importResults)).toEqual({ imported: 0, errors: [] });
+  });
+
+  it('returns the ImportResult built by ImportResultService unchanged', async () => {
+    const outcome = await service.importSppAdjustments(new Map());
+
+    expect(outcome.result).toBe(CANNED_RESULT);
   });
 });
