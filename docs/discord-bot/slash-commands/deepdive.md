@@ -121,13 +121,8 @@ identical. See [`/insights`](insights.md).
 - No `/insights` fact lists leagues, so the `league` target has no `/insights`
   button coverage.
 
-Which facts attach links is set where each fact builds its reply: the
-`entityLink` passed through `ToplistFactoryService`
-(`apps/discord-bot/src/insights/facts/toplist-factory.service.ts`) to
-`LeaderboardService` (`apps/discord-bot/src/insights/leaderboard.service.ts`)
-for toplists, and
-`EntityComponentsService` in the list facts under
-`apps/discord-bot/src/insights/facts/`.
+Which facts attach links is decided where each fact builds its reply, in the
+services under `apps/discord-bot/src/insights/facts/`.
 
 This is the intended pattern going forward: as `/deepdive` grows more lookup
 targets, most `/insights` views that list items of a supported target type are
