@@ -267,8 +267,8 @@ async function run(): Promise<ImportResult> {
 
     // A mercenary Big Guy hire (e.g. "Giant Mercenary") appears on no TP
     // official-list catalog at all, so -- unlike regular and star positions,
-    // which the official team list now describes directly -- its
-    // positions_race_eras rows still have to be derived from actual usage:
+    // which the official team list describes directly -- its
+    // positions_race_eras rows have to be derived from actual usage:
     // the mercenaryPositionUsages the players step just emitted. Runs after
     // players because that usage (which team/race+era each mercenary was
     // hired into) is only known once players are imported. Idempotent

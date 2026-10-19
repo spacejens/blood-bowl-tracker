@@ -85,11 +85,9 @@ describe('TpSkillResolverService', () => {
     ]);
   });
 
-  // Hatred and Animosity now read the SAME curated keyword catalogue: a
-  // type-3 target is a keyword, whichever of the two skills names it, so
-  // there is no longer a "belongs to the other skill's table" case to test
-  // -- that behaviour was dropped deliberately, not by accident, when the
-  // two hard-coded per-skill tables were replaced by one shared catalogue.
+  // Hatred and Animosity read the SAME curated keyword catalogue: a type-3
+  // target is a keyword, whichever of the two skills names it, so there is
+  // no "belongs to the other skill's table" case to test.
   const catalog = {
     byCode: new Map([
       [100, { keywordId: 1, name: 'Dwarf' }],
