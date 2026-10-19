@@ -18,13 +18,35 @@ Processes reviewer feedback on an already-open PR (`/handle-pr-reviews`, or `/ha
 
 ## code-hygiene
 
-Runs a fixed set of code cleanup checks — Node version updates, unused dependency/dead code removal, a security audit, workspace version consistency, circular dependency detection, lint, and format — and opens a PR with the results (`/code-hygiene`). Unlike `develop-feature`, there's no specification or planning step: the checks and their order are fixed. Run this periodically, or whenever the codebase needs a cleanup pass, independent of feature work. Ordinary dependency and Docker image updates are not part of it — Renovate opens those PRs on its own, configured by `renovate.json5` at the repo root, once the [Renovate GitHub App](https://github.com/apps/renovate) is installed on this repo (a one-time manual setup step; `renovate.json5` alone does not install or grant it access). Every action in `.github/workflows/` is pinned to a full commit SHA, with its version as a trailing comment; Renovate keeps those pins current. Action updates always wait for a human to merge them. `pnpm lint` fails on any action not pinned this way (see [workflow-lint](workflow-lint/index.md)).
+Runs a fixed set of code cleanup checks — Node version updates, unused dependency/dead code removal, a security audit, workspace version consistency, circular dependency detection, lint, and format — and opens a PR with the results (`/code-hygiene`). Unlike `develop-feature`, there's no specification or planning step: the checks and their order are fixed. Run this periodically, or whenever the codebase needs a cleanup pass, independent of feature work.
+
+### Dependency and action updates
+
+- Ordinary dependency and Docker image updates are not part of it — Renovate opens those PRs on its own, configured by `renovate.json5` at the repo root, once the [Renovate GitHub App](https://github.com/apps/renovate) is installed on this repo.
+- Installing the app is a one-time manual setup step; `renovate.json5` alone does not install or grant it access.
+- Every action in `.github/workflows/` is pinned to a full commit SHA, with its version as a trailing comment; Renovate keeps those pins current.
+- Action updates always wait for a human to merge them.
+- `pnpm lint` fails on any action not pinned this way (see [workflow-lint](workflow-lint/index.md)).
 
 ## finish-renovate-pr
 
-Takes one stuck Renovate dependency-update PR to a mergeable state (`/finish-renovate-pr 544`). Renovate opens these PRs on its own and automerges npm patch and minor updates once CI passes; everything else — major bumps, Docker tag updates, and anything whose CI fails — waits for a human. This skill investigates why a given one is stuck (reading Renovate's own PR body and changelog links, the failing CI job's logs, and how the dependency is actually used here), makes whatever code changes the update needs, and pushes them back onto Renovate's own branch so the existing PR is updated in place — it never opens a new PR, so the PR's number, its `renovate:<updateType>` label, and its review history all survive.
+Takes one stuck Renovate dependency-update PR to a mergeable state (`/finish-renovate-pr 544`).
 
-It takes a **pull request** number rather than an issue number, and handles one PR per run. Two consequences of pushing onto Renovate's branch are worth knowing: Renovate stops rebasing a branch once it carries commits it did not author, and ticking the "rebase/retry" checkbox in its PR body after that point discards those commits — so merge the PR rather than asking Renovate to retry it. Often the outcome is that no code change is needed at all: a green major bump is stuck only because `renovate.json5` deliberately does not automerge it, and the skill then reports it as ready for human review and stops without pushing anything.
+- Renovate opens these PRs on its own and automerges npm patch and minor updates once CI passes.
+- Everything else — major bumps, Docker tag updates, and anything whose CI fails — waits for a human.
+- This skill investigates why a given one is stuck:
+  - reading Renovate's own PR body and changelog links
+  - reading the failing CI job's logs
+  - checking how the dependency is actually used here
+- It makes whatever code changes the update needs, and pushes them back onto Renovate's own branch so the existing PR is updated in place.
+- It never opens a new PR, so the PR's number, its `renovate:<updateType>` label, and its review history all survive.
+
+It takes a **pull request** number rather than an issue number, and handles one PR per run. Two consequences of pushing onto Renovate's branch are worth knowing:
+
+- Renovate stops rebasing a branch once it carries commits it did not author.
+- Ticking the "rebase/retry" checkbox in its PR body after that point discards those commits — so merge the PR rather than asking Renovate to retry it.
+
+Often the outcome is that no code change is needed at all: a green major bump is stuck only because `renovate.json5` deliberately does not automerge it, and the skill then reports it as ready for human review and stops without pushing anything.
 
 ## wrap-up
 
@@ -32,11 +54,40 @@ Verifies that work the developer says is finished is actually finished — check
 
 ## deploy-local
 
-Builds and starts the full stack locally via Docker Compose, confirms both containers come up healthy, and can also run the `tools/import-bbl` and `tools/import-tp` data imports (and restoring a production database backup, the manual import, the match/player/race/star player review tools, and SchemaSpy diagram generation) against the running instance, so a developer can see a change running end-to-end (`/deploy-local`). Invoked directly, or offered by `develop-feature` after a PR is created and by `handle-pr-reviews` after pushing fixes. It leaves the containers running — it's a manual-inspection tool, not a one-shot smoke test.
+Builds and starts the full stack locally via Docker Compose, confirms both containers come up healthy, so a developer can see a change running end-to-end (`/deploy-local`).
+
+It can also run, against the running instance:
+
+- the `tools/import-bbl` and `tools/import-tp` data imports
+- restoring a production database backup
+- the manual import
+- the match/player/race/star player review tools
+- SchemaSpy diagram generation
+
+Beyond that.
+
+- It is invoked directly, or offered by `develop-feature` after a PR is created and by `handle-pr-reviews` after pushing fixes.
+- It leaves the containers running — it's a manual-inspection tool, not a one-shot smoke test.
 
 ## deploy-production
 
-Operates the already-deployed production Discord bot on Fly.io and Neon (`/deploy-production`): check deployment status, apply the production configuration file to Fly as secrets, restart the machine, roll back to a previous release, trigger a redeploy of current `main` without a new merge, restore a backup into production, run read-only queries against the production database, and run the manual/BBL/TP importers against production. It does not perform normal deploys — those happen automatically in GitHub Actions on every merge to `main` (`.github/workflows/deploy.yml`); the closest thing offered here is dispatching that same workflow against the current `main`. Applying the configuration file, restarting, rolling back, and triggering a redeploy are restricted to the main checkout — they are repo-wide, branch-independent operations, not tied to any particular piece of feature work. See `docs/discord-bot/production-hosting.md` for the underlying commands this skill wraps.
+Operates the already-deployed production Discord bot on Fly.io and Neon (`/deploy-production`):
+
+- check deployment status
+- apply the production configuration file to Fly as secrets
+- restart the machine
+- roll back to a previous release
+- trigger a redeploy of current `main` without a new merge
+- restore a backup into production
+- run read-only queries against the production database
+- run the manual/BBL/TP importers against production
+
+Beyond those operations.
+
+- It does not perform normal deploys — those happen automatically in GitHub Actions on every merge to `main` (`.github/workflows/deploy.yml`); the closest thing offered here is dispatching that same workflow against the current `main`.
+- Applying the configuration file, restarting, rolling back, and triggering a redeploy are restricted to the main checkout — they are repo-wide, branch-independent operations, not tied to any particular piece of feature work.
+
+See `docs/discord-bot/production-hosting.md` for the underlying commands this skill wraps.
 
 ## write-issue
 
@@ -59,10 +110,18 @@ Each of those four is self-contained: it checks out the code, provisions pnpm vi
 
 Further jobs have no `pnpm verify` counterpart — they check things only CI is set up to check:
 
-- **`docker-build`** — builds the `apps/discord-bot` Docker image with `docker compose up -d --build discord-bot`, then starts it against a throwaway Postgres and waits for Nest's `Nest application successfully started` log line and for a TCP connect to port 3000 to succeed. A broken Dockerfile surfaces on the PR rather than on the deploy that follows a merge — and so does a build that succeeds but whose container cannot start, such as a runtime-stage `COPY` list missing a workspace package. No Discord token is involved: the job copies `apps/discord-bot/.env.example` to `.env` as a placeholder, and the container's background Discord connection attempts are expected to fail and are not checked.
+- **`docker-build`** — builds the `apps/discord-bot` Docker image with `docker compose up -d --build discord-bot`, then starts it against a throwaway Postgres and waits for Nest's `Nest application successfully started` log line and for a TCP connect to port 3000 to succeed.
+  - A broken Dockerfile surfaces on the PR rather than on the deploy that follows a merge.
+  - So does a build that succeeds but whose container cannot start, such as a runtime-stage `COPY` list missing a workspace package.
+  - No Discord token is involved: the job copies `apps/discord-bot/.env.example` to `.env` as a placeholder.
+  - The container's background Discord connection attempts are expected to fail and are not checked.
 - **`schemaspy-build`** — starts postgres, runs the `packages/db` migrations against it, and generates the diagram with `pnpm run db:diagram`. SchemaSpy has no Dockerfile of its own, so what this validates is that the prebuilt public image pulls and runs successfully against this repo's actual schema and config.
 - **`migration-changes`** — diffs the PR against its base branch and reports whether anything under `packages/db/migrations/` changed. It needs no secrets; it only decides whether `migration-check` runs.
-- **`migration-check`** — runs only when `migration-changes` found migration changes. It restores the newest production backup into a throwaway `postgres:18` service with `backup-cli verify`, then applies the PR's migrations to it with the db package's `db:migrate`, so a migration that only fails on real data (a new `NOT NULL` constraint, a backfill) fails the PR instead of the deploy. A failure in the "Verify newest backup" step is a problem with the backup; one in "Apply pending migrations" is the PR's migration. It uses the `production-backup-verify` environment (read-only bucket token); see [Database backups](discord-bot/production-backups.md#migration-check-on-pull-requests) for the one-time environment change it needs and its trust trade-off. Fork PRs skip it, since forks get no secrets, so a fork PR touching migrations passes without the check.
+- **`migration-check`** — runs only when `migration-changes` found migration changes.
+  - It restores the newest production backup into a throwaway `postgres:18` service with `backup-cli verify`, then applies the PR's migrations to it with the db package's `db:migrate`, so a migration that only fails on real data (a new `NOT NULL` constraint, a backfill) fails the PR instead of the deploy.
+  - A failure in the "Verify newest backup" step is a problem with the backup; one in "Apply pending migrations" is the PR's migration.
+  - It uses the `production-backup-verify` environment (read-only bucket token); see [Database backups](discord-bot/production-backups.md#migration-check-on-pull-requests) for the one-time environment change it needs and its trust trade-off.
+  - Fork PRs skip it, since forks get no secrets, so a fork PR touching migrations passes without the check.
 
 All of these run in parallel, except that `migration-check` waits for `migration-changes`.
 
@@ -118,7 +177,25 @@ Nothing else is required to _use_ the reviews: `develop-feature`'s Phase 6 waits
 
 Issues are the starting point for `develop-feature`'s issue mode. They can be created manually (or through any other means) directly on GitHub as usual, or by a developer using the `write-issue` skill.
 
-A typical cycle: `develop-feature` takes an issue to a PR → the automated review bot reviews it and `develop-feature` drives that feedback to completion through `handle-pr-reviews` before it finishes → a human reviews what's left → `handle-pr-reviews` addresses any further feedback → the PR merges → `wrap-up` verifies the merge and cleans up local state. `code-hygiene` and `codebase-review` both run on their own schedule, whenever a developer chooses, unrelated to any specific feature PR — `code-hygiene` keeps the Node version current and the codebase free of dead code and lint/format drift, while `codebase-review` files issues for the convention and documentation drift that no tool can fix on its own. Renovate's own dependency PRs run on a third track, outside all of these: `finish-renovate-pr` picks up whichever of them got stuck and drives it to merge-ready, reusing `handle-pr-reviews` (with `--skip-deploy-local`, offering `deploy-local` separately at the end) and `wrap-up` the same way a `develop-feature` cycle does — without opening a new PR or syncing `main` in, since Renovate's PR and branch already exist.
+A typical cycle:
+
+1. `develop-feature` takes an issue to a PR.
+2. The automated review bot reviews it and `develop-feature` drives that feedback to completion through `handle-pr-reviews` before it finishes.
+3. A human reviews what's left.
+4. `handle-pr-reviews` addresses any further feedback.
+5. The PR merges.
+6. `wrap-up` verifies the merge and cleans up local state.
+
+`code-hygiene` and `codebase-review` both run on their own schedule, whenever a developer chooses, unrelated to any specific feature PR:
+
+- `code-hygiene` keeps the Node version current and the codebase free of dead code and lint/format drift.
+- `codebase-review` files issues for the convention and documentation drift that no tool can fix on its own.
+
+Renovate's own dependency PRs run on a third track, outside all of these:
+
+- `finish-renovate-pr` picks up whichever of them got stuck and drives it to merge-ready.
+- It reuses `handle-pr-reviews` (with `--skip-deploy-local`, offering `deploy-local` separately at the end) and `wrap-up` the same way a `develop-feature` cycle does.
+- It does so without opening a new PR or syncing `main` in, since Renovate's PR and branch already exist.
 
 ## Issue labels
 
@@ -127,7 +204,10 @@ Every issue, and every pull request opened by `develop-feature`, carries at leas
 - **`feature`** — the change is visible to, or usable by, an end user of one of this repo's apps (e.g. the Discord bot). _Test: would a user of the app notice a difference, or be able to do something they couldn't before?_
 - **`bug`** — existing end-user-visible behavior is currently wrong, and the issue is about restoring the intended behavior. _Test: is something an end user can see or use currently broken or incorrect?_
 - **`development`** — internal developer tooling (`tools/`), automated tests, CI/build/deploy process, documentation, or Claude-skill / dev-workflow changes — work that is not part of the deployed application at all. _Test: is this dev-process work outside the deployed application — `tools/`, tests, CI, docs, or skills — rather than application code under `apps/` or the `packages/` that back them?_ Newness is not the test; whether the work is part of the deployed application is.
-- **`internal`** — the change is inside the deployed application (`apps/`, or the `packages/` that back it) but has no end-user-visible effect. _Test: is this application code that an end user's experience is entirely unaffected by (backend logic, internal refactor, internal data plumbing)?_ A `packages/` package that backs both the deployed application and a `tools/` CLI (e.g. `packages/db`, `packages/api-client`) is labeled by where the specific change lands, not by the package as a whole — a change only a CLI tool exercises is `development`, one that changes application behavior (even invisibly) is `internal`.
+- **`internal`** — the change is inside the deployed application (`apps/`, or the `packages/` that back it) but has no end-user-visible effect. _Test: is this application code that an end user's experience is entirely unaffected by (backend logic, internal refactor, internal data plumbing)?_
+  - A `packages/` package that backs both the deployed application and a `tools/` CLI (e.g. `packages/db`, `packages/api-client`) is labeled by where the specific change lands, not by the package as a whole:
+    - A change only a CLI tool exercises is `development`.
+    - A change that changes application behavior (even invisibly) is `internal`.
 
 More than one kind label may apply — e.g. a fix for an incorrect stat shown to users that also requires updating the import tooling that produced the bad data gets both `bug` (the user-visible stat was wrong) and `development` (the tooling that produced it also needed fixing).
 
