@@ -154,7 +154,7 @@ describe('WaitForPrReviewService', () => {
     expect(result).toEqual({ found: false, timedOut: true });
     // Polls at 0/30s/60s: after the 60s poll, sleeping 30s more resumes
     // exactly at the 90s deadline — the wait must not issue a further `gh`
-    // call at that point, only report the timeout. Each of the 3 polls now
+    // call at that point, only report the timeout. Each of the 3 polls
     // makes two calls (reviews, then the completion comment).
     expect(processRunner.run).toHaveBeenCalledTimes(6);
   });

@@ -16,7 +16,7 @@ const MIN_INTERVAL_MS = 1000;
 const MIN_TRIGGER_AFTER_EPOCH_SECONDS = 1;
 
 /**
- * Turns `wait-for-pr-review`'s argv into its options object. Split out of
+ * Turns `wait-for-pr-review`'s argv into its options object. Kept separate from
  * `main.ts` so the flag parsing and its validation are unit-testable — argv
  * comes in as a parameter rather than being read from `process` here.
  */

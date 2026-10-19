@@ -313,7 +313,7 @@ export async function createHarness(): Promise<WaitForPrReviewHarness> {
 
 /**
  * A `gh api .../comments` invocation whose jq filter emitted the combined
- * `{completion, rateLimitEdit}` object one poll now asks for. jq emits `null`
+ * `{completion, rateLimitEdit}` object one poll asks for. jq emits `null`
  * for an empty half, so an omitted half is written out as `null`, not
  * dropped.
  */

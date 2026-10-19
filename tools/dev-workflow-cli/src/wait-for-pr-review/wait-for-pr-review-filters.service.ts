@@ -140,9 +140,9 @@ const COMMENTS_PER_PAGE = 100;
 
 /**
  * Every jq program and REST path one wait's polls need. Pure string assembly
- * with no dependencies of its own — split out of `WaitForPrReviewService`
- * because that file sits at this repo's 500-line ceiling, and because filter
- * construction is a self-contained concern from poll decision-making.
+ * with no dependencies of its own — kept separate from `WaitForPrReviewService`
+ * because filter construction is a self-contained concern from poll
+ * decision-making.
  */
 @Injectable()
 export class WaitForPrReviewFiltersService {
