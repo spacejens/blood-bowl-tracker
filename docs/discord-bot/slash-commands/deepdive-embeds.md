@@ -116,6 +116,20 @@ no recorded baseline under the resolved rules set — the values are shown
 unmarked rather than guessing — and the whole line is omitted when no rules
 set can be resolved for the player's era at all.
 
+### Lasting injuries
+
+Then, on the next line, the player's currently outstanding lasting injuries:
+a miss-next-game note, a niggling-injury count, and one `-N` entry per
+outstanding characteristic reduction, in MA/ST/AG/PA/AV
+order, all on one comma-separated line. This is live state, not a career
+tally — the event counts further down already cover what the player has ever
+suffered. The line is omitted entirely for a player carrying no active lasting
+injury, which is the overwhelmingly common case; unlike the characteristics
+line above it, whose omission means the values could not be written correctly,
+this one's absence simply means there is nothing to report. The two lines are
+independent: an injury still shows when no rules set resolves for the era and
+the stat line is therefore absent.
+
 ### Keywords
 
 Last of this group of condition lines — after the characteristics,
@@ -133,20 +147,6 @@ rules set records no keywords for the position, and also when no rules set
 resolves for the player's era at all — there is then nothing to scope the
 keywords to, the same reason the characteristics line itself is omitted in
 that case.
-
-### Lasting injuries
-
-Then, on the next line, the player's currently outstanding lasting injuries:
-a miss-next-game note, a niggling-injury count, and one `-N` entry per
-outstanding characteristic reduction, in MA/ST/AG/PA/AV
-order, all on one comma-separated line. This is live state, not a career
-tally — the event counts further down already cover what the player has ever
-suffered. The line is omitted entirely for a player carrying no active lasting
-injury, which is the overwhelmingly common case; unlike the characteristics
-line above it, whose omission means the values could not be written correctly,
-this one's absence simply means there is nothing to report. The two lines are
-independent: an injury still shows when no rules set resolves for the era and
-the stat line is therefore absent.
 
 ### Trophies
 
