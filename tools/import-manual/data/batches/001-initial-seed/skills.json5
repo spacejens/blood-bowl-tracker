@@ -54,8 +54,8 @@
 // cross-checking the CRP Star Players list (pp.79-80) found no skill there
 // that is not already one of the 75 skills the categories table itself
 // lists (i.e. no star-player-only skill to mark unique). Every CRP-era
-// Extraordinary skill is curated as 'trait' per the task's mapping
-// instructions. The BB2020, DB2021 and BB2025 groups DO curate 'unique'
+// Extraordinary skill is curated as 'trait', matching how CRP's p.21 table
+// categorises it. The BB2020, DB2021 and BB2025 groups DO curate 'unique'
 // rows: TP publishes each star's own exclusive skill as a `specialRuleName`
 // string, and every distinct value in the downloaded TP data dumps is
 // curated as 'unique' for the rules set it was found under.
@@ -418,8 +418,8 @@
     { skill: { system: 'Name', id: 'Very Long Legs' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'mutation' },
     { skill: { system: 'Name', id: 'Extra Arms' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'mutation' },
 
-    // --- CRP: Extraordinary skills, curated as 'trait' per the task's
-    // category mapping (CRP p.21) ---
+    // --- CRP: Extraordinary skills, curated as 'trait', matching
+    // CRP's category table (p.21) ---
     { skill: { system: 'Name', id: 'Always Hungry' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Fan Favourite' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Secret Weapon' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
@@ -554,7 +554,7 @@
     // Bombardier, Ball & Chain and Chainsaw (all p.4, "(EXTRAORDINARY)"),
     // Titchy (p.8, "(EXTRAORDINARY)") and Blood Lust (p.9,
     // "(EXTRAORDINARY)"). CRP's Extraordinary category maps to 'trait' (see
-    // the file header); all six are spelled identically to their
+    // the CRP skills group above); all six are spelled identically to their
     // already-registered CRP entries. Categories for the remaining,
     // unlabelled roster skills are taken from CRP's own p.21 table, since
     // named skills carry the same category across every edition cross-
