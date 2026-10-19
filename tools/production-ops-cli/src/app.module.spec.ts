@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { AppModule } from './app.module';
 import { CheckProductionConfigPortService } from './check-production-config-port/check-production-config-port.service';
 import { DiscordBotTokenService } from './discord-bot-token/discord-bot-token.service';
+import { DiscordRestService } from './discord-rest/discord-rest.service';
 import { FetchDiscordMessageService } from './fetch-discord-message/fetch-discord-message.service';
 import { FetchRecentDiscordMessagesService } from './fetch-recent-discord-messages/fetch-recent-discord-messages.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
@@ -33,6 +34,9 @@ describe('AppModule', () => {
     );
     expect(moduleRef.get(DiscordBotTokenService)).toBeInstanceOf(
       DiscordBotTokenService,
+    );
+    expect(moduleRef.get(DiscordRestService)).toBeInstanceOf(
+      DiscordRestService,
     );
     expect(moduleRef.get(FetchRecentDiscordMessagesService)).toBeInstanceOf(
       FetchRecentDiscordMessagesService,

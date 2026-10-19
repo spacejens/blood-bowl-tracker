@@ -22,6 +22,7 @@
     "@blood-bowl-tracker/cli-shared": "workspace:*",
     "@nestjs/common": "^12.0.0",
     "@nestjs/core": "^12.0.0",
+    "discord.js": "^14.27.0",
     "json5": "^2.2.3",
     "reflect-metadata": "^0.2.2",
     "zod": "^4.4.3"
