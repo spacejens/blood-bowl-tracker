@@ -15,9 +15,9 @@ export interface SampleEmbed {
   footer?: { text: string };
 }
 
-export const SAMPLE_MESSAGE_ID = '1400000000000000001';
-export const SAMPLE_CHANNEL_ID = '1400000000000000002';
-export const SAMPLE_WEBHOOK_ID = '1400000000000000003';
+const SAMPLE_MESSAGE_ID = '1400000000000000001';
+const SAMPLE_CHANNEL_ID = '1400000000000000002';
+const SAMPLE_WEBHOOK_ID = '1400000000000000003';
 
 /** A webhook-posted message carrying one embed — the TP notification shape. */
 export function sampleMessage(embed: SampleEmbed): Message {

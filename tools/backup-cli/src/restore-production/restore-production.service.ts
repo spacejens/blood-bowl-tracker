@@ -32,7 +32,7 @@ export interface RestoreProductionRequest {
   readonly confirm?: string;
 }
 
-export interface RestoreProductionDryRunResult {
+interface RestoreProductionDryRunResult {
   readonly mode: 'dry-run';
   readonly key: string;
   readonly backup: {

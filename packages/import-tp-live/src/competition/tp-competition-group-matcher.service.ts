@@ -5,7 +5,7 @@ import { Injectable } from '@nestjs/common';
  * and Unicode-aware so alternations such as `Säsong` behave. tools/import-manual
  * validates curated patterns with these same flags.
  */
-export const NAME_PATTERN_FLAGS = 'iu';
+const NAME_PATTERN_FLAGS = 'iu';
 
 /** A curated competition group that carries a name pattern. */
 export interface NamePatternCandidate {

@@ -17,7 +17,7 @@ const REDIRECTING_ENV_VARS = [
   'PGSERVICEFILE',
 ] as const;
 
-export type PgClientProgram = 'pg_restore' | 'psql';
+type PgClientProgram = 'pg_restore' | 'psql';
 
 export interface PgClientRequest {
   readonly program: PgClientProgram;

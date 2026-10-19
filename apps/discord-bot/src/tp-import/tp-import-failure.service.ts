@@ -16,7 +16,7 @@ import { Injectable } from '@nestjs/common';
 import type { TpImportOutcome } from './tp-import-dispatch.service';
 
 /** One reported stage: what it is and what it did. */
-export interface TpImportStageRow {
+interface TpImportStageRow {
   label: string;
   summary: string;
 }

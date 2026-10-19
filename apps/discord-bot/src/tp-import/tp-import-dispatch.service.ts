@@ -18,10 +18,7 @@ import { Injectable } from '@nestjs/common';
 import { DiscordBotConfigService } from '../discord-bot-config.service';
 
 /** A classified TP page this bot knows how to import. */
-export type ImportableTpPage = Exclude<
-  TpPageClassification,
-  { kind: 'unknown' }
->;
+type ImportableTpPage = Exclude<TpPageClassification, { kind: 'unknown' }>;
 
 /**
  * What to import: a classified TP page, or — for a caller that knows a
