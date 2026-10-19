@@ -4,7 +4,7 @@
 its teams and competition, one TP competition with its registered teams and
 trophy awards, or TP's official team list for every rules set, straight into
 the database. It is server-side code: it calls `packages/game-data`
-in-process and never goes over RPC. Five live entry points and four RPC
+in-process and never goes over RPC. The live entry points and the RPC
 procedures use it:
 
 - **The live team import**, `TpLiveTeamImportService.importTeam(...)`, which
@@ -181,7 +181,7 @@ them in its own later pass, naming skills from its whole download mirror.
 
 ## Failures
 
-Neither entry point throws for an import problem. Each is one `ImportError`
+No entry point throws for an import problem. Each is one `ImportError`
 in the result — with one exception for the live imports: when TP blocks
 requests (a 403, see [scrape-tp](../scrape-tp/index.md#what-a-request-does)),
 `TpBlockedError` is thrown out of the entry point at once. Every further
