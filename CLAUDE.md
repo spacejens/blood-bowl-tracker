@@ -281,16 +281,18 @@ only pure formatting.
 
 This extends to a **pure chain** of any depth: a formatting service whose
 collaborators are themselves pure formatting/decision services, where every
-link is deterministic, has no I/O or external state, and depends only on the
-next link of the chain (or on nothing). E.g. `PlayerKillsSectionService`
+link is deterministic, has no I/O or external state, and depends only on
+other pure links of the chain (or on nothing). E.g. `PlayerKillsSectionService`
 (`apps/discord-bot/src/deepdive/facts/`) depends only on
 `PlayerKillerInfoFormatterService`, which in turn depends only on
 `PlayerRowButtonService`, a pure decision service with no constructor
 dependencies. Passing the chain real still carries no coupling risk: no link
-has I/O or external state to drift from. Pass the whole chain real, end to
-end — never mix a chain with a mocked link. A mocked link defeats the point
-of asserting the actual rendered output, and leaves the real links' DI
-metadata resolving against a stand-in. It does not extend to a service with
+has I/O or external state to drift from. Once any collaborator in a
+chain is passed real, every link below it must be real too; a spec whose
+*subject* is a chain member still mocks that subject's own collaborators under
+the normal rule. A mocked link beneath a real one defeats the point of
+asserting the actual rendered output, and leaves the real links' DI metadata
+resolving against a stand-in. It does not extend to a service with
 any dependency that has I/O, external state, or further impure dependencies
 — those chains must still be mocked as normal, at the first link that isn't
 pure.
@@ -319,12 +321,14 @@ subject.** When the subject under test has I/O-bearing collaborators (mocked
 as normal) and also depends on a pure chain, the chain's members are passed
 real, end to end, while every other collaborator stays mocked. Examples:
 `PlayerDeepdiveService`
-(`apps/discord-bot/src/deepdive/facts/player-deepdive.test-helpers.ts`) and
-`OnThisDateFactsService`
-(`apps/discord-bot/src/insights/facts/on-this-date.service.spec.ts`) mock
-their database, timeout and entity-component collaborators, and pass
-`PlayerKillerInfoFormatterService` → `PlayerRowButtonService` (plus their
-other pure formatting services) real.
+(`apps/discord-bot/src/deepdive/facts/player-deepdive.test-helpers.ts`) mocks
+its database, timeout and entity-component collaborators, and passes
+`PlayerKillerInfoFormatterService` → `PlayerRowButtonService` (plus its other
+pure formatting services) real. `OnThisDateFactsService`
+(`apps/discord-bot/src/insights/facts/on-this-date.service.spec.ts`) does the
+same only in its separate "OnThisDateFactsService with real formatting
+collaborators" describe block; the main suite mocks those collaborators under
+the normal rule.
 
 ## Function parameter limit
 

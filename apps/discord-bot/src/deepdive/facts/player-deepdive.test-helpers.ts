@@ -52,8 +52,9 @@ import { PlayerSkillsSectionService } from './player-skills-section.service';
  * `PlayerKeywordsSectionService`. This follows `CLAUDE.md`'s "Testing
  * services" carve-out for a pure chain inside an otherwise-mocked subject:
  * every collaborator with I/O or external state (the game-data services,
- * `DatabaseTimeoutService`, `EntityComponentsService`,
- * `DateRangeFormatterService`) is a mock, built fresh per call.
+ * `DatabaseTimeoutService` and `EntityComponentsService`) is a mock, built
+ * fresh per call. `DateRangeFormatterService` is stubbed with a canned era
+ * label.
  */
 
 export const griff = {
