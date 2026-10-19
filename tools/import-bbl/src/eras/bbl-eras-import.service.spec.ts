@@ -398,7 +398,7 @@ describe('BblErasImportService', () => {
     const { errors } = resultArgs(mocks.importResults);
     expect(errors).toHaveLength(1);
     // Message is passed through unchanged (this caller adds no prefix): the
-    // assertion now fails if production stops surfacing the real error text.
+    // exact match fails if production stops surfacing the real error text.
     expect(errors[0].message).toBe('network timeout');
     // And the error names the external systems the bootstrap tried to upsert.
     expect(errors[0].item).toEqual({

@@ -102,7 +102,7 @@ export class TeamToplistService {
       noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
       entityLink: this.teamLink,
       // No team toplist's context depends on its scope, so the second
-      // (scope) parameter the hook now supplies is deliberately ignored.
+      // (scope) parameter the hook supplies is deliberately ignored.
       decorateRows: (rows) => this.decorateTeamRows(rows),
       formatRow: (row) => this.formatTeamRow(row),
     });

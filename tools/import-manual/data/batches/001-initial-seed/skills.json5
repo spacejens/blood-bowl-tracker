@@ -10,10 +10,10 @@
 //                     "pre-register so a later upsert matches" pattern
 //                     races-and-positions.json5 and
 //                     position-characteristics-gap-fill.json5 already use for
-//                     races and positions: this file's `before-other-
-//                     importers` phase runs as its own, EARLIER invocation
-//                     than the BBL/TP import (see docs/import-manual/index.md,
-//                     "Run it"), so on a from-empty-database run, a skill like
+//                     races and positions: batch 001 is applied as its own,
+//                     EARLIER invocation than the BBL/TP import (see
+//                     docs/import-manual/index.md, "Run it"), so on a
+//                     from-empty-database run, a skill like
 //                     "Block" or "Dodge" does not exist yet when this file's
 //                     skillRulesSets rows are processed --
 //                     ExternalIdResolverService.resolve is a pure lookup with
@@ -44,7 +44,7 @@
 // (4+)", "Mighty Blow (+1)") is NOT a distinct skill: the value is specific
 // to the position that grants it, not to the skill's identity, so it is
 // curated as a per-position attributeValue in
-// after-other-importers/position-skills.json5 instead -- only the bare skill
+// 002-initial-cleanup/position-skills.json5 instead -- only the bare skill
 // name is registered here.
 //
 // 'unique' is a category like any other: it is the only marker a star
@@ -652,25 +652,13 @@
 
     // ================================================================
     // BB2020, DB2021, BB2025 -- the modern rules sets BBL and TP import
-    // from directly. Their skill NAMES were first harvested via two
-    // throwaway scripts (a BBL regex script and a TP JSON-walking script,
-    // neither committed), then reconciled against the real, already-
-    // reviewed-and-merged production parsers (PositionPageParser for BBL;
-    // SkillMasterNamesParserService + OfficialTeamsParserService for TP)
-    // run over the same locally downloaded data dumps. That reconciliation
-    // corrected a handful of the throwaway scripts' own fabrications
-    // (spellings/explanations invented with no HTML or TP data backing
-    // them). Every name below is now backed by one of those two real
-    // parsers' actual output over the current data dumps -- BBL's own
-    // garbled-concatenation scraping bugs are fixed at the parser level
-    // (PositionPageParser splits them into their real component skills),
-    // so no placeholder entries for those garbled strings are curated
-    // here. Their CATEGORIES were not in that data at all, so every
-    // category below was originally curated from public game-rules
-    // knowledge, not from any PDF this project had at the time -- none of
-    // the four older-era PDFs cover the modern rules sets. Every category
-    // has since been confirmed against the printed rulebook for its rules
-    // set (BB2020, DB2021, BB2025), rules-set by rules-set.
+    // from directly. Every skill NAME below matches the production parsers'
+    // output over the current data dumps (PositionPageParser for BBL;
+    // SkillMasterNamesParserService + OfficialTeamsParserService for TP).
+    // BBL's garbled-concatenation strings are split into their real skills
+    // by PositionPageParser, so no placeholder entries for them are curated
+    // here. CATEGORIES are not in that data; each one is checked against
+    // the printed rulebook for its rules set.
     // ================================================================
 
     // --- BB2020: harvested from BBL/TP data dumps ---

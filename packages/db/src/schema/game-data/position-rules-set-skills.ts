@@ -27,8 +27,8 @@ import { skills } from './skills';
  * characteristic-format rule on `position_rules_sets`.
  *
  * `attributeValue` carries a position-specific variant of the skill that is
- * no longer part of the skill's own identity — e.g. "Loner (4+)"'s "4+", or
- * "Animosity (Orc Linemen)"'s "Orc Linemen" — now that skill identity is just
+ * not part of the skill's own identity — e.g. "Loner (4+)"'s "4+", or
+ * "Animosity (Orc Linemen)"'s "Orc Linemen" — since skill identity is just
  * the base name. It is nullable because most starting skills carry no such
  * detail at all.
  */

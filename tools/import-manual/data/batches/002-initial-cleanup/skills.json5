@@ -1,9 +1,9 @@
 // Re-asserts the canonical spelling of every merged skill-name cluster
-// (before-other-importers/skills.json5 registers the same skills, with the
+// (001-initial-seed/skills.json5 registers the same skills, with the
 // same externalIds, under the same canonical names).
 //
 // The BBL and TP importers set a skill's name only when they create the skill,
-// and before-other-importers/skills.json5 creates every merged cluster under
+// and 001-initial-seed/skills.json5 creates every merged cluster under
 // its canonical name first, so the canonical spelling normally sticks. This
 // file re-asserts it for a skill a source importer created first under its
 // own spelling.

@@ -55,7 +55,7 @@ describe('SkillMasterNameCollectionService', () => {
     // parser.extract is mocked, so it does not actually merge `into` itself
     // here -- each stubbed return simulates what the real parser would
     // return given the accumulator it was passed, which is what collect()
-    // now threads through instead of merging results itself.
+    // threads through rather than merging results itself.
     parser.extract
       .mockReturnValueOnce(new Map([[87, { name: 'Dodge', isElite: false }]]))
       .mockReturnValueOnce(

@@ -99,7 +99,7 @@ describe('TrophyAwardsService', () => {
    * and the natural-key lookup that only runs when that insert throws a
    * `trophy_awards` unique violation. A slot may be an `Error` instead of a
    * row array, which makes that one query reject - the only way to reach the
-   * conflict path now that the insert carries no `ON CONFLICT` clause.
+   * conflict path, since the insert carries no `ON CONFLICT` clause.
    */
   async function build(...rowsPerQuery: (unknown[] | Error)[]): Promise<{
     db: Db;

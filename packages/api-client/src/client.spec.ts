@@ -127,11 +127,11 @@ describe('createApiClient', () => {
     expect(typeof client.matchEvents.upsert).toBe('function');
   });
 
-  // Regression: the raw oRPC client Proxy turns ANY property access into a
-  // callable procedure. As a NestJS provider that made it look thenable (Nest
-  // awaited it, firing a bogus `then` RPC) and exposed lifecycle-hook names as
-  // procedures (`POST /rpc/onModuleInit`), aborting startup against a real
-  // server. The client must expose only the real contract routers.
+  // The raw oRPC client Proxy turns ANY property access into a callable
+  // procedure. As a NestJS provider it would look thenable (Nest awaits it,
+  // firing a bogus `then` RPC) and expose lifecycle-hook names as procedures
+  // (`POST /rpc/onModuleInit`), aborting startup against a real server. The
+  // client must expose only the real contract routers.
   it.each([
     'then',
     'onModuleInit',

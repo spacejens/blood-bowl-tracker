@@ -208,7 +208,7 @@ describe('ReviewLockService acquire', () => {
     );
 
     // Only one entry for branch-a — its own ticket is refreshed in place
-    // (proof of life) rather than duplicated, so its enqueuedAt now reflects
+    // (proof of life) rather than duplicated, so its enqueuedAt reflects
     // the latest poll rather than the original timestamp.
     const queue = store.current().queue;
     expect(queue).toHaveLength(1);

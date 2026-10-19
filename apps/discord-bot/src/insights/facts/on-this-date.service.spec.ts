@@ -79,7 +79,7 @@ function victim(
 }
 
 /**
- * The victim-only shape `OnThisDateService.getTopKilledPlayers` now returns,
+ * The victim-only shape `OnThisDateService.getTopKilledPlayers` returns,
  * with the killer carried on the object anyway (an extra runtime property
  * beyond `OnThisDateVictim`) so the default `getKillersForVictims` stub below
  * can echo it straight back — mirroring the real split without each test

@@ -10,7 +10,7 @@ import { PlayerRowButtonService } from '../player-row-button.service';
 
 /**
  * Renders and links a `PlayerKillerInfo`, at whatever precision the data
- * supports. Extracted once three call sites needed the same four rules:
+ * supports. Shared by three call sites that need the same four rules:
  * `PlayerKillsSectionService`'s victim rows, `PlayerDeepdiveService`'s
  * `Status:` line, and the on-this-date insight's kill rows.
  *

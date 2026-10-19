@@ -29,12 +29,11 @@ export type TpAdminMatchEvent = Exclude<
 >;
 
 /**
- * Builds the administrative TP match events. Split out of
+ * Builds the administrative TP match events. Kept separate from
  * `TpMatchEventKindBuildersService` (which delegates its own
- * `buildAdminEvents` to this service unchanged) purely to stay under this
- * repo's 500-line source file ceiling — conceptually this is still a
- * private implementation detail of the kind builders, just hosted in its
- * own collaborating service.
+ * `buildAdminEvents` to this service) to stay under this repo's 500-line
+ * source file ceiling — conceptually this is a private implementation detail
+ * of the kind builders, hosted in its own collaborating service.
  */
 @Injectable()
 export class TpAdminMatchEventBuilderService {
