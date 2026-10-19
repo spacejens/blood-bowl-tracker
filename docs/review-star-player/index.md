@@ -5,9 +5,8 @@ about a sampled set of star players: each import source's **raw** view of a star
 identity, its per-rules-set characteristics, its starting skills, its BB2025
 keywords, and its hire eligibility, next to what the importers and hand curation
 actually stored in `positions`, `position_rules_sets`, `position_rules_set_skills`,
-`position_rules_set_keywords` and `positions_race_eras`. Like `tools/review-match`,
-`tools/review-player` and
-`tools/review-race` it is a review aid for a human — it cannot decide what is
+`position_rules_set_keywords` and `positions_race_eras`. Like
+the other review tools it is a review aid for a human — it cannot decide what is
 "correct" on its own, because the interpretation logic it deliberately does not run
 is the thing being reviewed.
 
@@ -31,7 +30,7 @@ duplicated on purpose: sharing it would let a bug agree with itself instead of
 showing up as a difference. That rule covers the **domain-specific** half only. The
 domain-agnostic scaffolding (HTML fragment assembly, timestamped report writing,
 JSON5 config loading, the `DataTypeReviewer`/`Stratifier` plug-in contracts and the
-app-module wiring) is shared with the other three review tools through
+app-module wiring) is shared with the other review tools through
 `packages/review-harness` — it never touches a raw source's meaning, so it cannot
 agree with itself about one. Locating and byte-decoding a BBL mirror file is shared
 on the same basis, via `packages/read-bbl-mirror`: it carries no BBL-page-type
@@ -39,12 +38,12 @@ awareness or HTML parsing, so depending on it does not weaken the boundary above
 
 ## What it does
 
-1. Samples star players across twelve strata (`starsPerStratum` stars, default 3,
+1. Samples star players across the strata below (`starsPerStratum` stars, default 3,
    per stratum — see Configuration; a star player is the sampled unit):
-   1. **Star player has no BBL data** — stars with no `position_external_ids` row
+   1. **Star player has no BBL data** — stars with no `positions_external_ids` row
       for the BBL external system. A DB-only check — it does not look at the
       downloaded BBL mirror files.
-   2. **Star player has no TP data** — stars with no `position_external_ids` row
+   2. **Star player has no TP data** — stars with no `positions_external_ids` row
       for the TP external system. Same DB-only check as above, scoped to the TP
       external system.
    3. **Star player has no manual curation entry** — reads every curated

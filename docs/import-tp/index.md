@@ -398,7 +398,7 @@ collects the ids the roster import's player upserts return and is handed to the
 later steps that need them (skills, career SPP, SPP adjustments). The others cannot
 be answered by an external-id resolve: the competition scan's `competitionsByTpId` (each directory's
 tournament and era), parsed
-match data, a race's display name (`raceNamesById`), `team_eras` rows (which
+match data, a race's display name, `team_eras` rows (which
 have no external ids of their own), classification and evidence sets, and
 matches (which have no resolve procedure).
 

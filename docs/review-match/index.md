@@ -26,7 +26,7 @@ comparison predicates and label/lookup tables — and nothing else. The
 domain-agnostic scaffolding (HTML fragment assembly, timestamped report
 writing, JSON5 config loading, the `DataTypeReviewer`/`Stratifier` plug-in
 contracts and the app-module wiring) is shared on purpose with
-`tools/review-player` and `tools/review-race` via `packages/review-harness`: a
+the other review tools via `packages/review-harness`: a
 bug there cannot "agree with itself" against a raw source, because that code
 never touches a source's meaning. Locating and byte-decoding a BBL mirror file
 is shared on the same basis, via `packages/read-bbl-mirror`: it carries no
@@ -44,7 +44,7 @@ services.
 
 ## What it does
 
-1. Samples matches per source (BBL and TP) across twelve strata — a few
+1. Samples matches per source (BBL and TP) across the strata below — a few
    matches each, `matchesPerStratum` (default 3) per stratum:
    1. contains a foul
    2. contains a casualty or death

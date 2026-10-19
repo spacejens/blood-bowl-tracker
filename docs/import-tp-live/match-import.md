@@ -63,12 +63,12 @@ an earlier one fails:
 7. **The shared core**, below, importing the match itself.
 
 Only the requested match is imported; its bracket siblings are used only for
-classification and the competition's dates — unless step 5 created the
+classification and the competition's dates — unless step 6 created the
 competition, below.
 
 ### Backfilling a brand-new competition
 
-When step 5 creates the competition (it was never imported before), the
+When step 6 creates the competition (it was never imported before), the
 import then completes it rather than leaving it holding one match, running
 up to three more steps after the shared core:
 
