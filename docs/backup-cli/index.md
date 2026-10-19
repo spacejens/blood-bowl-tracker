@@ -99,10 +99,11 @@ Behaviors worth knowing:
 - `restore` downloads into a temporary directory and removes it afterwards,
   whether the restore succeeded or not.
 - `restore-production` reads production's `DATABASE_URL` from
-  `apps/discord-bot/.env.production` of the checkout it runs in (stripping a
-  trailing CR and a matched quote pair, and refusing anything but a
-  `postgres://` or `postgresql://` URL), never from an argument or setting,
-  and never prints it; errors show it with its password masked.
+  `apps/discord-bot/.env.production` of the checkout it runs in, through
+  `tools/cli-shared`'s `ProductionEnvFileService` (parsed with dotenv, the
+  same parser the bot uses; anything but a `postgres://` or `postgresql://`
+  URL is refused), never from an argument or setting, and never prints it;
+  errors show it with its password masked.
 - A real `restore-production` run refuses, before reading or downloading
   anything, unless given both an explicit `<backup-key>` (it never defaults
   to the newest backup, which could be one that landed after you chose) and

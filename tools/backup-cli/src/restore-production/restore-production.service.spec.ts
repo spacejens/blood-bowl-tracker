@@ -1,3 +1,4 @@
+import { ProductionEnvFileService } from '@blood-bowl-tracker/cli-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
@@ -6,7 +7,6 @@ import { PgArchiveService } from '../archive/pg-archive.service';
 import { DownloadBackupService } from '../download-backup/download-backup.service';
 import { LocalMigrationsService } from '../migrations/local-migrations.service';
 import { DatabaseUrlRedactorService } from '../pg-client/database-url-redactor.service';
-import { ProductionDatabaseUrlService } from '../production-database/production-database-url.service';
 import { TempDirService } from '../temp-dir/temp-dir.service';
 import { KEY_TABLES } from '../verify-backup/key-tables';
 import { RestoredDatabaseQueryService } from '../verify-backup/restored-database-query.service';
@@ -47,7 +47,7 @@ const REAL: RestoreProductionRequest = {
 
 describe('RestoreProductionService', () => {
   let service: RestoreProductionService;
-  let productionUrl: MockProxy<ProductionDatabaseUrlService>;
+  let productionEnvFile: MockProxy<ProductionEnvFileService>;
   let redactor: MockProxy<DatabaseUrlRedactorService>;
   let localMigrations: MockProxy<LocalMigrationsService>;
   let tempDir: MockProxy<TempDirService>;
@@ -58,7 +58,7 @@ describe('RestoreProductionService', () => {
   let productionRestore: MockProxy<ProductionRestoreService>;
 
   beforeEach(async () => {
-    productionUrl = mock<ProductionDatabaseUrlService>();
+    productionEnvFile = mock<ProductionEnvFileService>();
     redactor = mock<DatabaseUrlRedactorService>();
     localMigrations = mock<LocalMigrationsService>();
     tempDir = mock<TempDirService>();
@@ -68,7 +68,7 @@ describe('RestoreProductionService', () => {
     archive = mock<PgArchiveService>();
     productionRestore = mock<ProductionRestoreService>();
 
-    productionUrl.read.mockResolvedValue(PRODUCTION);
+    productionEnvFile.readDatabaseUrl.mockResolvedValue(PRODUCTION);
     redactor.mask.mockReturnValue(MASKED);
     localMigrations.list.mockReturnValue(LOCAL);
     // Canned pass-through: hands the work a fixed directory. Creating and
@@ -94,7 +94,7 @@ describe('RestoreProductionService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         RestoreProductionService,
-        { provide: ProductionDatabaseUrlService, useValue: productionUrl },
+        { provide: ProductionEnvFileService, useValue: productionEnvFile },
         { provide: DatabaseUrlRedactorService, useValue: redactor },
         { provide: LocalMigrationsService, useValue: localMigrations },
         { provide: TempDirService, useValue: tempDir },
@@ -134,7 +134,7 @@ describe('RestoreProductionService', () => {
           `--confirm ${RESTORE_PRODUCTION_CONFIRMATION}; nothing was ` +
           'downloaded or changed. Use --dry-run to rehearse.',
       );
-      expect(productionUrl.read).not.toHaveBeenCalled();
+      expect(productionEnvFile.readDatabaseUrl).not.toHaveBeenCalled();
       expect(download.run).not.toHaveBeenCalled();
     },
   );
@@ -150,7 +150,7 @@ describe('RestoreProductionService', () => {
         'a real restore never defaults to the newest backup. Nothing was ' +
         'downloaded or changed.',
     );
-    expect(productionUrl.read).not.toHaveBeenCalled();
+    expect(productionEnvFile.readDatabaseUrl).not.toHaveBeenCalled();
     expect(download.run).not.toHaveBeenCalled();
   });
 
