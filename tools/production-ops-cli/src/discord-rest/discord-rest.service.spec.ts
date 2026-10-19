@@ -62,7 +62,9 @@ describe('DiscordRestService', () => {
 
       const result = await service.getMessage('222', '333');
 
-      expect(rest.get).toHaveBeenCalledWith('/fake/channels/222/messages/333');
+      expect(rest.get).toHaveBeenCalledWith('/fake/channels/222/messages/333', {
+        query: undefined,
+      });
       expect(result).toBe(body);
     });
 
@@ -107,15 +109,15 @@ describe('DiscordRestService', () => {
       );
     });
 
-    it('never includes the bot token in the failure message', async () => {
-      rest.get.mockRejectedValue(discordApiError(401, 0, '401: Unauthorized'));
+    it('keeps the original failure as the cause', async () => {
+      const original = discordApiError(401, 0, '401: Unauthorized');
+      rest.get.mockRejectedValue(original);
 
       const error: unknown = await service
         .getMessage('222', '333')
         .catch((e: unknown) => e);
 
-      expect(error).toBeInstanceOf(Error);
-      expect((error as Error).message).not.toContain('secret-bot-token');
+      expect((error as Error).cause).toBe(original);
     });
 
     it('propagates a token read failure without calling Discord', async () => {

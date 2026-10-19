@@ -27,7 +27,7 @@ export class FetchDiscordMessageService {
   constructor(private readonly discordRest: DiscordRestService) {}
 
   async run(messageLink: string): Promise<unknown> {
-    // Runs before the token is even read: this is about the link itself,
+    // Runs before any Discord call, so before the token is read: this is about the link itself,
     // independent of any credential or connection.
     const match = MESSAGE_LINK_PATTERN.exec(messageLink);
     if (match === null) {

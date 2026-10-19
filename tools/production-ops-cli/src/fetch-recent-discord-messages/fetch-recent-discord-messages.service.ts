@@ -17,7 +17,7 @@ export class FetchRecentDiscordMessagesService {
   constructor(private readonly discordRest: DiscordRestService) {}
 
   async run(channelId: string, count: number): Promise<unknown> {
-    // Runs before the token is even read: this is about the input itself,
+    // Runs before any Discord call, so before the token is read: this is about the input itself,
     // independent of any credential or connection.
     if (!Number.isInteger(count) || count < MIN_COUNT || count > MAX_COUNT) {
       throw new Error(

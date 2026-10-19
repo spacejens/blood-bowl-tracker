@@ -7,8 +7,9 @@ import { DiscordBotTokenService } from '../discord-bot-token/discord-bot-token.s
 const DISCORD_API_VERSION = '10';
 
 /**
- * Bounds the whole request. discord.js aborts a request that takes longer
- * than this, so a stalled response cannot hang the CLI forever.
+ * discord.js aborts an attempt whose response headers take longer than this,
+ * and retries an aborted attempt (3 times by default). It does not bound
+ * reading the response body, which only Undici's inactivity timeout limits.
  */
 const REQUEST_TIMEOUT_MS = 30_000;
 
@@ -48,9 +49,7 @@ export class DiscordRestService {
   private async get(request: DiscordGetRequest): Promise<unknown> {
     const rest = await this.createClient();
     try {
-      return request.query === undefined
-        ? await rest.get(request.route)
-        : await rest.get(request.route, { query: request.query });
+      return await rest.get(request.route, { query: request.query });
     } catch (error) {
       throw new Error(this.describeFailure(request.target, error), {
         cause: error,
