@@ -17,18 +17,6 @@ function write(relativePath: string, contents: string): void {
   writeFileSync(path, contents, 'utf8');
 }
 
-async function makeService(): Promise<ManualRawDataService> {
-  const config = mock<StarPlayerReviewConfigService>();
-  config.getDataDir.mockReturnValue(dir);
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      ManualRawDataService,
-      { provide: StarPlayerReviewConfigService, useValue: config },
-    ],
-  }).compile();
-  return moduleRef.get(ManualRawDataService);
-}
-
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), 'review-star-player-manual-'));
 });
@@ -38,6 +26,20 @@ afterEach(() => {
 });
 
 describe('ManualRawDataService', () => {
+  let service: ManualRawDataService;
+
+  beforeEach(async () => {
+    const config = mock<StarPlayerReviewConfigService>();
+    config.getDataDir.mockReturnValue(dir);
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ManualRawDataService,
+        { provide: StarPlayerReviewConfigService, useValue: config },
+      ],
+    }).compile();
+    service = moduleRef.get(ManualRawDataService);
+  });
+
   it('returns only the star player entries of star-players.json5', async () => {
     write(
       'batches/001-a/star-players.json5',
@@ -47,7 +49,6 @@ describe('ManualRawDataService', () => {
         { name: 'Dwarf Blitzer', isStarPlayer: false, externalIds: [] },
       ] }`,
     );
-    const service = await makeService();
 
     expect(await service.starPlayers()).toEqual([
       {
@@ -62,7 +63,6 @@ describe('ManualRawDataService', () => {
       'batches/001-a/star-players.json5',
       "{ positions: [{ name: 'X', isStarPlayer: true, externalIds: [{ system: 'tourplay.net', id: 42 }] }] }",
     );
-    const service = await makeService();
 
     expect((await service.starPlayers())[0]?.externalIds).toEqual([
       { system: 'tourplay.net', id: '42' },
@@ -76,7 +76,6 @@ describe('ManualRawDataService', () => {
         raceEras: [{ race: { system: 'Name', id: 'Human' },
                      era: { system: 'Name', id: 'BB2020 era' } }] }] }`,
     );
-    const service = await makeService();
 
     expect(await service.availability()).toEqual([
       {
@@ -105,7 +104,6 @@ describe('ManualRawDataService', () => {
         rulesSet: { system: 'Name', id: 'CRP' },
         move: 7, strength: 4, agility: 3, armour: 9 }] }`,
     );
-    const service = await makeService();
 
     const entries = await service.characteristics();
 
@@ -117,8 +115,6 @@ describe('ManualRawDataService', () => {
   });
 
   it('degrades a missing file to an empty list', async () => {
-    const service = await makeService();
-
     expect(await service.starPlayers()).toEqual([]);
     expect(await service.availability()).toEqual([]);
     expect(await service.characteristics()).toEqual([]);
@@ -126,7 +122,6 @@ describe('ManualRawDataService', () => {
 
   it('degrades a malformed file to an empty list', async () => {
     write('batches/001-a/star-players.json5', '{ positions: [');
-    const service = await makeService();
 
     expect(await service.starPlayers()).toEqual([]);
   });
@@ -136,7 +131,6 @@ describe('ManualRawDataService', () => {
       'batches/001-a/star-players.json5',
       "{ positions: [{ name: 'X', isStarPlayer: true, externalIds: [] }] }",
     );
-    const service = await makeService();
 
     await service.starPlayers();
     rmSync(join(dir, 'batches/001-a'), {
@@ -152,7 +146,6 @@ describe('ManualRawDataService', () => {
       'batches/002-b/position-characteristics.json5',
       '{ positionRulesSets: [{ move: 1 }] }',
     );
-    const service = await makeService();
 
     expect(await service.characteristics()).toEqual([]);
   });
@@ -168,7 +161,6 @@ describe('ManualRawDataService', () => {
           ] },
       ] }`,
     );
-    const service = await makeService();
 
     expect(await service.keywords()).toEqual([
       { name: 'Goblin', kind: 'species', code: '111' },
@@ -183,7 +175,6 @@ describe('ManualRawDataService', () => {
           externalIds: [{ system: 'Name', id: 'Big Guy' }] },
       ] }`,
     );
-    const service = await makeService();
 
     expect(await service.keywords()).toEqual([
       { name: 'Big Guy', kind: 'positional', code: null },
@@ -191,8 +182,6 @@ describe('ManualRawDataService', () => {
   });
 
   it('degrades a missing keywords file to an empty list', async () => {
-    const service = await makeService();
-
     expect(await service.keywords()).toEqual([]);
   });
 
@@ -211,7 +200,6 @@ describe('ManualRawDataService', () => {
         { name: 'Morg the restated', externalIds: [{ system: 'Name', id: 'Morg' }] },
       ] }`,
     );
-    const service = await makeService();
 
     expect((await service.starPlayers()).map((star) => star.name)).toEqual([
       'Griff Oberwald',

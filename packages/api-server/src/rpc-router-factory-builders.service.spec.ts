@@ -3,7 +3,7 @@ import {
   MissingRequiredFieldError,
 } from '@blood-bowl-tracker/game-data';
 import { call } from '@orpc/server';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createRouterHarness } from './rpc-router-factory.test-helpers';
 
@@ -37,8 +37,14 @@ describe('route builders', () => {
     externalIds: [{ externalSystemId: 1, externalId: 'e1' }],
   };
 
+  let harness: Awaited<ReturnType<typeof createRouterHarness>>;
+
+  beforeEach(async () => {
+    harness = await createRouterHarness();
+  });
+
   it('flattens the unwrapped entity and its created flag into the response', async () => {
-    const { router, mocks } = await createRouterHarness();
+    const { router, mocks } = harness;
     mocks.leaguesService.upsert.mockResolvedValue({ league, created: true });
 
     await expect(call(router.leagues.upsert, input)).resolves.toEqual({
@@ -51,7 +57,7 @@ describe('route builders', () => {
   });
 
   it('maps the configured conflict error to CONFLICT', async () => {
-    const { router, mocks } = await createRouterHarness();
+    const { router, mocks } = harness;
     mocks.leaguesService.upsert.mockRejectedValue(
       new LeagueUpsertConflictError('matched leagues 1, 2'),
     );
@@ -63,7 +69,7 @@ describe('route builders', () => {
   });
 
   it('maps a missing required field to BAD_REQUEST', async () => {
-    const { router, mocks } = await createRouterHarness();
+    const { router, mocks } = harness;
     mocks.leaguesService.upsert.mockRejectedValue(
       new MissingRequiredFieldError('name is required'),
     );
@@ -75,7 +81,7 @@ describe('route builders', () => {
   });
 
   it('rethrows an unexpected error untouched', async () => {
-    const { router, mocks } = await createRouterHarness();
+    const { router, mocks } = harness;
     mocks.leaguesService.upsert.mockRejectedValue(new Error('db unavailable'));
 
     await expect(call(router.leagues.upsert, input)).rejects.toThrow(
@@ -84,7 +90,7 @@ describe('route builders', () => {
   });
 
   it('answers a batch index-aligned with the request', async () => {
-    const { router, mocks } = await createRouterHarness();
+    const { router, mocks } = harness;
     mocks.leaguesService.upsert
       .mockResolvedValueOnce({ league, created: true })
       .mockResolvedValueOnce({
@@ -119,7 +125,7 @@ describe('route builders', () => {
   });
 
   it('turns one item conflict into that item failing, not the batch', async () => {
-    const { router, mocks } = await createRouterHarness();
+    const { router, mocks } = harness;
     mocks.leaguesService.upsert
       .mockRejectedValueOnce(new LeagueUpsertConflictError('matched 1, 2'))
       .mockResolvedValueOnce({ league, created: true });

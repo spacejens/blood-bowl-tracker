@@ -1,13 +1,19 @@
 import { call } from '@orpc/server';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createRouterHarness } from './rpc-router-factory.test-helpers';
 
 const externalId = { externalSystemId: 1, externalId: 'id:47' };
 
 describe('resolve procedures', () => {
+  let harness: Awaited<ReturnType<typeof createRouterHarness>>;
+
+  beforeEach(async () => {
+    harness = await createRouterHarness();
+  });
+
   it('answers coaches.resolve from CoachesService', async () => {
-    const { router, mocks } = await createRouterHarness();
+    const { router, mocks } = harness;
     mocks.coachesService.resolve.mockResolvedValue({ found: true, id: 12 });
 
     await expect(call(router.coaches.resolve, externalId)).resolves.toEqual({
@@ -18,7 +24,7 @@ describe('resolve procedures', () => {
   });
 
   it('passes a not-found answer straight through instead of throwing', async () => {
-    const { router, mocks } = await createRouterHarness();
+    const { router, mocks } = harness;
     mocks.racesService.resolve.mockResolvedValue({ found: false });
 
     await expect(call(router.races.resolve, externalId)).resolves.toEqual({
@@ -29,7 +35,7 @@ describe('resolve procedures', () => {
   // Trophies resolve by curated name, not by external id -- see the
   // contract's own note on why they are the exception.
   it('answers trophies.resolveByName from TrophiesService', async () => {
-    const { router, mocks } = await createRouterHarness();
+    const { router, mocks } = harness;
     mocks.trophiesService.resolveByName.mockResolvedValue({
       found: true,
       id: 31,
@@ -44,7 +50,7 @@ describe('resolve procedures', () => {
   });
 
   it('answers races.resolveBatch index-aligned with the request', async () => {
-    const { router, mocks } = await createRouterHarness();
+    const { router, mocks } = harness;
     const input = [externalId, { externalSystemId: 1, externalId: 'id:48' }];
     mocks.racesService.resolveBatch.mockResolvedValue([
       { found: true, id: 3 },
@@ -59,7 +65,7 @@ describe('resolve procedures', () => {
   });
 
   it('wires every resolvable namespace to its own service', async () => {
-    const { router, mocks } = await createRouterHarness();
+    const { router, mocks } = harness;
     const wiring = [
       [router.coaches, mocks.coachesService],
       [router.leagues, mocks.leaguesService],
@@ -83,7 +89,7 @@ describe('resolve procedures', () => {
   });
 
   it('wires every resolvable namespace to its own service for resolveBatch', async () => {
-    const { router, mocks } = await createRouterHarness();
+    const { router, mocks } = harness;
     const input = [externalId, { externalSystemId: 1, externalId: 'id:48' }];
     const wiring = [
       [router.coaches, mocks.coachesService],

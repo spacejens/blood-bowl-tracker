@@ -25,7 +25,11 @@ describe('TeamsStatisticsService (suffered consequences & expensive mistakes)', 
   let players: MockProxy<PlayersService>;
   let trophyAwardCounts: MockProxy<TrophyAwardCountsService>;
 
-  async function build(): Promise<void> {
+  beforeEach(async () => {
+    matchEventCounts = mock<MatchEventCountsService>();
+    matchOutcomeCounts = mock<MatchOutcomeCountsService>();
+    players = mock<PlayersService>();
+    trophyAwardCounts = mock<TrophyAwardCountsService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
         TeamsStatisticsService,
@@ -37,13 +41,6 @@ describe('TeamsStatisticsService (suffered consequences & expensive mistakes)', 
       ],
     }).compile();
     service = moduleRef.get(TeamsStatisticsService);
-  }
-
-  beforeEach(() => {
-    matchEventCounts = mock<MatchEventCountsService>();
-    matchOutcomeCounts = mock<MatchOutcomeCountsService>();
-    players = mock<PlayersService>();
-    trophyAwardCounts = mock<TrophyAwardCountsService>();
   });
 
   describe('toplist queries', () => {
@@ -65,7 +62,6 @@ describe('TeamsStatisticsService (suffered consequences & expensive mistakes)', 
       async (method, role, types) => {
         const rows = [{ teamId: 1, name: '40 grinders', count: 18 }];
         matchEventCounts.countMatchEventsByTeam.mockResolvedValue(rows);
-        await build();
 
         await expect(service[method](FACT_SCOPE_ALL_TIME, 21)).resolves.toEqual(
           rows,
@@ -85,7 +81,6 @@ describe('TeamsStatisticsService (suffered consequences & expensive mistakes)', 
         { teamId: 2, name: 'Reikland Reavers', count: 40000 },
       ];
       matchEventCounts.sumExpensiveMistakesByTeam.mockResolvedValue(rows);
-      await build();
 
       await expect(
         service.sumExpensiveMistakesByTeam(FACT_SCOPE_ALL_TIME, 21),
@@ -115,7 +110,6 @@ describe('TeamsStatisticsService (suffered consequences & expensive mistakes)', 
         },
       ];
       matchEventCounts.listBiggestExpensiveMistakes.mockResolvedValue(rows);
-      await build();
 
       await expect(
         service.listBiggestExpensiveMistakes(FACT_SCOPE_ALL_TIME, 21),
