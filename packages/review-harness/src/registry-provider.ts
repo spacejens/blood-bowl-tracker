@@ -7,8 +7,8 @@ import type { FactoryProvider, InjectionToken } from '@nestjs/common';
  *
  * A loose function rather than an `@Injectable()` service on purpose: it runs
  * at module-definition time, inside `@Module({ providers: [...] })` metadata,
- * so it cannot itself be resolved by DI — the same exemption `createDb`
- * (`packages/db/src/db.ts`) relies on.
+ * so it cannot itself be resolved by DI — CLAUDE.md's "Service vs. loose
+ * function", case 3 (bootstrap function).
  */
 export function createRegistryProvider(
   token: InjectionToken,

@@ -26,8 +26,9 @@ export type ExternalSystemLookupServiceConstructor = new (
  * process. Every query that joins a source's external ids needs this id, so
  * it is memoized here rather than re-queried per stratum.
  *
- * A class-factory rather than a service, for the same reason as
- * `createReviewConfigServiceBase`: what it returns is the `@Injectable()`
+ * A class factory rather than a service (CLAUDE.md's "Service vs. loose
+ * function", case 5), like `createReviewConfigServiceBase`: what it returns
+ * is the `@Injectable()`
  * class each review tool's lookup service extends, so NestJS DI manages the
  * result directly. The tool's own config service class is passed in because
  * it is the DI token the base injects through; `fileName` is the tool's

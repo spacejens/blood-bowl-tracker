@@ -83,6 +83,10 @@ async function runCleanupHook<TSubcommand extends string, TArgs>(
  * dispatch already resolved and the failure came after it, that error also
  * carries `dispatchSucceeded: true`, so a caller can tell a run that did
  * nothing from one whose side effects already landed.
+ *
+ * A loose function rather than an `@Injectable()` service on purpose: it runs
+ * before any Nest context exists and is what creates one, so DI cannot supply
+ * it — CLAUDE.md's "Service vs. loose function", case 3 (bootstrap function).
  */
 export async function runCli<TSubcommand extends string, TArgs>(
   options: RunCliOptions<TSubcommand, TArgs>,

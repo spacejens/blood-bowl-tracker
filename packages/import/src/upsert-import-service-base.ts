@@ -52,9 +52,11 @@ export type UpsertImportServiceConstructor<TData, TResult> = new (
  * becomes one `ImportError` in the caller's list and `undefined`, and one bad
  * row never aborts a batch.
  *
- * A loose function rather than a service by the "generic over entity type"
- * exemption in CLAUDE.md's "Service vs. loose function" — it is parameterized
- * by compile-time generics and returns the class NestJS DI then manages. The
+ * A class factory rather than a service (CLAUDE.md's "Service vs. loose
+ * function", case 5): it returns the `@Injectable()` base class each
+ * entity's import service extends, which is what NestJS DI manages, built
+ * from a declarative config object (`resource`, `buildErrorMessage`). The
+ * compile-time generics only type that config. The
  * `@Injectable()` decorator and the `@Inject(API_CLIENT)` parameter decorator
  * live on the base, and NestJS finds their metadata through the subclass's
  * prototype chain, which is why a subclass needs no constructor of its own.
