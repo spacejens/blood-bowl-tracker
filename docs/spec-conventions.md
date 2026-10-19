@@ -50,7 +50,7 @@ Besides `glossary.md` and this file — tagged `Docs-about-docs` above, since th
 
 One accepted exception: `discord-bot/index.md`, `discord-bot/local-development.md`, and `discord-bot/production-hosting.md` — together with the `discord-bot/production-*.md` pages it indexes — are how-to content (Discord app creation, local development, Fly.io/Neon hosting) inside a spec-style folder. That is intentional, not a violation of the spec-style categorization — the folder's conceptual specs are its `slash-commands/*.md` files.
 
-The directory map above covers checked-in doc areas only. Gitignored, generated areas — `plans/` (this workflow's working files) and `schemaspy-output/` (the database diagram produced by `pnpm run db:diagram`) — are absent by design, not omissions.
+The directory map above covers checked-in doc areas only. Gitignored, generated areas — `plans/` and `superpowers/` (this workflow's working files) and `schemaspy-output/` (the database diagram produced by `pnpm run db:diagram`) — are absent by design, not omissions.
 
 ## Glossary
 

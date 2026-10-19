@@ -120,8 +120,9 @@ mechanism itself is `RpcRouterFactoryService`
 
 ## Reference resolution
 
-Ten entity kinds — coaches, leagues, races, players, positions, rules sets,
-eras, competitions, competition groups and teams — additionally expose
+Every entity kind an import tool references by external id across files,
+phases or tools (see `packages/api-contract/src/contract.ts` for which ones)
+additionally exposes
 `resolve` and `resolveBatch`. These answer "which record does this
 `(external system, identifier)` pair name?" without writing anything:
 `resolve` takes one pair, `resolveBatch` a non-empty array of pairs and
