@@ -10,8 +10,9 @@ import { ENV_PRODUCTION_PATH } from './gitignored-files';
 /**
  * Production's secrets for the CLI packages, read from the gitignored
  * `apps/discord-bot/.env.production` of the checkout this process runs in,
- * so they never pass through a command line or the controlling session.
- * Parsed with dotenv, the parser `@nestjs/config` gives the bot itself, so
+ * so a CLI never accepts them as an argument or setting of its own. What a
+ * caller then does with a returned value, such as handing it to a
+ * subprocess, is up to that caller. Parsed with dotenv, the parser `@nestjs/config` gives the bot itself, so
  * a CLI reads the same value the app does. Every error names the file and
  * the variable, never the value.
  */
