@@ -17,6 +17,7 @@ import {
 import { MaxCountTrophyRuleService } from './max-count-trophy-rule.service';
 import { TrophyRuleEventTypeFilterService } from './trophy-rule-event-type-filter.service';
 import { TrophyRulePositionFilterService } from './trophy-rule-position-filter.service';
+import { TrophyTiedWinnersService } from './trophy-tied-winners.service';
 
 /**
  * Per-test factory rather than a `beforeEach` subject: every test seeds the
@@ -29,6 +30,11 @@ import { TrophyRulePositionFilterService } from './trophy-rule-position-filter.s
  * maps to which condition — is asserted in its own spec. What these tests
  * check is that the rule hands the curated ids to the filter and splices
  * whatever comes back into the candidate query.
+ *
+ * The tie decision is mocked too: its algorithm is asserted in its own spec,
+ * so these tests only check that the rule hands it the query rows and cutoff
+ * and returns its selection. It defaults to selecting nobody; a test stubs a
+ * canned selection when it cares.
  */
 async function makeService(
   rows: unknown[],
@@ -37,10 +43,13 @@ async function makeService(
   service: MaxCountTrophyRuleService;
   db: MockDbResult;
   positionFilter: MockProxy<TrophyRulePositionFilterService>;
+  tiedWinners: MockProxy<TrophyTiedWinnersService>;
 }> {
   const db = mockDb(rows);
   const positionFilter = mock<TrophyRulePositionFilterService>();
   positionFilter.build.mockReturnValue(positionCondition);
+  const tiedWinners = mock<TrophyTiedWinnersService>();
+  tiedWinners.select.mockReturnValue([]);
   const moduleRef = await Test.createTestingModule({
     providers: [
       MaxCountTrophyRuleService,
@@ -53,6 +62,7 @@ async function makeService(
       // query, concrete behaviour these tests could drift from, and it is
       // asserted in its own spec.
       { provide: TrophyRulePositionFilterService, useValue: positionFilter },
+      { provide: TrophyTiedWinnersService, useValue: tiedWinners },
       MatchScopeFilterService,
       { provide: DB, useValue: db.db },
     ],
@@ -61,6 +71,7 @@ async function makeService(
     service: moduleRef.get(MaxCountTrophyRuleService),
     db,
     positionFilter,
+    tiedWinners,
   };
 }
 
@@ -70,11 +81,13 @@ const TOUCHDOWNS = {
 };
 
 describe('MaxCountTrophyRuleService', () => {
-  it('returns the single top counter', async () => {
-    const { service } = await makeService([
+  it('hands the candidate rows and cutoff to the tie decision and returns its selection', async () => {
+    const rows = [
       { playerId: 7, teamEraId: 70, eventCount: 9 },
       { playerId: 8, teamEraId: 80, eventCount: 4 },
-    ]);
+    ];
+    const { service, tiedWinners } = await makeService(rows);
+    tiedWinners.select.mockReturnValue([{ playerId: 8, teamEraId: 80 }]);
 
     const winners = await service.compute({
       competitionId: 3,
@@ -84,76 +97,8 @@ describe('MaxCountTrophyRuleService', () => {
       tieCutoff: 4,
     });
 
-    expect(winners).toEqual([{ playerId: 7, teamEraId: 70 }]);
-  });
-
-  it('returns every player of a tie exactly at the cutoff', async () => {
-    const { service } = await makeService([
-      { playerId: 1, teamEraId: 10, eventCount: 5 },
-      { playerId: 2, teamEraId: 20, eventCount: 5 },
-      { playerId: 3, teamEraId: 30, eventCount: 1 },
-    ]);
-
-    const winners = await service.compute({
-      competitionId: 3,
-      role: 'acting',
-      types: TOUCHDOWNS,
-      eligiblePositionIds: undefined,
-      tieCutoff: 2,
-    });
-
-    expect(winners).toEqual([
-      { playerId: 1, teamEraId: 10 },
-      { playerId: 2, teamEraId: 20 },
-    ]);
-  });
-
-  it('awards nobody when one more player ties than the cutoff allows', async () => {
-    const { service } = await makeService([
-      { playerId: 1, teamEraId: 10, eventCount: 5 },
-      { playerId: 2, teamEraId: 20, eventCount: 5 },
-      { playerId: 3, teamEraId: 30, eventCount: 5 },
-    ]);
-
-    const winners = await service.compute({
-      competitionId: 3,
-      role: 'acting',
-      types: TOUCHDOWNS,
-      eligiblePositionIds: undefined,
-      tieCutoff: 2,
-    });
-
-    expect(winners).toEqual([]);
-  });
-
-  it('awards nobody when no player has a single matching event', async () => {
-    const { service } = await makeService([]);
-
-    const winners = await service.compute({
-      competitionId: 3,
-      role: 'acting',
-      types: TOUCHDOWNS,
-      eligiblePositionIds: undefined,
-      tieCutoff: 4,
-    });
-
-    expect(winners).toEqual([]);
-  });
-
-  it('awards nobody when the top count is zero', async () => {
-    const { service } = await makeService([
-      { playerId: 1, teamEraId: 10, eventCount: 0 },
-    ]);
-
-    const winners = await service.compute({
-      competitionId: 3,
-      role: 'acting',
-      types: TOUCHDOWNS,
-      eligiblePositionIds: undefined,
-      tieCutoff: 4,
-    });
-
-    expect(winners).toEqual([]);
+    expect(tiedWinners.select).toHaveBeenCalledWith(rows, 4);
+    expect(winners).toEqual([{ playerId: 8, teamEraId: 80 }]);
   });
 
   it('filters on both curated sides of a compound rule, scoped to the competition', async () => {
