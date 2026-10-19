@@ -17,6 +17,7 @@ import {
 import { MaxSppSumTrophyRuleService } from './max-spp-sum-trophy-rule.service';
 import { TrophyRuleEventTypeFilterService } from './trophy-rule-event-type-filter.service';
 import { TrophyRulePositionFilterService } from './trophy-rule-position-filter.service';
+import { TrophyTiedWinnersService } from './trophy-tied-winners.service';
 
 /**
  * `positionCondition` is what the mocked position filter answers with for
@@ -25,6 +26,11 @@ import { TrophyRulePositionFilterService } from './trophy-rule-position-filter.s
  * maps to which condition — is asserted in its own spec. What these tests
  * check is that the rule hands the curated ids to the filter and splices
  * whatever comes back into the candidate query.
+ *
+ * The tie decision is mocked too: its algorithm is asserted in its own spec,
+ * so these tests only check that the rule hands it the query rows and cutoff
+ * and returns its selection. It defaults to selecting nobody; a test stubs a
+ * canned selection when it cares.
  */
 async function makeService(
   rows: unknown[],
@@ -33,16 +39,20 @@ async function makeService(
   service: MaxSppSumTrophyRuleService;
   db: MockDbResult;
   positionFilter: MockProxy<TrophyRulePositionFilterService>;
+  tiedWinners: MockProxy<TrophyTiedWinnersService>;
 }> {
   const db = mockDb(rows);
   const positionFilter = mock<TrophyRulePositionFilterService>();
   positionFilter.build.mockReturnValue(positionCondition);
+  const tiedWinners = mock<TrophyTiedWinnersService>();
+  tiedWinners.select.mockReturnValue([]);
   const moduleRef = await Test.createTestingModule({
     providers: [
       MaxSppSumTrophyRuleService,
       // Pure and dependency-free, so real — see CLAUDE.md's carve-out.
       TrophyRuleEventTypeFilterService,
       { provide: TrophyRulePositionFilterService, useValue: positionFilter },
+      { provide: TrophyTiedWinnersService, useValue: tiedWinners },
       MatchScopeFilterService,
       { provide: DB, useValue: db.db },
     ],
@@ -51,17 +61,20 @@ async function makeService(
     service: moduleRef.get(MaxSppSumTrophyRuleService),
     db,
     positionFilter,
+    tiedWinners,
   };
 }
 
 const NO_TYPES = { actionTypes: [] as const, consequenceTypes: [] as const };
 
 describe('MaxSppSumTrophyRuleService', () => {
-  it('returns the single highest SPP sum', async () => {
-    const { service } = await makeService([
+  it('hands the candidate rows and cutoff to the tie decision and returns its selection', async () => {
+    const rows = [
       { playerId: 5, teamEraId: 50, eventCount: 61 },
       { playerId: 6, teamEraId: 60, eventCount: 12 },
-    ]);
+    ];
+    const { service, tiedWinners } = await makeService(rows);
+    tiedWinners.select.mockReturnValue([{ playerId: 6, teamEraId: 60 }]);
 
     const winners = await service.compute({
       competitionId: 3,
@@ -72,63 +85,8 @@ describe('MaxSppSumTrophyRuleService', () => {
       tieCutoff: 4,
     });
 
-    expect(winners).toEqual([{ playerId: 5, teamEraId: 50 }]);
-  });
-
-  it('returns every player of a tie exactly at the cutoff', async () => {
-    const { service } = await makeService([
-      { playerId: 1, teamEraId: 10, eventCount: 30 },
-      { playerId: 2, teamEraId: 20, eventCount: 30 },
-      { playerId: 3, teamEraId: 30, eventCount: 5 },
-    ]);
-
-    const winners = await service.compute({
-      competitionId: 3,
-      role: 'acting',
-      types: NO_TYPES,
-      excludedTypes: NO_TYPES,
-      eligiblePositionIds: undefined,
-      tieCutoff: 2,
-    });
-
-    expect(winners).toEqual([
-      { playerId: 1, teamEraId: 10 },
-      { playerId: 2, teamEraId: 20 },
-    ]);
-  });
-
-  it('awards nobody when one more player ties than the cutoff allows', async () => {
-    const { service } = await makeService([
-      { playerId: 1, teamEraId: 10, eventCount: 30 },
-      { playerId: 2, teamEraId: 20, eventCount: 30 },
-      { playerId: 3, teamEraId: 30, eventCount: 30 },
-    ]);
-
-    const winners = await service.compute({
-      competitionId: 3,
-      role: 'acting',
-      types: NO_TYPES,
-      excludedTypes: NO_TYPES,
-      eligiblePositionIds: undefined,
-      tieCutoff: 2,
-    });
-
-    expect(winners).toEqual([]);
-  });
-
-  it('awards nobody when nobody scored any SPP', async () => {
-    const { service } = await makeService([]);
-
-    const winners = await service.compute({
-      competitionId: 3,
-      role: 'acting',
-      types: NO_TYPES,
-      excludedTypes: NO_TYPES,
-      eligiblePositionIds: undefined,
-      tieCutoff: 4,
-    });
-
-    expect(winners).toEqual([]);
+    expect(tiedWinners.select).toHaveBeenCalledWith(rows, 4);
+    expect(winners).toEqual([{ playerId: 6, teamEraId: 60 }]);
   });
 
   it('excludes the curated exclusion types from the sum', async () => {
