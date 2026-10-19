@@ -31,8 +31,8 @@
 // An entry references a competition and a player by external id, and both
 // are created by the BBL and TP importers, not by this tool. Curating them
 // before those importers ran would resolve nothing (every entry would be
-// skipped with an "could not resolve reference" error), so this phase --
-// which runs after them -- is the only one where these references exist.
+// skipped with an "could not resolve reference" error), so this batch --
+// which is applied after them -- is the only one where these references exist.
 // Same reasoning as position-availability.json5 in this directory.
 //
 // ENTRY SHAPE
