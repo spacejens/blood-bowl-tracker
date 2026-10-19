@@ -26,7 +26,7 @@ A player who has been seriously injured or killed during a match, removing them 
 
 A [position](#position)'s or [player](#player)'s five stat values: MA, ST, AG, PA and AV. A position's characteristics are recorded per [rules set](#rules-set); a player's own values can move away from them through advancement or a [lasting injury](#lasting-injury).
 
-See [game-concepts/positions](game-concepts/positions/index.md).
+See [game-concepts/players](game-concepts/players/index.md).
 
 ### Competition
 

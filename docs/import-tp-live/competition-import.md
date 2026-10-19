@@ -108,8 +108,8 @@ already-fetched, already-parsed input.
     - With no new match dates only the end date reset applies.
     - The competition's stored name is kept (TP's raw name never overwrites it) and its external id kept in sync (a live match import's own upsert leaves the stored era, type and dates alone).
   - **Group**
-    - A new competition's group is found by matching its raw TP name against every curated group's `namePattern` (see [docs/import-manual](../import-manual/index.md#competition-groups)):
-      - exactly one match gives it that group
+    - A new competition's group is found by matching its raw TP name against every curated group's `namePattern` (see [docs/import-manual](../import-manual/index.md#competition-groups)); exactly one match gives it:
+      - that group
       - a name continuing the group's numbering (`"<group> <n>"`, where `n` is the trailing number of TP's raw name when it has one no existing competition in the group already carries, so out-of-order imports keep their real number; otherwise the highest existing number + 1, or the bare group name for a group with no competition yet)
       - the type every existing competition in the group shares
     - No match, or several, skips the competition with an error saying which, and it needs curating by hand.
