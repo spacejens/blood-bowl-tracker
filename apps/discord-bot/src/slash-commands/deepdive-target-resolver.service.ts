@@ -31,9 +31,9 @@ import {
  * customId's id part, or a select menu's chosen value — into the rendered
  * deepdive for that target.
  *
- * Split out of `DeepdiveCommandService` for the same reason
- * `DeepdiveAutocompleteService` was: that file was at the repo's 500-line
- * ceiling. This half depends only on the deepdive fact resolvers, the other
+ * Kept separate from `DeepdiveCommandService` for the same reason
+ * `DeepdiveAutocompleteService` is: that file would otherwise exceed the
+ * repo's 500-line ceiling. This half depends only on the deepdive fact resolvers, the other
  * half only on the Discord command/interaction plumbing.
  *
  * Every target parses its value the same way, through `resolveTarget`: a

@@ -930,7 +930,7 @@ describe('PlayerDeepdiveService', () => {
   });
 
   // The Kills section has its own spec file — see
-  // `player-deepdive-kills.service.spec.ts` — split out purely for this
+  // `player-deepdive-kills.service.spec.ts` — kept apart for this
   // file's size (see `player-deepdive.test-helpers.ts`).
 
   it('adds a star player drill-down button, last, for a star hire', async () => {

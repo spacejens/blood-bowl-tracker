@@ -27,8 +27,8 @@ export interface PlayerKillsSection {
 
 /**
  * Builds the player deepdive's `Kills:` section: its lines and its drill-down
- * entries. Extracted from `PlayerDeepdiveService` purely for size — that file
- * is close to the repo's 500-line source ceiling. It delegates the victim
+ * entries. Kept separate from `PlayerDeepdiveService` for size — that file is
+ * close to the repo's 500-line source ceiling. It delegates the victim
  * text and drill-down entries for every kind but `prevented` to
  * `PlayerKillerInfoFormatterService`: only `PlayerKillEntry` has a
  * `prevented` kind, so that one case stays here.
