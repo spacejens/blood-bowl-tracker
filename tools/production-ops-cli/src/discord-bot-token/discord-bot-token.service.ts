@@ -1,8 +1,8 @@
+import {
+  ENV_PRODUCTION_PATH,
+  ProductionEnvFileService,
+} from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
-
-import { ProductionEnvFileService } from '../production-env-file/production-env-file.service';
-
-const ENV_PRODUCTION_PATH = 'apps/discord-bot/.env.production';
 
 /**
  * Reads the production Discord bot token from the gitignored
