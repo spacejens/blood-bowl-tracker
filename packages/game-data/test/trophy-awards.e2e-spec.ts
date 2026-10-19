@@ -162,9 +162,9 @@ describe('TrophyAwardsService.upsert (real Postgres)', () => {
     const first = await service.upsert(data);
     expect(first.created).toBe(true);
 
-    // The re-import case from issue #711: the second insert really does lose
-    // the natural-key unique constraint inside Postgres, and the service reads
-    // the existing row back instead of erroring.
+    // The re-import case: upserting the same award twice, the second insert
+    // really does lose the natural-key unique constraint inside Postgres, and
+    // the service reads the existing row back instead of erroring.
     const second = await service.upsert(data);
     expect(second.created).toBe(false);
     expect(second.trophyAward.id).toBe(first.trophyAward.id);
@@ -187,8 +187,8 @@ describe('TrophyAwardsService.upsert (real Postgres)', () => {
     // The BEFORE INSERT versioning trigger fires for the losing insert too;
     // because the statement raises the unique violation itself, Postgres rolls
     // the trigger's write back with it. A history row surviving here would be
-    // the #711 failure: its deferred FK back to trophy_awards.id would have
-    // nothing to point at.
+    // orphaned: its deferred FK back to trophy_awards.id would have nothing to
+    // point at, failing the re-import's transaction at commit.
     const history = await db.select().from(trophyAwardsHistory);
     expect(history).toHaveLength(1);
     expect(history[0].id).toBe((await db.select().from(trophyAwards))[0].id);
