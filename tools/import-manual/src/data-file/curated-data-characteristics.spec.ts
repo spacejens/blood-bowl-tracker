@@ -525,8 +525,7 @@ describe('curated data files - characteristics', () => {
     // sets it cannot represent correctly" (see that class's doc comment). If
     // this ever drifted -- a rules set gaining or losing 'bare' without a
     // matching code change -- BBL would silently start writing (or skipping)
-    // the wrong rules sets with no test failing, which is exactly the bug
-    // class this branch fixes.
+    // the wrong rules sets with no test failing.
     const bare = rulesSets
       .filter((rulesSet) => rulesSet.agilityFormat === 'bare')
       .map((rulesSet) => rulesSet.name)

@@ -553,8 +553,8 @@
     // an explicit category label -- Animosity (p.2, "(EXTRAORDINARY)"),
     // Bombardier, Ball & Chain and Chainsaw (all p.4, "(EXTRAORDINARY)"),
     // Titchy (p.8, "(EXTRAORDINARY)") and Blood Lust (p.9,
-    // "(EXTRAORDINARY)"). CRP's Extraordinary category maps to 'trait' per
-    // the task's category mapping; all six are spelled identically to their
+    // "(EXTRAORDINARY)"). CRP's Extraordinary category maps to 'trait' (see
+    // the file header); all six are spelled identically to their
     // already-registered CRP entries. Categories for the remaining,
     // unlabelled roster skills are taken from CRP's own p.21 table, since
     // named skills carry the same category across every edition cross-
