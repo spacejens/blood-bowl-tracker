@@ -3,9 +3,8 @@ import { Injectable } from '@nestjs/common';
 
 /**
  * A match-date span (latest minus earliest) of at most this many days makes a
- * competition a cup, anything longer a season. Validated against all 74
- * competitions in the BBL mirror (see the competitions design doc); do not
- * change.
+ * competition a cup, anything longer a season. Validated against the BBL
+ * mirror's competitions (see docs/import-bbl/file-format.md); do not change.
  */
 const CUP_MAX_SPAN_DAYS = 3;
 
