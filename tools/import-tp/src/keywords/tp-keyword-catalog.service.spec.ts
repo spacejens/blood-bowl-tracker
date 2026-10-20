@@ -1,36 +1,29 @@
 import {
   ExternalSystemBootstrapService,
   KeywordsImportService,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { TpKeywordCatalogService } from './tp-keyword-catalog.service';
 
 describe('TpKeywordCatalogService', () => {
   let service: TpKeywordCatalogService;
   let keywordsImport: MockProxy<KeywordsImportService>;
   let bootstrap: MockProxy<ExternalSystemBootstrapService>;
-  let externalSystemName: MockProxy<ExternalSystemNameConfigService>;
 
   beforeEach(async () => {
     keywordsImport = mock<KeywordsImportService>();
     bootstrap = mock<ExternalSystemBootstrapService>();
-    externalSystemName = mock<ExternalSystemNameConfigService>();
-    externalSystemName.getTpSystemName.mockReturnValue('tourplay.net');
     bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [5] } as never);
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpKeywordCatalogService,
         { provide: KeywordsImportService, useValue: keywordsImport },
         { provide: ExternalSystemBootstrapService, useValue: bootstrap },
-        {
-          provide: ExternalSystemNameConfigService,
-          useValue: externalSystemName,
-        },
       ],
     }).compile();
     service = moduleRef.get(TpKeywordCatalogService);
@@ -44,6 +37,9 @@ describe('TpKeywordCatalogService', () => {
     const catalog = await service.load([]);
     expect(catalog.byCode.get(111)).toEqual({ keywordId: 7, name: 'Goblin' });
     expect(catalog.byCode.get(134)).toEqual({ keywordId: 8, name: 'Big Guy' });
+    expect(bootstrap.bootstrap).toHaveBeenCalledWith([
+      { name: TP_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
+    ]);
     expect(keywordsImport.listKeywords).toHaveBeenCalledWith(5, []);
   });
 

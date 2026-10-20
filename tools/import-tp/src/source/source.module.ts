@@ -3,7 +3,6 @@ import { ParseTpModule } from '@blood-bowl-tracker/parse-tp';
 import { Module } from '@nestjs/common';
 
 import { EraDataConfigModule } from '../eras/era-data-config.module';
-import { ExternalSystemNameConfigService } from './external-system-name-config.service';
 import { OfficialTeamsCollectionService } from './official-teams-collection.service';
 import { RosterCollectionService } from './roster-collection.service';
 import { SkillMasterNameCollectionService } from './skill-master-name-collection.service';
@@ -14,7 +13,6 @@ import { TpSourceReader } from './tp-source-reader';
   imports: [EraDataConfigModule, ParseTpModule, ImportModule],
   providers: [
     SourceConfigService,
-    ExternalSystemNameConfigService,
     TpSourceReader,
     RosterCollectionService,
     OfficialTeamsCollectionService,
@@ -22,7 +20,6 @@ import { TpSourceReader } from './tp-source-reader';
   ],
   exports: [
     SourceConfigService,
-    ExternalSystemNameConfigService,
     TpSourceReader,
     RosterCollectionService,
     OfficialTeamsCollectionService,

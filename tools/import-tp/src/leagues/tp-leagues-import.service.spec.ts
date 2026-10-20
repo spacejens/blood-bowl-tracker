@@ -4,6 +4,7 @@ import {
   ImportResultService,
   LeaguesImportService,
   NameExternalIdService,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
@@ -14,7 +15,6 @@ import {
   mockImportResultService,
   mockNameExternalIdService,
 } from '../import-package.test-helpers';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { LeagueConfigService } from './league-config.service';
 import { TpLeaguesImportService } from './tp-leagues-import.service';
 
@@ -22,7 +22,6 @@ interface MakeServiceOptions {
   getLeagueName: () => string;
   bootstrap: ReturnType<typeof vi.fn>;
   upsert: ReturnType<typeof vi.fn>;
-  getTpSystemName?: () => string;
 }
 
 /**
@@ -50,7 +49,6 @@ async function makeService({
   getLeagueName,
   bootstrap,
   upsert,
-  getTpSystemName = () => 'TP',
 }: MakeServiceOptions): Promise<{
   service: TpLeaguesImportService;
   importResults: MockProxy<ImportResultService>;
@@ -63,8 +61,6 @@ async function makeService({
   externalSystemBootstrap.bootstrap.mockImplementation(
     asProviderMethod(bootstrap),
   );
-  const externalSystemName = mock<ExternalSystemNameConfigService>();
-  externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
   const nameExternalId = mockNameExternalIdService();
   const importResults = mockImportResultService();
   // The shared helper's mockImportResultService() only provides the exempt
@@ -81,10 +77,6 @@ async function makeService({
       {
         provide: ExternalSystemBootstrapService,
         useValue: externalSystemBootstrap,
-      },
-      {
-        provide: ExternalSystemNameConfigService,
-        useValue: externalSystemName,
       },
       { provide: NameExternalIdService, useValue: nameExternalId },
       { provide: ImportResultService, useValue: importResults },
@@ -112,7 +104,7 @@ describe('TpLeaguesImportService', () => {
     expect(imported).toBe(1);
     expect(errors).toEqual([]);
     expect(bootstrap).toHaveBeenCalledWith([
-      { name: 'TP', category: 'imported_data_source' },
+      { name: TP_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
     ]);
     expect(upsert).toHaveBeenCalledWith(
@@ -166,7 +158,7 @@ describe('TpLeaguesImportService', () => {
     const bootstrap = vi.fn().mockResolvedValue({
       ok: false,
       error: {
-        item: { externalSystems: ['TP', 'Name'] },
+        item: { externalSystems: [TP_EXTERNAL_SYSTEM_NAME, 'Name'] },
         message: 'network timeout',
       },
     });
@@ -182,7 +174,9 @@ describe('TpLeaguesImportService', () => {
     const { errors } = resultArgs(importResults);
     expect(errors).toHaveLength(1);
     expect(errors[0].message).toBe('network timeout');
-    expect(errors[0].item).toEqual({ externalSystems: ['TP', 'Name'] });
+    expect(errors[0].item).toEqual({
+      externalSystems: [TP_EXTERNAL_SYSTEM_NAME, 'Name'],
+    });
     expect(upsert).not.toHaveBeenCalled();
   });
 

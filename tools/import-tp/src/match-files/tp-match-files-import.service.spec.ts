@@ -4,6 +4,7 @@ import type { TpMatchImportResult } from '@blood-bowl-tracker/api-contract';
 import {
   ImportResultService,
   ImportRunnerService,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
@@ -12,7 +13,6 @@ import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { mockImportResultService } from '../import-package.test-helpers';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { TpSourceFile } from '../source/tp-source-reader';
 import { TpSourceReader } from '../source/tp-source-reader';
 import { TpMatchFilesImportService } from './tp-match-files-import.service';
@@ -87,8 +87,6 @@ describe('TpMatchFilesImportService', () => {
     sourceReader = mock<TpSourceReader>();
     importRunner = mock<ImportRunnerService>();
     importResults = mockImportResultService();
-    const externalSystemName = mock<ExternalSystemNameConfigService>();
-    externalSystemName.getTpSystemName.mockReturnValue('TP');
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpMatchFilesImportService,
@@ -96,10 +94,6 @@ describe('TpMatchFilesImportService', () => {
         { provide: TpSourceReader, useValue: sourceReader },
         { provide: ImportRunnerService, useValue: importRunner },
         { provide: ImportResultService, useValue: importResults },
-        {
-          provide: ExternalSystemNameConfigService,
-          useValue: externalSystemName,
-        },
       ],
     }).compile();
     service = moduleRef.get(TpMatchFilesImportService);
@@ -143,7 +137,7 @@ describe('TpMatchFilesImportService', () => {
         },
       ],
       competitionTpId: 18442,
-      externalSystemName: 'TP',
+      externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
     });
   });
 

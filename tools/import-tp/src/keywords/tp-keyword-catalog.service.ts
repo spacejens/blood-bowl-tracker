@@ -2,10 +2,9 @@ import type { ImportError } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
   KeywordsImportService,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
-
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 
 /** One curated keyword, addressed by the numeric code TP publishes. */
 interface TpKeywordCatalogEntry {
@@ -37,13 +36,11 @@ export class TpKeywordCatalogService {
   constructor(
     private readonly keywordsImport: KeywordsImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
-    private readonly externalSystemName: ExternalSystemNameConfigService,
   ) {}
 
   async load(errors: ImportError[]): Promise<TpKeywordCatalog> {
-    const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
-      { name: tpSystemName, category: 'imported_data_source' },
+      { name: TP_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
     ]);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);

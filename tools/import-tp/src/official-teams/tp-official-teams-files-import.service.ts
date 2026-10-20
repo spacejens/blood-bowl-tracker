@@ -5,6 +5,7 @@ import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   ImportRunnerService,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import type {
   TpOfficialRace,
@@ -13,7 +14,6 @@ import type {
 } from '@blood-bowl-tracker/parse-tp';
 import { Inject, Injectable } from '@nestjs/common';
 
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { OfficialTeamsEntry } from '../source/official-teams-collection.service';
 
 /** Options for {@link TpOfficialTeamsFilesImportService.importOfficialTeams}. */
@@ -65,7 +65,6 @@ export class TpOfficialTeamsFilesImportService {
     @Inject(API_CLIENT) private readonly client: ApiClient,
     private readonly importRunner: ImportRunnerService,
     private readonly importResults: ImportResultService,
-    private readonly externalSystemName: ExternalSystemNameConfigService,
   ) {}
 
   /**
@@ -84,7 +83,6 @@ export class TpOfficialTeamsFilesImportService {
     officialTeams,
     skillMastersByMasterId,
   }: ImportOfficialTeamsFilesOptions): Promise<OfficialTeamsFilesImportOutcome> {
-    const externalSystemName = this.externalSystemName.getTpSystemName();
     const skillMasters = [...skillMastersByMasterId].map(
       ([skillMasterId, master]) => ({
         skillMasterId,
@@ -111,7 +109,7 @@ export class TpOfficialTeamsFilesImportService {
             rulesSet,
             races,
             skillMasters,
-            externalSystemName,
+            externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
           }),
         item: { rulesSet },
         errors: tallies.races.errors,

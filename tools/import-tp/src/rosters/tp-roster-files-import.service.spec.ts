@@ -4,6 +4,7 @@ import type { TpRosterImportResult } from '@blood-bowl-tracker/api-contract';
 import {
   ImportResultService,
   ImportRunnerService,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import type { TpRoster, TpRosterPlayer } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
@@ -12,7 +13,6 @@ import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { mockImportResultService } from '../import-package.test-helpers';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
 import { TpRosterFilesImportService } from './tp-roster-files-import.service';
 
@@ -70,14 +70,11 @@ describe('TpRosterFilesImportService', () => {
   let client: DeepMockProxy<ApiClient>;
   let importRunner: MockProxy<ImportRunnerService>;
   let importResults: ReturnType<typeof mockImportResultService>;
-  let externalSystemName: MockProxy<ExternalSystemNameConfigService>;
 
   beforeEach(async () => {
     client = mockDeep<ApiClient>();
     importRunner = mock<ImportRunnerService>();
     importResults = mockImportResultService();
-    externalSystemName = mock<ExternalSystemNameConfigService>();
-    externalSystemName.getTpSystemName.mockReturnValue('TP');
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -85,16 +82,12 @@ describe('TpRosterFilesImportService', () => {
         { provide: API_CLIENT, useValue: client },
         { provide: ImportRunnerService, useValue: importRunner },
         { provide: ImportResultService, useValue: importResults },
-        {
-          provide: ExternalSystemNameConfigService,
-          useValue: externalSystemName,
-        },
       ],
     }).compile();
     service = moduleRef.get(TpRosterFilesImportService);
   });
 
-  it('sends each roster file raw, with its era, configured system name and match-embedded players', async () => {
+  it('sends each roster file raw, with its era, system name and match-embedded players', async () => {
     const departed = rosterPlayer({ id: 5009, rosterId: 1 });
     importRunner.recordUpsertResult.mockResolvedValue(outcome());
 
@@ -109,7 +102,7 @@ describe('TpRosterFilesImportService', () => {
     expect(client.tpRosters.import).toHaveBeenCalledWith({
       roster: { raw: 1 },
       era: 'Fourth era',
-      externalSystemName: 'TP',
+      externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
       deferSppTotal: true,
       matchEmbeddedPlayers: [
         {

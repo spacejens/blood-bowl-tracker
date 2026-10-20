@@ -5,6 +5,7 @@ import {
   ImportResultService,
   PositionsImportService,
   ReferenceLookupService,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
@@ -18,7 +19,6 @@ import {
   mockImportResultService,
   mockReferenceLookupService,
 } from '../import-package.test-helpers';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { TpMercenaryPositionRaceErasImportService } from './tp-mercenary-position-race-eras-import.service';
 
 /** The numeric id the mocked bootstrap assigns to the TP external system. */
@@ -81,8 +81,6 @@ async function makeService({
   externalSystemBootstrap.bootstrap.mockImplementation(
     asProviderMethod(bootstrap),
   );
-  const externalSystemName = mock<ExternalSystemNameConfigService>();
-  externalSystemName.getTpSystemName.mockReturnValue('TP');
   const importResults = mockImportResultService();
   // The shared helper's mockImportResultService() only provides the exempt
   // `error` identity mock; `result` is stubbed with a canned value here.
@@ -105,10 +103,6 @@ async function makeService({
       {
         provide: ExternalSystemBootstrapService,
         useValue: externalSystemBootstrap,
-      },
-      {
-        provide: ExternalSystemNameConfigService,
-        useValue: externalSystemName,
       },
       { provide: EraDataConfigService, useValue: eraDataConfig },
       { provide: ReferenceLookupService, useValue: lookup },
@@ -286,7 +280,10 @@ describe('TpMercenaryPositionRaceErasImportService', () => {
       syncRaceEras,
       bootstrap: vi.fn().mockResolvedValue({
         ok: false,
-        error: { item: { externalSystems: ['TP'] }, message: 'boom' },
+        error: {
+          item: { externalSystems: [TP_EXTERNAL_SYSTEM_NAME] },
+          message: 'boom',
+        },
       }),
     });
 
@@ -299,7 +296,9 @@ describe('TpMercenaryPositionRaceErasImportService', () => {
     const { imported, errors } = resultArgs(importResults);
     expect(imported).toBe(0);
     expect(errors).toHaveLength(1);
-    expect(errors[0].item).toEqual({ externalSystems: ['TP'] });
+    expect(errors[0].item).toEqual({
+      externalSystems: [TP_EXTERNAL_SYSTEM_NAME],
+    });
     expect(syncRaceEras).not.toHaveBeenCalled();
   });
 

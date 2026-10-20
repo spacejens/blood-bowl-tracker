@@ -4,6 +4,7 @@ import {
   ImportResultService,
   NameExternalIdService,
   RulesSetsImportService,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
@@ -15,14 +16,12 @@ import {
   asProviderMethod,
   mockImportResultService,
 } from '../import-package.test-helpers';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { TpRulesSetsImportService } from './tp-rules-sets-import.service';
 
 interface MakeServiceOptions {
   getEras: () => EraDataConfig[];
   bootstrap: ReturnType<typeof vi.fn>;
   upsertRulesSet: ReturnType<typeof vi.fn>;
-  getTpSystemName?: () => string;
 }
 
 /**
@@ -50,7 +49,6 @@ async function makeService({
   getEras,
   bootstrap,
   upsertRulesSet,
-  getTpSystemName = () => 'TP',
 }: MakeServiceOptions): Promise<{
   service: TpRulesSetsImportService;
   importResults: MockProxy<ImportResultService>;
@@ -63,8 +61,6 @@ async function makeService({
   externalSystemBootstrap.bootstrap.mockImplementation(
     asProviderMethod(bootstrap),
   );
-  const externalSystemName = mock<ExternalSystemNameConfigService>();
-  externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
   const nameExternalId = mock<NameExternalIdService>();
   // `forRulesSet` is a pure identity passthrough with no branching or
   // formatting, so there is no algorithm here that can drift out of sync with
@@ -85,10 +81,6 @@ async function makeService({
       {
         provide: ExternalSystemBootstrapService,
         useValue: externalSystemBootstrap,
-      },
-      {
-        provide: ExternalSystemNameConfigService,
-        useValue: externalSystemName,
       },
       { provide: NameExternalIdService, useValue: nameExternalId },
       { provide: ImportResultService, useValue: importResults },
@@ -134,7 +126,7 @@ describe('TpRulesSetsImportService', () => {
     expect(imported).toBe(2);
     expect(errors).toEqual([]);
     expect(bootstrap).toHaveBeenCalledWith([
-      { name: 'TP', category: 'imported_data_source' },
+      { name: TP_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
     ]);
     // Distinct across eras, first-seen order: LRB6 then BB2020.
@@ -168,7 +160,9 @@ describe('TpRulesSetsImportService', () => {
     const { errors } = resultArgs(importResults);
     expect(errors).toHaveLength(1);
     expect(errors[0].message).toContain('TP_ERAS is not set.');
-    expect(errors[0].item).toEqual({ externalSystems: ['TP', 'Name'] });
+    expect(errors[0].item).toEqual({
+      externalSystems: [TP_EXTERNAL_SYSTEM_NAME, 'Name'],
+    });
     expect(bootstrap).not.toHaveBeenCalled();
     expect(upsertRulesSet).not.toHaveBeenCalled();
   });
@@ -177,7 +171,7 @@ describe('TpRulesSetsImportService', () => {
     const bootstrap = vi.fn().mockResolvedValue({
       ok: false,
       error: {
-        item: { externalSystems: ['TP', 'Name'] },
+        item: { externalSystems: [TP_EXTERNAL_SYSTEM_NAME, 'Name'] },
         message: 'network timeout',
       },
     });
@@ -193,7 +187,9 @@ describe('TpRulesSetsImportService', () => {
     const { errors } = resultArgs(importResults);
     expect(errors).toHaveLength(1);
     expect(errors[0].message).toBe('network timeout');
-    expect(errors[0].item).toEqual({ externalSystems: ['TP', 'Name'] });
+    expect(errors[0].item).toEqual({
+      externalSystems: [TP_EXTERNAL_SYSTEM_NAME, 'Name'],
+    });
     expect(upsertRulesSet).not.toHaveBeenCalled();
   });
 

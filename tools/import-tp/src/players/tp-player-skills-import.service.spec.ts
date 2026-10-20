@@ -1,9 +1,11 @@
 import {
   ExternalSystemBootstrapService,
   ImportResultService,
+  NAME_EXTERNAL_SYSTEM,
   NameExternalIdService,
   PlayerSkillsImportService,
   SkillsImportService,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import type { TpPlayerSkills } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
@@ -12,7 +14,6 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { TpSkillResolverService } from '../skills/tp-skill-resolver.service';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { TpPlayerSkillsImportService } from './tp-player-skills-import.service';
 
 /** The external system ids every test's bootstrap mock answers with. */
@@ -39,7 +40,6 @@ describe('TpPlayerSkillsImportService', () => {
   let skillsImport: MockProxy<SkillsImportService>;
   let playerSkills: MockProxy<PlayerSkillsImportService>;
   let bootstrap: MockProxy<ExternalSystemBootstrapService>;
-  let externalSystemName: MockProxy<ExternalSystemNameConfigService>;
   let nameExternalId: MockProxy<NameExternalIdService>;
   let skillResolver: MockProxy<TpSkillResolverService>;
 
@@ -47,14 +47,12 @@ describe('TpPlayerSkillsImportService', () => {
     skillsImport = mock<SkillsImportService>();
     playerSkills = mock<PlayerSkillsImportService>();
     bootstrap = mock<ExternalSystemBootstrapService>();
-    externalSystemName = mock<ExternalSystemNameConfigService>();
     nameExternalId = mock<NameExternalIdService>();
     skillResolver = mock<TpSkillResolverService>();
     bootstrap.bootstrap.mockResolvedValue({
       ok: true,
       ids: [TP_SYSTEM_ID, NAME_SYSTEM_ID],
     });
-    externalSystemName.getTpSystemName.mockReturnValue('tourplay.net');
     nameExternalId.forSkill.mockImplementation(
       (name: string) => `skill:${name}`,
     );
@@ -66,10 +64,6 @@ describe('TpPlayerSkillsImportService', () => {
         { provide: SkillsImportService, useValue: skillsImport },
         { provide: PlayerSkillsImportService, useValue: playerSkills },
         { provide: ExternalSystemBootstrapService, useValue: bootstrap },
-        {
-          provide: ExternalSystemNameConfigService,
-          useValue: externalSystemName,
-        },
         { provide: NameExternalIdService, useValue: nameExternalId },
         { provide: TpSkillResolverService, useValue: skillResolver },
         ImportResultService,
@@ -125,6 +119,10 @@ describe('TpPlayerSkillsImportService', () => {
       ],
       expect.anything(),
     );
+    expect(bootstrap.bootstrap).toHaveBeenCalledWith([
+      { name: TP_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
+      NAME_EXTERNAL_SYSTEM,
+    ]);
     expect(result.imported).toBe(1);
     expect(result.success).toBe(true);
   });

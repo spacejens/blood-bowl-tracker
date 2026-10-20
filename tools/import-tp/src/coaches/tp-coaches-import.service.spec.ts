@@ -4,6 +4,7 @@ import {
   ExternalSystemBootstrapService,
   ImportResultService,
   NameExternalIdService,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import type { TpCoach } from '@blood-bowl-tracker/parse-tp';
 import { InscriptionsParserService } from '@blood-bowl-tracker/parse-tp';
@@ -16,7 +17,6 @@ import {
   mockImportResultService,
   mockNameExternalIdService,
 } from '../import-package.test-helpers';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { TpSourceFile } from '../source/tp-source-reader';
 import { TpSourceReader } from '../source/tp-source-reader';
 import { TpCoachesImportService } from './tp-coaches-import.service';
@@ -25,7 +25,6 @@ interface MakeServiceOptions {
   files: () => AsyncIterable<TpSourceFile>;
   bootstrap: ReturnType<typeof vi.fn>;
   upsertCoach: ReturnType<typeof vi.fn>;
-  getTpSystemName?: () => string;
   /**
    * Optional override for `InscriptionsParserService.parseCoaches`, for
    * modelling a per-file parse failure (the identity pass-through below is
@@ -69,7 +68,6 @@ async function makeService({
   files,
   bootstrap,
   upsertCoach,
-  getTpSystemName = () => 'TP',
   parseCoaches,
 }: MakeServiceOptions): Promise<{
   service: TpCoachesImportService;
@@ -92,8 +90,6 @@ async function makeService({
   externalSystemBootstrap.bootstrap.mockImplementation(
     asProviderMethod(bootstrap),
   );
-  const externalSystemName = mock<ExternalSystemNameConfigService>();
-  externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
   const nameExternalId = mockNameExternalIdService();
   const importResults = mockImportResultService();
   // The shared helper's mockImportResultService() only provides the exempt
@@ -111,10 +107,6 @@ async function makeService({
       {
         provide: ExternalSystemBootstrapService,
         useValue: externalSystemBootstrap,
-      },
-      {
-        provide: ExternalSystemNameConfigService,
-        useValue: externalSystemName,
       },
       { provide: NameExternalIdService, useValue: nameExternalId },
       { provide: ImportResultService, useValue: importResults },
@@ -196,7 +188,7 @@ describe('TpCoachesImportService', () => {
     await service.importCoaches();
 
     expect(bootstrap).toHaveBeenCalledWith([
-      { name: 'TP', category: 'imported_data_source' },
+      { name: TP_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
       { name: 'NAF', category: 'referenced_not_imported' },
     ]);
@@ -354,7 +346,7 @@ describe('TpCoachesImportService', () => {
     const bootstrap = vi.fn().mockResolvedValue({
       ok: false,
       error: {
-        item: { externalSystems: ['TP', 'Name', 'NAF'] },
+        item: { externalSystems: [TP_EXTERNAL_SYSTEM_NAME, 'Name', 'NAF'] },
         message: 'network timeout',
       },
     });
@@ -374,7 +366,7 @@ describe('TpCoachesImportService', () => {
     const { errors } = resultArgs(importResults);
     expect(errors).toHaveLength(1);
     expect(errors[0].item).toEqual({
-      externalSystems: ['TP', 'Name', 'NAF'],
+      externalSystems: [TP_EXTERNAL_SYSTEM_NAME, 'Name', 'NAF'],
     });
     expect(upsertCoach).not.toHaveBeenCalled();
   });
