@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  ENV_PRODUCTION_PATH,
   GITIGNORED_AUTO_CREATE_SYMLINK_DIRS,
   GITIGNORED_DATA_DIRS,
   GITIGNORED_DRIFT_FILES,
@@ -45,5 +46,10 @@ describe('gitignored-files constants', () => {
 
   it('exports GITIGNORED_AUTO_CREATE_SYMLINK_DIRS as a readonly array', () => {
     expect(GITIGNORED_AUTO_CREATE_SYMLINK_DIRS).toEqual(['docs/plans']);
+  });
+
+  it('exports ENV_PRODUCTION_PATH and lists it among the drift files', () => {
+    expect(ENV_PRODUCTION_PATH).toBe('apps/discord-bot/.env.production');
+    expect(GITIGNORED_DRIFT_FILES).toContainEqual(ENV_PRODUCTION_PATH);
   });
 });
