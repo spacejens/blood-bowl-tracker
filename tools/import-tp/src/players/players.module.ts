@@ -9,8 +9,8 @@ import { TpInducedStarPlayersImportService } from './tp-induced-star-players-imp
 import { TpInducedStarPlayersStepService } from './tp-induced-star-players-step.service';
 import { TpLastingInjuryBackfillImportService } from './tp-lasting-injury-backfill-import.service';
 import { TpMercenaryPositionRaceErasImportService } from './tp-mercenary-position-race-eras-import.service';
-import { TpPlayerCharacteristicsBuilderService } from './tp-player-characteristics-builder.service';
 import { TpSppAdjustmentsImportService } from './tp-spp-adjustments-import.service';
+import { TpStarPositionCharacteristicsBuilderService } from './tp-star-position-characteristics-builder.service';
 
 @Module({
   imports: [
@@ -26,7 +26,7 @@ import { TpSppAdjustmentsImportService } from './tp-spp-adjustments-import.servi
     TpLastingInjuryBackfillImportService,
     TpInducedStarPlayersImportService,
     TpInducedStarPlayersStepService,
-    TpPlayerCharacteristicsBuilderService,
+    TpStarPositionCharacteristicsBuilderService,
   ],
   exports: [
     TpSppAdjustmentsImportService,

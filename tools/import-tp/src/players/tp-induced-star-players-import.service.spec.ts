@@ -19,7 +19,7 @@ import {
 } from '../import-package.test-helpers';
 import type { InducedStarPlayerHireGroup } from './tp-induced-star-players-import.service';
 import { TpInducedStarPlayersImportService } from './tp-induced-star-players-import.service';
-import { TpPlayerCharacteristicsBuilderService } from './tp-player-characteristics-builder.service';
+import { TpStarPositionCharacteristicsBuilderService } from './tp-star-position-characteristics-builder.service';
 
 interface MakeServiceOptions {
   upsertPlayerResult: ReturnType<typeof vi.fn>;
@@ -33,7 +33,7 @@ interface MakeServiceOptions {
     rulesSetId: number;
   };
   /**
-   * Use the REAL TpPlayerCharacteristicsBuilderService instead of a mock.
+   * Use the REAL TpStarPositionCharacteristicsBuilderService instead of a mock.
    * It is a pure, dependency-free formatting service (no constructor, no
    * I/O), so passing it real carries no coupling risk -- used by the tests
    * that verify `characteristicsByPositionId` wiring end-to-end, which a
@@ -58,7 +58,8 @@ async function makeService({
   const positionsImport = mock<PositionsImportService>();
   positionsImport.upsert.mockImplementation(asProviderMethod(upsertPosition));
   const nameExternalId = mockNameExternalIdService();
-  const characteristicsBuilder = mock<TpPlayerCharacteristicsBuilderService>();
+  const characteristicsBuilder =
+    mock<TpStarPositionCharacteristicsBuilderService>();
   characteristicsBuilder.forStarPosition.mockReturnValue(starCharacteristics);
   const importResults = mockImportResultService();
 
@@ -72,9 +73,9 @@ async function makeService({
       { provide: PositionsImportService, useValue: positionsImport },
       { provide: NameExternalIdService, useValue: nameExternalId },
       realCharacteristicsBuilder
-        ? TpPlayerCharacteristicsBuilderService
+        ? TpStarPositionCharacteristicsBuilderService
         : {
-            provide: TpPlayerCharacteristicsBuilderService,
+            provide: TpStarPositionCharacteristicsBuilderService,
             useValue: characteristicsBuilder,
           },
       { provide: ImportResultService, useValue: importResults },
