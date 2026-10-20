@@ -99,12 +99,13 @@ again), with one exception: a `competitionGroups` entry declares no
 Competition groups subsection below). External IDs and cross-references are
 written as
 `{ system, id }`
-pairs, where `system` is an external-system name and `id` follows the
-`id:`/`name:` namespacing convention (see
+pairs, where `system` is an external-system name and `id` is the identifier
+within it: BBL ids are written as the site's own raw value, while `Name` ids
+follow the `name:` namespacing convention (see
 [docs/api/imports.md](../api/imports.md)):
 
 ```jsonc
-{ system: "tloeg.bbleague.se", id: "id:47" }
+{ system: "tloeg.bbleague.se", id: "47" }
 { system: "Name", id: "name:necromantic-2020" }
 ```
 

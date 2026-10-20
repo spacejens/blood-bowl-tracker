@@ -144,7 +144,7 @@ Configuration is supplied through an environment file in the app directory.
      bot sends no request to TP:
      [`/importtp`](slash-commands/import-tp.md) replies that TP scraping is
      disabled, and the [TP notification feed](tp-feed.md) still parses and
-     echoes notifications but imports nothing. The three TP settings above
+     echoes notifications but imports nothing. The two TP settings above
      are required either way.
 
 `apps/discord-bot/.env` is git-ignored, so your secrets are never committed.
