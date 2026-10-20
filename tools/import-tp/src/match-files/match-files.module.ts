@@ -5,8 +5,7 @@ import { SourceModule } from '../source/source.module';
 import { TpMatchFilesImportService } from './tp-match-files-import.service';
 
 @Module({
-  // SourceModule supplies TpSourceReader and ExternalSystemNameConfigService;
-  // ImportModule supplies ImportRunnerService and ImportResultService.
+  // SourceModule supplies TpSourceReader, and ImportModule supplies ImportRunnerService and ImportResultService.
   imports: [ImportModule, SourceModule],
   providers: [TpMatchFilesImportService],
   exports: [TpMatchFilesImportService],

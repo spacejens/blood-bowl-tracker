@@ -15,9 +15,9 @@ import {
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
+import { ExternalSystemLookupService } from '@blood-bowl-tracker/review-harness';
 import { Inject, Injectable } from '@nestjs/common';
 
-import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
 import type {
   PlayerStratifier,
   StratumSampleRequest,

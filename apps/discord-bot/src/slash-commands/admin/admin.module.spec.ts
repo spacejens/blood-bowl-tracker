@@ -29,7 +29,6 @@ describe('AdminModule', () => {
           ignoreEnvFile: true,
           load: [
             () => ({
-              TP_EXTERNAL_SYSTEM_NAME: 'TP',
               TP_FRONTEND_BASE_URL: 'https://tp.example/blood-bowl/',
               TP_BACKEND_API_URL: 'https://tp.example/api/',
               TP_SCRAPING_ENABLED: 'true',

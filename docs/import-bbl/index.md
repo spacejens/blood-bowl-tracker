@@ -16,16 +16,15 @@ carry, so a production run can point at the production api-server without
 disturbing the local-development config. JSON5 allows comments and multi-line
 structured values, so the era and match-merge lists can be documented and
 formatted inline. The file is the sole configuration source. Top-level keys are
-camelCase, grouped into nested objects by concern:
+camelCase, grouped into nested objects by concern. BBL records are registered
+under the `tloeg.bbleague.se` external system (`BBL_EXTERNAL_SYSTEM_NAME` in
+`packages/domain-enums`); the name is not configurable.
 
 - `dataDir` — path to the folder that directly contains the
   `default.asp?p=...` files. This is a subfolder of the git-ignored `data/`
   directory (each `wget` download lands in its own subfolder). A relative path
   resolves against the current working directory. Ask the developer for the
   download if you don't have it.
-- `externalSystemName` — the name of the external system that BBL
-  records are registered under. Defaults to `BBL` if unset or empty, so most
-  deployments can leave it out.
 - `connection` — runtime settings for reaching the api-server to import into.
   The group itself is required.
   - `apiBaseUrl` — base URL of the running api-server to import into. Defaults
@@ -41,8 +40,8 @@ camelCase, grouped into nested objects by concern:
 - `leagues` — an array of the leagues the BBL data covers. Each entry has a
   `leagueName` and an `eras` array. The BBL data mirror covers a single league
   whose name is not present in the data, so league names are supplied here. Each
-  league name is used as that league's external ID under both the `BBL` and
-  `Name` external systems. Rules sets and eras are not present in the source
+  league name is used as that league's external ID under both the
+  `tloeg.bbleague.se` and `Name` external systems. Rules sets and eras are not present in the source
   data, so they are supplied here. **Nota bene: era names must be unique across
   all leagues**, since they feed a single flat era map downstream.
   - `leagueName` — the name of a league the BBL data covers.
@@ -134,8 +133,8 @@ camelCase, grouped into nested objects by concern:
     match id in only one `matches.resultOverrides` entry across all eras. Rules
     sets and eras are not present in the source data, so they are supplied
     here. Each era's rules set names and each era name are used as external
-    IDs under both the configured BBL external system and the `Name` external
-    system.
+    IDs under both the BBL external system (`tloeg.bbleague.se`) and the `Name`
+    external system.
 
 ## Run it
 

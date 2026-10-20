@@ -1,12 +1,14 @@
 import { DB } from '@blood-bowl-tracker/db';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
-import { HtmlService } from '@blood-bowl-tracker/review-harness';
+import {
+  ExternalSystemLookupService,
+  HtmlService,
+} from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
 import type { SampledPlayer } from '../shared/review.types';
 import { ManualRawKeywordsService } from '../source/manual-raw-keywords.service';
 import type { TpRawPlayerAggregate } from '../source/tp-raw-player-index.service';

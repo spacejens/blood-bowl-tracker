@@ -9,11 +9,11 @@ import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   ImportRunnerService,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import type { TpRosterPlayer } from '@blood-bowl-tracker/parse-tp';
 import { Inject, Injectable } from '@nestjs/common';
 
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
 
 /** Options for {@link TpRosterFilesImportService.importRosterFiles}. */
@@ -47,7 +47,6 @@ export class TpRosterFilesImportService {
     @Inject(API_CLIENT) private readonly client: ApiClient,
     private readonly importRunner: ImportRunnerService,
     private readonly importResults: ImportResultService,
-    private readonly externalSystemName: ExternalSystemNameConfigService,
   ) {}
 
   /**
@@ -63,7 +62,6 @@ export class TpRosterFilesImportService {
     rosters,
     matchEmbeddedPlayersByRosterId,
   }: ImportRosterFilesOptions): Promise<RosterFilesImportOutcome> {
-    const externalSystemName = this.externalSystemName.getTpSystemName();
     const teamErrors: ImportError[] = [];
     const seenTeamErrors = new Set<string>();
     const playerErrors: ImportError[] = [];
@@ -87,7 +85,7 @@ export class TpRosterFilesImportService {
             this.client.tpRosters.import({
               roster: entry.content,
               era: entry.era,
-              externalSystemName,
+              externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
               // spp_total is written by the reported-adjustments step, its
               // only writer in this run.
               deferSppTotal: true,

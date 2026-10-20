@@ -9,7 +9,6 @@ import { DiscordBotConfigModule } from './discord-bot-config.module';
 import { TpConnectionModule } from './tp-connection.module';
 
 const TP_SETTINGS = {
-  TP_EXTERNAL_SYSTEM_NAME: 'TP',
   TP_FRONTEND_BASE_URL: 'https://tp.example/blood-bowl/',
   TP_BACKEND_API_URL: 'https://tp.example/api/',
 };
@@ -68,7 +67,6 @@ describe('TpConnectionModule', () => {
   it('still requires the TP URLs when TP scraping is disabled', async () => {
     await expect(
       compile({
-        TP_EXTERNAL_SYSTEM_NAME: 'TP',
         TP_FRONTEND_BASE_URL: 'https://tp.example/blood-bowl/',
         TP_SCRAPING_ENABLED: 'false',
       }),

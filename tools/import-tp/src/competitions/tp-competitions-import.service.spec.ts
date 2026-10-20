@@ -5,6 +5,7 @@ import type { ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   ImportRunnerService,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import type { TpAward, TpMatch, TpRoster } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
@@ -13,7 +14,6 @@ import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { mockImportResultService } from '../import-package.test-helpers';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
 import { TpAwardsReaderService } from './tp-awards-reader.service';
 import type { TpCompetitionSource } from './tp-competition-sources.service';
@@ -98,8 +98,6 @@ describe('TpCompetitionsImportService', () => {
     importRunner.recordUpsertResult.mockResolvedValue(IMPORTED);
     importResults = mockImportResultService();
     importResults.result.mockReturnValue(CANNED_RESULT);
-    const externalSystemName = mock<ExternalSystemNameConfigService>();
-    externalSystemName.getTpSystemName.mockReturnValue('TP');
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpCompetitionsImportService,
@@ -107,10 +105,6 @@ describe('TpCompetitionsImportService', () => {
         { provide: TpAwardsReaderService, useValue: awardsReader },
         { provide: ImportRunnerService, useValue: importRunner },
         { provide: ImportResultService, useValue: importResults },
-        {
-          provide: ExternalSystemNameConfigService,
-          useValue: externalSystemName,
-        },
       ],
     }).compile();
     service = moduleRef.get(TpCompetitionsImportService);
@@ -150,7 +144,7 @@ describe('TpCompetitionsImportService', () => {
       era: 'Fourth era',
       participantRosterIds: [163386, 179769],
       awards: [AWARD],
-      externalSystemName: 'TP',
+      externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
     });
   });
 

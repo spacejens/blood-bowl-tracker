@@ -10,11 +10,11 @@ import {
   NAME_EXTERNAL_SYSTEM_NAME,
   NameExternalIdService,
   RulesSetsImportService,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { EraDataConfigService } from '../eras/era-data-config.service';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 
 @Injectable()
 export class TpRulesSetsImportService {
@@ -22,7 +22,6 @@ export class TpRulesSetsImportService {
     private readonly eraConfig: EraDataConfigService,
     private readonly rulesSetsImport: RulesSetsImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
-    private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
     private readonly importResults: ImportResultService,
   ) {}
@@ -49,8 +48,6 @@ export class TpRulesSetsImportService {
     const errors: ImportError[] = [];
     const rulesSetsByName = new Map<string, RulesSet>();
 
-    const tpSystemName = this.externalSystemName.getTpSystemName();
-
     let names: string[];
     try {
       names = [
@@ -59,7 +56,12 @@ export class TpRulesSetsImportService {
     } catch (error) {
       errors.push(
         this.importResults.error({
-          item: { externalSystems: [tpSystemName, NAME_EXTERNAL_SYSTEM_NAME] },
+          item: {
+            externalSystems: [
+              TP_EXTERNAL_SYSTEM_NAME,
+              NAME_EXTERNAL_SYSTEM_NAME,
+            ],
+          },
           message: error instanceof Error ? error.message : String(error),
         }),
       );
@@ -70,7 +72,7 @@ export class TpRulesSetsImportService {
     }
 
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
-      { name: tpSystemName, category: 'imported_data_source' },
+      { name: TP_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
       NAME_EXTERNAL_SYSTEM,
     ]);
     if (!bootstrap.ok) {

@@ -7,25 +7,25 @@ stored name, which `tools/import-manual` may have curated (see
 
 - **Leagues** — one league per `leagues[]` entry, each from its `leagueName`
   config value (not parsed from the data). Each league is keyed by that name
-  under the configured BBL external system (`BBL` by default) and the `Name`
+  under the BBL external system (`tloeg.bbleague.se`) and the `Name`
   external system. Imported before coaches, as the foundational entity.
 - **Rules sets** — the distinct names across all eras' `rulesSets` arrays in
   the `eras` config (not parsed from the data). Keyed by that name under
-  the configured BBL external system and the `Name` external system. Imported
+  the BBL external system (`tloeg.bbleague.se`) and the `Name` external system. Imported
   after the league.
 - **Eras** — from the `eras` config within each `leagues[]` entry (not parsed
   from the data). Each era references its league (from its containing
   `leagues[]` entry) and one or more rules sets (all imported first) and carries
   a `startDate` and optional `endDate`. Keyed by the era name under the
-  configured BBL external system and the `Name` external system. Imported
+  BBL external system (`tloeg.bbleague.se`) and the `Name` external system. Imported
   after rules sets.
 - **Coaches** — from team pages (`p=tm`). Keyed by exact name under the
-  configured BBL external system (`BBL` by default) and the `Name` external
+  BBL external system (`tloeg.bbleague.se`) and the `Name` external
   system.
 - **Races** — from team pages (`p=tm`) and the `p=tl` master race-list page.
   Keyed by their numeric BBL id (from the race link `default.asp?p=tl#<id>` on a
-  team page, or the numeric anchor on the `tl` page) under the configured BBL
-  external system (`BBL` by default), and by exact name under the `Name`
+  team page, or the numeric anchor on the `tl` page) under the BBL
+  external system (`tloeg.bbleague.se`), and by exact name under the `Name`
   external system. Team pages are scanned first and win on any shared id; the
   `tl` page is a gap-filling second source that adds races with no team page
   (e.g. College of Shadow, College of Light). A race that only appears on
@@ -33,7 +33,7 @@ stored name, which `tools/import-manual` may have curated (see
   from the team-page pass.
 - **Positions** — from position pages (`p=pt`). A position page lists the race(s)
   it can play for; one row is imported per (position, race) pair, keyed by the
-  composite `<typID>-<raceBblId>` under the configured BBL external system and by
+  composite `<typID>-<raceBblId>` under the BBL external system (`tloeg.bbleague.se`) and by
   `<raceName>: <positionName>` under the `Name` external system. Positions that
   list no race are reverse-engineered from player pages: a **star player** (marked
   `None (star player)`) imports as one entity with a relation to each resolved
@@ -78,13 +78,13 @@ stored name, which `tools/import-manual` may have curated (see
   data migration (see
   [Changing data in a long-lived database](../database.md#changing-data-in-a-long-lived-database)).
 - **Teams** — from team pages (`p=tm`). Keyed by the team's alphanumeric page
-  id (`t` param) under the configured BBL external system (`BBL` by default),
+  id (`t` param) under the BBL external system (`tloeg.bbleague.se`),
   and by its `<h1>` name under the `Name` external system. Each team's race and
   coach are resolved to local ids from the races and coaches imports, which run
   first. Retired teams are imported like any other; the "Retired!" marker is
   not tracked yet.
 - **Players** — from player pages (`p=pl`). Keyed by the player's own numeric
-  `pid` under the configured BBL external system only — unlike other entities,
+  `pid` under the BBL external system (`tloeg.bbleague.se`) only — unlike other entities,
   players get no `Name` external id, since player names are not guaranteed
   unique across the league. A player's era is resolved first by each era's
   `teamCodeOverrides` (matching the player's team code), then by each era's
@@ -111,8 +111,8 @@ false` is reached only through `teamCodeOverrides`/`playerIdOverrides`. Its
   Imported after rules sets, teams, team eras, and positions (all referenced).
 - **Competitions** — from the master competition dropdown on the `se`/`sr`
   pages (id/name) plus each competition's `p=ma&so=s&s=<id>` match-list page
-  (dates). Keyed by the numeric BBL id (`s` param) under the configured BBL
-  external system (`BBL` by default). `type` is `cup` when the match dates
+  (dates). Keyed by the numeric BBL id (`s` param) under the BBL
+  external system (`tloeg.bbleague.se`). `type` is `cup` when the match dates
   span 3 days or fewer, else `season`; `eraId` is the era whose configured
   date range contains the earliest match date, considering only eras with
   `autoAssignByDate: true` — an era with `autoAssignByDate: false` is reached
@@ -131,7 +131,7 @@ false` is reached only through `teamCodeOverrides`/`playerIdOverrides`. Its
   Imported after eras (referenced by `eraId`).
 - **Matches** — from a competition's `p=ma&so=s&s=<id>` match-list rows
   (id/date/competition). Keyed by the numeric BBL match id (`m=<id>`, from
-  each row's `onclick` link) under the configured BBL external system only —
+  each row's `onclick` link) under the BBL external system (`tloeg.bbleague.se`) only —
   there is no `Name` external id, since matches have no natural name. The
   played date is the row's "result added" date. Imported after competitions
   (referenced by `competitionId`). Per-team results and per-player events are
@@ -161,7 +161,7 @@ false` is reached only through `teamCodeOverrides`/`playerIdOverrides`. Its
   with a recorded error.
 
 Imported records are matched across systems by external IDs (a coach, for
-example, carries an external ID under the configured BBL external system and
+example, carries an external ID under the BBL external system (`tloeg.bbleague.se`) and
 another under `Name`); other imported game-data types carry external IDs in
 the same way.
 

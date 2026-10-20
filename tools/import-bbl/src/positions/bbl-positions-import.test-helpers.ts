@@ -21,7 +21,6 @@ import { PlayerPageParser } from '../players/player-page-parser';
 import type { BblPage } from '../source/bbl-page.types';
 import { BblRaceNameService } from '../source/bbl-race-name.service';
 import { BblSourceReader } from '../source/bbl-source-reader';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { PageParseErrorService } from '../source/page-parse-error.service';
 import { BblPositionsImportService } from './bbl-positions-import.service';
 import type { BblPosition } from './position-page-parser';
@@ -133,9 +132,6 @@ export async function makeService(
   const bootstrap = mock<ExternalSystemBootstrapService>();
   bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1, 2] });
 
-  const nameConfig = mock<ExternalSystemNameConfigService>();
-  nameConfig.getBblSystemName.mockReturnValue('BBL');
-
   const nameExternalId = mock<NameExternalIdService>();
   // `forStarPosition` is a pure identity passthrough with no branching or
   // formatting, so there is no algorithm here that can drift out of sync with
@@ -169,7 +165,6 @@ export async function makeService(
       { provide: PlayerPageParser, useValue: playerParser },
       { provide: PositionsImportService, useValue: positionsImport },
       { provide: ExternalSystemBootstrapService, useValue: bootstrap },
-      { provide: ExternalSystemNameConfigService, useValue: nameConfig },
       { provide: NameExternalIdService, useValue: nameExternalId },
       { provide: ImportResultService, useValue: importResults },
       { provide: PageParseErrorService, useValue: pageParseError },

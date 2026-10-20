@@ -57,15 +57,6 @@ export class DiscordBotConfigService {
     return this.configService.get<string>('ADMIN_COMMAND_ROLE_ID') || undefined;
   }
 
-  /**
-   * The name TP's external system is registered under. Must match
-   * `tools/import-tp`'s configured `externalSystemName`, or a live import
-   * never finds what the bulk import registered.
-   */
-  getTpExternalSystemName(): string {
-    return this.getRequired('TP_EXTERNAL_SYSTEM_NAME');
-  }
-
   /** TP's frontend base URL, with a trailing slash. */
   getTpFrontendBaseUrl(): string {
     return this.getRequired('TP_FRONTEND_BASE_URL');

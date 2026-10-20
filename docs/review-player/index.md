@@ -263,9 +263,11 @@ cp tools/review-player/review-player-config.example.json5 tools/review-player/re
 | `database.url` | Connection string of the database holding the imported data (required) |
 | `playersPerStratum` | Players sampled per source for every bounded stratum — random, star-players, non-standard-SPP, the three magnitude strata, and the currently-injured and healed-injury strata (default 3); the discrepancy stratum ignores it |
 | `bbl.dataDir` / `tp.dataDir` | The same downloaded data directories `tools/import-bbl` / `tools/import-tp` read |
-| `bbl.externalSystemName` / `tp.externalSystemName` | External-system names the imports registered records under (default `BBL` / `TP` if unset or empty; this project's own imports register `tloeg.bbleague.se` / `tourplay.net`) |
 | `overrides.bbl` / `overrides.tp` | External player ids always included (BBL: `pid`; TP: the line-up `id`) |
 | `outputPath` | Base path each report is written next to, timestamped (default `output/report.html`) |
+
+The tool finds BBL and TP records by their shared external-system names
+(`tloeg.bbleague.se` and `tourplay.net`), so they are not configured.
 
 Relative paths resolve against the working directory, which is `tools/review-player/` when
 the tool is run as documented below.

@@ -1,5 +1,6 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
+  BBL_EXTERNAL_SYSTEM_NAME,
   ExternalSystemBootstrapService,
   ImportResultService,
   NameExternalIdService,
@@ -16,7 +17,6 @@ import {
 import type { BblPage } from '../source/bbl-page.types';
 import { BblRaceNameService } from '../source/bbl-race-name.service';
 import { BblSourceReader } from '../source/bbl-source-reader';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { PageParseErrorService } from '../source/page-parse-error.service';
 import { BblRacesImportService } from './bbl-races-import.service';
 import { RaceListPageParser } from './race-list-page-parser';
@@ -114,7 +114,6 @@ interface Mocks {
   listParser: MockProxy<RaceListPageParser>;
   racesImport: MockProxy<RacesImportService>;
   bootstrap: MockProxy<ExternalSystemBootstrapService>;
-  nameConfig: MockProxy<ExternalSystemNameConfigService>;
   importResults: MockProxy<ImportResultService>;
   pageParseError: MockProxy<PageParseErrorService>;
   bblRaceName: MockProxy<BblRaceNameService>;
@@ -142,9 +141,6 @@ async function makeService(
 
   const bootstrap = mock<ExternalSystemBootstrapService>();
   bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1, 2] });
-
-  const nameConfig = mock<ExternalSystemNameConfigService>();
-  nameConfig.getBblSystemName.mockReturnValue('BBL');
 
   const nameExternalId = mock<NameExternalIdService>();
   // `forRace` is a pure identity passthrough with no branching or formatting,
@@ -180,7 +176,6 @@ async function makeService(
       { provide: RaceListPageParser, useValue: listParser },
       { provide: RacesImportService, useValue: racesImport },
       { provide: ExternalSystemBootstrapService, useValue: bootstrap },
-      { provide: ExternalSystemNameConfigService, useValue: nameConfig },
       { provide: NameExternalIdService, useValue: nameExternalId },
       { provide: ImportResultService, useValue: importResults },
       { provide: PageParseErrorService, useValue: pageParseError },
@@ -195,7 +190,6 @@ async function makeService(
       listParser,
       racesImport,
       bootstrap,
-      nameConfig,
       importResults,
       pageParseError,
       bblRaceName,
@@ -212,21 +206,7 @@ describe('BblRacesImportService', () => {
     await service.importRaces();
 
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
-      { name: 'BBL', category: 'imported_data_source' },
-      { name: 'Name', category: 'bookkeeping' },
-    ]);
-  });
-
-  it('upserts the configured BBL system name when BBL_EXTERNAL_SYSTEM_NAME is set', async () => {
-    const { service, mocks } = await makeService(
-      mockBblSourceReader([page('Orc', '16')]),
-    );
-    mocks.nameConfig.getBblSystemName.mockReturnValue('MyLeague');
-
-    await service.importRaces();
-
-    expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
-      { name: 'MyLeague', category: 'imported_data_source' },
+      { name: BBL_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
     ]);
   });
@@ -370,7 +350,7 @@ describe('BblRacesImportService', () => {
     mocks.bootstrap.bootstrap.mockResolvedValue({
       ok: false,
       error: {
-        item: { externalSystems: ['BBL', 'Name'] },
+        item: { externalSystems: [BBL_EXTERNAL_SYSTEM_NAME, 'Name'] },
         message: 'network timeout',
       },
     });
@@ -383,7 +363,9 @@ describe('BblRacesImportService', () => {
     // exact match fails if production stops surfacing the real error text.
     expect(errors[0].message).toBe('network timeout');
     // And the error names the external systems the bootstrap tried to upsert.
-    expect(errors[0].item).toEqual({ externalSystems: ['BBL', 'Name'] });
+    expect(errors[0].item).toEqual({
+      externalSystems: [BBL_EXTERNAL_SYSTEM_NAME, 'Name'],
+    });
     expect(mocks.racesImport.upsert).not.toHaveBeenCalled();
   });
 

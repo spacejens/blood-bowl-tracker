@@ -4,6 +4,7 @@ import type {
 } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
+  BBL_EXTERNAL_SYSTEM_NAME,
   ExternalSystemBootstrapService,
   ImportResultService,
   NAME_EXTERNAL_SYSTEM,
@@ -14,7 +15,6 @@ import {
 import { Injectable } from '@nestjs/common';
 
 import { EraConfigService } from '../eras/era-config.service';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 
 @Injectable()
 export class BblRulesSetsImportService {
@@ -22,7 +22,6 @@ export class BblRulesSetsImportService {
     private readonly eraConfig: EraConfigService,
     private readonly rulesSetsImport: RulesSetsImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
-    private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
     private readonly importResults: ImportResultService,
   ) {}
@@ -46,8 +45,6 @@ export class BblRulesSetsImportService {
     // a target rules set's passingFormat.
     const rulesSetsByName = new Map<string, RulesSet>();
 
-    const bblSystemName = this.externalSystemName.getBblSystemName();
-
     let names: string[];
     try {
       names = [
@@ -58,7 +55,12 @@ export class BblRulesSetsImportService {
     } catch (error) {
       errors.push(
         this.importResults.error({
-          item: { externalSystems: [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME] },
+          item: {
+            externalSystems: [
+              BBL_EXTERNAL_SYSTEM_NAME,
+              NAME_EXTERNAL_SYSTEM_NAME,
+            ],
+          },
           message: error instanceof Error ? error.message : String(error),
         }),
       );
@@ -69,7 +71,7 @@ export class BblRulesSetsImportService {
     }
 
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
-      { name: bblSystemName, category: 'imported_data_source' },
+      { name: BBL_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
       NAME_EXTERNAL_SYSTEM,
     ]);
     if (!bootstrap.ok) {

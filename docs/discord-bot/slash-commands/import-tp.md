@@ -92,8 +92,7 @@ success in [`/debuginteractions`](debug-interactions.md); the reply itself
 is what tells the admin it failed.
 
 It uses the same import code as `tools/import-tp`'s bulk import, registered
-under `TP_EXTERNAL_SYSTEM_NAME`, which must match that tool's configured
-external system name. See [import-tp-live](../../import-tp-live/index.md)
+under the same `tourplay.net` external system. See [import-tp-live](../../import-tp-live/index.md)
 for what each import needs to already be in the database.
 
 A backfill fetches every completed match one at a time, paced the same way

@@ -87,3 +87,41 @@ export function readRawBatch(
   }
   return pooled;
 }
+
+/**
+ * Every external-system name one raw batch spells out: each
+ * `externalSystems` entry's `name`, and the `system` of every
+ * `{ system, id }` pair at any depth (external ids and cross-references
+ * alike).
+ */
+export function externalSystemNamesIn(
+  raw: Record<string, Record<string, unknown>[]>,
+): Set<string> {
+  const names = new Set<string>();
+  for (const entry of raw.externalSystems ?? []) {
+    if (typeof entry.name === 'string') {
+      names.add(entry.name);
+    }
+  }
+  collectSystems(raw, names);
+  return names;
+}
+
+function collectSystems(value: unknown, names: Set<string>): void {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectSystems(item, names);
+    }
+    return;
+  }
+  if (value === null || typeof value !== 'object') {
+    return;
+  }
+  for (const [key, child] of Object.entries(value)) {
+    if (key === 'system' && typeof child === 'string') {
+      names.add(child);
+    } else {
+      collectSystems(child, names);
+    }
+  }
+}

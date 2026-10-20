@@ -1,10 +1,12 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { and, DB, eq, playerExternalIds } from '@blood-bowl-tracker/db';
 import type { TableRow } from '@blood-bowl-tracker/review-harness';
-import { HtmlService } from '@blood-bowl-tracker/review-harness';
+import {
+  ExternalSystemLookupService,
+  HtmlService,
+} from '@blood-bowl-tracker/review-harness';
 import { Inject, Injectable } from '@nestjs/common';
 
-import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
 import type { SampledPlayer } from '../shared/review.types';
 import { ManualRawKeywordsService } from '../source/manual-raw-keywords.service';
 import { TpRawPlayerIndexService } from '../source/tp-raw-player-index.service';

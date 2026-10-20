@@ -7,6 +7,7 @@ import {
   NameExternalIdService,
   ReferenceLookupService,
   type ResolvableEntityKind,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import type { TpTournament } from '@blood-bowl-tracker/parse-tp';
 import { TournamentParserService } from '@blood-bowl-tracker/parse-tp';
@@ -21,7 +22,6 @@ import {
   mockNameExternalIdService,
 } from '../import-package.test-helpers';
 import { LeagueConfigService } from '../leagues/league-config.service';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { TpSourceFile } from '../source/tp-source-reader';
 import { TpSourceReader } from '../source/tp-source-reader';
 import type { EraDataConfig } from './era-data-config.service';
@@ -36,7 +36,6 @@ interface MakeServiceOptions {
   files: () => AsyncIterable<TpSourceFile>;
   bootstrap: ReturnType<typeof vi.fn>;
   upsertEra: ReturnType<typeof vi.fn>;
-  getTpSystemName?: () => string;
   getLeagueName?: () => string;
   /**
    * Answers a canned resolution per kind. `keyOf` is the mocked
@@ -90,7 +89,6 @@ async function makeService({
   files,
   bootstrap,
   upsertEra,
-  getTpSystemName = () => 'TP',
   getLeagueName = () => 'My League',
   lookupMap = (kind, keyOf) =>
     Promise.resolve(
@@ -134,8 +132,6 @@ async function makeService({
   externalSystemBootstrap.bootstrap.mockImplementation(
     asProviderMethod(bootstrap),
   );
-  const externalSystemName = mock<ExternalSystemNameConfigService>();
-  externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
   const tournamentParser = mock<TournamentParserService>();
   tournamentParser.parse.mockReturnValue(CANNED_TOURNAMENT);
   const nameExternalId = mockNameExternalIdService();
@@ -160,10 +156,6 @@ async function makeService({
       {
         provide: ExternalSystemBootstrapService,
         useValue: externalSystemBootstrap,
-      },
-      {
-        provide: ExternalSystemNameConfigService,
-        useValue: externalSystemName,
       },
       { provide: TournamentParserService, useValue: tournamentParser },
       { provide: NameExternalIdService, useValue: nameExternalId },
@@ -350,7 +342,7 @@ describe('TpErasImportService', () => {
     await service.importEras();
 
     expect(bootstrap).toHaveBeenCalledWith([
-      { name: 'TP', category: 'imported_data_source' },
+      { name: TP_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
     ]);
     const { imported, errors } = resultArgs(importResults);
@@ -626,7 +618,7 @@ describe('TpErasImportService', () => {
     const bootstrap = vi.fn().mockResolvedValue({
       ok: false,
       error: {
-        item: { externalSystems: ['TP', 'Name'] },
+        item: { externalSystems: [TP_EXTERNAL_SYSTEM_NAME, 'Name'] },
         message: 'network timeout',
       },
     });
@@ -642,7 +634,9 @@ describe('TpErasImportService', () => {
 
     const { errors } = resultArgs(importResults);
     expect(errors).toHaveLength(1);
-    expect(errors[0].item).toEqual({ externalSystems: ['TP', 'Name'] });
+    expect(errors[0].item).toEqual({
+      externalSystems: [TP_EXTERNAL_SYSTEM_NAME, 'Name'],
+    });
     expect(upsertEra).not.toHaveBeenCalled();
   });
 

@@ -6,12 +6,12 @@ import {
   NAF_EXTERNAL_SYSTEM,
   NAME_EXTERNAL_SYSTEM,
   NameExternalIdService,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import type { TpCoach } from '@blood-bowl-tracker/parse-tp';
 import { InscriptionsParserService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { TpSourceReader } from '../source/tp-source-reader';
 
 /** External system db ids resolved during bootstrap, in TP/Name/NAF order. */
@@ -28,7 +28,6 @@ export class TpCoachesImportService {
     private readonly inscriptionsParser: InscriptionsParserService,
     private readonly coachesImport: CoachesImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
-    private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
     private readonly importResults: ImportResultService,
   ) {}
@@ -54,9 +53,11 @@ export class TpCoachesImportService {
     let imported = 0;
     const errors: ImportError[] = [];
 
-    const tpSystemName = this.externalSystemName.getTpSystemName();
     const systemNames = [
-      { name: tpSystemName, category: 'imported_data_source' as const },
+      {
+        name: TP_EXTERNAL_SYSTEM_NAME,
+        category: 'imported_data_source' as const,
+      },
       NAME_EXTERNAL_SYSTEM,
       NAF_EXTERNAL_SYSTEM,
     ];

@@ -1,3 +1,4 @@
+import { BBL_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/import';
 import { describe, expect, it } from 'vitest';
 
 import { mockBblSourceReaderByType } from '../shared/bbl-source-reader-mock.test-helpers';
@@ -82,7 +83,7 @@ describe('BblCompetitionsImportService', () => {
     const { competitionsByBblId } = await service.importCompetitions();
 
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
-      { name: 'BBL', category: 'imported_data_source' },
+      { name: BBL_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
     ]);
     expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(
@@ -353,7 +354,7 @@ describe('BblCompetitionsImportService', () => {
     mocks.bootstrap.bootstrap.mockResolvedValue({
       ok: false,
       error: {
-        item: { externalSystems: ['BBL'] },
+        item: { externalSystems: [BBL_EXTERNAL_SYSTEM_NAME] },
         message: 'network timeout',
       },
     });
@@ -367,7 +368,7 @@ describe('BblCompetitionsImportService', () => {
     expect(errors[0].message).toBe('network timeout');
     // And the error names the external systems the bootstrap tried to upsert.
     expect(errors[0].item).toEqual({
-      externalSystems: ['BBL'],
+      externalSystems: [BBL_EXTERNAL_SYSTEM_NAME],
     });
     expect(
       mocks.competitionsImport.upsertCompetitionResult,
@@ -388,7 +389,9 @@ describe('BblCompetitionsImportService', () => {
     expect(imported).toBe(0);
     expect(errors).toHaveLength(1);
     expect(errors[0].message).toBe('era config is malformed');
-    expect(errors[0].item).toEqual({ externalSystems: ['BBL'] });
+    expect(errors[0].item).toEqual({
+      externalSystems: [BBL_EXTERNAL_SYSTEM_NAME],
+    });
     expect(mocks.bootstrap.bootstrap).not.toHaveBeenCalled();
     expect(
       mocks.competitionsImport.upsertCompetitionResult,

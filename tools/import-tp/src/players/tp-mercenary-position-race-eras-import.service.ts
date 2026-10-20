@@ -5,11 +5,11 @@ import {
   ImportResultService,
   PositionsImportService,
   ReferenceLookupService,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { EraDataConfigService } from '../eras/era-data-config.service';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 
 export interface SyncMercenaryPositionRaceErasOptions {
   mercenaryPositionUsages: MercenaryPositionUsage[];
@@ -42,7 +42,6 @@ export class TpMercenaryPositionRaceErasImportService {
     private readonly positionsImport: PositionsImportService,
     private readonly importResults: ImportResultService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
-    private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly eraDataConfig: EraDataConfigService,
     private readonly lookup: ReferenceLookupService,
   ) {}
@@ -53,9 +52,8 @@ export class TpMercenaryPositionRaceErasImportService {
     let imported = 0;
     const errors: ImportError[] = [];
 
-    const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
-      { name: tpSystemName, category: 'imported_data_source' },
+      { name: TP_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
     ]);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
@@ -71,7 +69,7 @@ export class TpMercenaryPositionRaceErasImportService {
     } catch (error) {
       errors.push(
         this.importResults.error({
-          item: { externalSystems: [tpSystemName] },
+          item: { externalSystems: [TP_EXTERNAL_SYSTEM_NAME] },
           message: error instanceof Error ? error.message : String(error),
         }),
       );

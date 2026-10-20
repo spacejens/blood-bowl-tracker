@@ -23,7 +23,9 @@ packages/
   db/                 — Drizzle schema + migrations; the only package that
                         imports directly from the database driver
   domain-enums/       — single source of truth for every Blood Bowl domain
-                        enum's member list, as plain as-const string arrays;
+                        enum's member list, as plain as-const string arrays,
+                        plus the well-known external-system names (Name, NAF,
+                        BBL's tloeg.bbleague.se, TP's tourplay.net);
                         deliberately depends on no other workspace package so
                         packages/db and packages/api-contract can each build
                         from it while staying mutually independent
@@ -248,7 +250,7 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
   - **The shared upsert plumbing** (`createUpsertImportServiceBase`) alongside the runner and batch helpers; for entities with exactly one upsert call, the import service is a declarative subclass supplying only the client resource it upserts through and the wording of its per-item error message, giving it the base class's shared `upsert(data, errors)` method — a subclass may still add its own entity-specific extra method alongside it.
   - **Two kinds of hand-written exception.** Entities with more than one _upsert_ entry point stay hand-written, since the base class's single `upsert` method can't express two upsert entry points; `ExternalSystems` and `SppAwardValues` stay hand-written for a different reason — an underlying resource that isn't shaped like a plain upsert.
   - **A config-object factory rather than `review-harness`'s abstract-class pattern**, because what varies per entity here is only _data_ (which client resource, what error wording), not _behavior_ — a factory taking a config object fits that better than an abstract class with template methods to override. This is the "class factory for a base service" exemption (case 5) in `CLAUDE.md`'s "Service vs. loose function".
-  - **The same kind of factory for the import tools' config services** — `createImportConfigServiceBase` (connection getters plus the `IMPORT_CONFIG_ENV` production-file swap, over `packages/config-loader`), `createExternalSystemNameConfigServiceBase` and `createSourceConfigServiceBase` — so each tool's config, external-system-name and source-config services are declarative subclasses supplying only their own file name, env var, default system name and DI token (the same `CLAUDE.md` case 5 class-factory exemption).
+  - **The same kind of factory for the import tools' config services** — `createImportConfigServiceBase` (connection getters plus the `IMPORT_CONFIG_ENV` production-file swap, over `packages/config-loader`) and `createSourceConfigServiceBase` — so each tool's config and source-config services are declarative subclasses supplying only their own file name, env var and DI token (the same `CLAUDE.md` case 5 class-factory exemption).
   - **Not per-entity _parsing_ logic:** the BBL and TP entity import services look similar but genuinely differ in what they extract, so they stay per-tool.
   - **Read calls for contract procedures:** `listCompetitionGroups`, backing `competitionGroups.list`.
 - **`packages/config-loader`** (shared config loading) — the source-agnostic JSON5 config-file loading (`createConfigLoaderServiceBase`) behind every import tool's config service (via `packages/import`'s `createImportConfigServiceBase`), `tools/download-tp`'s, `tools/backup-cli`'s, and `packages/review-harness`'s.
@@ -258,10 +260,10 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
   - It deliberately depends on no other workspace package, keeping the `tools/* → packages/*` direction intact.
 - **`packages/review-harness`** (shared review scaffolding) — used by every review tool (`tools/review-match`, `tools/review-player`, `tools/review-race`, `tools/review-star-player`); a change here reaches all review tools at once.
   - It owns the review-run orchestration (`ReviewServiceBase`) and the report document shell (`ReportBuilderBase`).
-  - It also owns two leaf helpers that were duplicated across the tools wherever they existed:
-    - `createExternalSystemLookupServiceBase` (the memoized `external_systems.id` lookup, taking each tool's own config service class and config file name; a class factory under `CLAUDE.md`'s case 5), duplicated across every review tool.
+  - It also owns two leaf helpers shared by the tools:
+    - `ExternalSystemLookupService` (the memoized `external_systems.id` lookup by each source's shared external-system name from `packages/domain-enums`).
     - `CharacteristicFormatService` with its `CharacteristicFormat` type and none marker (rendering one characteristic in its rules set's display format), duplicated between `review-player` and `review-race` (review-match has no characteristics to format).
-  - Each tool's `ReviewService`/`ReportBuilderService` is a thin subclass supplying only what differs, and each tool keeps only a one-line declarative subclass or a plain import for the two leaf helpers.
+  - Each tool's `ReviewService`/`ReportBuilderService` is a thin subclass supplying only what differs, and each tool provides the two leaf helpers by plain import.
   - It deliberately carries no BBL/TP parsing or interpretation logic — raw-source parsing, comparison predicates and label tables stay duplicated per tool, see the review-tool entries below.
 - **`packages/api-contract`** (shared shapes) — newly imported data must exist in the contract before an importer can send it or a consumer can read it; a change here reaches api-server, api-client, game-data, import and import-shared together
 - **`apps/discord-bot`** (consumer) — reads imported data via `packages/game-data`; data newly landed by any importer is a candidate for a new command, fact, or insight. It is also a direct importer in its own right: the `/importtp` slash command, and the TP notification feed for every recognised notification, classify a TP URL with `packages/tp-paths`' `TpPageClassifierService` and call the matching `packages/import-tp-live` entry point in-process

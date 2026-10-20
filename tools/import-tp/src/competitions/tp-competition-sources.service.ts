@@ -3,6 +3,7 @@ import {
   ExternalSystemBootstrapService,
   ImportResultService,
   ReferenceLookupService,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import type { TpMatch, TpTournament } from '@blood-bowl-tracker/parse-tp';
 import {
@@ -12,7 +13,6 @@ import {
 import { Injectable } from '@nestjs/common';
 
 import { EraDataConfigService } from '../eras/era-data-config.service';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { TpSourceReader } from '../source/tp-source-reader';
 
 /** One valid competition directory, ready to import. */
@@ -67,7 +67,6 @@ export class TpCompetitionSourcesService {
     private readonly tournamentParser: TournamentParserService,
     private readonly matchParser: MatchParserService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
-    private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly importResults: ImportResultService,
     private readonly eraDataConfig: EraDataConfigService,
     private readonly lookup: ReferenceLookupService,
@@ -94,9 +93,8 @@ export class TpCompetitionSourcesService {
       matchesByCompetitionTpId,
     });
 
-    const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
-      { name: tpSystemName, category: 'imported_data_source' },
+      { name: TP_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
     ]);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
@@ -112,7 +110,7 @@ export class TpCompetitionSourcesService {
     } catch (error) {
       errors.push(
         this.importResults.error({
-          item: { externalSystems: [tpSystemName] },
+          item: { externalSystems: [TP_EXTERNAL_SYSTEM_NAME] },
           message: error instanceof Error ? error.message : String(error),
         }),
       );

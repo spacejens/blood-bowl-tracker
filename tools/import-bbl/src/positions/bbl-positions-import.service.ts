@@ -1,5 +1,6 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
+  BBL_EXTERNAL_SYSTEM_NAME,
   ExternalSystemBootstrapService,
   ImportResultService,
   NAME_EXTERNAL_SYSTEM,
@@ -11,7 +12,6 @@ import { Injectable } from '@nestjs/common';
 import { PlayerPageParser } from '../players/player-page-parser';
 import { BblRaceNameService } from '../source/bbl-race-name.service';
 import { BblSourceReader } from '../source/bbl-source-reader';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { PageParseErrorService } from '../source/page-parse-error.service';
 import {
   type BblPosition,
@@ -50,7 +50,6 @@ export class BblPositionsImportService {
     private readonly playerPageParser: PlayerPageParser,
     private readonly positionsImport: PositionsImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
-    private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
     private readonly importResults: ImportResultService,
     private readonly pageParseError: PageParseErrorService,
@@ -124,10 +123,9 @@ export class BblPositionsImportService {
       }
     };
 
-    const bblSystemName = this.externalSystemName.getBblSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap(
       [
-        { name: bblSystemName, category: 'imported_data_source' },
+        { name: BBL_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
         NAME_EXTERNAL_SYSTEM,
       ],
       'Failed to upsert external system: ',

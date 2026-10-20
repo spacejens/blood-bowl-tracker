@@ -10,7 +10,7 @@ callers are `TpLiveMatchImportService.importMatch(...)`, below, and the
 const result = await tpLiveMatchImportService.importMatch({
   matchId: 662796,
   tournamentSlug: 'tloegbbl-sasong-30',
-  externalSystemName: 'TP',
+  externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
 });
 ```
 
@@ -21,7 +21,8 @@ const result = await tpLiveMatchImportService.importMatch({
   under.
 - `externalSystemName`: required. The name TP's external system is
   registered under, passed to both team imports, the competition and the
-  match. Keep it in sync with the bulk import's configured name.
+  match. Callers pass `TP_EXTERNAL_SYSTEM_NAME` from `packages/domain-enums`,
+  the name the bulk import registers TP data under.
 - `session`: optional. A `packages/scrape-tp` session to fetch through, so
   every request of the import is paced as one visit. A fresh session is
   started when omitted.
@@ -106,7 +107,7 @@ upserts a competition, so it never backfills.
 const result = await tpLiveMatchTeamsImportService.importMatchTeams({
   matchId: 670570,
   tournamentSlug: 'tloeg-blood-bowl-league-sasong-31',
-  externalSystemName: 'TP',
+  externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
 });
 ```
 

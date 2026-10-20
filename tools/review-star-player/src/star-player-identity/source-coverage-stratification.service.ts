@@ -8,9 +8,9 @@ import {
   positions,
   sql,
 } from '@blood-bowl-tracker/db';
+import { ExternalSystemLookupService } from '@blood-bowl-tracker/review-harness';
 import { Inject, Injectable } from '@nestjs/common';
 
-import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
 import type { ReviewStarPlayer, ReviewStratum } from '../shared/review.types';
 import { StarPlayerExternalIdsService } from '../shared/star-player-external-ids.service';
 import { StarPlayerNameMatcherService } from '../shared/star-player-name-matcher.service';

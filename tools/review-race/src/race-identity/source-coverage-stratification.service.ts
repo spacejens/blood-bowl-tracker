@@ -8,9 +8,9 @@ import {
   races,
   sql,
 } from '@blood-bowl-tracker/db';
+import { ExternalSystemLookupService } from '@blood-bowl-tracker/review-harness';
 import { Inject, Injectable } from '@nestjs/common';
 
-import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
 import { ManualEntryMatcherService } from '../shared/manual-entry-matcher.service';
 import { RaceExternalIdsService } from '../shared/race-external-ids.service';
 import type {

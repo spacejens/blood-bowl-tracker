@@ -81,10 +81,16 @@ categories, is a hard error:
 
 ```jsonc
 externalSystems: [
-  { name: "BBL", category: "imported_data_source" },
+  { name: "tloeg.bbleague.se", category: "imported_data_source" },
   { name: "Name", category: "bookkeeping" },
 ]
 ```
+
+External-system names must be one of the shared names in
+`packages/domain-enums`: `Name`, `NAF`, `tloeg.bbleague.se` (BBL) or
+`tourplay.net` (TP). A test over every batch
+(`src/data-file/curated-data-external-systems.spec.ts`) fails on any other
+name.
 
 Every entry in an entity section requires at least one external ID (the API
 enforces `externalIds.min(1)` — a record with none could never be matched
@@ -93,12 +99,13 @@ again), with one exception: a `competitionGroups` entry declares no
 Competition groups subsection below). External IDs and cross-references are
 written as
 `{ system, id }`
-pairs, where `system` is an external-system name and `id` follows the
-`id:`/`name:` namespacing convention (see
+pairs, where `system` is an external-system name and `id` is the identifier
+within it: BBL ids are written as the site's own raw value, while `Name` ids
+follow the `name:` namespacing convention (see
 [docs/api/imports.md](../api/imports.md)):
 
 ```jsonc
-{ system: "BBL", id: "id:47" }
+{ system: "tloeg.bbleague.se", id: "47" }
 { system: "Name", id: "name:necromantic-2020" }
 ```
 
@@ -158,7 +165,7 @@ In a new batch, e.g.
       "name": "Necromantic Horror",
       "eras": [{ "system": "Name", "id": "name:season-12" }],
       "externalIds": [
-        { "system": "BBL", "id": "id:47" },
+        { "system": "tloeg.bbleague.se", "id": "47" },
         { "system": "Name", "id": "name:necromantic-horror" },
       ],
     },
