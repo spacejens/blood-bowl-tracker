@@ -29,7 +29,7 @@ import { OptionValueResolverService } from './option-value-resolver.service';
  * share one module.
  *
  * `DiscordBotUsageModule` supplies `InteractionEventsQueryService`. Importing
- * it here (packages/discord-client already imports it for the write side) is
+ * it here (`UsageRecordingModule` also imports it, for the write side) is
  * safe: Nest instantiates a module once and shares it, and its only
  * dependency - the DB token - is provided globally by `DbModule`.
  *

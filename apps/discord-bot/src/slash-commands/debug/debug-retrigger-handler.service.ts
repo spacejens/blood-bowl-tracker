@@ -31,13 +31,15 @@ import { DEBUG_RETRIGGER_CUSTOM_ID_PREFIX } from './debug-custom-ids';
  * `DiscordClientService.handleInteraction`. That is safe because every real
  * slash command's `execute` reads only `interaction.options`, every button
  * handler only `interaction.customId`, and every select-menu handler only
- * `interaction.values` - replying, logging and usage recording are all
+ * `interaction.values` - replying, logging and notifying the
+ * interaction-handled listeners that record usage are all
  * dispatcher concerns. So a minimal synthetic object exposing just those
  * properties is enough.
  *
  * It also means the retriggered invocation writes no `discord_bot_usage` row
- * of its own, which is deliberate: the write path lives in the dispatcher,
- * and fabricating guild/channel/member context for a debug action would serve
+ * of its own, which is deliberate: the write path hangs off the dispatcher's
+ * interaction-handled hook, and fabricating guild/channel/member context for
+ * a debug action would serve
  * no purpose. (The retrigger button click itself is still recorded like any
  * other button, since this is a normally-registered button handler.)
  *
