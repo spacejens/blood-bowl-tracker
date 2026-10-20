@@ -175,7 +175,9 @@ config file and no `BACKUP_*` variables.
   `{"kind", "closed": [<numbers>]}`; `closed` is empty when none was open.
 
 An unknown kind, a malformed run URL, or any failing `gh` call is an error
-(exit 1), so the workflow job that called it fails visibly.
+(exit 1). A failed `raise-alert` fails the workflow job that called it, so
+the failure is visible. `backup-alert.yml` tolerates a failed `resolve-alert`
+(`continue-on-error`), which leaves the issue open until a later run.
 
 ## Running it
 
@@ -206,14 +208,17 @@ environment to fix (see
 
 | Setting                                                    | Environment variable               | Needed by         |
 | ---------------------------------------------------------- | ---------------------------------- | ----------------- |
-| `storage.endpoint`                                         | `BACKUP_STORAGE_ENDPOINT`          | all               |
-| `storage.bucket`                                           | `BACKUP_STORAGE_BUCKET`            | all               |
-| `storage.accessKeyId`                                      | `BACKUP_STORAGE_ACCESS_KEY_ID`     | all               |
-| `storage.secretAccessKey`                                  | `BACKUP_STORAGE_SECRET_ACCESS_KEY` | all               |
+| `storage.endpoint`                                         | `BACKUP_STORAGE_ENDPOINT`          | storage commands  |
+| `storage.bucket`                                           | `BACKUP_STORAGE_BUCKET`            | storage commands  |
+| `storage.accessKeyId`                                      | `BACKUP_STORAGE_ACCESS_KEY_ID`     | storage commands  |
+| `storage.secretAccessKey`                                  | `BACKUP_STORAGE_SECRET_ACCESS_KEY` | storage commands  |
 | `database.url`                                             | `BACKUP_DATABASE_URL`              | `create`          |
 | `localDatabase.url` (default: the docker-compose database) | `BACKUP_LOCAL_DATABASE_URL`        | `restore`         |
 | `retentionDays` (default 30)                               | `BACKUP_RETENTION_DAYS`            | `prune`           |
 | `maxAgeHours` (default 36)                                 | `BACKUP_MAX_AGE_HOURS`             | `check-freshness` |
+
+The storage commands are every subcommand except `raise-alert` and
+`resolve-alert`, which read none of these settings.
 
 Put the **read-only** R2 token in your local file. It is enough for `list`,
 `check-freshness`, `download`, `verify`, `restore` and `restore-production`.
