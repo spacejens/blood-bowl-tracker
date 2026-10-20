@@ -684,10 +684,14 @@ describe('upsertByExternalIds', () => {
     });
 
     it('stops unwrapping once the cause chain is deeper than the bound', async () => {
+      // The shared classifier checks the caught error plus three nested
+      // `.cause` links, so a violation four links down is out of reach.
       const buried = uniqueViolation(tableName);
       const deep = Object.assign(new Error('l1'), {
         cause: Object.assign(new Error('l2'), {
-          cause: Object.assign(new Error('l3'), { cause: buried }),
+          cause: Object.assign(new Error('l3'), {
+            cause: Object.assign(new Error('l4'), { cause: buried }),
+          }),
         }),
       });
       const { db, transaction } = makeRaceDb({

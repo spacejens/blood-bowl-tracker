@@ -152,7 +152,7 @@ describe('upsertByExternalIds (real Postgres)', () => {
     // Two identical pairs in one call make insertMissingExternalIds issue a
     // single INSERT whose own two rows collide, so Postgres raises a genuine
     // 23505 on eras_external_ids. That is the real driver error shape
-    // isExternalIdUniqueViolation has to unwrap out of DrizzleQueryError; if
+    // isUniqueViolationOn has to unwrap out of DrizzleQueryError; if
     // it failed to recognise it, the raw driver error would surface here
     // instead of the after-N-attempts message.
     //

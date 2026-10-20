@@ -1,7 +1,4 @@
-import type { InferInsertModel } from '@blood-bowl-tracker/db';
-import type { PgTable } from '@blood-bowl-tracker/db';
-
-import type { DbOrTx } from './db-or-tx';
+import type { DbOrTx, InferInsertModel, PgTable } from '@blood-bowl-tracker/db';
 
 /** One (external system, id-in-that-system) pairing for an entity. */
 export interface ExternalIdPair {
