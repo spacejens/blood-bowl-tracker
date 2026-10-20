@@ -1,6 +1,7 @@
 import { competitions, DB, eq, matches } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import { MATCH_CATEGORIES } from '@blood-bowl-tracker/domain-enums';
 import { ExternalSystemLookupService } from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
@@ -43,6 +44,34 @@ describe('MatchCategoryStratificationService', () => {
         'season_final',
         'season_bronze',
         'season_qualifier',
+      ]);
+    });
+
+    it('offers a stratum for every non-normal MATCH_CATEGORIES value, in schema order', async () => {
+      const service = await makeService(mockDb());
+
+      expect(service.listStrata().map((stratum) => stratum.id)).toEqual(
+        MATCH_CATEGORIES.filter((category) => category !== 'normal'),
+      );
+    });
+
+    it('offers no stratum for normal matches', async () => {
+      const service = await makeService(mockDb());
+
+      expect(service.listStrata().map((stratum) => stratum.id)).not.toContain(
+        'normal',
+      );
+    });
+
+    it('labels each stratum after its category', async () => {
+      const service = await makeService(mockDb());
+
+      expect(service.listStrata().map((stratum) => stratum.label)).toEqual([
+        'Cup final match',
+        'Season semi-final match',
+        'Season final match',
+        'Season bronze match',
+        'Season qualifier match',
       ]);
     });
 
