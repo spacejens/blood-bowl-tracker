@@ -1,5 +1,6 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
+  BBL_EXTERNAL_SYSTEM_NAME,
   ExternalSystemBootstrapService,
   ImportResultService,
   NameExternalIdService,
@@ -10,7 +11,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { type EraConfig, EraConfigService } from '../eras/era-config.service';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { BblRulesSetsImportService } from './bbl-rules-sets-import.service';
 
 /**
@@ -40,7 +40,6 @@ interface Mocks {
   eraConfig: MockProxy<EraConfigService>;
   rulesSetsImport: MockProxy<RulesSetsImportService>;
   bootstrap: MockProxy<ExternalSystemBootstrapService>;
-  nameConfig: MockProxy<ExternalSystemNameConfigService>;
   importResults: MockProxy<ImportResultService>;
 }
 
@@ -113,9 +112,6 @@ describe('BblRulesSetsImportService', () => {
     const bootstrap = mock<ExternalSystemBootstrapService>();
     bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1, 2] });
 
-    const nameConfig = mock<ExternalSystemNameConfigService>();
-    nameConfig.getBblSystemName.mockReturnValue('BBL');
-
     const nameExternalId = mock<NameExternalIdService>();
     // `forRulesSet` is a pure identity passthrough with no branching or
     // formatting, so there is no algorithm here that can drift out of sync with
@@ -138,7 +134,6 @@ describe('BblRulesSetsImportService', () => {
         { provide: EraConfigService, useValue: eraConfig },
         { provide: RulesSetsImportService, useValue: rulesSetsImport },
         { provide: ExternalSystemBootstrapService, useValue: bootstrap },
-        { provide: ExternalSystemNameConfigService, useValue: nameConfig },
         { provide: NameExternalIdService, useValue: nameExternalId },
         { provide: ImportResultService, useValue: importResults },
       ],
@@ -149,7 +144,6 @@ describe('BblRulesSetsImportService', () => {
       eraConfig,
       rulesSetsImport,
       bootstrap,
-      nameConfig,
       importResults,
     };
   });
@@ -164,7 +158,7 @@ describe('BblRulesSetsImportService', () => {
 
     expect(resultArgs(mocks.importResults).imported).toBe(2);
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
-      { name: 'BBL', category: 'imported_data_source' },
+      { name: BBL_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
     ]);
     expect(mocks.rulesSetsImport.upsert).toHaveBeenCalledTimes(2);
@@ -233,7 +227,7 @@ describe('BblRulesSetsImportService', () => {
     const outcome = await service.importRulesSets();
 
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
-      { name: 'BBL', category: 'imported_data_source' },
+      { name: BBL_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
     ]);
     expect(mocks.rulesSetsImport.upsert).toHaveBeenCalledTimes(3);
@@ -288,7 +282,7 @@ describe('BblRulesSetsImportService', () => {
     mocks.bootstrap.bootstrap.mockResolvedValue({
       ok: false,
       error: {
-        item: { externalSystems: ['BBL', 'Name'] },
+        item: { externalSystems: [BBL_EXTERNAL_SYSTEM_NAME, 'Name'] },
         message: 'network timeout',
       },
     });
@@ -302,7 +296,7 @@ describe('BblRulesSetsImportService', () => {
     expect(errors[0].message).toBe('network timeout');
     // And the error names the external systems the bootstrap tried to upsert.
     expect(errors[0].item).toEqual({
-      externalSystems: ['BBL', 'Name'],
+      externalSystems: [BBL_EXTERNAL_SYSTEM_NAME, 'Name'],
     });
     expect(mocks.rulesSetsImport.upsert).not.toHaveBeenCalled();
   });

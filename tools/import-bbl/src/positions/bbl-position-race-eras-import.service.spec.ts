@@ -1,6 +1,7 @@
 import type { CharacteristicFormat } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
+  BBL_EXTERNAL_SYSTEM_NAME,
   ExternalSystemBootstrapService,
   ImportResultService,
   PositionsImportService,
@@ -12,7 +13,6 @@ import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { type EraConfig, EraConfigService } from '../eras/era-config.service';
 import { mockReferenceLookup } from '../shared/reference-lookup-mock.test-helpers';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { BblPositionRaceErasImportService } from './bbl-position-race-eras-import.service';
 
 function makeEra(overrides: Partial<EraConfig> = {}): EraConfig {
@@ -117,9 +117,6 @@ async function makeService(
   const bootstrap = mock<ExternalSystemBootstrapService>();
   bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [BBL_SYSTEM_ID] });
 
-  const nameConfig = mock<ExternalSystemNameConfigService>();
-  nameConfig.getBblSystemName.mockReturnValue('BBL');
-
   const lookup = mock<ReferenceLookupService>();
   mockReferenceLookup(lookup, {
     era: idsByName,
@@ -133,7 +130,6 @@ async function makeService(
       { provide: EraConfigService, useValue: eraConfig },
       { provide: ImportResultService, useValue: importResults },
       { provide: ExternalSystemBootstrapService, useValue: bootstrap },
-      { provide: ExternalSystemNameConfigService, useValue: nameConfig },
       { provide: ReferenceLookupService, useValue: lookup },
     ],
   }).compile();
@@ -535,7 +531,7 @@ describe('BblPositionRaceErasImportService', () => {
     mocks.bootstrap.bootstrap.mockResolvedValue({
       ok: false,
       error: {
-        item: { externalSystems: ['BBL'] },
+        item: { externalSystems: [BBL_EXTERNAL_SYSTEM_NAME] },
         message: 'Failed to upsert external system: network timeout',
       },
     });

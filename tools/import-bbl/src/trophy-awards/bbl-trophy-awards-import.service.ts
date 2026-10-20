@@ -1,5 +1,6 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
+  BBL_EXTERNAL_SYSTEM_NAME,
   CompetitionGroupsImportService,
   ExternalSystemBootstrapService,
   ImportResultService,
@@ -11,7 +12,6 @@ import { Injectable } from '@nestjs/common';
 
 import type { BblCompetitionEntry } from '../competitions/bbl-competitions-import.service';
 import { BblCompetitionTrophyReaderService } from '../matches/bbl-competition-trophy-reader.service';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 
 export interface ImportBblTrophyAwardsOptions {
   competitionEntriesByBblId: Map<string, BblCompetitionEntry>;
@@ -65,7 +65,6 @@ export class BblTrophyAwardsImportService {
     private readonly trophyAwardsImport: TrophyAwardsImportService,
     private readonly competitionGroupsImport: CompetitionGroupsImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
-    private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly importResults: ImportResultService,
     private readonly lookup: ReferenceLookupService,
   ) {}
@@ -100,7 +99,7 @@ export class BblTrophyAwardsImportService {
     const bootstrap = await this.externalSystemBootstrap.bootstrap(
       [
         {
-          name: this.externalSystemName.getBblSystemName(),
+          name: BBL_EXTERNAL_SYSTEM_NAME,
           category: 'imported_data_source',
         },
       ],

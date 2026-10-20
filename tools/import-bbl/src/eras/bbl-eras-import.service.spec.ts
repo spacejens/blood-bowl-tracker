@@ -1,5 +1,6 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
+  BBL_EXTERNAL_SYSTEM_NAME,
   ErasImportService,
   ExternalSystemBootstrapService,
   ImportResultService,
@@ -11,7 +12,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { mockKeyOf } from '../shared/reference-lookup-mock.test-helpers';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { BblErasImportService } from './bbl-eras-import.service';
 import { type EraConfig, EraConfigService } from './era-config.service';
 
@@ -45,7 +45,6 @@ interface Mocks {
   eraConfig: MockProxy<EraConfigService>;
   erasImport: MockProxy<ErasImportService>;
   bootstrap: MockProxy<ExternalSystemBootstrapService>;
-  nameConfig: MockProxy<ExternalSystemNameConfigService>;
   importResults: MockProxy<ImportResultService>;
   lookup: MockProxy<ReferenceLookupService>;
 }
@@ -113,9 +112,6 @@ describe('BblErasImportService', () => {
     const bootstrap = mock<ExternalSystemBootstrapService>();
     bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1, 2] });
 
-    const nameConfig = mock<ExternalSystemNameConfigService>();
-    nameConfig.getBblSystemName.mockReturnValue('BBL');
-
     const nameExternalId = mock<NameExternalIdService>();
     // `forEra` is a pure identity passthrough with no branching or formatting,
     // so there is no algorithm here that can drift out of sync with the real
@@ -166,7 +162,6 @@ describe('BblErasImportService', () => {
         { provide: EraConfigService, useValue: eraConfig },
         { provide: ErasImportService, useValue: erasImport },
         { provide: ExternalSystemBootstrapService, useValue: bootstrap },
-        { provide: ExternalSystemNameConfigService, useValue: nameConfig },
         { provide: NameExternalIdService, useValue: nameExternalId },
         { provide: ImportResultService, useValue: importResults },
         { provide: ReferenceLookupService, useValue: lookup },
@@ -178,7 +173,6 @@ describe('BblErasImportService', () => {
       eraConfig,
       erasImport,
       bootstrap,
-      nameConfig,
       importResults,
       lookup,
     };
@@ -388,7 +382,7 @@ describe('BblErasImportService', () => {
     mocks.bootstrap.bootstrap.mockResolvedValue({
       ok: false,
       error: {
-        item: { externalSystems: ['BBL', 'Name'] },
+        item: { externalSystems: [BBL_EXTERNAL_SYSTEM_NAME, 'Name'] },
         message: 'network timeout',
       },
     });
@@ -402,7 +396,7 @@ describe('BblErasImportService', () => {
     expect(errors[0].message).toBe('network timeout');
     // And the error names the external systems the bootstrap tried to upsert.
     expect(errors[0].item).toEqual({
-      externalSystems: ['BBL', 'Name'],
+      externalSystems: [BBL_EXTERNAL_SYSTEM_NAME, 'Name'],
     });
     expect(mocks.erasImport.upsert).not.toHaveBeenCalled();
     expect(mocks.lookup.lookupMap).not.toHaveBeenCalled();

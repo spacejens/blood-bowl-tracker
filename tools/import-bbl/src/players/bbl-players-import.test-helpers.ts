@@ -20,7 +20,6 @@ import { mockReferenceLookup } from '../shared/reference-lookup-mock.test-helper
 import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.service';
 import type { BblPage } from '../source/bbl-page.types';
 import { BblSourceReader } from '../source/bbl-source-reader';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { PageParseErrorService } from '../source/page-parse-error.service';
 import { BblPlayersImportService } from './bbl-players-import.service';
 import type { BblPlayer } from './player-page-parser';
@@ -176,9 +175,6 @@ export async function makeService(
   const bootstrap = mock<ExternalSystemBootstrapService>();
   bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [BBL_SYSTEM_ID] });
 
-  const nameConfig = mock<ExternalSystemNameConfigService>();
-  nameConfig.getBblSystemName.mockReturnValue('BBL');
-
   const importResults = mock<ImportResultService>();
   // `error` is a pure identity field copy with no branching or formatting, so
   // there is no algorithm here that can drift out of sync with the real
@@ -216,7 +212,6 @@ export async function makeService(
       { provide: TeamsImportService, useValue: teamsImport },
       { provide: EraConfigService, useValue: eraConfig },
       { provide: ExternalSystemBootstrapService, useValue: bootstrap },
-      { provide: ExternalSystemNameConfigService, useValue: nameConfig },
       { provide: ImportResultService, useValue: importResults },
       { provide: PageParseErrorService, useValue: pageParseError },
       {

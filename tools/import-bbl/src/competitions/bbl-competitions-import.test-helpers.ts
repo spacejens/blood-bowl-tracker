@@ -19,7 +19,6 @@ import type { BblMatch } from '../matches/match-list-page-parser';
 import { mockReferenceLookup } from '../shared/reference-lookup-mock.test-helpers';
 import type { BblPage } from '../source/bbl-page.types';
 import { BblSourceReader } from '../source/bbl-source-reader';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { PageParseErrorService } from '../source/page-parse-error.service';
 import { BblCompetitionsImportService } from './bbl-competitions-import.service';
 import { CompetitionListPageParser } from './competition-list-page-parser';
@@ -180,9 +179,6 @@ export async function makeService(
   const eraConfig = mock<EraConfigService>();
   eraConfig.getEras.mockReturnValue(erasConfig);
 
-  const nameConfig = mock<ExternalSystemNameConfigService>();
-  nameConfig.getBblSystemName.mockReturnValue('BBL');
-
   const importResults = mock<ImportResultService>();
   // `error` is a pure identity field copy with no branching or formatting, so
   // there is no algorithm here that can drift out of sync with the real
@@ -211,7 +207,6 @@ export async function makeService(
       { provide: CompetitionsImportService, useValue: competitionsImport },
       { provide: ExternalSystemBootstrapService, useValue: bootstrap },
       { provide: EraConfigService, useValue: eraConfig },
-      { provide: ExternalSystemNameConfigService, useValue: nameConfig },
       { provide: ImportResultService, useValue: importResults },
       { provide: PageParseErrorService, useValue: pageParseError },
       { provide: MatchDateRangeService, useValue: dateRange },

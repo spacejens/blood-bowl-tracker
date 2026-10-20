@@ -1,5 +1,6 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
+  BBL_EXTERNAL_SYSTEM_NAME,
   ErasImportService,
   ExternalSystemBootstrapService,
   ImportResultService,
@@ -10,7 +11,6 @@ import {
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { EraConfig, EraConfigService } from './era-config.service';
 
 @Injectable()
@@ -19,7 +19,6 @@ export class BblErasImportService {
     private readonly eraConfig: EraConfigService,
     private readonly erasImport: ErasImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
-    private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
     private readonly importResults: ImportResultService,
     private readonly lookup: ReferenceLookupService,
@@ -40,15 +39,18 @@ export class BblErasImportService {
     let imported = 0;
     const errors: ImportError[] = [];
 
-    const bblSystemName = this.externalSystemName.getBblSystemName();
-
     let eras: EraConfig[];
     try {
       eras = this.eraConfig.getEras();
     } catch (error) {
       errors.push(
         this.importResults.error({
-          item: { externalSystems: [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME] },
+          item: {
+            externalSystems: [
+              BBL_EXTERNAL_SYSTEM_NAME,
+              NAME_EXTERNAL_SYSTEM_NAME,
+            ],
+          },
           message: error instanceof Error ? error.message : String(error),
         }),
       );
@@ -58,7 +60,7 @@ export class BblErasImportService {
     }
 
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
-      { name: bblSystemName, category: 'imported_data_source' },
+      { name: BBL_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
       NAME_EXTERNAL_SYSTEM,
     ]);
     if (!bootstrap.ok) {
