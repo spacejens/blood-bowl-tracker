@@ -1,10 +1,13 @@
 export { AdvisoryLockModule } from './advisory-lock.module';
 export { AdvisoryLockService } from './advisory-lock.service';
+export { asBaseTable } from './as-base-table';
 export type { Db } from './db';
 export { createDb } from './db';
 export type { DbModuleAsyncOptions } from './db.module';
 export { DATABASE_URL, DB, DbModule } from './db.module';
+export type { DbOrTx } from './db-or-tx';
 export * from './schema';
+export { isUniqueViolationOn } from './unique-violation';
 
 /**
  * drizzle-orm's query-building surface, re-exported so every other workspace
