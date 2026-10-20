@@ -35,9 +35,8 @@ code** — the code is the source of truth at that point.
 
 ## Page types seen in the reference dataset
 
-Fully handled in code (no notes needed): `tm` (team pages — coach and race
-extraction), `pt` (position/player-type pages — name, "Can play for" races,
-star marker, and the MA/ST/AG/PA/AV characteristics line), `tl` (master race-list page — see the note below).
+Fully handled in code: `tm`, `pt` and `tl` (see the notes on each, which keep
+only what the code cannot express).
 
 Not yet handled (candidates for future work): `mp` (per-match scores, gate, TD
 scorers, and sendings-off). Per-match **identity** (BBL id, date, competition)
@@ -47,32 +46,9 @@ its display name — see the note on `m` pages below. Also not yet handled: `ro`
 (rosters), `te` (league team list), `ch` (per-season player top charts), plus
 others.
 
-Note on `pt` pages: the `<h1>` is the position's display name and the "Can play
-for:" section lists its race(s) as `default.asp?p=tl#<raceId>` links (the same
-fragment convention team pages use for races). A position may list zero, one, or
-several races; the zero-race case (a present-but-empty "Can play for" table)
-means there is no race to assign the position to. A page may also carry a
-`None (star player)` skill-category cell, which marks the position as a star
-player. Star players and a few ordinary positions list no race under "Can play
-for"; their race(s) are recovered from player pages instead.
-
-A `pt` page also carries a characteristics table: a header row reading
-`MA`/`ST`/`AG`/`PA`/`AV`/`Skills` followed immediately by one row of values.
-Several tables on the page use the same row class, so the characteristics
-table is found by its header text. `AG`/`PA`/`AV` values carry a trailing
-`+` (display formatting, stripped on import — the database stores plain
-numbers), and a `PA` cell reading `-` means the position has no Passing
-ability. That `-` is not confined to pre-BB2020 positions: "Big Guy"
-positions such as Kroxigor and Ogre show it under the current rules too.
-
-The table's sixth column, `Skills`, is a comma-separated list of the
-position's starting skills. A parenthetical value (`Loner (4+)`, `Mighty
-Blow (+1)`) is part of the skill's own display name, not a separate field, so
-the cell is split on commas only.
-
-This scraped skill list is a single BB2020-era snapshot, deliberately NOT
-written to CRP, CRP+ or BB2016: those three older rules sets are curated
-exclusively by `tools/import-manual`'s
+Note on `pt` pages: the scraped skill list is a single BB2020-era snapshot,
+deliberately NOT written to CRP, CRP+ or BB2016: those three older rules sets
+are curated exclusively by `tools/import-manual`'s
 [`position-skills.json5`](../import-manual/curated-files.md#known-batch-002-cleanup-files),
 and `position_rules_set_skills` is additive per `(position, rules set)`
 rather than overwritable, so the BBL snapshot would otherwise merge into a
@@ -83,7 +59,7 @@ Note on `pl` pages: a player page carries the player's `<h1>` name, two links �
 the player's position (`default.asp?p=pt&typID=<id>`) and team
 (`default.asp?p=tm&t=<code>`) — an "Unspent SPP" row whose parenthesized figure
 is the site's own career total, and the same MA/ST/AG/PA/AV characteristics
-table the `pt` pages carry (above). Most player pages carry a Passing value,
+table the `pt` pages carry. Most player pages carry a Passing value,
 including players whose era predates the characteristic existing, an artifact
 of the site's BB2016-to-BB2020 conversion; others show `-`. Either way the
 value shown is not evidence about whether the player's rules set has Passing
