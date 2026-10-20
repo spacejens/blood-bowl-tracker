@@ -190,6 +190,7 @@ describe('TpRosterImportService', () => {
       ],
     });
     expect(context.resolve).not.toHaveBeenCalled();
+    expect(playerSkills.syncPlayerSkills).not.toHaveBeenCalled();
   });
 
   it('skips the players when the returned team eras lack the context era', async () => {

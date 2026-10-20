@@ -206,9 +206,9 @@ async function run(): Promise<ImportResult> {
     );
 
     // Each roster file goes to the server as-is (tpRosters.import), which
-    // parses it and upserts its team, its players and their own skills; this runs after
-    // positions because players resolve their position against what the
-    // positions step just upserted. Each call also carries that roster's
+    // parses it and upserts its team, its players and their own skills; this
+    // runs after positions because players resolve their position against what
+    // the positions step just upserted. Each call also carries that roster's
     // match-snapshot-only players (matchEmbeddedPlayersByRosterId, above),
     // so a player who has since left a roster is still imported. The
     // returned ids are what every later step resolves teams and players by.
