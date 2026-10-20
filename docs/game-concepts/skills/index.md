@@ -13,7 +13,7 @@ advancements.
   Categories are what an advancing player rolls against, and a rules set can
   move a skill between them: BB2025 introduced the Devious category and moved
   several existing skills into it. So the category is recorded on the skill ×
-  rules-set association, for the same reason a position's characteristics are
+  rules-set association, for the same reason a position's [characteristics](../../glossary.md#characteristics) are
   recorded on the position × rules-set association rather than on the
   position.
 - A skill that a rules set has no association row for simply does not exist
