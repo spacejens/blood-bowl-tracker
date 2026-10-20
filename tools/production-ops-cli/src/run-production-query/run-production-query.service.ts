@@ -1,12 +1,9 @@
 import {
   ProcessRunnerService,
+  ProductionEnvFileService,
   TIMED_OUT_EXIT_CODE,
 } from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
-
-import { ProductionEnvFileService } from '../production-env-file/production-env-file.service';
-
-const ENV_PRODUCTION_PATH = 'apps/discord-bot/.env.production';
 
 /**
  * `SET LOCAL` (not plain `SET`) scopes this to the one transaction the query
@@ -55,7 +52,7 @@ export class RunProductionQueryService {
 
   async run(query: string): Promise<RunProductionQueryResult> {
     this.validateQuery(query);
-    const databaseUrl = await this.readDatabaseUrl();
+    const databaseUrl = await this.productionEnvFile.readDatabaseUrl();
     const result = await this.processRunner.run(
       'psql',
       [
@@ -103,16 +100,5 @@ export class RunProductionQueryService {
           'Pass plain SQL instead.',
       );
     }
-  }
-
-  private async readDatabaseUrl(): Promise<string> {
-    const value = await this.productionEnvFile.readValue('DATABASE_URL');
-    if (!/^postgres(ql)?:\/\//.test(value)) {
-      throw new Error(
-        'DATABASE_URL is empty or malformed after extraction from ' +
-          `${ENV_PRODUCTION_PATH} — aborting without connecting.`,
-      );
-    }
-    return value;
   }
 }

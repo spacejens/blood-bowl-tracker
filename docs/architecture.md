@@ -153,8 +153,10 @@ tools/
   cli-shared/         — library package with the plumbing the CLI
                         packages below share: git main-checkout/worktree
                         resolution, child-process running and spawning, the
-                        canonical gitignored file/directory lists, and the
-                        shared runCli subcommand-dispatcher driver every
+                        canonical gitignored file/directory lists, the
+                        dotenv-based reader for production's secrets in
+                        apps/discord-bot/.env.production, and the shared
+                        runCli subcommand-dispatcher driver every
                         entrypoint runs on (workflow-lint uses only runCli);
                         no CLI entry point of its own
   dev-workflow-cli/   — NestJS CLI application providing the developer/PR
