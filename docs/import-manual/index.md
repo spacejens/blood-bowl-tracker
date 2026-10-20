@@ -164,7 +164,7 @@ In a new batch, e.g.
       "name": "Necromantic Horror",
       "eras": [{ "system": "Name", "id": "name:season-12" }],
       "externalIds": [
-        { "system": "BBL", "id": "id:47" },
+        { "system": "tloeg.bbleague.se", "id": "47" },
         { "system": "Name", "id": "name:necromantic-horror" },
       ],
     },

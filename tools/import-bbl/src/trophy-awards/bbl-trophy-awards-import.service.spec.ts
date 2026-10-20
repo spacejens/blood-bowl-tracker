@@ -1,5 +1,6 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
+  BBL_EXTERNAL_SYSTEM_NAME,
   CompetitionGroupsImportService,
   ExternalSystemBootstrapService,
   ImportResultService,
@@ -614,7 +615,7 @@ describe('BblTrophyAwardsImportService', () => {
       rows([{ label: 'Major 1st', teamCode: 'sew' }]),
     );
     const bootstrapError: ImportError = {
-      item: { externalSystems: ['tloeg.bbleague.se'] },
+      item: { externalSystems: [BBL_EXTERNAL_SYSTEM_NAME] },
       message: 'boom',
     };
     mocks.bootstrap.bootstrap.mockResolvedValue({
@@ -624,6 +625,10 @@ describe('BblTrophyAwardsImportService', () => {
 
     await service.importTrophyAwards(options());
 
+    expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith(
+      [{ name: BBL_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' }],
+      'Failed to upsert external system: ',
+    );
     expect(mocks.trophyReader.getRowsByCompetitionId).not.toHaveBeenCalled();
     expect(resultArgs(mocks.importResults).errors).toEqual([bootstrapError]);
   });

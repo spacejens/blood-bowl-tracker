@@ -8,6 +8,7 @@ import JSON5 from 'json5';
 
 import { StarPlayerReviewConfigService } from '../config/review-star-player-config.service';
 
+/** A `{ system, id }` reference, as the curated files write them. */
 export interface ManualExternalIdRef {
   system: string;
   id: string;

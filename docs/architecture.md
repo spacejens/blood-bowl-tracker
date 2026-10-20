@@ -248,8 +248,8 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
   - It deliberately depends on no other workspace package, keeping the `tools/* → packages/*` direction intact.
 - **`packages/review-harness`** (shared review scaffolding) — used by every review tool (`tools/review-match`, `tools/review-player`, `tools/review-race`, `tools/review-star-player`); a change here reaches all review tools at once.
   - It owns the review-run orchestration (`ReviewServiceBase`) and the report document shell (`ReportBuilderBase`).
-  - It also owns two leaf helpers that were duplicated across the tools wherever they existed:
-    - `ExternalSystemLookupService` (the memoized `external_systems.id` lookup by each source's shared external-system name from `packages/domain-enums`), duplicated across every review tool.
+  - It also owns two leaf helpers shared by the tools:
+    - `ExternalSystemLookupService` (the memoized `external_systems.id` lookup by each source's shared external-system name from `packages/domain-enums`).
     - `CharacteristicFormatService` with its `CharacteristicFormat` type and none marker (rendering one characteristic in its rules set's display format), duplicated between `review-player` and `review-race` (review-match has no characteristics to format).
   - Each tool's `ReviewService`/`ReportBuilderService` is a thin subclass supplying only what differs, and each tool provides the two leaf helpers by plain import.
   - It deliberately carries no BBL/TP parsing or interpretation logic — raw-source parsing, comparison predicates and label tables stay duplicated per tool, see the review-tool entries below.
