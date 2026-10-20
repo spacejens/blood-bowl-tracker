@@ -1,12 +1,11 @@
-import type { ImportError } from '@blood-bowl-tracker/api-contract';
-import { SkillsService } from '@blood-bowl-tracker/game-data';
+import type { ExternalId, ImportError } from '@blood-bowl-tracker/api-contract';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { TpImportResultsService } from '../tp-import-results.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
+import { TpSkillIdLookupService } from '../tp-skill-id-lookup.service';
 import { TpKeywordTargetDecoderService } from './tp-keyword-target-decoder.service';
 import type { TpOfficialKeywordCatalog } from './tp-official-keyword-catalog.service';
 import { TpOfficialSkillRefsService } from './tp-official-skill-refs.service';
@@ -20,32 +19,51 @@ const CATALOG: TpOfficialKeywordCatalog = {
   byCode: new Map([[111, { keywordId: 5, name: 'Dwarf' }]]),
 };
 
+const BLOCK_TP_IDS: ExternalId[] = [
+  { externalSystemId: TP_SYSTEM_ID, externalId: '41' },
+  { externalSystemId: TP_SYSTEM_ID, externalId: '1041' },
+];
+const LONER_TP_IDS: ExternalId[] = [
+  { externalSystemId: TP_SYSTEM_ID, externalId: '60' },
+];
+const HATRED_TP_IDS: ExternalId[] = [
+  { externalSystemId: TP_SYSTEM_ID, externalId: '307' },
+];
+
 describe('TpOfficialSkillRefsService', () => {
   let service: TpOfficialSkillRefsService;
-  let skills: MockProxy<SkillsService>;
+  let lookup: MockProxy<TpSkillIdLookupService>;
   let errors: ImportError[];
 
   beforeEach(async () => {
-    skills = mock<SkillsService>();
-    skills.resolveBatch.mockImplementation((refs) =>
-      Promise.resolve(refs.map(() => ({ found: false as const }))),
-    );
+    lookup = mock<TpSkillIdLookupService>();
+    lookup.tpIdsByName.mockReturnValue(new Map());
+    lookup.tpExternalIds.mockReturnValue([]);
+    lookup.resolveByTpId.mockResolvedValue(new Map());
     errors = [];
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpOfficialSkillRefsService,
         TpImportResultsService,
-        TpUpsertRunnerService,
         // Pure, dependency-free decision logic, passed real so the type-3
         // tests keep exercising the actual decode.
         TpKeywordTargetDecoderService,
-        { provide: SkillsService, useValue: skills },
+        { provide: TpSkillIdLookupService, useValue: lookup },
       ],
     }).compile();
     service = moduleRef.get(TpOfficialSkillRefsService);
   });
 
   it('names a supplied skill master, carrying every TP id seen for that name and its attribute value', async () => {
+    lookup.tpIdsByName.mockReturnValue(
+      new Map([
+        ['Block', new Set([41, 1041])],
+        ['Loner', new Set([60])],
+      ]),
+    );
+    lookup.tpExternalIds
+      .mockReturnValueOnce(BLOCK_TP_IDS)
+      .mockReturnValueOnce(LONER_TP_IDS);
     const refs = await service.resolve({
       slots: [
         positionSlot({
@@ -73,32 +91,46 @@ describe('TpOfficialSkillRefsService', () => {
             {
               name: 'Block',
               isElite: true,
-              externalIds: [
-                { externalSystemId: TP_SYSTEM_ID, externalId: '41' },
-                { externalSystemId: TP_SYSTEM_ID, externalId: '1041' },
-              ],
+              externalIds: BLOCK_TP_IDS,
             },
             {
               name: 'Loner',
               isElite: false,
-              externalIds: [
-                { externalSystemId: TP_SYSTEM_ID, externalId: '60' },
-              ],
+              externalIds: LONER_TP_IDS,
               attributeValue: '4+',
             },
           ],
         ],
       ]),
     );
-    expect(skills.resolveBatch).not.toHaveBeenCalled();
+    expect(lookup.tpIdsByName).toHaveBeenCalledWith([
+      [41, { skillMasterId: 41, name: 'Block', isElite: true }],
+      [1041, { skillMasterId: 1041, name: 'Block', isElite: true }],
+      [60, { skillMasterId: 60, name: 'Loner', isElite: false }],
+    ]);
+    expect(lookup.tpExternalIds).toHaveBeenCalledWith(
+      new Set([41, 1041]),
+      TP_SYSTEM_ID,
+    );
+    expect(lookup.tpExternalIds).toHaveBeenCalledWith(
+      new Set([60]),
+      TP_SYSTEM_ID,
+    );
+    expect(lookup.resolveByTpId).toHaveBeenCalledWith({
+      masterIds: [],
+      tpSystemId: TP_SYSTEM_ID,
+      errors,
+    });
     expect(errors).toEqual([]);
   });
 
   it('resolves an unnamed id through the skill registered under that TP id, in one batch', async () => {
-    skills.resolveBatch.mockResolvedValue([
-      { found: true, id: 500 },
-      { found: true, id: 501 },
-    ]);
+    lookup.resolveByTpId.mockResolvedValue(
+      new Map([
+        [41, 500],
+        [42, 501],
+      ]),
+    );
 
     const refs = await service.resolve({
       slots: [
@@ -114,11 +146,12 @@ describe('TpOfficialSkillRefsService', () => {
       errors,
     });
 
-    expect(skills.resolveBatch).toHaveBeenCalledTimes(1);
-    expect(skills.resolveBatch).toHaveBeenCalledWith([
-      { externalSystemId: TP_SYSTEM_ID, externalId: '41' },
-      { externalSystemId: TP_SYSTEM_ID, externalId: '42' },
-    ]);
+    expect(lookup.resolveByTpId).toHaveBeenCalledTimes(1);
+    expect(lookup.resolveByTpId).toHaveBeenCalledWith({
+      masterIds: [41, 42],
+      tpSystemId: TP_SYSTEM_ID,
+      errors,
+    });
     expect(refs.get(9)).toEqual([{ name: 'TP skill 41', skillId: 500 }]);
     expect(refs.get(12)).toEqual([
       { name: 'TP skill 42', skillId: 501 },
@@ -168,6 +201,8 @@ describe('TpOfficialSkillRefsService', () => {
   });
 
   it('decodes a Hatred type-3 target through the keyword catalogue', async () => {
+    lookup.tpIdsByName.mockReturnValue(new Map([['Hatred', new Set([307])]]));
+    lookup.tpExternalIds.mockReturnValue(HATRED_TP_IDS);
     const refs = await service.resolve({
       slots: [
         positionSlot({
@@ -186,7 +221,7 @@ describe('TpOfficialSkillRefsService', () => {
       {
         name: 'Hatred',
         isElite: false,
-        externalIds: [{ externalSystemId: TP_SYSTEM_ID, externalId: '307' }],
+        externalIds: HATRED_TP_IDS,
         attributeValue: 'Dwarf',
       },
     ]);
@@ -238,8 +273,8 @@ describe('TpOfficialSkillRefsService', () => {
     expect(errors).toHaveLength(1);
   });
 
-  it('records a failed id lookup and reports the ids it could not resolve', async () => {
-    skills.resolveBatch.mockRejectedValue(new Error('boom'));
+  it('treats a failed id lookup (already reported by it) as no registered ids and reports each unresolved id', async () => {
+    lookup.resolveByTpId.mockResolvedValue(undefined);
 
     const refs = await service.resolve({
       slots: [positionSlot({ skills: [{ skillMasterId: 41 }] })],
@@ -251,8 +286,19 @@ describe('TpOfficialSkillRefsService', () => {
 
     expect(refs.size).toBe(0);
     expect(errors.map((error) => error.message)).toEqual([
-      'Failed to resolve TP skill ids by external id: boom',
       expect.stringContaining('Could not resolve TP skill 41'),
     ]);
+  });
+
+  it('registers no TP id for a supplied name the inversion does not list', async () => {
+    await service.resolve({
+      slots: [positionSlot({ skills: [{ skillMasterId: 41 }] })],
+      skillMasters: [{ skillMasterId: 41, name: 'Block', isElite: false }],
+      catalog: CATALOG,
+      context: officialTeamsContext(),
+      errors,
+    });
+
+    expect(lookup.tpExternalIds).toHaveBeenCalledWith([], TP_SYSTEM_ID);
   });
 });
