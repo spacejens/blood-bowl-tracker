@@ -1,5 +1,6 @@
 import type { TopUserRow } from '@blood-bowl-tracker/discord-bot-usage';
 import { InteractionEventsQueryService } from '@blood-bowl-tracker/discord-bot-usage';
+import { INTERACTION_KINDS } from '@blood-bowl-tracker/domain-enums';
 import { Test } from '@nestjs/testing';
 import type { ChatInputCommandInteraction } from 'discord.js';
 import { MessageFlags } from 'discord.js';
@@ -96,6 +97,27 @@ describe('DebugTopUsersCommandService', () => {
         (option) => (option as { required?: boolean }).required !== true,
       ),
     ).toBe(true);
+  });
+
+  it('offers one kind choice per INTERACTION_KINDS value, in order', () => {
+    const command = service.buildCommand();
+    const kind = command.options?.[0] as {
+      choices?: { name: string; value: string }[];
+    };
+
+    expect(kind.choices?.map((choice) => choice.value)).toEqual([
+      ...INTERACTION_KINDS,
+    ]);
+  });
+
+  it('counts every kind when the kind option is not a known kind', async () => {
+    await service.execute(interaction({ kind: 'autocomplete' }));
+
+    expect(events.topUsers).toHaveBeenCalledWith({
+      kind: undefined,
+      sinceDays: undefined,
+      limit: MAX_DEBUG_TOP_USERS,
+    });
   });
 
   it('offers exactly the three interaction-kind choices', () => {
