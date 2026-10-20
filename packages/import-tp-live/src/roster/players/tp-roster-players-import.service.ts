@@ -6,10 +6,10 @@ import type {
 } from '@blood-bowl-tracker/api-contract';
 import { UpsertPlayerSchema } from '@blood-bowl-tracker/api-contract';
 import { PlayersService } from '@blood-bowl-tracker/game-data';
+import { UpsertRecorderService } from '@blood-bowl-tracker/import-shared';
 import type { TpRoster, TpRosterPlayer } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-import { TpUpsertRunnerService } from '../../tp-upsert-runner.service';
 import type { TpRosterContext } from '../tp-roster-context.service';
 import type { IncreaseBaselineCache } from './tp-characteristic-increases.service';
 import { TpCharacteristicIncreasesService } from './tp-characteristic-increases.service';
@@ -56,7 +56,7 @@ export class TpRosterPlayersImportService {
     private readonly mercenaryCharacteristics: TpMercenaryCharacteristicsService,
     private readonly lastingInjuryBuilder: TpLastingInjuryBuilderService,
     private readonly characteristicIncreases: TpCharacteristicIncreasesService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /**

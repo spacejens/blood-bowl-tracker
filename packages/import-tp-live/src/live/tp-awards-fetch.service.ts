@@ -1,4 +1,8 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import type { TpAward } from '@blood-bowl-tracker/parse-tp';
 import { AwardsParserService } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
@@ -11,8 +15,6 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import type { TpConnectionProvider } from '../tp-import-providers';
 import { TP_CONNECTION_PROVIDER } from '../tp-import-providers';
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 
 /** Options for {@link TpAwardsFetchService.fetchAwards}. */
 export interface FetchAwardsOptions {
@@ -32,8 +34,8 @@ export class TpAwardsFetchService {
     private readonly fetcher: TpFetcherService,
     private readonly tournamentPaths: TpTournamentPathsService,
     private readonly awardsParser: AwardsParserService,
-    private readonly importResults: TpImportResultsService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly importResults: ImportResultService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /**

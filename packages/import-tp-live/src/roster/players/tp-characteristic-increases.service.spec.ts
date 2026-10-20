@@ -1,13 +1,15 @@
 import type { ImportError, RulesSet } from '@blood-bowl-tracker/api-contract';
 import type { PositionCharacteristics } from '@blood-bowl-tracker/game-data';
 import { PositionRulesSetsService } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { TpImportResultsService } from '../../tp-import-results.service';
-import { TpUpsertRunnerService } from '../../tp-upsert-runner.service';
 import { TpCharacteristicIncreasesService } from './tp-characteristic-increases.service';
 
 const BARE_RULES_SET: RulesSet = {
@@ -60,8 +62,8 @@ describe('TpCharacteristicIncreasesService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpCharacteristicIncreasesService,
-        TpImportResultsService,
-        TpUpsertRunnerService,
+        ImportResultService,
+        UpsertRecorderService,
         { provide: PositionRulesSetsService, useValue: positionRulesSets },
       ],
     }).compile();

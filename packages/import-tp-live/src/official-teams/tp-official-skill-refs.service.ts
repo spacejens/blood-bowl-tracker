@@ -4,11 +4,13 @@ import type {
   TpSkillMasterName,
 } from '@blood-bowl-tracker/api-contract';
 import { SkillsService } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import type { TpPositionSkillRef } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { TpKeywordTargetDecoderService } from './tp-keyword-target-decoder.service';
 import type { TpOfficialKeywordCatalog } from './tp-official-keyword-catalog.service';
 import type { TpOfficialPositionSlot } from './tp-official-positions-upsert.service';
@@ -64,8 +66,8 @@ export class TpOfficialSkillRefsService {
   constructor(
     private readonly skills: SkillsService,
     private readonly keywordTargets: TpKeywordTargetDecoderService,
-    private readonly importResults: TpImportResultsService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly importResults: ImportResultService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /**

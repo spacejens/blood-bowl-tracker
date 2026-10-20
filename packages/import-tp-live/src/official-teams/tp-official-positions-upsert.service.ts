@@ -1,5 +1,10 @@
 import type { ExternalId, ImportError } from '@blood-bowl-tracker/api-contract';
 import { PositionsService } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  NameExternalIdService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import type {
   TpOfficialPosition,
   TpOfficialRace,
@@ -8,9 +13,6 @@ import type {
 } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpNameExternalIdService } from '../tp-name-external-id.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import type { TpOfficialRaceRef } from './tp-official-races-upsert.service';
 import type { TpOfficialTeamsContext } from './tp-official-teams-context.service';
 
@@ -63,9 +65,9 @@ interface PositionGroup {
 export class TpOfficialPositionsUpsertService {
   constructor(
     private readonly positions: PositionsService,
-    private readonly nameExternalId: TpNameExternalIdService,
-    private readonly importResults: TpImportResultsService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly nameExternalId: NameExternalIdService,
+    private readonly importResults: ImportResultService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /**

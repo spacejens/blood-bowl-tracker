@@ -3,11 +3,13 @@ import type {
   MatchOutcomeHint,
 } from '@blood-bowl-tracker/api-contract';
 import { MatchOutcomesService } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import type { TpMatchContext } from './tp-match-context.service';
 
 /** Options for {@link TpMatchOutcomeService.resolveOutcome}. */
@@ -23,8 +25,8 @@ export interface ResolveTpMatchOutcomeOptions {
 export class TpMatchOutcomeService {
   constructor(
     private readonly matchOutcomes: MatchOutcomesService,
-    private readonly importResults: TpImportResultsService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly importResults: ImportResultService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /**

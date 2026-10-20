@@ -330,7 +330,7 @@ describe('BblCompetitionsImportService overrides', () => {
     mocks.listParser.extractCompetitions.mockReturnValue([
       { bblId: '33', name: 'Stunty Leeg 2' },
     ]);
-    // 6-day span -> would compute 'season' under CUP_MAX_SPAN_DAYS; the cup
+    // 6-day span -> CompetitionTypeService would say 'season'; the cup
     // override must force 'cup' and pin the Living rulebook era (100).
     mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
       matchesByCompetition({

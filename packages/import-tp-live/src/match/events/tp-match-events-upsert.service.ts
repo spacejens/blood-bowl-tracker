@@ -3,10 +3,10 @@ import {
   MatchEventsService,
   PlayersService,
 } from '@blood-bowl-tracker/game-data';
+import { UpsertRecorderService } from '@blood-bowl-tracker/import-shared';
 import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-import { TpUpsertRunnerService } from '../../tp-upsert-runner.service';
 import type { TpMatchContext } from '../tp-match-context.service';
 import { TpMatchEventsBuilderService } from './tp-match-events-builder.service';
 import type { TeamEra } from './tp-match-events-builder.types';
@@ -28,7 +28,7 @@ export class TpMatchEventsUpsertService {
     private readonly eventsCorrelation: TpMatchEventsCorrelationService,
     private readonly players: PlayersService,
     private readonly matchEvents: MatchEventsService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /**

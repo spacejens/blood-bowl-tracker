@@ -1,14 +1,16 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import type { Player } from '@blood-bowl-tracker/db';
 import { PlayersService } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import type { TpRosterPlayer } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { TpImportResultsService } from '../../tp-import-results.service';
-import { TpUpsertRunnerService } from '../../tp-upsert-runner.service';
 import {
   rosterContext,
   rosterPlayer,
@@ -79,8 +81,8 @@ describe('TpRosterPlayersImportService', () => {
       providers: [
         TpRosterPlayersImportService,
         TpPlayerCharacteristicsBuilderService,
-        TpImportResultsService,
-        TpUpsertRunnerService,
+        ImportResultService,
+        UpsertRecorderService,
         { provide: TpPlayerPositionService, useValue: mocks.positions },
         { provide: PlayersService, useValue: mocks.players },
         {

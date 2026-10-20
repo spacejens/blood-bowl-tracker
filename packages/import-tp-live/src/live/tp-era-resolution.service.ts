@@ -4,11 +4,12 @@ import {
   ExternalSystemsService,
   RacesService,
 } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import type { TpRoster } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
-
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 
 /** Options for {@link TpEraResolutionService.resolveEra}. */
 export interface ResolveEraOptions {
@@ -27,8 +28,8 @@ export class TpEraResolutionService {
     private readonly externalSystems: ExternalSystemsService,
     private readonly eras: ErasService,
     private readonly races: RacesService,
-    private readonly importResults: TpImportResultsService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly importResults: ImportResultService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /**

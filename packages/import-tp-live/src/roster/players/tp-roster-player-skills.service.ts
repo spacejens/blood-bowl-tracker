@@ -5,6 +5,10 @@ import type {
   TpImportedPlayer,
 } from '@blood-bowl-tracker/api-contract';
 import { PlayerSkillsService } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import type {
   TpPlayerSkillRef,
   TpPlayerSkills,
@@ -16,8 +20,6 @@ import { Injectable } from '@nestjs/common';
 import { TpKeywordTargetDecoderService } from '../../official-teams/tp-keyword-target-decoder.service';
 import type { TpOfficialKeywordCatalog } from '../../official-teams/tp-official-keyword-catalog.service';
 import { TpOfficialKeywordCatalogService } from '../../official-teams/tp-official-keyword-catalog.service';
-import { TpImportResultsService } from '../../tp-import-results.service';
-import { TpUpsertRunnerService } from '../../tp-upsert-runner.service';
 import type { TpRosterContext } from '../tp-roster-context.service';
 import type { TpResolvedSkill } from './tp-roster-skill-ids.service';
 import { TpRosterSkillIdsService } from './tp-roster-skill-ids.service';
@@ -76,8 +78,8 @@ export class TpRosterPlayerSkillsService {
     private readonly keywordCatalog: TpOfficialKeywordCatalogService,
     private readonly keywordTargets: TpKeywordTargetDecoderService,
     private readonly playerSkills: PlayerSkillsService,
-    private readonly importResults: TpImportResultsService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly importResults: ImportResultService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /**

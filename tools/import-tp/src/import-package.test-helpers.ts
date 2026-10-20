@@ -14,7 +14,7 @@ import { EraDataConfigService } from './eras/era-data-config.service';
  * was given. That method is a pure identity field copy with no branching or
  * formatting, so there is no algorithm here that can drift out of sync with
  * the real ImportResultService (see
- * `packages/import/src/import-result.service.ts`) — it is exempt from the
+ * `packages/import-shared/src/import-result.service.ts`) — it is exempt from the
  * canned-response rule. `result`, which derives `success`, is deliberately
  * *not* stubbed here: each spec cans its own ImportResult and asserts what it
  * passed to `result`.
@@ -33,7 +33,7 @@ export function mockImportResultService(): MockProxy<ImportResultService> {
  * the name they were given. Those are pure identity passthroughs with nothing
  * computed or formatted, so there is no algorithm to drift out of sync with
  * the real NameExternalIdService (see
- * `packages/import/src/name-external-id.service.ts`) — they are exempt from
+ * `packages/import-shared/src/name-external-id.service.ts`) — they are exempt from
  * the canned-response rule. `forPosition`, which concatenates a
  * `"raceName: positionName"` template, is deliberately *not* stubbed here:
  * the one spec that needs it cans a value per test.

@@ -90,7 +90,9 @@ external id. For every competition other than those covered by an era's
 is inferred from its match-date span:
 `(latest - earliest) <= 3 days` => `cup`, else `season`. Validated against the
 71 non-overridden competitions in the reference dataset; the nearest genuine
-cup spans at most 2 days, so 3 days has wide margin.
+cup spans at most 2 days, so 3 days has wide margin. The rule lives in
+`packages/import-shared`'s `CompetitionTypeService`, which
+`packages/import-tp-live` classifies TP competitions by too.
 
 Note on the `sr` page's "Team trophy" table: `default.asp?p=sr&s=<id>` carries a
 `table.tblist` whose header `<th>` reads "Team trophy" (present on 55 of the 73

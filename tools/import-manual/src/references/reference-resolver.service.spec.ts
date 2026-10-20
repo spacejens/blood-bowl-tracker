@@ -89,7 +89,7 @@ const other = { system: 'BBL', id: 'id:48' };
 /**
  * The canned ImportError the mocked ImportResultService.error returns.
  * ImportResultService's own message-formatting is covered by
- * packages/import/src/import-result.service.spec.ts; these tests assert what
+ * packages/import-shared/src/import-result.service.spec.ts; these tests assert what
  * ReferenceResolverService passes to error() (via `toHaveBeenCalledWith`) and
  * that it pushes error()'s return value onto the errors array.
  */

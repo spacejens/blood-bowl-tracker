@@ -1,3 +1,4 @@
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
@@ -6,7 +7,6 @@ import {
   BatchBufferService,
   DEFAULT_BATCH_CHUNK_SIZE,
 } from './batch-buffer.service';
-import { ImportResultService } from './import-result.service';
 import type { ImportError } from './types';
 
 interface TestItem {

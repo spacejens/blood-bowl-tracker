@@ -29,7 +29,7 @@ import { PositionPageParser } from './position-page-parser';
 /**
  * The canned ImportResult the mocked ImportResultService.result returns.
  * ImportResultService's own `success: errors.length === 0` derivation is
- * covered by packages/import/src/import-result.service.spec.ts; these specs
+ * covered by packages/import-shared/src/import-result.service.spec.ts; these specs
  * assert what the service under test *passes to* result() (via
  * `resultArgs()`) and that it returns result()'s value unchanged. The
  * deliberately impossible field values make any leftover assertion that reads

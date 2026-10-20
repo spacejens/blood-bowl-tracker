@@ -3,12 +3,14 @@ import type {
   TeamEra,
   TpRosterImportResult,
 } from '@blood-bowl-tracker/api-contract';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import type { TpRoster, TpRosterPlayer } from '@blood-bowl-tracker/parse-tp';
 import { RosterParserService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { TpRosterPlayerSkillsService } from './players/tp-roster-player-skills.service';
 import { TpRosterPlayersImportService } from './players/tp-roster-players-import.service';
 import { TpTeamUpsertService } from './team/tp-team-upsert.service';
@@ -81,8 +83,8 @@ export class TpRosterImportService {
     private readonly teamUpsert: TpTeamUpsertService,
     private readonly playersImport: TpRosterPlayersImportService,
     private readonly playerSkills: TpRosterPlayerSkillsService,
-    private readonly importResults: TpImportResultsService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly importResults: ImportResultService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /** {@link importRoster}, for roster JSON not parsed yet. */

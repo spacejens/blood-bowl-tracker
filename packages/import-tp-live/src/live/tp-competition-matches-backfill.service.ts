@@ -2,11 +2,11 @@ import type {
   ImportError,
   ImportResult,
 } from '@blood-bowl-tracker/api-contract';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import { TpBlockedError } from '@blood-bowl-tracker/scrape-tp';
 import { Injectable } from '@nestjs/common';
 
-import { TpImportResultsService } from '../tp-import-results.service';
 import type { TpBracket } from './tp-bracket-fetch.service';
 import type { TpMatchDataImportResult } from './tp-match-data-import.service';
 import { TpMatchDataImportService } from './tp-match-data-import.service';
@@ -36,7 +36,7 @@ export interface BackfillMatchesOptions {
 export class TpCompetitionMatchesBackfillService {
   constructor(
     private readonly matchData: TpMatchDataImportService,
-    private readonly importResults: TpImportResultsService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**

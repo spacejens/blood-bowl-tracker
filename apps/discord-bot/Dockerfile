@@ -15,6 +15,7 @@ COPY packages/discord-client/package.json packages/discord-client/
 COPY packages/domain-enums/package.json packages/domain-enums/
 COPY packages/game-data/package.json packages/game-data/
 COPY packages/import/package.json packages/import/
+COPY packages/import-shared/package.json packages/import-shared/
 COPY packages/import-tp-live/package.json packages/import-tp-live/
 COPY packages/parse-tp/package.json packages/parse-tp/
 COPY packages/scrape-tp/package.json packages/scrape-tp/
@@ -44,6 +45,7 @@ COPY packages/discord-client/package.json packages/discord-client/
 COPY packages/domain-enums/package.json packages/domain-enums/
 COPY packages/game-data/package.json packages/game-data/
 COPY packages/import/package.json packages/import/
+COPY packages/import-shared/package.json packages/import-shared/
 COPY packages/import-tp-live/package.json packages/import-tp-live/
 COPY packages/parse-tp/package.json packages/parse-tp/
 COPY packages/scrape-tp/package.json packages/scrape-tp/
@@ -62,6 +64,7 @@ COPY --from=builder /build/packages/discord-bot-usage/dist ./packages/discord-bo
 COPY --from=builder /build/packages/discord-client/dist ./packages/discord-client/dist
 COPY --from=builder /build/packages/domain-enums/dist ./packages/domain-enums/dist
 COPY --from=builder /build/packages/game-data/dist ./packages/game-data/dist
+COPY --from=builder /build/packages/import-shared/dist ./packages/import-shared/dist
 COPY --from=builder /build/packages/import-tp-live/dist ./packages/import-tp-live/dist
 COPY --from=builder /build/packages/parse-tp/dist ./packages/parse-tp/dist
 COPY --from=builder /build/packages/scrape-tp/dist ./packages/scrape-tp/dist

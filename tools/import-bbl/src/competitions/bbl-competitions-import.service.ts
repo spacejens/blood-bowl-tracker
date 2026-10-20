@@ -6,6 +6,7 @@ import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   BBL_EXTERNAL_SYSTEM_NAME,
   CompetitionsImportService,
+  CompetitionTypeService,
   ExternalSystemBootstrapService,
   ImportResultService,
   MatchDateRangeService,
@@ -28,9 +29,6 @@ import {
 
 const PLAYED_LIST_PAGE_TYPE = 'se';
 const STANDINGS_LIST_PAGE_TYPE = 'sr';
-// (latest - earliest) <= 3 days => cup, else season. Validated against all 74
-// competitions in the mirror (see the competitions design doc); do not change.
-const CUP_MAX_SPAN_DAYS = 3;
 
 /**
  * One imported competition as this service reports it: the upsert payload it
@@ -90,6 +88,7 @@ export class BblCompetitionsImportService {
     private readonly pageParseError: PageParseErrorService,
     private readonly dateRange: MatchDateRangeService,
     private readonly lookup: ReferenceLookupService,
+    private readonly competitionType: CompetitionTypeService,
   ) {}
 
   /**
@@ -337,7 +336,7 @@ export class BblCompetitionsImportService {
     }
 
     const range = this.dateRange.computeRange(dates);
-    const type = range.spanDays <= CUP_MAX_SPAN_DAYS ? 'cup' : 'season';
+    const type = this.competitionType.fromSpanDays(range.spanDays);
 
     const { eraName, eraId } = this.resolveEraId(
       range.earliestDate,

@@ -12,14 +12,12 @@ import {
   SkillsModule,
   TeamsModule,
 } from '@blood-bowl-tracker/game-data';
+import { ImportSharedModule } from '@blood-bowl-tracker/import-shared';
 import { ParseTpModule } from '@blood-bowl-tracker/parse-tp';
 import { Module } from '@nestjs/common';
 
 import { TpKeywordTargetDecoderService } from '../official-teams/tp-keyword-target-decoder.service';
 import { TpOfficialKeywordCatalogService } from '../official-teams/tp-official-keyword-catalog.service';
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpNameExternalIdService } from '../tp-name-external-id.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { TpCharacteristicIncreasesService } from './players/tp-characteristic-increases.service';
 import { TpLastingInjuryBuilderService } from './players/tp-lasting-injury-builder.service';
 import { TpMercenaryCharacteristicsService } from './players/tp-mercenary-characteristics.service';
@@ -43,6 +41,7 @@ import { TpRosterImportService } from './tp-roster-import.service';
 @Module({
   imports: [
     ParseTpModule,
+    ImportSharedModule,
     CoachesModule,
     ErasModule,
     ExternalSystemsModule,
@@ -70,14 +69,7 @@ import { TpRosterImportService } from './tp-roster-import.service';
     TpRosterSkillIdsService,
     TpOfficialKeywordCatalogService,
     TpKeywordTargetDecoderService,
-    TpNameExternalIdService,
-    TpImportResultsService,
-    TpUpsertRunnerService,
   ],
-  exports: [
-    TpRosterImportService,
-    TpImportResultsService,
-    TpUpsertRunnerService,
-  ],
+  exports: [TpRosterImportService],
 })
 export class TpRosterModule {}

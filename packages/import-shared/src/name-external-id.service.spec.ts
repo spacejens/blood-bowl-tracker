@@ -17,6 +17,10 @@ describe('NameExternalIdService', () => {
     expect(service.forCoach('Ada Lovelace')).toBe('Ada Lovelace');
   });
 
+  it('returns the bare name for a competition group', () => {
+    expect(service.forCompetitionGroup('Stunty Leeg')).toBe('Stunty Leeg');
+  });
+
   it('returns the bare name for an era', () => {
     expect(service.forEra('Season 12')).toBe('Season 12');
   });

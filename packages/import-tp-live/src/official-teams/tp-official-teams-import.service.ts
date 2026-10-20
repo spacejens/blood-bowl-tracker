@@ -3,10 +3,10 @@ import type {
   TpOfficialTeamsImportResult,
   TpSkillMasterName,
 } from '@blood-bowl-tracker/api-contract';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type { TpOfficialRace } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-import { TpImportResultsService } from '../tp-import-results.service';
 import { TpOfficialCharacteristicsSyncService } from './tp-official-characteristics-sync.service';
 import { TpOfficialKeywordCatalogService } from './tp-official-keyword-catalog.service';
 import { TpOfficialKeywordsSyncService } from './tp-official-keywords-sync.service';
@@ -48,7 +48,7 @@ export class TpOfficialTeamsImportService {
     private readonly keywordsSync: TpOfficialKeywordsSyncService,
     private readonly skillRefs: TpOfficialSkillRefsService,
     private readonly startingSkills: TpOfficialStartingSkillsService,
-    private readonly importResults: TpImportResultsService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**

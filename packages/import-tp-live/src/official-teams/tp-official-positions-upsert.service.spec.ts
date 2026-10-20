@@ -1,14 +1,16 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import type { Position } from '@blood-bowl-tracker/db';
 import { PositionsService } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  NameExternalIdService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpNameExternalIdService } from '../tp-name-external-id.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { TpOfficialPositionsUpsertService } from './tp-official-positions-upsert.service';
 import type { TpOfficialRaceRef } from './tp-official-races-upsert.service';
 import {
@@ -41,9 +43,9 @@ describe('TpOfficialPositionsUpsertService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpOfficialPositionsUpsertService,
-        TpNameExternalIdService,
-        TpImportResultsService,
-        TpUpsertRunnerService,
+        NameExternalIdService,
+        ImportResultService,
+        UpsertRecorderService,
         { provide: PositionsService, useValue: positions },
       ],
     }).compile();
