@@ -5,12 +5,12 @@ A [player](../../glossary.md#player) is an individual on a [team era](../team-er
 - A player has a name.
 - A player belongs to exactly one [team era](../team-eras/index.md), and therefore to exactly one [team](../teams/index.md) and exactly one [era](../eras/index.md).
 - A player has exactly one [position](../positions/index.md), which must be
-  available for the team era's [race era](../positions/index.md) — i.e. the
+  available for the team era's [race era](../../glossary.md#race-era) — i.e. the
   position must have a relation to that race era. (This is still aspirational:
   no validation code enforces it yet.)
-- A player has a set of **current lasting injuries**: whether they must miss
+- A player has a **current [lasting injury](../../glossary.md#lasting-injury) state**: whether they must miss
   their next game, how many niggling injuries they carry, and how many
-  reductions each of their five characteristics
+  reductions each of their five [characteristics](../../glossary.md#characteristics)
   currently sits under. This is live state, not history: newer
   [rules sets](../rules-sets/index.md) let these heal between
   [competitions](../competitions/index.md), so what a player has ever suffered

@@ -1,7 +1,6 @@
-import type { PgColumn, PgTable } from '@blood-bowl-tracker/db';
+import type { DbOrTx, PgColumn, PgTable } from '@blood-bowl-tracker/db';
 import { and, eq, or } from '@blood-bowl-tracker/db';
 
-import type { DbOrTx } from './db-or-tx';
 import type { ExternalIdPair } from './sync-external-ids';
 
 /**

@@ -1,7 +1,6 @@
 import type { ResolveResult } from '@blood-bowl-tracker/api-contract';
-import type { PgColumn, PgTable } from '@blood-bowl-tracker/db';
+import type { DbOrTx, PgColumn, PgTable } from '@blood-bowl-tracker/db';
 
-import type { DbOrTx } from './db-or-tx';
 import { resolveExistingByExternalIds } from './resolve-existing-by-external-ids';
 import type { ExternalIdPair } from './sync-external-ids';
 

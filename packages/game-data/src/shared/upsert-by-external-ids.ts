@@ -1,13 +1,19 @@
 import type {
   Db,
+  DbOrTx,
   InferInsertModel,
   InferSelectModel,
   PgColumn,
   PgTable,
 } from '@blood-bowl-tracker/db';
-import { eq, getTableColumns, getTableName } from '@blood-bowl-tracker/db';
+import {
+  asBaseTable,
+  eq,
+  getTableColumns,
+  getTableName,
+  isUniqueViolationOn,
+} from '@blood-bowl-tracker/db';
 
-import type { DbOrTx } from './db-or-tx';
 import { MissingRequiredFieldError } from './missing-required-field-error';
 import { resolveExistingByExternalIds } from './resolve-existing-by-external-ids';
 import type { ExternalIdPair } from './sync-external-ids';
@@ -123,83 +129,8 @@ function stripUndefined(
   );
 }
 
-/** Postgres' SQLSTATE for a unique-constraint violation. */
-const UNIQUE_VIOLATION = '23505';
-
 /** One initial attempt plus two retries. */
 const MAX_UPSERT_ATTEMPTS = 3;
-
-/**
- * How many `.cause` links to walk while unwrapping a caught error before
- * giving up. drizzle-orm's pg-core session wraps exactly one level in
- * practice (see below), so 3 is generous headroom rather than a value tuned
- * to a specific stack.
- */
-const MAX_CAUSE_UNWRAP_DEPTH = 3;
-
-/**
- * True only for the specific violation a lost external-id race raises: a 23505
- * on the entity's own external-id join table.
- *
- * The caught value never carries the fields to test. drizzle-orm wraps every
- * query failure in a `DrizzleQueryError` that sets `cause` but copies neither
- * `code` nor `table_name`, so the `postgres` driver's `PostgresError` is only
- * reachable by walking `.cause` — bounded here defensively.
- *
- * Matching is on `table_name`, not the constraint name: Postgres truncates
- * identifiers to 63 bytes (`NAMEDATALEN`), and
- * `competition_groups_external_ids`' full constraint name is 69, so a
- * hand-reconstructed name would silently never match. Every external-id join
- * table has exactly one unique constraint besides its primary key, so the
- * table name identifies the race unambiguously and survives any rename.
- *
- * The SQLSTATE check stays alongside it so a future NOT NULL violation on the
- * same table is not retried three times and misreported. The primary key is
- * excluded for the same reason: a 23505 on `<table>_pkey` (a desynced
- * sequence, say) is an infrastructure bug, not this race. Comparing
- * `constraint_name` is safe there specifically because `<table>_pkey` is
- * always well under 63 bytes.
- */
-function isExternalIdUniqueViolation(
-  error: unknown,
-  tableName: string,
-): boolean {
-  let candidate: unknown = error;
-  for (let depth = 0; depth < MAX_CAUSE_UNWRAP_DEPTH; depth++) {
-    const typed = candidate as
-      | {
-          code?: unknown;
-          table_name?: unknown;
-          constraint_name?: unknown;
-          cause?: unknown;
-        }
-      | undefined;
-    if (
-      typed?.code === UNIQUE_VIOLATION &&
-      typed.table_name === tableName &&
-      typed.constraint_name !== `${tableName}_pkey`
-    ) {
-      return true;
-    }
-    if (typeof typed !== 'object' || typed === null || !('cause' in typed)) {
-      return false;
-    }
-    candidate = typed.cause;
-  }
-  return false;
-}
-
-/**
- * Widens a generic `TEntityTable extends PgTable` to the concrete `PgTable`
- * base type. `.from()`'s overload resolution can't evaluate the deferred
- * conditional type it uses to reject data-modifying-statement subqueries
- * while the argument is still a naked generic type parameter; passing it
- * through this identity function first resolves the parameter to a concrete
- * `PgTable`, which the overload accepts structurally, no cast required.
- */
-function asBaseTable(table: PgTable): PgTable {
-  return table;
-}
 
 /**
  * Property names of every column the table requires on INSERT that `supplied`
@@ -368,7 +299,9 @@ export async function upsertByExternalIds<
         async (tx) => await runUpsertAttempt(opts, tx),
       );
     } catch (error) {
-      if (!isExternalIdUniqueViolation(error, externalIdTableName)) {
+      // Every external-id join table has exactly one unique constraint
+      // besides its primary key, so a violation on it is the lost race.
+      if (!isUniqueViolationOn(error, externalIdTableName)) {
         throw error;
       }
       // A concurrent call committed this external id first, so this attempt's

@@ -1,4 +1,4 @@
-import type { Db } from '@blood-bowl-tracker/db';
+import type { Db, DbOrTx } from '@blood-bowl-tracker/db';
 import {
   DB,
   interactionEventParameters,
@@ -6,7 +6,6 @@ import {
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 
-import type { DbOrTx } from './db-or-tx';
 import type { RecordInteractionInput } from './record-interaction-input';
 import { UsageEntityUpsertService } from './usage-entity-upsert.service';
 

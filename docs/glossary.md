@@ -22,6 +22,12 @@ See [game-concepts/coaches](game-concepts/coaches/index.md).
 
 A player who has been seriously injured or killed during a match, removing them from the current game and potentially affecting future matches.
 
+### Characteristics
+
+A [position](#position)'s or [player](#player)'s five stat values: MA, ST, AG, PA and AV. A position's characteristics are recorded per [rules set](#rules-set); a player's own values can move away from them through advancement or a [lasting injury](#lasting-injury).
+
+See [game-concepts/players](game-concepts/players/index.md).
+
 ### Competition
 
 An organized event in which [teams](#team) compete against each other within a [league](#league). [Seasons](#season) and [cups](#cup) are the two subtypes of competition. A league consists of multiple competitions.
@@ -100,6 +106,12 @@ Whether a [keyword](#keyword) names a creature (`species`), a role
 
 See [game-concepts/keywords](game-concepts/keywords/index.md).
 
+### Lasting Injury
+
+A [player](#player)'s current, outstanding injury state: whether they must miss their next [match](#match), how many niggling injuries they carry, and how many reductions each of their [characteristics](#characteristics) sits under. It is live state that newer [rules sets](#rules-set) allow to heal between [competitions](#competition), distinct from the history of injuries recorded as [match events](#match-event).
+
+See [game-concepts/players](game-concepts/players/index.md).
+
 ### League
 
 An organized group of [teams](#team) that play [matches](#match) against each other over multiple [competitions](#competition). A league may be divided into [eras](#era) when the [rules set](#rules-set) changes.
@@ -145,6 +157,12 @@ See [game-concepts/positions](game-concepts/positions/index.md).
 The species or faction a [team](#team) belongs to (e.g. Humans, Orcs, Elves). Race determines which [positions](#position) are available on the [roster](#roster) and the team's overall play style. A race's availability is tracked per [era](#era).
 
 See [game-concepts/races](game-concepts/races/index.md).
+
+### Race Era
+
+A [race](#race) within a specific [era](#era). [Positions](#position) are made available per race era rather than to a race directly, so availability can change from one era to the next.
+
+See [game-concepts/positions](game-concepts/positions/index.md).
 
 ### Regeneration
 

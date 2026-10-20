@@ -95,7 +95,10 @@ five cases applies:
    now." Forcing these into services means either losing the generic's
    compile-time type safety or multiplying into one boilerplate subclass per
    entity, for no runtime benefit. Reference: `packages/game-data/src/shared/count-all.ts`
-   and the other `packages/game-data/src/shared/*.ts` helpers.
+   and the other `packages/game-data/src/shared/*.ts` helpers, plus the shared
+   building blocks those helpers use from `packages/db`: `isUniqueViolationOn`
+   (`packages/db/src/unique-violation.ts`, the pure 23505 classifier for their
+   race recovery) and `asBaseTable` (`packages/db/src/as-base-table.ts`).
 
 2. **Pure assembly wrapped by a factory service.** A function that declaratively
    builds a data structure — not one that performs application logic — and is
