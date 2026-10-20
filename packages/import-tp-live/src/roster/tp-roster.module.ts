@@ -35,8 +35,8 @@ import { TpRosterImportService } from './tp-roster-import.service';
 /**
  * Imports one TP roster straight into the database through
  * packages/game-data. packages/api-server imports it to implement
- * `tpRosters.import`; ImportTpLiveModule imports it for the live import,
- * which also syncs the roster players' skills (reading the curated keyword
+ * `tpRosters.import`; ImportTpLiveModule imports it for the live import.
+ * Both sync the roster players' skills (reading the curated keyword
  * catalogue for Hatred/Animosity targets). The importing app provides
  * packages/db's `DB`.
  */

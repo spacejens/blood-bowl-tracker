@@ -61,8 +61,8 @@ interface SkillRefEntry {
 }
 
 /**
- * Writes one live-imported roster's players' own skills, starting and gained
- * alike -- the live counterpart of tools/import-tp's player-skills pass. A
+ * Writes one imported roster's players' own skills, starting and gained
+ * alike, for both the live import and the bulk `tpRosters.import` path. A
  * `starting` entry is the position template's; a gained one is `random` or
  * `chosen` from TP's own `isRandom`, with `advancementOrder` its 1-based index
  * in TP's gained list (TP's presentation order, the best proxy it exposes).

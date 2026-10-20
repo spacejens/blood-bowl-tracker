@@ -26,10 +26,8 @@ export interface ImportRosterOptions {
   /**
    * The roster's raw TP JSON. When given, each roster player's own skills
    * (starting and gained) are synced once the players are imported, naming
-   * skills from the skill masters this content embeds. The live import
-   * passes it; `importRawRoster` (the bulk `tpRosters.import` path) cannot,
-   * because tools/import-tp writes player skills in its own later pass,
-   * naming them from its whole download mirror.
+   * skills from the skill masters this content embeds. The live import and
+   * `importRawRoster` (the bulk `tpRosters.import` path) both pass it.
    */
   rawContent?: unknown;
   /**
@@ -103,6 +101,7 @@ export class TpRosterImportService {
     }
     const { teamEra: _teamEra, ...result } = await this.importRoster({
       roster,
+      rawContent: content,
       ...options,
     });
     return result;
