@@ -1,4 +1,5 @@
 import type { TpOfficialTeamsImportResult } from '@blood-bowl-tracker/api-contract';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type { TpOfficialRace } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import {
@@ -12,7 +13,6 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { TpOfficialTeamsImportService } from '../official-teams/tp-official-teams-import.service';
-import { TpImportResultsService } from '../tp-import-results.service';
 import { TpLiveOfficialTeamsImportService } from './tp-live-official-teams-import.service';
 import { TpOfficialTeamsFetchService } from './tp-official-teams-fetch.service';
 
@@ -49,7 +49,7 @@ describe('TpLiveOfficialTeamsImportService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpLiveOfficialTeamsImportService,
-        TpImportResultsService,
+        ImportResultService,
         TpOfficialTeamsPathsService,
         { provide: TpFetcherService, useValue: fetcher },
         { provide: TpOfficialTeamsFetchService, useValue: officialTeamsFetch },

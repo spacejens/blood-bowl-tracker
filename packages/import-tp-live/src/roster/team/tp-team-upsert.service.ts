@@ -13,12 +13,14 @@ import {
   RacesService,
   TeamsService,
 } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  NameExternalIdService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import type { TpRoster } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-import { TpImportResultsService } from '../../tp-import-results.service';
-import { TpNameExternalIdService } from '../../tp-name-external-id.service';
-import { TpUpsertRunnerService } from '../../tp-upsert-runner.service';
 import type { TpRosterContext } from '../tp-roster-context.service';
 
 /** Options for {@link TpTeamUpsertService.upsertTeam}. */
@@ -34,9 +36,9 @@ export class TpTeamUpsertService {
     private readonly races: RacesService,
     private readonly coaches: CoachesService,
     private readonly teams: TeamsService,
-    private readonly nameExternalId: TpNameExternalIdService,
-    private readonly importResults: TpImportResultsService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly nameExternalId: NameExternalIdService,
+    private readonly importResults: ImportResultService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /**

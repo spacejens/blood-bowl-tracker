@@ -4,11 +4,13 @@ import {
   SkillRulesSetsService,
   SkillsService,
 } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  NameExternalIdService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import { Injectable } from '@nestjs/common';
 
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpNameExternalIdService } from '../tp-name-external-id.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import type { TpOfficialBatchGroup } from './tp-official-batch-sync.service';
 import { TpOfficialBatchSyncService } from './tp-official-batch-sync.service';
 import type { TpStartingSkillRef } from './tp-official-skill-refs.service';
@@ -54,9 +56,9 @@ export class TpOfficialStartingSkillsService {
     private readonly skillRulesSets: SkillRulesSetsService,
     private readonly positionSkills: PositionRulesSetSkillsService,
     private readonly batchSync: TpOfficialBatchSyncService,
-    private readonly nameExternalId: TpNameExternalIdService,
-    private readonly importResults: TpImportResultsService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly nameExternalId: NameExternalIdService,
+    private readonly importResults: ImportResultService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /**

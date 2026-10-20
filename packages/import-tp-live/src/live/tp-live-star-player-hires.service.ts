@@ -11,15 +11,16 @@ import {
   PositionRulesSetsService,
   PositionsService,
 } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  NameExternalIdService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import type {
   TpInducedStarPlayer,
   TpMatch,
 } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
-
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpNameExternalIdService } from '../tp-name-external-id.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 
 /** Options for {@link TpLiveStarPlayerHiresService.importHires}. */
 export interface ImportStarPlayerHiresOptions {
@@ -72,9 +73,9 @@ export class TpLiveStarPlayerHiresService {
     private readonly positions: PositionsService,
     private readonly positionRulesSets: PositionRulesSetsService,
     private readonly players: PlayersService,
-    private readonly nameExternalId: TpNameExternalIdService,
-    private readonly importResults: TpImportResultsService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly nameExternalId: NameExternalIdService,
+    private readonly importResults: ImportResultService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /**

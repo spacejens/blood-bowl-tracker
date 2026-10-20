@@ -5,6 +5,7 @@ import type {
 } from '@blood-bowl-tracker/import';
 import {
   CompetitionsImportService,
+  CompetitionTypeService,
   ExternalSystemBootstrapService,
   ImportResultService,
   MatchDateRangeService,
@@ -27,7 +28,7 @@ import { CompetitionListPageParser } from './competition-list-page-parser';
 /**
  * The canned ImportResult the mocked ImportResultService.result returns.
  * ImportResultService's own `success: errors.length === 0` derivation is
- * covered by packages/import/src/import-result.service.spec.ts; specs assert
+ * covered by packages/import-shared/src/import-result.service.spec.ts; specs assert
  * what the service under test *passes to* result() (via `resultArgs()`) and
  * that it returns result()'s value unchanged. The deliberately impossible
  * field values make any leftover assertion that reads the returned object
@@ -216,6 +217,9 @@ export async function makeService(
       { provide: PageParseErrorService, useValue: pageParseError },
       { provide: MatchDateRangeService, useValue: dateRange },
       { provide: ReferenceLookupService, useValue: lookup },
+      // Pure, constructor-free cup/season rule: passed real so the specs keep
+      // asserting the actual classification of each canned span.
+      CompetitionTypeService,
     ],
   }).compile();
 

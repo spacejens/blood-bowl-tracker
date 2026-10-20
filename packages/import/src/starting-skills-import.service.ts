@@ -1,9 +1,11 @@
 import { NAME_EXTERNAL_SYSTEM } from '@blood-bowl-tracker/domain-enums';
+import {
+  ImportResultService,
+  NameExternalIdService,
+} from '@blood-bowl-tracker/import-shared';
 import { Injectable } from '@nestjs/common';
 
 import { ExternalSystemBootstrapService } from './external-system-bootstrap.service';
-import { ImportResultService } from './import-result.service';
-import { NameExternalIdService } from './name-external-id.service';
 import { PositionRulesSetSkillsImportService } from './position-rules-set-skills-import.service';
 import { SkillRulesSetsImportService } from './skill-rules-sets-import.service';
 import { SkillsImportService } from './skills-import.service';

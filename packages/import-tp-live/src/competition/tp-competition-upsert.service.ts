@@ -9,10 +9,12 @@ import {
   ErasService,
   ExternalSystemsService,
 } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import { Injectable } from '@nestjs/common';
 
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { TpCompetitionClassifierService } from './tp-competition-classifier.service';
 import { TpCompetitionSpanService } from './tp-competition-span.service';
 
@@ -118,8 +120,8 @@ export class TpCompetitionUpsertService {
     private readonly competitions: CompetitionsService,
     private readonly span: TpCompetitionSpanService,
     private readonly classifier: TpCompetitionClassifierService,
-    private readonly importResults: TpImportResultsService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly importResults: ImportResultService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /**

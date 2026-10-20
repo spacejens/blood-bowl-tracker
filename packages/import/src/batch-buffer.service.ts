@@ -1,6 +1,6 @@
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import { Injectable } from '@nestjs/common';
 
-import { ImportResultService } from './import-result.service';
 import type { ImportError } from './types';
 
 /**

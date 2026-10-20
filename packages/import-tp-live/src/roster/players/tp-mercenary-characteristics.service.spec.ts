@@ -1,12 +1,14 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import { PositionRulesSetsService } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { TpImportResultsService } from '../../tp-import-results.service';
-import { TpUpsertRunnerService } from '../../tp-upsert-runner.service';
 import type { MercenaryCurated } from './tp-mercenary-characteristics.service';
 import { TpMercenaryCharacteristicsService } from './tp-mercenary-characteristics.service';
 
@@ -40,8 +42,8 @@ describe('TpMercenaryCharacteristicsService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpMercenaryCharacteristicsService,
-        TpImportResultsService,
-        TpUpsertRunnerService,
+        ImportResultService,
+        UpsertRecorderService,
         { provide: PositionRulesSetsService, useValue: positionRulesSets },
       ],
     }).compile();

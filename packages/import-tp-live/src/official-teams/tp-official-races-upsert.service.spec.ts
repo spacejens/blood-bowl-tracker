@@ -1,13 +1,15 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import type { Race } from '@blood-bowl-tracker/db';
 import { RacesService } from '@blood-bowl-tracker/game-data';
+import {
+  NameExternalIdService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { TpNameExternalIdService } from '../tp-name-external-id.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { TpOfficialRacesUpsertService } from './tp-official-races-upsert.service';
 import {
   ERA_IDS,
@@ -32,8 +34,8 @@ describe('TpOfficialRacesUpsertService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpOfficialRacesUpsertService,
-        TpNameExternalIdService,
-        TpUpsertRunnerService,
+        NameExternalIdService,
+        UpsertRecorderService,
         { provide: RacesService, useValue: races },
       ],
     }).compile();

@@ -3,10 +3,11 @@ import type {
   ImportResult,
 } from '@blood-bowl-tracker/api-contract';
 import { MissingTrophyAwardsService } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import { Injectable } from '@nestjs/common';
-
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 
 /** Options for {@link TpExtraTrophyAwardsService.computeExtras}. */
 export interface ComputeExtraTrophyAwardsOptions {
@@ -30,8 +31,8 @@ export interface ComputeExtraTrophyAwardsOptions {
 export class TpExtraTrophyAwardsService {
   constructor(
     private readonly missingTrophyAwards: MissingTrophyAwardsService,
-    private readonly importResults: TpImportResultsService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly importResults: ImportResultService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   async computeExtras({

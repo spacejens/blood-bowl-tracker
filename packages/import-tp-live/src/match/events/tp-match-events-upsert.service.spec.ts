@@ -6,6 +6,7 @@ import {
   MatchEventsService,
   PlayersService,
 } from '@blood-bowl-tracker/game-data';
+import { UpsertRecorderService } from '@blood-bowl-tracker/import-shared';
 import type {
   TpMatchEvent,
   TpRosterPlayer,
@@ -15,7 +16,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { TpUpsertRunnerService } from '../../tp-upsert-runner.service';
 import {
   AWAY_ROSTER_ID,
   AWAY_TEAM_ERA_ID,
@@ -98,7 +98,7 @@ describe('TpMatchEventsUpsertService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpMatchEventsUpsertService,
-        TpUpsertRunnerService,
+        UpsertRecorderService,
         { provide: TpMatchEventsBuilderService, useValue: builder },
         { provide: TpMatchEventsCorrelationService, useValue: correlation },
         { provide: PlayersService, useValue: players },

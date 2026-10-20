@@ -19,6 +19,7 @@
     "@blood-bowl-tracker/api-contract": "workspace:*",
     "@blood-bowl-tracker/domain-enums": "workspace:*",
     "@blood-bowl-tracker/game-data": "workspace:*",
+    "@blood-bowl-tracker/import-shared": "workspace:*",
     "@blood-bowl-tracker/parse-tp": "workspace:*",
     "@blood-bowl-tracker/scrape-tp": "workspace:*",
     "@blood-bowl-tracker/tp-paths": "workspace:*",

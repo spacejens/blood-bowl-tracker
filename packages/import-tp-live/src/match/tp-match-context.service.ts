@@ -7,11 +7,12 @@ import {
   ExternalSystemsService,
   TeamsService,
 } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
-
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 
 /** What every write of one match import needs, resolved once up front. */
 export interface TpMatchContext {
@@ -42,8 +43,8 @@ export class TpMatchContextService {
     private readonly externalSystems: ExternalSystemsService,
     private readonly competitions: CompetitionsService,
     private readonly teams: TeamsService,
-    private readonly importResults: TpImportResultsService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly importResults: ImportResultService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /**

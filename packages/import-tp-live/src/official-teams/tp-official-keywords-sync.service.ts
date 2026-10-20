@@ -3,10 +3,12 @@ import type {
   PositionRulesSetKeywordEntry,
 } from '@blood-bowl-tracker/api-contract';
 import { PositionRulesSetKeywordsService } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import { Injectable } from '@nestjs/common';
 
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import type { TpOfficialBatchGroup } from './tp-official-batch-sync.service';
 import { TpOfficialBatchSyncService } from './tp-official-batch-sync.service';
 import type { TpOfficialKeywordCatalog } from './tp-official-keyword-catalog.service';
@@ -26,8 +28,8 @@ export class TpOfficialKeywordsSyncService {
   constructor(
     private readonly positionKeywords: PositionRulesSetKeywordsService,
     private readonly batchSync: TpOfficialBatchSyncService,
-    private readonly importResults: TpImportResultsService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly importResults: ImportResultService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /**

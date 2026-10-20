@@ -3,9 +3,9 @@ import type {
   TpOfficialPositionCharacteristics,
 } from '@blood-bowl-tracker/api-contract';
 import { PositionRulesSetsService } from '@blood-bowl-tracker/game-data';
+import { UpsertRecorderService } from '@blood-bowl-tracker/import-shared';
 import { Injectable } from '@nestjs/common';
 
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import type { TpOfficialBatchGroup } from './tp-official-batch-sync.service';
 import { TpOfficialBatchSyncService } from './tp-official-batch-sync.service';
 import type { TpOfficialPositionSlot } from './tp-official-positions-upsert.service';
@@ -30,7 +30,7 @@ export class TpOfficialCharacteristicsSyncService {
   constructor(
     private readonly positionRulesSets: PositionRulesSetsService,
     private readonly batchSync: TpOfficialBatchSyncService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /**

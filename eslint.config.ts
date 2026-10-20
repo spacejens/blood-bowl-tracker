@@ -49,6 +49,8 @@ export default tseslint.config(
             'packages/import/vitest.config.ts',
             'packages/import-tp-live/test/*.ts',
             'packages/import-tp-live/vitest.config.ts',
+            'packages/import-shared/test/*.ts',
+            'packages/import-shared/vitest.config.ts',
             'packages/parse-tp/test/*.ts',
             'packages/parse-tp/vitest.config.ts',
             'packages/read-bbl-mirror/test/*.ts',

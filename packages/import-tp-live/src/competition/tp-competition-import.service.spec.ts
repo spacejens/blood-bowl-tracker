@@ -2,13 +2,13 @@ import type {
   ImportError,
   ImportResult,
 } from '@blood-bowl-tracker/api-contract';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type { TpAward } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { TpImportResultsService } from '../tp-import-results.service';
 import {
   COMPETITION_TP_ID,
   upsertedCompetition,
@@ -48,7 +48,7 @@ describe('TpCompetitionImportService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpCompetitionImportService,
-        TpImportResultsService,
+        ImportResultService,
         { provide: TpCompetitionUpsertService, useValue: upsert },
         {
           provide: TpCompetitionParticipantsService,

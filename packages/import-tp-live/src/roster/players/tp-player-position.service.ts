@@ -4,12 +4,14 @@ import type {
 } from '@blood-bowl-tracker/api-contract';
 import { UpsertPositionSchema } from '@blood-bowl-tracker/api-contract';
 import { PositionsService } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  NameExternalIdService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import type { TpRosterPlayer } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-import { TpImportResultsService } from '../../tp-import-results.service';
-import { TpNameExternalIdService } from '../../tp-name-external-id.service';
-import { TpUpsertRunnerService } from '../../tp-upsert-runner.service';
 import type { TpRosterContext } from '../tp-roster-context.service';
 import type { MercenaryCurated } from './tp-mercenary-characteristics.service';
 import { TpMercenaryCharacteristicsService } from './tp-mercenary-characteristics.service';
@@ -42,9 +44,9 @@ export class TpPlayerPositionService {
   constructor(
     private readonly positions: PositionsService,
     private readonly mercenaryCharacteristics: TpMercenaryCharacteristicsService,
-    private readonly nameExternalId: TpNameExternalIdService,
-    private readonly importResults: TpImportResultsService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly nameExternalId: NameExternalIdService,
+    private readonly importResults: ImportResultService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /**

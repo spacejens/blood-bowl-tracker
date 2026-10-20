@@ -1,11 +1,11 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import { PositionRulesSetsService } from '@blood-bowl-tracker/game-data';
+import { UpsertRecorderService } from '@blood-bowl-tracker/import-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { TpOfficialBatchSyncService } from './tp-official-batch-sync.service';
 import { TpOfficialCharacteristicsSyncService } from './tp-official-characteristics-sync.service';
 import {
@@ -35,7 +35,7 @@ describe('TpOfficialCharacteristicsSyncService', () => {
       providers: [
         TpOfficialCharacteristicsSyncService,
         TpOfficialBatchSyncService,
-        TpUpsertRunnerService,
+        UpsertRecorderService,
         { provide: PositionRulesSetsService, useValue: positionRulesSets },
       ],
     }).compile();

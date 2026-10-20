@@ -1,10 +1,12 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import { RacesService } from '@blood-bowl-tracker/game-data';
+import {
+  NameExternalIdService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import type { TpOfficialRace } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-import { TpNameExternalIdService } from '../tp-name-external-id.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import type { TpOfficialTeamsContext } from './tp-official-teams-context.service';
 
 /** One upserted race, as the positions step needs it. */
@@ -31,8 +33,8 @@ export interface UpsertedOfficialRaces {
 export class TpOfficialRacesUpsertService {
   constructor(
     private readonly races: RacesService,
-    private readonly nameExternalId: TpNameExternalIdService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly nameExternalId: NameExternalIdService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /**
