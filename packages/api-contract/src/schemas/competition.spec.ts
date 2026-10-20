@@ -1,10 +1,7 @@
+import { COMPETITION_TYPES } from '@blood-bowl-tracker/domain-enums';
 import { describe, expect, it } from 'vitest';
 
-import {
-  COMPETITION_TYPES,
-  CompetitionSchema,
-  UpsertCompetitionSchema,
-} from './competition';
+import { CompetitionSchema, UpsertCompetitionSchema } from './competition';
 
 describe('competition schemas', () => {
   it('CompetitionSchema parses a competition with both dates set', () => {

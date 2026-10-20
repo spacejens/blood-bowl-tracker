@@ -19,8 +19,5 @@ export const UpsertExternalSystemSchema = z.object({
   category: ExternalSystemCategorySchema,
 });
 
-export type ExternalSystemCategory = z.infer<
-  typeof ExternalSystemCategorySchema
->;
 export type ExternalSystem = z.infer<typeof ExternalSystemSchema>;
 export type UpsertExternalSystem = z.infer<typeof UpsertExternalSystemSchema>;

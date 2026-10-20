@@ -1,7 +1,7 @@
+import { MATCH_CATEGORIES } from '@blood-bowl-tracker/domain-enums';
 import { describe, expect, it } from 'vitest';
 
 import {
-  MATCH_CATEGORIES,
   MatchSchema,
   ResolveMatchOutcomesSchema,
   UpsertMatchSchema,

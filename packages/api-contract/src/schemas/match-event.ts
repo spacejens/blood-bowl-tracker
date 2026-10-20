@@ -164,14 +164,5 @@ export const UpsertMatchEventSchema = z
     },
   );
 
-export type ActionType = z.infer<typeof ActionTypeSchema>;
-export type ConsequenceType = z.infer<typeof ConsequenceTypeSchema>;
-export type UnidentifiedParticipantKind = z.infer<
-  typeof UnidentifiedParticipantKindSchema
->;
-export type ConsequenceAvoidedBy = z.infer<typeof ConsequenceAvoidedBySchema>;
-export type EventType = z.infer<typeof EventTypeSchema>;
-export type WeatherType = z.infer<typeof WeatherTypeSchema>;
-export type SecretObjective = z.infer<typeof SecretObjectiveSchema>;
 export type MatchEvent = z.infer<typeof MatchEventSchema>;
 export type UpsertMatchEvent = z.infer<typeof UpsertMatchEventSchema>;
