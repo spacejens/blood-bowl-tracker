@@ -6,9 +6,11 @@ import {
   externalSystems,
   positionExternalIds,
 } from '@blood-bowl-tracker/db';
+import {
+  BBL_EXTERNAL_SYSTEM_NAME,
+  TP_EXTERNAL_SYSTEM_NAME,
+} from '@blood-bowl-tracker/review-harness';
 import { Inject, Injectable } from '@nestjs/common';
-
-import { StarPlayerReviewConfigService } from '../config/review-star-player-config.service';
 
 /** One external id row as the report shows it. */
 export interface StarPlayerExternalIdRow {
@@ -37,10 +39,7 @@ const NAME_SYSTEM = 'Name';
 export class StarPlayerExternalIdsService {
   private readonly cache = new Map<number, StarPlayerExternalIdRow[]>();
 
-  constructor(
-    @Inject(DB) private readonly db: Db,
-    private readonly config: StarPlayerReviewConfigService,
-  ) {}
+  constructor(@Inject(DB) private readonly db: Db) {}
 
   /** Every external id the star carries, with its system name. */
   async allForPosition(positionId: number): Promise<StarPlayerExternalIdRow[]> {
@@ -68,8 +67,8 @@ export class StarPlayerExternalIdsService {
   async forPosition(positionId: number): Promise<StarPlayerExternalIdSet> {
     const rows = await this.allForPosition(positionId);
     return {
-      bbl: this.idsOf(rows, this.config.getExternalSystemName('bbl')),
-      tp: this.idsOf(rows, this.config.getExternalSystemName('tp')),
+      bbl: this.idsOf(rows, BBL_EXTERNAL_SYSTEM_NAME),
+      tp: this.idsOf(rows, TP_EXTERNAL_SYSTEM_NAME),
       name: this.idsOf(rows, NAME_SYSTEM),
     };
   }

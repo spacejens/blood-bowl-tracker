@@ -1,39 +1,33 @@
 import { DB } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import {
+  BBL_EXTERNAL_SYSTEM_NAME,
+  TP_EXTERNAL_SYSTEM_NAME,
+} from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
-import { mock } from 'vitest-mock-extended';
 
-import { RaceReviewConfigService } from '../config/review-race-config.service';
 import { RaceExternalIdsService } from './race-external-ids.service';
 
 async function makeService(
   dbResult: MockDbResult,
 ): Promise<RaceExternalIdsService> {
-  const config = mock<RaceReviewConfigService>();
-  config.getExternalSystemName.mockImplementation((source) =>
-    source === 'bbl' ? 'tloeg.bbleague.se' : 'tourplay.net',
-  );
   const moduleRef = await Test.createTestingModule({
-    providers: [
-      RaceExternalIdsService,
-      { provide: DB, useValue: dbResult.db },
-      { provide: RaceReviewConfigService, useValue: config },
-    ],
+    providers: [RaceExternalIdsService, { provide: DB, useValue: dbResult.db }],
   }).compile();
   return moduleRef.get(RaceExternalIdsService);
 }
 
 const ROWS = [
-  { systemName: 'tloeg.bbleague.se', externalId: '5' },
-  { systemName: 'tourplay.net', externalId: 'Dwarf' },
-  { systemName: 'tourplay.net', externalId: 'Dwarf_BB2025' },
+  { systemName: BBL_EXTERNAL_SYSTEM_NAME, externalId: '5' },
+  { systemName: TP_EXTERNAL_SYSTEM_NAME, externalId: 'Dwarf' },
+  { systemName: TP_EXTERNAL_SYSTEM_NAME, externalId: 'Dwarf_BB2025' },
   { systemName: 'Name', externalId: 'Dwarf Team' },
 ];
 
 describe('RaceExternalIdsService', () => {
-  it("buckets a race's external ids by configured source", async () => {
+  it("buckets a race's external ids by source", async () => {
     const service = await makeService(mockDb(ROWS));
 
     expect(await service.forRace(7)).toEqual({

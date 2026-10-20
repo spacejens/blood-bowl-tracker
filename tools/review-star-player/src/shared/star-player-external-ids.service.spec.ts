@@ -1,34 +1,31 @@
 import { DB } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb, PgDialect, SQL } from '@blood-bowl-tracker/db/test-helpers';
+import {
+  BBL_EXTERNAL_SYSTEM_NAME,
+  TP_EXTERNAL_SYSTEM_NAME,
+} from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
-import { mock } from 'vitest-mock-extended';
 
-import { StarPlayerReviewConfigService } from '../config/review-star-player-config.service';
 import { StarPlayerExternalIdsService } from './star-player-external-ids.service';
 
 async function makeService(
   dbResult: MockDbResult,
 ): Promise<StarPlayerExternalIdsService> {
-  const config = mock<StarPlayerReviewConfigService>();
-  config.getExternalSystemName.mockImplementation((source) =>
-    source === 'bbl' ? 'tloeg.bbleague.se' : 'tourplay.net',
-  );
   const moduleRef = await Test.createTestingModule({
     providers: [
       StarPlayerExternalIdsService,
       { provide: DB, useValue: dbResult.db },
-      { provide: StarPlayerReviewConfigService, useValue: config },
     ],
   }).compile();
   return moduleRef.get(StarPlayerExternalIdsService);
 }
 
 const ROWS = [
-  { systemName: 'tloeg.bbleague.se', externalId: '126-4' },
-  { systemName: 'tloeg.bbleague.se', externalId: '126-17' },
-  { systemName: 'tourplay.net', externalId: 'Eldril Sidewinder' },
+  { systemName: BBL_EXTERNAL_SYSTEM_NAME, externalId: '126-4' },
+  { systemName: BBL_EXTERNAL_SYSTEM_NAME, externalId: '126-17' },
+  { systemName: TP_EXTERNAL_SYSTEM_NAME, externalId: 'Eldril Sidewinder' },
   { systemName: 'Name', externalId: 'Eldril Sidewinder' },
 ];
 
@@ -77,7 +74,7 @@ describe('StarPlayerExternalIdsService', () => {
 
   it('ignores a BBL id with no race half', async () => {
     const service = await makeService(
-      mockDb([{ systemName: 'tloeg.bbleague.se', externalId: '126' }]),
+      mockDb([{ systemName: BBL_EXTERNAL_SYSTEM_NAME, externalId: '126' }]),
     );
 
     expect(await service.bblTypIdsFor(5)).toEqual([]);

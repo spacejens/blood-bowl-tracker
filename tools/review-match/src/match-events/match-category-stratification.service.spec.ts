@@ -1,11 +1,11 @@
 import { competitions, DB, eq, matches } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import { ExternalSystemLookupService } from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
-import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
 import { MatchCategoryStratificationService } from './match-category-stratification.service';
 
 const dbRow = {

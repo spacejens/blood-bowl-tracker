@@ -1,8 +1,10 @@
-import { HtmlService } from '@blood-bowl-tracker/review-harness';
+import {
+  ExternalSystemLookupService,
+  HtmlService,
+} from '@blood-bowl-tracker/review-harness';
 import { Module } from '@nestjs/common';
 
 import { BblPositionTypIdsService } from './bbl-position-typ-ids.service';
-import { ExternalSystemLookupService } from './external-system-lookup.service';
 import { ManualEntryMatcherService } from './manual-entry-matcher.service';
 import { PositionExternalIdsService } from './position-external-ids.service';
 import { RaceExternalIdsService } from './race-external-ids.service';
@@ -12,9 +14,10 @@ import { RacePositionsQueryService } from './race-positions-query.service';
 /**
  * Cross-cutting services both the harness and every data-type module use.
  * Keeping them here (rather than in the harness) is what lets the harness
- * import data-type modules without a cycle. `HtmlService` comes from
- * `@blood-bowl-tracker/review-harness`; it is still provided here so every
- * data-type module injects it through this one module.
+ * import data-type modules without a cycle. `HtmlService` and
+ * `ExternalSystemLookupService` come from `@blood-bowl-tracker/review-harness`;
+ * they are still provided here so every data-type module injects them through
+ * this one module.
  */
 const SHARED = [
   BblPositionTypIdsService,

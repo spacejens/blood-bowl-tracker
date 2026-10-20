@@ -1,6 +1,6 @@
+import { BBL_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/review-harness';
 import { Injectable } from '@nestjs/common';
 
-import { RaceReviewConfigService } from '../config/review-race-config.service';
 import { PositionExternalIdsService } from './position-external-ids.service';
 import { RacePositionsQueryService } from './race-positions-query.service';
 
@@ -17,11 +17,9 @@ export class BblPositionTypIdsService {
   constructor(
     private readonly query: RacePositionsQueryService,
     private readonly positionIds: PositionExternalIdsService,
-    private readonly config: RaceReviewConfigService,
   ) {}
 
   async forRace(raceId: number): Promise<Map<string, string>> {
-    const bblSystem = this.config.getExternalSystemName('bbl');
     const positions = await this.query.positionsFor(raceId);
     const byPosition = await this.positionIds.forPositions(
       positions.map((position) => position.positionId),
@@ -29,7 +27,7 @@ export class BblPositionTypIdsService {
     const typIds = new Map<string, string>();
     for (const position of positions) {
       const external = (byPosition.get(position.positionId) ?? []).find(
-        (row) => row.systemName === bblSystem,
+        (row) => row.systemName === BBL_EXTERNAL_SYSTEM_NAME,
       );
       if (external === undefined || !external.externalId.includes('-')) {
         continue;
