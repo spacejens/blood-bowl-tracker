@@ -14,7 +14,6 @@ import type { StoredApiRequest } from './api-response-storing.service';
 import { ApiResponseStoringService } from './api-response-storing.service';
 import { FileSystemService } from './file-system.service';
 import { LeaguesDownloaderService } from './leagues-downloader.service';
-import { TpApiPathsService } from './tp-api-paths.service';
 
 const FRONTEND = 'https://tp.example/blood-bowl/';
 
@@ -90,7 +89,6 @@ describe('LeaguesDownloaderService', () => {
         LeaguesDownloaderService,
         // Pure, dependency-free path formatting, passed real so these tests
         // assert on the actual paths requested.
-        TpApiPathsService,
         TpMatchPathsService,
         TpRosterPathsService,
         TpTournamentPathsService,

@@ -1,9 +1,6 @@
 import type { SppCareerCounts } from '@blood-bowl-tracker/api-contract';
 import { SPP_CAREER_COUNT_KEYS } from '@blood-bowl-tracker/api-contract';
-import type {
-  TpCareerSppCounts,
-  TpPlayerSkills,
-} from '@blood-bowl-tracker/parse-tp';
+import type { TpCareerSppCounts } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 import type { RosterEntry } from '../source/roster-collection.service';
@@ -17,8 +14,6 @@ export interface CollectRosterPlayerFactsOptions {
 
 /** Per-player facts later bulk steps need, keyed by DB player id. */
 export interface RosterPlayerFacts {
-  /** Each imported roster player's own skills, for the player-skills sync. */
-  skillsByPlayerId: Map<number, TpPlayerSkills>;
   /** Each imported roster player's career action counts, for SPP adjustments. */
   careerSppCountsByPlayerId: Map<number, SppCareerCounts>;
 }
@@ -26,39 +21,31 @@ export interface RosterPlayerFacts {
 @Injectable()
 export class TpRosterPlayerFactsService {
   /**
-   * Reads skills and career SPP counts off the parsed roster files for every
-   * player the roster import upserted. Only a standalone roster file carries
-   * either (a match snapshot has neither), so match-snapshot-only players get
-   * none. A career counter only ever grows, so each is the highest value any
-   * roster file reported; skills take the last roster file listing the
-   * player, and the skills sync never deletes, so an earlier file's skills
-   * survive on a warm database.
+   * Reads career SPP counts off the parsed roster files for every player the
+   * roster import upserted. Only a standalone roster file carries them (a
+   * match snapshot does not), so match-snapshot-only players get none. A
+   * career counter only ever grows, so each is the highest value any roster
+   * file reported.
    */
   collect({
     rosters,
     playerIdsByLineUpId,
   }: CollectRosterPlayerFactsOptions): RosterPlayerFacts {
-    const skillsByPlayerId = new Map<number, TpPlayerSkills>();
     const careerSppCountsByPlayerId = new Map<number, SppCareerCounts>();
     for (const { roster } of rosters) {
       for (const player of roster.players) {
         const playerId = playerIdsByLineUpId.get(player.id);
-        if (playerId === undefined) {
+        if (playerId === undefined || player.careerCounts === undefined) {
           continue;
         }
-        if (player.skills !== undefined) {
-          skillsByPlayerId.set(playerId, player.skills);
-        }
-        if (player.careerCounts !== undefined) {
-          this.noteCareerCounts({
-            byPlayerId: careerSppCountsByPlayerId,
-            playerId,
-            counts: player.careerCounts,
-          });
-        }
+        this.noteCareerCounts({
+          byPlayerId: careerSppCountsByPlayerId,
+          playerId,
+          counts: player.careerCounts,
+        });
       }
     }
-    return { skillsByPlayerId, careerSppCountsByPlayerId };
+    return { careerSppCountsByPlayerId };
   }
 
   private noteCareerCounts(options: {

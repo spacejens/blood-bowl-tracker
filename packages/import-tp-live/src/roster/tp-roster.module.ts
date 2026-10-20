@@ -18,6 +18,7 @@ import { Module } from '@nestjs/common';
 
 import { TpKeywordTargetDecoderService } from '../official-teams/tp-keyword-target-decoder.service';
 import { TpOfficialKeywordCatalogService } from '../official-teams/tp-official-keyword-catalog.service';
+import { TpSkillIdLookupService } from '../tp-skill-id-lookup.service';
 import { TpCharacteristicIncreasesService } from './players/tp-characteristic-increases.service';
 import { TpLastingInjuryBuilderService } from './players/tp-lasting-injury-builder.service';
 import { TpMercenaryCharacteristicsService } from './players/tp-mercenary-characteristics.service';
@@ -33,8 +34,8 @@ import { TpRosterImportService } from './tp-roster-import.service';
 /**
  * Imports one TP roster straight into the database through
  * packages/game-data. packages/api-server imports it to implement
- * `tpRosters.import`; ImportTpLiveModule imports it for the live import,
- * which also syncs the roster players' skills (reading the curated keyword
+ * `tpRosters.import`; ImportTpLiveModule imports it for the live import.
+ * Both sync the roster players' skills (reading the curated keyword
  * catalogue for Hatred/Animosity targets). The importing app provides
  * packages/db's `DB`.
  */
@@ -67,6 +68,7 @@ import { TpRosterImportService } from './tp-roster-import.service';
     TpLastingInjuryBuilderService,
     TpRosterPlayerSkillsService,
     TpRosterSkillIdsService,
+    TpSkillIdLookupService,
     TpOfficialKeywordCatalogService,
     TpKeywordTargetDecoderService,
   ],

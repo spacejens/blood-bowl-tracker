@@ -9,9 +9,10 @@ import type {
   TpInducedStarPlayer,
   TpPositionCharacteristics,
 } from '@blood-bowl-tracker/parse-tp';
+import { TpStarHireKeyService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-import { TpPlayerCharacteristicsBuilderService } from './tp-player-characteristics-builder.service';
+import { TpStarPositionCharacteristicsBuilderService } from './tp-star-position-characteristics-builder.service';
 
 /**
  * One hired-star-player group: the roster that hired them, the real era the
@@ -67,9 +68,10 @@ export class TpInducedStarPlayersImportService {
   constructor(
     private readonly positionsImport: PositionsImportService,
     private readonly nameExternalId: NameExternalIdService,
-    private readonly characteristicsBuilder: TpPlayerCharacteristicsBuilderService,
+    private readonly characteristicsBuilder: TpStarPositionCharacteristicsBuilderService,
     private readonly playersImport: PlayersImportService,
     private readonly importResults: ImportResultService,
+    private readonly starHireKey: TpStarHireKeyService,
   ) {}
 
   /**
@@ -166,7 +168,10 @@ export class TpInducedStarPlayersImportService {
             externalIds: [
               {
                 externalSystemId: tpSystemId,
-                externalId: `star-${rosterId}-${starPlayer.lineUpMasterId}`,
+                externalId: this.starHireKey.externalId({
+                  rosterId,
+                  lineUpMasterId: starPlayer.lineUpMasterId,
+                }),
               },
             ],
           },

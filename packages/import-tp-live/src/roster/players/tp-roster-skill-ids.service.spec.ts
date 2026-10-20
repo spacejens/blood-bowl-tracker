@@ -1,4 +1,4 @@
-import type { ImportError } from '@blood-bowl-tracker/api-contract';
+import type { ExternalId, ImportError } from '@blood-bowl-tracker/api-contract';
 import type { Skill } from '@blood-bowl-tracker/db';
 import { SkillsService } from '@blood-bowl-tracker/game-data';
 import {
@@ -6,12 +6,14 @@ import {
   NameExternalIdService,
   UpsertRecorderService,
 } from '@blood-bowl-tracker/import-shared';
+import type { TpSkillMaster } from '@blood-bowl-tracker/parse-tp';
 import { SkillMasterNamesParserService } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
+import { TpSkillIdLookupService } from '../../tp-skill-id-lookup.service';
 import {
   NAME_SYSTEM_ID,
   rosterContext,
@@ -20,23 +22,37 @@ import {
 import { TpRosterSkillIdsService } from './tp-roster-skill-ids.service';
 
 const CONTENT = { raw: 'roster' };
+const BLOCK_MASTERS = new Map<number, TpSkillMaster>([
+  [41, { name: 'Block', isElite: false }],
+  [1041, { name: 'Block', isElite: false }],
+]);
+const BLOCK_TP_IDS: ExternalId[] = [
+  { externalSystemId: TP_SYSTEM_ID, externalId: '41' },
+  { externalSystemId: TP_SYSTEM_ID, externalId: '1041' },
+];
 
 describe('TpRosterSkillIdsService', () => {
   let service: TpRosterSkillIdsService;
   let names: MockProxy<SkillMasterNamesParserService>;
   let skills: MockProxy<SkillsService>;
+  let lookup: MockProxy<TpSkillIdLookupService>;
   let errors: ImportError[];
 
   beforeEach(async () => {
     names = mock<SkillMasterNamesParserService>();
     skills = mock<SkillsService>();
+    lookup = mock<TpSkillIdLookupService>();
     names.extract.mockReturnValue(new Map());
+    lookup.tpIdsByName.mockReturnValue(new Map());
+    lookup.tpExternalIds.mockReturnValue([]);
+    lookup.resolveByTpId.mockResolvedValue(new Map());
     errors = [];
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpRosterSkillIdsService,
         { provide: SkillMasterNamesParserService, useValue: names },
         { provide: SkillsService, useValue: skills },
+        { provide: TpSkillIdLookupService, useValue: lookup },
         // Constructor-free identity formatting and pure error/exception
         // helpers, passed real so tests assert on the actual ids and errors.
         NameExternalIdService,
@@ -61,17 +77,15 @@ describe('TpRosterSkillIdsService', () => {
 
     expect(names.extract).not.toHaveBeenCalled();
     expect(skills.upsert).not.toHaveBeenCalled();
-    expect(skills.resolveBatch).not.toHaveBeenCalled();
+    expect(lookup.resolveByTpId).not.toHaveBeenCalled();
   });
 
-  it('upserts a skill the roster names under its Name id and every TP id the roster gives that name', async () => {
-    names.extract.mockReturnValue(
-      new Map([
-        [41, { name: 'Block', isElite: true }],
-        [1041, { name: 'Block', isElite: true }],
-        [60, { name: 'Loner', isElite: false }],
-      ]),
+  it("upserts a skill the roster names under its Name id and the TP ids of the roster's name for it", async () => {
+    names.extract.mockReturnValue(BLOCK_MASTERS);
+    lookup.tpIdsByName.mockReturnValue(
+      new Map([['Block', new Set([41, 1041])]]),
     );
+    lookup.tpExternalIds.mockReturnValue(BLOCK_TP_IDS);
     skills.upsert.mockResolvedValue({
       skill: mock<Skill>({ id: 500 }),
       created: false,
@@ -81,26 +95,39 @@ describe('TpRosterSkillIdsService', () => {
 
     expect(resolved).toEqual(new Map([[41, { skillId: 500, name: 'Block' }]]));
     expect(names.extract).toHaveBeenCalledWith(CONTENT);
+    expect(lookup.tpIdsByName).toHaveBeenCalledWith(BLOCK_MASTERS);
+    expect(lookup.tpExternalIds).toHaveBeenCalledWith(
+      new Set([41, 1041]),
+      TP_SYSTEM_ID,
+    );
     expect(skills.upsert).toHaveBeenCalledTimes(1);
     expect(skills.upsert).toHaveBeenCalledWith({
       name: 'Block',
       externalIds: [
         { externalSystemId: NAME_SYSTEM_ID, externalId: 'Block' },
-        { externalSystemId: TP_SYSTEM_ID, externalId: '41' },
-        { externalSystemId: TP_SYSTEM_ID, externalId: '1041' },
+        ...BLOCK_TP_IDS,
       ],
     });
-    expect(skills.resolveBatch).not.toHaveBeenCalled();
+    expect(lookup.resolveByTpId).not.toHaveBeenCalled();
     expect(errors).toEqual([]);
   });
 
-  it('upserts a name once when the roster references it by two ids', async () => {
+  it('registers no TP id for a name the inversion does not list', async () => {
     names.extract.mockReturnValue(
-      new Map([
-        [41, { name: 'Block', isElite: false }],
-        [1041, { name: 'Block', isElite: false }],
-      ]),
+      new Map([[41, { name: 'Block', isElite: false }]]),
     );
+    skills.upsert.mockResolvedValue({
+      skill: mock<Skill>({ id: 500 }),
+      created: true,
+    });
+
+    await resolve([41]);
+
+    expect(lookup.tpExternalIds).toHaveBeenCalledWith([], TP_SYSTEM_ID);
+  });
+
+  it('upserts a name once when the roster references it by two ids', async () => {
+    names.extract.mockReturnValue(BLOCK_MASTERS);
     skills.upsert.mockResolvedValue({
       skill: mock<Skill>({ id: 500 }),
       created: true,
@@ -118,23 +145,23 @@ describe('TpRosterSkillIdsService', () => {
   });
 
   it('resolves an id the roster does not name through a skill carrying it as a TP external id', async () => {
-    skills.resolveBatch.mockResolvedValue([{ found: true, id: 610 }]);
+    lookup.resolveByTpId.mockResolvedValue(new Map([[99, 610]]));
 
     const resolved = await resolve([99]);
 
     expect(resolved).toEqual(
       new Map([[99, { skillId: 610, name: 'TP skill 99' }]]),
     );
-    expect(skills.resolveBatch).toHaveBeenCalledWith([
-      { externalSystemId: TP_SYSTEM_ID, externalId: '99' },
-    ]);
+    expect(lookup.resolveByTpId).toHaveBeenCalledWith({
+      masterIds: [99],
+      tpSystemId: TP_SYSTEM_ID,
+      errors,
+    });
     expect(skills.upsert).not.toHaveBeenCalled();
     expect(errors).toEqual([]);
   });
 
   it('reports an id resolved neither way and leaves it out', async () => {
-    skills.resolveBatch.mockResolvedValue([{ found: false }]);
-
     const resolved = await resolve([99]);
 
     expect(resolved).toEqual(new Map());
@@ -148,12 +175,7 @@ describe('TpRosterSkillIdsService', () => {
   });
 
   it('reports a failed upsert once and does not retry it for another id of the same name', async () => {
-    names.extract.mockReturnValue(
-      new Map([
-        [41, { name: 'Block', isElite: false }],
-        [1041, { name: 'Block', isElite: false }],
-      ]),
-    );
+    names.extract.mockReturnValue(BLOCK_MASTERS);
     skills.upsert.mockRejectedValue(new Error('conflict'));
 
     const resolved = await resolve([41, 1041]);
@@ -168,17 +190,12 @@ describe('TpRosterSkillIdsService', () => {
     ]);
   });
 
-  it('reports a failed external-id lookup once, without an unresolved error per id', async () => {
-    skills.resolveBatch.mockRejectedValue(new Error('db down'));
+  it('adds no unresolved error per id when the lookup itself failed (already reported by it)', async () => {
+    lookup.resolveByTpId.mockResolvedValue(undefined);
 
     const resolved = await resolve([98, 99]);
 
     expect(resolved).toEqual(new Map());
-    expect(errors).toEqual([
-      {
-        item: { skillMasterIds: [98, 99] },
-        message: 'Failed to resolve TP skill ids by external id: db down',
-      },
-    ]);
+    expect(errors).toEqual([]);
   });
 });

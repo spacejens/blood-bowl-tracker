@@ -7,6 +7,7 @@ import {
   PositionsImportService,
 } from '@blood-bowl-tracker/import';
 import type { TpPositionCharacteristics } from '@blood-bowl-tracker/parse-tp';
+import { TpStarHireKeyService } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
@@ -18,7 +19,7 @@ import {
 } from '../import-package.test-helpers';
 import type { InducedStarPlayerHireGroup } from './tp-induced-star-players-import.service';
 import { TpInducedStarPlayersImportService } from './tp-induced-star-players-import.service';
-import { TpPlayerCharacteristicsBuilderService } from './tp-player-characteristics-builder.service';
+import { TpStarPositionCharacteristicsBuilderService } from './tp-star-position-characteristics-builder.service';
 
 interface MakeServiceOptions {
   upsertPlayerResult: ReturnType<typeof vi.fn>;
@@ -32,7 +33,7 @@ interface MakeServiceOptions {
     rulesSetId: number;
   };
   /**
-   * Use the REAL TpPlayerCharacteristicsBuilderService instead of a mock.
+   * Use the REAL TpStarPositionCharacteristicsBuilderService instead of a mock.
    * It is a pure, dependency-free formatting service (no constructor, no
    * I/O), so passing it real carries no coupling risk -- used by the tests
    * that verify `characteristicsByPositionId` wiring end-to-end, which a
@@ -57,20 +58,24 @@ async function makeService({
   const positionsImport = mock<PositionsImportService>();
   positionsImport.upsert.mockImplementation(asProviderMethod(upsertPosition));
   const nameExternalId = mockNameExternalIdService();
-  const characteristicsBuilder = mock<TpPlayerCharacteristicsBuilderService>();
+  const characteristicsBuilder =
+    mock<TpStarPositionCharacteristicsBuilderService>();
   characteristicsBuilder.forStarPosition.mockReturnValue(starCharacteristics);
   const importResults = mockImportResultService();
 
   const moduleRef = await Test.createTestingModule({
     providers: [
       TpInducedStarPlayersImportService,
+      // Constructor-free key formatting, passed real so the tests assert
+      // on the actual hired-star external id.
+      TpStarHireKeyService,
       { provide: PlayersImportService, useValue: playersImport },
       { provide: PositionsImportService, useValue: positionsImport },
       { provide: NameExternalIdService, useValue: nameExternalId },
       realCharacteristicsBuilder
-        ? TpPlayerCharacteristicsBuilderService
+        ? TpStarPositionCharacteristicsBuilderService
         : {
-            provide: TpPlayerCharacteristicsBuilderService,
+            provide: TpStarPositionCharacteristicsBuilderService,
             useValue: characteristicsBuilder,
           },
       { provide: ImportResultService, useValue: importResults },
@@ -155,6 +160,9 @@ describe('TpInducedStarPlayersImportService', () => {
         name: 'Fungus the Loon',
         teamEraId: 6000,
         positionId: 700,
+        externalIds: [
+          { externalSystemId: TP_SYSTEM_ID, externalId: 'star-168446-1122' },
+        ],
       }),
       expect.anything(),
     );
