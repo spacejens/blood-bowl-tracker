@@ -5,11 +5,9 @@ export { InscriptionsParserService } from './inscriptions-parser.service';
 // Exported for direct construction (tests); not in ParseTpModule.exports — nothing outside this package injects it via DI.
 export { MatchEventDecodersService } from './match-event-decoders.service';
 export type {
-  SecretObjective,
   TpInducedStarPlayer,
   TpInjuryType,
   TpMatchEvent,
-  WeatherType,
 } from './match-event-parser.service';
 export { MatchEventParserService } from './match-event-parser.service';
 export type { TpMatch } from './match-parser.service';

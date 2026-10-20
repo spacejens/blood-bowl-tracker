@@ -9,8 +9,6 @@ export type {
   TpInjuryType,
   TpMatchEvent,
 } from './match-event.types';
-export type { SecretObjective } from './secret-objective.service';
-export type { WeatherType } from './weather-type.service';
 
 const topLevelSchema = z.object({ matchEventType: z.number() });
 
