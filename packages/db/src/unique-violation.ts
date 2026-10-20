@@ -24,7 +24,7 @@ const MAX_CAUSE_UNWRAP_DEPTH = 3;
  *
  * Matching is on `table_name`, not the constraint name. Postgres truncates
  * identifiers to 63 bytes (`NAMEDATALEN`), and some natural-key constraint
- * names (e.g. `competition_groups_external_ids`') exceed that, so a
+ * names (e.g. `competition_groups_external_ids`) exceed that, so a
  * hand-reconstructed name would silently never match. Callers pass a table
  * whose only unique constraint besides its primary key is the one they are
  * guarding, so the table name identifies the violation unambiguously and

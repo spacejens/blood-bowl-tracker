@@ -466,9 +466,9 @@ export class TrophyAwardsService {
    * Must not be called inside a caller-supplied transaction without a
    * savepoint: a caught unique violation leaves that transaction aborted
    * (Postgres SQLSTATE 25P02) until rolled back, so the fallback SELECT right
-   * after the catch would itself fail. `upsert-by-external-ids.ts` (around
-   * lines 325-338) deliberately catches its own equivalent violation outside
-   * its transaction for exactly this reason.
+   * after the catch would itself fail. `upsert-by-external-ids.ts`
+   * deliberately catches its own equivalent violation outside its transaction
+   * for exactly this reason.
    */
   async upsert(
     data: UpsertTrophyAward,
