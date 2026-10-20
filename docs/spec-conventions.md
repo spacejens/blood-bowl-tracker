@@ -54,7 +54,7 @@ The directory map above covers checked-in doc areas only. Gitignored, generated 
 
 ## Glossary
 
-`docs/glossary.md` defines every named concept relevant to the project — both standard Blood Bowl terms and custom/invented terminology. Each entry uses a `## Term` heading so other files can link to it:
+`docs/glossary.md` defines every named concept relevant to the project — both standard Blood Bowl terms and custom/invented terminology. Each entry uses a `### Term` heading, under the `## User-facing terms` or `## Internal terms` section, so other files can link to it:
 
 ```markdown
 [Team](../glossary.md#team)

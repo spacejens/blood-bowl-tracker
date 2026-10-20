@@ -1,6 +1,6 @@
 # Keywords
 
-A **keyword** is a label attached to a
+A [keyword](../../glossary.md#keyword) is a label attached to a
 [position](../positions/index.md) — `Goblin`, `Undead`, `Big Guy` and so on.
 Rules that single out a kind of player name a keyword rather than a
 [race](../races/index.md): a skill like Hatred names the keyword it hates,
