@@ -6,7 +6,6 @@ import { ApiResponseStoringService } from './api-response-storing.service';
 import { FileSystemService } from './file-system.service';
 import { LeaguesDownloaderService } from './leagues-downloader.service';
 import { OfficialTeamsDownloaderService } from './official-teams-downloader.service';
-import { TpApiPathsService } from './tp-api-paths.service';
 
 @Module({
   imports: [ScrapeTpModule, TpPathsModule],
@@ -14,7 +13,6 @@ import { TpApiPathsService } from './tp-api-paths.service';
     LeaguesDownloaderService,
     OfficialTeamsDownloaderService,
     ApiResponseStoringService,
-    TpApiPathsService,
     FileSystemService,
   ],
   exports: [LeaguesDownloaderService, OfficialTeamsDownloaderService],
