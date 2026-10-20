@@ -12,15 +12,10 @@ export const interactionKindEnum = discordBotUsage.enum(
   INTERACTION_KINDS,
 );
 
-export type InteractionKind = (typeof interactionKindEnum.enumValues)[number];
-
 export const interactionOutcomeEnum = discordBotUsage.enum(
   'interaction_outcome',
   INTERACTION_OUTCOMES,
 );
-
-export type InteractionOutcome =
-  (typeof interactionOutcomeEnum.enumValues)[number];
 
 /**
  * The catalog of things that can be triggered: one row per slash command, and

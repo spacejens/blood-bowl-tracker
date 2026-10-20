@@ -1,7 +1,7 @@
 import type {
   InteractionKind,
   InteractionOutcome,
-} from '@blood-bowl-tracker/db';
+} from '@blood-bowl-tracker/domain-enums';
 
 /** One command option, or one component value, as recorded against an event. */
 export interface InteractionParameter {

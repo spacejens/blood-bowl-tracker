@@ -1,7 +1,7 @@
-import type { InteractionKind } from '@blood-bowl-tracker/db';
 import type { TopUserRow } from '@blood-bowl-tracker/discord-bot-usage';
 import { InteractionEventsQueryService } from '@blood-bowl-tracker/discord-bot-usage';
 import type { SlashCommandDefinition } from '@blood-bowl-tracker/discord-client';
+import type { InteractionKind } from '@blood-bowl-tracker/domain-enums';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import type {
   ChatInputCommandInteraction,
