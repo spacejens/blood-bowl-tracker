@@ -11,12 +11,6 @@ export { CoachesImportService } from './coaches-import.service';
 export { CompetitionGroupsImportService } from './competition-groups-import.service';
 export { CompetitionsImportService } from './competitions-import.service';
 export { ConfigErrorMessageService } from './config/config-error-message.service';
-export type {
-  ExternalSystemNameConfig,
-  ExternalSystemNameConfigServiceConfig,
-  ExternalSystemNameConfigServiceConstructor,
-} from './config/external-system-name-config-service-base';
-export { createExternalSystemNameConfigServiceBase } from './config/external-system-name-config-service-base';
 export type { ImportConfigPaths } from './config/import-config-paths';
 export { createImportConfigPaths } from './config/import-config-paths';
 export type {
@@ -29,7 +23,6 @@ export type { ConnectionConfig } from './config/shared-config.schema';
 export {
   configGroupSchema,
   connectionConfigSchema,
-  externalSystemNameSchema,
   isoDateSchema,
   nonBlankStringSchema,
   nonEmptyStringSchema,
