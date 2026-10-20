@@ -46,3 +46,19 @@ export const NAF_EXTERNAL_SYSTEM = {
   name: NAF_EXTERNAL_SYSTEM_NAME,
   category: 'referenced_not_imported',
 } as const;
+
+/**
+ * Name of the external system every BBL record is registered under: the
+ * league site the BBL data is mirrored from. The BBL importer, the review
+ * tools and the curated manual data all use this one definition, so a lookup
+ * by name cannot miss on a differently spelled system.
+ */
+export const BBL_EXTERNAL_SYSTEM_NAME = 'tloeg.bbleague.se';
+
+/**
+ * Name of the external system every TP record is registered under: the site
+ * the TP data comes from. The bulk TP importer, the Discord bot's live
+ * imports, the review tools and the curated manual data all use this one
+ * definition, so a lookup by name cannot miss on a differently spelled system.
+ */
+export const TP_EXTERNAL_SYSTEM_NAME = 'tourplay.net';
