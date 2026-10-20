@@ -1,9 +1,9 @@
 import type {
   ImportError,
-  MatchCategory,
   TpBracketMatch,
   UpsertMatch,
 } from '@blood-bowl-tracker/api-contract';
+import type { MatchCategory } from '@blood-bowl-tracker/domain-enums';
 import {
   CompetitionsService,
   MatchesService,

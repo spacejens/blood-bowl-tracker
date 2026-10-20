@@ -1,9 +1,9 @@
 import type {
-  CompetitionType,
   ImportError,
   ResolveResult,
   UpsertCompetition,
 } from '@blood-bowl-tracker/api-contract';
+import type { CompetitionType } from '@blood-bowl-tracker/domain-enums';
 import {
   CompetitionsService,
   ErasService,

@@ -1,7 +1,5 @@
-import type {
-  CompetitionType,
-  ImportError,
-} from '@blood-bowl-tracker/api-contract';
+import type { ImportError } from '@blood-bowl-tracker/api-contract';
+import type { CompetitionType } from '@blood-bowl-tracker/domain-enums';
 import {
   CompetitionsService,
   ExternalSystemsService,

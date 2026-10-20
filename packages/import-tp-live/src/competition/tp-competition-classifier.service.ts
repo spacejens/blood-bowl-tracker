@@ -1,4 +1,4 @@
-import type { CompetitionType } from '@blood-bowl-tracker/api-contract';
+import type { CompetitionType } from '@blood-bowl-tracker/domain-enums';
 import {
   CompetitionGroupsService,
   CompetitionsService,

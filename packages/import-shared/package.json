@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@blood-bowl-tracker/api-contract": "workspace:*",
+    "@blood-bowl-tracker/domain-enums": "workspace:*",
     "@nestjs/common": "^12.0.0",
     "reflect-metadata": "^0.2.2"
   },

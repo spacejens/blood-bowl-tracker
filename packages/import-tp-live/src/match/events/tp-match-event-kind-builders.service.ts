@@ -1,9 +1,11 @@
 import type {
-  ActionType,
-  ConsequenceType,
   ImportError,
   UpsertMatchEvent,
 } from '@blood-bowl-tracker/api-contract';
+import type {
+  ActionType,
+  ConsequenceType,
+} from '@blood-bowl-tracker/domain-enums';
 import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type { TpInjuryType, TpMatchEvent } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';

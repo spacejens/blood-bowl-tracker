@@ -1,4 +1,4 @@
-import type { ExternalSystemCategory } from '@blood-bowl-tracker/api-contract';
+import type { ExternalSystemCategory } from '@blood-bowl-tracker/domain-enums';
 import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import { Injectable } from '@nestjs/common';
 

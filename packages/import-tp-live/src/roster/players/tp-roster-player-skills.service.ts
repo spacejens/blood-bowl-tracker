@@ -1,9 +1,9 @@
 import type {
   ImportError,
   PlayerSkillEntry,
-  PlayerSkillSource,
   TpImportedPlayer,
 } from '@blood-bowl-tracker/api-contract';
+import type { PlayerSkillSource } from '@blood-bowl-tracker/domain-enums';
 import { PlayerSkillsService } from '@blood-bowl-tracker/game-data';
 import {
   ImportResultService,
