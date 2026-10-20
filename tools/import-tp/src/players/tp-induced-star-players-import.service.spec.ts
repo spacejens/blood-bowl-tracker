@@ -7,6 +7,7 @@ import {
   PositionsImportService,
 } from '@blood-bowl-tracker/import';
 import type { TpPositionCharacteristics } from '@blood-bowl-tracker/parse-tp';
+import { TpStarHireKeyService } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
@@ -64,6 +65,9 @@ async function makeService({
   const moduleRef = await Test.createTestingModule({
     providers: [
       TpInducedStarPlayersImportService,
+      // Constructor-free key formatting, passed real so the tests assert
+      // on the actual hired-star external id.
+      TpStarHireKeyService,
       { provide: PlayersImportService, useValue: playersImport },
       { provide: PositionsImportService, useValue: positionsImport },
       { provide: NameExternalIdService, useValue: nameExternalId },
@@ -155,6 +159,9 @@ describe('TpInducedStarPlayersImportService', () => {
         name: 'Fungus the Loon',
         teamEraId: 6000,
         positionId: 700,
+        externalIds: [
+          { externalSystemId: TP_SYSTEM_ID, externalId: 'star-168446-1122' },
+        ],
       }),
       expect.anything(),
     );

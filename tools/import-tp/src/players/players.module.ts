@@ -1,4 +1,5 @@
 import { ImportModule } from '@blood-bowl-tracker/import';
+import { ParseTpModule } from '@blood-bowl-tracker/parse-tp';
 import { Module } from '@nestjs/common';
 
 import { EraDataConfigModule } from '../eras/era-data-config.module';
@@ -16,6 +17,7 @@ import { TpSppAdjustmentsImportService } from './tp-spp-adjustments-import.servi
 @Module({
   imports: [
     ImportModule,
+    ParseTpModule,
     SourceModule,
     EraDataConfigModule,
     EraRulesSetModule,

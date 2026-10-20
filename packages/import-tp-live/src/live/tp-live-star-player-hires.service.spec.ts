@@ -12,6 +12,7 @@ import type {
   TpInducedStarPlayer,
   TpMatchEvent,
 } from '@blood-bowl-tracker/parse-tp';
+import { TpStarHireKeyService } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -133,6 +134,9 @@ describe('TpLiveStarPlayerHiresService', () => {
         TpLiveStarPlayerHiresService,
         TpImportResultsService,
         TpUpsertRunnerService,
+        // Constructor-free key formatting, passed real so the tests assert
+        // on the actual hired-star external id.
+        TpStarHireKeyService,
         { provide: ExternalSystemsService, useValue: externalSystems },
         { provide: PositionsService, useValue: positions },
         { provide: PositionRulesSetsService, useValue: positionRulesSets },

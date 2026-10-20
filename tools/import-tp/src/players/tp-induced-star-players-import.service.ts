@@ -9,6 +9,7 @@ import type {
   TpInducedStarPlayer,
   TpPositionCharacteristics,
 } from '@blood-bowl-tracker/parse-tp';
+import { TpStarHireKeyService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 import { TpPlayerCharacteristicsBuilderService } from './tp-player-characteristics-builder.service';
@@ -70,6 +71,7 @@ export class TpInducedStarPlayersImportService {
     private readonly characteristicsBuilder: TpPlayerCharacteristicsBuilderService,
     private readonly playersImport: PlayersImportService,
     private readonly importResults: ImportResultService,
+    private readonly starHireKey: TpStarHireKeyService,
   ) {}
 
   /**
@@ -166,7 +168,10 @@ export class TpInducedStarPlayersImportService {
             externalIds: [
               {
                 externalSystemId: tpSystemId,
-                externalId: `star-${rosterId}-${starPlayer.lineUpMasterId}`,
+                externalId: this.starHireKey.externalId({
+                  rosterId,
+                  lineUpMasterId: starPlayer.lineUpMasterId,
+                }),
               },
             ],
           },
