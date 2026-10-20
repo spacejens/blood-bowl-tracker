@@ -1,4 +1,3 @@
-import { DiscordBotUsageModule } from '@blood-bowl-tracker/discord-bot-usage';
 import { DynamicModule, FactoryProvider, Global, Module } from '@nestjs/common';
 
 import {
@@ -7,6 +6,7 @@ import {
   DiscordClientService,
   RESTRICTED_COMMAND_ROLE_ID,
 } from './discord-client.service';
+import { HandledInteractionBuilderService } from './handled-interaction-builder.service';
 import { MemberRoleAccessService } from './member-role-access.service';
 
 export interface DiscordClientModuleOptions {
@@ -42,7 +42,6 @@ export class DiscordClientModule {
   static forRoot(options: DiscordClientModuleOptions): DynamicModule {
     return {
       module: DiscordClientModule,
-      imports: [DiscordBotUsageModule],
       providers: [
         { provide: DISCORD_BOT_TOKEN, useValue: options.token },
         {
@@ -51,6 +50,7 @@ export class DiscordClientModule {
         },
         { provide: ADMIN_COMMAND_ROLE_ID, useValue: options.adminRoleId },
         MemberRoleAccessService,
+        HandledInteractionBuilderService,
         DiscordClientService,
       ],
       exports: [
@@ -65,7 +65,6 @@ export class DiscordClientModule {
   static forRootAsync(options: DiscordClientModuleAsyncOptions): DynamicModule {
     return {
       module: DiscordClientModule,
-      imports: [DiscordBotUsageModule],
       providers: [
         {
           provide: DISCORD_BOT_TOKEN,
@@ -85,6 +84,7 @@ export class DiscordClientModule {
           inject: options.useAdminRoleIdFactory ? (options.inject ?? []) : [],
         },
         MemberRoleAccessService,
+        HandledInteractionBuilderService,
         DiscordClientService,
       ],
       exports: [
