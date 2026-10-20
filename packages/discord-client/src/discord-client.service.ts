@@ -554,7 +554,8 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
    * whether a rejection or a synchronous throw: the user has already been
    * replied to, and a listener must never turn a working command into a
    * broken one or stop the other listeners. Each listener gets its own
-   * event object, so none can alter what another receives.
+   * top-level event object; listeners are expected to treat the event as
+   * read-only.
    */
   private async invokeListener(
     listener: InteractionHandledListener,
@@ -675,8 +676,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
    * Runs a component handler and replies with its output, logging the handled
    * component or falling back to the hurt message when the handler throws, and
    * notifying interaction-handled listeners either way. Shared by the button
-   * and select-menu
-   * branches.
+   * and select-menu branches.
    */
   private async replyWithHandler(
     options: ReplyWithHandlerOptions,

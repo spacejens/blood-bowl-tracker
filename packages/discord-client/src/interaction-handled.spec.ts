@@ -303,6 +303,24 @@ describe('DiscordClientService interaction-handled listeners', () => {
     expect(second.mock.calls[0][0]).toEqual(notified());
   });
 
+  it('still notifies later listeners when an earlier one throws synchronously', async () => {
+    vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    const second = vi
+      .fn<InteractionHandledListener>()
+      .mockResolvedValue(undefined);
+    listener.mockImplementation(() => {
+      throw new Error('sync boom');
+    });
+    service.registerInteractionHandledListener(second);
+    await registerStats();
+
+    interactionHandler()(commandInteraction());
+    await flush();
+
+    expect(second).toHaveBeenCalledTimes(1);
+    expect(second.mock.calls[0][0]).toEqual(notified());
+  });
+
   it('notifies a button under its matched prefix, with the customId remainder', async () => {
     service.registerButtonHandler(
       'deepdive:era:',
