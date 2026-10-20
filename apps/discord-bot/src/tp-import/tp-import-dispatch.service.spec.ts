@@ -1,4 +1,5 @@
 import type { ImportResult } from '@blood-bowl-tracker/api-contract';
+import { TP_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/domain-enums';
 import type {
   TpLiveCompetitionImportResult,
   TpLiveMatchImportResult,
@@ -18,10 +19,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { DiscordBotConfigService } from '../discord-bot-config.service';
 import { TpImportDispatchService } from './tp-import-dispatch.service';
 
-const EXTERNAL_SYSTEM_NAME = 'tourplay.net';
 const one: ImportResult = { success: true, imported: 1, errors: [] };
 const TEAM_RESULT: TpLiveTeamImportResult = {
   team: one,
@@ -58,7 +57,6 @@ const OFFICIAL_TEAMS_RESULT: TpLiveOfficialTeamsImportResult = {
 
 describe('TpImportDispatchService', () => {
   let service: TpImportDispatchService;
-  let config: MockProxy<DiscordBotConfigService>;
   let competitionImport: MockProxy<TpLiveCompetitionImportService>;
   let matchImport: MockProxy<TpLiveMatchImportService>;
   let matchTeamsImport: MockProxy<TpLiveMatchTeamsImportService>;
@@ -66,8 +64,6 @@ describe('TpImportDispatchService', () => {
   let officialTeamsImport: MockProxy<TpLiveOfficialTeamsImportService>;
 
   beforeEach(async () => {
-    config = mock<DiscordBotConfigService>();
-    config.getTpExternalSystemName.mockReturnValue(EXTERNAL_SYSTEM_NAME);
     competitionImport = mock<TpLiveCompetitionImportService>();
     matchImport = mock<TpLiveMatchImportService>();
     matchTeamsImport = mock<TpLiveMatchTeamsImportService>();
@@ -76,7 +72,6 @@ describe('TpImportDispatchService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpImportDispatchService,
-        { provide: DiscordBotConfigService, useValue: config },
         {
           provide: TpLiveCompetitionImportService,
           useValue: competitionImport,
@@ -93,7 +88,7 @@ describe('TpImportDispatchService', () => {
     service = moduleRef.get(TpImportDispatchService);
   });
 
-  it('imports a competition page under the given era and the configured external system', async () => {
+  it('imports a competition page under the given era and the TP external system', async () => {
     competitionImport.importCompetition.mockResolvedValue(COMPETITION_RESULT);
 
     await expect(
@@ -109,7 +104,7 @@ describe('TpImportDispatchService', () => {
     expect(competitionImport.importCompetition).toHaveBeenCalledWith({
       tournamentSlug: 's30',
       era: 'Fourth era',
-      externalSystemName: EXTERNAL_SYSTEM_NAME,
+      externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
       forceMatchBackfill: false,
     });
   });
@@ -124,7 +119,7 @@ describe('TpImportDispatchService', () => {
     expect(competitionImport.importCompetition).toHaveBeenCalledWith({
       tournamentSlug: 's30',
       era: undefined,
-      externalSystemName: EXTERNAL_SYSTEM_NAME,
+      externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
       forceMatchBackfill: false,
     });
   });
@@ -145,7 +140,7 @@ describe('TpImportDispatchService', () => {
     expect(competitionImport.importCompetition).toHaveBeenCalledWith({
       tournamentSlug: 's30',
       era: 'Fourth era',
-      externalSystemName: EXTERNAL_SYSTEM_NAME,
+      externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
       forceMatchBackfill: true,
     });
   });
@@ -168,7 +163,7 @@ describe('TpImportDispatchService', () => {
       matchId: 576264,
       tournamentSlug: 's30',
       era: 'Fourth era',
-      externalSystemName: EXTERNAL_SYSTEM_NAME,
+      externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
     });
   });
 
@@ -184,7 +179,7 @@ describe('TpImportDispatchService', () => {
       matchId: 576264,
       tournamentSlug: 's30',
       era: undefined,
-      externalSystemName: EXTERNAL_SYSTEM_NAME,
+      externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
       forceMatchBackfill: true,
     });
   });
@@ -200,7 +195,7 @@ describe('TpImportDispatchService', () => {
     expect(competitionImport.importCompetition).toHaveBeenCalledWith({
       tournamentSlug: 's30',
       era: undefined,
-      externalSystemName: EXTERNAL_SYSTEM_NAME,
+      externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
       forceMatchBackfill: true,
     });
   });
@@ -222,7 +217,7 @@ describe('TpImportDispatchService', () => {
       matchId: 670570,
       tournamentSlug: 's31',
       era: undefined,
-      externalSystemName: EXTERNAL_SYSTEM_NAME,
+      externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
     });
     expect(matchImport.importMatch).not.toHaveBeenCalled();
   });
@@ -240,7 +235,7 @@ describe('TpImportDispatchService', () => {
     expect(teamImport.importTeam).toHaveBeenCalledWith({
       rosterId: 163386,
       era: undefined,
-      externalSystemName: EXTERNAL_SYSTEM_NAME,
+      externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
     });
   });
 
@@ -256,7 +251,7 @@ describe('TpImportDispatchService', () => {
       result: OFFICIAL_TEAMS_RESULT,
     });
     expect(officialTeamsImport.importOfficialTeams).toHaveBeenCalledWith({
-      externalSystemName: EXTERNAL_SYSTEM_NAME,
+      externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
     });
   });
 });

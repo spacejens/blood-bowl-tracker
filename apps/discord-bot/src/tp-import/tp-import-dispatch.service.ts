@@ -1,3 +1,4 @@
+import { TP_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/domain-enums';
 import type {
   TpLiveCompetitionImportResult,
   TpLiveMatchImportResult,
@@ -14,8 +15,6 @@ import {
 } from '@blood-bowl-tracker/import-tp-live';
 import type { TpPageClassification } from '@blood-bowl-tracker/tp-paths';
 import { Injectable } from '@nestjs/common';
-
-import { DiscordBotConfigService } from '../discord-bot-config.service';
 
 /** A classified TP page this bot knows how to import. */
 type ImportableTpPage = Exclude<TpPageClassification, { kind: 'unknown' }>;
@@ -85,7 +84,6 @@ export interface DispatchTpImportOptions {
 @Injectable()
 export class TpImportDispatchService {
   constructor(
-    private readonly config: DiscordBotConfigService,
     private readonly competitionImport: TpLiveCompetitionImportService,
     private readonly matchImport: TpLiveMatchImportService,
     private readonly matchTeamsImport: TpLiveMatchTeamsImportService,
@@ -98,7 +96,6 @@ export class TpImportDispatchService {
     era,
     forceMatchBackfill,
   }: DispatchTpImportOptions): Promise<TpImportOutcome> {
-    const externalSystemName = this.config.getTpExternalSystemName();
     switch (page.kind) {
       case 'competition':
       case 'competitionScores':
@@ -108,7 +105,7 @@ export class TpImportDispatchService {
           result: await this.competitionImport.importCompetition({
             tournamentSlug: page.tournamentSlug,
             era,
-            externalSystemName,
+            externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
             forceMatchBackfill:
               page.kind === 'competitionScores' || forceMatchBackfill === true,
           }),
@@ -122,7 +119,7 @@ export class TpImportDispatchService {
             matchId: page.matchId,
             tournamentSlug: page.tournamentSlug,
             era,
-            externalSystemName,
+            externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
             forceMatchBackfill,
           }),
         };
@@ -135,7 +132,7 @@ export class TpImportDispatchService {
             matchId: page.matchId,
             tournamentSlug: page.tournamentSlug,
             era,
-            externalSystemName,
+            externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
           }),
         };
       case 'roster':
@@ -145,14 +142,14 @@ export class TpImportDispatchService {
           result: await this.teamImport.importTeam({
             rosterId: page.rosterId,
             era,
-            externalSystemName,
+            externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
           }),
         };
       case 'officialTeams':
         return {
           kind: 'officialTeams',
           result: await this.officialTeamsImport.importOfficialTeams({
-            externalSystemName,
+            externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
           }),
         };
     }

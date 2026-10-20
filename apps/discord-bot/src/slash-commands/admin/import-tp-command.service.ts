@@ -60,9 +60,8 @@ export class ImportTpCommandService implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
-    // Read the required TP settings now, so a missing one fails startup
+    // Read the required TP setting now, so a missing one fails startup
     // rather than the first /importtp.
-    this.config.getTpExternalSystemName();
     this.config.getTpFrontendBaseUrl();
     this.registry.register(this.buildCommand());
   }
