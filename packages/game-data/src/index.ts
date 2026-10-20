@@ -121,7 +121,6 @@ export { CharacteristicDisplayFormattingService } from './shared/characteristic-
 export { CharacteristicFormatMismatchError } from './shared/characteristic-format-mismatch-error';
 export { CharacteristicFormatValidationModule } from './shared/characteristic-format-validation.module';
 export { CharacteristicFormatValidationService } from './shared/characteristic-format-validation.service';
-export type { CompetitionType } from './shared/competition-types';
 export type { FactScope } from './shared/fact-scope';
 export { FACT_SCOPE_ALL_TIME } from './shared/fact-scope';
 export { KeywordValidationError } from './shared/keyword-validation-error';

@@ -1,22 +1,7 @@
 import type {
-  trophyAwardRuleKindEnum,
-  trophyAwardRuleMeasureEnum,
-  trophyAwardRuleRoleEnum,
-} from '@blood-bowl-tracker/db';
-
-import type { ActionType, ConsequenceType } from '../shared/match-event-types';
-
-/** A value of the `trophy_award_rule_kind` DB enum. */
-export type TrophyAwardRuleKind =
-  (typeof trophyAwardRuleKindEnum.enumValues)[number];
-
-/** A value of the `trophy_award_rule_role` DB enum. */
-export type TrophyAwardRuleRole =
-  (typeof trophyAwardRuleRoleEnum.enumValues)[number];
-
-/** A value of the `trophy_award_rule_measure` DB enum. */
-export type TrophyAwardRuleMeasure =
-  (typeof trophyAwardRuleMeasureEnum.enumValues)[number];
+  ActionType,
+  ConsequenceType,
+} from '@blood-bowl-tracker/domain-enums';
 
 /**
  * One trophy rule's curated match-event types, split by which `match_events`

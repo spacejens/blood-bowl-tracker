@@ -21,9 +21,9 @@ import {
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
+import type { CompetitionType } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
-import type { CompetitionType } from '../shared/competition-types';
 import { countRows } from '../shared/count-all';
 import { LikePatternService } from '../shared/like-pattern.service';
 import { resolveByExternalIds } from '../shared/resolve-by-external-ids';

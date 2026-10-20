@@ -15,13 +15,13 @@ import {
   sql,
   teamEras,
 } from '@blood-bowl-tracker/db';
+import type { TrophyAwardRuleRole } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { MatchScopeFilterService } from '../shared/match-scope-filter.service';
 import { TrophyRuleEventTypeFilterService } from './trophy-rule-event-type-filter.service';
 import { TrophyRulePositionFilterService } from './trophy-rule-position-filter.service';
 import type {
-  TrophyAwardRuleRole,
   TrophyRuleEligiblePositions,
   TrophyRuleEventTypes,
   TrophyRuleWinner,

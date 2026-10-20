@@ -17,14 +17,16 @@ import {
   teamEras,
   trophyAwards,
 } from '@blood-bowl-tracker/db';
+import type {
+  TrophyAwardRuleMeasure,
+  TrophyAwardRuleRole,
+} from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { MatchScopeFilterService } from '../shared/match-scope-filter.service';
 import { TrophyRuleEventTypeFilterService } from './trophy-rule-event-type-filter.service';
 import { TrophyRulePositionFilterService } from './trophy-rule-position-filter.service';
 import type {
-  TrophyAwardRuleMeasure,
-  TrophyAwardRuleRole,
   TrophyRuleEligiblePositions,
   TrophyRuleEventTypes,
   TrophyRuleWinner,

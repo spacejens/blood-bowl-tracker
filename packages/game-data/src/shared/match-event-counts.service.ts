@@ -19,10 +19,13 @@ import {
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
+import type {
+  ActionType,
+  ConsequenceType,
+} from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 import type { FactScope } from './fact-scope';
-import type { ActionType, ConsequenceType } from './match-event-types';
 import { EXPENSIVE_MISTAKE_TYPES } from './match-event-types';
 import { MatchScopeFilterService } from './match-scope-filter.service';
 

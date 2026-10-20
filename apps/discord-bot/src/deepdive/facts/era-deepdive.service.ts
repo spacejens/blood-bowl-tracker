@@ -1,4 +1,4 @@
-import type { CompetitionType } from '@blood-bowl-tracker/game-data';
+import type { CompetitionType } from '@blood-bowl-tracker/domain-enums';
 import {
   CompetitionsService,
   ErasService,

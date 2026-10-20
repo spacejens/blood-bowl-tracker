@@ -9,11 +9,14 @@ import {
   matchEvents,
   or,
 } from '@blood-bowl-tracker/db';
+import type {
+  ActionType,
+  ConsequenceType,
+} from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 import type { MatchEventSelector } from '../shared/match-event-counts.service';
 import { MatchEventCountsService } from '../shared/match-event-counts.service';
-import type { ActionType, ConsequenceType } from '../shared/match-event-types';
 import {
   CASUALTY_CAUSED_TYPES,
   CATCH_TYPES,

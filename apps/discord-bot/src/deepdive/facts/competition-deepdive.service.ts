@@ -1,7 +1,5 @@
-import type {
-  CompetitionTrophyAward,
-  CompetitionType,
-} from '@blood-bowl-tracker/game-data';
+import type { CompetitionType } from '@blood-bowl-tracker/domain-enums';
+import type { CompetitionTrophyAward } from '@blood-bowl-tracker/game-data';
 import {
   CompetitionsService,
   TrophyAwardsService,

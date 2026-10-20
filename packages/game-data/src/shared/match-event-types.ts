@@ -1,19 +1,8 @@
 import type { SppCareerCounts } from '@blood-bowl-tracker/api-contract';
 import type {
-  actionTypeEnum,
-  consequenceAvoidedByEnum,
-  consequenceTypeEnum,
-} from '@blood-bowl-tracker/db';
-
-/** A value of the `action_type` DB enum. */
-export type ActionType = (typeof actionTypeEnum.enumValues)[number];
-
-/** A value of the `consequence_avoided_by` DB enum. */
-export type ConsequenceAvoidedBy =
-  (typeof consequenceAvoidedByEnum.enumValues)[number];
-
-/** A value of the `consequence_type` DB enum. */
-export type ConsequenceType = (typeof consequenceTypeEnum.enumValues)[number];
+  ActionType,
+  ConsequenceType,
+} from '@blood-bowl-tracker/domain-enums';
 
 // --- Acting-role type sets (filtered on matchEvents.actionType) ---
 

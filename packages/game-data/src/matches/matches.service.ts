@@ -16,9 +16,9 @@ import {
   matchTeams,
   teamEras,
 } from '@blood-bowl-tracker/db';
+import type { CompetitionType } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
-import type { CompetitionType } from '../shared/competition-types';
 import { countRows } from '../shared/count-all';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';

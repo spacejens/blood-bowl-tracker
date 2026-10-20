@@ -16,9 +16,9 @@ import {
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
+import type { ActionType } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
-import type { ActionType } from '../shared/match-event-types';
 import { SPP_EARNING_ACTION_TYPES } from '../shared/match-event-types';
 
 export interface ResolveSppValueOptions {

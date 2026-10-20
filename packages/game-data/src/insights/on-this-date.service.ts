@@ -22,13 +22,13 @@ import {
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
+import type { ConsequenceType } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 import type { PlayerKillerInfo } from '../players/player-death.service';
 import { PlayerDeathService } from '../players/player-death.service';
 import type { PlayerDeepdiveCategoryCounts } from '../players/player-deepdive-counts.service';
 import type { FactScope } from '../shared/fact-scope';
-import type { ConsequenceType } from '../shared/match-event-types';
 import {
   CASUALTY_CAUSED_TYPES,
   CATCH_TYPES,

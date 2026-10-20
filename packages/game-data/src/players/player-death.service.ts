@@ -17,9 +17,8 @@ import {
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
+import type { ConsequenceAvoidedBy } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
-
-import type { ConsequenceAvoidedBy } from '../shared/match-event-types';
 
 /** The team a killer belongs to, with the race and coach shown alongside it. */
 export interface PlayerKillerTeam {
