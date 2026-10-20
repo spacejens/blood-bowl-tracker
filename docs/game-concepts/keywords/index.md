@@ -7,20 +7,21 @@ Rules that single out a kind of player name a keyword rather than a
 and every position carrying that keyword is a target.
 
 - A keyword has a name and a **kind**, and nothing else.
-- `species` keywords (Elf, Skaven, Undead, and so on) are a BB2025-only
-  concept: no earlier [rules set](../rules-sets/index.md) has them, and none
-  of the tracker's earlier-era data records any. `positional` keywords
-  (including `Big Guy`) are not BB2025-exclusive: DB2021 formally has the
-  full positional set too, and BB2020 formally has the `Big Guy` concept —
-  a long-standing Blood Bowl rule, not new to BB2025.
 
 ## Keyword kinds
 
-| Kind | Meaning |
-| --- | --- |
-| `species` | A creature keyword — Elf, Skaven, Undead, Ogre, Squig. |
-| `positional` | A role keyword — Lineman, Runner, Blitzer, Thrower, Catcher, Blocker, Special, Big Guy. |
-| `special` | The sentinel "no restriction", used by Animosity's "All" target. |
+- A **species** keyword names a creature. It is a BB2025-only concept: no
+  earlier [rules set](../rules-sets/index.md) has them, and none of the
+  tracker's earlier-era data records any.
+- A **positional** keyword is a role label. Positional keywords are not
+  BB2025-exclusive: DB2021 formally has the full positional set too, and
+  BB2020 formally has the `Big Guy` concept — a long-standing Blood Bowl
+  rule, not new to BB2025.
+- The **special** kind is a sentinel meaning "no restriction", used by
+  Animosity's "All" target. It is neither a creature nor a role.
+
+The kinds themselves are `KEYWORD_KINDS` in
+`packages/domain-enums/src/keywords.ts`.
 
 ## Which positions carry which keywords
 
