@@ -1,7 +1,7 @@
 import type {
   CompetitionType,
   MatchCategory,
-} from '@blood-bowl-tracker/api-contract';
+} from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 
 export interface ClassifyMatchNameOptions {

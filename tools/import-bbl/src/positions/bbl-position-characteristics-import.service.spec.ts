@@ -1,7 +1,5 @@
-import type {
-  CharacteristicFormat,
-  RulesSet,
-} from '@blood-bowl-tracker/api-contract';
+import type { RulesSet } from '@blood-bowl-tracker/api-contract';
+import type { CharacteristicFormat } from '@blood-bowl-tracker/domain-enums';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,

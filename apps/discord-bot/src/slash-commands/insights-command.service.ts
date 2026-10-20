@@ -1,6 +1,6 @@
-import type { MatchCategory } from '@blood-bowl-tracker/api-contract';
-import { MATCH_CATEGORIES } from '@blood-bowl-tracker/api-contract';
 import type { SlashCommandDefinition } from '@blood-bowl-tracker/discord-client';
+import type { MatchCategory } from '@blood-bowl-tracker/domain-enums';
+import { MATCH_CATEGORIES } from '@blood-bowl-tracker/domain-enums';
 import type { FactScope } from '@blood-bowl-tracker/game-data';
 import {
   CompetitionsService,

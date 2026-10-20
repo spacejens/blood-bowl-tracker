@@ -1,4 +1,4 @@
-import type { CompetitionType } from '@blood-bowl-tracker/api-contract';
+import type { CompetitionType } from '@blood-bowl-tracker/domain-enums';
 import { ConfigErrorMessageService } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 

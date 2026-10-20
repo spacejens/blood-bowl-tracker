@@ -1,6 +1,5 @@
 import {
   CharacteristicFormatSchema,
-  COMPETITION_TYPES,
   ExternalSystemCategorySchema,
   KeywordKindSchema,
   SkillCategorySchema,
@@ -11,6 +10,7 @@ import {
   TrophyAwardRuleRoleSchema,
   TrophyRecipientKindSchema,
 } from '@blood-bowl-tracker/api-contract';
+import { COMPETITION_TYPES } from '@blood-bowl-tracker/domain-enums';
 import { z } from 'zod';
 
 /** An external-id pair, both in an entry's own externalIds and in a

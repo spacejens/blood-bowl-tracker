@@ -3,7 +3,7 @@ import type {
   ConsequenceAvoidedBy,
   ConsequenceType,
   UnidentifiedParticipantKind,
-} from '@blood-bowl-tracker/api-contract';
+} from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 
 import type { BblPage } from '../source/bbl-page.types';

@@ -1,4 +1,4 @@
-import { COMPETITION_TYPES } from '@blood-bowl-tracker/api-contract';
+import { COMPETITION_TYPES } from '@blood-bowl-tracker/domain-enums';
 import {
   isoDateSchema,
   nonBlankStringSchema,
