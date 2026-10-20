@@ -14,11 +14,6 @@ import {
 } from './review-config.schema';
 
 const DEFAULT_OUTPUT_PATH = 'output/report.html';
-const DEFAULT_EXTERNAL_SYSTEM_NAMES: Record<ReviewSource, string> = {
-  bbl: 'BBL',
-  tp: 'TP',
-  manual: 'Manual',
-};
 
 /** The three genuinely per-tool decisions a review config service makes. */
 export interface ReviewConfigServiceConfig {
@@ -34,7 +29,6 @@ export interface ReviewConfigServiceConfig {
 export interface ReviewConfigService extends ConfigLoader {
   getDatabaseUrl(): string;
   getDataDir(source: ReviewSource): string;
-  getExternalSystemName(source: ReviewSource): string;
   getOverrides(source: ReviewSource): string[];
   getOutputPath(): string;
   /**
@@ -118,14 +112,6 @@ export function createReviewConfigServiceBase(
       return source === 'manual'
         ? "the folder holding tools/import-manual's curated data."
         : `the folder holding the downloaded ${source.toUpperCase()} data.`;
-    }
-
-    /** Name the source's records are registered under in `external_systems`. */
-    getExternalSystemName(source: ReviewSource): string {
-      const name = nonEmptyStringSchema.safeParse(
-        this.group(source).externalSystemName,
-      );
-      return name.success ? name.data : DEFAULT_EXTERNAL_SYSTEM_NAMES[source];
     }
 
     /** Source-specific external ids to always include in the report. */

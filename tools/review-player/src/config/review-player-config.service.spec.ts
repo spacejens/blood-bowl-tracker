@@ -83,21 +83,6 @@ describe('ReviewPlayerConfigService', () => {
     );
   });
 
-  it('defaults each external system name', async () => {
-    const service = await makeService('{}');
-
-    expect(service.getExternalSystemName('bbl')).toBe('BBL');
-    expect(service.getExternalSystemName('tp')).toBe('TP');
-  });
-
-  it('uses a configured external system name over the default', async () => {
-    const service = await makeService(
-      "{ bbl: { externalSystemName: 'BBL Legacy' } }",
-    );
-
-    expect(service.getExternalSystemName('bbl')).toBe('BBL Legacy');
-  });
-
   it('reads per-source overrides as strings', async () => {
     const service = await makeService('{ overrides: { bbl: [1000, "1001"] } }');
 
