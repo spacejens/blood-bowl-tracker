@@ -1,4 +1,3 @@
-import type { MatchCategory } from '@blood-bowl-tracker/api-contract';
 import type { Db, SQL } from '@blood-bowl-tracker/db';
 import {
   and,
@@ -22,6 +21,7 @@ import {
 import type {
   ActionType,
   ConsequenceType,
+  MatchCategory,
 } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 

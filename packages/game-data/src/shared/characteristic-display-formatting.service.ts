@@ -1,4 +1,4 @@
-import type { CharacteristicFormat } from '@blood-bowl-tracker/api-contract';
+import type { CharacteristicFormat } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 
 /**

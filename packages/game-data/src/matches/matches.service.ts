@@ -1,7 +1,4 @@
-import type {
-  MatchCategory,
-  UpsertMatch,
-} from '@blood-bowl-tracker/api-contract';
+import type { UpsertMatch } from '@blood-bowl-tracker/api-contract';
 import type { Db, Match } from '@blood-bowl-tracker/db';
 import {
   competitions,
@@ -16,7 +13,10 @@ import {
   matchTeams,
   teamEras,
 } from '@blood-bowl-tracker/db';
-import type { CompetitionType } from '@blood-bowl-tracker/domain-enums';
+import type {
+  CompetitionType,
+  MatchCategory,
+} from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { countRows } from '../shared/count-all';

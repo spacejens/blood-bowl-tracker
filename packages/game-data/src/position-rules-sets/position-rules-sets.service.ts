@@ -1,5 +1,4 @@
 import type {
-  CharacteristicFormat,
   PositionRulesSetEntry,
   SyncPositionRulesSets,
   SyncPositionRulesSetsResult,
@@ -19,6 +18,7 @@ import {
   rulesSets,
   sql,
 } from '@blood-bowl-tracker/db';
+import type { CharacteristicFormat } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { CharacteristicFormatMismatchError } from '../shared/characteristic-format-mismatch-error';

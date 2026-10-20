@@ -1,4 +1,4 @@
-import type { MatchCategory } from '@blood-bowl-tracker/api-contract';
+import type { MatchCategory } from '@blood-bowl-tracker/domain-enums';
 
 /**
  * The single, mutually-exclusive scope a fact query runs under. At most one

@@ -1,6 +1,5 @@
 import type {
   ExternalId,
-  MatchCategory,
   ResolveResult,
   UpsertTeam,
 } from '@blood-bowl-tracker/api-contract';
@@ -21,6 +20,7 @@ import {
   teamExternalIds,
   teams,
 } from '@blood-bowl-tracker/db';
+import type { MatchCategory } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { countRows } from '../shared/count-all';

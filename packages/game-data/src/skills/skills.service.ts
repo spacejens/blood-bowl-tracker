@@ -1,6 +1,5 @@
 import type {
   ExternalId,
-  PlayerSkillSource,
   ResolveResult,
   UpsertSkill,
 } from '@blood-bowl-tracker/api-contract';
@@ -24,6 +23,7 @@ import {
   skills,
   teamEras,
 } from '@blood-bowl-tracker/db';
+import type { PlayerSkillSource } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { countRows } from '../shared/count-all';
