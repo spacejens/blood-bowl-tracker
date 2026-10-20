@@ -11,7 +11,7 @@ trophy awards. Its two callers are
 ```ts
 const result = await tpLiveCompetitionImportService.importCompetition({
   tournamentSlug: 'tloegbbl-sasong-30',
-  externalSystemName: 'TP',
+  externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
 });
 ```
 
@@ -23,7 +23,7 @@ const result = await tpLiveCompetitionImportService.importCompetition({
   - When omitted, each registered team resolves its own era exactly as a plain live team import does (see [index.md](index.md#era-resolution)), and the competition is imported under the one era every team that resolved an era agrees on.
   - If the teams resolved different eras, or none resolved one (including a competition with no registered teams), the competition stage fails with an error saying so, and the competition, its participation links and its trophy awards are not imported; the teams already imported stay imported.
   - Pass the era explicitly to force such an import through.
-- `externalSystemName`: required. The name TP's external system is registered under, passed to every team import and the competition import. Keep it in sync with the bulk import's configured name.
+- `externalSystemName`: required. The name TP's external system is registered under, passed to every team import and the competition import. Callers pass `TP_EXTERNAL_SYSTEM_NAME` from `packages/domain-enums`, the name the bulk import registers TP data under.
 - `session`: optional. A `packages/scrape-tp` session to fetch through, so every request of the import is paced as one visit. A fresh session is started when omitted.
 - `forceMatchBackfill`: optional, default false. Backfill every completed match of the competition even when it was already imported (see stage 7 below).
   - `/importtp` sets it for a competition's scores page.

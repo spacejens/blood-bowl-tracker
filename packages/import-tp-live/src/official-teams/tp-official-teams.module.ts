@@ -14,6 +14,7 @@ import {
 import { ImportSharedModule } from '@blood-bowl-tracker/import-shared';
 import { Module } from '@nestjs/common';
 
+import { TpSkillIdLookupService } from '../tp-skill-id-lookup.service';
 import { TpKeywordTargetDecoderService } from './tp-keyword-target-decoder.service';
 import { TpOfficialBatchSyncService } from './tp-official-batch-sync.service';
 import { TpOfficialCharacteristicsSyncService } from './tp-official-characteristics-sync.service';
@@ -59,6 +60,7 @@ import { TpOfficialTeamsImportService } from './tp-official-teams-import.service
     TpKeywordTargetDecoderService,
     TpOfficialKeywordsSyncService,
     TpOfficialSkillRefsService,
+    TpSkillIdLookupService,
     TpOfficialStartingSkillsService,
   ],
   exports: [TpOfficialTeamsImportService],

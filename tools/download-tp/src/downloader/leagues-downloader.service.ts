@@ -10,7 +10,6 @@ import { Injectable } from '@nestjs/common';
 import { DownloadTpConfigService } from '../config/download-tp-config.service';
 import { ApiResponseStoringService } from './api-response-storing.service';
 import { FileSystemService } from './file-system.service';
-import { TpApiPathsService } from './tp-api-paths.service';
 
 /** Shape of the parts of TP's tournament response this service traverses. */
 type TpTournament = {
@@ -45,7 +44,6 @@ export class LeaguesDownloaderService {
     private readonly downloadTpConfigService: DownloadTpConfigService,
     private readonly tpFetcherService: TpFetcherService,
     private readonly apiResponseStoringService: ApiResponseStoringService,
-    private readonly tpApiPathsService: TpApiPathsService,
     private readonly tpMatchPathsService: TpMatchPathsService,
     private readonly tpRosterPathsService: TpRosterPathsService,
     private readonly tpTournamentPathsService: TpTournamentPathsService,
@@ -68,10 +66,10 @@ export class LeaguesDownloaderService {
    * One tournament's whole crawl, through one session so pacing and cookies
    * carry across every page as one continuous visit. Pages are covered in
    * the order a browser-based crawl visited them, each with the API requests
-   * TP's frontend makes for that page (see TpApiPathsService).
+   * TP's frontend makes for that page (see packages/tp-paths).
    */
   private async downloadLeague(crawl: LeagueCrawl): Promise<void> {
-    const paths = this.tpApiPathsService;
+    const paths = this.tpTournamentPathsService;
     const { slug } = crawl;
     const newsPage = this.tournamentPage(crawl, 'news');
     const tournament = (await this.fetch(
@@ -79,24 +77,24 @@ export class LeaguesDownloaderService {
       this.tpTournamentPathsService.apiPath(slug),
       newsPage,
     )) as TpTournament;
-    await this.fetch(crawl, paths.news(slug), newsPage);
+    await this.fetch(crawl, paths.newsApiPath(slug), newsPage);
     const phaseIds = this.phaseIds(tournament, slug);
     await this.downloadFixtures(crawl, phaseIds);
     const classificationsPage = this.tournamentPage(crawl, 'classifications');
     for (const phaseId of phaseIds) {
       await this.fetch(
         crawl,
-        paths.classifications(slug, phaseId),
+        paths.classificationsApiPath(slug, phaseId),
         classificationsPage,
       );
     }
     const honoursPage = this.tournamentPage(crawl, 'honours');
-    await this.fetch(crawl, paths.teamStats(slug), honoursPage);
-    await this.fetch(crawl, paths.lineupStats(slug), honoursPage);
-    await this.fetch(crawl, paths.coachStats(slug), honoursPage);
+    await this.fetch(crawl, paths.teamStatsApiPath(slug), honoursPage);
+    await this.fetch(crawl, paths.lineupStatsApiPath(slug), honoursPage);
+    await this.fetch(crawl, paths.coachStatsApiPath(slug), honoursPage);
     await this.fetch(
       crawl,
-      paths.statistics(slug),
+      paths.statisticsApiPath(slug),
       this.tournamentPage(crawl, 'statistics'),
     );
     await this.downloadParticipants(

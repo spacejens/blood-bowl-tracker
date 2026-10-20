@@ -4,6 +4,7 @@ import {
   ImportResultService,
   NAME_EXTERNAL_SYSTEM,
   ReferenceLookupService,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import type { TpPositionCharacteristics } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
@@ -11,7 +12,6 @@ import { Injectable } from '@nestjs/common';
 import type { EraDataConfig } from '../eras/era-data-config.service';
 import { EraDataConfigService } from '../eras/era-data-config.service';
 import { TpEraRulesSetResolverService } from '../eras/tp-era-rules-set-resolver.service';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { InducedStarPlayerHireGroup } from './tp-induced-star-players-import.service';
 import { TpInducedStarPlayersImportService } from './tp-induced-star-players-import.service';
 
@@ -37,7 +37,6 @@ export interface StarHiresOutcome {
 export class TpInducedStarPlayersStepService {
   constructor(
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
-    private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly eraConfig: EraDataConfigService,
     private readonly lookup: ReferenceLookupService,
     private readonly eraRulesSetResolver: TpEraRulesSetResolverService,
@@ -69,9 +68,8 @@ export class TpInducedStarPlayersStepService {
       return outcome(0);
     }
 
-    const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
-      { name: tpSystemName, category: 'imported_data_source' },
+      { name: TP_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
       NAME_EXTERNAL_SYSTEM,
     ]);
     if (!bootstrap.ok) {
@@ -86,7 +84,7 @@ export class TpInducedStarPlayersStepService {
     } catch (error) {
       errors.push(
         this.importResults.error({
-          item: { externalSystems: [tpSystemName] },
+          item: { externalSystems: [TP_EXTERNAL_SYSTEM_NAME] },
           message: error instanceof Error ? error.message : String(error),
         }),
       );

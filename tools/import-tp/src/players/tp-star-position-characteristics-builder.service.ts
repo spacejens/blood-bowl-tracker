@@ -22,7 +22,7 @@ export interface TpPlayerCharacteristicsPayload {
  * set. Holds no state and performs no I/O.
  */
 @Injectable()
-export class TpPlayerCharacteristicsBuilderService {
+export class TpStarPositionCharacteristicsBuilderService {
   /**
    * A star player hired mid-season via an `inducements_roll` event has no
    * `lineUps[]` entry, so no characteristics of their own; a freshly-hired

@@ -91,23 +91,6 @@ describe('ReviewMatchConfigService', () => {
     });
   });
 
-  describe('getExternalSystemName', () => {
-    it('defaults to the uppercased source key', async () => {
-      const service = await makeService('{}');
-
-      expect(service.getExternalSystemName('bbl')).toBe('BBL');
-      expect(service.getExternalSystemName('tp')).toBe('TP');
-    });
-
-    it('returns the configured name', async () => {
-      const service = await makeService(
-        "{ tp: { externalSystemName: 'TourPlay' } }",
-      );
-
-      expect(service.getExternalSystemName('tp')).toBe('TourPlay');
-    });
-  });
-
   describe('getOverrides', () => {
     it('defaults to an empty list', async () => {
       const service = await makeService('{}');

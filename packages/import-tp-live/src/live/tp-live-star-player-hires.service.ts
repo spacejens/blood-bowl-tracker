@@ -20,6 +20,7 @@ import type {
   TpInducedStarPlayer,
   TpMatch,
 } from '@blood-bowl-tracker/parse-tp';
+import { TpStarHireKeyService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 /** Options for {@link TpLiveStarPlayerHiresService.importHires}. */
@@ -59,9 +60,9 @@ interface ImportHireOptions {
  * own events are the only place the hire shows up. Each hire upserts the
  * star's position (keyed exactly like the official team list import keys a
  * star: its bare name as a TP id plus its Name id, so both land on one row)
- * and a player in the hiring team's era, keyed by TP
- * `star-<rosterId>-<lineUpMasterId>` like tools/import-tp's bulk import, so
- * either path re-importing the same hire updates one row. A freshly hired
+ * and a player in the hiring team's era, keyed by the TP id
+ * packages/parse-tp's TpStarHireKeyService builds for the hire -- the key
+ * tools/import-tp's bulk hire pass uses too. A freshly hired
  * star has no stat line of its own, so the position's catalog baseline for
  * the hiring era is used. Every failure is one ImportError for that hire;
  * the other hires are still imported.
@@ -76,6 +77,7 @@ export class TpLiveStarPlayerHiresService {
     private readonly nameExternalId: NameExternalIdService,
     private readonly importResults: ImportResultService,
     private readonly runner: UpsertRecorderService,
+    private readonly starHireKey: TpStarHireKeyService,
   ) {}
 
   /**
@@ -238,7 +240,10 @@ export class TpLiveStarPlayerHiresService {
           externalIds: [
             {
               externalSystemId: systemIds.tpSystemId,
-              externalId: `star-${rosterId}-${lineUpMasterId}`,
+              externalId: this.starHireKey.externalId({
+                rosterId,
+                lineUpMasterId,
+              }),
             },
           ],
         }),

@@ -1,4 +1,5 @@
 import type { UpsertTeam } from '@blood-bowl-tracker/api-contract';
+import { BBL_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/import';
 import { describe, expect, it } from 'vitest';
 
 import { mockBblSourceReaderByType } from '../shared/bbl-source-reader-mock.test-helpers';
@@ -59,7 +60,7 @@ describe('BblPlayersImportService', () => {
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith(
-      [{ name: 'BBL', category: 'imported_data_source' }],
+      [{ name: BBL_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' }],
       'Failed to upsert external system: ',
     );
     expect(playerIdsByPid.get('42')).toBe(900);
@@ -549,7 +550,7 @@ describe('BblPlayersImportService', () => {
     mocks.bootstrap.bootstrap.mockResolvedValue({
       ok: false,
       error: {
-        item: { externalSystems: ['BBL'] },
+        item: { externalSystems: [BBL_EXTERNAL_SYSTEM_NAME] },
         message: 'Failed to upsert external system: network timeout',
       },
     });
@@ -564,7 +565,9 @@ describe('BblPlayersImportService', () => {
       'Failed to upsert external system: network timeout',
     );
     // Players bootstraps only the BBL external system (no Name system).
-    expect(errors[0].item).toEqual({ externalSystems: ['BBL'] });
+    expect(errors[0].item).toEqual({
+      externalSystems: [BBL_EXTERNAL_SYSTEM_NAME],
+    });
     expect(playerIdsByPid.size).toBe(0);
     expect(mocks.playersImport.upsertPlayerResult).not.toHaveBeenCalled();
     expect(mocks.lookup.lookupMap).not.toHaveBeenCalled();

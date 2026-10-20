@@ -2,13 +2,11 @@ import type { Dirent } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { TP_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/review-harness';
 import { Injectable } from '@nestjs/common';
 import JSON5 from 'json5';
 
 import { ReviewPlayerConfigService } from '../config/review-player-config.service';
-
-/** The external-id system the curated keyword catalogue keys its TP code by. */
-const TOURPLAY_SYSTEM = 'tourplay.net';
 
 /** One `keywords[]` entry of a curated batch file. */
 export interface ManualRawKeywordEntry {
@@ -62,7 +60,7 @@ export class ManualRawKeywordsService {
       const system = this.string(ref, 'system');
       const id = this.property(ref, 'id');
       if (
-        system === TOURPLAY_SYSTEM &&
+        system === TP_EXTERNAL_SYSTEM_NAME &&
         (typeof id === 'string' || typeof id === 'number')
       ) {
         return String(id);

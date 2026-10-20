@@ -1,5 +1,6 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
+  BBL_EXTERNAL_SYSTEM_NAME,
   CoachesImportService,
   ExternalSystemBootstrapService,
   ImportResultService,
@@ -9,7 +10,6 @@ import {
 import { Injectable } from '@nestjs/common';
 
 import { BblSourceReader } from '../source/bbl-source-reader';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { PageParseErrorService } from '../source/page-parse-error.service';
 import { CoachPageParser } from './coach-page-parser';
 
@@ -22,7 +22,6 @@ export class BblCoachesImportService {
     private readonly coachPageParser: CoachPageParser,
     private readonly coachesImport: CoachesImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
-    private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
     private readonly importResults: ImportResultService,
     private readonly pageParseError: PageParseErrorService,
@@ -39,9 +38,8 @@ export class BblCoachesImportService {
     let imported = 0;
     const errors: ImportError[] = [];
 
-    const bblSystemName = this.externalSystemName.getBblSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
-      { name: bblSystemName, category: 'imported_data_source' },
+      { name: BBL_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
       NAME_EXTERNAL_SYSTEM,
     ]);
     if (!bootstrap.ok) {

@@ -91,4 +91,18 @@ describe('TpTournamentPathsService', () => {
       expect(paths.matchFrontendPath(path)).toBeUndefined();
     });
   });
+
+  it('builds the download-only tournament page paths', () => {
+    expect(paths.newsApiPath('s30')).toBe('tournament/s30/news');
+    expect(paths.teamStatsApiPath('s30')).toBe('tournament/s30/team-stats');
+    expect(paths.lineupStatsApiPath('s30')).toBe('tournament/s30/lineup-stats');
+    expect(paths.coachStatsApiPath('s30')).toBe('tournament/s30/coach-stats');
+    expect(paths.statisticsApiPath('s30')).toBe('tournament/s30/statistics');
+  });
+
+  it("builds a phase's classifications path, in TP's own spelling", () => {
+    expect(paths.classificationsApiPath('s30', 34100)).toBe(
+      'tournament/s30/clasifications?page=0&pageSize=75&phaseId=34100&type=COACH',
+    );
+  });
 });

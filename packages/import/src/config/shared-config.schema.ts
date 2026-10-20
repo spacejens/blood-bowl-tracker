@@ -72,15 +72,6 @@ export const rulesSetsSchema = z.custom<string[]>(
 export const configGroupSchema = z.looseObject({}).catch(() => ({}));
 
 /**
- * The `externalSystemName` setting: a string with at least one
- * non-whitespace character. An unusable value is not an error anywhere it is
- * read — the caller falls back to its own default.
- */
-export const externalSystemNameSchema = z
-  .string()
-  .refine((value) => value.trim() !== '');
-
-/**
  * The `connection` group shared by import-bbl, import-tp and import-manual.
  * Deliberately lenient: parsing fails only when `connection` is not an
  * object, so each config service keeps throwing its own distinct

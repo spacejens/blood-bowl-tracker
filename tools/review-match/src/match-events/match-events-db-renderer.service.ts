@@ -14,10 +14,12 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import type { TableCell } from '@blood-bowl-tracker/review-harness';
-import { HtmlService } from '@blood-bowl-tracker/review-harness';
+import {
+  ExternalSystemLookupService,
+  HtmlService,
+} from '@blood-bowl-tracker/review-harness';
 import { Inject, Injectable } from '@nestjs/common';
 
-import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
 import type { SampledMatch } from '../shared/review.types';
 
 // Acting and consequence participants are two independent walks of the same

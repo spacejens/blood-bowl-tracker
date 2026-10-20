@@ -2,13 +2,12 @@ import type { Dirent } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { TP_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/review-harness';
 import { Injectable } from '@nestjs/common';
 import JSON5 from 'json5';
 
 import { StarPlayerReviewConfigService } from '../config/review-star-player-config.service';
 
-/** The external-id system the curated keyword catalogue keys its TP code by. */
-const TOURPLAY_SYSTEM = 'tourplay.net';
 /** A `{ system, id }` reference, as the curated files write them. */
 export interface ManualExternalIdRef {
   system: string;
@@ -158,7 +157,7 @@ export class ManualRawDataService {
   /** An entry's `tourplay.net` external id, or null when it carries none. */
   private tourplayCode(entry: unknown): string | null {
     const tp = this.refs(entry, 'externalIds').find(
-      (ref) => ref.system === TOURPLAY_SYSTEM,
+      (ref) => ref.system === TP_EXTERNAL_SYSTEM_NAME,
     );
     return tp?.id ?? null;
   }

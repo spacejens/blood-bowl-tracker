@@ -6,9 +6,11 @@ import {
   externalSystems,
   raceExternalIds,
 } from '@blood-bowl-tracker/db';
+import {
+  BBL_EXTERNAL_SYSTEM_NAME,
+  TP_EXTERNAL_SYSTEM_NAME,
+} from '@blood-bowl-tracker/review-harness';
 import { Inject, Injectable } from '@nestjs/common';
-
-import { RaceReviewConfigService } from '../config/review-race-config.service';
 
 /** One external id row as the report shows it. */
 export interface RaceExternalIdRow {
@@ -37,10 +39,7 @@ const NAME_SYSTEM = 'Name';
 export class RaceExternalIdsService {
   private readonly cache = new Map<number, RaceExternalIdRow[]>();
 
-  constructor(
-    @Inject(DB) private readonly db: Db,
-    private readonly config: RaceReviewConfigService,
-  ) {}
+  constructor(@Inject(DB) private readonly db: Db) {}
 
   /** Every external id the race carries, with its system name. */
   async allForRace(raceId: number): Promise<RaceExternalIdRow[]> {
@@ -67,11 +66,9 @@ export class RaceExternalIdsService {
   /** The same ids, bucketed by source. */
   async forRace(raceId: number): Promise<RaceExternalIdSet> {
     const rows = await this.allForRace(raceId);
-    const bblSystem = this.config.getExternalSystemName('bbl');
-    const tpSystem = this.config.getExternalSystemName('tp');
     return {
-      bbl: this.idsOf(rows, bblSystem),
-      tp: this.idsOf(rows, tpSystem),
+      bbl: this.idsOf(rows, BBL_EXTERNAL_SYSTEM_NAME),
+      tp: this.idsOf(rows, TP_EXTERNAL_SYSTEM_NAME),
       name: this.idsOf(rows, NAME_SYSTEM),
     };
   }

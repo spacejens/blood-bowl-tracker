@@ -45,8 +45,10 @@ procedures use it:
 - **Roster import**: `TpRosterImportService`, in `TpRosterModule`. It
   resolves the TP and Name external systems, the era and the era's rules
   set, upserts the team, then upserts its players. Given the roster's raw
-  JSON (the live import always passes it), it then syncs each player's own
-  skills through `TpRosterPlayerSkillsService` and `TpRosterSkillIdsService`.
+  JSON (the live import and the bulk `tpRosters.import` path both pass it),
+  it then syncs each player's own skills through
+  `TpRosterPlayerSkillsService` and `TpRosterSkillIdsService`, naming each
+  skill from the skill masters that JSON embeds.
 - **The live team entry point**: `TpLiveTeamImportService.importTeam(...)`,
   in `ImportTpLiveModule`.
 - **Match import**: `TpMatchModule`, with `TpMatchImportService` and its
@@ -70,7 +72,7 @@ procedures use it:
 ```ts
 const { team, players } = await tpLiveTeamImportService.importTeam({
   rosterId: 163386,
-  externalSystemName: 'TP',
+  externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
 });
 ```
 
@@ -78,9 +80,8 @@ const { team, players } = await tpLiveTeamImportService.importTeam({
 - `era`: optional. The era to import the team under, by name. If left out,
   it is resolved automatically.
 - `externalSystemName`: required. The name TP's external system is
-  registered under. Pass the same name the bulk import (`tools/import-tp`)
-  is configured with, so the live import finds what the bulk import
-  registered.
+  registered under. Callers pass `TP_EXTERNAL_SYSTEM_NAME` from
+  `packages/domain-enums`, the name the bulk import registers TP data under.
 - `session`: optional. A `packages/scrape-tp` session to fetch through. A
   caller importing several teams in one go should pass one session, so their
   requests are paced as one visit. If left out, the import starts its own.
@@ -154,8 +155,8 @@ linked to with no end date) decide it:
   available across two overlapping normal eras — not something to guess at.
 
 The live import registers TP's external system under the
-`externalSystemName` its caller passes; there is no default. A caller keeps
-it in sync with the name `tools/import-tp` is configured with.
+`externalSystemName` its caller passes; there is no default. Every caller in
+this repository passes `TP_EXTERNAL_SYSTEM_NAME`.
 
 ## The `tpRosters.import` procedure
 
@@ -176,8 +177,8 @@ career SPP total TP reports for it, and the
 mercenary hires' position usages. The bulk importer's later steps resolve
 teams and players by these. See
 [import-tp's architecture](../import-tp/index.md#architecture) for how the
-bulk run uses it. It does not write player skills: the bulk importer writes
-them in its own later pass, naming skills from its whole download mirror.
+bulk run uses it. In the same call it writes each roster player's own
+skills, named from the skill masters the roster file embeds.
 
 ## Failures
 

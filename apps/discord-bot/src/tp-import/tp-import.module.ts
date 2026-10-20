@@ -16,8 +16,7 @@ import { TpImportFailureService } from './tp-import-failure.service';
  *
  * `ImportTpLiveModule` needs `TP_CONNECTION_PROVIDER` and packages/db's
  * `DB`, both supplied by `@Global()` modules `AppModule` registers
- * (`TpConnectionModule`, `DbModule`); `DiscordBotConfigService` is global
- * too.
+ * (`TpConnectionModule`, `DbModule`).
  */
 @Module({
   imports: [ImportTpLiveModule],

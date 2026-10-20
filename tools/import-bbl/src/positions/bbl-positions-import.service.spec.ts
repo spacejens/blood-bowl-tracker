@@ -1,3 +1,4 @@
+import { BBL_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/import';
 import { describe, expect, it } from 'vitest';
 
 import { mockBblSourceReaderByType } from '../shared/bbl-source-reader-mock.test-helpers';
@@ -49,7 +50,7 @@ describe('BblPositionsImportService', () => {
 
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith(
       [
-        { name: 'BBL', category: 'imported_data_source' },
+        { name: BBL_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
         { name: 'Name', category: 'bookkeeping' },
       ],
       'Failed to upsert external system: ',
@@ -672,7 +673,7 @@ describe('BblPositionsImportService', () => {
     mocks.bootstrap.bootstrap.mockResolvedValue({
       ok: false,
       error: {
-        item: { externalSystems: ['BBL', 'Name'] },
+        item: { externalSystems: [BBL_EXTERNAL_SYSTEM_NAME, 'Name'] },
         message: 'Failed to upsert external system: internal error',
       },
     });

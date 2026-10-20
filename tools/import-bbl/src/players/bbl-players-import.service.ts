@@ -1,6 +1,7 @@
 import type { RulesSet, UpsertTeam } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
+  BBL_EXTERNAL_SYSTEM_NAME,
   ExternalSystemBootstrapService,
   ImportResultService,
   PlayersImportService,
@@ -13,7 +14,6 @@ import { EraConfigService } from '../eras/era-config.service';
 import { CharacteristicNotationConversionService } from '../shared/characteristic-notation-conversion.service';
 import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.service';
 import { BblSourceReader } from '../source/bbl-source-reader';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { PageParseErrorService } from '../source/page-parse-error.service';
 import type { BblPlayerSkillRef } from './player-page-parser';
 import { PlayerPageParser } from './player-page-parser';
@@ -40,7 +40,6 @@ export class BblPlayersImportService {
     private readonly teamsImport: TeamsImportService,
     private readonly eraConfig: EraConfigService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
-    private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly importResults: ImportResultService,
     private readonly pageParseError: PageParseErrorService,
     private readonly upsertFieldNarrowing: UpsertFieldNarrowingService,
@@ -111,9 +110,8 @@ export class BblPlayersImportService {
     // accumulate before their single StartingSkillsImportService call.
     const skillsByPlayerId = new Map<number, BblPlayerSkillRef[]>();
 
-    const bblSystemName = this.externalSystemName.getBblSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap(
-      [{ name: bblSystemName, category: 'imported_data_source' }],
+      [{ name: BBL_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' }],
       'Failed to upsert external system: ',
     );
     if (!bootstrap.ok) {

@@ -3,6 +3,7 @@ import {
   ExternalSystemBootstrapService,
   ImportResultService,
   ReferenceLookupService,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import type { TpPositionCharacteristics } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
@@ -17,7 +18,6 @@ import {
   mockImportResultService,
   mockReferenceLookupService,
 } from '../import-package.test-helpers';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { InducedStarPlayerHireGroup } from './tp-induced-star-players-import.service';
 import { TpInducedStarPlayersImportService } from './tp-induced-star-players-import.service';
 import { TpInducedStarPlayersStepService } from './tp-induced-star-players-step.service';
@@ -81,8 +81,6 @@ async function makeService(
       (() =>
         Promise.resolve({ ok: true, ids: [TP_SYSTEM_ID, NAME_SYSTEM_ID] })),
   );
-  const externalSystemName = mock<ExternalSystemNameConfigService>();
-  externalSystemName.getTpSystemName.mockReturnValue('TP');
   const eraConfig = mockEraDataConfigService(eraNames);
   if (options.getEras) {
     eraConfig.getEras.mockImplementation(options.getEras);
@@ -101,10 +99,6 @@ async function makeService(
       {
         provide: ExternalSystemBootstrapService,
         useValue: externalSystemBootstrap,
-      },
-      {
-        provide: ExternalSystemNameConfigService,
-        useValue: externalSystemName,
       },
       { provide: EraDataConfigService, useValue: eraConfig },
       { provide: ReferenceLookupService, useValue: lookup },
@@ -223,7 +217,7 @@ describe('TpInducedStarPlayersStepService', () => {
 
   it('records the bootstrap error and imports nothing', async () => {
     const bootstrapError: ImportError = {
-      item: { externalSystems: ['TP', 'Name'] },
+      item: { externalSystems: [TP_EXTERNAL_SYSTEM_NAME, 'Name'] },
       message: 'boom',
     };
     const { service, inducedStarPlayers, importResults } = await makeService({
@@ -255,7 +249,7 @@ describe('TpInducedStarPlayersStepService', () => {
 
     expect(resultArgs(importResults).errors).toHaveLength(1);
     expect(resultArgs(importResults).errors[0].item).toEqual({
-      externalSystems: ['TP'],
+      externalSystems: [TP_EXTERNAL_SYSTEM_NAME],
     });
   });
 

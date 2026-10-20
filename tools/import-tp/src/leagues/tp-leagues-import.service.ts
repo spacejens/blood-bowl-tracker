@@ -6,10 +6,10 @@ import {
   NAME_EXTERNAL_SYSTEM,
   NAME_EXTERNAL_SYSTEM_NAME,
   NameExternalIdService,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { LeagueConfigService } from './league-config.service';
 
 @Injectable()
@@ -18,7 +18,6 @@ export class TpLeaguesImportService {
     private readonly config: LeagueConfigService,
     private readonly leaguesImport: LeaguesImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
-    private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
     private readonly importResults: ImportResultService,
   ) {}
@@ -33,15 +32,18 @@ export class TpLeaguesImportService {
     let imported = 0;
     const errors: ImportError[] = [];
 
-    const tpSystemName = this.externalSystemName.getTpSystemName();
-
     let name: string;
     try {
       name = this.config.getLeagueName();
     } catch (error) {
       errors.push(
         this.importResults.error({
-          item: { externalSystems: [tpSystemName, NAME_EXTERNAL_SYSTEM_NAME] },
+          item: {
+            externalSystems: [
+              TP_EXTERNAL_SYSTEM_NAME,
+              NAME_EXTERNAL_SYSTEM_NAME,
+            ],
+          },
           message: error instanceof Error ? error.message : String(error),
         }),
       );
@@ -49,7 +51,7 @@ export class TpLeaguesImportService {
     }
 
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
-      { name: tpSystemName, category: 'imported_data_source' },
+      { name: TP_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
       NAME_EXTERNAL_SYSTEM,
     ]);
     if (!bootstrap.ok) {

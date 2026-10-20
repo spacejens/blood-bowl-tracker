@@ -10,7 +10,7 @@ callers are `TpLiveMatchImportService.importMatch(...)`, below, and the
 const result = await tpLiveMatchImportService.importMatch({
   matchId: 662796,
   tournamentSlug: 'tloegbbl-sasong-30',
-  externalSystemName: 'TP',
+  externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
 });
 ```
 
@@ -21,7 +21,8 @@ const result = await tpLiveMatchImportService.importMatch({
   under.
 - `externalSystemName`: required. The name TP's external system is
   registered under, passed to both team imports, the competition and the
-  match. Keep it in sync with the bulk import's configured name.
+  match. Callers pass `TP_EXTERNAL_SYSTEM_NAME` from `packages/domain-enums`,
+  the name the bulk import registers TP data under.
 - `session`: optional. A `packages/scrape-tp` session to fetch through, so
   every request of the import is paced as one visit. A fresh session is
   started when omitted.
@@ -106,7 +107,7 @@ upserts a competition, so it never backfills.
 const result = await tpLiveMatchTeamsImportService.importMatchTeams({
   matchId: 670570,
   tournamentSlug: 'tloeg-blood-bowl-league-sasong-31',
-  externalSystemName: 'TP',
+  externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
 });
 ```
 
@@ -142,9 +143,10 @@ and TP `lineUpMasterId`, however many times it is listed):
   have been imported for that era; a hire whose position has no catalog
   characteristics there is skipped with an error.
 - **The hired player** is upserted into the hiring team's era, keyed by TP
-  id `star-<rosterId>-<lineUpMasterId>` — the same key `tools/import-tp`'s
-  bulk import gives it, so re-importing a hire through either path updates
-  one row.
+  id `star-<rosterId>-<lineUpMasterId>`, built by `packages/parse-tp`'s
+  `TpStarHireKeyService` — the service `tools/import-tp`'s bulk hire pass
+  keys its hires through too, so re-importing a hire through either path
+  updates one row.
 
 This step belongs to the live import only. The `tpMatches.import` procedure
 does not run it: `tools/import-tp`'s bulk run imports star hires in its own

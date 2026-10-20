@@ -11,12 +11,6 @@ export { CoachesImportService } from './coaches-import.service';
 export { CompetitionGroupsImportService } from './competition-groups-import.service';
 export { CompetitionsImportService } from './competitions-import.service';
 export { ConfigErrorMessageService } from './config/config-error-message.service';
-export type {
-  ExternalSystemNameConfig,
-  ExternalSystemNameConfigServiceConfig,
-  ExternalSystemNameConfigServiceConstructor,
-} from './config/external-system-name-config-service-base';
-export { createExternalSystemNameConfigServiceBase } from './config/external-system-name-config-service-base';
 export type { ImportConfigPaths } from './config/import-config-paths';
 export { createImportConfigPaths } from './config/import-config-paths';
 export type {
@@ -29,7 +23,6 @@ export type { ConnectionConfig } from './config/shared-config.schema';
 export {
   configGroupSchema,
   connectionConfigSchema,
-  externalSystemNameSchema,
   isoDateSchema,
   nonBlankStringSchema,
   nonEmptyStringSchema,
@@ -93,15 +86,16 @@ export type {
   UpsertResource,
 } from './upsert-import-service-base';
 export { createUpsertImportServiceBase } from './upsert-import-service-base';
-// Re-exported from @blood-bowl-tracker/domain-enums, where they moved once
-// game-data needed the "Name" system's name too: every import tool already
-// reaches for them through this package's entry point, so they stay visible
-// here rather than rewriting every call site's import.
+// The well-known external-system names live in @blood-bowl-tracker/domain-enums
+// and are re-exported here because every import tool reaches for them through
+// this package's entry point.
 export {
+  BBL_EXTERNAL_SYSTEM_NAME,
   NAF_EXTERNAL_SYSTEM,
   NAF_EXTERNAL_SYSTEM_NAME,
   NAME_EXTERNAL_SYSTEM,
   NAME_EXTERNAL_SYSTEM_NAME,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/domain-enums';
 // The import rules packages/import-tp-live shares, kept visible here under
 // their established names so the import tools reach them through this
