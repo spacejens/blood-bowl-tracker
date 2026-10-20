@@ -1,9 +1,11 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import { PositionRulesSetsService } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import { Injectable } from '@nestjs/common';
 
-import { TpImportResultsService } from '../../tp-import-results.service';
-import { TpUpsertRunnerService } from '../../tp-upsert-runner.service';
 import type { TpPlayerCharacteristicsPayload } from './tp-player-characteristics-builder.service';
 
 /** One mercenary position's characteristics under one rules set. */
@@ -47,8 +49,8 @@ export type MercenaryCurated =
 export class TpMercenaryCharacteristicsService {
   constructor(
     private readonly positionRulesSets: PositionRulesSetsService,
-    private readonly importResults: TpImportResultsService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly importResults: ImportResultService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /**

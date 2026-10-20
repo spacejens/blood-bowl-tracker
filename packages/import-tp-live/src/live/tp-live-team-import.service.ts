@@ -3,13 +3,13 @@ import type {
   ImportResult,
   TeamEra,
 } from '@blood-bowl-tracker/api-contract';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type { TpRosterPlayer } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import { TpBlockedError } from '@blood-bowl-tracker/scrape-tp';
 import { Injectable } from '@nestjs/common';
 
 import { TpRosterImportService } from '../roster/tp-roster-import.service';
-import { TpImportResultsService } from '../tp-import-results.service';
 import { TpEraResolutionService } from './tp-era-resolution.service';
 import { TpRosterFetchService } from './tp-roster-fetch.service';
 
@@ -59,7 +59,7 @@ export class TpLiveTeamImportService {
     private readonly rosterFetch: TpRosterFetchService,
     private readonly eraResolution: TpEraResolutionService,
     private readonly rosterImport: TpRosterImportService,
-    private readonly importResults: TpImportResultsService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**

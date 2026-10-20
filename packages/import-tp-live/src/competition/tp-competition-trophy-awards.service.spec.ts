@@ -5,14 +5,16 @@ import {
   TrophiesService,
   TrophyAwardsService,
 } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import type { TpAward } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import {
   COMPETITION_GROUP_ID,
   COMPETITION_ID,
@@ -68,8 +70,8 @@ describe('TpCompetitionTrophyAwardsService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpCompetitionTrophyAwardsService,
-        TpImportResultsService,
-        TpUpsertRunnerService,
+        ImportResultService,
+        UpsertRecorderService,
         { provide: CompetitionGroupsService, useValue: competitionGroups },
         { provide: TrophiesService, useValue: trophies },
         { provide: TrophyAwardsService, useValue: trophyAwards },

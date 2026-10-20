@@ -7,6 +7,7 @@ import {
   RacesModule,
   TrophyAwardsModule,
 } from '@blood-bowl-tracker/game-data';
+import { ImportSharedModule } from '@blood-bowl-tracker/import-shared';
 import { ParseTpModule } from '@blood-bowl-tracker/parse-tp';
 import { ScrapeTpModule } from '@blood-bowl-tracker/scrape-tp';
 import { TpPathsModule } from '@blood-bowl-tracker/tp-paths';
@@ -33,7 +34,6 @@ import { TpRosterFetchService } from './live/tp-roster-fetch.service';
 import { TpMatchModule } from './match/tp-match.module';
 import { TpOfficialTeamsModule } from './official-teams/tp-official-teams.module';
 import { TpRosterModule } from './roster/tp-roster.module';
-import { TpNameExternalIdService } from './tp-name-external-id.service';
 
 /**
  * Live TP import: fetch one roster; one completed match with its teams and
@@ -48,6 +48,7 @@ import { TpNameExternalIdService } from './tp-name-external-id.service';
   imports: [
     ParseTpModule,
     ScrapeTpModule,
+    ImportSharedModule,
     TpPathsModule,
     TpRosterModule,
     TpMatchModule,
@@ -72,7 +73,6 @@ import { TpNameExternalIdService } from './tp-name-external-id.service';
     TpLiveMatchImportService,
     TpLiveMatchTeamsImportService,
     TpLiveStarPlayerHiresService,
-    TpNameExternalIdService,
     TpAwardsFetchService,
     TpInscriptionsFetchService,
     TpCompetitionParticipantsBackfillService,

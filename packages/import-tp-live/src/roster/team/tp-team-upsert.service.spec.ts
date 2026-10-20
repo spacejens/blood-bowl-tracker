@@ -4,15 +4,17 @@ import {
   RacesService,
   TeamsService,
 } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  NameExternalIdService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import type { TpRoster } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { TpImportResultsService } from '../../tp-import-results.service';
-import { TpNameExternalIdService } from '../../tp-name-external-id.service';
-import { TpUpsertRunnerService } from '../../tp-upsert-runner.service';
 import {
   ERA_ID,
   NAME_SYSTEM_ID,
@@ -58,9 +60,9 @@ describe('TpTeamUpsertService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpTeamUpsertService,
-        TpImportResultsService,
-        TpUpsertRunnerService,
-        TpNameExternalIdService,
+        ImportResultService,
+        UpsertRecorderService,
+        NameExternalIdService,
         { provide: RacesService, useValue: races },
         { provide: CoachesService, useValue: coaches },
         { provide: TeamsService, useValue: teams },

@@ -1,4 +1,8 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import type { TpOfficialRace } from '@blood-bowl-tracker/parse-tp';
 import { OfficialTeamsParserService } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
@@ -14,8 +18,6 @@ import { mock } from 'vitest-mock-extended';
 
 import type { TpConnectionProvider } from '../tp-import-providers';
 import { TP_CONNECTION_PROVIDER } from '../tp-import-providers';
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { TpOfficialTeamsFetchService } from './tp-official-teams-fetch.service';
 
 const API = 'https://tp.example/api/';
@@ -49,8 +51,8 @@ describe('TpOfficialTeamsFetchService', () => {
         { provide: TpFetcherService, useValue: fetcher },
         TpOfficialTeamsPathsService,
         { provide: OfficialTeamsParserService, useValue: parser },
-        TpImportResultsService,
-        TpUpsertRunnerService,
+        ImportResultService,
+        UpsertRecorderService,
       ],
     }).compile();
     service = moduleRef.get(TpOfficialTeamsFetchService);

@@ -3,6 +3,7 @@ import type {
   ImportResult,
   TpOfficialTeamsImportResult,
 } from '@blood-bowl-tracker/api-contract';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import {
   TpBlockedError,
@@ -12,7 +13,6 @@ import { TpOfficialTeamsPathsService } from '@blood-bowl-tracker/tp-paths';
 import { Injectable } from '@nestjs/common';
 
 import { TpOfficialTeamsImportService } from '../official-teams/tp-official-teams-import.service';
-import { TpImportResultsService } from '../tp-import-results.service';
 import { TpOfficialTeamsFetchService } from './tp-official-teams-fetch.service';
 
 /** Options for {@link TpLiveOfficialTeamsImportService.importOfficialTeams}. */
@@ -58,7 +58,7 @@ export class TpLiveOfficialTeamsImportService {
     private readonly officialTeamsPaths: TpOfficialTeamsPathsService,
     private readonly officialTeamsFetch: TpOfficialTeamsFetchService,
     private readonly officialTeamsImport: TpOfficialTeamsImportService,
-    private readonly importResults: TpImportResultsService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**

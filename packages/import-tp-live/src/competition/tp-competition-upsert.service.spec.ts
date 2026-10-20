@@ -6,13 +6,15 @@ import {
   ErasService,
   ExternalSystemsService,
 } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { upsertedCompetition } from './tp-competition.test-helpers';
 import { TpCompetitionClassifierService } from './tp-competition-classifier.service';
 import { TpCompetitionSpanService } from './tp-competition-span.service';
@@ -79,8 +81,8 @@ describe('TpCompetitionUpsertService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpCompetitionUpsertService,
-        TpImportResultsService,
-        TpUpsertRunnerService,
+        ImportResultService,
+        UpsertRecorderService,
         { provide: ExternalSystemsService, useValue: externalSystems },
         { provide: ErasService, useValue: eras },
         { provide: CompetitionsService, useValue: competitions },

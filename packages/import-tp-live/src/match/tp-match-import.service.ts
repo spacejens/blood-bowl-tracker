@@ -4,12 +4,14 @@ import type {
   TpBracketMatch,
   TpMatchImportResult,
 } from '@blood-bowl-tracker/api-contract';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
 import { MatchParserService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { TpMatchEventsUpsertService } from './events/tp-match-events-upsert.service';
 import { TpMatchContextService } from './tp-match-context.service';
 import { TpMatchOutcomeService } from './tp-match-outcome.service';
@@ -51,8 +53,8 @@ export class TpMatchImportService {
     private readonly matchUpsert: TpMatchUpsertService,
     private readonly eventsUpsert: TpMatchEventsUpsertService,
     private readonly outcome: TpMatchOutcomeService,
-    private readonly importResults: TpImportResultsService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly importResults: ImportResultService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /** {@link importMatch}, for match JSON not parsed yet. */

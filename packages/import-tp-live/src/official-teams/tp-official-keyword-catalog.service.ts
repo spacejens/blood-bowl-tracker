@@ -1,8 +1,7 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import { KeywordsService } from '@blood-bowl-tracker/game-data';
+import { UpsertRecorderService } from '@blood-bowl-tracker/import-shared';
 import { Injectable } from '@nestjs/common';
-
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 
 /** The curated keyword catalogue, addressed by the numeric code TP publishes. */
 export interface TpOfficialKeywordCatalog {
@@ -19,7 +18,7 @@ export interface LoadKeywordCatalogOptions {
 export class TpOfficialKeywordCatalogService {
   constructor(
     private readonly keywords: KeywordsService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /**

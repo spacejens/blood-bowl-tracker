@@ -1,12 +1,14 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import { SkillsService } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  NameExternalIdService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import type { TpSkillMaster } from '@blood-bowl-tracker/parse-tp';
 import { SkillMasterNamesParserService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-import { TpImportResultsService } from '../../tp-import-results.service';
-import { TpNameExternalIdService } from '../../tp-name-external-id.service';
-import { TpUpsertRunnerService } from '../../tp-upsert-runner.service';
 import type { TpRosterContext } from '../tp-roster-context.service';
 
 /** One skillMasterId resolved to its database skill. */
@@ -46,9 +48,9 @@ export class TpRosterSkillIdsService {
   constructor(
     private readonly skillMasterNames: SkillMasterNamesParserService,
     private readonly skills: SkillsService,
-    private readonly nameExternalId: TpNameExternalIdService,
-    private readonly importResults: TpImportResultsService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly nameExternalId: NameExternalIdService,
+    private readonly importResults: ImportResultService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /**

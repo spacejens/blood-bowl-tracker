@@ -2,6 +2,7 @@ import type {
   ImportResult,
   TpMatchImportResult,
 } from '@blood-bowl-tracker/api-contract';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -16,7 +17,6 @@ import {
   tpMatch,
 } from '../match/tp-match.test-helpers';
 import { TpMatchImportService } from '../match/tp-match-import.service';
-import { TpImportResultsService } from '../tp-import-results.service';
 import type { TpBracket } from './tp-bracket-fetch.service';
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
 import { TpLiveTeamImportService } from './tp-live-team-import.service';
@@ -85,7 +85,7 @@ describe('TpMatchDataImportService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpMatchDataImportService,
-        TpImportResultsService,
+        ImportResultService,
         { provide: TpMatchFetchService, useValue: matchFetch },
         { provide: TpLiveTeamImportService, useValue: teamImport },
         { provide: TpMatchImportService, useValue: matchImport },

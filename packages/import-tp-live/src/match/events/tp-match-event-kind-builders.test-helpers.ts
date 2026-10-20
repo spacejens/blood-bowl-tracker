@@ -1,9 +1,9 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type { TpMatchEvent } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { mock } from 'vitest-mock-extended';
 
-import { TpImportResultsService } from '../../tp-import-results.service';
 import { TpAdminMatchEventBuilderService } from './tp-admin-match-event-builder.service';
 import { TpMatchEventHelpersService } from './tp-match-event-helpers.service';
 import { TpMatchEventKindBuildersService } from './tp-match-event-kind-builders.service';
@@ -38,7 +38,7 @@ export const UNKNOWN_LINE_UP_ID = 888888;
 
 /**
  * Compile a fresh testing module with `TpMatchEventKindBuildersService` as
- * the real provider under test. `TpImportResultsService` is passed real: it
+ * the real provider under test. `ImportResultService` is passed real: it
  * is constructor-free, pure error construction (see its own doc comment), so
  * the tests assert on the actual error objects. `TpAdminMatchEventBuilderService` is
  * mocked with `vitest-mock-extended`, not passed real: it has its own
@@ -63,7 +63,7 @@ export async function makeKindBuilders(): Promise<TpMatchEventKindBuildersServic
         useValue: mock<TpAdminMatchEventBuilderService>(),
       },
       TpMatchEventHelpersService,
-      TpImportResultsService,
+      ImportResultService,
     ],
   }).compile();
   return moduleRef.get(TpMatchEventKindBuildersService);

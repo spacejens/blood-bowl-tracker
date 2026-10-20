@@ -3,10 +3,12 @@ import {
   CompetitionsService,
   TeamsService,
 } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import { Injectable } from '@nestjs/common';
 
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import type { UpsertedTpCompetition } from './tp-competition-upsert.service';
 
 /** Options for {@link TpCompetitionParticipantsService.linkParticipants}. */
@@ -22,8 +24,8 @@ export class TpCompetitionParticipantsService {
   constructor(
     private readonly teams: TeamsService,
     private readonly competitions: CompetitionsService,
-    private readonly importResults: TpImportResultsService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly importResults: ImportResultService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /**

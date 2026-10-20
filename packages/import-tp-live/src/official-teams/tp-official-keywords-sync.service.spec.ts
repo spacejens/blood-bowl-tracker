@@ -1,12 +1,14 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import { PositionRulesSetKeywordsService } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { TpOfficialBatchSyncService } from './tp-official-batch-sync.service';
 import type { TpOfficialKeywordCatalog } from './tp-official-keyword-catalog.service';
 import { TpOfficialKeywordsSyncService } from './tp-official-keywords-sync.service';
@@ -38,8 +40,8 @@ describe('TpOfficialKeywordsSyncService', () => {
       providers: [
         TpOfficialKeywordsSyncService,
         TpOfficialBatchSyncService,
-        TpImportResultsService,
-        TpUpsertRunnerService,
+        ImportResultService,
+        UpsertRecorderService,
         {
           provide: PositionRulesSetKeywordsService,
           useValue: positionKeywords,

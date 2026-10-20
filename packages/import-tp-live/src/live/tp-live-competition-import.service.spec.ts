@@ -2,6 +2,7 @@ import type {
   ImportError,
   ImportResult,
 } from '@blood-bowl-tracker/api-contract';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type { TpAward } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import {
@@ -16,7 +17,6 @@ import { mock } from 'vitest-mock-extended';
 import type { TpCoreCompetitionImportResult } from '../competition/tp-competition-import.service';
 import { TpCompetitionImportService } from '../competition/tp-competition-import.service';
 import { bracketMatch } from '../match/tp-match.test-helpers';
-import { TpImportResultsService } from '../tp-import-results.service';
 import { TpAwardsFetchService } from './tp-awards-fetch.service';
 import type { TpBracket } from './tp-bracket-fetch.service';
 import { TpBracketFetchService } from './tp-bracket-fetch.service';
@@ -141,7 +141,7 @@ describe('TpLiveCompetitionImportService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpLiveCompetitionImportService,
-        TpImportResultsService,
+        ImportResultService,
         { provide: TpFetcherService, useValue: fetcher },
         { provide: TpBracketFetchService, useValue: bracketFetch },
         { provide: TpAwardsFetchService, useValue: awardsFetch },

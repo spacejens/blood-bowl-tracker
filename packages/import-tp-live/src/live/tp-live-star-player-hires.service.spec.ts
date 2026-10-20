@@ -8,6 +8,11 @@ import {
   PositionRulesSetsService,
   PositionsService,
 } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  NameExternalIdService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import type {
   TpInducedStarPlayer,
   TpMatchEvent,
@@ -22,9 +27,6 @@ import {
   HOME_ROSTER_ID,
   tpMatch,
 } from '../match/tp-match.test-helpers';
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpNameExternalIdService } from '../tp-name-external-id.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { TpLiveStarPlayerHiresService } from './tp-live-star-player-hires.service';
 
 const EXTERNAL_SYSTEM_NAME = 'some-external-system';
@@ -90,14 +92,14 @@ describe('TpLiveStarPlayerHiresService', () => {
   let positions: MockProxy<PositionsService>;
   let positionRulesSets: MockProxy<PositionRulesSetsService>;
   let players: MockProxy<PlayersService>;
-  let nameExternalId: MockProxy<TpNameExternalIdService>;
+  let nameExternalId: MockProxy<NameExternalIdService>;
 
   beforeEach(async () => {
     externalSystems = mock<ExternalSystemsService>();
     positions = mock<PositionsService>();
     positionRulesSets = mock<PositionRulesSetsService>();
     players = mock<PlayersService>();
-    nameExternalId = mock<TpNameExternalIdService>();
+    nameExternalId = mock<NameExternalIdService>();
     externalSystems.upsert
       .mockResolvedValueOnce({
         system: mock<ExternalSystem>({ id: TP_SYSTEM_ID }),
@@ -131,13 +133,13 @@ describe('TpLiveStarPlayerHiresService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpLiveStarPlayerHiresService,
-        TpImportResultsService,
-        TpUpsertRunnerService,
+        ImportResultService,
+        UpsertRecorderService,
         { provide: ExternalSystemsService, useValue: externalSystems },
         { provide: PositionsService, useValue: positions },
         { provide: PositionRulesSetsService, useValue: positionRulesSets },
         { provide: PlayersService, useValue: players },
-        { provide: TpNameExternalIdService, useValue: nameExternalId },
+        { provide: NameExternalIdService, useValue: nameExternalId },
       ],
     }).compile();
     service = moduleRef.get(TpLiveStarPlayerHiresService);

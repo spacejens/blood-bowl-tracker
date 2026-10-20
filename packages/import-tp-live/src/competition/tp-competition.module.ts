@@ -7,10 +7,9 @@ import {
   TrophiesModule,
   TrophyAwardsModule,
 } from '@blood-bowl-tracker/game-data';
+import { ImportSharedModule } from '@blood-bowl-tracker/import-shared';
 import { Module } from '@nestjs/common';
 
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { TpCompetitionClassifierService } from './tp-competition-classifier.service';
 import { TpCompetitionGroupMatcherService } from './tp-competition-group-matcher.service';
 import { TpCompetitionGroupPrecedentService } from './tp-competition-group-precedent.service';
@@ -38,6 +37,7 @@ import { TpCompetitionUpsertService } from './tp-competition-upsert.service';
     TeamsModule,
     TrophiesModule,
     TrophyAwardsModule,
+    ImportSharedModule,
   ],
   providers: [
     TpCompetitionImportService,
@@ -48,8 +48,6 @@ import { TpCompetitionUpsertService } from './tp-competition-upsert.service';
     TpCompetitionClassifierService,
     TpCompetitionGroupMatcherService,
     TpCompetitionGroupPrecedentService,
-    TpImportResultsService,
-    TpUpsertRunnerService,
   ],
   exports: [
     TpCompetitionImportService,

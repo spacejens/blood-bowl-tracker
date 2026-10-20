@@ -4,11 +4,13 @@ import {
   TrophiesService,
   TrophyAwardsService,
 } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import type { TpAward } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import type { UpsertedTpCompetition } from './tp-competition-upsert.service';
 
 /** Options for {@link TpCompetitionTrophyAwardsService.importAwards}. */
@@ -39,8 +41,8 @@ export class TpCompetitionTrophyAwardsService {
     private readonly competitionGroups: CompetitionGroupsService,
     private readonly trophies: TrophiesService,
     private readonly trophyAwards: TrophyAwardsService,
-    private readonly importResults: TpImportResultsService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly importResults: ImportResultService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /**

@@ -25,7 +25,7 @@ export interface SyncOfficialGroupsOptions<E> {
  * groups are retried one position at a time: the failing position is
  * reported by name and every other position is still written. Constructor-
  * free, no I/O of its own (it only calls the sync it is handed), so specs
- * may pass it as a real provider, like TpUpsertRunnerService.
+ * may pass it as a real provider, like UpsertRecorderService.
  */
 @Injectable()
 export class TpOfficialBatchSyncService {

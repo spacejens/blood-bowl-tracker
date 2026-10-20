@@ -747,6 +747,9 @@ importers:
       '@blood-bowl-tracker/game-data':
         specifier: workspace:*
         version: link:../game-data
+      '@blood-bowl-tracker/import-shared':
+        specifier: workspace:*
+        version: link:../import-shared
       '@blood-bowl-tracker/parse-tp':
         specifier: workspace:*
         version: link:../parse-tp

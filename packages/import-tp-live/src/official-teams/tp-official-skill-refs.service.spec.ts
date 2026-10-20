@@ -1,12 +1,14 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import { SkillsService } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { TpKeywordTargetDecoderService } from './tp-keyword-target-decoder.service';
 import type { TpOfficialKeywordCatalog } from './tp-official-keyword-catalog.service';
 import { TpOfficialSkillRefsService } from './tp-official-skill-refs.service';
@@ -34,8 +36,8 @@ describe('TpOfficialSkillRefsService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpOfficialSkillRefsService,
-        TpImportResultsService,
-        TpUpsertRunnerService,
+        ImportResultService,
+        UpsertRecorderService,
         // Pure, dependency-free decision logic, passed real so the type-3
         // tests keep exercising the actual decode.
         TpKeywordTargetDecoderService,
