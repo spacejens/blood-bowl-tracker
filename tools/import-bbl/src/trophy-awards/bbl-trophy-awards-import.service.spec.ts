@@ -24,7 +24,7 @@ import {
 /**
  * The canned ImportResult the mocked ImportResultService.result returns.
  * ImportResultService's own derivation is covered by
- * packages/import/src/import-result.service.spec.ts; this spec asserts what
+ * packages/import-shared/src/import-result.service.spec.ts; this spec asserts what
  * the service under test passes to result() and that it returns result()'s
  * value unchanged.
  */

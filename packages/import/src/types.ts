@@ -1,10 +1,4 @@
-export interface ImportError {
-  item: unknown;
-  message: string;
-}
-
-export interface ImportResult {
-  success: boolean;
-  imported: number;
-  errors: ImportError[];
-}
+export type {
+  ImportError,
+  ImportResult,
+} from '@blood-bowl-tracker/api-contract';

@@ -664,6 +664,9 @@ importers:
       '@blood-bowl-tracker/domain-enums':
         specifier: workspace:*
         version: link:../domain-enums
+      '@blood-bowl-tracker/import-shared':
+        specifier: workspace:*
+        version: link:../import-shared
       '@nestjs/common':
         specifier: ^12.0.0
         version: 12.1.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)

@@ -1,3 +1,4 @@
+import { ImportSharedModule } from '@blood-bowl-tracker/import-shared';
 import { Module } from '@nestjs/common';
 
 import { BatchBufferService } from './batch-buffer.service';
@@ -8,7 +9,6 @@ import { ErasImportService } from './eras-import.service';
 import { ExternalIdResolverService } from './external-id-resolver.service';
 import { ExternalSystemBootstrapService } from './external-system-bootstrap.service';
 import { ExternalSystemsImportService } from './external-systems-import.service';
-import { ImportResultService } from './import-result.service';
 import { ImportRunnerService } from './import-runner.service';
 import { KeywordsImportService } from './keywords-import.service';
 import { LastingInjuriesImportService } from './lasting-injuries-import.service';
@@ -18,7 +18,6 @@ import { MatchEventsImportService } from './match-events-import.service';
 import { MatchOutcomesImportService } from './match-outcomes-import.service';
 import { MatchesImportService } from './matches-import.service';
 import { MissingTrophyAwardsImportService } from './missing-trophy-awards-import.service';
-import { NameExternalIdService } from './name-external-id.service';
 import { PlayerSkillsImportService } from './player-skills-import.service';
 import { PlayersImportService } from './players-import.service';
 import { PositionRulesSetKeywordsImportService } from './position-rules-set-keywords-import.service';
@@ -37,10 +36,15 @@ import { TeamsImportService } from './teams-import.service';
 import { TrophiesImportService } from './trophies-import.service';
 import { TrophyAwardsImportService } from './trophy-awards-import.service';
 
+/**
+ * Import orchestration for every tools/import-*. Re-exports
+ * ImportSharedModule so a tool importing this module can inject the shared
+ * ImportResultService, NameExternalIdService and CompetitionTypeService.
+ */
 @Module({
+  imports: [ImportSharedModule],
   providers: [
     ImportRunnerService,
-    ImportResultService,
     BatchBufferService,
     CoachesImportService,
     CompetitionGroupsImportService,
@@ -52,7 +56,6 @@ import { TrophyAwardsImportService } from './trophy-awards-import.service';
     MatchesImportService,
     MatchDateRangeService,
     MissingTrophyAwardsImportService,
-    NameExternalIdService,
     KeywordsImportService,
     PlayersImportService,
     PlayerSkillsImportService,
@@ -77,8 +80,8 @@ import { TrophyAwardsImportService } from './trophy-awards-import.service';
     TrophyAwardsImportService,
   ],
   exports: [
+    ImportSharedModule,
     ImportRunnerService,
-    ImportResultService,
     BatchBufferService,
     CoachesImportService,
     CompetitionGroupsImportService,
@@ -90,7 +93,6 @@ import { TrophyAwardsImportService } from './trophy-awards-import.service';
     MatchesImportService,
     MatchDateRangeService,
     MissingTrophyAwardsImportService,
-    NameExternalIdService,
     KeywordsImportService,
     PlayersImportService,
     PlayerSkillsImportService,

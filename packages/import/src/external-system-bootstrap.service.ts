@@ -1,8 +1,8 @@
 import type { ExternalSystemCategory } from '@blood-bowl-tracker/api-contract';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import { Injectable } from '@nestjs/common';
 
 import { ExternalSystemsImportService } from './external-systems-import.service';
-import { ImportResultService } from './import-result.service';
 import type { ImportError } from './types';
 
 export type ExternalSystemBootstrapResult =

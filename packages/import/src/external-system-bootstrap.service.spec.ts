@@ -1,3 +1,4 @@
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -5,7 +6,6 @@ import { mock } from 'vitest-mock-extended';
 
 import { ExternalSystemBootstrapService } from './external-system-bootstrap.service';
 import { ExternalSystemsImportService } from './external-systems-import.service';
-import { ImportResultService } from './import-result.service';
 
 describe('ExternalSystemBootstrapService', () => {
   let service: ExternalSystemBootstrapService;

@@ -48,7 +48,6 @@ export type { ExternalSystemBootstrapResult } from './external-system-bootstrap.
 export { ExternalSystemBootstrapService } from './external-system-bootstrap.service';
 export { ExternalSystemsImportService } from './external-systems-import.service';
 export { ImportModule } from './import.module';
-export { ImportResultService } from './import-result.service';
 export { ImportRunnerService } from './import-runner.service';
 export { KeywordsImportService } from './keywords-import.service';
 export { LastingInjuriesImportService } from './lasting-injuries-import.service';
@@ -59,7 +58,6 @@ export { MatchEventsImportService } from './match-events-import.service';
 export { MatchOutcomesImportService } from './match-outcomes-import.service';
 export { MatchesImportService } from './matches-import.service';
 export { MissingTrophyAwardsImportService } from './missing-trophy-awards-import.service';
-export { NameExternalIdService } from './name-external-id.service';
 export {
   PLAYER_SKILLS_SYNC_CHUNK_SIZE,
   PlayerSkillsImportService,
@@ -105,3 +103,11 @@ export {
   NAME_EXTERNAL_SYSTEM,
   NAME_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/domain-enums';
+// The import rules packages/import-tp-live shares, kept visible here under
+// their established names so the import tools reach them through this
+// package's entry point like everything else they import.
+export {
+  CompetitionTypeService,
+  ImportResultService,
+  NameExternalIdService,
+} from '@blood-bowl-tracker/import-shared';

@@ -1,11 +1,13 @@
+import {
+  ImportResultService,
+  NameExternalIdService,
+} from '@blood-bowl-tracker/import-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { ExternalSystemBootstrapService } from './external-system-bootstrap.service';
-import { ImportResultService } from './import-result.service';
-import { NameExternalIdService } from './name-external-id.service';
 import { PositionRulesSetSkillsImportService } from './position-rules-set-skills-import.service';
 import { SkillRulesSetsImportService } from './skill-rules-sets-import.service';
 import { SkillsImportService } from './skills-import.service';
