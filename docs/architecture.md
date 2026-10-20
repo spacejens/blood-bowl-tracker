@@ -179,8 +179,9 @@ tools/
                         skills call
   backup-cli/         — NestJS CLI application that backs up the production
                         database to a private Cloudflare R2 bucket, lists,
-                        prunes, downloads and verifies those backups, and
-                        restores one into the local development database;
+                        prunes, downloads and verifies those backups,
+                        restores one into the local development database,
+                        and raises and resolves the backup alert issues;
                         run daily by .github/workflows/backup-production.yml
   workflow-lint/      — NestJS CLI application that fails pnpm lint when a
                         workflow in .github/workflows/ references a remote
