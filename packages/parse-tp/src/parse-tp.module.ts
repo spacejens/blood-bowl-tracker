@@ -11,6 +11,7 @@ import { RosterParserService } from './roster-parser.service';
 import { SecretObjectiveService } from './secret-objective.service';
 import { SkillMasterNamesParserService } from './skill-master-names-parser.service';
 import { TournamentParserService } from './tournament-parser.service';
+import { TpStarHireKeyService } from './tp-star-hire-key.service';
 import { WeatherTypeService } from './weather-type.service';
 
 @Module({
@@ -26,6 +27,7 @@ import { WeatherTypeService } from './weather-type.service';
     RosterParserService,
     SecretObjectiveService,
     SkillMasterNamesParserService,
+    TpStarHireKeyService,
     WeatherTypeService,
   ],
   exports: [
@@ -38,6 +40,7 @@ import { WeatherTypeService } from './weather-type.service';
     PhaseFixturesParserService,
     RosterParserService,
     SkillMasterNamesParserService,
+    TpStarHireKeyService,
   ],
 })
 export class ParseTpModule {}
