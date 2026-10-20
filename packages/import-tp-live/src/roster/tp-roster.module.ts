@@ -19,6 +19,7 @@ import { TpKeywordTargetDecoderService } from '../official-teams/tp-keyword-targ
 import { TpOfficialKeywordCatalogService } from '../official-teams/tp-official-keyword-catalog.service';
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpNameExternalIdService } from '../tp-name-external-id.service';
+import { TpSkillIdLookupService } from '../tp-skill-id-lookup.service';
 import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { TpCharacteristicIncreasesService } from './players/tp-characteristic-increases.service';
 import { TpLastingInjuryBuilderService } from './players/tp-lasting-injury-builder.service';
@@ -68,6 +69,7 @@ import { TpRosterImportService } from './tp-roster-import.service';
     TpLastingInjuryBuilderService,
     TpRosterPlayerSkillsService,
     TpRosterSkillIdsService,
+    TpSkillIdLookupService,
     TpOfficialKeywordCatalogService,
     TpKeywordTargetDecoderService,
     TpNameExternalIdService,

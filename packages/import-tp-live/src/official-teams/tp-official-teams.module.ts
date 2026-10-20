@@ -15,6 +15,7 @@ import { Module } from '@nestjs/common';
 
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpNameExternalIdService } from '../tp-name-external-id.service';
+import { TpSkillIdLookupService } from '../tp-skill-id-lookup.service';
 import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { TpKeywordTargetDecoderService } from './tp-keyword-target-decoder.service';
 import { TpOfficialBatchSyncService } from './tp-official-batch-sync.service';
@@ -60,6 +61,7 @@ import { TpOfficialTeamsImportService } from './tp-official-teams-import.service
     TpKeywordTargetDecoderService,
     TpOfficialKeywordsSyncService,
     TpOfficialSkillRefsService,
+    TpSkillIdLookupService,
     TpOfficialStartingSkillsService,
     TpNameExternalIdService,
     TpImportResultsService,
