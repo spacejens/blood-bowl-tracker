@@ -223,6 +223,9 @@ importers:
       '@blood-bowl-tracker/discord-client':
         specifier: workspace:*
         version: link:../../packages/discord-client
+      '@blood-bowl-tracker/domain-enums':
+        specifier: workspace:*
+        version: link:../../packages/domain-enums
       '@blood-bowl-tracker/game-data':
         specifier: workspace:*
         version: link:../../packages/game-data

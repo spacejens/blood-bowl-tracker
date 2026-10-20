@@ -1,5 +1,6 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
+  BBL_EXTERNAL_SYSTEM_NAME,
   CompetitionGroupsImportService,
   ExternalSystemBootstrapService,
   ImportResultService,
@@ -15,7 +16,6 @@ import type { BblCompetitionEntry } from '../competitions/bbl-competitions-impor
 import { BblCompetitionTrophyReaderService } from '../matches/bbl-competition-trophy-reader.service';
 import type { CompetitionTrophyRows } from '../matches/competition-trophy-page-parser';
 import { mockReferenceLookup } from '../shared/reference-lookup-mock.test-helpers';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import {
   BblTrophyAwardsImportService,
   type ImportBblTrophyAwardsOptions,
@@ -47,7 +47,6 @@ interface Mocks {
   trophyAwardsImport: MockProxy<TrophyAwardsImportService>;
   competitionGroupsImport: MockProxy<CompetitionGroupsImportService>;
   bootstrap: MockProxy<ExternalSystemBootstrapService>;
-  nameConfig: MockProxy<ExternalSystemNameConfigService>;
   importResults: MockProxy<ImportResultService>;
   lookup: MockProxy<ReferenceLookupService>;
 }
@@ -83,14 +82,12 @@ async function makeService(
     trophyAwardsImport: mock<TrophyAwardsImportService>(),
     competitionGroupsImport: mock<CompetitionGroupsImportService>(),
     bootstrap: mock<ExternalSystemBootstrapService>(),
-    nameConfig: mock<ExternalSystemNameConfigService>(),
     importResults: mock<ImportResultService>(),
     lookup: mock<ReferenceLookupService>(),
   };
   mocks.trophyReader.getRowsByCompetitionId.mockResolvedValue(
     rowsByCompetitionId,
   );
-  mocks.nameConfig.getBblSystemName.mockReturnValue('tloeg.bbleague.se');
   mocks.bootstrap.bootstrap.mockResolvedValue({
     ok: true,
     ids: [BBL_SYSTEM_ID],
@@ -129,7 +126,6 @@ async function makeService(
         useValue: mocks.competitionGroupsImport,
       },
       { provide: ExternalSystemBootstrapService, useValue: mocks.bootstrap },
-      { provide: ExternalSystemNameConfigService, useValue: mocks.nameConfig },
       { provide: ImportResultService, useValue: mocks.importResults },
       { provide: ReferenceLookupService, useValue: mocks.lookup },
     ],
@@ -619,7 +615,7 @@ describe('BblTrophyAwardsImportService', () => {
       rows([{ label: 'Major 1st', teamCode: 'sew' }]),
     );
     const bootstrapError: ImportError = {
-      item: { externalSystems: ['tloeg.bbleague.se'] },
+      item: { externalSystems: [BBL_EXTERNAL_SYSTEM_NAME] },
       message: 'boom',
     };
     mocks.bootstrap.bootstrap.mockResolvedValue({
@@ -629,6 +625,10 @@ describe('BblTrophyAwardsImportService', () => {
 
     await service.importTrophyAwards(options());
 
+    expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith(
+      [{ name: BBL_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' }],
+      'Failed to upsert external system: ',
+    );
     expect(mocks.trophyReader.getRowsByCompetitionId).not.toHaveBeenCalled();
     expect(resultArgs(mocks.importResults).errors).toEqual([bootstrapError]);
   });

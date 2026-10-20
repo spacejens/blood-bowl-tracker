@@ -27,18 +27,12 @@
   bbl: {
     // The folder that directly contains the BBL `default.asp?p=...` files.
     dataDir: '../import-bbl/data/tloeg.bbleague.se',
-    // Name of the external system BBL records are registered under.
-    // Defaults to "BBL" if unset or empty.
-    externalSystemName: 'BBL',
   },
   tp: {
     // The folder that directly contains one subdirectory per era; each era
     // directory holds one subdirectory per competition, holding the
     // `match_<id>.json` files.
     dataDir: '../import-tp/data',
-    // Name of the external system TP records are registered under.
-    // Defaults to "TP" if unset or empty.
-    externalSystemName: 'TP',
   },
 
   // Matches always included in the report regardless of the strata sample,

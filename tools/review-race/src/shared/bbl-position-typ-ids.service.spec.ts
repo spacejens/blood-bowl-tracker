@@ -1,8 +1,11 @@
+import {
+  BBL_EXTERNAL_SYSTEM_NAME,
+  TP_EXTERNAL_SYSTEM_NAME,
+} from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
-import { RaceReviewConfigService } from '../config/review-race-config.service';
 import { BblPositionTypIdsService } from './bbl-position-typ-ids.service';
 import { PositionExternalIdsService } from './position-external-ids.service';
 import { RacePositionsQueryService } from './race-positions-query.service';
@@ -15,16 +18,11 @@ describe('BblPositionTypIdsService', () => {
   beforeEach(async () => {
     query = mock<RacePositionsQueryService>();
     positionIds = mock<PositionExternalIdsService>();
-    const config = mock<RaceReviewConfigService>();
-    config.getExternalSystemName.mockImplementation((source) =>
-      source === 'bbl' ? 'BBL' : 'TP',
-    );
     const moduleRef = await Test.createTestingModule({
       providers: [
         BblPositionTypIdsService,
         { provide: RacePositionsQueryService, useValue: query },
         { provide: PositionExternalIdsService, useValue: positionIds },
-        { provide: RaceReviewConfigService, useValue: config },
       ],
     }).compile();
     service = moduleRef.get(BblPositionTypIdsService);
@@ -40,7 +38,9 @@ describe('BblPositionTypIdsService', () => {
       },
     ]);
     positionIds.forPositions.mockResolvedValue(
-      new Map([[1, [{ systemName: 'BBL', externalId: '310-44' }]]]),
+      new Map([
+        [1, [{ systemName: BBL_EXTERNAL_SYSTEM_NAME, externalId: '310-44' }]],
+      ]),
     );
 
     const typIds = await service.forRace(7);
@@ -58,7 +58,9 @@ describe('BblPositionTypIdsService', () => {
       },
     ]);
     positionIds.forPositions.mockResolvedValue(
-      new Map([[1, [{ systemName: 'TP', externalId: '999' }]]]),
+      new Map([
+        [1, [{ systemName: TP_EXTERNAL_SYSTEM_NAME, externalId: '999' }]],
+      ]),
     );
 
     const typIds = await service.forRace(7);
@@ -76,7 +78,9 @@ describe('BblPositionTypIdsService', () => {
       },
     ]);
     positionIds.forPositions.mockResolvedValue(
-      new Map([[1, [{ systemName: 'BBL', externalId: '310' }]]]),
+      new Map([
+        [1, [{ systemName: BBL_EXTERNAL_SYSTEM_NAME, externalId: '310' }]],
+      ]),
     );
 
     const typIds = await service.forRace(7);

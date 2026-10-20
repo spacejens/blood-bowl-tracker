@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import {
   configGroupSchema,
   connectionConfigSchema,
-  externalSystemNameSchema,
   isoDateSchema,
   nonBlankStringSchema,
   nonEmptyStringSchema,
@@ -122,20 +121,6 @@ describe('configGroupSchema', () => {
     expect(configGroupSchema.parse('nope')).toEqual({});
     expect(configGroupSchema.parse(7)).toEqual({});
     expect(configGroupSchema.parse([1, 2, 3])).toEqual({});
-  });
-});
-
-describe('externalSystemNameSchema', () => {
-  it('accepts a name', () => {
-    expect(externalSystemNameSchema.parse('BBL')).toBe('BBL');
-  });
-
-  it('rejects a whitespace-only name', () => {
-    expect(externalSystemNameSchema.safeParse('   ').success).toBe(false);
-  });
-
-  it('rejects a non-string', () => {
-    expect(externalSystemNameSchema.safeParse(7).success).toBe(false);
   });
 });
 

@@ -8,11 +8,11 @@ import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   ImportRunnerService,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
 import { Inject, Injectable } from '@nestjs/common';
 
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { TpSourceReader } from '../source/tp-source-reader';
 
 /** Options for {@link TpMatchFilesImportService.importMatchFiles}. */
@@ -54,7 +54,6 @@ export class TpMatchFilesImportService {
     private readonly sourceReader: TpSourceReader,
     private readonly importRunner: ImportRunnerService,
     private readonly importResults: ImportResultService,
-    private readonly externalSystemName: ExternalSystemNameConfigService,
   ) {}
 
   /**
@@ -71,7 +70,6 @@ export class TpMatchFilesImportService {
   async importMatchFiles(
     options: ImportMatchFilesOptions,
   ): Promise<MatchFilesImportOutcome> {
-    const externalSystemName = this.externalSystemName.getTpSystemName();
     const competitionsByDirectory = this.competitionsByDirectory(options);
     const tallies: Record<Stage, Tally> = {
       match: { imported: 0, errors: [] },
@@ -99,7 +97,7 @@ export class TpMatchFilesImportService {
               match: file.content,
               bracket: competition.bracket,
               competitionTpId: competition.tpId,
-              externalSystemName,
+              externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
             }),
           item: { match: matchId, competition: competition.tpId },
           errors: tallies.match.errors,

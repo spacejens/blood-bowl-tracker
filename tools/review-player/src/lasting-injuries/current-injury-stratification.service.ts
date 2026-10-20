@@ -1,8 +1,8 @@
 import type { SQL } from '@blood-bowl-tracker/db';
 import { eq, gt, or, players, sql } from '@blood-bowl-tracker/db';
+import { ExternalSystemLookupService } from '@blood-bowl-tracker/review-harness';
 import { Injectable } from '@nestjs/common';
 
-import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
 import { PlayerProjectionQueryService } from '../shared/player-projection-query.service';
 import type {
   PlayerStratifier,

@@ -5,11 +5,11 @@ import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   ImportRunnerService,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
 import { Inject, Injectable } from '@nestjs/common';
 
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
 import { TpAwardsReaderService } from './tp-awards-reader.service';
 import type { TpCompetitionSource } from './tp-competition-sources.service';
@@ -47,7 +47,6 @@ export class TpCompetitionsImportService {
     private readonly awardsReader: TpAwardsReaderService,
     private readonly importRunner: ImportRunnerService,
     private readonly importResults: ImportResultService,
-    private readonly externalSystemName: ExternalSystemNameConfigService,
   ) {}
 
   /**
@@ -66,7 +65,6 @@ export class TpCompetitionsImportService {
     matchesByCompetitionTpId,
     rosters,
   }: ImportCompetitionsOptions): Promise<CompetitionsImportOutcome> {
-    const externalSystemName = this.externalSystemName.getTpSystemName();
     const tallies: Record<Stage, Tally> = {
       competition: { imported: 0, errors: [] },
       participation: { imported: 0, errors: [] },
@@ -92,7 +90,7 @@ export class TpCompetitionsImportService {
             era: source.era,
             participantRosterIds: rosterIdsByDirectory.get(directory) ?? [],
             awards: awardsByDirectory.get(directory) ?? [],
-            externalSystemName,
+            externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
           }),
         item: { competition: tpId },
         errors: tallies.competition.errors,

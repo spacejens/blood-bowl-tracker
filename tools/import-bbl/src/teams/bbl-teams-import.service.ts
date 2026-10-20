@@ -1,6 +1,7 @@
 import type { UpsertTeam } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
+  BBL_EXTERNAL_SYSTEM_NAME,
   ExternalSystemBootstrapService,
   ImportResultService,
   NAME_EXTERNAL_SYSTEM,
@@ -13,7 +14,6 @@ import { Injectable } from '@nestjs/common';
 import { CoachPageParser } from '../coaches/coach-page-parser';
 import { RacePageParser } from '../races/race-page-parser';
 import { BblSourceReader } from '../source/bbl-source-reader';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { PageParseErrorService } from '../source/page-parse-error.service';
 import { TeamPageParser } from './team-page-parser';
 
@@ -35,7 +35,6 @@ export class BblTeamsImportService {
     private readonly coachPageParser: CoachPageParser,
     private readonly teamsImport: TeamsImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
-    private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
     private readonly importResults: ImportResultService,
     private readonly pageParseError: PageParseErrorService,
@@ -67,9 +66,8 @@ export class BblTeamsImportService {
     const teamRaceIdsByCode = new Map<string, number>();
     const teamsByCode = new Map<string, UpsertTeam>();
 
-    const bblSystemName = this.externalSystemName.getBblSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
-      { name: bblSystemName, category: 'imported_data_source' },
+      { name: BBL_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
       NAME_EXTERNAL_SYSTEM,
     ]);
     if (!bootstrap.ok) {

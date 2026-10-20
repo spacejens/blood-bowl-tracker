@@ -63,7 +63,6 @@ describe('ImportTpCommandService', () => {
   beforeEach(async () => {
     config = mock<DiscordBotConfigService>();
     config.getTpFrontendBaseUrl.mockReturnValue(BASE);
-    config.getTpExternalSystemName.mockReturnValue('tourplay.net');
     config.getTpScrapingEnabled.mockReturnValue(true);
     classifier = mock<TpPageClassifierService>();
     classifier.classify.mockReturnValue(ROSTER_PAGE);
@@ -109,12 +108,12 @@ describe('ImportTpCommandService', () => {
   });
 
   it('fails module init, registering nothing, when a required TP setting is missing', () => {
-    config.getTpExternalSystemName.mockImplementation(() => {
-      throw new Error('TP_EXTERNAL_SYSTEM_NAME is not configured');
+    config.getTpFrontendBaseUrl.mockImplementation(() => {
+      throw new Error('TP_FRONTEND_BASE_URL is not configured');
     });
 
     expect(() => service.onModuleInit()).toThrow(
-      'TP_EXTERNAL_SYSTEM_NAME is not configured',
+      'TP_FRONTEND_BASE_URL is not configured',
     );
     expect(registry.register).not.toHaveBeenCalled();
   });

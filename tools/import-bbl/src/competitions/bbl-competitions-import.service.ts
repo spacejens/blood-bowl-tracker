@@ -4,6 +4,7 @@ import type {
 } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
+  BBL_EXTERNAL_SYSTEM_NAME,
   CompetitionsImportService,
   CompetitionTypeService,
   ExternalSystemBootstrapService,
@@ -20,7 +21,6 @@ import {
 } from '../eras/era-config.service';
 import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.service';
 import { BblSourceReader } from '../source/bbl-source-reader';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { PageParseErrorService } from '../source/page-parse-error.service';
 import {
   BblCompetition,
@@ -84,7 +84,6 @@ export class BblCompetitionsImportService {
     private readonly competitionsImport: CompetitionsImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly eraConfig: EraConfigService,
-    private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly importResults: ImportResultService,
     private readonly pageParseError: PageParseErrorService,
     private readonly dateRange: MatchDateRangeService,
@@ -98,7 +97,7 @@ export class BblCompetitionsImportService {
    * (from its p=ma&so=s&s=<id> page): span <= 3 days => cup, else season; the
    * earliest match date, matched against the configured era date ranges, gives
    * the era. Each competition is keyed by its numeric BBL id (the `s` value)
-   * under the configured BBL external system.
+   * under the BBL external system.
    * Competitions with no dated matches, or whose earliest date is outside every
    * configured era, are skipped with a recorded error. Idempotent.
    */
@@ -112,15 +111,13 @@ export class BblCompetitionsImportService {
     const competitionsByBblId = new Map<string, UpsertCompetition>();
     const competitionEntriesByBblId = new Map<string, BblCompetitionEntry>();
 
-    const bblSystemName = this.externalSystemName.getBblSystemName();
-
     let eras: EraConfig[];
     try {
       eras = this.eraConfig.getEras();
     } catch (error) {
       errors.push(
         this.importResults.error({
-          item: { externalSystems: [bblSystemName] },
+          item: { externalSystems: [BBL_EXTERNAL_SYSTEM_NAME] },
           message: error instanceof Error ? error.message : String(error),
         }),
       );
@@ -132,7 +129,7 @@ export class BblCompetitionsImportService {
     }
 
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
-      { name: bblSystemName, category: 'imported_data_source' },
+      { name: BBL_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
     ]);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);

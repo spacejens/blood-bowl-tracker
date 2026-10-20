@@ -3,6 +3,7 @@ import {
   ExternalSystemBootstrapService,
   ImportResultService,
   ReferenceLookupService,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import type { TpMatch, TpTournament } from '@blood-bowl-tracker/parse-tp';
 import {
@@ -21,7 +22,6 @@ import {
   mockImportResultService,
   mockReferenceLookupService,
 } from '../import-package.test-helpers';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { TpSourceFile } from '../source/tp-source-reader';
 import { TpSourceReader } from '../source/tp-source-reader';
 import { TpCompetitionSourcesService } from './tp-competition-sources.service';
@@ -129,11 +129,12 @@ async function makeService({
       ? { ok: true, ids: [TP_SYSTEM_ID] }
       : {
           ok: false,
-          error: { item: { externalSystems: ['TP'] }, message: 'db down' },
+          error: {
+            item: { externalSystems: [TP_EXTERNAL_SYSTEM_NAME] },
+            message: 'db down',
+          },
         },
   );
-  const externalSystemName = mock<ExternalSystemNameConfigService>();
-  externalSystemName.getTpSystemName.mockReturnValue('TP');
   const importResults = mockImportResultService();
   importResults.result.mockReturnValue(CANNED_RESULT);
   const eraDataConfig = mockEraDataConfigService([ERA]);
@@ -150,10 +151,6 @@ async function makeService({
       {
         provide: ExternalSystemBootstrapService,
         useValue: externalSystemBootstrap,
-      },
-      {
-        provide: ExternalSystemNameConfigService,
-        useValue: externalSystemName,
       },
       { provide: ImportResultService, useValue: importResults },
       { provide: EraDataConfigService, useValue: eraDataConfig },
@@ -367,7 +364,10 @@ describe('TpCompetitionSourcesService', () => {
     expect(collected.tpSystemId).toBeUndefined();
     expect(collected.competitionsByTpId.size).toBe(0);
     expect(errorsOf(importResults)).toEqual([
-      { item: { externalSystems: ['TP'] }, message: 'db down' },
+      {
+        item: { externalSystems: [TP_EXTERNAL_SYSTEM_NAME] },
+        message: 'db down',
+      },
     ]);
   });
 
@@ -383,7 +383,10 @@ describe('TpCompetitionSourcesService', () => {
 
     expect(collected.competitionsByTpId.size).toBe(0);
     expect(errorsOf(importResults)).toEqual([
-      { item: { externalSystems: ['TP'] }, message: 'league.eras is missing' },
+      {
+        item: { externalSystems: [TP_EXTERNAL_SYSTEM_NAME] },
+        message: 'league.eras is missing',
+      },
     ]);
   });
 

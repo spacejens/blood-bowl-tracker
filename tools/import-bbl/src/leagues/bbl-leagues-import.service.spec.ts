@@ -1,5 +1,6 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
+  BBL_EXTERNAL_SYSTEM_NAME,
   ExternalSystemBootstrapService,
   ImportResultService,
   LeaguesImportService,
@@ -9,7 +10,6 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { BblLeaguesImportService } from './bbl-leagues-import.service';
 import { LeagueConfigService } from './league-config.service';
 
@@ -40,7 +40,6 @@ interface Mocks {
   config: MockProxy<LeagueConfigService>;
   leaguesImport: MockProxy<LeaguesImportService>;
   bootstrap: MockProxy<ExternalSystemBootstrapService>;
-  nameConfig: MockProxy<ExternalSystemNameConfigService>;
   importResults: MockProxy<ImportResultService>;
 }
 
@@ -61,9 +60,6 @@ describe('BblLeaguesImportService', () => {
 
     const bootstrap = mock<ExternalSystemBootstrapService>();
     bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1, 2] });
-
-    const nameConfig = mock<ExternalSystemNameConfigService>();
-    nameConfig.getBblSystemName.mockReturnValue('BBL');
 
     const nameExternalId = mock<NameExternalIdService>();
     // `forLeague` is a pure identity passthrough with no branching or
@@ -87,14 +83,13 @@ describe('BblLeaguesImportService', () => {
         { provide: LeagueConfigService, useValue: config },
         { provide: LeaguesImportService, useValue: leaguesImport },
         { provide: ExternalSystemBootstrapService, useValue: bootstrap },
-        { provide: ExternalSystemNameConfigService, useValue: nameConfig },
         { provide: NameExternalIdService, useValue: nameExternalId },
         { provide: ImportResultService, useValue: importResults },
       ],
     }).compile();
 
     service = moduleRef.get(BblLeaguesImportService);
-    mocks = { config, leaguesImport, bootstrap, nameConfig, importResults };
+    mocks = { config, leaguesImport, bootstrap, importResults };
   });
 
   it('bootstraps the BBL and Name external systems once', async () => {
@@ -110,25 +105,7 @@ describe('BblLeaguesImportService', () => {
 
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledTimes(1);
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
-      { name: 'BBL', category: 'imported_data_source' },
-      { name: 'Name', category: 'bookkeeping' },
-    ]);
-  });
-
-  it('bootstraps the configured BBL system name', async () => {
-    mocks.config.getLeagueNames.mockReturnValue(['tLoEG']);
-    mocks.leaguesImport.upsert.mockResolvedValue({
-      id: 1,
-      name: 'x',
-      createdAt: new Date('2026-01-01'),
-      created: true,
-    });
-    mocks.nameConfig.getBblSystemName.mockReturnValue('MyLeague');
-
-    await service.importLeagues();
-
-    expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
-      { name: 'MyLeague', category: 'imported_data_source' },
+      { name: BBL_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
     ]);
   });
@@ -215,7 +192,7 @@ describe('BblLeaguesImportService', () => {
     mocks.bootstrap.bootstrap.mockResolvedValue({
       ok: false,
       error: {
-        item: { externalSystems: ['BBL', 'Name'] },
+        item: { externalSystems: [BBL_EXTERNAL_SYSTEM_NAME, 'Name'] },
         message: 'network timeout',
       },
     });
@@ -226,7 +203,7 @@ describe('BblLeaguesImportService', () => {
     expect(errors).toHaveLength(1);
     expect(errors[0].message).toBe('network timeout');
     expect(errors[0].item).toEqual({
-      externalSystems: ['BBL', 'Name'],
+      externalSystems: [BBL_EXTERNAL_SYSTEM_NAME, 'Name'],
     });
     expect(mocks.leaguesImport.upsert).not.toHaveBeenCalled();
   });

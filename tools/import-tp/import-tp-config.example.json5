@@ -20,10 +20,6 @@
     apiToken: 'your-import-tp-token-here',
   },
 
-  // Name of the external system TP records are registered under. Defaults to
-  // "TP" if unset or empty.
-  externalSystemName: 'TP',
-
   // Path to the folder that directly contains one subdirectory per era, a
   // subfolder of the git-ignored data/ directory. A relative path resolves
   // against the current working directory.

@@ -70,7 +70,7 @@ procedures use it:
 ```ts
 const { team, players } = await tpLiveTeamImportService.importTeam({
   rosterId: 163386,
-  externalSystemName: 'TP',
+  externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
 });
 ```
 
@@ -78,9 +78,8 @@ const { team, players } = await tpLiveTeamImportService.importTeam({
 - `era`: optional. The era to import the team under, by name. If left out,
   it is resolved automatically.
 - `externalSystemName`: required. The name TP's external system is
-  registered under. Pass the same name the bulk import (`tools/import-tp`)
-  is configured with, so the live import finds what the bulk import
-  registered.
+  registered under. Callers pass `TP_EXTERNAL_SYSTEM_NAME` from
+  `packages/domain-enums`, the name the bulk import registers TP data under.
 - `session`: optional. A `packages/scrape-tp` session to fetch through. A
   caller importing several teams in one go should pass one session, so their
   requests are paced as one visit. If left out, the import starts its own.
@@ -154,8 +153,8 @@ linked to with no end date) decide it:
   available across two overlapping normal eras — not something to guess at.
 
 The live import registers TP's external system under the
-`externalSystemName` its caller passes; there is no default. A caller keeps
-it in sync with the name `tools/import-tp` is configured with.
+`externalSystemName` its caller passes; there is no default. Every caller in
+this repository passes `TP_EXTERNAL_SYSTEM_NAME`.
 
 ## The `tpRosters.import` procedure
 

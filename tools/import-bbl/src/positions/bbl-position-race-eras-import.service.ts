@@ -1,6 +1,7 @@
 import type { RulesSet } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
+  BBL_EXTERNAL_SYSTEM_NAME,
   ExternalSystemBootstrapService,
   ImportResultService,
   PositionsImportService,
@@ -9,7 +10,6 @@ import {
 import { Injectable } from '@nestjs/common';
 
 import { EraConfigService } from '../eras/era-config.service';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 
 export interface SyncPositionRaceErasOptions {
   positionRaceCandidates: Map<
@@ -30,7 +30,6 @@ export class BblPositionRaceErasImportService {
     private readonly eraConfig: EraConfigService,
     private readonly importResults: ImportResultService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
-    private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly lookup: ReferenceLookupService,
   ) {}
 
@@ -62,9 +61,8 @@ export class BblPositionRaceErasImportService {
     // decided below (a config override, a star player, or an observed use).
     const rulesSetIdsByPositionId = new Map<number, Set<number>>();
 
-    const bblSystemName = this.externalSystemName.getBblSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap(
-      [{ name: bblSystemName, category: 'imported_data_source' }],
+      [{ name: BBL_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' }],
       'Failed to upsert external system: ',
     );
     if (!bootstrap.ok) {

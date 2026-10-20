@@ -5,6 +5,7 @@ import type { ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   ImportRunnerService,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import type { TpOfficialRace } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
@@ -13,7 +14,6 @@ import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { mockImportResultService } from '../import-package.test-helpers';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { TpOfficialTeamsFilesImportService } from './tp-official-teams-files-import.service';
 
 const CANNED_RESULT: ImportResult = { success: true, imported: -1, errors: [] };
@@ -51,18 +51,12 @@ describe('TpOfficialTeamsFilesImportService', () => {
     importRunner.recordUpsertResult.mockResolvedValue(outcome(20));
     importResults = mockImportResultService();
     importResults.result.mockReturnValue(CANNED_RESULT);
-    const externalSystemName = mock<ExternalSystemNameConfigService>();
-    externalSystemName.getTpSystemName.mockReturnValue('TP');
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpOfficialTeamsFilesImportService,
         { provide: API_CLIENT, useValue: client },
         { provide: ImportRunnerService, useValue: importRunner },
         { provide: ImportResultService, useValue: importResults },
-        {
-          provide: ExternalSystemNameConfigService,
-          useValue: externalSystemName,
-        },
       ],
     }).compile();
     service = moduleRef.get(TpOfficialTeamsFilesImportService);
@@ -95,7 +89,7 @@ describe('TpOfficialTeamsFilesImportService', () => {
       rulesSet: 'BB2020',
       races: [race('orc20'), race('orcLegacy20')],
       skillMasters: [{ skillMasterId: 41, name: 'Block', isElite: false }],
-      externalSystemName: 'TP',
+      externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
     });
   });
 

@@ -29,6 +29,7 @@
     "@blood-bowl-tracker/db": "workspace:*",
     "@blood-bowl-tracker/discord-bot-usage": "workspace:*",
     "@blood-bowl-tracker/discord-client": "workspace:*",
+    "@blood-bowl-tracker/domain-enums": "workspace:*",
     "@blood-bowl-tracker/game-data": "workspace:*",
     "@blood-bowl-tracker/import-tp-live": "workspace:*",
     "@blood-bowl-tracker/tp-paths": "workspace:*",

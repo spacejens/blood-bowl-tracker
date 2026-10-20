@@ -309,20 +309,6 @@ describe('DiscordBotConfigService', () => {
     expect(service.getAdminCommandRoleId()).toBeUndefined();
   });
 
-  it('returns the configured TP external system name', () => {
-    vi.mocked(configService.get).mockImplementation((key: string) =>
-      key === 'TP_EXTERNAL_SYSTEM_NAME' ? 'tourplay.net' : undefined,
-    );
-    expect(service.getTpExternalSystemName()).toBe('tourplay.net');
-  });
-
-  it('throws when the TP external system name is not configured', () => {
-    vi.mocked(configService.get).mockReturnValue(undefined);
-    expect(() => service.getTpExternalSystemName()).toThrow(
-      'TP_EXTERNAL_SYSTEM_NAME is not configured',
-    );
-  });
-
   it('returns the configured TP frontend base URL', () => {
     vi.mocked(configService.get).mockImplementation((key: string) =>
       key === 'TP_FRONTEND_BASE_URL'

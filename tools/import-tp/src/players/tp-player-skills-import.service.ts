@@ -7,6 +7,7 @@ import {
   NameExternalIdService,
   PlayerSkillsImportService,
   SkillsImportService,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import type {
   TpPlayerSkillRef,
@@ -17,7 +18,6 @@ import { Injectable } from '@nestjs/common';
 
 import type { TpKeywordCatalog } from '../keywords/tp-keyword-catalog.service';
 import { TpSkillResolverService } from '../skills/tp-skill-resolver.service';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 
 /**
  * Writes every roster player's own skills, starting and gained alike.
@@ -46,7 +46,6 @@ export class TpPlayerSkillsImportService {
     private readonly playerSkills: PlayerSkillsImportService,
     private readonly skillResolver: TpSkillResolverService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
-    private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
     private readonly importResults: ImportResultService,
   ) {}
@@ -64,9 +63,8 @@ export class TpPlayerSkillsImportService {
       return { result: this.importResults.result({ imported: 0, errors }) };
     }
 
-    const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
-      { name: tpSystemName, category: 'imported_data_source' },
+      { name: TP_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
       NAME_EXTERNAL_SYSTEM,
     ]);
     if (!bootstrap.ok) {

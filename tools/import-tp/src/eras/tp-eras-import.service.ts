@@ -7,12 +7,12 @@ import {
   NAME_EXTERNAL_SYSTEM_NAME,
   NameExternalIdService,
   ReferenceLookupService,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import { TournamentParserService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 import { LeagueConfigService } from '../leagues/league-config.service';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { TpSourceReader } from '../source/tp-source-reader';
 import { EraDataConfig, EraDataConfigService } from './era-data-config.service';
 
@@ -29,7 +29,6 @@ export class TpErasImportService {
     private readonly erasImport: ErasImportService,
     private readonly sourceReader: TpSourceReader,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
-    private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly tournamentParser: TournamentParserService,
     private readonly nameExternalId: NameExternalIdService,
     private readonly importResults: ImportResultService,
@@ -58,15 +57,18 @@ export class TpErasImportService {
     let imported = 0;
     const errors: ImportError[] = [];
 
-    const tpSystemName = this.externalSystemName.getTpSystemName();
-
     let eras: EraDataConfig[];
     try {
       eras = this.eraConfig.getEras();
     } catch (error) {
       errors.push(
         this.importResults.error({
-          item: { externalSystems: [tpSystemName, NAME_EXTERNAL_SYSTEM_NAME] },
+          item: {
+            externalSystems: [
+              TP_EXTERNAL_SYSTEM_NAME,
+              NAME_EXTERNAL_SYSTEM_NAME,
+            ],
+          },
           message: error instanceof Error ? error.message : String(error),
         }),
       );
@@ -76,7 +78,7 @@ export class TpErasImportService {
     }
 
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
-      { name: tpSystemName, category: 'imported_data_source' },
+      { name: TP_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
       NAME_EXTERNAL_SYSTEM,
     ]);
     if (!bootstrap.ok) {
