@@ -684,6 +684,10 @@ describe('upsertByExternalIds', () => {
     });
 
     it('stops unwrapping once the cause chain is deeper than the bound', async () => {
+      // The shared classifier checks the caught error plus three nested
+      // `.cause` links. `uniqueViolation` wraps the driver error in a
+      // DrizzleQueryError, so with three wrappers (l1, l2, l3) above it the
+      // driver error sits at depth 4 — the first link outside the bound.
       const buried = uniqueViolation(tableName);
       const deep = Object.assign(new Error('l1'), {
         cause: Object.assign(new Error('l2'), {

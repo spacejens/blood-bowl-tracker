@@ -1,62 +1,15 @@
 import type {
+  DbOrTx,
   InferInsertModel,
   PgColumn,
   PgTable,
   SQL,
 } from '@blood-bowl-tracker/db';
-import { getTableName } from '@blood-bowl-tracker/db';
-
-import type { DbOrTx } from './db-or-tx';
-
-/** Postgres' SQLSTATE for a unique-constraint violation. */
-const UNIQUE_VIOLATION = '23505';
-
-/**
- * How many `.cause` links to walk while unwrapping a caught error before
- * giving up — the loop below checks the original error plus this many
- * nested `.cause` values (`<=`, not `<`). drizzle-orm's pg-core session
- * wraps exactly one level in practice (see below), so 3 is generous
- * headroom rather than a value tuned to a specific stack.
- */
-const MAX_CAUSE_UNWRAP_DEPTH = 3;
-
-/**
- * True only for a unique-constraint violation on `tableName` itself — never
- * on its primary key, which would mean a desynced sequence (an
- * infrastructure bug, not the concurrent-insert race this guards against).
- *
- * The caught value never carries the fields to test directly. drizzle-orm
- * wraps every query failure in a `DrizzleQueryError` that sets `cause` but
- * copies neither `code` nor `table_name`, so the `postgres` driver's
- * `PostgresError` is only reachable by walking `.cause` — bounded here
- * defensively. Same shape as `packages/game-data`'s
- * `isExternalIdUniqueViolation`.
- */
-function isUniqueViolationOn(error: unknown, tableName: string): boolean {
-  let candidate: unknown = error;
-  for (let depth = 0; depth <= MAX_CAUSE_UNWRAP_DEPTH; depth++) {
-    const typed = candidate as
-      | {
-          code?: unknown;
-          table_name?: unknown;
-          constraint_name?: unknown;
-          cause?: unknown;
-        }
-      | undefined;
-    if (
-      typed?.code === UNIQUE_VIOLATION &&
-      typed.table_name === tableName &&
-      typed.constraint_name !== `${tableName}_pkey`
-    ) {
-      return true;
-    }
-    if (typeof typed !== 'object' || typed === null || !('cause' in typed)) {
-      return false;
-    }
-    candidate = typed.cause;
-  }
-  return false;
-}
+import {
+  asBaseTable,
+  getTableName,
+  isUniqueViolationOn,
+} from '@blood-bowl-tracker/db';
 
 export interface SelectThenUpsertOptions<T extends PgTable> {
   tx: DbOrTx;
@@ -65,19 +18,6 @@ export interface SelectThenUpsertOptions<T extends PgTable> {
   /** The uniqueness condition identifying the row, e.g. `eq(guilds.discordId, id)`. */
   where: SQL;
   values: InferInsertModel<T>;
-}
-
-/**
- * Widens a generic `T extends PgTable` to the concrete `PgTable` base type.
- * `.from()`'s overload resolution can't evaluate the deferred conditional
- * type it uses to reject data-modifying-statement subqueries while the
- * argument is still a naked generic type parameter; passing it through this
- * identity function first resolves the parameter to a concrete `PgTable`,
- * which the overload accepts structurally, no cast required. Same pattern as
- * `packages/game-data`'s `upsertByExternalIds`.
- */
-function asBaseTable(table: PgTable): PgTable {
-  return table;
 }
 
 /**

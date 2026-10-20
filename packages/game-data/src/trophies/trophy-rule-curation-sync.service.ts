@@ -1,4 +1,5 @@
 import type { UpsertTrophy } from '@blood-bowl-tracker/api-contract';
+import type { DbOrTx } from '@blood-bowl-tracker/db';
 import {
   eq,
   inArray,
@@ -7,8 +8,6 @@ import {
   trophyAwardRuleMatchEventTypes,
 } from '@blood-bowl-tracker/db';
 import { Injectable } from '@nestjs/common';
-
-import type { DbOrTx } from '../shared/db-or-tx';
 
 type RuleEventType = NonNullable<
   UpsertTrophy['awardRuleMatchEventTypes']

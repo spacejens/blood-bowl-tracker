@@ -12,6 +12,7 @@ import {
   eras,
   getTableName,
   isNull,
+  isUniqueViolationOn,
   players,
   positions,
   teamEras,
@@ -20,17 +21,6 @@ import {
   trophyAwards,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-
-/** Postgres' SQLSTATE for a unique-constraint violation. */
-const UNIQUE_VIOLATION = '23505';
-
-/**
- * How many `.cause` links to walk while unwrapping a caught error before
- * giving up. drizzle-orm's pg-core session wraps exactly one level in
- * practice, so 3 is generous headroom rather than a value tuned to a specific
- * stack.
- */
-const MAX_CAUSE_UNWRAP_DEPTH = 3;
 
 /**
  * The award's `playerId` does not fit the referenced trophy's
@@ -476,9 +466,9 @@ export class TrophyAwardsService {
    * Must not be called inside a caller-supplied transaction without a
    * savepoint: a caught unique violation leaves that transaction aborted
    * (Postgres SQLSTATE 25P02) until rolled back, so the fallback SELECT right
-   * after the catch would itself fail. `upsert-by-external-ids.ts` (around
-   * lines 325-338) deliberately catches its own equivalent violation outside
-   * its transaction for exactly this reason.
+   * after the catch would itself fail. `upsert-by-external-ids.ts`
+   * deliberately catches its own equivalent violation outside its transaction
+   * for exactly this reason.
    */
   async upsert(
     data: UpsertTrophyAward,
@@ -506,7 +496,9 @@ export class TrophyAwardsService {
       }
       return { trophyAward: inserted, created: true };
     } catch (error) {
-      if (!this.isTrophyAwardUniqueViolation(error)) {
+      // A unique violation on trophy_awards itself (never its primary key)
+      // means the award is already recorded.
+      if (!isUniqueViolationOn(error, getTableName(trophyAwards))) {
         throw error;
       }
       // The award is already recorded; fall through to read it back below.
@@ -588,55 +580,6 @@ export class TrophyAwardsService {
       );
     }
     return data.teamEraId ?? player.teamEraId;
-  }
-
-  /**
-   * True only for the violation an already-recorded award raises: a 23505 on
-   * `trophy_awards` itself, on a constraint other than its primary key.
-   *
-   * The caught value never carries the fields to test. drizzle-orm wraps every
-   * query failure in a `DrizzleQueryError` that sets `cause` but copies neither
-   * `code` nor `table_name`, so the `postgres` driver's `PostgresError` is only
-   * reachable by walking `.cause` - bounded here defensively.
-   *
-   * Matching is on `table_name`, not the constraint name: Postgres truncates
-   * identifiers to 63 bytes (`NAMEDATALEN`), so a hand-reconstructed
-   * natural-key constraint name could silently never match. The primary key is
-   * excluded because a 23505 on `trophy_awards_pkey` (a desynced sequence, say)
-   * is an infrastructure bug, not this award already existing; comparing
-   * `constraint_name` is safe there specifically because `<table>_pkey` is
-   * always well under 63 bytes.
-   *
-   * Deliberately a private method rather than a shared helper, even though
-   * `upsert-by-external-ids.ts`'s `isExternalIdUniqueViolation` has the same
-   * shape: that code is working and unrelated, and the two would only be worth
-   * unifying once a third call site needs the logic.
-   */
-  private isTrophyAwardUniqueViolation(error: unknown): boolean {
-    const tableName = getTableName(trophyAwards);
-    let candidate: unknown = error;
-    for (let depth = 0; depth < MAX_CAUSE_UNWRAP_DEPTH; depth++) {
-      const typed = candidate as
-        | {
-            code?: unknown;
-            table_name?: unknown;
-            constraint_name?: unknown;
-            cause?: unknown;
-          }
-        | undefined;
-      if (
-        typed?.code === UNIQUE_VIOLATION &&
-        typed.table_name === tableName &&
-        typed.constraint_name !== `${tableName}_pkey`
-      ) {
-        return true;
-      }
-      if (typeof typed !== 'object' || typed === null || !('cause' in typed)) {
-        return false;
-      }
-      candidate = typed.cause;
-    }
-    return false;
   }
 
   /**
