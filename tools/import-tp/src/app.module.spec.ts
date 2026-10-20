@@ -12,7 +12,6 @@ import { TpCompetitionSourcesService } from './competitions/tp-competition-sourc
 import { TpCompetitionsImportService } from './competitions/tp-competitions-import.service';
 import { IMPORT_TP_CONFIG_PATH } from './config/import-tp-config.service';
 import { TpErasImportService } from './eras/tp-eras-import.service';
-import { TpKeywordCatalogService } from './keywords/tp-keyword-catalog.service';
 import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
 import { TpMatchFilesImportService } from './match-files/tp-match-files-import.service';
 import { TpOfficialTeamsFilesImportService } from './official-teams/tp-official-teams-files-import.service';
@@ -118,26 +117,6 @@ describe('AppModule', () => {
     );
     expect(moduleRef.get(TpOfficialTeamsFilesImportService)).toBeInstanceOf(
       TpOfficialTeamsFilesImportService,
-    );
-  });
-
-  it('registers the keyword catalogue service', async () => {
-    const configPath = join(dir, 'import-tp-config.json5');
-    writeFileSync(
-      configPath,
-      "{ connection: { apiBaseUrl: 'http://localhost:3000', apiToken: 'a-token' }, dataDir: 'data', league: { name: 'tLoEGBBL', eras: [{ identity: { name: 'Fourth era', rulesSets: ['BB2020'] }, dates: { startDate: '2020-11-28' }, dataSubdir: 'fourth-era' }] } }",
-      'utf8',
-    );
-
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule.register()],
-    })
-      .overrideProvider(IMPORT_TP_CONFIG_PATH)
-      .useValue(configPath)
-      .compile();
-
-    expect(moduleRef.get(TpKeywordCatalogService)).toBeInstanceOf(
-      TpKeywordCatalogService,
     );
   });
 });

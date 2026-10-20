@@ -11,7 +11,6 @@ import { TpCompetitionIdResolverService } from './competitions/tp-competition-id
 import { TpCompetitionSourcesService } from './competitions/tp-competition-sources.service';
 import { TpCompetitionsImportService } from './competitions/tp-competitions-import.service';
 import { TpErasImportService } from './eras/tp-eras-import.service';
-import { TpKeywordCatalogService } from './keywords/tp-keyword-catalog.service';
 import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
 import { TpMatchFilesImportService } from './match-files/tp-match-files-import.service';
 import { TpOfficialTeamsFilesImportService } from './official-teams/tp-official-teams-files-import.service';
@@ -19,7 +18,6 @@ import type { InducedStarPlayerHireGroup } from './players/tp-induced-star-playe
 import { TpInducedStarPlayersStepService } from './players/tp-induced-star-players-step.service';
 import { TpLastingInjuryBackfillImportService } from './players/tp-lasting-injury-backfill-import.service';
 import { TpMercenaryPositionRaceErasImportService } from './players/tp-mercenary-position-race-eras-import.service';
-import { TpPlayerSkillsImportService } from './players/tp-player-skills-import.service';
 import { TpSppAdjustmentsImportService } from './players/tp-spp-adjustments-import.service';
 import { TpRosterFilesImportService } from './rosters/tp-roster-files-import.service';
 import { TpRosterPlayerFactsService } from './rosters/tp-roster-player-facts.service';
@@ -82,7 +80,7 @@ async function run(): Promise<ImportResult> {
     // The skillMasterId -> name lookup is scanned once here, from the same
     // mirror the rosters/matches were read from: rosters_masters names skills
     // by id only, while every real roster and match embeds the name. It is
-    // sent with the official team list below and reused by player skills.
+    // sent with the official team list below.
     const skillNameErrors: ImportError[] = [];
     const skillMastersByMasterId = await app
       .get(SkillMasterNameCollectionService)
@@ -108,18 +106,6 @@ async function run(): Promise<ImportResult> {
       .get(TpOfficialTeamsFilesImportService)
       .importOfficialTeams({ officialTeams, skillMastersByMasterId });
     const { characteristicsByPositionId } = officialTeamsOutcome;
-
-    // The curated keyword catalogue is read once here and passed to the
-    // player-skills import below, which decodes Hatred/Animosity targets
-    // through it.
-    const keywordCatalogErrors: ImportError[] = [];
-    const keywordCatalog = await app
-      .get(TpKeywordCatalogService)
-      .load(keywordCatalogErrors);
-    const keywordCatalogResult = app.get(ImportResultService).result({
-      imported: 0,
-      errors: keywordCatalogErrors,
-    });
 
     // A roster id can be imported under more than one era, so resolving a
     // hired star player's team era later needs the real eraId the
@@ -220,7 +206,7 @@ async function run(): Promise<ImportResult> {
     );
 
     // Each roster file goes to the server as-is (tpRosters.import), which
-    // parses it and upserts its team and players; this runs after
+    // parses it and upserts its team, its players and their own skills; this runs after
     // positions because players resolve their position against what the
     // positions step just upserted. Each call also carries that roster's
     // match-snapshot-only players (matchEmbeddedPlayersByRosterId, above),
@@ -249,21 +235,11 @@ async function run(): Promise<ImportResult> {
       });
     const { starPlayerIdsByRosterAndMaster } = starHiresOutcome;
 
-    // Skills and career SPP counts come straight off the parsed roster
-    // files, keyed by the DB ids the roster import returned.
-    const { skillsByPlayerId, careerSppCountsByPlayerId } = app
+    // Career SPP counts come straight off the parsed roster files, keyed by
+    // the DB ids the roster import returned.
+    const { careerSppCountsByPlayerId } = app
       .get(TpRosterPlayerFactsService)
       .collect({ rosters, playerIdsByLineUpId });
-
-    // Player skills reuse the same scanned skillMasterId -> name lookup the
-    // official team list import above was sent, so no second scan happens.
-    const playerSkillsOutcome = await app
-      .get(TpPlayerSkillsImportService)
-      .syncPlayerSkills({
-        skillsByPlayerId,
-        skillMastersByMasterId,
-        catalog: keywordCatalog,
-      });
 
     // A mercenary Big Guy hire (e.g. "Giant Mercenary") appears on no TP
     // official-list catalog at all, so -- unlike regular and star positions,
@@ -382,11 +358,9 @@ async function run(): Promise<ImportResult> {
       officialTeamsOutcome.characteristicsResult,
       officialTeamsOutcome.keywordsResult,
       officialTeamsOutcome.startingSkillsResult,
-      keywordCatalogResult,
       rosterImport.teamResult,
       rosterImport.playerResult,
       starHiresOutcome.result,
-      playerSkillsOutcome.result,
       mercenaryPositionRaceErasOutcome.result,
       competitionOutcome.competitionResult,
       competitionOutcome.participationResult,

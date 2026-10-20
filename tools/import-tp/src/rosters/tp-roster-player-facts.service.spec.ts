@@ -1,6 +1,5 @@
 import type {
   TpCareerSppCounts,
-  TpPlayerSkills,
   TpRoster,
   TpRosterPlayer,
 } from '@blood-bowl-tracker/parse-tp';
@@ -41,16 +40,6 @@ function entry(players: TpRosterPlayer[], rosterId = 163386): RosterEntry {
   return { roster, era: 'Fourth era', competition: 'comp', content: {} };
 }
 
-const SKILLS: TpPlayerSkills = {
-  starting: [{ skillMasterId: 87 }],
-  gained: [{ skillMasterId: 220, isRandom: false }],
-};
-
-const OTHER_SKILLS: TpPlayerSkills = {
-  starting: [{ skillMasterId: 99 }],
-  gained: [],
-};
-
 function careerCounts(
   overrides: Partial<TpCareerSppCounts> = {},
 ): TpCareerSppCounts {
@@ -74,47 +63,22 @@ describe('TpRosterPlayerFactsService', () => {
     service = moduleRef.get(TpRosterPlayerFactsService);
   });
 
-  it("accumulates every imported roster player's skill group by database id", () => {
-    const { skillsByPlayerId } = service.collect({
-      rosters: [
-        entry([
-          player({ id: 5001, skills: SKILLS }),
-          player({ id: 5002, skills: OTHER_SKILLS }),
-        ]),
-      ],
-      playerIdsByLineUpId: new Map([
-        [5001, 700],
-        [5002, 701],
-      ]),
-    });
-
-    expect(skillsByPlayerId).toEqual(
-      new Map([
-        [700, SKILLS],
-        [701, OTHER_SKILLS],
-      ]),
-    );
-  });
-
   it('records nothing for a player that was not imported', () => {
-    const { skillsByPlayerId } = service.collect({
-      rosters: [entry([player({ id: 5001, skills: SKILLS })])],
+    const { careerSppCountsByPlayerId } = service.collect({
+      rosters: [entry([player({ id: 5001, careerCounts: careerCounts() })])],
       playerIdsByLineUpId: new Map(),
     });
 
-    expect(skillsByPlayerId.size).toBe(0);
+    expect(careerSppCountsByPlayerId.size).toBe(0);
   });
 
-  it('the last roster listing a player wins for skills', () => {
-    const { skillsByPlayerId } = service.collect({
-      rosters: [
-        entry([player({ id: 5001, skills: SKILLS })]),
-        entry([player({ id: 5001, skills: OTHER_SKILLS })]),
-      ],
-      playerIdsByLineUpId: new Map([[5001, 700]]),
+  it('returns career counts only', () => {
+    const facts = service.collect({
+      rosters: [],
+      playerIdsByLineUpId: new Map(),
     });
 
-    expect(skillsByPlayerId.get(700)).toEqual(OTHER_SKILLS);
+    expect(Object.keys(facts)).toEqual(['careerSppCountsByPlayerId']);
   });
 
   it("returns the roster players' career counts keyed by DB player id", () => {

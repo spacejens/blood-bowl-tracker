@@ -127,7 +127,7 @@ Teams, players, competitions, matches and TP's official team list are imported s
 
 All are implemented by `packages/import-tp-live` (see [docs/import-tp-live/index.md](../import-tp-live/index.md)).
 
-The tool never parses a roster or a match for those upserts; it does parse rosters and matches for competition participation and for the skills and career SPP counts later steps need.
+The tool never parses a roster or a match for those upserts; it does parse rosters and matches for competition participation and for the career SPP counts later steps need.
 
 ### Configuration and source traversal
 
@@ -219,7 +219,7 @@ The tool never parses a roster or a match for those upserts; it does parse roste
 
 - Each player's team era is the `teamEraId` that call's own team upsert just returned.
 - Players carry only a TP external id (no Name external id — player names aren't unique).
-- Returns `playerIdsByLineUpId`, consumed by the later skills, career SPP and SPP-adjustment steps (match events resolve their players from the database instead).
+- Returns `playerIdsByLineUpId`, consumed by the later career SPP and SPP-adjustment steps (match events resolve their players from the database instead).
 
 #### Position resolution
 
@@ -260,6 +260,7 @@ A star player hired mid-season through an `inducements_roll` event has no `lineU
 
 #### Skills and characteristic increases
 
+- `TpRosterPlayerSkillsService` (in `packages/import-tp-live`) writes each roster player's own skills in the same `tpRosters.import` call, naming each skill from the skill masters the roster file itself embeds; an id the file does not name resolves through a skill already carrying it as a TP external id.
 - A roster player's `lineUpMaster.skills` are their starting skills; their own `skills` are the ones gained via advancement, mapped to `random`/`chosen` via TP's `isRandom` flag, with `advancementOrder` set to each skill's 1-based index in that array.
 - A match-embedded-only (departed) player gets no skills at all: their only surviving data is the flat bare-id list described above, with no starting/gained split, no `isRandom`, and no attribute values.
 - Characteristic-increase counts are derived the same way BBL's are: diffing converted characteristics against the position's stored values under the era's rules set, adding back outstanding reductions.
@@ -280,8 +281,8 @@ A star player hired mid-season through an `inducements_roll` event has no `lineU
   (above) covers star positions the same way it covers regular ones — this
   step needs no equivalent bookkeeping of its own.
 - **TpRosterPlayerFactsService** — reads each imported roster player's
-  skills and career SPP counts off the parsed roster files, keyed by DB
-  player id, for the player-skills sync and SPP adjustments.
+  career SPP counts off the parsed roster files, keyed by DB player id, for
+  the SPP adjustments.
 - **TpMercenaryPositionRaceErasImportService** — writes `positions_race_eras`
   for mercenary Big Guy positions, which no official-list catalog carries, so
   their race/era availability is the one kind still derived from observed
@@ -378,17 +379,15 @@ which would take a data migration (see
 6. The roster files and TP's official team list, each scanned and parsed once client-side (the roster import call re-sends each file's raw content, which `TpRosterImportService.importRawRoster` parses a second time, server-side).
 7. The skill-name scan.
 8. The official team list import (races, positions, characteristics, keywords and starting skills, all in one `tpOfficialTeams.import` call per rules set).
-9. The keyword catalogue.
-10. Roster import — teams and players together, one `tpRosters.import` call per distinct era/roster pair (a roster id in more than one era is sent once per era; see [import-tp-live's architecture](../import-tp-live/index.md#what-it-owns)).
-11. Induced star hires.
-12. Roster player facts (skills and career SPP counts).
-13. Player skills sync.
-14. Mercenary position/race/era sync.
-15. Competitions (with their registered teams and trophy awards).
-16. Match files (one `tpMatches.import` call per file, importing the match, its teams, its events and its outcome together — see [import-tp-live's match import](../import-tp-live/match-import.md)).
-17. SPP adjustments.
-18. The lasting-injury backfill.
-19. Finally, missing trophy awards.
+9. Roster import — teams, players and the players' own skills together, one `tpRosters.import` call per distinct era/roster pair (a roster id in more than one era is sent once per era; see [import-tp-live's architecture](../import-tp-live/index.md#what-it-owns)).
+10. Induced star hires.
+11. Roster player facts (career SPP counts).
+12. Mercenary position/race/era sync.
+13. Competitions (with their registered teams and trophy awards).
+14. Match files (one `tpMatches.import` call per file, importing the match, its teams, its events and its outcome together — see [import-tp-live's match import](../import-tp-live/match-import.md)).
+15. SPP adjustments.
+16. The lasting-injury backfill.
+17. Finally, missing trophy awards.
 
 Why the order is what it is:
 
@@ -415,7 +414,7 @@ not a client-side id map built earlier in the same run.
 
 Some maps deliberately remain. The player id map (`playerIdsByLineUpId`)
 collects the ids the roster import's player upserts return and is handed to the
-later steps that need them (skills, career SPP, SPP adjustments). The others cannot
+later steps that need them (career SPP, SPP adjustments). The others cannot
 be answered by an external-id resolve: the competition scan's `competitionsByTpId` (each directory's
 tournament and era), parsed
 match data, a race's display name, `team_eras` rows (which
@@ -438,10 +437,9 @@ against its own curated keyword catalogue (`TpOfficialKeywordCatalogService`, in
 `packages/import-tp-live`) and syncs the resulting `(position, rules set, keyword)` rows. A code
 with no curated match is reported once as an import error, naming the position it was first seen
 on and pointing at adding it to `keywords.json5` in a new `tools/import-manual` batch under `data/batches/`; the
-position's other keywords are still written. `tools/import-tp`'s own `TpKeywordCatalogService`
-reads the same curated catalogue independently (via `KeywordsImportService.listKeywords`), keyed
-by each keyword's `tourplay.net` external id, but only to decode a `Hatred`/`Animosity` skill's
-own type-3 target code — see [Keyword target decoding](./keyword-target-decoding.md).
+position's other keywords are still written. The same server-side catalogue also decodes a
+`Hatred`/`Animosity` skill's type-3 target code, on starting skills and players' own skills
+alike — see [Keyword target decoding](./keyword-target-decoding.md).
 
 ## Related documentation
 

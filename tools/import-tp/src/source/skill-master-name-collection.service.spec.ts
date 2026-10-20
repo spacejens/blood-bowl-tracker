@@ -130,6 +130,35 @@ describe('SkillMasterNameCollectionService', () => {
     expect(errors[0].message).toContain('scan blew up');
   });
 
+  it('reports a non-Error per-file failure by its string form', async () => {
+    seed([file('rosters_1.json', 'rosters')]);
+    parser.extract.mockImplementationOnce(() => {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      throw 'plain failure';
+    });
+
+    const errors: ImportError[] = [];
+    await service.collect(errors);
+
+    expect(errors[0].message).toContain('plain failure');
+  });
+
+  it('reports a non-Error scan failure by its string form', async () => {
+    sourceReader.filesOfType.mockReturnValue(
+      (async function* () {
+        await Promise.resolve();
+        yield* [];
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
+        throw 'plain scan failure';
+      })(),
+    );
+
+    const errors: ImportError[] = [];
+    await service.collect(errors);
+
+    expect(errors[0].message).toContain('plain scan failure');
+  });
+
   it('keeps a skill elite when only one scanned file marks it so', async () => {
     seed([file('rosters_1.json', 'rosters'), file('match_2.json', 'match')]);
     // Simulates the real parser's OR-accumulation: once the first file's

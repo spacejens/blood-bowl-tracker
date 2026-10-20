@@ -127,6 +127,29 @@ describe('OfficialTeamsCollectionService', () => {
     expect(errors[0].message).toContain('BB2020');
   });
 
+  it('ignores a stray file next to the rules set folders', async () => {
+    writeRulesSetFile('BB2020', 'teams_Amazon.json');
+    writeFileSync(join(dir, 'teams', 'README.txt'), 'x', 'utf8');
+    parser.parse.mockReturnValue([AMAZON]);
+
+    const entries = await service.collect(errors);
+
+    expect(entries).toEqual([{ race: AMAZON, rulesSet: 'BB2020' }]);
+    expect(errors).toEqual([]);
+  });
+
+  it('reports a non-Error parser failure by its string form', async () => {
+    writeRulesSetFile('BB2020', 'teams_Amazon.json');
+    parser.parse.mockImplementation((_content) => {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      throw 'plain failure';
+    });
+
+    await service.collect(errors);
+
+    expect(errors[0].message).toContain('plain failure');
+  });
+
   it('records one error and returns nothing when the teams directory is missing', async () => {
     const entries = await service.collect(errors);
 
