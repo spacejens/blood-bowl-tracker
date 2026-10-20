@@ -6,11 +6,10 @@ import {
   PlayersModule,
   TeamsModule,
 } from '@blood-bowl-tracker/game-data';
+import { ImportSharedModule } from '@blood-bowl-tracker/import-shared';
 import { ParseTpModule } from '@blood-bowl-tracker/parse-tp';
 import { Module } from '@nestjs/common';
 
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { TpAdminMatchEventBuilderService } from './events/tp-admin-match-event-builder.service';
 import { TpMatchEventHelpersService } from './events/tp-match-event-helpers.service';
 import { TpMatchEventKindBuildersService } from './events/tp-match-event-kind-builders.service';
@@ -32,6 +31,7 @@ import { TpMatchUpsertService } from './tp-match-upsert.service';
 @Module({
   imports: [
     ParseTpModule,
+    ImportSharedModule,
     CompetitionsModule,
     ExternalSystemsModule,
     MatchesModule,
@@ -51,8 +51,6 @@ import { TpMatchUpsertService } from './tp-match-upsert.service';
     TpMatchEventHelpersService,
     TpMatchEventsCorrelationService,
     TpMatchOutcomeService,
-    TpImportResultsService,
-    TpUpsertRunnerService,
   ],
   exports: [TpMatchImportService],
 })

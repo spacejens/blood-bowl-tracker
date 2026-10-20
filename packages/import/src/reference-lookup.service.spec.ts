@@ -1,10 +1,10 @@
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { ExternalIdResolverService } from './external-id-resolver.service';
-import { ImportResultService } from './import-result.service';
 import { ReferenceLookupService } from './reference-lookup.service';
 
 const ref = { externalSystemId: 1, externalId: 'id:47' };

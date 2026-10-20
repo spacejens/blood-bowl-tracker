@@ -52,7 +52,8 @@ an earlier one fails:
 6. **Upsert the competition**: its TP id, era (the one the home team was
    imported under), type and start date derived from the fixture lists' dates (a
    competition this import creates gets no end date; see below) by
-   the same ≤ 3-day cup rule `tools/import-tp`'s bulk import uses. A new
+   the ≤ 3-day cup rule in `packages/import-shared`'s `CompetitionTypeService`,
+   which `tools/import-bbl` applies too. A new
    competition's group, name and preferred type come from matching its raw
    name against the curated groups' name patterns; one matching no group, or
    several, is not created. An already-imported competition keeps its stored

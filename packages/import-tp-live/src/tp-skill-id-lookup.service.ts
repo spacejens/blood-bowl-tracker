@@ -1,8 +1,7 @@
 import type { ExternalId, ImportError } from '@blood-bowl-tracker/api-contract';
 import { SkillsService } from '@blood-bowl-tracker/game-data';
+import { UpsertRecorderService } from '@blood-bowl-tracker/import-shared';
 import { Injectable } from '@nestjs/common';
-
-import { TpUpsertRunnerService } from './tp-upsert-runner.service';
 
 /** Options for {@link TpSkillIdLookupService.resolveByTpId}. */
 export interface ResolveSkillIdsByTpIdOptions {
@@ -24,7 +23,7 @@ export interface ResolveSkillIdsByTpIdOptions {
 export class TpSkillIdLookupService {
   constructor(
     private readonly skills: SkillsService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /** Skill name -> every TP id the masters give that name, in first-seen order. */

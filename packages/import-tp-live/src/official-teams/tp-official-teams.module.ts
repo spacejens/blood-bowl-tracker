@@ -11,12 +11,10 @@ import {
   SkillRulesSetsModule,
   SkillsModule,
 } from '@blood-bowl-tracker/game-data';
+import { ImportSharedModule } from '@blood-bowl-tracker/import-shared';
 import { Module } from '@nestjs/common';
 
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpNameExternalIdService } from '../tp-name-external-id.service';
 import { TpSkillIdLookupService } from '../tp-skill-id-lookup.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { TpKeywordTargetDecoderService } from './tp-keyword-target-decoder.service';
 import { TpOfficialBatchSyncService } from './tp-official-batch-sync.service';
 import { TpOfficialCharacteristicsSyncService } from './tp-official-characteristics-sync.service';
@@ -49,6 +47,7 @@ import { TpOfficialTeamsImportService } from './tp-official-teams-import.service
     RulesSetsModule,
     SkillRulesSetsModule,
     SkillsModule,
+    ImportSharedModule,
   ],
   providers: [
     TpOfficialTeamsImportService,
@@ -63,9 +62,6 @@ import { TpOfficialTeamsImportService } from './tp-official-teams-import.service
     TpOfficialSkillRefsService,
     TpSkillIdLookupService,
     TpOfficialStartingSkillsService,
-    TpNameExternalIdService,
-    TpImportResultsService,
-    TpUpsertRunnerService,
   ],
   exports: [TpOfficialTeamsImportService],
 })

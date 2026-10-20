@@ -1,12 +1,14 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import { MatchParserService } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { TpMatchEventsUpsertService } from './events/tp-match-events-upsert.service';
 import {
   bracketMatch,
@@ -45,8 +47,8 @@ describe('TpMatchImportService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpMatchImportService,
-        TpImportResultsService,
-        TpUpsertRunnerService,
+        ImportResultService,
+        UpsertRecorderService,
         { provide: MatchParserService, useValue: parser },
         { provide: TpMatchContextService, useValue: context },
         { provide: TpMatchUpsertService, useValue: matchUpsert },

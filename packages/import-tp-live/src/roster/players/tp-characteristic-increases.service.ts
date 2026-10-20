@@ -5,10 +5,11 @@ import type {
 } from '@blood-bowl-tracker/api-contract';
 import type { PositionCharacteristics } from '@blood-bowl-tracker/game-data';
 import { PositionRulesSetsService } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import { Injectable } from '@nestjs/common';
-
-import { TpImportResultsService } from '../../tp-import-results.service';
-import { TpUpsertRunnerService } from '../../tp-upsert-runner.service';
 
 /** One player's own current characteristics, as the importer computed them. */
 export interface PlayerCurrentCharacteristics {
@@ -107,8 +108,8 @@ const ZERO_REDUCTIONS: PlayerCharacteristicReductionCounts = {
 export class TpCharacteristicIncreasesService {
   constructor(
     private readonly positionRulesSets: PositionRulesSetsService,
-    private readonly importResults: TpImportResultsService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly importResults: ImportResultService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /**

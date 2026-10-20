@@ -3,10 +3,10 @@ import type {
   ImportResult,
   TpCompetitionImportResult,
 } from '@blood-bowl-tracker/api-contract';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type { TpAward } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-import { TpImportResultsService } from '../tp-import-results.service';
 import { TpCompetitionParticipantsService } from './tp-competition-participants.service';
 import { TpCompetitionTrophyAwardsService } from './tp-competition-trophy-awards.service';
 import type { TpCompetitionTournament } from './tp-competition-upsert.service';
@@ -63,7 +63,7 @@ export class TpCompetitionImportService {
     private readonly upsert: TpCompetitionUpsertService,
     private readonly participants: TpCompetitionParticipantsService,
     private readonly trophyAwards: TpCompetitionTrophyAwardsService,
-    private readonly importResults: TpImportResultsService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**

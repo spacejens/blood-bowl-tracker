@@ -1,12 +1,12 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import { SkillsService } from '@blood-bowl-tracker/game-data';
+import { UpsertRecorderService } from '@blood-bowl-tracker/import-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { TpSkillIdLookupService } from './tp-skill-id-lookup.service';
-import { TpUpsertRunnerService } from './tp-upsert-runner.service';
 
 const TP_SYSTEM_ID = 1;
 
@@ -24,7 +24,7 @@ describe('TpSkillIdLookupService', () => {
         { provide: SkillsService, useValue: skills },
         // Constructor-free exception classification, passed real so the
         // tests assert on the actual recorded error.
-        TpUpsertRunnerService,
+        UpsertRecorderService,
       ],
     }).compile();
     service = moduleRef.get(TpSkillIdLookupService);

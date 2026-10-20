@@ -67,7 +67,7 @@ const CANNED_TOURNAMENT: TpTournament = {
 /**
  * The canned ImportResult the mocked ImportResultService.result returns.
  * ImportResultService's own `success: errors.length === 0` derivation is
- * covered by packages/import/src/import-result.service.spec.ts; this spec
+ * covered by packages/import-shared/src/import-result.service.spec.ts; this spec
  * asserts what the service under test *passes to* result() (via
  * `resultArgs()`) and that it returns result()'s value unchanged.
  */
@@ -143,7 +143,7 @@ async function makeService({
   // The shared helper's mockImportResultService() only provides the exempt
   // `error` identity mock; `result` is stubbed with a canned value here.
   // ImportResultService.result's own success derivation is covered by
-  // packages/import/src/import-result.service.spec.ts.
+  // packages/import-shared/src/import-result.service.spec.ts.
   importResults.result.mockReturnValue(CANNED_RESULT);
   const leagueConfig = mock<LeagueConfigService>();
   leagueConfig.getLeagueName.mockImplementation(getLeagueName);

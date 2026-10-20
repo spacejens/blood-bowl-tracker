@@ -1,8 +1,8 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import { Injectable } from '@nestjs/common';
 
-/** Options for {@link TpUpsertRunnerService.record}. */
-export interface RecordOptions<T> {
+/** Options for {@link UpsertRecorderService.record}. */
+export interface UpsertRecordOptions<T> {
   run: () => Promise<T>;
   /** What the call concerns, recorded as the ImportError's item on failure. */
   item: unknown;
@@ -11,21 +11,21 @@ export interface RecordOptions<T> {
 }
 
 /**
- * Runs one packages/game-data call and turns a thrown error into one
- * ImportError, so one bad team, player or read never aborts the rest of an
- * import — the server-side counterpart of packages/import's
- * ImportRunnerService.recordUpsertResult. Constructor-free, pure exception
- * classification (like api-server's UpsertHandlerService), so specs may pass
- * it as a real provider.
+ * Runs one upsert (or read) and turns a thrown error into one ImportError, so
+ * one bad item never aborts the rest of an import. Used by packages/import's
+ * ImportRunnerService and directly by packages/import-tp-live.
+ * Constructor-free, pure exception classification, so specs may pass it as a
+ * real provider.
  */
 @Injectable()
-export class TpUpsertRunnerService {
+export class UpsertRecorderService {
+  /** The call's own value, or undefined after recording its failure. */
   async record<T>({
     run,
     item,
     errors,
     buildErrorMessage,
-  }: RecordOptions<T>): Promise<T | undefined> {
+  }: UpsertRecordOptions<T>): Promise<T | undefined> {
     try {
       return await run();
     } catch (error) {

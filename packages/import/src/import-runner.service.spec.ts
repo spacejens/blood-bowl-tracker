@@ -1,26 +1,28 @@
+import type { UpsertRecordOptions } from '@blood-bowl-tracker/import-shared';
+import { UpsertRecorderService } from '@blood-bowl-tracker/import-shared';
 import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { ImportResultService } from './import-result.service';
 import { ImportRunnerService } from './import-runner.service';
 import type { ImportError } from './types';
 
 describe('ImportRunnerService', () => {
   let service: ImportRunnerService;
-  let importResults: MockProxy<ImportResultService>;
+  let recorder: MockProxy<UpsertRecorderService>;
+
+  /** The options the service handed the mocked recorder on its first call. */
+  function recordedOptions(): UpsertRecordOptions<unknown> {
+    return recorder.record.mock.calls[0][0];
+  }
 
   beforeEach(async () => {
-    importResults = mock<ImportResultService>();
-    // Identity field copy (`{ item, message }` in, the same out): no branching,
-    // no formatting, nothing that can drift out of sync with the real
-    // ImportResultService — exempt from the canned-response rule.
-    importResults.error.mockImplementation((args) => args);
+    recorder = mock<UpsertRecorderService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
         ImportRunnerService,
-        { provide: ImportResultService, useValue: importResults },
+        { provide: UpsertRecorderService, useValue: recorder },
       ],
     }).compile();
     service = moduleRef.get(ImportRunnerService);
@@ -55,59 +57,84 @@ describe('ImportRunnerService', () => {
   });
 
   describe('recordUpsert', () => {
-    it('returns true and records no error on success', async () => {
+    it('returns true when the recorder resolves the run', async () => {
+      recorder.record.mockResolvedValue(true);
       const errors: ImportError[] = [];
-      const result = await service.recordUpsert({
-        upsert: () => Promise.resolve({ id: 1 }),
-        item: { id: 1 },
-        errors,
-        buildErrorMessage: () => 'unused',
-      });
-      expect(result).toBe(true);
-      expect(errors).toHaveLength(0);
+      const item = { id: 1 };
+      const buildErrorMessage = () => 'message';
+
+      await expect(
+        service.recordUpsert({
+          upsert: () => Promise.resolve({ id: 1 }),
+          item,
+          errors,
+          buildErrorMessage,
+        }),
+      ).resolves.toBe(true);
+      expect(recordedOptions().item).toBe(item);
+      expect(recordedOptions().errors).toBe(errors);
+      expect(recordedOptions().buildErrorMessage).toBe(buildErrorMessage);
     });
 
-    it('returns false and records an error built from the thrown error on failure', async () => {
-      const errors: ImportError[] = [];
-      const item = { id: 2, name: 'Gruk' };
-      const result = await service.recordUpsert({
-        upsert: () => Promise.reject(new Error('conflict')),
-        item,
-        errors,
-        buildErrorMessage: (err) =>
-          `Failed: ${err instanceof Error ? err.message : String(err)}`,
+    it('returns false when the recorder recorded a failure', async () => {
+      recorder.record.mockResolvedValue(undefined);
+
+      await expect(
+        service.recordUpsert({
+          upsert: () => Promise.reject(new Error('conflict')),
+          item: { id: 2 },
+          errors: [],
+          buildErrorMessage: () => 'message',
+        }),
+      ).resolves.toBe(false);
+    });
+
+    it('hands the recorder a run that awaits the upsert and resolves true even when the upsert resolves undefined', async () => {
+      recorder.record.mockResolvedValue(true);
+      const upsert = vi.fn(() => Promise.resolve(undefined));
+
+      await service.recordUpsert({
+        upsert,
+        item: {},
+        errors: [],
+        buildErrorMessage: () => 'message',
       });
-      expect(result).toBe(false);
-      expect(errors).toHaveLength(1);
-      expect(errors[0]).toEqual({ item, message: 'Failed: conflict' });
+
+      await expect(recordedOptions().run()).resolves.toBe(true);
+      expect(upsert).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('recordUpsertResult', () => {
-    it('returns the resolved value and records no error on success', async () => {
-      const errors: ImportError[] = [];
-      const result = await service.recordUpsertResult({
-        upsert: () => Promise.resolve({ id: 5, name: 'BB2020' }),
-        item: { name: 'BB2020' },
-        errors,
-        buildErrorMessage: () => 'unused',
-      });
-      expect(result).toEqual({ id: 5, name: 'BB2020' });
-      expect(errors).toHaveLength(0);
-    });
-
-    it('returns undefined and records an error built from the thrown error on failure', async () => {
+    it('passes the upsert to the recorder as the run and returns its value', async () => {
+      recorder.record.mockResolvedValue({ id: 5, name: 'BB2020' });
+      const upsert = () => Promise.resolve({ id: 5, name: 'BB2020' });
       const errors: ImportError[] = [];
       const item = { name: 'BB2020' };
-      const result = await service.recordUpsertResult({
-        upsert: () => Promise.reject(new Error('conflict')),
+      const buildErrorMessage = () => 'message';
+
+      await expect(
+        service.recordUpsertResult({ upsert, item, errors, buildErrorMessage }),
+      ).resolves.toEqual({ id: 5, name: 'BB2020' });
+      expect(recorder.record).toHaveBeenCalledWith({
+        run: upsert,
         item,
         errors,
-        buildErrorMessage: (err) =>
-          `Failed: ${err instanceof Error ? err.message : String(err)}`,
+        buildErrorMessage,
       });
-      expect(result).toBeUndefined();
-      expect(errors).toEqual([{ item, message: 'Failed: conflict' }]);
+    });
+
+    it('returns undefined when the recorder recorded a failure', async () => {
+      recorder.record.mockResolvedValue(undefined);
+
+      await expect(
+        service.recordUpsertResult({
+          upsert: () => Promise.reject(new Error('conflict')),
+          item: { name: 'BB2020' },
+          errors: [],
+          buildErrorMessage: () => 'message',
+        }),
+      ).resolves.toBeUndefined();
     });
   });
 });

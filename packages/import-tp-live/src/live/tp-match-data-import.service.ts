@@ -3,12 +3,12 @@ import type {
   ImportResult,
   TpMatchImportResult,
 } from '@blood-bowl-tracker/api-contract';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import { Injectable } from '@nestjs/common';
 
 import { TpMatchImportService } from '../match/tp-match-import.service';
-import { TpImportResultsService } from '../tp-import-results.service';
 import type { TpBracket } from './tp-bracket-fetch.service';
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
 import { TpLiveTeamImportService } from './tp-live-team-import.service';
@@ -93,7 +93,7 @@ export class TpMatchDataImportService {
     private readonly matchFetch: TpMatchFetchService,
     private readonly teamImport: TpLiveTeamImportService,
     private readonly matchImport: TpMatchImportService,
-    private readonly importResults: TpImportResultsService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**

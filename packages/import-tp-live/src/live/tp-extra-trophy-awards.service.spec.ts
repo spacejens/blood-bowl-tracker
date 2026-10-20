@@ -1,11 +1,13 @@
 import { MissingTrophyAwardsService } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { TpExtraTrophyAwardsService } from './tp-extra-trophy-awards.service';
 
 describe('TpExtraTrophyAwardsService', () => {
@@ -17,8 +19,8 @@ describe('TpExtraTrophyAwardsService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpExtraTrophyAwardsService,
-        TpImportResultsService,
-        TpUpsertRunnerService,
+        ImportResultService,
+        UpsertRecorderService,
         { provide: MissingTrophyAwardsService, useValue: missingTrophyAwards },
       ],
     }).compile();

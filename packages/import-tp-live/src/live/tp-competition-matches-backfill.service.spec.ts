@@ -1,4 +1,5 @@
 import type { ImportResult } from '@blood-bowl-tracker/api-contract';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import { TpBlockedError } from '@blood-bowl-tracker/scrape-tp';
 import { Test } from '@nestjs/testing';
@@ -7,7 +8,6 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { bracketMatch } from '../match/tp-match.test-helpers';
-import { TpImportResultsService } from '../tp-import-results.service';
 import type { TpBracket } from './tp-bracket-fetch.service';
 import { TpCompetitionMatchesBackfillService } from './tp-competition-matches-backfill.service';
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
@@ -60,7 +60,7 @@ describe('TpCompetitionMatchesBackfillService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpCompetitionMatchesBackfillService,
-        TpImportResultsService,
+        ImportResultService,
         { provide: TpMatchDataImportService, useValue: matchData },
       ],
     }).compile();

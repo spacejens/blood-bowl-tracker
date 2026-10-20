@@ -2,6 +2,7 @@ import type {
   ImportError,
   ImportResult,
 } from '@blood-bowl-tracker/api-contract';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type { TpAward } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import { TpBlockedError } from '@blood-bowl-tracker/scrape-tp';
@@ -13,7 +14,6 @@ import { mock } from 'vitest-mock-extended';
 import { upsertedCompetition } from '../competition/tp-competition.test-helpers';
 import { TpCompetitionParticipantsService } from '../competition/tp-competition-participants.service';
 import { TpCompetitionTrophyAwardsService } from '../competition/tp-competition-trophy-awards.service';
-import { TpImportResultsService } from '../tp-import-results.service';
 import { TpAwardsFetchService } from './tp-awards-fetch.service';
 import { TpCompetitionParticipantsBackfillService } from './tp-competition-participants-backfill.service';
 import { TpInscriptionsFetchService } from './tp-inscriptions-fetch.service';
@@ -73,7 +73,7 @@ describe('TpCompetitionParticipantsBackfillService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpCompetitionParticipantsBackfillService,
-        TpImportResultsService,
+        ImportResultService,
         { provide: TpInscriptionsFetchService, useValue: inscriptionsFetch },
         { provide: TpAwardsFetchService, useValue: awardsFetch },
         { provide: TpLiveTeamImportService, useValue: teamImport },

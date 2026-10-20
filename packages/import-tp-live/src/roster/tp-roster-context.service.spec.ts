@@ -5,13 +5,15 @@ import {
   ExternalSystemsService,
   RulesSetsService,
 } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import {
   ERA_ID,
   NAME_SYSTEM_ID,
@@ -47,8 +49,8 @@ describe('TpRosterContextService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpRosterContextService,
-        TpImportResultsService,
-        TpUpsertRunnerService,
+        ImportResultService,
+        UpsertRecorderService,
         { provide: ExternalSystemsService, useValue: externalSystems },
         { provide: ErasService, useValue: eras },
         { provide: RulesSetsService, useValue: rulesSets },

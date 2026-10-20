@@ -2,6 +2,7 @@ import type {
   ImportError,
   ImportResult,
 } from '@blood-bowl-tracker/api-contract';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import {
   TpBlockedError,
@@ -11,7 +12,6 @@ import { Injectable } from '@nestjs/common';
 
 import type { UpsertedTpCompetition } from '../competition/tp-competition-upsert.service';
 import { TpCompetitionUpsertService } from '../competition/tp-competition-upsert.service';
-import { TpImportResultsService } from '../tp-import-results.service';
 import type { TpBracket } from './tp-bracket-fetch.service';
 import { TpBracketFetchService } from './tp-bracket-fetch.service';
 import { TpCompetitionMatchesBackfillService } from './tp-competition-matches-backfill.service';
@@ -106,7 +106,7 @@ export class TpLiveMatchImportService {
     private readonly matchData: TpMatchDataImportService,
     private readonly participantsBackfill: TpCompetitionParticipantsBackfillService,
     private readonly matchesBackfill: TpCompetitionMatchesBackfillService,
-    private readonly importResults: TpImportResultsService,
+    private readonly importResults: ImportResultService,
     private readonly extraTrophyAwards: TpExtraTrophyAwardsService,
   ) {}
 

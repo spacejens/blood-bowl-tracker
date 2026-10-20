@@ -2,6 +2,7 @@ import type {
   ImportError,
   ImportResult,
 } from '@blood-bowl-tracker/api-contract';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type { TpRoster, TpRosterPlayer } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import { TpBlockedError } from '@blood-bowl-tracker/scrape-tp';
@@ -11,7 +12,6 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { TpRosterImportService } from '../roster/tp-roster-import.service';
-import { TpImportResultsService } from '../tp-import-results.service';
 import { TpEraResolutionService } from './tp-era-resolution.service';
 import { TpLiveTeamImportService } from './tp-live-team-import.service';
 import { TpRosterFetchService } from './tp-roster-fetch.service';
@@ -57,7 +57,7 @@ describe('TpLiveTeamImportService', () => {
         { provide: TpRosterFetchService, useValue: rosterFetch },
         { provide: TpEraResolutionService, useValue: eraResolution },
         { provide: TpRosterImportService, useValue: rosterImport },
-        TpImportResultsService,
+        ImportResultService,
       ],
     }).compile();
     service = moduleRef.get(TpLiveTeamImportService);

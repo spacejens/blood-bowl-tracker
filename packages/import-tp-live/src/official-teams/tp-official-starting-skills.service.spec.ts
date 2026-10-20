@@ -6,14 +6,16 @@ import {
   SkillRulesSetsService,
   SkillsService,
 } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  NameExternalIdService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpNameExternalIdService } from '../tp-name-external-id.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { TpOfficialBatchSyncService } from './tp-official-batch-sync.service';
 import type { TpStartingSkillRef } from './tp-official-skill-refs.service';
 import { TpOfficialStartingSkillsService } from './tp-official-starting-skills.service';
@@ -58,9 +60,9 @@ describe('TpOfficialStartingSkillsService', () => {
       providers: [
         TpOfficialStartingSkillsService,
         TpOfficialBatchSyncService,
-        TpNameExternalIdService,
-        TpImportResultsService,
-        TpUpsertRunnerService,
+        NameExternalIdService,
+        ImportResultService,
+        UpsertRecorderService,
         { provide: SkillsService, useValue: skills },
         { provide: SkillRulesSetsService, useValue: skillRulesSets },
         { provide: PositionRulesSetSkillsService, useValue: positionSkills },

@@ -71,6 +71,11 @@ packages/
                         call api-client; also owns the config-service factories the import
                         tools' own config, external-system-name and source
                         services are built from
+  import-shared/      — NestJS module with the pure, I/O-free import rules
+                        packages/import and packages/import-tp-live must
+                        apply identically: Name external-id formats, import
+                        result construction, upsert error recording and the
+                        cup/season span rule
   import-tp-live/     — server-side NestJS module importing one TP roster or
                         one completed TP match, with its teams and
                         competition, or one rules set's official team list,
@@ -198,7 +203,7 @@ Which side of the API each kind of workspace sits on. Unlike "Data flow" above, 
 
 - `apps/` are server-side (currently only `apps/discord-bot`); they call server-side packages like `packages/game-data` in-process and must never be forced to call themselves through the API
 - `tools/` are client-side; a tool that needs server-side logic goes through `packages/api-client` over the network rather than importing a server-side package (`packages/game-data`, `packages/db`, `packages/api-server`) directly. The `tools/review-*` family (`review-match`, `review-player`, `review-race`, `review-star-player`) is a deliberate exception: they read `packages/db` directly as local-only developer report aids outside the import pipeline, never touching the API
-- `packages/` are usually one-sided (client-only or server-only). Deliberate exceptions exist for shared-shape/enum packages designed to serve both sides: `packages/api-contract` (the RPC contract, built on `packages/domain-enums` and external libraries), `packages/domain-enums` (the enum source of truth, with no dependencies of its own), and `packages/tp-paths` (TP file-path computation shared between `packages/import-tp-live` and `tools/download-tp`, also with no dependencies of its own)
+- `packages/` are usually one-sided (client-only or server-only). Deliberate exceptions exist for shared-shape/enum packages designed to serve both sides: `packages/api-contract` (the RPC contract, built on `packages/domain-enums` and external libraries), `packages/domain-enums` (the enum source of truth, with no dependencies of its own), `packages/tp-paths` (TP file-path computation shared between `packages/import-tp-live` and `tools/download-tp`, also with no dependencies of its own), and `packages/import-shared` (the import rules the client-side `packages/import` and the server-side `packages/import-tp-live` must apply identically, whose only workspace dependency is `packages/api-contract`'s types)
 
 ## Tool/app relationships
 
@@ -215,11 +220,15 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
   - It contains the live imports (fetch via `packages/scrape-tp`, parse via `packages/parse-tp`, era auto-resolution; a live match import creates the competition it needs).
   - It also contains the implementations behind `tpRosters.import`, `tpMatches.import`, `tpCompetitions.import` and `tpOfficialTeams.import`, which `tools/import-tp`'s bulk run calls once per roster file, match file, competition or rules set — so a change to how a TP team, player (including the player's own skills), match, competition or official team list is imported reaches bulk and live imports together.
   - `apps/discord-bot` calls the same `TpLive*ImportService` entry points directly, in-process, for its `/importtp` slash command and its TP notification feed (which also imports both teams of a starting match through `TpLiveMatchTeamsImportService`).
-  - Deliberately depends on neither `packages/import` nor `packages/api-client` (see `docs/import-tp-live/index.md`).
+  - Deliberately depends on neither `packages/import` nor `packages/api-client` (see `docs/import-tp-live/index.md`); the import rules it must share with the bulk importers come from `packages/import-shared`.
 - **`packages/tp-paths`** (shared TP paths) — every TP path the repo requests: roster, tournament (including the news, classifications, honours and statistics pages only `tools/download-tp` fetches), match and official-teams paths (plus the official-teams rules-set id map), and the reverse direction.
   - `TpPageClassifierService` classifies a TP frontend URL as a competition, competition scores, match, roster or official-teams page (or unknown) with the ids the matching `packages/import-tp-live` entry point needs, so every on-demand consumer makes the same determination.
   - Pure and I/O-free — the frontend base URL is a parameter, not config — so the client-only `tools/download-tp` and the server-side `packages/import-tp-live` can both depend on it without either gaining the other's dependencies.
   - `apps/discord-bot` depends on it directly too, to classify a pasted TP URL for `/importtp` and a notification's link for the TP feed.
+- **`packages/import-shared`** (shared import rules) — the pure, I/O-free rules a bulk import and a live import must apply identically.
+  - It holds the "Name" external-id formats (`NameExternalIdService`), `ImportError`/`ImportResult` construction typed with `packages/api-contract`'s types (`ImportResultService`), per-item upsert error recording (`UpsertRecorderService`) and the at-most-three-days cup rule (`CompetitionTypeService`).
+  - Consumed by `packages/import`, which re-exports it to every `tools/import-*` (`tools/import-bbl` classifies competitions through `CompetitionTypeService`), and by `packages/import-tp-live`, so a change here reaches bulk and live imports together.
+  - The Name ids are identity-critical: if the two sides wrote different strings, a live and a bulk import of the same coach, team or position would create two rows.
 - **`packages/read-bbl-mirror`** (shared mirror access) — the mechanics of getting text out of a BBL wget mirror directory.
   - It resolves a filename safely against a caller-supplied data directory.
   - It reports a missing file as `null` and a missing directory as an empty listing.
@@ -254,7 +263,7 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
     - `CharacteristicFormatService` with its `CharacteristicFormat` type and none marker (rendering one characteristic in its rules set's display format), duplicated between `review-player` and `review-race` (review-match has no characteristics to format).
   - Each tool's `ReviewService`/`ReportBuilderService` is a thin subclass supplying only what differs, and each tool keeps only a one-line declarative subclass or a plain import for the two leaf helpers.
   - It deliberately carries no BBL/TP parsing or interpretation logic — raw-source parsing, comparison predicates and label tables stay duplicated per tool, see the review-tool entries below.
-- **`packages/api-contract`** (shared shapes) — newly imported data must exist in the contract before an importer can send it or a consumer can read it; a change here reaches api-server, api-client, game-data, and import together
+- **`packages/api-contract`** (shared shapes) — newly imported data must exist in the contract before an importer can send it or a consumer can read it; a change here reaches api-server, api-client, game-data, import and import-shared together
 - **`apps/discord-bot`** (consumer) — reads imported data via `packages/game-data`; data newly landed by any importer is a candidate for a new command, fact, or insight. It is also a direct importer in its own right: the `/importtp` slash command, and the TP notification feed for every recognised notification, classify a TP URL with `packages/tp-paths`' `TpPageClassifierService` and call the matching `packages/import-tp-live` entry point in-process
 - **`tools/review-match`** (consumer, review aid) — renders raw BBL and TP source data beside imported match events, so a change to what either importer stores for match events usually needs a matching renderer change here
   - It deliberately interprets the raw sources itself and must never depend on `packages/parse-tp` or importer logic (the mechanical file access is shared via `packages/read-bbl-mirror`, which carries no interpretation and so does not weaken that rule) (see `docs/review-match/index.md`).

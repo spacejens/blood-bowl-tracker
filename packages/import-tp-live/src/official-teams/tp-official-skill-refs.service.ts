@@ -3,10 +3,10 @@ import type {
   ImportError,
   TpSkillMasterName,
 } from '@blood-bowl-tracker/api-contract';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type { TpPositionSkillRef } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-import { TpImportResultsService } from '../tp-import-results.service';
 import { TpSkillIdLookupService } from '../tp-skill-id-lookup.service';
 import { TpKeywordTargetDecoderService } from './tp-keyword-target-decoder.service';
 import type { TpOfficialKeywordCatalog } from './tp-official-keyword-catalog.service';
@@ -63,7 +63,7 @@ export class TpOfficialSkillRefsService {
   constructor(
     private readonly skillIdLookup: TpSkillIdLookupService,
     private readonly keywordTargets: TpKeywordTargetDecoderService,
-    private readonly importResults: TpImportResultsService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**

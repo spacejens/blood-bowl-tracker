@@ -1,12 +1,12 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import type { KeywordCatalogRow } from '@blood-bowl-tracker/game-data';
 import { KeywordsService } from '@blood-bowl-tracker/game-data';
+import { UpsertRecorderService } from '@blood-bowl-tracker/import-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { TpOfficialKeywordCatalogService } from './tp-official-keyword-catalog.service';
 import { TP_SYSTEM_ID } from './tp-official-teams.test-helpers';
 
@@ -25,7 +25,7 @@ describe('TpOfficialKeywordCatalogService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpOfficialKeywordCatalogService,
-        TpUpsertRunnerService,
+        UpsertRecorderService,
         { provide: KeywordsService, useValue: keywords },
       ],
     }).compile();

@@ -1,4 +1,5 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import { MatchParserService } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import {
@@ -14,7 +15,6 @@ import { mock } from 'vitest-mock-extended';
 import { tpMatch } from '../match/tp-match.test-helpers';
 import type { TpConnectionProvider } from '../tp-import-providers';
 import { TP_CONNECTION_PROVIDER } from '../tp-import-providers';
-import { TpImportResultsService } from '../tp-import-results.service';
 import { TpMatchFetchService } from './tp-match-fetch.service';
 
 describe('TpMatchFetchService', () => {
@@ -42,7 +42,7 @@ describe('TpMatchFetchService', () => {
         // assert on the actual URLs requested.
         TpMatchPathsService,
         { provide: MatchParserService, useValue: parser },
-        TpImportResultsService,
+        ImportResultService,
       ],
     }).compile();
     service = moduleRef.get(TpMatchFetchService);

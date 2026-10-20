@@ -1,4 +1,5 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
 import { MatchParserService } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
@@ -11,7 +12,6 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import type { TpConnectionProvider } from '../tp-import-providers';
 import { TP_CONNECTION_PROVIDER } from '../tp-import-providers';
-import { TpImportResultsService } from '../tp-import-results.service';
 
 /** Options for {@link TpMatchFetchService.fetchMatch}. */
 export interface FetchMatchOptions {
@@ -33,7 +33,7 @@ export class TpMatchFetchService {
     private readonly fetcher: TpFetcherService,
     private readonly matchPaths: TpMatchPathsService,
     private readonly matchParser: MatchParserService,
-    private readonly importResults: TpImportResultsService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**

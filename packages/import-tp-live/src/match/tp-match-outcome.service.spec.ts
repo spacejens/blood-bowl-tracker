@@ -1,12 +1,14 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import { MatchOutcomesService } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import {
   AWAY_TEAM_ERA_ID,
   COMPETITION_ID,
@@ -34,8 +36,8 @@ describe('TpMatchOutcomeService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpMatchOutcomeService,
-        TpImportResultsService,
-        TpUpsertRunnerService,
+        ImportResultService,
+        UpsertRecorderService,
         { provide: MatchOutcomesService, useValue: outcomes },
       ],
     }).compile();

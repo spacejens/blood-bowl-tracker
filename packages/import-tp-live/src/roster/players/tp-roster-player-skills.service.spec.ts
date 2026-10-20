@@ -3,6 +3,10 @@ import type {
   TpImportedPlayer,
 } from '@blood-bowl-tracker/api-contract';
 import { PlayerSkillsService } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import type { TpRosterPlayer } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -11,8 +15,6 @@ import { mock } from 'vitest-mock-extended';
 
 import { TpKeywordTargetDecoderService } from '../../official-teams/tp-keyword-target-decoder.service';
 import { TpOfficialKeywordCatalogService } from '../../official-teams/tp-official-keyword-catalog.service';
-import { TpImportResultsService } from '../../tp-import-results.service';
-import { TpUpsertRunnerService } from '../../tp-upsert-runner.service';
 import {
   rosterContext,
   rosterPlayer,
@@ -58,8 +60,8 @@ describe('TpRosterPlayerSkillsService', () => {
         // Pure, dependency-free decision logic and error/exception helpers,
         // passed real so tests assert on the actual decode and errors.
         TpKeywordTargetDecoderService,
-        TpImportResultsService,
-        TpUpsertRunnerService,
+        ImportResultService,
+        UpsertRecorderService,
       ],
     }).compile();
     service = moduleRef.get(TpRosterPlayerSkillsService);

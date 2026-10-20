@@ -1,8 +1,8 @@
 import type { ExternalId } from '@blood-bowl-tracker/api-contract';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import { Injectable } from '@nestjs/common';
 
 import { ExternalIdResolverService } from './external-id-resolver.service';
-import { ImportResultService } from './import-result.service';
 import type { ResolvableEntityKind } from './resolvable-entity-kind';
 
 /**

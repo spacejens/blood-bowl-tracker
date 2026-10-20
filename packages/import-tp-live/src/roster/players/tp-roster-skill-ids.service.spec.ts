@@ -1,6 +1,11 @@
 import type { ExternalId, ImportError } from '@blood-bowl-tracker/api-contract';
 import type { Skill } from '@blood-bowl-tracker/db';
 import { SkillsService } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  NameExternalIdService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import type { TpSkillMaster } from '@blood-bowl-tracker/parse-tp';
 import { SkillMasterNamesParserService } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
@@ -8,10 +13,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { TpImportResultsService } from '../../tp-import-results.service';
-import { TpNameExternalIdService } from '../../tp-name-external-id.service';
 import { TpSkillIdLookupService } from '../../tp-skill-id-lookup.service';
-import { TpUpsertRunnerService } from '../../tp-upsert-runner.service';
 import {
   NAME_SYSTEM_ID,
   rosterContext,
@@ -53,9 +55,9 @@ describe('TpRosterSkillIdsService', () => {
         { provide: TpSkillIdLookupService, useValue: lookup },
         // Constructor-free identity formatting and pure error/exception
         // helpers, passed real so tests assert on the actual ids and errors.
-        TpNameExternalIdService,
-        TpImportResultsService,
-        TpUpsertRunnerService,
+        NameExternalIdService,
+        ImportResultService,
+        UpsertRecorderService,
       ],
     }).compile();
     service = moduleRef.get(TpRosterSkillIdsService);

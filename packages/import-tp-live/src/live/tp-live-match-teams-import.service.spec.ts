@@ -1,4 +1,5 @@
 import type { ImportResult } from '@blood-bowl-tracker/api-contract';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import {
   TpBlockedError,
@@ -15,7 +16,6 @@ import {
   MATCH_TP_ID,
   tpMatch,
 } from '../match/tp-match.test-helpers';
-import { TpImportResultsService } from '../tp-import-results.service';
 import { TpLiveMatchTeamsImportService } from './tp-live-match-teams-import.service';
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
 import { TpLiveTeamImportService } from './tp-live-team-import.service';
@@ -66,7 +66,7 @@ describe('TpLiveMatchTeamsImportService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpLiveMatchTeamsImportService,
-        TpImportResultsService,
+        ImportResultService,
         { provide: TpFetcherService, useValue: fetcher },
         { provide: TpMatchFetchService, useValue: matchFetch },
         { provide: TpLiveTeamImportService, useValue: teamImport },

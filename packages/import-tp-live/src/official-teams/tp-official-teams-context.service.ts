@@ -5,10 +5,11 @@ import {
   ExternalSystemsService,
   RulesSetsService,
 } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
 import { Injectable } from '@nestjs/common';
-
-import { TpImportResultsService } from '../tp-import-results.service';
-import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 
 /** What every write of one rules set's official team list needs, resolved once. */
 export interface TpOfficialTeamsContext {
@@ -39,8 +40,8 @@ export class TpOfficialTeamsContextService {
     private readonly externalSystems: ExternalSystemsService,
     private readonly rulesSets: RulesSetsService,
     private readonly eras: ErasService,
-    private readonly importResults: TpImportResultsService,
-    private readonly runner: TpUpsertRunnerService,
+    private readonly importResults: ImportResultService,
+    private readonly runner: UpsertRecorderService,
   ) {}
 
   /**
