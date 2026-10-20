@@ -1,4 +1,4 @@
-import type { InteractionKind } from '@blood-bowl-tracker/db';
+import type { DbOrTx, InteractionKind } from '@blood-bowl-tracker/db';
 import {
   and,
   channels,
@@ -10,7 +10,6 @@ import {
 } from '@blood-bowl-tracker/db';
 import { Injectable } from '@nestjs/common';
 
-import type { DbOrTx } from './db-or-tx';
 import { selectThenUpsert } from './select-then-upsert';
 
 export interface UpsertGuildInput {
