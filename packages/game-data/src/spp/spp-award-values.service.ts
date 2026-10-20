@@ -17,9 +17,14 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import type { ActionType } from '@blood-bowl-tracker/domain-enums';
+import { SPP_EARNING_ACTION_TYPES } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
-import { SPP_EARNING_ACTION_TYPES } from '../shared/match-event-types';
+/**
+ * `SPP_EARNING_ACTION_TYPES` viewed as plain action types, so `includes`
+ * accepts any `ActionType` rather than only the narrower literal subset.
+ */
+const SPP_EARNING_TYPES: readonly ActionType[] = SPP_EARNING_ACTION_TYPES;
 
 export interface ResolveSppValueOptions {
   actingPlayerId: number;
@@ -156,7 +161,7 @@ export class SppAwardValuesService {
   async resolveSppValue(
     options: ResolveSppValueOptions,
   ): Promise<number | undefined> {
-    if (!SPP_EARNING_ACTION_TYPES.includes(options.actionType)) {
+    if (!SPP_EARNING_TYPES.includes(options.actionType)) {
       return undefined;
     }
 

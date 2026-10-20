@@ -19,7 +19,8 @@ export const DEFLECTION_TYPES: readonly ActionType[] = ['deflection'];
 export const THROW_TEAM_MATE_TYPES: readonly ActionType[] = ['throw_team_mate'];
 /**
  * The thrown player's catch. Deliberately absent from
- * {@link SPP_EARNING_ACTION_TYPES} and {@link SPP_CAREER_COUNT_GROUPS}: no
+ * `SPP_EARNING_ACTION_TYPES` (packages/domain-enums) and
+ * {@link SPP_CAREER_COUNT_GROUPS}: no
  * source's roster export carries a career total for it, so there is nothing
  * for the ongoing-competition estimate to price. A TP-sourced event still
  * carries its own reported `spp_value`.
@@ -52,28 +53,6 @@ export const SERIOUS_INJURY_CAUSED_TYPES: readonly ActionType[] = [
   'serious_injury',
 ];
 export const DEATH_CAUSED_TYPES: readonly ActionType[] = ['death'];
-
-/**
- * Every action type that earns Star Player Points under the standardised
- * award table, and therefore the only ones `spp_award_values` holds rows for
- * and the only ones a BBL-computed `match_events.spp_value` is ever non-null
- * on. NOT the only action types `spp_value` can be non-null on overall: a
- * TP-sourced event carries TP's own reported figure verbatim regardless of
- * action type, so a type absent from this list (e.g. a successful landing)
- * can still have one from TP. Built from {@link CASUALTY_CAUSED_TYPES} so the
- * casualty severities cannot drift apart between the two lists. `'foul'` is
- * excluded for the same reason it is excluded there: Blood Bowl awards no
- * credit for a foul under the standardised table (TP may still report a
- * figure for one, which is imported as-is).
- */
-export const SPP_EARNING_ACTION_TYPES: readonly ActionType[] = [
-  'touchdown',
-  'completion',
-  'interception',
-  'deflection',
-  'mvp_award',
-  ...CASUALTY_CAUSED_TYPES,
-];
 
 /**
  * One career-count group key. `Extract` against {@link ActionType} is what
