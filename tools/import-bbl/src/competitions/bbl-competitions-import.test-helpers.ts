@@ -5,6 +5,7 @@ import type {
 } from '@blood-bowl-tracker/import';
 import {
   CompetitionsImportService,
+  CompetitionTypeService,
   ExternalSystemBootstrapService,
   ImportResultService,
   MatchDateRangeService,
@@ -216,6 +217,9 @@ export async function makeService(
       { provide: PageParseErrorService, useValue: pageParseError },
       { provide: MatchDateRangeService, useValue: dateRange },
       { provide: ReferenceLookupService, useValue: lookup },
+      // Pure, constructor-free cup/season rule: passed real so the specs keep
+      // asserting the actual classification of each canned span.
+      CompetitionTypeService,
     ],
   }).compile();
 
