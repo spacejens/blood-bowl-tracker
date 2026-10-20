@@ -35,11 +35,6 @@ quotes — `fly secrets import` stores each value verbatim, so
 `RANDOM_INSIGHTS_CRON="0 * * * *"` would push the literal quote characters
 and make the bot fail to start on an invalid cron expression.
 
-`TP_EXTERNAL_SYSTEM_NAME` must equal the `externalSystemName` in
-`tools/import-tp/import-tp-config.production.json5`, the name the production
-bulk import registers TP data under; a mismatch leaves `/importtp` unable to
-find anything the bulk import brought in.
-
 `TP_SCRAPING_ENABLED` is mandatory: `.env.production` must set it to `true`
 or `false`, or the bot fails to start on deploy. Setting it to `false` and
 applying the configuration (which restarts the machine, see below) stops all

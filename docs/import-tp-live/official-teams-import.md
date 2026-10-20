@@ -19,7 +19,7 @@ which writes one rules set at a time.
 ```ts
 const { rulesSets } =
   await tpLiveOfficialTeamsImportService.importOfficialTeams({
-    externalSystemName: 'TP',
+    externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
   });
 for (const { rulesSet, fetch, write } of rulesSets) {
   // fetch: races fetched + fetch/parse failures; write: one ImportResult per stage
@@ -96,4 +96,5 @@ whole import; the same underlying data is written either way.
 
 Like the other live imports, the live import registers everything under the
 `externalSystemName` its caller passes, with no default;
-`tpOfficialTeams.import` takes the name as input too.
+`tpOfficialTeams.import` takes the name as input too. Every caller in this
+repository passes `TP_EXTERNAL_SYSTEM_NAME`.

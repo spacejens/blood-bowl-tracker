@@ -219,9 +219,11 @@ cp tools/review-race/review-race-config.example.json5 tools/review-race/review-r
 | `racesPerStratum` | Races sampled per stratum (default 3) |
 | `bbl.dataDir` / `tp.dataDir` | The same downloaded data directories `tools/import-bbl` / `tools/import-tp` read |
 | `manual.dataDir` | `tools/import-manual`'s committed `data/` directory, holding `batches/` (every batch is read) |
-| `bbl.externalSystemName` / `tp.externalSystemName` | External-system names the imports registered records under (default `BBL` / `TP`; this project's own imports register `tloeg.bbleague.se` / `tourplay.net`) |
 | `overrides.bbl` / `overrides.tp` / `overrides.manual` | Races always included — BBL's numeric race id, TP's `teamRace` code, or (for manual) the race's own name |
 | `outputPath` | Base path each report is written next to, timestamped (default `output/report.html`) |
+
+The tool finds BBL and TP records by their shared external-system names
+(`tloeg.bbleague.se` and `tourplay.net`), so they are not configured.
 
 Relative paths resolve against the working directory, which is `tools/review-race/` when
 the tool is run as documented below.

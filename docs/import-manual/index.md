@@ -81,10 +81,16 @@ categories, is a hard error:
 
 ```jsonc
 externalSystems: [
-  { name: "BBL", category: "imported_data_source" },
+  { name: "tloeg.bbleague.se", category: "imported_data_source" },
   { name: "Name", category: "bookkeeping" },
 ]
 ```
+
+External-system names must be one of the shared names in
+`packages/domain-enums`: `Name`, `NAF`, `tloeg.bbleague.se` (BBL) or
+`tourplay.net` (TP). A test over every batch
+(`src/data-file/curated-data-external-systems.spec.ts`) fails on any other
+name.
 
 Every entry in an entity section requires at least one external ID (the API
 enforces `externalIds.min(1)` — a record with none could never be matched
@@ -98,7 +104,7 @@ pairs, where `system` is an external-system name and `id` follows the
 [docs/api/imports.md](../api/imports.md)):
 
 ```jsonc
-{ system: "BBL", id: "id:47" }
+{ system: "tloeg.bbleague.se", id: "id:47" }
 { system: "Name", id: "name:necromantic-2020" }
 ```
 

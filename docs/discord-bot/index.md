@@ -134,13 +134,10 @@ Configuration is supplied through an environment file in the app directory.
      `connection.apiToken` in that tool's `import-*-config.json5`. A request
      with no token, or one matching none of these, is rejected with `401`.
      Leaving a variable empty disables that caller.
-   - `TP_EXTERNAL_SYSTEM_NAME`, `TP_FRONTEND_BASE_URL`, `TP_BACKEND_API_URL`
-     — required; the bot fails to start without them. What
-     [`/importtp`](slash-commands/import-tp.md) needs to import from TP: the
-     name TP's external system is registered under (identical to
-     `externalSystemName` in `tools/import-tp`'s `import-tp-config.json5`, or
-     a live import cannot find what the bulk import registered), and TP's
-     frontend and backend API base URLs, each with a trailing slash.
+   - `TP_FRONTEND_BASE_URL`, `TP_BACKEND_API_URL` — required; the bot fails
+     to start without them. TP's frontend and backend API base URLs, each
+     with a trailing slash, which [`/importtp`](slash-commands/import-tp.md)
+     needs to import from TP.
    - `TP_SCRAPING_ENABLED` — required; `true` or `false` (case-insensitive),
      and any other value, or leaving it unset, makes the bot fail to start.
      The master switch for the bot's TP scraping and live importing. Set to `false`, the

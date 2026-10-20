@@ -19,6 +19,10 @@ template (`import-tp-config.example.json5`); they differ only in the values
 they carry, so a production run can point at the production api-server
 without disturbing the local-development config. Both are git-ignored.
 
+TP records are registered under the `tourplay.net` external system
+(`TP_EXTERNAL_SYSTEM_NAME` in `packages/domain-enums`); the name is not
+configurable.
+
 Top-level keys:
 
 - `connection` — runtime settings for reaching the api-server to import into.
@@ -30,8 +34,6 @@ Top-level keys:
     `API_TOKEN_IMPORT_TP` value in `apps/discord-bot/.env` (see
     [RPC conventions](../api/rpc-conventions.md)). Treat it like a password —
     `import-tp-config.json5` is git-ignored, so it is never committed.
-- `externalSystemName` — name of the external system TP records are
-  registered under. Defaults to `"TP"` if unset or empty.
 - `dataDir` — path to the folder that directly contains one subdirectory per
   era. This is a subfolder of the git-ignored `data/` directory. A relative
   path resolves against the current working directory.
@@ -135,8 +137,6 @@ The tool never parses a roster or a match for those upserts; it does parse roste
   raw top-level values via `get<T>(key)` and the api-server base URL via
   `getApiBaseUrl()`. A missing file is treated as empty so each getter throws
   its own friendly error.
-- **ExternalSystemNameConfigService** — resolves the `externalSystemName`
-  config key, defaulting to `"TP"`.
 - **LeagueConfigService** — reads the `league.name` config key.
 - **EraDataConfigService** — reads the `league.eras` array into structured
   entries (`identity`, `dates`, `dataSubdir`), validating each field and

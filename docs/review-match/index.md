@@ -131,9 +131,11 @@ cp tools/review-match/review-match-config.example.json5 tools/review-match/revie
 | `database.url` | Connection string of the database holding the imported data (required) |
 | `matchesPerStratum` | Matches sampled per stratum, per source (default 3) |
 | `bbl.dataDir` / `tp.dataDir` | The same downloaded data directories `tools/import-bbl` / `tools/import-tp` read |
-| `bbl.externalSystemName` / `tp.externalSystemName` | External-system names the imports registered records under (default `BBL` / `TP`) |
 | `overrides.bbl` / `overrides.tp` | External match ids always included |
 | `outputPath` | Base path each report is written next to, timestamped (default `output/report.html`, e.g. `output/report-2026-07-27T19-15-00Z.html`) |
+
+The tool finds BBL and TP records by their shared external-system names
+(`tloeg.bbleague.se` and `tourplay.net`), so they are not configured.
 
 Relative paths resolve against the working directory, which is
 `tools/review-match/` when the tool is run as documented below.

@@ -149,10 +149,8 @@ five cases applies:
 
    References: `createConfigLoaderServiceBase` (`packages/config-loader/`);
    `createUpsertImportServiceBase`, `createImportConfigServiceBase`,
-   `createSourceConfigServiceBase` and
-   `createExternalSystemNameConfigServiceBase` (`packages/import/`);
-   `createReviewConfigServiceBase` and `createExternalSystemLookupServiceBase`
-   (`packages/review-harness/`).
+   `createSourceConfigServiceBase` (`packages/import/`);
+   `createReviewConfigServiceBase` (`packages/review-harness/`).
 
 **Everything else becomes a service — including pure data-transformation
 functions with no dependencies of their own** (string escaping, formatting, tree
