@@ -3,6 +3,10 @@ import { Module } from '@nestjs/common';
 
 import { ArchiveParserService } from './archive/archive-parser.service';
 import { PgArchiveService } from './archive/pg-archive.service';
+import { BackupAlertArgsService } from './backup-alert/backup-alert-args.service';
+import { BackupAlertIssuesService } from './backup-alert/backup-alert-issues.service';
+import { RaiseAlertService } from './backup-alert/raise-alert.service';
+import { ResolveAlertService } from './backup-alert/resolve-alert.service';
 import { BackupFreshnessService } from './check-freshness/backup-freshness.service';
 import { CheckFreshnessService } from './check-freshness/check-freshness.service';
 import {
@@ -71,6 +75,10 @@ import { VerifyBackupService } from './verify-backup/verify-backup.service';
     BackupInspectionService,
     RestoreProductionService,
     RestoreProductionArgsService,
+    BackupAlertArgsService,
+    BackupAlertIssuesService,
+    RaiseAlertService,
+    ResolveAlertService,
   ],
 })
 export class AppModule {}
