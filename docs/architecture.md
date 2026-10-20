@@ -25,12 +25,12 @@ packages/
   domain-enums/       — single source of truth for every Blood Bowl domain
                         enum's member list, as plain as-const string arrays,
                         and its value type ((typeof X)[number]), which every
-                        package imports; plus the well-known
-                        external-system names (Name, NAF,
-                        BBL's tloeg.bbleague.se, TP's tourplay.net);
-                        deliberately depends on no other workspace package so
-                        packages/db and packages/api-contract can each build
-                        from it while staying mutually independent
+                        package imports; plus the well-known external-system
+                        names (Name, NAF, BBL's tloeg.bbleague.se, TP's
+                        tourplay.net); deliberately depends on no other
+                        workspace package so packages/db and
+                        packages/api-contract can each build from it while
+                        staying mutually independent
   game-data/          — DB-backed business logic for core game entities;
                         depends on packages/db, on packages/api-contract for
                         shared contract shapes (Upsert* types) and on
@@ -270,7 +270,7 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
 - **`packages/api-contract`** (shared shapes) — newly imported data must exist in the contract before an importer can send it or a consumer can read it; a change here reaches api-server, api-client, game-data, import and import-shared together
 - **`apps/discord-bot`** (consumer) — reads imported data via `packages/game-data`; data newly landed by any importer is a candidate for a new command, fact, or insight. It is also a direct importer in its own right: the `/importtp` slash command, and the TP notification feed for every recognised notification, classify a TP URL with `packages/tp-paths`' `TpPageClassifierService` and call the matching `packages/import-tp-live` entry point in-process
 - **`tools/review-match`** (consumer, review aid) — renders raw BBL and TP source data beside imported match events, so a change to what either importer stores for match events usually needs a matching renderer change here
-  - It deliberately interprets the raw sources itself and must never depend on `packages/parse-tp` or importer logic (the mechanical file access is shared via `packages/read-bbl-mirror`, which carries no interpretation and so does not weaken that rule; depending on `packages/domain-enums` for match categories is likewise allowed, since it holds constants and types only, no interpretation) (see `docs/review-match/index.md`).
+  - It deliberately interprets the raw sources itself and must never depend on `packages/parse-tp` or importer logic (the mechanical file access is shared via `packages/read-bbl-mirror`, which carries no interpretation and so does not weaken that rule) (see `docs/review-match/index.md`). Depending on `packages/domain-enums` for match categories is likewise allowed, since it holds constants and types only, no interpretation.
   - That independence rule covers the domain-specific half only; the generic report scaffolding is shared on purpose via `packages/review-harness`, where its `ReviewService` and `ReportBuilderService` subclass `ReviewServiceBase`/`ReportBuilderBase` and add only the match-result lookup and the per-match section.
 - **`tools/review-player`** (consumer, review aid) — renders raw BBL and TP source data beside imported player records (identity, team, position, era) and star player point totals, so a change to what either importer stores for players usually needs a matching renderer change here
   - Sibling of `tools/review-match`, structured the same way and deliberately independent of it.

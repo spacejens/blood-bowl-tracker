@@ -27,6 +27,10 @@ export const secretObjectiveByCode: Record<number, SecretObjective> = {
 
 @Injectable()
 export class SecretObjectiveService {
+  /**
+   * Decodes the card of a TP `secret_objective` (code-42) event. TP stores
+   * only an opaque integer; an unmapped code decodes to `'unknown'`.
+   */
   decode(code: number): SecretObjective {
     return secretObjectiveByCode[code] ?? 'unknown';
   }

@@ -20,10 +20,9 @@ export const THROW_TEAM_MATE_TYPES: readonly ActionType[] = ['throw_team_mate'];
 /**
  * The thrown player's catch. Deliberately absent from
  * `SPP_EARNING_ACTION_TYPES` (packages/domain-enums) and
- * {@link SPP_CAREER_COUNT_GROUPS}: no
- * source's roster export carries a career total for it, so there is nothing
- * for the ongoing-competition estimate to price. A TP-sourced event still
- * carries its own reported `spp_value`.
+ * {@link SPP_CAREER_COUNT_GROUPS}: no source's roster export carries a career
+ * total for it, so there is nothing for the ongoing-competition estimate to
+ * price. A TP-sourced event still carries its own reported `spp_value`.
  */
 export const CATCH_TYPES: readonly ActionType[] = ['catch'];
 /**

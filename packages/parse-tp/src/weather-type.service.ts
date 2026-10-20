@@ -51,6 +51,11 @@ export const weatherTypeByTableAndCode: Record<
 
 @Injectable()
 export class WeatherTypeService {
+  /**
+   * Decodes the weather of a TP `weather_roll` (code-10) event. TP stores
+   * only an opaque integer, interpreted within its weather table; an
+   * unmapped table/code pair decodes to `'unknown'`.
+   */
   decode(table: number, code: number): WeatherType {
     return weatherTypeByTableAndCode[table]?.[code] ?? 'unknown';
   }
