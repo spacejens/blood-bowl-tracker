@@ -5,6 +5,7 @@ export {
 } from './characteristic-format.service';
 export type { DataTypeReviewer } from './data-type-reviewer';
 export { DATA_TYPE_REVIEWERS } from './data-type-reviewer';
+export { ExternalSystemLookupService } from './external-system-lookup.service';
 export type {
   ExternalSystemLookupServiceBase,
   ExternalSystemLookupServiceConstructor,
@@ -54,3 +55,10 @@ export {
 } from './skill-format.service';
 export type { Stratifier, StratumSampleRequest } from './stratifier';
 export { STRATIFIERS } from './stratifier';
+// Re-exported from @blood-bowl-tracker/domain-enums: the review tools depend on
+// this package but not on domain-enums, and reach the source systems' shared
+// names through this package's entry point.
+export {
+  BBL_EXTERNAL_SYSTEM_NAME,
+  TP_EXTERNAL_SYSTEM_NAME,
+} from '@blood-bowl-tracker/domain-enums';
