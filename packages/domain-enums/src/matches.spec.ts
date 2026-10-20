@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 
+import type { MatchCategory } from './matches';
 import { MATCH_CATEGORIES } from './matches';
 
 describe('MATCH_CATEGORIES', () => {
@@ -16,5 +17,16 @@ describe('MATCH_CATEGORIES', () => {
 
   it('has no duplicate values', () => {
     expect(new Set(MATCH_CATEGORIES).size).toBe(MATCH_CATEGORIES.length);
+  });
+
+  it('types MatchCategory as exactly its listed values', () => {
+    expectTypeOf<MatchCategory>().toEqualTypeOf<
+      | 'normal'
+      | 'cup_final'
+      | 'season_semi_final'
+      | 'season_final'
+      | 'season_bronze'
+      | 'season_qualifier'
+    >();
   });
 });

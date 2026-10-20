@@ -3,3 +3,5 @@
  * is a knock-out or one-off tournament.
  */
 export const COMPETITION_TYPES = ['season', 'cup'] as const;
+
+export type CompetitionType = (typeof COMPETITION_TYPES)[number];

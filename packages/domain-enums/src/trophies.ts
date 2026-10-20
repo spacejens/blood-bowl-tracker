@@ -5,6 +5,8 @@
  */
 export const TROPHY_RECIPIENT_KINDS = ['team', 'player'] as const;
 
+export type TrophyRecipientKind = (typeof TROPHY_RECIPIENT_KINDS)[number];
+
 /**
  * How a trophy's winner is determined.
  *
@@ -28,11 +30,15 @@ export const TROPHY_AWARD_RULE_KINDS = [
   'career_threshold',
 ] as const;
 
+export type TrophyAwardRuleKind = (typeof TROPHY_AWARD_RULE_KINDS)[number];
+
 /**
  * Which participant of a matching match event receives a computed award:
  * the event's acting player, or the player the consequence happened to.
  */
 export const TROPHY_AWARD_RULE_ROLES = ['acting', 'consequence'] as const;
+
+export type TrophyAwardRuleRole = (typeof TROPHY_AWARD_RULE_ROLES)[number];
 
 /**
  * What a `career_threshold` rule accumulates — a count of matching events, or
@@ -40,3 +46,6 @@ export const TROPHY_AWARD_RULE_ROLES = ['acting', 'consequence'] as const;
  * own aggregation, so this only ever applies to `career_threshold`.
  */
 export const TROPHY_AWARD_RULE_MEASURES = ['event_count', 'spp_sum'] as const;
+
+export type TrophyAwardRuleMeasure =
+  (typeof TROPHY_AWARD_RULE_MEASURES)[number];

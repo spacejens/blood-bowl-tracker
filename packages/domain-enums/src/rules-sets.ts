@@ -32,3 +32,5 @@ export const CHARACTERISTIC_FORMATS = [
   'plus',
   'plus_zero_legal',
 ] as const;
+
+export type CharacteristicFormat = (typeof CHARACTERISTIC_FORMATS)[number];

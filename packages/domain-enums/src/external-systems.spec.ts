@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 
+import type { ExternalSystemCategory } from './external-systems';
 import {
   BBL_EXTERNAL_SYSTEM_NAME,
   EXTERNAL_SYSTEM_CATEGORIES,
@@ -29,5 +30,11 @@ describe('EXTERNAL_SYSTEM_CATEGORIES', () => {
     expect(new Set(EXTERNAL_SYSTEM_CATEGORIES).size).toBe(
       EXTERNAL_SYSTEM_CATEGORIES.length,
     );
+  });
+
+  it('types ExternalSystemCategory as exactly its listed values', () => {
+    expectTypeOf<ExternalSystemCategory>().toEqualTypeOf<
+      'bookkeeping' | 'imported_data_source' | 'referenced_not_imported'
+    >();
   });
 });

@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 
+import type { KeywordKind } from './keywords';
 import { KEYWORD_KINDS } from './keywords';
 
 describe('KEYWORD_KINDS', () => {
@@ -9,5 +10,11 @@ describe('KEYWORD_KINDS', () => {
 
   it('has no duplicate values', () => {
     expect(new Set(KEYWORD_KINDS).size).toBe(KEYWORD_KINDS.length);
+  });
+
+  it('types KeywordKind as exactly its listed values', () => {
+    expectTypeOf<KeywordKind>().toEqualTypeOf<
+      'species' | 'positional' | 'special'
+    >();
   });
 });

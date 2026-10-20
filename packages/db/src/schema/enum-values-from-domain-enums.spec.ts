@@ -63,11 +63,19 @@ const dbEnums: ReadonlyArray<readonly [string, EnumLike]> = Object.entries(
 const isStringArray = (value: unknown): value is readonly string[] =>
   Array.isArray(value) && value.every((entry) => typeof entry === 'string');
 
+/**
+ * String-array exports of domain-enums that are deliberately not db enums:
+ * a curated subset of `ACTION_TYPES` that api-contract and game-data consume,
+ * stored in no enum column.
+ */
+const NOT_DB_ENUMS: ReadonlySet<string> = new Set(['SPP_EARNING_ACTION_TYPES']);
+
 /** Every export of `@blood-bowl-tracker/domain-enums` that is a string array. */
 const domainEnumExports: ReadonlyArray<readonly [string, readonly string[]]> =
   Object.entries(domainEnums as Record<string, unknown>)
-    .filter((entry): entry is [string, readonly string[]] =>
-      isStringArray(entry[1]),
+    .filter(
+      (entry): entry is [string, readonly string[]] =>
+        isStringArray(entry[1]) && !NOT_DB_ENUMS.has(entry[0]),
     )
     .sort((a, b) => a[0].localeCompare(b[0]));
 

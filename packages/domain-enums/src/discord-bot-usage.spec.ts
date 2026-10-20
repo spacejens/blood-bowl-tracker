@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 
+import type { InteractionKind, InteractionOutcome } from './discord-bot-usage';
 import { INTERACTION_KINDS, INTERACTION_OUTCOMES } from './discord-bot-usage';
 
 describe('INTERACTION_KINDS', () => {
@@ -9,6 +10,12 @@ describe('INTERACTION_KINDS', () => {
 
   it('has no duplicate values', () => {
     expect(new Set(INTERACTION_KINDS).size).toBe(INTERACTION_KINDS.length);
+  });
+
+  it('types InteractionKind as exactly its listed values', () => {
+    expectTypeOf<InteractionKind>().toEqualTypeOf<
+      'command' | 'button' | 'select_menu'
+    >();
   });
 });
 
@@ -21,5 +28,9 @@ describe('INTERACTION_OUTCOMES', () => {
     expect(new Set(INTERACTION_OUTCOMES).size).toBe(
       INTERACTION_OUTCOMES.length,
     );
+  });
+
+  it('types InteractionOutcome as exactly its listed values', () => {
+    expectTypeOf<InteractionOutcome>().toEqualTypeOf<'success' | 'failure'>();
   });
 });

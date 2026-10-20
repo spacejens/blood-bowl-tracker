@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 
+import type { PlayerSkillSource, SkillCategory } from './skills';
 import { PLAYER_SKILL_SOURCES, SKILL_CATEGORIES } from './skills';
 
 describe('SKILL_CATEGORIES', () => {
@@ -19,6 +20,19 @@ describe('SKILL_CATEGORIES', () => {
   it('has no duplicate values', () => {
     expect(new Set(SKILL_CATEGORIES).size).toBe(SKILL_CATEGORIES.length);
   });
+
+  it('types SkillCategory as exactly its listed values', () => {
+    expectTypeOf<SkillCategory>().toEqualTypeOf<
+      | 'general'
+      | 'agility'
+      | 'passing'
+      | 'strength'
+      | 'mutation'
+      | 'devious'
+      | 'trait'
+      | 'unique'
+    >();
+  });
 });
 
 describe('PLAYER_SKILL_SOURCES', () => {
@@ -35,5 +49,11 @@ describe('PLAYER_SKILL_SOURCES', () => {
     expect(new Set(PLAYER_SKILL_SOURCES).size).toBe(
       PLAYER_SKILL_SOURCES.length,
     );
+  });
+
+  it('types PlayerSkillSource as exactly its listed values', () => {
+    expectTypeOf<PlayerSkillSource>().toEqualTypeOf<
+      'starting' | 'advancement' | 'chosen' | 'random'
+    >();
   });
 });
