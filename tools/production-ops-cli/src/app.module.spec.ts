@@ -2,6 +2,7 @@ import {
   ChildProcessService,
   GitRootsService,
   ProcessRunnerService,
+  ProductionEnvFileService,
 } from '@blood-bowl-tracker/cli-shared';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
@@ -9,9 +10,9 @@ import { describe, expect, it } from 'vitest';
 import { AppModule } from './app.module';
 import { CheckProductionConfigPortService } from './check-production-config-port/check-production-config-port.service';
 import { DiscordBotTokenService } from './discord-bot-token/discord-bot-token.service';
+import { DiscordRestService } from './discord-rest/discord-rest.service';
 import { FetchDiscordMessageService } from './fetch-discord-message/fetch-discord-message.service';
 import { FetchRecentDiscordMessagesService } from './fetch-recent-discord-messages/fetch-recent-discord-messages.service';
-import { ProductionEnvFileService } from './production-env-file/production-env-file.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
 import { RunProductionQueryService } from './run-production-query/run-production-query.service';
 
@@ -33,6 +34,9 @@ describe('AppModule', () => {
     );
     expect(moduleRef.get(DiscordBotTokenService)).toBeInstanceOf(
       DiscordBotTokenService,
+    );
+    expect(moduleRef.get(DiscordRestService)).toBeInstanceOf(
+      DiscordRestService,
     );
     expect(moduleRef.get(FetchRecentDiscordMessagesService)).toBeInstanceOf(
       FetchRecentDiscordMessagesService,

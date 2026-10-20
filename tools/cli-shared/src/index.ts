@@ -3,6 +3,7 @@ export { ChildProcessService } from './child-process.service';
 export { CliSharedModule } from './cli-shared.module';
 export { GitRootsService } from './git-roots.service';
 export {
+  ENV_PRODUCTION_PATH,
   GITIGNORED_AUTO_CREATE_SYMLINK_DIRS,
   GITIGNORED_DATA_DIRS,
   GITIGNORED_DRIFT_FILES,
@@ -14,5 +15,6 @@ export {
   ProcessRunnerService,
   TIMED_OUT_EXIT_CODE,
 } from './process-runner.service';
+export { ProductionEnvFileService } from './production-env-file.service';
 export type { RunCliOptions } from './run-cli';
 export { runCli } from './run-cli';

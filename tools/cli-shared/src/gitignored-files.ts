@@ -30,6 +30,13 @@ export const GITIGNORED_PRODUCTION_IMPORT_CONFIG_FILES: readonly string[] = [
 ];
 
 /**
+ * The gitignored file holding production's secrets, relative to a checkout
+ * root. Read by `ProductionEnvFileService` and pushed to Fly by
+ * `fly secrets import`.
+ */
+export const ENV_PRODUCTION_PATH = 'apps/discord-bot/.env.production';
+
+/**
  * Files `check-drift` compares between the worktree and the main checkout.
  * This is `GITIGNORED_SYNC_FILES` plus the production variants: a developer
  * may have copied one in by hand, and it should still be caught before the
@@ -37,7 +44,7 @@ export const GITIGNORED_PRODUCTION_IMPORT_CONFIG_FILES: readonly string[] = [
  */
 export const GITIGNORED_DRIFT_FILES: readonly string[] = [
   ...GITIGNORED_SYNC_FILES,
-  'apps/discord-bot/.env.production',
+  ENV_PRODUCTION_PATH,
   ...GITIGNORED_PRODUCTION_IMPORT_CONFIG_FILES,
 ];
 

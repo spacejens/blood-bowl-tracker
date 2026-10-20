@@ -1,12 +1,12 @@
 import {
   ProcessRunnerService,
+  ProductionEnvFileService,
   TIMED_OUT_EXIT_CODE,
 } from '@blood-bowl-tracker/cli-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
-import { ProductionEnvFileService } from '../production-env-file/production-env-file.service';
 import { RunProductionQueryService } from './run-production-query.service';
 
 describe('RunProductionQueryService', () => {
@@ -17,7 +17,7 @@ describe('RunProductionQueryService', () => {
   beforeEach(async () => {
     processRunner = mock<ProcessRunnerService>();
     productionEnvFile = mock<ProductionEnvFileService>();
-    productionEnvFile.readValue.mockResolvedValue(
+    productionEnvFile.readDatabaseUrl.mockResolvedValue(
       'postgres://user:pass@host/db',
     );
 
@@ -40,7 +40,7 @@ describe('RunProductionQueryService', () => {
 
     const result = await service.run("SELECT 1 WHERE status = 'active';");
 
-    expect(productionEnvFile.readValue).toHaveBeenCalledWith('DATABASE_URL');
+    expect(productionEnvFile.readDatabaseUrl).toHaveBeenCalledOnce();
     expect(processRunner.run).toHaveBeenCalledWith(
       'psql',
       [
@@ -116,34 +116,28 @@ describe('RunProductionQueryService', () => {
     expect(result.timedOut).toBe(true);
   });
 
-  it('throws without spawning psql when DATABASE_URL is empty or malformed', async () => {
-    productionEnvFile.readValue.mockResolvedValue('not-a-connection-string');
-
-    await expect(service.run('SELECT 1;')).rejects.toThrow(
-      /empty or malformed/,
-    );
-    expect(processRunner.run).not.toHaveBeenCalled();
-  });
-
-  it('propagates the error from reading the production env file, without spawning psql', async () => {
-    productionEnvFile.readValue.mockRejectedValue(
-      new Error('apps/discord-bot/.env.production not found.'),
+  it('propagates the error from reading DATABASE_URL, without spawning psql', async () => {
+    productionEnvFile.readDatabaseUrl.mockRejectedValue(
+      new Error(
+        'DATABASE_URL in apps/discord-bot/.env.production is empty or not a ' +
+          'postgres:// or postgresql:// connection string; aborting without connecting.',
+      ),
     );
 
     await expect(service.run('SELECT 1;')).rejects.toThrow(
-      /apps\/discord-bot\/\.env\.production/,
+      /DATABASE_URL in apps\/discord-bot\/\.env\.production/,
     );
     expect(processRunner.run).not.toHaveBeenCalled();
   });
 
   it('rejects a blank query before reading DATABASE_URL or spawning psql', async () => {
     // The blank-query check runs before any env-file read: if it ran after
-    // credential reading, `productionEnvFile.readValue` would have been
+    // credential reading, `productionEnvFile.readDatabaseUrl` would have been
     // called here, proving the check runs first.
     await expect(service.run('   \n\t  ')).rejects.toThrow(
       /query text is empty/i,
     );
-    expect(productionEnvFile.readValue).not.toHaveBeenCalled();
+    expect(productionEnvFile.readDatabaseUrl).not.toHaveBeenCalled();
     expect(processRunner.run).not.toHaveBeenCalled();
   });
 
@@ -155,13 +149,13 @@ describe('RunProductionQueryService', () => {
     await expect(
       service.run('\\! printf "meta-command-executed"'),
     ).rejects.toThrow(/meta-command/i);
-    expect(productionEnvFile.readValue).not.toHaveBeenCalled();
+    expect(productionEnvFile.readDatabaseUrl).not.toHaveBeenCalled();
     expect(processRunner.run).not.toHaveBeenCalled();
   });
 
   it('rejects a meta-command query even with leading whitespace before the backslash', async () => {
     await expect(service.run('  \\dt')).rejects.toThrow(/meta-command/i);
-    expect(productionEnvFile.readValue).not.toHaveBeenCalled();
+    expect(productionEnvFile.readDatabaseUrl).not.toHaveBeenCalled();
     expect(processRunner.run).not.toHaveBeenCalled();
   });
 
