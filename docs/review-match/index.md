@@ -31,7 +31,9 @@ bug there cannot "agree with itself" against a raw source, because that code
 never touches a source's meaning. Locating and byte-decoding a BBL mirror file
 is shared on the same basis, via `packages/read-bbl-mirror`: it carries no
 BBL-page-type awareness or HTML parsing, so depending on it does not weaken
-the boundary above.
+the boundary above. Depending on `packages/domain-enums` for match
+categories is likewise allowed: it holds constants and types only, no
+interpretation.
 The report document is shared the same way: `report-builder.service.ts` and
 `review.service.ts` are thin subclasses of the harness's
 `ReportBuilderBase`/`ReviewServiceBase`, adding only the per-match section and

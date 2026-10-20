@@ -24,16 +24,18 @@ packages/
                         imports directly from the database driver
   domain-enums/       — single source of truth for every Blood Bowl domain
                         enum's member list, as plain as-const string arrays,
-                        plus the well-known external-system names (Name, NAF,
+                        and its value type ((typeof X)[number]), which every
+                        package imports; plus the well-known
+                        external-system names (Name, NAF,
                         BBL's tloeg.bbleague.se, TP's tourplay.net);
                         deliberately depends on no other workspace package so
                         packages/db and packages/api-contract can each build
                         from it while staying mutually independent
   game-data/          — DB-backed business logic for core game entities;
-                        depends on packages/db and on packages/api-contract
-                        for shared contract types (Upsert* shapes, ActionType,
-                        ConsequenceType); no network dependency; usable
-                        directly by any app
+                        depends on packages/db, on packages/api-contract for
+                        shared contract shapes (Upsert* types) and on
+                        packages/domain-enums for enum value types; no
+                        network dependency; usable directly by any app
   api-contract/       — oRPC contract plus the Zod schemas and inferred
                         Upsert* types for all game entities; the single source
                         of truth for those shapes, consumed by api-server,
@@ -205,7 +207,7 @@ Which side of the API each kind of workspace sits on. Unlike "Data flow" above, 
 
 - `apps/` are server-side (currently only `apps/discord-bot`); they call server-side packages like `packages/game-data` in-process and must never be forced to call themselves through the API
 - `tools/` are client-side; a tool that needs server-side logic goes through `packages/api-client` over the network rather than importing a server-side package (`packages/game-data`, `packages/db`, `packages/api-server`) directly. The `tools/review-*` family (`review-match`, `review-player`, `review-race`, `review-star-player`) is a deliberate exception: they read `packages/db` directly as local-only developer report aids outside the import pipeline, never touching the API
-- `packages/` are usually one-sided (client-only or server-only). Deliberate exceptions exist for shared-shape/enum packages designed to serve both sides: `packages/api-contract` (the RPC contract, built on `packages/domain-enums` and external libraries), `packages/domain-enums` (the enum source of truth, with no dependencies of its own), `packages/tp-paths` (TP file-path computation shared between `packages/import-tp-live` and `tools/download-tp`, also with no dependencies of its own), and `packages/import-shared` (the import rules the client-side `packages/import` and the server-side `packages/import-tp-live` must apply identically, whose only workspace dependency is `packages/api-contract`'s types)
+- `packages/` are usually one-sided (client-only or server-only). Deliberate exceptions exist for shared-shape/enum packages designed to serve both sides: `packages/api-contract` (the RPC contract, built on `packages/domain-enums` and external libraries), `packages/domain-enums` (the enum source of truth, with no dependencies of its own), `packages/tp-paths` (TP file-path computation shared between `packages/import-tp-live` and `tools/download-tp`, also with no dependencies of its own), and `packages/import-shared` (the import rules the client-side `packages/import` and the server-side `packages/import-tp-live` must apply identically, whose only workspace dependencies are `packages/api-contract`'s types and `packages/domain-enums`)
 
 ## Tool/app relationships
 
@@ -262,13 +264,13 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
   - It owns the review-run orchestration (`ReviewServiceBase`) and the report document shell (`ReportBuilderBase`).
   - It also owns two leaf helpers shared by the tools:
     - `ExternalSystemLookupService` (the memoized `external_systems.id` lookup by each source's shared external-system name from `packages/domain-enums`).
-    - `CharacteristicFormatService` with its `CharacteristicFormat` type and none marker (rendering one characteristic in its rules set's display format), duplicated between `review-player` and `review-race` (review-match has no characteristics to format).
+    - `CharacteristicFormatService` with its none marker (rendering one characteristic for a `CharacteristicFormat` from `packages/domain-enums`), duplicated between `review-player` and `review-race` (review-match has no characteristics to format).
   - Each tool's `ReviewService`/`ReportBuilderService` is a thin subclass supplying only what differs, and each tool provides the two leaf helpers by plain import.
   - It deliberately carries no BBL/TP parsing or interpretation logic — raw-source parsing, comparison predicates and label tables stay duplicated per tool, see the review-tool entries below.
 - **`packages/api-contract`** (shared shapes) — newly imported data must exist in the contract before an importer can send it or a consumer can read it; a change here reaches api-server, api-client, game-data, import and import-shared together
 - **`apps/discord-bot`** (consumer) — reads imported data via `packages/game-data`; data newly landed by any importer is a candidate for a new command, fact, or insight. It is also a direct importer in its own right: the `/importtp` slash command, and the TP notification feed for every recognised notification, classify a TP URL with `packages/tp-paths`' `TpPageClassifierService` and call the matching `packages/import-tp-live` entry point in-process
 - **`tools/review-match`** (consumer, review aid) — renders raw BBL and TP source data beside imported match events, so a change to what either importer stores for match events usually needs a matching renderer change here
-  - It deliberately interprets the raw sources itself and must never depend on `packages/parse-tp` or importer logic (the mechanical file access is shared via `packages/read-bbl-mirror`, which carries no interpretation and so does not weaken that rule) (see `docs/review-match/index.md`).
+  - It deliberately interprets the raw sources itself and must never depend on `packages/parse-tp` or importer logic (the mechanical file access is shared via `packages/read-bbl-mirror`, which carries no interpretation and so does not weaken that rule; depending on `packages/domain-enums` for match categories is likewise allowed, since it holds constants and types only, no interpretation) (see `docs/review-match/index.md`).
   - That independence rule covers the domain-specific half only; the generic report scaffolding is shared on purpose via `packages/review-harness`, where its `ReviewService` and `ReportBuilderService` subclass `ReviewServiceBase`/`ReportBuilderBase` and add only the match-result lookup and the per-match section.
 - **`tools/review-player`** (consumer, review aid) — renders raw BBL and TP source data beside imported player records (identity, team, position, era) and star player point totals, so a change to what either importer stores for players usually needs a matching renderer change here
   - Sibling of `tools/review-match`, structured the same way and deliberately independent of it.
