@@ -13,9 +13,6 @@ export const externalSystemCategoryEnum = gameData.enum(
   EXTERNAL_SYSTEM_CATEGORIES,
 );
 
-export type ExternalSystemCategory =
-  (typeof externalSystemCategoryEnum.enumValues)[number];
-
 const externalSystemsTable = historyTrackedTable({
   schema: gameData,
   name: 'external_systems',

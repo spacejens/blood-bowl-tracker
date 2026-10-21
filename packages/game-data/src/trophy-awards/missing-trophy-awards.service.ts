@@ -15,18 +15,21 @@ import {
   trophyAwardRuleMatchEventTypes,
   trophyAwards,
 } from '@blood-bowl-tracker/db';
+import type {
+  ActionType,
+  ConsequenceType,
+  TrophyAwardRuleKind,
+  TrophyAwardRuleMeasure,
+  TrophyAwardRuleRole,
+} from '@blood-bowl-tracker/domain-enums';
 import { NAME_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
-import type { ActionType, ConsequenceType } from '../shared/match-event-types';
 import { MaxCountTrophyRuleService } from './max-count-trophy-rule.service';
 import { MaxSppSumTrophyRuleService } from './max-spp-sum-trophy-rule.service';
 import { CareerThresholdTrophyRuleService } from './threshold-trophy-rule.service';
 import { TrophyAwardsService } from './trophy-awards.service';
 import type {
-  TrophyAwardRuleKind,
-  TrophyAwardRuleMeasure,
-  TrophyAwardRuleRole,
   TrophyRuleEligiblePositions,
   TrophyRuleEventTypes,
   TrophyRuleWinner,

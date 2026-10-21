@@ -101,7 +101,6 @@ export const ResolveTrophyByNameSchema = z.object({
   name: z.string().trim().min(1),
 });
 
-export type TrophyRecipientKind = z.infer<typeof TrophyRecipientKindSchema>;
 export type ResolveTrophyByName = z.infer<typeof ResolveTrophyByNameSchema>;
 export type Trophy = z.infer<typeof TrophySchema>;
 export type UpsertTrophy = z.infer<typeof UpsertTrophySchema>;

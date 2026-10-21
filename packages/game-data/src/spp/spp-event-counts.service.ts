@@ -2,16 +2,12 @@ import type { SppCareerCounts } from '@blood-bowl-tracker/api-contract';
 import { SPP_CAREER_COUNT_KEYS } from '@blood-bowl-tracker/api-contract';
 import type { Db } from '@blood-bowl-tracker/db';
 import { and, count, DB, inArray, matchEvents } from '@blood-bowl-tracker/db';
+import type { ActionType } from '@blood-bowl-tracker/domain-enums';
+import { SPP_EARNING_ACTION_TYPES } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
-import type {
-  ActionType,
-  SppCareerCountGroup,
-} from '../shared/match-event-types';
-import {
-  SPP_CAREER_COUNT_GROUPS,
-  SPP_EARNING_ACTION_TYPES,
-} from '../shared/match-event-types';
+import type { SppCareerCountGroup } from '../shared/match-event-types';
+import { SPP_CAREER_COUNT_GROUPS } from '../shared/match-event-types';
 
 /**
  * How many SPP-earning match events a batch of players actually has IMPORTED,

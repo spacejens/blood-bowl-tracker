@@ -59,7 +59,6 @@ export const ListSkillRulesSetsSchema = z.object({
   skillId: z.number().int(),
 });
 
-export type SkillCategory = z.infer<typeof SkillCategorySchema>;
 export type SkillRulesSetEntry = z.infer<typeof SkillRulesSetEntrySchema>;
 export type SyncSkillRulesSets = z.infer<typeof SyncSkillRulesSetsSchema>;
 export type SyncSkillRulesSetsResult = z.infer<

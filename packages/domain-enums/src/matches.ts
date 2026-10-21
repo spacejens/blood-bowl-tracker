@@ -21,3 +21,5 @@ export const MATCH_CATEGORIES = [
   'season_bronze',
   'season_qualifier',
 ] as const;
+
+export type MatchCategory = (typeof MATCH_CATEGORIES)[number];

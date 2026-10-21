@@ -514,6 +514,9 @@ importers:
       '@blood-bowl-tracker/db':
         specifier: workspace:*
         version: link:../db
+      '@blood-bowl-tracker/domain-enums':
+        specifier: workspace:*
+        version: link:../domain-enums
       '@nestjs/common':
         specifier: ^12.0.0
         version: 12.2.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)
@@ -704,6 +707,9 @@ importers:
       '@blood-bowl-tracker/api-contract':
         specifier: workspace:*
         version: link:../api-contract
+      '@blood-bowl-tracker/domain-enums':
+        specifier: workspace:*
+        version: link:../domain-enums
       '@nestjs/common':
         specifier: ^12.0.0
         version: 12.2.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)
@@ -1238,6 +1244,9 @@ importers:
       '@blood-bowl-tracker/api-contract':
         specifier: workspace:*
         version: link:../../packages/api-contract
+      '@blood-bowl-tracker/domain-enums':
+        specifier: workspace:*
+        version: link:../../packages/domain-enums
       '@blood-bowl-tracker/import':
         specifier: workspace:*
         version: link:../../packages/import
@@ -1299,6 +1308,9 @@ importers:
       '@blood-bowl-tracker/api-contract':
         specifier: workspace:*
         version: link:../../packages/api-contract
+      '@blood-bowl-tracker/domain-enums':
+        specifier: workspace:*
+        version: link:../../packages/domain-enums
       '@blood-bowl-tracker/import':
         specifier: workspace:*
         version: link:../../packages/import
@@ -1488,6 +1500,9 @@ importers:
       '@blood-bowl-tracker/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@blood-bowl-tracker/domain-enums':
+        specifier: workspace:*
+        version: link:../../packages/domain-enums
       '@blood-bowl-tracker/read-bbl-mirror':
         specifier: workspace:*
         version: link:../../packages/read-bbl-mirror
@@ -1540,6 +1555,9 @@ importers:
       '@blood-bowl-tracker/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@blood-bowl-tracker/domain-enums':
+        specifier: workspace:*
+        version: link:../../packages/domain-enums
       '@blood-bowl-tracker/read-bbl-mirror':
         specifier: workspace:*
         version: link:../../packages/read-bbl-mirror
@@ -1598,6 +1616,9 @@ importers:
       '@blood-bowl-tracker/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@blood-bowl-tracker/domain-enums':
+        specifier: workspace:*
+        version: link:../../packages/domain-enums
       '@blood-bowl-tracker/read-bbl-mirror':
         specifier: workspace:*
         version: link:../../packages/read-bbl-mirror
@@ -1653,6 +1674,9 @@ importers:
       '@blood-bowl-tracker/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@blood-bowl-tracker/domain-enums':
+        specifier: workspace:*
+        version: link:../../packages/domain-enums
       '@blood-bowl-tracker/read-bbl-mirror':
         specifier: workspace:*
         version: link:../../packages/read-bbl-mirror

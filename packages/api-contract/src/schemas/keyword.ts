@@ -45,7 +45,6 @@ export const KeywordCatalogEntrySchema = z.object({
   externalId: z.string(),
 });
 
-export type KeywordKind = z.infer<typeof KeywordKindSchema>;
 export type Keyword = z.infer<typeof KeywordSchema>;
 export type UpsertKeyword = z.infer<typeof UpsertKeywordSchema>;
 export type ListKeywords = z.infer<typeof ListKeywordsSchema>;

@@ -16,9 +16,9 @@ import {
   players,
   playersHistory,
 } from '@blood-bowl-tracker/db';
+import type { ConsequenceType } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
-import type { ConsequenceType } from '../shared/match-event-types';
 import { LASTING_INJURY_SUFFERED_TYPES } from '../shared/match-event-types';
 
 /** The lasting-injury fields this backfill recomputes, without missNextGame. */

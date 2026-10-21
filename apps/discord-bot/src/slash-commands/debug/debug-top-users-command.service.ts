@@ -1,7 +1,8 @@
-import type { InteractionKind } from '@blood-bowl-tracker/db';
 import type { TopUserRow } from '@blood-bowl-tracker/discord-bot-usage';
 import { InteractionEventsQueryService } from '@blood-bowl-tracker/discord-bot-usage';
 import type { SlashCommandDefinition } from '@blood-bowl-tracker/discord-client';
+import type { InteractionKind } from '@blood-bowl-tracker/domain-enums';
+import { INTERACTION_KINDS } from '@blood-bowl-tracker/domain-enums';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import type {
   ChatInputCommandInteraction,
@@ -23,6 +24,17 @@ export const MAX_DEBUG_TOP_USERS = 20;
 
 /** The embed's title; the ranked rows themselves are its description. */
 const DEBUG_TOP_USERS_TITLE = 'Top bot users';
+
+/**
+ * The label Discord shows for each interaction-kind choice. A `Record` over
+ * `InteractionKind`, so a kind added to `INTERACTION_KINDS` fails to compile
+ * here until it has a label.
+ */
+const INTERACTION_KIND_LABELS: Record<InteractionKind, string> = {
+  command: 'Command',
+  button: 'Button click',
+  select_menu: 'Select menu',
+};
 
 /**
  * The `/debugtopusers` slash command: the Discord users who triggered the
@@ -69,11 +81,10 @@ export class DebugTopUsersCommandService implements OnModuleInit {
           name: 'kind',
           description: 'Only interactions of this kind (optional)',
           type: ApplicationCommandOptionType.String,
-          choices: [
-            { name: 'Command', value: 'command' },
-            { name: 'Button click', value: 'button' },
-            { name: 'Select menu', value: 'select_menu' },
-          ],
+          choices: INTERACTION_KINDS.map((kind) => ({
+            name: INTERACTION_KIND_LABELS[kind],
+            value: kind,
+          })),
         },
         {
           name: 'days',
@@ -124,17 +135,15 @@ export class DebugTopUsersCommandService implements OnModuleInit {
   }
 
   /**
-   * Discord only ever returns one of the three declared choices, so the cast
-   * is safe; `undefined` rather than `null` is what the query service reads
-   * as "every kind".
+   * The chosen kind, looked up in `INTERACTION_KINDS` rather than cast, so a
+   * value Discord should never send still yields `undefined`, which the
+   * query service reads as "every kind".
    */
   private kindOption(
     interaction: ChatInputCommandInteraction,
   ): InteractionKind | undefined {
-    return (
-      (interaction.options.getString('kind') as InteractionKind | null) ??
-      undefined
-    );
+    const value = interaction.options.getString('kind');
+    return INTERACTION_KINDS.find((kind) => kind === value);
   }
 
   /**

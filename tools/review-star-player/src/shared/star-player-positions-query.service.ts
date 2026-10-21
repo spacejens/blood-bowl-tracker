@@ -15,7 +15,7 @@ import {
   skillRulesSets,
   skills,
 } from '@blood-bowl-tracker/db';
-import type { CharacteristicFormat } from '@blood-bowl-tracker/review-harness';
+import type { CharacteristicFormat } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 /** One rules set the star is hireable under, with its display formats. */

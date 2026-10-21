@@ -1,8 +1,8 @@
+import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
 import type {
   CompetitionType,
   MatchCategory,
-  UpsertCompetition,
-} from '@blood-bowl-tracker/api-contract';
+} from '@blood-bowl-tracker/domain-enums';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,

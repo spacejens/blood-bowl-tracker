@@ -1,7 +1,5 @@
-import type {
-  CompetitionType,
-  UpsertCompetition,
-} from '@blood-bowl-tracker/api-contract';
+import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
+import type { CompetitionType } from '@blood-bowl-tracker/domain-enums';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   BBL_EXTERNAL_SYSTEM_NAME,

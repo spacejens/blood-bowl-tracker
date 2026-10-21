@@ -21,6 +21,10 @@ import {
   trophyAwardRuleMatchEventTypes,
   trophyExternalIds,
 } from '@blood-bowl-tracker/db';
+import type {
+  TrophyAwardRuleKind,
+  TrophyAwardRuleMeasure,
+} from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { countRows } from '../shared/count-all';
@@ -29,10 +33,6 @@ import { LikePatternService } from '../shared/like-pattern.service';
 import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
-import type {
-  TrophyAwardRuleKind,
-  TrophyAwardRuleMeasure,
-} from '../trophy-awards/trophy-rule-types';
 import { TrophyRuleCurationSyncService } from './trophy-rule-curation-sync.service';
 
 export class TrophyUpsertConflictError extends UpsertConflictError {}

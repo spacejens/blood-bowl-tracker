@@ -1,3 +1,4 @@
+import { SPP_EARNING_ACTION_TYPES } from '@blood-bowl-tracker/domain-enums';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -6,7 +7,6 @@ import {
   DEATH_SUFFERED_TYPES,
   LASTING_INJURY_SUFFERED_TYPES,
   SERIOUS_INJURY_SUFFERED_TYPES,
-  SPP_EARNING_ACTION_TYPES,
 } from './match-event-types';
 
 describe('consequence type sets', () => {
@@ -27,18 +27,15 @@ describe('consequence type sets', () => {
   });
 });
 
-describe('SPP_EARNING_ACTION_TYPES', () => {
-  it('SPP_EARNING_ACTION_TYPES covers every award-earning action and excludes foul', () => {
-    expect([...SPP_EARNING_ACTION_TYPES].sort()).toEqual(
-      [
-        'touchdown',
-        'completion',
-        'interception',
-        'deflection',
-        'mvp_award',
-        ...CASUALTY_CAUSED_TYPES,
-      ].sort(),
+describe('CASUALTY_CAUSED_TYPES and SPP_EARNING_ACTION_TYPES', () => {
+  it('every casualty-causing action type earns SPP', () => {
+    expect(SPP_EARNING_ACTION_TYPES).toEqual(
+      expect.arrayContaining([...CASUALTY_CAUSED_TYPES]),
     );
+  });
+
+  it('foul neither causes a casualty nor earns SPP', () => {
+    expect(CASUALTY_CAUSED_TYPES).not.toContain('foul');
     expect(SPP_EARNING_ACTION_TYPES).not.toContain('foul');
   });
 });

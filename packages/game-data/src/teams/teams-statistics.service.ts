@@ -1,4 +1,3 @@
-import type { MatchCategory } from '@blood-bowl-tracker/api-contract';
 import type { Db } from '@blood-bowl-tracker/db';
 import {
   and,
@@ -14,6 +13,7 @@ import {
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
+import type { MatchCategory } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { PlayersService } from '../players/players.service';

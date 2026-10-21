@@ -1,4 +1,4 @@
-import type { Db, Match } from '@blood-bowl-tracker/db';
+import type { Db } from '@blood-bowl-tracker/db';
 import {
   and,
   competitions,
@@ -8,6 +8,8 @@ import {
   matchExternalIds,
   sql,
 } from '@blood-bowl-tracker/db';
+import type { MatchCategory } from '@blood-bowl-tracker/domain-enums';
+import { MATCH_CATEGORIES } from '@blood-bowl-tracker/domain-enums';
 import { ExternalSystemLookupService } from '@blood-bowl-tracker/review-harness';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -22,37 +24,40 @@ import type {
 } from '../shared/review.types';
 
 /**
- * Every non-normal `matches.category`, mapped to its stratum id and label.
- * `normal` gets no dedicated stratum: it's already the overwhelming majority
- * of matches and needs no deliberate inclusion.
+ * Every match category except `normal`, which gets no dedicated stratum: it's
+ * already the overwhelming majority of matches and needs no deliberate
+ * inclusion.
+ */
+type StratifiedCategory = Exclude<MatchCategory, 'normal'>;
+
+/**
+ * The report label of each stratified category. A `Record` over
+ * `StratifiedCategory`, so a category added to `MATCH_CATEGORIES` fails to
+ * compile here until it has a label.
+ */
+const CATEGORY_STRATUM_LABELS: Record<StratifiedCategory, string> = {
+  cup_final: 'Cup final match',
+  season_semi_final: 'Season semi-final match',
+  season_final: 'Season final match',
+  season_bronze: 'Season bronze match',
+  season_qualifier: 'Season qualifier match',
+};
+
+/**
+ * One stratum per non-normal `matches.category`, in `MATCH_CATEGORIES` order,
+ * its id equal to the category.
  */
 const CATEGORY_STRATA: readonly {
   id: string;
-  category: Match['category'];
+  category: StratifiedCategory;
   label: string;
-}[] = [
-  { id: 'cup_final', category: 'cup_final', label: 'Cup final match' },
-  {
-    id: 'season_semi_final',
-    category: 'season_semi_final',
-    label: 'Season semi-final match',
-  },
-  {
-    id: 'season_final',
-    category: 'season_final',
-    label: 'Season final match',
-  },
-  {
-    id: 'season_bronze',
-    category: 'season_bronze',
-    label: 'Season bronze match',
-  },
-  {
-    id: 'season_qualifier',
-    category: 'season_qualifier',
-    label: 'Season qualifier match',
-  },
-];
+}[] = MATCH_CATEGORIES.filter(
+  (category): category is StratifiedCategory => category !== 'normal',
+).map((category) => ({
+  id: category,
+  category,
+  label: CATEGORY_STRATUM_LABELS[category],
+}));
 
 const CATEGORY_STRATUM_SOURCES: readonly ReviewSource[] = ['bbl', 'tp'];
 
@@ -148,7 +153,7 @@ export class MatchCategoryStratificationService implements MatchStratifier {
   }
 
   /** The `matches.category` value one stratum id filters on. */
-  private categoryFor(stratumId: string): Match['category'] {
+  private categoryFor(stratumId: string): MatchCategory {
     const found = CATEGORY_STRATA.find((entry) => entry.id === stratumId);
     if (!found) {
       throw new Error(

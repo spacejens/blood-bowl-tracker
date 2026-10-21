@@ -84,7 +84,6 @@ export const ListPlayerSkillsSchema = z.object({
   rulesSetId: z.number().int(),
 });
 
-export type PlayerSkillSource = z.infer<typeof PlayerSkillSourceSchema>;
 export type PlayerSkillEntry = z.infer<typeof PlayerSkillEntrySchema>;
 export type SyncPlayerSkills = z.infer<typeof SyncPlayerSkillsSchema>;
 export type SyncPlayerSkillsResult = z.infer<

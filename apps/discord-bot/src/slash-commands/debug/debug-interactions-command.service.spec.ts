@@ -1,5 +1,6 @@
 import type { InteractionEventRow } from '@blood-bowl-tracker/discord-bot-usage';
 import { InteractionEventsQueryService } from '@blood-bowl-tracker/discord-bot-usage';
+import { INTERACTION_OUTCOMES } from '@blood-bowl-tracker/domain-enums';
 import { Test } from '@nestjs/testing';
 import type { ChatInputCommandInteraction, User } from 'discord.js';
 import { ButtonStyle, ComponentType, MessageFlags } from 'discord.js';
@@ -122,6 +123,27 @@ describe('DebugInteractionsCommandService', () => {
         (option) => (option as { required?: boolean }).required !== true,
       ),
     ).toBe(true);
+  });
+
+  it('offers one outcome choice per INTERACTION_OUTCOMES value, in order', () => {
+    const command = service.buildCommand();
+    const outcome = command.options?.[1] as {
+      choices?: { name: string; value: string }[];
+    };
+
+    expect(outcome.choices?.map((choice) => choice.value)).toEqual([
+      ...INTERACTION_OUTCOMES,
+    ]);
+  });
+
+  it('lists unfiltered when the outcome option is not a known outcome', async () => {
+    await service.execute(interaction({ outcome: 'timeout' }));
+
+    expect(events.listRecent).toHaveBeenCalledWith({
+      discordUserId: undefined,
+      outcome: undefined,
+      limit: MAX_DEBUG_INTERACTIONS,
+    });
   });
 
   it('offers exactly the two outcome choices', () => {

@@ -1,4 +1,4 @@
-import type { MatchCategory } from '@blood-bowl-tracker/api-contract';
+import type { MatchCategory } from '@blood-bowl-tracker/domain-enums';
 import type { FactScope } from '@blood-bowl-tracker/game-data';
 import { TeamsService } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';

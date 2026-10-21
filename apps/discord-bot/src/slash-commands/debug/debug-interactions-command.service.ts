@@ -1,7 +1,8 @@
-import type { InteractionOutcome } from '@blood-bowl-tracker/db';
 import type { InteractionEventRow } from '@blood-bowl-tracker/discord-bot-usage';
 import { InteractionEventsQueryService } from '@blood-bowl-tracker/discord-bot-usage';
 import type { SlashCommandDefinition } from '@blood-bowl-tracker/discord-client';
+import type { InteractionOutcome } from '@blood-bowl-tracker/domain-enums';
+import { INTERACTION_OUTCOMES } from '@blood-bowl-tracker/domain-enums';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import type {
   ChatInputCommandInteraction,
@@ -27,6 +28,16 @@ export const MAX_DEBUG_INTERACTIONS = 20;
 
 /** The embed's title; the rows themselves are its description. */
 const DEBUG_INTERACTIONS_TITLE = 'Recent interactions';
+
+/**
+ * The label Discord shows for each outcome choice. A `Record` over
+ * `InteractionOutcome`, so an outcome added to `INTERACTION_OUTCOMES` fails to
+ * compile here until it has a label.
+ */
+const INTERACTION_OUTCOME_LABELS: Record<InteractionOutcome, string> = {
+  success: 'Success',
+  failure: 'Failure',
+};
 
 /**
  * The `/debuginteractions` slash command: the most recent recorded bot
@@ -77,10 +88,10 @@ export class DebugInteractionsCommandService implements OnModuleInit {
           name: 'outcome',
           description: 'Only interactions with this outcome (optional)',
           type: ApplicationCommandOptionType.String,
-          choices: [
-            { name: 'Success', value: 'success' },
-            { name: 'Failure', value: 'failure' },
-          ],
+          choices: INTERACTION_OUTCOMES.map((outcome) => ({
+            name: INTERACTION_OUTCOME_LABELS[outcome],
+            value: outcome,
+          })),
         },
       ],
       execute: (interaction) => this.execute(interaction),
@@ -148,17 +159,15 @@ export class DebugInteractionsCommandService implements OnModuleInit {
   }
 
   /**
-   * Discord only ever returns one of the two declared choices, so the cast is
-   * safe; `undefined` rather than `null` is what the query service reads as
-   * "unfiltered".
+   * The chosen outcome, looked up in `INTERACTION_OUTCOMES` rather than cast,
+   * so a value Discord should never send still yields `undefined`, which the
+   * query service reads as "unfiltered".
    */
   private outcomeOption(
     interaction: ChatInputCommandInteraction,
   ): InteractionOutcome | undefined {
-    return (
-      (interaction.options.getString('outcome') as InteractionOutcome | null) ??
-      undefined
-    );
+    const value = interaction.options.getString('outcome');
+    return INTERACTION_OUTCOMES.find((outcome) => outcome === value);
   }
 
   /**

@@ -11,7 +11,7 @@ import {
   raceEras,
   rulesSets,
 } from '@blood-bowl-tracker/db';
-import type { CharacteristicFormat } from '@blood-bowl-tracker/review-harness';
+import type { CharacteristicFormat } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 /** One era the race exists in. */

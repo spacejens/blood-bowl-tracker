@@ -10,11 +10,8 @@ import {
   rulesSets,
   teamEras,
 } from '@blood-bowl-tracker/db';
-import type {
-  CharacteristicFormat,
-  TableCell,
-  TableRow,
-} from '@blood-bowl-tracker/review-harness';
+import type { CharacteristicFormat } from '@blood-bowl-tracker/domain-enums';
+import type { TableCell, TableRow } from '@blood-bowl-tracker/review-harness';
 import {
   CharacteristicFormatService,
   HtmlService,

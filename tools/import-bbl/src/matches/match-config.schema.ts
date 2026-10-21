@@ -1,4 +1,4 @@
-import { MATCH_CATEGORIES } from '@blood-bowl-tracker/api-contract';
+import { MATCH_CATEGORIES } from '@blood-bowl-tracker/domain-enums';
 import { nonBlankStringSchema } from '@blood-bowl-tracker/import';
 import { z } from 'zod';
 

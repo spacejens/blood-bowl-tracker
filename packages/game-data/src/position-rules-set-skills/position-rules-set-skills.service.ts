@@ -1,5 +1,4 @@
 import type {
-  SkillCategory,
   SyncPositionRulesSetSkills,
   SyncPositionRulesSetSkillsResult,
 } from '@blood-bowl-tracker/api-contract';
@@ -16,6 +15,7 @@ import {
   skillRulesSets,
   skills,
 } from '@blood-bowl-tracker/db';
+import type { SkillCategory } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { SkillValidationError } from '../shared/skill-validation-error';

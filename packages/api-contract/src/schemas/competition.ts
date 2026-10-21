@@ -8,15 +8,6 @@ const IsoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'must be an ISO date (YYYY-MM-DD)');
 
-/**
- * Re-exported from `@blood-bowl-tracker/domain-enums` so existing consumers
- * keep importing it from the contract. See that package for what each value
- * means.
- */
-export { COMPETITION_TYPES };
-
-export type CompetitionType = (typeof COMPETITION_TYPES)[number];
-
 export const CompetitionSchema = z.object({
   id: z.number(),
   name: z.string(),

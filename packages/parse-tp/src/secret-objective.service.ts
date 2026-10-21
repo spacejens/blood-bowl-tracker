@@ -1,13 +1,5 @@
-import type { SECRET_OBJECTIVES } from '@blood-bowl-tracker/domain-enums';
+import type { SecretObjective } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
-
-/**
- * The named secret-objective card a TP `secret_objective` (code-42) event
- * decodes to. TP stores only an opaque integer; `secretObjectiveByCode` maps
- * each confirmed code to its named objective, and any unmapped code decodes
- * to `'unknown'`.
- */
-export type SecretObjective = (typeof SECRET_OBJECTIVES)[number];
 
 /**
  * Exported for `secret-objective.service.spec.ts`, so its decode tests are
@@ -35,6 +27,10 @@ export const secretObjectiveByCode: Record<number, SecretObjective> = {
 
 @Injectable()
 export class SecretObjectiveService {
+  /**
+   * Decodes the card of a TP `secret_objective` (code-42) event. TP stores
+   * only an opaque integer; an unmapped code decodes to `'unknown'`.
+   */
   decode(code: number): SecretObjective {
     return secretObjectiveByCode[code] ?? 'unknown';
   }

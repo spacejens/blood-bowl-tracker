@@ -17,6 +17,9 @@ export const EXTERNAL_SYSTEM_CATEGORIES = [
   'referenced_not_imported',
 ] as const;
 
+export type ExternalSystemCategory =
+  (typeof EXTERNAL_SYSTEM_CATEGORIES)[number];
+
 /**
  * The synthetic name-based external system every importer also registers
  * records under: "Name" (matching by exact name). It is a bookkeeping

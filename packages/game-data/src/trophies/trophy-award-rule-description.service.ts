@@ -1,9 +1,8 @@
-import { Injectable } from '@nestjs/common';
-
 import type {
   TrophyAwardRuleKind,
   TrophyAwardRuleMeasure,
-} from '../trophy-awards/trophy-rule-types';
+} from '@blood-bowl-tracker/domain-enums';
+import { Injectable } from '@nestjs/common';
 
 /**
  * One trophy's award rule, flattened to what a sentence needs. Event types

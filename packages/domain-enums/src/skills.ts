@@ -44,6 +44,8 @@ export const SKILL_CATEGORIES = [
   'unique',
 ] as const;
 
+export type SkillCategory = (typeof SKILL_CATEGORIES)[number];
+
 /**
  * How a player came by one of their skills.
  *
@@ -76,3 +78,5 @@ export const PLAYER_SKILL_SOURCES = [
   'chosen',
   'random',
 ] as const;
+
+export type PlayerSkillSource = (typeof PLAYER_SKILL_SOURCES)[number];

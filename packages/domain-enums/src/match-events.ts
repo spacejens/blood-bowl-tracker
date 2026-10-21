@@ -24,14 +24,49 @@ export const ACTION_TYPES = [
   'successful_landing',
   /**
    * A Big Guy's action of throwing a team-mate down field. Deliberately
-   * outside the standardised SPP award table (`SppEarningActionTypeSchema` in
-   * packages/api-contract): the source reports its own per-event figure, and
+   * outside the standardised SPP award table (`SPP_EARNING_ACTION_TYPES`
+   * below): the source reports its own per-event figure, and
    * no career-total counter exists for it in any source's roster export.
    */
   'throw_team_mate',
   /** The thrown player's action of being caught / landing in a team-mate's hands. */
   'catch',
 ] as const;
+
+export type ActionType = (typeof ACTION_TYPES)[number];
+
+/**
+ * Every action type that earns Star Player Points under the standardised
+ * award table, and therefore the only ones `spp_award_values` holds rows for
+ * and the only ones a BBL-computed `match_events.spp_value` is ever non-null
+ * on. A TP-sourced event carries TP's own reported figure verbatim regardless
+ * of action type, so a type absent from this list can still have one from TP.
+ *
+ * A deliberate, curated subset of `ACTION_TYPES` rather than a mirror of it:
+ * `foul` earns no SPP (Blood Bowl gives no credit for a foul), no
+ * administrative type has an acting player to award, and `throw_team_mate` /
+ * `catch` have no career-total counter in any source's roster export. Every
+ * casualty-caused severity is listed separately because `ACTION_TYPES` models
+ * them separately, but they always carry the same value — "a casualty was
+ * caused" is one award in the rules.
+ *
+ * `satisfies readonly ActionType[]` makes a typo, or an action type renamed or
+ * removed above, a compile error; it is `satisfies` rather than an annotation
+ * so the literal tuple type survives for `z.enum` in packages/api-contract.
+ */
+export const SPP_EARNING_ACTION_TYPES = [
+  'touchdown',
+  'completion',
+  'interception',
+  'deflection',
+  'mvp_award',
+  'casualty',
+  'badly_hurt',
+  'serious_injury',
+  'death',
+] as const satisfies readonly ActionType[];
+
+export type SppEarningActionType = (typeof SPP_EARNING_ACTION_TYPES)[number];
 
 /**
  * What happened to a match event's consequence recipient — casualty
@@ -66,6 +101,8 @@ export const CONSEQUENCE_TYPES = [
   'casualty_avoided',
 ] as const;
 
+export type ConsequenceType = (typeof CONSEQUENCE_TYPES)[number];
+
 /**
  * What a source says an un-indexed participant was, when it names the
  * participant as plain text instead of linking a player row. A journeyman or
@@ -83,11 +120,17 @@ export const UNIDENTIFIED_PARTICIPANT_KINDS = [
   'mercenary_or_fans_or_random_event',
 ] as const;
 
+export type UnidentifiedParticipantKind =
+  (typeof UNIDENTIFIED_PARTICIPANT_KINDS)[number];
+
 /** How a casualty the source reports was prevented from taking effect. */
 export const CONSEQUENCE_AVOIDED_BY_VALUES = [
   'apothecary',
   'regeneration',
 ] as const;
+
+export type ConsequenceAvoidedBy =
+  (typeof CONSEQUENCE_AVOIDED_BY_VALUES)[number];
 
 /**
  * Top-level classification for match events that have no actor and no
@@ -95,6 +138,8 @@ export const CONSEQUENCE_AVOIDED_BY_VALUES = [
  * `consequenceType` and mutually exclusive with both.
  */
 export const EVENT_TYPES = ['weather'] as const;
+
+export type EventType = (typeof EVENT_TYPES)[number];
 
 /**
  * The named weather condition a `weather`-classified event decodes to, from
@@ -127,6 +172,8 @@ export const WEATHER_TYPES = [
   'unknown',
 ] as const;
 
+export type WeatherType = (typeof WEATHER_TYPES)[number];
+
 /**
  * The named secret-objective card a `secret_objective`-classified event
  * decodes to, from TP's raw opaque integer code (decoded before import
@@ -152,3 +199,5 @@ export const SECRET_OBJECTIVES = [
   'headtaker',
   'unknown',
 ] as const;
+
+export type SecretObjective = (typeof SECRET_OBJECTIVES)[number];

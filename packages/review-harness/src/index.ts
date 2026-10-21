@@ -1,4 +1,3 @@
-export type { CharacteristicFormat } from './characteristic-format.service';
 export {
   CharacteristicFormatService,
   NO_CHARACTERISTIC,

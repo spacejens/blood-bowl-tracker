@@ -1,4 +1,4 @@
-import type { MatchCategory } from '@blood-bowl-tracker/api-contract';
+import type { MatchCategory } from '@blood-bowl-tracker/domain-enums';
 import { TeamsService } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';

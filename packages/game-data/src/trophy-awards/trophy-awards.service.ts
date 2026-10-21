@@ -20,6 +20,7 @@ import {
   trophies,
   trophyAwards,
 } from '@blood-bowl-tracker/db';
+import type { TrophyRecipientKind } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 /**
@@ -102,7 +103,7 @@ export type TrophyRecipient = {
 export type CompetitionTrophyAward = {
   trophyId: number;
   trophyName: string;
-  recipientKind: 'team' | 'player';
+  recipientKind: TrophyRecipientKind;
   teamId: number;
   teamName: string;
   playerId: number | null;

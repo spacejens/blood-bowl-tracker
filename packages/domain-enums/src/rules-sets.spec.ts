@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 
+import type { CharacteristicFormat } from './rules-sets';
 import { CHARACTERISTIC_FORMATS } from './rules-sets';
 
 describe('CHARACTERISTIC_FORMATS', () => {
@@ -16,5 +17,11 @@ describe('CHARACTERISTIC_FORMATS', () => {
     expect(new Set(CHARACTERISTIC_FORMATS).size).toBe(
       CHARACTERISTIC_FORMATS.length,
     );
+  });
+
+  it('types CharacteristicFormat as exactly its listed values', () => {
+    expectTypeOf<CharacteristicFormat>().toEqualTypeOf<
+      'absent' | 'bare' | 'plus' | 'plus_zero_legal'
+    >();
   });
 });

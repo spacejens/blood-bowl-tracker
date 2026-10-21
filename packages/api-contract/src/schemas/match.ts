@@ -3,15 +3,6 @@ import { z } from 'zod';
 
 import { ExternalIdSchema } from './external-id';
 
-/**
- * Re-exported from `@blood-bowl-tracker/domain-enums` so existing consumers
- * keep importing it from the contract. See that package for what each value
- * means.
- */
-export { MATCH_CATEGORIES };
-
-export type MatchCategory = (typeof MATCH_CATEGORIES)[number];
-
 export const MatchSchema = z.object({
   id: z.number(),
   competitionId: z.number(),

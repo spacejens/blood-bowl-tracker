@@ -1,13 +1,5 @@
-import type { WEATHER_TYPES } from '@blood-bowl-tracker/domain-enums';
+import type { WeatherType } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
-
-/**
- * The named weather condition a TP `weather_roll` (code-10) event decodes to.
- * TP stores only an opaque integer; `weatherTypeByTableAndCode` maps each
- * observed table/code pair to its named condition, and any unmapped
- * table/code decodes to `'unknown'`.
- */
-export type WeatherType = (typeof WEATHER_TYPES)[number];
 
 /**
  * Weather codes are only unique within a weather table: TP's
@@ -59,6 +51,11 @@ export const weatherTypeByTableAndCode: Record<
 
 @Injectable()
 export class WeatherTypeService {
+  /**
+   * Decodes the weather of a TP `weather_roll` (code-10) event. TP stores
+   * only an opaque integer, interpreted within its weather table; an
+   * unmapped table/code pair decodes to `'unknown'`.
+   */
   decode(table: number, code: number): WeatherType {
     return weatherTypeByTableAndCode[table]?.[code] ?? 'unknown';
   }

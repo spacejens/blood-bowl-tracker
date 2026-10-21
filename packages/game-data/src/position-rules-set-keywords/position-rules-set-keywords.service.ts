@@ -1,5 +1,4 @@
 import type {
-  KeywordKind,
   SyncPositionRulesSetKeywords,
   SyncPositionRulesSetKeywordsResult,
 } from '@blood-bowl-tracker/api-contract';
@@ -16,6 +15,7 @@ import {
   rulesSets,
   sql,
 } from '@blood-bowl-tracker/db';
+import type { KeywordKind } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { KeywordValidationError } from '../shared/keyword-validation-error';

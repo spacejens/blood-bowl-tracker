@@ -35,6 +35,5 @@ export const UpsertRulesSetSchema = z.object({
   externalIds: z.array(ExternalIdSchema).min(1),
 });
 
-export type CharacteristicFormat = z.infer<typeof CharacteristicFormatSchema>;
 export type RulesSet = z.infer<typeof RulesSetSchema>;
 export type UpsertRulesSet = z.infer<typeof UpsertRulesSetSchema>;

@@ -1,5 +1,7 @@
-import type { SecretObjective } from './secret-objective.service';
-import type { WeatherType } from './weather-type.service';
+import type {
+  SecretObjective,
+  WeatherType,
+} from '@blood-bowl-tracker/domain-enums';
 
 /**
  * The set of injury outcomes TP's `matchEvents[].injuryType` field can carry

@@ -1,9 +1,4 @@
-import type {
-  Db,
-  InteractionKind,
-  InteractionOutcome,
-  SQL,
-} from '@blood-bowl-tracker/db';
+import type { Db, SQL } from '@blood-bowl-tracker/db';
 import {
   and,
   asc,
@@ -20,6 +15,10 @@ import {
   interactionEvents,
   interactionTypes,
 } from '@blood-bowl-tracker/db';
+import type {
+  InteractionKind,
+  InteractionOutcome,
+} from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 /** Milliseconds in a day, for turning `sinceDays` into a cutoff timestamp. */

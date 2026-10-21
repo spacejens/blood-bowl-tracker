@@ -1,8 +1,8 @@
+import type { TpBracketMatch } from '@blood-bowl-tracker/api-contract';
 import type {
   CompetitionType,
   MatchCategory,
-  TpBracketMatch,
-} from '@blood-bowl-tracker/api-contract';
+} from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 
 export interface ClassifyTpMatchOptions {
