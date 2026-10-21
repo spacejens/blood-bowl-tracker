@@ -1,7 +1,9 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
-import type { TpOfficialTeamsImportResult } from '@blood-bowl-tracker/api-contract';
-import type { TpOfficialRace } from '@blood-bowl-tracker/api-contract';
+import type {
+  TpOfficialRace,
+  TpOfficialTeamsImportResult,
+} from '@blood-bowl-tracker/api-contract';
 import type { ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,

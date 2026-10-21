@@ -1,5 +1,7 @@
-import type { UpsertPosition } from '@blood-bowl-tracker/api-contract';
-import type { TpOfficialCharacteristics } from '@blood-bowl-tracker/api-contract';
+import type {
+  TpOfficialCharacteristics,
+  UpsertPosition,
+} from '@blood-bowl-tracker/api-contract';
 import type { ImportError } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,

@@ -1,5 +1,7 @@
-import type { ImportError } from '@blood-bowl-tracker/api-contract';
-import type { TpOfficialRace } from '@blood-bowl-tracker/api-contract';
+import type {
+  ImportError,
+  TpOfficialRace,
+} from '@blood-bowl-tracker/api-contract';
 import {
   ImportResultService,
   UpsertRecorderService,

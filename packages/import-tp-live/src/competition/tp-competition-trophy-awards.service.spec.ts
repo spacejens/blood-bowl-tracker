@@ -1,5 +1,7 @@
-import type { ImportError } from '@blood-bowl-tracker/api-contract';
-import type { TpCompetitionAward } from '@blood-bowl-tracker/api-contract';
+import type {
+  ImportError,
+  TpCompetitionAward,
+} from '@blood-bowl-tracker/api-contract';
 import type { TrophyAward } from '@blood-bowl-tracker/db';
 import {
   CompetitionGroupsService,

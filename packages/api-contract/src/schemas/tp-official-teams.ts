@@ -4,11 +4,8 @@ import { ImportResultSchema } from './import-result';
 
 /**
  * One position's five characteristics, as TP publishes them per lineUp/star
- * master (on the official team list and on a roster's position templates).
- * `passing` is a plain number, never null: TP writes a literal 0 for a
- * position with no passing ability, and every rules set TP covers (BB2020,
- * DB2021, BB2025) does have a Passing characteristic, so no absent-vs-zero
- * branching is needed on the TP side.
+ * master. `passing` is a plain number, never null: TP writes a literal 0 for
+ * a position with no passing ability.
  */
 export const TpOfficialCharacteristicsSchema = z.object({
   move: z.number().int(),
@@ -29,19 +26,11 @@ export const TpOfficialSkillIdRefSchema = z.object({
   /**
    * TP's own tag for what kind of value `attributeValue` holds. Types 0
    * (dice-roll thresholds like `"4+"`), 1 (numeric bonuses like `"+1"`) and
-   * 2 (already-human-readable text like `"All"` or `"Goblin"`) are all safe
-   * to compose directly into a display name. Type 3 is a DIFFERENT, opaque
-   * numeric code (e.g. `"111"`, `"999"`) that does not resolve to a
-   * meaningful display value on its own: it is an internal reference id TP's
-   * frontend must resolve via some other lookup. The real downloaded mirror
-   * shows the same skillMasterId (269, Animosity) appearing with both a
-   * type-2 human-readable value (`"Black Ark Corsair"`) and a type-3 numeric
-   * value (`"111"`) on different entries, confirming type 3 is a distinct,
-   * unresolved encoding. Consumers must treat a type-3 reference as
-   * unresolvable rather than composing it as-is, except for the
-   * Hatred/Animosity codes that packages/import-tp-live's
-   * `TpKeywordTargetDecoderService` resolves against the curated keyword
-   * catalogue.
+   * 2 (human-readable text like `"All"` or `"Goblin"`) are readable as they
+   * stand. Type 3 is an opaque numeric code (e.g. `"111"`) that is an
+   * internal reference id, not a display value: the same skillMasterId can
+   * appear with a type-2 readable value on one entry and a type-3 code on
+   * another.
    */
   attributeType: z.number().int().optional(),
 });

@@ -1,8 +1,8 @@
 import type {
   ImportError,
   ImportResult,
+  TpCompetitionAward,
 } from '@blood-bowl-tracker/api-contract';
-import type { TpCompetitionAward } from '@blood-bowl-tracker/api-contract';
 import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import { TpBlockedError } from '@blood-bowl-tracker/scrape-tp';

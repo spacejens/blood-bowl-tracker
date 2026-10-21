@@ -15,7 +15,8 @@ import { LineUpSchema } from './roster-parser.service';
  * entries do NOT carry their own `rosterId` field in real TP data. The
  * parent roster's own `id` (already known from `inscriptionLocal.roster.id`
  * / `inscriptionVisitor.roster.id`) is used as the fallback when mapping to
- * `TpMatchEmbeddedPlayer`, since that's the roster each embedded entry belongs to.
+ * `TpMatchEmbeddedPlayer`, since that's the roster each embedded entry
+ * belongs to.
  */
 const MatchLineUpSchema = LineUpSchema.partial({ rosterId: true });
 
@@ -55,9 +56,10 @@ export interface TpMatch {
   matchEvents: TpMatchEvent[];
   /**
    * The home side's per-match roster snapshot, from
-   * `inscriptionLocal.roster.lineUps[]` (only the fields a match
-   * snapshot entry carries: `TpMatchEmbeddedPlayer` in packages/api-contract). Fills the gap left by a departed
-   * player being absent from the standalone roster file.
+   * `inscriptionLocal.roster.lineUps[]` (only the fields a match snapshot
+   * entry carries: `TpMatchEmbeddedPlayer` in packages/api-contract). Fills
+   * the gap left by a departed player being absent from the standalone roster
+   * file.
    */
   homeRosterPlayers: TpMatchEmbeddedPlayer[];
   /**
@@ -70,8 +72,8 @@ export interface TpMatch {
    * phase, 30/110 for playoff phases in the local data). TP never names a
    * match's stage in text (`roundName` only ever holds DAY/MATCHDAY/ROUND),
    * so this plus `phaseOrder` is the only stage signal available. Decoded by
-   * `TpMatchCategoryService` in packages/import-tp-live -- but note that `type`'s
-   * literal value carries no fixed stage meaning by itself (it is not stable
+   * `TpMatchCategoryService` in packages/import-tp-live -- but note that
+   * `type`'s literal value carries no fixed stage meaning by itself (it is not stable
    * across seasons); the classifier keys off `phaseOrder`/`round` position
    * instead, and only carries `phaseType` for possible future use.
    */
