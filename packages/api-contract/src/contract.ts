@@ -201,8 +201,9 @@ export const contract = {
     // BAD_REQUEST is declared because the server rejects characteristics that
     // disagree with the rules set's declared formats (a supplied Passing for
     // a rules set that has none, or a missing one where the rules set
-    // requires it); that is authored-data feedback the importer reports per
-    // entry, not a server fault.
+    // requires it), and a batch naming the same (position, rules set) pair
+    // twice; both are authored-data feedback the importer reports per entry,
+    // not a server fault.
     sync: oc
       .input(SyncPositionRulesSetsSchema)
       .errors({

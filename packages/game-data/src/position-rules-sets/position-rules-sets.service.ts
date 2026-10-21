@@ -21,9 +21,9 @@ import {
 import type { CharacteristicFormat } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
-import { CharacteristicFormatMismatchError } from '../shared/characteristic-format-mismatch-error';
 import type { CharacteristicValues } from '../shared/characteristic-format-validation.service';
 import { CharacteristicFormatValidationService } from '../shared/characteristic-format-validation.service';
+import { PositionValidationError } from '../shared/position-validation-error';
 
 /**
  * A position's stat line under one rules set, together with that rules set's
@@ -236,11 +236,14 @@ export class PositionRulesSetsService {
    * `upsertByExternalIds` uses, for the same reason.
    *
    * Validation runs over the whole batch before any write: one bad entry
-   * fails the call rather than half-applying it. This includes rejecting a
-   * batch where the same `(positionId, rulesSetId)` pair appears more than
-   * once — without this check, two such entries would both route to the
-   * insert path below and collide on the table's unique constraint, raising
-   * a raw database error instead of this method's own, clearer one.
+   * fails the call rather than half-applying it. Characteristics that
+   * disagree with the rules set's declared formats, and a rules set that does
+   * not exist at all, are a CharacteristicFormatMismatchError, the meaning
+   * that error shares with `players.upsert`. A batch where the same
+   * `(positionId, rulesSetId)` pair appears more than once is a
+   * PositionValidationError: without that check, two such entries would both
+   * route to the insert path below and collide on the table's unique
+   * constraint, raising a raw database error instead.
    *
    * With `insertOnly`, an existing pair is left untouched (its id is still
    * returned).
@@ -278,7 +281,7 @@ export class PositionRulesSetsService {
       });
       const key = this.naturalKey(entry);
       if (seenKeys.has(key)) {
-        throw new CharacteristicFormatMismatchError(
+        throw new PositionValidationError(
           `Position ${entry.positionId} under rules set ${entry.rulesSetId} appears more than once in the same batch`,
         );
       }

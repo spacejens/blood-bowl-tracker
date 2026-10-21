@@ -160,9 +160,10 @@ export function buildPlayerSppAdjustmentRoutes(
 // `runWithoutConflict`, for the same reason sppAwardValues.sync is not — a row
 // is keyed by (positionId, rulesSetId) rather than external ids, so there is no
 // CONFLICT to map and no entity+created shape to return. It does still go
-// through the handler's `runSync`, which owns the one classification this
-// procedure needs: a characteristic format mismatch is authored-data feedback
-// the importer reports per entry, so BAD_REQUEST rather than an internal error.
+// through the handler's `runSync`, which owns the two classifications this
+// procedure needs: a characteristic format mismatch and a pair named twice in
+// one batch are authored-data feedback the importer reports per entry, so
+// BAD_REQUEST rather than an internal error.
 export function buildPositionRulesSetsRoutes(
   upsertHandler: UpsertHandlerService,
   positionRulesSetsService: PositionRulesSetsService,

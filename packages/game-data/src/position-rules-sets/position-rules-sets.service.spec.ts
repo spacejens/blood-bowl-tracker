@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 import { CharacteristicFormatMismatchError } from '../shared/characteristic-format-mismatch-error';
 import { CharacteristicFormatValidationService } from '../shared/characteristic-format-validation.service';
+import { PositionValidationError } from '../shared/position-validation-error';
 import {
   extractAllFilterValues,
   extractFilterValues,
@@ -203,9 +204,12 @@ describe('PositionRulesSetsService', () => {
       const db = mockDb([bb2020Formats]);
       const service = await makeService(db);
 
-      await expect(
-        service.sync({ entries: [bb2020Entry, bb2020Entry] }),
-      ).rejects.toBeInstanceOf(CharacteristicFormatMismatchError);
+      const promise = service.sync({ entries: [bb2020Entry, bb2020Entry] });
+
+      await expect(promise).rejects.toBeInstanceOf(PositionValidationError);
+      await expect(promise).rejects.toThrow(
+        'Position 3 under rules set 4 appears more than once in the same batch',
+      );
       expect(db.chains).toHaveLength(1);
       expect(db.transaction).not.toHaveBeenCalled();
     });
