@@ -102,9 +102,10 @@ packages/
                         (ReportBuilderBase), HTML fragment assembly,
                         timestamped report writing, JSON5 config loading,
                         external-system id lookup, characteristic formatting,
-                        and the plug-in interfaces + DI wiring each data-type
-                        module registers through; carries no BBL/TP parsing or
-                        interpretation logic
+                        curated data batch reading (file walking and pooling,
+                        no entry shaping), and the plug-in interfaces + DI
+                        wiring each data-type module registers through;
+                        carries no BBL/TP parsing or interpretation logic
   scrape-tp/          — NestJS module with the one implementation of fetching
                         TP's API over plain HTTP: browser-like headers and
                         per-visit sessions with a cookie jar and randomized
@@ -262,10 +263,11 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
   - It deliberately depends on no other workspace package, keeping the `tools/* → packages/*` direction intact.
 - **`packages/review-harness`** (shared review scaffolding) — used by every review tool (`tools/review-match`, `tools/review-player`, `tools/review-race`, `tools/review-star-player`); a change here reaches all review tools at once.
   - It owns the review-run orchestration (`ReviewServiceBase`) and the report document shell (`ReportBuilderBase`).
-  - It also owns two leaf helpers shared by the tools:
+  - It also owns three leaf helpers shared by the tools:
     - `ExternalSystemLookupService` (the memoized `external_systems.id` lookup by each source's shared external-system name from `packages/domain-enums`).
     - `CharacteristicFormatService` with its none marker (rendering one characteristic for a `CharacteristicFormat` from `packages/domain-enums`), duplicated between `review-player` and `review-race` (review-match has no characteristics to format).
-  - Each tool's `ReviewService`/`ReportBuilderService` is a thin subclass supplying only what differs, and each tool provides the two leaf helpers by plain import.
+    - `ManualBatchReaderService` (the mechanical reading of the hand-curated data batches: walking every batch directory and then every `.json5` file in name order, pooling each top-level array section with a missing, malformed or non-object file counted as empty, memoized per batches directory, plus the later-entry-wins `latestByKey`), used by `review-player`, `review-race` and `review-star-player` (review-match reads no curated data). It shapes no entry: each tool still reads what a curated entry means itself.
+  - Each tool's `ReviewService`/`ReportBuilderService` is a thin subclass supplying only what differs, and each tool provides the leaf helpers it uses by plain import.
   - It deliberately carries no BBL/TP parsing or interpretation logic — raw-source parsing, comparison predicates and label tables stay duplicated per tool, see the review-tool entries below.
 - **`packages/api-contract`** (shared shapes) — newly imported data must exist in the contract before an importer can send it or a consumer can read it; a change here reaches api-server, api-client, game-data, import and import-shared together
 - **`apps/discord-bot`** (consumer) — reads imported data via `packages/game-data`; data newly landed by any importer is a candidate for a new command, fact, or insight. It is also a direct importer in its own right: the `/importtp` slash command, and the TP notification feed for every recognised notification, classify a TP URL with `packages/tp-paths`' `TpPageClassifierService` and call the matching `packages/import-tp-live` entry point in-process
