@@ -10,6 +10,7 @@ import { mock } from 'vitest-mock-extended';
 
 import { TEAM_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
 import { TEAM_TOPLIST_TIMEOUT_MESSAGE } from '../../error-messages';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import type { ResolveToplistOptions } from '../leaderboard.service';
 import {
   LeaderboardService,
@@ -70,6 +71,7 @@ async function makeService(
   const moduleRef = await Test.createTestingModule({
     providers: [
       TeamToplistService,
+      NumberFormatterService,
       { provide: TeamsService, useValue: teams },
       { provide: LeaderboardService, useValue: leaderboard },
       { provide: TeamContextService, useValue: teamContext },
@@ -410,6 +412,19 @@ describe.each(factoryCases)(
           .options()
           .formatRow?.({ ...rows[0], contextSuffix: '', rank: 1 }),
       ).toBe(`1. ${rows[0].name} — ${rows[0].count}`);
+    });
+
+    it('groups the count with thousands separators', async () => {
+      const teams = mock<TeamsService>();
+      const { toplist } = await makeService(teams);
+      expect(
+        toplist.options().formatRow?.({
+          ...rows[0],
+          count: 1234,
+          contextSuffix: '',
+          rank: 1,
+        }),
+      ).toBe(`1. ${rows[0].name} — 1,234`);
     });
   },
 );

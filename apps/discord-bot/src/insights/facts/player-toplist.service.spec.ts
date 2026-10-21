@@ -10,6 +10,7 @@ import { mock } from 'vitest-mock-extended';
 
 import { PLAYER_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
 import { PLAYER_TOPLIST_TIMEOUT_MESSAGE } from '../../error-messages';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import { PlayerContextService } from '../player-context.service';
 import { passthroughPlayerContext } from '../player-context-mock.test-helpers';
 import { PlayerToplistService } from './player-toplist.service';
@@ -37,6 +38,7 @@ async function makeService(
   const moduleRef = await Test.createTestingModule({
     providers: [
       PlayerToplistService,
+      NumberFormatterService,
       { provide: PlayersService, useValue: players },
       { provide: PlayerContextService, useValue: playerContext },
       { provide: ToplistFactoryService, useValue: toplist.factory },
@@ -349,6 +351,19 @@ describe.each(cases)(
           .options()
           .formatRow?.({ ...rows[0], contextSuffix: '', rank: 1 }),
       ).toBe(`1. ${rows[0].name} — ${rows[0].count}`);
+    });
+
+    it('groups the count with thousands separators', async () => {
+      const players = mock<PlayersService>();
+      const { toplist } = await makeService(players);
+      expect(
+        toplist.options().formatRow?.({
+          ...rows[0],
+          count: 1234,
+          contextSuffix: '',
+          rank: 1,
+        }),
+      ).toBe(`1. ${rows[0].name} — 1,234`);
     });
   },
 );
