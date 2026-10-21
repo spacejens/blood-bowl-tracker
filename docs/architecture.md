@@ -102,9 +102,10 @@ packages/
                         (ReportBuilderBase), HTML fragment assembly,
                         timestamped report writing, JSON5 config loading,
                         external-system id lookup, characteristic formatting,
-                        and the plug-in interfaces + DI wiring each data-type
-                        module registers through; carries no BBL/TP parsing or
-                        interpretation logic
+                        curated data batch reading (file walking and pooling,
+                        no entry shaping), and the plug-in interfaces + DI
+                        wiring each data-type module registers through;
+                        carries no BBL/TP parsing or interpretation logic
   scrape-tp/          — NestJS module with the one implementation of fetching
                         TP's API over plain HTTP: browser-like headers and
                         per-visit sessions with a cookie jar and randomized
@@ -262,10 +263,11 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
   - It deliberately depends on no other workspace package, keeping the `tools/* → packages/*` direction intact.
 - **`packages/review-harness`** (shared review scaffolding) — used by every review tool (`tools/review-match`, `tools/review-player`, `tools/review-race`, `tools/review-star-player`); a change here reaches all review tools at once.
   - It owns the review-run orchestration (`ReviewServiceBase`) and the report document shell (`ReportBuilderBase`).
-  - It also owns two leaf helpers shared by the tools:
+  - It also owns three leaf helpers shared by the tools:
     - `ExternalSystemLookupService` (the memoized `external_systems.id` lookup by each source's shared external-system name from `packages/domain-enums`).
     - `CharacteristicFormatService` with its none marker (rendering one characteristic for a `CharacteristicFormat` from `packages/domain-enums`), duplicated between `review-player` and `review-race` (review-match has no characteristics to format).
-  - Each tool's `ReviewService`/`ReportBuilderService` is a thin subclass supplying only what differs, and each tool provides the two leaf helpers by plain import.
+    - `ManualBatchReaderService` (the mechanical reading of the hand-curated data batches: walking every batch directory and then every `.json5` file in name order, pooling each top-level array section with a missing, malformed or non-object file counted as empty, memoized per batches directory, plus the later-entry-wins `latestByKey`), used by `review-player`, `review-race` and `review-star-player` (review-match reads no curated data). It shapes no entry: each tool still reads what a curated entry means itself.
+  - Each tool's `ReviewService`/`ReportBuilderService` is a thin subclass supplying only what differs, and each tool provides the leaf helpers it uses by plain import.
   - It deliberately carries no BBL/TP parsing or interpretation logic — raw-source parsing, comparison predicates and label tables stay duplicated per tool, see the review-tool entries below.
 - **`packages/api-contract`** (shared shapes) — newly imported data must exist in the contract before an importer can send it or a consumer can read it; a change here reaches api-server, api-client, game-data, import and import-shared together
 - **`apps/discord-bot`** (consumer) — reads imported data via `packages/game-data`; data newly landed by any importer is a candidate for a new command, fact, or insight. It is also a direct importer in its own right: the `/importtp` slash command, and the TP notification feed for every recognised notification, classify a TP URL with `packages/tp-paths`' `TpPageClassifierService` and call the matching `packages/import-tp-live` entry point in-process
@@ -275,15 +277,18 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
 - **`tools/review-player`** (consumer, review aid) — renders raw BBL and TP source data beside imported player records (identity, team, position, era) and star player point totals, so a change to what either importer stores for players usually needs a matching renderer change here
   - Sibling of `tools/review-match`, structured the same way and deliberately independent of it.
   - It interprets the raw sources itself and must never depend on `packages/game-data`, `packages/parse-tp`, `packages/import`, or either importer (the mechanical file access is shared via `packages/read-bbl-mirror`, which carries no interpretation) (see `docs/review-player/index.md`).
+  - Walking the curated keyword batches is shared the same way, via `packages/review-harness`'s `ManualBatchReaderService`, which shapes no entry: every reading of what a curated keyword means stays in this tool.
   - That independence rule covers the domain-specific half only; the generic report scaffolding is shared on purpose via `packages/review-harness`, where its `ReviewService` and `ReportBuilderService` subclass `ReviewServiceBase`/`ReportBuilderBase` and add only the per-player section.
 - **`tools/review-race`** (consumer, review aid) — renders raw BBL, TP and hand-curated source data beside imported races, `positions_race_eras` and `position_rules_sets`, so a change to what any of the three importers stores for races or positions usually needs a matching renderer change here
   - Sibling of `tools/review-match` and `tools/review-player`, structured the same way.
   - It interprets the raw sources itself and must never depend on `packages/game-data`, `packages/parse-tp`, `packages/import`, `tools/import-bbl`, `tools/import-tp` or `tools/import-manual` (the mechanical file access is shared via `packages/read-bbl-mirror`, which carries no interpretation and so needs no such callout) (see `docs/review-race/index.md`).
+  - Walking the curated batches is shared the same way, via `packages/review-harness`'s `ManualBatchReaderService`, which shapes no entry: every reading of what a curated entry means stays in this tool.
   - That independence rule covers the domain-specific half only; the generic report scaffolding is shared on purpose via `packages/review-harness`, where its `ReviewService` and `ReportBuilderService` subclass `ReviewServiceBase`/`ReportBuilderBase` and add only the per-race section.
   - It is the first review tool to treat the hand-curated `tools/import-manual` data as a raw source, which is why `ReviewSource` gained `'manual'`.
 - **`tools/review-star-player`** (consumer, review aid) — renders raw BBL, TP and hand-curated star data beside imported `positions`, `position_rules_sets` and `positions_race_eras`, so a change to what any of the three importers stores for star players usually needs a matching renderer change here
   - Sibling of `tools/review-match`, `tools/review-player` and `tools/review-race`, structured the same way.
   - It interprets the raw sources itself and must never depend on `packages/game-data`, `packages/parse-tp`, `packages/import`, `tools/import-bbl`, `tools/import-tp`, `tools/import-manual` or `tools/review-race` (the mechanical file access is shared via `packages/read-bbl-mirror`, which carries no interpretation and so needs no such callout) (see `docs/review-star-player/index.md`).
+  - Walking the curated batches is shared the same way, via `packages/review-harness`'s `ManualBatchReaderService`, which shapes no entry: every reading of what a curated entry means stays in this tool.
   - That independence rule covers the domain-specific half only; the generic report scaffolding is shared on purpose via `packages/review-harness`.
   - It exists because `tools/review-race` deliberately excludes star players from its per-race panels — a star is not owned by one race, so a per-race report is the wrong place to review it.
 

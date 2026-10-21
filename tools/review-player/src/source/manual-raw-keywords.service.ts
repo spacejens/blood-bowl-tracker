@@ -1,10 +1,10 @@
-import type { Dirent } from 'node:fs';
-import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { TP_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/review-harness';
+import {
+  ManualBatchReaderService,
+  TP_EXTERNAL_SYSTEM_NAME,
+} from '@blood-bowl-tracker/review-harness';
 import { Injectable } from '@nestjs/common';
-import JSON5 from 'json5';
 
 import { ReviewPlayerConfigService } from '../config/review-player-config.service';
 
@@ -18,27 +18,32 @@ export interface ManualRawKeywordEntry {
 
 /**
  * Reads the hand-curated BB2025 keyword catalogue: the `keywords` section of
- * every `.json5` file in every batch under `<manual.dataDir>/batches/`,
- * pooled in batch-name order and, within a batch, filename order -- the order
- * tools/import-manual applies them in. When a later batch restates a keyword
- * with the same external-id set, the later entry wins, in the earlier one's
- * place. This tool has no `manual-raw-data.service.ts` of its own (unlike
- * `tools/review-race`), so this is a small, single-purpose reader.
- * Deliberately independent of `tools/import-manual`: it reads and shapes the
- * files itself, running none of that importer's processor logic -- that
- * logic's reading of these files is part of what this tool exists to check.
+ * every curated batch under `<manual.dataDir>/batches/`, pooled by the shared
+ * `ManualBatchReaderService` in batch-name order and, within a batch, filename
+ * order -- the order tools/import-manual applies them in. When a later batch
+ * restates a keyword with the same external-id set, the later entry wins, in
+ * the earlier one's place. The shared reader only walks, parses and pools the
+ * files; shaping each keyword entry happens here. Deliberately independent of
+ * `tools/import-manual`: it shapes the entries itself, running none of that
+ * importer's processor logic -- that logic's reading of these files is part of
+ * what this tool exists to check.
  *
- * A missing or malformed file degrades to an empty list, so a broken curated
- * file shows up as an empty raw sub-panel rather than failing the run.
+ * A missing or malformed file degrades to an empty list (via the shared
+ * reader), so a broken curated file shows up as an empty raw sub-panel rather than failing the run.
  */
 @Injectable()
 export class ManualRawKeywordsService {
-  private pooled: Promise<unknown[]> | undefined;
-
-  constructor(private readonly config: ReviewPlayerConfigService) {}
+  constructor(
+    private readonly config: ReviewPlayerConfigService,
+    private readonly batches: ManualBatchReaderService,
+  ) {}
 
   async all(): Promise<ManualRawKeywordEntry[]> {
-    const entries = (await this.keywords()).flatMap((entry) => {
+    const keywords = await this.batches.section(
+      join(this.config.getDataDir('manual'), 'batches'),
+      'keywords',
+    );
+    const entries = keywords.flatMap((entry) => {
       const name = this.string(entry, 'name');
       const kind = this.string(entry, 'kind');
       if (name === null || kind === null) {
@@ -51,7 +56,9 @@ export class ManualRawKeywordsService {
         },
       ];
     });
-    return this.latestByKey(entries, (e) => e.key).map((e) => e.keyword);
+    return this.batches
+      .latestByKey(entries, (e) => e.key)
+      .map((e) => e.keyword);
   }
 
   /** An entry's `tourplay.net` external id, or null when it carries none. */
@@ -89,20 +96,6 @@ export class ManualRawKeywordsService {
     return Array.isArray(raw) ? raw : [];
   }
 
-  /**
-   * One entry per key, the last one read winning in the first one's place.
-   * An entry whose key is '' (no external ids) has no identity to match on,
-   * so it is always kept.
-   */
-  private latestByKey<T>(entries: T[], keyOf: (entry: T) => string): T[] {
-    const byKey = new Map<string, T>();
-    entries.forEach((entry, index) => {
-      const key = keyOf(entry);
-      byKey.set(key === '' ? `#${index}` : key, entry);
-    });
-    return [...byKey.values()];
-  }
-
   private string(value: unknown, key: string): string | null {
     const property = this.property(value, key);
     return typeof property === 'string' && property !== '' ? property : null;
@@ -112,62 +105,5 @@ export class ManualRawKeywordsService {
     return typeof value === 'object' && value !== null
       ? (value as Record<string, unknown>)[key]
       : undefined;
-  }
-
-  /** Every `keywords` entry of every batch, read once per process. */
-  private keywords(): Promise<unknown[]> {
-    this.pooled ??= this.loadBatches();
-    return this.pooled;
-  }
-
-  private async loadBatches(): Promise<unknown[]> {
-    const root = join(this.config.getDataDir('manual'), 'batches');
-    const pooled: unknown[] = [];
-    for (const batch of await this.names(root, (e) => e.isDirectory())) {
-      const dir = join(root, batch);
-      for (const file of await this.names(dir, (e) =>
-        e.name.endsWith('.json5'),
-      )) {
-        const keywords = (await this.load(join(dir, file))).keywords;
-        if (Array.isArray(keywords)) {
-          pooled.push(...(keywords as unknown[]));
-        }
-      }
-    }
-    return pooled;
-  }
-
-  /** The sorted names of `dir`'s entries passing `keep`; none if unreadable. */
-  private async names(
-    dir: string,
-    keep: (entry: Dirent) => boolean,
-  ): Promise<string[]> {
-    try {
-      const entries = await readdir(dir, { withFileTypes: true });
-      return entries
-        .filter(keep)
-        .map((entry) => entry.name)
-        .sort();
-    } catch {
-      return [];
-    }
-  }
-
-  /** One file, JSON5-parsed; {} when it is missing, malformed or no object. */
-  private async load(path: string): Promise<Record<string, unknown>> {
-    let raw: string;
-    try {
-      raw = await readFile(path, 'utf8');
-    } catch {
-      return {};
-    }
-    try {
-      const parsed: unknown = JSON5.parse(raw);
-      return typeof parsed === 'object' && parsed !== null
-        ? (parsed as Record<string, unknown>)
-        : {};
-    } catch {
-      return {};
-    }
   }
 }

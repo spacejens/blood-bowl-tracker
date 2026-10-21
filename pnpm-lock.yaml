@@ -885,6 +885,9 @@ importers:
       '@nestjs/common':
         specifier: ^12.0.0
         version: 12.2.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)
+      json5:
+        specifier: ^2.2.3
+        version: 2.2.3
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -1576,9 +1579,6 @@ importers:
       domhandler:
         specifier: ^6.0.0
         version: 6.0.1
-      json5:
-        specifier: ^2.2.3
-        version: 2.2.3
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -1634,9 +1634,6 @@ importers:
       cheerio:
         specifier: ^1.2.0
         version: 1.2.0
-      json5:
-        specifier: ^2.2.3
-        version: 2.2.3
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -1692,9 +1689,6 @@ importers:
       cheerio:
         specifier: ^1.2.0
         version: 1.2.0
-      json5:
-        specifier: ^2.2.3
-        version: 2.2.3
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
