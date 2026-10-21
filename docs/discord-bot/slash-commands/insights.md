@@ -223,7 +223,7 @@ deduplicated so a team that appears on multiple rows gets a single button.
 - `player.toplist.totalSpp` — players ranked by total star player points. For
   the unfiltered, league, and era views this is the same stored total the
   player's own [`/deepdive`](deepdive.md) shows on its
-  `Total star player points:` line; a competition- or match-category-scoped
+  `Total SPP:` line; a competition- or match-category-scoped
   view instead sums only the scoped match events' SPP, which omits any manual
   adjustment folded into that stored total.
 
@@ -292,7 +292,7 @@ button, in the same order as the list, that opens that player's
   rolled as an advancement"), counted and scoped the same way as the chosen
   list above.
 - `starPlayers.list` — a single embed listing every star player that has been
-  hired at least once (title "Star Players"), name-ascending. A star position
+  hired at least once (title "Star players"), name-ascending. A star position
   that has never been hired has nothing to show and is excluded. Each listed
   star also gets a button that opens that star's [`/deepdive`](deepdive.md)
   detail view. It takes none of the scope options, for the same "star player

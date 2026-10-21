@@ -660,15 +660,15 @@ describe('PlayerDeepdiveService', () => {
         '',
         'Touchdowns scored: 3',
         '',
-        'Total star player points: 12',
+        'Total SPP: 12',
       ].join('\n'),
     );
   });
 
   it('treats a zero adjustment as no adjustment', async () => {
     const description = await describeFor({ sppTotal: 12, sppAdjustment: 0 });
-    expect(description).not.toContain('Star player points adjustment');
-    expect(description).toContain('Total star player points: 12');
+    expect(description).not.toContain('SPP adjustment');
+    expect(description).toContain('Total SPP: 12');
   });
 
   it('shows a positive adjustment with an explicit plus sign', async () => {
@@ -685,8 +685,8 @@ describe('PlayerDeepdiveService', () => {
         '',
         'Touchdowns scored: 3',
         '',
-        'Star player points adjustment: +1,500 (included)',
-        'Total star player points: 1,234',
+        'SPP adjustment: +1,500 (included)',
+        'Total SPP: 1,234',
       ].join('\n'),
     );
   });
@@ -702,8 +702,8 @@ describe('PlayerDeepdiveService', () => {
         '',
         'Touchdowns scored: 3',
         '',
-        'Star player points adjustment: -3 (included)',
-        'Total star player points: 8',
+        'SPP adjustment: -3 (included)',
+        'Total SPP: 8',
       ].join('\n'),
     );
   });
@@ -712,7 +712,7 @@ describe('PlayerDeepdiveService', () => {
     // 0 is a real computed value, distinct from null ("not computed"), so
     // unlike a zero category count it is not suppressed.
     const description = await describeFor({ sppTotal: 0, sppAdjustment: null });
-    expect(description).toContain('Total star player points: 0');
+    expect(description).toContain('Total SPP: 0');
   });
 
   it('appends the total after the no-events placeholder', async () => {
@@ -734,7 +734,7 @@ describe('PlayerDeepdiveService', () => {
         '',
         DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE,
         '',
-        'Total star player points: 4',
+        'Total SPP: 4',
       ].join('\n'),
     );
   });

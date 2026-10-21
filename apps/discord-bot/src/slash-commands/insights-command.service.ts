@@ -29,7 +29,7 @@ import {
 } from '../error-messages';
 import { FACT_TREE } from '../insights/fact-tree.token';
 import type { FactLeaf, FactNode } from '../insights/fact-tree.types';
-import { FactTreeUtilsService } from '../insights/fact-tree-utils.service';
+import { FactTreeNavigationService } from '../insights/fact-tree-navigation.service';
 import { MatchCategoryLabelService } from '../insights/facts/match-category-label.service';
 import type { DateButtonScopeToken } from '../shared/date-button-id.service';
 import { DateRangeFormatterService } from '../shared/date-range-formatter.service';
@@ -64,7 +64,7 @@ export class InsightsCommandService implements OnModuleInit {
     private readonly competitions: CompetitionsService,
     @Inject(FACT_TREE) private readonly factTree: FactNode,
     private readonly registry: SlashCommandRegistryService,
-    private readonly factTreeUtils: FactTreeUtilsService,
+    private readonly factTreeNavigation: FactTreeNavigationService,
     private readonly categoryLabel: MatchCategoryLabelService,
     private readonly dateRangeFormatter: DateRangeFormatterService,
   ) {}
@@ -270,12 +270,12 @@ export class InsightsCommandService implements OnModuleInit {
     category: string,
     resolved: ResolvedScope = {},
   ): Promise<string | InteractionReplyOptions> {
-    const node = this.factTreeUtils.resolvePath(this.factTree, category);
+    const node = this.factTreeNavigation.resolvePath(this.factTree, category);
     if (node === undefined) {
       return INSIGHTS_UNMATCHED_CATEGORY_MESSAGE;
     }
 
-    let leaves = this.factTreeUtils.collectLeaves(node);
+    let leaves = this.factTreeNavigation.collectLeaves(node);
     if (resolved.league) {
       leaves = leaves.filter((leaf) => leaf.supportsLeague);
       if (leaves.length === 0) {
@@ -307,7 +307,7 @@ export class InsightsCommandService implements OnModuleInit {
   async resolveRandomFact(
     resolved: ResolvedScope = {},
   ): Promise<string | InteractionReplyOptions> {
-    let leaves = this.factTreeUtils.collectLeaves(this.factTree);
+    let leaves = this.factTreeNavigation.collectLeaves(this.factTree);
     if (resolved.league) {
       leaves = leaves.filter((leaf) => leaf.supportsLeague);
     }
@@ -461,7 +461,7 @@ export class InsightsCommandService implements OnModuleInit {
       return scopeChoices;
     }
     const focused = interaction.options.getFocused(true);
-    return this.factTreeUtils
+    return this.factTreeNavigation
       .nextSegmentCompletions(this.factTree, focused.value)
       .slice(0, MAX_AUTOCOMPLETE_CHOICES)
       .map((path) => ({ name: path, value: path }));

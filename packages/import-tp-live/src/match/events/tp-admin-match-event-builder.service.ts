@@ -2,7 +2,7 @@ import type { UpsertMatchEvent } from '@blood-bowl-tracker/api-contract';
 import type { TpMatchEvent } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-import { TpMatchEventHelpersService } from './tp-match-event-helpers.service';
+import { TpMatchEventFieldsService } from './tp-match-event-fields.service';
 import type { BuildEventDataOptions } from './tp-match-events-builder.types';
 
 /**
@@ -37,7 +37,7 @@ export type TpAdminMatchEvent = Exclude<
  */
 @Injectable()
 export class TpAdminMatchEventBuilderService {
-  constructor(private readonly helpers: TpMatchEventHelpersService) {}
+  constructor(private readonly eventFields: TpMatchEventFieldsService) {}
 
   /**
    * Build the administrative TP match events (weather, inducements, winnings,
@@ -67,7 +67,11 @@ export class TpAdminMatchEventBuilderService {
       awayTeamEraId,
     } = options;
     const actingTeamEraId = (rosterId: number) =>
-      this.helpers.resolveTeamEraId({ teamErasByRosterId, rosterId, eraId });
+      this.eventFields.resolveTeamEraId({
+        teamErasByRosterId,
+        rosterId,
+        eraId,
+      });
 
     switch (event.type) {
       case 'weather_roll': {
@@ -76,7 +80,10 @@ export class TpAdminMatchEventBuilderService {
             matchId,
             eventType: 'weather',
             weatherType: event.weatherType,
-            externalIds: this.helpers.externalId(tpSystemId, event.tpEventId),
+            externalIds: this.eventFields.externalIds(
+              tpSystemId,
+              event.tpEventId,
+            ),
           },
         ];
       }
@@ -85,14 +92,17 @@ export class TpAdminMatchEventBuilderService {
           matchId,
           actionType: 'inducements',
           inducementsCost: event.totalCost,
-          externalIds: this.helpers.externalId(tpSystemId, event.tpEventId),
+          externalIds: this.eventFields.externalIds(
+            tpSystemId,
+            event.tpEventId,
+          ),
         };
-        this.helpers.setIfDefined(
+        this.eventFields.setIfDefined(
           data,
           'actingTeamEraId',
           actingTeamEraId(event.rosterId),
         );
-        this.helpers.setIfDefined(
+        this.eventFields.setIfDefined(
           data,
           'inducementsFromTreasury',
           event.fromTreasury,
@@ -104,9 +114,12 @@ export class TpAdminMatchEventBuilderService {
           matchId,
           actionType: 'journeymen_signings',
           journeymenCount: event.journeymenCount,
-          externalIds: this.helpers.externalId(tpSystemId, event.tpEventId),
+          externalIds: this.eventFields.externalIds(
+            tpSystemId,
+            event.tpEventId,
+          ),
         };
-        this.helpers.setIfDefined(
+        this.eventFields.setIfDefined(
           data,
           'actingTeamEraId',
           actingTeamEraId(event.rosterId),
@@ -118,9 +131,12 @@ export class TpAdminMatchEventBuilderService {
           matchId,
           actionType: 'secret_objective',
           secretObjective: event.secretObjective,
-          externalIds: this.helpers.externalId(tpSystemId, event.tpEventId),
+          externalIds: this.eventFields.externalIds(
+            tpSystemId,
+            event.tpEventId,
+          ),
         };
-        this.helpers.setIfDefined(
+        this.eventFields.setIfDefined(
           data,
           'actingTeamEraId',
           actingTeamEraId(event.rosterId),
@@ -132,9 +148,12 @@ export class TpAdminMatchEventBuilderService {
           matchId,
           consequenceType: 'expensive_mistake',
           expensiveMistake: event.expensiveMistake,
-          externalIds: this.helpers.externalId(tpSystemId, event.tpEventId),
+          externalIds: this.eventFields.externalIds(
+            tpSystemId,
+            event.tpEventId,
+          ),
         };
-        this.helpers.setIfDefined(
+        this.eventFields.setIfDefined(
           data,
           'consequenceTeamEraId',
           actingTeamEraId(event.rosterId),
@@ -146,24 +165,24 @@ export class TpAdminMatchEventBuilderService {
           matchId,
           actionType: 'winnings',
           winnings: event.localWinnings,
-          externalIds: this.helpers.externalId(
+          externalIds: this.eventFields.externalIds(
             tpSystemId,
             event.tpEventId,
             'home',
           ),
         };
-        this.helpers.setIfDefined(home, 'actingTeamEraId', homeTeamEraId);
+        this.eventFields.setIfDefined(home, 'actingTeamEraId', homeTeamEraId);
         const away: UpsertMatchEvent = {
           matchId,
           actionType: 'winnings',
           winnings: event.visitorWinnings,
-          externalIds: this.helpers.externalId(
+          externalIds: this.eventFields.externalIds(
             tpSystemId,
             event.tpEventId,
             'away',
           ),
         };
-        this.helpers.setIfDefined(away, 'actingTeamEraId', awayTeamEraId);
+        this.eventFields.setIfDefined(away, 'actingTeamEraId', awayTeamEraId);
         return [home, away];
       }
       case 'fan_factor_roll': {
@@ -171,24 +190,24 @@ export class TpAdminMatchEventBuilderService {
           matchId,
           actionType: 'fan_factor',
           fanFactor: event.fanFactorLocal,
-          externalIds: this.helpers.externalId(
+          externalIds: this.eventFields.externalIds(
             tpSystemId,
             event.tpEventId,
             'home',
           ),
         };
-        this.helpers.setIfDefined(home, 'actingTeamEraId', homeTeamEraId);
+        this.eventFields.setIfDefined(home, 'actingTeamEraId', homeTeamEraId);
         const away: UpsertMatchEvent = {
           matchId,
           actionType: 'fan_factor',
           fanFactor: event.fanFactorVisitor,
-          externalIds: this.helpers.externalId(
+          externalIds: this.eventFields.externalIds(
             tpSystemId,
             event.tpEventId,
             'away',
           ),
         };
-        this.helpers.setIfDefined(away, 'actingTeamEraId', awayTeamEraId);
+        this.eventFields.setIfDefined(away, 'actingTeamEraId', awayTeamEraId);
         return [home, away];
       }
       case 'dedicated_fans_roll': {
@@ -198,13 +217,13 @@ export class TpAdminMatchEventBuilderService {
             matchId,
             consequenceType: 'dedicated_fans',
             dedicatedFans: event.dedicatedFansModifierLocal,
-            externalIds: this.helpers.externalId(
+            externalIds: this.eventFields.externalIds(
               tpSystemId,
               event.tpEventId,
               'home',
             ),
           };
-          this.helpers.setIfDefined(
+          this.eventFields.setIfDefined(
             home,
             'consequenceTeamEraId',
             homeTeamEraId,
@@ -216,13 +235,13 @@ export class TpAdminMatchEventBuilderService {
             matchId,
             consequenceType: 'dedicated_fans',
             dedicatedFans: event.dedicatedFansModifierVisitor,
-            externalIds: this.helpers.externalId(
+            externalIds: this.eventFields.externalIds(
               tpSystemId,
               event.tpEventId,
               'away',
             ),
           };
-          this.helpers.setIfDefined(
+          this.eventFields.setIfDefined(
             away,
             'consequenceTeamEraId',
             awayTeamEraId,
@@ -237,7 +256,10 @@ export class TpAdminMatchEventBuilderService {
             matchId,
             actionType: 'prayers_to_nuffle',
             prayersToNuffle: event.prayersToNuffle,
-            externalIds: this.helpers.externalId(tpSystemId, event.tpEventId),
+            externalIds: this.eventFields.externalIds(
+              tpSystemId,
+              event.tpEventId,
+            ),
           },
         ];
       }
@@ -245,14 +267,17 @@ export class TpAdminMatchEventBuilderService {
         const data: UpsertMatchEvent = {
           matchId,
           consequenceType: 'concession',
-          externalIds: this.helpers.externalId(tpSystemId, event.tpEventId),
+          externalIds: this.eventFields.externalIds(
+            tpSystemId,
+            event.tpEventId,
+          ),
         };
         const concedingTeamEraId = event.concedeLocal
           ? homeTeamEraId
           : event.concedeVisitor
             ? awayTeamEraId
             : undefined;
-        this.helpers.setIfDefined(
+        this.eventFields.setIfDefined(
           data,
           'consequenceTeamEraId',
           concedingTeamEraId,

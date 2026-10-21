@@ -587,7 +587,7 @@ export class PlayerDeepdiveService {
       adjustment === null || adjustment === 0
         ? []
         : [
-            `Star player points adjustment: ${
+            `SPP adjustment: ${
               adjustment > 0
                 ? `+${this.numbers.count(adjustment)}`
                 : this.numbers.count(adjustment)
@@ -596,7 +596,7 @@ export class PlayerDeepdiveService {
     return [
       '',
       ...adjustmentLines,
-      `Total star player points: ${this.numbers.count(player.sppTotal)}`,
+      `Total SPP: ${this.numbers.count(player.sppTotal)}`,
     ];
   }
 

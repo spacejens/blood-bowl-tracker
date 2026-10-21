@@ -82,7 +82,7 @@ export class ImportTpReplyService {
   blocked(retryAt: Date): InteractionReplyOptions {
     const at = Math.ceil(retryAt.getTime() / 1000);
     return {
-      content: `TP is blocking requests (HTTP 403 Access denied), so the import stopped and may have imported partial data. The bot sends TP nothing more until <t:${at}:f> (<t:${at}:R>); try again after that.`,
+      content: `TP is blocking requests (HTTP 403), so the import stopped and may have imported partial data. The bot sends TP nothing more until <t:${at}:f> (<t:${at}:R>); try again after that.`,
       flags: MessageFlags.Ephemeral,
     };
   }

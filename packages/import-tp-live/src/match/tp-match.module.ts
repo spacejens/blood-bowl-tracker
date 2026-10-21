@@ -11,7 +11,7 @@ import { ParseTpModule } from '@blood-bowl-tracker/parse-tp';
 import { Module } from '@nestjs/common';
 
 import { TpAdminMatchEventBuilderService } from './events/tp-admin-match-event-builder.service';
-import { TpMatchEventHelpersService } from './events/tp-match-event-helpers.service';
+import { TpMatchEventFieldsService } from './events/tp-match-event-fields.service';
 import { TpMatchEventKindBuildersService } from './events/tp-match-event-kind-builders.service';
 import { TpMatchEventsBuilderService } from './events/tp-match-events-builder.service';
 import { TpMatchEventsCorrelationService } from './events/tp-match-events-correlation.service';
@@ -48,7 +48,7 @@ import { TpMatchUpsertService } from './tp-match-upsert.service';
     TpMatchEventsBuilderService,
     TpMatchEventKindBuildersService,
     TpAdminMatchEventBuilderService,
-    TpMatchEventHelpersService,
+    TpMatchEventFieldsService,
     TpMatchEventsCorrelationService,
     TpMatchOutcomeService,
   ],

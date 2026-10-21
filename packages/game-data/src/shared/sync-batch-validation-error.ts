@@ -1,3 +1,5 @@
+import { GameDataError } from './game-data-error';
+
 /**
  * An authored-data problem in a sync batch, found before anything is
  * written: the batch names the same natural key twice, or an entry
@@ -9,4 +11,4 @@
  * Thrown directly by nothing: each service throws its own subclass, so the
  * error's class still says which kind of sync rejected the batch.
  */
-export class SyncBatchValidationError extends Error {}
+export class SyncBatchValidationError extends GameDataError {}

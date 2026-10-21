@@ -9,9 +9,4 @@ import { SyncBatchValidationError } from './sync-batch-validation-error';
  * Separate from CharacteristicFormatMismatchError, which keeps its one
  * meaning: characteristics that disagree with what their rules set declares.
  */
-export class PositionValidationError extends SyncBatchValidationError {
-  constructor(message: string) {
-    super(message);
-    this.name = 'PositionValidationError';
-  }
-}
+export class PositionValidationError extends SyncBatchValidationError {}

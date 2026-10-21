@@ -99,11 +99,17 @@ export type TpFeedParseResult =
  * that was merged into an already-queued import (see
  * `TpFeedImportService`): the notification that queued it reports it, and
  * the ones merged into it do not report it again.
+ *
+ * `cause` is the exception an import threw unexpectedly, set only for that
+ * kind of failure, so it can be logged as an error with its stack. A
+ * failure the import reported (a failed assessment, a wrong kind of page,
+ * TP still blocking) has none and is logged as a warning.
  */
 export interface TpFeedImportFailure {
   failed: true;
   headline: string;
   errors: string[];
+  cause?: unknown;
   alreadyReported?: true;
 }
 

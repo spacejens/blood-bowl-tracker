@@ -11,6 +11,7 @@ import { mock } from 'vitest-mock-extended';
 import { DiscordBotConfigService } from '../discord-bot-config.service';
 import { SleepService } from '../leader-election/sleep.service';
 import { ClockService } from '../shared/clock.service';
+import { ErrorLogService } from '../shared/error-log.service';
 import type { TpImportOutcome } from '../tp-import/tp-import-dispatch.service';
 import { TpImportDispatchService } from '../tp-import/tp-import-dispatch.service';
 import type { TpImportAssessment } from '../tp-import/tp-import-failure.service';
@@ -131,6 +132,7 @@ describe('TpFeedImportService', () => {
   let sleep: MockProxy<SleepService>;
   let clock: MockProxy<ClockService>;
   let blockNotice: MockProxy<TpFeedBlockNoticeService>;
+  let errorLog: MockProxy<ErrorLogService>;
 
   beforeEach(async () => {
     config = mock<DiscordBotConfigService>();
@@ -149,6 +151,7 @@ describe('TpFeedImportService', () => {
     blockNotice = mock<TpFeedBlockNoticeService>();
     blockNotice.announceBlocked.mockResolvedValue(undefined);
     blockNotice.announceResumed.mockResolvedValue(undefined);
+    errorLog = mock<ErrorLogService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpFeedImportService,
@@ -159,6 +162,7 @@ describe('TpFeedImportService', () => {
         { provide: SleepService, useValue: sleep },
         { provide: ClockService, useValue: clock },
         { provide: TpFeedBlockNoticeService, useValue: blockNotice },
+        { provide: ErrorLogService, useValue: errorLog },
       ],
     }).compile();
     service = moduleRef.get(TpFeedImportService);
@@ -247,6 +251,7 @@ describe('TpFeedImportService', () => {
       });
       expect(dispatch.dispatch).not.toHaveBeenCalled();
       expect(warn).toHaveBeenCalled();
+      expect(errorLog.logError).not.toHaveBeenCalled();
     });
 
     it('fails a match-start notification whose link is not a match page', async () => {
@@ -279,6 +284,7 @@ describe('TpFeedImportService', () => {
       expect(warn).toHaveBeenCalledWith(
         expect.stringContaining('TP import of team 167242 failed'),
       );
+      expect(errorLog.logError).not.toHaveBeenCalled();
     });
 
     it('reports partial success as a failure', async () => {
@@ -293,21 +299,43 @@ describe('TpFeedImportService', () => {
     });
 
     it('turns an unexpected error into a failure instead of rejecting', async () => {
-      dispatch.dispatch.mockRejectedValue(new Error('database down'));
+      const error = new Error('database down');
+      dispatch.dispatch.mockRejectedValue(error);
 
       await expect(service.enqueue(HIRED)).resolves.toEqual({
         failed: true,
         headline: 'TP import failed unexpectedly',
         errors: ['database down'],
+        cause: error,
       });
     });
 
-    it('reports a non-Error rejection as a string', async () => {
+    it('logs an unexpected error at error level with the error, not as a warning', async () => {
+      const error = new Error('database down');
+      dispatch.dispatch.mockRejectedValue(error);
+
+      await service.enqueue(HIRED);
+
+      expect(errorLog.logError).toHaveBeenCalledWith(
+        service['logger'],
+        `TP import failed unexpectedly — ${ROSTER_LINK}`,
+        error,
+      );
+      expect(warn).not.toHaveBeenCalled();
+    });
+
+    it('passes a non-Error rejection to the error log as the cause', async () => {
       dispatch.dispatch.mockRejectedValue('boom');
 
       await expect(service.enqueue(HIRED)).resolves.toMatchObject({
         errors: ['boom'],
+        cause: 'boom',
       });
+      expect(errorLog.logError).toHaveBeenCalledWith(
+        service['logger'],
+        `TP import failed unexpectedly — ${ROSTER_LINK}`,
+        'boom',
+      );
     });
   });
 
@@ -505,6 +533,21 @@ describe('TpFeedImportService', () => {
       expect(dispatch.dispatch).toHaveBeenCalledTimes(2);
     });
 
+    it('keeps going when logging an unexpected error throws', async () => {
+      errorLog.logError.mockImplementationOnce(() => {
+        throw new Error('logger broke');
+      });
+      dispatch.dispatch
+        .mockRejectedValueOnce(new Error('database down'))
+        .mockResolvedValueOnce(OUTCOME);
+
+      const one = service.enqueue(HIRED);
+      const two = service.enqueue(FIRED);
+
+      await expect(one).resolves.toMatchObject({ failed: true });
+      await expect(two).resolves.toEqual({ failed: false });
+    });
+
     it('keeps going after a failed job', async () => {
       vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
       dispatch.dispatch
@@ -654,6 +697,7 @@ describe('TpFeedImportService', () => {
       );
       expect(blockNotice.announceBlocked).toHaveBeenCalledTimes(1);
       expect(blockNotice.announceResumed).not.toHaveBeenCalled();
+      expect(errorLog.logError).not.toHaveBeenCalled();
     });
 
     it('does not count a retry the gate refused without contacting TP', async () => {

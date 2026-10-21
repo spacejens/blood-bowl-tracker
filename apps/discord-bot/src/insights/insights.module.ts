@@ -38,7 +38,7 @@ import { MonthDayService } from '../shared/month-day.service';
 import { NumberFormatterService } from '../shared/number-formatter.service';
 import { FACT_TREE } from './fact-tree.token';
 import { FactTreeFactoryService } from './fact-tree-factory.service';
-import { FactTreeUtilsService } from './fact-tree-utils.service';
+import { FactTreeNavigationService } from './fact-tree-navigation.service';
 import { CoachToplistService } from './facts/coach-toplist.service';
 import { CompetitionGroupsListService } from './facts/competition-groups-list.service';
 import { DateToplistFactsService } from './facts/date-toplist.service';
@@ -107,7 +107,7 @@ const GAME_DATA_MODULES = [
     MonthDayService,
     DateButtonIdService,
     FactTreeFactoryService,
-    FactTreeUtilsService,
+    FactTreeNavigationService,
     RandomSourceService,
     RandomInsightsScopeService,
     CoachToplistService,
@@ -150,7 +150,7 @@ const GAME_DATA_MODULES = [
     ClockService,
     MonthDayService,
     DateButtonIdService,
-    FactTreeUtilsService,
+    FactTreeNavigationService,
     RandomSourceService,
     RandomInsightsScopeService,
     CoachToplistService,

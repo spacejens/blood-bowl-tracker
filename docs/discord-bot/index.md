@@ -231,6 +231,25 @@ separators (`1,234`), and a counted noun agrees with its number (`1 day`,
 `gp` suffix. Ranks, years, dates and ids are not quantities and are printed
 as-is.
 
+### Presentation conventions
+
+The same concept is shown the same way in every reply:
+
+- **Date spans** (an era's or competition's `Dates:`, a coach's or team's
+  `Career:`, an era named with its range) go through
+  `DateRangeFormatterService`
+  (`apps/discord-bot/src/shared/date-range-formatter.service.ts`):
+  `2021-09-01 – 2023-06-10`, `2021-09-01 – present` for an ongoing range,
+  and a single `2024-03-16` when both ends fall on the same day.
+- **Points in time** (the startup message's commit time, TP back-off
+  deadlines) use Discord's timestamp markup, `<t:N:f>` with `N` in epoch
+  seconds, so each reader sees them in their own time zone.
+- **Bold** marks section headings in the text-style debug and admin replies
+  (`/importtp`, `/debugfilterusage`) only. Usernames are never bold, and
+  deepdive and list embeds stay plain.
+- **Star player points** are written as `SPP` in labels and headings.
+- **Titles** are sentence case (`Star players`, `Top bot users`).
+
 ### Drill-down buttons and blank entity names
 
 Every drill-down button and select-menu option (from both `/insights` and

@@ -23,7 +23,7 @@ posts successfully.
 Six notification kinds are recognised and interpreted:
 
 - Start of match
-- End of match (draw and win, with the score)
+- End of match (draw and win, with the score), e.g. `Match ended: A won 2-1 vs B` or `Match ended: A drew 1-1 vs B` (home team first for a draw)
 - New skill/characteristic gained by a player
 - Player hired
 - Player fired
@@ -89,13 +89,18 @@ A match-end notification can occasionally arrive before TP serves the
 completed match. That is reported as a failure in the debug channel, with no
 ✔️ reaction; running `/importtp` on the match link afterwards fixes it.
 
-A failed import is always logged. When a debug channel is configured it is
-also posted there as a short `TP import …` line keeping the notification's
-link, followed by one line per error. A post is limited to Discord's 2000
-characters: when the errors do not all fit, it lists the first ones that do
-and ends with a line saying how many more were left out, such as "…and 12
-more errors not shown."; when the first error is itself too long for the
-post, it is cut short and the note still says how many more were left out.
+A failed import is always logged. An import that throws unexpectedly is logged
+as an error with its stack trace when it has one, and otherwise with its error
+detail; a failure the import reported itself (a
+failed or partly failed import, a link to the wrong kind of page, or TP still
+blocking requests) is logged as a warning listing its errors. When a debug
+channel is configured it is also posted there as a short `TP import …` line
+keeping the notification's link, followed by one line per error. A post is
+limited to Discord's 2000 characters: when the errors do not all fit, it lists
+the first ones that do and ends with a line saying how many more were left
+out, such as "…and 12 more errors not shown."; when the first error is itself
+too long for the post, it is cut short and the note still says how many more
+were left out.
 
 ### When TP blocks requests
 

@@ -5,12 +5,14 @@ import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { DeploymentInfoService } from './deployment-info.service';
 import { DiscordBotConfigService } from './discord-bot-config.service';
+import { ErrorLogService } from './shared/error-log.service';
 import { StartupNotifierService } from './startup-notifier.service';
 
 describe('StartupNotifierService', () => {
   let discordClient: MockProxy<DiscordClientService>;
   let config: MockProxy<DiscordBotConfigService>;
   let deploymentInfo: MockProxy<DeploymentInfoService>;
+  let errorLog: MockProxy<ErrorLogService>;
   let service: StartupNotifierService;
 
   beforeEach(async () => {
@@ -25,12 +27,15 @@ describe('StartupNotifierService', () => {
       embeds: [{ title: 'Bot starting as active' }],
     });
 
+    errorLog = mock<ErrorLogService>();
+
     const moduleRef = await Test.createTestingModule({
       providers: [
         StartupNotifierService,
         { provide: DiscordClientService, useValue: discordClient },
         { provide: DiscordBotConfigService, useValue: config },
         { provide: DeploymentInfoService, useValue: deploymentInfo },
+        { provide: ErrorLogService, useValue: errorLog },
       ],
     }).compile();
     service = moduleRef.get(StartupNotifierService);
@@ -82,23 +87,35 @@ describe('StartupNotifierService', () => {
     });
 
     it('swallows a rejection from the REST client', async () => {
-      discordClient.sendMessageOverRest.mockRejectedValue(
-        new Error('401 Unauthorized'),
-      );
+      const error = new Error('401 Unauthorized');
+      discordClient.sendMessageOverRest.mockRejectedValue(error);
 
       await expect(
         service.postStandbyStartupMessage(),
       ).resolves.toBeUndefined();
+      expect(errorLog.logError).toHaveBeenCalledWith(
+        service['logger'],
+        'Failed to post standby startup message',
+        error,
+      );
     });
 
     it('swallows a missing channel configuration', async () => {
+      const error = new Error(
+        'STARTUP_MESSAGE_DISCORD_CHANNEL is not configured',
+      );
       config.getStartupMessageDiscordChannel.mockImplementation(() => {
-        throw new Error('STARTUP_MESSAGE_DISCORD_CHANNEL is not configured');
+        throw error;
       });
 
       await expect(
         service.postStandbyStartupMessage(),
       ).resolves.toBeUndefined();
+      expect(errorLog.logError).toHaveBeenCalledWith(
+        service['logger'],
+        'Failed to post standby startup message',
+        error,
+      );
       expect(discordClient.sendMessageOverRest).not.toHaveBeenCalled();
     });
 
@@ -111,6 +128,7 @@ describe('StartupNotifierService', () => {
       expect(discordClient.sendMessageOverRest).not.toHaveBeenCalled();
       expect(deploymentInfo.describe).not.toHaveBeenCalled();
       expect(discordClient.sendMessage).not.toHaveBeenCalled();
+      expect(errorLog.logError).not.toHaveBeenCalled();
     });
   });
 });

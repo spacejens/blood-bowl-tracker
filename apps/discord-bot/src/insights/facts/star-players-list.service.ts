@@ -42,7 +42,7 @@ export class StarPlayersListService {
       return {
         embeds: [
           {
-            title: 'Star Players',
+            title: 'Star players',
             description: STAR_PLAYERS_LIST_NO_DATA_MESSAGE,
           },
         ],
@@ -70,7 +70,7 @@ export class StarPlayersListService {
     return {
       embeds: [
         {
-          title: 'Star Players',
+          title: 'Star players',
           description: this.listDescription.build(names, overflowNote),
         },
       ],

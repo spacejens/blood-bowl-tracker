@@ -4,6 +4,7 @@ import type { Message } from 'discord.js';
 import { MessageFlags } from 'discord.js';
 
 import { DiscordBotConfigService } from '../discord-bot-config.service';
+import { ErrorLogService } from '../shared/error-log.service';
 import { TpFeedFormatterService } from './tp-feed-formatter.service';
 import { TpFeedImportService } from './tp-feed-import.service';
 import { TpFeedParserService } from './tp-feed-parser.service';
@@ -47,6 +48,7 @@ export class TpFeedListenerService implements OnModuleInit {
     private readonly parser: TpFeedParserService,
     private readonly formatter: TpFeedFormatterService,
     private readonly feedImport: TpFeedImportService,
+    private readonly errorLog: ErrorLogService,
   ) {}
 
   onModuleInit(): void {
@@ -176,7 +178,11 @@ export class TpFeedListenerService implements OnModuleInit {
       });
       return true;
     } catch (error) {
-      this.logFailure('Failed to post TP feed message', error);
+      this.errorLog.logError(
+        this.logger,
+        'Failed to post TP feed message',
+        error,
+      );
       return false;
     }
   }
@@ -190,14 +196,11 @@ export class TpFeedListenerService implements OnModuleInit {
     try {
       await message.react(PROCESSED_REACTION);
     } catch (error) {
-      this.logFailure('Failed to react to TP feed message', error);
+      this.errorLog.logError(
+        this.logger,
+        'Failed to react to TP feed message',
+        error,
+      );
     }
-  }
-
-  private logFailure(summary: string, error: unknown): void {
-    this.logger.error(
-      summary,
-      error instanceof Error ? (error.stack ?? error.message) : String(error),
-    );
   }
 }
