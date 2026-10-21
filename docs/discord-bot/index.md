@@ -220,6 +220,16 @@ effect immediately.
   imports the TP competition, match, team or official team list a URL
   points to, right away, replied ephemerally with a per-stage summary.
 
+### Number formatting
+
+Every quantity the bot prints goes through `NumberFormatterService`
+(`apps/discord-bot/src/shared/number-formatter.service.ts`), so equivalent
+numbers look the same in every reply: counts are grouped with thousands
+separators (`1,234`), and a counted noun agrees with its number (`1 day`,
+`91 days`, `1 serious injury`). Money amounts keep the same grouping with a
+`gp` suffix. Ranks, years, dates and ids are not quantities and are printed
+as-is.
+
 ### Drill-down buttons and blank entity names
 
 Every drill-down button and select-menu option (from both `/insights` and
