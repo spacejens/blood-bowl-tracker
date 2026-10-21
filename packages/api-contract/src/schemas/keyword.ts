@@ -38,6 +38,10 @@ export const ListKeywordsSchema = z.object({
   externalSystemId: z.number().int(),
 });
 
+/**
+ * One catalogue row as a given external system names it; `externalId` is this
+ * keyword's external id under the requested system.
+ */
 export const KeywordCatalogEntrySchema = z.object({
   keywordId: z.number(),
   name: z.string(),

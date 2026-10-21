@@ -30,7 +30,6 @@ export type {
 } from './insights/on-this-date.service';
 export { OnThisDateService } from './insights/on-this-date.service';
 export { KeywordsModule } from './keywords/keywords.module';
-export type { KeywordCatalogRow } from './keywords/keywords.service';
 export {
   KeywordsService,
   KeywordUpsertConflictError,
@@ -41,7 +40,6 @@ export {
   LeagueUpsertConflictError,
 } from './leagues/leagues.service';
 export { ManualImportBatchesModule } from './manual-import-batches/manual-import-batches.module';
-export type { ManualImportBatchRow } from './manual-import-batches/manual-import-batches.service';
 export {
   ManualImportBatchContentMismatchError,
   ManualImportBatchesService,
@@ -102,7 +100,6 @@ export type {
   PositionHeader,
   PositionPlayerCount,
   PositionTopPlayer,
-  SyncPositionRaceErasData,
 } from './positions/positions.service';
 export {
   PositionsService,
@@ -168,7 +165,6 @@ export {
 } from './trophies/trophies.service';
 export type { TrophyAwardRuleDescriptionInput } from './trophies/trophy-award-rule-description.service';
 export { TrophyAwardRuleDescriptionService } from './trophies/trophy-award-rule-description.service';
-export type { ComputeMissingTrophyAwardsResult } from './trophy-awards/missing-trophy-awards.service';
 export { MissingTrophyAwardsService } from './trophy-awards/missing-trophy-awards.service';
 export { TrophyAwardsModule } from './trophy-awards/trophy-awards.module';
 export type {

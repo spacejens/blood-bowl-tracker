@@ -1,15 +1,12 @@
+import type {
+  ManualImportBatch,
+  RecordManualImportBatch,
+} from '@blood-bowl-tracker/api-contract';
 import type { Db } from '@blood-bowl-tracker/db';
 import { asc, DB, eq, manualImportBatches } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { GameDataError } from '../shared/game-data-error';
-
-/** One recorded batch, as the API answers with it. */
-export interface ManualImportBatchRow {
-  name: string;
-  contentHash: string;
-  appliedAt: Date;
-}
 
 /**
  * Thrown by `record` when the batch is already recorded under a different
@@ -33,7 +30,7 @@ export class ManualImportBatchesService {
   constructor(@Inject(DB) private readonly db: Db) {}
 
   /** Every recorded batch, by name. */
-  listAll(): Promise<ManualImportBatchRow[]> {
+  listAll(): Promise<ManualImportBatch[]> {
     return this.db
       .select(columns)
       .from(manualImportBatches)
@@ -46,10 +43,9 @@ export class ManualImportBatchesService {
    * different hash means the batch was edited after it was applied, which is
    * rejected rather than silently overwriting the record.
    */
-  async record(data: {
-    name: string;
-    contentHash: string;
-  }): Promise<{ batch: ManualImportBatchRow; created: boolean }> {
+  async record(
+    data: RecordManualImportBatch,
+  ): Promise<{ batch: ManualImportBatch; created: boolean }> {
     // One atomic insert: a concurrent record of the same name loses the race
     // quietly and falls through to the lookup, instead of failing on the
     // unique constraint.
