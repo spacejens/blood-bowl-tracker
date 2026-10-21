@@ -129,7 +129,7 @@ export class DebugTopUsersCommandService implements OnModuleInit {
       .map((row, index) => {
         const noun =
           row.interactionCount === 1 ? 'interaction' : 'interactions';
-        return `${index + 1}. **${row.username}** — ${row.interactionCount} ${noun}`;
+        return `${index + 1}. ${row.username} — ${row.interactionCount} ${noun}`;
       })
       .join('\n');
   }
