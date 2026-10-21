@@ -1,10 +1,10 @@
-import type { Dirent } from 'node:fs';
-import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { TP_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/review-harness';
+import {
+  ManualBatchReaderService,
+  TP_EXTERNAL_SYSTEM_NAME,
+} from '@blood-bowl-tracker/review-harness';
 import { Injectable } from '@nestjs/common';
-import JSON5 from 'json5';
 
 import { StarPlayerReviewConfigService } from '../config/review-star-player-config.service';
 
@@ -48,40 +48,45 @@ export interface ManualCharacteristicsEntry {
 }
 
 /**
- * Reads the hand-curated data this review checks against: every
- * top-level section of every `.json5` file in every batch under
- * `<manual.dataDir>/batches/`, pooled in batch-name order and, within a batch,
- * filename order -- the order tools/import-manual applies them in. When a
- * later batch restates an entry with the same key (its external-id set, or its
- * position and rules set), the later one wins, in the earlier one's place.
- * Deliberately independent of tools/import-manual: this reads and shapes the
- * files, and runs none of the importer's processor logic -- that logic's
- * reading of these files is part of what the report exists to check.
+ * Reads the hand-curated data this review checks against: the top-level
+ * sections of every curated batch under `<manual.dataDir>/batches/`, pooled by
+ * the shared `ManualBatchReaderService` in batch-name order and, within a
+ * batch, filename order -- the order tools/import-manual applies them in. When
+ * a later batch restates an entry with the same key (its external-id set, or
+ * its position and rules set), the later one wins, in the earlier one's place.
+ * The shared reader only walks, parses and pools the files; every reading of
+ * what an entry means happens here. Deliberately independent of
+ * tools/import-manual: this reads and shapes the files, and runs none of the
+ * importer's processor logic -- that logic's reading of these files is part of
+ * what the report exists to check.
  *
  * A missing or malformed file degrades to an empty list, so one broken
  * curated file shows up as an empty raw sub-panel rather than failing the run.
  */
 @Injectable()
 export class ManualRawDataService {
-  private pooled: Promise<Map<string, unknown[]>> | undefined;
-
-  constructor(private readonly config: StarPlayerReviewConfigService) {}
+  constructor(
+    private readonly config: StarPlayerReviewConfigService,
+    private readonly batches: ManualBatchReaderService,
+  ) {}
 
   /** The curated star player entries (`isStarPlayer: true`), identity only. */
   async starPlayers(): Promise<ManualStarPlayerEntry[]> {
-    const entries = (await this.section('positions')).flatMap((entry) => {
+    const entries = (await this.batchSection('positions')).flatMap((entry) => {
       const name = this.string(entry, 'name');
       if (name === null || this.property(entry, 'isStarPlayer') !== true) {
         return [];
       }
       return [{ name, externalIds: this.refs(entry, 'externalIds') }];
     });
-    return this.latestByKey(entries, (e) => this.refsKey(e.externalIds));
+    return this.batches.latestByKey(entries, (e) =>
+      this.refsKey(e.externalIds),
+    );
   }
 
   /** The `positions` entries that state race/era availability. */
   async availability(): Promise<ManualAvailabilityEntry[]> {
-    const entries = (await this.section('positions'))
+    const entries = (await this.batchSection('positions'))
       .filter((entry) => this.property(entry, 'raceEras') !== undefined)
       .flatMap((entry) => {
         const name = this.string(entry, 'name');
@@ -95,7 +100,9 @@ export class ManualRawDataService {
               },
             ];
       });
-    return this.latestByKey(entries, (e) => this.refsKey(e.externalIds));
+    return this.batches.latestByKey(entries, (e) =>
+      this.refsKey(e.externalIds),
+    );
   }
 
   /**
@@ -104,7 +111,7 @@ export class ManualRawDataService {
    * matching the star's own `Name` external id.
    */
   async characteristics(): Promise<ManualCharacteristicsEntry[]> {
-    const entries = (await this.section('positionRulesSets')).flatMap(
+    const entries = (await this.batchSection('positionRulesSets')).flatMap(
       (entry) => {
         const position = this.ref(this.property(entry, 'position'));
         const rulesSet = this.ref(this.property(entry, 'rulesSet'));
@@ -124,7 +131,7 @@ export class ManualRawDataService {
         ];
       },
     );
-    return this.latestByKey(entries, (e) =>
+    return this.batches.latestByKey(entries, (e) =>
       this.pairKey(e.position, e.rulesSet),
     );
   }
@@ -133,12 +140,12 @@ export class ManualRawDataService {
    * The curated BB2025 keyword catalogue: every `keywords[]` entry, with its
    * `tourplay.net` external id (if any) pulled out as `code` -- that id is
    * what lets the TP raw panel turn a numeric code into a name. Written
-   * again in this tool's own terms, per the independence rule -- read by this
-   * tool's own batch reader, running none of tools/import-manual's loader
-   * logic, which is part of what the report exists to check.
+   * again in this tool's own terms, per the independence rule -- shaped here,
+   * running none of tools/import-manual's loader logic, which is part of what
+   * the report exists to check.
    */
   async keywords(): Promise<ManualKeywordEntry[]> {
-    const entries = (await this.section('keywords')).flatMap((entry) => {
+    const entries = (await this.batchSection('keywords')).flatMap((entry) => {
       const name = this.string(entry, 'name');
       const kind = this.string(entry, 'kind');
       if (name === null || kind === null) {
@@ -151,7 +158,17 @@ export class ManualRawDataService {
         },
       ];
     });
-    return this.latestByKey(entries, (e) => e.key).map((e) => e.keyword);
+    return this.batches
+      .latestByKey(entries, (e) => e.key)
+      .map((e) => e.keyword);
+  }
+
+  /** Every entry of one top-level section, across every curated batch. */
+  private batchSection(key: string): Promise<unknown[]> {
+    return this.batches.section(
+      join(this.config.getDataDir('manual'), 'batches'),
+      key,
+    );
   }
 
   /** An entry's `tourplay.net` external id, or null when it carries none. */
@@ -219,85 +236,5 @@ export class ManualRawDataService {
     rulesSet: ManualExternalIdRef,
   ): string {
     return `${position.system}|${position.id}::${rulesSet.system}|${rulesSet.id}`;
-  }
-
-  /**
-   * One entry per key, the last one read winning in the first one's place.
-   * An entry whose key is '' (no external ids) has no identity to match on,
-   * so it is always kept.
-   */
-  private latestByKey<T>(entries: T[], keyOf: (entry: T) => string): T[] {
-    const byKey = new Map<string, T>();
-    entries.forEach((entry, index) => {
-      const key = keyOf(entry);
-      byKey.set(key === '' ? `#${index}` : key, entry);
-    });
-    return [...byKey.values()];
-  }
-
-  /** Every entry of one top-level section, across every batch, in order. */
-  private async section(key: string): Promise<unknown[]> {
-    this.pooled ??= this.loadBatches();
-    return (await this.pooled).get(key) ?? [];
-  }
-
-  /**
-   * Every top-level array section of every `.json5` file of every batch
-   * directory under `<manual.dataDir>/batches/`, read once per process.
-   */
-  private async loadBatches(): Promise<Map<string, unknown[]>> {
-    const root = join(this.config.getDataDir('manual'), 'batches');
-    const pooled = new Map<string, unknown[]>();
-    for (const batch of await this.names(root, (e) => e.isDirectory())) {
-      const dir = join(root, batch);
-      for (const file of await this.names(dir, (e) =>
-        e.name.endsWith('.json5'),
-      )) {
-        const contents = await this.load(join(dir, file));
-        for (const [key, value] of Object.entries(contents)) {
-          if (Array.isArray(value)) {
-            pooled.set(key, [
-              ...(pooled.get(key) ?? []),
-              ...(value as unknown[]),
-            ]);
-          }
-        }
-      }
-    }
-    return pooled;
-  }
-
-  /** The sorted names of `dir`'s entries passing `keep`; none if unreadable. */
-  private async names(
-    dir: string,
-    keep: (entry: Dirent) => boolean,
-  ): Promise<string[]> {
-    try {
-      const entries = await readdir(dir, { withFileTypes: true });
-      return entries
-        .filter(keep)
-        .map((entry) => entry.name)
-        .sort();
-    } catch {
-      return [];
-    }
-  }
-
-  /** One file, JSON5-parsed; {} when it is missing, malformed or no object. */
-  private async load(path: string): Promise<Record<string, unknown>> {
-    let raw: string;
-    try {
-      raw = await readFile(path, 'utf8');
-    } catch {
-      return {};
-    }
-    try {
-      const parsed: unknown = JSON5.parse(raw);
-      return typeof parsed === 'object' && parsed !== null
-        ? (parsed as Record<string, unknown>)
-        : {};
-    } catch {
-      return {};
-    }
   }
 }

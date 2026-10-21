@@ -287,6 +287,7 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
 - **`tools/review-star-player`** (consumer, review aid) — renders raw BBL, TP and hand-curated star data beside imported `positions`, `position_rules_sets` and `positions_race_eras`, so a change to what any of the three importers stores for star players usually needs a matching renderer change here
   - Sibling of `tools/review-match`, `tools/review-player` and `tools/review-race`, structured the same way.
   - It interprets the raw sources itself and must never depend on `packages/game-data`, `packages/parse-tp`, `packages/import`, `tools/import-bbl`, `tools/import-tp`, `tools/import-manual` or `tools/review-race` (the mechanical file access is shared via `packages/read-bbl-mirror`, which carries no interpretation and so needs no such callout) (see `docs/review-star-player/index.md`).
+  - Walking the curated batches is shared the same way, via `packages/review-harness`'s `ManualBatchReaderService`, which shapes no entry: every reading of what a curated entry means stays in this tool.
   - That independence rule covers the domain-specific half only; the generic report scaffolding is shared on purpose via `packages/review-harness`.
   - It exists because `tools/review-race` deliberately excludes star players from its per-race panels — a star is not owned by one race, so a per-race report is the wrong place to review it.
 
