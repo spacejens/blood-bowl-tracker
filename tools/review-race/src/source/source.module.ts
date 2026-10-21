@@ -1,4 +1,5 @@
 import { BblMirrorReaderModule } from '@blood-bowl-tracker/read-bbl-mirror';
+import { ManualBatchReaderService } from '@blood-bowl-tracker/review-harness';
 import { Module } from '@nestjs/common';
 
 import { BblMirrorReaderService } from './bbl-mirror-reader.service';
@@ -21,6 +22,7 @@ const SOURCES = [
   BblRawPositionPageService,
   BblRawRaceIndexService,
   BblSkillEntryService,
+  ManualBatchReaderService,
   ManualRawDataService,
   TpRawOfficialTeamsIndexService,
   TpSkillMasterNamesService,

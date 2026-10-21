@@ -1637,9 +1637,6 @@ importers:
       cheerio:
         specifier: ^1.2.0
         version: 1.2.0
-      json5:
-        specifier: ^2.2.3
-        version: 2.2.3
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
