@@ -151,8 +151,14 @@ describe('RandomInsightsSchedulerService', () => {
   });
 
   it('swallows a failure to resolve the insight', async () => {
-    insightsCommand.resolveRandomFact.mockRejectedValue(new Error('db gone'));
+    const failure = new Error('db gone');
+    insightsCommand.resolveRandomFact.mockRejectedValue(failure);
     await expect(service.postRandomInsight()).resolves.toBeUndefined();
     expect(discordClient.sendMessage).not.toHaveBeenCalled();
+    expect(errorLog.logError).toHaveBeenCalledWith(
+      service['logger'],
+      expect.any(String),
+      failure,
+    );
   });
 });

@@ -136,6 +136,8 @@ export class TpFeedImportService {
   private logFailure(event: TpFeedEvent, result: TpFeedImportFailure): void {
     try {
       const summary = `${result.headline} — ${event.link}`;
+      // Checks for the key, not a defined value: an import that throws
+      // `undefined` is still an unexpected exception.
       if ('cause' in result) {
         this.errorLog.logError(this.logger, summary, result.cause);
       } else {

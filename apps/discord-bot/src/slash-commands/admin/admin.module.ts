@@ -14,6 +14,7 @@ import { ImportTpReplyService } from './import-tp-reply.service';
  * `TpImportModule` supplies the TP import dispatch and error-list fitting shared
  * with the TP feed; `TpPathsModule` the URL classifier. `DiscordBotConfigService` is global.
  * `SlashCommandRegistryModule` supplies the shared registry singleton.
+ * `ErrorLogService` is dependency-free and logs unexpected exceptions.
  */
 @Module({
   imports: [SlashCommandRegistryModule, TpImportModule, TpPathsModule],

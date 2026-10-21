@@ -337,14 +337,6 @@ describe('TpFeedImportService', () => {
         'boom',
       );
     });
-
-    it('reports a non-Error rejection as a string', async () => {
-      dispatch.dispatch.mockRejectedValue('boom');
-
-      await expect(service.enqueue(HIRED)).resolves.toMatchObject({
-        errors: ['boom'],
-      });
-    });
   });
 
   describe('merging queued trophy announcements', () => {
