@@ -1,3 +1,4 @@
+import type { ComputeMissingTrophyAwardsResult } from '@blood-bowl-tracker/api-contract';
 import type { Db } from '@blood-bowl-tracker/db';
 import {
   and,
@@ -34,15 +35,6 @@ import type {
   TrophyRuleEventTypes,
   TrophyRuleWinner,
 } from './trophy-rule-types';
-
-/** What one `computeMissingAwards` call did. */
-export interface ComputeMissingTrophyAwardsResult {
-  competitionId: number;
-  /** Awards this call actually created — an already-recorded one is not counted. */
-  createdAwardCount: number;
-  /** Every trophy this call recorded at least one new award for. */
-  awardedTrophyIds: number[];
-}
 
 /** One applicable trophy's rule, as read from `trophies`. */
 interface TrophyRuleRow {
