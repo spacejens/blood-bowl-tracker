@@ -1,11 +1,6 @@
-import {
-  InteractionEventsQueryService,
-  UsageTrackingService,
-} from '@blood-bowl-tracker/discord-bot-usage';
 import { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mock } from 'vitest-mock-extended';
 
 vi.mock('discord.js', async () =>
   (await import('./discord-js-mock.test-helpers.js')).discordJsModuleMock(),
@@ -25,6 +20,7 @@ import {
   installDiscordJsMocks,
   resetDiscordJsMocks,
 } from './discord-js-mock.test-helpers';
+import { HandledInteractionBuilderService } from './handled-interaction-builder.service';
 import {
   ADMIN_COMMAND_ROLE_ID,
   DISCORD_BOT_TOKEN,
@@ -78,10 +74,7 @@ describe('DiscordClientService', () => {
         DiscordClientService,
         MemberRoleAccessService,
         { provide: DISCORD_BOT_TOKEN, useValue: 'my-token' },
-        {
-          provide: UsageTrackingService,
-          useValue: mock<UsageTrackingService>(),
-        },
+        HandledInteractionBuilderService,
       ],
     }).compile();
     service = moduleRef.get(DiscordClientService);
@@ -267,12 +260,7 @@ describe('DiscordClientService', () => {
   it('provides DiscordClientService via forRootAsync', async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [DiscordClientModule.forRootAsync({ useFactory: () => 'tkn' })],
-    })
-      .overrideProvider(UsageTrackingService)
-      .useValue(mock<UsageTrackingService>())
-      .overrideProvider(InteractionEventsQueryService)
-      .useValue(mock<InteractionEventsQueryService>())
-      .compile();
+    }).compile();
     expect(moduleRef.get(DiscordClientService)).toBeInstanceOf(
       DiscordClientService,
     );
@@ -281,12 +269,7 @@ describe('DiscordClientService', () => {
   it('provides DiscordClientService via forRoot', async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [DiscordClientModule.forRoot({ token: 'tkn' })],
-    })
-      .overrideProvider(UsageTrackingService)
-      .useValue(mock<UsageTrackingService>())
-      .overrideProvider(InteractionEventsQueryService)
-      .useValue(mock<InteractionEventsQueryService>())
-      .compile();
+    }).compile();
     expect(moduleRef.get(DiscordClientService)).toBeInstanceOf(
       DiscordClientService,
     );
@@ -300,12 +283,7 @@ describe('DiscordClientService', () => {
           useRestrictedRoleIdFactory: () => 'role-1',
         }),
       ],
-    })
-      .overrideProvider(UsageTrackingService)
-      .useValue(mock<UsageTrackingService>())
-      .overrideProvider(InteractionEventsQueryService)
-      .useValue(mock<InteractionEventsQueryService>())
-      .compile();
+    }).compile();
     expect(moduleRef.get(RESTRICTED_COMMAND_ROLE_ID)).toBe('role-1');
   });
 
@@ -317,12 +295,7 @@ describe('DiscordClientService', () => {
           restrictedRoleId: 'role-1',
         }),
       ],
-    })
-      .overrideProvider(UsageTrackingService)
-      .useValue(mock<UsageTrackingService>())
-      .overrideProvider(InteractionEventsQueryService)
-      .useValue(mock<InteractionEventsQueryService>())
-      .compile();
+    }).compile();
     expect(moduleRef.get(RESTRICTED_COMMAND_ROLE_ID)).toBe('role-1');
   });
 
@@ -334,12 +307,7 @@ describe('DiscordClientService', () => {
           useAdminRoleIdFactory: () => 'admin-1',
         }),
       ],
-    })
-      .overrideProvider(UsageTrackingService)
-      .useValue(mock<UsageTrackingService>())
-      .overrideProvider(InteractionEventsQueryService)
-      .useValue(mock<InteractionEventsQueryService>())
-      .compile();
+    }).compile();
     expect(moduleRef.get(ADMIN_COMMAND_ROLE_ID)).toBe('admin-1');
   });
 
@@ -348,24 +316,14 @@ describe('DiscordClientService', () => {
       imports: [
         DiscordClientModule.forRoot({ token: 'tkn', adminRoleId: 'admin-1' }),
       ],
-    })
-      .overrideProvider(UsageTrackingService)
-      .useValue(mock<UsageTrackingService>())
-      .overrideProvider(InteractionEventsQueryService)
-      .useValue(mock<InteractionEventsQueryService>())
-      .compile();
+    }).compile();
     expect(moduleRef.get(ADMIN_COMMAND_ROLE_ID)).toBe('admin-1');
   });
 
   it('leaves the admin role id unset when forRootAsync has no admin factory', async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [DiscordClientModule.forRootAsync({ useFactory: () => 'tkn' })],
-    })
-      .overrideProvider(UsageTrackingService)
-      .useValue(mock<UsageTrackingService>())
-      .overrideProvider(InteractionEventsQueryService)
-      .useValue(mock<InteractionEventsQueryService>())
-      .compile();
+    }).compile();
     expect(moduleRef.get(ADMIN_COMMAND_ROLE_ID)).toBeUndefined();
   });
 

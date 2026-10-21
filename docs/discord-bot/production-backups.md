@@ -171,8 +171,8 @@ they fail, so a broken or missing backup is noticed before it is needed:
   resolves nothing: the caller's failed run is the signal. The calling job
   must still grant `issues: write`, because a called workflow's jobs cannot
   have more permissions than their caller grants.
-- Only the alert jobs, which run `dev-workflow-cli raise-alert` or
-  `resolve-alert` (see [dev-workflow-cli](../dev-workflow-cli/index.md)),
+- Only the alert jobs, which run `backup-cli raise-alert` or
+  `resolve-alert` (see [backup-cli](../backup-cli/index.md#backup-alerts)),
   get `issues: write`. The backup, verification and freshness jobs keep
   read-only repository access.
 

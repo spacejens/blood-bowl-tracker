@@ -4,6 +4,9 @@ import { runCli } from '@blood-bowl-tracker/cli-shared';
 import { INestApplicationContext } from '@nestjs/common';
 
 import { AppModule } from './app.module';
+import { BackupAlertArgsService } from './backup-alert/backup-alert-args.service';
+import { RaiseAlertService } from './backup-alert/raise-alert.service';
+import { ResolveAlertService } from './backup-alert/resolve-alert.service';
 import { CheckFreshnessService } from './check-freshness/check-freshness.service';
 import { CreateBackupService } from './create-backup/create-backup.service';
 import {
@@ -32,6 +35,8 @@ const SUBCOMMANDS = [
   'verify',
   'restore',
   'restore-production',
+  'raise-alert',
+  'resolve-alert',
 ] as const;
 
 type Subcommand = (typeof SUBCOMMANDS)[number];
@@ -125,6 +130,16 @@ function dispatch(
         .get(RestoreProductionArgsService)
         .parse(args.restoreProduction ?? []);
       return app.get(RestoreProductionService).run(request);
+    }
+    case 'raise-alert': {
+      const raiseRequest = app.get(BackupAlertArgsService).parse(process.argv);
+      return app.get(RaiseAlertService).run(raiseRequest);
+    }
+    case 'resolve-alert': {
+      const resolveRequest = app
+        .get(BackupAlertArgsService)
+        .parse(process.argv);
+      return app.get(ResolveAlertService).run(resolveRequest);
     }
   }
 }

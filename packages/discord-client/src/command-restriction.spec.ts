@@ -1,8 +1,6 @@
-import { UsageTrackingService } from '@blood-bowl-tracker/discord-bot-usage';
 import { Test } from '@nestjs/testing';
+import type { Mock } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { MockProxy } from 'vitest-mock-extended';
-import { mock } from 'vitest-mock-extended';
 
 vi.mock('discord.js', async () =>
   (await import('./discord-js-mock.test-helpers.js')).discordJsModuleMock(),
@@ -13,6 +11,8 @@ import {
   installDiscordJsMocks,
   resetDiscordJsMocks,
 } from './discord-js-mock.test-helpers';
+import { HandledInteractionBuilderService } from './handled-interaction-builder.service';
+import type { InteractionHandledListener } from './index';
 import {
   ADMIN_COMMAND_ROLE_ID,
   DISCORD_BOT_TOKEN,
@@ -30,7 +30,7 @@ const DENIAL_REPLY = {
 };
 
 describe('DiscordClientService restricted commands', () => {
-  let usageTracking: MockProxy<UsageTrackingService>;
+  let listener: Mock<InteractionHandledListener>;
   let discord: DiscordJsMocks;
 
   const flush = () => new Promise((resolve) => setImmediate(resolve));
@@ -50,11 +50,12 @@ describe('DiscordClientService restricted commands', () => {
         { provide: DISCORD_BOT_TOKEN, useValue: 'my-token' },
         { provide: RESTRICTED_COMMAND_ROLE_ID, useValue: roles.debug },
         { provide: ADMIN_COMMAND_ROLE_ID, useValue: roles.admin },
-        { provide: UsageTrackingService, useValue: usageTracking },
+        HandledInteractionBuilderService,
       ],
     }).compile();
     const service = moduleRef.get(DiscordClientService);
     service.onModuleInit();
+    service.registerInteractionHandledListener(listener);
     return service;
   }
 
@@ -93,8 +94,7 @@ describe('DiscordClientService restricted commands', () => {
     discord = installDiscordJsMocks();
     discord.client.destroy.mockResolvedValue(undefined);
     discord.client.application.commands.set.mockResolvedValue(undefined);
-    usageTracking = mock<UsageTrackingService>();
-    usageTracking.recordInteraction.mockResolvedValue(undefined);
+    listener = vi.fn<InteractionHandledListener>().mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -141,7 +141,7 @@ describe('DiscordClientService restricted commands', () => {
     expect(interaction.reply).toHaveBeenCalledWith(DENIAL_REPLY);
   });
 
-  it('records a refused attempt as a failure', async () => {
+  it('notifies listeners of a refused attempt as a failure', async () => {
     const service = await makeService({ debug: ROLE_ID });
     await service.registerCommands([
       {
@@ -155,7 +155,7 @@ describe('DiscordClientService restricted commands', () => {
     interactionHandler()(commandInteraction());
     await flush();
 
-    expect(usageTracking.recordInteraction).toHaveBeenCalledWith(
+    expect(listener).toHaveBeenCalledWith(
       expect.objectContaining({
         kind: 'command',
         name: 'debugstuff',

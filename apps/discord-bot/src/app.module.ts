@@ -19,6 +19,7 @@ import { SlashCommandsModule } from './slash-commands/slash-commands.module';
 import { StartupNotifierService } from './startup-notifier.service';
 import { TpConnectionModule } from './tp-connection.module';
 import { TpFeedModule } from './tp-feed/tp-feed.module';
+import { UsageRecordingModule } from './usage/usage-recording.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { TpFeedModule } from './tp-feed/tp-feed.module';
     InsightsModule,
     SlashCommandsModule,
     TpFeedModule,
+    UsageRecordingModule,
   ],
   controllers: [AppController],
   providers: [
