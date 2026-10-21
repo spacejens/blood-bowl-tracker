@@ -384,10 +384,9 @@ omitted otherwise rather than a placeholder line — a blank line and a
 awards before player awards. A team recipient is shown with its race and
 coach; a player recipient with their position, team, race and coach.
 
-Every participating team and the era are
-each rendered as a drill-down button (teams take priority over the era entry
-when the combined list is too long for buttons and switches to select
-menus). Each award recipient and each distinct trophy is also a drill-down
+Every participating team and the era are each rendered as a drill-down button
+(teams take priority over the era entry when the combined list is too long for
+buttons and switches to select menus). Each award recipient and each distinct trophy is also a drill-down
 button, after the team buttons and before the era button, and the embed also
 offers a drill-up button to the competition's recurring group, last of all.
 

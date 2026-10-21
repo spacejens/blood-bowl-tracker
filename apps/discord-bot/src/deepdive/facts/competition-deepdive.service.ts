@@ -71,9 +71,9 @@ type AwardContext = {
  * trophy this competition handed out and who received it, in the query's
  * team-awards-then-player-awards order; like the player and team deepdives,
  * the section is omitted entirely when nothing was handed out. Recipients are
- * decorated with the same race/coach (team) or position/team/race/coach (player) context the
- * trophy deepdive shows, so a reader can identify a winner they do not know
- * by name. Each recipient and each distinct trophy becomes a drill-down
+ * decorated with the same race/coach (team) or position/team/race/coach
+ * (player) context the trophy deepdive shows, so a reader can identify a
+ * winner they do not know by name. Each recipient and each distinct trophy becomes a drill-down
  * entry; a team that both participated and won is collapsed to one button by
  * `buildEntityComponents`' own dedup, so this service adds no team/player
  * dedup of its own (trophy entries are still locally deduped by id — see
