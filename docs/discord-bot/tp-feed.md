@@ -90,7 +90,8 @@ completed match. That is reported as a failure in the debug channel, with no
 ✔️ reaction; running `/importtp` on the match link afterwards fixes it.
 
 A failed import is always logged. An import that throws unexpectedly is logged
-as an error with its stack trace; a failure the import reported itself (a
+as an error with its stack trace when it has one, and otherwise with its error
+detail; a failure the import reported itself (a
 failed or partly failed import, a link to the wrong kind of page, or TP still
 blocking requests) is logged as a warning listing its errors. When a debug
 channel is configured it is also posted there as a short `TP import …` line
