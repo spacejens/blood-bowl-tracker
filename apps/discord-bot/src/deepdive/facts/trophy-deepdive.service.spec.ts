@@ -519,6 +519,24 @@ describe('TrophyDeepdiveService', () => {
     expect(lines[lines.length - 1]).toBe('…and 5 more not shown.');
   });
 
+  it('groups a remainder of a thousand or more in the overflow line', async () => {
+    const recipients = Array.from({ length: 30 }, (unused, index) =>
+      teamRecipient({
+        competitionName: `Season ${index + 1}`,
+        teamId: index + 1,
+        teamName: `Team ${index + 1}`,
+      }),
+    );
+    const { service } = await makeService({
+      trophies: makeTrophies(trophyHeader()),
+      trophyAwards: makeAwards(recipients, 1234 + 30),
+    });
+
+    const lines = descriptionLines(await service.resolve(1));
+
+    expect(lines[lines.length - 1]).toBe('…and 1,234 more not shown.');
+  });
+
   it('adds no overflow line when the recipients fit under the cap', async () => {
     // Two rows, and the count agrees there are only two — no remainder.
     const { service } = await makeService({

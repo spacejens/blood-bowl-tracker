@@ -222,7 +222,8 @@ effect immediately.
 
 ### Number formatting
 
-Every quantity the bot prints goes through `NumberFormatterService`
+Every count in `/insights`, `/deepdive` and `/onthisdate` replies goes through
+`NumberFormatterService`
 (`apps/discord-bot/src/shared/number-formatter.service.ts`), so equivalent
 numbers look the same in every reply: counts are grouped with thousands
 separators (`1,234`), and a counted noun agrees with its number (`1 day`,

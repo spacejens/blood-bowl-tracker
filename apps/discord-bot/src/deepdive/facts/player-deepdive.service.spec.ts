@@ -362,6 +362,22 @@ describe('PlayerDeepdiveService', () => {
     );
   });
 
+  it('groups a honors remainder of a thousand or more', async () => {
+    const { service } = await makeService({
+      players: makePlayers({
+        player: griff,
+        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+      }),
+      trophyAwards: makeTrophyAwards([mvp], 1235),
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    expect(result.embeds[0].description.split('\n')).toContain(
+      '…and 1,234 more not shown.',
+    );
+  });
+
   it("keeps the description within Discord's 4096-character embed limit even with many long honor names", async () => {
     const longHonors: PlayerHonor[] = Array.from(
       { length: 30 },

@@ -352,18 +352,19 @@ describe.each(cases)(
           .formatRow?.({ ...rows[0], contextSuffix: '', rank: 1 }),
       ).toBe(`1. ${rows[0].name} — ${rows[0].count}`);
     });
-
-    it('groups the count with thousands separators', async () => {
-      const players = mock<PlayersService>();
-      const { toplist } = await makeService(players);
-      expect(
-        toplist.options().formatRow?.({
-          ...rows[0],
-          count: 1234,
-          contextSuffix: '',
-          rank: 1,
-        }),
-      ).toBe(`1. ${rows[0].name} — 1,234`);
-    });
   },
 );
+
+describe('PlayerToplistService row formatting', () => {
+  it('groups the count with thousands separators', async () => {
+    const { toplist } = await makeService(mock<PlayersService>());
+    expect(
+      toplist.options().formatRow?.({
+        ...cases[0].rows[0],
+        count: 1234,
+        contextSuffix: '',
+        rank: 1,
+      }),
+    ).toBe(`1. ${cases[0].rows[0].name} — 1,234`);
+  });
+});

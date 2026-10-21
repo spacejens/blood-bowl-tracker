@@ -91,6 +91,12 @@ describe('PlayerDeepdiveService kills section', () => {
     );
   });
 
+  it('groups a Kills remainder of a thousand or more', async () => {
+    expect(await describeKills([victim], 1235)).toContain(
+      '…and 1,234 more not shown.',
+    );
+  });
+
   it('skips the kills list query for a player with no kills', async () => {
     const playerDeath = makePlayerDeath(null, [], 0);
     const { service } = await makeService({

@@ -413,21 +413,22 @@ describe.each(factoryCases)(
           .formatRow?.({ ...rows[0], contextSuffix: '', rank: 1 }),
       ).toBe(`1. ${rows[0].name} — ${rows[0].count}`);
     });
-
-    it('groups the count with thousands separators', async () => {
-      const teams = mock<TeamsService>();
-      const { toplist } = await makeService(teams);
-      expect(
-        toplist.options().formatRow?.({
-          ...rows[0],
-          count: 1234,
-          contextSuffix: '',
-          rank: 1,
-        }),
-      ).toBe(`1. ${rows[0].name} — 1,234`);
-    });
   },
 );
+
+describe('TeamToplistService row formatting', () => {
+  it('groups the count with thousands separators', async () => {
+    const { toplist } = await makeService(mock<TeamsService>());
+    expect(
+      toplist.options().formatRow?.({
+        ...factoryCases[0].rows[0],
+        count: 1234,
+        contextSuffix: '',
+        rank: 1,
+      }),
+    ).toBe(`1. ${factoryCases[0].rows[0].name} — 1,234`);
+  });
+});
 
 describe.each(handWrittenCases)(
   'TeamToplistService.$describeName',

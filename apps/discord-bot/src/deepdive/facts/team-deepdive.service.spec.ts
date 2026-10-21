@@ -892,4 +892,21 @@ describe('TeamDeepdiveService', () => {
       '…and 33 more not shown.',
     );
   });
+
+  it('groups an honors remainder of a thousand or more', async () => {
+    const { service } = await makeService({
+      teams: makeTeams({
+        team: grinders,
+        span: { start: '2021-09-01', end: '2023-06-10' },
+      }),
+      leaderboard: passthroughLeaderboard(),
+      trophyAwards: makeTrophyAwards([spikeCup], 1235),
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    expect(result.embeds[0].description.split('\n')).toContain(
+      '…and 1,234 more not shown.',
+    );
+  });
 });

@@ -269,6 +269,14 @@ describe('PlayerKillsSectionService', () => {
     );
   });
 
+  it('groups a kills remainder of a thousand or more', () => {
+    const section = build([namedVictim], 1235);
+
+    expect(section.lines[section.lines.length - 1]).toBe(
+      '…and 1,234 more not shown.',
+    );
+  });
+
   it('trims rows that do not fit the remaining description budget, and counts them in the note', () => {
     // A near-full description leaves room for no kill rows at all; the section
     // must still say how many kills there were rather than reading as none.
