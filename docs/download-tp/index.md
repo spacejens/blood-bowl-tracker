@@ -61,13 +61,15 @@ pnpm --filter @blood-bowl-tracker/download-tp run start
 No browser is needed.
 
 The official team list download runs first (see "What it does" above). It
-reads `connection.frontendBaseUrl` and `download.rulesSets` up front, and
-`connection.backendApiUrl` when it builds the first request — so a missing or
-incomplete value for any of those three fails fast, with a message naming the
-key to set, before any request is sent. `download.tournaments` is only read
-afterward, to decide whether to also run `downloadAllLeagues()` — so a missing
-or incomplete value there is only caught once the official-teams download has
-already run.
+reads `download.rulesSets` up front. When that list is empty it does nothing
+and reads no URL; otherwise it reads `connection.frontendBaseUrl` before
+creating its session and `connection.backendApiUrl` when it builds the first
+request — so a missing or incomplete value for any of those fails fast, with a
+message naming the key to set, before any request is sent. `download.tournaments`
+is only read afterward, to decide whether to also run `downloadAllLeagues()` —
+so a missing or incomplete value there is only caught once the official-teams
+download has already run. With both lists empty, neither URL is read and a
+missing one goes unnoticed.
 
 The download stops at the first request TP refuses with 403 "Access
 denied" — TP blocking the client — printing when TP may next be tried
