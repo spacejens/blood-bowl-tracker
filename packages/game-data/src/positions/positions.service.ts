@@ -374,7 +374,8 @@ export class PositionsService {
    * recorded as playable in that era), rejects the call with a
    * PositionValidationError naming it, rather than dropping the pair. A pair
    * repeated within the batch is not an error: the call is a set union, so
-   * the repeat collapses onto one link.
+   * the repeat collapses onto one link. A call with no race/era pairs is a
+   * no-op that does not check the position.
    */
   async syncRaceEras(
     data: SyncPositionRaceErasData,

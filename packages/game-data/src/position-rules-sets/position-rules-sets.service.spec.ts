@@ -75,10 +75,12 @@ const crpEntry = {
 describe('PositionRulesSetsService', () => {
   describe('sync', () => {
     it('leaves an existing row alone when the batch is insert-only', async () => {
-      // Query 0: formats. Query 1: the existing row. Nothing to insert and
-      // nothing to update, so no transaction at all.
+      // Query 0: formats. Query 1: the position lookup. Query 2: the
+      // existing row. Nothing to insert and nothing to update, so no
+      // transaction at all.
       const db = mockDb(
         [bb2020Formats],
+        [{ id: 3 }],
         [{ id: 21, positionId: 3, rulesSetId: 4 }],
       );
       const service = await makeService(db);
@@ -89,12 +91,12 @@ describe('PositionRulesSetsService', () => {
       });
 
       expect(result).toEqual({ positionRulesSetIds: [21] });
-      expect(db.chains).toHaveLength(2);
+      expect(db.chains).toHaveLength(3);
       expect(db.transaction).not.toHaveBeenCalled();
     });
 
     it('still inserts a missing row when the batch is insert-only', async () => {
-      const db = mockDb([bb2020Formats], [], [{ id: 22 }]);
+      const db = mockDb([bb2020Formats], [{ id: 3 }], [], [{ id: 22 }]);
       const service = await makeService(db);
 
       const result = await service.sync({
@@ -118,15 +120,16 @@ describe('PositionRulesSetsService', () => {
     });
 
     it('inserts a row whose characteristics match the declared formats', async () => {
-      // Query 0: the rules-set format lookup. Query 1: the existing-rows
-      // lookup (nothing there). Query 2: the insert.
-      const db = mockDb([bb2020Formats], [], [{ id: 21 }]);
+      // Query 0: the rules-set format lookup. Query 1: the position lookup.
+      // Query 2: the existing-rows lookup (nothing there). Query 3: the
+      // insert.
+      const db = mockDb([bb2020Formats], [{ id: 3 }], [], [{ id: 21 }]);
       const service = await makeService(db);
 
       const result = await service.sync({ entries: [bb2020Entry] });
 
       expect(result).toEqual({ positionRulesSetIds: [21] });
-      expect(firstCallArg(db.chains[2].values)).toEqual([
+      expect(firstCallArg(db.chains[3].values)).toEqual([
         {
           positionId: 3,
           rulesSetId: 4,
@@ -141,13 +144,13 @@ describe('PositionRulesSetsService', () => {
     });
 
     it('inserts a null passing for a rules set with no Passing characteristic', async () => {
-      const db = mockDb([crpFormats], [], [{ id: 22 }]);
+      const db = mockDb([crpFormats], [{ id: 3 }], [], [{ id: 22 }]);
       const service = await makeService(db);
 
       const result = await service.sync({ entries: [crpEntry] });
 
       expect(result).toEqual({ positionRulesSetIds: [22] });
-      expect(firstCallArg(db.chains[2].values)).toEqual([
+      expect(firstCallArg(db.chains[3].values)).toEqual([
         {
           positionId: 3,
           rulesSetId: 5,
@@ -214,6 +217,39 @@ describe('PositionRulesSetsService', () => {
       expect(db.transaction).not.toHaveBeenCalled();
     });
 
+    it('rejects an entry naming a position that does not exist, writing nothing', async () => {
+      // Query 0: formats. Query 1: the position lookup finds nothing.
+      const db = mockDb([bb2020Formats], []);
+      const service = await makeService(db);
+
+      const promise = service.sync({ entries: [bb2020Entry] });
+
+      await expect(promise).rejects.toBeInstanceOf(PositionValidationError);
+      await expect(promise).rejects.toThrow(
+        'Position 3 does not exist, so it cannot have characteristics under rules set 4',
+      );
+      expect(db.chains).toHaveLength(2);
+      expect(db.transaction).not.toHaveBeenCalled();
+    });
+
+    it('looks the positions up by the distinct ids the batch names', async () => {
+      const db = mockDb(
+        [bb2020Formats],
+        [{ id: 3 }, { id: 7 }],
+        [],
+        [{ id: 21 }, { id: 22 }],
+      );
+      const service = await makeService(db);
+
+      await service.sync({
+        entries: [bb2020Entry, { ...bb2020Entry, positionId: 7 }],
+      });
+
+      expect(extractFilterValues(firstCallArg(db.chains[1].where))).toEqual([
+        3, 7,
+      ]);
+    });
+
     it('validates the whole batch before any write, even when the bad entry is last', async () => {
       // Query 0: the rules-set format lookup for both rules sets in one
       // query. No further queries: the first entry passes validation, but
@@ -229,12 +265,14 @@ describe('PositionRulesSetsService', () => {
     });
 
     it('handles a batch mixing an insert and an update', async () => {
-      // Query 0: formats. Query 1: the existing-rows lookup finds only the
-      // position-3 pair. Query 2: the INSERT for the new position-7 pair.
-      // Query 3: the UPDATE for the existing position-3 pair.
+      // Query 0: formats. Query 1: the position lookup. Query 2: the
+      // existing-rows lookup finds only the position-3 pair. Query 3: the
+      // INSERT for the new position-7 pair. Query 4: the UPDATE for the
+      // existing position-3 pair.
       const newPositionEntry = { ...bb2020Entry, positionId: 7 };
       const db = mockDb(
         [bb2020Formats],
+        [{ id: 3 }, { id: 7 }],
         [{ id: 21, positionId: 3, rulesSetId: 4 }],
         [{ id: 30 }],
         [{ id: 21 }],
@@ -246,7 +284,7 @@ describe('PositionRulesSetsService', () => {
       });
 
       expect(result).toEqual({ positionRulesSetIds: [30, 21] });
-      expect(firstCallArg(db.chains[2].values)).toEqual([
+      expect(firstCallArg(db.chains[3].values)).toEqual([
         {
           positionId: 7,
           rulesSetId: 4,
@@ -257,7 +295,7 @@ describe('PositionRulesSetsService', () => {
           armour: 9,
         },
       ]);
-      expect(firstCallArg(db.chains[3].set)).toEqual({
+      expect(firstCallArg(db.chains[4].set)).toEqual({
         move: 7,
         strength: 3,
         agility: 3,
@@ -267,11 +305,12 @@ describe('PositionRulesSetsService', () => {
     });
 
     it('updates the existing row for a re-synced pair instead of duplicating it', async () => {
-      // Query 0: formats. Query 1: the existing-rows lookup finds the pair.
-      // Query 2: the UPDATE — and nothing else, which is what proves no
+      // Query 0: formats. Query 1: the position lookup. Query 2: the
+      // existing-rows lookup finds the pair. Query 3: the UPDATE — and nothing else, which is what proves no
       // second row was inserted for the same pair.
       const db = mockDb(
         [bb2020Formats],
+        [{ id: 3 }],
         [{ id: 21, positionId: 3, rulesSetId: 4 }],
         [{ id: 21 }],
       );
@@ -282,8 +321,8 @@ describe('PositionRulesSetsService', () => {
       });
 
       expect(result).toEqual({ positionRulesSetIds: [21] });
-      expect(db.chains).toHaveLength(3);
-      expect(firstCallArg(db.chains[2].set)).toEqual({
+      expect(db.chains).toHaveLength(4);
+      expect(firstCallArg(db.chains[3].set)).toEqual({
         move: 7,
         strength: 3,
         agility: 3,

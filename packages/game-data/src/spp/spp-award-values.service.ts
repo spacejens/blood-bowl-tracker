@@ -84,14 +84,14 @@ export class SppAwardValuesService {
       return { sppAwardValueIds: [] };
     }
 
-    await this.validateBatch(data);
+    const rulesSetIds = [
+      ...new Set(data.values.map((value) => value.rulesSetId)),
+    ];
+    await this.validateBatch(data, rulesSetIds);
 
     // Over-fetch by rules set and match in memory: the table holds only a few
     // dozen rows per rules set, and this avoids the null-safety awkwardness of
     // matching a nullable raceId in SQL.
-    const rulesSetIds = [
-      ...new Set(data.values.map((value) => value.rulesSetId)),
-    ];
     const existingRows = await this.db
       .select({
         id: sppAwardValues.id,
@@ -156,9 +156,13 @@ export class SppAwardValuesService {
    * path) or quietly let the last copy win (both taking the update path),
    * and a missing reference would surface as a raw foreign-key error. The
    * race lookup is skipped when every value is a baseline, since there is
-   * then no race to look up.
+   * then no race to look up. `rulesSetIds` is the batch's distinct rules-set
+   * ids, which `sync` also reuses for its existing-rows query.
    */
-  private async validateBatch(data: SyncSppAwardValues): Promise<void> {
+  private async validateBatch(
+    data: SyncSppAwardValues,
+    rulesSetIds: number[],
+  ): Promise<void> {
     const seenKeys = new Set<string>();
     for (const value of data.values) {
       const key = this.naturalKey(value);
@@ -174,9 +178,6 @@ export class SppAwardValuesService {
       seenKeys.add(key);
     }
 
-    const rulesSetIds = [
-      ...new Set(data.values.map((value) => value.rulesSetId)),
-    ];
     const raceIds = [
       ...new Set(
         data.values.flatMap((value) =>

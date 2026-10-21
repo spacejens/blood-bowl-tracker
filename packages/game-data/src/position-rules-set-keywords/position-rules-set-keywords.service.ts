@@ -44,9 +44,10 @@ interface ResolvedKeyword {
  * table's anchoring rule: a keyword cannot be recorded for a
  * position/rules-set pair whose characteristics have not been synced yet.
  *
- * Unlike PositionRulesSetSkillsService there is no second precondition to
- * check: a keyword is not recorded per rules set, so there is no
- * "does this keyword exist under this rules set" row to look up.
+ * The keyword itself must exist, but unlike PositionRulesSetSkillsService
+ * there is no per-rules-set precondition: a keyword is not recorded per
+ * rules set, so there is no "does this keyword exist under this rules set"
+ * row to look up.
  *
  * The row is its own natural key — there is no mutable payload column — so an
  * entry that already exists needs no write at all.
@@ -58,7 +59,8 @@ export class PositionRulesSetKeywordsService {
   /**
    * Insert any supplied keyword that is not already recorded, matched on its
    * natural key. Every validation runs over the whole batch before any write,
-   * so one bad entry fails the call rather than half-applying it.
+   * so one bad entry (a missing anchor row, an unknown keyword, or a
+   * duplicate triple) fails the call rather than half-applying it.
    */
   async sync(
     data: SyncPositionRulesSetKeywords,
@@ -126,6 +128,8 @@ export class PositionRulesSetKeywordsService {
         keywordId: entry.keywordId,
       });
     }
+
+    await this.rejectUnknownKeywords(data);
 
     const associationIds = [
       ...new Set(resolved.map((row) => row.positionRulesSetId)),
@@ -204,6 +208,32 @@ export class PositionRulesSetKeywordsService {
       });
       return { positionRulesSetKeywordIds: resultIds };
     });
+  }
+
+  /**
+   * One existence query for the batch's distinct keywords, so an entry
+   * naming a missing keyword fails with a KeywordValidationError instead of
+   * a raw foreign-key error from the insert.
+   */
+  private async rejectUnknownKeywords(
+    data: SyncPositionRulesSetKeywords,
+  ): Promise<void> {
+    const keywordIds = [
+      ...new Set(data.entries.map((entry) => entry.keywordId)),
+    ];
+    const keywordRows = await this.db
+      .select({ id: keywords.id })
+      .from(keywords)
+      .where(inArray(keywords.id, keywordIds));
+
+    const knownKeywordIds = new Set(keywordRows.map((row) => row.id));
+    for (const entry of data.entries) {
+      if (!knownKeywordIds.has(entry.keywordId)) {
+        throw new KeywordValidationError(
+          `Keyword ${entry.keywordId} does not exist, so position ${entry.positionId} cannot carry it under rules set ${entry.rulesSetId}`,
+        );
+      }
+    }
   }
 
   /**
