@@ -180,6 +180,16 @@ router's own comment and result schema in
 `packages/api-contract/src/contract.ts` explain why a given procedure is
 shaped this way instead of as an upsert, and its exact result shape.
 
+A sync that writes a caller-authored batch — `sppAwardValues.sync`,
+`positions.syncRaceEras`, `positionRulesSets.sync` and `skillRulesSets.sync`
+among them — validates the whole batch before writing anything. A batch that
+names one natural key twice, or an entry that references a row that does not
+exist, fails the whole call with `BAD_REQUEST` naming the offending entry,
+instead of a raw database error or an entry silently left out; the import
+tools record it as one `ImportError`. `positions.syncRaceEras` only ever adds
+availability links, so a pair repeated within its batch is not an error: it
+lands as one link.
+
 A procedure may also be plainly read-only, existing because a caller needs data
 that no `upsert` call's input or output can give it. Such a procedure writes
 nothing, and declares no contract errors. Current examples:

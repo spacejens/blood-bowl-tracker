@@ -654,4 +654,39 @@ describe('BblPositionRaceErasImportService', () => {
       },
     ]);
   });
+
+  it('counts a position whose race-era sync was rejected as not imported, keeping its error and syncing the rest', async () => {
+    // PositionsImportService.syncRaceEras records a rejected call -- here the
+    // server's BAD_REQUEST for a pair with no race_eras row -- into the
+    // errors list it is handed and answers undefined.
+    const rejection: ImportError = {
+      item: { positionId: 100 },
+      message:
+        'Failed to sync race eras for position 100: Race 7 is not available in era 500 (no race_eras row), so position 100 cannot be made available there',
+    };
+    const { service, mocks } = await makeService([makeEra()]);
+    mocks.positionsImport.syncRaceEras
+      .mockImplementationOnce((_data, errors) => {
+        errors.push(rejection);
+        return Promise.resolve(undefined);
+      })
+      .mockResolvedValueOnce({ positionId: 110, raceEraIds: [2] });
+
+    await service.syncPositionRaceEras({
+      positionRaceCandidates: new Map([
+        [100, { isStarPlayer: true, raceDbIds: new Set([7]) }],
+        [110, { isStarPlayer: true, raceDbIds: new Set([7]) }],
+      ]),
+      racesByBblId,
+      rulesSetsByName,
+      eraIdsByRaceId: new Map([[7, new Set([500])]]),
+      positionsUsedByEra: new Set(),
+    });
+
+    expect(mocks.positionsImport.syncRaceEras).toHaveBeenCalledTimes(2);
+    expect(resultArgs(mocks.importResults)).toEqual({
+      imported: 1,
+      errors: [rejection],
+    });
+  });
 });
