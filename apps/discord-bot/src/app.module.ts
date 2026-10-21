@@ -41,9 +41,9 @@ import { UsageRecordingModule } from './usage/usage-recording.module';
       useFactory: (config: DiscordBotConfigService) =>
         config.getDiscordBotToken(),
       useRestrictedRoleIdFactory: (config: DiscordBotConfigService) =>
-        config.getDebugCommandRoleId(),
+        config.getDebugCommandDiscordRoleId(),
       useAdminRoleIdFactory: (config: DiscordBotConfigService) =>
-        config.getAdminCommandRoleId(),
+        config.getAdminCommandDiscordRoleId(),
       inject: [DiscordBotConfigService],
     }),
     InsightsModule,

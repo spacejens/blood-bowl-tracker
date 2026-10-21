@@ -7,7 +7,7 @@ official team list. It lets a league administrator pull in TP data without
 waiting for automatic imports, and recover when those missed something.
 
 Access is limited to the league-administrator role: where the deployment
-sets `ADMIN_COMMAND_ROLE_ID` to a Discord server role id, only members
+sets `ADMIN_COMMAND_DISCORD_ROLE_ID` to a Discord server role id, only members
 holding that role can run it — anyone else gets a private "you don't have
 permission to use this command" reply, as does anyone running it in a direct
 message with the bot. Where that variable is unset, the command is open to

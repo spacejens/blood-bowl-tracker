@@ -60,8 +60,8 @@ describe('TpFeedListenerService', () => {
     formatter.formatImportFailure.mockReturnValue(
       'TP import of team 1 failed — https://tp/r/1',
     );
-    config.getTpFeedSourceDiscordChannel.mockReturnValue(SOURCE_CHANNEL);
-    config.getTpFeedDebugDiscordChannel.mockReturnValue(DEBUG_CHANNEL);
+    config.getTpFeedSourceDiscordChannelId.mockReturnValue(SOURCE_CHANNEL);
+    config.getTpFeedDebugDiscordChannelId.mockReturnValue(DEBUG_CHANNEL);
     config.getTpScrapingEnabled.mockReturnValue(true);
     parser.parse.mockReturnValue({
       status: 'event',
@@ -102,7 +102,7 @@ describe('TpFeedListenerService', () => {
   });
 
   it('never registers a handler when no source channel is configured', () => {
-    config.getTpFeedSourceDiscordChannel.mockReturnValue(undefined);
+    config.getTpFeedSourceDiscordChannelId.mockReturnValue(undefined);
 
     service.onModuleInit();
 
@@ -147,7 +147,7 @@ describe('TpFeedListenerService', () => {
     expect(formatter.formatUnrecognized).not.toHaveBeenCalled();
     expect(feedImport.enqueue).not.toHaveBeenCalled();
     expect(discordClient.sendMessage).not.toHaveBeenCalled();
-    expect(config.getTpFeedDebugDiscordChannel).not.toHaveBeenCalled();
+    expect(config.getTpFeedDebugDiscordChannelId).not.toHaveBeenCalled();
     expect(react).toHaveBeenCalledWith(PROCESSED_REACTION);
   });
 
@@ -191,7 +191,7 @@ describe('TpFeedListenerService', () => {
   it('posts nothing and does not react to an unrecognized message when no debug channel is configured', async () => {
     const react = vi.fn();
     parser.parse.mockReturnValue({ status: 'unrecognized' });
-    config.getTpFeedDebugDiscordChannel.mockReturnValue(undefined);
+    config.getTpFeedDebugDiscordChannelId.mockReturnValue(undefined);
     service.onModuleInit();
 
     await registeredHandler()(message(SOURCE_CHANNEL, react));
@@ -205,7 +205,7 @@ describe('TpFeedListenerService', () => {
 
   it('still parses and reacts but posts nothing when no debug channel is configured', async () => {
     const react = vi.fn();
-    config.getTpFeedDebugDiscordChannel.mockReturnValue(undefined);
+    config.getTpFeedDebugDiscordChannelId.mockReturnValue(undefined);
     service.onModuleInit();
 
     await registeredHandler()(message(SOURCE_CHANNEL, react));
@@ -310,7 +310,7 @@ describe('TpFeedListenerService', () => {
 
   it('still imports with no debug channel, posting nothing and not reacting on failure', async () => {
     const react = vi.fn();
-    config.getTpFeedDebugDiscordChannel.mockReturnValue(undefined);
+    config.getTpFeedDebugDiscordChannelId.mockReturnValue(undefined);
     feedImport.enqueue.mockResolvedValue(IMPORT_FAILURE);
     service.onModuleInit();
 
@@ -465,7 +465,7 @@ describe('TpFeedListenerService', () => {
 
     it('imports nothing, posts nothing and does not react when no debug channel is configured', async () => {
       const react = vi.fn();
-      config.getTpFeedDebugDiscordChannel.mockReturnValue(undefined);
+      config.getTpFeedDebugDiscordChannelId.mockReturnValue(undefined);
       service.onModuleInit();
 
       await registeredHandler()(message(SOURCE_CHANNEL, react));
