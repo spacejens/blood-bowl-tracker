@@ -1,7 +1,6 @@
 import { TpBlockedError } from '@blood-bowl-tracker/import-tp-live';
 import type { TpPageClassification } from '@blood-bowl-tracker/tp-paths';
 import { TpPageClassifierService } from '@blood-bowl-tracker/tp-paths';
-import { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type {
   ChatInputCommandInteraction,
@@ -17,6 +16,7 @@ import {
   IMPORT_TP_DISABLED_MESSAGE,
   IMPORT_TP_UNSUPPORTED_URL_MESSAGE,
 } from '../../error-messages';
+import { ErrorLogService } from '../../shared/error-log.service';
 import type { TpImportOutcome } from '../../tp-import/tp-import-dispatch.service';
 import { TpImportDispatchService } from '../../tp-import/tp-import-dispatch.service';
 import { SlashCommandRegistryService } from '../slash-command-registry.service';
@@ -59,6 +59,7 @@ describe('ImportTpCommandService', () => {
   let dispatch: MockProxy<TpImportDispatchService>;
   let reply: MockProxy<ImportTpReplyService>;
   let registry: DeepMockProxy<SlashCommandRegistryService>;
+  let errorLog: MockProxy<ErrorLogService>;
 
   beforeEach(async () => {
     config = mock<DiscordBotConfigService>();
@@ -71,6 +72,7 @@ describe('ImportTpCommandService', () => {
     reply = mock<ImportTpReplyService>();
     reply.build.mockReturnValue(REPLY);
     registry = mockDeep<SlashCommandRegistryService>();
+    errorLog = mock<ErrorLogService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
         ImportTpCommandService,
@@ -79,6 +81,7 @@ describe('ImportTpCommandService', () => {
         { provide: TpImportDispatchService, useValue: dispatch },
         { provide: ImportTpReplyService, useValue: reply },
         { provide: SlashCommandRegistryService, useValue: registry },
+        { provide: ErrorLogService, useValue: errorLog },
       ],
     }).compile();
     service = moduleRef.get(ImportTpCommandService);
@@ -215,13 +218,11 @@ describe('ImportTpCommandService', () => {
     expect(reply.blocked).toHaveBeenCalledWith(retryAt);
     expect(reply.build).not.toHaveBeenCalled();
     expect(reply.buildUnexpectedFailure).not.toHaveBeenCalled();
+    expect(errorLog.logError).not.toHaveBeenCalled();
   });
 
   it('replies with the unexpected-failure embed, and logs, when the import throws', async () => {
     const error = new Error('database down');
-    const logged = vi
-      .spyOn(Logger.prototype, 'error')
-      .mockImplementation(() => {});
     dispatch.dispatch.mockRejectedValue(error);
     reply.buildUnexpectedFailure.mockReturnValue(FAILURE_REPLY);
 
@@ -230,16 +231,14 @@ describe('ImportTpCommandService', () => {
     ).resolves.toBe(FAILURE_REPLY);
     expect(reply.buildUnexpectedFailure).toHaveBeenCalledWith(error);
     expect(reply.build).not.toHaveBeenCalled();
-    expect(logged).toHaveBeenCalledWith(
+    expect(errorLog.logError).toHaveBeenCalledWith(
+      service['logger'],
       `/importtp of ${ROSTER_URL} failed unexpectedly`,
-      error.stack,
+      error,
     );
   });
 
-  it('passes a non-Error rejection to the reply and logs it as a string', async () => {
-    const logged = vi
-      .spyOn(Logger.prototype, 'error')
-      .mockImplementation(() => {});
+  it('passes a non-Error rejection to the reply and to the error log', async () => {
     dispatch.dispatch.mockRejectedValue('boom');
     reply.buildUnexpectedFailure.mockReturnValue(FAILURE_REPLY);
 
@@ -248,7 +247,8 @@ describe('ImportTpCommandService', () => {
     ).resolves.toBe(FAILURE_REPLY);
     expect(reply.buildUnexpectedFailure).toHaveBeenCalledWith('boom');
     expect(reply.build).not.toHaveBeenCalled();
-    expect(logged).toHaveBeenCalledWith(
+    expect(errorLog.logError).toHaveBeenCalledWith(
+      service['logger'],
       `/importtp of ${ROSTER_URL} failed unexpectedly`,
       'boom',
     );

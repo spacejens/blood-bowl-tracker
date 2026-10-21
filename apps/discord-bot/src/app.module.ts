@@ -15,6 +15,7 @@ import { RandomInsightsSchedulerService } from './insights/random-insights-sched
 import { LeaderElectionService } from './leader-election/leader-election.service';
 import { ProcessExitService } from './leader-election/process-exit.service';
 import { SleepService } from './leader-election/sleep.service';
+import { ErrorLogService } from './shared/error-log.service';
 import { SlashCommandsModule } from './slash-commands/slash-commands.module';
 import { StartupNotifierService } from './startup-notifier.service';
 import { TpConnectionModule } from './tp-connection.module';
@@ -59,6 +60,7 @@ import { UsageRecordingModule } from './usage/usage-recording.module';
     ProcessExitService,
     SleepService,
     LeaderElectionService,
+    ErrorLogService,
   ],
 })
 export class AppModule {}

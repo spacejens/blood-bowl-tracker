@@ -3,6 +3,7 @@ import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 
 import { RandomInsightsSchedulerService } from '../insights/random-insights-scheduler.service';
+import { ErrorLogService } from '../shared/error-log.service';
 import { SlashCommandRegistryService } from '../slash-commands/slash-command-registry.service';
 import { StartupNotifierService } from '../startup-notifier.service';
 import { ProcessExitService } from './process-exit.service';
@@ -48,6 +49,7 @@ export class LeaderElectionService implements OnApplicationBootstrap {
     private readonly startupNotifier: StartupNotifierService,
     private readonly sleep: SleepService,
     private readonly processExit: ProcessExitService,
+    private readonly errorLog: ErrorLogService,
   ) {}
 
   /**
@@ -63,7 +65,11 @@ export class LeaderElectionService implements OnApplicationBootstrap {
       // unexpected bug. Logging alone would leave the machine passing its
       // health check forever while doing nothing — exit so Fly restarts it
       // into a clean process instead.
-      this.logger.error('Leader election loop failed; exiting', error);
+      this.errorLog.logError(
+        this.logger,
+        'Leader election loop failed; exiting',
+        error,
+      );
       this.processExit.exit(1);
     });
   }
@@ -124,9 +130,10 @@ export class LeaderElectionService implements OnApplicationBootstrap {
     try {
       await this.discordClient.connect();
     } catch (error) {
-      this.logger.error(
+      this.errorLog.logError(
+        this.logger,
         'Failed to connect to Discord; releasing the lock and retrying',
-        error instanceof Error ? error.stack : String(error),
+        error,
       );
       await this.lock.release();
       return false;
@@ -138,9 +145,10 @@ export class LeaderElectionService implements OnApplicationBootstrap {
       this.logger.log('Now active');
       return true;
     } catch (error) {
-      this.logger.error(
+      this.errorLog.logError(
+        this.logger,
         'Failed to complete startup after connecting to Discord; exiting',
-        error instanceof Error ? error.stack : String(error),
+        error,
       );
       this.processExit.exit(1);
       return false;

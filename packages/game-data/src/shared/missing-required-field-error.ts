@@ -1,3 +1,5 @@
+import { GameDataError } from './game-data-error';
+
 /**
  * Thrown by `upsertByExternalIds` when a payload lands on the *insert* path
  * (its external IDs matched no existing row) without supplying every column
@@ -14,4 +16,4 @@
  * `UpsertHandlerService` needs to catch it by `instanceof` to map it onto the
  * contract's BAD_REQUEST error.
  */
-export class MissingRequiredFieldError extends Error {}
+export class MissingRequiredFieldError extends GameDataError {}

@@ -3,6 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import { DeploymentInfoService } from './deployment-info.service';
 import { DiscordBotConfigService } from './discord-bot-config.service';
+import { ErrorLogService } from './shared/error-log.service';
 
 /**
  * Posts the boot announcement. Which method runs depends on leader election,
@@ -16,6 +17,7 @@ export class StartupNotifierService {
     private readonly discordClient: DiscordClientService,
     private readonly config: DiscordBotConfigService,
     private readonly deploymentInfo: DeploymentInfoService,
+    private readonly errorLog: ErrorLogService,
   ) {}
 
   /**
@@ -64,9 +66,10 @@ export class StartupNotifierService {
       );
       this.logger.log(`Posted standby startup message to channel ${channelId}`);
     } catch (error) {
-      this.logger.error(
+      this.errorLog.logError(
+        this.logger,
         'Failed to post standby startup message',
-        error instanceof Error ? error.stack : String(error),
+        error,
       );
     }
   }

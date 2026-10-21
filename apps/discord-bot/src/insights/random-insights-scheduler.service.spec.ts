@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { DiscordBotConfigService } from '../discord-bot-config.service';
+import { ErrorLogService } from '../shared/error-log.service';
 import { InsightsCommandService } from '../slash-commands/insights-command.service';
 import {
   RANDOM_INSIGHTS_JOB_NAME,
@@ -19,6 +20,7 @@ describe('RandomInsightsSchedulerService', () => {
   let config: MockProxy<DiscordBotConfigService>;
   let registry: MockProxy<SchedulerRegistry>;
   let scope: MockProxy<RandomInsightsScopeService>;
+  let errorLog: MockProxy<ErrorLogService>;
   let service: RandomInsightsSchedulerService;
 
   beforeEach(async () => {
@@ -32,6 +34,7 @@ describe('RandomInsightsSchedulerService', () => {
     registry = mock<SchedulerRegistry>();
     scope = mock<RandomInsightsScopeService>();
     scope.pickScope.mockResolvedValue({});
+    errorLog = mock<ErrorLogService>();
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -41,6 +44,7 @@ describe('RandomInsightsSchedulerService', () => {
         { provide: DiscordBotConfigService, useValue: config },
         { provide: SchedulerRegistry, useValue: registry },
         { provide: RandomInsightsScopeService, useValue: scope },
+        { provide: ErrorLogService, useValue: errorLog },
       ],
     }).compile();
     service = moduleRef.get(RandomInsightsSchedulerService);
@@ -135,18 +139,26 @@ describe('RandomInsightsSchedulerService', () => {
   });
 
   it('swallows and logs a failure to post, so later ticks still run', async () => {
-    const logged = vi
-      .spyOn(service['logger'], 'error')
-      .mockImplementation(() => undefined);
-    discordClient.sendMessage.mockRejectedValue(new Error('Discord is down'));
+    const error = new Error('Discord is down');
+    discordClient.sendMessage.mockRejectedValue(error);
 
     await expect(service.postRandomInsight()).resolves.toBeUndefined();
-    expect(logged).toHaveBeenCalled();
+    expect(errorLog.logError).toHaveBeenCalledWith(
+      service['logger'],
+      'Failed to post scheduled random insight',
+      error,
+    );
   });
 
   it('swallows a failure to resolve the insight', async () => {
-    insightsCommand.resolveRandomFact.mockRejectedValue(new Error('db gone'));
+    const failure = new Error('db gone');
+    insightsCommand.resolveRandomFact.mockRejectedValue(failure);
     await expect(service.postRandomInsight()).resolves.toBeUndefined();
     expect(discordClient.sendMessage).not.toHaveBeenCalled();
+    expect(errorLog.logError).toHaveBeenCalledWith(
+      service['logger'],
+      expect.any(String),
+      failure,
+    );
   });
 });
