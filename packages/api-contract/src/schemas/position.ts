@@ -35,4 +35,7 @@ export const SyncPositionRaceErasResultSchema = z.object({
 export type Position = z.infer<typeof PositionSchema>;
 export type UpsertPosition = z.infer<typeof UpsertPositionSchema>;
 export type SyncPositionRaceEras = z.infer<typeof SyncPositionRaceErasSchema>;
+export type SyncPositionRaceErasResult = z.infer<
+  typeof SyncPositionRaceErasResultSchema
+>;
 export type RaceEraRef = z.infer<typeof RaceEraRefSchema>;

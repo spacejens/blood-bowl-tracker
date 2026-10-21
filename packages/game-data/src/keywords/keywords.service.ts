@@ -1,5 +1,6 @@
 import type {
   ExternalId,
+  KeywordCatalogEntry,
   ResolveResult,
   UpsertKeyword,
 } from '@blood-bowl-tracker/api-contract';
@@ -17,7 +18,6 @@ import {
   positionRulesSetKeywords,
   positionRulesSets,
 } from '@blood-bowl-tracker/db';
-import type { KeywordKind } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { countRows } from '../shared/count-all';
@@ -26,15 +26,6 @@ import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
 export class KeywordUpsertConflictError extends UpsertConflictError {}
-
-/** One catalogue row as a given external system names it. */
-export interface KeywordCatalogRow {
-  keywordId: number;
-  name: string;
-  kind: KeywordKind;
-  /** This keyword's external id under the requested system. */
-  externalId: string;
-}
 
 /**
  * Owns the `keywords` catalogue: the BB2025 labels a position can carry.
@@ -98,7 +89,9 @@ export class KeywordsService {
    * keyword with two ids under one system (none today) yields two rows; the
    * caller keys by external id, so that is the useful shape.
    */
-  listByExternalSystem(externalSystemId: number): Promise<KeywordCatalogRow[]> {
+  listByExternalSystem(
+    externalSystemId: number,
+  ): Promise<KeywordCatalogEntry[]> {
     return this.db
       .select({
         keywordId: keywords.id,
