@@ -138,6 +138,86 @@ describe('PlayerSkillsSectionService', () => {
     ).toEqual(['Starting skills: Block']);
   });
 
+  it('marks a unique starting skill with the star', () => {
+    expect(
+      service.build([skill({ skillName: 'Treacherous', category: 'unique' })]),
+    ).toEqual(['Starting skills: ★ Treacherous']);
+  });
+
+  it('marks a unique gained skill with the star', () => {
+    expect(
+      service.build([
+        skill({
+          skillName: 'Treacherous',
+          source: 'chosen',
+          advancementOrder: 0,
+          category: 'unique',
+        }),
+      ]),
+    ).toEqual(['Gained skills: ★ Treacherous']);
+  });
+
+  it('shows the dice before the star when a unique skill was rolled', () => {
+    expect(
+      service.build([
+        skill({
+          skillName: 'Treacherous',
+          source: 'random',
+          advancementOrder: 0,
+          category: 'unique',
+        }),
+      ]),
+    ).toEqual(['Gained skills: ⚄ ★ Treacherous']);
+  });
+
+  it('shows the star before the gem when a skill is both unique and elite', () => {
+    // Curated data never has both, so this pins a deterministic tie-break
+    // rather than a real case.
+    expect(
+      service.build([
+        skill({
+          skillName: 'Treacherous',
+          source: 'random',
+          advancementOrder: 0,
+          category: 'unique',
+          isElite: true,
+        }),
+      ]),
+    ).toEqual(['Gained skills: ⚄ ★ ♦ Treacherous']);
+  });
+
+  it('shows the star and an attribute value together', () => {
+    expect(
+      service.build([
+        skill({
+          skillName: 'Treacherous',
+          category: 'unique',
+          attributeValue: '4+',
+        }),
+      ]),
+    ).toEqual(['Starting skills: ★ Treacherous (4+)']);
+  });
+
+  it('leaves a skill with no curated category unmarked', () => {
+    expect(
+      service.build([skill({ skillName: 'Block', category: null })]),
+    ).toEqual(['Starting skills: Block']);
+  });
+
+  it('leaves a non-unique category unmarked', () => {
+    expect(
+      service.build([
+        skill({ skillName: 'Block', category: 'general' }),
+        skill({
+          skillName: 'Guard',
+          source: 'chosen',
+          advancementOrder: 0,
+          category: 'strength',
+        }),
+      ]),
+    ).toEqual(['Starting skills: Block', 'Gained skills: Guard']);
+  });
+
   it('sorts starting skills alphabetically', () => {
     expect(
       service.build([
