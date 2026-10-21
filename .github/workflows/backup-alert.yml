@@ -1,4 +1,4 @@
-# Raises or resolves a production backup alert issue with dev-workflow-cli's
+# Raises or resolves a production backup alert issue with backup-cli's
 # raise-alert / resolve-alert. Called by the backup, verification and
 # freshness workflows; see docs/discord-bot/production-backups.md#alerts.
 #
@@ -51,9 +51,11 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --filter "@blood-bowl-tracker/dev-workflow-cli..."
-      - name: Build dev-workflow-cli
-        run: pnpm --filter "@blood-bowl-tracker/dev-workflow-cli..." run build
+        run: pnpm install --frozen-lockfile --filter "@blood-bowl-tracker/backup-cli..."
+      - name: Build backup-cli
+        run: pnpm --filter "@blood-bowl-tracker/backup-cli..." run build
+      # The alert subcommands use only gh; they need no backup settings, so
+      # this job has no environment, pre-flight step or BACKUP_* variables.
       # Inputs reach the script through the environment, never interpolated
       # into it. Prints the JSON result; a gh failure fails this job.
       - name: Update alert issue
@@ -71,4 +73,4 @@ jobs:
               exit 1
               ;;
           esac
-          node tools/dev-workflow-cli/dist/main.js "$COMMAND" "$KIND" "$RUN_URL"
+          node tools/backup-cli/dist/main.js "$COMMAND" "$KIND" "$RUN_URL"

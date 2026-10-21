@@ -7,9 +7,6 @@ import { INestApplicationContext } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
-import { BackupAlertArgsService } from './backup-alert/backup-alert-args.service';
-import { RaiseAlertService } from './backup-alert/raise-alert.service';
-import { ResolveAlertService } from './backup-alert/resolve-alert.service';
 import { CheckCoderabbitActivityService } from './check-coderabbit-activity/check-coderabbit-activity.service';
 import {
   CHECK_DEPENDENCY_DASHBOARD_USAGE,
@@ -39,8 +36,6 @@ const SUBCOMMANDS = [
   'acquire-review-lock',
   'heartbeat-review-lock',
   'release-review-lock',
-  'raise-alert',
-  'resolve-alert',
 ] as const;
 
 type Subcommand = (typeof SUBCOMMANDS)[number];
@@ -100,16 +95,6 @@ function dispatch(
     case 'release-review-lock': {
       const { holderId } = app.get(ReviewLockArgsService).parse(process.argv);
       return app.get(ReviewLockService).release(holderId);
-    }
-    case 'raise-alert': {
-      const raiseRequest = app.get(BackupAlertArgsService).parse(process.argv);
-      return app.get(RaiseAlertService).run(raiseRequest);
-    }
-    case 'resolve-alert': {
-      const resolveRequest = app
-        .get(BackupAlertArgsService)
-        .parse(process.argv);
-      return app.get(ResolveAlertService).run(resolveRequest);
     }
     case 'check-dependency-dashboard': {
       if (args.stdin === undefined) {

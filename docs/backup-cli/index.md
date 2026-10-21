@@ -11,6 +11,10 @@ automatically; such a caller must run verification itself, as the deploy
 workflow does before every deploy.
 `.github/workflows/check-backup-freshness.yml` runs its `check-freshness`
 subcommand daily, so a backup that silently stopped appearing is noticed.
+When any of those three workflows fails or later succeeds again, it calls
+`.github/workflows/backup-alert.yml`, which runs this CLI's `raise-alert` or
+`resolve-alert` to open or close a GitHub alert issue (see
+[Backup alerts](#backup-alerts)).
 CI's `migration-check` job in `.github/workflows/ci.yml` also runs `verify`,
 restoring the newest backup so a pull request's migrations can be applied
 to real data (see
@@ -34,6 +38,8 @@ For the bucket, tokens, schedule and retention policy, see
 | `verify <target-database-url> [<backup-key>]`                        | Restore the named backup, or the newest, into an empty local database and sanity-check it; prints key, restored migration count and key-table row counts         |
 | `restore [<backup-key>]`                                             | Replace the local development database (`localDatabase.url`) with the named backup, or the newest; prints key, restored migration count and key-table row counts |
 | `restore-production [<backup-key>] [--dry-run] [--confirm <phrase>]` | Replace production's application schemas with the named backup in one transaction; `--dry-run` only inspects and reports, and checks the newest without a key    |
+| `raise-alert <kind> <run-url>`                                       | Open the backup alert issue of a kind (`backup`, `verify`, `stale`) linking a failed workflow run, or comment on the one already open                            |
+| `resolve-alert <kind> <run-url>`                                     | Close the open backup alert issue of a kind, commenting with a link to the successful run                                                                        |
 
 Behaviors worth knowing:
 
@@ -141,6 +147,38 @@ Behaviors worth knowing:
 - `restore-production` downloads and writes its scripts into a temporary
   directory and removes it afterwards, whether the run succeeded or not.
 
+## Backup alerts
+
+```bash
+node tools/backup-cli/dist/main.js raise-alert <backup|verify|stale> <run-url>
+node tools/backup-cli/dist/main.js resolve-alert <backup|verify|stale> <run-url>
+```
+
+`<run-url>` must be a GitHub Actions run URL,
+`https://github.com/<owner>/<repo>/actions/runs/<id>`. `gh` takes its token
+and repository from `GH_TOKEN` and `GH_REPO`. The kinds, their fixed issue
+titles and the `backup-alert` label are defined once in
+`src/backup-alert/backup-alert-kinds.ts`; see
+[Database backups](../discord-bot/production-backups.md#alerts) for what each
+kind means. These two subcommands read none of the settings under
+[Configuration](#configuration), so `backup-alert.yml` runs them with no
+config file and no `BACKUP_*` variables.
+
+- `raise-alert` looks for an open issue labeled `backup-alert` with the
+  kind's exact title. If there is one, it comments `Failed again: <run-url>`
+  on it and prints `{"kind", "action": "commented", "issueNumber"}`.
+  Otherwise it creates (or updates) the `backup-alert` label, opens an issue
+  labeled `bug` and `backup-alert` linking the run, and prints
+  `{"kind", "action": "created", "issueUrl"}`.
+- `resolve-alert` closes every open issue of the kind with the comment
+  `Resolved: a later run succeeded: <run-url>` and prints
+  `{"kind", "closed": [<numbers>]}`; `closed` is empty when none was open.
+
+An unknown kind, a malformed run URL, or any failing `gh` call is an error
+(exit 1). A failed `raise-alert` fails the workflow job that called it, so
+the failure is visible. `backup-alert.yml` tolerates a failed `resolve-alert`
+(`continue-on-error`), which leaves the issue open until a later run.
+
 ## Running it
 
 ```bash
@@ -152,7 +190,8 @@ On success, every subcommand prints JSON on stdout. On failure it prints
 `{"error": ...}` on stderr and exits with status 1, like the repo's other
 CLIs. `create` needs `pg_dump` on `PATH`, and `verify`, `restore` and
 `restore-production` need `pg_restore` and `psql`, each at the production
-server's major version or newer.
+server's major version or newer. `raise-alert` and `resolve-alert` need `gh`
+on `PATH`.
 
 ## Configuration
 
@@ -169,14 +208,17 @@ environment to fix (see
 
 | Setting                                                    | Environment variable               | Needed by         |
 | ---------------------------------------------------------- | ---------------------------------- | ----------------- |
-| `storage.endpoint`                                         | `BACKUP_STORAGE_ENDPOINT`          | all               |
-| `storage.bucket`                                           | `BACKUP_STORAGE_BUCKET`            | all               |
-| `storage.accessKeyId`                                      | `BACKUP_STORAGE_ACCESS_KEY_ID`     | all               |
-| `storage.secretAccessKey`                                  | `BACKUP_STORAGE_SECRET_ACCESS_KEY` | all               |
+| `storage.endpoint`                                         | `BACKUP_STORAGE_ENDPOINT`          | storage commands  |
+| `storage.bucket`                                           | `BACKUP_STORAGE_BUCKET`            | storage commands  |
+| `storage.accessKeyId`                                      | `BACKUP_STORAGE_ACCESS_KEY_ID`     | storage commands  |
+| `storage.secretAccessKey`                                  | `BACKUP_STORAGE_SECRET_ACCESS_KEY` | storage commands  |
 | `database.url`                                             | `BACKUP_DATABASE_URL`              | `create`          |
 | `localDatabase.url` (default: the docker-compose database) | `BACKUP_LOCAL_DATABASE_URL`        | `restore`         |
 | `retentionDays` (default 30)                               | `BACKUP_RETENTION_DAYS`            | `prune`           |
 | `maxAgeHours` (default 36)                                 | `BACKUP_MAX_AGE_HOURS`             | `check-freshness` |
+
+The storage commands are every subcommand except `raise-alert` and
+`resolve-alert`, which read none of these settings.
 
 Put the **read-only** R2 token in your local file. It is enough for `list`,
 `check-freshness`, `download`, `verify`, `restore` and `restore-production`.
