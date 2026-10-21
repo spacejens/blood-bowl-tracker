@@ -30,7 +30,6 @@ export type {
 } from './insights/on-this-date.service';
 export { OnThisDateService } from './insights/on-this-date.service';
 export { KeywordsModule } from './keywords/keywords.module';
-export type { KeywordCatalogRow } from './keywords/keywords.service';
 export {
   KeywordsService,
   KeywordUpsertConflictError,
