@@ -12,13 +12,12 @@ export interface ResolveTeamEraOptions {
 /**
  * Small, pure, dependency-free `UpsertMatchEvent` field builders shared by
  * `TpMatchEventKindBuildersService` and `TpAdminMatchEventBuilderService` —
- * id resolution and `UpsertMatchEvent` field assembly with no branching on
- * external state. Hosted as a service, not a loose-function module, per this
- * repo's "Service vs. loose function" convention: pure data-transformation
- * functions with no dependencies of their own still become services here for
- * consistency, and neither injecting service performs I/O of its own, so
- * passing this one real (rather than mocking it) in their specs carries no
- * coupling risk.
+ * id resolution and field assembly with no branching on external state.
+ * Hosted as a service, not a loose-function module, per this repo's "Service
+ * vs. loose function" convention: pure data-transformation functions with no
+ * dependencies of their own still become services here for consistency, and
+ * neither injecting service performs I/O of its own, so passing this one real
+ * (rather than mocking it) in their specs carries no coupling risk.
  */
 @Injectable()
 export class TpMatchEventFieldsService {
