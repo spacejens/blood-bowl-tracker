@@ -38,13 +38,13 @@ under the `tloeg.bbleague.se` external system (`BBL_EXTERNAL_SYSTEM_NAME` in
     `import-bbl-config.json5` and `import-bbl-config.production.json5` are
     git-ignored, so they are never committed.
 - `leagues` — an array of the leagues the BBL data covers. Each entry has a
-  `leagueName` and an `eras` array. The BBL data mirror covers a single league
+  `name` and an `eras` array. The BBL data mirror covers a single league
   whose name is not present in the data, so league names are supplied here. Each
   league name is used as that league's external ID under both the
   `tloeg.bbleague.se` and `Name` external systems. Rules sets and eras are not present in the source
   data, so they are supplied here. **Nota bene: era names must be unique across
   all leagues**, since they feed a single flat era map downstream.
-  - `leagueName` — the name of a league the BBL data covers.
+  - `name` — the name of a league the BBL data covers.
   - `eras` — a JSON array describing the eras a league played through. Each
     entry is grouped into six parts:
     - `identity` — `name` and `rulesSets` (a non-empty array of the rules set

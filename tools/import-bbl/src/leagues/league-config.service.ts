@@ -22,7 +22,7 @@ export class LeagueConfigService {
     if (raw === undefined) {
       throw new Error(
         'leagues is not set in import-bbl-config.json5. Set it to a ' +
-          'non-empty array of leagues, each with a leagueName (e.g. "tLoEG").',
+          'non-empty array of leagues, each with a name (e.g. "tLoEG").',
       );
     }
     const parsed = leagueEntriesSchema.safeParse(raw);
@@ -37,13 +37,13 @@ export class LeagueConfigService {
     const names: string[] = [];
     const seen = new Set<string>();
     for (const entry of parsed.data) {
-      if (seen.has(entry.leagueName)) {
+      if (seen.has(entry.name)) {
         throw new Error(
-          `leagues: league name "${entry.leagueName}" appears more than once.`,
+          `leagues: league name "${entry.name}" appears more than once.`,
         );
       }
-      seen.add(entry.leagueName);
-      names.push(entry.leagueName);
+      seen.add(entry.name);
+      names.push(entry.name);
     }
     return names;
   }

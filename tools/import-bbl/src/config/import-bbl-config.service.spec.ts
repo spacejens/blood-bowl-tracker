@@ -44,7 +44,7 @@ describe('ImportBblConfigService', () => {
 
   it('names this tool config file when connection is not set', async () => {
     const path = writeConfig(`{
-      league: { leagueName: 'tLoEG', eras: [] },
+      league: { name: 'tLoEG', eras: [] },
     }`);
     const service = await makeService(path);
     expect(() => service.getApiBaseUrl()).toThrow(
@@ -77,13 +77,11 @@ describe('ImportBblConfigService', () => {
 
   it('reads top-level config values from the file', async () => {
     const path = writeConfig(`{
-      league: { leagueName: 'tLoEG', eras: [] },
+      league: { name: 'tLoEG', eras: [] },
       connection: {},
     }`);
     const service = await makeService(path);
-    expect(service.get<{ leagueName: string }>('league')?.leagueName).toBe(
-      'tLoEG',
-    );
+    expect(service.get<{ name: string }>('league')?.name).toBe('tLoEG');
   });
 });
 

@@ -134,8 +134,8 @@ export class EraConfigService {
     if (leaguesRaw === undefined) {
       throw new Error(
         'leagues is not set in import-bbl-config.json5. Set it to a ' +
-          'non-empty array of leagues, each with a leagueName and an eras ' +
-          'array, e.g. [{ leagueName: "tLoEG", eras: [ ... ] }].',
+          'non-empty array of leagues, each with a name and an eras ' +
+          'array, e.g. [{ name: "tLoEG", eras: [ ... ] }].',
       );
     }
     const leagues = leaguesShellSchema.safeParse(leaguesRaw);
@@ -159,7 +159,7 @@ export class EraConfigService {
           );
         }
         this.assertOverriddenCompetitionsUniqueWithinEra(parsed.data, eraIndex);
-        eras.push({ ...parsed.data, leagueName: league.leagueName });
+        eras.push({ ...parsed.data, leagueName: league.name });
       });
     });
 
@@ -174,7 +174,7 @@ export class EraConfigService {
         );
       }
       // era.leagueName is always set here: every entry in `eras` was just
-      // constructed above from a validated, non-empty leagueName.
+      // constructed above from a validated, non-empty league name.
       eraNameSeen.set(era.identity.name, era.leagueName as string);
     }
 

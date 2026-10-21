@@ -26,7 +26,7 @@ async function buildService(
 }
 
 function makeService(eras: unknown): Promise<EraConfigService> {
-  return buildService([{ leagueName: 'tLoEG', eras }]);
+  return buildService([{ name: 'tLoEG', eras }]);
 }
 
 function makeServiceForLeagues(leagues: unknown): Promise<EraConfigService> {
@@ -80,9 +80,9 @@ describe('EraConfigService', () => {
 
   it('names the correctly flattened index for a shape error in a later league', async () => {
     const service = await makeServiceForLeagues([
-      { leagueName: 'tLoEG', eras: [validEras[0], validEras[1]] },
+      { name: 'tLoEG', eras: [validEras[0], validEras[1]] },
       {
-        leagueName: 'GBBL',
+        name: 'GBBL',
         eras: [{ ...validEras[0], identity: { name: '', rulesSets: ['x'] } }],
       },
     ]);
@@ -104,7 +104,7 @@ describe('EraConfigService', () => {
   it('stamps each era with the name of the league it came from', async () => {
     const leagues = [
       {
-        leagueName: 'tLoEG',
+        name: 'tLoEG',
         eras: [
           {
             identity: { name: 'First era', rulesSets: ['BB2016'] },
@@ -114,7 +114,7 @@ describe('EraConfigService', () => {
         ],
       },
       {
-        leagueName: 'GBBL',
+        name: 'GBBL',
         eras: [
           {
             identity: { name: 'GBBL 1', rulesSets: ['BB2016'] },
@@ -139,10 +139,10 @@ describe('EraConfigService', () => {
     expect(eras[1].leagueName).toBe('GBBL');
   });
 
-  it('throws when a league entry has an empty leagueName', async () => {
+  it('throws when a league entry has an empty name', async () => {
     const leagues = [
       {
-        leagueName: '',
+        name: '',
         eras: [
           {
             identity: { name: 'First era', rulesSets: ['BB2016'] },
@@ -153,13 +153,13 @@ describe('EraConfigService', () => {
       },
     ];
     const service = await makeServiceForLeagues(leagues);
-    expect(() => service.getEras()).toThrow('leagues[0].leagueName');
+    expect(() => service.getEras()).toThrow('leagues[0].name');
   });
 
   it('rejects the same era name used in more than one league', async () => {
     const leagues = [
       {
-        leagueName: 'tLoEG',
+        name: 'tLoEG',
         eras: [
           {
             identity: { name: 'Shared', rulesSets: ['BB2016'] },
@@ -169,7 +169,7 @@ describe('EraConfigService', () => {
         ],
       },
       {
-        leagueName: 'GBBL',
+        name: 'GBBL',
         eras: [
           {
             identity: { name: 'Shared', rulesSets: ['BB2016'] },

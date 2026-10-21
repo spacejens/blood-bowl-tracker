@@ -25,7 +25,7 @@
   // league group because it describes where the source data lives on disk.
   dataDir: 'data/<subfolder>',
 
-  // An array of the leagues the BBL data covers. Each entry has a leagueName
+  // An array of the leagues the BBL data covers. Each entry has a name
   // and an eras array of the league's different eras. Rules sets and eras are
   // not present in the mirror, so they are supplied here. dataDir and
   // connection stay top-level/shared across all leagues
@@ -35,7 +35,7 @@
       // Name of the league the BBL data covers. The mirror covers a single league
       // whose name is not in the data. Used as the league's external ID under the
       // BBL and Name external systems.
-      leagueName: 'tLoEG',
+      name: 'tLoEG',
 
       // Eras the league played through. Each era is grouped into identity, dates,
       // players, and the optional competitions/teams/matches groups -- see the
@@ -292,7 +292,7 @@
       ],
     },
     {
-      leagueName: 'GBBL',
+      name: 'GBBL',
       eras: [
         {
           // GBBL 1 is a self-contained 11-team exhibition tournament (BBL season
