@@ -1,8 +1,3 @@
-import type {
-  InteractionParameter,
-  RecordInteractionInput,
-} from '@blood-bowl-tracker/discord-bot-usage';
-import { UsageTrackingService } from '@blood-bowl-tracker/discord-bot-usage';
 import {
   Inject,
   Injectable,
@@ -36,6 +31,12 @@ import {
   Routes,
 } from 'discord.js';
 
+import type {
+  HandledInteractionParameter,
+  InteractionHandledListener,
+} from './handled-interaction';
+import type { HandledInteractionOptions } from './handled-interaction-builder.service';
+import { HandledInteractionBuilderService } from './handled-interaction-builder.service';
 import { MemberRoleAccessService } from './member-role-access.service';
 
 export const DISCORD_BOT_TOKEN = Symbol('DISCORD_BOT_TOKEN');
@@ -65,13 +66,14 @@ const READY_TIMEOUT_MS = 30_000;
 /** Sent in place of a restricted command's reply when the role is missing. */
 const ACCESS_DENIED_MESSAGE = "You don't have permission to use this command.";
 
-/** Recorded as the `error_message` of a refused restricted-command attempt. */
+/** Reported as the `errorMessage` of a refused restricted-command attempt. */
 const ACCESS_DENIED_ERROR_MESSAGE = 'Missing required role';
 
 /**
  * `execute` should read only `interaction.options` and return its reply
  * rather than calling `interaction.reply()` itself — replying, logging and
- * usage recording all happen in the dispatcher, after `execute` returns.
+ * notifying interaction-handled listeners all happen in the dispatcher,
+ * after `execute` returns.
  * `apps/discord-bot`'s `/debuginteractions` retrigger button relies on this:
  * it calls a registered `execute` directly with a minimal fabricated
  * interaction exposing only `options`, bypassing the dispatcher entirely. A
@@ -136,19 +138,6 @@ export type SelectMenuHandler = (
  */
 export type MessageHandler = (message: Message) => Promise<void>;
 
-interface UsageInputOptions {
-  interaction:
-    | ChatInputCommandInteraction
-    | ButtonInteraction
-    | StringSelectMenuInteraction;
-  kind: RecordInteractionInput['kind'];
-  /** Command name, or the matched component customId prefix. */
-  name: string;
-  parameters: InteractionParameter[];
-  outcome: RecordInteractionInput['outcome'];
-  errorMessage?: string;
-}
-
 interface ReplyWithHandlerOptions {
   interaction: ButtonInteraction | StringSelectMenuInteraction;
   handle: () => Promise<string | InteractionReplyOptions>;
@@ -157,7 +146,7 @@ interface ReplyWithHandlerOptions {
   kind: 'button' | 'select_menu';
   /** The matched customId prefix, which is the catalog entry's name. */
   name: string;
-  parameters: InteractionParameter[];
+  parameters: HandledInteractionParameter[];
 }
 
 @Injectable()
@@ -172,6 +161,8 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   private readonly buttonHandlers = new Map<string, ButtonHandler>();
   private readonly selectMenuHandlers = new Map<string, SelectMenuHandler>();
   private readonly messageHandlers: MessageHandler[] = [];
+  private readonly interactionHandledListeners: InteractionHandledListener[] =
+    [];
 
   constructor(
     @Inject(DISCORD_BOT_TOKEN) private readonly token: string,
@@ -182,7 +173,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     @Inject(ADMIN_COMMAND_ROLE_ID)
     private readonly adminRoleId: string | undefined,
     private readonly memberRoleAccess: MemberRoleAccessService,
-    private readonly usageTracking: UsageTrackingService,
+    private readonly handledInteractionBuilder: HandledInteractionBuilderService,
   ) {
     // GuildMessages delivers messageCreate at all; MessageContent is the
     // privileged intent that ungates the content and embeds of messages the
@@ -390,6 +381,20 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Registers a listener told about every handled slash command, button
+   * click and select-menu selection, once the user has been replied to.
+   * Listeners are called in registration order and are independent: one
+   * that fails is logged as a warning and affects neither the reply nor the
+   * other listeners. This is how a host application records usage without
+   * this package knowing where or how it is stored.
+   */
+  registerInteractionHandledListener(
+    listener: InteractionHandledListener,
+  ): void {
+    this.interactionHandledListeners.push(listener);
+  }
+
+  /**
    * The button handler a given `customId` would route to, matched by the same
    * first-registered-prefix-wins rule the live dispatcher uses. Exposed so a
    * caller can invoke a component's handler without a real Discord event —
@@ -428,7 +433,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
           description: `button ${interaction.customId}`,
           kind: 'button',
           name: match.prefix,
-          parameters: this.componentIdParameters(
+          parameters: this.handledInteractionBuilder.componentIdParameters(
             interaction.customId,
             match.prefix,
           ),
@@ -449,7 +454,10 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
           kind: 'select_menu',
           name: match.prefix,
           parameters: [
-            ...this.componentIdParameters(interaction.customId, match.prefix),
+            ...this.handledInteractionBuilder.componentIdParameters(
+              interaction.customId,
+              match.prefix,
+            ),
             ...interaction.values.map((value) => ({ key: 'value', value })),
           ],
         });
@@ -465,11 +473,12 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     }
     if (this.isDenied(definition, interaction)) {
       await interaction.reply(this.accessDeniedReply());
-      void this.recordUsage({
+      this.notifyInteractionHandled({
         interaction,
         kind: 'command',
         name: interaction.commandName,
-        parameters: this.commandParameters(interaction),
+        parameters:
+          this.handledInteractionBuilder.commandParameters(interaction),
         outcome: 'failure',
         errorMessage: ACCESS_DENIED_ERROR_MESSAGE,
       });
@@ -484,11 +493,12 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
         `Handled /${interaction.commandName} from ${interaction.user.tag} (${interaction.user.id}) in ${this.describeChannel(interaction)} (${interaction.channelId})`,
       );
       await this.sendReply(interaction, content);
-      void this.recordUsage({
+      this.notifyInteractionHandled({
         interaction,
         kind: 'command',
         name: interaction.commandName,
-        parameters: this.commandParameters(interaction),
+        parameters:
+          this.handledInteractionBuilder.commandParameters(interaction),
         outcome: 'success',
       });
     } catch (error) {
@@ -500,11 +510,12 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
         (replyError: unknown) =>
           this.logger.error('Failed to send failure reply', replyError),
       );
-      void this.recordUsage({
+      this.notifyInteractionHandled({
         interaction,
         kind: 'command',
         name: interaction.commandName,
-        parameters: this.commandParameters(interaction),
+        parameters:
+          this.handledInteractionBuilder.commandParameters(interaction),
         outcome: 'failure',
         errorMessage: this.errorMessage(error),
       });
@@ -528,41 +539,33 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Records one handled interaction, best-effort. Deliberately swallows its
-   * own failure: the user has already been replied to by the time this runs,
-   * and a telemetry write must never turn a working command into a broken one.
-   * Callers fire it with `void` rather than awaiting it.
+   * Tells every interaction-handled listener about one handled interaction.
+   * Callers invoke it only after the user has been replied to, and it does
+   * not wait for the listeners.
    */
-  private async recordUsage(options: UsageInputOptions): Promise<void> {
-    try {
-      await this.usageTracking.recordInteraction(this.buildUsageInput(options));
-    } catch (error) {
-      this.logger.warn('Failed to record usage event', error);
+  private notifyInteractionHandled(options: HandledInteractionOptions): void {
+    for (const listener of this.interactionHandledListeners) {
+      void this.invokeListener(listener, options);
     }
   }
 
-  /** Extracts the Discord context every recorded interaction shares. */
-  private buildUsageInput(options: UsageInputOptions): RecordInteractionInput {
-    const { interaction } = options;
-    const member = interaction.member;
-    return {
-      kind: options.kind,
-      name: options.name,
-      occurredAt: interaction.createdAt,
-      discordUserId: interaction.user.id,
-      username: interaction.user.username,
-      discordGuildId: interaction.guildId ?? undefined,
-      guildName: interaction.guild?.name,
-      nickname: this.memberNickname(member),
-      discordChannelId: interaction.channelId,
-      channelName:
-        interaction.channel && 'name' in interaction.channel
-          ? (interaction.channel.name ?? undefined)
-          : undefined,
-      outcome: options.outcome,
-      errorMessage: options.errorMessage,
-      parameters: options.parameters,
-    };
+  /**
+   * Runs one listener, best-effort. Deliberately swallows its failure,
+   * whether a rejection or a synchronous throw: the user has already been
+   * replied to, and a listener must never turn a working command into a
+   * broken one or stop the other listeners. Each listener gets its own
+   * top-level event object; listeners are expected to treat the event as
+   * read-only.
+   */
+  private async invokeListener(
+    listener: InteractionHandledListener,
+    options: HandledInteractionOptions,
+  ): Promise<void> {
+    try {
+      await listener(this.handledInteractionBuilder.build(options));
+    } catch (error) {
+      this.logger.warn('Interaction-handled listener failed', error);
+    }
   }
 
   /**
@@ -591,9 +594,9 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
    * deployment with no configured role, is never refused and behaves
    * exactly like an open command.
    *
-   * A refusal is still recorded through the usual usage path as a failed
-   * command, so it needs no separate telemetry and shows up in the recorded
-   * interaction history like any other outcome.
+   * A refusal is still reported to interaction-handled listeners as a failed
+   * command, so it needs no separate telemetry and reaches them like any
+   * other outcome.
    */
   private isDenied(
     definition: SlashCommandDefinition,
@@ -653,52 +656,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  /**
-   * `interaction.member` is a cached `GuildMember` (field `nickname`) when
-   * the guild is already known to the client, or the raw
-   * `APIInteractionGuildMember` (field `nick`) otherwise. Both are checked
-   * so a nickname is still recorded in the raw-payload case.
-   */
-  private memberNickname(
-    member: ChatInputCommandInteraction['member'],
-  ): string | undefined {
-    if (!member) {
-      return undefined;
-    }
-    if ('nickname' in member) {
-      return member.nickname ?? undefined;
-    }
-    if ('nick' in member) {
-      return member.nick ?? undefined;
-    }
-    return undefined;
-  }
-
-  /**
-   * One parameter row per supplied slash-command option. A non-string option
-   * value (a number, a boolean, a resolved snowflake) is stringified, since
-   * the column is text.
-   *
-   * Reads `interaction.options.data` one level deep only: no command
-   * registered today uses subcommands or subcommand groups. A command that
-   * did would have its actual options nested under a single
-   * subcommand-named entry here instead of recorded directly.
-   */
-  private commandParameters(
-    interaction: ChatInputCommandInteraction,
-  ): InteractionParameter[] {
-    return interaction.options.data.map((option) => ({
-      key: option.name,
-      value:
-        option.value === undefined
-          ? undefined
-          : typeof option.value === 'string'
-            ? option.value
-            : JSON.stringify(option.value),
-    }));
-  }
-
-  /** The message of a caught error, for the `error_message` column. */
+  /** The message of a caught error, for `HandledInteraction.errorMessage`. */
   private errorMessage(error: unknown): string {
     return error instanceof Error ? error.message : String(error);
   }
@@ -717,8 +675,8 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   /**
    * Runs a component handler and replies with its output, logging the handled
    * component or falling back to the hurt message when the handler throws, and
-   * recording the interaction either way. Shared by the button and select-menu
-   * branches.
+   * notifying interaction-handled listeners either way. Shared by the button
+   * and select-menu branches.
    */
   private async replyWithHandler(
     options: ReplyWithHandlerOptions,
@@ -730,7 +688,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
         `Handled ${options.description} from ${interaction.user.tag} (${interaction.user.id}) in ${this.describeChannel(interaction)} (${interaction.channelId})`,
       );
       await this.sendReply(interaction, content);
-      void this.recordUsage({
+      this.notifyInteractionHandled({
         interaction,
         kind,
         name,
@@ -743,7 +701,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
         (replyError: unknown) =>
           this.logger.error('Failed to send failure reply', replyError),
       );
-      void this.recordUsage({
+      this.notifyInteractionHandled({
         interaction,
         kind,
         name,
@@ -752,19 +710,6 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
         errorMessage: this.errorMessage(error),
       });
     }
-  }
-
-  /**
-   * The dynamic remainder of a component's customId after the prefix that
-   * matched it — the per-instance payload the handler routes on. A customId
-   * that is exactly the prefix carries no payload and records no parameter.
-   */
-  private componentIdParameters(
-    customId: string,
-    prefix: string,
-  ): InteractionParameter[] {
-    const remainder = customId.slice(prefix.length);
-    return remainder === '' ? [] : [{ key: 'id', value: remainder }];
   }
 
   private describeChannel(interaction: Interaction): string {

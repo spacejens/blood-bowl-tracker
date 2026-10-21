@@ -16,4 +16,9 @@ export {
   DiscordClientService,
   RESTRICTED_COMMAND_ROLE_ID,
 } from './discord-client.service';
+export type {
+  HandledInteraction,
+  HandledInteractionParameter,
+  InteractionHandledListener,
+} from './handled-interaction';
 export { MemberRoleAccessService } from './member-role-access.service';

@@ -1,8 +1,6 @@
-import { UsageTrackingService } from '@blood-bowl-tracker/discord-bot-usage';
 import { Test } from '@nestjs/testing';
+import type { Mock } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { MockProxy } from 'vitest-mock-extended';
-import { mock } from 'vitest-mock-extended';
 
 vi.mock('discord.js', async () =>
   (await import('./discord-js-mock.test-helpers.js')).discordJsModuleMock(),
@@ -13,6 +11,8 @@ import {
   installDiscordJsMocks,
   resetDiscordJsMocks,
 } from './discord-js-mock.test-helpers';
+import { HandledInteractionBuilderService } from './handled-interaction-builder.service';
+import type { InteractionHandledListener } from './index';
 import {
   ADMIN_COMMAND_ROLE_ID,
   DISCORD_BOT_TOKEN,
@@ -24,7 +24,7 @@ import {
 const OCCURRED_AT = new Date('2026-09-25T12:00:00.000Z');
 
 describe('DiscordClientService deferred commands', () => {
-  let usageTracking: MockProxy<UsageTrackingService>;
+  let listener: Mock<InteractionHandledListener>;
   let discord: DiscordJsMocks;
 
   const flush = () => new Promise((resolve) => setImmediate(resolve));
@@ -43,11 +43,12 @@ describe('DiscordClientService deferred commands', () => {
         { provide: DISCORD_BOT_TOKEN, useValue: 'my-token' },
         { provide: RESTRICTED_COMMAND_ROLE_ID, useValue: undefined },
         { provide: ADMIN_COMMAND_ROLE_ID, useValue: adminRoleId },
-        { provide: UsageTrackingService, useValue: usageTracking },
+        HandledInteractionBuilderService,
       ],
     }).compile();
     const service = moduleRef.get(DiscordClientService);
     service.onModuleInit();
+    service.registerInteractionHandledListener(listener);
     return service;
   }
 
@@ -100,8 +101,7 @@ describe('DiscordClientService deferred commands', () => {
     discord = installDiscordJsMocks();
     discord.client.destroy.mockResolvedValue(undefined);
     discord.client.application.commands.set.mockResolvedValue(undefined);
-    usageTracking = mock<UsageTrackingService>();
-    usageTracking.recordInteraction.mockResolvedValue(undefined);
+    listener = vi.fn<InteractionHandledListener>().mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -168,7 +168,7 @@ describe('DiscordClientService deferred commands', () => {
 
     expect(interaction.editReply).toHaveBeenCalledWith('I am badly hurt');
     expect(interaction.reply).not.toHaveBeenCalled();
-    expect(usageTracking.recordInteraction).toHaveBeenCalledWith(
+    expect(listener).toHaveBeenCalledWith(
       expect.objectContaining({ outcome: 'failure' }),
     );
   });
@@ -191,7 +191,7 @@ describe('DiscordClientService deferred commands', () => {
     expect(interaction.reply).toHaveBeenCalledWith('the answer');
   });
 
-  it('falls back to a plain failure reply and still records usage when deferReply itself throws', async () => {
+  it('falls back to a plain failure reply and still notifies listeners when deferReply itself throws', async () => {
     const service = await makeService();
     const execute = vi.fn();
     await service.registerCommands([
@@ -212,12 +212,12 @@ describe('DiscordClientService deferred commands', () => {
     expect(execute).not.toHaveBeenCalled();
     expect(interaction.editReply).not.toHaveBeenCalled();
     expect(interaction.reply).toHaveBeenCalledWith('I am badly hurt');
-    expect(usageTracking.recordInteraction).toHaveBeenCalledWith(
+    expect(listener).toHaveBeenCalledWith(
       expect.objectContaining({ outcome: 'failure' }),
     );
   });
 
-  it('still records usage when both deferReply and the fallback failure reply throw', async () => {
+  it('still notifies listeners when both deferReply and the fallback failure reply throw', async () => {
     const service = await makeService();
     const execute = vi.fn();
     await service.registerCommands([
@@ -240,7 +240,7 @@ describe('DiscordClientService deferred commands', () => {
       })(),
     ).resolves.not.toThrow();
 
-    expect(usageTracking.recordInteraction).toHaveBeenCalledWith(
+    expect(listener).toHaveBeenCalledWith(
       expect.objectContaining({ outcome: 'failure' }),
     );
   });
