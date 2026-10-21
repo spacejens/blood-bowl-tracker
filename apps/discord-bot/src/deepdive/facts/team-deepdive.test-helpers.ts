@@ -14,6 +14,7 @@ import { passthroughEntityComponents } from '../../entity-components-mock.test-h
 import { LeaderboardService } from '../../insights/leaderboard.service';
 import { PlayerContextService } from '../../insights/player-context.service';
 import { passthroughPlayerContext } from '../../insights/player-context-mock.test-helpers';
+import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
 import { EraSectionGrouperService } from '../../shared/era-section-grouper.service';
 import { singleEraSectionGrouper } from '../../shared/era-section-grouper-mock.test-helpers';
 import { NumberFormatterService } from '../../shared/number-formatter.service';
@@ -140,6 +141,7 @@ export async function makeService({
     providers: [
       TeamDeepdiveService,
       NumberFormatterService,
+      DateRangeFormatterService,
       { provide: TeamsService, useValue: teams },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: LeaderboardService, useValue: leaderboard },

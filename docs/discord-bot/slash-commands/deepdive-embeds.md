@@ -27,7 +27,8 @@ competition's deepdive.
 
 The coach
 name as the title, then their career span (the first and last dates across
-every match they have played), a blank line, then a ranked list of their top
+every match they have played, or a single date when both fall on the same
+day), a blank line, then a ranked list of their top
 five teams by matches played. Ties at the fifth-place cutoff
 are all shown, up to ten teams — the same convention `/insights` toplists
 use; at most ten teams are fetched for a deepdive, so the toplists'
@@ -39,7 +40,8 @@ drill-down button to that team's deepdive, ahead of the era header buttons.
 ## `team`
 
 The team name as the title, then its race, its coach, its era list, its career span
-(the first and last dates across every match it has played).
+(the first and last dates across every match it has played, or a single
+date when both fall on the same day).
 
 A team that exists but has recorded no matches shows a short "hasn't played yet" message
 in place of the career span, trophies and player list, but still shows its
@@ -191,10 +193,10 @@ nothing-memorable-yet-style message instead of an empty list.
 ### Star player points
 
 Then — only when the player has a computed star player point total, with no
-line at all otherwise — a blank line, an optional adjustment line, shown
-only when a nonzero manual adjustment has been applied (the total already
-includes it; the line is just calling that out), and the player's total
-star player points.
+line at all otherwise — a blank line, an optional `SPP adjustment:` line,
+shown only when a nonzero manual adjustment has been applied (the total
+already includes it; the line is just calling that out), and the player's
+`Total SPP:` line.
 
 ### Kills list
 
@@ -370,11 +372,11 @@ button per listed top player.
 ## `competition`
 
 The competition name as the title, then its type — a season or a cup — its
-era, its competition group, and its duration, with an ongoing competition
+era, its competition group, and its dates, with an ongoing competition
 marked as still running, a blank line, and
 every participating team, one line each with its race and coach. The era line
 names the era and its date range, with an ongoing era marked as still
-running — distinct from the competition's own `Duration:` line above. A
+running — distinct from the competition's own `Dates:` line above. A
 competition with no participating teams shows a short "nobody has signed up
 yet" message instead of a list.
 

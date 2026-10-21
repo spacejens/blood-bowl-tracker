@@ -24,7 +24,7 @@ export interface DeploymentInfo {
   /**
    * When the running commit was made, as the raw ISO-8601 committer date
    * (`git log -1 --format=%cI`), carrying whatever UTC offset the machine
-   * that made the commit had. `describe()` renders it in UTC.
+   * that made the commit had. `describe()` renders it as Discord timestamp markup.
    */
   commitTimestamp?: string;
 }
@@ -95,19 +95,17 @@ export class DeploymentInfoService {
   }
 
   /**
-   * Renders the raw ISO-8601 committer date as `YYYY-MM-DD HH:mm UTC`. The
-   * source carries whatever UTC offset the committer's machine had, so it is
-   * normalised to UTC — one fixed zone every reader can compare against,
-   * rather than a zone that silently varies per commit. Seconds are dropped:
-   * minute resolution is enough to tell one deploy from another. An
-   * unparseable value returns undefined so the field is omitted rather than
-   * shown as `Invalid Date`, matching every other best-effort field here.
+   * Renders the raw ISO-8601 committer date as Discord timestamp markup
+   * (`<t:N:f>`, N in epoch seconds), so each reader sees the commit time in
+   * their own zone, the same way the bot's other points in time render.
+   * Sub-second precision is dropped by flooring. An unparseable value returns
+   * undefined so the field is omitted rather than shown as `Invalid Date`,
+   * matching every other best-effort field here.
    */
   private formatCommitTimestamp(raw: string): string | undefined {
     const parsed = new Date(raw);
     if (Number.isNaN(parsed.getTime())) return undefined;
-    const iso = parsed.toISOString();
-    return `${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC`;
+    return `<t:${Math.floor(parsed.getTime() / 1000)}:f>`;
   }
 
   /**

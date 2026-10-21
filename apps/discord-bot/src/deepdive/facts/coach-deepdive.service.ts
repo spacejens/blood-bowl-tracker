@@ -19,6 +19,7 @@ import {
   MAX_LEADERBOARD_ENTRIES,
 } from '../../insights/leaderboard.service';
 import { TeamContextService } from '../../insights/team-context.service';
+import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
 import { NumberFormatterService } from '../../shared/number-formatter.service';
 import {
   COACH_BUTTON_CUSTOM_ID_PREFIX,
@@ -50,6 +51,7 @@ export class CoachDeepdiveService {
     private readonly entityComponents: EntityComponentsService,
     private readonly teamContext: TeamContextService,
     private readonly numbers: NumberFormatterService,
+    private readonly dateRangeFormatter: DateRangeFormatterService,
   ) {}
 
   async resolve(coachId: number): Promise<string | InteractionReplyOptions> {
@@ -157,7 +159,7 @@ export class CoachDeepdiveService {
 
     const description = [
       `Eras: ${eraNames}`,
-      `Career: ${span.start} – ${span.end}`,
+      `Career: ${this.dateRangeFormatter.format(span.start, span.end)}`,
       '',
       'Top teams by matches played:',
       ...teamLines,

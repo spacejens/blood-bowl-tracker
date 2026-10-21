@@ -193,8 +193,7 @@ describe('DebugTopUsersCommandService', () => {
       embeds: [
         {
           title: 'Top bot users',
-          description:
-            '1. **alice** — 42 interactions\n2. **bob** — 17 interactions',
+          description: '1. alice — 42 interactions\n2. bob — 17 interactions',
         },
       ],
       flags: MessageFlags.Ephemeral,
@@ -211,9 +210,9 @@ describe('DebugTopUsersCommandService', () => {
     const reply = await service.execute(interaction({}));
 
     expect(description(reply).split('\n')).toEqual([
-      '1. **first** — 3 interactions',
-      '2. **second** — 3 interactions',
-      '3. **third** — 1 interaction',
+      '1. first — 3 interactions',
+      '2. second — 3 interactions',
+      '3. third — 1 interaction',
     ]);
   });
 

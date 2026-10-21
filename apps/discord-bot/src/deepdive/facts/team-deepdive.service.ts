@@ -24,6 +24,7 @@ import {
   MAX_LEADERBOARD_ENTRIES,
 } from '../../insights/leaderboard.service';
 import { PlayerContextService } from '../../insights/player-context.service';
+import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
 import { EraSectionGrouperService } from '../../shared/era-section-grouper.service';
 import { NumberFormatterService } from '../../shared/number-formatter.service';
 import {
@@ -81,6 +82,7 @@ export class TeamDeepdiveService {
     private readonly eraSectionGrouper: EraSectionGrouperService,
     private readonly playerRowButton: PlayerRowButtonService,
     private readonly numbers: NumberFormatterService,
+    private readonly dateRangeFormatter: DateRangeFormatterService,
   ) {}
 
   async resolve(teamId: number): Promise<string | InteractionReplyOptions> {
@@ -296,7 +298,7 @@ export class TeamDeepdiveService {
 
     const description = [
       ...header,
-      `Career: ${span.start} – ${span.end}`,
+      `Career: ${this.dateRangeFormatter.format(span.start, span.end)}`,
       ...(honorLines.length === 0 ? [] : ['', ...honorLines]),
       '',
       'Top players by SPP:',

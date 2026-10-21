@@ -31,6 +31,7 @@ import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers
 import { LeaderboardService } from '../../insights/leaderboard.service';
 import { TeamContextService } from '../../insights/team-context.service';
 import { passthroughTeamContext } from '../../insights/team-context-mock.test-helpers';
+import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
 import { NumberFormatterService } from '../../shared/number-formatter.service';
 import {
   COACH_BUTTON_CUSTOM_ID_PREFIX,
@@ -63,6 +64,7 @@ async function makeService({
     providers: [
       CoachDeepdiveService,
       NumberFormatterService,
+      DateRangeFormatterService,
       { provide: CoachesService, useValue: coaches },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: LeaderboardService, useValue: leaderboard },
@@ -303,6 +305,29 @@ describe('CoachDeepdiveService', () => {
     });
     const result = await service.resolve(1);
     expect(result).not.toHaveProperty('components');
+  });
+
+  it('renders a one-day career as a single date', async () => {
+    const leaderboard = mock<LeaderboardService>();
+    leaderboard.topRanksWithTies.mockReturnValue({
+      rows: [],
+      truncatedCount: 0,
+      tieGroupOpenEnded: false,
+    });
+    const { service } = await makeService({
+      coaches: makeCoaches({
+        coach: { id: 1, name: 'Roze Madder' },
+        span: { start: '2024-03-16', end: '2024-03-16' },
+        topTeams: [],
+      }),
+      leaderboard,
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    expect(result.embeds[0].description.split('\n')).toContain(
+      'Career: 2024-03-16',
+    );
   });
 
   it('shows the no-matches message and skips the top-teams section', async () => {

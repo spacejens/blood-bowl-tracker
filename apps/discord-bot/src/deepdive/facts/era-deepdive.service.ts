@@ -120,7 +120,7 @@ export class EraDeepdiveService {
     const description = [
       `League: ${era.leagueName}`,
       `Dates: ${dates}`,
-      `Rules: ${rules}`,
+      `Rules sets: ${rules}`,
       `External systems: ${externalSystemsLine}`,
       '',
       ...competitionLines,
