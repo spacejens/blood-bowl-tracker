@@ -1,10 +1,6 @@
 import { CliSharedModule } from '@blood-bowl-tracker/cli-shared';
 import { Module } from '@nestjs/common';
 
-import { BackupAlertArgsService } from './backup-alert/backup-alert-args.service';
-import { BackupAlertIssuesService } from './backup-alert/backup-alert-issues.service';
-import { RaiseAlertService } from './backup-alert/raise-alert.service';
-import { ResolveAlertService } from './backup-alert/resolve-alert.service';
 import { CheckCoderabbitActivityService } from './check-coderabbit-activity/check-coderabbit-activity.service';
 import { CheckDependencyDashboardService } from './check-dependency-dashboard/check-dependency-dashboard.service';
 import { CheckDriftService } from './check-drift/check-drift.service';
@@ -43,10 +39,6 @@ import { WaitForPrReviewFiltersService } from './wait-for-pr-review/wait-for-pr-
     WaitForPrReviewFiltersService,
     PullRequestReviewCommentsService,
     WaitForPrReviewArgsService,
-    BackupAlertArgsService,
-    BackupAlertIssuesService,
-    RaiseAlertService,
-    ResolveAlertService,
   ],
 })
 export class AppModule {}

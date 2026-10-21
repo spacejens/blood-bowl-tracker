@@ -10,9 +10,8 @@ const ALERT_WORKFLOW = './.github/workflows/backup-alert.yml';
 
 /**
  * The kind ids of `BACKUP_ALERT_KINDS` in
- * `tools/dev-workflow-cli/src/backup-alert/backup-alert-kinds.ts`. Repeated
- * here because workflow-lint does not depend on dev-workflow-cli; update both
- * together.
+ * `tools/backup-cli/src/backup-alert/backup-alert-kinds.ts`. Repeated here
+ * because workflow-lint does not depend on backup-cli; update both together.
  */
 const KIND_IDS = ['backup', 'verify', 'stale'];
 const COMMANDS = ['raise-alert', 'resolve-alert'];
@@ -100,13 +99,13 @@ describe('jobs calling backup-alert.yml', () => {
     expect(actual.sort()).toEqual(EXPECTED_CALLERS);
   });
 
-  it('pass a kind that dev-workflow-cli knows', () => {
+  it('pass a kind that backup-cli knows', () => {
     for (const caller of callers) {
       expect(KIND_IDS, `kind of ${caller.where}`).toContain(caller.kind);
     }
   });
 
-  it('pass a command that dev-workflow-cli implements', () => {
+  it('pass a command that backup-cli implements', () => {
     for (const caller of callers) {
       expect(COMMANDS, `command of ${caller.where}`).toContain(caller.command);
     }

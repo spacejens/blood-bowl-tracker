@@ -10,8 +10,7 @@ for what that means in practice. But the pattern is also useful on its own merit
 that constraint: packaging multi-step logic (a poll loop, a stray-work check,
 a review-comment post) behind one tested command is more repeatable and
 reliable than re-deriving the equivalent shell inline every time a skill
-needs it. Two subcommands, `raise-alert` and `resolve-alert`, are called by the
-production backup GitHub Actions workflows rather than by skills.
+needs it.
 
 ## Subcommands
 
@@ -27,8 +26,6 @@ production backup GitHub Actions workflows rather than by skills.
 | `acquire-review-lock` | Take the machine-wide review lock, waiting in a FIFO queue until it is free — serializes review-triggering activity across parallel sessions in different worktrees |
 | `heartbeat-review-lock` | Refresh the lock this session holds so another session does not reclaim it as stale |
 | `release-review-lock` | Hand the lock to the next queued session, or drop this session's queue ticket |
-| `raise-alert` | Open the backup alert issue of a kind (`backup`, `verify`, `stale`) linking a failed workflow run, or comment on the one already open |
-| `resolve-alert` | Close the open backup alert issue of a kind, commenting with a link to the successful run |
 
 ## Running it
 
@@ -160,34 +157,6 @@ Its caller is `finish-renovate-pr`, which runs it once before its review loop.
 Skills operating on developer-authored PRs deliberately do **not** use this — nudging unconditionally there would pre-empt CodeRabbit's normal automatic review and spend rate-limit budget for nothing.
 
 A failing `gh` lookup, or output that is neither `true` nor `false`, is an error (exit 1) rather than a `false` — callers decide how to handle it (see `finish-renovate-pr`'s Phase 4 Integration step 5, which warns and continues with no trigger).
-
-### `raise-alert` / `resolve-alert` usage
-
-```bash
-node tools/dev-workflow-cli/dist/main.js raise-alert <backup|verify|stale> <run-url>
-node tools/dev-workflow-cli/dist/main.js resolve-alert <backup|verify|stale> <run-url>
-```
-
-`<run-url>` must be a GitHub Actions run URL,
-`https://github.com/<owner>/<repo>/actions/runs/<id>`. `gh` takes its token
-and repository from `GH_TOKEN` and `GH_REPO`. The kinds, their fixed issue
-titles and the `backup-alert` label are defined once in
-`src/backup-alert/backup-alert-kinds.ts`; see
-[Database backups](../discord-bot/production-backups.md#alerts) for what each
-kind means.
-
-- `raise-alert` looks for an open issue labeled `backup-alert` with the
-  kind's exact title. If there is one, it comments `Failed again: <run-url>`
-  on it and prints `{"kind", "action": "commented", "issueNumber"}`.
-  Otherwise it creates (or updates) the `backup-alert` label, opens an issue
-  labeled `bug` and `backup-alert` linking the run, and prints
-  `{"kind", "action": "created", "issueUrl"}`.
-- `resolve-alert` closes every open issue of the kind with the comment
-  `Resolved: a later run succeeded: <run-url>` and prints
-  `{"kind", "closed": [<numbers>]}`; `closed` is empty when none was open.
-
-An unknown kind, a malformed run URL, or any failing `gh` call is an error
-(exit 1), so the workflow job that called it fails visibly.
 
 ## Development
 
