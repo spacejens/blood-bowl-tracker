@@ -1,4 +1,5 @@
 import { BblMirrorReaderModule } from '@blood-bowl-tracker/read-bbl-mirror';
+import { ManualBatchReaderService } from '@blood-bowl-tracker/review-harness';
 import { Module } from '@nestjs/common';
 
 import { BblPlayerAdvancementsReaderService } from './bbl-player-advancements-reader.service';
@@ -19,6 +20,7 @@ import { TpSkillMasterNamesService } from './tp-skill-master-names.service';
     BblRawPlayerPageLoaderService,
     BblPlayerSkillsCellService,
     BblPlayerAdvancementsReaderService,
+    ManualBatchReaderService,
     ManualRawKeywordsService,
     TpRawPlayerIndexService,
     TpRawPlayerSkillsIndexService,

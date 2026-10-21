@@ -20,6 +20,10 @@ cannot agree with itself about one.
 Locating and byte-decoding a BBL mirror file is shared on the same basis, via
 `packages/read-bbl-mirror`: it carries no BBL-page-type awareness or HTML
 parsing, so depending on it does not weaken the boundary above.
+Walking the curated keyword batches is shared on the same basis, via
+`packages/review-harness`'s `ManualBatchReaderService`: it lists the batches and
+their files in order, parses them and pools each top-level array, but shapes no
+entry, so every reading of what a curated keyword means still happens in this tool.
 The report document is shared the same way: `report-builder.service.ts` and
 `review.service.ts` are thin subclasses of the harness's
 `ReportBuilderBase`/`ReviewServiceBase`, adding only the per-player section — the
