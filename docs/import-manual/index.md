@@ -479,7 +479,9 @@ See [Running import tools against production](../discord-bot/production-imports.
   `*ImportService` from `packages/import`. The positions processor
   additionally calls `syncRaceEras` to set race/era availability; a curated
   pair whose race has no `race_eras` row for that era fails that position's
-  availability sync with one recorded error. The
+  availability sync with one recorded error (the `race_eras` rows come from
+  the BBL and TP importers, so a pass that runs before them reports it and a
+  later pass succeeds). The
   position-characteristics processor runs after both rules sets and
   positions, resolving both refs before syncing the whole batch, the same way
   the SPP award values processor does. Every file in a batch directory is
