@@ -13,6 +13,7 @@ import {
   IMPORT_TP_DISABLED_MESSAGE,
   IMPORT_TP_UNSUPPORTED_URL_MESSAGE,
 } from '../../error-messages';
+import { ErrorLogService } from '../../shared/error-log.service';
 import type { TpImportOutcome } from '../../tp-import/tp-import-dispatch.service';
 import { TpImportDispatchService } from '../../tp-import/tp-import-dispatch.service';
 import { SlashCommandRegistryService } from '../slash-command-registry.service';
@@ -57,6 +58,7 @@ export class ImportTpCommandService implements OnModuleInit {
     private readonly dispatch: TpImportDispatchService,
     private readonly reply: ImportTpReplyService,
     private readonly registry: SlashCommandRegistryService,
+    private readonly errorLog: ErrorLogService,
   ) {}
 
   onModuleInit(): void {
@@ -119,9 +121,10 @@ export class ImportTpCommandService implements OnModuleInit {
       if (error instanceof TpBlockedError) {
         return this.reply.blocked(error.retryAt);
       }
-      this.logger.error(
+      this.errorLog.logError(
+        this.logger,
         `/importtp of ${url} failed unexpectedly`,
-        error instanceof Error ? (error.stack ?? error.message) : String(error),
+        error,
       );
       return this.reply.buildUnexpectedFailure(error);
     }

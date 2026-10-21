@@ -7,6 +7,7 @@ import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { DiscordBotConfigService } from '../discord-bot-config.service';
+import { ErrorLogService } from '../shared/error-log.service';
 import { TpFeedBlockNoticeService } from './tp-feed-block-notice.service';
 import { TpFeedFormatterService } from './tp-feed-formatter.service';
 
@@ -18,6 +19,7 @@ describe('TpFeedBlockNoticeService', () => {
   let discordClient: DeepMockProxy<DiscordClientService>;
   let config: MockProxy<DiscordBotConfigService>;
   let formatter: MockProxy<TpFeedFormatterService>;
+  let errorLog: MockProxy<ErrorLogService>;
 
   beforeEach(async () => {
     discordClient = mockDeep<DiscordClientService>();
@@ -28,13 +30,14 @@ describe('TpFeedBlockNoticeService', () => {
     formatter.formatResumed.mockReturnValue('resumed notice');
     vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
     vi.spyOn(Logger.prototype, 'log').mockImplementation(() => {});
-    vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
+    errorLog = mock<ErrorLogService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpFeedBlockNoticeService,
         { provide: DiscordClientService, useValue: discordClient },
         { provide: DiscordBotConfigService, useValue: config },
         { provide: TpFeedFormatterService, useValue: formatter },
+        { provide: ErrorLogService, useValue: errorLog },
       ],
     }).compile();
     service = moduleRef.get(TpFeedBlockNoticeService);
@@ -77,12 +80,14 @@ describe('TpFeedBlockNoticeService', () => {
   });
 
   it('logs a failed post instead of rejecting', async () => {
-    discordClient.sendMessage.mockRejectedValue(new Error('missing access'));
+    const error = new Error('missing access');
+    discordClient.sendMessage.mockRejectedValue(error);
 
     await expect(service.announceResumed()).resolves.toBeUndefined();
-    expect(Logger.prototype.error).toHaveBeenCalledWith(
+    expect(errorLog.logError).toHaveBeenCalledWith(
+      service['logger'],
       'Failed to post TP block/resume notice',
-      expect.stringContaining('missing access'),
+      error,
     );
   });
 
@@ -91,7 +96,8 @@ describe('TpFeedBlockNoticeService', () => {
 
     await service.announceResumed();
 
-    expect(Logger.prototype.error).toHaveBeenCalledWith(
+    expect(errorLog.logError).toHaveBeenCalledWith(
+      service['logger'],
       'Failed to post TP block/resume notice',
       'nope',
     );

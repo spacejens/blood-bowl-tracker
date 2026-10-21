@@ -1,6 +1,5 @@
 import type { MessageHandler } from '@blood-bowl-tracker/discord-client';
 import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
-import { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { Message } from 'discord.js';
 import { MessageFlags } from 'discord.js';
@@ -9,6 +8,7 @@ import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { DiscordBotConfigService } from '../discord-bot-config.service';
+import { ErrorLogService } from '../shared/error-log.service';
 import type { TpFeedImportFailure } from './tp-feed-event';
 import { TpFeedFormatterService } from './tp-feed-formatter.service';
 import { TpFeedImportService } from './tp-feed-import.service';
@@ -41,6 +41,7 @@ describe('TpFeedListenerService', () => {
   let parser: MockProxy<TpFeedParserService>;
   let formatter: MockProxy<TpFeedFormatterService>;
   let feedImport: MockProxy<TpFeedImportService>;
+  let errorLog: MockProxy<ErrorLogService>;
 
   /** The handler the service registered, for driving a fake messageCreate. */
   function registeredHandler(): MessageHandler {
@@ -77,6 +78,7 @@ describe('TpFeedListenerService', () => {
     formatter.formatUnrecognized.mockReturnValue(
       `Unrecognized TP notification — ${MESSAGE_URL}`,
     );
+    errorLog = mock<ErrorLogService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpFeedListenerService,
@@ -85,6 +87,7 @@ describe('TpFeedListenerService', () => {
         { provide: TpFeedParserService, useValue: parser },
         { provide: TpFeedFormatterService, useValue: formatter },
         { provide: TpFeedImportService, useValue: feedImport },
+        { provide: ErrorLogService, useValue: errorLog },
       ],
     }).compile();
     service = moduleRef.get(TpFeedListenerService);
@@ -168,23 +171,21 @@ describe('TpFeedListenerService', () => {
 
   it('logs and swallows a failure to post an unrecognized notice, and does not react', async () => {
     const react = vi.fn();
-    const errorLog = vi
-      .spyOn(Logger.prototype, 'error')
-      .mockImplementation(() => undefined);
+    const error = new Error('channel gone');
     parser.parse.mockReturnValue({ status: 'unrecognized' });
-    discordClient.sendMessage.mockRejectedValue(new Error('channel gone'));
+    discordClient.sendMessage.mockRejectedValue(error);
     service.onModuleInit();
 
     await expect(
       registeredHandler()(message(SOURCE_CHANNEL, react)),
     ).resolves.toBeUndefined();
 
-    expect(errorLog).toHaveBeenCalledWith(
+    expect(errorLog.logError).toHaveBeenCalledWith(
+      service['logger'],
       'Failed to post TP feed message',
-      expect.stringContaining('channel gone'),
+      error,
     );
     expect(react).not.toHaveBeenCalled();
-    errorLog.mockRestore();
   });
 
   it('posts nothing and does not react to an unrecognized message when no debug channel is configured', async () => {
@@ -322,9 +323,6 @@ describe('TpFeedListenerService', () => {
 
   it('does not react when the description post failed, even though the import succeeded', async () => {
     const react = vi.fn();
-    const errorLog = vi
-      .spyOn(Logger.prototype, 'error')
-      .mockImplementation(() => undefined);
     discordClient.sendMessage.mockRejectedValue(new Error('channel gone'));
     service.onModuleInit();
 
@@ -332,14 +330,10 @@ describe('TpFeedListenerService', () => {
 
     expect(feedImport.enqueue).toHaveBeenCalled();
     expect(react).not.toHaveBeenCalled();
-    errorLog.mockRestore();
   });
 
   it('still posts the import failure, and does not react, when the description post failed too', async () => {
     const react = vi.fn();
-    const errorLog = vi
-      .spyOn(Logger.prototype, 'error')
-      .mockImplementation(() => undefined);
     feedImport.enqueue.mockResolvedValue(IMPORT_FAILURE);
     discordClient.sendMessage
       .mockRejectedValueOnce(new Error('channel gone'))
@@ -357,50 +351,45 @@ describe('TpFeedListenerService', () => {
       }),
     );
     expect(react).not.toHaveBeenCalled();
-    errorLog.mockRestore();
   });
 
   it('logs and swallows a failure to post an import failure, and does not react', async () => {
     const react = vi.fn();
-    const errorLog = vi
-      .spyOn(Logger.prototype, 'error')
-      .mockImplementation(() => undefined);
+    const error = new Error('channel gone');
     feedImport.enqueue.mockResolvedValue(IMPORT_FAILURE);
     discordClient.sendMessage
       .mockResolvedValueOnce(undefined)
-      .mockRejectedValueOnce(new Error('channel gone'));
+      .mockRejectedValueOnce(error);
     service.onModuleInit();
 
     await expect(
       registeredHandler()(message(SOURCE_CHANNEL, react)),
     ).resolves.toBeUndefined();
 
-    expect(errorLog).toHaveBeenCalledWith(
+    expect(errorLog.logError).toHaveBeenCalledWith(
+      service['logger'],
       'Failed to post TP feed message',
-      expect.stringContaining('channel gone'),
+      error,
     );
     expect(react).not.toHaveBeenCalled();
-    errorLog.mockRestore();
   });
 
   it('logs and swallows a failure to post, and does not react', async () => {
     const react = vi.fn();
-    const errorLog = vi
-      .spyOn(Logger.prototype, 'error')
-      .mockImplementation(() => undefined);
-    discordClient.sendMessage.mockRejectedValue(new Error('channel gone'));
+    const error = new Error('channel gone');
+    discordClient.sendMessage.mockRejectedValue(error);
     service.onModuleInit();
 
     await expect(
       registeredHandler()(message(SOURCE_CHANNEL, react)),
     ).resolves.toBeUndefined();
 
-    expect(errorLog).toHaveBeenCalledWith(
+    expect(errorLog.logError).toHaveBeenCalledWith(
+      service['logger'],
       'Failed to post TP feed message',
-      expect.any(String),
+      error,
     );
     expect(react).not.toHaveBeenCalled();
-    errorLog.mockRestore();
   });
 
   it('reacts only after the debug-channel post has completed', async () => {
@@ -422,10 +411,8 @@ describe('TpFeedListenerService', () => {
   });
 
   it('logs and swallows a failure to react', async () => {
-    const react = vi.fn().mockRejectedValue(new Error('Unknown Message'));
-    const errorLog = vi
-      .spyOn(Logger.prototype, 'error')
-      .mockImplementation(() => undefined);
+    const error = new Error('Unknown Message');
+    const react = vi.fn().mockRejectedValue(error);
     service.onModuleInit();
 
     await expect(
@@ -433,27 +420,24 @@ describe('TpFeedListenerService', () => {
     ).resolves.toBeUndefined();
 
     expect(react).toHaveBeenCalledWith(PROCESSED_REACTION);
-    expect(errorLog).toHaveBeenCalledWith(
+    expect(errorLog.logError).toHaveBeenCalledWith(
+      service['logger'],
       'Failed to react to TP feed message',
-      expect.stringContaining('Unknown Message'),
+      error,
     );
-    errorLog.mockRestore();
   });
 
-  it('logs a non-Error rejection from reacting as a string', async () => {
+  it('passes a non-Error rejection from reacting to the error log', async () => {
     const react = vi.fn().mockRejectedValue('rate limited');
-    const errorLog = vi
-      .spyOn(Logger.prototype, 'error')
-      .mockImplementation(() => undefined);
     service.onModuleInit();
 
     await registeredHandler()(message(SOURCE_CHANNEL, react));
 
-    expect(errorLog).toHaveBeenCalledWith(
+    expect(errorLog.logError).toHaveBeenCalledWith(
+      service['logger'],
       'Failed to react to TP feed message',
       'rate limited',
     );
-    errorLog.mockRestore();
   });
 
   describe('when TP scraping is disabled', () => {

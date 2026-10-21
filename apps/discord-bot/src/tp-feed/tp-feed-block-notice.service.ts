@@ -3,6 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { MessageFlags } from 'discord.js';
 
 import { DiscordBotConfigService } from '../discord-bot-config.service';
+import { ErrorLogService } from '../shared/error-log.service';
 import { TpFeedFormatterService } from './tp-feed-formatter.service';
 
 /**
@@ -20,6 +21,7 @@ export class TpFeedBlockNoticeService {
     private readonly discordClient: DiscordClientService,
     private readonly config: DiscordBotConfigService,
     private readonly formatter: TpFeedFormatterService,
+    private readonly errorLog: ErrorLogService,
   ) {}
 
   async announceBlocked(retryAt: Date): Promise<void> {
@@ -46,9 +48,10 @@ export class TpFeedBlockNoticeService {
         flags: [MessageFlags.SuppressEmbeds],
       });
     } catch (error) {
-      this.logger.error(
+      this.errorLog.logError(
+        this.logger,
         'Failed to post TP block/resume notice',
-        error instanceof Error ? (error.stack ?? error.message) : String(error),
+        error,
       );
     }
   }
