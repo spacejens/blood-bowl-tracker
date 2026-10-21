@@ -23,7 +23,7 @@ posts successfully.
 Six notification kinds are recognised and interpreted:
 
 - Start of match
-- End of match (draw and win, with the score)
+- End of match (draw and win, with the score), e.g. `Match ended: A won 2-1 vs B` or `Match ended: A drew 1-1 vs B` (home team first for a draw)
 - New skill/characteristic gained by a player
 - Player hired
 - Player fired

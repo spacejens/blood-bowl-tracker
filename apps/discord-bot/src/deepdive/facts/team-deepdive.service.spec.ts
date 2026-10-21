@@ -159,6 +159,23 @@ describe('TeamDeepdiveService', () => {
     });
   });
 
+  it('renders a one-day career as a single date', async () => {
+    const { service } = await makeService({
+      teams: makeTeams({
+        team: grinders,
+        span: { start: '2024-03-16', end: '2024-03-16' },
+        topPlayers: [],
+      }),
+      leaderboard: passthroughLeaderboard(),
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    expect(result.embeds[0].description.split('\n')).toContain(
+      'Career: 2024-03-16',
+    );
+  });
+
   it('renders the eras line after the coach line, with era buttons after the player buttons', async () => {
     // Matches the single top-players row's identity — see the comment on the
     // previous test for why this is stubbed explicitly rather than relying

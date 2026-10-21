@@ -97,7 +97,7 @@ export class TpFeedFormatterService {
    */
   private formatMatchEnd(event: MatchEndEvent): string {
     if (event.outcome === 'draw') {
-      return `Match ended in a draw: ${event.home.name} ${event.homeScore} - ${event.awayScore} ${event.away.name} — ${event.link}`;
+      return `Match ended: ${event.home.name} drew ${event.homeScore}-${event.awayScore} vs ${event.away.name} — ${event.link}`;
     }
     const homeWon = this.homeWon(event);
     const winner = homeWon ? event.home : event.away;

@@ -39,8 +39,8 @@ been used.
 One embed, titled `Top bot users`, with up to 20 ranked rows:
 
 ```text
-1. **alice** — 42 interactions
-2. **bob** — 17 interactions
+1. alice — 42 interactions
+2. bob — 17 interactions
 ```
 
 Users tied on the same count are ordered by which user the bot first

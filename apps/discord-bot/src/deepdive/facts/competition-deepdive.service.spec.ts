@@ -265,7 +265,7 @@ describe('CompetitionDeepdiveService', () => {
             'Type: season',
             'Era: BB2020 (2020-01-01 – 2023-12-31)',
             'Group: The Major',
-            'Duration: 2024-01-15 – 2024-06-30',
+            'Dates: 2024-01-15 – 2024-06-30',
             '',
             'Participating teams:',
             'Gouged Eye (Orc, Skarsnik)',
@@ -309,7 +309,7 @@ describe('CompetitionDeepdiveService', () => {
     );
   });
 
-  it('renders the Duration line for a multi-day competition, between the era line and the teams block', async () => {
+  it('renders the Dates line for a multi-day competition, between the era line and the teams block', async () => {
     const dateRangeFormatter = mock<DateRangeFormatterService>();
     dateRangeFormatter.format.mockReturnValue('2024-01-15 – 2024-06-30');
     dateRangeFormatter.formatNamed.mockReturnValue(
@@ -333,7 +333,7 @@ describe('CompetitionDeepdiveService', () => {
       'Type: season',
       'Era: BB2020 (2020-01-01 – 2023-12-31)',
       'Group: The Major',
-      'Duration: 2024-01-15 – 2024-06-30',
+      'Dates: 2024-01-15 – 2024-06-30',
       '',
       'Participating teams:',
     ]);
@@ -348,7 +348,7 @@ describe('CompetitionDeepdiveService', () => {
     );
   });
 
-  it('renders the Duration line for an ongoing competition', async () => {
+  it('renders the Dates line for an ongoing competition', async () => {
     const dateRangeFormatter = makeDateRangeFormatter();
     dateRangeFormatter.format.mockReturnValue('2024-01-15 – present');
     const { service } = await makeService({
@@ -365,12 +365,12 @@ describe('CompetitionDeepdiveService', () => {
       embeds: { description: string }[];
     };
     expect(result.embeds[0].description.split('\n')).toContain(
-      'Duration: 2024-01-15 – present',
+      'Dates: 2024-01-15 – present',
     );
     expect(dateRangeFormatter.format).toHaveBeenCalledWith('2024-01-15', null);
   });
 
-  it('renders the Duration line for a single-day competition', async () => {
+  it('renders the Dates line for a single-day competition', async () => {
     const dateRangeFormatter = makeDateRangeFormatter();
     dateRangeFormatter.format.mockReturnValue('2024-03-16');
     const { service } = await makeService({
@@ -388,7 +388,7 @@ describe('CompetitionDeepdiveService', () => {
       embeds: { description: string }[];
     };
     expect(result.embeds[0].description.split('\n')).toContain(
-      'Duration: 2024-03-16',
+      'Dates: 2024-03-16',
     );
     expect(dateRangeFormatter.format).toHaveBeenCalledWith(
       '2024-03-16',
@@ -692,7 +692,7 @@ describe('CompetitionDeepdiveService', () => {
       'Type: season',
       'Era: BB2020 (2020-01-01 – 2023-12-31)',
       'Group: The Major',
-      'Duration: 2020-01-01 – 2023-12-31',
+      'Dates: 2020-01-01 – 2023-12-31',
       '',
       'Participating teams:',
       'Gouged Eye (Orc, Skarsnik)',

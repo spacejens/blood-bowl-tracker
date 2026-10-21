@@ -52,7 +52,7 @@ describe('TpFeedFormatterService', () => {
         link: 'https://tp/m/1',
       }),
     ).toBe(
-      'Match ended in a draw: EVERVAIN EGRETS 1 - 1 ROCKET FROM THE TOMBS — https://tp/m/1',
+      'Match ended: EVERVAIN EGRETS drew 1-1 vs ROCKET FROM THE TOMBS — https://tp/m/1',
     );
   });
 
