@@ -24,7 +24,6 @@ import {
 } from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_COMPETITION_NO_TEAMS_MESSAGE,
-  DEEPDIVE_COMPETITION_NO_TROPHIES_MESSAGE,
   DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
   DEEPDIVE_COMPETITION_TEAM_CONTEXT_TIMEOUT_MESSAGE,
   DEEPDIVE_COMPETITION_TEAMS_TIMEOUT_MESSAGE,
@@ -271,8 +270,6 @@ describe('CompetitionDeepdiveService', () => {
             'Participating teams:',
             'Gouged Eye (Orc, Skarsnik)',
             'Reikland Reavers (Orc, Skarsnik)',
-            '',
-            DEEPDIVE_COMPETITION_NO_TROPHIES_MESSAGE,
           ].join('\n'),
         },
       ],
@@ -641,20 +638,26 @@ describe('CompetitionDeepdiveService', () => {
     );
   });
 
-  it('renders the no-trophies message when the competition awarded nothing', async () => {
+  it('omits the trophies section entirely when the competition awarded nothing', async () => {
     const { service } = await makeService({
       competitions: makeCompetitions({
         competition: competitionHeader(),
         teams: [{ id: 5, name: 'Gouged Eye' }],
       }),
       trophyAwards: makeTrophyAwards([]),
+      teamContext: passthroughTeamContext(' (Orc, Skarsnik)'),
     });
     const result = (await service.resolve(1)) as unknown as {
       embeds: { description: string }[];
     };
-    const lines = result.embeds[0].description.split('\n');
-    expect(lines).toContain(DEEPDIVE_COMPETITION_NO_TROPHIES_MESSAGE);
-    expect(lines).not.toContain('Trophies & awards:');
+    const { description } = result.embeds[0];
+    expect(description).not.toMatch(/\n$/);
+    expect(description.split('\n').slice(-3)).toEqual([
+      '',
+      'Participating teams:',
+      'Gouged Eye (Orc, Skarsnik)',
+    ]);
+    expect(description).not.toContain('Trophies');
   });
 
   it('skips the recipient-context lookup entirely when the competition awarded nothing', async () => {
@@ -694,7 +697,7 @@ describe('CompetitionDeepdiveService', () => {
       'Participating teams:',
       'Gouged Eye (Orc, Skarsnik)',
       '',
-      'Trophies & awards:',
+      'Trophies:',
       'Season Gold: Gouged Eye (Orc, Skarsnik)',
     ]);
   });
@@ -796,8 +799,8 @@ describe('CompetitionDeepdiveService', () => {
       embeds: { description: string }[];
     };
     const lines = result.embeds[0].description.split('\n');
-    expect(lines.slice(lines.indexOf('Trophies & awards:'))).toEqual([
-      'Trophies & awards:',
+    expect(lines.slice(lines.indexOf('Trophies:'))).toEqual([
+      'Trophies:',
       'Season Gold: Gouged Eye',
       'Most Valuable Player: Griff Oberwald',
     ]);

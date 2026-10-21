@@ -1,245 +1,161 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { ManualBatchReaderService } from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { ReviewPlayerConfigService } from '../config/review-player-config.service';
 import { ManualRawKeywordsService } from './manual-raw-keywords.service';
 
+const DATA_DIR = '/data/manual';
+const BATCHES_DIR = join(DATA_DIR, 'batches');
+
 describe('ManualRawKeywordsService', () => {
   let service: ManualRawKeywordsService;
-  let tempDir: string;
+  let reader: MockProxy<ManualBatchReaderService>;
 
   beforeEach(async () => {
-    tempDir = await mkdtemp(join(tmpdir(), 'manual-keywords-'));
-    mkdirSync(join(tempDir, 'batches', '001-initial-seed'), {
-      recursive: true,
-    });
-
     const config = mock<ReviewPlayerConfigService>();
-    config.getDataDir.mockReturnValue(tempDir);
+    config.getDataDir.mockReturnValue(DATA_DIR);
+    reader = mock<ManualBatchReaderService>();
+    reader.section.mockResolvedValue([]);
+    reader.latestByKey.mockReturnValue([]);
 
     const moduleRef = await Test.createTestingModule({
       providers: [
         ManualRawKeywordsService,
         { provide: ReviewPlayerConfigService, useValue: config },
+        { provide: ManualBatchReaderService, useValue: reader },
       ],
     }).compile();
 
     service = moduleRef.get(ManualRawKeywordsService);
   });
 
-  afterEach(async () => {
-    await rm(tempDir, { recursive: true, force: true });
+  /** The shaped entries and key function last handed to `latestByKey`. */
+  function latestByKeyCall(): [unknown[], (entry: unknown) => string] {
+    const call = reader.latestByKey.mock.lastCall;
+    if (call === undefined) {
+      throw new Error('latestByKey was not called');
+    }
+    return call;
+  }
+
+  it("reads the curated batches' keywords section", async () => {
+    await service.all();
+
+    expect(reader.section).toHaveBeenCalledWith(BATCHES_DIR, 'keywords');
   });
 
-  it('reads a curated keyword entry with a tourplay.net code', async () => {
-    writeFileSync(
-      join(tempDir, 'batches', '001-initial-seed', 'keywords.json5'),
-      `
-{
-  keywords: [
-    {
-      name: 'Goblin',
-      kind: 'species',
-      externalIds: [
-        { system: 'Name', id: 'Goblin' },
-        { system: 'tourplay.net', id: '111' }
-      ]
-    }
-  ]
-}
-`,
-    );
+  it('returns the keyword of each entry latestByKey keeps', async () => {
+    const keyword = { name: 'Goblin', kind: 'species', code: '111' };
+    reader.latestByKey.mockReturnValue([{ key: 'k', keyword }]);
 
-    expect(await service.all()).toEqual([
-      { name: 'Goblin', kind: 'species', code: '111' },
+    await expect(service.all()).resolves.toEqual([keyword]);
+  });
+
+  it('shapes an entry with a tourplay.net code, keyed by its sorted external ids', async () => {
+    reader.section.mockResolvedValue([
+      {
+        name: 'Goblin',
+        kind: 'species',
+        externalIds: [
+          { system: 'tourplay.net', id: '111' },
+          { system: 'Name', id: 'Goblin' },
+        ],
+      },
+    ]);
+
+    await service.all();
+
+    expect(latestByKeyCall()[0]).toEqual([
+      {
+        key: 'Name|Goblin,tourplay.net|111',
+        keyword: { name: 'Goblin', kind: 'species', code: '111' },
+      },
     ]);
   });
 
-  it('reads a curated keyword entry with no tourplay.net id as code: null', async () => {
-    writeFileSync(
-      join(tempDir, 'batches', '001-initial-seed', 'keywords.json5'),
-      `
-{
-  keywords: [
-    {
-      name: 'Big Guy',
-      kind: 'positional',
-      externalIds: [{ system: 'Name', id: 'Big Guy' }]
-    }
-  ]
-}
-`,
-    );
+  it('stringifies a numeric tourplay.net id', async () => {
+    reader.section.mockResolvedValue([
+      {
+        name: 'Goblin',
+        kind: 'species',
+        externalIds: [{ system: 'tourplay.net', id: 111 }],
+      },
+    ]);
 
-    expect(await service.all()).toEqual([
-      { name: 'Big Guy', kind: 'positional', code: null },
+    await service.all();
+
+    expect(latestByKeyCall()[0]).toEqual([
+      {
+        key: 'tourplay.net|111',
+        keyword: { name: 'Goblin', kind: 'species', code: '111' },
+      },
     ]);
   });
 
-  it('returns [] when the file does not exist', async () => {
-    expect(await service.all()).toEqual([]);
+  it('reads an entry with no usable tourplay.net id as code: null, keying only valid ids', async () => {
+    reader.section.mockResolvedValue([
+      {
+        name: 'Goblin',
+        kind: 'species',
+        externalIds: [
+          { system: 'Name', id: 'Goblin' },
+          { system: 'tourplay.net', id: null },
+          { id: '9' },
+        ],
+      },
+    ]);
+
+    await service.all();
+
+    expect(latestByKeyCall()[0]).toEqual([
+      {
+        key: 'Name|Goblin',
+        keyword: { name: 'Goblin', kind: 'species', code: null },
+      },
+    ]);
   });
 
-  it('returns [] when the file is not valid JSON5', async () => {
-    writeFileSync(
-      join(tempDir, 'batches', '001-initial-seed', 'keywords.json5'),
-      '{ this is not valid json5 ]',
-    );
+  it("keys an entry with no or non-array external ids as ''", async () => {
+    reader.section.mockResolvedValue([
+      { name: 'Big Guy', kind: 'positional', externalIds: [] },
+      { name: 'Orc', kind: 'species', externalIds: 'not-an-array' },
+    ]);
 
-    expect(await service.all()).toEqual([]);
-  });
+    await service.all();
 
-  it('returns [] when the parsed JSON5 is not an object', async () => {
-    writeFileSync(
-      join(tempDir, 'batches', '001-initial-seed', 'keywords.json5'),
-      '42',
-    );
-
-    expect(await service.all()).toEqual([]);
+    expect(latestByKeyCall()[0]).toEqual([
+      {
+        key: '',
+        keyword: { name: 'Big Guy', kind: 'positional', code: null },
+      },
+      { key: '', keyword: { name: 'Orc', kind: 'species', code: null } },
+    ]);
   });
 
   it('skips an entry whose name or kind is not a string', async () => {
-    writeFileSync(
-      join(tempDir, 'batches', '001-initial-seed', 'keywords.json5'),
-      `
-{
-  keywords: [
-    { name: 'Goblin', kind: 'species', externalIds: [] },
-    { name: null, kind: 'species', externalIds: [] },
-    { name: 'Undead', externalIds: [] }
-  ]
-}
-`,
-    );
+    reader.section.mockResolvedValue([
+      { name: 'Goblin', kind: 'species', externalIds: [] },
+      { name: null, kind: 'species', externalIds: [] },
+      { name: 'Undead', externalIds: [] },
+      'not an object',
+    ]);
 
-    const entries = await service.all();
+    await service.all();
 
-    expect(entries).toHaveLength(1);
-    expect(entries[0].name).toBe('Goblin');
-  });
-
-  it('treats a non-array keywords or externalIds value as empty', async () => {
-    writeFileSync(
-      join(tempDir, 'batches', '001-initial-seed', 'keywords.json5'),
-      `
-{
-  keywords: 'not-an-array'
-}
-`,
-    );
-
-    expect(await service.all()).toEqual([]);
-  });
-
-  it('lets a later batch restate a keyword, replacing the earlier entry in place', async () => {
-    mkdirSync(join(tempDir, 'batches', '002-initial-cleanup'), {
-      recursive: true,
-    });
-    writeFileSync(
-      join(tempDir, 'batches', '001-initial-seed', 'keywords.json5'),
-      `
-{
-  keywords: [
-    { name: 'Goblin', kind: 'species', externalIds: [{ system: 'tourplay.net', id: '111' }] },
-    { name: 'Undead', kind: 'species', externalIds: [{ system: 'tourplay.net', id: '222' }] }
-  ]
-}
-`,
-    );
-    writeFileSync(
-      join(tempDir, 'batches', '002-initial-cleanup', 'keywords.json5'),
-      `
-{
-  keywords: [
-    { name: 'Goblins', kind: 'species', externalIds: [{ system: 'tourplay.net', id: '111' }] }
-  ]
-}
-`,
-    );
-
-    expect(await service.all()).toEqual([
-      { name: 'Goblins', kind: 'species', code: '111' },
-      { name: 'Undead', kind: 'species', code: '222' },
+    expect(latestByKeyCall()[0]).toEqual([
+      { key: '', keyword: { name: 'Goblin', kind: 'species', code: null } },
     ]);
   });
 
-  it('adds a keyword that only a later batch declares, from any file in the batch', async () => {
-    mkdirSync(join(tempDir, 'batches', '002-initial-cleanup'), {
-      recursive: true,
-    });
-    writeFileSync(
-      join(tempDir, 'batches', '001-initial-seed', 'keywords.json5'),
-      `{ keywords: [{ name: 'Goblin', kind: 'species', externalIds: [{ system: 'tourplay.net', id: '111' }] }] }`,
-    );
-    writeFileSync(
-      join(tempDir, 'batches', '002-initial-cleanup', 'more.json5'),
-      `{ keywords: [{ name: 'Orc', kind: 'species', externalIds: [{ system: 'tourplay.net', id: '333' }] }] }`,
-    );
+  it('keys an entry by its prepared key', async () => {
+    await service.all();
+    const keyOf = latestByKeyCall()[1];
 
-    expect(await service.all()).toEqual([
-      { name: 'Goblin', kind: 'species', code: '111' },
-      { name: 'Orc', kind: 'species', code: '333' },
-    ]);
-  });
-
-  it('keeps entries without external ids from different batches apart', async () => {
-    mkdirSync(join(tempDir, 'batches', '002-initial-cleanup'), {
-      recursive: true,
-    });
-    writeFileSync(
-      join(tempDir, 'batches', '001-initial-seed', 'keywords.json5'),
-      `{ keywords: [{ name: 'Goblin', kind: 'species', externalIds: [] }] }`,
-    );
-    writeFileSync(
-      join(tempDir, 'batches', '002-initial-cleanup', 'keywords.json5'),
-      `{ keywords: [{ name: 'Orc', kind: 'species', externalIds: [] }] }`,
-    );
-
-    expect(await service.all()).toEqual([
-      { name: 'Goblin', kind: 'species', code: null },
-      { name: 'Orc', kind: 'species', code: null },
-    ]);
-  });
-
-  it('ignores files lying beside the batch directories', async () => {
-    writeFileSync(join(tempDir, 'batches', '.DS_Store'), 'x');
-    writeFileSync(
-      join(tempDir, 'batches', '001-initial-seed', 'keywords.json5'),
-      `{ keywords: [{ name: 'Goblin', kind: 'species', externalIds: [] }] }`,
-    );
-
-    expect(await service.all()).toEqual([
-      { name: 'Goblin', kind: 'species', code: null },
-    ]);
-  });
-
-  it('ignores an externalIds entry with a non-tourplay.net system', async () => {
-    writeFileSync(
-      join(tempDir, 'batches', '001-initial-seed', 'keywords.json5'),
-      `
-{
-  keywords: [
-    {
-      name: 'Goblin',
-      kind: 'species',
-      externalIds: [
-        { system: 'Name', id: 'Goblin' },
-        { system: 'tourplay.net', id: null }
-      ]
-    }
-  ]
-}
-`,
-    );
-
-    expect(await service.all()).toEqual([
-      { name: 'Goblin', kind: 'species', code: null },
-    ]);
+    expect(keyOf({ key: 'Name|Goblin', keyword: {} })).toBe('Name|Goblin');
   });
 });
