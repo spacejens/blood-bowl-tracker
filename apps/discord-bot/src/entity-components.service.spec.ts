@@ -23,6 +23,7 @@ import type {
   EntitySelectRow,
 } from './entity-components.service';
 import { EntityComponentsService } from './entity-components.service';
+import { NumberFormatterService } from './shared/number-formatter.service';
 
 function entries(
   count: number,
@@ -47,7 +48,7 @@ describe('EntityComponentsService', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [EntityComponentsService],
+      providers: [EntityComponentsService, NumberFormatterService],
     }).compile();
     service = moduleRef.get(EntityComponentsService);
   });
@@ -256,6 +257,11 @@ describe('EntityComponentsService', () => {
     );
     expect(components).toHaveLength(5);
     expect(overflowNote).toBe('…and 1 more without a link.');
+  });
+
+  it('groups a remainder of a thousand or more in the overflow note', () => {
+    const { overflowNote } = service.buildEntityComponents(entries(1359));
+    expect(overflowNote).toBe('…and 1,234 more without a link.');
   });
 
   it('gives each customId prefix its own select menu, in first-appearance order', () => {

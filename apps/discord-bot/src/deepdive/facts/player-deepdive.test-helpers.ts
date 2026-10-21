@@ -28,6 +28,7 @@ import { nullEntityComponents } from '../../entity-components-mock.test-helpers'
 import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
 import { makeDateRangeFormatter } from '../../shared/date-range-formatter-mock.test-helpers';
 import { EventCountLinesService } from '../../shared/event-count-lines.service';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import { PlayerRowButtonService } from '../player-row-button.service';
 import { PlayerDeepdiveService } from './player-deepdive.service';
 import { PlayerKeywordsSectionService } from './player-keywords-section.service';
@@ -46,8 +47,9 @@ import { PlayerSkillsSectionService } from './player-skills-section.service';
  *
  * `makeService` compiles `PlayerDeepdiveService` with its pure formatting
  * collaborators passed real: the chain `PlayerKillsSectionService` →
- * `PlayerKillerInfoFormatterService` → `PlayerRowButtonService`, plus the
- * dependency-free `EventCountLinesService`,
+ * `PlayerKillerInfoFormatterService` → `PlayerRowButtonService`, with
+ * `NumberFormatterService` a further link under `PlayerKillsSectionService`,
+ * plus the dependency-free `EventCountLinesService`,
  * `CharacteristicDisplayFormattingService`, `PlayerSkillsSectionService` and
  * `PlayerKeywordsSectionService`. This follows `CLAUDE.md`'s "Testing
  * services" carve-out for a pure chain inside an otherwise-mocked subject:
@@ -239,6 +241,7 @@ export async function makeService({
       // Pure and dependency-free (see CLAUDE.md's formatting-service
       // carve-out): passed real for the same reason.
       EventCountLinesService,
+      NumberFormatterService,
       CharacteristicDisplayFormattingService,
       PlayerSkillsSectionService,
       PlayerKeywordsSectionService,

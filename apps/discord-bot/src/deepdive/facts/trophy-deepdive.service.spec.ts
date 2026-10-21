@@ -41,6 +41,7 @@ import {
   cannedEraSectionGrouper,
   singleEraSectionGrouper,
 } from '../../shared/era-section-grouper-mock.test-helpers';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import {
   COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
@@ -87,6 +88,7 @@ async function makeService({
   const moduleRef = await Test.createTestingModule({
     providers: [
       TrophyDeepdiveService,
+      NumberFormatterService,
       { provide: TrophiesService, useValue: trophies },
       { provide: TrophyAwardsService, useValue: trophyAwards },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
@@ -515,6 +517,24 @@ describe('TrophyDeepdiveService', () => {
 
     expect(lines).toContain('Season 30: Team 30');
     expect(lines[lines.length - 1]).toBe('…and 5 more not shown.');
+  });
+
+  it('groups a remainder of a thousand or more in the overflow line', async () => {
+    const recipients = Array.from({ length: 30 }, (unused, index) =>
+      teamRecipient({
+        competitionName: `Season ${index + 1}`,
+        teamId: index + 1,
+        teamName: `Team ${index + 1}`,
+      }),
+    );
+    const { service } = await makeService({
+      trophies: makeTrophies(trophyHeader()),
+      trophyAwards: makeAwards(recipients, 1234 + 30),
+    });
+
+    const lines = descriptionLines(await service.resolve(1));
+
+    expect(lines[lines.length - 1]).toBe('…and 1,234 more not shown.');
   });
 
   it('adds no overflow line when the recipients fit under the cap', async () => {

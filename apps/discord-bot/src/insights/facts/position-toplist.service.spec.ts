@@ -16,6 +16,7 @@ import {
   POSITION_TOPLIST_NO_DATA_MESSAGE,
   POSITION_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import type { ResolveToplistOptions } from '../leaderboard.service';
 import {
   LeaderboardService,
@@ -44,6 +45,7 @@ async function makeService(
   const moduleRef = await Test.createTestingModule({
     providers: [
       PositionToplistService,
+      NumberFormatterService,
       { provide: PositionsService, useValue: positions },
       { provide: LeaderboardService, useValue: leaderboard },
     ],
@@ -115,6 +117,9 @@ describe('PositionToplistService.resolvePlayers', () => {
     );
     expect(options.formatRow?.({ ...rows[1], rank: 2 })).toBe(
       '2. Lineman (Human) — 90',
+    );
+    expect(options.formatRow?.({ ...rows[0], count: 1234, rank: 1 })).toBe(
+      '1. Lineman (Orc) — 1,234',
     );
   });
 

@@ -33,6 +33,7 @@ import {
   STATS_SUMMARY_ERA_TIMEOUT_MESSAGE,
   STATS_SUMMARY_LEAGUE_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import { StatsSummaryFactsService } from './stats-summary.service';
 import { expectTimeoutFallback } from './toplist.test-helpers';
 
@@ -67,6 +68,7 @@ async function makeService(
   const moduleRef = await Test.createTestingModule({
     providers: [
       StatsSummaryFactsService,
+      NumberFormatterService,
       {
         provide: LeaguesService,
         useValue: overrides.leagues ?? {},
@@ -193,6 +195,19 @@ describe('StatsSummaryFactsService.resolve', () => {
         },
       ],
     });
+  });
+
+  it('uses singular nouns when there is exactly one season and one cup', async () => {
+    const service = await makeAllTimeService({
+      competitions: {
+        countAll: vi.fn().mockResolvedValue(2),
+        countByType: vi.fn().mockResolvedValue(1),
+      },
+    });
+    const result = await service.resolve(FACT_SCOPE_ALL_TIME);
+    const description = (result as { embeds: { description: string }[] })
+      .embeds[0].description;
+    expect(description).toContain('Competitions: 2 (1 season, 1 cup)');
   });
 
   it('falls back to the all-time timeout message when a count does not respond in time', async () => {
@@ -389,7 +404,7 @@ describe('StatsSummaryFactsService.resolve competition-filtered', () => {
             'Skills: 37',
             'Keywords: 31',
             'Coaches: 6',
-            'Competitions: 1 (1 seasons, 0 cups)',
+            'Competitions: 1 (1 season, 0 cups)',
             'Competition groups: 1',
             'Trophies: 4',
             'Teams: 8',
@@ -417,7 +432,7 @@ describe('StatsSummaryFactsService.resolve competition-filtered', () => {
     const result = await service.resolve(scope);
     const description = (result as { embeds: { description: string }[] })
       .embeds[0].description;
-    expect(description).toContain('Competitions: 1 (0 seasons, 1 cups)');
+    expect(description).toContain('Competitions: 1 (0 seasons, 1 cup)');
   });
 
   it('reuses the era rules-set names keyed by the competition era', async () => {

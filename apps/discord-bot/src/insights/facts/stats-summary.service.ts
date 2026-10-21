@@ -27,6 +27,7 @@ import {
   STATS_SUMMARY_ERA_TIMEOUT_MESSAGE,
   STATS_SUMMARY_LEAGUE_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 
 /**
  * The one description every stats view renders, in the one order. Leagues, eras
@@ -149,10 +150,16 @@ export class StatsSummaryFactsService {
     private readonly players: PlayersService,
     private readonly matches: MatchesService,
     private readonly databaseTimeout: DatabaseTimeoutService,
+    private readonly numbers: NumberFormatterService,
   ) {}
 
-  private fmt(n: number): string {
-    return n.toLocaleString('en-US');
+  /** `12 (8 seasons, 4 cups)`, with each noun agreeing with its number. */
+  private competitionsLine(
+    total: number,
+    seasons: number,
+    cups: number,
+  ): string {
+    return `${this.numbers.count(total)} (${this.numbers.counted(seasons, 'season')}, ${this.numbers.counted(cups, 'cup')})`;
   }
 
   async resolve(scope: FactScope): Promise<string | InteractionReplyOptions> {
@@ -173,20 +180,20 @@ export class StatsSummaryFactsService {
     const description = [
       `Leagues: ${values.leagues}`,
       `Eras: ${values.eras}`,
-      `External systems: ${this.fmt(values.externalSystems)}`,
-      `Rules sets: ${this.fmt(values.rulesSets)}`,
-      `Races: ${this.fmt(values.races)}`,
-      `Positions: ${this.fmt(values.positions)}`,
-      `Skills: ${this.fmt(values.skills)}`,
-      `Keywords: ${this.fmt(values.keywords)}`,
-      `Coaches: ${this.fmt(values.coaches)}`,
+      `External systems: ${this.numbers.count(values.externalSystems)}`,
+      `Rules sets: ${this.numbers.count(values.rulesSets)}`,
+      `Races: ${this.numbers.count(values.races)}`,
+      `Positions: ${this.numbers.count(values.positions)}`,
+      `Skills: ${this.numbers.count(values.skills)}`,
+      `Keywords: ${this.numbers.count(values.keywords)}`,
+      `Coaches: ${this.numbers.count(values.coaches)}`,
       `Competitions: ${values.competitions}`,
-      `Competition groups: ${this.fmt(values.competitionGroups)}`,
-      `Trophies: ${this.fmt(values.trophies)}`,
-      `Teams: ${this.fmt(values.teams)}`,
-      `Players: ${this.fmt(values.players)}`,
-      `Matches: ${this.fmt(values.matches)}`,
-      `Match events: ${this.fmt(values.matchEvents)}`,
+      `Competition groups: ${this.numbers.count(values.competitionGroups)}`,
+      `Trophies: ${this.numbers.count(values.trophies)}`,
+      `Teams: ${this.numbers.count(values.teams)}`,
+      `Players: ${this.numbers.count(values.players)}`,
+      `Matches: ${this.numbers.count(values.matches)}`,
+      `Match events: ${this.numbers.count(values.matchEvents)}`,
     ].join('\n');
 
     return { embeds: [{ title: 'Statistics', description }] };
@@ -243,8 +250,8 @@ export class StatsSummaryFactsService {
     ] = counts;
 
     return this.statsSummaryEmbed({
-      leagues: this.fmt(leagues),
-      eras: this.fmt(eras),
+      leagues: this.numbers.count(leagues),
+      eras: this.numbers.count(eras),
       externalSystems,
       rulesSets,
       races,
@@ -252,7 +259,7 @@ export class StatsSummaryFactsService {
       skills,
       keywords,
       coaches,
-      competitions: `${this.fmt(competitions)} (${this.fmt(seasons)} seasons, ${this.fmt(cups)} cups)`,
+      competitions: this.competitionsLine(competitions, seasons, cups),
       competitionGroups,
       trophies,
       teams,
@@ -318,7 +325,7 @@ export class StatsSummaryFactsService {
       skills,
       keywords,
       coaches,
-      competitions: `${this.fmt(competitions)} (${this.fmt(seasons)} seasons, ${this.fmt(cups)} cups)`,
+      competitions: this.competitionsLine(competitions, seasons, cups),
       competitionGroups,
       trophies,
       teams,
@@ -383,7 +390,7 @@ export class StatsSummaryFactsService {
       skills,
       keywords,
       coaches,
-      competitions: `1 (${seasons} seasons, ${cups} cups)`,
+      competitions: this.competitionsLine(1, seasons, cups),
       // A competition belongs to exactly one group, so this is a literal for
       // the same reason `leagues` and `eras` are above.
       competitionGroups: 1,
@@ -445,7 +452,7 @@ export class StatsSummaryFactsService {
 
     return this.statsSummaryEmbed({
       leagues: '1',
-      eras: this.fmt(eraCount),
+      eras: this.numbers.count(eraCount),
       externalSystems,
       rulesSets: rulesSetNames.length,
       races,
@@ -453,7 +460,7 @@ export class StatsSummaryFactsService {
       skills,
       keywords,
       coaches,
-      competitions: `${this.fmt(competitions)} (${this.fmt(seasons)} seasons, ${this.fmt(cups)} cups)`,
+      competitions: this.competitionsLine(competitions, seasons, cups),
       competitionGroups,
       trophies,
       teams,

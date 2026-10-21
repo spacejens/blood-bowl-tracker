@@ -44,6 +44,7 @@ import {
 } from '../../error-messages';
 import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
 import { EventCountLinesService } from '../../shared/event-count-lines.service';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
@@ -176,6 +177,7 @@ export class PlayerDeepdiveService {
     private readonly skillsSection: PlayerSkillsSectionService,
     private readonly positionRulesSetKeywords: PositionRulesSetKeywordsService,
     private readonly keywordsSection: PlayerKeywordsSectionService,
+    private readonly numbers: NumberFormatterService,
   ) {}
 
   async resolve(playerId: number): Promise<string | InteractionReplyOptions> {
@@ -555,7 +557,7 @@ export class PlayerDeepdiveService {
     // reading identically to "has won nothing".
     const truncatedCount = honorsTotal - shown.length;
     if (truncatedCount > 0) {
-      lines.push(`…and ${truncatedCount} more not shown.`);
+      lines.push(`…and ${this.numbers.count(truncatedCount)} more not shown.`);
     }
     return { shown, lines };
   }
@@ -586,13 +588,15 @@ export class PlayerDeepdiveService {
         ? []
         : [
             `Star player points adjustment: ${
-              adjustment > 0 ? `+${adjustment}` : String(adjustment)
+              adjustment > 0
+                ? `+${this.numbers.count(adjustment)}`
+                : this.numbers.count(adjustment)
             } (included)`,
           ];
     return [
       '',
       ...adjustmentLines,
-      `Total star player points: ${player.sppTotal}`,
+      `Total star player points: ${this.numbers.count(player.sppTotal)}`,
     ];
   }
 
@@ -655,9 +659,11 @@ export class PlayerDeepdiveService {
     }
     if (player.nigglingInjuryCount > 0) {
       parts.push(
-        `${player.nigglingInjuryCount} niggling ${
-          player.nigglingInjuryCount === 1 ? 'injury' : 'injuries'
-        }`,
+        this.numbers.counted(
+          player.nigglingInjuryCount,
+          'niggling injury',
+          'niggling injuries',
+        ),
       );
     }
     for (const [label, field] of REDUCTION_FIELDS) {

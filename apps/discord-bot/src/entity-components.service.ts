@@ -16,6 +16,7 @@ import {
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from './deepdive/button-custom-ids';
+import { NumberFormatterService } from './shared/number-formatter.service';
 
 /** Discord allows at most 5 buttons per action row and 5 action rows per message. */
 const MAX_BUTTONS_PER_ROW = 5;
@@ -192,6 +193,8 @@ export interface EntityComponents {
  */
 @Injectable()
 export class EntityComponentsService {
+  constructor(private readonly numberFormatter: NumberFormatterService) {}
+
   buildEntityComponents(entries: EntityComponentEntry[]): EntityComponents {
     const resolved = entries.map((entry) => ({
       ...entry,
@@ -205,7 +208,10 @@ export class EntityComponentsService {
     const dropped = unique.length - rendered;
     return {
       components: rows,
-      overflowNote: dropped > 0 ? `…and ${dropped} more without a link.` : null,
+      overflowNote:
+        dropped > 0
+          ? `…and ${this.numberFormatter.count(dropped)} more without a link.`
+          : null,
     };
   }
 

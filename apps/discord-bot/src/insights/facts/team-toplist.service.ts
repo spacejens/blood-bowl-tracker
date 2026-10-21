@@ -8,6 +8,7 @@ import {
   TEAM_TOPLIST_NO_DATA_MESSAGE,
   TEAM_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import type { EntityLink } from '../leaderboard.service';
 import { LeaderboardService } from '../leaderboard.service';
 import { TeamContextService } from '../team-context.service';
@@ -74,6 +75,7 @@ export class TeamToplistService {
     private readonly leaderboard: LeaderboardService,
     private readonly teamContext: TeamContextService,
     private readonly toplistFactory: ToplistFactoryService,
+    private readonly numbers: NumberFormatterService,
   ) {
     this.resolvers = this.toplistFactory.makeResolvers<
       TeamToplistMethod,
@@ -120,7 +122,7 @@ export class TeamToplistService {
   }
 
   private formatTeamRow(row: TeamToplistRow & { rank: number }): string {
-    return `${row.rank}. ${row.name}${row.contextSuffix ?? ''} — ${row.count}`;
+    return `${row.rank}. ${row.name}${row.contextSuffix ?? ''} — ${this.numbers.count(row.count)}`;
   }
 
   resolveTouchdownsScored(scope: FactScope) {

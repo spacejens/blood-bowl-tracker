@@ -25,6 +25,7 @@ import {
 } from '../../insights/leaderboard.service';
 import { PlayerContextService } from '../../insights/player-context.service';
 import { EraSectionGrouperService } from '../../shared/era-section-grouper.service';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import {
   COACH_BUTTON_CUSTOM_ID_PREFIX,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
@@ -79,6 +80,7 @@ export class TeamDeepdiveService {
     private readonly trophyAwards: TrophyAwardsService,
     private readonly eraSectionGrouper: EraSectionGrouperService,
     private readonly playerRowButton: PlayerRowButtonService,
+    private readonly numbers: NumberFormatterService,
   ) {}
 
   async resolve(teamId: number): Promise<string | InteractionReplyOptions> {
@@ -240,10 +242,10 @@ export class TeamDeepdiveService {
     );
     const playerLines = ranked.map(
       (row) =>
-        `${row.rank}. ${row.name}${row.contextSuffix ?? ''} — ${row.count}`,
+        `${row.rank}. ${row.name}${row.contextSuffix ?? ''} — ${this.numbers.count(row.count)}`,
     );
     if (truncatedCount > 0) {
-      playerLines.push(`…and ${truncatedCount} more tied.`);
+      playerLines.push(`…and ${this.numbers.count(truncatedCount)} more tied.`);
     }
 
     // No placeholder when the team has no trophies — the section is simply
@@ -269,7 +271,9 @@ export class TeamDeepdiveService {
     // to append it to, an overflow note would have nothing to attach to.
     const honorsTruncatedCount = honorsTotal - honors.length;
     if (honors.length > 0 && honorsTruncatedCount > 0) {
-      honorLines.push(`…and ${honorsTruncatedCount} more not shown.`);
+      honorLines.push(
+        `…and ${this.numbers.count(honorsTruncatedCount)} more not shown.`,
+      );
     }
 
     // Honors entries first, then leaderboard entries: buildEntityComponents
