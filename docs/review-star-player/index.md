@@ -33,8 +33,12 @@ JSON5 config loading, the `DataTypeReviewer`/`Stratifier` plug-in contracts and 
 app-module wiring) is shared with the other review tools through
 `packages/review-harness` — it never touches a raw source's meaning, so it cannot
 agree with itself about one. Locating and byte-decoding a BBL mirror file is shared
-on the same basis, via `packages/read-bbl-mirror`: it carries no BBL-page-type
+on a similar basis, via `packages/read-bbl-mirror`: it carries no BBL-page-type
 awareness or HTML parsing, so depending on it does not weaken the boundary above.
+Walking the curated batches is shared via `packages/review-harness`'s
+`ManualBatchReaderService`. It shapes no entry, so every reading of what a curated
+entry means still happens in this tool; it only lists the batches and their files in
+order, parses them (JSON5) and pools each top-level array.
 
 ## What it does
 

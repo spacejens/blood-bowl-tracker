@@ -7,6 +7,7 @@ export { DATA_TYPE_REVIEWERS } from './data-type-reviewer';
 export { ExternalSystemLookupService } from './external-system-lookup.service';
 export type { TableCell, TableRow } from './html.service';
 export { HtmlService } from './html.service';
+export { ManualBatchReaderService } from './manual-batch-reader.service';
 export { createRegistryProvider } from './registry-provider';
 export type {
   ReportEntityNoun,

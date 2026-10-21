@@ -1,717 +1,583 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { ManualBatchReaderService } from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { RaceReviewConfigService } from '../config/review-race-config.service';
+import type {
+  ManualCharacteristicsEntry,
+  ManualPositionSkillsEntry,
+} from './manual-raw-data.service';
 import { ManualRawDataService } from './manual-raw-data.service';
+
+const DATA_DIR = '/data/manual';
+const BATCHES_DIR = join(DATA_DIR, 'batches');
 
 describe('ManualRawDataService', () => {
   let service: ManualRawDataService;
-  let tempDir: string;
-
-  function writeIn(batch: string, file: string, contents: string): void {
-    mkdirSync(join(tempDir, 'batches', batch), { recursive: true });
-    writeFileSync(join(tempDir, 'batches', batch, file), contents);
-  }
+  let reader: MockProxy<ManualBatchReaderService>;
 
   beforeEach(async () => {
-    tempDir = await mkdtemp(join(tmpdir(), 'manual-data-'));
-    mkdirSync(join(tempDir, 'batches/001-a'), { recursive: true });
-    mkdirSync(join(tempDir, 'batches/002-b'), { recursive: true });
-
     const config = mock<RaceReviewConfigService>();
-    config.getDataDir.mockReturnValue(tempDir);
+    config.getDataDir.mockReturnValue(DATA_DIR);
+    reader = mock<ManualBatchReaderService>();
+    reader.section.mockResolvedValue([]);
+    reader.latestByKey.mockReturnValue([]);
 
     const moduleRef = await Test.createTestingModule({
       providers: [
         ManualRawDataService,
         { provide: RaceReviewConfigService, useValue: config },
+        { provide: ManualBatchReaderService, useValue: reader },
       ],
     }).compile();
 
     service = moduleRef.get(ManualRawDataService);
   });
 
-  afterEach(async () => {
-    await rm(tempDir, { recursive: true, force: true });
-  });
-
-  it('races() returns data from races-and-positions.json5', async () => {
-    const json5Content = `
-{
-  races: [
-    {
-      name: 'Dwarf',
-      externalIds: [
-        { system: 'tloeg.bbleague.se', id: '5' }
-      ]
+  /** The shaped entries and key function last handed to `latestByKey`. */
+  function latestByKeyCall(): [unknown[], (entry: unknown) => string] {
+    const call = reader.latestByKey.mock.lastCall;
+    if (call === undefined) {
+      throw new Error('latestByKey was not called');
     }
-  ],
-  positions: []
-}
-`;
-    writeFileSync(
-      join(tempDir, 'batches/001-a', 'races-and-positions.json5'),
-      json5Content,
-    );
+    return call;
+  }
 
-    const races = await service.races();
-    expect(races).toHaveLength(1);
-    expect(races[0]).toEqual({
-      name: 'Dwarf',
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '5' }],
+  describe('races', () => {
+    it("reads the curated batches' races section", async () => {
+      await service.races();
+
+      expect(reader.section).toHaveBeenCalledWith(BATCHES_DIR, 'races');
     });
-  });
 
-  it('availability() returns name, externalIds, and raceEras', async () => {
-    const json5Content = `
-{
-  positions: [
-    {
-      name: 'Dark Elf Lineman',
-      isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Dark Elf Team: Dark Elf Lineman' }],
-      raceEras: [
+    it('returns the entries latestByKey keeps', async () => {
+      const kept = [{ name: 'Dwarf', externalIds: [] }];
+      reader.latestByKey.mockReturnValue(kept);
+
+      await expect(service.races()).resolves.toBe(kept);
+    });
+
+    it('shapes an entry into its name and external ids', async () => {
+      reader.section.mockResolvedValue([
         {
-          race: { system: 'tloeg.bbleague.se', id: '4' },
-          era: { system: 'Name', id: 'First era' }
-        }
-      ]
-    }
-  ]
-}
-`;
-    writeFileSync(
-      join(tempDir, 'batches/002-b', 'position-availability.json5'),
-      json5Content,
-    );
+          name: 'Dwarf',
+          externalIds: [{ system: 'tloeg.bbleague.se', id: '5' }],
+          extra: 'ignored',
+        },
+      ]);
 
-    const availability = await service.availability();
-    expect(availability).toHaveLength(1);
-    expect(availability[0]).toEqual({
-      name: 'Dark Elf Lineman',
-      externalIds: [{ system: 'Name', id: 'Dark Elf Team: Dark Elf Lineman' }],
-      raceEras: [
+      await service.races();
+
+      expect(latestByKeyCall()[0]).toEqual([
         {
-          race: { system: 'tloeg.bbleague.se', id: '4' },
-          era: { system: 'Name', id: 'First era' },
+          name: 'Dwarf',
+          externalIds: [{ system: 'tloeg.bbleague.se', id: '5' }],
         },
-      ],
+      ]);
     });
-  });
 
-  it('characteristics() maps CRP entry without passing to passing: null', async () => {
-    const json5Content = `
-{
-  positionRulesSets: [
-    {
-      position: { system: 'Name', id: 'Dwarf Team: Dwarf Blocker Linemen' },
-      rulesSet: { system: 'Name', id: 'CRP' },
-      move: 4,
-      strength: 3,
-      agility: 2,
-      armour: 9
-    }
-  ]
-}
-`;
-    writeFileSync(
-      join(tempDir, 'batches/002-b', 'position-characteristics.json5'),
-      json5Content,
-    );
-
-    const characteristics = await service.characteristics();
-    expect(characteristics).toHaveLength(1);
-    expect(characteristics[0]).toEqual({
-      position: { system: 'Name', id: 'Dwarf Team: Dwarf Blocker Linemen' },
-      rulesSet: { system: 'Name', id: 'CRP' },
-      move: 4,
-      strength: 3,
-      agility: 2,
-      passing: null,
-      armour: 9,
-    });
-  });
-
-  it('characteristics() keeps explicit passing value for BB2020 entry', async () => {
-    const json5Content = `
-{
-  positionRulesSets: [
-    {
-      position: { system: 'Name', id: 'Some Position' },
-      rulesSet: { system: 'Name', id: 'BB2020' },
-      move: 6,
-      strength: 3,
-      agility: 3,
-      passing: 2,
-      armour: 7
-    }
-  ]
-}
-`;
-    writeFileSync(
-      join(tempDir, 'batches/002-b', 'position-characteristics.json5'),
-      json5Content,
-    );
-
-    const characteristics = await service.characteristics();
-    expect(characteristics).toHaveLength(1);
-    expect(characteristics[0].passing).toEqual(2);
-  });
-
-  it('characteristics() pools the batch 002 file and the batch 001 gap-fill file', async () => {
-    writeFileSync(
-      join(tempDir, 'batches/002-b', 'position-characteristics.json5'),
-      `
-{
-  positionRulesSets: [
-    {
-      position: { system: 'Name', id: 'Dwarf Team: Dwarf Blocker Linemen' },
-      rulesSet: { system: 'Name', id: 'CRP' },
-      move: 4, strength: 3, agility: 2, armour: 9
-    }
-  ]
-}
-`,
-    );
-    writeFileSync(
-      join(tempDir, 'batches/001-a', 'position-characteristics-gap-fill.json5'),
-      `
-{
-  positionRulesSets: [
-    {
-      position: { system: 'Name', id: 'Giant Mercenary' },
-      rulesSet: { system: 'Name', id: 'BB2020' },
-      move: 6, strength: 7, agility: 5, passing: 5, armour: 11
-    }
-  ]
-}
-`,
-    );
-
-    const characteristics = await service.characteristics();
-
-    expect(characteristics).toHaveLength(2);
-    expect(characteristics).toContainEqual({
-      position: { system: 'Name', id: 'Dwarf Team: Dwarf Blocker Linemen' },
-      rulesSet: { system: 'Name', id: 'CRP' },
-      move: 4,
-      strength: 3,
-      agility: 2,
-      passing: null,
-      armour: 9,
-    });
-    expect(characteristics).toContainEqual({
-      position: { system: 'Name', id: 'Giant Mercenary' },
-      rulesSet: { system: 'Name', id: 'BB2020' },
-      move: 6,
-      strength: 7,
-      agility: 5,
-      passing: 5,
-      armour: 11,
-    });
-  });
-
-  it('characteristics() returns the batch 002 entries when the gap-fill file is missing', async () => {
-    writeFileSync(
-      join(tempDir, 'batches/002-b', 'position-characteristics.json5'),
-      `
-{
-  positionRulesSets: [
-    {
-      position: { system: 'Name', id: 'Some Position' },
-      rulesSet: { system: 'Name', id: 'CRP' },
-      move: 4, strength: 3, agility: 2, armour: 9
-    }
-  ]
-}
-`,
-    );
-
-    const characteristics = await service.characteristics();
-
-    expect(characteristics).toHaveLength(1);
-  });
-
-  it('availability() skips an entry whose name is not a string', async () => {
-    const json5Content = `
-{
-  positions: [
-    { name: 'Dark Elf Lineman', externalIds: [], raceEras: [] },
-    { name: null, externalIds: [], raceEras: [] }
-  ]
-}
-`;
-    writeFileSync(
-      join(tempDir, 'batches/002-b', 'position-availability.json5'),
-      json5Content,
-    );
-
-    const availability = await service.availability();
-    expect(availability).toHaveLength(1);
-    expect(availability[0].name).toEqual('Dark Elf Lineman');
-  });
-
-  it('availability() skips a raceEras entry whose race or era ref is invalid', async () => {
-    const json5Content = `
-{
-  positions: [
-    {
-      name: 'Dark Elf Lineman',
-      externalIds: [],
-      raceEras: [
-        { race: { system: 'tloeg.bbleague.se', id: '4' }, era: { system: 'Name', id: 'First era' } },
-        { race: { id: '4' }, era: { system: 'Name', id: 'First era' } },
-        { race: { system: 'tloeg.bbleague.se', id: '4' }, era: { system: 'Name' } }
-      ]
-    }
-  ]
-}
-`;
-    writeFileSync(
-      join(tempDir, 'batches/002-b', 'position-availability.json5'),
-      json5Content,
-    );
-
-    const availability = await service.availability();
-    expect(availability[0].raceEras).toHaveLength(1);
-  });
-
-  it('characteristics() skips an entry with a missing position or rulesSet ref', async () => {
-    const json5Content = `
-{
-  positionRulesSets: [
-    {
-      position: { system: 'Name', id: 'Dwarf Blocker Lineman' },
-      rulesSet: { system: 'Name', id: 'CRP' },
-      move: 4, strength: 3, agility: 2, armour: 9
-    },
-    {
-      rulesSet: { system: 'Name', id: 'CRP' },
-      move: 4, strength: 3, agility: 2, armour: 9
-    },
-    {
-      position: { system: 'Name', id: 'Dwarf Blocker Lineman' },
-      move: 4, strength: 3, agility: 2, armour: 9
-    }
-  ]
-}
-`;
-    writeFileSync(
-      join(tempDir, 'batches/002-b', 'position-characteristics.json5'),
-      json5Content,
-    );
-
-    const characteristics = await service.characteristics();
-    expect(characteristics).toHaveLength(1);
-  });
-
-  it('races() skips an externalIds entry with a missing system or non-string/number id', async () => {
-    const json5Content = `
-{
-  races: [
-    {
-      name: 'Dwarf',
-      externalIds: [
-        { system: 'tloeg.bbleague.se', id: '5' },
-        { id: '6' },
-        { system: 'tloeg.bbleague.se', id: null },
-        { system: 'tloeg.bbleague.se', id: true }
-      ]
-    }
-  ],
-  positions: []
-}
-`;
-    writeFileSync(
-      join(tempDir, 'batches/001-a', 'races-and-positions.json5'),
-      json5Content,
-    );
-
-    const races = await service.races();
-    expect(races[0].externalIds).toEqual([
-      { system: 'tloeg.bbleague.se', id: '5' },
-    ]);
-  });
-
-  it('returns {} when the parsed JSON5 is not an object (e.g. a bare number)', async () => {
-    writeFileSync(
-      join(tempDir, 'batches/001-a', 'races-and-positions.json5'),
-      '42',
-    );
-
-    const races = await service.races();
-    expect(races).toEqual([]);
-  });
-
-  it('treats a non-array externalIds as no external ids', async () => {
-    const json5Content = `
-{
-  races: [
-    { name: 'Dwarf', externalIds: 'not-an-array' }
-  ],
-  positions: []
-}
-`;
-    writeFileSync(
-      join(tempDir, 'batches/001-a', 'races-and-positions.json5'),
-      json5Content,
-    );
-
-    const races = await service.races();
-    expect(races[0].externalIds).toEqual([]);
-  });
-
-  it('treats a non-array raceEras as no race eras', async () => {
-    const json5Content = `
-{
-  positions: [
-    { name: 'Dark Elf Lineman', externalIds: [], raceEras: 'not-an-array' }
-  ]
-}
-`;
-    writeFileSync(
-      join(tempDir, 'batches/002-b', 'position-availability.json5'),
-      json5Content,
-    );
-
-    const availability = await service.availability();
-    expect(availability[0].raceEras).toEqual([]);
-  });
-
-  it('returns [] when a file is missing', async () => {
-    // Don't create the file
-    const races = await service.races();
-    expect(races).toEqual([]);
-  });
-
-  it('returns [] when JSON5 is syntactically invalid', async () => {
-    const malformedJson5 = `{ this is not valid json5 ]`;
-    writeFileSync(
-      join(tempDir, 'batches/001-a', 'races-and-positions.json5'),
-      malformedJson5,
-    );
-
-    const races = await service.races();
-    expect(races).toEqual([]);
-  });
-
-  it('caches file reads and returns cached result on second call', async () => {
-    const json5Content = `
-{
-  races: [
-    { name: 'Dwarf', externalIds: [{ system: 'tloeg.bbleague.se', id: '5' }] }
-  ],
-  positions: []
-}
-`;
-    writeFileSync(
-      join(tempDir, 'batches/001-a', 'races-and-positions.json5'),
-      json5Content,
-    );
-
-    // First call
-    const races1 = await service.races();
-    expect(races1).toHaveLength(1);
-
-    // Delete the file
-    const filePath = join(
-      tempDir,
-      'batches/001-a',
-      'races-and-positions.json5',
-    );
-    await rm(filePath);
-
-    // Second call should still return cached result
-    const races2 = await service.races();
-    expect(races2).toEqual(races1);
-  });
-
-  it('skips entries that are not objects', async () => {
-    const json5Content = `
-{
-  races: [
-    { name: 'Dwarf', externalIds: [] },
-    "not an object",
-    123,
-    null
-  ],
-  positions: []
-}
-`;
-    writeFileSync(
-      join(tempDir, 'batches/001-a', 'races-and-positions.json5'),
-      json5Content,
-    );
-
-    const races = await service.races();
-    expect(races).toHaveLength(1);
-    expect(races[0].name).toEqual('Dwarf');
-  });
-
-  it('reads curated position starting skills', async () => {
-    const json5Content = `
-{
-  positionRulesSetSkills: [
-    {
-      position: { system: 'Name', id: 'Dwarf: Dwarf Blitzer' },
-      rulesSet: { system: 'Name', id: 'CRP' },
-      skills: [
-        { system: 'Name', id: 'Block' },
-        { system: 'Name', id: 'Thick Skull' }
-      ]
-    }
-  ]
-}
-`;
-    writeFileSync(
-      join(tempDir, 'batches/002-b', 'position-skills.json5'),
-      json5Content,
-    );
-
-    expect(await service.positionSkills()).toEqual([
-      {
-        position: { system: 'Name', id: 'Dwarf: Dwarf Blitzer' },
-        rulesSet: { system: 'Name', id: 'CRP' },
-        skills: [
-          { skill: { system: 'Name', id: 'Block' }, attributeValue: null },
-          {
-            skill: { system: 'Name', id: 'Thick Skull' },
-            attributeValue: null,
-          },
-        ],
-      },
-    ]);
-  });
-
-  it('reads a curated skill wrapped with an attribute value', async () => {
-    const json5Content = `
-{
-  positionRulesSetSkills: [
-    {
-      position: { system: 'Name', id: 'SL - Chaos Halflings: SL - Carvers' },
-      rulesSet: { system: 'Name', id: 'CRP' },
-      skills: [
-        { system: 'Name', id: 'Dodge' },
-        { skill: { system: 'Name', id: 'Secret Weapon' }, attributeValue: '7+' }
-      ]
-    }
-  ]
-}
-`;
-    writeFileSync(
-      join(tempDir, 'batches/002-b', 'position-skills.json5'),
-      json5Content,
-    );
-
-    expect(await service.positionSkills()).toEqual([
-      {
-        position: {
-          system: 'Name',
-          id: 'SL - Chaos Halflings: SL - Carvers',
+    it('stringifies a numeric id and drops an id with no system or a non-string/number id', async () => {
+      reader.section.mockResolvedValue([
+        {
+          name: 'Dwarf',
+          externalIds: [
+            { system: 'tloeg.bbleague.se', id: 5 },
+            { id: '6' },
+            { system: 'tloeg.bbleague.se', id: null },
+            { system: 'tloeg.bbleague.se', id: true },
+          ],
         },
-        rulesSet: { system: 'Name', id: 'CRP' },
-        skills: [
-          { skill: { system: 'Name', id: 'Dodge' }, attributeValue: null },
-          {
-            skill: { system: 'Name', id: 'Secret Weapon' },
-            attributeValue: '7+',
+      ]);
+
+      await service.races();
+
+      expect(latestByKeyCall()[0]).toEqual([
+        {
+          name: 'Dwarf',
+          externalIds: [{ system: 'tloeg.bbleague.se', id: '5' }],
+        },
+      ]);
+    });
+
+    it('treats a non-array externalIds as no external ids', async () => {
+      reader.section.mockResolvedValue([
+        { name: 'Dwarf', externalIds: 'not-an-array' },
+      ]);
+
+      await service.races();
+
+      expect(latestByKeyCall()[0]).toEqual([
+        { name: 'Dwarf', externalIds: [] },
+      ]);
+    });
+
+    it('skips an entry that is not an object or has no non-empty string name', async () => {
+      reader.section.mockResolvedValue([
+        { name: 'Dwarf', externalIds: [] },
+        'not an object',
+        123,
+        null,
+        { name: 123, externalIds: [] },
+        { name: null, externalIds: [] },
+        { name: '', externalIds: [] },
+        { externalIds: [] },
+      ]);
+
+      await service.races();
+
+      expect(latestByKeyCall()[0]).toEqual([
+        { name: 'Dwarf', externalIds: [] },
+      ]);
+    });
+
+    it('keys an entry by its sorted external ids, or by nothing when it has none', async () => {
+      await service.races();
+      const keyOf = latestByKeyCall()[1];
+
+      expect(
+        keyOf({
+          name: 'Dwarf',
+          externalIds: [
+            { system: 'tourplay.net', id: '9' },
+            { system: 'Name', id: 'Dwarf' },
+          ],
+        }),
+      ).toBe('Name|Dwarf,tourplay.net|9');
+      expect(keyOf({ name: 'Dwarf', externalIds: [] })).toBe('');
+    });
+  });
+
+  describe('availability', () => {
+    it("reads the curated batches' positions section", async () => {
+      await service.availability();
+
+      expect(reader.section).toHaveBeenCalledWith(BATCHES_DIR, 'positions');
+    });
+
+    it('returns the entries latestByKey keeps', async () => {
+      const kept = [{ name: 'Lineman', externalIds: [], raceEras: [] }];
+      reader.latestByKey.mockReturnValue(kept);
+
+      await expect(service.availability()).resolves.toBe(kept);
+    });
+
+    it('shapes an entry into its name, external ids and race/era pairs', async () => {
+      reader.section.mockResolvedValue([
+        {
+          name: 'Dark Elf Lineman',
+          isStarPlayer: false,
+          externalIds: [
+            { system: 'Name', id: 'Dark Elf Team: Dark Elf Lineman' },
+          ],
+          raceEras: [
+            {
+              race: { system: 'tloeg.bbleague.se', id: '4' },
+              era: { system: 'Name', id: 'First era' },
+            },
+          ],
+        },
+      ]);
+
+      await service.availability();
+
+      expect(latestByKeyCall()[0]).toEqual([
+        {
+          name: 'Dark Elf Lineman',
+          externalIds: [
+            { system: 'Name', id: 'Dark Elf Team: Dark Elf Lineman' },
+          ],
+          raceEras: [
+            {
+              race: { system: 'tloeg.bbleague.se', id: '4' },
+              era: { system: 'Name', id: 'First era' },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('ignores a positions entry that carries no raceEras', async () => {
+      reader.section.mockResolvedValue([
+        {
+          name: 'Lineman',
+          externalIds: [{ system: 'Name', id: 'Orc: Lineman' }],
+        },
+      ]);
+
+      await service.availability();
+
+      expect(latestByKeyCall()[0]).toEqual([]);
+    });
+
+    it('skips an entry whose name is not a string', async () => {
+      reader.section.mockResolvedValue([
+        { name: 'Dark Elf Lineman', externalIds: [], raceEras: [] },
+        { name: null, externalIds: [], raceEras: [] },
+      ]);
+
+      await service.availability();
+
+      expect(latestByKeyCall()[0]).toEqual([
+        { name: 'Dark Elf Lineman', externalIds: [], raceEras: [] },
+      ]);
+    });
+
+    it('drops a race/era pair whose race or era ref is invalid', async () => {
+      reader.section.mockResolvedValue([
+        {
+          name: 'Dark Elf Lineman',
+          externalIds: [],
+          raceEras: [
+            {
+              race: { system: 'tloeg.bbleague.se', id: '4' },
+              era: { system: 'Name', id: 'First era' },
+            },
+            { race: { id: '4' }, era: { system: 'Name', id: 'First era' } },
+            {
+              race: { system: 'tloeg.bbleague.se', id: '4' },
+              era: { system: 'Name' },
+            },
+          ],
+        },
+      ]);
+
+      await service.availability();
+
+      expect(latestByKeyCall()[0]).toEqual([
+        {
+          name: 'Dark Elf Lineman',
+          externalIds: [],
+          raceEras: [
+            {
+              race: { system: 'tloeg.bbleague.se', id: '4' },
+              era: { system: 'Name', id: 'First era' },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('treats a non-array raceEras as no race eras', async () => {
+      reader.section.mockResolvedValue([
+        { name: 'Dark Elf Lineman', externalIds: [], raceEras: 'not-an-array' },
+      ]);
+
+      await service.availability();
+
+      expect(latestByKeyCall()[0]).toEqual([
+        { name: 'Dark Elf Lineman', externalIds: [], raceEras: [] },
+      ]);
+    });
+
+    it('keys an entry by its sorted external ids', async () => {
+      await service.availability();
+      const keyOf = latestByKeyCall()[1];
+
+      expect(
+        keyOf({
+          name: 'Lineman',
+          externalIds: [{ system: 'Name', id: 'Orc: Lineman' }],
+          raceEras: [],
+        }),
+      ).toBe('Name|Orc: Lineman');
+    });
+  });
+
+  describe('characteristics', () => {
+    it("reads the curated batches' positionRulesSets section", async () => {
+      await service.characteristics();
+
+      expect(reader.section).toHaveBeenCalledWith(
+        BATCHES_DIR,
+        'positionRulesSets',
+      );
+    });
+
+    it('returns the entries latestByKey keeps', async () => {
+      const kept: ManualCharacteristicsEntry[] = [
+        {
+          position: { system: 'Name', id: 'Dwarf Team: Dwarf Blocker Linemen' },
+          rulesSet: { system: 'Name', id: 'CRP' },
+          move: 4,
+          strength: 3,
+          agility: 2,
+          passing: null,
+          armour: 9,
+        },
+      ];
+      reader.latestByKey.mockReturnValue(kept);
+
+      await expect(service.characteristics()).resolves.toBe(kept);
+    });
+
+    it('shapes an entry, reading an omitted passing as null', async () => {
+      reader.section.mockResolvedValue([
+        {
+          position: { system: 'Name', id: 'Dwarf Team: Dwarf Blocker Linemen' },
+          rulesSet: { system: 'Name', id: 'CRP' },
+          move: 4,
+          strength: 3,
+          agility: 2,
+          armour: 9,
+        },
+      ]);
+
+      await service.characteristics();
+
+      expect(latestByKeyCall()[0]).toEqual([
+        {
+          position: { system: 'Name', id: 'Dwarf Team: Dwarf Blocker Linemen' },
+          rulesSet: { system: 'Name', id: 'CRP' },
+          move: 4,
+          strength: 3,
+          agility: 2,
+          passing: null,
+          armour: 9,
+        },
+      ]);
+    });
+
+    it('keeps an explicit passing value', async () => {
+      reader.section.mockResolvedValue([
+        {
+          position: { system: 'Name', id: 'Some Position' },
+          rulesSet: { system: 'Name', id: 'BB2020' },
+          move: 6,
+          strength: 3,
+          agility: 3,
+          passing: 2,
+          armour: 7,
+        },
+      ]);
+
+      await service.characteristics();
+
+      expect(latestByKeyCall()[0]).toEqual([
+        expect.objectContaining({ passing: 2 }),
+      ]);
+    });
+
+    it('skips an entry with a missing position or rulesSet ref', async () => {
+      reader.section.mockResolvedValue([
+        {
+          position: { system: 'Name', id: 'Dwarf Blocker Lineman' },
+          rulesSet: { system: 'Name', id: 'CRP' },
+          move: 4,
+        },
+        { rulesSet: { system: 'Name', id: 'CRP' }, move: 4 },
+        { position: { system: 'Name', id: 'Dwarf Blocker Lineman' }, move: 4 },
+      ]);
+
+      await service.characteristics();
+
+      expect(latestByKeyCall()[0]).toHaveLength(1);
+    });
+
+    it('keys an entry by its position and rules set', async () => {
+      await service.characteristics();
+      const keyOf = latestByKeyCall()[1];
+
+      expect(
+        keyOf({
+          position: { system: 'Name', id: 'Lineman' },
+          rulesSet: { system: 'Name', id: 'CRP' },
+        }),
+      ).toBe('Name|Lineman::Name|CRP');
+    });
+  });
+
+  describe('positionSkills', () => {
+    it("reads the curated batches' positionRulesSetSkills section", async () => {
+      await service.positionSkills();
+
+      expect(reader.section).toHaveBeenCalledWith(
+        BATCHES_DIR,
+        'positionRulesSetSkills',
+      );
+    });
+
+    it('returns the entries latestByKey keeps', async () => {
+      const kept: ManualPositionSkillsEntry[] = [
+        {
+          position: { system: 'Name', id: 'Dwarf Team: Dwarf Blocker Linemen' },
+          rulesSet: { system: 'Name', id: 'CRP' },
+          skills: [
+            { skill: { system: 'Name', id: 'Block' }, attributeValue: null },
+          ],
+        },
+      ];
+      reader.latestByKey.mockReturnValue(kept);
+
+      await expect(service.positionSkills()).resolves.toBe(kept);
+    });
+
+    it('reads plain skill refs, and wrapped ones with an attribute value', async () => {
+      reader.section.mockResolvedValue([
+        {
+          position: {
+            system: 'Name',
+            id: 'SL - Chaos Halflings: SL - Carvers',
           },
-        ],
-      },
-    ]);
+          rulesSet: { system: 'Name', id: 'CRP' },
+          skills: [
+            { system: 'Name', id: 'Dodge' },
+            {
+              skill: { system: 'Name', id: 'Secret Weapon' },
+              attributeValue: '7+',
+            },
+          ],
+        },
+      ]);
+
+      await service.positionSkills();
+
+      expect(latestByKeyCall()[0]).toEqual([
+        {
+          position: {
+            system: 'Name',
+            id: 'SL - Chaos Halflings: SL - Carvers',
+          },
+          rulesSet: { system: 'Name', id: 'CRP' },
+          skills: [
+            { skill: { system: 'Name', id: 'Dodge' }, attributeValue: null },
+            {
+              skill: { system: 'Name', id: 'Secret Weapon' },
+              attributeValue: '7+',
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('drops a wrapped skill whose inner ref is invalid, and treats non-array skills as none', async () => {
+      reader.section.mockResolvedValue([
+        {
+          position: { system: 'Name', id: 'A' },
+          rulesSet: { system: 'Name', id: 'CRP' },
+          skills: [{ skill: { id: 'Secret Weapon' }, attributeValue: '7+' }],
+        },
+        {
+          position: { system: 'Name', id: 'B' },
+          rulesSet: { system: 'Name', id: 'CRP' },
+          skills: 'not-an-array',
+        },
+      ]);
+
+      await service.positionSkills();
+
+      expect(latestByKeyCall()[0]).toEqual([
+        {
+          position: { system: 'Name', id: 'A' },
+          rulesSet: { system: 'Name', id: 'CRP' },
+          skills: [],
+        },
+        {
+          position: { system: 'Name', id: 'B' },
+          rulesSet: { system: 'Name', id: 'CRP' },
+          skills: [],
+        },
+      ]);
+    });
+
+    it('drops an entry with no position or rules set ref', async () => {
+      reader.section.mockResolvedValue([
+        { rulesSet: { system: 'Name', id: 'CRP' }, skills: [] },
+      ]);
+
+      await service.positionSkills();
+
+      expect(latestByKeyCall()[0]).toEqual([]);
+    });
+
+    it('keys an entry by its position and rules set', async () => {
+      await service.positionSkills();
+      const keyOf = latestByKeyCall()[1];
+
+      expect(
+        keyOf({
+          position: { system: 'Name', id: 'Blitzer' },
+          rulesSet: { system: 'Name', id: 'CRP' },
+          skills: [],
+        }),
+      ).toBe('Name|Blitzer::Name|CRP');
+    });
   });
 
-  it('drops a wrapped curated skill whose inner ref is invalid', async () => {
-    const json5Content = `
-{
-  positionRulesSetSkills: [
-    {
-      position: { system: 'Name', id: 'Some Position' },
-      rulesSet: { system: 'Name', id: 'CRP' },
-      skills: [
-        { skill: { id: 'Secret Weapon' }, attributeValue: '7+' }
-      ]
-    }
-  ]
-}
-`;
-    writeFileSync(
-      join(tempDir, 'batches/002-b', 'position-skills.json5'),
-      json5Content,
-    );
+  describe('keywords', () => {
+    it("reads the curated batches' keywords section", async () => {
+      await service.keywords();
 
-    expect(await service.positionSkills()).toEqual([
-      {
-        position: { system: 'Name', id: 'Some Position' },
-        rulesSet: { system: 'Name', id: 'CRP' },
-        skills: [],
-      },
-    ]);
-  });
+      expect(reader.section).toHaveBeenCalledWith(BATCHES_DIR, 'keywords');
+    });
 
-  it('drops a curated skills entry with no position or rules set ref', async () => {
-    const json5Content = `
-{
-  positionRulesSetSkills: [
-    { rulesSet: { system: 'Name', id: 'CRP' }, skills: [] }
-  ]
-}
-`;
-    writeFileSync(
-      join(tempDir, 'batches/002-b', 'position-skills.json5'),
-      json5Content,
-    );
+    it('returns the keyword of each entry latestByKey keeps', async () => {
+      const keyword = { name: 'Goblin', kind: 'species', code: '111' };
+      reader.latestByKey.mockReturnValue([{ key: 'k', keyword }]);
 
-    expect(await service.positionSkills()).toEqual([]);
-  });
+      await expect(service.keywords()).resolves.toEqual([keyword]);
+    });
 
-  it('returns no curated skills when the file is missing', async () => {
-    expect(await service.positionSkills()).toEqual([]);
-  });
+    it('pulls out the tourplay.net id as code, keyed by the sorted external ids', async () => {
+      reader.section.mockResolvedValue([
+        {
+          name: 'Goblin',
+          kind: 'species',
+          externalIds: [
+            { system: 'Name', id: 'Goblin' },
+            { system: 'tourplay.net', id: '111' },
+          ],
+        },
+      ]);
 
-  it('skips entries whose name is not a string', async () => {
-    const json5Content = `
-{
-  races: [
-    { name: 'Dwarf', externalIds: [] },
-    { name: 123, externalIds: [] },
-    { name: null, externalIds: [] },
-    { externalIds: [] }
-  ],
-  positions: []
-}
-`;
-    writeFileSync(
-      join(tempDir, 'batches/001-a', 'races-and-positions.json5'),
-      json5Content,
-    );
+      await service.keywords();
 
-    const races = await service.races();
-    expect(races).toHaveLength(1);
-    expect(races[0].name).toEqual('Dwarf');
-  });
+      expect(latestByKeyCall()[0]).toEqual([
+        {
+          key: 'Name|Goblin,tourplay.net|111',
+          keyword: { name: 'Goblin', kind: 'species', code: '111' },
+        },
+      ]);
+    });
 
-  it('reads a curated keyword entry with a tourplay.net code', async () => {
-    const json5Content = `
-{
-  keywords: [
-    {
-      name: 'Goblin',
-      kind: 'species',
-      externalIds: [
-        { system: 'Name', id: 'Goblin' },
-        { system: 'tourplay.net', id: '111' }
-      ]
-    }
-  ]
-}
-`;
-    writeFileSync(
-      join(tempDir, 'batches/001-a', 'keywords.json5'),
-      json5Content,
-    );
+    it('reads an entry with no tourplay.net id as code: null', async () => {
+      reader.section.mockResolvedValue([
+        {
+          name: 'Big Guy',
+          kind: 'positional',
+          externalIds: [{ system: 'Name', id: 'Big Guy' }],
+        },
+      ]);
 
-    expect(await service.keywords()).toEqual([
-      { name: 'Goblin', kind: 'species', code: '111' },
-    ]);
-  });
+      await service.keywords();
 
-  it('reads a curated keyword entry with no tourplay.net code as code: null', async () => {
-    const json5Content = `
-{
-  keywords: [
-    {
-      name: 'Big Guy',
-      kind: 'positional',
-      externalIds: [{ system: 'Name', id: 'Big Guy' }]
-    }
-  ]
-}
-`;
-    writeFileSync(
-      join(tempDir, 'batches/001-a', 'keywords.json5'),
-      json5Content,
-    );
+      expect(latestByKeyCall()[0]).toEqual([
+        {
+          key: 'Name|Big Guy',
+          keyword: { name: 'Big Guy', kind: 'positional', code: null },
+        },
+      ]);
+    });
 
-    expect(await service.keywords()).toEqual([
-      { name: 'Big Guy', kind: 'positional', code: null },
-    ]);
-  });
+    it('skips an entry whose name or kind is missing', async () => {
+      reader.section.mockResolvedValue([
+        { name: 'Goblin', externalIds: [] },
+        { kind: 'species', externalIds: [] },
+      ]);
 
-  it('pools a section across every file of every batch, in batch order', async () => {
-    writeIn(
-      '002-b',
-      'races.json5',
-      "{ races: [{ name: 'Orc', externalIds: [{ system: 'Name', id: 'Orc' }] }] }",
-    );
-    writeIn(
-      '001-a',
-      'teams.json5',
-      "{ races: [{ name: 'Elf', externalIds: [{ system: 'Name', id: 'Elf' }] }] }",
-    );
+      await service.keywords();
 
-    expect((await service.races()).map((race) => race.name)).toEqual([
-      'Elf',
-      'Orc',
-    ]);
-  });
+      expect(latestByKeyCall()[0]).toEqual([]);
+    });
 
-  it('lets a later batch replace an entry with the same external ids', async () => {
-    writeIn(
-      '001-a',
-      'races-and-positions.json5',
-      "{ races: [{ name: 'Bretonnians', externalIds: [{ system: 'tloeg.bbleague.se', id: '26' }] }] }",
-    );
-    writeIn(
-      '003-c',
-      'races.json5',
-      "{ races: [{ name: 'Bretonnian', externalIds: [{ system: 'tloeg.bbleague.se', id: '26' }] }] }",
-    );
+    it('keys an entry by its prepared key', async () => {
+      await service.keywords();
+      const keyOf = latestByKeyCall()[1];
 
-    expect(await service.races()).toEqual([
-      {
-        name: 'Bretonnian',
-        externalIds: [{ system: 'tloeg.bbleague.se', id: '26' }],
-      },
-    ]);
-  });
-
-  it('keeps entries with no external ids apart', async () => {
-    writeIn(
-      '001-a',
-      'races.json5',
-      "{ races: [{ name: 'A', externalIds: [] }, { name: 'B', externalIds: [] }] }",
-    );
-
-    expect((await service.races()).map((race) => race.name)).toEqual([
-      'A',
-      'B',
-    ]);
-  });
-
-  it('availability() ignores positions entries that carry no raceEras', async () => {
-    writeIn(
-      '003-c',
-      'positions.json5',
-      "{ positions: [{ name: 'Lineman', externalIds: [{ system: 'Name', id: 'Orc: Lineman' }] }] }",
-    );
-
-    expect(await service.availability()).toEqual([]);
-  });
-
-  it('ignores files beside the batch directories', async () => {
-    mkdirSync(join(tempDir, 'batches'), { recursive: true });
-    writeFileSync(
-      join(tempDir, 'batches', 'notes.json5'),
-      "{ races: [{ name: 'X', externalIds: [] }] }",
-    );
-
-    expect(await service.races()).toEqual([]);
+      expect(keyOf({ key: 'Name|Goblin', keyword: {} })).toBe('Name|Goblin');
+    });
   });
 });
