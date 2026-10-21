@@ -12,7 +12,6 @@ import type { EntityComponentEntry } from '../../entity-components.service';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
   DEEPDIVE_COMPETITION_NO_TEAMS_MESSAGE,
-  DEEPDIVE_COMPETITION_NO_TROPHIES_MESSAGE,
   DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
   DEEPDIVE_COMPETITION_TEAM_CONTEXT_TIMEOUT_MESSAGE,
   DEEPDIVE_COMPETITION_TEAMS_TIMEOUT_MESSAGE,
@@ -59,7 +58,7 @@ type AwardContext = {
 
 /**
  * Composes the competition header (type), its era line, its recurring group,
- * its duration, its participating-teams list, and its trophies/awards section
+ * its duration, its participating-teams list, and its trophies section
  * into a single embed. Shared by `/deepdive competition:<id>` and the
  * competition deepdive buttons. Each
  * DB call is wrapped in `databaseTimeout.run` with a `null` sentinel so a
@@ -68,10 +67,11 @@ type AwardContext = {
  * buttons in one combined pool, teams first so they take component priority
  * over the era header entry; the recurring group gets its own drill-up
  * button, labelled with the group's own name (not the competition's).
- * A `Trophies & awards:` section follows the participating-teams list,
- * naming every trophy this competition handed out and who received it, in the
- * query's team-awards-then-player-awards order. Recipients are decorated with
- * the same race/coach (team) or position/team/race/coach (player) context the
+ * A `Trophies:` section follows the participating-teams list, naming every
+ * trophy this competition handed out and who received it, in the query's
+ * team-awards-then-player-awards order; like the player and team deepdives,
+ * the section is omitted entirely when nothing was handed out. Recipients are
+ * decorated with the same race/coach (team) or position/team/race/coach (player) context the
  * trophy deepdive shows, so a reader can identify a winner they do not know
  * by name. Each recipient and each distinct trophy becomes a drill-down
  * entry; a team that both participated and won is collapsed to one button by
@@ -162,13 +162,17 @@ export class CompetitionDeepdiveService {
         ? decorated.map((team) => `${team.name}${team.contextSuffix}`)
         : [DEEPDIVE_COMPETITION_NO_TEAMS_MESSAGE];
 
+    // Like the player and team deepdives, the trophies section is left out
+    // entirely when there is nothing to show, including its leading blank
+    // separator, so the description then ends after the teams list.
     const awardLines =
       awards.length > 0
         ? [
-            'Trophies & awards:',
+            '',
+            'Trophies:',
             ...awards.map((award) => this.formatAward(award, awardContext)),
           ]
-        : [DEEPDIVE_COMPETITION_NO_TROPHIES_MESSAGE];
+        : [];
 
     const descriptionLines = [
       `Type: ${competition.type}`,
@@ -178,7 +182,6 @@ export class CompetitionDeepdiveService {
       '',
       'Participating teams:',
       ...teamLines,
-      '',
       ...awardLines,
     ];
 
