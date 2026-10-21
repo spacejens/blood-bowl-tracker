@@ -1,3 +1,5 @@
+import { SyncBatchValidationError } from './sync-batch-validation-error';
+
 /**
  * An authored-data mistake in a position-keyword sync: a position/rules-set
  * pair with no characteristics recorded, or one batch naming the same triple
@@ -9,7 +11,7 @@
  * against), and a shared class would make the api-server mapping claim a
  * skill problem for a keyword one.
  */
-export class KeywordValidationError extends Error {
+export class KeywordValidationError extends SyncBatchValidationError {
   constructor(message: string) {
     super(message);
     this.name = 'KeywordValidationError';
