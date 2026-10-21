@@ -145,7 +145,7 @@ Input:
 
 ```ts
 {
-  tournament: { id: number, name: string },
+  tournament: TpCompetitionTournament, // { id, name }
   playedDates: Date[],            // ISO strings on the wire
   era: string,
   participantRosterIds: number[], // every registered team's TP roster id
