@@ -143,8 +143,9 @@ describe('the importer sequence, run twice (real Postgres, real api-server)', ()
   it('stops a plain apply at batch 002 with the same known errors both times', () => {
     // Entries that reference rows only the real BBL/TP importers create fail
     // here; what matters is that a re-run behaves identically, and that the
-    // failures are the two known kinds: race-era syncs that need BBL race ids
-    // and a trophy award that needs a TP id.
+    // failures are the known kinds: race-era syncs that need BBL race ids,
+    // race-era syncs naming a race/era pair whose race_eras row only the
+    // source importers create, and a trophy award that needs a TP id.
     for (const run of [first, second]) {
       expect(run.rest.applied).toEqual([]);
       expect(run.rest.failed?.name).toBe('002-initial-cleanup');
@@ -154,7 +155,7 @@ describe('the importer sequence, run twice (real Postgres, real api-server)', ()
     expect(messages(second.rest.failed?.errors ?? [])).toEqual(firstMessages);
     for (const message of firstMessages) {
       expect(message).toMatch(
-        /^Cannot (?:sync race-eras for position ".+": could not resolve reference tloeg\.bbleague\.se\|\d+|import award of trophy ".+": could not resolve reference tourplay\.net\|\d+)\.$/,
+        /^(?:Cannot (?:sync race-eras for position ".+": could not resolve reference tloeg\.bbleague\.se\|\d+|import award of trophy ".+": could not resolve reference tourplay\.net\|\d+)\.|Failed to sync race eras for position \d+: Race \d+ is not available in era \d+ \(no race_eras row\), so position \d+ cannot be made available there)$/,
       );
     }
   });

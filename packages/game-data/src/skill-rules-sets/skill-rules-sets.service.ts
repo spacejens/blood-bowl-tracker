@@ -39,9 +39,11 @@ export interface RulesSetSkillCategory {
  *
  * Unlike PositionRulesSetsService, there is nothing to validate the category
  * *against* — the category is exactly what this table records, so no rules
- * set declares an expectation it could disagree with. The only rejection is a
- * batch naming the same pair twice, which the database's unique constraint
- * would otherwise turn into a raw driver error.
+ * set declares an expectation it could disagree with. The only rejections
+ * are authored-data ones: a batch naming the same pair twice, and an entry
+ * naming a skill or rules set that does not exist, which the database's
+ * unique and foreign-key constraints would otherwise turn into raw driver
+ * errors.
  */
 @Injectable()
 export class SkillRulesSetsService {
@@ -61,11 +63,7 @@ export class SkillRulesSetsService {
    * avoids that.
    *
    * Validation runs over the whole batch before any write: one bad entry
-   * fails the call rather than half-applying it. Unlike
-   * PositionRulesSetSkillsService.sync, this does not check that a supplied
-   * `skillId` or `rulesSetId` actually exists first — a nonexistent one
-   * surfaces as a raw database foreign-key-violation error rather than a
-   * typed SkillValidationError.
+   * fails the call with a SkillValidationError rather than half-applying it.
    */
   async sync(data: SyncSkillRulesSets): Promise<SyncSkillRulesSetsResult> {
     if (data.entries.length === 0) {
@@ -82,6 +80,7 @@ export class SkillRulesSetsService {
       }
       seenKeys.add(key);
     }
+    await this.rejectUnknownReferences(data);
 
     const rulesSetIds = [
       ...new Set(data.entries.map((entry) => entry.rulesSetId)),
@@ -150,6 +149,44 @@ export class SkillRulesSetsService {
 
       return { skillRulesSetIds };
     });
+  }
+
+  /**
+   * Reject an entry naming a skill or rules set that does not exist. Without
+   * this the insert would fail on the table's foreign key and surface as a
+   * raw database error rather than feedback on the entry. Two queries
+   * regardless of batch size, matched in memory.
+   */
+  private async rejectUnknownReferences(
+    data: SyncSkillRulesSets,
+  ): Promise<void> {
+    const skillIds = [...new Set(data.entries.map((entry) => entry.skillId))];
+    const rulesSetIds = [
+      ...new Set(data.entries.map((entry) => entry.rulesSetId)),
+    ];
+    const skillRows = await this.db
+      .select({ id: skills.id })
+      .from(skills)
+      .where(inArray(skills.id, skillIds));
+    const rulesSetRows = await this.db
+      .select({ id: rulesSets.id })
+      .from(rulesSets)
+      .where(inArray(rulesSets.id, rulesSetIds));
+
+    const knownSkillIds = new Set(skillRows.map((row) => row.id));
+    const knownRulesSetIds = new Set(rulesSetRows.map((row) => row.id));
+    for (const entry of data.entries) {
+      if (!knownSkillIds.has(entry.skillId)) {
+        throw new SkillValidationError(
+          `Skill ${entry.skillId} does not exist, so it cannot be categorised under rules set ${entry.rulesSetId}`,
+        );
+      }
+      if (!knownRulesSetIds.has(entry.rulesSetId)) {
+        throw new SkillValidationError(
+          `Rules set ${entry.rulesSetId} does not exist, so skill ${entry.skillId} cannot be categorised under it`,
+        );
+      }
+    }
   }
 
   /**

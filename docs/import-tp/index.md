@@ -291,7 +291,9 @@ A star player hired mid-season through an `inducements_roll` event has no `lineU
   `(raceId, eraId)`, dedupes the pairs per position, and writes them with one
   upsert-only `syncRaceEras` call per position. Runs right after players,
   since the usages only exist once players are imported; an unresolvable race
-  code or era name is recorded as an error and skipped.
+  code or era name is recorded as an error and skipped. A pair the server
+  rejects (the race has no `race_eras` row for that era) fails that
+  position's whole sync with one recorded error; other positions still sync.
 
 ### Competitions and matches
 
