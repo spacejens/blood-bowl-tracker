@@ -353,7 +353,7 @@ function makeFactTreeMocks(): FactTreeMocks {
 
   const starPlayersList = mock<StarPlayersListService>();
   starPlayersList.resolve.mockResolvedValue(
-    sampleEmbedReply('Star Players', 'sample star players'),
+    sampleEmbedReply('Star players', 'sample star players'),
   );
 
   const trophiesList = mock<TrophiesListService>();

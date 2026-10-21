@@ -87,7 +87,7 @@ describe('StarPlayersListService.resolve', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Star Players',
+          title: 'Star players',
           description: STAR_PLAYERS_LIST_NO_DATA_MESSAGE,
         },
       ],
@@ -102,7 +102,7 @@ describe('StarPlayersListService.resolve', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Star Players',
+          title: 'Star players',
           description: 'Griff Oberwald',
         },
       ],
@@ -135,7 +135,7 @@ describe('StarPlayersListService.resolve', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Star Players',
+          title: 'Star players',
           description: [
             'Griff Oberwald',
             'Morg n Thorg',

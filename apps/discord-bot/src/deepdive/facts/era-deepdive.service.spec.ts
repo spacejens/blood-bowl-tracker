@@ -178,7 +178,7 @@ describe('EraDeepdiveService', () => {
           description: [
             'League: Premier',
             'Dates: 2021-09-01 – 2023-06-10',
-            'Rules: BB2016, BB2020',
+            'Rules sets: BB2016, BB2020',
             'External systems: BBL, NAF',
             '',
             'Season 1 (season): 2021-09-05 – 2021-12-20',
@@ -233,7 +233,7 @@ describe('EraDeepdiveService', () => {
           description: [
             'League: Premier',
             'Dates: 2021-09-01 – present',
-            'Rules: None recorded',
+            'Rules sets: None recorded',
             'External systems: None recorded',
             '',
             'Season 1 (season): 2021-09-05 – present',
@@ -330,7 +330,7 @@ describe('EraDeepdiveService', () => {
           description: [
             'League: Premier',
             'Dates: 2021-09-01 – 2023-06-10',
-            'Rules: None recorded',
+            'Rules sets: None recorded',
             'External systems: None recorded',
             '',
             DEEPDIVE_NO_COMPETITIONS_MESSAGE,

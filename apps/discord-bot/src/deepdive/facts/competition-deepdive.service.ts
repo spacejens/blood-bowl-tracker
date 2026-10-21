@@ -174,7 +174,7 @@ export class CompetitionDeepdiveService {
       `Type: ${competition.type}`,
       `Era: ${this.dateRangeFormatter.formatNamed(competition.eraName, competition.eraStartDate, competition.eraEndDate)}`,
       `Group: ${competition.competitionGroupName}`,
-      `Duration: ${this.dateRangeFormatter.format(competition.startDate, competition.endDate)}`,
+      `Dates: ${this.dateRangeFormatter.format(competition.startDate, competition.endDate)}`,
       '',
       'Participating teams:',
       ...teamLines,

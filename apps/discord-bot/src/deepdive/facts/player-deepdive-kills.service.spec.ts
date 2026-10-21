@@ -78,9 +78,9 @@ describe('PlayerDeepdiveService kills section', () => {
       'Kills:\nGriff Oberwald (Blitzer, Gouged Eye, Orc, Grimly)',
     );
     expect(description.indexOf('Touchdowns scored')).toBeLessThan(
-      description.indexOf('Total star player points'),
+      description.indexOf('Total SPP'),
     );
-    expect(description.indexOf('Total star player points')).toBeLessThan(
+    expect(description.indexOf('Total SPP')).toBeLessThan(
       description.indexOf('Kills:'),
     );
   });

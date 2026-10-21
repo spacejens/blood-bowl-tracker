@@ -193,10 +193,10 @@ nothing-memorable-yet-style message instead of an empty list.
 ### Star player points
 
 Then — only when the player has a computed star player point total, with no
-line at all otherwise — a blank line, an optional adjustment line, shown
-only when a nonzero manual adjustment has been applied (the total already
-includes it; the line is just calling that out), and the player's total
-star player points.
+line at all otherwise — a blank line, an optional `SPP adjustment:` line,
+shown only when a nonzero manual adjustment has been applied (the total
+already includes it; the line is just calling that out), and the player's
+`Total SPP:` line.
 
 ### Kills list
 
@@ -372,11 +372,11 @@ button per listed top player.
 ## `competition`
 
 The competition name as the title, then its type — a season or a cup — its
-era, its competition group, and its duration, with an ongoing competition
+era, its competition group, and its dates, with an ongoing competition
 marked as still running, a blank line, and
 every participating team, one line each with its race and coach. The era line
 names the era and its date range, with an ongoing era marked as still
-running — distinct from the competition's own `Duration:` line above. A
+running — distinct from the competition's own `Dates:` line above. A
 competition with no participating teams shows a short "nobody has signed up
 yet" message instead of a list. Every participating team and the era are
 each rendered as a drill-down button (teams take priority over the era entry
