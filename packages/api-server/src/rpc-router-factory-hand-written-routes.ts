@@ -222,8 +222,9 @@ export function buildCompetitionGroupsListRoute(
 // `runWithoutConflict`, for the same reason positionRulesSets.sync is not — a
 // row is keyed by (skillId, rulesSetId) rather than external ids, so there is
 // no CONFLICT to map and no entity+created shape to return. It does go
-// through `runSync`, which maps the one authored-data failure it can raise (a
-// pair named twice in one batch) to BAD_REQUEST.
+// through `runSync`, which maps the service's authored-data rejections — a
+// pair named twice in one batch, and a skill or rules set that does not
+// exist — to BAD_REQUEST.
 //
 // `list` is plainly read-only and declares no errors. It delegates to
 // `listBySkill`, whose rows also carry the rules set's name; the contract's

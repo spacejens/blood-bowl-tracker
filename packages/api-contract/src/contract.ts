@@ -228,9 +228,10 @@ export const contract = {
     // conflict to detect and no entity+created shape to return, only the
     // resulting row ids — same shape as positionRulesSets.sync.
     // BAD_REQUEST is declared because the server rejects a batch naming the
-    // same (skill, rules set) pair twice: those two entries would otherwise
-    // both take the insert path and collide on the table's unique
-    // constraint, turning an authoring mistake into a raw database error.
+    // same (skill, rules set) pair twice, and an entry naming a skill or
+    // rules set that does not exist: either would otherwise reach the
+    // database as a raw unique- or foreign-key-constraint error, turning an
+    // authoring mistake into an internal one.
     sync: oc
       .input(SyncSkillRulesSetsSchema)
       .errors({
