@@ -8,7 +8,7 @@ import {
   COACH_TOPLIST_NO_DATA_MESSAGE,
   COACH_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
-import { DayCountFormatterService } from '../day-count-formatter.service';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import type { EntityLink } from '../leaderboard.service';
 import { LeaderboardService } from '../leaderboard.service';
 import type { ToplistResolver } from './toplist-factory.service';
@@ -45,7 +45,7 @@ export class CoachToplistService {
   constructor(
     private readonly coaches: CoachesService,
     private readonly leaderboard: LeaderboardService,
-    private readonly dayCount: DayCountFormatterService,
+    private readonly numbers: NumberFormatterService,
     private readonly toplistFactory: ToplistFactoryService,
   ) {
     this.resolvers = this.toplistFactory.makeResolvers<
@@ -160,7 +160,7 @@ export class CoachToplistService {
       noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
       entityLink: this.coachLink,
       formatRow: (row) =>
-        `${row.rank}. ${row.name} — ${this.dayCount.format(row.count)}`,
+        `${row.rank}. ${row.name} — ${this.numbers.counted(row.count, 'day')}`,
     });
   }
 

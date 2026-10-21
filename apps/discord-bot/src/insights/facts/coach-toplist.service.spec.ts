@@ -12,7 +12,7 @@ import {
   COACH_TOPLIST_NO_DATA_MESSAGE,
   COACH_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
-import { DayCountFormatterService } from '../day-count-formatter.service';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import type { ResolveToplistOptions } from '../leaderboard.service';
 import {
   LeaderboardService,
@@ -43,27 +43,27 @@ type CoachFactoryMethod =
 interface MadeService {
   service: CoachToplistService;
   leaderboard: MockProxy<LeaderboardService>;
-  dayCount: MockProxy<DayCountFormatterService>;
+  numbers: MockProxy<NumberFormatterService>;
   toplist: ToplistFactoryMock<CoachFactoryMethod, CoachRow>;
 }
 
 async function makeService(coaches: CoachesService): Promise<MadeService> {
   const leaderboard = mock<LeaderboardService>();
-  const dayCount = mock<DayCountFormatterService>();
+  const numbers = mock<NumberFormatterService>();
   const toplist = mockToplistFactory<CoachFactoryMethod, CoachRow>();
   const moduleRef = await Test.createTestingModule({
     providers: [
       CoachToplistService,
       { provide: CoachesService, useValue: coaches },
       { provide: LeaderboardService, useValue: leaderboard },
-      { provide: DayCountFormatterService, useValue: dayCount },
+      { provide: NumberFormatterService, useValue: numbers },
       { provide: ToplistFactoryService, useValue: toplist.factory },
     ],
   }).compile();
   return {
     service: moduleRef.get(CoachToplistService),
     leaderboard,
-    dayCount,
+    numbers,
     toplist,
   };
 }
@@ -359,11 +359,11 @@ describe('CoachToplistService.resolveFoulsCommitted', () => {
 });
 
 describe('CoachToplistService time-between-matches rendering', () => {
-  it('renders each row through the day-count formatter', async () => {
+  it('renders each row through the number formatter', async () => {
     const coaches = mock<CoachesService>();
     coaches.getGapBetweenMatchesByCoachDescending.mockResolvedValue([]);
-    const { service, leaderboard, dayCount } = await makeService(coaches);
-    dayCount.format.mockReturnValue('91 days');
+    const { service, leaderboard, numbers } = await makeService(coaches);
+    numbers.counted.mockReturnValue('91 days');
     leaderboard.resolveToplist.mockResolvedValueOnce('canned');
     await service.resolveTimeBetweenMatchesDescending(FACT_SCOPE_ALL_TIME);
     const options = leaderboard.resolveToplist.mock
@@ -376,14 +376,14 @@ describe('CoachToplistService time-between-matches rendering', () => {
         rank: 1,
       }),
     ).toBe('1. Roze Madder — 91 days');
-    expect(dayCount.format).toHaveBeenCalledWith(91);
+    expect(numbers.counted).toHaveBeenCalledWith(91, 'day');
   });
 
   it('renders the average toplist rows through the same formatter', async () => {
     const coaches = mock<CoachesService>();
     coaches.getAverageGapBetweenMatchesByCoach.mockResolvedValue([]);
-    const { service, leaderboard, dayCount } = await makeService(coaches);
-    dayCount.format.mockReturnValue('1 day');
+    const { service, leaderboard, numbers } = await makeService(coaches);
+    numbers.counted.mockReturnValue('1 day');
     leaderboard.resolveToplist.mockResolvedValueOnce('canned');
     await service.resolveAverageTimeBetweenMatches(FACT_SCOPE_ALL_TIME);
     const options = leaderboard.resolveToplist.mock
