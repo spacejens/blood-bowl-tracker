@@ -1,6 +1,6 @@
+import type { TpCompetitionAward } from '@blood-bowl-tracker/api-contract';
 import type { ImportError } from '@blood-bowl-tracker/import';
 import { ImportResultService } from '@blood-bowl-tracker/import';
-import type { TpAward } from '@blood-bowl-tracker/parse-tp';
 import { AwardsParserService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
@@ -33,8 +33,8 @@ export class TpAwardsReaderService {
    */
   async getAwardsByDirectory(
     errors: ImportError[],
-  ): Promise<Map<string, TpAward[]>> {
-    const awardsByDirectory = new Map<string, TpAward[]>();
+  ): Promise<Map<string, TpCompetitionAward[]>> {
+    const awardsByDirectory = new Map<string, TpCompetitionAward[]>();
     try {
       for await (const file of this.sourceReader.filesOfType(
         AWARDS_FILE_TYPE,

@@ -11,7 +11,6 @@ import {
   ImportRunnerService,
   TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
-import type { TpRosterPlayer } from '@blood-bowl-tracker/parse-tp';
 import { Inject, Injectable } from '@nestjs/common';
 
 import type { RosterEntry } from '../source/roster-collection.service';
@@ -20,7 +19,7 @@ import type { RosterEntry } from '../source/roster-collection.service';
 export interface ImportRosterFilesOptions {
   rosters: RosterEntry[];
   /** Players seen only in match snapshots, by roster id (from main.ts). */
-  matchEmbeddedPlayersByRosterId: Map<number, TpRosterPlayer[]>;
+  matchEmbeddedPlayersByRosterId: Map<number, TpMatchEmbeddedPlayer[]>;
 }
 
 /** What importing every roster file did, plus what later steps resolve by. */
@@ -89,9 +88,8 @@ export class TpRosterFilesImportService {
               // spp_total is written by the reported-adjustments step, its
               // only writer in this run.
               deferSppTotal: true,
-              matchEmbeddedPlayers: (
-                matchEmbeddedPlayersByRosterId.get(rosterId) ?? []
-              ).map((player) => this.toMatchEmbeddedPlayer(player)),
+              matchEmbeddedPlayers:
+                matchEmbeddedPlayersByRosterId.get(rosterId) ?? [],
             }),
           item: { rosterId, era: entry.era },
           errors: teamErrors,
@@ -176,19 +174,5 @@ export class TpRosterFilesImportService {
       }
     }
     return [...byKey.values()];
-  }
-
-  /** Only the fields a match snapshot entry carries go over the wire. */
-  private toMatchEmbeddedPlayer(player: TpRosterPlayer): TpMatchEmbeddedPlayer {
-    return {
-      id: player.id,
-      name: player.name,
-      number: player.number,
-      lineUpMasterId: player.lineUpMasterId,
-      rosterId: player.rosterId,
-      fallbackPositionName: player.fallbackPositionName,
-      isBigGuy: player.isBigGuy,
-      totalStarPlayerPoints: player.totalStarPlayerPoints,
-    };
   }
 }

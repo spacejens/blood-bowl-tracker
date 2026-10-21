@@ -1,4 +1,4 @@
-import type { TpPositionCharacteristics } from '@blood-bowl-tracker/parse-tp';
+import type { TpOfficialCharacteristics } from '@blood-bowl-tracker/api-contract';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -38,7 +38,7 @@ export class TpStarPositionCharacteristicsBuilderService {
     rulesSetIdByEraName: Map<string, number>;
     characteristicsByPositionId?: Map<
       number,
-      Map<number, TpPositionCharacteristics>
+      Map<number, TpOfficialCharacteristics>
     >;
   }): TpPlayerCharacteristicsPayload | undefined {
     const {
