@@ -26,8 +26,12 @@ describe('InsightsCommandService — league scoping and rejection', () => {
   });
 
   it('scopes a league-supporting category to the league and names it in the title', async () => {
-    const { service, factTreeDeps, factTreeUtils, leagues, tree } = harness;
-    stubLeafCategory(factTreeUtils, asLeaf(tree.coach.toplist.matches.played));
+    const { service, factTreeDeps, factTreeNavigation, leagues, tree } =
+      harness;
+    stubLeafCategory(
+      factTreeNavigation,
+      asLeaf(tree.coach.toplist.matches.played),
+    );
     leagues.findById.mockResolvedValue({ id: 5, name: 'GBBL' });
     const result = await service.execute(
       chatInput('coach.toplist.matches.played', { league: '5' }),
@@ -47,8 +51,9 @@ describe('InsightsCommandService — league scoping and rejection', () => {
   });
 
   it('scopes eras.list to the league and names it in the title', async () => {
-    const { service, factTreeDeps, factTreeUtils, leagues, tree } = harness;
-    stubLeafCategory(factTreeUtils, asLeaf(tree.eras.list));
+    const { service, factTreeDeps, factTreeNavigation, leagues, tree } =
+      harness;
+    stubLeafCategory(factTreeNavigation, asLeaf(tree.eras.list));
     leagues.findById.mockResolvedValue({ id: 5, name: 'GBBL' });
     const result = await service.execute(
       chatInput('eras.list', { league: '5' }),
@@ -71,16 +76,22 @@ describe('InsightsCommandService — league scoping and rejection', () => {
   });
 
   it('restricts the random pick to league-supporting leaves', async () => {
-    const { service, factTreeDeps, factTreeUtils, factTree, leagues, tree } =
-      harness;
+    const {
+      service,
+      factTreeDeps,
+      factTreeNavigation,
+      factTree,
+      leagues,
+      tree,
+    } = harness;
     leagues.findById.mockResolvedValue({ id: 5, name: 'GBBL' });
-    factTreeUtils.collectLeaves.mockReturnValue([
+    factTreeNavigation.collectLeaves.mockReturnValue([
       asLeaf(tree.coach.toplist.eras.active), // supportsLeague: false
       asLeaf(tree.coach.toplist.matches.played), // supportsLeague: true
     ]);
     vi.spyOn(Math, 'random').mockReturnValue(0); // deterministic pick
     await service.execute(chatInput(null, { league: '5' }));
-    expect(factTreeUtils.collectLeaves).toHaveBeenCalledWith(factTree);
+    expect(factTreeNavigation.collectLeaves).toHaveBeenCalledWith(factTree);
     expect(factTreeDeps.coachToplist.resolveErasActive).not.toHaveBeenCalled();
     expect(factTreeDeps.coachToplist.resolveMatchesPlayed).toHaveBeenCalledWith(
       { leagueId: 5, eraId: undefined, competitionId: undefined },
@@ -88,8 +99,11 @@ describe('InsightsCommandService — league scoping and rejection', () => {
   });
 
   it('rejects a league on a non-league-supporting category (coach.toplist.eras.active)', async () => {
-    const { service, factTreeUtils, leagues, tree } = harness;
-    stubLeafCategory(factTreeUtils, asLeaf(tree.coach.toplist.eras.active));
+    const { service, factTreeNavigation, leagues, tree } = harness;
+    stubLeafCategory(
+      factTreeNavigation,
+      asLeaf(tree.coach.toplist.eras.active),
+    );
     leagues.findById.mockResolvedValue({ id: 5, name: 'GBBL' });
     const result = await service.execute(
       chatInput('coach.toplist.eras.active', { league: '5' }),

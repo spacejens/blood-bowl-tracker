@@ -4,7 +4,7 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { FactTreeFactoryService } from './fact-tree-factory.service';
-import { FactTreeUtilsService } from './fact-tree-utils.service';
+import { FactTreeNavigationService } from './fact-tree-navigation.service';
 import { CoachToplistService } from './facts/coach-toplist.service';
 import { CompetitionGroupsListService } from './facts/competition-groups-list.service';
 import { DateToplistFactsService } from './facts/date-toplist.service';
@@ -23,7 +23,7 @@ import { TrophiesListService } from './facts/trophies-list.service';
 
 describe('FactTreeFactoryService', () => {
   let factory: FactTreeFactoryService;
-  let factTreeUtils: FactTreeUtilsService;
+  let factTreeNavigation: FactTreeNavigationService;
   let coachToplist: MockProxy<CoachToplistService>;
   let teamToplist: MockProxy<TeamToplistService>;
   let playerToplist: MockProxy<PlayerToplistService>;
@@ -71,7 +71,7 @@ describe('FactTreeFactoryService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         FactTreeFactoryService,
-        FactTreeUtilsService,
+        FactTreeNavigationService,
         { provide: CoachToplistService, useValue: coachToplist },
         { provide: TeamToplistService, useValue: teamToplist },
         { provide: PlayerToplistService, useValue: playerToplist },
@@ -96,17 +96,17 @@ describe('FactTreeFactoryService', () => {
       ],
     }).compile();
     factory = moduleRef.get(FactTreeFactoryService);
-    factTreeUtils = moduleRef.get(FactTreeUtilsService);
+    factTreeNavigation = moduleRef.get(FactTreeNavigationService);
   });
 
   it('build() returns the fully assembled fact tree', () => {
     const tree = factory.build();
     // buildFactTree currently produces 69 leaves (see fact-tree.spec.ts).
-    expect(factTreeUtils.collectLeaves(tree)).toHaveLength(69);
+    expect(factTreeNavigation.collectLeaves(tree)).toHaveLength(69);
   });
 
   it('wires its injected services into the tree so leaves call the right service', async () => {
-    const leaf = factTreeUtils.resolvePath(
+    const leaf = factTreeNavigation.resolvePath(
       factory.build(),
       'coach.toplist.matches.played',
     );
@@ -119,7 +119,10 @@ describe('FactTreeFactoryService', () => {
   });
 
   it('threads StarPlayersListService into the tree so starPlayers.list calls it', async () => {
-    const leaf = factTreeUtils.resolvePath(factory.build(), 'starPlayers.list');
+    const leaf = factTreeNavigation.resolvePath(
+      factory.build(),
+      'starPlayers.list',
+    );
     expect(leaf).toBeDefined();
     await (
       leaf as { resolve: (e?: number, c?: number) => Promise<unknown> }
@@ -128,7 +131,7 @@ describe('FactTreeFactoryService', () => {
   });
 
   it('threads StarPlayerToplistService into the tree so starPlayers.toplist.hires.total calls it', async () => {
-    const leaf = factTreeUtils.resolvePath(
+    const leaf = factTreeNavigation.resolvePath(
       factory.build(),
       'starPlayers.toplist.hires.total',
     );
@@ -140,7 +143,7 @@ describe('FactTreeFactoryService', () => {
   });
 
   it('threads PositionToplistService into the tree so position.toplist.players calls it', async () => {
-    const leaf = factTreeUtils.resolvePath(
+    const leaf = factTreeNavigation.resolvePath(
       factory.build(),
       'position.toplist.players',
     );
@@ -152,7 +155,7 @@ describe('FactTreeFactoryService', () => {
   });
 
   it('threads SkillToplistService into the tree so skill.toplist.players.any calls it', async () => {
-    const leaf = factTreeUtils.resolvePath(
+    const leaf = factTreeNavigation.resolvePath(
       factory.build(),
       'skill.toplist.players.any',
     );

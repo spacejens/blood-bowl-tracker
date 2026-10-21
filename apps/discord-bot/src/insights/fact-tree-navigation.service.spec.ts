@@ -2,7 +2,7 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { FactLeaf, FactNode } from './fact-tree.types';
-import { FactTreeUtilsService } from './fact-tree-utils.service';
+import { FactTreeNavigationService } from './fact-tree-navigation.service';
 
 const leafA: FactLeaf = {
   supportsLeague: false,
@@ -38,14 +38,14 @@ const tree: FactNode = {
   },
 };
 
-describe('FactTreeUtilsService', () => {
-  let service: FactTreeUtilsService;
+describe('FactTreeNavigationService', () => {
+  let service: FactTreeNavigationService;
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [FactTreeUtilsService],
+      providers: [FactTreeNavigationService],
     }).compile();
-    service = moduleRef.get(FactTreeUtilsService);
+    service = moduleRef.get(FactTreeNavigationService);
   });
 
   describe('resolvePath', () => {

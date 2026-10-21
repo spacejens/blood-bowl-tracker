@@ -6,7 +6,7 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { TpAdminMatchEventBuilderService } from './tp-admin-match-event-builder.service';
-import { TpMatchEventHelpersService } from './tp-match-event-helpers.service';
+import { TpMatchEventFieldsService } from './tp-match-event-fields.service';
 import { TpMatchEventKindBuildersService } from './tp-match-event-kind-builders.service';
 import {
   buildOptions,
@@ -36,7 +36,7 @@ describe('TpMatchEventKindBuildersService admin events', () => {
           provide: TpAdminMatchEventBuilderService,
           useValue: adminEventBuilder,
         },
-        TpMatchEventHelpersService,
+        TpMatchEventFieldsService,
         ImportResultService,
       ],
     }).compile();

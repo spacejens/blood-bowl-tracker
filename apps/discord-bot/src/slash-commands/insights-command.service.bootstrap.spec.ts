@@ -33,12 +33,14 @@ describe('InsightsCommandService — bootstrap and autocomplete', () => {
   });
 
   it('returns category autocomplete choices for the focused partial path', async () => {
-    const { service, factTreeUtils, factTree } = harness;
-    factTreeUtils.nextSegmentCompletions.mockReturnValue(['coach.toplist']);
+    const { service, factTreeNavigation, factTree } = harness;
+    factTreeNavigation.nextSegmentCompletions.mockReturnValue([
+      'coach.toplist',
+    ]);
     const choices = await service.autocomplete(
       autocompleteInteraction('category', 'coach.'),
     );
-    expect(factTreeUtils.nextSegmentCompletions).toHaveBeenCalledWith(
+    expect(factTreeNavigation.nextSegmentCompletions).toHaveBeenCalledWith(
       factTree,
       'coach.',
     );
@@ -48,8 +50,8 @@ describe('InsightsCommandService — bootstrap and autocomplete', () => {
   });
 
   it('caps category autocomplete choices at 25', async () => {
-    const { service, factTreeUtils } = harness;
-    factTreeUtils.nextSegmentCompletions.mockReturnValue(
+    const { service, factTreeNavigation } = harness;
+    factTreeNavigation.nextSegmentCompletions.mockReturnValue(
       Array.from({ length: 30 }, (_v, i) => `p${i}`),
     );
     const choices = await service.autocomplete(
