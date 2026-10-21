@@ -102,7 +102,6 @@ export type {
   PositionHeader,
   PositionPlayerCount,
   PositionTopPlayer,
-  SyncPositionRaceErasData,
 } from './positions/positions.service';
 export {
   PositionsService,

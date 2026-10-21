@@ -59,7 +59,6 @@ export { PlayersImportService } from './players-import.service';
 export { PositionRulesSetKeywordsImportService } from './position-rules-set-keywords-import.service';
 export { PositionRulesSetSkillsImportService } from './position-rules-set-skills-import.service';
 export { PositionRulesSetsImportService } from './position-rules-sets-import.service';
-export type { SyncPositionRaceErasData } from './positions-import.service';
 export { PositionsImportService } from './positions-import.service';
 export { RacesImportService } from './races-import.service';
 export { ReferenceLookupService } from './reference-lookup.service';

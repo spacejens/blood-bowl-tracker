@@ -1,4 +1,4 @@
-import type { SyncPositionRaceErasData } from '@blood-bowl-tracker/import';
+import type { SyncPositionRaceEras } from '@blood-bowl-tracker/api-contract';
 import { PositionsImportService } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
@@ -56,9 +56,9 @@ export class PositionsProcessor {
   private async resolveRaceEras(
     entry: PositionEntry,
     ctx: ProcessContext,
-  ): Promise<SyncPositionRaceErasData['raceEras'] | undefined> {
+  ): Promise<SyncPositionRaceEras['raceEras'] | undefined> {
     const label = `Cannot sync race-eras for position "${entry.name}"`;
-    const raceEras: SyncPositionRaceErasData['raceEras'] = [];
+    const raceEras: SyncPositionRaceEras['raceEras'] = [];
     let ok = true;
     for (const pair of entry.raceEras) {
       const raceId = await this.refResolver.resolveRef({

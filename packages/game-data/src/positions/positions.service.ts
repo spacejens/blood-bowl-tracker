@@ -1,6 +1,8 @@
 import type {
   ExternalId,
   ResolveResult,
+  SyncPositionRaceEras,
+  SyncPositionRaceErasResult,
   UpsertPosition,
 } from '@blood-bowl-tracker/api-contract';
 import type { Db, Position } from '@blood-bowl-tracker/db';
@@ -36,11 +38,6 @@ import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
 export class PositionUpsertConflictError extends UpsertConflictError {}
-
-export interface SyncPositionRaceErasData {
-  positionId: number;
-  raceEras: { raceId: number; eraId: number }[];
-}
 
 /**
  * A position's header for its deep dive: its name plus every race that has it
@@ -369,8 +366,8 @@ export class PositionsService {
    * accumulates and is never revoked by a later sync.
    */
   async syncRaceEras(
-    data: SyncPositionRaceErasData,
-  ): Promise<{ positionId: number; raceEraIds: number[] }> {
+    data: SyncPositionRaceEras,
+  ): Promise<SyncPositionRaceErasResult> {
     if (data.raceEras.length === 0) {
       return { positionId: data.positionId, raceEraIds: [] };
     }
