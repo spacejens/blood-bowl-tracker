@@ -4,6 +4,7 @@ import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 
 import { DiscordBotConfigService } from '../discord-bot-config.service';
+import { ErrorLogService } from '../shared/error-log.service';
 import { InsightsCommandService } from '../slash-commands/insights-command.service';
 import { RandomInsightsScopeService } from './random-insights-scope.service';
 
@@ -32,6 +33,7 @@ export class RandomInsightsSchedulerService {
     private readonly config: DiscordBotConfigService,
     private readonly registry: SchedulerRegistry,
     private readonly scope: RandomInsightsScopeService,
+    private readonly errorLog: ErrorLogService,
   ) {}
 
   /**
@@ -73,9 +75,10 @@ export class RandomInsightsSchedulerService {
       await this.discordClient.sendMessage(channelId, message);
       this.logger.log(`Posted random insight to channel ${channelId}`);
     } catch (error) {
-      this.logger.error(
+      this.errorLog.logError(
+        this.logger,
         'Failed to post scheduled random insight',
-        error instanceof Error ? error.stack : String(error),
+        error,
       );
     }
   }

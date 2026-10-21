@@ -20,6 +20,7 @@ import type {
 import { Inject, Injectable } from '@nestjs/common';
 
 import { countRows } from '../shared/count-all';
+import { GameDataError } from '../shared/game-data-error';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -32,7 +33,7 @@ export class MatchUpsertConflictError extends UpsertConflictError {}
  * plain `check()` on `matches`, and a trigger was judged not worth the
  * complexity (see docs/plans and packages/db/src/schema/matches.ts).
  */
-export class MatchCategoryMismatchError extends Error {}
+export class MatchCategoryMismatchError extends GameDataError {}
 
 /** Competition types each category is allowed on. `normal` fits both. */
 const ALLOWED_COMPETITION_TYPES: Record<

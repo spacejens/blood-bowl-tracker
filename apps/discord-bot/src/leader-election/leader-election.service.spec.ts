@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { RandomInsightsSchedulerService } from '../insights/random-insights-scheduler.service';
+import { ErrorLogService } from '../shared/error-log.service';
 import { SlashCommandRegistryService } from '../slash-commands/slash-command-registry.service';
 import { StartupNotifierService } from '../startup-notifier.service';
 import {
@@ -23,6 +24,7 @@ describe('LeaderElectionService', () => {
   let startupNotifier: MockProxy<StartupNotifierService>;
   let sleep: MockProxy<SleepService>;
   let processExit: MockProxy<ProcessExitService>;
+  let errorLog: MockProxy<ErrorLogService>;
   let service: LeaderElectionService;
 
   beforeEach(async () => {
@@ -48,6 +50,7 @@ describe('LeaderElectionService', () => {
         : new Promise<void>(() => undefined),
     );
     processExit = mock<ProcessExitService>();
+    errorLog = mock<ErrorLogService>();
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -59,6 +62,7 @@ describe('LeaderElectionService', () => {
         { provide: StartupNotifierService, useValue: startupNotifier },
         { provide: SleepService, useValue: sleep },
         { provide: ProcessExitService, useValue: processExit },
+        { provide: ErrorLogService, useValue: errorLog },
       ],
     }).compile();
     service = moduleRef.get(LeaderElectionService);
@@ -85,6 +89,7 @@ describe('LeaderElectionService', () => {
     await service.run();
 
     expect(order).toEqual(['connect', 'flush', 'cron', 'announce']);
+    expect(errorLog.logError).not.toHaveBeenCalled();
     expect(startupNotifier.postStandbyStartupMessage).not.toHaveBeenCalled();
   });
 
@@ -114,12 +119,18 @@ describe('LeaderElectionService', () => {
   });
 
   it('releases the lock and retries when Discord login fails', async () => {
+    const error = new Error('Invalid token');
     discordClient.connect
-      .mockRejectedValueOnce(new Error('Invalid token'))
+      .mockRejectedValueOnce(error)
       .mockResolvedValueOnce(undefined);
 
     await service.run();
 
+    expect(errorLog.logError).toHaveBeenCalledWith(
+      service['logger'],
+      'Failed to connect to Discord; releasing the lock and retrying',
+      error,
+    );
     expect(lock.release).toHaveBeenCalledTimes(1);
     expect(lock.tryAcquire).toHaveBeenCalledTimes(2);
     expect(startupNotifier.postActiveStartupMessage).toHaveBeenCalledTimes(1);
@@ -131,12 +142,16 @@ describe('LeaderElectionService', () => {
     // releasing the lock and looping back would either leave two live
     // sessions or fail to reconnect an already-open Client. This must be
     // fatal instead, exactly like losing the lock while active.
-    startupNotifier.postActiveStartupMessage.mockRejectedValueOnce(
-      new Error('channel not found'),
-    );
+    const error = new Error('channel not found');
+    startupNotifier.postActiveStartupMessage.mockRejectedValueOnce(error);
 
     await service.run();
 
+    expect(errorLog.logError).toHaveBeenCalledWith(
+      service['logger'],
+      'Failed to complete startup after connecting to Discord; exiting',
+      error,
+    );
     expect(processExit.exit).toHaveBeenCalledTimes(1);
     expect(processExit.exit).toHaveBeenCalledWith(1);
     expect(lock.release).not.toHaveBeenCalled();
@@ -168,12 +183,18 @@ describe('LeaderElectionService', () => {
   });
 
   it('exits fatally if the election loop throws unexpectedly', async () => {
-    lock.tryAcquire.mockRejectedValue(new Error('unexpected bug'));
+    const error = new Error('unexpected bug');
+    lock.tryAcquire.mockRejectedValue(error);
 
     service.onApplicationBootstrap();
     await Promise.resolve();
     await Promise.resolve();
 
+    expect(errorLog.logError).toHaveBeenCalledWith(
+      service['logger'],
+      'Leader election loop failed; exiting',
+      error,
+    );
     expect(processExit.exit).toHaveBeenCalledWith(1);
   });
 });

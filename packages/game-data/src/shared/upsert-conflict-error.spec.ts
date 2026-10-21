@@ -37,6 +37,7 @@ describe('UpsertConflictError', () => {
       expect(err).toBeInstanceOf(UpsertConflictError);
       expect(err).toBeInstanceOf(Error);
       expect(err.message).toBe('boom');
+      expect(err.name).toBe(Cls.name);
     },
   );
 });

@@ -1,3 +1,5 @@
+import { GameDataError } from './game-data-error';
+
 /**
  * Characteristics that disagree with what their rules set declares: a value
  * supplied for a characteristic the rules set does not have, a missing value
@@ -8,4 +10,4 @@
  * Authored-data feedback, not a server fault — the API maps it to BAD_REQUEST
  * so an importer reports it against the offending entry.
  */
-export class CharacteristicFormatMismatchError extends Error {}
+export class CharacteristicFormatMismatchError extends GameDataError {}

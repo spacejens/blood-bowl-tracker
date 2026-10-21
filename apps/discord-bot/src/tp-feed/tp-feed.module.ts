@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 
 import { SleepService } from '../leader-election/sleep.service';
 import { ClockService } from '../shared/clock.service';
+import { ErrorLogService } from '../shared/error-log.service';
 import { TpImportModule } from '../tp-import/tp-import.module';
 import { TpFeedBlockNoticeService } from './tp-feed-block-notice.service';
 import { TpFeedFormatterService } from './tp-feed-formatter.service';
@@ -20,7 +21,8 @@ import { TpFeedParserService } from './tp-feed-parser.service';
  * modules `AppModule` already registers. `SleepService` is dependency-free
  * and provided here for the import delay. `TpFeedBlockNoticeService` posts
  * the one-line TP block/resume notices; `ClockService` is dependency-free
- * and gives the import queue the time it needs to wait out a block.
+ * and gives the import queue the time it needs to wait out a block;
+ * `ErrorLogService` is dependency-free and logs unexpected exceptions.
  */
 @Module({
   imports: [TpImportModule, TpPathsModule],
@@ -32,6 +34,7 @@ import { TpFeedParserService } from './tp-feed-parser.service';
     TpFeedBlockNoticeService,
     SleepService,
     ClockService,
+    ErrorLogService,
   ],
 })
 export class TpFeedModule {}

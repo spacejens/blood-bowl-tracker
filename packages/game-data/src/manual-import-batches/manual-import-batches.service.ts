@@ -6,12 +6,14 @@ import type { Db } from '@blood-bowl-tracker/db';
 import { asc, DB, eq, manualImportBatches } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 
+import { GameDataError } from '../shared/game-data-error';
+
 /**
  * Thrown by `record` when the batch is already recorded under a different
  * content hash: the curated data of an applied batch was edited. Exported so
  * `packages/api-server` can map it onto the contract's CONFLICT error.
  */
-export class ManualImportBatchContentMismatchError extends Error {}
+export class ManualImportBatchContentMismatchError extends GameDataError {}
 
 const columns = {
   name: manualImportBatches.name,
