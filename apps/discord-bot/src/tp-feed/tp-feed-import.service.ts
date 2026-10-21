@@ -6,6 +6,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { DiscordBotConfigService } from '../discord-bot-config.service';
 import { SleepService } from '../leader-election/sleep.service';
 import { ClockService } from '../shared/clock.service';
+import { ErrorLogService } from '../shared/error-log.service';
 import type {
   TpImportOutcome,
   TpImportTarget,
@@ -68,7 +69,9 @@ export const TP_FEED_BLOCK_MARGIN_MS = 1000;
  *
  * Only real failures are reported, judged by `TpImportFailureService` so
  * the feed and `/importtp` agree; every one is also logged here, so with no
- * debug channel to post to a failure is still visible.
+ * debug channel to post to a failure is still visible: one the import threw
+ * unexpectedly as an error with its stack, one it reported as a warning with
+ * its errors.
  */
 @Injectable()
 export class TpFeedImportService {
@@ -93,6 +96,7 @@ export class TpFeedImportService {
     private readonly sleep: SleepService,
     private readonly clock: ClockService,
     private readonly blockNotice: TpFeedBlockNoticeService,
+    private readonly errorLog: ErrorLogService,
   ) {}
 
   /**
@@ -131,9 +135,12 @@ export class TpFeedImportService {
   /** Logging must never turn a finished import into a rejected job. */
   private logFailure(event: TpFeedEvent, result: TpFeedImportFailure): void {
     try {
-      this.logger.warn(
-        [`${result.headline} — ${event.link}`, ...result.errors].join('\n'),
-      );
+      const summary = `${result.headline} — ${event.link}`;
+      if ('cause' in result) {
+        this.errorLog.logError(this.logger, summary, result.cause);
+      } else {
+        this.logger.warn([summary, ...result.errors].join('\n'));
+      }
     } catch {
       // Nothing more can be done about a logger that itself fails.
     }
@@ -196,6 +203,7 @@ export class TpFeedImportService {
         failed: true,
         headline: 'TP import failed unexpectedly',
         errors: [error instanceof Error ? error.message : String(error)],
+        cause: error,
       };
     }
   }
