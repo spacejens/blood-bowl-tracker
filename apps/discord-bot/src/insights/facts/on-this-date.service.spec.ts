@@ -151,6 +151,7 @@ beforeEach(async () => {
   const moduleRef = await Test.createTestingModule({
     providers: [
       OnThisDateFactsService,
+      NumberFormatterService,
       { provide: OnThisDateService, useValue: onThisDate },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
@@ -216,6 +217,12 @@ describe('OnThisDateFactsService.resolve', () => {
       scope,
       limit: 21,
     });
+  });
+
+  it('groups thousands in the match count', async () => {
+    onThisDate.countMatchesPlayed.mockResolvedValue(1234);
+    const result = await service.resolve({ monthDay: MONTH_DAY, scope: {} });
+    expect(embed(result).description).toContain('Matches played: 1,234');
   });
 
   it('reports the match count and the counter block', async () => {
