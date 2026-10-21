@@ -28,8 +28,8 @@ export interface ManualRawKeywordEntry {
  * importer's processor logic -- that logic's reading of these files is part of
  * what this tool exists to check.
  *
- * A missing or malformed file degrades to an empty list, so a broken curated
- * file shows up as an empty raw sub-panel rather than failing the run.
+ * A missing or malformed file degrades to an empty list (via the shared
+ * reader), so a broken curated file shows up as an empty raw sub-panel rather than failing the run.
  */
 @Injectable()
 export class ManualRawKeywordsService {

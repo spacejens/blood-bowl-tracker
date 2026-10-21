@@ -7,6 +7,10 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { RaceReviewConfigService } from '../config/review-race-config.service';
+import type {
+  ManualCharacteristicsEntry,
+  ManualPositionSkillsEntry,
+} from './manual-raw-data.service';
 import { ManualRawDataService } from './manual-raw-data.service';
 
 const DATA_DIR = '/data/manual';
@@ -294,7 +298,17 @@ describe('ManualRawDataService', () => {
     });
 
     it('returns the entries latestByKey keeps', async () => {
-      const kept = [{ move: 4 }];
+      const kept: ManualCharacteristicsEntry[] = [
+        {
+          position: { system: 'Name', id: 'Dwarf Team: Dwarf Blocker Linemen' },
+          rulesSet: { system: 'Name', id: 'CRP' },
+          move: 4,
+          strength: 3,
+          agility: 2,
+          passing: null,
+          armour: 9,
+        },
+      ];
       reader.latestByKey.mockReturnValue(kept);
 
       await expect(service.characteristics()).resolves.toBe(kept);
@@ -387,7 +401,15 @@ describe('ManualRawDataService', () => {
     });
 
     it('returns the entries latestByKey keeps', async () => {
-      const kept = [{ skills: [] }];
+      const kept: ManualPositionSkillsEntry[] = [
+        {
+          position: { system: 'Name', id: 'Dwarf Team: Dwarf Blocker Linemen' },
+          rulesSet: { system: 'Name', id: 'CRP' },
+          skills: [
+            { skill: { system: 'Name', id: 'Block' }, attributeValue: null },
+          ],
+        },
+      ];
       reader.latestByKey.mockReturnValue(kept);
 
       await expect(service.positionSkills()).resolves.toBe(kept);

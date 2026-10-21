@@ -7,6 +7,7 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { StarPlayerReviewConfigService } from '../config/review-star-player-config.service';
+import type { ManualCharacteristicsEntry } from './manual-raw-data.service';
 import { ManualRawDataService } from './manual-raw-data.service';
 
 const DATA_DIR = '/data/manual';
@@ -188,7 +189,17 @@ describe('ManualRawDataService', () => {
     });
 
     it('returns the entries latestByKey keeps', async () => {
-      const kept = [{ move: 7 }];
+      const kept: ManualCharacteristicsEntry[] = [
+        {
+          position: { system: 'Name', id: 'Griff Oberwald' },
+          rulesSet: { system: 'Name', id: 'CRP' },
+          move: 7,
+          strength: 4,
+          agility: 3,
+          passing: null,
+          armour: 9,
+        },
+      ];
       reader.latestByKey.mockReturnValue(kept);
 
       await expect(service.characteristics()).resolves.toBe(kept);

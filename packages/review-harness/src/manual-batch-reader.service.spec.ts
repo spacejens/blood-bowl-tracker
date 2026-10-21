@@ -74,6 +74,13 @@ describe('ManualBatchReaderService', () => {
       await expect(service.section(dir, 'races')).resolves.toEqual([]);
     });
 
+    it('counts a file whose top level is an array as empty', async () => {
+      write('001-a/a.json5', "[['races'], ['positions']]");
+
+      await expect(service.section(dir, 'races')).resolves.toEqual([]);
+      await expect(service.section(dir, '0')).resolves.toEqual([]);
+    });
+
     it('counts a malformed file as empty and still reads the rest', async () => {
       write('001-a/a.json5', '{ races: [');
       write('001-a/b.json5', "{ races: ['kept'] }");
