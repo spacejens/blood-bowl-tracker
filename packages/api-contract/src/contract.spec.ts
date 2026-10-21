@@ -101,6 +101,12 @@ describe('contract', () => {
     ).not.toThrow();
   });
 
+  it('defines positions.syncRaceEras with a BAD_REQUEST error', () => {
+    expect(errorCodesOf(contract.positions.syncRaceEras)).toEqual([
+      'BAD_REQUEST',
+    ]);
+  });
+
   it('strips a races field from an upsert payload', () => {
     const parsed = UpsertPositionSchema.safeParse({
       name: 'Lineman',
@@ -165,14 +171,14 @@ describe('contract', () => {
     ).toBe(true);
   });
 
-  it('exposes a sppAwardValues.sync procedure', () => {
-    expect(contract.sppAwardValues.sync).toBeDefined();
+  it('defines sppAwardValues.sync with a BAD_REQUEST error', () => {
+    expect(errorCodesOf(contract.sppAwardValues.sync)).toEqual(['BAD_REQUEST']);
   });
 
   it('exposes a players.syncLastingInjuryHistory procedure', () => {
     expect(contract.players.syncLastingInjuryHistory).toBeDefined();
-    // Writes nothing a caller can conflict on and returns no entity, so it
-    // declares no errors — the same shape positions.syncRaceEras has.
+    // Writes nothing a caller can conflict on, returns no entity and rejects
+    // no authored data, so it declares no errors.
     expect(errorCodesOf(contract.players.syncLastingInjuryHistory)).toEqual([]);
 
     const inputSchema = contract.players.syncLastingInjuryHistory['~orpc']

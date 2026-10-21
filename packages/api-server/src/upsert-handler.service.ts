@@ -1,9 +1,8 @@
 import {
   CharacteristicFormatMismatchError,
-  KeywordValidationError,
   MatchCategoryMismatchError,
   MissingRequiredFieldError,
-  SkillValidationError,
+  SyncBatchValidationError,
   TrophyAwardCompetitionGroupMismatchError,
   TrophyAwardRecipientMismatchError,
 } from '@blood-bowl-tracker/game-data';
@@ -112,24 +111,20 @@ export class UpsertHandlerService {
 
   /**
    * The classification half of {@link runWithoutConflict} for a procedure
-   * whose service does not answer with an `{entity, created}` pair —
-   * `positionRulesSets.sync`, `skillRulesSets.sync` and
-   * `positionRulesSetSkills.sync` all return their own sync result shape
-   * directly, so they cannot reuse that method's entity-flattening body.
+   * whose service does not answer with an `{entity, created}` pair: every
+   * `*.sync` procedure that validates an authored batch returns its own sync
+   * result shape directly, so it cannot reuse that method's entity-flattening
+   * body.
    *
-   * It maps the two authored-data failures those procedures raise:
-   * characteristics that disagree with what their rules set declares
-   * (`CharacteristicFormatMismatchError`), and a skill association that does
-   * not hold together (`SkillValidationError` — a duplicated natural key, a
-   * skill the rules set does not have, or a position/rules-set pair with no
-   * characteristics recorded yet). Both are feedback the importer reports per
-   * entry, so BAD_REQUEST rather than an internal error.
-   * `positionRulesSetKeywords.sync` raises the same shape of failure for
-   * keywords (`KeywordValidationError` — a position/rules-set pair with no
-   * characteristics recorded yet, or a batch repeating one natural key), so
-   * it is classified here too. The other domain errors `runWithoutConflict`
-   * classifies are deliberately not mapped here — these procedures' callers
-   * have never raised them.
+   * It maps the two families of authored-data failure those procedures
+   * raise: characteristics that disagree with what their rules set declares
+   * (`CharacteristicFormatMismatchError`), and any `SyncBatchValidationError`,
+   * the shared base of every sync service's own validation error (a batch
+   * repeating one natural key, or an entry referencing a row that does not
+   * exist). Both are feedback the importer reports per entry, so BAD_REQUEST
+   * rather than an internal error. The other domain errors
+   * `runWithoutConflict` classifies are deliberately not mapped here — these
+   * procedures' callers have never raised them.
    */
   async runSync<T>(
     errors: BadRequestErrors,
@@ -140,8 +135,7 @@ export class UpsertHandlerService {
     } catch (err) {
       if (
         err instanceof CharacteristicFormatMismatchError ||
-        err instanceof SkillValidationError ||
-        err instanceof KeywordValidationError
+        err instanceof SyncBatchValidationError
       ) {
         throw errors.BAD_REQUEST({ message: err.message });
       }

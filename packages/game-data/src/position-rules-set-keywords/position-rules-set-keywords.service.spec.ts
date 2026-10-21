@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { KeywordValidationError } from '../shared/keyword-validation-error';
 import {
   extractAllFilterValues,
+  extractFilterValues,
   extractJoinColumns,
   firstCallArg,
   sqlText,
@@ -46,6 +47,7 @@ describe('PositionRulesSetKeywordsService', () => {
     it('inserts a keyword for a position that has characteristics', async () => {
       const db = mockDb(
         [positionRulesSetRow],
+        [{ id: 3 }],
         [],
         [{ id: 90, positionRulesSetId: 50, keywordId: 3 }],
       );
@@ -54,7 +56,7 @@ describe('PositionRulesSetKeywordsService', () => {
       const result = await service.sync({ entries: [entry] });
 
       expect(result).toEqual({ positionRulesSetKeywordIds: [90] });
-      expect(firstCallArg(db.chains[2].values)).toEqual([
+      expect(firstCallArg(db.chains[3].values)).toEqual([
         { positionRulesSetId: 50, keywordId: 3 },
       ]);
       expect(db.transaction).toHaveBeenCalledTimes(1);
@@ -63,6 +65,7 @@ describe('PositionRulesSetKeywordsService', () => {
     it('scopes the anchor query to the batch positions, not every position under the rules set', async () => {
       const db = mockDb(
         [positionRulesSetRow],
+        [{ id: 3 }],
         [],
         [{ id: 90, positionRulesSetId: 50, keywordId: 3 }],
       );
@@ -81,6 +84,7 @@ describe('PositionRulesSetKeywordsService', () => {
     it('returns the existing row id without writing again', async () => {
       const db = mockDb(
         [positionRulesSetRow],
+        [{ id: 3 }],
         [{ id: 90, positionRulesSetId: 50, keywordId: 3 }],
       );
       const service = await makeService(db);
@@ -88,13 +92,14 @@ describe('PositionRulesSetKeywordsService', () => {
       const result = await service.sync({ entries: [entry] });
 
       expect(result).toEqual({ positionRulesSetKeywordIds: [90] });
-      expect(db.chains).toHaveLength(2);
+      expect(db.chains).toHaveLength(3);
       expect(db.transaction).not.toHaveBeenCalled();
     });
 
     it('writes several keywords for one position in one batch', async () => {
       const db = mockDb(
         [positionRulesSetRow],
+        [{ id: 3 }, { id: 4 }],
         [],
         [
           { id: 91, positionRulesSetId: 50, keywordId: 4 },
@@ -121,6 +126,42 @@ describe('PositionRulesSetKeywordsService', () => {
         KeywordValidationError,
       );
       expect(db.transaction).not.toHaveBeenCalled();
+    });
+
+    it('rejects an entry naming a keyword that does not exist, writing nothing', async () => {
+      // Query 0: the anchor lookup. Query 1: the keyword lookup finds nothing.
+      const db = mockDb([positionRulesSetRow], []);
+      const service = await makeService(db);
+
+      const promise = service.sync({ entries: [entry] });
+
+      await expect(promise).rejects.toBeInstanceOf(KeywordValidationError);
+      await expect(promise).rejects.toThrow(
+        'Keyword 3 does not exist, so position 1 cannot carry it under rules set 2',
+      );
+      expect(db.chains).toHaveLength(2);
+      expect(db.transaction).not.toHaveBeenCalled();
+    });
+
+    it('looks the keywords up by the distinct ids the batch names', async () => {
+      const db = mockDb(
+        [positionRulesSetRow],
+        [{ id: 3 }, { id: 4 }],
+        [],
+        [
+          { id: 91, positionRulesSetId: 50, keywordId: 4 },
+          { id: 90, positionRulesSetId: 50, keywordId: 3 },
+        ],
+      );
+      const service = await makeService(db);
+
+      await service.sync({
+        entries: [entry, { ...entry, keywordId: 4 }],
+      });
+
+      expect(extractFilterValues(firstCallArg(db.chains[1].where))).toEqual([
+        3, 4,
+      ]);
     });
 
     it('rejects the same triple twice in one batch', async () => {

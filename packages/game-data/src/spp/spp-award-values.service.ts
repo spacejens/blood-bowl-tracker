@@ -12,6 +12,8 @@ import {
   isNull,
   or,
   players,
+  races,
+  rulesSets,
   sppAwardValues,
   teamEras,
   teams,
@@ -19,6 +21,8 @@ import {
 import type { ActionType } from '@blood-bowl-tracker/domain-enums';
 import { SPP_EARNING_ACTION_TYPES } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
+
+import { SppAwardValueValidationError } from '../shared/spp-award-value-validation-error';
 
 /**
  * `SPP_EARNING_ACTION_TYPES` viewed as plain action types, so `includes`
@@ -70,18 +74,24 @@ export class SppAwardValuesService {
    * the whole batch errors out on any re-run against populated data. Selecting
    * first and then issuing plain INSERT / plain UPDATE statements is the same
    * pattern `upsertByExternalIds` uses, for the same reason.
+   *
+   * The whole batch is validated before any write: a batch naming one
+   * natural key twice, or a value naming a rules set or race that does not
+   * exist, is rejected with an SppAwardValueValidationError naming it.
    */
   async sync(data: SyncSppAwardValues): Promise<SyncSppAwardValuesResult> {
     if (data.values.length === 0) {
       return { sppAwardValueIds: [] };
     }
 
-    // Over-fetch by rules set and match in memory: the table holds only a few
-    // dozen rows per rules set, and this avoids the null-safety awkwardness of
-    // matching a nullable raceId in SQL.
     const rulesSetIds = [
       ...new Set(data.values.map((value) => value.rulesSetId)),
     ];
+    await this.validateBatch(data, rulesSetIds);
+
+    // Over-fetch by rules set and match in memory: the table holds only a few
+    // dozen rows per rules set, and this avoids the null-safety awkwardness of
+    // matching a nullable raceId in SQL.
     const existingRows = await this.db
       .select({
         id: sppAwardValues.id,
@@ -137,6 +147,70 @@ export class SppAwardValuesService {
 
       return { sppAwardValueIds };
     });
+  }
+
+  /**
+   * Reject the batch when it names one natural key twice, or a value names a
+   * rules set or race that does not exist. A repeated key would otherwise
+   * collide on the table's unique constraint (both copies taking the insert
+   * path) or quietly let the last copy win (both taking the update path),
+   * and a missing reference would surface as a raw foreign-key error. The
+   * race lookup is skipped when every value is a baseline, since there is
+   * then no race to look up. `rulesSetIds` is the batch's distinct rules-set
+   * ids, which `sync` also reuses for its existing-rows query.
+   */
+  private async validateBatch(
+    data: SyncSppAwardValues,
+    rulesSetIds: number[],
+  ): Promise<void> {
+    const seenKeys = new Set<string>();
+    for (const value of data.values) {
+      const key = this.naturalKey(value);
+      if (seenKeys.has(key)) {
+        const race =
+          value.raceId === null
+            ? 'the baseline (no race)'
+            : `race ${value.raceId}`;
+        throw new SppAwardValueValidationError(
+          `The ${value.actionType} award under rules set ${value.rulesSetId} for ${race} appears more than once in the same batch`,
+        );
+      }
+      seenKeys.add(key);
+    }
+
+    const raceIds = [
+      ...new Set(
+        data.values.flatMap((value) =>
+          value.raceId === null ? [] : [value.raceId],
+        ),
+      ),
+    ];
+    const rulesSetRows = await this.db
+      .select({ id: rulesSets.id })
+      .from(rulesSets)
+      .where(inArray(rulesSets.id, rulesSetIds));
+    const raceRows =
+      raceIds.length === 0
+        ? []
+        : await this.db
+            .select({ id: races.id })
+            .from(races)
+            .where(inArray(races.id, raceIds));
+
+    const knownRulesSetIds = new Set(rulesSetRows.map((row) => row.id));
+    const knownRaceIds = new Set(raceRows.map((row) => row.id));
+    for (const value of data.values) {
+      if (!knownRulesSetIds.has(value.rulesSetId)) {
+        throw new SppAwardValueValidationError(
+          `Rules set ${value.rulesSetId} does not exist, so no SPP award value can be recorded under it`,
+        );
+      }
+      if (value.raceId !== null && !knownRaceIds.has(value.raceId)) {
+        throw new SppAwardValueValidationError(
+          `Race ${value.raceId} does not exist, so no SPP award value can be recorded for it`,
+        );
+      }
+    }
   }
 
   /**

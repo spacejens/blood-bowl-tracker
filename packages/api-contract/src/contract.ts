@@ -156,8 +156,8 @@ export const contract = {
     upsertBatch: batchUpsertProcedure(UpsertPlayerSchema, PlayerSchema),
     // Not upserts: these recompute already-imported players' SPP columns in
     // place, so there is no external-id conflict to detect and no
-    // entity+created shape to return — only the ids actually written. Same
-    // shape as positions.syncRaceEras.
+    // entity+created shape to return — only the ids actually written, the
+    // same result shape as positions.syncRaceEras.
     syncScrapedSppAdjustments: oc
       .input(SyncScrapedSppAdjustmentsSchema)
       .output(SyncSppAdjustmentsResultSchema),
@@ -189,8 +189,17 @@ export const contract = {
     // ever removing or overwriting existing ones (see
     // PositionsService.syncRaceEras), so there's no conflict to detect and
     // no entity+created shape to return — just the resulting link ids.
+    // BAD_REQUEST is declared because the server rejects a position that
+    // does not exist and a race/era pair the race is not available in (no
+    // race_eras row) — authored-data feedback the importer reports for that
+    // position, rather than a pair silently left out.
     syncRaceEras: oc
       .input(SyncPositionRaceErasSchema)
+      .errors({
+        BAD_REQUEST: {
+          message: 'Position race eras are not valid',
+        },
+      })
       .output(SyncPositionRaceErasResultSchema),
   },
   positionRulesSets: {
@@ -201,13 +210,15 @@ export const contract = {
     // BAD_REQUEST is declared because the server rejects characteristics that
     // disagree with the rules set's declared formats (a supplied Passing for
     // a rules set that has none, or a missing one where the rules set
-    // requires it); that is authored-data feedback the importer reports per
-    // entry, not a server fault.
+    // requires it), an entry naming a position or rules set that does not
+    // exist, and a batch naming the same (position, rules set) pair twice;
+    // all are authored-data feedback the importer reports per entry,
+    // not a server fault.
     sync: oc
       .input(SyncPositionRulesSetsSchema)
       .errors({
         BAD_REQUEST: {
-          message: "Characteristics do not match the rules set's formats",
+          message: 'Position rules-set entries are not valid',
         },
       })
       .output(SyncPositionRulesSetsResultSchema),
@@ -227,9 +238,10 @@ export const contract = {
     // conflict to detect and no entity+created shape to return, only the
     // resulting row ids — same shape as positionRulesSets.sync.
     // BAD_REQUEST is declared because the server rejects a batch naming the
-    // same (skill, rules set) pair twice: those two entries would otherwise
-    // both take the insert path and collide on the table's unique
-    // constraint, turning an authoring mistake into a raw database error.
+    // same (skill, rules set) pair twice, and an entry naming a skill or
+    // rules set that does not exist: either would otherwise reach the
+    // database as a raw unique- or foreign-key-constraint error, turning an
+    // authoring mistake into an internal one.
     sync: oc
       .input(SyncSkillRulesSetsSchema)
       .errors({
@@ -286,8 +298,9 @@ export const contract = {
   positionRulesSetKeywords: {
     // Not an upsert, for the same reason positionRulesSetSkills.sync is not.
     // BAD_REQUEST is declared because the server rejects an entry whose
-    // position/rules-set pair has no position_rules_sets row yet, and a batch
-    // naming the same triple twice — both authored-data feedback the importer
+    // position/rules-set pair has no position_rules_sets row yet, an entry
+    // naming a keyword that does not exist, and a batch naming the same
+    // triple twice — all authored-data feedback the importer
     // reports per entry, not a server fault.
     sync: oc
       .input(SyncPositionRulesSetKeywordsSchema)
@@ -334,8 +347,17 @@ export const contract = {
     // Not an upsert: an award value has no external ids — it is keyed by
     // (rulesSetId, raceId, actionType) — so there is no conflict to detect
     // and no entity+created shape to return, only the resulting row ids.
+    // BAD_REQUEST is declared because the server rejects a batch naming the
+    // same key twice, and a value naming a rules set or race that does not
+    // exist; both are authored-data feedback the importer reports, not a
+    // server fault.
     sync: oc
       .input(SyncSppAwardValuesSchema)
+      .errors({
+        BAD_REQUEST: {
+          message: 'SPP award values are not valid',
+        },
+      })
       .output(SyncSppAwardValuesResultSchema),
   },
   eras: {

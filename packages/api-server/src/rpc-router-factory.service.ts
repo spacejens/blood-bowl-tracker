@@ -388,7 +388,10 @@ export class RpcRouterFactoryService {
           conflictError: PositionUpsertConflictError,
           unwrap: (r) => ({ entity: r.position, created: r.created }),
         }),
-        ...buildPositionSyncRaceErasRoute(this.positionsService),
+        ...buildPositionSyncRaceErasRoute(
+          this.upsertHandler,
+          this.positionsService,
+        ),
         ...this.buildResolveRoute({
           procedure: contract.positions.resolve,
           service: this.positionsService,
@@ -439,7 +442,10 @@ export class RpcRouterFactoryService {
         conflictError: RulesSetUpsertConflictError,
         unwrap: (r) => ({ entity: r.rulesSet, created: r.created }),
       }),
-      sppAwardValues: buildSppAwardValuesRoutes(this.sppAwardValuesService),
+      sppAwardValues: buildSppAwardValuesRoutes(
+        this.upsertHandler,
+        this.sppAwardValuesService,
+      ),
       eras: this.buildStandardEntityRoutes({
         procedures: contract.eras,
         service: this.erasService,
