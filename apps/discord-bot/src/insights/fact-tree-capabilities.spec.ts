@@ -2,7 +2,7 @@ import { Test } from '@nestjs/testing';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { buildFactTree } from './fact-tree';
-import { deps } from './fact-tree.test-helpers';
+import { stubFactTreeDeps } from './fact-tree.test-helpers';
 import type { FactLeaf } from './fact-tree.types';
 import { FactTreeNavigationService } from './fact-tree-navigation.service';
 
@@ -17,7 +17,7 @@ beforeAll(async () => {
 
 describe('buildFactTree leaf capabilities', () => {
   it('excludes some leaves from era filtering', () => {
-    const tree = buildFactTree(deps());
+    const tree = buildFactTree(stubFactTreeDeps());
     const unsupported = factTreeNavigation
       .collectLeaves(tree)
       .filter((leaf) => !leaf.supportsEra);
@@ -42,7 +42,7 @@ describe('buildFactTree leaf capabilities', () => {
 
 describe('buildFactTree league capabilities', () => {
   it('every leaf supports league exactly when it supports era (except the list leaves)', () => {
-    const tree = buildFactTree(deps());
+    const tree = buildFactTree(stubFactTreeDeps());
     const leaves = factTreeNavigation.collectLeaves(tree);
     // eras.list, trophies.list and competitionGroups.list are league-scopable
     // listings that are not themselves era-scopable, so they are the leaves
@@ -69,7 +69,7 @@ describe('buildFactTree league capabilities', () => {
 
 describe('buildFactTree competition capabilities', () => {
   it('includes only the coach trophy toplist, the team/player toplists and the stats that support competition filtering', () => {
-    const tree = buildFactTree(deps());
+    const tree = buildFactTree(stubFactTreeDeps());
     const supported = factTreeNavigation
       .collectLeaves(tree)
       .filter((leaf) => leaf.supportsCompetition);
@@ -150,7 +150,7 @@ describe('buildFactTree competition capabilities', () => {
   });
 
   it('excludes the coach fouls toplist from competition filtering', () => {
-    const tree = buildFactTree(deps());
+    const tree = buildFactTree(stubFactTreeDeps());
     const leaf = factTreeNavigation.resolvePath(
       tree,
       'coach.toplist.fouls.committed',
@@ -161,7 +161,7 @@ describe('buildFactTree competition capabilities', () => {
   });
 
   it('scopes the time-between-matches toplists to league and era but not competition', () => {
-    const tree = buildFactTree(deps());
+    const tree = buildFactTree(stubFactTreeDeps());
     for (const path of [
       'coach.toplist.timeBetweenMatches.longest.descending',
       'coach.toplist.timeBetweenMatches.longest.ascending',
@@ -175,7 +175,7 @@ describe('buildFactTree competition capabilities', () => {
   });
 
   it('forwards competitionId to an in-scope team leaf', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'team.toplist.touchdowns.scored',
@@ -187,7 +187,7 @@ describe('buildFactTree competition capabilities', () => {
   });
 
   it('forwards competitionId to an in-scope player leaf', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'player.toplist.mvps',
@@ -199,7 +199,7 @@ describe('buildFactTree competition capabilities', () => {
   });
 
   it('forwards the league and era scope to a time-between-matches leaf', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'coach.toplist.timeBetweenMatches.average',
@@ -211,7 +211,7 @@ describe('buildFactTree competition capabilities', () => {
   });
 
   it('scopes the skill toplists to league and era but not competition', () => {
-    const tree = buildFactTree(deps());
+    const tree = buildFactTree(stubFactTreeDeps());
     for (const path of [
       'skill.toplist.players.any',
       'skill.toplist.players.advancement.any',
@@ -228,7 +228,7 @@ describe('buildFactTree competition capabilities', () => {
 
 describe('buildFactTree match category capabilities', () => {
   it('excludes exactly the nineteen leaves that are not scoped to matches', () => {
-    const tree = buildFactTree(deps());
+    const tree = buildFactTree(stubFactTreeDeps());
     const unsupported = factTreeNavigation
       .collectLeaves(tree)
       .filter((leaf) => !leaf.supportsMatchCategory);
@@ -271,7 +271,7 @@ describe('buildFactTree match category capabilities', () => {
   });
 
   it('supports the match category on every other leaf', () => {
-    const tree = buildFactTree(deps());
+    const tree = buildFactTree(stubFactTreeDeps());
     const supported = factTreeNavigation
       .collectLeaves(tree)
       .filter((leaf) => leaf.supportsMatchCategory);
@@ -279,7 +279,7 @@ describe('buildFactTree match category capabilities', () => {
   });
 
   it('supports the match category on leaves that do not support a competition', () => {
-    const tree = buildFactTree(deps());
+    const tree = buildFactTree(stubFactTreeDeps());
     for (const path of [
       'coach.toplist.matches.played',
       'coach.toplist.matches.won',
@@ -305,7 +305,7 @@ describe('buildFactTree match category capabilities', () => {
   });
 
   it('forwards the match category to an in-scope leaf', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'team.toplist.touchdowns.scored',

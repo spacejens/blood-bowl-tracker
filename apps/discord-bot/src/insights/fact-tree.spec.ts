@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { buildFactTree } from './fact-tree';
-import { deps } from './fact-tree.test-helpers';
+import { stubFactTreeDeps } from './fact-tree.test-helpers';
 import type { FactLeaf } from './fact-tree.types';
 import { FactTreeNavigationService } from './fact-tree-navigation.service';
 
@@ -19,12 +19,12 @@ beforeAll(async () => {
 describe('buildFactTree', () => {
   it('exposes exactly sixty-nine leaf facts', () => {
     expect(
-      factTreeNavigation.collectLeaves(buildFactTree(deps())),
+      factTreeNavigation.collectLeaves(buildFactTree(stubFactTreeDeps())),
     ).toHaveLength(69);
   });
 
   it('wires coach.toplist.matches.played to CoachToplistService.resolveMatchesPlayed', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'coach.toplist.matches.played',
@@ -61,14 +61,14 @@ describe('buildFactTree', () => {
       'resolveAdvancementRandom',
     ],
   ] as const)('wires %s to %s.%s', async (path, dep, method) => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(buildFactTree(d), path);
     await (leaf as FactLeaf).resolve({ leagueId: 9 });
     expect(d[dep][method]).toHaveBeenCalledWith({ leagueId: 9 });
   });
 
   it('wires coach.toplist.teams to CoachToplistService.resolveTeams', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'coach.toplist.teams',
@@ -78,7 +78,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires coach.toplist.competitions.played to CoachToplistService.resolveCompetitionsPlayed', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'coach.toplist.competitions.played',
@@ -88,7 +88,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires coach.toplist.eras.active to CoachToplistService.resolveErasActive', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'coach.toplist.eras.active',
@@ -98,7 +98,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires coach.toplist.fouls.committed to CoachToplistService.resolveFoulsCommitted', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'coach.toplist.fouls.committed',
@@ -108,7 +108,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires coach.toplist.trophies.won to CoachToplistService.resolveTrophiesWon', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'coach.toplist.trophies.won',
@@ -121,7 +121,7 @@ describe('buildFactTree', () => {
 
   it('declares league, era and competition scope but no match category for coach.toplist.trophies.won', () => {
     const leaf = factTreeNavigation.resolvePath(
-      buildFactTree(deps()),
+      buildFactTree(stubFactTreeDeps()),
       'coach.toplist.trophies.won',
     ) as FactLeaf;
     expect(leaf.supportsLeague).toBe(true);
@@ -135,7 +135,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires coach.toplist.timeBetweenMatches.longest.descending to CoachToplistService.resolveTimeBetweenMatchesDescending', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'coach.toplist.timeBetweenMatches.longest.descending',
@@ -147,7 +147,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires coach.toplist.timeBetweenMatches.longest.ascending to CoachToplistService.resolveTimeBetweenMatchesAscending', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'coach.toplist.timeBetweenMatches.longest.ascending',
@@ -159,7 +159,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires coach.toplist.timeBetweenMatches.average to CoachToplistService.resolveAverageTimeBetweenMatches', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'coach.toplist.timeBetweenMatches.average',
@@ -169,7 +169,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires team.toplist.matches.played to TeamToplistService.resolveMatchesPlayed', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'team.toplist.matches.played',
@@ -179,7 +179,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires team.toplist.competitions.played to TeamToplistService.resolveCompetitionsPlayed', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'team.toplist.competitions.played',
@@ -189,7 +189,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires team.toplist.eras.active to TeamToplistService.resolveErasActive', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'team.toplist.eras.active',
@@ -199,7 +199,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires team.toplist.trophies.won to TeamToplistService.resolveTrophiesWon', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'team.toplist.trophies.won',
@@ -212,7 +212,7 @@ describe('buildFactTree', () => {
 
   it('declares league, era and competition scope but no match category for team.toplist.trophies.won', () => {
     const leaf = factTreeNavigation.resolvePath(
-      buildFactTree(deps()),
+      buildFactTree(stubFactTreeDeps()),
       'team.toplist.trophies.won',
     ) as FactLeaf;
     expect(leaf.supportsLeague).toBe(true);
@@ -224,7 +224,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires team.toplist.touchdowns.scored to TeamToplistService.resolveTouchdownsScored', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'team.toplist.touchdowns.scored',
@@ -234,7 +234,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires team.toplist.completions to TeamToplistService.resolveCompletions', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'team.toplist.completions',
@@ -244,7 +244,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires team.toplist.interceptions to TeamToplistService.resolveInterceptions', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'team.toplist.interceptions',
@@ -254,7 +254,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires team.toplist.deflections to TeamToplistService.resolveDeflections', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'team.toplist.deflections',
@@ -264,7 +264,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires player.toplist.mvps to PlayerToplistService.resolveMvps', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'player.toplist.mvps',
@@ -274,7 +274,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires player.toplist.touchdowns.scored to PlayerToplistService.resolveTouchdownsScored', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'player.toplist.touchdowns.scored',
@@ -284,7 +284,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires player.toplist.completions to PlayerToplistService.resolveCompletions', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'player.toplist.completions',
@@ -294,7 +294,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires player.toplist.interceptions to PlayerToplistService.resolveInterceptions', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'player.toplist.interceptions',
@@ -304,7 +304,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires player.toplist.deflections to PlayerToplistService.resolveDeflections', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'player.toplist.deflections',
@@ -314,7 +314,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires team.toplist.casualties.caused to TeamToplistService.resolveCasualtiesCaused', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'team.toplist.casualties.caused',
@@ -324,7 +324,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires team.toplist.injuries.serious.caused to TeamToplistService.resolveSeriousInjuriesCaused', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'team.toplist.injuries.serious.caused',
@@ -334,7 +334,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires team.toplist.deaths.caused to TeamToplistService.resolveDeathsCaused', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'team.toplist.deaths.caused',
@@ -344,7 +344,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires team.toplist.casualties.suffered to TeamToplistService.resolveCasualtiesSuffered', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'team.toplist.casualties.suffered',
@@ -354,7 +354,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires team.toplist.injuries.serious.suffered to TeamToplistService.resolveSeriousInjuriesSuffered', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'team.toplist.injuries.serious.suffered',
@@ -364,7 +364,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires team.toplist.injuries.lasting.suffered to TeamToplistService.resolveLastingInjuriesSuffered', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'team.toplist.injuries.lasting.suffered',
@@ -374,7 +374,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires team.toplist.deaths.suffered to TeamToplistService.resolveDeathsSuffered', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'team.toplist.deaths.suffered',
@@ -384,7 +384,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires team.toplist.fouls.committed to TeamToplistService.resolveFoulsCommitted', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'team.toplist.fouls.committed',
@@ -394,7 +394,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires team.toplist.sent_off to TeamToplistService.resolveTimesSentOff', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'team.toplist.sent_off',
@@ -404,7 +404,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires team.toplist.expensiveMistakes.total to ExpensiveMistakesToplistService.resolveTotal', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'team.toplist.expensiveMistakes.total',
@@ -414,7 +414,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires team.toplist.expensiveMistakes.biggest to ExpensiveMistakesToplistService.resolveBiggest', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'team.toplist.expensiveMistakes.biggest',
@@ -424,7 +424,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires player.toplist.casualties.caused to PlayerToplistService.resolveCasualtiesCaused', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'player.toplist.casualties.caused',
@@ -434,7 +434,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires player.toplist.injuries.serious.caused to PlayerToplistService.resolveSeriousInjuriesCaused', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'player.toplist.injuries.serious.caused',
@@ -444,7 +444,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires player.toplist.deaths.caused to PlayerToplistService.resolveDeathsCaused', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'player.toplist.deaths.caused',
@@ -454,7 +454,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires player.toplist.casualties.suffered to PlayerToplistService.resolveCasualtiesSuffered', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'player.toplist.casualties.suffered',
@@ -464,7 +464,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires player.toplist.injuries.serious.suffered to PlayerToplistService.resolveSeriousInjuriesSuffered', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'player.toplist.injuries.serious.suffered',
@@ -474,7 +474,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires player.toplist.injuries.lasting.suffered to PlayerToplistService.resolveLastingInjuriesSuffered', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'player.toplist.injuries.lasting.suffered',
@@ -484,7 +484,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires player.toplist.fouls.committed to PlayerToplistService.resolveFoulsCommitted', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'player.toplist.fouls.committed',
@@ -494,7 +494,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires player.toplist.sent_off to PlayerToplistService.resolveTimesSentOff', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'player.toplist.sent_off',
@@ -504,7 +504,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires player.toplist.totalSpp to PlayerToplistService.resolveTotalSpp', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'player.toplist.totalSpp',
@@ -514,7 +514,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires race.toplist.teams.descending to RaceToplistService.resolveTeamsDescending', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'race.toplist.teams.descending',
@@ -524,7 +524,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires race.toplist.teams.ascending to RaceToplistService.resolveTeamsAscending', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'race.toplist.teams.ascending',
@@ -534,7 +534,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires race.toplist.matches.played to RaceToplistService.resolveMatchesPlayed', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'race.toplist.matches.played',
@@ -544,21 +544,21 @@ describe('buildFactTree', () => {
   });
 
   it('wires stats to StatsSummaryFactsService.resolve', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(buildFactTree(d), 'stats');
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
     expect(d.statsSummary.resolve).toHaveBeenCalled();
   });
 
   it('wires eras.list to ErasListService.resolve', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(buildFactTree(d), 'eras.list');
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
     expect(d.erasList.resolve).toHaveBeenCalled();
   });
 
   it('wires trophies.list to TrophiesListService.resolve', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'trophies.list',
@@ -568,7 +568,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires competitionGroups.list to CompetitionGroupsListService.resolve', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'competitionGroups.list',
@@ -578,7 +578,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires starPlayers.list to StarPlayersListService.resolve', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'starPlayers.list',
@@ -589,7 +589,7 @@ describe('buildFactTree', () => {
 
   it('starPlayers.list supports no scoping at all', () => {
     const leaf = factTreeNavigation.resolvePath(
-      buildFactTree(deps()),
+      buildFactTree(stubFactTreeDeps()),
       'starPlayers.list',
     ) as FactLeaf;
     expect(leaf.supportsLeague).toBe(false);
@@ -599,7 +599,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires starPlayers.toplist.hires.total to StarPlayerToplistService.resolveTotalHires', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'starPlayers.toplist.hires.total',
@@ -610,7 +610,7 @@ describe('buildFactTree', () => {
 
   it('starPlayers.toplist.hires.total supports no scoping at all', () => {
     const leaf = factTreeNavigation.resolvePath(
-      buildFactTree(deps()),
+      buildFactTree(stubFactTreeDeps()),
       'starPlayers.toplist.hires.total',
     ) as FactLeaf;
     expect(leaf.supportsLeague).toBe(false);
@@ -620,7 +620,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires starPlayers.toplist.hires.distinctTeams to StarPlayerToplistService.resolveDistinctTeamsHired', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'starPlayers.toplist.hires.distinctTeams',
@@ -632,7 +632,7 @@ describe('buildFactTree', () => {
 
   it('starPlayers.toplist.hires.distinctTeams supports no scoping at all', () => {
     const leaf = factTreeNavigation.resolvePath(
-      buildFactTree(deps()),
+      buildFactTree(stubFactTreeDeps()),
       'starPlayers.toplist.hires.distinctTeams',
     ) as FactLeaf;
     expect(leaf.supportsLeague).toBe(false);
@@ -642,7 +642,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires onThisDate to OnThisDateFactsService.resolveToday', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'date.onThisDate',
@@ -653,7 +653,7 @@ describe('buildFactTree', () => {
 
   it('declares all four scopes supported for onThisDate', () => {
     const leaf = factTreeNavigation.resolvePath(
-      buildFactTree(deps()),
+      buildFactTree(stubFactTreeDeps()),
       'date.onThisDate',
     ) as FactLeaf;
     expect(leaf.supportsLeague).toBe(true);
@@ -663,7 +663,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires date.toplist.matches.descending to DateToplistFactsService.resolveMatchesDescending', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'date.toplist.matches.descending',
@@ -675,7 +675,7 @@ describe('buildFactTree', () => {
   });
 
   it('wires date.toplist.matches.ascending to DateToplistFactsService.resolveMatchesAscending', async () => {
-    const d = deps();
+    const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
       buildFactTree(d),
       'date.toplist.matches.ascending',
@@ -687,7 +687,7 @@ describe('buildFactTree', () => {
   });
 
   it('declares league, era and match category scopes for the date matches toplists', () => {
-    const tree = buildFactTree(deps());
+    const tree = buildFactTree(stubFactTreeDeps());
     for (const path of [
       'date.toplist.matches.descending',
       'date.toplist.matches.ascending',
