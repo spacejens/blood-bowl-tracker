@@ -143,9 +143,10 @@ and TP `lineUpMasterId`, however many times it is listed):
   have been imported for that era; a hire whose position has no catalog
   characteristics there is skipped with an error.
 - **The hired player** is upserted into the hiring team's era, keyed by TP
-  id `star-<rosterId>-<lineUpMasterId>` — the same key `tools/import-tp`'s
-  bulk import gives it, so re-importing a hire through either path updates
-  one row.
+  id `star-<rosterId>-<lineUpMasterId>`, built by `packages/parse-tp`'s
+  `TpStarHireKeyService` — the service `tools/import-tp`'s bulk hire pass
+  keys its hires through too, so re-importing a hire through either path
+  updates one row.
 
 This step belongs to the live import only. The `tpMatches.import` procedure
 does not run it: `tools/import-tp`'s bulk run imports star hires in its own

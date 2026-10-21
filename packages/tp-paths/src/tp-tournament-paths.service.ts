@@ -12,7 +12,8 @@ const SCORES_PAGE = 'scores';
  * TP's frontend base URL (sent as a fetch's referer). `slug` is the
  * tournament's name as it appears in the frontend path. Shared by
  * tools/download-tp's bulk download and packages/import-tp-live's live match
- * and competition imports.
+ * and competition imports; the news, classifications, honours and statistics
+ * paths are requested by the bulk download only.
  */
 @Injectable()
 export class TpTournamentPathsService {
@@ -43,6 +44,36 @@ export class TpTournamentPathsService {
   /** The tournament's awards, as the awards page loads them. */
   awardsApiPath(slug: string): string {
     return `awards/${slug}/awards`;
+  }
+
+  /** The tournament's news, as the news page loads it. */
+  newsApiPath(slug: string): string {
+    return `tournament/${slug}/news`;
+  }
+
+  /** A phase's standings. "clasifications" is TP's own spelling. */
+  classificationsApiPath(slug: string, phaseId: number): string {
+    return `tournament/${slug}/clasifications?page=0&pageSize=75&phaseId=${phaseId}&type=COACH`;
+  }
+
+  /** The honours page's default Team view. */
+  teamStatsApiPath(slug: string): string {
+    return `tournament/${slug}/team-stats`;
+  }
+
+  /** The honours page's Player toggle. */
+  lineupStatsApiPath(slug: string): string {
+    return `tournament/${slug}/lineup-stats`;
+  }
+
+  /** The honours page's Coach toggle. */
+  coachStatsApiPath(slug: string): string {
+    return `tournament/${slug}/coach-stats`;
+  }
+
+  /** The tournament's statistics, as the statistics page loads them. */
+  statisticsApiPath(slug: string): string {
+    return `tournament/${slug}/statistics`;
   }
 
   /** One of the tournament's pages (e.g. `scores`, `news`). */

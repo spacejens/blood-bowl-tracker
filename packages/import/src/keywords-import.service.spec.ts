@@ -14,8 +14,7 @@ import type { ImportError } from './types';
  * The success/failure plumbing lives in `createUpsertImportServiceBase` and is
  * covered by `upsert-import-service-base.spec.ts`. What is entity-specific
  * here -- and all this suite asserts -- is which client resource the service
- * upserts through, how it words a failure, and the `listKeywords` read it
- * adds.
+ * upserts through, how it words a failure.
  */
 describe('KeywordsImportService', () => {
   let service: KeywordsImportService;
@@ -74,51 +73,6 @@ describe('KeywordsImportService', () => {
     );
     expect(buildErrorMessage('boom')).toBe(
       'Failed to import keyword "Goblin": boom',
-    );
-  });
-
-  it('reads the catalogue for one external system', async () => {
-    const rows = [
-      {
-        keywordId: 7,
-        name: 'Goblin',
-        kind: 'species' as const,
-        externalId: '111',
-      },
-    ];
-    runner.recordUpsertResult.mockResolvedValue(rows);
-    client.keywords.list.mockResolvedValue(rows);
-    const errors: ImportError[] = [];
-
-    const result = await service.listKeywords(1, errors);
-
-    expect(result).toBe(rows);
-    const options = recordUpsertResultOptions(runner);
-    expect(options.item).toEqual({ externalSystemId: 1 });
-    expect(options.errors).toBe(errors);
-    await expect(options.upsert()).resolves.toBe(rows);
-    expect(client.keywords.list).toHaveBeenCalledWith({ externalSystemId: 1 });
-  });
-
-  it('returns undefined when the catalogue read was recorded as a failure', async () => {
-    runner.recordUpsertResult.mockResolvedValue(undefined);
-
-    const result = await service.listKeywords(1, []);
-
-    expect(result).toBeUndefined();
-  });
-
-  it('builds a failure message naming the keyword catalogue read', async () => {
-    runner.recordUpsertResult.mockResolvedValue(undefined);
-
-    await service.listKeywords(1, []);
-
-    const { buildErrorMessage } = recordUpsertResultOptions(runner);
-    expect(buildErrorMessage(new Error('boom'))).toBe(
-      'Failed to read the keyword catalogue: boom',
-    );
-    expect(buildErrorMessage('nope')).toBe(
-      'Failed to read the keyword catalogue: nope',
     );
   });
 });

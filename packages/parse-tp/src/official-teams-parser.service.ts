@@ -59,8 +59,9 @@ export interface TpOfficialPosition {
  * (`"111"`) on different entries, confirming type 3 is a distinct,
  * unresolved encoding rather than just another composable value. Consumers
  * must treat a type-3 reference as unresolvable rather than composing it
- * as-is, except for the codes `TpSkillResolverService.decodeTypeThreeTarget`
- * (in tools/import-tp) resolves against the curated keyword catalogue.
+ * as-is, except for the Hatred/Animosity codes that `packages/import-tp-live`'s
+ * `TpKeywordTargetDecoderService` resolves against the curated keyword
+ * catalogue.
  */
 export interface TpPositionSkillIdRef {
   skillMasterId: number;

@@ -45,8 +45,10 @@ procedures use it:
 - **Roster import**: `TpRosterImportService`, in `TpRosterModule`. It
   resolves the TP and Name external systems, the era and the era's rules
   set, upserts the team, then upserts its players. Given the roster's raw
-  JSON (the live import always passes it), it then syncs each player's own
-  skills through `TpRosterPlayerSkillsService` and `TpRosterSkillIdsService`.
+  JSON (the live import and the bulk `tpRosters.import` path both pass it),
+  it then syncs each player's own skills through
+  `TpRosterPlayerSkillsService` and `TpRosterSkillIdsService`, naming each
+  skill from the skill masters that JSON embeds.
 - **The live team entry point**: `TpLiveTeamImportService.importTeam(...)`,
   in `ImportTpLiveModule`.
 - **Match import**: `TpMatchModule`, with `TpMatchImportService` and its
@@ -175,8 +177,8 @@ career SPP total TP reports for it, and the
 mercenary hires' position usages. The bulk importer's later steps resolve
 teams and players by these. See
 [import-tp's architecture](../import-tp/index.md#architecture) for how the
-bulk run uses it. It does not write player skills: the bulk importer writes
-them in its own later pass, naming skills from its whole download mirror.
+bulk run uses it. In the same call it writes each roster player's own
+skills, named from the skill masters the roster file embeds.
 
 ## Failures
 

@@ -49,5 +49,7 @@ export type {
   TpTournamentPhase,
 } from './tournament-parser.service';
 export { TournamentParserService } from './tournament-parser.service';
+export type { TpStarHireKeyOptions } from './tp-star-hire-key.service';
+export { TpStarHireKeyService } from './tp-star-hire-key.service';
 // Exported for direct construction (tests); not in ParseTpModule.exports — nothing outside this package injects it via DI.
 export { WeatherTypeService } from './weather-type.service';

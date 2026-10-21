@@ -2,21 +2,21 @@ import type { TpPositionCharacteristics } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { TpPlayerCharacteristicsBuilderService } from './tp-player-characteristics-builder.service';
+import { TpStarPositionCharacteristicsBuilderService } from './tp-star-position-characteristics-builder.service';
 
 const RULES_SET_IDS = new Map([
   ['Fourth era', 900],
   ['Fifth era', 901],
 ]);
 
-describe('TpPlayerCharacteristicsBuilderService', () => {
-  let service: TpPlayerCharacteristicsBuilderService;
+describe('TpStarPositionCharacteristicsBuilderService', () => {
+  let service: TpStarPositionCharacteristicsBuilderService;
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [TpPlayerCharacteristicsBuilderService],
+      providers: [TpStarPositionCharacteristicsBuilderService],
     }).compile();
-    service = moduleRef.get(TpPlayerCharacteristicsBuilderService);
+    service = moduleRef.get(TpStarPositionCharacteristicsBuilderService);
   });
 
   it("builds a payload from a star position's characteristics for that era's rules set", () => {

@@ -5,10 +5,10 @@ import {
   NameExternalIdService,
   UpsertRecorderService,
 } from '@blood-bowl-tracker/import-shared';
-import type { TpSkillMaster } from '@blood-bowl-tracker/parse-tp';
 import { SkillMasterNamesParserService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
+import { TpSkillIdLookupService } from '../../tp-skill-id-lookup.service';
 import type { TpRosterContext } from '../tp-roster-context.service';
 
 /** One skillMasterId resolved to its database skill. */
@@ -36,7 +36,8 @@ export interface ResolveRosterSkillIdsOptions {
 /** Options for {@link TpRosterSkillIdsService.upsertByName}. */
 interface UpsertByNameOptions {
   name: string;
-  masters: Map<number, TpSkillMaster>;
+  /** Skill name -> every TP id the roster gives it. */
+  tpIdsByName: Map<string, Set<number>>;
   context: TpRosterContext;
   /** Skill name -> its id, or undefined when its upsert failed. */
   skillIdsByName: Map<string, number | undefined>;
@@ -48,6 +49,7 @@ export class TpRosterSkillIdsService {
   constructor(
     private readonly skillMasterNames: SkillMasterNamesParserService,
     private readonly skills: SkillsService,
+    private readonly skillIdLookup: TpSkillIdLookupService,
     private readonly nameExternalId: NameExternalIdService,
     private readonly importResults: ImportResultService,
     private readonly runner: UpsertRecorderService,
@@ -74,6 +76,7 @@ export class TpRosterSkillIdsService {
       return resolved;
     }
     const masters = this.skillMasterNames.extract(content);
+    const tpIdsByName = this.skillIdLookup.tpIdsByName(masters);
     const skillIdsByName = new Map<string, number | undefined>();
     const unnamed: number[] = [];
     for (const masterId of masterIds) {
@@ -84,7 +87,7 @@ export class TpRosterSkillIdsService {
       }
       const skillId = await this.upsertByName({
         name: master.name,
-        masters,
+        tpIdsByName,
         context,
         skillIdsByName,
         errors,
@@ -96,7 +99,11 @@ export class TpRosterSkillIdsService {
     if (unnamed.length === 0) {
       return resolved;
     }
-    const registered = await this.resolveRegistered(unnamed, context, errors);
+    const registered = await this.skillIdLookup.resolveByTpId({
+      masterIds: unnamed,
+      tpSystemId: context.tpSystemId,
+      errors,
+    });
     if (registered === undefined) {
       return resolved;
     }
@@ -128,7 +135,7 @@ export class TpRosterSkillIdsService {
    */
   private async upsertByName({
     name,
-    masters,
+    tpIdsByName,
     context,
     skillIdsByName,
     errors,
@@ -136,9 +143,6 @@ export class TpRosterSkillIdsService {
     if (skillIdsByName.has(name)) {
       return skillIdsByName.get(name);
     }
-    const tpIds = [...masters]
-      .filter(([, master]) => master.name === name)
-      .map(([masterId]) => masterId);
     const upserted = await this.runner.record({
       run: () =>
         this.skills.upsert({
@@ -148,10 +152,10 @@ export class TpRosterSkillIdsService {
               externalSystemId: context.nameSystemId,
               externalId: this.nameExternalId.forSkill(name),
             },
-            ...tpIds.map((masterId) => ({
-              externalSystemId: context.tpSystemId,
-              externalId: String(masterId),
-            })),
+            ...this.skillIdLookup.tpExternalIds(
+              tpIdsByName.get(name) ?? [],
+              context.tpSystemId,
+            ),
           ],
         }),
       item: { skill: name },
@@ -162,40 +166,5 @@ export class TpRosterSkillIdsService {
     const id = upserted?.skill.id;
     skillIdsByName.set(name, id);
     return id;
-  }
-
-  /**
-   * skillMasterId -> skill id for every id a skill carries as a TP external
-   * id, or undefined when the lookup itself failed (already reported).
-   */
-  private async resolveRegistered(
-    masterIds: number[],
-    context: TpRosterContext,
-    errors: ImportError[],
-  ): Promise<Map<number, number> | undefined> {
-    const results = await this.runner.record({
-      run: () =>
-        this.skills.resolveBatch(
-          masterIds.map((masterId) => ({
-            externalSystemId: context.tpSystemId,
-            externalId: String(masterId),
-          })),
-        ),
-      item: { skillMasterIds: masterIds },
-      errors,
-      buildErrorMessage: (error) =>
-        `Failed to resolve TP skill ids by external id: ${this.runner.messageOf(error)}`,
-    });
-    if (results === undefined) {
-      return undefined;
-    }
-    const skillIds = new Map<number, number>();
-    masterIds.forEach((masterId, index) => {
-      const result = results[index];
-      if (result.found) {
-        skillIds.set(masterId, result.id);
-      }
-    });
-    return skillIds;
   }
 }

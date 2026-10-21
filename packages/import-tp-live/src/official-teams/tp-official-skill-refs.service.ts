@@ -3,14 +3,11 @@ import type {
   ImportError,
   TpSkillMasterName,
 } from '@blood-bowl-tracker/api-contract';
-import { SkillsService } from '@blood-bowl-tracker/game-data';
-import {
-  ImportResultService,
-  UpsertRecorderService,
-} from '@blood-bowl-tracker/import-shared';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type { TpPositionSkillRef } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
+import { TpSkillIdLookupService } from '../tp-skill-id-lookup.service';
 import { TpKeywordTargetDecoderService } from './tp-keyword-target-decoder.service';
 import type { TpOfficialKeywordCatalog } from './tp-official-keyword-catalog.service';
 import type { TpOfficialPositionSlot } from './tp-official-positions-upsert.service';
@@ -64,10 +61,9 @@ interface Reported {
 @Injectable()
 export class TpOfficialSkillRefsService {
   constructor(
-    private readonly skills: SkillsService,
+    private readonly skillIdLookup: TpSkillIdLookupService,
     private readonly keywordTargets: TpKeywordTargetDecoderService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
   ) {}
 
   /**
@@ -93,23 +89,19 @@ export class TpOfficialSkillRefsService {
     const mastersById = new Map(
       skillMasters.map((master) => [master.skillMasterId, master]),
     );
-    const masterIdsByName = new Map<string, Set<number>>();
-    for (const master of skillMasters) {
-      let ids = masterIdsByName.get(master.name);
-      if (ids === undefined) {
-        ids = new Set();
-        masterIdsByName.set(master.name, ids);
-      }
-      ids.add(master.skillMasterId);
-    }
     const lookups: SkillLookups = {
       mastersById,
-      masterIdsByName,
-      registeredSkillIds: await this.resolveRegistered({
-        masterIds: this.unnamedMasterIds(slots, mastersById),
-        context,
-        errors,
-      }),
+      masterIdsByName: this.skillIdLookup.tpIdsByName(
+        skillMasters.map((master) => [master.skillMasterId, master] as const),
+      ),
+      // A failed lookup was already reported by the lookup itself; every id
+      // it would have resolved is then reported below as unresolved.
+      registeredSkillIds:
+        (await this.skillIdLookup.resolveByTpId({
+          masterIds: this.unnamedMasterIds(slots, mastersById),
+          tpSystemId: context.tpSystemId,
+          errors,
+        })) ?? new Map<number, number>(),
     };
     const reported: Reported = {
       masterIds: new Set(),
@@ -152,39 +144,6 @@ export class TpOfficialSkillRefsService {
       }
     }
     return [...ids];
-  }
-
-  /** skillMasterId -> skill id for every id a skill carries as a TP external id. */
-  private async resolveRegistered(options: {
-    masterIds: number[];
-    context: TpOfficialTeamsContext;
-    errors: ImportError[];
-  }): Promise<Map<number, number>> {
-    const { masterIds, context, errors } = options;
-    const skillIds = new Map<number, number>();
-    if (masterIds.length === 0) {
-      return skillIds;
-    }
-    const results = await this.runner.record({
-      run: () =>
-        this.skills.resolveBatch(
-          masterIds.map((id) => ({
-            externalSystemId: context.tpSystemId,
-            externalId: String(id),
-          })),
-        ),
-      item: { skillMasterIds: masterIds },
-      errors,
-      buildErrorMessage: (error) =>
-        `Failed to resolve TP skill ids by external id: ${this.runner.messageOf(error)}`,
-    });
-    masterIds.forEach((masterId, index) => {
-      const result = results?.[index];
-      if (result !== undefined && result.found) {
-        skillIds.set(masterId, result.id);
-      }
-    });
-    return skillIds;
   }
 
   /** One raw reference as a starting-skill ref, or undefined (reported) when it cannot be. */
@@ -271,11 +230,9 @@ export class TpOfficialSkillRefsService {
       return {
         name: master.name,
         isElite: master.isElite,
-        externalIds: [...(lookups.masterIdsByName.get(master.name) ?? [])].map(
-          (id) => ({
-            externalSystemId: context.tpSystemId,
-            externalId: String(id),
-          }),
+        externalIds: this.skillIdLookup.tpExternalIds(
+          lookups.masterIdsByName.get(master.name) ?? [],
+          context.tpSystemId,
         ),
       };
     }

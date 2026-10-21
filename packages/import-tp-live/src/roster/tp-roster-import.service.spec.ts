@@ -192,6 +192,7 @@ describe('TpRosterImportService', () => {
       ],
     });
     expect(context.resolve).not.toHaveBeenCalled();
+    expect(playerSkills.syncPlayerSkills).not.toHaveBeenCalled();
   });
 
   it('skips the players when the returned team eras lack the context era', async () => {
@@ -265,7 +266,7 @@ describe('TpRosterImportService', () => {
     expect(playerSkills.syncPlayerSkills).not.toHaveBeenCalled();
   });
 
-  it('syncs no skills for a raw roster imported through tpRosters.import, whose bulk importer writes skills itself', async () => {
+  it('syncs the skills of a raw roster imported through tpRosters.import from that raw content', async () => {
     parser.parse.mockReturnValue(tpRoster());
 
     await service.importRawRoster({
@@ -275,7 +276,9 @@ describe('TpRosterImportService', () => {
     });
 
     expect(playersImport.importPlayers).toHaveBeenCalled();
-    expect(playerSkills.syncPlayerSkills).not.toHaveBeenCalled();
+    expect(playerSkills.syncPlayerSkills).toHaveBeenCalledWith(
+      expect.objectContaining({ roster: tpRoster(), content: RAW }),
+    );
   });
 
   it('syncs no skills when the team was not imported', async () => {
