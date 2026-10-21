@@ -12,9 +12,9 @@ export type {
 } from './discord-client.service';
 export {
   ADMIN_COMMAND_ROLE_ID,
+  DEBUG_COMMAND_ROLE_ID,
   DISCORD_BOT_TOKEN,
   DiscordClientService,
-  RESTRICTED_COMMAND_ROLE_ID,
 } from './discord-client.service';
 export type {
   HandledInteraction,

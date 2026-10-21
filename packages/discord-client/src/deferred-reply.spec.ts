@@ -15,10 +15,10 @@ import { HandledInteractionBuilderService } from './handled-interaction-builder.
 import type { InteractionHandledListener } from './index';
 import {
   ADMIN_COMMAND_ROLE_ID,
+  DEBUG_COMMAND_ROLE_ID,
   DISCORD_BOT_TOKEN,
   DiscordClientService,
   MemberRoleAccessService,
-  RESTRICTED_COMMAND_ROLE_ID,
 } from './index';
 
 const OCCURRED_AT = new Date('2026-09-25T12:00:00.000Z');
@@ -41,7 +41,7 @@ describe('DiscordClientService deferred commands', () => {
         DiscordClientService,
         MemberRoleAccessService,
         { provide: DISCORD_BOT_TOKEN, useValue: 'my-token' },
-        { provide: RESTRICTED_COMMAND_ROLE_ID, useValue: undefined },
+        { provide: DEBUG_COMMAND_ROLE_ID, useValue: undefined },
         { provide: ADMIN_COMMAND_ROLE_ID, useValue: adminRoleId },
         HandledInteractionBuilderService,
       ],

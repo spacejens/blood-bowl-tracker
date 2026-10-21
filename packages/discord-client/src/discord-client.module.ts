@@ -2,9 +2,9 @@ import { DynamicModule, FactoryProvider, Global, Module } from '@nestjs/common';
 
 import {
   ADMIN_COMMAND_ROLE_ID,
+  DEBUG_COMMAND_ROLE_ID,
   DISCORD_BOT_TOKEN,
   DiscordClientService,
-  RESTRICTED_COMMAND_ROLE_ID,
 } from './discord-client.service';
 import { HandledInteractionBuilderService } from './handled-interaction-builder.service';
 import { MemberRoleAccessService } from './member-role-access.service';
@@ -12,7 +12,7 @@ import { MemberRoleAccessService } from './member-role-access.service';
 export interface DiscordClientModuleOptions {
   token: string;
   /** Omitted means `debug`-restricted commands are not role-gated. */
-  restrictedRoleId?: string;
+  debugRoleId?: string;
   /** Omitted means `admin`-restricted commands are not role-gated. */
   adminRoleId?: string;
 }
@@ -25,9 +25,7 @@ export interface DiscordClientModuleAsyncOptions {
    * `inject` with `useFactory`. Omitted means those commands are not
    * role-gated, so a consumer that does not care need not supply anything.
    */
-  useRestrictedRoleIdFactory?: FactoryProvider<
-    string | undefined
-  >['useFactory'];
+  useDebugRoleIdFactory?: FactoryProvider<string | undefined>['useFactory'];
   /**
    * Resolves the role id `admin`-restricted commands require, sharing
    * `inject` with `useFactory`. Omitted means those commands are not
@@ -45,8 +43,8 @@ export class DiscordClientModule {
       providers: [
         { provide: DISCORD_BOT_TOKEN, useValue: options.token },
         {
-          provide: RESTRICTED_COMMAND_ROLE_ID,
-          useValue: options.restrictedRoleId,
+          provide: DEBUG_COMMAND_ROLE_ID,
+          useValue: options.debugRoleId,
         },
         { provide: ADMIN_COMMAND_ROLE_ID, useValue: options.adminRoleId },
         MemberRoleAccessService,
@@ -56,7 +54,7 @@ export class DiscordClientModule {
       exports: [
         DiscordClientService,
         MemberRoleAccessService,
-        RESTRICTED_COMMAND_ROLE_ID,
+        DEBUG_COMMAND_ROLE_ID,
         ADMIN_COMMAND_ROLE_ID,
       ],
     };
@@ -72,11 +70,9 @@ export class DiscordClientModule {
           inject: options.inject ?? [],
         },
         {
-          provide: RESTRICTED_COMMAND_ROLE_ID,
-          useFactory: options.useRestrictedRoleIdFactory ?? (() => undefined),
-          inject: options.useRestrictedRoleIdFactory
-            ? (options.inject ?? [])
-            : [],
+          provide: DEBUG_COMMAND_ROLE_ID,
+          useFactory: options.useDebugRoleIdFactory ?? (() => undefined),
+          inject: options.useDebugRoleIdFactory ? (options.inject ?? []) : [],
         },
         {
           provide: ADMIN_COMMAND_ROLE_ID,
@@ -90,7 +86,7 @@ export class DiscordClientModule {
       exports: [
         DiscordClientService,
         MemberRoleAccessService,
-        RESTRICTED_COMMAND_ROLE_ID,
+        DEBUG_COMMAND_ROLE_ID,
         ADMIN_COMMAND_ROLE_ID,
       ],
     };

@@ -23,11 +23,11 @@ import {
 import { HandledInteractionBuilderService } from './handled-interaction-builder.service';
 import {
   ADMIN_COMMAND_ROLE_ID,
+  DEBUG_COMMAND_ROLE_ID,
   DISCORD_BOT_TOKEN,
   DiscordClientModule,
   DiscordClientService,
   MemberRoleAccessService,
-  RESTRICTED_COMMAND_ROLE_ID,
 } from './index';
 
 describe('DiscordClientService', () => {
@@ -275,28 +275,28 @@ describe('DiscordClientService', () => {
     );
   });
 
-  it('provides the restricted role id from the async factory', async () => {
+  it('provides the debug role id from the async factory', async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [
         DiscordClientModule.forRootAsync({
           useFactory: () => 'tkn',
-          useRestrictedRoleIdFactory: () => 'role-1',
+          useDebugRoleIdFactory: () => 'role-1',
         }),
       ],
     }).compile();
-    expect(moduleRef.get(RESTRICTED_COMMAND_ROLE_ID)).toBe('role-1');
+    expect(moduleRef.get(DEBUG_COMMAND_ROLE_ID)).toBe('role-1');
   });
 
-  it('provides the restricted role id given to forRoot', async () => {
+  it('provides the debug role id given to forRoot', async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [
         DiscordClientModule.forRoot({
           token: 'tkn',
-          restrictedRoleId: 'role-1',
+          debugRoleId: 'role-1',
         }),
       ],
     }).compile();
-    expect(moduleRef.get(RESTRICTED_COMMAND_ROLE_ID)).toBe('role-1');
+    expect(moduleRef.get(DEBUG_COMMAND_ROLE_ID)).toBe('role-1');
   });
 
   it('provides the admin role id from the async factory', async () => {

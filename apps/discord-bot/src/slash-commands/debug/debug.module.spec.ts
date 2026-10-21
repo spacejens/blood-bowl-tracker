@@ -39,7 +39,7 @@ describe('DebugModule', () => {
         DbModule.forRootAsync({ useFactory: () => 'unused' }),
         DiscordClientModule.forRoot({
           token: 'test-token',
-          restrictedRoleId: 'role-1',
+          debugRoleId: 'role-1',
         }),
         DebugModule,
       ],
@@ -68,7 +68,7 @@ describe('DebugModule', () => {
         DbModule.forRootAsync({ useFactory: () => 'unused' }),
         DiscordClientModule.forRootAsync({
           useFactory: () => 'test-token',
-          useRestrictedRoleIdFactory: () => 'role-1',
+          useDebugRoleIdFactory: () => 'role-1',
           inject: [],
         }),
         DebugModule,
