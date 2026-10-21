@@ -125,7 +125,7 @@ export class EraConfigService {
    * The eras the BBL leagues played through, supplied via leagues[].eras in
    * import-bbl-config.json5 (not parsed from the source data). Each league
    * entry's eras are flattened into one list and stamped with that league's
-   * leagueName. Each era is six nested groups: identity, dates, players (all
+   * name. Each era is six nested groups: identity, dates, players (all
    * required), and optional competitions, teams, matches. See EraConfig for
    * field meanings.
    */
