@@ -45,16 +45,19 @@ import type { UpsertHandlerService } from './upsert-handler.service';
  * factory that supplies the real, already-injected dependencies once.
  */
 
-// sppAwardValues: not routed through the upsert handler. Award values are
-// keyed by (rulesSetId, raceId, actionType) rather than external ids, so
-// there is no CONFLICT error to map and no entity+created shape to return —
-// same shape as positions.syncRaceEras.
+// sppAwardValues: not routed through the upsert handler's `run`/
+// `runWithoutConflict`. Award values are keyed by (rulesSetId, raceId,
+// actionType) rather than external ids, so there is no CONFLICT error to map
+// and no entity+created shape to return. It does go through `runSync`, which
+// maps the service's authored-data rejections — a key named twice in one
+// batch, and a rules set or race that does not exist — to BAD_REQUEST.
 export function buildSppAwardValuesRoutes(
+  upsertHandler: UpsertHandlerService,
   sppAwardValuesService: SppAwardValuesService,
 ) {
   return {
-    sync: implement(contract.sppAwardValues.sync).handler(({ input }) =>
-      sppAwardValuesService.sync(input),
+    sync: implement(contract.sppAwardValues.sync).handler(({ input, errors }) =>
+      upsertHandler.runSync(errors, () => sppAwardValuesService.sync(input)),
     ),
   };
 }
@@ -125,9 +128,8 @@ export function buildExternalSystemsRoutes(
 }
 
 // players.syncScrapedSppAdjustments / syncReportedSppAdjustments /
-// syncLastingInjuryHistory: not routed through the upsert handler, for the
-// same reason sppAwardValues.sync is not — no external-id conflict to map and
-// no entity+created shape to return.
+// syncLastingInjuryHistory: not routed through the upsert handler — there is
+// no external-id conflict to map and no entity+created shape to return.
 //
 // syncLastingInjuryHistory is the post-matchEvents backfill: it manufactures
 // the players_history versions a freshly-inserted player needs for a lasting

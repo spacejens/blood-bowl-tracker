@@ -165,8 +165,8 @@ describe('contract', () => {
     ).toBe(true);
   });
 
-  it('exposes a sppAwardValues.sync procedure', () => {
-    expect(contract.sppAwardValues.sync).toBeDefined();
+  it('defines sppAwardValues.sync with a BAD_REQUEST error', () => {
+    expect(errorCodesOf(contract.sppAwardValues.sync)).toEqual(['BAD_REQUEST']);
   });
 
   it('exposes a players.syncLastingInjuryHistory procedure', () => {

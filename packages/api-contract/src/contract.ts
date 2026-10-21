@@ -336,8 +336,17 @@ export const contract = {
     // Not an upsert: an award value has no external ids — it is keyed by
     // (rulesSetId, raceId, actionType) — so there is no conflict to detect
     // and no entity+created shape to return, only the resulting row ids.
+    // BAD_REQUEST is declared because the server rejects a batch naming the
+    // same key twice, and a value naming a rules set or race that does not
+    // exist; both are authored-data feedback the importer reports, not a
+    // server fault.
     sync: oc
       .input(SyncSppAwardValuesSchema)
+      .errors({
+        BAD_REQUEST: {
+          message: 'SPP award values are not valid',
+        },
+      })
       .output(SyncSppAwardValuesResultSchema),
   },
   eras: {

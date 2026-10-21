@@ -439,7 +439,10 @@ export class RpcRouterFactoryService {
         conflictError: RulesSetUpsertConflictError,
         unwrap: (r) => ({ entity: r.rulesSet, created: r.created }),
       }),
-      sppAwardValues: buildSppAwardValuesRoutes(this.sppAwardValuesService),
+      sppAwardValues: buildSppAwardValuesRoutes(
+        this.upsertHandler,
+        this.sppAwardValuesService,
+      ),
       eras: this.buildStandardEntityRoutes({
         procedures: contract.eras,
         service: this.erasService,

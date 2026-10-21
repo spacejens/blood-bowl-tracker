@@ -1,4 +1,7 @@
-import { PositionValidationError } from '@blood-bowl-tracker/game-data';
+import {
+  PositionValidationError,
+  SppAwardValueValidationError,
+} from '@blood-bowl-tracker/game-data';
 import { call } from '@orpc/server';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -31,5 +34,39 @@ describe('RpcRouterFactoryService sync batch validation', () => {
       message:
         'Position 3 under rules set 4 appears more than once in the same batch',
     });
+  });
+
+  it('reports a rejected SPP award value batch as BAD_REQUEST', async () => {
+    harness.mocks.sppAwardValuesService.sync.mockRejectedValue(
+      new SppAwardValueValidationError(
+        'Rules set 1 does not exist, so no SPP award value can be recorded under it',
+      ),
+    );
+
+    await expect(
+      call(harness.router.sppAwardValues.sync, {
+        values: [
+          { rulesSetId: 1, raceId: null, actionType: 'touchdown', sppValue: 3 },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      code: 'BAD_REQUEST',
+      message:
+        'Rules set 1 does not exist, so no SPP award value can be recorded under it',
+    });
+  });
+
+  it('lets an unrelated SPP award value failure through untouched', async () => {
+    harness.mocks.sppAwardValuesService.sync.mockRejectedValue(
+      new Error('connection lost'),
+    );
+
+    await expect(
+      call(harness.router.sppAwardValues.sync, {
+        values: [
+          { rulesSetId: 1, raceId: null, actionType: 'touchdown', sppValue: 3 },
+        ],
+      }),
+    ).rejects.toThrow('connection lost');
   });
 });
