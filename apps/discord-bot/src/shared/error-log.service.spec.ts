@@ -35,6 +35,17 @@ describe('ErrorLogService', () => {
     expect(logger.error.mock.calls).toEqual([['Import failed: database down']]);
   });
 
+  it('appends an Error stack without frames to the summary', () => {
+    const error = new Error('failed');
+    error.stack = 'CustomError: failed';
+
+    service.logError(logger, 'Import failed', error);
+
+    expect(logger.error.mock.calls).toEqual([
+      ['Import failed: CustomError: failed'],
+    ]);
+  });
+
   it('appends a thrown string to the summary', () => {
     service.logError(logger, 'Import failed', 'boom');
 
