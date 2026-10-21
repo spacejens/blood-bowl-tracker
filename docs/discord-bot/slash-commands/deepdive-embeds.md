@@ -27,7 +27,8 @@ competition's deepdive.
 
 The coach
 name as the title, then their career span (the first and last dates across
-every match they have played), a blank line, then a ranked list of their top
+every match they have played, or a single date when both fall on the same
+day), a blank line, then a ranked list of their top
 five teams by matches played. Ties at the fifth-place cutoff
 are all shown, up to ten teams — the same convention `/insights` toplists
 use; at most ten teams are fetched for a deepdive, so the toplists'
@@ -39,7 +40,8 @@ drill-down button to that team's deepdive, ahead of the era header buttons.
 ## `team`
 
 The team name as the title, then its race, its coach, its era list, its career span
-(the first and last dates across every match it has played).
+(the first and last dates across every match it has played, or a single
+date when both fall on the same day).
 
 A team that exists but has recorded no matches shows a short "hasn't played yet" message
 in place of the career span, trophies and player list, but still shows its
