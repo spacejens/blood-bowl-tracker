@@ -20,7 +20,7 @@ import {
 import { buildFactTree } from '../insights/fact-tree';
 import { FACT_TREE } from '../insights/fact-tree.token';
 import type { FactNode } from '../insights/fact-tree.types';
-import { FactTreeUtilsService } from '../insights/fact-tree-utils.service';
+import { FactTreeNavigationService } from '../insights/fact-tree-navigation.service';
 import { CoachToplistService } from '../insights/facts/coach-toplist.service';
 import { CompetitionGroupsListService } from '../insights/facts/competition-groups-list.service';
 import { DateToplistFactsService } from '../insights/facts/date-toplist.service';
@@ -58,7 +58,7 @@ export * from './fact-tree-lookup.test-helpers';
  * or DI-provide a real fact service, LeaderboardService, or
  * DatabaseTimeoutService.
  *
- * `FactTreeUtilsService` is a bare mock: a spec that reaches path resolution
+ * `FactTreeNavigationService` is a bare mock: a spec that reaches path resolution
  * or leaf collection stubs those calls with canned nodes taken from the real
  * tree (see `stubLeafCategory`, `asLeaf` and `asNode`), so the navigation
  * algorithm itself is covered only by its own spec.
@@ -405,7 +405,7 @@ export interface MakeServiceResult {
   eras: MockProxy<ErasService>;
   competitions: MockProxy<CompetitionsService>;
   registry: MockProxy<SlashCommandRegistryService>;
-  factTreeUtils: MockProxy<FactTreeUtilsService>;
+  factTreeNavigation: MockProxy<FactTreeNavigationService>;
   categoryLabel: MockProxy<MatchCategoryLabelService>;
   dateRangeFormatter: MockProxy<DateRangeFormatterService>;
   factTreeDeps: FactTreeMocks;
@@ -427,7 +427,7 @@ export async function makeService(): Promise<MakeServiceResult> {
   competitions.searchByNamePrefix.mockResolvedValue([]);
 
   const registry = mock<SlashCommandRegistryService>();
-  const factTreeUtils = mock<FactTreeUtilsService>();
+  const factTreeNavigation = mock<FactTreeNavigationService>();
   const categoryLabel = mock<MatchCategoryLabelService>();
   // A sentinel label, not a copy of the real service's formatting: it proves
   // each choice's name comes from the label service without re-deriving what
@@ -445,7 +445,7 @@ export async function makeService(): Promise<MakeServiceResult> {
       { provide: CompetitionsService, useValue: competitions },
       { provide: FACT_TREE, useValue: factTree },
       { provide: SlashCommandRegistryService, useValue: registry },
-      { provide: FactTreeUtilsService, useValue: factTreeUtils },
+      { provide: FactTreeNavigationService, useValue: factTreeNavigation },
       { provide: MatchCategoryLabelService, useValue: categoryLabel },
       { provide: DateRangeFormatterService, useValue: dateRangeFormatter },
     ],
@@ -457,7 +457,7 @@ export async function makeService(): Promise<MakeServiceResult> {
     eras,
     competitions,
     registry,
-    factTreeUtils,
+    factTreeNavigation,
     categoryLabel,
     dateRangeFormatter,
     factTreeDeps,

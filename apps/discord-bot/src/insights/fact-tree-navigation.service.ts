@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import type { FactLeaf, FactNode } from './fact-tree.types';
 
 @Injectable()
-export class FactTreeUtilsService {
+export class FactTreeNavigationService {
   private isLeaf(node: FactNode): node is FactLeaf {
     return typeof (node as FactLeaf).resolve === 'function';
   }

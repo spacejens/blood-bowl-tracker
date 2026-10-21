@@ -25,17 +25,18 @@ describe('InsightsCommandService — fact-path resolution', () => {
   });
 
   it('resolves an exact leaf path to that fact, suffixed with "All time" when no era is given', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree, factTree } = harness;
+    const { service, factTreeDeps, factTreeNavigation, tree, factTree } =
+      harness;
     const leaf = asLeaf(tree.coach.toplist.matches.played);
-    stubLeafCategory(factTreeUtils, leaf);
+    stubLeafCategory(factTreeNavigation, leaf);
     const result = await service.execute(
       chatInput('coach.toplist.matches.played'),
     );
-    expect(factTreeUtils.resolvePath).toHaveBeenCalledWith(
+    expect(factTreeNavigation.resolvePath).toHaveBeenCalledWith(
       factTree,
       'coach.toplist.matches.played',
     );
-    expect(factTreeUtils.collectLeaves).toHaveBeenCalledWith(leaf);
+    expect(factTreeNavigation.collectLeaves).toHaveBeenCalledWith(leaf);
     expect(factTreeDeps.coachToplist.resolveMatchesPlayed).toHaveBeenCalledWith(
       { leagueId: undefined, eraId: undefined, competitionId: undefined },
     );
@@ -51,8 +52,8 @@ describe('InsightsCommandService — fact-path resolution', () => {
   });
 
   it('suffixes eras.list with the league scope when no league is explicitly given', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = harness;
-    stubLeafCategory(factTreeUtils, asLeaf(tree.eras.list));
+    const { service, factTreeDeps, factTreeNavigation, tree } = harness;
+    stubLeafCategory(factTreeNavigation, asLeaf(tree.eras.list));
     const result = await service.execute(chatInput('eras.list'));
     expect(factTreeDeps.erasList.resolve).toHaveBeenCalledWith({
       leagueId: undefined,
@@ -70,16 +71,16 @@ describe('InsightsCommandService — fact-path resolution', () => {
   });
 
   it('returns the apothecary fallback for an unknown path', async () => {
-    const { service, factTreeUtils } = harness;
-    factTreeUtils.resolvePath.mockReturnValue(undefined);
+    const { service, factTreeNavigation } = harness;
+    factTreeNavigation.resolvePath.mockReturnValue(undefined);
     const result = await service.execute(chatInput('coach.nope'));
     expect(result).toBe(INSIGHTS_UNMATCHED_CATEGORY_MESSAGE);
-    expect(factTreeUtils.collectLeaves).not.toHaveBeenCalled();
+    expect(factTreeNavigation.collectLeaves).not.toHaveBeenCalled();
   });
 
   it('resolves player.toplist.mvps with no era, suffixed with "All time"', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = harness;
-    stubLeafCategory(factTreeUtils, asLeaf(tree.player.toplist.mvps));
+    const { service, factTreeDeps, factTreeNavigation, tree } = harness;
+    stubLeafCategory(factTreeNavigation, asLeaf(tree.player.toplist.mvps));
     const result = await service.execute(chatInput('player.toplist.mvps'));
     expect(factTreeDeps.playerToplist.resolveMvps).toHaveBeenCalledWith({
       leagueId: undefined,
@@ -98,8 +99,11 @@ describe('InsightsCommandService — fact-path resolution', () => {
   });
 
   it('passes a string reply through unchanged (e.g. a timeout fallback message from the resolved fact)', async () => {
-    const { service, factTreeDeps, eras, factTreeUtils, tree } = harness;
-    stubLeafCategory(factTreeUtils, asLeaf(tree.coach.toplist.matches.played));
+    const { service, factTreeDeps, eras, factTreeNavigation, tree } = harness;
+    stubLeafCategory(
+      factTreeNavigation,
+      asLeaf(tree.coach.toplist.matches.played),
+    );
     eras.findById.mockResolvedValue({
       id: 20,
       name: 'BB2020',
@@ -134,8 +138,11 @@ describe('InsightsCommandService — fact-path resolution', () => {
   });
 
   it('resolves player.toplist.completions with no era, suffixed with "All time"', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = harness;
-    stubLeafCategory(factTreeUtils, asLeaf(tree.player.toplist.completions));
+    const { service, factTreeDeps, factTreeNavigation, tree } = harness;
+    stubLeafCategory(
+      factTreeNavigation,
+      asLeaf(tree.player.toplist.completions),
+    );
     const result = await service.execute(
       chatInput('player.toplist.completions'),
     );
@@ -156,8 +163,8 @@ describe('InsightsCommandService — fact-path resolution', () => {
   });
 
   it('resolves team.toplist.deflections with no era, suffixed with "All time"', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = harness;
-    stubLeafCategory(factTreeUtils, asLeaf(tree.team.toplist.deflections));
+    const { service, factTreeDeps, factTreeNavigation, tree } = harness;
+    stubLeafCategory(factTreeNavigation, asLeaf(tree.team.toplist.deflections));
     const result = await service.execute(chatInput('team.toplist.deflections'));
     expect(factTreeDeps.teamToplist.resolveDeflections).toHaveBeenCalledWith({
       leagueId: undefined,
@@ -176,8 +183,8 @@ describe('InsightsCommandService — fact-path resolution', () => {
   });
 
   it('resolves player.toplist.sent_off with no era, suffixed with "All time"', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = harness;
-    stubLeafCategory(factTreeUtils, asLeaf(tree.player.toplist.sent_off));
+    const { service, factTreeDeps, factTreeNavigation, tree } = harness;
+    stubLeafCategory(factTreeNavigation, asLeaf(tree.player.toplist.sent_off));
     const result = await service.execute(chatInput('player.toplist.sent_off'));
     expect(factTreeDeps.playerToplist.resolveTimesSentOff).toHaveBeenCalledWith(
       { leagueId: undefined, eraId: undefined, competitionId: undefined },
@@ -194,8 +201,11 @@ describe('InsightsCommandService — fact-path resolution', () => {
   });
 
   it('resolves team.toplist.deaths.suffered with no era, suffixed with "All time"', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = harness;
-    stubLeafCategory(factTreeUtils, asLeaf(tree.team.toplist.deaths.suffered));
+    const { service, factTreeDeps, factTreeNavigation, tree } = harness;
+    stubLeafCategory(
+      factTreeNavigation,
+      asLeaf(tree.team.toplist.deaths.suffered),
+    );
     const result = await service.execute(
       chatInput('team.toplist.deaths.suffered'),
     );
@@ -214,8 +224,8 @@ describe('InsightsCommandService — fact-path resolution', () => {
   });
 
   it('resolveCategory resolves a path without an interaction', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = harness;
-    stubLeafCategory(factTreeUtils, asLeaf(tree.stats));
+    const { service, factTreeDeps, factTreeNavigation, tree } = harness;
+    stubLeafCategory(factTreeNavigation, asLeaf(tree.stats));
     const result = await service.resolveCategory('stats', {});
     expect(factTreeDeps.statsSummary.resolve).toHaveBeenCalledWith({
       leagueId: undefined,
@@ -229,16 +239,16 @@ describe('InsightsCommandService — fact-path resolution', () => {
   });
 
   it('resolveCategory returns the apothecary fallback for an unknown path', async () => {
-    const { service, factTreeUtils } = harness;
-    factTreeUtils.resolvePath.mockReturnValue(undefined);
+    const { service, factTreeNavigation } = harness;
+    factTreeNavigation.resolvePath.mockReturnValue(undefined);
     expect(await service.resolveCategory('nope.nope', {})).toBe(
       INSIGHTS_UNMATCHED_CATEGORY_MESSAGE,
     );
   });
 
   it('resolveCategory reports a category that does not support an era scope', async () => {
-    const { service, factTreeUtils, tree } = harness;
-    stubLeafCategory(factTreeUtils, asLeaf(tree.eras.list));
+    const { service, factTreeNavigation, tree } = harness;
+    stubLeafCategory(factTreeNavigation, asLeaf(tree.eras.list));
     const result = await service.resolveCategory('eras.list', {
       era: {
         id: 20,
@@ -251,15 +261,15 @@ describe('InsightsCommandService — fact-path resolution', () => {
   });
 
   it('picks among the leaves of a branch path', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = harness;
-    factTreeUtils.resolvePath.mockReturnValue(asNode(tree.coach));
-    factTreeUtils.collectLeaves.mockReturnValue([
+    const { service, factTreeDeps, factTreeNavigation, tree } = harness;
+    factTreeNavigation.resolvePath.mockReturnValue(asNode(tree.coach));
+    factTreeNavigation.collectLeaves.mockReturnValue([
       asLeaf(tree.coach.toplist.matches.won),
       asLeaf(tree.coach.toplist.matches.played),
     ]);
     vi.spyOn(Math, 'random').mockReturnValue(0);
     await service.execute(chatInput('coach'));
-    expect(factTreeUtils.collectLeaves).toHaveBeenCalledWith(
+    expect(factTreeNavigation.collectLeaves).toHaveBeenCalledWith(
       asNode(tree.coach),
     );
     expect(factTreeDeps.coachToplist.resolveMatchesWon).toHaveBeenCalled();

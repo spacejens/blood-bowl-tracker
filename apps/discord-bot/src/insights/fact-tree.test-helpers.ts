@@ -17,7 +17,7 @@ import { StatsSummaryFactsService } from './facts/stats-summary.service';
 import { TeamToplistService } from './facts/team-toplist.service';
 import { TrophiesListService } from './facts/trophies-list.service';
 
-export function deps(): FactTreeDeps {
+export function stubFactTreeDeps(): FactTreeDeps {
   const coachToplist = mock<CoachToplistService>();
   coachToplist.resolveMatchesPlayed.mockResolvedValue('coach matches played');
   coachToplist.resolveMatchesWon.mockResolvedValue('coach matches won');
