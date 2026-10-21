@@ -69,4 +69,36 @@ describe('RpcRouterFactoryService sync batch validation', () => {
       }),
     ).rejects.toThrow('connection lost');
   });
+
+  it('reports a rejected race-era sync as BAD_REQUEST', async () => {
+    harness.mocks.positionsService.syncRaceEras.mockRejectedValue(
+      new PositionValidationError(
+        'Race 7 is not available in era 2 (no race_eras row), so position 1 cannot be made available there',
+      ),
+    );
+
+    await expect(
+      call(harness.router.positions.syncRaceEras, {
+        positionId: 1,
+        raceEras: [{ raceId: 7, eraId: 2 }],
+      }),
+    ).rejects.toMatchObject({
+      code: 'BAD_REQUEST',
+      message:
+        'Race 7 is not available in era 2 (no race_eras row), so position 1 cannot be made available there',
+    });
+  });
+
+  it('lets an unrelated race-era sync failure through untouched', async () => {
+    harness.mocks.positionsService.syncRaceEras.mockRejectedValue(
+      new Error('connection lost'),
+    );
+
+    await expect(
+      call(harness.router.positions.syncRaceEras, {
+        positionId: 1,
+        raceEras: [{ raceId: 7, eraId: 2 }],
+      }),
+    ).rejects.toThrow('connection lost');
+  });
 });

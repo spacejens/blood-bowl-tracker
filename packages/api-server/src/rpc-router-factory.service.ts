@@ -388,7 +388,10 @@ export class RpcRouterFactoryService {
           conflictError: PositionUpsertConflictError,
           unwrap: (r) => ({ entity: r.position, created: r.created }),
         }),
-        ...buildPositionSyncRaceErasRoute(this.positionsService),
+        ...buildPositionSyncRaceErasRoute(
+          this.upsertHandler,
+          this.positionsService,
+        ),
         ...this.buildResolveRoute({
           procedure: contract.positions.resolve,
           service: this.positionsService,

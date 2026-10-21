@@ -180,14 +180,21 @@ export function buildPositionRulesSetsRoutes(
   };
 }
 
-// positions.syncRaceEras: not routed through the upsert handler — it syncs a
-// race/era join, not an upsert with a conflict class.
+// positions.syncRaceEras: not routed through the upsert handler's `run`/
+// `runWithoutConflict` — it syncs a race/era join, not an upsert with a
+// conflict class. It does go through `runSync`, which maps the service's
+// authored-data rejections — a position that does not exist, and a race/era
+// pair with no race_eras row — to BAD_REQUEST.
 export function buildPositionSyncRaceErasRoute(
+  upsertHandler: UpsertHandlerService,
   positionsService: PositionsService,
 ) {
   return {
     syncRaceEras: implement(contract.positions.syncRaceEras).handler(
-      ({ input }) => positionsService.syncRaceEras(input),
+      ({ input, errors }) =>
+        upsertHandler.runSync(errors, () =>
+          positionsService.syncRaceEras(input),
+        ),
     ),
   };
 }

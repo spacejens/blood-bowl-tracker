@@ -156,8 +156,8 @@ export const contract = {
     upsertBatch: batchUpsertProcedure(UpsertPlayerSchema, PlayerSchema),
     // Not upserts: these recompute already-imported players' SPP columns in
     // place, so there is no external-id conflict to detect and no
-    // entity+created shape to return — only the ids actually written. Same
-    // shape as positions.syncRaceEras.
+    // entity+created shape to return — only the ids actually written, the
+    // same result shape as positions.syncRaceEras.
     syncScrapedSppAdjustments: oc
       .input(SyncScrapedSppAdjustmentsSchema)
       .output(SyncSppAdjustmentsResultSchema),
@@ -189,8 +189,17 @@ export const contract = {
     // ever removing or overwriting existing ones (see
     // PositionsService.syncRaceEras), so there's no conflict to detect and
     // no entity+created shape to return — just the resulting link ids.
+    // BAD_REQUEST is declared because the server rejects a position that
+    // does not exist and a race/era pair the race is not available in (no
+    // race_eras row) — authored-data feedback the importer reports for that
+    // position, rather than a pair silently left out.
     syncRaceEras: oc
       .input(SyncPositionRaceErasSchema)
+      .errors({
+        BAD_REQUEST: {
+          message: 'Position race eras are not valid',
+        },
+      })
       .output(SyncPositionRaceErasResultSchema),
   },
   positionRulesSets: {
