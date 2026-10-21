@@ -16,6 +16,7 @@ import {
   skills,
   teamEras,
 } from '@blood-bowl-tracker/db';
+import { NAME_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/domain-enums';
 import type { TableRow } from '@blood-bowl-tracker/review-harness';
 import {
   HtmlService,
@@ -30,12 +31,6 @@ import { TpRawPlayerSkillsIndexService } from '../source/tp-raw-player-skills-in
 const NONE = '—';
 const NOT_IN_RAW = 'not in the raw source';
 const RAW_ONLY = 'in the raw source only';
-
-/**
- * The external-id system every entity's curated name-based identity lives
- * under, including a skill's alternate spellings (see `skillExternalIds`).
- */
-const NAME_SYSTEM = 'Name';
 
 /** Whether a skill was present from the start, or gained through advancement. */
 type SkillCategory = 'starting' | 'gained';
@@ -197,7 +192,7 @@ export class PlayerAdvancementsDbRendererService {
       )
       .where(
         and(
-          eq(externalSystems.name, NAME_SYSTEM),
+          eq(externalSystems.name, NAME_EXTERNAL_SYSTEM_NAME),
           inArray(skillExternalIds.externalId, [...rawNames]),
         ),
       );

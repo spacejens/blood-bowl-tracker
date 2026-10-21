@@ -1,3 +1,4 @@
+import { NAME_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/domain-enums';
 import type { TableCell, TableRow } from '@blood-bowl-tracker/review-harness';
 import {
   HtmlService,
@@ -18,8 +19,6 @@ import { TpSkillMasterNamesService } from '../source/tp-skill-master-names.servi
 
 /** What a cell shows for a position the source gives no starting skills. */
 const NO_SKILLS = 'none';
-
-const NAME_SYSTEM = 'Name';
 
 /**
  * The starting-skills raw panel: each source's own view of which skills a
@@ -168,7 +167,7 @@ export class PositionStartingSkillsRawRendererService {
     const nameById = new Map<string, string>();
     for (const position of positions) {
       for (const row of byPosition.get(position.positionId) ?? []) {
-        if (row.systemName === NAME_SYSTEM) {
+        if (row.systemName === NAME_EXTERNAL_SYSTEM_NAME) {
           nameById.set(row.externalId, position.positionName);
         }
       }
@@ -176,7 +175,7 @@ export class PositionStartingSkillsRawRendererService {
     const rows: TableCell[][] = [];
     for (const entry of await this.manual.positionSkills()) {
       const positionName =
-        entry.position.system === NAME_SYSTEM
+        entry.position.system === NAME_EXTERNAL_SYSTEM_NAME
           ? nameById.get(entry.position.id)
           : undefined;
       if (positionName === undefined) {
