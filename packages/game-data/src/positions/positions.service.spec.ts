@@ -14,6 +14,7 @@ import { mock } from 'vitest-mock-extended';
 
 import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
+import { PositionValidationError } from '../shared/position-validation-error';
 import {
   extractFilterValues,
   extractJoinColumns,
@@ -282,10 +283,11 @@ describe('PositionsService', () => {
 
   describe('syncRaceEras', () => {
     it('resolves (raceId, eraId) pairs to race_era ids and inserts positions_race_eras rows', async () => {
-      // query 0: resolve race_eras for the given race ids; query 1: existing
-      // positions_race_eras rows for the position; query 2: insert the newly
-      // resolved links.
+      // query 0: the position exists; query 1: resolve race_eras for the
+      // given race ids; query 2: existing positions_race_eras rows for the
+      // position; query 3: insert the newly resolved links.
       const { chains } = await build(
+        [{ id: 1 }],
         [
           { id: 100, raceId: 2, eraId: 5 },
           { id: 101, raceId: 2, eraId: 6 },
@@ -302,8 +304,9 @@ describe('PositionsService', () => {
       });
 
       expect(result).toEqual({ positionId: 1, raceEraIds: [100, 101] });
-      expect(chains).toHaveLength(3);
-      expect(firstCallArg(chains[2].values)).toEqual([
+      expect(chains).toHaveLength(4);
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(1);
+      expect(firstCallArg(chains[3].values)).toEqual([
         { positionId: 1, raceEraId: 100 },
         { positionId: 1, raceEraId: 101 },
       ]);
@@ -311,6 +314,7 @@ describe('PositionsService', () => {
 
     it('does not re-insert an already-present positions_race_eras row', async () => {
       const { chains } = await build(
+        [{ id: 1 }],
         [
           { id: 100, raceId: 2, eraId: 5 },
           { id: 101, raceId: 2, eraId: 6 },
@@ -327,16 +331,36 @@ describe('PositionsService', () => {
       });
 
       expect(result).toEqual({ positionId: 1, raceEraIds: [100, 101] });
-      expect(chains).toHaveLength(3);
-      expect(firstCallArg(chains[2].values)).toEqual([
+      expect(chains).toHaveLength(4);
+      expect(firstCallArg(chains[3].values)).toEqual([
         { positionId: 1, raceEraId: 101 },
       ]);
     });
 
-    it('skips a (raceId, eraId) pair that has no matching race_era row', async () => {
-      const { chains } = await build([{ id: 100, raceId: 2, eraId: 5 }], []);
+    it('inserts nothing when every resolved link is already present', async () => {
+      const { db, chains } = await build(
+        [{ id: 1 }],
+        [{ id: 100, raceId: 2, eraId: 5 }],
+        [{ raceEraId: 100 }],
+      );
 
       const result = await service.syncRaceEras({
+        positionId: 1,
+        raceEras: [{ raceId: 2, eraId: 5 }],
+      });
+
+      expect(result).toEqual({ positionId: 1, raceEraIds: [100] });
+      expect(chains).toHaveLength(3);
+      expect(db.insert).not.toHaveBeenCalled();
+    });
+
+    it('rejects a (raceId, eraId) pair that has no matching race_era row, writing nothing', async () => {
+      const { db, chains } = await build(
+        [{ id: 1 }],
+        [{ id: 100, raceId: 2, eraId: 5 }],
+      );
+
+      const promise = service.syncRaceEras({
         positionId: 1,
         raceEras: [
           { raceId: 2, eraId: 5 },
@@ -344,18 +368,36 @@ describe('PositionsService', () => {
         ],
       });
 
-      expect(result).toEqual({ positionId: 1, raceEraIds: [100] });
-      expect(firstCallArg(chains[2].values)).toEqual([
-        { positionId: 1, raceEraId: 100 },
-      ]);
+      await expect(promise).rejects.toBeInstanceOf(PositionValidationError);
+      await expect(promise).rejects.toThrow(
+        'Race 2 is not available in era 6 (no race_eras row), so position 1 cannot be made available there',
+      );
+      // The position and race-era lookups ran; the existing-links lookup and
+      // the insert never did.
+      expect(chains).toHaveLength(2);
+      expect(db.insert).not.toHaveBeenCalled();
     });
 
-    it('dedupes duplicate resolved race_era ids so only one row is inserted', async () => {
+    it('rejects a position that does not exist, before resolving any race era', async () => {
+      const { db, chains } = await build([]);
+
+      const promise = service.syncRaceEras({
+        positionId: 1,
+        raceEras: [{ raceId: 2, eraId: 5 }],
+      });
+
+      await expect(promise).rejects.toBeInstanceOf(PositionValidationError);
+      await expect(promise).rejects.toThrow(
+        'Position 1 does not exist, so no race/era availability can be recorded for it',
+      );
+      expect(chains).toHaveLength(1);
+      expect(db.insert).not.toHaveBeenCalled();
+    });
+
+    it('collapses a pair repeated within the batch onto one link', async () => {
       const { chains } = await build(
-        [
-          { id: 100, raceId: 2, eraId: 5 },
-          { id: 100, raceId: 3, eraId: 5 },
-        ],
+        [{ id: 1 }],
+        [{ id: 100, raceId: 2, eraId: 5 }],
         [],
       );
 
@@ -363,12 +405,12 @@ describe('PositionsService', () => {
         positionId: 1,
         raceEras: [
           { raceId: 2, eraId: 5 },
-          { raceId: 3, eraId: 5 },
+          { raceId: 2, eraId: 5 },
         ],
       });
 
       expect(result).toEqual({ positionId: 1, raceEraIds: [100] });
-      expect(firstCallArg(chains[2].values)).toEqual([
+      expect(firstCallArg(chains[3].values)).toEqual([
         { positionId: 1, raceEraId: 100 },
       ]);
     });

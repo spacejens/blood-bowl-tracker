@@ -45,16 +45,19 @@ import type { UpsertHandlerService } from './upsert-handler.service';
  * factory that supplies the real, already-injected dependencies once.
  */
 
-// sppAwardValues: not routed through the upsert handler. Award values are
-// keyed by (rulesSetId, raceId, actionType) rather than external ids, so
-// there is no CONFLICT error to map and no entity+created shape to return —
-// same shape as positions.syncRaceEras.
+// sppAwardValues: not routed through the upsert handler's `run`/
+// `runWithoutConflict`. Award values are keyed by (rulesSetId, raceId,
+// actionType) rather than external ids, so there is no CONFLICT error to map
+// and no entity+created shape to return. It does go through `runSync`, which
+// maps the service's authored-data rejections — a key named twice in one
+// batch, and a rules set or race that does not exist — to BAD_REQUEST.
 export function buildSppAwardValuesRoutes(
+  upsertHandler: UpsertHandlerService,
   sppAwardValuesService: SppAwardValuesService,
 ) {
   return {
-    sync: implement(contract.sppAwardValues.sync).handler(({ input }) =>
-      sppAwardValuesService.sync(input),
+    sync: implement(contract.sppAwardValues.sync).handler(({ input, errors }) =>
+      upsertHandler.runSync(errors, () => sppAwardValuesService.sync(input)),
     ),
   };
 }
@@ -125,9 +128,8 @@ export function buildExternalSystemsRoutes(
 }
 
 // players.syncScrapedSppAdjustments / syncReportedSppAdjustments /
-// syncLastingInjuryHistory: not routed through the upsert handler, for the
-// same reason sppAwardValues.sync is not — no external-id conflict to map and
-// no entity+created shape to return.
+// syncLastingInjuryHistory: not routed through the upsert handler — there is
+// no external-id conflict to map and no entity+created shape to return.
 //
 // syncLastingInjuryHistory is the post-matchEvents backfill: it manufactures
 // the players_history versions a freshly-inserted player needs for a lasting
@@ -160,9 +162,10 @@ export function buildPlayerSppAdjustmentRoutes(
 // `runWithoutConflict`, for the same reason sppAwardValues.sync is not — a row
 // is keyed by (positionId, rulesSetId) rather than external ids, so there is no
 // CONFLICT to map and no entity+created shape to return. It does still go
-// through the handler's `runSync`, which owns the one classification this
-// procedure needs: a characteristic format mismatch is authored-data feedback
-// the importer reports per entry, so BAD_REQUEST rather than an internal error.
+// through the handler's `runSync`, which owns the two classifications this
+// procedure needs: a characteristic format mismatch and a pair named twice in
+// one batch are authored-data feedback the importer reports per entry, so
+// BAD_REQUEST rather than an internal error.
 export function buildPositionRulesSetsRoutes(
   upsertHandler: UpsertHandlerService,
   positionRulesSetsService: PositionRulesSetsService,
@@ -177,14 +180,21 @@ export function buildPositionRulesSetsRoutes(
   };
 }
 
-// positions.syncRaceEras: not routed through the upsert handler — it syncs a
-// race/era join, not an upsert with a conflict class.
+// positions.syncRaceEras: not routed through the upsert handler's `run`/
+// `runWithoutConflict` — it syncs a race/era join, not an upsert with a
+// conflict class. It does go through `runSync`, which maps the service's
+// authored-data rejections — a position that does not exist, and a race/era
+// pair with no race_eras row — to BAD_REQUEST.
 export function buildPositionSyncRaceErasRoute(
+  upsertHandler: UpsertHandlerService,
   positionsService: PositionsService,
 ) {
   return {
     syncRaceEras: implement(contract.positions.syncRaceEras).handler(
-      ({ input }) => positionsService.syncRaceEras(input),
+      ({ input, errors }) =>
+        upsertHandler.runSync(errors, () =>
+          positionsService.syncRaceEras(input),
+        ),
     ),
   };
 }
@@ -221,8 +231,9 @@ export function buildCompetitionGroupsListRoute(
 // `runWithoutConflict`, for the same reason positionRulesSets.sync is not — a
 // row is keyed by (skillId, rulesSetId) rather than external ids, so there is
 // no CONFLICT to map and no entity+created shape to return. It does go
-// through `runSync`, which maps the one authored-data failure it can raise (a
-// pair named twice in one batch) to BAD_REQUEST.
+// through `runSync`, which maps the service's authored-data rejections — a
+// pair named twice in one batch, and a skill or rules set that does not
+// exist — to BAD_REQUEST.
 //
 // `list` is plainly read-only and declares no errors. It delegates to
 // `listBySkill`, whose rows also carry the rules set's name; the contract's

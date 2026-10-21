@@ -200,6 +200,37 @@ describe('TpMercenaryPositionRaceErasImportService', () => {
     expect(resultArgs(importResults).imported).toBe(2);
   });
 
+  it('counts a position whose race-era sync was rejected as not imported, keeping its error and syncing the rest', async () => {
+    // PositionsImportService.syncRaceEras records a rejected call -- here the
+    // server's BAD_REQUEST for a pair with no race_eras row -- into the
+    // errors list it is handed and answers undefined.
+    const rejection: ImportError = {
+      item: { positionId: 800 },
+      message:
+        'Failed to sync race eras for position 800: Race 50 is not available in era 500 (no race_eras row), so position 800 cannot be made available there',
+    };
+    const syncRaceEras = vi
+      .fn()
+      .mockImplementationOnce((_data: unknown, errors: ImportError[]) => {
+        errors.push(rejection);
+        return Promise.resolve(undefined);
+      })
+      .mockResolvedValueOnce({ positionId: 810, raceEraIds: [2] });
+    const { service, importResults } = await makeService({ syncRaceEras });
+    const mercenaryPositionUsages: MercenaryPositionUsage[] = [
+      { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
+      { positionId: 810, teamRaceCode: 'Norse', era: 'Fourth era' },
+    ];
+
+    await service.syncMercenaryPositionRaceEras({ mercenaryPositionUsages });
+
+    expect(syncRaceEras).toHaveBeenCalledTimes(2);
+    expect(resultArgs(importResults)).toEqual({
+      imported: 1,
+      errors: [rejection],
+    });
+  });
+
   it('records an ImportError and skips a usage whose race code cannot be resolved, still processing the rest', async () => {
     const syncRaceEras = vi
       .fn()

@@ -15,15 +15,16 @@ import {
   inArray,
   min,
   positionRulesSets,
+  positions,
   rulesSets,
   sql,
 } from '@blood-bowl-tracker/db';
 import type { CharacteristicFormat } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
-import { CharacteristicFormatMismatchError } from '../shared/characteristic-format-mismatch-error';
 import type { CharacteristicValues } from '../shared/characteristic-format-validation.service';
 import { CharacteristicFormatValidationService } from '../shared/characteristic-format-validation.service';
+import { PositionValidationError } from '../shared/position-validation-error';
 
 /**
  * A position's stat line under one rules set, together with that rules set's
@@ -236,11 +237,16 @@ export class PositionRulesSetsService {
    * `upsertByExternalIds` uses, for the same reason.
    *
    * Validation runs over the whole batch before any write: one bad entry
-   * fails the call rather than half-applying it. This includes rejecting a
-   * batch where the same `(positionId, rulesSetId)` pair appears more than
-   * once — without this check, two such entries would both route to the
-   * insert path below and collide on the table's unique constraint, raising
-   * a raw database error instead of this method's own, clearer one.
+   * fails the call rather than half-applying it. Characteristics that
+   * disagree with the rules set's declared formats, and a rules set that does
+   * not exist at all, are a CharacteristicFormatMismatchError, the meaning
+   * that error shares with `players.upsert`. Everything else is a
+   * PositionValidationError: an entry naming a position that does not exist,
+   * and a batch where the same `(positionId, rulesSetId)` pair appears more
+   * than once. Without those checks, a missing position would reach the
+   * table's foreign key, and two duplicate entries would both route to the
+   * insert path below and collide on its unique constraint, each raising a
+   * raw database error instead.
    *
    * With `insertOnly`, an existing pair is left untouched (its id is still
    * returned).
@@ -278,12 +284,14 @@ export class PositionRulesSetsService {
       });
       const key = this.naturalKey(entry);
       if (seenKeys.has(key)) {
-        throw new CharacteristicFormatMismatchError(
+        throw new PositionValidationError(
           `Position ${entry.positionId} under rules set ${entry.rulesSetId} appears more than once in the same batch`,
         );
       }
       seenKeys.add(key);
     }
+
+    await this.rejectUnknownPositions(data);
 
     // Over-fetch by rules set and match in memory: one query regardless of
     // how many pairs the batch carries, and no null-safety awkwardness.
@@ -352,6 +360,32 @@ export class PositionRulesSetsService {
 
       return { positionRulesSetIds };
     });
+  }
+
+  /**
+   * One existence query for the batch's distinct positions, so an entry
+   * naming a missing position fails with a PositionValidationError instead
+   * of a raw foreign-key error from the insert.
+   */
+  private async rejectUnknownPositions(
+    data: SyncPositionRulesSets,
+  ): Promise<void> {
+    const positionIds = [
+      ...new Set(data.entries.map((entry) => entry.positionId)),
+    ];
+    const positionRows = await this.db
+      .select({ id: positions.id })
+      .from(positions)
+      .where(inArray(positions.id, positionIds));
+
+    const knownPositionIds = new Set(positionRows.map((row) => row.id));
+    for (const entry of data.entries) {
+      if (!knownPositionIds.has(entry.positionId)) {
+        throw new PositionValidationError(
+          `Position ${entry.positionId} does not exist, so it cannot have characteristics under rules set ${entry.rulesSetId}`,
+        );
+      }
+    }
   }
 
   /**

@@ -34,7 +34,11 @@ export interface SyncMercenaryPositionRaceErasOptions {
  *
  * A usage whose race code or era name cannot be resolved is recorded as a
  * non-fatal `ImportError` and skipped; the remaining usages are still
- * processed.
+ * processed. A resolved pair can still be rejected by the server when the
+ * race has no `race_eras` row for that era (it was never listed for that
+ * era's rules set); the whole sync of that one position is then rejected,
+ * recorded as one `ImportError`, and the position is not counted as
+ * imported. Every other position is still synced.
  */
 @Injectable()
 export class TpMercenaryPositionRaceErasImportService {

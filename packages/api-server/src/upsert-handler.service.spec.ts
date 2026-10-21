@@ -3,7 +3,10 @@ import {
   KeywordValidationError,
   MatchCategoryMismatchError,
   MissingRequiredFieldError,
+  PositionValidationError,
   SkillValidationError,
+  SppAwardValueValidationError,
+  SyncBatchValidationError,
   TrophyAwardCompetitionGroupMismatchError,
   TrophyAwardRecipientMismatchError,
 } from '@blood-bowl-tracker/game-data';
@@ -408,6 +411,38 @@ describe('UpsertHandlerService', () => {
       expect(errors.BAD_REQUEST).toHaveBeenCalledWith({
         message:
           'Position 3 has no characteristics recorded under rules set 4, so it cannot carry keywords there',
+      });
+    });
+
+    it.each([
+      [
+        'the shared base class',
+        new SyncBatchValidationError('Entry 3 is not valid'),
+      ],
+      [
+        'a skill validation error',
+        new SkillValidationError('Entry 3 is not valid'),
+      ],
+      [
+        'a keyword validation error',
+        new KeywordValidationError('Entry 3 is not valid'),
+      ],
+      [
+        'an SPP award value validation error',
+        new SppAwardValueValidationError('Entry 3 is not valid'),
+      ],
+      [
+        'a position validation error',
+        new PositionValidationError('Entry 3 is not valid'),
+      ],
+    ])('maps %s to BAD_REQUEST', async (_label, error) => {
+      await expect(
+        handler.runSync(errors, () => {
+          throw error;
+        }),
+      ).rejects.toBeInstanceOf(BadRequestReply);
+      expect(errors.BAD_REQUEST).toHaveBeenCalledWith({
+        message: 'Entry 3 is not valid',
       });
     });
   });

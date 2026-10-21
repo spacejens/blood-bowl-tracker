@@ -12,7 +12,10 @@ import { GameDataError } from './game-data-error';
 import { KeywordValidationError } from './keyword-validation-error';
 import { LastingInjuryValidationError } from './lasting-injury-validation-error';
 import { MissingRequiredFieldError } from './missing-required-field-error';
+import { PositionValidationError } from './position-validation-error';
 import { SkillValidationError } from './skill-validation-error';
+import { SppAwardValueValidationError } from './spp-award-value-validation-error';
+import { SyncBatchValidationError } from './sync-batch-validation-error';
 import { UpsertConflictError } from './upsert-conflict-error';
 
 class ExampleError extends GameDataError {}
@@ -25,6 +28,9 @@ const gameDataErrors: (new (message?: string) => GameDataError)[] = [
   CharacteristicFormatMismatchError,
   MissingRequiredFieldError,
   SkillValidationError,
+  SyncBatchValidationError,
+  SppAwardValueValidationError,
+  PositionValidationError,
   LastingInjuryValidationError,
   ManualImportBatchContentMismatchError,
   TrophyAwardRecipientMismatchError,
