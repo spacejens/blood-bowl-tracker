@@ -37,6 +37,7 @@ import {
   cannedEraSectionGrouper,
   singleEraSectionGrouper,
 } from '../../shared/era-section-grouper-mock.test-helpers';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import {
   POSITION_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
@@ -67,6 +68,7 @@ async function makeService({
   const moduleRef = await Test.createTestingModule({
     providers: [
       RaceDeepdiveService,
+      NumberFormatterService,
       { provide: RacesService, useValue: races },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: LeaderboardService, useValue: leaderboard },
@@ -363,7 +365,7 @@ describe('RaceDeepdiveService', () => {
       {
         id: 9,
         name: 'Gouged Eye',
-        count: 40,
+        count: 1234,
         rank: 1,
         contextSuffix: ' (Skarsnik)',
       },
@@ -381,7 +383,7 @@ describe('RaceDeepdiveService', () => {
         race: { id: 1, name: 'Orc' },
         eras: [{ id: 4, name: 'BB2020' }],
         topTeams: [
-          { id: 9, name: 'Gouged Eye', count: 40 },
+          { id: 9, name: 'Gouged Eye', count: 1234 },
           { id: 10, name: 'Da Deff Skwad', count: 12 },
         ],
       }),
@@ -392,7 +394,7 @@ describe('RaceDeepdiveService', () => {
       embeds: { description: string }[];
     };
     const lines = result.embeds[0].description.split('\n');
-    expect(lines).toContain('1. Gouged Eye (Skarsnik) — 40');
+    expect(lines).toContain('1. Gouged Eye (Skarsnik) — 1,234');
     expect(lines).toContain('1. Da Deff Skwad (Grashnak) — 12');
     const [rows, teamIdOf, options] = teamContext.attachSuffixes.mock.calls[0];
     expect(teamIdOf(rows[0])).toBe(9);

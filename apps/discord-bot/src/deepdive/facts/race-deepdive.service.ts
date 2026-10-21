@@ -22,6 +22,7 @@ import {
 } from '../../insights/leaderboard.service';
 import { TeamContextService } from '../../insights/team-context.service';
 import { EraSectionGrouperService } from '../../shared/era-section-grouper.service';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   POSITION_BUTTON_CUSTOM_ID_PREFIX,
@@ -53,6 +54,7 @@ export class RaceDeepdiveService {
     private readonly entityComponents: EntityComponentsService,
     private readonly teamContext: TeamContextService,
     private readonly eraSectionGrouper: EraSectionGrouperService,
+    private readonly numbers: NumberFormatterService,
   ) {}
 
   async resolve(raceId: number): Promise<string | InteractionReplyOptions> {
@@ -121,10 +123,10 @@ export class RaceDeepdiveService {
         ? [DEEPDIVE_RACE_NO_TEAMS_MESSAGE]
         : decorated.map(
             (row) =>
-              `${row.rank}. ${row.name}${row.contextSuffix} — ${row.count}`,
+              `${row.rank}. ${row.name}${row.contextSuffix} — ${this.numbers.count(row.count)}`,
           );
     if (truncatedCount > 0) {
-      teamLines.push(`…and ${truncatedCount} more tied.`);
+      teamLines.push(`…and ${this.numbers.count(truncatedCount)} more tied.`);
     }
 
     // No placeholder when a race has no positions recorded: the section is

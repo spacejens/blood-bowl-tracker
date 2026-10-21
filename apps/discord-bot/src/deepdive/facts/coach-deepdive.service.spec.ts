@@ -31,6 +31,7 @@ import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers
 import { LeaderboardService } from '../../insights/leaderboard.service';
 import { TeamContextService } from '../../insights/team-context.service';
 import { passthroughTeamContext } from '../../insights/team-context-mock.test-helpers';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import {
   COACH_BUTTON_CUSTOM_ID_PREFIX,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
@@ -61,6 +62,7 @@ async function makeService({
   const moduleRef = await Test.createTestingModule({
     providers: [
       CoachDeepdiveService,
+      NumberFormatterService,
       { provide: CoachesService, useValue: coaches },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: LeaderboardService, useValue: leaderboard },
@@ -643,7 +645,7 @@ describe('CoachDeepdiveService', () => {
   it('appends each team race to its line and leaves the coach out', async () => {
     const leaderboard = mock<LeaderboardService>();
     const rankedTeams = [
-      { id: 11, name: 'Reikland Reavers', count: 12, rank: 1 },
+      { id: 11, name: 'Reikland Reavers', count: 1234, rank: 1 },
       { id: 22, name: 'Gouged Eye', count: 5, rank: 2 },
     ];
     leaderboard.topRanksWithTies.mockReturnValue({
@@ -661,7 +663,7 @@ describe('CoachDeepdiveService', () => {
         coach: { id: 1, name: 'Roze Madder' },
         span: { start: '2021-09-01', end: '2023-06-10' },
         topTeams: [
-          { id: 11, name: 'Reikland Reavers', count: 12 },
+          { id: 11, name: 'Reikland Reavers', count: 1234 },
           { id: 22, name: 'Gouged Eye', count: 5 },
         ],
       }),
@@ -672,7 +674,7 @@ describe('CoachDeepdiveService', () => {
       embeds: { description: string }[];
     };
     const lines = result.embeds[0].description.split('\n');
-    expect(lines).toContain('1. Reikland Reavers (Human) — 12');
+    expect(lines).toContain('1. Reikland Reavers (Human) — 1,234');
     expect(lines).toContain('2. Gouged Eye (Orc) — 5');
     const [rows, teamIdOf, options] = teamContext.attachSuffixes.mock.calls[0];
     expect(rows).toEqual(rankedTeams);
@@ -683,7 +685,7 @@ describe('CoachDeepdiveService', () => {
   it('still labels the team buttons with the plain team name', async () => {
     const leaderboard = mock<LeaderboardService>();
     const rankedTeams = [
-      { id: 11, name: 'Reikland Reavers', count: 12, rank: 1 },
+      { id: 11, name: 'Reikland Reavers', count: 1234, rank: 1 },
     ];
     leaderboard.topRanksWithTies.mockReturnValue({
       rows: rankedTeams,

@@ -2,6 +2,7 @@ import type { PlayerKillEntry } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import {
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
@@ -58,6 +59,7 @@ describe('PlayerKillsSectionService', () => {
         PlayerKillsSectionService,
         PlayerKillerInfoFormatterService,
         PlayerRowButtonService,
+        NumberFormatterService,
       ],
     }).compile();
     service = moduleRef.get(PlayerKillsSectionService);

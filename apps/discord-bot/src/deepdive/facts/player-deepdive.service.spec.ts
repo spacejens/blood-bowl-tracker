@@ -656,7 +656,10 @@ describe('PlayerDeepdiveService', () => {
   });
 
   it('shows a positive adjustment with an explicit plus sign', async () => {
-    const description = await describeFor({ sppTotal: 24, sppAdjustment: 2 });
+    const description = await describeFor({
+      sppTotal: 1234,
+      sppAdjustment: 1500,
+    });
     expect(description).toBe(
       [
         'Team: Reikland Reavers',
@@ -666,8 +669,8 @@ describe('PlayerDeepdiveService', () => {
         '',
         'Touchdowns scored: 3',
         '',
-        'Star player points adjustment: +2 (included)',
-        'Total star player points: 24',
+        'Star player points adjustment: +1,500 (included)',
+        'Total star player points: 1,234',
       ].join('\n'),
     );
   });

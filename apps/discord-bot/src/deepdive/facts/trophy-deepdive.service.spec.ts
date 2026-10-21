@@ -41,6 +41,7 @@ import {
   cannedEraSectionGrouper,
   singleEraSectionGrouper,
 } from '../../shared/era-section-grouper-mock.test-helpers';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import {
   COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
@@ -87,6 +88,7 @@ async function makeService({
   const moduleRef = await Test.createTestingModule({
     providers: [
       TrophyDeepdiveService,
+      NumberFormatterService,
       { provide: TrophiesService, useValue: trophies },
       { provide: TrophyAwardsService, useValue: trophyAwards },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },

@@ -584,7 +584,7 @@ describe('TeamDeepdiveService', () => {
       {
         playerId: 5,
         name: 'Griff',
-        count: 20,
+        count: 1234,
         contextSuffix: ' (Blitzer, First era)',
       },
       {
@@ -603,7 +603,7 @@ describe('TeamDeepdiveService', () => {
           {
             playerId: 5,
             name: 'Griff',
-            count: 20,
+            count: 1234,
             positionId: 60,
             positionName: 'Blitzer',
             isStarPlayer: false,
@@ -629,7 +629,7 @@ describe('TeamDeepdiveService', () => {
       embeds: { description: string }[];
     };
     const lines = result.embeds[0].description.split('\n');
-    expect(lines).toContain('1. Griff (Blitzer, First era) — 20');
+    expect(lines).toContain('1. Griff (Blitzer, First era) — 1,234');
     expect(lines).toContain('1. Morg (Star Player, Second era) — 11');
     const [rows, playerIdOf, options] =
       playerContext.attachSuffixes.mock.calls[0];

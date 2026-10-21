@@ -23,6 +23,7 @@ import {
 import { PlayerContextService } from '../../insights/player-context.service';
 import { TeamContextService } from '../../insights/team-context.service';
 import { EraSectionGrouperService } from '../../shared/era-section-grouper.service';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import {
   COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   LEAGUE_BUTTON_CUSTOM_ID_PREFIX,
@@ -74,6 +75,7 @@ export class TrophyDeepdiveService {
     private readonly eraSectionGrouper: EraSectionGrouperService,
     private readonly playerRowButton: PlayerRowButtonService,
     private readonly awardRuleDescription: TrophyAwardRuleDescriptionService,
+    private readonly numbers: NumberFormatterService,
   ) {}
 
   async resolve(trophyId: number): Promise<string | InteractionReplyOptions> {
@@ -194,7 +196,9 @@ export class TrophyDeepdiveService {
               ),
             ]);
     if (truncatedCount > 0) {
-      recipientLines.push(`…and ${truncatedCount} more not shown.`);
+      recipientLines.push(
+        `…and ${this.numbers.count(truncatedCount)} more not shown.`,
+      );
     }
 
     // Recipient entries first: buildEntityComponents has no internal

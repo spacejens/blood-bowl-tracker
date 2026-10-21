@@ -47,8 +47,9 @@ import { PlayerSkillsSectionService } from './player-skills-section.service';
  *
  * `makeService` compiles `PlayerDeepdiveService` with its pure formatting
  * collaborators passed real: the chain `PlayerKillsSectionService` →
- * `PlayerKillerInfoFormatterService` → `PlayerRowButtonService`, plus the
- * dependency-free `EventCountLinesService`,
+ * `PlayerKillerInfoFormatterService` → `PlayerRowButtonService`, with
+ * `NumberFormatterService` a further link under `PlayerKillsSectionService`,
+ * plus the dependency-free `EventCountLinesService`,
  * `CharacteristicDisplayFormattingService`, `PlayerSkillsSectionService` and
  * `PlayerKeywordsSectionService`. This follows `CLAUDE.md`'s "Testing
  * services" carve-out for a pure chain inside an otherwise-mocked subject:
