@@ -1,7 +1,7 @@
 import type { MockProxy } from 'vitest-mock-extended';
 
 import type { FactLeaf, FactNode } from '../insights/fact-tree.types';
-import type { FactTreeUtilsService } from '../insights/fact-tree-utils.service';
+import type { FactTreeNavigationService } from '../insights/fact-tree-navigation.service';
 
 /**
  * A fact tree node typed for plain property access in specs
@@ -28,15 +28,15 @@ export function asNode(node: FactTreeLookup): FactNode {
 }
 
 /**
- * Stubs FactTreeUtilsService for a category naming exactly one leaf:
+ * Stubs FactTreeNavigationService for a category naming exactly one leaf:
  * `resolvePath` returns that leaf and `collectLeaves` returns `[leaf]`.
  * Canned values only; what the real service computes for a path is covered by
- * fact-tree-utils.service.spec.ts.
+ * fact-tree-navigation.service.spec.ts.
  */
 export function stubLeafCategory(
-  factTreeUtils: MockProxy<FactTreeUtilsService>,
+  factTreeNavigation: MockProxy<FactTreeNavigationService>,
   leaf: FactLeaf,
 ): void {
-  factTreeUtils.resolvePath.mockReturnValue(leaf);
-  factTreeUtils.collectLeaves.mockReturnValue([leaf]);
+  factTreeNavigation.resolvePath.mockReturnValue(leaf);
+  factTreeNavigation.collectLeaves.mockReturnValue([leaf]);
 }

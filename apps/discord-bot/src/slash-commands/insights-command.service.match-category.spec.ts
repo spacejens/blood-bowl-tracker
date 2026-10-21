@@ -74,9 +74,9 @@ describe('InsightsCommandService — match category scoping', () => {
   });
 
   it('scopes an in-scope category to the match category and names it in the title', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = harness;
+    const { service, factTreeDeps, factTreeNavigation, tree } = harness;
     stubLeafCategory(
-      factTreeUtils,
+      factTreeNavigation,
       asLeaf(tree.team.toplist.touchdowns.scored),
     );
     const result = await service.execute(
@@ -104,8 +104,11 @@ describe('InsightsCommandService — match category scoping', () => {
   });
 
   it('scopes a coach toplist that supports no competition but does support a match category', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = harness;
-    stubLeafCategory(factTreeUtils, asLeaf(tree.coach.toplist.matches.played));
+    const { service, factTreeDeps, factTreeNavigation, tree } = harness;
+    stubLeafCategory(
+      factTreeNavigation,
+      asLeaf(tree.coach.toplist.matches.played),
+    );
     await service.execute(
       chatInput('coach.toplist.matches.played', {
         matchCategory: 'cup_final',
@@ -122,8 +125,8 @@ describe('InsightsCommandService — match category scoping', () => {
   });
 
   it('rejects a match category on a category that does not support it (coach.toplist.teams)', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = harness;
-    stubLeafCategory(factTreeUtils, asLeaf(tree.coach.toplist.teams));
+    const { service, factTreeDeps, factTreeNavigation, tree } = harness;
+    stubLeafCategory(factTreeNavigation, asLeaf(tree.coach.toplist.teams));
     const result = await service.execute(
       chatInput('coach.toplist.teams', { matchCategory: 'season_final' }),
     );
@@ -134,8 +137,8 @@ describe('InsightsCommandService — match category scoping', () => {
   });
 
   it('rejects a match category on stats', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = harness;
-    stubLeafCategory(factTreeUtils, asLeaf(tree.stats));
+    const { service, factTreeDeps, factTreeNavigation, tree } = harness;
+    stubLeafCategory(factTreeNavigation, asLeaf(tree.stats));
     const result = await service.execute(
       chatInput('stats', { matchCategory: 'season_final' }),
     );
@@ -146,9 +149,9 @@ describe('InsightsCommandService — match category scoping', () => {
   });
 
   it('picks only match-category-capable leaves from a branch path', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = harness;
-    factTreeUtils.resolvePath.mockReturnValue(asNode(tree.coach.toplist));
-    factTreeUtils.collectLeaves.mockReturnValue([
+    const { service, factTreeDeps, factTreeNavigation, tree } = harness;
+    factTreeNavigation.resolvePath.mockReturnValue(asNode(tree.coach.toplist));
+    factTreeNavigation.collectLeaves.mockReturnValue([
       asLeaf(tree.coach.toplist.teams),
       asLeaf(tree.coach.toplist.eras.active),
       asLeaf(tree.coach.toplist.matches.played),
@@ -165,8 +168,8 @@ describe('InsightsCommandService — match category scoping', () => {
   });
 
   it('restricts a random fact to match-category-capable leaves', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = harness;
-    factTreeUtils.collectLeaves.mockReturnValue([
+    const { service, factTreeDeps, factTreeNavigation, tree } = harness;
+    factTreeNavigation.collectLeaves.mockReturnValue([
       asLeaf(tree.eras.list),
       asLeaf(tree.stats),
       asLeaf(tree.race.toplist.teams.descending),
@@ -185,8 +188,8 @@ describe('InsightsCommandService — match category scoping', () => {
   });
 
   it('treats an unrecognised match-category value as no match-category scope', async () => {
-    const { service, factTreeDeps, factTreeUtils, tree } = harness;
-    stubLeafCategory(factTreeUtils, asLeaf(tree.stats));
+    const { service, factTreeDeps, factTreeNavigation, tree } = harness;
+    stubLeafCategory(factTreeNavigation, asLeaf(tree.stats));
     const result = await service.execute(
       chatInput('stats', { matchCategory: 'not_a_category' }),
     );

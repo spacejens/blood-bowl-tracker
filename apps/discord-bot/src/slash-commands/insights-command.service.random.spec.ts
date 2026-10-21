@@ -27,52 +27,58 @@ describe('InsightsCommandService — random pick', () => {
   });
 
   it('picks a random leaf under a branch path', async () => {
-    const { service, factTreeDeps, factTreeUtils, factTree, tree } = harness;
-    factTreeUtils.resolvePath.mockReturnValue(asNode(tree.coach));
-    factTreeUtils.collectLeaves.mockReturnValue([
+    const { service, factTreeDeps, factTreeNavigation, factTree, tree } =
+      harness;
+    factTreeNavigation.resolvePath.mockReturnValue(asNode(tree.coach));
+    factTreeNavigation.collectLeaves.mockReturnValue([
       asLeaf(tree.coach.toplist.matches.played),
       asLeaf(tree.coach.toplist.matches.won),
     ]);
     vi.spyOn(Math, 'random').mockReturnValue(0);
     await service.execute(chatInput('coach'));
-    expect(factTreeUtils.resolvePath).toHaveBeenCalledWith(factTree, 'coach');
-    expect(factTreeUtils.collectLeaves).toHaveBeenCalledWith(
+    expect(factTreeNavigation.resolvePath).toHaveBeenCalledWith(
+      factTree,
+      'coach',
+    );
+    expect(factTreeNavigation.collectLeaves).toHaveBeenCalledWith(
       asNode(tree.coach),
     );
     expect(factTreeDeps.coachToplist.resolveMatchesPlayed).toHaveBeenCalled();
   });
 
   it('picks a random leaf across the whole tree when no category is given', async () => {
-    const { service, factTreeDeps, factTreeUtils, factTree, tree } = harness;
-    factTreeUtils.collectLeaves.mockReturnValue([
+    const { service, factTreeDeps, factTreeNavigation, factTree, tree } =
+      harness;
+    factTreeNavigation.collectLeaves.mockReturnValue([
       asLeaf(tree.coach.toplist.matches.played),
       asLeaf(tree.stats),
     ]);
     // Math.random 0.999999 selects the last element of the pool (stats).
     vi.spyOn(Math, 'random').mockReturnValue(0.999999);
     await service.execute(chatInput(null));
-    expect(factTreeUtils.collectLeaves).toHaveBeenCalledWith(factTree);
+    expect(factTreeNavigation.collectLeaves).toHaveBeenCalledWith(factTree);
     expect(factTreeDeps.statsSummary.resolve).toHaveBeenCalled();
   });
 
   it('resolveRandomFact picks a random leaf across the whole tree', async () => {
-    const { service, factTreeDeps, factTreeUtils, factTree, tree } = harness;
-    factTreeUtils.collectLeaves.mockReturnValue([
+    const { service, factTreeDeps, factTreeNavigation, factTree, tree } =
+      harness;
+    factTreeNavigation.collectLeaves.mockReturnValue([
       asLeaf(tree.coach.toplist.matches.played),
       asLeaf(tree.stats),
     ]);
     vi.spyOn(Math, 'random').mockReturnValue(0.999999);
     await service.resolveRandomFact({});
-    expect(factTreeUtils.collectLeaves).toHaveBeenCalledWith(factTree);
+    expect(factTreeNavigation.collectLeaves).toHaveBeenCalledWith(factTree);
     expect(factTreeDeps.statsSummary.resolve).toHaveBeenCalled();
   });
 
   it('restricts the random pick to era-supporting leaves when an era but no category is given', async () => {
-    const { service, factTreeDeps, factTreeUtils, eras, tree } = harness;
+    const { service, factTreeDeps, factTreeNavigation, eras, tree } = harness;
     eras.findById.mockResolvedValue(ERA);
     // eras.list does not support era scoping, so the filtered pool is just
     // [stats] and the last element of the filtered pool is stats.
-    factTreeUtils.collectLeaves.mockReturnValue([
+    factTreeNavigation.collectLeaves.mockReturnValue([
       asLeaf(tree.stats),
       asLeaf(tree.eras.list),
     ]);
@@ -87,9 +93,9 @@ describe('InsightsCommandService — random pick', () => {
   });
 
   it('excludes team.toplist.eras.active from the random pool when an era is given', async () => {
-    const { service, factTreeDeps, factTreeUtils, eras, tree } = harness;
+    const { service, factTreeDeps, factTreeNavigation, eras, tree } = harness;
     eras.findById.mockResolvedValue(ERA);
-    factTreeUtils.collectLeaves.mockReturnValue([
+    factTreeNavigation.collectLeaves.mockReturnValue([
       asLeaf(tree.team.toplist.matches.played),
       asLeaf(tree.team.toplist.eras.active),
     ]);
@@ -100,9 +106,9 @@ describe('InsightsCommandService — random pick', () => {
   });
 
   it('includes the race facts in the era-scoped random pool', async () => {
-    const { service, factTreeDeps, factTreeUtils, eras, tree } = harness;
+    const { service, factTreeDeps, factTreeNavigation, eras, tree } = harness;
     eras.findById.mockResolvedValue(ERA);
-    factTreeUtils.collectLeaves.mockReturnValue([
+    factTreeNavigation.collectLeaves.mockReturnValue([
       asLeaf(tree.coach.toplist.eras.active),
       asLeaf(tree.race.toplist.matches.played),
     ]);
@@ -116,9 +122,9 @@ describe('InsightsCommandService — random pick', () => {
   });
 
   it('excludes coach.toplist.eras.active from the random pool when an era is given', async () => {
-    const { service, factTreeDeps, factTreeUtils, eras, tree } = harness;
+    const { service, factTreeDeps, factTreeNavigation, eras, tree } = harness;
     eras.findById.mockResolvedValue(ERA);
-    factTreeUtils.collectLeaves.mockReturnValue([
+    factTreeNavigation.collectLeaves.mockReturnValue([
       asLeaf(tree.coach.toplist.matches.played),
       asLeaf(tree.coach.toplist.eras.active),
     ]);
@@ -129,9 +135,9 @@ describe('InsightsCommandService — random pick', () => {
   });
 
   it('includes the offense facts in the era-scoped random pool', async () => {
-    const { service, factTreeDeps, factTreeUtils, eras, tree } = harness;
+    const { service, factTreeDeps, factTreeNavigation, eras, tree } = harness;
     eras.findById.mockResolvedValue(ERA);
-    factTreeUtils.collectLeaves.mockReturnValue([
+    factTreeNavigation.collectLeaves.mockReturnValue([
       asLeaf(tree.coach.toplist.eras.active),
       asLeaf(tree.player.toplist.touchdowns.scored),
     ]);
@@ -147,9 +153,9 @@ describe('InsightsCommandService — random pick', () => {
   });
 
   it('includes the violence facts in the era-scoped random pool', async () => {
-    const { service, factTreeDeps, factTreeUtils, eras, tree } = harness;
+    const { service, factTreeDeps, factTreeNavigation, eras, tree } = harness;
     eras.findById.mockResolvedValue(ERA);
-    factTreeUtils.collectLeaves.mockReturnValue([
+    factTreeNavigation.collectLeaves.mockReturnValue([
       asLeaf(tree.coach.toplist.eras.active),
       asLeaf(tree.player.toplist.casualties.caused),
     ]);
@@ -161,9 +167,9 @@ describe('InsightsCommandService — random pick', () => {
   });
 
   it('includes the injuries-suffered facts in the era-scoped random pool', async () => {
-    const { service, factTreeDeps, factTreeUtils, eras, tree } = harness;
+    const { service, factTreeDeps, factTreeNavigation, eras, tree } = harness;
     eras.findById.mockResolvedValue(ERA);
-    factTreeUtils.collectLeaves.mockReturnValue([
+    factTreeNavigation.collectLeaves.mockReturnValue([
       asLeaf(tree.coach.toplist.eras.active),
       asLeaf(tree.team.toplist.injuries.lasting.suffered),
     ]);

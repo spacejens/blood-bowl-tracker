@@ -52,13 +52,13 @@ describe('InsightsCommandService — competition scoping', () => {
     const {
       service,
       factTreeDeps,
-      factTreeUtils,
+      factTreeNavigation,
       competitions,
       dateRangeFormatter,
       tree,
     } = harness;
     stubLeafCategory(
-      factTreeUtils,
+      factTreeNavigation,
       asLeaf(tree.team.toplist.touchdowns.scored),
     );
     competitions.findById.mockResolvedValue({
@@ -95,9 +95,9 @@ describe('InsightsCommandService — competition scoping', () => {
   });
 
   it('rejects a competition on a category that does not support it (coach.toplist.competitions.played)', async () => {
-    const { service, competitions, factTreeUtils, tree } = harness;
+    const { service, competitions, factTreeNavigation, tree } = harness;
     stubLeafCategory(
-      factTreeUtils,
+      factTreeNavigation,
       asLeaf(tree.coach.toplist.competitions.played),
     );
     competitions.findById.mockResolvedValue({
@@ -115,8 +115,8 @@ describe('InsightsCommandService — competition scoping', () => {
   });
 
   it('rejects a competition on eras.list (not competition-supporting)', async () => {
-    const { service, competitions, factTreeUtils, tree } = harness;
-    stubLeafCategory(factTreeUtils, asLeaf(tree.eras.list));
+    const { service, competitions, factTreeNavigation, tree } = harness;
+    stubLeafCategory(factTreeNavigation, asLeaf(tree.eras.list));
     competitions.findById.mockResolvedValue({
       id: 30,
       name: 'Major Season 24',
@@ -132,7 +132,7 @@ describe('InsightsCommandService — competition scoping', () => {
   });
 
   it('restricts the random pick to competition-supporting leaves when a competition but no category is given', async () => {
-    const { service, competitions, factTreeDeps, factTreeUtils, tree } =
+    const { service, competitions, factTreeDeps, factTreeNavigation, tree } =
       harness;
     competitions.findById.mockResolvedValue({
       id: 30,
@@ -142,7 +142,7 @@ describe('InsightsCommandService — competition scoping', () => {
       startDate: '2023-10-01',
       endDate: '2023-10-02',
     });
-    factTreeUtils.collectLeaves.mockReturnValue([
+    factTreeNavigation.collectLeaves.mockReturnValue([
       asLeaf(tree.coach.toplist.competitions.played),
       asLeaf(tree.team.toplist.touchdowns.scored),
     ]);
