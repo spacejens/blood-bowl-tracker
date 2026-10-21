@@ -5,13 +5,7 @@ import type {
 import { Injectable } from '@nestjs/common';
 
 import { PositionCharacteristicsLineFormatterService } from './position-characteristics-line-formatter.service';
-
-/**
- * Prefixed to a star player's own exclusive skill. A skill is exclusive
- * purely by virtue of its `unique` category under that rules set -- there is
- * no separate flag, by deliberate schema design.
- */
-const UNIQUE_SKILL_MARKER = '★ ';
+import { UNIQUE_SKILL_MARKER } from './skill-markers';
 
 /**
  * Composes one position's full stat line under one rules set: the
