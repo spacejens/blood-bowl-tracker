@@ -33,6 +33,7 @@ import {
 import { EventCountLinesService } from '../../shared/event-count-lines.service';
 import type { MonthDay } from '../../shared/month-day.service';
 import { MonthDayService } from '../../shared/month-day.service';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import { TOPLIST_FETCH_LIMIT } from '../leaderboard.service';
 import { LeaderboardService } from '../leaderboard.service';
 import { OnThisDateFactsService } from './on-this-date.service';
@@ -488,7 +489,8 @@ describe('OnThisDateFactsService.resolveToday', () => {
 });
 
 /**
- * `EventCountLinesService` is pure and dependency-free, and
+ * `EventCountLinesService` and `NumberFormatterService` are pure (the former
+ * depends only on the latter, which is dependency-free), and
  * `PlayerKillerInfoFormatterService` → `PlayerRowButtonService` is a pure
  * chain: the formatter depends only on the row-button decision service, which
  * has no dependencies. This suite passes all three real under `CLAUDE.md`'s
@@ -552,6 +554,7 @@ describe('OnThisDateFactsService with real formatting collaborators', () => {
       providers: [
         OnThisDateFactsService,
         EventCountLinesService,
+        NumberFormatterService,
         PlayerKillerInfoFormatterService,
         PlayerRowButtonService,
         { provide: OnThisDateService, useValue: realOnThisDate },
