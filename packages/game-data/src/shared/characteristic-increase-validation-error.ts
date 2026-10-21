@@ -1,3 +1,5 @@
+import { GameDataError } from './game-data-error';
+
 /**
  * A characteristic-increase payload that disagrees with its own shape: a
  * partial all-or-nothing group, or a negative or non-integer count where a
@@ -15,4 +17,4 @@
  * `superRefine`) at the RPC boundary before this validator is ever reached
  * from that path.
  */
-export class CharacteristicIncreaseValidationError extends Error {}
+export class CharacteristicIncreaseValidationError extends GameDataError {}

@@ -23,6 +23,8 @@ import {
 import type { TrophyRecipientKind } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
+import { GameDataError } from '../shared/game-data-error';
+
 /**
  * The award's `playerId` does not fit the referenced trophy's
  * `recipientKind`: set for a `team` trophy, or missing for a `player` one
@@ -35,7 +37,7 @@ import { Inject, Injectable } from '@nestjs/common';
  * It always signals a bug in the calling importer, never an
  * expected-and-skippable condition.
  */
-export class TrophyAwardRecipientMismatchError extends Error {}
+export class TrophyAwardRecipientMismatchError extends GameDataError {}
 
 /**
  * The award's competition belongs to a different competition group than the
@@ -50,7 +52,7 @@ export class TrophyAwardRecipientMismatchError extends Error {}
  * duplicated in each. It always signals a bug in the calling importer or its
  * curated data, never an expected-and-skippable condition.
  */
-export class TrophyAwardCompetitionGroupMismatchError extends Error {}
+export class TrophyAwardCompetitionGroupMismatchError extends GameDataError {}
 
 /**
  * One award of a trophy, as the trophy deepdive renders it: which competition

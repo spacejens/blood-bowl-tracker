@@ -1,3 +1,5 @@
+import { GameDataError } from './game-data-error';
+
 /**
  * A lasting-injury payload that disagrees with its own shape: a partial
  * all-or-nothing group, or a negative count where a nonnegative integer is
@@ -14,4 +16,4 @@
  * `superRefine`) at the RPC boundary before this validator is ever reached
  * from that path.
  */
-export class LastingInjuryValidationError extends Error {}
+export class LastingInjuryValidationError extends GameDataError {}

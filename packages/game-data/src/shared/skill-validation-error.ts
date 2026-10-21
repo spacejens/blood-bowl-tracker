@@ -1,3 +1,5 @@
+import { GameDataError } from './game-data-error';
+
 /**
  * A skill association that does not hold together: the same (skill, rules
  * set) pair supplied twice in one batch, a starting skill naming a skill the
@@ -8,4 +10,4 @@
  * so an importer reports it against the offending entry, exactly as it does
  * for CharacteristicFormatMismatchError.
  */
-export class SkillValidationError extends Error {}
+export class SkillValidationError extends GameDataError {}
