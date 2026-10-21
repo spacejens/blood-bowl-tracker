@@ -27,6 +27,7 @@ import {
   DEEPDIVE_STAR_PLAYER_SKILLS_TIMEOUT_MESSAGE,
   DEEPDIVE_STAR_PLAYER_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import {
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
@@ -82,6 +83,7 @@ export class StarPlayerDeepdiveService {
     private readonly keywordsSection: PositionKeywordsSectionService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
+    private readonly numbers: NumberFormatterService,
   ) {}
 
   async resolve(positionId: number): Promise<string | InteractionReplyOptions> {
@@ -176,8 +178,7 @@ export class StarPlayerDeepdiveService {
 
   /** `Reikland Reavers (Human, Rita) — 3 hires`. */
   private formatHire(hire: StarPlayerHire): string {
-    const plural = hire.hireCount === 1 ? 'hire' : 'hires';
-    return `${hire.teamName} (${hire.raceName}, ${hire.coachName}) — ${hire.hireCount} ${plural}`;
+    return `${hire.teamName} (${hire.raceName}, ${hire.coachName}) — ${this.numbers.counted(hire.hireCount, 'hire')}`;
   }
 
   /**

@@ -362,6 +362,22 @@ describe('PlayerDeepdiveService', () => {
     );
   });
 
+  it('groups a honors remainder of a thousand or more', async () => {
+    const { service } = await makeService({
+      players: makePlayers({
+        player: griff,
+        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+      }),
+      trophyAwards: makeTrophyAwards([mvp], 1235),
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    expect(result.embeds[0].description.split('\n')).toContain(
+      '…and 1,234 more not shown.',
+    );
+  });
+
   it("keeps the description within Discord's 4096-character embed limit even with many long honor names", async () => {
     const longHonors: PlayerHonor[] = Array.from(
       { length: 30 },
@@ -656,7 +672,10 @@ describe('PlayerDeepdiveService', () => {
   });
 
   it('shows a positive adjustment with an explicit plus sign', async () => {
-    const description = await describeFor({ sppTotal: 24, sppAdjustment: 2 });
+    const description = await describeFor({
+      sppTotal: 1234,
+      sppAdjustment: 1500,
+    });
     expect(description).toBe(
       [
         'Team: Reikland Reavers',
@@ -666,8 +685,8 @@ describe('PlayerDeepdiveService', () => {
         '',
         'Touchdowns scored: 3',
         '',
-        'Star player points adjustment: +2 (included)',
-        'Total star player points: 24',
+        'Star player points adjustment: +1,500 (included)',
+        'Total star player points: 1,234',
       ].join('\n'),
     );
   });

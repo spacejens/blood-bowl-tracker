@@ -4,6 +4,7 @@ import type { InteractionReplyOptions } from 'discord.js';
 import { DatabaseTimeoutService } from '../database-timeout.service';
 import type { ButtonCustomIdPrefix } from '../deepdive/button-custom-ids';
 import { EntityComponentsService } from '../entity-components.service';
+import { NumberFormatterService } from '../shared/number-formatter.service';
 
 /**
  * A tie group can be far larger than the top-N cutoff (e.g. most teams sharing
@@ -91,6 +92,7 @@ export class LeaderboardService {
   constructor(
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
+    private readonly numbers: NumberFormatterService,
   ) {}
 
   topRanksWithTies<T extends { count: number }>(
@@ -136,7 +138,8 @@ export class LeaderboardService {
     noDataMessage,
     tieRemainder = { type: 'exact', count: 0 },
     entityLink,
-    formatRow = (row) => `${row.rank}. ${row.name} — ${row.count}`,
+    formatRow = (row) =>
+      `${row.rank}. ${row.name} — ${this.numbers.count(row.count)}`,
   }: FormatLeaderboardEmbedOptions<T>): InteractionReplyOptions {
     if (rankedRows.length === 0) {
       return { embeds: [{ title, description: noDataMessage }] };
@@ -145,7 +148,7 @@ export class LeaderboardService {
     if (tieRemainder.type === 'approximate') {
       lines.push('…and lots more tied.');
     } else if (tieRemainder.count > 0) {
-      lines.push(`…and ${tieRemainder.count} more tied.`);
+      lines.push(`…and ${this.numbers.count(tieRemainder.count)} more tied.`);
     }
     if (entityLink === undefined) {
       return { embeds: [{ title, description: lines.join('\n') }] };

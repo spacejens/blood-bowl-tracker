@@ -43,6 +43,7 @@ import { LeaderboardService } from '../../insights/leaderboard.service';
 import { passthroughLeaderboard } from '../../insights/leaderboard-mock.test-helpers';
 import { PlayerContextService } from '../../insights/player-context.service';
 import { passthroughPlayerContext } from '../../insights/player-context-mock.test-helpers';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import {
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   POSITION_BUTTON_CUSTOM_ID_PREFIX,
@@ -130,6 +131,7 @@ async function makeService({
   const moduleRef = await Test.createTestingModule({
     providers: [
       PositionDeepdiveService,
+      NumberFormatterService,
       PositionKeywordsSectionService,
       { provide: PositionStatLineService, useValue: statLine },
       {
@@ -297,7 +299,7 @@ describe('PositionDeepdiveService', () => {
     const { service } = await makeService({
       positions: makePositions({
         position: { name: 'Blitzer', races: [] },
-        topPlayers: [{ id: 9, name: 'Griff', sppTotal: 130 }],
+        topPlayers: [{ id: 9, name: 'Griff', sppTotal: 1234 }],
       }),
       positionRulesSets: makeRulesSets([bb2020]),
       databaseTimeout: timeoutOnCall(6),
@@ -348,7 +350,7 @@ describe('PositionDeepdiveService', () => {
             { id: 5, name: 'Orc' },
           ],
         },
-        playerCount: 42,
+        playerCount: 1234,
         topPlayers: [
           { id: 9, name: 'Griff', sppTotal: 130 },
           { id: 10, name: 'Varag', sppTotal: 88 },
@@ -373,7 +375,7 @@ describe('PositionDeepdiveService', () => {
             'BB2016: MA 7 ST 3 AG 3 AV 8',
             'BB2020: MA 7 ST 3 AG 3+ PA 4+ AV 9+',
             '',
-            'Held by 42 players',
+            'Held by 1,234 players',
             '',
             'Top players by SPP:',
             '1. Griff — 130',
@@ -541,7 +543,7 @@ describe('PositionDeepdiveService', () => {
     const { service } = await makeService({
       positions: makePositions({
         position: { name: 'Blitzer', races: [] },
-        topPlayers: [{ id: 9, name: 'Griff', sppTotal: 130 }],
+        topPlayers: [{ id: 9, name: 'Griff', sppTotal: 1234 }],
       }),
       positionRulesSets: makeRulesSets([bb2020]),
       playerContext: passthroughPlayerContext(
@@ -550,7 +552,7 @@ describe('PositionDeepdiveService', () => {
     });
 
     expect(JSON.stringify(await service.resolve(1))).toContain(
-      '1. Griff (Reikland Reavers, Second Era, Bob) — 130',
+      '1. Griff (Reikland Reavers, Second Era, Bob) — 1,234',
     );
   });
 
@@ -558,7 +560,7 @@ describe('PositionDeepdiveService', () => {
     const { service, playerContext } = await makeService({
       positions: makePositions({
         position: { name: 'Blitzer', races: [] },
-        topPlayers: [{ id: 9, name: 'Griff', sppTotal: 130 }],
+        topPlayers: [{ id: 9, name: 'Griff', sppTotal: 1234 }],
       }),
       positionRulesSets: makeRulesSets([bb2020]),
     });
@@ -571,7 +573,7 @@ describe('PositionDeepdiveService', () => {
     // top players for it can come from very different points in history, and
     // the era is what tells them apart.
     expect(playerContext.attachSuffixes).toHaveBeenCalledWith(
-      [{ id: 9, name: 'Griff', sppTotal: 130, count: 130, rank: 1 }],
+      [{ id: 9, name: 'Griff', sppTotal: 1234, count: 1234, rank: 1 }],
       expect.any(Function) as (row: unknown) => number,
       {
         includePosition: false,
@@ -631,7 +633,7 @@ describe('PositionDeepdiveService', () => {
     const { service, entityComponents } = await makeService({
       positions: makePositions({
         position: { name: 'Blitzer', races: [{ id: 2, name: 'Human' }] },
-        topPlayers: [{ id: 9, name: 'Griff', sppTotal: 130 }],
+        topPlayers: [{ id: 9, name: 'Griff', sppTotal: 1234 }],
       }),
       positionRulesSets: makeRulesSets([bb2020]),
     });

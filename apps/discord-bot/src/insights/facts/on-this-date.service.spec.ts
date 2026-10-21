@@ -33,6 +33,7 @@ import {
 import { EventCountLinesService } from '../../shared/event-count-lines.service';
 import type { MonthDay } from '../../shared/month-day.service';
 import { MonthDayService } from '../../shared/month-day.service';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import { TOPLIST_FETCH_LIMIT } from '../leaderboard.service';
 import { LeaderboardService } from '../leaderboard.service';
 import { OnThisDateFactsService } from './on-this-date.service';
@@ -150,6 +151,7 @@ beforeEach(async () => {
   const moduleRef = await Test.createTestingModule({
     providers: [
       OnThisDateFactsService,
+      NumberFormatterService,
       { provide: OnThisDateService, useValue: onThisDate },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
@@ -215,6 +217,12 @@ describe('OnThisDateFactsService.resolve', () => {
       scope,
       limit: 21,
     });
+  });
+
+  it('groups thousands in the match count', async () => {
+    onThisDate.countMatchesPlayed.mockResolvedValue(1234);
+    const result = await service.resolve({ monthDay: MONTH_DAY, scope: {} });
+    expect(embed(result).description).toContain('Matches played: 1,234');
   });
 
   it('reports the match count and the counter block', async () => {
@@ -488,7 +496,8 @@ describe('OnThisDateFactsService.resolveToday', () => {
 });
 
 /**
- * `EventCountLinesService` is pure and dependency-free, and
+ * `EventCountLinesService` and `NumberFormatterService` are pure (the former
+ * depends only on the latter, which is dependency-free), and
  * `PlayerKillerInfoFormatterService` → `PlayerRowButtonService` is a pure
  * chain: the formatter depends only on the row-button decision service, which
  * has no dependencies. This suite passes all three real under `CLAUDE.md`'s
@@ -552,6 +561,7 @@ describe('OnThisDateFactsService with real formatting collaborators', () => {
       providers: [
         OnThisDateFactsService,
         EventCountLinesService,
+        NumberFormatterService,
         PlayerKillerInfoFormatterService,
         PlayerRowButtonService,
         { provide: OnThisDateService, useValue: realOnThisDate },

@@ -38,6 +38,7 @@ import {
   DEEPDIVE_STAR_PLAYER_SKILLS_TIMEOUT_MESSAGE,
   DEEPDIVE_STAR_PLAYER_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import {
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
@@ -76,6 +77,7 @@ async function makeService({
   const moduleRef = await Test.createTestingModule({
     providers: [
       StarPlayerDeepdiveService,
+      NumberFormatterService,
       PositionKeywordsSectionService,
       { provide: StarPlayersService, useValue: stars },
       { provide: PositionRulesSetsService, useValue: positionRulesSets },
@@ -121,7 +123,7 @@ const hires: StarPlayerHire[] = [
     teamName: 'Reikland Reavers',
     raceName: 'Human',
     coachName: 'Rita',
-    hireCount: 3,
+    hireCount: 1234,
   },
   {
     teamId: 2,
@@ -320,7 +322,7 @@ describe('StarPlayerDeepdiveService', () => {
           description: [
             STUB_STAT_LINE,
             '',
-            'Reikland Reavers (Human, Rita) — 3 hires',
+            'Reikland Reavers (Human, Rita) — 1,234 hires',
             'Gouged Eye (Orc, Bob) — 1 hire',
           ].join('\n'),
         },
@@ -381,7 +383,7 @@ describe('StarPlayerDeepdiveService', () => {
       [
         STUB_STAT_LINE,
         '',
-        'Reikland Reavers (Human, Rita) — 3 hires',
+        'Reikland Reavers (Human, Rita) — 1,234 hires',
         'Gouged Eye (Orc, Bob) — 1 hire',
         '…and 3 more without a link.',
       ].join('\n'),
@@ -444,7 +446,7 @@ describe('StarPlayerDeepdiveService', () => {
       [
         DEEPDIVE_STAR_PLAYER_NO_CHARACTERISTICS_MESSAGE,
         '',
-        'Reikland Reavers (Human, Rita) — 3 hires',
+        'Reikland Reavers (Human, Rita) — 1,234 hires',
         'Gouged Eye (Orc, Bob) — 1 hire',
       ].join('\n'),
     );
@@ -538,7 +540,7 @@ describe('StarPlayerDeepdiveService', () => {
         'BB2016: MA 7 ST 4 AG 4 AV 8',
         'BB2020: MA 7 ST 4 AG 2+ PA 3+ AV 9+',
         '',
-        'Reikland Reavers (Human, Rita) — 3 hires',
+        'Reikland Reavers (Human, Rita) — 1,234 hires',
         'Gouged Eye (Orc, Bob) — 1 hire',
       ].join('\n'),
     );

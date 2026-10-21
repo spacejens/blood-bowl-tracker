@@ -6,6 +6,7 @@ import {
   OVERFLOW_NOTE_BUDGET,
 } from '../../description-limits';
 import type { EntityComponentEntry } from '../../entity-components.service';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import { TEAM_BUTTON_CUSTOM_ID_PREFIX } from '../button-custom-ids';
 import { PlayerKillerInfoFormatterService } from './player-killer-info-formatter.service';
 
@@ -35,7 +36,10 @@ export interface PlayerKillsSection {
  */
 @Injectable()
 export class PlayerKillsSectionService {
-  constructor(private readonly killerInfo: PlayerKillerInfoFormatterService) {}
+  constructor(
+    private readonly killerInfo: PlayerKillerInfoFormatterService,
+    private readonly numbers: NumberFormatterService,
+  ) {}
   /**
    * Selects a prefix of `kills` that keeps the whole description within
    * Discord's `MAX_DESCRIPTION_LENGTH` and renders it, plus an exact overflow
@@ -80,7 +84,7 @@ export class PlayerKillsSectionService {
     // only thing that keeps the section from reading as "killed nobody".
     const truncatedCount = killsTotal - shown.length;
     if (truncatedCount > 0) {
-      lines.push(`…and ${truncatedCount} more not shown.`);
+      lines.push(`…and ${this.numbers.count(truncatedCount)} more not shown.`);
     }
     return {
       lines,

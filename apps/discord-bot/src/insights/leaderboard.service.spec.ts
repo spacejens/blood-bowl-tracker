@@ -13,6 +13,7 @@ import {
 } from '../deepdive/button-custom-ids';
 import { EntityComponentsService } from '../entity-components.service';
 import { entityComponentsMock } from '../entity-components-mock.test-helpers';
+import { NumberFormatterService } from '../shared/number-formatter.service';
 import {
   MAX_EXACT_TIE_REMAINDER,
   MAX_LEADERBOARD_ENTRIES,
@@ -36,6 +37,7 @@ async function makeService(
   const moduleRef = await Test.createTestingModule({
     providers: [
       LeaderboardService,
+      NumberFormatterService,
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
     ],
@@ -708,5 +710,30 @@ describe('resolveToplist', () => {
       noDataMessage: 'no-data placeholder',
     });
     expect(result).toBe('timeout placeholder');
+  });
+});
+
+describe('formatLeaderboardEmbed number grouping', () => {
+  it('groups the count in the default row format', () => {
+    const reply = leaderboardService.formatLeaderboardEmbed({
+      title: 'T',
+      rankedRows: [{ name: 'Orcs', count: 12345, rank: 1 }],
+      noDataMessage: 'none',
+    });
+    expect(reply.embeds?.[0]).toMatchObject({
+      description: '1. Orcs — 12,345',
+    });
+  });
+
+  it('groups the exact tie remainder', () => {
+    const reply = leaderboardService.formatLeaderboardEmbed({
+      title: 'T',
+      rankedRows: [{ name: 'Orcs', count: 1, rank: 1 }],
+      noDataMessage: 'none',
+      tieRemainder: { type: 'exact', count: 1500 },
+    });
+    expect(reply.embeds?.[0]).toMatchObject({
+      description: '1. Orcs — 1\n…and 1,500 more tied.',
+    });
   });
 });

@@ -7,6 +7,7 @@ import {
   PLAYER_TOPLIST_NO_DATA_MESSAGE,
   PLAYER_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import type { EntityLink } from '../leaderboard.service';
 import { PlayerContextService } from '../player-context.service';
 import type {
@@ -49,6 +50,7 @@ export class PlayerToplistService {
     private readonly players: PlayersService,
     private readonly playerContext: PlayerContextService,
     private readonly toplistFactory: ToplistFactoryService,
+    private readonly numbers: NumberFormatterService,
   ) {
     this.resolvers = this.toplistFactory.makeResolvers<
       PlayerToplistMethod,
@@ -101,7 +103,7 @@ export class PlayerToplistService {
   }
 
   private formatPlayerRow(row: PlayerToplistRow & { rank: number }): string {
-    return `${row.rank}. ${row.name}${row.contextSuffix ?? ''} — ${row.count}`;
+    return `${row.rank}. ${row.name}${row.contextSuffix ?? ''} — ${this.numbers.count(row.count)}`;
   }
 
   resolveMvps(scope: FactScope) {
