@@ -10,7 +10,7 @@ export interface ResolveTeamEraOptions {
 }
 
 /**
- * Small, pure, dependency-free helpers shared by
+ * Small, pure, dependency-free `UpsertMatchEvent` field builders shared by
  * `TpMatchEventKindBuildersService` and `TpAdminMatchEventBuilderService` —
  * id resolution and `UpsertMatchEvent` field assembly with no branching on
  * external state. Hosted as a service, not a loose-function module, per this
@@ -21,7 +21,7 @@ export interface ResolveTeamEraOptions {
  * coupling risk.
  */
 @Injectable()
-export class TpMatchEventHelpersService {
+export class TpMatchEventFieldsService {
   /** Resolve a roster id + era id to its team_eras id, or undefined. */
   resolveTeamEraId(options: ResolveTeamEraOptions): number | undefined {
     return options.teamErasByRosterId
@@ -38,7 +38,7 @@ export class TpMatchEventHelpersService {
     return { externalSystemId: tpSystemId, externalId: id };
   }
 
-  externalId(
+  externalIds(
     tpSystemId: number,
     tpEventId: number,
     suffix?: 'home' | 'away',

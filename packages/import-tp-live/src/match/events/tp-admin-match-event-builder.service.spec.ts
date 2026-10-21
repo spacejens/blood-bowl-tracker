@@ -2,7 +2,7 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { TpAdminMatchEventBuilderService } from './tp-admin-match-event-builder.service';
-import { TpMatchEventHelpersService } from './tp-match-event-helpers.service';
+import { TpMatchEventFieldsService } from './tp-match-event-fields.service';
 import {
   AWAY_ROSTER_ID,
   AWAY_TEAM_ERA_ID,
@@ -21,7 +21,7 @@ import {
  * `tp-match-event-kind-builders-admin.spec.ts`, which verifies just the
  * delegation with this service mocked); the real assembly coverage lives
  * here instead, per this repo's normal spec convention: the service under
- * test is the only real provider. `TpMatchEventHelpersService` is passed
+ * test is the only real provider. `TpMatchEventFieldsService` is passed
  * real rather than mocked — it is this service's sole collaborator, and it
  * is itself a pure, dependency-free formatting service (no injected
  * collaborators of its own, no I/O, no branching on external state), so
@@ -33,7 +33,7 @@ describe('TpAdminMatchEventBuilderService', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [TpAdminMatchEventBuilderService, TpMatchEventHelpersService],
+      providers: [TpAdminMatchEventBuilderService, TpMatchEventFieldsService],
     }).compile();
     service = moduleRef.get(TpAdminMatchEventBuilderService);
   });
