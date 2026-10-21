@@ -376,11 +376,20 @@ every participating team, one line each with its race and coach. The era line
 names the era and its date range, with an ongoing era marked as still
 running — distinct from the competition's own `Duration:` line above. A
 competition with no participating teams shows a short "nobody has signed up
-yet" message instead of a list. Every participating team and the era are
+yet" message instead of a list.
+
+Then — only when the competition handed out awards, with the whole section
+omitted otherwise rather than a placeholder line — a blank line and a
+`Trophies:` heading, followed by one `Trophy: recipient` line per award, team
+awards before player awards. A team recipient is shown with its race and
+coach; a player recipient with their position, team, race and coach.
+
+Every participating team and the era are
 each rendered as a drill-down button (teams take priority over the era entry
 when the combined list is too long for buttons and switches to select
-menus), and the embed also offers a drill-up button to the competition's
-recurring group, last of all.
+menus). Each award recipient and each distinct trophy is also a drill-down
+button, after the team buttons and before the era button, and the embed also
+offers a drill-up button to the competition's recurring group, last of all.
 
 ## `competition-group`
 
