@@ -233,8 +233,8 @@ describe('MatchParserService', () => {
         },
       }),
     );
-    expect(match.homeRosterPlayers[0]?.careerCounts).toBeUndefined();
-    expect(match.awayRosterPlayers[0]?.careerCounts).toBeUndefined();
+    expect(match.homeRosterPlayers[0]).not.toHaveProperty('careerCounts');
+    expect(match.awayRosterPlayers[0]).not.toHaveProperty('careerCounts');
   });
 
   it('maps a match-embedded mercenary Big Guy entry (isBigGuy true, inline position name)', () => {

@@ -1,30 +1,16 @@
+import type { TpOfficialCharacteristics } from '@blood-bowl-tracker/api-contract';
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
 /**
- * One position template's characteristics under the rules set its roster's era
- * declares. TP stores all five as plain numbers per lineUp/star master.
- * `passing` is a plain number, never null: TP writes a literal 0 for a position
- * with no passing ability, and every rules set TP covers (BB2020, DB2021,
- * BB2025) does have a Passing characteristic, so no absent-vs-zero branching
- * is needed on the TP side.
- */
-export interface TpPositionCharacteristics {
-  move: number;
-  strength: number;
-  agility: number;
-  passing: number;
-  armour: number;
-}
-
-/**
  * One player's OWN current characteristics, from a `lineUps[]` entry --
- * distinct from `TpPositionCharacteristics` (the position template they were
- * recruited from) even though the shape is identical: a player's values drift
- * from the template as they level up. `passing` is a plain number, never null,
- * for the same reason `TpPositionCharacteristics.passing` is: TP writes a
- * literal 0 for a player with no passing ability, and every rules set TP
- * covers declares a Passing characteristic.
+ * distinct from `TpOfficialCharacteristics` (packages/api-contract; the position
+ * template they were recruited from) even though the shape is identical: a
+ * player's values drift from the template as they level up. `passing` is a
+ * plain number, never null, for the same reason
+ * `TpOfficialCharacteristics.passing` is: TP writes a literal 0 for a player
+ * with no passing ability, and every rules set TP covers declares a Passing
+ * characteristic.
  */
 export interface TpPlayerCharacteristics {
   move: number;
@@ -61,7 +47,7 @@ export interface TpPlayerLastingInjuries {
 export interface TpRosterPosition {
   tpPositionId: number;
   name: string;
-  characteristics: TpPositionCharacteristics;
+  characteristics: TpOfficialCharacteristics;
 }
 
 /**
@@ -131,7 +117,7 @@ export interface TpRosterPlayer {
    * the diff needs no lookup, and a mercenary hire that has no catalog entry
    * at all still carries one.
    */
-  positionTemplate?: TpPositionCharacteristics;
+  positionTemplate?: TpOfficialCharacteristics;
   /**
    * The entry's starting and gained skills, or `undefined` when the entry
    * cannot support the split -- see `TpPlayerSkills` for what that absence
@@ -143,8 +129,8 @@ export interface TpRosterPlayer {
 /**
  * One skill reference on a TP roster entry -- the position template's starting
  * skills and the player's own gained ones share this shape. `attributeType` is
- * TP's tag for what `attributeValue` holds; see `TpPositionSkillIdRef` in
- * official-teams-parser.service.ts for what each type means and why type 3 is
+ * TP's tag for what `attributeValue` holds; see `TpOfficialSkillIdRef` in
+ * packages/api-contract for what each type means and why type 3 is
  * an opaque code a consumer must not compose as-is.
  */
 export interface TpPlayerSkillRef {
@@ -468,7 +454,7 @@ export class RosterParserService {
    */
   private positionTemplate(
     entry: z.infer<typeof LineUpSchema>,
-  ): TpPositionCharacteristics | undefined {
+  ): TpOfficialCharacteristics | undefined {
     const master = entry.lineUpMaster;
     if (master === undefined) {
       return undefined;
@@ -534,7 +520,7 @@ export class RosterParserService {
     ag: number;
     pa: number;
     av: number;
-  }): TpPositionCharacteristics {
+  }): TpOfficialCharacteristics {
     return {
       move: entry.ma,
       strength: entry.st,
