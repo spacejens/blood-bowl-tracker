@@ -205,7 +205,7 @@ describe('DeploymentInfoService', () => {
             'App: blood-bowl-tracker-discord-bot',
             'Branch: main',
             'Commit: abcdef1',
-            'Committed: 2026-08-30 14:05 UTC',
+            'Committed: <t:1788098722:f>',
             '',
             'Show team records',
           ].join('\n'),
@@ -265,14 +265,25 @@ describe('DeploymentInfoService', () => {
     });
   });
 
-  it('renders an already-UTC commit timestamp without shifting it', () => {
+  it('renders the commit time as Discord timestamp markup in epoch seconds', () => {
     withEnv({ GIT_COMMIT_TIMESTAMP: '2026-08-30T14:05:22Z' });
     vi.mocked(execFileSync).mockImplementation(() => {
       throw new Error('not a git repository');
     });
 
     expect(service.describe('active').embeds[0].description).toBe(
-      'Committed: 2026-08-30 14:05 UTC',
+      'Committed: <t:1788098722:f>',
+    );
+  });
+
+  it('renders the same instant identically whatever UTC offset the committer had', () => {
+    withEnv({ GIT_COMMIT_TIMESTAMP: '2026-08-30T16:05:22+02:00' });
+    vi.mocked(execFileSync).mockImplementation(() => {
+      throw new Error('not a git repository');
+    });
+
+    expect(service.describe('active').embeds[0].description).toBe(
+      'Committed: <t:1788098722:f>',
     );
   });
 

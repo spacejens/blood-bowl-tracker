@@ -118,7 +118,7 @@ Machine: 148e123456
 App: blood-bowl-tracker-discord-bot
 Branch: main
 Commit: abcdef1
-Committed: 2026-08-30 14:05 UTC
+Committed: <t:1788098722:f>
 
 Show team records on the standings page
 ```
