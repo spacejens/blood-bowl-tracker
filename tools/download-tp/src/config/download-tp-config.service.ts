@@ -26,7 +26,7 @@ export const DEFAULT_DOWNLOAD_TP_CONFIG_PATH = resolve(
 
 const CONNECTION_MISSING =
   'connection is not set in download-tp-config.json5. Set it to an object, ' +
-  "e.g. { frontendUrl: 'https://tourplay.net/en/blood-bowl/', " +
+  "e.g. { frontendBaseUrl: 'https://tourplay.net/en/blood-bowl/', " +
   "backendApiUrl: 'https://tourplay.net/api/' }.";
 
 @Injectable()
@@ -36,11 +36,11 @@ export class DownloadTpConfigService extends createConfigLoaderServiceBase({
 }) {
   /**
    * Base URL of the TP frontend, including a trailing slash, from
-   * `connection.frontendUrl`. Required.
+   * `connection.frontendBaseUrl`. Required.
    */
-  getFrontendUrl(): string {
+  getFrontendBaseUrl(): string {
     return this.getConnectionUrl(
-      'frontendUrl',
+      'frontendBaseUrl',
       "'https://tourplay.net/en/blood-bowl/'",
     );
   }
@@ -113,7 +113,7 @@ export class DownloadTpConfigService extends createConfigLoaderServiceBase({
 
   /** Shared read of a required non-empty string URL under `connection`. */
   private getConnectionUrl(
-    field: 'frontendUrl' | 'backendApiUrl',
+    field: 'frontendBaseUrl' | 'backendApiUrl',
     example: string,
   ): string {
     const connection = connectionGroupSchema.safeParse(this.get('connection'));

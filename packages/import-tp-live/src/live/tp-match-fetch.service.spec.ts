@@ -27,7 +27,9 @@ describe('TpMatchFetchService', () => {
   beforeEach(async () => {
     const connection = mock<TpConnectionProvider>();
     connection.getBackendApiUrl.mockReturnValue('https://tp.example/api/');
-    connection.getFrontendUrl.mockReturnValue('https://tp.example/blood-bowl/');
+    connection.getFrontendBaseUrl.mockReturnValue(
+      'https://tp.example/blood-bowl/',
+    );
     fetcher = mock<TpFetcherService>();
     session = mock<TpFetchSession>();
     fetcher.createSession.mockReturnValue(session);

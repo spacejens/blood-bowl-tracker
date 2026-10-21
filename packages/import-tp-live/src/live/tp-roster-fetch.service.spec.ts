@@ -42,7 +42,7 @@ describe('TpRosterFetchService', () => {
   beforeEach(async () => {
     const connection = mock<TpConnectionProvider>();
     connection.getBackendApiUrl.mockReturnValue(BACKEND);
-    connection.getFrontendUrl.mockReturnValue(FRONTEND);
+    connection.getFrontendBaseUrl.mockReturnValue(FRONTEND);
     fetcher = mock<TpFetcherService>();
     session = mock<TpFetchSession>();
     fetcher.createSession.mockReturnValue(session);

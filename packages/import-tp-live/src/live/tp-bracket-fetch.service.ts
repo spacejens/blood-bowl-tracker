@@ -193,7 +193,7 @@ export class TpBracketFetchService {
     try {
       content = await session.fetch(this.connection.getBackendApiUrl() + path, {
         referer:
-          this.connection.getFrontendUrl() +
+          this.connection.getFrontendBaseUrl() +
           this.tournamentPaths.scoresFrontendPath(tournamentSlug),
       });
     } catch (error) {

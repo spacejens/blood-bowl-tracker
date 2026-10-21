@@ -56,7 +56,7 @@ export class TpMatchFetchService {
         this.connection.getBackendApiUrl() + this.matchPaths.apiPath(matchId),
         {
           referer:
-            this.connection.getFrontendUrl() +
+            this.connection.getFrontendBaseUrl() +
             this.matchPaths.frontendPath(tournamentSlug, matchId),
         },
       );

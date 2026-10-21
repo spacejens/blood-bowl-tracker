@@ -13,7 +13,7 @@ import {
 const VALID_CONFIG = `{
   // a comment
   connection: {
-    frontendUrl: 'https://tp.example/blood-bowl/',
+    frontendBaseUrl: 'https://tp.example/blood-bowl/',
     backendApiUrl: 'https://tp.example/api/',
   },
   download: { tournaments: ['season-29', 'season-30'] },
@@ -71,14 +71,14 @@ describe('DownloadTpConfigService', () => {
 
   it('parses JSON5 (comments, trailing commas, unquoted keys)', async () => {
     const service = await makeService(writeConfig(VALID_CONFIG));
-    expect(service.getFrontendUrl()).toBe('https://tp.example/blood-bowl/');
+    expect(service.getFrontendBaseUrl()).toBe('https://tp.example/blood-bowl/');
     expect(service.getBackendApiUrl()).toBe('https://tp.example/api/');
     expect(service.getTournaments()).toEqual(['season-29', 'season-30']);
   });
 
   it('throws for both connection URLs when the file is missing', async () => {
     const service = await makeService(missingPath());
-    expect(() => service.getFrontendUrl()).toThrow(
+    expect(() => service.getFrontendBaseUrl()).toThrow(
       'connection is not set in download-tp-config.json5',
     );
     expect(() => service.getBackendApiUrl()).toThrow(
@@ -89,7 +89,7 @@ describe('DownloadTpConfigService', () => {
   it('throws when connection is not an object', async () => {
     const path = writeConfig(`{ connection: 'https://tp.example/' }`);
     const service = await makeService(path);
-    expect(() => service.getFrontendUrl()).toThrow(
+    expect(() => service.getFrontendBaseUrl()).toThrow(
       'connection is not set in download-tp-config.json5',
     );
   });
@@ -97,32 +97,32 @@ describe('DownloadTpConfigService', () => {
   it('throws when connection is null', async () => {
     const path = writeConfig(`{ connection: null }`);
     const service = await makeService(path);
-    expect(() => service.getFrontendUrl()).toThrow(
+    expect(() => service.getFrontendBaseUrl()).toThrow(
       'connection is not set in download-tp-config.json5',
     );
   });
 
-  it('throws when frontendUrl is missing', async () => {
+  it('throws when frontendBaseUrl is missing', async () => {
     const path = writeConfig(
       `{ connection: { backendApiUrl: 'https://tp.example/api/' } }`,
     );
     const service = await makeService(path);
-    expect(() => service.getFrontendUrl()).toThrow(
-      'connection.frontendUrl is not set in download-tp-config.json5',
+    expect(() => service.getFrontendBaseUrl()).toThrow(
+      'connection.frontendBaseUrl is not set in download-tp-config.json5',
     );
   });
 
-  it('throws when frontendUrl is an empty string', async () => {
-    const path = writeConfig(`{ connection: { frontendUrl: '' } }`);
+  it('throws when frontendBaseUrl is an empty string', async () => {
+    const path = writeConfig(`{ connection: { frontendBaseUrl: '' } }`);
     const service = await makeService(path);
-    expect(() => service.getFrontendUrl()).toThrow(
-      'connection.frontendUrl is not set in download-tp-config.json5',
+    expect(() => service.getFrontendBaseUrl()).toThrow(
+      'connection.frontendBaseUrl is not set in download-tp-config.json5',
     );
   });
 
   it('throws when backendApiUrl is missing', async () => {
     const path = writeConfig(
-      `{ connection: { frontendUrl: 'https://tp.example/blood-bowl/' } }`,
+      `{ connection: { frontendBaseUrl: 'https://tp.example/blood-bowl/' } }`,
     );
     const service = await makeService(path);
     expect(() => service.getBackendApiUrl()).toThrow(

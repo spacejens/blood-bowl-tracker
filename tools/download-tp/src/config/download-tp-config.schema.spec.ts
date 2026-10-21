@@ -26,19 +26,19 @@ describe('configFileSchema', () => {
 describe('connectionGroupSchema', () => {
   it('reads both urls', () => {
     const parsed = connectionGroupSchema.parse({
-      frontendUrl: 'https://tourplay.net/en/blood-bowl/',
+      frontendBaseUrl: 'https://tourplay.net/en/blood-bowl/',
       backendApiUrl: 'https://tourplay.net/api/',
     });
-    expect(parsed.frontendUrl).toBe('https://tourplay.net/en/blood-bowl/');
+    expect(parsed.frontendBaseUrl).toBe('https://tourplay.net/en/blood-bowl/');
     expect(parsed.backendApiUrl).toBe('https://tourplay.net/api/');
   });
 
   it('treats an empty or non-string url as unset', () => {
     const parsed = connectionGroupSchema.parse({
-      frontendUrl: '',
+      frontendBaseUrl: '',
       backendApiUrl: 7,
     });
-    expect(parsed.frontendUrl).toBeUndefined();
+    expect(parsed.frontendBaseUrl).toBeUndefined();
     expect(parsed.backendApiUrl).toBeUndefined();
   });
 

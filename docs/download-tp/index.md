@@ -37,12 +37,12 @@ Copy the template and edit it:
 cp tools/download-tp/download-tp-config.example.json5 tools/download-tp/download-tp-config.json5
 ```
 
-| Key                        | Meaning                                                                                               |
-| -------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `connection.frontendUrl`   | Base URL of the TP frontend, including a trailing slash (required)                                    |
-| `connection.backendApiUrl` | Base URL of the TP API, including a trailing slash — every request goes to a path under it (required) |
-| `download.tournaments`     | Tournament names to download, as they appear in the frontend path (required; may be empty)            |
-| `download.rulesSets`       | Rules sets to download TP's official team list for (required; may be empty)                           |
+| Key                          | Meaning                                                                                               |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `connection.frontendBaseUrl` | Base URL of the TP frontend, including a trailing slash (required)                                    |
+| `connection.backendApiUrl`   | Base URL of the TP API, including a trailing slash — every request goes to a path under it (required) |
+| `download.tournaments`       | Tournament names to download, as they appear in the frontend path (required; may be empty)            |
+| `download.rulesSets`         | Rules sets to download TP's official team list for (required; may be empty)                           |
 
 `download-tp-config.json5` is git-ignored; only the `.example` template is
 committed. It is looked up at `download-tp-config.json5` in the working
@@ -61,7 +61,7 @@ pnpm --filter @blood-bowl-tracker/download-tp run start
 No browser is needed.
 
 The official team list download runs first (see "What it does" above). It
-reads `connection.frontendUrl` and `download.rulesSets` up front, and
+reads `connection.frontendBaseUrl` and `download.rulesSets` up front, and
 `connection.backendApiUrl` when it builds the first request — so a missing or
 incomplete value for any of those three fails fast, with a message naming the
 key to set, before any request is sent. `download.tournaments` is only read

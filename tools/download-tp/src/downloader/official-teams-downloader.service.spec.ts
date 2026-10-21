@@ -22,7 +22,7 @@ describe('OfficialTeamsDownloaderService', () => {
 
   beforeEach(async () => {
     configService = mock<DownloadTpConfigService>();
-    configService.getFrontendUrl.mockReturnValue(FRONTEND);
+    configService.getFrontendBaseUrl.mockReturnValue(FRONTEND);
     configService.getRulesSets.mockReturnValue(['BB2020', 'BB2025']);
     sessions = [];
     tpFetcherService = mock<TpFetcherService>();
