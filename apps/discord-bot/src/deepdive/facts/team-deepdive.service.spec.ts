@@ -584,7 +584,7 @@ describe('TeamDeepdiveService', () => {
       {
         playerId: 5,
         name: 'Griff',
-        count: 20,
+        count: 1234,
         contextSuffix: ' (Blitzer, First era)',
       },
       {
@@ -603,7 +603,7 @@ describe('TeamDeepdiveService', () => {
           {
             playerId: 5,
             name: 'Griff',
-            count: 20,
+            count: 1234,
             positionId: 60,
             positionName: 'Blitzer',
             isStarPlayer: false,
@@ -629,7 +629,7 @@ describe('TeamDeepdiveService', () => {
       embeds: { description: string }[];
     };
     const lines = result.embeds[0].description.split('\n');
-    expect(lines).toContain('1. Griff (Blitzer, First era) — 20');
+    expect(lines).toContain('1. Griff (Blitzer, First era) — 1,234');
     expect(lines).toContain('1. Morg (Star Player, Second era) — 11');
     const [rows, playerIdOf, options] =
       playerContext.attachSuffixes.mock.calls[0];
@@ -890,6 +890,23 @@ describe('TeamDeepdiveService', () => {
     expect(trophyAwards.listByTeam).toHaveBeenCalledWith(1, 30);
     expect(result.embeds[0].description.split('\n')).toContain(
       '…and 33 more not shown.',
+    );
+  });
+
+  it('groups an honors remainder of a thousand or more', async () => {
+    const { service } = await makeService({
+      teams: makeTeams({
+        team: grinders,
+        span: { start: '2021-09-01', end: '2023-06-10' },
+      }),
+      leaderboard: passthroughLeaderboard(),
+      trophyAwards: makeTrophyAwards([spikeCup], 1235),
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    expect(result.embeds[0].description.split('\n')).toContain(
+      '…and 1,234 more not shown.',
     );
   });
 });

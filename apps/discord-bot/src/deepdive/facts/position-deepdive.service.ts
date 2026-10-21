@@ -35,6 +35,7 @@ import {
   MAX_LEADERBOARD_ENTRIES,
 } from '../../insights/leaderboard.service';
 import { PlayerContextService } from '../../insights/player-context.service';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import {
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   POSITION_BUTTON_CUSTOM_ID_PREFIX,
@@ -78,6 +79,7 @@ export class PositionDeepdiveService {
     private readonly leaderboard: LeaderboardService,
     private readonly entityComponents: EntityComponentsService,
     private readonly playerContext: PlayerContextService,
+    private readonly numbers: NumberFormatterService,
   ) {}
 
   async resolve(positionId: number): Promise<string | InteractionReplyOptions> {
@@ -190,10 +192,10 @@ export class PositionDeepdiveService {
         ? [DEEPDIVE_POSITION_NO_PLAYERS_MESSAGE]
         : decorated.map(
             (row) =>
-              `${row.rank}. ${row.name}${row.contextSuffix} — ${row.sppTotal}`,
+              `${row.rank}. ${row.name}${row.contextSuffix} — ${this.numbers.count(row.sppTotal)}`,
           );
     if (truncatedCount > 0) {
-      playerLines.push(`…and ${truncatedCount} more tied.`);
+      playerLines.push(`…and ${this.numbers.count(truncatedCount)} more tied.`);
     }
 
     // Races first, then the top players: `buildEntityComponents` has no
@@ -220,7 +222,7 @@ export class PositionDeepdiveService {
       ...statLines,
       ...keywordLines,
       '',
-      `Held by ${playerCount} ${playerCount === 1 ? 'player' : 'players'}`,
+      `Held by ${this.numbers.counted(playerCount, 'player')}`,
       '',
       'Top players by SPP:',
       ...playerLines,

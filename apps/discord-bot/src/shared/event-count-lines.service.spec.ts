@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { EventCountLinesService } from './event-count-lines.service';
+import { NumberFormatterService } from './number-formatter.service';
 
 /**
  * Test-only factory for building counts with sensible defaults.
@@ -24,7 +25,8 @@ describe('EventCountLinesService', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [EventCountLinesService],
+      // Pure chain: both services are pure, so both are real.
+      providers: [EventCountLinesService, NumberFormatterService],
     }).compile();
     service = moduleRef.get(EventCountLinesService);
   });
@@ -42,6 +44,30 @@ describe('EventCountLinesService', () => {
     );
 
     expect(result).toEqual(['Touchdowns scored: 3', 'Completions: 1']);
+  });
+
+  it('uses the singular for exactly one serious injury', () => {
+    expect(
+      service.build(
+        counts({ fouls: { total: 2, seriousInjuries: 1, killed: 1 } }),
+        'none',
+      ),
+    ).toEqual(['Fouls committed: 2 (1 serious injury, 1 killed)']);
+  });
+
+  it('groups large counts with thousands separators', () => {
+    expect(
+      service.build(
+        counts({
+          simple: [{ label: 'Touchdowns scored', count: 1234 }],
+          casualties: { total: 5678, seriousInjuries: 1200, killed: 1001 },
+        }),
+        'none',
+      ),
+    ).toEqual([
+      'Touchdowns scored: 1,234',
+      'Casualties inflicted: 5,678 (1,200 serious injuries, 1,001 killed)',
+    ]);
   });
 
   it('breaks a group line down by severity', () => {

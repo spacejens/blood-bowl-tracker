@@ -19,6 +19,7 @@ import {
   MAX_LEADERBOARD_ENTRIES,
 } from '../../insights/leaderboard.service';
 import { TeamContextService } from '../../insights/team-context.service';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import {
   COACH_BUTTON_CUSTOM_ID_PREFIX,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
@@ -48,6 +49,7 @@ export class CoachDeepdiveService {
     private readonly leaderboard: LeaderboardService,
     private readonly entityComponents: EntityComponentsService,
     private readonly teamContext: TeamContextService,
+    private readonly numbers: NumberFormatterService,
   ) {}
 
   async resolve(coachId: number): Promise<string | InteractionReplyOptions> {
@@ -133,10 +135,11 @@ export class CoachDeepdiveService {
       return DEEPDIVE_COACH_TEAM_CONTEXT_TIMEOUT_MESSAGE;
     }
     const teamLines = decorated.map(
-      (row) => `${row.rank}. ${row.name}${row.contextSuffix} — ${row.count}`,
+      (row) =>
+        `${row.rank}. ${row.name}${row.contextSuffix} — ${this.numbers.count(row.count)}`,
     );
     if (truncatedCount > 0) {
-      teamLines.push(`…and ${truncatedCount} more tied.`);
+      teamLines.push(`…and ${this.numbers.count(truncatedCount)} more tied.`);
     }
 
     // Leaderboard entries first: buildEntityComponents has no internal

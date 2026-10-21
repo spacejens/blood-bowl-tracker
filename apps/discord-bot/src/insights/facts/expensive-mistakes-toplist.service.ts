@@ -9,6 +9,7 @@ import {
   TEAM_TOPLIST_NO_DATA_MESSAGE,
   TEAM_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import type { EntityLink } from '../leaderboard.service';
 import { LeaderboardService } from '../leaderboard.service';
 import { TeamContextService } from '../team-context.service';
@@ -40,11 +41,12 @@ export class ExpensiveMistakesToplistService {
     private readonly leaderboard: LeaderboardService,
     private readonly categoryLabel: MatchCategoryLabelService,
     private readonly teamContext: TeamContextService,
+    private readonly numbers: NumberFormatterService,
   ) {}
 
   /** Money rendered with a thousands separator and a `gp` suffix, e.g. `150,000 gp`. */
   private gp(amount: number): string {
-    return `${amount.toLocaleString('en-US')} gp`;
+    return `${this.numbers.count(amount)} gp`;
   }
 
   /**

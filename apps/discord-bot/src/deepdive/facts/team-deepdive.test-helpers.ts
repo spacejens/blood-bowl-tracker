@@ -16,6 +16,7 @@ import { PlayerContextService } from '../../insights/player-context.service';
 import { passthroughPlayerContext } from '../../insights/player-context-mock.test-helpers';
 import { EraSectionGrouperService } from '../../shared/era-section-grouper.service';
 import { singleEraSectionGrouper } from '../../shared/era-section-grouper-mock.test-helpers';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import { PLAYER_BUTTON_CUSTOM_ID_PREFIX } from '../button-custom-ids';
 import { PlayerRowButtonService } from '../player-row-button.service';
 import { TeamDeepdiveService } from './team-deepdive.service';
@@ -138,6 +139,7 @@ export async function makeService({
   const moduleRef = await Test.createTestingModule({
     providers: [
       TeamDeepdiveService,
+      NumberFormatterService,
       { provide: TeamsService, useValue: teams },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: LeaderboardService, useValue: leaderboard },

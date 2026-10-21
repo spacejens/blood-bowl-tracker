@@ -7,6 +7,7 @@ import { mock } from 'vitest-mock-extended';
 
 import { TEAM_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
 import { TEAM_TOPLIST_TIMEOUT_MESSAGE } from '../../error-messages';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import type { ResolveToplistOptions } from '../leaderboard.service';
 import {
   LeaderboardService,
@@ -32,6 +33,7 @@ async function makeService(
   const moduleRef = await Test.createTestingModule({
     providers: [
       ExpensiveMistakesToplistService,
+      NumberFormatterService,
       { provide: TeamsService, useValue: teams },
       { provide: LeaderboardService, useValue: leaderboard },
       { provide: MatchCategoryLabelService, useValue: categoryLabel },

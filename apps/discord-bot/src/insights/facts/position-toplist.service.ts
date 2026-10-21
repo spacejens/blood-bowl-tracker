@@ -11,6 +11,7 @@ import {
   POSITION_TOPLIST_NO_DATA_MESSAGE,
   POSITION_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import type { EntityLink } from '../leaderboard.service';
 import { LeaderboardService } from '../leaderboard.service';
 
@@ -33,6 +34,7 @@ export class PositionToplistService {
   constructor(
     private readonly positions: PositionsService,
     private readonly leaderboard: LeaderboardService,
+    private readonly numbers: NumberFormatterService,
   ) {}
 
   /**
@@ -48,7 +50,7 @@ export class PositionToplistService {
       noDataMessage: POSITION_TOPLIST_NO_DATA_MESSAGE,
       entityLink: this.positionLink,
       formatRow: (row) =>
-        `${row.rank}. ${row.name} (${row.raceName}) — ${row.count}`,
+        `${row.rank}. ${row.name} (${row.raceName}) — ${this.numbers.count(row.count)}`,
     });
   }
 }

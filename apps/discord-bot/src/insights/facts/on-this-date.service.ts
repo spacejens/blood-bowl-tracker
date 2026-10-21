@@ -28,6 +28,7 @@ import {
 import { EventCountLinesService } from '../../shared/event-count-lines.service';
 import type { MonthDay } from '../../shared/month-day.service';
 import { MonthDayService } from '../../shared/month-day.service';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import {
   MAX_LEADERBOARD_ENTRIES,
   TOPLIST_FETCH_LIMIT,
@@ -67,6 +68,7 @@ export class OnThisDateFactsService {
     private readonly monthDay: MonthDayService,
     private readonly killerInfo: PlayerKillerInfoFormatterService,
     private readonly playerRowButton: PlayerRowButtonService,
+    private readonly numbers: NumberFormatterService,
   ) {}
 
   resolveToday(scope: FactScope): Promise<string | InteractionReplyOptions> {
@@ -105,7 +107,7 @@ export class OnThisDateFactsService {
     }
 
     const lines = [
-      `Matches played: ${matchCount}`,
+      `Matches played: ${this.numbers.count(matchCount)}`,
       '',
       ...this.eventCountLines.build(counts, ON_THIS_DATE_NO_EVENTS_MESSAGE),
     ];
@@ -163,7 +165,9 @@ export class OnThisDateFactsService {
       );
     const openEnded = saturated && tieGroupOpenEnded;
     const exact =
-      truncatedCount > 0 ? `…and ${truncatedCount} more tied.` : null;
+      truncatedCount > 0
+        ? `…and ${this.numbers.count(truncatedCount)} more tied.`
+        : null;
     return {
       shown: rows,
       remainder: openEnded ? '…and lots more tied.' : exact,
@@ -221,7 +225,7 @@ export class OnThisDateFactsService {
     ];
     const truncatedCount = victims.length - shown.length;
     if (truncatedCount > 0) {
-      lines.push(`…and ${truncatedCount} more not shown.`);
+      lines.push(`…and ${this.numbers.count(truncatedCount)} more not shown.`);
     }
     if (remainder !== null) {
       lines.push(remainder);
@@ -246,7 +250,7 @@ export class OnThisDateFactsService {
     const context = showEra
       ? ` on ${victim.matchDate} (${victim.eraName})`
       : ` on ${victim.matchDate}`;
-    return `${victim.rank}. ${victim.name} (${victim.positionName}, ${victim.teamName}, ${victim.raceName}, ${victim.coachName}) — ${victim.sppTotal} SPP, killed by ${clause}${foulNote}${context}`;
+    return `${victim.rank}. ${victim.name} (${victim.positionName}, ${victim.teamName}, ${victim.raceName}, ${victim.coachName}) — ${this.numbers.count(victim.sppTotal)} SPP, killed by ${clause}${foulNote}${context}`;
   }
 
   /**

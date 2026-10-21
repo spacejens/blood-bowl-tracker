@@ -35,7 +35,7 @@ import { EraSectionGrouperService } from '../shared/era-section-grouper.service'
 import { EventCountLinesService } from '../shared/event-count-lines.service';
 import { ListDescriptionService } from '../shared/list-description.service';
 import { MonthDayService } from '../shared/month-day.service';
-import { DayCountFormatterService } from './day-count-formatter.service';
+import { NumberFormatterService } from '../shared/number-formatter.service';
 import { FACT_TREE } from './fact-tree.token';
 import { FactTreeFactoryService } from './fact-tree-factory.service';
 import { FactTreeUtilsService } from './fact-tree-utils.service';
@@ -98,8 +98,8 @@ const GAME_DATA_MODULES = [
     ToplistFactoryService,
     TeamContextService,
     PlayerContextService,
-    DayCountFormatterService,
     DateRangeFormatterService,
+    NumberFormatterService,
     EraSectionGrouperService,
     EventCountLinesService,
     ListDescriptionService,
@@ -142,8 +142,8 @@ const GAME_DATA_MODULES = [
     ToplistFactoryService,
     TeamContextService,
     PlayerContextService,
-    DayCountFormatterService,
     DateRangeFormatterService,
+    NumberFormatterService,
     EraSectionGrouperService,
     EventCountLinesService,
     ListDescriptionService,

@@ -27,6 +27,7 @@ import {
   COMPETITION_GROUPS_LIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { ListDescriptionService } from '../../shared/list-description.service';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 import { CompetitionGroupsListService } from './competition-groups-list.service';
 import { expectTimeoutFallback } from './toplist.test-helpers';
 
@@ -58,6 +59,7 @@ async function makeServiceFromCompetitionGroups(
   const moduleRef = await Test.createTestingModule({
     providers: [
       CompetitionGroupsListService,
+      NumberFormatterService,
       { provide: CompetitionGroupsService, useValue: competitionGroups },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
@@ -138,6 +140,18 @@ describe('CompetitionGroupsListService.resolve', () => {
     };
     expect(result.embeds[0].description).toBe(
       'Ogretoberfest (Premier): 1 competition',
+    );
+  });
+
+  it('groups thousands in the competition count', async () => {
+    const service = await makeService([
+      { id: 1, name: 'Big', leagueName: 'Premier', competitionCount: 1234 },
+    ]);
+    const result = (await service.resolve(FACT_SCOPE_ALL_TIME)) as {
+      embeds: { description: string }[];
+    };
+    expect(result.embeds[0].description).toBe(
+      'Big (Premier): 1,234 competitions',
     );
   });
 

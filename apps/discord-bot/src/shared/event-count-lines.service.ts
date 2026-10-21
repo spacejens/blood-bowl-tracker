@@ -4,6 +4,8 @@ import type {
 } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
 
+import { NumberFormatterService } from './number-formatter.service';
+
 /**
  * Renders the counter block that shows event counts (touchdowns, fouls,
  * casualties, etc.) as lines of text.
@@ -17,6 +19,8 @@ import { Injectable } from '@nestjs/common';
  */
 @Injectable()
 export class EventCountLinesService {
+  constructor(private readonly numbers: NumberFormatterService) {}
+
   /**
    * The counter block: the five simple categories in their fixed order (zero
    * ones omitted), then the casualty and foul lines, each carrying its own
@@ -30,7 +34,10 @@ export class EventCountLinesService {
     const lines = [
       ...counts.simple
         .filter((category) => category.count > 0)
-        .map((category) => `${category.label}: ${category.count}`),
+        .map(
+          (category) =>
+            `${category.label}: ${this.numbers.count(category.count)}`,
+        ),
       ...this.buildGroupLine('Casualties inflicted', counts.casualties),
       ...this.buildGroupLine('Fouls committed', counts.fouls),
     ];
@@ -54,10 +61,18 @@ export class EventCountLinesService {
     const parts = [
       ...(group.seriousInjuries === 0
         ? []
-        : [`${group.seriousInjuries} serious injuries`]),
-      ...(group.killed === 0 ? [] : [`${group.killed} killed`]),
+        : [
+            this.numbers.counted(
+              group.seriousInjuries,
+              'serious injury',
+              'serious injuries',
+            ),
+          ]),
+      ...(group.killed === 0
+        ? []
+        : [`${this.numbers.count(group.killed)} killed`]),
     ];
     const breakdown = parts.length === 0 ? '' : ` (${parts.join(', ')})`;
-    return [`${label}: ${group.total}${breakdown}`];
+    return [`${label}: ${this.numbers.count(group.total)}${breakdown}`];
   }
 }

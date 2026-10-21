@@ -11,6 +11,7 @@ import {
   COMPETITION_GROUPS_LIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { ListDescriptionService } from '../../shared/list-description.service';
+import { NumberFormatterService } from '../../shared/number-formatter.service';
 
 interface CompetitionGroupEntry {
   id: number;
@@ -26,6 +27,7 @@ export class CompetitionGroupsListService {
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
     private readonly listDescription: ListDescriptionService,
+    private readonly numbers: NumberFormatterService,
   ) {}
 
   async resolve(scope: FactScope): Promise<string | InteractionReplyOptions> {
@@ -57,9 +59,7 @@ export class CompetitionGroupsListService {
 
     const lines = ordered.map(
       (group) =>
-        `${group.name} (${group.leagueName}): ${group.competitionCount} competition${
-          group.competitionCount === 1 ? '' : 's'
-        }`,
+        `${group.name} (${group.leagueName}): ${this.numbers.counted(group.competitionCount, 'competition')}`,
     );
 
     const { components, overflowNote } =
