@@ -1,10 +1,10 @@
 import type {
   ImportError,
+  ImportTpOfficialTeams,
   TpOfficialTeamsImportResult,
   TpSkillMasterName,
 } from '@blood-bowl-tracker/api-contract';
 import { ImportResultService } from '@blood-bowl-tracker/import-shared';
-import type { TpOfficialRace } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 import { TpOfficialCharacteristicsSyncService } from './tp-official-characteristics-sync.service';
@@ -16,19 +16,19 @@ import { TpOfficialSkillRefsService } from './tp-official-skill-refs.service';
 import { TpOfficialStartingSkillsService } from './tp-official-starting-skills.service';
 import { TpOfficialTeamsContextService } from './tp-official-teams-context.service';
 
-/** Options for {@link TpOfficialTeamsImportService.importOfficialTeams}. */
-export interface ImportOfficialTeamsOptions {
-  /** The rules set the list is for, by name (its TP external id). */
-  rulesSet: string;
-  /** Every official and legacy race TP lists for that rules set, parsed. */
-  races: TpOfficialRace[];
+/**
+ * Options for {@link TpOfficialTeamsImportService.importOfficialTeams}: the
+ * `tpOfficialTeams.import` input, except that `skillMasters` may be omitted.
+ */
+export interface ImportOfficialTeamsOptions extends Omit<
+  ImportTpOfficialTeams,
+  'skillMasters'
+> {
   /**
    * Names for referenced skillMasterIds, when the caller has them; an id
    * with no name resolves only through a skill already registered under it.
    */
   skillMasters?: TpSkillMasterName[];
-  /** The name TP's external system is registered under. */
-  externalSystemName: string;
 }
 
 /**

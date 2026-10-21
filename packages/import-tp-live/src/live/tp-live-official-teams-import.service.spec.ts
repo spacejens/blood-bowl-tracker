@@ -1,6 +1,8 @@
-import type { TpOfficialTeamsImportResult } from '@blood-bowl-tracker/api-contract';
+import type {
+  TpOfficialRace,
+  TpOfficialTeamsImportResult,
+} from '@blood-bowl-tracker/api-contract';
 import { ImportResultService } from '@blood-bowl-tracker/import-shared';
-import type { TpOfficialRace } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import {
   TpBlockedError,

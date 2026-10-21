@@ -1,16 +1,17 @@
-import type { ExternalId, ImportError } from '@blood-bowl-tracker/api-contract';
+import type {
+  ExternalId,
+  ImportError,
+  TpOfficialCharacteristics,
+  TpOfficialPosition,
+  TpOfficialRace,
+  TpOfficialSkillRef,
+} from '@blood-bowl-tracker/api-contract';
 import { PositionsService } from '@blood-bowl-tracker/game-data';
 import {
   ImportResultService,
   NameExternalIdService,
   UpsertRecorderService,
 } from '@blood-bowl-tracker/import-shared';
-import type {
-  TpOfficialPosition,
-  TpOfficialRace,
-  TpPositionCharacteristics,
-  TpPositionSkillRef,
-} from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 import type { TpOfficialRaceRef } from './tp-official-races-upsert.service';
@@ -23,8 +24,8 @@ import type { TpOfficialTeamsContext } from './tp-official-teams-context.service
 export interface TpOfficialPositionSlot {
   positionId: number;
   name: string;
-  characteristics: TpPositionCharacteristics;
-  skills: TpPositionSkillRef[];
+  characteristics: TpOfficialCharacteristics;
+  skills: TpOfficialSkillRef[];
   keywordCodes: number[];
 }
 
@@ -46,8 +47,8 @@ export interface UpsertedOfficialPositions {
 
 /** One rules set's values for a position, tagged with the roster kind they came from. */
 interface PositionSource {
-  characteristics: TpPositionCharacteristics;
-  skills: TpPositionSkillRef[];
+  characteristics: TpOfficialCharacteristics;
+  skills: TpOfficialSkillRef[];
   keywordCodes: number[];
   isOfficial: boolean;
 }

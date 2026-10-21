@@ -1,7 +1,7 @@
 import type {
   TpOfficialPosition,
   TpOfficialRace,
-} from '@blood-bowl-tracker/parse-tp';
+} from '@blood-bowl-tracker/api-contract';
 
 import type { TpOfficialPositionSlot } from './tp-official-positions-upsert.service';
 import type { TpOfficialTeamsContext } from './tp-official-teams-context.service';

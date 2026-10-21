@@ -2,8 +2,8 @@ import type {
   ImportError,
   ImportResult,
 } from '@blood-bowl-tracker/api-contract';
+import type { TpCompetitionAward } from '@blood-bowl-tracker/api-contract';
 import { ImportResultService } from '@blood-bowl-tracker/import-shared';
-import type { TpAward } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import { TpBlockedError } from '@blood-bowl-tracker/scrape-tp';
 import { Test } from '@nestjs/testing';
@@ -40,7 +40,7 @@ const teamNotImported: TpLiveTeamImportResult = {
   era: undefined,
   teamEra: undefined,
 };
-const AWARD: TpAward = { id: 24112, awardType: 1, rosterId: 179769 };
+const AWARD: TpCompetitionAward = { id: 24112, awardType: 1, rosterId: 179769 };
 const LINKED = new Map([
   [163386, 31],
   [179769, 32],

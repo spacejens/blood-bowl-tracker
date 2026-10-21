@@ -1,9 +1,9 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
+import type { TpCompetitionAward } from '@blood-bowl-tracker/api-contract';
 import {
   ImportResultService,
   UpsertRecorderService,
 } from '@blood-bowl-tracker/import-shared';
-import type { TpAward } from '@blood-bowl-tracker/parse-tp';
 import { AwardsParserService } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import {
@@ -22,7 +22,9 @@ import { TpAwardsFetchService } from './tp-awards-fetch.service';
 
 const API = 'https://tp.example/api/';
 const AWARDS_PAGE = 'https://tp.example/blood-bowl/s30/awards';
-const AWARDS: TpAward[] = [{ id: 24112, awardType: 1, rosterId: 179769 }];
+const AWARDS: TpCompetitionAward[] = [
+  { id: 24112, awardType: 1, rosterId: 179769 },
+];
 
 describe('TpAwardsFetchService', () => {
   let service: TpAwardsFetchService;

@@ -2,8 +2,8 @@ import type {
   ImportError,
   ImportResult,
 } from '@blood-bowl-tracker/api-contract';
+import type { TpCompetitionAward } from '@blood-bowl-tracker/api-contract';
 import { ImportResultService } from '@blood-bowl-tracker/import-shared';
-import type { TpAward } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import {
   TpBlockedError,
@@ -62,7 +62,7 @@ const BRACKET: TpBracket = {
   ],
   playedDates: [new Date('2026-01-10'), new Date('2026-06-20')],
 };
-const AWARD: TpAward = { id: 24112, awardType: 1, rosterId: 179769 };
+const AWARD: TpCompetitionAward = { id: 24112, awardType: 1, rosterId: 179769 };
 const CORE: TpCoreCompetitionImportResult = {
   competition: one,
   participation: { success: true, imported: 2, errors: [] },
