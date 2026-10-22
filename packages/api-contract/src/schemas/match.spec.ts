@@ -37,6 +37,29 @@ describe('UpsertMatchSchema', () => {
     expect(parsed.playedAt).toBeUndefined();
     expect(parsed.teamEraIds).toEqual([]);
   });
+
+  it('coerces an ISO date-time string playedAt to a Date', () => {
+    const parsed = UpsertMatchSchema.parse({
+      ...valid,
+      playedAt: '2021-09-25T18:30:00Z',
+    });
+    expect(parsed.playedAt).toBeInstanceOf(Date);
+    expect(parsed.playedAt?.toISOString()).toBe('2021-09-25T18:30:00.000Z');
+  });
+
+  it('still accepts a Date playedAt unchanged', () => {
+    const parsed = UpsertMatchSchema.parse({
+      ...valid,
+      playedAt: new Date('2021-09-25T00:00:00.000Z'),
+    });
+    expect(parsed.playedAt?.toISOString()).toBe('2021-09-25T00:00:00.000Z');
+  });
+
+  it('rejects a playedAt string that is not a date', () => {
+    expect(() =>
+      UpsertMatchSchema.parse({ ...valid, playedAt: 'not a date' }),
+    ).toThrow();
+  });
 });
 
 describe('MatchSchema', () => {
