@@ -1,5 +1,7 @@
-import type { ImportError } from '@blood-bowl-tracker/api-contract';
-import type { KeywordCatalogRow } from '@blood-bowl-tracker/game-data';
+import type {
+  ImportError,
+  KeywordCatalogEntry,
+} from '@blood-bowl-tracker/api-contract';
 import { KeywordsService } from '@blood-bowl-tracker/game-data';
 import { UpsertRecorderService } from '@blood-bowl-tracker/import-shared';
 import { Test } from '@nestjs/testing';
@@ -11,7 +13,7 @@ import { TpOfficialKeywordCatalogService } from './tp-official-keyword-catalog.s
 import { TP_SYSTEM_ID } from './tp-official-teams.test-helpers';
 
 function row(externalId: string, keywordId: number, name: string) {
-  return mock<KeywordCatalogRow>({ externalId, keywordId, name });
+  return mock<KeywordCatalogEntry>({ externalId, keywordId, name });
 }
 
 describe('TpOfficialKeywordCatalogService', () => {

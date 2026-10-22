@@ -14,7 +14,8 @@ export const ComputeMissingTrophyAwardsSchema = z.object({
 /**
  * What the call did. `createdAwardCount` counts only awards that did not
  * already exist, so a re-import of an unchanged competition reports zero
- * rather than re-counting its own earlier work.
+ * rather than re-counting its own earlier work. `awardedTrophyIds` lists
+ * every trophy the call recorded at least one new award for.
  */
 export const ComputeMissingTrophyAwardsResultSchema = z.object({
   competitionId: z.number().int(),
