@@ -2,9 +2,9 @@ import type {
   ImportError,
   ImportResult,
   TeamEra,
+  TpMatchEmbeddedPlayer,
 } from '@blood-bowl-tracker/api-contract';
 import { ImportResultService } from '@blood-bowl-tracker/import-shared';
-import type { TpRosterPlayer } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import { TpBlockedError } from '@blood-bowl-tracker/scrape-tp';
 import { Injectable } from '@nestjs/common';
@@ -34,7 +34,7 @@ export interface ImportTeamOptions {
    * who has since left the roster is still imported. A live match import
    * passes its match's snapshot; a plain team import passes none.
    */
-  matchEmbeddedPlayers?: TpRosterPlayer[];
+  matchEmbeddedPlayers?: TpMatchEmbeddedPlayer[];
 }
 
 /** What one live team import did. */

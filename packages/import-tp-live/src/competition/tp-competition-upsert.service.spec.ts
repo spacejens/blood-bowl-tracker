@@ -1,4 +1,7 @@
-import type { ImportError } from '@blood-bowl-tracker/api-contract';
+import type {
+  ImportError,
+  TpCompetitionTournament,
+} from '@blood-bowl-tracker/api-contract';
 import type { ExternalSystem } from '@blood-bowl-tracker/db';
 import type { CompetitionWithTeamEras } from '@blood-bowl-tracker/game-data';
 import {
@@ -18,7 +21,6 @@ import { mock } from 'vitest-mock-extended';
 import { upsertedCompetition } from './tp-competition.test-helpers';
 import { TpCompetitionClassifierService } from './tp-competition-classifier.service';
 import { TpCompetitionSpanService } from './tp-competition-span.service';
-import type { TpCompetitionTournament } from './tp-competition-upsert.service';
 import { TpCompetitionUpsertService } from './tp-competition-upsert.service';
 
 const TOURNAMENT: TpCompetitionTournament = {

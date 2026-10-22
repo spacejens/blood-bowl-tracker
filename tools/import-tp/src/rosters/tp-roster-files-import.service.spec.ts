@@ -1,12 +1,15 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
-import type { TpRosterImportResult } from '@blood-bowl-tracker/api-contract';
+import type {
+  TpMatchEmbeddedPlayer,
+  TpRosterImportResult,
+} from '@blood-bowl-tracker/api-contract';
 import {
   ImportResultService,
   ImportRunnerService,
   TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
-import type { TpRoster, TpRosterPlayer } from '@blood-bowl-tracker/parse-tp';
+import type { TpRoster } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
@@ -36,8 +39,10 @@ function entry(
   return { roster, era, competition, content: { raw: rosterId } };
 }
 
-/** A minimal roster player, distinguishable by id/rosterId. */
-function rosterPlayer(overrides: Partial<TpRosterPlayer> = {}): TpRosterPlayer {
+/** A minimal match-embedded player, distinguishable by id/rosterId. */
+function rosterPlayer(
+  overrides: Partial<TpMatchEmbeddedPlayer> = {},
+): TpMatchEmbeddedPlayer {
   return {
     id: 5001,
     name: 'Grim',

@@ -1,4 +1,7 @@
-import type { ImportError } from '@blood-bowl-tracker/api-contract';
+import type {
+  ImportError,
+  TpCompetitionAward,
+} from '@blood-bowl-tracker/api-contract';
 import {
   CompetitionGroupsService,
   TrophiesService,
@@ -8,7 +11,6 @@ import {
   ImportResultService,
   UpsertRecorderService,
 } from '@blood-bowl-tracker/import-shared';
-import type { TpAward } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 import type { UpsertedTpCompetition } from './tp-competition-upsert.service';
@@ -17,7 +19,7 @@ import type { UpsertedTpCompetition } from './tp-competition-upsert.service';
 export interface ImportTpTrophyAwardsOptions {
   competition: UpsertedTpCompetition;
   /** The competition's parsed awards; empty for one with none yet. */
-  awards: TpAward[];
+  awards: TpCompetitionAward[];
   /** Each linked participant's team era id, by TP roster id. */
   teamEraIdsByRosterId: ReadonlyMap<number, number>;
   errors: ImportError[];
@@ -107,7 +109,7 @@ export class TpCompetitionTrophyAwardsService {
 
   /** Writes one award row when its team era and trophy resolve. */
   private async writeAward(
-    award: TpAward,
+    award: TpCompetitionAward,
     context: AwardContext,
   ): Promise<boolean> {
     const { competition, errors } = context;

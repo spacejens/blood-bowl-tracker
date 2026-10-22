@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
+import type { TpMatchEmbeddedPlayer } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import { ImportResultService } from '@blood-bowl-tracker/import';
-import type { TpRosterPlayer } from '@blood-bowl-tracker/parse-tp';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
@@ -141,15 +141,15 @@ async function run(): Promise<ImportResult> {
     >();
     const matchEmbeddedPlayersByRosterIdMut = new Map<
       number,
-      Map<number, TpRosterPlayer>
+      Map<number, TpMatchEmbeddedPlayer>
     >();
     const accumulateMatchEmbeddedPlayers = (
       rosterId: number,
-      players: TpRosterPlayer[],
+      players: TpMatchEmbeddedPlayer[],
     ) => {
       let byPlayerId = matchEmbeddedPlayersByRosterIdMut.get(rosterId);
       if (!byPlayerId) {
-        byPlayerId = new Map<number, TpRosterPlayer>();
+        byPlayerId = new Map<number, TpMatchEmbeddedPlayer>();
         matchEmbeddedPlayersByRosterIdMut.set(rosterId, byPlayerId);
       }
       for (const player of players) {

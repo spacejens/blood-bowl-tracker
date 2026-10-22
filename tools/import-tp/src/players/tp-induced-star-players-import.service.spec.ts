@@ -1,4 +1,7 @@
-import type { UpsertPosition } from '@blood-bowl-tracker/api-contract';
+import type {
+  TpOfficialCharacteristics,
+  UpsertPosition,
+} from '@blood-bowl-tracker/api-contract';
 import type { ImportError } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
@@ -6,7 +9,6 @@ import {
   PlayersImportService,
   PositionsImportService,
 } from '@blood-bowl-tracker/import';
-import type { TpPositionCharacteristics } from '@blood-bowl-tracker/parse-tp';
 import { TpStarHireKeyService } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
@@ -98,7 +100,7 @@ function context(
     rulesSetIdByEraName: Map<string, number>;
     characteristicsByPositionId: Map<
       number,
-      Map<number, TpPositionCharacteristics>
+      Map<number, TpOfficialCharacteristics>
     >;
   }> = {},
 ): {
@@ -108,7 +110,7 @@ function context(
   rulesSetIdByEraName: Map<string, number>;
   characteristicsByPositionId?: Map<
     number,
-    Map<number, TpPositionCharacteristics>
+    Map<number, TpOfficialCharacteristics>
   >;
 } {
   return {

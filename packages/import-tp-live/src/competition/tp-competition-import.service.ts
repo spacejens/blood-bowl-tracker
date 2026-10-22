@@ -1,35 +1,32 @@
 import type {
   ImportError,
   ImportResult,
+  ImportTpCompetition,
+  TpCompetitionAward,
   TpCompetitionImportResult,
 } from '@blood-bowl-tracker/api-contract';
 import { ImportResultService } from '@blood-bowl-tracker/import-shared';
-import type { TpAward } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 import { TpCompetitionParticipantsService } from './tp-competition-participants.service';
 import { TpCompetitionTrophyAwardsService } from './tp-competition-trophy-awards.service';
-import type { TpCompetitionTournament } from './tp-competition-upsert.service';
 import { TpCompetitionUpsertService } from './tp-competition-upsert.service';
 
-/** Options for {@link TpCompetitionImportService.importCompetition}. */
-export interface ImportCompetitionOptions {
-  tournament: TpCompetitionTournament;
-  /** Every dated match's date across the competition. */
-  playedDates: Date[];
-  /** The era to import a new competition under, by name. */
-  era: string;
-  /** TP roster ids of every team registered to the competition. */
-  participantRosterIds: number[];
+/**
+ * Options for {@link TpCompetitionImportService.importCompetition}: the
+ * `tpCompetitions.import` input, except that the awards may be unknown.
+ */
+export interface ImportCompetitionOptions extends Omit<
+  ImportTpCompetition,
+  'awards'
+> {
   /**
    * The competition's parsed awards; empty for one with none yet. Undefined
    * when they are unknown (the awards could not be fetched): nothing is
    * recorded, and the competition is neither finished nor unfinished, so a
    * stored end date is left as stored.
    */
-  awards: TpAward[] | undefined;
-  /** The name TP's external system is registered under. */
-  externalSystemName: string;
+  awards: TpCompetitionAward[] | undefined;
 }
 
 /**

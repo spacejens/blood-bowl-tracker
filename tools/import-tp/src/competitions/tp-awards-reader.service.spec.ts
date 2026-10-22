@@ -1,6 +1,6 @@
+import type { TpCompetitionAward } from '@blood-bowl-tracker/api-contract';
 import type { ImportError } from '@blood-bowl-tracker/import';
 import { ImportResultService } from '@blood-bowl-tracker/import';
-import type { TpAward } from '@blood-bowl-tracker/parse-tp';
 import { AwardsParserService } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
@@ -38,7 +38,7 @@ async function makeService(
   };
 }
 
-const award: TpAward = { id: 1, awardType: 1, rosterId: 7 };
+const award: TpCompetitionAward = { id: 1, awardType: 1, rosterId: 7 };
 
 describe('TpAwardsReaderService', () => {
   it("groups each competition directory's parsed awards by era and competition", async () => {
@@ -81,7 +81,7 @@ describe('TpAwardsReaderService', () => {
   });
 
   it('accumulates awards from two files in the same directory instead of overwriting', async () => {
-    const otherAward: TpAward = { id: 2, awardType: 2, rosterId: 8 };
+    const otherAward: TpCompetitionAward = { id: 2, awardType: 2, rosterId: 8 };
     const parser = mock<AwardsParserService>();
     parser.parse.mockReturnValueOnce([award]).mockReturnValueOnce([otherAward]);
     const { service } = await makeService(

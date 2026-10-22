@@ -1,3 +1,4 @@
+import type { TpOfficialCharacteristics } from '@blood-bowl-tracker/api-contract';
 import type { ImportError } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
@@ -5,10 +6,7 @@ import {
   PlayersImportService,
   PositionsImportService,
 } from '@blood-bowl-tracker/import';
-import type {
-  TpInducedStarPlayer,
-  TpPositionCharacteristics,
-} from '@blood-bowl-tracker/parse-tp';
+import type { TpInducedStarPlayer } from '@blood-bowl-tracker/parse-tp';
 import { TpStarHireKeyService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
@@ -51,7 +49,7 @@ export interface ImportHiresOptions {
      */
     characteristicsByPositionId?: Map<
       number,
-      Map<number, TpPositionCharacteristics>
+      Map<number, TpOfficialCharacteristics>
     >;
   };
   errors: ImportError[];

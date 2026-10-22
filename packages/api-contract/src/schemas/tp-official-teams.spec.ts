@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
   ImportTpOfficialTeamsSchema,
+  TpOfficialCharacteristicsSchema,
+  TpOfficialPositionSchema,
+  TpOfficialRaceSchema,
+  TpOfficialSkillRefSchema,
   TpOfficialTeamsImportResultSchema,
 } from './tp-official-teams';
 
@@ -103,6 +107,70 @@ describe('TpOfficialTeamsImportResultSchema', () => {
     const { keywords: _keywords, ...missingStage } = result;
     expect(
       TpOfficialTeamsImportResultSchema.safeParse(missingStage).success,
+    ).toBe(false);
+  });
+});
+
+describe('TpOfficialRaceSchema', () => {
+  it('accepts one parsed official-list race', () => {
+    expect(TpOfficialRaceSchema.parse(input.races[0])).toEqual(input.races[0]);
+  });
+
+  it('rejects an empty team race code', () => {
+    expect(
+      TpOfficialRaceSchema.safeParse({ ...input.races[0], teamRaceCode: '' })
+        .success,
+    ).toBe(false);
+  });
+});
+
+describe('TpOfficialPositionSchema', () => {
+  it('accepts a position without a TP position id', () => {
+    const position = {
+      name: 'Blitzer',
+      isStarPlayer: false,
+      characteristics,
+      skills: [],
+      keywordCodes: [],
+    };
+    expect(TpOfficialPositionSchema.parse(position)).toEqual(position);
+  });
+});
+
+describe('TpOfficialSkillRefSchema', () => {
+  it('accepts an id reference with or without its attribute', () => {
+    expect(TpOfficialSkillRefSchema.parse({ skillMasterId: 41 })).toEqual({
+      skillMasterId: 41,
+    });
+    expect(
+      TpOfficialSkillRefSchema.parse({
+        skillMasterId: 307,
+        attributeValue: '4+',
+        attributeType: 0,
+      }),
+    ).toEqual({ skillMasterId: 307, attributeValue: '4+', attributeType: 0 });
+  });
+
+  it('accepts a name reference and rejects an empty name', () => {
+    expect(TpOfficialSkillRefSchema.parse({ name: 'Brutal Charge' })).toEqual({
+      name: 'Brutal Charge',
+    });
+    expect(TpOfficialSkillRefSchema.safeParse({ name: '' }).success).toBe(
+      false,
+    );
+  });
+});
+
+describe('TpOfficialCharacteristicsSchema', () => {
+  it('accepts five integer characteristics and rejects a fractional one', () => {
+    expect(TpOfficialCharacteristicsSchema.parse(characteristics)).toEqual(
+      characteristics,
+    );
+    expect(
+      TpOfficialCharacteristicsSchema.safeParse({
+        ...characteristics,
+        move: 5.5,
+      }).success,
     ).toBe(false);
   });
 });

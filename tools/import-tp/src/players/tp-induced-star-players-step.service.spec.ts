@@ -1,3 +1,4 @@
+import type { TpOfficialCharacteristics } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
@@ -5,7 +6,6 @@ import {
   ReferenceLookupService,
   TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
-import type { TpPositionCharacteristics } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
@@ -28,7 +28,7 @@ const NAME_SYSTEM_ID = 2;
 
 const CHARACTERISTICS_BY_POSITION_ID = new Map<
   number,
-  Map<number, TpPositionCharacteristics>
+  Map<number, TpOfficialCharacteristics>
 >();
 
 function group(
