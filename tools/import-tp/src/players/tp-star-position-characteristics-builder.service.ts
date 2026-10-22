@@ -1,20 +1,8 @@
-import type { TpOfficialCharacteristics } from '@blood-bowl-tracker/api-contract';
+import type {
+  TpOfficialCharacteristics,
+  UpsertPlayerCharacteristics,
+} from '@blood-bowl-tracker/api-contract';
 import { Injectable } from '@nestjs/common';
-
-/**
- * The characteristics subset of an `UpsertPlayer` payload. All five values
- * plus `rulesSetId` travel together or not at all: `UpsertPlayerSchema`
- * rejects a partial set, rejects characteristics without a `rulesSetId`, and
- * rejects a `rulesSetId` without characteristics.
- */
-export interface TpPlayerCharacteristicsPayload {
-  move: number;
-  strength: number;
-  agility: number;
-  passing: number;
-  armour: number;
-  rulesSetId: number;
-}
 
 /**
  * Builds the characteristics a hired star player's `players.upsert` payload
@@ -40,7 +28,7 @@ export class TpStarPositionCharacteristicsBuilderService {
       number,
       Map<number, TpOfficialCharacteristics>
     >;
-  }): TpPlayerCharacteristicsPayload | undefined {
+  }): UpsertPlayerCharacteristics | undefined {
     const {
       positionId,
       eraName,
