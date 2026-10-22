@@ -1,6 +1,7 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
 import type {
+  TeamEra,
   TpMatchEmbeddedPlayer,
   TpMercenaryPositionUsage,
   TpRosterImportResult,
@@ -27,7 +28,7 @@ export interface RosterFilesImportOutcome {
   teamResult: ImportResult;
   playerResult: ImportResult;
   /** Each imported team's team eras, by roster id. */
-  teamErasByRosterId: Map<number, { id: number; eraId: number }[]>;
+  teamErasByRosterId: Map<number, TeamEra[]>;
   /** DB player id by TP `lineUps[].id`, for the match-events step. */
   playerIdsByLineUpId: Map<number, number>;
   /** Players this run inserted, for the lasting-injury history backfill. */
@@ -67,10 +68,7 @@ export class TpRosterFilesImportService {
     const seenPlayerErrors = new Set<string>();
     let teamsImported = 0;
     let playersImported = 0;
-    const teamErasByRosterId = new Map<
-      number,
-      { id: number; eraId: number }[]
-    >();
+    const teamErasByRosterId = new Map<number, TeamEra[]>();
     const playerIdsByLineUpId = new Map<number, number>();
     const insertedPlayerIds: number[] = [];
     const reportedSppTotalsByPlayerId = new Map<number, number>();

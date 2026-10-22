@@ -1,11 +1,11 @@
-import type { UpsertMatchEvent } from '@blood-bowl-tracker/api-contract';
+import type {
+  TeamEra,
+  UpsertMatchEvent,
+} from '@blood-bowl-tracker/api-contract';
 import { Injectable } from '@nestjs/common';
 
 import { TpMatchEventKindBuildersService } from './tp-match-event-kind-builders.service';
-import type {
-  BuildEventDataOptions,
-  TeamEra,
-} from './tp-match-events-builder.types';
+import type { BuildEventDataOptions } from './tp-match-events-builder.types';
 
 interface ResolveTeamEraOptions {
   teamErasByRosterId: Map<number, TeamEra[]>;

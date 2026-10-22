@@ -1,4 +1,5 @@
 import type {
+  TeamEra,
   UpsertCompetition,
   UpsertMatchEvent,
   UpsertTeam,
@@ -92,7 +93,7 @@ export function makeEvents(
  * the API's Team + created shape). The subject under test only reads `.eras`,
  * so the other fields are unremarkable defaults.
  */
-export function makeTeamRecord(eras: { id: number; eraId: number }[]) {
+export function makeTeamRecord(eras: TeamEra[]) {
   return {
     id: 1,
     name: 'Team',

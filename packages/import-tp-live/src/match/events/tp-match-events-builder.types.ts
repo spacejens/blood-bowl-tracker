@@ -1,16 +1,10 @@
-import type { ImportError } from '@blood-bowl-tracker/api-contract';
+import type { ImportError, TeamEra } from '@blood-bowl-tracker/api-contract';
 import type { TpMatchEvent } from '@blood-bowl-tracker/parse-tp';
 
 import type {
   CasualtyPairing,
   FoulPairing,
 } from './tp-match-events-correlation.service';
-
-/** One resolved team_eras row: its DB id and the era it belongs to. */
-export interface TeamEra {
-  id: number;
-  eraId: number;
-}
 
 export interface BuildEventDataOptions {
   event: TpMatchEvent;
