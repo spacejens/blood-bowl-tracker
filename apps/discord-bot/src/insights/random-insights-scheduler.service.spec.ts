@@ -30,7 +30,7 @@ describe('RandomInsightsSchedulerService', () => {
     discordClient.sendMessage.mockResolvedValue(undefined);
     config = mock<DiscordBotConfigService>();
     config.getRandomInsightsCron.mockReturnValue('0 * * * *');
-    config.getRandomInsightsDiscordChannel.mockReturnValue('99');
+    config.getRandomInsightsDiscordChannelId.mockReturnValue('99');
     registry = mock<SchedulerRegistry>();
     scope = mock<RandomInsightsScopeService>();
     scope.pickScope.mockResolvedValue({});
@@ -108,11 +108,11 @@ describe('RandomInsightsSchedulerService', () => {
   });
 
   it('throws at bootstrap when the discord channel config is invalid', () => {
-    config.getRandomInsightsDiscordChannel.mockImplementation(() => {
-      throw new Error('invalid RANDOM_INSIGHTS_DISCORD_CHANNEL');
+    config.getRandomInsightsDiscordChannelId.mockImplementation(() => {
+      throw new Error('invalid RANDOM_INSIGHTS_DISCORD_CHANNEL_ID');
     });
     expect(() => service.start()).toThrow(
-      'invalid RANDOM_INSIGHTS_DISCORD_CHANNEL',
+      'invalid RANDOM_INSIGHTS_DISCORD_CHANNEL_ID',
     );
     expect(registry.addCronJob).not.toHaveBeenCalled();
   });

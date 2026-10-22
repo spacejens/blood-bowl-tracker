@@ -40,10 +40,10 @@ import { UsageRecordingModule } from './usage/usage-recording.module';
     DiscordClientModule.forRootAsync({
       useFactory: (config: DiscordBotConfigService) =>
         config.getDiscordBotToken(),
-      useRestrictedRoleIdFactory: (config: DiscordBotConfigService) =>
-        config.getDebugCommandRoleId(),
+      useDebugRoleIdFactory: (config: DiscordBotConfigService) =>
+        config.getDebugCommandDiscordRoleId(),
       useAdminRoleIdFactory: (config: DiscordBotConfigService) =>
-        config.getAdminCommandRoleId(),
+        config.getAdminCommandDiscordRoleId(),
       inject: [DiscordBotConfigService],
     }),
     InsightsModule,

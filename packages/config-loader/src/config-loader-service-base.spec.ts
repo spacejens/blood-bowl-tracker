@@ -61,13 +61,11 @@ describe('createConfigLoaderServiceBase', () => {
   it('parses JSON5 (comments, trailing commas, unquoted keys)', async () => {
     const path = writeConfig(`{
       // a comment
-      league: { leagueName: 'tLoEG' },
+      league: { name: 'tLoEG' },
       dataDir: 'data/',
     }`);
     const service = await makeService(path);
-    expect(service.get<{ leagueName: string }>('league')?.leagueName).toBe(
-      'tLoEG',
-    );
+    expect(service.get<{ name: string }>('league')?.name).toBe('tLoEG');
     expect(service.get('dataDir')).toBe('data/');
   });
 

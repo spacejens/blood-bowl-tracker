@@ -52,7 +52,7 @@ export class TpFeedListenerService implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
-    const sourceChannelId = this.config.getTpFeedSourceDiscordChannel();
+    const sourceChannelId = this.config.getTpFeedSourceDiscordChannelId();
     if (!sourceChannelId) {
       this.logger.log(
         'No TP feed source channel configured; not listening for TP notifications',
@@ -106,7 +106,7 @@ export class TpFeedListenerService implements OnModuleInit {
       await this.markProcessed(message);
       return;
     }
-    const debugChannelId = this.config.getTpFeedDebugDiscordChannel();
+    const debugChannelId = this.config.getTpFeedDebugDiscordChannelId();
     if (result.status === 'unrecognized') {
       if (debugChannelId) {
         // `message.url` is discord.js's own jump-link getter

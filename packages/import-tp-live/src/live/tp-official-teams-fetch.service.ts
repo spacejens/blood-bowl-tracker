@@ -72,7 +72,7 @@ export class TpOfficialTeamsFetchService {
         this.connection.getBackendApiUrl() + path,
         {
           referer:
-            this.connection.getFrontendUrl() +
+            this.connection.getFrontendBaseUrl() +
             this.officialTeamsPaths.frontendPath(),
         },
       );

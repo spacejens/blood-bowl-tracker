@@ -62,7 +62,7 @@ export class TpAwardsFetchService {
         this.connection.getBackendApiUrl() + path,
         {
           referer:
-            this.connection.getFrontendUrl() +
+            this.connection.getFrontendBaseUrl() +
             this.tournamentPaths.frontendPath(tournamentSlug, 'awards'),
         },
       );

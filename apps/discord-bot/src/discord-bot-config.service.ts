@@ -13,8 +13,8 @@ export class DiscordBotConfigService {
     return this.getRequired('DISCORD_BOT_TOKEN');
   }
 
-  getStartupMessageDiscordChannel(): string {
-    return this.getRequired('STARTUP_MESSAGE_DISCORD_CHANNEL');
+  getStartupMessageDiscordChannelId(): string {
+    return this.getRequired('STARTUP_MESSAGE_DISCORD_CHANNEL_ID');
   }
 
   /**
@@ -42,8 +42,11 @@ export class DiscordBotConfigService {
    * throws — there is nothing to fail fast about when the variable is
    * genuinely optional.
    */
-  getDebugCommandRoleId(): string | undefined {
-    return this.configService.get<string>('DEBUG_COMMAND_ROLE_ID') || undefined;
+  getDebugCommandDiscordRoleId(): string | undefined {
+    return (
+      this.configService.get<string>('DEBUG_COMMAND_DISCORD_ROLE_ID') ||
+      undefined
+    );
   }
 
   /**
@@ -53,8 +56,11 @@ export class DiscordBotConfigService {
    * check is applied to those commands. Never throws, for the same reason as
    * the getter above.
    */
-  getAdminCommandRoleId(): string | undefined {
-    return this.configService.get<string>('ADMIN_COMMAND_ROLE_ID') || undefined;
+  getAdminCommandDiscordRoleId(): string | undefined {
+    return (
+      this.configService.get<string>('ADMIN_COMMAND_DISCORD_ROLE_ID') ||
+      undefined
+    );
   }
 
   /** TP's frontend base URL, with a trailing slash. */
@@ -89,9 +95,9 @@ export class DiscordBotConfigService {
    * getters above it never throws, because there is nothing to fail fast about
    * when the variable is genuinely optional.
    */
-  getTpFeedSourceDiscordChannel(): string | undefined {
+  getTpFeedSourceDiscordChannelId(): string | undefined {
     return (
-      this.configService.get<string>('TP_FEED_SOURCE_DISCORD_CHANNEL') ||
+      this.configService.get<string>('TP_FEED_SOURCE_DISCORD_CHANNEL_ID') ||
       undefined
     );
   }
@@ -102,9 +108,9 @@ export class DiscordBotConfigService {
    * leaves the listener running — messages are still parsed and drift warnings
    * are still logged — but nothing is posted anywhere.
    */
-  getTpFeedDebugDiscordChannel(): string | undefined {
+  getTpFeedDebugDiscordChannelId(): string | undefined {
     return (
-      this.configService.get<string>('TP_FEED_DEBUG_DISCORD_CHANNEL') ||
+      this.configService.get<string>('TP_FEED_DEBUG_DISCORD_CHANNEL_ID') ||
       undefined
     );
   }
@@ -113,8 +119,8 @@ export class DiscordBotConfigService {
     return this.getRequired('RANDOM_INSIGHTS_CRON');
   }
 
-  getRandomInsightsDiscordChannel(): string {
-    return this.getRequired('RANDOM_INSIGHTS_DISCORD_CHANNEL');
+  getRandomInsightsDiscordChannelId(): string {
+    return this.getRequired('RANDOM_INSIGHTS_DISCORD_CHANNEL_ID');
   }
 
   getRandomInsightsFilterProbability(): number {

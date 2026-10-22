@@ -67,7 +67,7 @@ export class TpRosterFetchService {
         this.connection.getBackendApiUrl() + this.rosterPaths.apiPath(rosterId),
         {
           referer:
-            this.connection.getFrontendUrl() +
+            this.connection.getFrontendBaseUrl() +
             this.rosterPaths.frontendPath(rosterId),
         },
       );

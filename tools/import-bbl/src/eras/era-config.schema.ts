@@ -221,7 +221,7 @@ export const leaguesShellSchema = z
   .array(
     z.object(
       {
-        leagueName: nonBlankStringSchema,
+        name: nonBlankStringSchema,
         eras: z
           .array(z.unknown(), { error: 'must be a non-empty array of eras.' })
           .min(1, 'must be a non-empty array of eras.'),

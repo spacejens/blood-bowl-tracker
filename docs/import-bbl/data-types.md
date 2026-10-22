@@ -5,7 +5,7 @@ competition, skill, position, team or race that already exists keeps its
 stored name, which `tools/import-manual` may have curated (see
 [Upserts overlay](../api/imports.md#upserts-overlay-they-do-not-replace)).
 
-- **Leagues** — one league per `leagues[]` entry, each from its `leagueName`
+- **Leagues** — one league per `leagues[]` entry, each from its `name`
   config value (not parsed from the data). Each league is keyed by that name
   under the BBL external system (`tloeg.bbleague.se`) and the `Name`
   external system. Imported before coaches, as the foundational entity.

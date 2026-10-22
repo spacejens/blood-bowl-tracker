@@ -20,7 +20,7 @@ describe('StartupNotifierService', () => {
     discordClient.sendMessage.mockResolvedValue(undefined);
     discordClient.sendMessageOverRest.mockResolvedValue(undefined);
     config = mock<DiscordBotConfigService>();
-    config.getStartupMessageDiscordChannel.mockReturnValue('42');
+    config.getStartupMessageDiscordChannelId.mockReturnValue('42');
     config.getStandbyStartupMessageEnabled.mockReturnValue(true);
     deploymentInfo = mock<DeploymentInfoService>();
     deploymentInfo.describe.mockReturnValue({
@@ -52,12 +52,12 @@ describe('StartupNotifierService', () => {
     });
 
     it('propagates the error when the channel id is not configured', async () => {
-      config.getStartupMessageDiscordChannel.mockImplementation(() => {
-        throw new Error('STARTUP_MESSAGE_DISCORD_CHANNEL is not configured');
+      config.getStartupMessageDiscordChannelId.mockImplementation(() => {
+        throw new Error('STARTUP_MESSAGE_DISCORD_CHANNEL_ID is not configured');
       });
 
       await expect(service.postActiveStartupMessage()).rejects.toThrow(
-        'STARTUP_MESSAGE_DISCORD_CHANNEL is not configured',
+        'STARTUP_MESSAGE_DISCORD_CHANNEL_ID is not configured',
       );
       expect(discordClient.sendMessage).not.toHaveBeenCalled();
     });
@@ -102,9 +102,9 @@ describe('StartupNotifierService', () => {
 
     it('swallows a missing channel configuration', async () => {
       const error = new Error(
-        'STARTUP_MESSAGE_DISCORD_CHANNEL is not configured',
+        'STARTUP_MESSAGE_DISCORD_CHANNEL_ID is not configured',
       );
-      config.getStartupMessageDiscordChannel.mockImplementation(() => {
+      config.getStartupMessageDiscordChannelId.mockImplementation(() => {
         throw error;
       });
 

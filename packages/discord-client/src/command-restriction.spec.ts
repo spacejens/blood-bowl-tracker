@@ -15,10 +15,10 @@ import { HandledInteractionBuilderService } from './handled-interaction-builder.
 import type { InteractionHandledListener } from './index';
 import {
   ADMIN_COMMAND_ROLE_ID,
+  DEBUG_COMMAND_ROLE_ID,
   DISCORD_BOT_TOKEN,
   DiscordClientService,
   MemberRoleAccessService,
-  RESTRICTED_COMMAND_ROLE_ID,
 } from './index';
 
 const ROLE_ID = 'role-1';
@@ -48,7 +48,7 @@ describe('DiscordClientService restricted commands', () => {
         DiscordClientService,
         MemberRoleAccessService,
         { provide: DISCORD_BOT_TOKEN, useValue: 'my-token' },
-        { provide: RESTRICTED_COMMAND_ROLE_ID, useValue: roles.debug },
+        { provide: DEBUG_COMMAND_ROLE_ID, useValue: roles.debug },
         { provide: ADMIN_COMMAND_ROLE_ID, useValue: roles.admin },
         HandledInteractionBuilderService,
       ],

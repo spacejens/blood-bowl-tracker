@@ -13,7 +13,7 @@ interact with it.
 The `debug` prefix on both the name and the description marks this as
 maintainer tooling rather than a regular bot feature. The prefix itself is a
 visibility convention; access control is separate, and optional. Where the
-deployment sets `DEBUG_COMMAND_ROLE_ID` to a Discord server role id, only
+deployment sets `DEBUG_COMMAND_DISCORD_ROLE_ID` to a Discord server role id, only
 members holding that role can run this command — anyone else gets a private
 "you don't have permission to use this command" reply, as does anyone who
 runs it in a direct message with the bot, since a direct message carries no

@@ -13,7 +13,7 @@ export const configFileSchema = z.looseObject({}).catch(() => ({}));
  * field-specific message for each missing url.
  */
 export const connectionGroupSchema = z.looseObject({
-  frontendUrl: z.string().min(1).optional().catch(undefined),
+  frontendBaseUrl: z.string().min(1).optional().catch(undefined),
   backendApiUrl: z.string().min(1).optional().catch(undefined),
 });
 

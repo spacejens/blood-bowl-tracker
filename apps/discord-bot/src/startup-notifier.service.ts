@@ -26,7 +26,7 @@ export class StartupNotifierService {
    * as "could not become active".
    */
   async postActiveStartupMessage(): Promise<void> {
-    const channelId = this.config.getStartupMessageDiscordChannel();
+    const channelId = this.config.getStartupMessageDiscordChannelId();
     await this.discordClient.sendMessage(
       channelId,
       this.deploymentInfo.describe('active'),
@@ -56,7 +56,7 @@ export class StartupNotifierService {
       return;
     }
     try {
-      const channelId = this.config.getStartupMessageDiscordChannel();
+      const channelId = this.config.getStartupMessageDiscordChannelId();
       // `describe()` already returns `{ embeds: [...] }`, exactly the shape
       // Discord's message-create endpoint expects — the same value the
       // active path passes to sendMessage as InteractionReplyOptions.

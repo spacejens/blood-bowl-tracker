@@ -49,10 +49,10 @@ export const DISCORD_BOT_TOKEN = Symbol('DISCORD_BOT_TOKEN');
  * package stays free of any configuration concern, exactly like
  * `DISCORD_BOT_TOKEN`.
  */
-export const RESTRICTED_COMMAND_ROLE_ID = Symbol('RESTRICTED_COMMAND_ROLE_ID');
+export const DEBUG_COMMAND_ROLE_ID = Symbol('DEBUG_COMMAND_ROLE_ID');
 
 /**
- * The same as `RESTRICTED_COMMAND_ROLE_ID`, for commands whose
+ * The same as `DEBUG_COMMAND_ROLE_ID`, for commands whose
  * `restrictedRole` is `'admin'` (league-administrator commands). Configured
  * independently, so the two audiences need not overlap.
  */
@@ -167,7 +167,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   constructor(
     @Inject(DISCORD_BOT_TOKEN) private readonly token: string,
     @Optional()
-    @Inject(RESTRICTED_COMMAND_ROLE_ID)
+    @Inject(DEBUG_COMMAND_ROLE_ID)
     private readonly debugRoleId: string | undefined,
     @Optional()
     @Inject(ADMIN_COMMAND_ROLE_ID)

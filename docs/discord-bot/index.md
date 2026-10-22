@@ -41,9 +41,9 @@ application.
 
 1. In Discord, open **User Settings > Advanced** and enable **Developer Mode**.
 2. Right-click the channel you want the bot to post its startup message in and
-   choose **Copy Channel ID**. This is your `STARTUP_MESSAGE_DISCORD_CHANNEL`.
+   choose **Copy Channel ID**. This is your `STARTUP_MESSAGE_DISCORD_CHANNEL_ID`.
 3. Do the same for the channel the scheduled random insights should go to, to
-   get `RANDOM_INSIGHTS_DISCORD_CHANNEL`. Once the bot is serving real server
+   get `RANDOM_INSIGHTS_DISCORD_CHANNEL_ID`. Once the bot is serving real server
    members, these should be two different channels: the startup message is
    status output for whoever runs the bot, while the scheduled insights are
    the bot's regular output for everyone. Give the insights channel a name
@@ -69,7 +69,7 @@ Configuration is supplied through an environment file in the app directory.
 
 2. Edit `apps/discord-bot/.env` and set:
    - `DISCORD_BOT_TOKEN` — the token from step 1.
-   - `STARTUP_MESSAGE_DISCORD_CHANNEL` — the channel id from section 3. The
+   - `STARTUP_MESSAGE_DISCORD_CHANNEL_ID` — the channel id from section 3. The
      bot posts a deployment status message here on every startup.
    - `STANDBY_STARTUP_MESSAGE_ENABLED` — optional, and enabled by default.
      Only a `false` value (case-insensitive, surrounding whitespace ignored)
@@ -81,7 +81,7 @@ Configuration is supplied through an environment file in the app directory.
      out. See [Production topology](production-topology.md) and
      [Production monitoring](production-monitoring.md) for how the standby
      works and why silencing its announcement can be useful.
-   - `DEBUG_COMMAND_ROLE_ID` — optional, and unset by default. The id of a
+   - `DEBUG_COMMAND_DISCORD_ROLE_ID` — optional, and unset by default. The id of a
      Discord server role whose members may run the `debug` maintainer slash commands
      ([`/debuginteractions`](slash-commands/debug-interactions.md),
      [`/debugtopusers`](slash-commands/debug-top-users.md) and
@@ -91,10 +91,10 @@ Configuration is supplied through an environment file in the app directory.
      running one in a direct message with the bot, where there is no server
      role to check against. Copy a role id with Developer Mode enabled, from
      Server Settings > Roles > right-click the role > Copy Role ID.
-   - `ADMIN_COMMAND_ROLE_ID` — optional, and unset by default. The id of a
+   - `ADMIN_COMMAND_DISCORD_ROLE_ID` — optional, and unset by default. The id of a
      Discord server role whose members may run the league-administrator
      slash commands ([`/importtp`](slash-commands/import-tp.md)). Independent
-     of `DEBUG_COMMAND_ROLE_ID`, and behaves the same way: left unset, those
+     of `DEBUG_COMMAND_DISCORD_ROLE_ID`, and behaves the same way: left unset, those
      commands are open to everyone who can see them.
    - `RANDOM_INSIGHTS_CRON` — when the bot posts a scheduled random insight,
      as a standard 5-field cron expression (an optional sixth leading field is
@@ -104,7 +104,7 @@ Configuration is supplied through an environment file in the app directory.
      local testing, where fast feedback while developing matters; a channel
      serving real members generally wants a far lower frequency, such as once
      a day (`0 8 * * *`).
-   - `RANDOM_INSIGHTS_DISCORD_CHANNEL` — the channel the scheduled random
+   - `RANDOM_INSIGHTS_DISCORD_CHANNEL_ID` — the channel the scheduled random
      insights are posted to, from section 3. Once the bot is released to real
      members this is its own dedicated channel, separate from the startup
      channel.
@@ -118,11 +118,11 @@ Configuration is supplied through an environment file in the app directory.
      `RANDOM_INSIGHTS_FILTER_PROBABILITY`, the template's value is a
      local-testing starting point; how varied the posts in a live channel
      should feel is worth deciding deliberately for that audience.
-   - `TP_FEED_SOURCE_DISCORD_CHANNEL` — optional, and unset by default. The
+   - `TP_FEED_SOURCE_DISCORD_CHANNEL_ID` — optional, and unset by default. The
      channel TP's own Discord integration posts its league notifications into.
      Set it and the bot parses those notifications; left unset, the feature is
      entirely off. See [TP notification feed](tp-feed.md).
-   - `TP_FEED_DEBUG_DISCORD_CHANNEL` — optional, and unset by default. The
+   - `TP_FEED_DEBUG_DISCORD_CHANNEL_ID` — optional, and unset by default. The
      channel the bot echoes its one-line interpretation of each parsed TP
      notification to. Left unset, notifications are still parsed and
      unrecognised shapes still logged, but nothing is posted. This is
@@ -160,7 +160,7 @@ docker compose up discord-bot
 ```
 
 On startup the bot logs in and posts a deployment status message to
-`STARTUP_MESSAGE_DISCORD_CHANNEL`. If a required token or channel id is
+`STARTUP_MESSAGE_DISCORD_CHANNEL_ID`. If a required token or channel id is
 missing or invalid, startup fails with an error in the logs (the bot is
 intentionally fail-fast about misconfiguration).
 

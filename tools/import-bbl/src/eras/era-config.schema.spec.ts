@@ -11,9 +11,9 @@ const VALID_ERA = {
 describe('leaguesShellSchema', () => {
   it('accepts a league with an eras array, leaving the eras untouched', () => {
     const parsed = leaguesShellSchema.parse([
-      { leagueName: 'tLoEG', eras: [VALID_ERA] },
+      { name: 'tLoEG', eras: [VALID_ERA] },
     ]);
-    expect(parsed[0].leagueName).toBe('tLoEG');
+    expect(parsed[0].name).toBe('tLoEG');
     expect(parsed[0].eras).toHaveLength(1);
   });
 
@@ -23,17 +23,15 @@ describe('leaguesShellSchema', () => {
     expect(leaguesShellSchema.safeParse([]).error?.issues[0].path).toEqual([]);
   });
 
-  it('rejects a blank leagueName at its own path', () => {
+  it('rejects a blank name at its own path', () => {
     const result = leaguesShellSchema.safeParse([
-      { leagueName: '', eras: [VALID_ERA] },
+      { name: '', eras: [VALID_ERA] },
     ]);
-    expect(result.error?.issues[0].path).toEqual([0, 'leagueName']);
+    expect(result.error?.issues[0].path).toEqual([0, 'name']);
   });
 
   it('rejects a missing or empty eras array at its own path', () => {
-    const result = leaguesShellSchema.safeParse([
-      { leagueName: 'tLoEG', eras: [] },
-    ]);
+    const result = leaguesShellSchema.safeParse([{ name: 'tLoEG', eras: [] }]);
     expect(result.error?.issues[0].path).toEqual([0, 'eras']);
     expect(result.error?.issues[0].message).toBe(
       'must be a non-empty array of eras.',

@@ -21,10 +21,10 @@ import { DiscordBotConfigService } from './discord-bot-config.service';
       useFactory: (config: DiscordBotConfigService): TpConnectionProvider => {
         config.getTpScrapingEnabled();
         const backendApiUrl = config.getTpBackendApiUrl();
-        const frontendUrl = config.getTpFrontendBaseUrl();
+        const frontendBaseUrl = config.getTpFrontendBaseUrl();
         return {
           getBackendApiUrl: () => backendApiUrl,
-          getFrontendUrl: () => frontendUrl,
+          getFrontendBaseUrl: () => frontendBaseUrl,
         };
       },
       inject: [DiscordBotConfigService],

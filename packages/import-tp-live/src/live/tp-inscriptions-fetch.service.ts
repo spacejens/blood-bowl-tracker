@@ -56,7 +56,7 @@ export class TpInscriptionsFetchService {
   }: FetchParticipantsOptions): Promise<number[] | undefined> {
     const visit = session ?? this.fetcher.createSession();
     const referer =
-      this.connection.getFrontendUrl() +
+      this.connection.getFrontendBaseUrl() +
       this.tournamentPaths.frontendPath(tournamentSlug, 'players');
     const rosterIds = new Set<number>();
     for (const categoryId of categoryIds) {
