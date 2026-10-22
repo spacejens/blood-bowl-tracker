@@ -208,6 +208,33 @@ describe('PlayersService', () => {
       ).toBeUndefined();
     });
 
+    it('writes a null sppTotal through to the inserted columns', async () => {
+      const { chains } = await build([], [fakePlayer]);
+
+      await service.upsert({ ...base, sppTotal: null, externalIds });
+
+      // chains[1] is the insert; null survives the undefined-key stripping.
+      expect(firstCallArg(chains[1].values)).toMatchObject({ sppTotal: null });
+    });
+
+    it('writes a null sppTotal through to the updated columns', async () => {
+      const { chains } = await build(
+        [{ ownerId: 1, externalSystemId: 1, externalId: '12345' }],
+        [fakePlayer],
+      );
+
+      await service.upsert({
+        name: 'Griff Oberwald',
+        sppTotal: null,
+        externalIds: [{ externalSystemId: 1, externalId: '12345' }],
+      });
+
+      expect(firstCallArg(chains[1].set)).toEqual({
+        name: 'Griff Oberwald',
+        sppTotal: null,
+      });
+    });
+
     const characteristics = {
       move: 6,
       strength: 3,
