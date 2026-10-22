@@ -239,13 +239,12 @@ export class PlayerDeepdiveService {
     }
 
     // Both kills queries share one timeout message, the same way the two
-    // honors queries do. The sentinel is `undefined` rather than `null`
-    // because an empty list is a real answer here, same reasoning as `killer`.
-    const killsTotal: number | undefined = await this.databaseTimeout.run(
+    // honors queries do.
+    const killsTotal: number | null = await this.databaseTimeout.run(
       this.playerDeath.countKillsInflicted(playerId),
-      undefined,
+      null,
     );
-    if (killsTotal === undefined) {
+    if (killsTotal === null) {
       return DEEPDIVE_PLAYER_KILLS_TIMEOUT_MESSAGE;
     }
 
@@ -254,12 +253,11 @@ export class PlayerDeepdiveService {
     // known "no kills" answer into a spurious timeout message.
     let kills: PlayerKillEntry[] = [];
     if (killsTotal > 0) {
-      const rows: PlayerKillEntry[] | undefined =
-        await this.databaseTimeout.run(
-          this.playerDeath.getKillsInflicted(playerId, MAX_PLAYER_KILLS),
-          undefined,
-        );
-      if (rows === undefined) {
+      const rows: PlayerKillEntry[] | null = await this.databaseTimeout.run(
+        this.playerDeath.getKillsInflicted(playerId, MAX_PLAYER_KILLS),
+        null,
+      );
+      if (rows === null) {
         return DEEPDIVE_PLAYER_KILLS_TIMEOUT_MESSAGE;
       }
       kills = rows;

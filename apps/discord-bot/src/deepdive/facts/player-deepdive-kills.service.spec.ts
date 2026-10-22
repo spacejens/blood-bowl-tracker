@@ -263,4 +263,23 @@ describe('PlayerDeepdiveService kills section', () => {
       DEEPDIVE_PLAYER_KILLS_TIMEOUT_MESSAGE,
     );
   });
+
+  it('passes the null timeout sentinel to every database query', async () => {
+    const databaseTimeout = mockDatabaseTimeout();
+    const { service } = await makeService({
+      players: makePlayers({ player: griff }),
+      playerDeath: makePlayerDeath(undefined, [victim], 1),
+      databaseTimeout,
+    });
+
+    await service.resolve(1);
+
+    // With a kill on record, both kills queries (count and list) are issued
+    // alongside the player, honors-count, category-count and death lookups.
+    const fallbacks = databaseTimeout.run.mock.calls.map(
+      ([, fallback]) => fallback,
+    );
+    expect(fallbacks.length).toBeGreaterThanOrEqual(6);
+    expect(fallbacks).toEqual(fallbacks.map(() => null));
+  });
 });
