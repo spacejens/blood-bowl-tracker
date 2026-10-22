@@ -1,3 +1,4 @@
+import type { ExternalId } from '@blood-bowl-tracker/api-contract';
 import type { Db } from '@blood-bowl-tracker/db';
 import {
   competitionGroupExternalIds,
@@ -144,13 +145,10 @@ function baseOpts(db: Db) {
     externalIds: [{ externalSystemId: 1, externalId: 'a' }],
     ConflictErrorClass: TestConflictError,
     entityLabelPlural: 'rules sets',
-    buildExternalIdRow: (
-      rulesSetId: number,
-      pair: {
-        externalSystemId: number;
-        externalId: string;
-      },
-    ) => ({ rulesSetId, ...pair }),
+    buildExternalIdRow: (rulesSetId: number, pair: ExternalId) => ({
+      rulesSetId,
+      ...pair,
+    }),
   } as const;
 }
 
@@ -172,10 +170,10 @@ function eraOpts(db: Db, values: Record<string, unknown>) {
     externalIds: [{ externalSystemId: 1, externalId: 'a' }],
     ConflictErrorClass: TestConflictError,
     entityLabelPlural: 'eras',
-    buildExternalIdRow: (
-      eraId: number,
-      pair: { externalSystemId: number; externalId: string },
-    ) => ({ eraId, ...pair }),
+    buildExternalIdRow: (eraId: number, pair: ExternalId) => ({
+      eraId,
+      ...pair,
+    }),
   } as const;
 }
 
@@ -605,10 +603,10 @@ describe('upsertByExternalIds', () => {
         entityTable: competitionGroups,
         values: { name: 'Foo', leagueId: 1, namePattern: '^Foo$' },
         externalIdTable: competitionGroupExternalIds,
-        buildExternalIdRow: (
-          competitionGroupId: number,
-          pair: { externalSystemId: number; externalId: string },
-        ) => ({ competitionGroupId, ...pair }),
+        buildExternalIdRow: (competitionGroupId: number, pair: ExternalId) => ({
+          competitionGroupId,
+          ...pair,
+        }),
       });
 
       expect(result).toEqual({ row: { id: 9, name: 'Foo' }, created: false });
