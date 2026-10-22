@@ -1,3 +1,4 @@
+import type { ExternalId } from '@blood-bowl-tracker/api-contract';
 import type {
   Db,
   DbOrTx,
@@ -16,7 +17,6 @@ import {
 
 import { MissingRequiredFieldError } from './missing-required-field-error';
 import { resolveExistingByExternalIds } from './resolve-existing-by-external-ids';
-import type { ExternalIdPair } from './sync-external-ids';
 import { insertMissingExternalIds } from './sync-external-ids';
 import { UpsertConflictError } from './upsert-conflict-error';
 
@@ -60,7 +60,7 @@ export interface UpsertByExternalIdsOptions<
   ownerIdColumn: PgColumn;
   externalSystemIdColumn: PgColumn;
   externalIdColumn: PgColumn;
-  externalIds: readonly ExternalIdPair[];
+  externalIds: readonly ExternalId[];
   /** The entity's own conflict-error subclass, thrown on a >1-owner match. */
   ConflictErrorClass: new (message: string) => UpsertConflictError;
   /** Lowercase plural entity label for the conflict message (e.g. `eras`). */
@@ -68,7 +68,7 @@ export interface UpsertByExternalIdsOptions<
   /** Builds one join-table insert row from the new/updated owner id and a pair. */
   buildExternalIdRow: (
     ownerId: number,
-    pair: ExternalIdPair,
+    pair: ExternalId,
   ) => InferInsertModel<TExternalIdTable>;
   /**
    * Optional extra conflict check for the single-matched-owner case (the

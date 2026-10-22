@@ -1,10 +1,5 @@
+import type { ExternalId } from '@blood-bowl-tracker/api-contract';
 import type { DbOrTx, InferInsertModel, PgTable } from '@blood-bowl-tracker/db';
-
-/** One (external system, id-in-that-system) pairing for an entity. */
-export interface ExternalIdPair {
-  externalSystemId: number;
-  externalId: string;
-}
 
 /**
  * Insert the external-id pairings an entity does not already have, skipping the
@@ -19,9 +14,9 @@ export interface ExternalIdPair {
 export interface InsertMissingExternalIdsOptions<T extends PgTable> {
   db: DbOrTx;
   externalIdTable: T;
-  existingRows: readonly ExternalIdPair[];
-  externalIds: readonly ExternalIdPair[];
-  buildRow: (pair: ExternalIdPair) => InferInsertModel<T>;
+  existingRows: readonly ExternalId[];
+  externalIds: readonly ExternalId[];
+  buildRow: (pair: ExternalId) => InferInsertModel<T>;
 }
 
 export async function insertMissingExternalIds<T extends PgTable>(

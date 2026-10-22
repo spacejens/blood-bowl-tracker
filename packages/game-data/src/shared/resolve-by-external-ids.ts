@@ -1,8 +1,10 @@
-import type { ResolveResult } from '@blood-bowl-tracker/api-contract';
+import type {
+  ExternalId,
+  ResolveResult,
+} from '@blood-bowl-tracker/api-contract';
 import type { DbOrTx, PgColumn, PgTable } from '@blood-bowl-tracker/db';
 
 import { resolveExistingByExternalIds } from './resolve-existing-by-external-ids';
-import type { ExternalIdPair } from './sync-external-ids';
 
 /**
  * Answer, for each requested external-id pair, which entity already declares
@@ -27,10 +29,10 @@ export interface ResolveByExternalIdsOptions<
   ownerIdColumn: TOwnerIdColumn;
   externalSystemIdColumn: TExternalSystemIdColumn;
   externalIdColumn: TExternalIdColumn;
-  externalIds: readonly ExternalIdPair[];
+  externalIds: readonly ExternalId[];
 }
 
-function keyOf(pair: ExternalIdPair): string {
+function keyOf(pair: ExternalId): string {
   // A tab cannot occur in an external system id (a number) and is not used by
   // any external-id format in this repo, so it cannot collide the way a ':'
   // or '|' separator could.

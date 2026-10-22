@@ -1,3 +1,4 @@
+import type { ExternalId } from '@blood-bowl-tracker/api-contract';
 import type { Db } from '@blood-bowl-tracker/db';
 import {
   eraExternalIds,
@@ -45,7 +46,7 @@ async function seedExternalIdFixtures(db: Db): Promise<ExternalIdFixtures> {
 function eraUpsertOptions(
   db: Db,
   values: { name: string; leagueId: number; startDate: string },
-  externalIds: { externalSystemId: number; externalId: string }[],
+  externalIds: ExternalId[],
 ): UpsertByExternalIdsOptions<typeof eras, typeof eraExternalIds> {
   return {
     db,

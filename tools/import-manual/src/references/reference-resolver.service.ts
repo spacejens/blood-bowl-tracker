@@ -1,3 +1,4 @@
+import type { ExternalId } from '@blood-bowl-tracker/api-contract';
 import type { ImportError } from '@blood-bowl-tracker/import';
 import type { ResolvableEntityKind } from '@blood-bowl-tracker/import';
 import {
@@ -75,14 +76,14 @@ export class ReferenceResolverService {
 
   /**
    * Map an entry's declared external-id pairs to the API's
-   * { externalSystemId, externalId } shape. Throws on an unknown system name —
+   * `ExternalId` shape. Throws on an unknown system name —
    * the external-system bootstrap registers every referenced name up front, so
    * an unknown name here means a bug in that bootstrap, not authored data.
    */
   toExternalIds(
     refs: readonly ExternalRef[],
     systemIds: ReadonlyMap<string, number>,
-  ): { externalSystemId: number; externalId: string }[] {
+  ): ExternalId[] {
     return refs.map((ref) => {
       const externalSystemId = systemIds.get(ref.system);
       if (externalSystemId === undefined) {
@@ -99,7 +100,7 @@ export class ReferenceResolverService {
   toExternalId(
     ref: ExternalRef,
     systemIds: ReadonlyMap<string, number>,
-  ): { externalSystemId: number; externalId: string } {
+  ): ExternalId {
     return this.toExternalIds([ref], systemIds)[0];
   }
 
