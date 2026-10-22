@@ -49,7 +49,7 @@ describe('PlayerDeepdiveService kills section', () => {
         player: griff,
         counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
       }),
-      playerDeath: makePlayerDeath(null, kills, killsTotal),
+      playerDeath: makePlayerDeath(undefined, kills, killsTotal),
     });
     const result = (await service.resolve(1)) as {
       embeds: { description: string }[];
@@ -67,7 +67,7 @@ describe('PlayerDeepdiveService kills section', () => {
         player: { ...griff, sppTotal: 42 },
         counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
       }),
-      playerDeath: makePlayerDeath(null, [victim]),
+      playerDeath: makePlayerDeath(undefined, [victim]),
     });
     const result = (await service.resolve(1)) as {
       embeds: { description: string }[];
@@ -98,7 +98,7 @@ describe('PlayerDeepdiveService kills section', () => {
   });
 
   it('skips the kills list query for a player with no kills', async () => {
-    const playerDeath = makePlayerDeath(null, [], 0);
+    const playerDeath = makePlayerDeath(undefined, [], 0);
     const { service } = await makeService({
       players: makePlayers({ player: griff }),
       playerDeath,
@@ -110,7 +110,7 @@ describe('PlayerDeepdiveService kills section', () => {
   });
 
   it('fetches at most 30 kills', async () => {
-    const playerDeath = makePlayerDeath(null, [victim], 34);
+    const playerDeath = makePlayerDeath(undefined, [victim], 34);
     const { service } = await makeService({
       players: makePlayers({ player: griff }),
       playerDeath,
@@ -185,7 +185,7 @@ describe('PlayerDeepdiveService kills section', () => {
         counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
       }),
       trophyAwards: makeTrophyAwards(longHonors, 30),
-      playerDeath: makePlayerDeath(null, longKills, longKills.length),
+      playerDeath: makePlayerDeath(undefined, longKills, longKills.length),
     });
     const result = (await service.resolve(1)) as {
       embeds: { description: string }[];
@@ -254,7 +254,7 @@ describe('PlayerDeepdiveService kills section', () => {
         stubDatabaseTimeoutOnce(databaseTimeout);
         const { service } = await makeService({
           players: makePlayers({ player: griff }),
-          playerDeath: makePlayerDeath(null, [], 5),
+          playerDeath: makePlayerDeath(undefined, [], 5),
           databaseTimeout,
         });
         return service.resolve(1);

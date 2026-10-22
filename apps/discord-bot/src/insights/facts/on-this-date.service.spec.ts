@@ -116,14 +116,14 @@ beforeEach(async () => {
   onThisDate.getEventCounts.mockResolvedValue(ZERO_COUNTS);
   onThisDate.getTopKilledPlayers.mockResolvedValue([]);
   // A canned response echoing back whatever killer the test's own victim
-  // fixture already carries (or null when it carries none) — NOT a
+  // fixture already carries (or undefined when it carries none) — NOT a
   // reimplementation of the real killer-resolution algorithm, which is
   // covered by on-this-date.service.spec.ts in packages/game-data.
   onThisDate.getKillersForVictims.mockImplementation((victims) =>
     Promise.resolve(
       victims.map((candidate) => ({
         ...candidate,
-        killer: (candidate as OnThisDateKilledPlayer).killer ?? null,
+        killer: (candidate as OnThisDateKilledPlayer).killer,
       })),
     ),
   );
@@ -288,13 +288,13 @@ describe('OnThisDateFactsService.resolve', () => {
       'An opponent, in mysterious circumstances',
     );
     onThisDate.getTopKilledPlayers.mockResolvedValue([
-      victim({ killer: null }),
+      victim({ killer: undefined }),
     ]);
     const result = await service.resolve({ monthDay: MONTH_DAY, scope: {} });
     expect(embed(result).description).toContain(
       'killed by an opponent, in mysterious circumstances',
     );
-    // Routed through the shared formatter (treating a null killer as
+    // Routed through the shared formatter (treating an undefined killer as
     // `{ kind: 'unknown' }`) rather than a hardcoded duplicate string, so a
     // future wording change to the formatter reaches this row too.
     expect(killerInfo.describe).toHaveBeenCalledWith({
@@ -521,7 +521,7 @@ describe('OnThisDateFactsService with real formatting collaborators', () => {
       playerId: 1,
       name: 'Griff Oberwald',
       sppTotal: 120,
-      killer: null,
+      killer: undefined,
     });
     const teamKilledVictim = victim({
       playerId: 2,
@@ -546,7 +546,7 @@ describe('OnThisDateFactsService with real formatting collaborators', () => {
       Promise.resolve(
         victims.map((candidate) => ({
           ...candidate,
-          killer: (candidate as OnThisDateKilledPlayer).killer ?? null,
+          killer: (candidate as OnThisDateKilledPlayer).killer,
         })),
       ),
     );

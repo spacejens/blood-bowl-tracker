@@ -66,7 +66,7 @@ describe('OnThisDateService', () => {
   }> {
     const { db, chains } = mockDb(...rowsPerQuery);
     playerDeath = mock<PlayerDeathService>();
-    playerDeath.getKillerInfo.mockResolvedValue(null);
+    playerDeath.getKillerInfo.mockResolvedValue(undefined);
     const moduleRef = await Test.createTestingModule({
       providers: [
         OnThisDateService,
@@ -384,7 +384,8 @@ describe('OnThisDateService', () => {
     it('keeps a victim whose killer cannot be resolved', async () => {
       await build();
       const result = await service.getKillersForVictims([victimRow]);
-      expect(result[0]).toEqual({ ...victimRow, killer: null });
+      expect(result[0]).toEqual({ ...victimRow, killer: undefined });
+      expect(result[0]).toHaveProperty('killer');
     });
 
     it('asks for no killers when given no victims', async () => {

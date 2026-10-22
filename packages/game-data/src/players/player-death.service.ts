@@ -116,12 +116,12 @@ export class PlayerDeathService {
   constructor(@Inject(DB) private readonly db: Db) {}
 
   /**
-   * `null` when the player never suffered a `death` consequence. At most one
+   * `undefined` when the player never suffered a `death` consequence. At most one
    * such event is expected — a player who dies is dead (see
    * `docs/insights/match-event-counts.md`) — so the first row wins if the data
    * somehow holds more.
    */
-  async getKillerInfo(playerId: number): Promise<PlayerKillerInfo | null> {
+  async getKillerInfo(playerId: number): Promise<PlayerKillerInfo | undefined> {
     const events = await this.db
       .select({
         matchId: matchEvents.matchId,
@@ -141,7 +141,7 @@ export class PlayerDeathService {
       .limit(1);
     const event = events[0];
     if (event === undefined) {
-      return null;
+      return undefined;
     }
 
     const viaFoul = event.actionType === 'foul';
