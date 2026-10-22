@@ -1,6 +1,7 @@
 import type {
   ImportError,
   ResolveResult,
+  TpCompetitionTournament,
   UpsertCompetition,
 } from '@blood-bowl-tracker/api-contract';
 import type { CompetitionType } from '@blood-bowl-tracker/domain-enums';
@@ -17,12 +18,6 @@ import { Injectable } from '@nestjs/common';
 
 import { TpCompetitionClassifierService } from './tp-competition-classifier.service';
 import { TpCompetitionSpanService } from './tp-competition-span.service';
-
-/** A TP tournament's identity: all a competition upsert reads of it. */
-export interface TpCompetitionTournament {
-  id: number;
-  name: string;
-}
 
 /** Options for {@link TpCompetitionUpsertService.datesToDerive}. */
 interface DatesToDeriveOptions {

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ImportTpCompetitionSchema,
   TpCompetitionImportResultSchema,
+  TpCompetitionTournamentSchema,
 } from './tp-competition';
 
 const input = {
@@ -61,6 +62,23 @@ describe('TpCompetitionImportResultSchema', () => {
         competition: one,
         participation: one,
       }).success,
+    ).toBe(false);
+  });
+});
+
+describe('TpCompetitionTournamentSchema', () => {
+  it('accepts a tournament id and name', () => {
+    expect(
+      TpCompetitionTournamentSchema.parse({ id: 18442, name: 'Säsong 30' }),
+    ).toEqual({ id: 18442, name: 'Säsong 30' });
+  });
+
+  it('rejects an empty name or a non-integer id', () => {
+    expect(
+      TpCompetitionTournamentSchema.safeParse({ id: 1, name: '' }).success,
+    ).toBe(false);
+    expect(
+      TpCompetitionTournamentSchema.safeParse({ id: 1.5, name: 'x' }).success,
     ).toBe(false);
   });
 });

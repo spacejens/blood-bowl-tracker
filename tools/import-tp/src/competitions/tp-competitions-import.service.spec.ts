@@ -1,13 +1,16 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
-import type { TpCompetitionImportResult } from '@blood-bowl-tracker/api-contract';
+import type {
+  TpCompetitionAward,
+  TpCompetitionImportResult,
+} from '@blood-bowl-tracker/api-contract';
 import type { ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   ImportRunnerService,
   TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
-import type { TpAward, TpMatch, TpRoster } from '@blood-bowl-tracker/parse-tp';
+import type { TpMatch, TpRoster } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
@@ -24,7 +27,7 @@ const CANNED_RESULT: ImportResult = {
   imported: -1,
   errors: [],
 };
-const AWARD: TpAward = { id: 24112, awardType: 1, rosterId: 179769 };
+const AWARD: TpCompetitionAward = { id: 24112, awardType: 1, rosterId: 179769 };
 const ONE = { success: true, imported: 1, errors: [] };
 const NOTHING = { success: true, imported: 0, errors: [] };
 const IMPORTED: TpCompetitionImportResult = {
@@ -242,7 +245,7 @@ describe('TpCompetitionsImportService', () => {
     const unreadable = { item: { filename: 'awards_x.json' }, message: 'bad' };
     awardsReader.getAwardsByDirectory.mockImplementation((errors) => {
       errors.push(unreadable);
-      return Promise.resolve(new Map<string, TpAward[]>());
+      return Promise.resolve(new Map<string, TpCompetitionAward[]>());
     });
 
     await service.importCompetitions({

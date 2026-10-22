@@ -1,4 +1,7 @@
-import type { ImportError } from '@blood-bowl-tracker/api-contract';
+import type {
+  ImportError,
+  TpCompetitionAward,
+} from '@blood-bowl-tracker/api-contract';
 import type { TrophyAward } from '@blood-bowl-tracker/db';
 import {
   CompetitionGroupsService,
@@ -9,7 +12,6 @@ import {
   ImportResultService,
   UpsertRecorderService,
 } from '@blood-bowl-tracker/import-shared';
-import type { TpAward } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -28,8 +30,8 @@ const TEAM_ERAS = new Map([
   [163386, 31],
   [179769, 32],
 ]);
-const GOLD: TpAward = { id: 1, awardType: 1, rosterId: 179769 };
-const STUNTY: TpAward = {
+const GOLD: TpCompetitionAward = { id: 1, awardType: 1, rosterId: 179769 };
+const STUNTY: TpCompetitionAward = {
   id: 2,
   awardType: 100,
   name: 'Best Stunty',
@@ -80,7 +82,7 @@ describe('TpCompetitionTrophyAwardsService', () => {
     service = moduleRef.get(TpCompetitionTrophyAwardsService);
   });
 
-  const importAwards = (awards: TpAward[]) =>
+  const importAwards = (awards: TpCompetitionAward[]) =>
     service.importAwards({
       competition: upsertedCompetition(),
       awards,

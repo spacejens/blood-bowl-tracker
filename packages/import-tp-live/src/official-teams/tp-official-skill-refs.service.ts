@@ -1,10 +1,10 @@
 import type {
   ExternalId,
   ImportError,
+  TpOfficialSkillRef,
   TpSkillMasterName,
 } from '@blood-bowl-tracker/api-contract';
 import { ImportResultService } from '@blood-bowl-tracker/import-shared';
-import type { TpPositionSkillRef } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 import { TpSkillIdLookupService } from '../tp-skill-id-lookup.service';
@@ -148,7 +148,7 @@ export class TpOfficialSkillRefsService {
 
   /** One raw reference as a starting-skill ref, or undefined (reported) when it cannot be. */
   private resolveRef(args: {
-    ref: TpPositionSkillRef;
+    ref: TpOfficialSkillRef;
     slot: TpOfficialPositionSlot;
     lookups: SkillLookups;
     reported: Reported;

@@ -1,13 +1,15 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
-import type { TpOfficialTeamsImportResult } from '@blood-bowl-tracker/api-contract';
+import type {
+  TpOfficialRace,
+  TpOfficialTeamsImportResult,
+} from '@blood-bowl-tracker/api-contract';
 import type { ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   ImportRunnerService,
   TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
-import type { TpOfficialRace } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';

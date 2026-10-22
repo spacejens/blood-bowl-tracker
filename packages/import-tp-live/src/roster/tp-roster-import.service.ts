@@ -1,13 +1,14 @@
 import type {
   ImportError,
   TeamEra,
+  TpMatchEmbeddedPlayer,
   TpRosterImportResult,
 } from '@blood-bowl-tracker/api-contract';
 import {
   ImportResultService,
   UpsertRecorderService,
 } from '@blood-bowl-tracker/import-shared';
-import type { TpRoster, TpRosterPlayer } from '@blood-bowl-tracker/parse-tp';
+import type { TpRoster } from '@blood-bowl-tracker/parse-tp';
 import { RosterParserService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
@@ -24,7 +25,7 @@ export interface ImportRosterOptions {
   /** The name TP's external system is registered under. */
   externalSystemName: string;
   /** This roster's players seen only in match snapshots (bulk import only). */
-  matchEmbeddedPlayers?: TpRosterPlayer[];
+  matchEmbeddedPlayers?: TpMatchEmbeddedPlayer[];
   /**
    * The roster's raw TP JSON. When given, each roster player's own skills
    * (starting and gained) are synced once the players are imported, naming

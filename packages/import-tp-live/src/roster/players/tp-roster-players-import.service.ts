@@ -1,6 +1,7 @@
 import type {
   ImportError,
   TpImportedPlayer,
+  TpMatchEmbeddedPlayer,
   TpMercenaryPositionUsage,
   UpsertPlayer,
 } from '@blood-bowl-tracker/api-contract';
@@ -27,7 +28,7 @@ import { TpPlayerPositionService } from './tp-player-position.service';
 export interface ImportRosterPlayersOptions {
   roster: TpRoster;
   /** This roster's players seen only in match snapshots. */
-  matchEmbeddedPlayers: TpRosterPlayer[];
+  matchEmbeddedPlayers: TpMatchEmbeddedPlayer[];
   context: TpRosterContext;
   /** The team's team-era row for the context's era. */
   teamEraId: number;
@@ -146,7 +147,7 @@ export class TpRosterPlayersImportService {
    */
   private mergePlayers(
     rosterPlayers: TpRosterPlayer[],
-    matchEmbeddedPlayers: TpRosterPlayer[],
+    matchEmbeddedPlayers: TpMatchEmbeddedPlayer[],
   ): TpRosterPlayer[] {
     const merged = new Map<number, TpRosterPlayer>();
     for (const player of [...matchEmbeddedPlayers, ...rosterPlayers]) {
