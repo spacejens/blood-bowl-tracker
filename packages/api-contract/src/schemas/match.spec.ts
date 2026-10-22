@@ -48,7 +48,10 @@ describe('UpsertMatchSchema', () => {
   });
 
   it('still accepts a Date playedAt unchanged', () => {
-    const parsed = UpsertMatchSchema.parse(valid);
+    const parsed = UpsertMatchSchema.parse({
+      ...valid,
+      playedAt: new Date('2021-09-25T00:00:00.000Z'),
+    });
     expect(parsed.playedAt?.toISOString()).toBe('2021-09-25T00:00:00.000Z');
   });
 

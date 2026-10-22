@@ -28,8 +28,8 @@ competition's deepdive.
 The coach
 name as the title, then their career span (the first and last dates across
 every match they have played, or a single date when both fall on the same
-day; dates are UTC calendar days), a blank line, then a ranked list of their top
-five teams by matches played. Ties at the fifth-place cutoff
+day; dates are UTC calendar days), a blank line, then a ranked list of their
+top five teams by matches played. Ties at the fifth-place cutoff
 are all shown, up to ten teams — the same convention `/insights` toplists
 use; at most ten teams are fetched for a deepdive, so the toplists'
 truncation note never actually appears here. A coach who

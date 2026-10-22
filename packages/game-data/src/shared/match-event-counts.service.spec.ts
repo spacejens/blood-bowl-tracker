@@ -370,7 +370,7 @@ describe('MatchEventCountsService', () => {
       const { db } = await build([]);
       await service.listBiggestExpensiveMistakes({ limit: 21 });
       const fields = firstCallArg(db.select) as { date: unknown };
-      expect(sqlText(fields.date)).toContain(" at time zone 'UTC')::date");
+      expect(sqlText(fields.date)).toContain("( at time zone 'UTC')::date");
     });
 
     it('filters by league when a leagueId is given', async () => {
