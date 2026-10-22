@@ -13,6 +13,7 @@ import {
   extractFilterValues,
   extractJoinColumns,
   firstCallArg,
+  sqlText,
 } from '../shared/query-assertions.test-helpers';
 import { TeamRaceCoachNamesService } from '../shared/team-race-coach-names.service';
 import { TeamsService } from './teams.service';
@@ -171,6 +172,19 @@ describe('TeamsService lookups', () => {
     it('returns undefined when the team has played no matches', async () => {
       await build([{ start: null, end: null }]);
       await expect(service.getCareerSpan(7)).resolves.toBeUndefined();
+    });
+
+    it('converts the min/max match timestamps to UTC calendar days', async () => {
+      const { db } = await build([{ start: '2021-09-01', end: '2023-06-10' }]);
+      await service.getCareerSpan(7);
+      const fields = firstCallArg(db.select) as {
+        start: unknown;
+        end: unknown;
+      };
+      expect(sqlText(fields.start)).toContain('(min(');
+      expect(sqlText(fields.start)).toContain(") at time zone 'UTC')::date");
+      expect(sqlText(fields.end)).toContain('(max(');
+      expect(sqlText(fields.end)).toContain(") at time zone 'UTC')::date");
     });
   });
 

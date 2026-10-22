@@ -303,7 +303,8 @@ export class MatchEventCountsService {
 
   /**
    * Individual expensive-mistake events, one row each (no grouping), each labelled
-   * with the losing team and the ISO date of the match, ordered biggest-loss
+   * with the losing team and the ISO date of the match (its UTC calendar day,
+   * independent of the database session's timezone), ordered biggest-loss
    * first. Shares countMatchEventsByTeam's consequence-side join graph plus
    * matches.playedAt; `count` carries the lost amount so each row already fits the
    * leaderboard's ranking shape, and a team may legitimately appear on several
@@ -334,7 +335,7 @@ export class MatchEventCountsService {
         teamId: teams.id,
         name: teams.name,
         count: sql<number>`${matchEvents.expensiveMistake}`,
-        date: sql<string>`${matches.playedAt}::date`,
+        date: sql<string>`(${matches.playedAt} at time zone 'UTC')::date`,
         category: matches.category,
       })
       .from(matchEvents)
