@@ -1,5 +1,7 @@
 import type {
   ExternalId,
+  PlayerCharacteristicIncreases,
+  PlayerLastingInjuries,
   ResolveResult,
   UpsertPlayer,
 } from '@blood-bowl-tracker/api-contract';
@@ -56,6 +58,34 @@ import type { PlayerDeepdiveCategoryCounts } from './player-deepdive-counts.serv
 import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
 import { PlayerLastingInjuryValidationService } from './player-lasting-injury-validation.service';
 
+/**
+ * One player with the names and ids of their team, race, position and era —
+ * what `PlayersService.findById` returns for a player deepdive.
+ */
+export interface PlayerDetail
+  extends PlayerLastingInjuries, PlayerCharacteristicIncreases {
+  id: number;
+  name: string;
+  teamName: string;
+  teamId: number;
+  raceName: string;
+  raceId: number;
+  positionName: string;
+  positionId: number;
+  eraName: string;
+  eraId: number;
+  /** The era's own span (`null` end = ongoing), for the `Era:` line. */
+  eraStartDate: string;
+  eraEndDate: string | null;
+  sppTotal: number | null;
+  sppAdjustment: number | null;
+  move: number;
+  strength: number;
+  agility: number;
+  passing: number | null;
+  armour: number;
+}
+
 export class PlayerUpsertConflictError extends UpsertConflictError {}
 
 @Injectable()
@@ -72,43 +102,7 @@ export class PlayersService {
     private readonly characteristicIncreaseValidation: PlayerCharacteristicIncreaseValidationService,
   ) {}
 
-  async findById(id: number): Promise<
-    | {
-        id: number;
-        name: string;
-        teamName: string;
-        teamId: number;
-        raceName: string;
-        raceId: number;
-        positionName: string;
-        positionId: number;
-        eraName: string;
-        eraId: number;
-        /** The era's own span (`null` end = ongoing), for the `Era:` line. */
-        eraStartDate: string;
-        eraEndDate: string | null;
-        sppTotal: number | null;
-        sppAdjustment: number | null;
-        move: number;
-        strength: number;
-        agility: number;
-        passing: number | null;
-        armour: number;
-        missNextGame: boolean;
-        nigglingInjuryCount: number;
-        moveReductionCount: number;
-        strengthReductionCount: number;
-        agilityReductionCount: number;
-        passingReductionCount: number;
-        armourReductionCount: number;
-        moveIncreaseCount: number;
-        strengthIncreaseCount: number;
-        agilityIncreaseCount: number;
-        passingIncreaseCount: number;
-        armourIncreaseCount: number;
-      }
-    | undefined
-  > {
+  async findById(id: number): Promise<PlayerDetail | undefined> {
     const rows = await this.db
       .select({
         id: players.id,

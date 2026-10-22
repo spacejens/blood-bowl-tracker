@@ -1,5 +1,6 @@
 import type {
   PlayerDeepdiveCategoryCounts,
+  PlayerDetail,
   PlayerHonor,
   PlayerKillEntry,
   PlayerKillerInfo,
@@ -274,39 +275,7 @@ export async function makeService({
 }
 
 export function makePlayers(options: {
-  player?: {
-    id: number;
-    name: string;
-    teamName: string;
-    teamId: number;
-    raceName: string;
-    raceId: number;
-    positionId: number;
-    positionName: string;
-    eraName: string;
-    eraId: number;
-    eraStartDate: string;
-    eraEndDate: string | null;
-    sppTotal: number | null;
-    sppAdjustment: number | null;
-    move: number;
-    strength: number;
-    agility: number;
-    passing: number | null;
-    armour: number;
-    missNextGame: boolean;
-    nigglingInjuryCount: number;
-    moveReductionCount: number;
-    strengthReductionCount: number;
-    agilityReductionCount: number;
-    passingReductionCount: number;
-    armourReductionCount: number;
-    moveIncreaseCount: number;
-    strengthIncreaseCount: number;
-    agilityIncreaseCount: number;
-    passingIncreaseCount: number;
-    armourIncreaseCount: number;
-  };
+  player?: PlayerDetail;
   counts?: Partial<PlayerDeepdiveCategoryCounts>;
 }): PlayersService {
   const players = mock<PlayersService>();
