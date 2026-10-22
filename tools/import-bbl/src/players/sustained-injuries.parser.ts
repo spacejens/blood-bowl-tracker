@@ -1,26 +1,11 @@
+import type { PlayerLastingInjuries } from '@blood-bowl-tracker/api-contract';
 import { Injectable } from '@nestjs/common';
-
-/**
- * A player's currently outstanding lasting injuries, as BBL's own player page
- * states them. Field names match the `players` columns and the contract's
- * lasting-injury group exactly, so the importer can spread this straight into
- * an `UpsertPlayer` payload.
- */
-export interface BblLastingInjuries {
-  missNextGame: boolean;
-  nigglingInjuryCount: number;
-  moveReductionCount: number;
-  strengthReductionCount: number;
-  agilityReductionCount: number;
-  passingReductionCount: number;
-  armourReductionCount: number;
-}
 
 /** Which counter each of BBL's five stat tags feeds. */
 const COUNTER_BY_TAG: Readonly<
   Record<
     'MA' | 'ST' | 'AG' | 'PA' | 'AV',
-    Exclude<keyof BblLastingInjuries, 'missNextGame' | 'nigglingInjuryCount'>
+    Exclude<keyof PlayerLastingInjuries, 'missNextGame' | 'nigglingInjuryCount'>
   >
 > = {
   MA: 'moveReductionCount',
@@ -68,13 +53,16 @@ const NIGGLING = /(\d+)\s*niggl/;
  * whenever one applies, and pages exist that carry "(no effect)" without it
  * (e.g. pid 2381), so inferring one would contradict the source.
  *
+ * Returns the contract's lasting-injury group, so the importer can spread it
+ * straight into an `UpsertPlayer` payload.
+ *
  * Pure text in, plain object out: no cheerio, no I/O, no collaborators. The
  * caller flattens the cell's markup to text first.
  */
 @Injectable()
 export class SustainedInjuriesParser {
-  parse(text: string): BblLastingInjuries {
-    const injuries: BblLastingInjuries = {
+  parse(text: string): PlayerLastingInjuries {
+    const injuries: PlayerLastingInjuries = {
       missNextGame: text.includes(MISS_NEXT_GAME),
       nigglingInjuryCount: 0,
       moveReductionCount: 0,

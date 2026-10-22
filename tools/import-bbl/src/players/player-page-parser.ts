@@ -1,3 +1,4 @@
+import type { PlayerLastingInjuries } from '@blood-bowl-tracker/api-contract';
 import { Injectable } from '@nestjs/common';
 import type { CheerioAPI } from 'cheerio';
 import type { AnyNode } from 'domhandler';
@@ -6,7 +7,6 @@ import type { BblSkillRef } from '../shared/skill-entry.service';
 import { SkillEntryService } from '../shared/skill-entry.service';
 import type { BblPage } from '../source/bbl-page.types';
 import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
-import type { BblLastingInjuries } from './sustained-injuries.parser';
 import { SustainedInjuriesParser } from './sustained-injuries.parser';
 
 /**
@@ -131,7 +131,7 @@ export interface BblPlayer {
    * injuries" is an ordinary state that most pages are in, so an absent row
    * reads as all-clean.
    */
-  lastingInjuries: BblLastingInjuries;
+  lastingInjuries: PlayerLastingInjuries;
   /**
    * Every skill the player's Skills cell lists, starting and gained alike, in
    * the cell's own order. Empty when the cell is blank or absent -- a player
@@ -245,7 +245,7 @@ export class PlayerPageParser {
    * A page with no such row yields the all-clean value, not null — see
    * `BblPlayer.lastingInjuries`.
    */
-  private extractLastingInjuries($: CheerioAPI): BblLastingInjuries {
+  private extractLastingInjuries($: CheerioAPI): PlayerLastingInjuries {
     for (const element of $('td').toArray()) {
       if (
         this.normalizeText.normalize($(element).text()) !==
