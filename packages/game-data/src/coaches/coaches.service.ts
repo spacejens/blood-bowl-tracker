@@ -138,12 +138,18 @@ export class CoachesService {
     coachId: number,
   ): Promise<{ start: string; end: string } | undefined> {
     // Aggregate over zero rows still returns one row with null start/end, so a
-    // null start marks a coach who has recorded no matches. Casting to ::date
-    // yields YYYY-MM-DD strings the resolver can render directly.
+    // null start marks a coach who has recorded no matches. Each aggregate is
+    // converted to a UTC calendar day (YYYY-MM-DD) after aggregating, so the
+    // span does not depend on the database session's timezone and the resolver
+    // can render the strings directly.
     const [row] = await this.db
       .select({
-        start: sql<string | null>`min(${matches.playedAt})::date`,
-        end: sql<string | null>`max(${matches.playedAt})::date`,
+        start: sql<
+          string | null
+        >`(min(${matches.playedAt}) at time zone 'UTC')::date`,
+        end: sql<
+          string | null
+        >`(max(${matches.playedAt}) at time zone 'UTC')::date`,
       })
       .from(matches)
       .innerJoin(matchTeams, eq(matchTeams.matchId, matches.id))
