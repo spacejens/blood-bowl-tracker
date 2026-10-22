@@ -903,7 +903,7 @@ describe('PlayerDeepdiveService', () => {
       .mockResolvedValueOnce(griff)
       .mockResolvedValueOnce(0)
       .mockResolvedValueOnce([])
-      .mockResolvedValueOnce(undefined);
+      .mockResolvedValueOnce(null);
 
     await expect(service.resolve(1)).resolves.toBe(
       DEEPDIVE_PLAYER_DEATH_TIMEOUT_MESSAGE,

@@ -100,6 +100,14 @@ describe('player schemas', () => {
     expect(parsed.sppTotal).toBeUndefined();
   });
 
+  it('UpsertPlayerSchema accepts a null sppTotal, which clears the stored total', () => {
+    const parsed = UpsertPlayerSchema.parse({
+      sppTotal: null,
+      externalIds: [{ externalSystemId: 1, externalId: 'x' }],
+    });
+    expect(parsed.sppTotal).toBeNull();
+  });
+
   it('UpsertPlayerSchema rejects a non-integer sppTotal', () => {
     expect(() =>
       UpsertPlayerSchema.parse({

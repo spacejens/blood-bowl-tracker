@@ -128,12 +128,12 @@ export function makeTrophyAwards(
 }
 
 /**
- * A `PlayerDeathService` mock. Defaults to a living player (`null`) with no
- * kills, so tests about other parts of the embed never see a Status line or a
- * Kills section.
+ * A `PlayerDeathService` mock. Defaults to a living player (`undefined`) with
+ * no kills, so tests about other parts of the embed never see a Status line or
+ * a Kills section.
  */
 export function makePlayerDeath(
-  killer: PlayerKillerInfo | null = null,
+  killer?: PlayerKillerInfo,
   kills: PlayerKillEntry[] = [],
   killsTotal = kills.length,
 ): MockProxy<PlayerDeathService> {

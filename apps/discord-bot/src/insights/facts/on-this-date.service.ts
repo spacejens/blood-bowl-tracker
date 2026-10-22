@@ -246,7 +246,9 @@ export class OnThisDateFactsService {
   private row(victim: RankedVictim, showEra: boolean): string {
     const clause = this.killerClause(victim.killer);
     const foulNote =
-      victim.killer !== null && victim.killer.viaFoul ? ' (via a foul)' : '';
+      victim.killer !== undefined && victim.killer.viaFoul
+        ? ' (via a foul)'
+        : '';
     const context = showEra
       ? ` on ${victim.matchDate} (${victim.eraName})`
       : ` on ${victim.matchDate}`;
@@ -259,13 +261,13 @@ export class OnThisDateFactsService {
    * other case — an unidentified team, an ambiguous set of teams, or no
    * killer resolved at all — goes through the same
    * `PlayerKillerInfoFormatterService.describe` every other caller uses, with
-   * only its leading capital lowered to fit mid-sentence here. Treating a
-   * `null` killer as `{ kind: 'unknown' }` before calling `describe` avoids a
-   * second, duplicated "mysterious circumstances" string that a future
-   * wording change to the formatter could silently miss.
+   * only its leading capital lowered to fit mid-sentence here. Treating an
+   * unresolved (`undefined`) killer as `{ kind: 'unknown' }` before calling
+   * `describe` avoids a second, duplicated "mysterious circumstances" string
+   * that a future wording change to the formatter could silently miss.
    */
-  private killerClause(killer: PlayerKillerInfo | null): string {
-    if (killer !== null && killer.kind === 'player') {
+  private killerClause(killer: PlayerKillerInfo | undefined): string {
+    if (killer !== undefined && killer.kind === 'player') {
       return this.killerInfo.describe(killer);
     }
     const described = this.killerInfo.describe(
@@ -288,7 +290,7 @@ export class OnThisDateFactsService {
         positionName: victim.positionName,
         isStarPlayer: victim.isStarPlayer,
       }),
-      ...(victim.killer === null
+      ...(victim.killer === undefined
         ? []
         : this.killerInfo.buildEntries(victim.killer)),
     ];

@@ -227,26 +227,24 @@ export class PlayerDeepdiveService {
       return DEEPDIVE_PLAYER_COUNTS_TIMEOUT_MESSAGE;
     }
 
-    // `null` is `getKillerInfo`'s real "this player is still alive" answer, so
-    // the timeout sentinel has to be `undefined` rather than the `null` the
-    // other queries here use.
-    const killer: PlayerKillerInfo | null | undefined =
+    // `undefined` is `getKillerInfo`'s real "this player is still alive"
+    // answer, so the timeout sentinel is `null`, as for every query here.
+    const killer: PlayerKillerInfo | undefined | null =
       await this.databaseTimeout.run(
         this.playerDeath.getKillerInfo(playerId),
-        undefined,
+        null,
       );
-    if (killer === undefined) {
+    if (killer === null) {
       return DEEPDIVE_PLAYER_DEATH_TIMEOUT_MESSAGE;
     }
 
     // Both kills queries share one timeout message, the same way the two
-    // honors queries do. The sentinel is `undefined` rather than `null`
-    // because an empty list is a real answer here, same reasoning as `killer`.
-    const killsTotal: number | undefined = await this.databaseTimeout.run(
+    // honors queries do.
+    const killsTotal: number | null = await this.databaseTimeout.run(
       this.playerDeath.countKillsInflicted(playerId),
-      undefined,
+      null,
     );
-    if (killsTotal === undefined) {
+    if (killsTotal === null) {
       return DEEPDIVE_PLAYER_KILLS_TIMEOUT_MESSAGE;
     }
 
@@ -255,20 +253,18 @@ export class PlayerDeepdiveService {
     // known "no kills" answer into a spurious timeout message.
     let kills: PlayerKillEntry[] = [];
     if (killsTotal > 0) {
-      const rows: PlayerKillEntry[] | undefined =
-        await this.databaseTimeout.run(
-          this.playerDeath.getKillsInflicted(playerId, MAX_PLAYER_KILLS),
-          undefined,
-        );
-      if (rows === undefined) {
+      const rows: PlayerKillEntry[] | null = await this.databaseTimeout.run(
+        this.playerDeath.getKillsInflicted(playerId, MAX_PLAYER_KILLS),
+        null,
+      );
+      if (rows === null) {
         return DEEPDIVE_PLAYER_KILLS_TIMEOUT_MESSAGE;
       }
       kills = rows;
     }
 
     // `undefined` is the real "this is a regular player" answer, so the
-    // timeout sentinel is `null` — the opposite way round from the killer and
-    // kills queries above, whose real answers can themselves be null.
+    // timeout sentinel is `null`, the same split as the killer query above.
     const star: StarPlayerIdentity | undefined | null =
       await this.databaseTimeout.run(this.stars.findByPlayerId(playerId), null);
     if (star === null) {
@@ -363,7 +359,7 @@ export class PlayerDeepdiveService {
       `Era: ${this.dateRangeFormatter.formatNamed(player.eraName, player.eraStartDate, player.eraEndDate)}`,
       `Race: ${player.raceName}`,
       `Position: ${player.positionName}`,
-      ...(killer === null ? [] : [this.buildStatusLine(killer)]),
+      ...(killer === undefined ? [] : [this.buildStatusLine(killer)]),
       ...(conditionLines.length === 0 ? [] : ['', ...conditionLines]),
     ];
 
@@ -765,8 +761,8 @@ export class PlayerDeepdiveService {
    * the player toplist insights button only the player.
    */
   private buildKillerEntries(
-    killer: PlayerKillerInfo | null,
+    killer: PlayerKillerInfo | undefined,
   ): EntityComponentEntry[] {
-    return killer === null ? [] : this.killerInfo.buildEntries(killer);
+    return killer === undefined ? [] : this.killerInfo.buildEntries(killer);
   }
 }
