@@ -32,11 +32,11 @@ export interface ResolveByExternalIdsOptions<
   externalIds: readonly ExternalId[];
 }
 
-function keyOf(pair: ExternalId): string {
+function keyOf({ externalSystemId, externalId }: ExternalId): string {
   // A tab cannot occur in an external system id (a number) and is not used by
   // any external-id format in this repo, so it cannot collide the way a ':'
   // or '|' separator could.
-  return `${pair.externalSystemId}\t${pair.externalId}`;
+  return `${externalSystemId}\t${externalId}`;
 }
 
 export async function resolveByExternalIds<
@@ -54,8 +54,8 @@ export async function resolveByExternalIds<
   const ownerIdsByKey = new Map<string, number>(
     existingRows.map((row) => [keyOf(row), row.ownerId]),
   );
-  return options.externalIds.map((pair) => {
-    const id = ownerIdsByKey.get(keyOf(pair));
+  return options.externalIds.map((externalId) => {
+    const id = ownerIdsByKey.get(keyOf(externalId));
     return id === undefined ? { found: false } : { found: true, id };
   });
 }

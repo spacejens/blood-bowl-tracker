@@ -71,7 +71,10 @@ export class CompetitionsService {
       externalIds: data.externalIds,
       ConflictErrorClass: CompetitionUpsertConflictError,
       entityLabelPlural: 'competitions',
-      buildExternalIdRow: (competitionId, pair) => ({ competitionId, ...pair }),
+      buildExternalIdRow: (competitionId, externalId) => ({
+        competitionId,
+        ...externalId,
+      }),
     });
 
     const teamEraIds = await this.syncTeamEras(competition.id, data.teamEraIds);

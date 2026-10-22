@@ -75,7 +75,7 @@ export class TeamsService {
       externalIds: data.externalIds,
       ConflictErrorClass: TeamUpsertConflictError,
       entityLabelPlural: 'teams',
-      buildExternalIdRow: (teamId, pair) => ({ teamId, ...pair }),
+      buildExternalIdRow: (teamId, externalId) => ({ teamId, ...externalId }),
     });
 
     const eras = await this.syncEras(team.id, data.eras);

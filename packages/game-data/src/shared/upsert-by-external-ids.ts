@@ -65,10 +65,10 @@ export interface UpsertByExternalIdsOptions<
   ConflictErrorClass: new (message: string) => UpsertConflictError;
   /** Lowercase plural entity label for the conflict message (e.g. `eras`). */
   entityLabelPlural: string;
-  /** Builds one join-table insert row from the new/updated owner id and a pair. */
+  /** Builds one join-table insert row from the new/updated owner id and one external id. */
   buildExternalIdRow: (
     ownerId: number,
-    pair: ExternalId,
+    externalId: ExternalId,
   ) => InferInsertModel<TExternalIdTable>;
   /**
    * Optional extra conflict check for the single-matched-owner case (the
@@ -252,7 +252,7 @@ async function runUpsertAttempt<
     externalIdTable: opts.externalIdTable,
     existingRows,
     externalIds: opts.externalIds,
-    buildRow: (pair) => opts.buildExternalIdRow(ownerId, pair),
+    buildRow: (externalId) => opts.buildExternalIdRow(ownerId, externalId),
   });
 
   await opts.afterUpsert?.(handle, row);

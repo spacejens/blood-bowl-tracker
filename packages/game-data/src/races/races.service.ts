@@ -202,7 +202,7 @@ export class RacesService {
       externalIds: data.externalIds,
       ConflictErrorClass: RaceUpsertConflictError,
       entityLabelPlural: 'races',
-      buildExternalIdRow: (raceId, pair) => ({ raceId, ...pair }),
+      buildExternalIdRow: (raceId, externalId) => ({ raceId, ...externalId }),
     });
 
     const eras = await this.syncEras(race.id, data.eras);

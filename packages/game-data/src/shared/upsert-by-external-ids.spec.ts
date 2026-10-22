@@ -145,9 +145,9 @@ function baseOpts(db: Db) {
     externalIds: [{ externalSystemId: 1, externalId: 'a' }],
     ConflictErrorClass: TestConflictError,
     entityLabelPlural: 'rules sets',
-    buildExternalIdRow: (rulesSetId: number, pair: ExternalId) => ({
+    buildExternalIdRow: (rulesSetId: number, externalId: ExternalId) => ({
       rulesSetId,
-      ...pair,
+      ...externalId,
     }),
   } as const;
 }
@@ -170,9 +170,9 @@ function eraOpts(db: Db, values: Record<string, unknown>) {
     externalIds: [{ externalSystemId: 1, externalId: 'a' }],
     ConflictErrorClass: TestConflictError,
     entityLabelPlural: 'eras',
-    buildExternalIdRow: (eraId: number, pair: ExternalId) => ({
+    buildExternalIdRow: (eraId: number, externalId: ExternalId) => ({
       eraId,
-      ...pair,
+      ...externalId,
     }),
   } as const;
 }
@@ -603,9 +603,12 @@ describe('upsertByExternalIds', () => {
         entityTable: competitionGroups,
         values: { name: 'Foo', leagueId: 1, namePattern: '^Foo$' },
         externalIdTable: competitionGroupExternalIds,
-        buildExternalIdRow: (competitionGroupId: number, pair: ExternalId) => ({
+        buildExternalIdRow: (
+          competitionGroupId: number,
+          externalId: ExternalId,
+        ) => ({
           competitionGroupId,
-          ...pair,
+          ...externalId,
         }),
       });
 

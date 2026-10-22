@@ -16,7 +16,7 @@ export interface InsertMissingExternalIdsOptions<T extends PgTable> {
   externalIdTable: T;
   existingRows: readonly ExternalId[];
   externalIds: readonly ExternalId[];
-  buildRow: (pair: ExternalId) => InferInsertModel<T>;
+  buildRow: (externalId: ExternalId) => InferInsertModel<T>;
 }
 
 export async function insertMissingExternalIds<T extends PgTable>(

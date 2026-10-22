@@ -308,7 +308,10 @@ export class PlayersService {
       externalIds: data.externalIds,
       ConflictErrorClass: PlayerUpsertConflictError,
       entityLabelPlural: 'players',
-      buildExternalIdRow: (playerId, pair) => ({ playerId, ...pair }),
+      buildExternalIdRow: (playerId, externalId) => ({
+        playerId,
+        ...externalId,
+      }),
     });
 
     return { player, created };

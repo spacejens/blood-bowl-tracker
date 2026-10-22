@@ -60,7 +60,7 @@ function eraUpsertOptions(
     externalIds,
     ConflictErrorClass: TestUpsertConflictError,
     entityLabelPlural: 'eras',
-    buildExternalIdRow: (eraId, pair) => ({ eraId, ...pair }),
+    buildExternalIdRow: (eraId, externalId) => ({ eraId, ...externalId }),
   };
 }
 
@@ -165,7 +165,7 @@ describe('upsertByExternalIds (real Postgres)', () => {
     // retry. If that function's dedup behavior ever changes to also collapse
     // duplicates within its own input, this test's collision would stop
     // happening and it would need revisiting.
-    const pair = {
+    const externalId = {
       externalSystemId: fixtures.externalSystemId,
       externalId: 'era-dup',
     };
@@ -179,7 +179,7 @@ describe('upsertByExternalIds (real Postgres)', () => {
             leagueId: fixtures.leagueId,
             startDate: '2020-01-01',
           },
-          [pair, pair],
+          [externalId, externalId],
         ),
       ),
     ).rejects.toThrow(/after 3 attempts/);

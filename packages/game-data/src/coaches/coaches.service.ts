@@ -68,7 +68,7 @@ export class CoachesService {
       externalIds: data.externalIds,
       ConflictErrorClass: CoachUpsertConflictError,
       entityLabelPlural: 'coaches',
-      buildExternalIdRow: (coachId, pair) => ({ coachId, ...pair }),
+      buildExternalIdRow: (coachId, externalId) => ({ coachId, ...externalId }),
     });
 
     return { coach, created };

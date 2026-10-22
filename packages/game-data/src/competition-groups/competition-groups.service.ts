@@ -201,9 +201,9 @@ export class CompetitionGroupsService {
       externalIds: data.externalIds,
       ConflictErrorClass: CompetitionGroupUpsertConflictError,
       entityLabelPlural: 'competition groups',
-      buildExternalIdRow: (competitionGroupId, pair) => ({
+      buildExternalIdRow: (competitionGroupId, externalId) => ({
         competitionGroupId,
-        ...pair,
+        ...externalId,
       }),
     });
 
