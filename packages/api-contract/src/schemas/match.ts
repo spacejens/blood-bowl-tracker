@@ -15,7 +15,7 @@ export const MatchSchema = z.object({
 
 export const UpsertMatchSchema = z.object({
   competitionId: z.number().int().optional(),
-  playedAt: z.date().optional(),
+  playedAt: z.coerce.date().optional(),
   name: z.string().min(1).optional(),
   category: z.enum(MATCH_CATEGORIES).optional(),
   externalIds: z.array(ExternalIdSchema).min(1),

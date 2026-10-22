@@ -27,6 +27,12 @@ An upsert procedure's response includes a `created` boolean field
 distinguishing the two outcomes: `true` when a new record was created,
 `false` when an existing one was found and updated.
 
+Date-time fields in an upsert payload, such as a match's played-at time,
+accept either a date value or an ISO 8601 date-time string, which the
+contract converts to a date; a string that is not a valid date is rejected.
+This keeps every date-time field in the contract consistent, so a caller
+whose data arrives as JSON text needs no conversion of its own.
+
 ### Batched upserts
 
 Import tools send high-volume records — match events above all — through an
