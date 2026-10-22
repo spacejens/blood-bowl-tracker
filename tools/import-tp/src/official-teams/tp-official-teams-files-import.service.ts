@@ -1,17 +1,17 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
-import type { TpOfficialTeamsImportResult } from '@blood-bowl-tracker/api-contract';
+import type {
+  TpOfficialCharacteristics,
+  TpOfficialRace,
+  TpOfficialTeamsImportResult,
+} from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   ImportRunnerService,
   TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
-import type {
-  TpOfficialRace,
-  TpPositionCharacteristics,
-  TpSkillMaster,
-} from '@blood-bowl-tracker/parse-tp';
+import type { TpSkillMaster } from '@blood-bowl-tracker/parse-tp';
 import { Inject, Injectable } from '@nestjs/common';
 
 import type { OfficialTeamsEntry } from '../source/official-teams-collection.service';
@@ -37,7 +37,7 @@ export interface OfficialTeamsFilesImportOutcome {
    */
   characteristicsByPositionId: Map<
     number,
-    Map<number, TpPositionCharacteristics>
+    Map<number, TpOfficialCharacteristics>
   >;
 }
 
@@ -99,7 +99,7 @@ export class TpOfficialTeamsFilesImportService {
     };
     const characteristicsByPositionId = new Map<
       number,
-      Map<number, TpPositionCharacteristics>
+      Map<number, TpOfficialCharacteristics>
     >();
 
     for (const [rulesSet, races] of this.racesByRulesSet(officialTeams)) {

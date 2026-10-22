@@ -65,9 +65,9 @@ holds, so configure it exactly as
 but with the dev application's and dev server's values:
 
 - `DISCORD_BOT_TOKEN` — the second application's token, from step 1 above.
-- `STARTUP_MESSAGE_DISCORD_CHANNEL` and `RANDOM_INSIGHTS_DISCORD_CHANNEL` —
+- `STARTUP_MESSAGE_DISCORD_CHANNEL_ID` and `RANDOM_INSIGHTS_DISCORD_CHANNEL_ID` —
   channel ids from the dev server, from step 4 above.
-- `TP_FEED_SOURCE_DISCORD_CHANNEL` and `TP_FEED_DEBUG_DISCORD_CHANNEL`, if set
+- `TP_FEED_SOURCE_DISCORD_CHANNEL_ID` and `TP_FEED_DEBUG_DISCORD_CHANNEL_ID`, if set
   at all — same reasoning, channel ids from the dev server rather than
   production. Both are optional (see [TP notification feed](tp-feed.md)), and
   in practice TP itself only posts into the real production server. Testing

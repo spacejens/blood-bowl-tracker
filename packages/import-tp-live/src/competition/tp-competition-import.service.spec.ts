@@ -1,9 +1,9 @@
 import type {
   ImportError,
   ImportResult,
+  TpCompetitionAward,
 } from '@blood-bowl-tracker/api-contract';
 import { ImportResultService } from '@blood-bowl-tracker/import-shared';
-import type { TpAward } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -21,7 +21,7 @@ import { TpCompetitionUpsertService } from './tp-competition-upsert.service';
 
 const nothing: ImportResult = { success: true, imported: 0, errors: [] };
 const one: ImportResult = { success: true, imported: 1, errors: [] };
-const AWARD: TpAward = { id: 1, awardType: 1, rosterId: 163386 };
+const AWARD: TpCompetitionAward = { id: 1, awardType: 1, rosterId: 163386 };
 const OPTIONS: ImportCompetitionOptions = {
   tournament: { id: COMPETITION_TP_ID, name: 'Säsong 30' },
   playedDates: [new Date('2026-01-10')],

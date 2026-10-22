@@ -10,7 +10,7 @@
   // Runtime settings for reaching TP. Both fields are required.
   connection: {
     // Base URL of the TP frontend, including a trailing slash.
-    frontendUrl: 'https://<HOSTNAME_AND_FRONTEND_PATH>/blood-bowl/',
+    frontendBaseUrl: 'https://<HOSTNAME_AND_FRONTEND_PATH>/blood-bowl/',
     // Base URL of the TP API, including a trailing slash — every API request
     // is sent to a path under it.
     backendApiUrl: 'https://<HOSTNAME_AND_API_PATH>/api/',

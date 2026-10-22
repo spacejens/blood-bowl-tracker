@@ -149,10 +149,10 @@ without a ✔️.
 Both channel variables are optional and are documented in
 `apps/discord-bot/.env.example`.
 
-- `TP_FEED_SOURCE_DISCORD_CHANNEL` — the channel TP's integration posts into.
+- `TP_FEED_SOURCE_DISCORD_CHANNEL_ID` — the channel TP's integration posts into.
   Left unset, the bot does not listen for TP notifications at all and the
   feature is entirely off.
-- `TP_FEED_DEBUG_DISCORD_CHANNEL` — the channel the interpretations, the
+- `TP_FEED_DEBUG_DISCORD_CHANNEL_ID` — the channel the interpretations, the
   notices about notifications that did not parse, and failed imports are
   posted to. Left unset, notifications are still parsed and (while
   `TP_SCRAPING_ENABLED` is `true`) imported, and

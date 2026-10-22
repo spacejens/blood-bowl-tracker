@@ -26,8 +26,8 @@ async function makeService(leagues: unknown): Promise<LeagueConfigService> {
 describe('LeagueConfigService', () => {
   it('returns every configured league name in order', async () => {
     const leagues = [
-      { leagueName: 'tLoEG', eras: [] },
-      { leagueName: 'GBBL', eras: [] },
+      { name: 'tLoEG', eras: [] },
+      { name: 'GBBL', eras: [] },
     ];
     const service = await makeService(leagues);
     expect(service.getLeagueNames()).toEqual(['tLoEG', 'GBBL']);
@@ -45,16 +45,16 @@ describe('LeagueConfigService', () => {
     expect(() => service.getLeagueNames()).toThrow('non-empty');
   });
 
-  it('throws when a league has an empty leagueName', async () => {
-    const leagues = [{ leagueName: '', eras: [] }];
+  it('throws when a league has an empty name', async () => {
+    const leagues = [{ name: '', eras: [] }];
     const service = await makeService(leagues);
-    expect(() => service.getLeagueNames()).toThrow('leagues[0].leagueName');
+    expect(() => service.getLeagueNames()).toThrow('leagues[0].name');
   });
 
   it('throws when two leagues share a name', async () => {
     const leagues = [
-      { leagueName: 'tLoEG', eras: [] },
-      { leagueName: 'tLoEG', eras: [] },
+      { name: 'tLoEG', eras: [] },
+      { name: 'tLoEG', eras: [] },
     ];
     const service = await makeService(leagues);
     expect(() => service.getLeagueNames()).toThrow(/tLoEG/);

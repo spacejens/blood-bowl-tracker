@@ -16,5 +16,5 @@ export interface TpConnectionProvider {
   /** Base URL of TP's API; roster API paths are appended to it. */
   getBackendApiUrl(): string;
   /** Base URL of TP's frontend; roster page paths are appended to it. */
-  getFrontendUrl(): string;
+  getFrontendBaseUrl(): string;
 }

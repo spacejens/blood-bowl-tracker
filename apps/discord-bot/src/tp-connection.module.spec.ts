@@ -45,7 +45,7 @@ describe('TpConnectionModule', () => {
       const connection = moduleRef.get<TpConnectionProvider>(
         TP_CONNECTION_PROVIDER,
       );
-      expect(connection.getFrontendUrl()).toBe(
+      expect(connection.getFrontendBaseUrl()).toBe(
         'https://tp.example/blood-bowl/',
       );
       expect(connection.getBackendApiUrl()).toBe('https://tp.example/api/');

@@ -428,7 +428,7 @@ matches (which have no resolve procedure).
 Each position and star player in TP's official team list carries its numeric
 keyword codes spread over three fields: the `race` array (species codes), the
 `positionTypes` bitmask (positional codes) and the `isBigGuy` boolean, merged
-into one array (parsed as `TpOfficialPosition.keywordCodes`). `race` is
+into one array (parsed as `TpOfficialPosition.keywordCodes`, a `packages/api-contract` type). `race` is
 non-empty only under BB2025 — species keywords are a BB2025-only concept. The
 other two fields are decoded unconditionally, for any rules set that carries
 them: DB2021 publishes the full `positionTypes` set, and both BB2020 and

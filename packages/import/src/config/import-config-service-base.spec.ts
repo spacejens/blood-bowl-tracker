@@ -47,11 +47,9 @@ describe('createImportConfigServiceBase', () => {
   }
 
   it('exposes raw top-level values through the config-loader base', async () => {
-    const path = writeConfig(`{ league: { leagueName: 'tLoEG' } }`);
+    const path = writeConfig(`{ league: { name: 'tLoEG' } }`);
     const service = await makeService(path);
-    expect(service.get<{ leagueName: string }>('league')?.leagueName).toBe(
-      'tLoEG',
-    );
+    expect(service.get<{ name: string }>('league')?.name).toBe('tLoEG');
   });
 
   it('throws when the file is missing, since connection is not set', async () => {

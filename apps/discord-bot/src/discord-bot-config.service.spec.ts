@@ -54,18 +54,18 @@ describe('DiscordBotConfigService', () => {
 
   it('returns the configured startup message channel', () => {
     vi.mocked(configService.get).mockImplementation((key: string) =>
-      key === 'STARTUP_MESSAGE_DISCORD_CHANNEL' ? '42' : undefined,
+      key === 'STARTUP_MESSAGE_DISCORD_CHANNEL_ID' ? '42' : undefined,
     );
-    expect(service.getStartupMessageDiscordChannel()).toBe('42');
+    expect(service.getStartupMessageDiscordChannelId()).toBe('42');
     expect(configService.get).toHaveBeenCalledWith(
-      'STARTUP_MESSAGE_DISCORD_CHANNEL',
+      'STARTUP_MESSAGE_DISCORD_CHANNEL_ID',
     );
   });
 
   it('throws when the startup message channel is not configured', () => {
     vi.mocked(configService.get).mockReturnValue(undefined);
-    expect(() => service.getStartupMessageDiscordChannel()).toThrow(
-      'STARTUP_MESSAGE_DISCORD_CHANNEL is not configured',
+    expect(() => service.getStartupMessageDiscordChannelId()).toThrow(
+      'STARTUP_MESSAGE_DISCORD_CHANNEL_ID is not configured',
     );
   });
 
@@ -86,18 +86,18 @@ describe('DiscordBotConfigService', () => {
 
   it('returns the configured random insights channel', () => {
     vi.mocked(configService.get).mockImplementation((key: string) =>
-      key === 'RANDOM_INSIGHTS_DISCORD_CHANNEL' ? '99' : undefined,
+      key === 'RANDOM_INSIGHTS_DISCORD_CHANNEL_ID' ? '99' : undefined,
     );
-    expect(service.getRandomInsightsDiscordChannel()).toBe('99');
+    expect(service.getRandomInsightsDiscordChannelId()).toBe('99');
     expect(configService.get).toHaveBeenCalledWith(
-      'RANDOM_INSIGHTS_DISCORD_CHANNEL',
+      'RANDOM_INSIGHTS_DISCORD_CHANNEL_ID',
     );
   });
 
   it('throws when the random insights channel is not configured', () => {
     vi.mocked(configService.get).mockReturnValue(undefined);
-    expect(() => service.getRandomInsightsDiscordChannel()).toThrow(
-      'RANDOM_INSIGHTS_DISCORD_CHANNEL is not configured',
+    expect(() => service.getRandomInsightsDiscordChannelId()).toThrow(
+      'RANDOM_INSIGHTS_DISCORD_CHANNEL_ID is not configured',
     );
   });
 
@@ -241,72 +241,82 @@ describe('DiscordBotConfigService', () => {
 
   it('returns the configured debug command role id', () => {
     vi.mocked(configService.get).mockImplementation((key: string) =>
-      key === 'DEBUG_COMMAND_ROLE_ID' ? '900000000000000000' : undefined,
+      key === 'DEBUG_COMMAND_DISCORD_ROLE_ID'
+        ? '900000000000000000'
+        : undefined,
     );
-    expect(service.getDebugCommandRoleId()).toBe('900000000000000000');
-    expect(configService.get).toHaveBeenCalledWith('DEBUG_COMMAND_ROLE_ID');
+    expect(service.getDebugCommandDiscordRoleId()).toBe('900000000000000000');
+    expect(configService.get).toHaveBeenCalledWith(
+      'DEBUG_COMMAND_DISCORD_ROLE_ID',
+    );
   });
 
   it('returns undefined when the debug command role id is not configured', () => {
     vi.mocked(configService.get).mockReturnValue(undefined);
-    expect(service.getDebugCommandRoleId()).toBeUndefined();
+    expect(service.getDebugCommandDiscordRoleId()).toBeUndefined();
   });
 
   it('treats an empty debug command role id as not configured', () => {
     vi.mocked(configService.get).mockReturnValue('');
-    expect(service.getDebugCommandRoleId()).toBeUndefined();
+    expect(service.getDebugCommandDiscordRoleId()).toBeUndefined();
   });
 
   it('returns the configured TP feed source channel', () => {
     vi.mocked(configService.get).mockImplementation((key: string) =>
-      key === 'TP_FEED_SOURCE_DISCORD_CHANNEL'
+      key === 'TP_FEED_SOURCE_DISCORD_CHANNEL_ID'
         ? '910000000000000000'
         : undefined,
     );
-    expect(service.getTpFeedSourceDiscordChannel()).toBe('910000000000000000');
+    expect(service.getTpFeedSourceDiscordChannelId()).toBe(
+      '910000000000000000',
+    );
     expect(configService.get).toHaveBeenCalledWith(
-      'TP_FEED_SOURCE_DISCORD_CHANNEL',
+      'TP_FEED_SOURCE_DISCORD_CHANNEL_ID',
     );
   });
 
   it('returns undefined when the TP feed source channel is not configured', () => {
     vi.mocked(configService.get).mockReturnValue(undefined);
-    expect(service.getTpFeedSourceDiscordChannel()).toBeUndefined();
+    expect(service.getTpFeedSourceDiscordChannelId()).toBeUndefined();
   });
 
   it('returns the configured TP feed debug channel', () => {
     vi.mocked(configService.get).mockImplementation((key: string) =>
-      key === 'TP_FEED_DEBUG_DISCORD_CHANNEL'
+      key === 'TP_FEED_DEBUG_DISCORD_CHANNEL_ID'
         ? '920000000000000000'
         : undefined,
     );
-    expect(service.getTpFeedDebugDiscordChannel()).toBe('920000000000000000');
+    expect(service.getTpFeedDebugDiscordChannelId()).toBe('920000000000000000');
     expect(configService.get).toHaveBeenCalledWith(
-      'TP_FEED_DEBUG_DISCORD_CHANNEL',
+      'TP_FEED_DEBUG_DISCORD_CHANNEL_ID',
     );
   });
 
   it('returns undefined when the TP feed debug channel is set to an empty string', () => {
     vi.mocked(configService.get).mockReturnValue('');
-    expect(service.getTpFeedDebugDiscordChannel()).toBeUndefined();
+    expect(service.getTpFeedDebugDiscordChannelId()).toBeUndefined();
   });
 
   it('returns the configured admin command role id', () => {
     vi.mocked(configService.get).mockImplementation((key: string) =>
-      key === 'ADMIN_COMMAND_ROLE_ID' ? '930000000000000000' : undefined,
+      key === 'ADMIN_COMMAND_DISCORD_ROLE_ID'
+        ? '930000000000000000'
+        : undefined,
     );
-    expect(service.getAdminCommandRoleId()).toBe('930000000000000000');
-    expect(configService.get).toHaveBeenCalledWith('ADMIN_COMMAND_ROLE_ID');
+    expect(service.getAdminCommandDiscordRoleId()).toBe('930000000000000000');
+    expect(configService.get).toHaveBeenCalledWith(
+      'ADMIN_COMMAND_DISCORD_ROLE_ID',
+    );
   });
 
   it('returns undefined when the admin command role id is not configured', () => {
     vi.mocked(configService.get).mockReturnValue(undefined);
-    expect(service.getAdminCommandRoleId()).toBeUndefined();
+    expect(service.getAdminCommandDiscordRoleId()).toBeUndefined();
   });
 
   it('treats an empty admin command role id as not configured', () => {
     vi.mocked(configService.get).mockReturnValue('');
-    expect(service.getAdminCommandRoleId()).toBeUndefined();
+    expect(service.getAdminCommandDiscordRoleId()).toBeUndefined();
   });
 
   it('returns the configured TP frontend base URL', () => {

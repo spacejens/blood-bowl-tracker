@@ -1,3 +1,4 @@
+import type { TpOfficialCharacteristics } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
@@ -6,7 +7,6 @@ import {
   ReferenceLookupService,
   TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
-import type { TpPositionCharacteristics } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 import type { EraDataConfig } from '../eras/era-data-config.service';
@@ -22,7 +22,7 @@ export interface ImportStarHiresOptions {
   /** From the positions step: each position's characteristics per rules set. */
   characteristicsByPositionId: Map<
     number,
-    Map<number, TpPositionCharacteristics>
+    Map<number, TpOfficialCharacteristics>
   >;
 }
 

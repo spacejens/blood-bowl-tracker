@@ -33,7 +33,7 @@ export class OfficialTeamsDownloaderService {
       return;
     }
     const referer =
-      this.downloadTpConfigService.getFrontendUrl() +
+      this.downloadTpConfigService.getFrontendBaseUrl() +
       this.officialTeamsPaths.frontendPath();
     const session = this.tpFetcherService.createSession();
     for (const rulesSet of rulesSets) {

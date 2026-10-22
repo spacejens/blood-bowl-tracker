@@ -21,7 +21,7 @@ import { TP_CONNECTION_PROVIDER } from './tp-import-providers';
       provide: TP_CONNECTION_PROVIDER,
       useValue: {
         getBackendApiUrl: () => 'https://tp.example/api/',
-        getFrontendUrl: () => 'https://tp.example/blood-bowl/',
+        getFrontendBaseUrl: () => 'https://tp.example/blood-bowl/',
       },
     },
     { provide: DB, useValue: mockDb().db },

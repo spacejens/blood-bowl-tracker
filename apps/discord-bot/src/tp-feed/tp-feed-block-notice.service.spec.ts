@@ -24,7 +24,7 @@ describe('TpFeedBlockNoticeService', () => {
   beforeEach(async () => {
     discordClient = mockDeep<DiscordClientService>();
     config = mock<DiscordBotConfigService>();
-    config.getTpFeedDebugDiscordChannel.mockReturnValue(DEBUG_CHANNEL);
+    config.getTpFeedDebugDiscordChannelId.mockReturnValue(DEBUG_CHANNEL);
     formatter = mock<TpFeedFormatterService>();
     formatter.formatBlocked.mockReturnValue('blocked notice');
     formatter.formatResumed.mockReturnValue('resumed notice');
@@ -71,7 +71,7 @@ describe('TpFeedBlockNoticeService', () => {
   });
 
   it('only logs when no debug channel is configured', async () => {
-    config.getTpFeedDebugDiscordChannel.mockReturnValue(undefined);
+    config.getTpFeedDebugDiscordChannelId.mockReturnValue(undefined);
 
     await service.announceBlocked(RETRY_AT);
 

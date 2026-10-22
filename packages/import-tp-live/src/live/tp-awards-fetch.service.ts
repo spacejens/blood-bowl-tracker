@@ -1,9 +1,11 @@
-import type { ImportError } from '@blood-bowl-tracker/api-contract';
+import type {
+  ImportError,
+  TpCompetitionAward,
+} from '@blood-bowl-tracker/api-contract';
 import {
   ImportResultService,
   UpsertRecorderService,
 } from '@blood-bowl-tracker/import-shared';
-import type { TpAward } from '@blood-bowl-tracker/parse-tp';
 import { AwardsParserService } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import {
@@ -50,7 +52,7 @@ export class TpAwardsFetchService {
     tournamentSlug,
     errors,
     session,
-  }: FetchAwardsOptions): Promise<TpAward[] | undefined> {
+  }: FetchAwardsOptions): Promise<TpCompetitionAward[] | undefined> {
     const path = this.tournamentPaths.awardsApiPath(tournamentSlug);
     const item = { tournamentSlug, path };
     const what = `awards of tournament ${tournamentSlug}`;
@@ -60,7 +62,7 @@ export class TpAwardsFetchService {
         this.connection.getBackendApiUrl() + path,
         {
           referer:
-            this.connection.getFrontendUrl() +
+            this.connection.getFrontendBaseUrl() +
             this.tournamentPaths.frontendPath(tournamentSlug, 'awards'),
         },
       );

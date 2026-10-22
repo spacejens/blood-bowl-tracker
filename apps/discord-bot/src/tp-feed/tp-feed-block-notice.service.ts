@@ -37,7 +37,7 @@ export class TpFeedBlockNoticeService {
   }
 
   private async post(content: string): Promise<void> {
-    const channelId = this.config.getTpFeedDebugDiscordChannel();
+    const channelId = this.config.getTpFeedDebugDiscordChannelId();
     if (!channelId) {
       return;
     }

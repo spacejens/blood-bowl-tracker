@@ -1,4 +1,3 @@
-export type { TpAward } from './awards-parser.service';
 export { AwardsParserService } from './awards-parser.service';
 export type { TpCoach } from './inscriptions-parser.service';
 export { InscriptionsParserService } from './inscriptions-parser.service';
@@ -12,13 +11,6 @@ export type {
 export { MatchEventParserService } from './match-event-parser.service';
 export type { TpMatch } from './match-parser.service';
 export { MatchParserService } from './match-parser.service';
-export type {
-  TpOfficialPosition,
-  TpOfficialRace,
-  TpPositionSkillIdRef,
-  TpPositionSkillNameRef,
-  TpPositionSkillRef,
-} from './official-teams-parser.service';
 export { OfficialTeamsParserService } from './official-teams-parser.service';
 export { ParseTpModule } from './parse-tp.module';
 export type {
@@ -32,7 +24,6 @@ export type {
   TpPlayerCharacteristics,
   TpPlayerSkillRef,
   TpPlayerSkills,
-  TpPositionCharacteristics,
   TpRoster,
   TpRosterPlayer,
   TpRosterPosition,

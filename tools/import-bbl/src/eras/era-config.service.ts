@@ -125,7 +125,7 @@ export class EraConfigService {
    * The eras the BBL leagues played through, supplied via leagues[].eras in
    * import-bbl-config.json5 (not parsed from the source data). Each league
    * entry's eras are flattened into one list and stamped with that league's
-   * leagueName. Each era is six nested groups: identity, dates, players (all
+   * name. Each era is six nested groups: identity, dates, players (all
    * required), and optional competitions, teams, matches. See EraConfig for
    * field meanings.
    */
@@ -134,8 +134,8 @@ export class EraConfigService {
     if (leaguesRaw === undefined) {
       throw new Error(
         'leagues is not set in import-bbl-config.json5. Set it to a ' +
-          'non-empty array of leagues, each with a leagueName and an eras ' +
-          'array, e.g. [{ leagueName: "tLoEG", eras: [ ... ] }].',
+          'non-empty array of leagues, each with a name and an eras ' +
+          'array, e.g. [{ name: "tLoEG", eras: [ ... ] }].',
       );
     }
     const leagues = leaguesShellSchema.safeParse(leaguesRaw);
@@ -159,7 +159,7 @@ export class EraConfigService {
           );
         }
         this.assertOverriddenCompetitionsUniqueWithinEra(parsed.data, eraIndex);
-        eras.push({ ...parsed.data, leagueName: league.leagueName });
+        eras.push({ ...parsed.data, leagueName: league.name });
       });
     });
 
@@ -174,7 +174,7 @@ export class EraConfigService {
         );
       }
       // era.leagueName is always set here: every entry in `eras` was just
-      // constructed above from a validated, non-empty leagueName.
+      // constructed above from a validated, non-empty league name.
       eraNameSeen.set(era.identity.name, era.leagueName as string);
     }
 

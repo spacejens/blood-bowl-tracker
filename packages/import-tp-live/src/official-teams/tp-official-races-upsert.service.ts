@@ -1,10 +1,12 @@
-import type { ImportError } from '@blood-bowl-tracker/api-contract';
+import type {
+  ImportError,
+  TpOfficialRace,
+} from '@blood-bowl-tracker/api-contract';
 import { RacesService } from '@blood-bowl-tracker/game-data';
 import {
   NameExternalIdService,
   UpsertRecorderService,
 } from '@blood-bowl-tracker/import-shared';
-import type { TpOfficialRace } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 import type { TpOfficialTeamsContext } from './tp-official-teams-context.service';

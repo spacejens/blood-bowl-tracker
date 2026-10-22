@@ -149,7 +149,7 @@ export class LeaguesDownloaderService {
         await this.fetch(
           crawl,
           this.tpMatchPathsService.apiPath(match.matchId),
-          `${this.downloadTpConfigService.getFrontendUrl()}${this.tpMatchPathsService.frontendPath(crawl.slug, match.matchId)}`,
+          `${this.downloadTpConfigService.getFrontendBaseUrl()}${this.tpMatchPathsService.frontendPath(crawl.slug, match.matchId)}`,
         );
       }
     }
@@ -178,14 +178,14 @@ export class LeaguesDownloaderService {
         )) as Record<string, TpInscription[]>,
       );
     }
-    const frontendUrl = this.downloadTpConfigService.getFrontendUrl();
+    const frontendBaseUrl = this.downloadTpConfigService.getFrontendBaseUrl();
     for (const response of responses) {
       for (const inscriptions of Object.values(response)) {
         for (const inscription of inscriptions) {
           await this.fetch(
             crawl,
             this.tpRosterPathsService.apiPath(inscription.roster.id),
-            `${frontendUrl}${this.tpRosterPathsService.frontendPath(inscription.roster.id)}`,
+            `${frontendBaseUrl}${this.tpRosterPathsService.frontendPath(inscription.roster.id)}`,
           );
         }
       }
@@ -205,7 +205,7 @@ export class LeaguesDownloaderService {
 
   /** A page under the tournament's frontend URL, used as a referer. */
   private tournamentPage(crawl: LeagueCrawl, page: string): string {
-    return `${this.downloadTpConfigService.getFrontendUrl()}${this.tpTournamentPathsService.frontendPath(crawl.slug, page)}`;
+    return `${this.downloadTpConfigService.getFrontendBaseUrl()}${this.tpTournamentPathsService.frontendPath(crawl.slug, page)}`;
   }
 
   private fetch(

@@ -72,7 +72,7 @@ describe('LeaguesDownloaderService', () => {
 
   beforeEach(async () => {
     configService = mock<DownloadTpConfigService>();
-    configService.getFrontendUrl.mockReturnValue(FRONTEND);
+    configService.getFrontendBaseUrl.mockReturnValue(FRONTEND);
     configService.getTournaments.mockReturnValue(['season-30']);
     sessions = [];
     tpFetcherService = mock<TpFetcherService>();

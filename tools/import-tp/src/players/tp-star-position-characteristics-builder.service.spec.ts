@@ -1,4 +1,4 @@
-import type { TpPositionCharacteristics } from '@blood-bowl-tracker/parse-tp';
+import type { TpOfficialCharacteristics } from '@blood-bowl-tracker/api-contract';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -20,7 +20,7 @@ describe('TpStarPositionCharacteristicsBuilderService', () => {
   });
 
   it("builds a payload from a star position's characteristics for that era's rules set", () => {
-    const byPosition = new Map<number, Map<number, TpPositionCharacteristics>>([
+    const byPosition = new Map<number, Map<number, TpOfficialCharacteristics>>([
       [
         70,
         new Map([
@@ -59,7 +59,7 @@ describe('TpStarPositionCharacteristicsBuilderService', () => {
   });
 
   it("returns nothing when the position has no entry for the era's rules set", () => {
-    const byPosition = new Map<number, Map<number, TpPositionCharacteristics>>([
+    const byPosition = new Map<number, Map<number, TpOfficialCharacteristics>>([
       [
         70,
         new Map([
@@ -79,7 +79,7 @@ describe('TpStarPositionCharacteristicsBuilderService', () => {
   });
 
   it('returns nothing for a star position when the era has no resolved rules set', () => {
-    const byPosition = new Map<number, Map<number, TpPositionCharacteristics>>([
+    const byPosition = new Map<number, Map<number, TpOfficialCharacteristics>>([
       [
         70,
         new Map([

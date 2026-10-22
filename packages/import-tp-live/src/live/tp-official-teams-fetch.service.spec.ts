@@ -1,9 +1,11 @@
-import type { ImportError } from '@blood-bowl-tracker/api-contract';
+import type {
+  ImportError,
+  TpOfficialRace,
+} from '@blood-bowl-tracker/api-contract';
 import {
   ImportResultService,
   UpsertRecorderService,
 } from '@blood-bowl-tracker/import-shared';
-import type { TpOfficialRace } from '@blood-bowl-tracker/parse-tp';
 import { OfficialTeamsParserService } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import {
@@ -36,7 +38,9 @@ describe('TpOfficialTeamsFetchService', () => {
   beforeEach(async () => {
     const connection = mock<TpConnectionProvider>();
     connection.getBackendApiUrl.mockReturnValue(API);
-    connection.getFrontendUrl.mockReturnValue('https://tp.example/blood-bowl/');
+    connection.getFrontendBaseUrl.mockReturnValue(
+      'https://tp.example/blood-bowl/',
+    );
     fetcher = mock<TpFetcherService>();
     session = mock<TpFetchSession>();
     fetcher.createSession.mockReturnValue(session);

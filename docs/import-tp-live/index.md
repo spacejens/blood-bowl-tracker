@@ -224,7 +224,7 @@ The package reads no config of its own. `TpRosterModule`, `TpMatchModule`
 and `TpCompetitionModule` all need `packages/db`'s `DB`, which the app's
 `DbModule` provides.
 `ImportTpLiveModule` also needs `TP_CONNECTION_PROVIDER`, provided from a
-`@Global()` module: `getBackendApiUrl()` and `getFrontendUrl()`, TP's base
+`@Global()` module: `getBackendApiUrl()` and `getFrontendBaseUrl()`, TP's base
 URLs with trailing slashes included. `apps/discord-bot` provides it from its
 `TpConnectionModule`, built from its `TP_FRONTEND_BASE_URL` and
 `TP_BACKEND_API_URL` settings. The bot's mandatory `TP_SCRAPING_ENABLED`

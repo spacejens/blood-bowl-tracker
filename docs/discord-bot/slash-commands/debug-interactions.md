@@ -8,7 +8,7 @@ answering "it failed for me" without direct database access.
 The `debug` prefix on both the name and the description marks this as
 maintainer tooling rather than a regular bot feature. The prefix itself is a
 visibility convention; access control is separate, and optional. Where the
-deployment sets `DEBUG_COMMAND_ROLE_ID` to a Discord server role id, only
+deployment sets `DEBUG_COMMAND_DISCORD_ROLE_ID` to a Discord server role id, only
 members holding that role can run this command — anyone else gets a private
 "you don't have permission to use this command" reply, as does anyone who
 runs it in a direct message with the bot, since a direct message carries no
@@ -99,8 +99,8 @@ Two things follow from how retriggering reruns the interaction:
   whoever clicked retrigger — it is never posted publicly.
 
 Retriggering a restricted command also re-checks the clicking member against
-the role that command requires (`DEBUG_COMMAND_ROLE_ID` for the `debug`
-commands, `ADMIN_COMMAND_ROLE_ID` for admin commands such as
+the role that command requires (`DEBUG_COMMAND_DISCORD_ROLE_ID` for the `debug`
+commands, `ADMIN_COMMAND_DISCORD_ROLE_ID` for admin commands such as
 [`/importtp`](import-tp.md)), the same check a direct invocation goes
 through. A click by someone who does not hold that role, or a stale
 retrigger button held from before the role was configured, gets the same

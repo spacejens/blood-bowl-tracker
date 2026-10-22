@@ -49,7 +49,7 @@ export class RandomInsightsSchedulerService {
     // swallows and logs errors so transient per-tick failures don't kill the
     // schedule -- but that would also silently swallow a missing or invalid
     // env var forever instead of failing startup, so validate eagerly.
-    this.config.getRandomInsightsDiscordChannel();
+    this.config.getRandomInsightsDiscordChannelId();
     this.scope.validateConfig();
     const job: CronJob<null, null> = CronJob.from({
       cronTime,
@@ -69,7 +69,7 @@ export class RandomInsightsSchedulerService {
    */
   async postRandomInsight(): Promise<void> {
     try {
-      const channelId = this.config.getRandomInsightsDiscordChannel();
+      const channelId = this.config.getRandomInsightsDiscordChannelId();
       const scope = await this.scope.pickScope();
       const message = await this.insightsCommand.resolveRandomFact(scope);
       await this.discordClient.sendMessage(channelId, message);

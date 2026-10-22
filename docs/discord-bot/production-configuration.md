@@ -13,10 +13,10 @@ application and server, the `API_TOKEN_IMPORT_*` values are separate
 production secrets, and the `RANDOM_INSIGHTS_*` tunables are set for a live
 audience rather than for development.
 
-Concretely: `RANDOM_INSIGHTS_DISCORD_CHANNEL` in production points at a
+Concretely: `RANDOM_INSIGHTS_DISCORD_CHANNEL_ID` in production points at a
 channel dedicated to the bot's scheduled output for real server members,
 distinct from the startup/status channel named by
-`STARTUP_MESSAGE_DISCORD_CHANNEL` — the startup message is deployment noise
+`STARTUP_MESSAGE_DISCORD_CHANNEL_ID` — the startup message is deployment noise
 that members should not have to scroll past. `RANDOM_INSIGHTS_CRON` is
 likewise lower-frequency than the hourly expression in the local template:
 hourly exists for quick feedback while developing, whereas a channel people
