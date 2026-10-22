@@ -1,3 +1,4 @@
+import { NAME_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/domain-enums';
 import type { TableCell, TableRow } from '@blood-bowl-tracker/review-harness';
 import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Injectable } from '@nestjs/common';
@@ -11,7 +12,6 @@ import type { ManualCharacteristicsEntry } from '../source/manual-raw-data.servi
 import { ManualRawDataService } from '../source/manual-raw-data.service';
 
 const NONE = '—';
-const NAME_SYSTEM = 'Name';
 
 /**
  * The star-characteristics raw panel: each source's own view of this star's
@@ -149,7 +149,7 @@ export class StarPlayerCharacteristicsRawRendererService {
       return true;
     }
     return (
-      entry.position.system === NAME_SYSTEM &&
+      entry.position.system === NAME_EXTERNAL_SYSTEM_NAME &&
       this.names.matchesName(entry.position.id, star.positionName)
     );
   }

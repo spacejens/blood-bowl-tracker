@@ -1,3 +1,4 @@
+import { NAME_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/domain-enums';
 import type { TableCell, TableRow } from '@blood-bowl-tracker/review-harness';
 import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Injectable } from '@nestjs/common';
@@ -13,7 +14,6 @@ import type { TpRawOfficialPosition } from '../source/tp-raw-official-teams-inde
 import { TpRawOfficialTeamsIndexService } from '../source/tp-raw-official-teams-index.service';
 
 const NONE = '—';
-const NAME_SYSTEM = 'Name';
 
 /**
  * The position-characteristics raw panel: each source's own view of one
@@ -185,7 +185,7 @@ export class PositionCharacteristicsRawRendererService {
     const nameById = new Map<string, string>();
     for (const position of positions) {
       for (const row of byPosition.get(position.positionId) ?? []) {
-        if (row.systemName === NAME_SYSTEM) {
+        if (row.systemName === NAME_EXTERNAL_SYSTEM_NAME) {
           nameById.set(row.externalId, position.positionName);
         }
       }
@@ -193,7 +193,7 @@ export class PositionCharacteristicsRawRendererService {
     const rows: TableCell[][] = [];
     for (const entry of await this.manual.characteristics()) {
       const positionName =
-        entry.position.system === NAME_SYSTEM
+        entry.position.system === NAME_EXTERNAL_SYSTEM_NAME
           ? nameById.get(entry.position.id)
           : undefined;
       if (positionName === undefined) {

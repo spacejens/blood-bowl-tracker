@@ -6,6 +6,7 @@ import {
   externalSystems,
   raceExternalIds,
 } from '@blood-bowl-tracker/db';
+import { NAME_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/domain-enums';
 import {
   BBL_EXTERNAL_SYSTEM_NAME,
   TP_EXTERNAL_SYSTEM_NAME,
@@ -27,8 +28,6 @@ export interface RaceExternalIdSet {
   /** The bookkeeping "Name" system's ids. */
   name: string[];
 }
-
-const NAME_SYSTEM = 'Name';
 
 /**
  * Resolves a sampled race to the ids each raw source addresses it by. Every
@@ -69,7 +68,7 @@ export class RaceExternalIdsService {
     return {
       bbl: this.idsOf(rows, BBL_EXTERNAL_SYSTEM_NAME),
       tp: this.idsOf(rows, TP_EXTERNAL_SYSTEM_NAME),
-      name: this.idsOf(rows, NAME_SYSTEM),
+      name: this.idsOf(rows, NAME_EXTERNAL_SYSTEM_NAME),
     };
   }
 
