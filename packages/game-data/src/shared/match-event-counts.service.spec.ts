@@ -11,6 +11,7 @@ import {
   extractAllFilterValues,
   extractJoinColumns,
   firstCallArg,
+  sqlText,
 } from './query-assertions.test-helpers';
 
 describe('MatchEventCountsService', () => {
@@ -363,6 +364,13 @@ describe('MatchEventCountsService', () => {
       expect(
         Object.keys(firstCallArg(db.select) as Record<string, unknown>),
       ).toContain('category');
+    });
+
+    it('labels each event with the UTC calendar day of its match', async () => {
+      const { db } = await build([]);
+      await service.listBiggestExpensiveMistakes({ limit: 21 });
+      const fields = firstCallArg(db.select) as { date: unknown };
+      expect(sqlText(fields.date)).toContain(" at time zone 'UTC')::date");
     });
 
     it('filters by league when a leagueId is given', async () => {

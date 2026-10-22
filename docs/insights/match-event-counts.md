@@ -47,6 +47,9 @@ events:
 - **Total lost per team** sums the money lost, grouped by team.
 - **Biggest individual events** returns one row per event (no grouping), each
   labelled with the team and the date of the match it happened in, ordered by amount.
+  The date is the match's UTC calendar day — the same rule
+  [on-this-date](on-this-date.md) uses — so it never depends on the database
+  session's timezone.
 
 Both return every matching row rather than a database-side top slice; the
 application layer ranks and truncates them with ties, exactly as the count
