@@ -34,7 +34,7 @@
     "globals": "^17.13.0",
     "knip": "6.42.1",
     "madge": "8.0.0",
-    "markdownlint-cli2": "^0.23.3",
+    "markdownlint-cli2": "^0.24.0",
     "prettier": "^3.9.10",
     "syncpack": "15.3.3",
     "typescript-eslint": "^8.71.2"
