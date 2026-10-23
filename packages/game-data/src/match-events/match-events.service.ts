@@ -84,7 +84,10 @@ export class MatchEventsService {
       externalIds: data.externalIds,
       ConflictErrorClass: MatchEventUpsertConflictError,
       entityLabelPlural: 'match events',
-      buildExternalIdRow: (matchEventId, pair) => ({ matchEventId, ...pair }),
+      buildExternalIdRow: (matchEventId, externalId) => ({
+        matchEventId,
+        ...externalId,
+      }),
     });
 
     return { matchEvent, created };

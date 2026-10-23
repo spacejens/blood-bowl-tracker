@@ -1,4 +1,7 @@
-import type { TpMercenaryPositionUsage as MercenaryPositionUsage } from '@blood-bowl-tracker/api-contract';
+import type {
+  RaceEraRef,
+  TpMercenaryPositionUsage as MercenaryPositionUsage,
+} from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
@@ -96,10 +99,7 @@ export class TpMercenaryPositionRaceErasImportService {
     ]);
 
     // positionId -> ("raceId:eraId" -> { raceId, eraId }) for per-position dedup.
-    const pairsByPosition = new Map<
-      number,
-      Map<string, { raceId: number; eraId: number }>
-    >();
+    const pairsByPosition = new Map<number, Map<string, RaceEraRef>>();
 
     for (const usage of mercenaryPositionUsages) {
       const raceId = raceIds.get(

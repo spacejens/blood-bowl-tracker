@@ -1,7 +1,6 @@
+import type { ExternalId } from '@blood-bowl-tracker/api-contract';
 import type { DbOrTx, PgColumn, PgTable } from '@blood-bowl-tracker/db';
 import { and, eq, or } from '@blood-bowl-tracker/db';
-
-import type { ExternalIdPair } from './sync-external-ids';
 
 /**
  * Find the entity, if any, that the given external ids already identify.
@@ -36,7 +35,7 @@ export interface ResolveExistingByExternalIdsOptions<
   ownerIdColumn: TOwnerIdColumn;
   externalSystemIdColumn: TExternalSystemIdColumn;
   externalIdColumn: TExternalIdColumn;
-  externalIds: readonly ExternalIdPair[];
+  externalIds: readonly ExternalId[];
 }
 
 export async function resolveExistingByExternalIds<
@@ -51,7 +50,7 @@ export async function resolveExistingByExternalIds<
   >,
 ): Promise<{
   ownerIds: number[];
-  existingRows: (ExternalIdPair & { ownerId: number })[];
+  existingRows: (ExternalId & { ownerId: number })[];
 }> {
   const {
     db,

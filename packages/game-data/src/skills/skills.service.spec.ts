@@ -78,12 +78,15 @@ describe('SkillsService', () => {
   });
 
   it('keeps the stored name when an update does not ask to rename', async () => {
-    const pair = data.externalIds[0];
-    const { db, chains } = await build([{ ownerId: 1, ...pair }], [fakeSkill]);
+    const externalId = data.externalIds[0];
+    const { db, chains } = await build(
+      [{ ownerId: 1, ...externalId }],
+      [fakeSkill],
+    );
 
     const result = await service.upsert({
       name: 'Raw Spelling',
-      externalIds: [pair],
+      externalIds: [externalId],
     });
 
     expect(db.update).not.toHaveBeenCalled();

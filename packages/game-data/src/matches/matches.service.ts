@@ -80,7 +80,7 @@ export class MatchesService {
       externalIds: data.externalIds,
       ConflictErrorClass: MatchUpsertConflictError,
       entityLabelPlural: 'matches',
-      buildExternalIdRow: (matchId, pair) => ({ matchId, ...pair }),
+      buildExternalIdRow: (matchId, externalId) => ({ matchId, ...externalId }),
     });
 
     const teamEraIds = await this.syncTeams(match.id, data.teamEraIds);

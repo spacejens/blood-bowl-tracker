@@ -1,4 +1,7 @@
-import type { TpOfficialCharacteristics } from '@blood-bowl-tracker/api-contract';
+import type {
+  TeamEra,
+  TpOfficialCharacteristics,
+} from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
@@ -18,7 +21,7 @@ import { TpInducedStarPlayersImportService } from './tp-induced-star-players-imp
 /** Options for {@link TpInducedStarPlayersStepService.importStarHires}. */
 export interface ImportStarHiresOptions {
   groups: InducedStarPlayerHireGroup[];
-  teamErasByRosterId: Map<number, { id: number; eraId: number }[]>;
+  teamErasByRosterId: Map<number, TeamEra[]>;
   /** From the positions step: each position's characteristics per rules set. */
   characteristicsByPositionId: Map<
     number,

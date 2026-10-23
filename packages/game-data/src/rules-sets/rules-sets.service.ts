@@ -49,7 +49,10 @@ export class RulesSetsService {
       externalIds: data.externalIds,
       ConflictErrorClass: RulesSetUpsertConflictError,
       entityLabelPlural: 'rules sets',
-      buildExternalIdRow: (rulesSetId, pair) => ({ rulesSetId, ...pair }),
+      buildExternalIdRow: (rulesSetId, externalId) => ({
+        rulesSetId,
+        ...externalId,
+      }),
     });
 
     return { rulesSet, created };

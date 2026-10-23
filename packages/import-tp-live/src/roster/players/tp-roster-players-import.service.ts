@@ -4,6 +4,7 @@ import type {
   TpMatchEmbeddedPlayer,
   TpMercenaryPositionUsage,
   UpsertPlayer,
+  UpsertPlayerCharacteristics,
 } from '@blood-bowl-tracker/api-contract';
 import { UpsertPlayerSchema } from '@blood-bowl-tracker/api-contract';
 import { PlayersService } from '@blood-bowl-tracker/game-data';
@@ -16,7 +17,6 @@ import type { IncreaseBaselineCache } from './tp-characteristic-increases.servic
 import { TpCharacteristicIncreasesService } from './tp-characteristic-increases.service';
 import { TpLastingInjuryBuilderService } from './tp-lasting-injury-builder.service';
 import { TpMercenaryCharacteristicsService } from './tp-mercenary-characteristics.service';
-import type { TpPlayerCharacteristicsPayload } from './tp-player-characteristics-builder.service';
 import { TpPlayerCharacteristicsBuilderService } from './tp-player-characteristics-builder.service';
 import type {
   MercenaryPositionCache,
@@ -202,7 +202,7 @@ export class TpRosterPlayersImportService {
       errors,
     } = options;
     const { rulesSet } = context;
-    let characteristics: TpPlayerCharacteristicsPayload | undefined =
+    let characteristics: UpsertPlayerCharacteristics | undefined =
       this.characteristicsBuilder.forRosterPlayer({
         characteristics: player.characteristics,
         rulesSetId: rulesSet?.id,
