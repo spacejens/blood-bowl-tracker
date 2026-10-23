@@ -1,12 +1,13 @@
-import type { ImportError } from '@blood-bowl-tracker/api-contract';
+import type {
+  ImportError,
+  UpsertPlayerCharacteristics,
+} from '@blood-bowl-tracker/api-contract';
 import { PositionRulesSetsService } from '@blood-bowl-tracker/game-data';
 import {
   ImportResultService,
   UpsertRecorderService,
 } from '@blood-bowl-tracker/import-shared';
 import { Injectable } from '@nestjs/common';
-
-import type { TpPlayerCharacteristicsPayload } from './tp-player-characteristics-builder.service';
 
 /** One mercenary position's characteristics under one rules set. */
 interface MercenaryCharacteristics {
@@ -132,7 +133,7 @@ export class TpMercenaryCharacteristicsService {
     player: { id: number; name: string };
     rulesSet: { id: number; name: string } | undefined;
     errors: ImportError[];
-  }): TpPlayerCharacteristicsPayload | undefined {
+  }): UpsertPlayerCharacteristics | undefined {
     const { curated, positionName, player, rulesSet, errors } = options;
     if (
       rulesSet === undefined ||

@@ -21,7 +21,7 @@ describe('insertMissingExternalIds', () => {
         { externalSystemId: 1, externalId: 'a' },
         { externalSystemId: 2, externalId: 'b' },
       ],
-      buildRow: (pair) => ({ rulesSetId: 99, ...pair }),
+      buildRow: (externalId) => ({ rulesSetId: 99, ...externalId }),
     });
     expect(values).toHaveBeenCalledWith([
       { rulesSetId: 99, externalSystemId: 2, externalId: 'b' },
@@ -35,7 +35,7 @@ describe('insertMissingExternalIds', () => {
       externalIdTable: rulesSetExternalIds,
       existingRows: [{ externalSystemId: 1, externalId: 'a' }],
       externalIds: [{ externalSystemId: 1, externalId: 'a' }],
-      buildRow: (pair) => ({ rulesSetId: 99, ...pair }),
+      buildRow: (externalId) => ({ rulesSetId: 99, ...externalId }),
     });
     expect(db.insert).not.toHaveBeenCalled();
     expect(values).not.toHaveBeenCalled();
@@ -48,7 +48,7 @@ describe('insertMissingExternalIds', () => {
       externalIdTable: rulesSetExternalIds,
       existingRows: [{ externalSystemId: 1, externalId: 'a' }],
       externalIds: [{ externalSystemId: 2, externalId: 'a' }],
-      buildRow: (pair) => ({ rulesSetId: 99, ...pair }),
+      buildRow: (externalId) => ({ rulesSetId: 99, ...externalId }),
     });
     expect(values).toHaveBeenCalledWith([
       { rulesSetId: 99, externalSystemId: 2, externalId: 'a' },

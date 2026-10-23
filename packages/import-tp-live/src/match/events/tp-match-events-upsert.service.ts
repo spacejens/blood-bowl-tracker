@@ -1,4 +1,4 @@
-import type { ImportError } from '@blood-bowl-tracker/api-contract';
+import type { ImportError, TeamEra } from '@blood-bowl-tracker/api-contract';
 import {
   MatchEventsService,
   PlayersService,
@@ -9,7 +9,6 @@ import { Injectable } from '@nestjs/common';
 
 import type { TpMatchContext } from '../tp-match-context.service';
 import { TpMatchEventsBuilderService } from './tp-match-events-builder.service';
-import type { TeamEra } from './tp-match-events-builder.types';
 import { TpMatchEventsCorrelationService } from './tp-match-events-correlation.service';
 
 /** Options for {@link TpMatchEventsUpsertService.upsertEvents}. */

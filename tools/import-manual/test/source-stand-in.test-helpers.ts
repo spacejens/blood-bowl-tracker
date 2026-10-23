@@ -1,5 +1,6 @@
 /// <reference types="node" />
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
+import type { ExternalId } from '@blood-bowl-tracker/api-contract';
 import type { Db } from '@blood-bowl-tracker/db';
 import {
   eq,
@@ -62,7 +63,7 @@ export interface StandInOutcome {
   sppTotal: number | null;
 }
 
-type ExternalIds = { externalSystemId: number; externalId: string }[];
+type ExternalIds = ExternalId[];
 
 /** The ids of the stored external systems, by name. */
 async function systemIds(db: Db): Promise<Map<string, number>> {

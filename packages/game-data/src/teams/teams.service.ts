@@ -1,6 +1,7 @@
 import type {
   ExternalId,
   ResolveResult,
+  TeamEra,
   UpsertTeam,
 } from '@blood-bowl-tracker/api-contract';
 import type { Db, Team } from '@blood-bowl-tracker/db';
@@ -37,7 +38,7 @@ import { TeamsStatisticsService } from './teams-statistics.service';
 export class TeamUpsertConflictError extends UpsertConflictError {}
 
 export interface TeamWithEras extends Team {
-  eras: { id: number; eraId: number }[];
+  eras: TeamEra[];
 }
 
 @Injectable()
@@ -74,7 +75,7 @@ export class TeamsService {
       externalIds: data.externalIds,
       ConflictErrorClass: TeamUpsertConflictError,
       entityLabelPlural: 'teams',
-      buildExternalIdRow: (teamId, pair) => ({ teamId, ...pair }),
+      buildExternalIdRow: (teamId, externalId) => ({ teamId, ...externalId }),
     });
 
     const eras = await this.syncEras(team.id, data.eras);
@@ -405,10 +406,7 @@ export class TeamsService {
     return this.statistics.listBiggestExpensiveMistakes(scope, limit);
   }
 
-  private async syncEras(
-    teamId: number,
-    eraIds: number[],
-  ): Promise<{ id: number; eraId: number }[]> {
+  private async syncEras(teamId: number, eraIds: number[]): Promise<TeamEra[]> {
     const existing = await this.db
       .select({ id: teamEras.id, eraId: teamEras.eraId })
       .from(teamEras)

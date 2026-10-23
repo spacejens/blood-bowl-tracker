@@ -1,6 +1,7 @@
 import type { CharacteristicFormat } from '@blood-bowl-tracker/domain-enums';
 import type {
   PlayerDeepdiveCategoryCounts,
+  PlayerDetail,
   PlayerHonor,
   PlayerKillEntry,
   PlayerKillerInfo,
@@ -59,39 +60,6 @@ import { PlayerKillerInfoFormatterService } from './player-killer-info-formatter
 import { PlayerKillsSectionService } from './player-kills-section.service';
 import { PlayerSkillsSectionService } from './player-skills-section.service';
 
-type Player = {
-  id: number;
-  name: string;
-  teamName: string;
-  teamId: number;
-  raceName: string;
-  raceId: number;
-  positionName: string;
-  positionId: number;
-  eraName: string;
-  eraId: number;
-  eraStartDate: string;
-  eraEndDate: string | null;
-  sppTotal: number | null;
-  sppAdjustment: number | null;
-  move: number;
-  strength: number;
-  agility: number;
-  passing: number | null;
-  armour: number;
-  missNextGame: boolean;
-  nigglingInjuryCount: number;
-  moveReductionCount: number;
-  strengthReductionCount: number;
-  agilityReductionCount: number;
-  passingReductionCount: number;
-  armourReductionCount: number;
-  moveIncreaseCount: number;
-  strengthIncreaseCount: number;
-  agilityIncreaseCount: number;
-  passingIncreaseCount: number;
-  armourIncreaseCount: number;
-};
 /**
  * Most honors listed in one player embed. Deliberately its own constant rather
  * than a shared import of `MAX_TEAM_HONORS`: the two facts start at the same
@@ -181,10 +149,8 @@ export class PlayerDeepdiveService {
   ) {}
 
   async resolve(playerId: number): Promise<string | InteractionReplyOptions> {
-    const player: Player | undefined | null = await this.databaseTimeout.run(
-      this.players.findById(playerId),
-      null,
-    );
+    const player: PlayerDetail | undefined | null =
+      await this.databaseTimeout.run(this.players.findById(playerId), null);
     if (player === null) {
       return DEEPDIVE_PLAYER_TIMEOUT_MESSAGE;
     }
@@ -578,7 +544,7 @@ export class PlayerDeepdiveService {
    * (`SppAdjustmentsService`), so the negative-sign branch below is
    * defensive against a future or manually-edited negative value.
    */
-  private buildTotalLines(player: Player): string[] {
+  private buildTotalLines(player: PlayerDetail): string[] {
     if (player.sppTotal === null) {
       return [];
     }
@@ -622,7 +588,7 @@ export class PlayerDeepdiveService {
    * nothing is marked — the values are still worth showing.
    */
   private buildCharacteristicsLine(
-    player: Player,
+    player: PlayerDetail,
     context: PositionCharacteristicsContext,
   ): string {
     const baseline = context.baseline;
@@ -652,7 +618,7 @@ export class PlayerDeepdiveService {
    * the overwhelmingly common case and a "none" line on every healthy player
    * would be noise.
    */
-  private buildLastingInjuriesLine(player: Player): string | undefined {
+  private buildLastingInjuriesLine(player: PlayerDetail): string | undefined {
     const parts: string[] = [];
     if (player.missNextGame) {
       parts.push('Miss next game');
@@ -694,7 +660,7 @@ export class PlayerDeepdiveService {
    * a "none" line on every such player would be noise.
    */
   private buildCharacteristicAdvancementsLine(
-    player: Player,
+    player: PlayerDetail,
   ): string | undefined {
     const parts: string[] = [];
     for (const [label, field] of INCREASE_FIELDS) {

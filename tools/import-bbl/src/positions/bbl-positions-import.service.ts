@@ -1,3 +1,4 @@
+import type { ExternalId } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   BBL_EXTERNAL_SYSTEM_NAME,
@@ -27,11 +28,6 @@ interface ResolvedRace {
   dbId: number;
   bblId: string;
   name: string;
-}
-
-interface ExternalIdPair {
-  externalSystemId: number;
-  externalId: string;
 }
 
 interface RaceExternalIdsOptions {
@@ -252,7 +248,7 @@ export class BblPositionsImportService {
         }
 
         if (position.isStarPlayer) {
-          const externalIds: ExternalIdPair[] = [
+          const externalIds: ExternalId[] = [
             {
               externalSystemId: nameSystemId,
               externalId: this.nameExternalId.forStarPosition(position.name),
@@ -330,7 +326,7 @@ export class BblPositionsImportService {
    * produce two different ids and upsertByExternalIds creates two unrelated
    * position rows for one real position.
    */
-  private raceExternalIds(options: RaceExternalIdsOptions): ExternalIdPair[] {
+  private raceExternalIds(options: RaceExternalIdsOptions): ExternalId[] {
     const { bblSystemId, nameSystemId, typId, race, positionName } = options;
     return [
       { externalSystemId: bblSystemId, externalId: `${typId}-${race.bblId}` },

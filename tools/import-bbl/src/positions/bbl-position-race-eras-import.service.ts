@@ -1,4 +1,4 @@
-import type { RulesSet } from '@blood-bowl-tracker/api-contract';
+import type { RaceEraRef, RulesSet } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   BBL_EXTERNAL_SYSTEM_NAME,
@@ -183,7 +183,7 @@ export class BblPositionRaceErasImportService {
 
     for (const [positionId, candidate] of positionRaceCandidates) {
       const overrides = overridesByPositionId.get(positionId);
-      const raceEras: { raceId: number; eraId: number }[] = [];
+      const raceEras: RaceEraRef[] = [];
       const characteristicsEraIds = new Set<number>();
       for (const raceId of candidate.raceDbIds) {
         for (const eraId of eraIdsByRaceId.get(raceId) ?? []) {

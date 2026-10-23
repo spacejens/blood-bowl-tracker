@@ -1,4 +1,5 @@
 import type {
+  TeamEra,
   UpsertCompetition,
   UpsertMatch,
   UpsertRace,
@@ -84,10 +85,7 @@ interface Mocks {
  * the API's Team + created shape). The subject under test only reads `.id`
  * and `.eras`, so the other fields are unremarkable defaults.
  */
-function makeTeamRecord(overrides: {
-  id: number;
-  eras: { id: number; eraId: number }[];
-}) {
+function makeTeamRecord(overrides: { id: number; eras: TeamEra[] }) {
   return {
     name: 'Team',
     raceId: 5,

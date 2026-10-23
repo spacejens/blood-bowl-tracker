@@ -1,4 +1,8 @@
-import type { RulesSet, UpsertTeam } from '@blood-bowl-tracker/api-contract';
+import type {
+  RulesSet,
+  TeamEra,
+  UpsertTeam,
+} from '@blood-bowl-tracker/api-contract';
 import type { CharacteristicFormat } from '@blood-bowl-tracker/domain-enums';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
@@ -122,7 +126,7 @@ export interface Mocks {
  * the API's Team + created shape). The subject under test only reads `.eras`,
  * so the other fields are unremarkable defaults.
  */
-export function makeTeamRecord(eras: { id: number; eraId: number }[]) {
+export function makeTeamRecord(eras: TeamEra[]) {
   return {
     id: 1,
     name: 'Team',

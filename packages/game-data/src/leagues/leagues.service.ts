@@ -46,7 +46,10 @@ export class LeaguesService {
       externalIds: data.externalIds,
       ConflictErrorClass: LeagueUpsertConflictError,
       entityLabelPlural: 'leagues',
-      buildExternalIdRow: (leagueId, pair) => ({ leagueId, ...pair }),
+      buildExternalIdRow: (leagueId, externalId) => ({
+        leagueId,
+        ...externalId,
+      }),
     });
 
     return { league, created };

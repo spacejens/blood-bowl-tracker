@@ -1,7 +1,8 @@
-import type { UpsertMatchEvent } from '@blood-bowl-tracker/api-contract';
+import type {
+  TeamEra,
+  UpsertMatchEvent,
+} from '@blood-bowl-tracker/api-contract';
 import { Injectable } from '@nestjs/common';
-
-import type { TeamEra } from './tp-match-events-builder.types';
 
 export interface ResolveTeamEraOptions {
   teamErasByRosterId: Map<number, TeamEra[]>;
