@@ -1047,7 +1047,7 @@ importers:
         version: 12.2.0(@nestjs/common@12.2.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/platform-express@12.2.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       dotenv:
         specifier: ^18.0.3
-        version: 18.0.8
+        version: 18.0.9
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -3597,8 +3597,8 @@ packages:
     engines: {node: '>=12'}
     hasBin: true
 
-  dotenv@18.0.8:
-    resolution: {integrity: sha512-2KDeoFoK/zRtcnbunCDlLG5VWVMcyqeQc6iK65o231nfNAcuGrKoqUQfJFUtBI+QlShk5HKIHxwebBtUl3rEfA==}
+  dotenv@18.0.9:
+    resolution: {integrity: sha512-3fVOW4cB02R066PUSwn8O4TJyz9NckQl7F81blIbaq9jKBm2tSmOKky7ZHIXzGvkVPXCSn6jkpziBPZdGFs8Tw==}
     engines: {node: '>=12'}
     hasBin: true
 
@@ -7505,7 +7505,7 @@ snapshots:
 
   dotenv@18.0.3: {}
 
-  dotenv@18.0.8: {}
+  dotenv@18.0.9: {}
 
   drizzle-kit@1.0.0-rc.5(drizzle-orm@1.0.0-rc.5(postgres@3.4.9)(zod@4.6.7)):
     optionalDependencies:
