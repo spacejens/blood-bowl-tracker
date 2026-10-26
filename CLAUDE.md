@@ -78,7 +78,7 @@ node tools/production-ops-cli/dist/main.js fetch-discord-message <message-link>
 node tools/production-ops-cli/dist/main.js fetch-recent-discord-messages <channel-id> <count>
 ```
 
-Both need `apps/discord-bot/.env.production` in the checkout they run in; from a worktree, copy it from the main checkout if missing. See `docs/production-ops-cli/index.md`.
+Both need the CLI built (`pnpm build`, if `dist/` is missing) and `apps/discord-bot/.env.production` in the checkout they run in; from a worktree, copy it from the main checkout if missing. See `docs/production-ops-cli/index.md`.
 
 ## NestJS conventions
 

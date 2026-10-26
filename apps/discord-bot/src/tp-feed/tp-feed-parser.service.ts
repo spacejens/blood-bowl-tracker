@@ -77,13 +77,13 @@ export class TpFeedParserService {
       return this.parseNewSkillOrCharacteristic(embed, message.id);
     }
     if (authorName === 'Hired') {
-      return this.parsePlayerTransaction(embed, message.id, 'hired');
+      return this.parsePlayerRosterChange(embed, message.id, 'hired');
     }
     if (authorName === 'Fired') {
-      return this.parsePlayerTransaction(embed, message.id, 'fired');
+      return this.parsePlayerRosterChange(embed, message.id, 'fired');
     }
     if (authorName === 'Temporarily retired') {
-      return this.parsePlayerTransaction(
+      return this.parsePlayerRosterChange(
         embed,
         message.id,
         'temporarily-retired',
@@ -172,7 +172,7 @@ export class TpFeedParserService {
     };
   }
 
-  private parsePlayerTransaction(
+  private parsePlayerRosterChange(
     embed: Embed,
     messageId: string,
     kind: 'hired' | 'fired' | 'temporarily-retired',
