@@ -1,6 +1,7 @@
 import { DB, players } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import type { PlayerStatus } from '@blood-bowl-tracker/domain-enums';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -590,7 +591,7 @@ describe('PlayersService', () => {
         eraEndDate: null as string | null,
         sppTotal: 24,
         sppAdjustment: 2,
-        status: 'active' as string | null,
+        status: 'active' as PlayerStatus | null,
         move: 7,
         strength: 3,
         agility: 3,

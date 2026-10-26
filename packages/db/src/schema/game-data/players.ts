@@ -44,8 +44,7 @@ const playersTable = historyTrackedTable({
     // The player's current status as their source reports it (see
     // `PLAYER_STATUSES`). Nullable with no default: NULL means no source has
     // reported a status, which is deliberately distinct from a known
-    // 'active'. Unrelated to the deepdive's death line, which is derived
-    // from match events.
+    // 'active'. Unrelated to deaths derived from match events.
     status: playerStatusEnum('status'),
     // The player's own current Move/Strength/Agility/Passing/Armour, as the
     // source reports them. Not merely a copy of the position's baseline:

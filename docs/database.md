@@ -293,3 +293,10 @@ a `plus_zero_legal` rules set.
 with a `rulesSetId` that is used only to validate them (via the same
 `CharacteristicFormatValidationService` that `PositionRulesSetsService` uses)
 and is never persisted.
+
+`players.status` is a nullable `game_data.player_status` enum (active, dead,
+retired, temporarily retired). NULL means no source has reported a status and
+is deliberately distinct from a known `active`, so no default is set and
+existing rows stay NULL. `PlayersService.upsert` leaves the stored status alone
+when the caller omits it and clears it back to NULL when the caller sends an
+explicit null.
