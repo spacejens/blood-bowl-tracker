@@ -70,6 +70,7 @@ const HIRED: TpFeedEvent = {
   link: ROSTER_LINK,
 };
 const FIRED: TpFeedEvent = { ...HIRED, kind: 'fired' };
+const RETIRED: TpFeedEvent = { ...HIRED, kind: 'temporarily-retired' };
 const SKILL: TpFeedEvent = {
   kind: 'new-skill-or-characteristic',
   playerNumber: '3',
@@ -201,6 +202,7 @@ describe('TpFeedImportService', () => {
     it.each([
       ['hired', HIRED],
       ['fired', FIRED],
+      ['temporarily retired', RETIRED],
       ['new skill or characteristic', SKILL],
     ])('imports the team of a %s notification', async (_name, event) => {
       await service.enqueue(event);
@@ -270,6 +272,16 @@ describe('TpFeedImportService', () => {
         failed: true,
         headline: 'TP import failed: the link is not a TP roster page',
       });
+    });
+
+    it('fails a temporarily retired notification whose link is not a roster page', async () => {
+      classifier.classify.mockReturnValue(MATCH_PAGE);
+
+      await expect(service.enqueue(RETIRED)).resolves.toMatchObject({
+        failed: true,
+        headline: 'TP import failed: the link is not a TP roster page',
+      });
+      expect(dispatch.dispatch).not.toHaveBeenCalled();
     });
 
     it('reports a failed import with its labelled errors, and logs it', async () => {

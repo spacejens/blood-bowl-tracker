@@ -187,6 +187,21 @@ describe('TpFeedFormatterService', () => {
     );
   });
 
+  it('formats a temporary retirement', () => {
+    expect(
+      service.format({
+        kind: 'temporarily-retired',
+        playerNumber: '8',
+        playerName: 'Drekavac the Undying',
+        position: 'Halfling Hopeful',
+        teamName: "Satan's Little Helpers",
+        link: 'https://tp/r/1',
+      }),
+    ).toBe(
+      "Temporarily retired: #8 Drekavac the Undying (Halfling Hopeful) of Satan's Little Helpers — https://tp/r/1",
+    );
+  });
+
   it('formats a competition trophy announcement', () => {
     expect(
       service.format({

@@ -47,6 +47,8 @@ export class TpFeedFormatterService {
         return `Hired: #${event.playerNumber} ${event.playerName} (${event.position}) for ${event.teamName} — ${event.link}`;
       case 'fired':
         return `Fired: #${event.playerNumber} ${event.playerName} (${event.position}) from ${event.teamName} — ${event.link}`;
+      case 'temporarily-retired':
+        return `Temporarily retired: #${event.playerNumber} ${event.playerName} (${event.position}) of ${event.teamName} — ${event.link}`;
       case 'competition-trophy':
         return `Competition trophy announced — ${event.link}`;
     }

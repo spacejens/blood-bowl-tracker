@@ -77,10 +77,17 @@ export class TpFeedParserService {
       return this.parseNewSkillOrCharacteristic(embed, message.id);
     }
     if (authorName === 'Hired') {
-      return this.parsePlayerTransaction(embed, message.id, 'hired');
+      return this.parsePlayerRosterChange(embed, message.id, 'hired');
     }
     if (authorName === 'Fired') {
-      return this.parsePlayerTransaction(embed, message.id, 'fired');
+      return this.parsePlayerRosterChange(embed, message.id, 'fired');
+    }
+    if (authorName === 'Temporarily retired') {
+      return this.parsePlayerRosterChange(
+        embed,
+        message.id,
+        'temporarily-retired',
+      );
     }
     this.logger.warn(
       `Unrecognized TP notification shape (message ${message.id}): ${this.describe(embed)}`,
@@ -165,10 +172,10 @@ export class TpFeedParserService {
     };
   }
 
-  private parsePlayerTransaction(
+  private parsePlayerRosterChange(
     embed: Embed,
     messageId: string,
-    kind: 'hired' | 'fired',
+    kind: 'hired' | 'fired' | 'temporarily-retired',
   ): TpFeedParseResult {
     const player = this.parsePlayerField(embed.fields.at(0)?.name);
     if (!player) return this.parseFailure(kind, 'player field', messageId);
