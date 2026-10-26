@@ -1,7 +1,6 @@
 import type {
   FactScope,
   TeamAverageDirection,
-  TeamAverageRow,
 } from '@blood-bowl-tracker/game-data';
 import { TeamsService } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
@@ -61,6 +60,16 @@ type TeamToplistRow = {
   count: number;
   contextSuffix?: string;
 };
+
+/** The `TeamsService` per-match average queries; they share one signature. */
+type TeamAverageMethod =
+  | 'averageTouchdownsScoredByTeam'
+  | 'averageTouchdownsConcededByTeam'
+  | 'averageCasualtiesCausedByTeam'
+  | 'averageCasualtiesSufferedByTeam'
+  | 'averageSeriousInjuriesCausedByTeam'
+  | 'averageSeriousInjuriesSufferedByTeam'
+  | 'averageLastingInjuriesSufferedByTeam';
 
 @Injectable()
 export class TeamToplistService {
@@ -286,25 +295,28 @@ export class TeamToplistService {
   }
 
   /**
-   * The four per-match touchdown averages share one builder. Each average is
-   * carried as the row's `count` because the leaderboard ranks ties on
-   * `count`; the game-data query has already rounded it to two decimals and
-   * applied the minimum-matches floor. Hand-written rather than
+   * Every per-match average toplist shares this builder; each differs only
+   * in its measure, its backing `TeamsService` query and its direction. The
+   * average is carried as the row's `count` because the leaderboard ranks
+   * ties on `count`; the game-data query has already rounded it to two
+   * decimals and applied the minimum-matches floor. Hand-written rather than
    * factory-built: like the matches-played toplists they take league, era
    * and match category but not competition, and they pass a direction.
    */
   private resolveAverageToplist(options: {
-    title: string;
-    fetchRows: (limit: number) => Promise<TeamAverageRow[]>;
+    measure: string;
+    method: TeamAverageMethod;
+    scope: FactScope;
+    direction: TeamAverageDirection;
   }): Promise<string | InteractionReplyOptions> {
+    const { measure, method, scope, direction } = options;
     return this.leaderboard.resolveToplist<TeamToplistRow>({
-      title: options.title,
+      title: `Teams by average ${measure} per match (${direction === 'desc' ? 'highest' : 'lowest'} first)`,
       fetchRows: async (limit) =>
         this.decorateTeamRows(
-          (await options.fetchRows(limit)).map(({ average, ...row }) => ({
-            ...row,
-            count: average,
-          })),
+          (await this.teams[method](scope, direction, limit)).map(
+            ({ average, ...row }) => ({ ...row, count: average }),
+          ),
         ),
       timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
@@ -314,49 +326,157 @@ export class TeamToplistService {
     });
   }
 
-  private resolveAverageTouchdownsScored(
-    scope: FactScope,
-    direction: TeamAverageDirection,
-  ): Promise<string | InteractionReplyOptions> {
-    return this.resolveAverageToplist({
-      title: `Teams by average touchdowns scored per match (${direction === 'desc' ? 'highest' : 'lowest'} first)`,
-      fetchRows: (limit) =>
-        this.teams.averageTouchdownsScoredByTeam(scope, direction, limit),
-    });
-  }
-
-  private resolveAverageTouchdownsConceded(
-    scope: FactScope,
-    direction: TeamAverageDirection,
-  ): Promise<string | InteractionReplyOptions> {
-    return this.resolveAverageToplist({
-      title: `Teams by average touchdowns conceded per match (${direction === 'desc' ? 'highest' : 'lowest'} first)`,
-      fetchRows: (limit) =>
-        this.teams.averageTouchdownsConcededByTeam(scope, direction, limit),
-    });
-  }
-
   resolveAverageTouchdownsScoredDescending(
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
-    return this.resolveAverageTouchdownsScored(scope, 'desc');
+    return this.resolveAverageToplist({
+      measure: 'touchdowns scored',
+      method: 'averageTouchdownsScoredByTeam',
+      scope,
+      direction: 'desc',
+    });
   }
 
   resolveAverageTouchdownsScoredAscending(
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
-    return this.resolveAverageTouchdownsScored(scope, 'asc');
+    return this.resolveAverageToplist({
+      measure: 'touchdowns scored',
+      method: 'averageTouchdownsScoredByTeam',
+      scope,
+      direction: 'asc',
+    });
   }
 
   resolveAverageTouchdownsConcededDescending(
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
-    return this.resolveAverageTouchdownsConceded(scope, 'desc');
+    return this.resolveAverageToplist({
+      measure: 'touchdowns conceded',
+      method: 'averageTouchdownsConcededByTeam',
+      scope,
+      direction: 'desc',
+    });
   }
 
   resolveAverageTouchdownsConcededAscending(
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
-    return this.resolveAverageTouchdownsConceded(scope, 'asc');
+    return this.resolveAverageToplist({
+      measure: 'touchdowns conceded',
+      method: 'averageTouchdownsConcededByTeam',
+      scope,
+      direction: 'asc',
+    });
+  }
+
+  resolveAverageCasualtiesCausedDescending(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageToplist({
+      measure: 'casualties caused',
+      method: 'averageCasualtiesCausedByTeam',
+      scope,
+      direction: 'desc',
+    });
+  }
+
+  resolveAverageCasualtiesCausedAscending(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageToplist({
+      measure: 'casualties caused',
+      method: 'averageCasualtiesCausedByTeam',
+      scope,
+      direction: 'asc',
+    });
+  }
+
+  resolveAverageCasualtiesSufferedDescending(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageToplist({
+      measure: 'casualties suffered',
+      method: 'averageCasualtiesSufferedByTeam',
+      scope,
+      direction: 'desc',
+    });
+  }
+
+  resolveAverageCasualtiesSufferedAscending(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageToplist({
+      measure: 'casualties suffered',
+      method: 'averageCasualtiesSufferedByTeam',
+      scope,
+      direction: 'asc',
+    });
+  }
+
+  resolveAverageSeriousInjuriesCausedDescending(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageToplist({
+      measure: 'serious injuries caused',
+      method: 'averageSeriousInjuriesCausedByTeam',
+      scope,
+      direction: 'desc',
+    });
+  }
+
+  resolveAverageSeriousInjuriesCausedAscending(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageToplist({
+      measure: 'serious injuries caused',
+      method: 'averageSeriousInjuriesCausedByTeam',
+      scope,
+      direction: 'asc',
+    });
+  }
+
+  resolveAverageSeriousInjuriesSufferedDescending(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageToplist({
+      measure: 'serious injuries suffered',
+      method: 'averageSeriousInjuriesSufferedByTeam',
+      scope,
+      direction: 'desc',
+    });
+  }
+
+  resolveAverageSeriousInjuriesSufferedAscending(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageToplist({
+      measure: 'serious injuries suffered',
+      method: 'averageSeriousInjuriesSufferedByTeam',
+      scope,
+      direction: 'asc',
+    });
+  }
+
+  resolveAverageLastingInjuriesSufferedDescending(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageToplist({
+      measure: 'lasting injuries suffered',
+      method: 'averageLastingInjuriesSufferedByTeam',
+      scope,
+      direction: 'desc',
+    });
+  }
+
+  resolveAverageLastingInjuriesSufferedAscending(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageToplist({
+      measure: 'lasting injuries suffered',
+      method: 'averageLastingInjuriesSufferedByTeam',
+      scope,
+      direction: 'asc',
+    });
   }
 }
