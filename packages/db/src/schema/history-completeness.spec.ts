@@ -110,3 +110,13 @@ describe('players lasting-injury columns', () => {
     expect(historyColumnNames).toContain('armour_reduction_count');
   });
 });
+
+describe('players status column', () => {
+  it('mirrors status onto players_history', () => {
+    const historyColumnNames = new Set(
+      getTableConfig(playersHistory).columns.map((column) => column.name),
+    );
+
+    expect(historyColumnNames).toContain('status');
+  });
+});

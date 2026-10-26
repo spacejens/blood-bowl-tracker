@@ -1,9 +1,16 @@
+import { PLAYER_STATUSES } from '@blood-bowl-tracker/domain-enums';
 import { boolean, integer, serial, varchar } from 'drizzle-orm/pg-core';
 
 import { historyTrackedTable } from '../history';
 import { gameData } from './pg-schema';
 import { positions } from './positions';
 import { teamEras } from './team-eras';
+
+/**
+ * See `PLAYER_STATUSES` in `@blood-bowl-tracker/domain-enums` for what each
+ * value means.
+ */
+export const playerStatusEnum = gameData.enum('player_status', PLAYER_STATUSES);
 
 const playersTable = historyTrackedTable({
   schema: gameData,
@@ -34,6 +41,12 @@ const playersTable = historyTrackedTable({
     // (clamped to 0). Nullable, mirroring `spp_total`: NULL means not
     // computed; a number — including 0 — means computed and confirmed.
     sppAdjustment: integer('spp_adjustment'),
+    // The player's current status as their source reports it (see
+    // `PLAYER_STATUSES`). Nullable with no default: NULL means no source has
+    // reported a status, which is deliberately distinct from a known
+    // 'active'. Unrelated to the deepdive's death line, which is derived
+    // from match events.
+    status: playerStatusEnum('status'),
     // The player's own current Move/Strength/Agility/Passing/Armour, as the
     // source reports them. Not merely a copy of the position's baseline:
     // both BBL and TP report a player's current values, and injuries and

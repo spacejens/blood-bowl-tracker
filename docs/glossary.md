@@ -142,7 +142,7 @@ A [player](#player) hired for a single [match](#match) only (e.g. a Big Guy), ra
 
 ### Player
 
-An individual on a [team era](#team-era) (and, through it, a [team](#team)). Each player has a [position](#position) (ordinarily [race](#race)-specific, but see [star player](#star-player) for the exception), a set of skills, and personal statistics that persist across [matches](#match) within that era.
+An individual on a [team era](#team-era) (and, through it, a [team](#team)). Each player has a [position](#position) (ordinarily [race](#race)-specific, but see [star player](#star-player) for the exception), a set of skills, personal statistics that persist across [matches](#match) within that era, and a current status (active, dead, retired or temporarily retired), which is unknown until a source reports it.
 
 See [game-concepts/players](game-concepts/players/index.md).
 
