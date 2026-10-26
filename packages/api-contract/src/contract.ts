@@ -21,12 +21,7 @@ import {
   ExternalSystemSchema,
   UpsertExternalSystemSchema,
 } from './schemas/external-system';
-import {
-  KeywordCatalogEntrySchema,
-  KeywordSchema,
-  ListKeywordsSchema,
-  UpsertKeywordSchema,
-} from './schemas/keyword';
+import { KeywordSchema, UpsertKeywordSchema } from './schemas/keyword';
 import { LeagueSchema, UpsertLeagueSchema } from './schemas/league';
 import {
   ManualImportBatchSchema,
@@ -287,13 +282,6 @@ export const contract = {
     // external id across files, phases or tools.
     resolve: resolveProcedure(),
     resolveBatch: resolveBatchProcedure(),
-    // Read-only, so it declares no errors — like competitionGroups.list. The
-    // whole catalogue in one call: a caller that holds only numeric codes
-    // cannot name a keyword from its own data, and the catalogue is small and
-    // changes only by curation.
-    list: oc
-      .input(ListKeywordsSchema)
-      .output(z.array(KeywordCatalogEntrySchema)),
   },
   positionRulesSetKeywords: {
     // Not an upsert, for the same reason positionRulesSetSkills.sync is not.

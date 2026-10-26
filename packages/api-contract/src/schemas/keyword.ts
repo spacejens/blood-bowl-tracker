@@ -29,16 +29,6 @@ export const UpsertKeywordSchema = z.object({
 });
 
 /**
- * Read the whole catalogue as one external system names it. An import tool
- * holds only that system's numeric codes and has no way to name a keyword
- * from its own data, so it reads the 48-row catalogue once per run rather
- * than resolving code by code.
- */
-export const ListKeywordsSchema = z.object({
-  externalSystemId: z.number().int(),
-});
-
-/**
  * One catalogue row as a given external system names it; `externalId` is this
  * keyword's external id under the requested system.
  */
@@ -51,5 +41,4 @@ export const KeywordCatalogEntrySchema = z.object({
 
 export type Keyword = z.infer<typeof KeywordSchema>;
 export type UpsertKeyword = z.infer<typeof UpsertKeywordSchema>;
-export type ListKeywords = z.infer<typeof ListKeywordsSchema>;
 export type KeywordCatalogEntry = z.infer<typeof KeywordCatalogEntrySchema>;

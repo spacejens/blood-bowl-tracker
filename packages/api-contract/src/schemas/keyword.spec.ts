@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  KeywordCatalogEntrySchema,
-  ListKeywordsSchema,
-  UpsertKeywordSchema,
-} from './keyword';
+import { KeywordCatalogEntrySchema, UpsertKeywordSchema } from './keyword';
 
 describe('UpsertKeywordSchema', () => {
   it('accepts a full entry', () => {
@@ -49,15 +45,6 @@ describe('UpsertKeywordSchema', () => {
 
   it('rejects an entry with no external ids', () => {
     expect(() => UpsertKeywordSchema.parse({ externalIds: [] })).toThrow();
-  });
-});
-
-describe('ListKeywordsSchema', () => {
-  it('requires an integer external system id', () => {
-    expect(ListKeywordsSchema.parse({ externalSystemId: 2 })).toEqual({
-      externalSystemId: 2,
-    });
-    expect(() => ListKeywordsSchema.parse({ externalSystemId: 1.5 })).toThrow();
   });
 });
 

@@ -123,23 +123,6 @@ describe('RpcRouterFactoryService keywords routers', () => {
     );
   });
 
-  it('lists the catalogue for one external system', async () => {
-    harness.mocks.keywordsService.listByExternalSystem.mockResolvedValue([
-      { keywordId: 7, name: 'Goblin', kind: 'species', externalId: '111' },
-    ]);
-
-    const result = await call(harness.router.keywords.list, {
-      externalSystemId: 2,
-    });
-
-    expect(
-      harness.mocks.keywordsService.listByExternalSystem,
-    ).toHaveBeenCalledWith(2);
-    expect(result).toEqual([
-      { keywordId: 7, name: 'Goblin', kind: 'species', externalId: '111' },
-    ]);
-  });
-
   it('syncs position keywords straight through to the service', async () => {
     harness.mocks.positionRulesSetKeywordsService.sync.mockResolvedValue({
       positionRulesSetKeywordIds: [90],

@@ -312,10 +312,6 @@ describe('contract', () => {
     );
   });
 
-  it('defines keywords.list as read-only', () => {
-    expect(errorCodesOf(contract.keywords.list)).toEqual([]);
-  });
-
   it('defines positionRulesSetKeywords.sync with BAD_REQUEST', () => {
     expect(errorCodesOf(contract.positionRulesSetKeywords.sync)).toEqual([
       'BAD_REQUEST',
