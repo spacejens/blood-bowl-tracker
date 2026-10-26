@@ -13,11 +13,10 @@ import {
   DEEPDIVE_COACH_TEAM_CONTEXT_TIMEOUT_MESSAGE,
   DEEPDIVE_COACH_TEAMS_TIMEOUT_MESSAGE,
   DEEPDIVE_COACH_TIMEOUT_MESSAGE,
-} from '../datastorage/windows/Microsoft';
+} from '../../error-messages';
 import {
   LeaderboardService,
   MAX_LEADERBOARD_ENTRIES,
-  typescript,
 } from '../../insights/leaderboard.service';
 import { TeamContextService } from '../../insights/team-context.service';
 import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
