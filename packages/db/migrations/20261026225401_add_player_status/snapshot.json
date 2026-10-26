@@ -1,0 +1,113 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "6ddb4736-0645-4621-a55c-014e291a33b2",
+  "prevIds": [
+    "1279f729-c2c0-443a-8589-847dbb68a287"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_enum",
+      "statementTarget": [
+        "enum",
+        "game_data",
+        "player_status"
+      ],
+      "writes": [
+        "s|enum|game_data.player_status",
+        "n|enum|game_data.player_status",
+        "e|enum|game_data.player_status",
+        "n|type|game_data.player_status"
+      ],
+      "reads": [
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "players",
+        "status"
+      ],
+      "writes": [
+        "s|col|game_data.players.status",
+        "n|col|game_data.players.status",
+        "e|col|game_data.players.status"
+      ],
+      "reads": [
+        "n|tbl|game_data.players",
+        "n|sch|game_data",
+        "n|enum|game_data.player_status"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "players_history",
+        "status"
+      ],
+      "writes": [
+        "s|col|game_data.players_history.status",
+        "n|col|game_data.players_history.status",
+        "e|col|game_data.players_history.status"
+      ],
+      "reads": [
+        "n|tbl|game_data.players_history",
+        "n|sch|game_data"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "name": "player_status",
+        "values": [
+          "active",
+          "dead",
+          "retired",
+          "temporarily_retired"
+        ],
+        "entityType": "enums"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "players",
+        "name": "status",
+        "type": "player_status",
+        "typeSchema": "game_data",
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "players_history",
+        "name": "status",
+        "type": "\"game_data\".\"player_status\"",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    }
+  ]
+}
