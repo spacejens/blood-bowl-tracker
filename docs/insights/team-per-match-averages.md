@@ -39,8 +39,9 @@ the team's number of distinct matches in scope. For the exact query, see
 A match where the team recorded no such event counts as zero, so it still
 counts towards the matches played.
 
-A new average adds only its per-side value; the division, floor, rounding,
-ordering and scope stay shared.
+A new average adds only its per-side value (and, for event counts, the
+per-side join that value reads from); the division, floor, rounding, ordering
+and scope stay shared.
 
 ## Minimum matches
 
