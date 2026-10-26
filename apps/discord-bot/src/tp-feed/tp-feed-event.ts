@@ -17,9 +17,9 @@ export interface TeamInfo {
  * the `ignored` and `unrecognized` members of `TpFeedParseResult` instead.
  *
  * `link` is the match page (the embed's top-level `url`) for start and end,
- * the roster page (the embed's `author.url`) for skill, hire and fire, and
- * the competition's awards page (the embed's top-level `url`) for a trophy
- * announcement.
+ * the roster page (the embed's `author.url`) for skill, hire, fire and
+ * temporary retirement, and the competition's awards page (the embed's
+ * top-level `url`) for a trophy announcement.
  */
 export type TpFeedEvent =
   | { kind: 'match-start'; home: TeamInfo; away: TeamInfo; link: string }
@@ -54,6 +54,14 @@ export type TpFeedEvent =
     }
   | {
       kind: 'fired';
+      playerNumber: string;
+      playerName: string;
+      position: string;
+      teamName: string;
+      link: string;
+    }
+  | {
+      kind: 'temporarily-retired';
       playerNumber: string;
       playerName: string;
       position: string;
