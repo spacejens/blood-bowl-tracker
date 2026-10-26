@@ -51,6 +51,20 @@
       matchPackageNames: ['vitest', '@vitest/coverage-v8'],
     },
     {
+      // Coordinated release train: drizzle-kit declares drizzle-orm as a
+      // peer dependency (>=1.0.0-rc.5), and both are pinned to the same exact
+      // release candidate, so they must move together in one PR — bumping
+      // one alone would leave mismatched versions installed.
+      // respectLatest: false because the npm `latest` dist-tag of both
+      // packages is still the 0.x line (the 1.0 release candidates live
+      // under the `rc` tag), and Renovate's default respectLatest: true
+      // filters out versions newer than `latest`. Disabling it guarantees
+      // newer release candidates are always considered.
+      groupName: 'drizzle',
+      matchPackageNames: ['drizzle-orm', 'drizzle-kit'],
+      respectLatest: false,
+    },
+    {
       // Node stays fully owned by code-hygiene's Node version task: it keeps
       // .nvmrc, every Dockerfile FROM node:... line, and every workspace's
       // @types/node in lock-step, and understands LTS semantics for the
