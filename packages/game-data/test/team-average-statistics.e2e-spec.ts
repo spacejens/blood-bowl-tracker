@@ -41,12 +41,15 @@ interface LeagueFixture {
 
 /**
  * One event recorded on a side: an action it took (`actionType`, keyed on the
- * acting side) or a consequence it suffered (`consequenceType`, keyed on the
- * consequence side).
+ * acting side) and/or a consequence (`consequenceType`, keyed on the
+ * consequence side). The consequence lands on the recording side unless
+ * `victimSide` names another side by its index in `PlayMatchesOptions.sides`,
+ * which is how one row records a foul by one side injuring the other.
  */
 interface SideEvent {
   actionType?: ActionType;
   consequenceType?: ConsequenceType;
+  victimSide?: number;
 }
 
 interface MatchSide {
@@ -140,24 +143,29 @@ async function playMatches(db: Db, options: PlayMatchesOptions): Promise<void> {
         category: options.category ?? 'normal',
       })
       .returning();
-    for (const { events = [], ...side } of options.sides) {
+    const matchTeamIds: number[] = [];
+    for (const { teamEraId, score } of options.sides) {
       const [matchTeam] = await db
         .insert(matchTeams)
-        .values({ matchId: match.id, ...side })
+        .values({ matchId: match.id, teamEraId, score })
         .returning();
-      if (events.length > 0) {
-        await db.insert(matchEvents).values(
-          events.map((event) => ({
-            matchId: match.id,
-            actingMatchTeamId:
-              event.actionType === undefined ? undefined : matchTeam.id,
-            actionType: event.actionType,
-            consequenceMatchTeamId:
-              event.consequenceType === undefined ? undefined : matchTeam.id,
-            consequenceType: event.consequenceType,
-          })),
-        );
-      }
+      matchTeamIds.push(matchTeam.id);
+    }
+    const events = options.sides.flatMap(({ events: sideEvents = [] }, index) =>
+      sideEvents.map((event) => ({
+        matchId: match.id,
+        actingMatchTeamId:
+          event.actionType === undefined ? undefined : matchTeamIds[index],
+        actionType: event.actionType,
+        consequenceMatchTeamId:
+          event.consequenceType === undefined
+            ? undefined
+            : matchTeamIds[event.victimSide ?? index],
+        consequenceType: event.consequenceType,
+      })),
+    );
+    if (events.length > 0) {
+      await db.insert(matchEvents).values(events);
     }
   }
 }
@@ -488,6 +496,96 @@ describe('TeamAverageStatisticsService (real Postgres)', () => {
       ).toEqual([
         ['Alpha', 0],
         ['Charlie', 0],
+      ]);
+    });
+  });
+
+  describe('a foul that injures, recorded as one combined row', () => {
+    // Fouler's foul seriously injures one of Victim's players in each of five
+    // matches: one row with the fouler acting and the victim suffering.
+    beforeEach(async () => {
+      const league = await seedLeague(db, 'One');
+      const fouler = await joinEra(
+        db,
+        await seedTeam(db, 'Fouler'),
+        league.eraId,
+      );
+      const victim = await joinEra(
+        db,
+        await seedTeam(db, 'Victim'),
+        league.eraId,
+      );
+      await playMatches(db, {
+        count: 5,
+        competitionId: league.competitionId,
+        sides: [
+          {
+            teamEraId: fouler,
+            score: 0,
+            events: [
+              {
+                actionType: 'foul',
+                consequenceType: 'serious_injury',
+                victimSide: 1,
+              },
+            ],
+          },
+          { teamEraId: victim, score: 0 },
+        ],
+      });
+    });
+
+    it('counts as a casualty and serious injury suffered by the victim', async () => {
+      expect(
+        namesAndAverages(
+          await service.averageCasualtiesSufferedByTeam(
+            FACT_SCOPE_ALL_TIME,
+            'desc',
+            10,
+          ),
+        ),
+      ).toEqual([
+        ['Victim', 1],
+        ['Fouler', 0],
+      ]);
+      expect(
+        namesAndAverages(
+          await service.averageSeriousInjuriesSufferedByTeam(
+            FACT_SCOPE_ALL_TIME,
+            'desc',
+            10,
+          ),
+        ),
+      ).toEqual([
+        ['Victim', 1],
+        ['Fouler', 0],
+      ]);
+    });
+
+    it('does not count as a casualty or serious injury caused by the fouler', async () => {
+      expect(
+        namesAndAverages(
+          await service.averageCasualtiesCausedByTeam(
+            FACT_SCOPE_ALL_TIME,
+            'desc',
+            10,
+          ),
+        ),
+      ).toEqual([
+        ['Fouler', 0],
+        ['Victim', 0],
+      ]);
+      expect(
+        namesAndAverages(
+          await service.averageSeriousInjuriesCausedByTeam(
+            FACT_SCOPE_ALL_TIME,
+            'desc',
+            10,
+          ),
+        ),
+      ).toEqual([
+        ['Fouler', 0],
+        ['Victim', 0],
       ]);
     });
   });

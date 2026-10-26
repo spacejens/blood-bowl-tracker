@@ -171,6 +171,15 @@ describe('TeamAverageStatisticsService', () => {
     });
   });
 
+  it.each([
+    'averageTouchdownsScoredByTeam',
+    'averageTouchdownsConcededByTeam',
+  ] as const)('%s joins no per-side event counts', async (method) => {
+    const { chains } = await build([]);
+    await service[method](FACT_SCOPE_ALL_TIME, 'desc', 21);
+    expect(chains[0].leftJoin).not.toHaveBeenCalled();
+  });
+
   it('sums each side’s own score for touchdowns scored', async () => {
     const { db } = await build([]);
     await service.averageTouchdownsScoredByTeam(
@@ -239,21 +248,32 @@ describe('TeamAverageStatisticsService', () => {
   ] as const)(
     '$method counts this side’s events of the matching types per match',
     async ({ method, sideColumn, typeColumn, types }) => {
-      const { db } = await build([]);
+      const { db, chains } = await build([]);
       await service[method](FACT_SCOPE_ALL_TIME, 'desc', 21);
       const average = selectedAverage(db);
-      const text = sqlText(average);
-      expect(text).toContain('round(sum((select count(*) from ');
-      expect(text).toContain(' where ');
-      expect(text).toContain(' = ');
-      expect(text).toContain(' and ');
-      expect(extractJoinColumns(average)).toEqual([
+      expect(sqlText(average)).toContain(
+        'round(sum(coalesce(side_event_counts.event_count, 0))::numeric',
+      );
+      expect(extractJoinColumns(average)).toEqual(['matches.id']);
+
+      expect(chains[0].leftJoin).toHaveBeenCalledTimes(1);
+      const derivedTable = firstCallArg(chains[0].leftJoin, 0, 0);
+      const derivedText = sqlText(derivedTable);
+      expect(derivedText).toMatch(
+        /^\(select .* as match_team_id, count\(\*\) as event_count from /,
+      );
+      expect(derivedText).toContain(' group by ');
+      expect(derivedText).toMatch(/\) as side_event_counts$/);
+      expect(extractJoinColumns(derivedTable)).toEqual([
         sideColumn,
-        'match_teams.id',
         typeColumn,
-        'matches.id',
+        sideColumn,
       ]);
-      expect(extractAllFilterValues(average)).toEqual([...types]);
+      expect(extractAllFilterValues(derivedTable)).toEqual([...types]);
+
+      const on = firstCallArg(chains[0].leftJoin, 0, 1);
+      expect(sqlText(on)).toMatch(/^side_event_counts\.match_team_id = /);
+      expect(extractJoinColumns(on)).toEqual(['match_teams.id']);
     },
   );
 });

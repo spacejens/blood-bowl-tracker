@@ -45,16 +45,34 @@ export interface TeamAverageRow {
 }
 
 /**
+ * A derived table left-joined onto `match_teams`, holding at most one row per
+ * `match_teams.id`, so the join adds per-side values without fanning out.
+ */
+interface PerSideJoin {
+  table: SQL;
+  on: SQL;
+}
+
+/**
  * Options for the shared per-match average query. `perMatchValue` is
  * evaluated once per joined `match_teams` row (one team's side of one match)
  * and is what gets summed before dividing by the team's distinct matches.
+ * `perSideJoin`, when given, is left-joined onto `match_teams` first so
+ * `perMatchValue` can read from it.
  */
 interface AveragePerMatchByTeamOptions {
   perMatchValue: SQL;
+  perSideJoin?: PerSideJoin;
   direction: TeamAverageDirection;
   scope: FactScope;
   limit: number;
 }
+
+/** The per-side numerator and the join it reads from, for one statistic. */
+type PerSideCount = Pick<
+  AveragePerMatchByTeamOptions,
+  'perMatchValue' | 'perSideJoin'
+>;
 
 /**
  * Per-match averages per team: a sum over each of the team's match sides,
@@ -111,7 +129,7 @@ export class TeamAverageStatisticsService {
     limit: number,
   ): Promise<TeamAverageRow[]> {
     return this.averagePerMatchByTeam({
-      perMatchValue: this.matchEventsOnSide({
+      ...this.matchEventsOnSide({
         role: 'acting',
         types: CASUALTY_CAUSED_TYPES,
       }),
@@ -128,7 +146,7 @@ export class TeamAverageStatisticsService {
     limit: number,
   ): Promise<TeamAverageRow[]> {
     return this.averagePerMatchByTeam({
-      perMatchValue: this.matchEventsOnSide({
+      ...this.matchEventsOnSide({
         role: 'consequence',
         types: CASUALTY_SUFFERED_TYPES,
       }),
@@ -145,7 +163,7 @@ export class TeamAverageStatisticsService {
     limit: number,
   ): Promise<TeamAverageRow[]> {
     return this.averagePerMatchByTeam({
-      perMatchValue: this.matchEventsOnSide({
+      ...this.matchEventsOnSide({
         role: 'acting',
         types: SERIOUS_INJURY_CAUSED_TYPES,
       }),
@@ -165,7 +183,7 @@ export class TeamAverageStatisticsService {
     limit: number,
   ): Promise<TeamAverageRow[]> {
     return this.averagePerMatchByTeam({
-      perMatchValue: this.matchEventsOnSide({
+      ...this.matchEventsOnSide({
         role: 'consequence',
         types: SERIOUS_INJURY_SUFFERED_TYPES,
       }),
@@ -185,7 +203,7 @@ export class TeamAverageStatisticsService {
     limit: number,
   ): Promise<TeamAverageRow[]> {
     return this.averagePerMatchByTeam({
-      perMatchValue: this.matchEventsOnSide({
+      ...this.matchEventsOnSide({
         role: 'consequence',
         types: LASTING_INJURY_SUFFERED_TYPES,
       }),
@@ -196,15 +214,16 @@ export class TeamAverageStatisticsService {
   }
 
   /**
-   * The number of this side's match events matching the selector: a
-   * correlated subquery keyed on the outer query's `match_teams` row, so a
-   * match without a matching event contributes zero instead of dropping out
-   * of the denominator. An acting selector keys on the acting side and
-   * filters `action_type`; a consequence selector keys on the victim's side
-   * and filters `consequence_type`, the same split the total-based team
-   * counts use.
+   * The number of this side's match events matching the selector. The events
+   * are counted once per side in a pre-aggregated derived table (one scan of
+   * `match_events`, one row per side with a matching event), left-joined onto
+   * `match_teams`; a side without a matching event gets no row there and
+   * contributes zero instead of dropping out of the denominator. An acting
+   * selector groups by the acting side and filters `action_type`; a
+   * consequence selector groups by the victim's side and filters
+   * `consequence_type`, the same split the total-based team counts use.
    */
-  private matchEventsOnSide(selector: MatchEventSelector): SQL {
+  private matchEventsOnSide(selector: MatchEventSelector): PerSideCount {
     const sideColumn =
       selector.role === 'acting'
         ? matchEvents.actingMatchTeamId
@@ -213,7 +232,13 @@ export class TeamAverageStatisticsService {
       selector.role === 'acting'
         ? inArray(matchEvents.actionType, selector.types)
         : inArray(matchEvents.consequenceType, selector.types);
-    return sql`(select count(*) from ${matchEvents} where ${sideColumn} = ${matchTeams.id} and ${typeFilter})`;
+    return {
+      perMatchValue: sql`coalesce(side_event_counts.event_count, 0)`,
+      perSideJoin: {
+        table: sql`(select ${sideColumn} as match_team_id, count(*) as event_count from ${matchEvents} where ${typeFilter} group by ${sideColumn}) as side_event_counts`,
+        on: sql`side_event_counts.match_team_id = ${matchTeams.id}`,
+      },
+    };
   }
 
   /**
@@ -236,18 +261,24 @@ export class TeamAverageStatisticsService {
   private averagePerMatchByTeam(
     options: AveragePerMatchByTeamOptions,
   ): Promise<TeamAverageRow[]> {
-    const { perMatchValue, direction, scope, limit } = options;
+    const { perMatchValue, perSideJoin, direction, scope, limit } = options;
     // ::numeric before dividing and rounding so PostgreSQL rounds half away
     // from zero; ::double precision after so the driver returns a number
     // rather than numeric's string.
     const average = sql<number>`round(sum(${perMatchValue})::numeric / count(distinct ${matches.id}), 2)::double precision`;
-    return this.db
+    const joined = this.db
       .select({ teamId: teams.id, name: teams.name, average })
       .from(matches)
       .innerJoin(matchTeams, eq(matchTeams.matchId, matches.id))
       .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
       .innerJoin(eras, eq(eras.id, teamEras.eraId))
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .$dynamic();
+    const query =
+      perSideJoin === undefined
+        ? joined
+        : joined.leftJoin(perSideJoin.table, perSideJoin.on);
+    return query
       .where(this.scopeFilter(scope))
       .groupBy(teams.id, teams.name)
       .having(
