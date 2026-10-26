@@ -8,6 +8,7 @@ import { mock } from 'vitest-mock-extended';
 import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
 import { TeamRaceCoachNamesService } from '../shared/team-race-coach-names.service';
+import { TeamAverageStatisticsService } from './team-average-statistics.service';
 import { TeamsService } from './teams.service';
 import { TeamsStatisticsService } from './teams-statistics.service';
 
@@ -26,6 +27,10 @@ describe('TeamsService toplist delegation (suffered consequences & expensive mis
         TeamsService,
         { provide: LikePatternService, useValue: likePattern },
         { provide: TeamsStatisticsService, useValue: statistics },
+        {
+          provide: TeamAverageStatisticsService,
+          useValue: mock<TeamAverageStatisticsService>(),
+        },
         { provide: TeamRaceCoachNamesService, useValue: teamRaceCoachNames },
         { provide: DB, useValue: mock<Db>() },
       ],

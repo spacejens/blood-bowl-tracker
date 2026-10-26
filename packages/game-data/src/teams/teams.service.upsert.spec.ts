@@ -14,6 +14,7 @@ import {
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
 import { TeamRaceCoachNamesService } from '../shared/team-race-coach-names.service';
+import { TeamAverageStatisticsService } from './team-average-statistics.service';
 import { TeamsService, TeamUpsertConflictError } from './teams.service';
 import { fakeTeam } from './teams.service.test-helpers';
 import { TeamsStatisticsService } from './teams-statistics.service';
@@ -34,6 +35,10 @@ describe('TeamsService', () => {
         TeamsService,
         { provide: LikePatternService, useValue: likePattern },
         { provide: TeamsStatisticsService, useValue: statistics },
+        {
+          provide: TeamAverageStatisticsService,
+          useValue: mock<TeamAverageStatisticsService>(),
+        },
         { provide: TeamRaceCoachNamesService, useValue: teamRaceCoachNames },
         { provide: DB, useValue: db },
       ],

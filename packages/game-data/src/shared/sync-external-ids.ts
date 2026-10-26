@@ -1,5 +1,6 @@
 import type { ExternalId } from '@blood-bowl-tracker/api-contract';
 import type { DbOrTx, InferInsertModel, PgTable } from '@blood-bowl-tracker/db';
+import { asBaseTable } from '@blood-bowl-tracker/db';
 
 /**
  * Insert the external-id pairings an entity does not already have, skipping the
@@ -31,6 +32,10 @@ export async function insertMissingExternalIds<T extends PgTable>(
   );
 
   if (newExternalIds.length > 0) {
-    await db.insert(externalIdTable).values(newExternalIds.map(buildRow));
+    // asBaseTable: `.values()` cannot type-check against a still-generic
+    // table; see asBaseTable's doc comment.
+    await db
+      .insert(asBaseTable(externalIdTable))
+      .values(newExternalIds.map(buildRow));
   }
 }

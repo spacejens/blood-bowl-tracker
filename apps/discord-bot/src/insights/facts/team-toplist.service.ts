@@ -1,4 +1,8 @@
-import type { FactScope } from '@blood-bowl-tracker/game-data';
+import type {
+  FactScope,
+  TeamAverageDirection,
+  TeamAverageRow,
+} from '@blood-bowl-tracker/game-data';
 import { TeamsService } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
@@ -279,5 +283,80 @@ export class TeamToplistService {
       entityLink: this.teamLink,
       formatRow: (row) => this.formatTeamRow(row),
     });
+  }
+
+  /**
+   * The four per-match touchdown averages share one builder. Each average is
+   * carried as the row's `count` because the leaderboard ranks ties on
+   * `count`; the game-data query has already rounded it to two decimals and
+   * applied the minimum-matches floor. Hand-written rather than
+   * factory-built: like the matches-played toplists they take league, era
+   * and match category but not competition, and they pass a direction.
+   */
+  private resolveAverageToplist(options: {
+    title: string;
+    fetchRows: (limit: number) => Promise<TeamAverageRow[]>;
+  }): Promise<string | InteractionReplyOptions> {
+    return this.leaderboard.resolveToplist<TeamToplistRow>({
+      title: options.title,
+      fetchRows: async (limit) =>
+        this.decorateTeamRows(
+          (await options.fetchRows(limit)).map(({ average, ...row }) => ({
+            ...row,
+            count: average,
+          })),
+        ),
+      timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
+      noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
+      entityLink: this.teamLink,
+      formatRow: (row) =>
+        `${row.rank}. ${row.name}${row.contextSuffix ?? ''} — ${this.numbers.decimal(row.count)} per match`,
+    });
+  }
+
+  private resolveAverageTouchdownsScored(
+    scope: FactScope,
+    direction: TeamAverageDirection,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageToplist({
+      title: `Teams by average touchdowns scored per match (${direction === 'desc' ? 'highest' : 'lowest'} first)`,
+      fetchRows: (limit) =>
+        this.teams.averageTouchdownsScoredByTeam(scope, direction, limit),
+    });
+  }
+
+  private resolveAverageTouchdownsConceded(
+    scope: FactScope,
+    direction: TeamAverageDirection,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageToplist({
+      title: `Teams by average touchdowns conceded per match (${direction === 'desc' ? 'highest' : 'lowest'} first)`,
+      fetchRows: (limit) =>
+        this.teams.averageTouchdownsConcededByTeam(scope, direction, limit),
+    });
+  }
+
+  resolveAverageTouchdownsScoredDescending(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageTouchdownsScored(scope, 'desc');
+  }
+
+  resolveAverageTouchdownsScoredAscending(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageTouchdownsScored(scope, 'asc');
+  }
+
+  resolveAverageTouchdownsConcededDescending(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageTouchdownsConceded(scope, 'desc');
+  }
+
+  resolveAverageTouchdownsConcededAscending(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageTouchdownsConceded(scope, 'asc');
   }
 }

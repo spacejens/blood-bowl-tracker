@@ -42,6 +42,7 @@ import { MatchOutcomeCountsService } from '../src/shared/match-outcome-counts.se
 import { TeamRaceCoachNamesService } from '../src/shared/team-race-coach-names.service';
 import { TrophyAwardCountsService } from '../src/shared/trophy-award-counts.service';
 import { SkillsService } from '../src/skills/skills.service';
+import { TeamAverageStatisticsService } from '../src/teams/team-average-statistics.service';
 import { TeamsService } from '../src/teams/teams.service';
 import { TeamsStatisticsService } from '../src/teams/teams-statistics.service';
 import { connectTestDb } from './e2e-database';
@@ -340,6 +341,10 @@ describe('importer re-runs (real Postgres)', () => {
         PositionsService,
         CompetitionsService,
         TeamsService,
+        {
+          provide: TeamAverageStatisticsService,
+          useValue: mock<TeamAverageStatisticsService>(),
+        },
         {
           provide: TeamsStatisticsService,
           useValue: mock<TeamsStatisticsService>(),

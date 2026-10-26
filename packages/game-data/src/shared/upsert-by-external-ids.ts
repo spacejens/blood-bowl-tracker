@@ -224,9 +224,12 @@ async function runUpsertAttempt<
         `Cannot create new ${opts.entityLabelPlural}: missing required field(s): ${missing.join(', ')}`,
       );
     }
+    // asBaseTable: `.values()` cannot type-check against a still-generic
+    // table; see asBaseTable's doc comment. The widened table needs no cast
+    // on the values.
     rows = (await handle
-      .insert(opts.entityTable)
-      .values(insertValues as unknown as InferInsertModel<TEntityTable>)
+      .insert(asBaseTable(opts.entityTable))
+      .values(insertValues)
       .returning()) as InferSelectModel<TEntityTable>[];
   } else if (Object.keys(values).length === 0) {
     // Nothing to write: drizzle rejects `.set({})`, and there is nothing to
