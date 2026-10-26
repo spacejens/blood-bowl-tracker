@@ -174,6 +174,21 @@ describe('buildFactTree competition capabilities', () => {
     }
   });
 
+  it('scopes the team touchdown averages to league and era but not competition', () => {
+    const tree = buildFactTree(stubFactTreeDeps());
+    for (const path of [
+      'team.toplist.touchdowns.average.scored.descending',
+      'team.toplist.touchdowns.average.scored.ascending',
+      'team.toplist.touchdowns.average.conceded.descending',
+      'team.toplist.touchdowns.average.conceded.ascending',
+    ]) {
+      const leaf = factTreeNavigation.resolvePath(tree, path) as FactLeaf;
+      expect(leaf.supportsLeague, path).toBe(true);
+      expect(leaf.supportsEra, path).toBe(true);
+      expect(leaf.supportsCompetition, path).toBe(false);
+    }
+  });
+
   it('forwards competitionId to an in-scope team leaf', async () => {
     const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
@@ -275,7 +290,7 @@ describe('buildFactTree match category capabilities', () => {
     const supported = factTreeNavigation
       .collectLeaves(tree)
       .filter((leaf) => leaf.supportsMatchCategory);
-    expect(supported).toHaveLength(50);
+    expect(supported).toHaveLength(54);
   });
 
   it('supports the match category on leaves that do not support a competition', () => {
@@ -293,6 +308,10 @@ describe('buildFactTree match category capabilities', () => {
       'team.toplist.matches.lost',
       'team.toplist.matches.drawn',
       'team.toplist.competitions.played',
+      'team.toplist.touchdowns.average.scored.descending',
+      'team.toplist.touchdowns.average.scored.ascending',
+      'team.toplist.touchdowns.average.conceded.descending',
+      'team.toplist.touchdowns.average.conceded.ascending',
       'race.toplist.matches.played',
       'race.toplist.matches.won',
       'race.toplist.matches.lost',

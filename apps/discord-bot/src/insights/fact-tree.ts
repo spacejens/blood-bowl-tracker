@@ -194,6 +194,55 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
             supportsMatchCategory: true,
             resolve: (scope) => deps.teamToplist.resolveTouchdownsScored(scope),
           },
+          // Per-match averages over teams with at least five matches in
+          // scope. No competition scope: few teams play five matches in a
+          // single competition, so the list would usually be empty.
+          average: {
+            scored: {
+              descending: {
+                supportsLeague: true,
+                supportsEra: true,
+                supportsCompetition: false,
+                supportsMatchCategory: true,
+                resolve: (scope) =>
+                  deps.teamToplist.resolveAverageTouchdownsScoredDescending(
+                    scope,
+                  ),
+              },
+              ascending: {
+                supportsLeague: true,
+                supportsEra: true,
+                supportsCompetition: false,
+                supportsMatchCategory: true,
+                resolve: (scope) =>
+                  deps.teamToplist.resolveAverageTouchdownsScoredAscending(
+                    scope,
+                  ),
+              },
+            },
+            conceded: {
+              descending: {
+                supportsLeague: true,
+                supportsEra: true,
+                supportsCompetition: false,
+                supportsMatchCategory: true,
+                resolve: (scope) =>
+                  deps.teamToplist.resolveAverageTouchdownsConcededDescending(
+                    scope,
+                  ),
+              },
+              ascending: {
+                supportsLeague: true,
+                supportsEra: true,
+                supportsCompetition: false,
+                supportsMatchCategory: true,
+                resolve: (scope) =>
+                  deps.teamToplist.resolveAverageTouchdownsConcededAscending(
+                    scope,
+                  ),
+              },
+            },
+          },
         },
         completions: {
           supportsLeague: true,

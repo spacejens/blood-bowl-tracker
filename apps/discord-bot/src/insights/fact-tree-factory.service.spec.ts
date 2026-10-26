@@ -101,8 +101,8 @@ describe('FactTreeFactoryService', () => {
 
   it('build() returns the fully assembled fact tree', () => {
     const tree = factory.build();
-    // buildFactTree currently produces 69 leaves (see fact-tree.spec.ts).
-    expect(factTreeNavigation.collectLeaves(tree)).toHaveLength(69);
+    // buildFactTree currently produces 73 leaves (see fact-tree.spec.ts).
+    expect(factTreeNavigation.collectLeaves(tree)).toHaveLength(73);
   });
 
   it('wires its injected services into the tree so leaves call the right service', async () => {
