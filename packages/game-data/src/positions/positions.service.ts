@@ -105,7 +105,10 @@ export class PositionsService {
       externalIds: data.externalIds,
       ConflictErrorClass: PositionUpsertConflictError,
       entityLabelPlural: 'positions',
-      buildExternalIdRow: (positionId, pair) => ({ positionId, ...pair }),
+      buildExternalIdRow: (positionId, externalId) => ({
+        positionId,
+        ...externalId,
+      }),
       // A star position's external id can happen to collide with an
       // already-upserted *regular* position's id (or vice versa): both are
       // "one matched owner" as far as the external-id lookup is concerned,

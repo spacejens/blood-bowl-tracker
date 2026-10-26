@@ -1,4 +1,7 @@
-import type { TpOfficialCharacteristics } from '@blood-bowl-tracker/api-contract';
+import type {
+  TeamEra,
+  TpOfficialCharacteristics,
+} from '@blood-bowl-tracker/api-contract';
 import type { ImportError } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
@@ -28,7 +31,7 @@ export interface InducedStarPlayerHireGroup {
  * into one object to stay within the repo's 3-parameter limit. */
 export interface ImportHiresOptions {
   groups: InducedStarPlayerHireGroup[];
-  teamErasByRosterId: Map<number, { id: number; eraId: number }[]>;
+  teamErasByRosterId: Map<number, TeamEra[]>;
   context: {
     tpSystemId: number;
     nameSystemId: number;

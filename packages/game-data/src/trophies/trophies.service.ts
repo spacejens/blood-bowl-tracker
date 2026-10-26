@@ -406,7 +406,10 @@ export class TrophiesService {
       externalIds: data.externalIds,
       ConflictErrorClass: TrophyUpsertConflictError,
       entityLabelPlural: 'trophies',
-      buildExternalIdRow: (trophyId, pair) => ({ trophyId, ...pair }),
+      buildExternalIdRow: (trophyId, externalId) => ({
+        trophyId,
+        ...externalId,
+      }),
       afterUpsert: (tx, row) => this.ruleCurationSync.sync(tx, row.id, data),
     });
 

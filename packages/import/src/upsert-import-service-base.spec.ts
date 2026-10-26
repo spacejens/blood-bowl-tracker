@@ -1,5 +1,6 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
+import type { ExternalId } from '@blood-bowl-tracker/api-contract';
 import { Injectable } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -23,14 +24,14 @@ class TestEntityImportService extends createUpsertImportServiceBase({
     client.leagues as unknown as UpsertResource<
       {
         name: string;
-        externalIds: Array<{ externalSystemId: number; externalId: string }>;
+        externalIds: ExternalId[];
       },
       { id: number; name: string; createdAt: Date; created: boolean }
     >,
   buildErrorMessage: (
     data: {
       name: string;
-      externalIds: Array<{ externalSystemId: number; externalId: string }>;
+      externalIds: ExternalId[];
     },
     err,
   ) =>

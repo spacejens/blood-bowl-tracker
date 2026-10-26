@@ -361,6 +361,25 @@ export const SPP_CAREER_COUNT_KEYS = [
 
 export type Player = z.infer<typeof PlayerSchema>;
 export type UpsertPlayer = z.infer<typeof UpsertPlayerSchema>;
+
+type UpsertPlayerCharacteristicFields = Required<
+  Pick<UpsertPlayer, (typeof PLAYER_CHARACTERISTIC_KEYS)[number] | 'rulesSetId'>
+>;
+
+/**
+ * The characteristics subset of an `UpsertPlayer` payload, as an importer
+ * that has a full line builds it. All five values plus `rulesSetId` travel
+ * together or not at all: `UpsertPlayerSchema` rejects a partial set,
+ * characteristics without a `rulesSetId`, and a `rulesSetId` without
+ * characteristics. `passing` is narrowed to `number` because a caller that
+ * builds this group always has a concrete Passing value.
+ */
+export type UpsertPlayerCharacteristics = Omit<
+  UpsertPlayerCharacteristicFields,
+  'passing'
+> & {
+  passing: NonNullable<UpsertPlayerCharacteristicFields['passing']>;
+};
 export type PlayerLastingInjuries = z.infer<typeof PlayerLastingInjuriesSchema>;
 export type PlayerCharacteristicIncreases = z.infer<
   typeof PlayerCharacteristicIncreasesSchema

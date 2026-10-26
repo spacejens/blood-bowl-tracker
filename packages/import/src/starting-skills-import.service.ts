@@ -1,3 +1,4 @@
+import type { ExternalId } from '@blood-bowl-tracker/api-contract';
 import { NAME_EXTERNAL_SYSTEM } from '@blood-bowl-tracker/domain-enums';
 import {
   ImportResultService,
@@ -38,7 +39,7 @@ export interface StartingSkillRef {
    * is upserted at most once per run (see `skillIdsByName`), so a ref must
    * carry the COMPLETE set rather than growing it ref by ref.
    */
-  externalIds?: { externalSystemId: number; externalId: string }[];
+  externalIds?: ExternalId[];
   /**
    * A skill id already resolved elsewhere -- TP resolving a skillMasterId no
    * downloaded file ever names, via its curated tourplay.net external id.

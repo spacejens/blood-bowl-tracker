@@ -88,7 +88,7 @@ export class SkillsService {
       externalIds: data.externalIds,
       ConflictErrorClass: SkillUpsertConflictError,
       entityLabelPlural: 'skills',
-      buildExternalIdRow: (skillId, pair) => ({ skillId, ...pair }),
+      buildExternalIdRow: (skillId, externalId) => ({ skillId, ...externalId }),
     });
 
     return { skill, created };

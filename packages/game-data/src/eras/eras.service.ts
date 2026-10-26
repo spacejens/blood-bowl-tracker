@@ -61,7 +61,7 @@ export class ErasService {
       externalIds: data.externalIds,
       ConflictErrorClass: EraUpsertConflictError,
       entityLabelPlural: 'eras',
-      buildExternalIdRow: (eraId, pair) => ({ eraId, ...pair }),
+      buildExternalIdRow: (eraId, externalId) => ({ eraId, ...externalId }),
     });
 
     const rulesSetIds = await this.syncRulesSets(era.id, data.rulesSetIds);

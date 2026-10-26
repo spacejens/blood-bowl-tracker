@@ -1,3 +1,4 @@
+import type { ExternalId } from '@blood-bowl-tracker/api-contract';
 import type { Db } from '@blood-bowl-tracker/db';
 import {
   eraExternalIds,
@@ -45,7 +46,7 @@ async function seedExternalIdFixtures(db: Db): Promise<ExternalIdFixtures> {
 function eraUpsertOptions(
   db: Db,
   values: { name: string; leagueId: number; startDate: string },
-  externalIds: { externalSystemId: number; externalId: string }[],
+  externalIds: ExternalId[],
 ): UpsertByExternalIdsOptions<typeof eras, typeof eraExternalIds> {
   return {
     db,
@@ -59,7 +60,7 @@ function eraUpsertOptions(
     externalIds,
     ConflictErrorClass: TestUpsertConflictError,
     entityLabelPlural: 'eras',
-    buildExternalIdRow: (eraId, pair) => ({ eraId, ...pair }),
+    buildExternalIdRow: (eraId, externalId) => ({ eraId, ...externalId }),
   };
 }
 
@@ -164,7 +165,7 @@ describe('upsertByExternalIds (real Postgres)', () => {
     // retry. If that function's dedup behavior ever changes to also collapse
     // duplicates within its own input, this test's collision would stop
     // happening and it would need revisiting.
-    const pair = {
+    const externalId = {
       externalSystemId: fixtures.externalSystemId,
       externalId: 'era-dup',
     };
@@ -178,7 +179,7 @@ describe('upsertByExternalIds (real Postgres)', () => {
             leagueId: fixtures.leagueId,
             startDate: '2020-01-01',
           },
-          [pair, pair],
+          [externalId, externalId],
         ),
       ),
     ).rejects.toThrow(/after 3 attempts/);

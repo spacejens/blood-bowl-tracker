@@ -61,7 +61,10 @@ export class KeywordsService {
       externalIds: data.externalIds,
       ConflictErrorClass: KeywordUpsertConflictError,
       entityLabelPlural: 'keywords',
-      buildExternalIdRow: (keywordId, pair) => ({ keywordId, ...pair }),
+      buildExternalIdRow: (keywordId, externalId) => ({
+        keywordId,
+        ...externalId,
+      }),
     });
 
     return { keyword, created };

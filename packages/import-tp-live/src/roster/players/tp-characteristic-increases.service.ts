@@ -1,4 +1,9 @@
-import type { ImportError, RulesSet } from '@blood-bowl-tracker/api-contract';
+import type {
+  ImportError,
+  PlayerCharacteristicIncreases,
+  PlayerLastingInjuries,
+  RulesSet,
+} from '@blood-bowl-tracker/api-contract';
 import type { CharacteristicFormat } from '@blood-bowl-tracker/domain-enums';
 import type { PositionCharacteristics } from '@blood-bowl-tracker/game-data';
 import { PositionRulesSetsService } from '@blood-bowl-tracker/game-data';
@@ -18,22 +23,10 @@ export interface PlayerCurrentCharacteristics {
 }
 
 /** The five reduction counters the same importer already derived. */
-export interface PlayerCharacteristicReductionCounts {
-  moveReductionCount: number;
-  strengthReductionCount: number;
-  agilityReductionCount: number;
-  passingReductionCount: number;
-  armourReductionCount: number;
-}
-
-/** The five counters this service produces, ready to spread into an upsert. */
-export interface PlayerCharacteristicIncreaseCounts {
-  moveIncreaseCount: number;
-  strengthIncreaseCount: number;
-  agilityIncreaseCount: number;
-  passingIncreaseCount: number;
-  armourIncreaseCount: number;
-}
+type PlayerCharacteristicReductions = Omit<
+  PlayerLastingInjuries,
+  'missNextGame' | 'nigglingInjuryCount'
+>;
 
 /** Per-import memo of baseline reads and already-reported gaps. */
 export interface IncreaseBaselineCache {
@@ -47,8 +40,8 @@ export interface IncreaseBaselineCache {
 /** One characteristic, paired with the two counters it maps to. */
 interface Comparison {
   key: keyof PlayerCurrentCharacteristics;
-  increase: keyof PlayerCharacteristicIncreaseCounts;
-  reduction: keyof PlayerCharacteristicReductionCounts;
+  increase: keyof PlayerCharacteristicIncreases;
+  reduction: keyof PlayerCharacteristicReductions;
   format: CharacteristicFormat;
   /**
    * Whether a LOWER stored number is the better one. True only for Agility
@@ -62,7 +55,7 @@ interface Comparison {
   lowerIsBetter: boolean;
 }
 
-const ZERO_REDUCTIONS: PlayerCharacteristicReductionCounts = {
+const ZERO_REDUCTIONS: PlayerCharacteristicReductions = {
   moveReductionCount: 0,
   strengthReductionCount: 0,
   agilityReductionCount: 0,
@@ -138,11 +131,11 @@ export class TpCharacteristicIncreasesService {
     player: { label: string; positionId: number };
     rulesSet: RulesSet;
     current: PlayerCurrentCharacteristics;
-    reductions: PlayerCharacteristicReductionCounts | undefined;
+    reductions: PlayerCharacteristicReductions | undefined;
     baseline: PlayerCurrentCharacteristics | undefined;
     cache: IncreaseBaselineCache;
     errors: ImportError[];
-  }): Promise<PlayerCharacteristicIncreaseCounts | undefined> {
+  }): Promise<PlayerCharacteristicIncreases | undefined> {
     const { player, rulesSet, current, reductions, cache, errors } = options;
     let baseline: PlayerCurrentCharacteristics;
     if (options.baseline !== undefined) {
@@ -178,7 +171,7 @@ export class TpCharacteristicIncreasesService {
     }
 
     const applied = reductions ?? ZERO_REDUCTIONS;
-    const counts: PlayerCharacteristicIncreaseCounts = {
+    const counts: PlayerCharacteristicIncreases = {
       moveIncreaseCount: 0,
       strengthIncreaseCount: 0,
       agilityIncreaseCount: 0,
