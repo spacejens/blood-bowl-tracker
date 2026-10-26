@@ -6,7 +6,9 @@ import {
   desc,
   eq,
   eras,
+  inArray,
   matches,
+  matchEvents,
   matchTeams,
   sql,
   teamEras,
@@ -15,6 +17,14 @@ import {
 import { Inject, Injectable } from '@nestjs/common';
 
 import type { FactScope } from '../shared/fact-scope';
+import type { MatchEventSelector } from '../shared/match-event-counts.service';
+import {
+  CASUALTY_CAUSED_TYPES,
+  CASUALTY_SUFFERED_TYPES,
+  LASTING_INJURY_SUFFERED_TYPES,
+  SERIOUS_INJURY_CAUSED_TYPES,
+  SERIOUS_INJURY_SUFFERED_TYPES,
+} from '../shared/match-event-types';
 
 /**
  * The fewest matches in scope a team needs before a per-match average ranks
@@ -88,6 +98,122 @@ export class TeamAverageStatisticsService {
       scope,
       limit,
     });
+  }
+
+  /**
+   * Casualties the team inflicted per match. Same type set as the
+   * casualties-caused total, so a foul that caused a casualty does not
+   * count: Blood Bowl awards no casualty credit for a foul.
+   */
+  averageCasualtiesCausedByTeam(
+    scope: FactScope,
+    direction: TeamAverageDirection,
+    limit: number,
+  ): Promise<TeamAverageRow[]> {
+    return this.averagePerMatchByTeam({
+      perMatchValue: this.matchEventsOnSide({
+        role: 'acting',
+        types: CASUALTY_CAUSED_TYPES,
+      }),
+      direction,
+      scope,
+      limit,
+    });
+  }
+
+  /** Casualties of any severity the team's players suffered per match. */
+  averageCasualtiesSufferedByTeam(
+    scope: FactScope,
+    direction: TeamAverageDirection,
+    limit: number,
+  ): Promise<TeamAverageRow[]> {
+    return this.averagePerMatchByTeam({
+      perMatchValue: this.matchEventsOnSide({
+        role: 'consequence',
+        types: CASUALTY_SUFFERED_TYPES,
+      }),
+      direction,
+      scope,
+      limit,
+    });
+  }
+
+  /** Serious injuries the team inflicted per match. */
+  averageSeriousInjuriesCausedByTeam(
+    scope: FactScope,
+    direction: TeamAverageDirection,
+    limit: number,
+  ): Promise<TeamAverageRow[]> {
+    return this.averagePerMatchByTeam({
+      perMatchValue: this.matchEventsOnSide({
+        role: 'acting',
+        types: SERIOUS_INJURY_CAUSED_TYPES,
+      }),
+      direction,
+      scope,
+      limit,
+    });
+  }
+
+  /**
+   * Casualties whose effect outlasts the match, suffered by the team's
+   * players per match.
+   */
+  averageSeriousInjuriesSufferedByTeam(
+    scope: FactScope,
+    direction: TeamAverageDirection,
+    limit: number,
+  ): Promise<TeamAverageRow[]> {
+    return this.averagePerMatchByTeam({
+      perMatchValue: this.matchEventsOnSide({
+        role: 'consequence',
+        types: SERIOUS_INJURY_SUFFERED_TYPES,
+      }),
+      direction,
+      scope,
+      limit,
+    });
+  }
+
+  /**
+   * Casualties that permanently diminish a player, suffered by the team's
+   * players per match.
+   */
+  averageLastingInjuriesSufferedByTeam(
+    scope: FactScope,
+    direction: TeamAverageDirection,
+    limit: number,
+  ): Promise<TeamAverageRow[]> {
+    return this.averagePerMatchByTeam({
+      perMatchValue: this.matchEventsOnSide({
+        role: 'consequence',
+        types: LASTING_INJURY_SUFFERED_TYPES,
+      }),
+      direction,
+      scope,
+      limit,
+    });
+  }
+
+  /**
+   * The number of this side's match events matching the selector: a
+   * correlated subquery keyed on the outer query's `match_teams` row, so a
+   * match without a matching event contributes zero instead of dropping out
+   * of the denominator. An acting selector keys on the acting side and
+   * filters `action_type`; a consequence selector keys on the victim's side
+   * and filters `consequence_type`, the same split the total-based team
+   * counts use.
+   */
+  private matchEventsOnSide(selector: MatchEventSelector): SQL {
+    const sideColumn =
+      selector.role === 'acting'
+        ? matchEvents.actingMatchTeamId
+        : matchEvents.consequenceMatchTeamId;
+    const typeFilter =
+      selector.role === 'acting'
+        ? inArray(matchEvents.actionType, selector.types)
+        : inArray(matchEvents.consequenceType, selector.types);
+    return sql`(select count(*) from ${matchEvents} where ${sideColumn} = ${matchTeams.id} and ${typeFilter})`;
   }
 
   /**
