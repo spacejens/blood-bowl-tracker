@@ -2,7 +2,6 @@ import { contract } from '@blood-bowl-tracker/api-contract';
 import {
   CompetitionGroupsService,
   ExternalSystemsService,
-  KeywordsService,
   ManualImportBatchContentMismatchError,
   ManualImportBatchesService,
   MatchOutcomesService,
@@ -297,17 +296,6 @@ export function buildPositionRulesSetKeywordsRoutes(
     list: implement(contract.positionRulesSetKeywords.list).handler(
       ({ input }) =>
         positionRulesSetKeywordsService.listByPosition(input.positionId),
-    ),
-  };
-}
-
-// keywords.list: read-only, so it does not go through the upsert handler at
-// all. The rest of the keywords router is the standard entity shape and is
-// built by RpcRouterFactoryService.buildStandardEntityRoutes.
-export function buildKeywordsListRoute(keywordsService: KeywordsService) {
-  return {
-    list: implement(contract.keywords.list).handler(({ input }) =>
-      keywordsService.listByExternalSystem(input.externalSystemId),
     ),
   };
 }
