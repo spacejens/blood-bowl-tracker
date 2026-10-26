@@ -15,6 +15,24 @@ beforeAll(async () => {
   factTreeNavigation = moduleRef.get(FactTreeNavigationService);
 });
 
+/** Every team per-match average leaf: league, era and category, no competition. */
+const TEAM_AVERAGE_PATHS = [
+  'team.toplist.touchdowns.average.scored.descending',
+  'team.toplist.touchdowns.average.scored.ascending',
+  'team.toplist.touchdowns.average.conceded.descending',
+  'team.toplist.touchdowns.average.conceded.ascending',
+  'team.toplist.casualties.average.caused.descending',
+  'team.toplist.casualties.average.caused.ascending',
+  'team.toplist.casualties.average.suffered.descending',
+  'team.toplist.casualties.average.suffered.ascending',
+  'team.toplist.injuries.serious.average.caused.descending',
+  'team.toplist.injuries.serious.average.caused.ascending',
+  'team.toplist.injuries.serious.average.suffered.descending',
+  'team.toplist.injuries.serious.average.suffered.ascending',
+  'team.toplist.injuries.lasting.average.suffered.descending',
+  'team.toplist.injuries.lasting.average.suffered.ascending',
+] as const;
+
 describe('buildFactTree leaf capabilities', () => {
   it('excludes some leaves from era filtering', () => {
     const tree = buildFactTree(stubFactTreeDeps());
@@ -174,14 +192,9 @@ describe('buildFactTree competition capabilities', () => {
     }
   });
 
-  it('scopes the team touchdown averages to league and era but not competition', () => {
+  it('scopes the team per-match averages to league and era but not competition', () => {
     const tree = buildFactTree(stubFactTreeDeps());
-    for (const path of [
-      'team.toplist.touchdowns.average.scored.descending',
-      'team.toplist.touchdowns.average.scored.ascending',
-      'team.toplist.touchdowns.average.conceded.descending',
-      'team.toplist.touchdowns.average.conceded.ascending',
-    ]) {
+    for (const path of TEAM_AVERAGE_PATHS) {
       const leaf = factTreeNavigation.resolvePath(tree, path) as FactLeaf;
       expect(leaf.supportsLeague, path).toBe(true);
       expect(leaf.supportsEra, path).toBe(true);
@@ -290,7 +303,7 @@ describe('buildFactTree match category capabilities', () => {
     const supported = factTreeNavigation
       .collectLeaves(tree)
       .filter((leaf) => leaf.supportsMatchCategory);
-    expect(supported).toHaveLength(54);
+    expect(supported).toHaveLength(64);
   });
 
   it('supports the match category on leaves that do not support a competition', () => {
@@ -308,10 +321,7 @@ describe('buildFactTree match category capabilities', () => {
       'team.toplist.matches.lost',
       'team.toplist.matches.drawn',
       'team.toplist.competitions.played',
-      'team.toplist.touchdowns.average.scored.descending',
-      'team.toplist.touchdowns.average.scored.ascending',
-      'team.toplist.touchdowns.average.conceded.descending',
-      'team.toplist.touchdowns.average.conceded.ascending',
+      ...TEAM_AVERAGE_PATHS,
       'race.toplist.matches.played',
       'race.toplist.matches.won',
       'race.toplist.matches.lost',

@@ -281,6 +281,54 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
             resolve: (scope) =>
               deps.teamToplist.resolveCasualtiesSuffered(scope),
           },
+          // Per-match averages, with the same floor and scopes as the touchdown
+          // averages: league, era and category, not competition.
+          average: {
+            caused: {
+              descending: {
+                supportsLeague: true,
+                supportsEra: true,
+                supportsCompetition: false,
+                supportsMatchCategory: true,
+                resolve: (scope) =>
+                  deps.teamToplist.resolveAverageCasualtiesCausedDescending(
+                    scope,
+                  ),
+              },
+              ascending: {
+                supportsLeague: true,
+                supportsEra: true,
+                supportsCompetition: false,
+                supportsMatchCategory: true,
+                resolve: (scope) =>
+                  deps.teamToplist.resolveAverageCasualtiesCausedAscending(
+                    scope,
+                  ),
+              },
+            },
+            suffered: {
+              descending: {
+                supportsLeague: true,
+                supportsEra: true,
+                supportsCompetition: false,
+                supportsMatchCategory: true,
+                resolve: (scope) =>
+                  deps.teamToplist.resolveAverageCasualtiesSufferedDescending(
+                    scope,
+                  ),
+              },
+              ascending: {
+                supportsLeague: true,
+                supportsEra: true,
+                supportsCompetition: false,
+                supportsMatchCategory: true,
+                resolve: (scope) =>
+                  deps.teamToplist.resolveAverageCasualtiesSufferedAscending(
+                    scope,
+                  ),
+              },
+            },
+          },
         },
         injuries: {
           serious: {
@@ -300,6 +348,53 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
               resolve: (scope) =>
                 deps.teamToplist.resolveSeriousInjuriesSuffered(scope),
             },
+            // Per-match averages; same floor and scopes as the casualty averages.
+            average: {
+              caused: {
+                descending: {
+                  supportsLeague: true,
+                  supportsEra: true,
+                  supportsCompetition: false,
+                  supportsMatchCategory: true,
+                  resolve: (scope) =>
+                    deps.teamToplist.resolveAverageSeriousInjuriesCausedDescending(
+                      scope,
+                    ),
+                },
+                ascending: {
+                  supportsLeague: true,
+                  supportsEra: true,
+                  supportsCompetition: false,
+                  supportsMatchCategory: true,
+                  resolve: (scope) =>
+                    deps.teamToplist.resolveAverageSeriousInjuriesCausedAscending(
+                      scope,
+                    ),
+                },
+              },
+              suffered: {
+                descending: {
+                  supportsLeague: true,
+                  supportsEra: true,
+                  supportsCompetition: false,
+                  supportsMatchCategory: true,
+                  resolve: (scope) =>
+                    deps.teamToplist.resolveAverageSeriousInjuriesSufferedDescending(
+                      scope,
+                    ),
+                },
+                ascending: {
+                  supportsLeague: true,
+                  supportsEra: true,
+                  supportsCompetition: false,
+                  supportsMatchCategory: true,
+                  resolve: (scope) =>
+                    deps.teamToplist.resolveAverageSeriousInjuriesSufferedAscending(
+                      scope,
+                    ),
+                },
+              },
+            },
           },
           lasting: {
             suffered: {
@@ -309,6 +404,31 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
               supportsMatchCategory: true,
               resolve: (scope) =>
                 deps.teamToplist.resolveLastingInjuriesSuffered(scope),
+            },
+            // Per-match averages; same floor and scopes as the casualty averages.
+            average: {
+              suffered: {
+                descending: {
+                  supportsLeague: true,
+                  supportsEra: true,
+                  supportsCompetition: false,
+                  supportsMatchCategory: true,
+                  resolve: (scope) =>
+                    deps.teamToplist.resolveAverageLastingInjuriesSufferedDescending(
+                      scope,
+                    ),
+                },
+                ascending: {
+                  supportsLeague: true,
+                  supportsEra: true,
+                  supportsCompetition: false,
+                  supportsMatchCategory: true,
+                  resolve: (scope) =>
+                    deps.teamToplist.resolveAverageLastingInjuriesSufferedAscending(
+                      scope,
+                    ),
+                },
+              },
             },
           },
         },
