@@ -15,6 +15,7 @@ import {
   newSkillMessage,
   nonWebhookMessage,
   sampleMessage,
+  temporarilyRetiredMessage,
   unrecognizedMessage,
 } from './tp-feed-samples.test-helpers';
 
@@ -170,6 +171,21 @@ describe('TpFeedParserService', () => {
         link: 'https://tourplay.net/en/blood-bowl/roster/167242',
       },
     });
+  });
+
+  it('parses a temporarily retired notification', () => {
+    expect(service.parse(temporarilyRetiredMessage())).toEqual({
+      status: 'event',
+      event: {
+        kind: 'temporarily-retired',
+        playerNumber: '8',
+        playerName: 'Drekavac the Undying',
+        position: 'Halfling Hopeful',
+        teamName: "Satan's Little Helpers",
+        link: 'https://tourplay.net/en/blood-bowl/roster/179572',
+      },
+    });
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it('ignores a match scheduled notification without warning', () => {
@@ -391,6 +407,52 @@ describe('TpFeedParserService', () => {
 
     expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('author.url'));
+  });
+
+  describe('a temporarily retired notification that does not parse', () => {
+    const playerField = {
+      name: '`#8` Drekavac the Undying *(Halfling Hopeful)*',
+      value: '',
+      inline: false,
+    };
+    const rosterUrl = 'https://tourplay.net/en/blood-bowl/roster/179572';
+
+    it('reports unrecognized when the player field does not match', () => {
+      const message = sampleMessage({
+        author: { name: 'Temporarily retired', url: rosterUrl },
+        fields: [{ name: 'Drekavac the Undying', value: '', inline: false }],
+        footer: { text: "Satan's Little Helpers" },
+      });
+
+      expect(service.parse(message)).toEqual({ status: 'unrecognized' });
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('temporarily-retired'),
+      );
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('player field'),
+      );
+    });
+
+    it('reports unrecognized when the team footer is missing', () => {
+      const message = sampleMessage({
+        author: { name: 'Temporarily retired', url: rosterUrl },
+        fields: [playerField],
+      });
+
+      expect(service.parse(message)).toEqual({ status: 'unrecognized' });
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('footer.text'));
+    });
+
+    it('reports unrecognized when there is no roster link', () => {
+      const message = sampleMessage({
+        author: { name: 'Temporarily retired' },
+        fields: [playerField],
+        footer: { text: "Satan's Little Helpers" },
+      });
+
+      expect(service.parse(message)).toEqual({ status: 'unrecognized' });
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('author.url'));
+    });
   });
 
   it('warns and reports unrecognized when a skill description is only backticks and whitespace', () => {

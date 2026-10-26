@@ -151,6 +151,24 @@ export function firedMessage(): Message {
   });
 }
 
+/** Transcribed from a real TP payload; the same shape as Hired/Fired. */
+export function temporarilyRetiredMessage(): Message {
+  return sampleMessage({
+    author: {
+      name: 'Temporarily retired',
+      url: 'https://tourplay.net/en/blood-bowl/roster/179572',
+    },
+    fields: [
+      {
+        name: '`#8` Drekavac the Undying *(Halfling Hopeful)*',
+        value: '',
+        inline: false,
+      },
+    ],
+    footer: { text: "Satan's Little Helpers" },
+  });
+}
+
 /**
  * A competition trophy announcement. The title's text after "Award" names
  * the trophy; the author is the competition, the url its awards page, the

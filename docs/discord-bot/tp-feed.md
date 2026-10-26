@@ -20,13 +20,14 @@ posts successfully.
 
 ## What is parsed
 
-Six notification kinds are recognised and interpreted:
+Seven notification kinds are recognised and interpreted:
 
 - Start of match
 - End of match (draw and win, with the score), e.g. `Match ended: A won 2-1 vs B` or `Match ended: A drew 1-1 vs B` (home team first for a draw)
 - New skill/characteristic gained by a player
 - Player hired
 - Player fired
+- Player temporarily retired
 - Competition trophy announcement (`:trophy:  Award <trophy>!`)
 
 Two more are recognised and deliberately ignored, because they are out of
@@ -48,12 +49,12 @@ heads-up that there is detail worth reading.
 Each interpreted notification also triggers an import, through the same
 in-process import code [`/importtp`](slash-commands/import-tp.md) uses:
 
-| Notification                                  | Import                                                                                                                                 |
-| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| End of match                                  | the match, as `/importtp` imports a match page                                                                                         |
-| Start of match                                | both participating teams (not the match itself)                                                                                        |
-| New skill/characteristic, player hired, fired | the affected team, from its roster page link                                                                                           |
-| Competition trophy announcement               | the whole competition, as `/importtp` imports its scores page: every completed match, TP's awards, and the trophies TP does not record |
+| Notification                                                       | Import                                                                                                                                 |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| End of match                                                       | the match, as `/importtp` imports a match page                                                                                         |
+| Start of match                                                     | both participating teams (not the match itself)                                                                                        |
+| New skill/characteristic, player hired, fired, temporarily retired | the affected team, from its roster page link                                                                                           |
+| Competition trophy announcement                                    | the whole competition, as `/importtp` imports its scores page: every completed match, TP's awards, and the trophies TP does not record |
 
 A trophy announcement is only a signal. It imports all of the competition's
 awards, not just the trophy it names. TP posts one per trophy, all at once.
