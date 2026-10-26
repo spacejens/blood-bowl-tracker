@@ -142,8 +142,7 @@ button, in the same order as the list, that opens that coach's
   average touchdowns scored per match, highest first, shown to two decimals
   (`3.42 per match`). Only teams with at least 5 matches in scope are
   ranked, so one lucky match cannot top the list. Takes the league, era and
-  match-category scopes but not competition: few teams play 5 matches in a
-  single competition. See
+  match-category scopes but not competition, like matches played. See
   [Team per-match averages](../../insights/team-per-match-averages.md).
 - `team.toplist.touchdowns.average.scored.ascending` — the same average,
   lowest first. Same 5-match floor and scopes.

@@ -37,5 +37,5 @@ broken by team name so the order is stable.
 ## Scope
 
 League, era and match category narrow the matches counted, the same way they
-do for matches played. Competition scope is not offered: few teams play 5
-matches in one competition, so the floor would leave almost nothing to rank.
+do for matches played. Competition scope is not offered, matching matches
+played, so the helper ignores any competition in the scope it is given.

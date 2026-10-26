@@ -195,8 +195,8 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
             resolve: (scope) => deps.teamToplist.resolveTouchdownsScored(scope),
           },
           // Per-match averages over teams with at least five matches in
-          // scope. No competition scope: few teams play five matches in a
-          // single competition, so the list would usually be empty.
+          // scope. No competition scope: like matches played, the matches
+          // behind an average are scoped by league, era and category only.
           average: {
             scored: {
               descending: {
