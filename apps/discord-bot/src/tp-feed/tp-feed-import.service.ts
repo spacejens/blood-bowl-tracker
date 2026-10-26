@@ -39,10 +39,11 @@ export const TP_FEED_BLOCK_MARGIN_MS = 1000;
 /**
  * Imports what a TP notification is about: the match of an end-of-match
  * notification, both teams of a start-of-match one, and the team of a
- * skill, hire or fire one, and, for a competition trophy announcement, the
- * whole competition as its scores page (forcing every completed match to be
- * backfilled, so the extra trophies computed from match events see them
- * all) — through the same dispatch `/importtp` uses.
+ * skill, hire, fire or temporary retirement one, and, for a competition
+ * trophy announcement, the whole competition as its scores page (forcing
+ * every completed match to be backfilled, so the extra trophies computed
+ * from match events see them all) — through the same dispatch `/importtp`
+ * uses.
  *
  * Imports run strictly one at a time, in the order they were enqueued, each
  * after {@link TP_FEED_IMPORT_DELAY_MS}, so a burst of notifications never
@@ -321,6 +322,7 @@ export class TpFeedImportService {
       case 'new-skill-or-characteristic':
       case 'hired':
       case 'fired':
+      case 'temporarily-retired':
         return page.kind === 'roster' ? page : undefined;
     }
   }
@@ -335,6 +337,7 @@ export class TpFeedImportService {
       case 'new-skill-or-characteristic':
       case 'hired':
       case 'fired':
+      case 'temporarily-retired':
         return 'roster';
     }
   }
