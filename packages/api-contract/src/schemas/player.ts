@@ -124,8 +124,9 @@ export const UpsertPlayerSchema = z
     // event sum plus the recovered spp_adjustment (see
     // players.syncScrapedSppAdjustments). Optional in the "no instruction
     // about that column" sense: an omitted value leaves any previously-stored
-    // total untouched.
-    sppTotal: z.number().int().optional(),
+    // total untouched. Nullable like `passing`, since the column is nullable:
+    // an explicit null clears the stored total.
+    sppTotal: z.number().int().nullable().optional(),
     // The five characteristics form one optional, all-or-nothing group: a
     // caller supplies all of them (with `passing` possibly null) or none.
     // A partial line cannot be meaningfully validated or stored, and an

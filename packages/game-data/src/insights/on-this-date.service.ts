@@ -86,7 +86,7 @@ export interface OnThisDateVictim {
 }
 
 export interface OnThisDateKilledPlayer extends OnThisDateVictim {
-  killer: PlayerKillerInfo | null;
+  killer: PlayerKillerInfo | undefined;
 }
 
 @Injectable()

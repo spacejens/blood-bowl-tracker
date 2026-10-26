@@ -113,10 +113,10 @@ async function build(...rowsPerQuery: unknown[][]): Promise<{
 
 describe('PlayerDeathService', () => {
   describe('getKillerInfo', () => {
-    it('returns null when the player has no death event', async () => {
+    it('returns undefined when the player has no death event', async () => {
       const { service, chains } = await build([]);
 
-      await expect(service.getKillerInfo(1)).resolves.toBeNull();
+      await expect(service.getKillerInfo(1)).resolves.toBeUndefined();
       // Only the death-event lookup is issued; nothing else is worth asking.
       expect(chains).toHaveLength(1);
     });
