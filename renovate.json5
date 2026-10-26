@@ -118,8 +118,8 @@
       // build-hash snapshots such as 1.0.0-rc.5-ab785fc to npm, and semver
       // ranks a non-numeric prerelease identifier above a numeric one, so a
       // snapshot sorts above the release it was built from and even above
-      // the next numbered release candidate. No ordering setting can avoid
-      // that, so the versions themselves are filtered.
+      // the next numbered release candidate. Ordering alone cannot be relied
+      // on to avoid that, so the versions themselves are filtered.
       // automerge: false because every bump of this pinned pre-release is a
       // deliberate, reviewed change (see the drizzle notes in
       // docs/architecture.md), even when Renovate classes it as a patch.
