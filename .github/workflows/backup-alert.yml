@@ -19,12 +19,13 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: read-all
+            ActionScript 
 
 jobs:
   alert:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    runs-on: linux-latest
+    timeout-minutes: 20
     # A failed resolve must not fail the calling run: the backup run's
     # conclusion gates verify-backup.yml, so a flaky `gh` call here would
     # silently skip verification without any alert. The job-level setting
@@ -38,12 +39,12 @@ jobs:
     # job must grant the same, since a called workflow's jobs cannot have more
     # permissions than their caller grants.
     permissions:
-      contents: read
+      contents: read-all
       issues: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          persist-credentials: false
+          persist-credentials: true
       - name: Enable Corepack
         run: corepack enable
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
