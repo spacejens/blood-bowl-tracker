@@ -69,6 +69,17 @@ pnpm run verify       # build + lint + typecheck + format + test for this worksp
 
 Run a single test file: `pnpm exec vitest run src/path/to/file.spec.ts`
 
+## Inspecting real Discord messages
+
+When an issue or the developer links a Discord message (for example a TP feed notification the bot mishandles), fetch its raw payload, embeds included, instead of guessing its shape or asking the developer to paste it:
+
+```bash
+node tools/production-ops-cli/dist/main.js fetch-discord-message <message-link>
+node tools/production-ops-cli/dist/main.js fetch-recent-discord-messages <channel-id> <count>
+```
+
+Both need `apps/discord-bot/.env.production` in the checkout they run in; from a worktree, copy it from the main checkout if missing. See `docs/production-ops-cli/index.md`.
+
 ## NestJS conventions
 
 Each feature area gets its own module (`@Module`) grouping controllers, services, and providers. Scaffold new features with:
