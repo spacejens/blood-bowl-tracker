@@ -10,6 +10,17 @@ interface SnapshotTableEntry {
   name: string;
 }
 
+/**
+ * The parts of a drizzle-kit `snapshot.json` this service reads. A `base`
+ * snapshot (the first migration) lists the full schema in `ddl`. Every later
+ * one is a `diff` snapshot that lists only that migration's changes in
+ * `deltas`.
+ */
+interface SnapshotFile {
+  ddl?: SnapshotTableEntry[];
+  deltas?: Array<{ op: string; row: SnapshotTableEntry }>;
+}
+
 @Injectable()
 export class DbGenerateService {
   private listMigrationFolders(dir: string): string[] {
@@ -17,14 +28,15 @@ export class DbGenerateService {
     return readdirSync(dir).sort();
   }
 
-  private readSnapshotTables(folder: string): Set<string> {
+  private readSnapshot(folder: string): SnapshotFile {
     const path = join(folder, 'snapshot.json');
-    if (!existsSync(path)) return new Set();
-    const snapshot = JSON.parse(readFileSync(path, 'utf-8')) as {
-      ddl: SnapshotTableEntry[];
-    };
+    if (!existsSync(path)) return {};
+    return JSON.parse(readFileSync(path, 'utf-8')) as SnapshotFile;
+  }
+
+  private readSnapshotTables(folder: string): Set<string> {
     const tables = new Set<string>();
-    for (const entry of snapshot.ddl) {
+    for (const entry of this.readSnapshot(folder).ddl ?? []) {
       if (entry.entityType === 'tables') {
         tables.add(`${entry.schema}.${entry.name}`);
       }
@@ -36,6 +48,18 @@ export class DbGenerateService {
     previousFolder: string | undefined,
     newFolder: string,
   ): string[] {
+    const { deltas } = this.readSnapshot(newFolder);
+    if (deltas) {
+      // A diff snapshot already lists exactly what this migration creates.
+      return deltas
+        .filter(
+          ({ op, row }) =>
+            op === 'create' &&
+            row.entityType === 'tables' &&
+            row.name.endsWith('_history'),
+        )
+        .map(({ row }) => `${row.schema}.${row.name}`);
+    }
     const previousTables = previousFolder
       ? this.readSnapshotTables(previousFolder)
       : new Set<string>();

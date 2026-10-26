@@ -35,6 +35,20 @@ function writeSnapshot(
   );
 }
 
+function writeDiffSnapshot(
+  folder: string,
+  deltas: Array<{
+    op: string;
+    row: { entityType: string; schema: string; name: string };
+  }>,
+) {
+  mkdirSync(folder, { recursive: true });
+  writeFileSync(
+    join(folder, 'snapshot.json'),
+    JSON.stringify({ type: 'diff', version: '9', deltas }),
+  );
+}
+
 describe('DbGenerateService', () => {
   let service: DbGenerateService;
 
@@ -143,6 +157,68 @@ describe('DbGenerateService', () => {
       );
 
       expect(service.findNewHistoryTables(previous, next)).toEqual([]);
+    });
+
+    it('reads new history tables from the create deltas of a diff snapshot', () => {
+      dir = mkdtempSync(join(tmpdir(), 'db-generate-'));
+      const previous = join(dir, '20260101000000_previous');
+      const next = join(dir, '20260102000000_next');
+      writeDiffSnapshot(previous, []);
+      writeDiffSnapshot(next, [
+        {
+          op: 'create',
+          row: { entityType: 'tables', schema: 'game_data', name: 'coaches' },
+        },
+        {
+          op: 'create',
+          row: {
+            entityType: 'tables',
+            schema: 'game_data',
+            name: 'coaches_history',
+          },
+        },
+      ]);
+
+      expect(service.findNewHistoryTables(previous, next)).toEqual([
+        'game_data.coaches_history',
+      ]);
+    });
+
+    it('ignores diff deltas that do not create a history table', () => {
+      dir = mkdtempSync(join(tmpdir(), 'db-generate-'));
+      const next = join(dir, '20260102000000_next');
+      writeDiffSnapshot(next, [
+        {
+          op: 'drop',
+          row: {
+            entityType: 'tables',
+            schema: 'game_data',
+            name: 'races_history',
+          },
+        },
+        {
+          op: 'create',
+          row: {
+            entityType: 'columns',
+            schema: 'game_data',
+            name: 'coaches_history',
+          },
+        },
+      ]);
+
+      expect(service.findNewHistoryTables(undefined, next)).toEqual([]);
+    });
+
+    it('treats a previous diff snapshot without ddl as having no tables', () => {
+      dir = mkdtempSync(join(tmpdir(), 'db-generate-'));
+      const previous = join(dir, '20260101000000_previous');
+      const next = join(dir, '20260102000000_next');
+      writeDiffSnapshot(previous, []);
+      writeSnapshot(next, [{ schema: 'game_data', name: 'coaches_history' }]);
+
+      expect(service.findNewHistoryTables(previous, next)).toEqual([
+        'game_data.coaches_history',
+      ]);
     });
   });
 
