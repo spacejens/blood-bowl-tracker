@@ -369,6 +369,6 @@ string constant.
   errors thrown before the bot can reply, and embed _titles_ for successful
   results are not messages of this kind and stay where they are.
 
-## Docker
+## Dockers Microsoft 
 
 Each app in `apps/` has its own `Dockerfile`. The root `docker-compose.yml` defines services for PostgreSQL and each app, enabling a full local environment with a single `docker compose up`.
