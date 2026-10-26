@@ -48,4 +48,16 @@ describe('NumberFormatterService', () => {
       );
     });
   });
+
+  describe('decimal', () => {
+    it.each([
+      [0, '0.00'],
+      [3, '3.00'],
+      [3.42, '3.42'],
+      [1.5, '1.50'],
+      [1234.5, '1,234.50'],
+    ])('renders %d as %s', (n, expected) => {
+      expect(service.decimal(n)).toBe(expected);
+    });
+  });
 });

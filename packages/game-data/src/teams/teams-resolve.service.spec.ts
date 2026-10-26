@@ -6,6 +6,7 @@ import { mock } from 'vitest-mock-extended';
 
 import { LikePatternService } from '../shared/like-pattern.service';
 import { TeamRaceCoachNamesService } from '../shared/team-race-coach-names.service';
+import { TeamAverageStatisticsService } from './team-average-statistics.service';
 import { TeamsService } from './teams.service';
 import { TeamsStatisticsService } from './teams-statistics.service';
 
@@ -17,6 +18,10 @@ async function makeService(rows: unknown[]) {
       {
         provide: TeamsStatisticsService,
         useValue: mock<TeamsStatisticsService>(),
+      },
+      {
+        provide: TeamAverageStatisticsService,
+        useValue: mock<TeamAverageStatisticsService>(),
       },
       { provide: DB, useValue: db },
       { provide: LikePatternService, useValue: mock<LikePatternService>() },
