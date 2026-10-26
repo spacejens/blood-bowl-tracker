@@ -16,6 +16,7 @@ import {
   sqlText,
 } from '../shared/query-assertions.test-helpers';
 import { TeamRaceCoachNamesService } from '../shared/team-race-coach-names.service';
+import { TeamAverageStatisticsService } from './team-average-statistics.service';
 import { TeamsService } from './teams.service';
 import { TeamsStatisticsService } from './teams-statistics.service';
 
@@ -35,6 +36,10 @@ describe('TeamsService lookups', () => {
         TeamsService,
         { provide: LikePatternService, useValue: likePattern },
         { provide: TeamsStatisticsService, useValue: statistics },
+        {
+          provide: TeamAverageStatisticsService,
+          useValue: mock<TeamAverageStatisticsService>(),
+        },
         { provide: TeamRaceCoachNamesService, useValue: teamRaceCoachNames },
         { provide: DB, useValue: db },
       ],

@@ -52,6 +52,18 @@ export function stubFactTreeDeps(): FactTreeDeps {
   teamToplist.resolveTouchdownsScored.mockResolvedValue(
     'team touchdowns scored',
   );
+  teamToplist.resolveAverageTouchdownsScoredDescending.mockResolvedValue(
+    'team average touchdowns scored, highest first',
+  );
+  teamToplist.resolveAverageTouchdownsScoredAscending.mockResolvedValue(
+    'team average touchdowns scored, lowest first',
+  );
+  teamToplist.resolveAverageTouchdownsConcededDescending.mockResolvedValue(
+    'team average touchdowns conceded, highest first',
+  );
+  teamToplist.resolveAverageTouchdownsConcededAscending.mockResolvedValue(
+    'team average touchdowns conceded, lowest first',
+  );
   teamToplist.resolveCompletions.mockResolvedValue('team completions');
   teamToplist.resolveInterceptions.mockResolvedValue('team interceptions');
   teamToplist.resolveDeflections.mockResolvedValue('team deflections');

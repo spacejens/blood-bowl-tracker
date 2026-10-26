@@ -33,6 +33,11 @@ import { TeamRaceCoachNamesService } from '../shared/team-race-coach-names.servi
 import type { TeamTopPlayer } from '../shared/team-top-player';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
+import type {
+  TeamAverageDirection,
+  TeamAverageRow,
+} from './team-average-statistics.service';
+import { TeamAverageStatisticsService } from './team-average-statistics.service';
 import { TeamsStatisticsService } from './teams-statistics.service';
 
 export class TeamUpsertConflictError extends UpsertConflictError {}
@@ -47,6 +52,7 @@ export class TeamsService {
     @Inject(DB) private readonly db: Db,
     private readonly likePattern: LikePatternService,
     private readonly statistics: TeamsStatisticsService,
+    private readonly averages: TeamAverageStatisticsService,
     private readonly teamRaceCoachNames: TeamRaceCoachNamesService,
   ) {}
 
@@ -291,6 +297,36 @@ export class TeamsService {
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return this.statistics.countTouchdownsScoredByTeam(scope, limit);
+  }
+
+  /**
+   * Teams ranked by touchdowns scored per match. Only teams with at least
+   * `MIN_MATCHES_FOR_TEAM_AVERAGE` matches in scope are ranked; competition
+   * scope is ignored.
+   */
+  averageTouchdownsScoredByTeam(
+    scope: FactScope,
+    direction: TeamAverageDirection,
+    limit: number,
+  ): Promise<TeamAverageRow[]> {
+    return this.averages.averageTouchdownsScoredByTeam(scope, direction, limit);
+  }
+
+  /**
+   * Teams ranked by touchdowns scored against them per match, summed over
+   * every other side of each match. Same floor and scope as
+   * `averageTouchdownsScoredByTeam`.
+   */
+  averageTouchdownsConcededByTeam(
+    scope: FactScope,
+    direction: TeamAverageDirection,
+    limit: number,
+  ): Promise<TeamAverageRow[]> {
+    return this.averages.averageTouchdownsConcededByTeam(
+      scope,
+      direction,
+      limit,
+    );
   }
 
   countCompletionsByTeam(

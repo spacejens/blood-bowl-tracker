@@ -138,6 +138,20 @@ button, in the same order as the list, that opens that coach's
   award is not a match event, so a match category cannot scope this count.
 - `team.toplist.touchdowns.scored` — teams ranked by number of touchdowns
   scored. Counts touchdown events credited to the team.
+- `team.toplist.touchdowns.average.scored.descending` — teams ranked by
+  average touchdowns scored per match, highest first, shown to two decimals
+  (`3.42 per match`). Only teams with at least 5 matches in scope are
+  ranked, so one lucky match cannot top the list. Takes the league, era and
+  match-category scopes but not competition, like matches played. See
+  [Team per-match averages](../../insights/team-per-match-averages.md).
+- `team.toplist.touchdowns.average.scored.ascending` — the same average,
+  lowest first. Same 5-match floor and scopes.
+- `team.toplist.touchdowns.average.conceded.descending` — teams ranked by
+  average touchdowns scored against them per match, highest first. Every
+  other side of a match counts, so in a four-team merged final all three
+  opponents' touchdowns are conceded. Same 5-match floor and scopes.
+- `team.toplist.touchdowns.average.conceded.ascending` — the same conceded
+  average, lowest first. Same 5-match floor and scopes.
 - `team.toplist.completions` — teams ranked by number of passes completed.
   Counts completed-pass events credited to the team.
 - `team.toplist.interceptions` — teams ranked by number of interceptions made.
