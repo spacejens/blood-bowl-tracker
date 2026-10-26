@@ -80,8 +80,8 @@ function filterValues(condition: unknown): unknown[] {
 /** The static SQL text of a captured expression, with values omitted. */
 function sqlText(expr: unknown): string {
   if (!is(expr, SQL)) return '';
-  // `[value].flat()` accepts both shapes drizzle-orm has typed
-  // `StringChunk.value` as (a string, or an array of strings).
+  // `[value].flat()` accepts `StringChunk.value` whether drizzle-orm types it
+  // as a string or as an array of strings.
   return expr.queryChunks
     .map((chunk) =>
       is(chunk, StringChunk) ? [chunk.value].flat().join('') : sqlText(chunk),
