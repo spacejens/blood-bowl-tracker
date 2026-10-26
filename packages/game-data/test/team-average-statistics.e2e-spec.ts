@@ -197,10 +197,12 @@ describe('TeamAverageStatisticsService (real Postgres)', () => {
     beforeEach(async () => {
       const league = await seedLeague(db, 'One');
       const sides: MatchSide[] = [];
+      // Charlie is seeded before Bravo so ids run opposite to name order and
+      // only an explicit name tie-break produces the expected ordering.
       for (const [name, score] of [
         ['Alpha', 3],
-        ['Bravo', 1],
         ['Charlie', 1],
+        ['Bravo', 1],
         ['Delta', 0],
       ] as const) {
         const teamEraId = await joinEra(
