@@ -59,8 +59,10 @@ export async function selectThenUpsert<T extends PgTable>(
     // enclosing transaction in PostgreSQL, which would also fail the
     // re-select below.
     return await tx.transaction(async (savepoint) => {
+      // asBaseTable: `.values()` cannot type-check against a still-generic
+      // table; see asBaseTable's doc comment.
       const [inserted] = await savepoint
-        .insert(table)
+        .insert(asBaseTable(table))
         .values(values)
         .returning({ id: idColumn });
       return inserted.id as number;

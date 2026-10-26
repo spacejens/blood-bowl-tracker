@@ -139,9 +139,11 @@ export function extractJoinColumns(condition: unknown): string[] {
 export function sqlText(expr: unknown): string {
   const node = is(expr, SQL) ? expr : (expr as { sql?: unknown } | null)?.sql;
   if (!is(node, SQL)) return '';
+  // `[value].flat()` accepts both shapes drizzle-orm has typed
+  // `StringChunk.value` as (a string, or an array of strings).
   return node.queryChunks
     .map((chunk) =>
-      is(chunk, StringChunk) ? chunk.value.join('') : sqlText(chunk),
+      is(chunk, StringChunk) ? [chunk.value].flat().join('') : sqlText(chunk),
     )
     .join('');
 }

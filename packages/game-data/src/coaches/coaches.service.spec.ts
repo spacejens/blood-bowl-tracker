@@ -45,7 +45,11 @@ const fakeCoach = {
 function isCountDistinct(expr: unknown): boolean {
   if (!is(expr, SQL)) return false;
   const first = expr.queryChunks[0];
-  return is(first, StringChunk) && first.value.join('').includes('distinct');
+  // `[value].flat()` accepts both shapes drizzle-orm has typed
+  // `StringChunk.value` as (a string, or an array of strings).
+  return (
+    is(first, StringChunk) && [first.value].flat().join('').includes('distinct')
+  );
 }
 
 describe('CoachesService', () => {
