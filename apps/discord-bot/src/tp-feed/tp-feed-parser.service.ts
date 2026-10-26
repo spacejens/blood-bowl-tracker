@@ -82,6 +82,13 @@ export class TpFeedParserService {
     if (authorName === 'Fired') {
       return this.parsePlayerTransaction(embed, message.id, 'fired');
     }
+    if (authorName === 'Temporarily retired') {
+      return this.parsePlayerTransaction(
+        embed,
+        message.id,
+        'temporarily-retired',
+      );
+    }
     this.logger.warn(
       `Unrecognized TP notification shape (message ${message.id}): ${this.describe(embed)}`,
     );
@@ -168,7 +175,7 @@ export class TpFeedParserService {
   private parsePlayerTransaction(
     embed: Embed,
     messageId: string,
-    kind: 'hired' | 'fired',
+    kind: 'hired' | 'fired' | 'temporarily-retired',
   ): TpFeedParseResult {
     const player = this.parsePlayerField(embed.fields.at(0)?.name);
     if (!player) return this.parseFailure(kind, 'player field', messageId);
