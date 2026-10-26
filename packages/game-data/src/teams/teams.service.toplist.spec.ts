@@ -79,6 +79,11 @@ describe('TeamsService toplist delegation', () => {
   it.each([
     'averageTouchdownsScoredByTeam',
     'averageTouchdownsConcededByTeam',
+    'averageCasualtiesCausedByTeam',
+    'averageCasualtiesSufferedByTeam',
+    'averageSeriousInjuriesCausedByTeam',
+    'averageSeriousInjuriesSufferedByTeam',
+    'averageLastingInjuriesSufferedByTeam',
   ] as const)(
     '%s delegates to TeamAverageStatisticsService and returns its result',
     async (method) => {
