@@ -18,12 +18,15 @@ the team's number of distinct matches in scope. For the exact query, see
   the same match. A normal match has one opponent; a four-team merged final
   has three, and all of their touchdowns count as conceded.
 - **Casualties and injuries** — the number of this side's match events of
-  the right types, counted with a subquery per side. Caused measures count
-  events the team's players acted in (`acting_match_team_id` and
-  `action_type`); suffered measures count events whose victim belongs to the
-  team (`consequence_match_team_id` and `consequence_type`). The type sets
-  are the ones the total-based team toplists use, so an average times the
-  matches played gives the total:
+  the right types. `match_events` is counted once per query into a
+  pre-aggregated table of per-side counts, which is left-joined onto each
+  side. Caused measures count events the team's players acted in
+  (`acting_match_team_id` and `action_type`); suffered measures count events
+  whose victim belongs to the team (`consequence_match_team_id` and
+  `consequence_type`). The type sets are the ones the total-based team
+  toplists use, so an average times the matches played matches the
+  total-based figure up to rounding, over the same league, era and match
+  category scope (the averages ignore competition scope):
   - casualties caused: any casualty severity; a foul that injures does not
     count, as Blood Bowl awards no casualty credit for a foul;
   - serious injuries caused: serious-injury actions;

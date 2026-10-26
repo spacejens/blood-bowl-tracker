@@ -139,9 +139,10 @@ button, in the same order as the list, that opens that coach's
 - `team.toplist.touchdowns.scored` — teams ranked by number of touchdowns
   scored. Counts touchdown events credited to the team.
 - `team.toplist.touchdowns.average.scored.descending` — teams ranked by
-  average touchdowns scored per match, highest first, shown to two decimals
-  (`3.42 per match`). Only teams with at least 5 matches in scope are
-  ranked, so one lucky match cannot top the list. Takes the league, era and
+  average touchdowns scored per match, highest first. Every team per-match
+  average fact (`team.toplist.*.average.*`) is shown to two decimals
+  (`3.42 per match`) and ranks only teams with at least 5 matches in scope,
+  so one lucky match cannot top the list. They take the league, era and
   match-category scopes but not competition, like matches played. See
   [Team per-match averages](../../insights/team-per-match-averages.md).
 - `team.toplist.touchdowns.average.scored.ascending` — the same average,
@@ -167,17 +168,17 @@ button, in the same order as the list, that opens that coach's
   niggling injury, a lasting characteristic reduction, or death — credited to
   the team the victim belongs to.
 - `team.toplist.casualties.average.caused.descending` — teams ranked by
-  average casualties caused per match, highest first, shown to two decimals.
-  Counts the same casualties as `team.toplist.casualties.caused`. Same 5-match
-  floor and scopes as the touchdown averages; see
-  [Team per-match averages](../../insights/team-per-match-averages.md).
+  average casualties caused per match, highest first. Counts the same
+  casualties as `team.toplist.casualties.caused`. Same 5-match floor and
+  scopes.
 - `team.toplist.casualties.average.caused.ascending` — the same average,
-  lowest first.
+  lowest first. Same 5-match floor and scopes.
 - `team.toplist.casualties.average.suffered.descending` — teams ranked by
   average casualties suffered per match, highest first. Counts the same
-  casualties as `team.toplist.casualties.suffered`. Same floor and scopes.
+  casualties as `team.toplist.casualties.suffered`. Same 5-match floor and
+  scopes.
 - `team.toplist.casualties.average.suffered.ascending` — the same average,
-  lowest first.
+  lowest first. Same 5-match floor and scopes.
 - `team.toplist.injuries.serious.caused` — teams ranked by serious injuries
   inflicted. Counts serious-injury events credited to the acting team.
 - `team.toplist.injuries.serious.suffered` — teams ranked by serious injuries
@@ -186,19 +187,27 @@ button, in the same order as the list, that opens that coach's
   lasting characteristic reduction — credited to the team the victim belongs to.
   Plain knock-outs and deaths are counted by the casualty and death facts
   instead, not here.
-- `team.toplist.injuries.serious.average.caused.descending` /
-  `.ascending` — teams ranked by average serious injuries caused per match,
-  highest or lowest first. Same floor and scopes as the touchdown averages.
-- `team.toplist.injuries.serious.average.suffered.descending` /
-  `.ascending` — teams ranked by average serious injuries suffered per match,
-  highest or lowest first, counting the same consequences as
-  `team.toplist.injuries.serious.suffered`. Same floor and scopes.
+- `team.toplist.injuries.serious.average.caused.descending` — teams ranked
+  by average serious injuries caused per match, highest first. Counts the
+  same events as `team.toplist.injuries.serious.caused`. Same 5-match floor
+  and scopes.
+- `team.toplist.injuries.serious.average.caused.ascending` — the same
+  average, lowest first. Same 5-match floor and scopes.
+- `team.toplist.injuries.serious.average.suffered.descending` — teams ranked
+  by average serious injuries suffered per match, highest first. Counts the
+  same consequences as `team.toplist.injuries.serious.suffered`. Same 5-match
+  floor and scopes.
+- `team.toplist.injuries.serious.average.suffered.ascending` — the same
+  average, lowest first. Same 5-match floor and scopes.
 - `team.toplist.injuries.lasting.suffered` — teams ranked by lasting injuries
   suffered. Counts only the career-spanning consequences — a niggling injury or a
   lasting characteristic reduction — credited to the team the victim belongs to.
-- `team.toplist.injuries.lasting.average.suffered.descending` /
-  `.ascending` — teams ranked by average lasting injuries suffered per match,
-  highest or lowest first. Same floor and scopes.
+- `team.toplist.injuries.lasting.average.suffered.descending` — teams ranked
+  by average lasting injuries suffered per match, highest first. Counts the
+  same consequences as `team.toplist.injuries.lasting.suffered`. Same 5-match
+  floor and scopes.
+- `team.toplist.injuries.lasting.average.suffered.ascending` — the same
+  average, lowest first. Same 5-match floor and scopes.
 - `team.toplist.deaths.caused` — teams ranked by opponents killed. Counts fatal
   events credited to the acting team.
 - `team.toplist.deaths.suffered` — teams ranked by players killed. Counts match
