@@ -6,6 +6,7 @@ import { MatchEventCountsModule } from '../shared/match-event-counts.module';
 import { MatchOutcomeCountsModule } from '../shared/match-outcome-counts.module';
 import { TeamRaceCoachNamesModule } from '../shared/team-race-coach-names.module';
 import { TrophyAwardCountsModule } from '../shared/trophy-award-counts.module';
+import { TeamAverageStatisticsService } from './team-average-statistics.service';
 import { TeamsService } from './teams.service';
 import { TeamsStatisticsService } from './teams-statistics.service';
 
@@ -18,7 +19,11 @@ import { TeamsStatisticsService } from './teams-statistics.service';
     TeamRaceCoachNamesModule,
     TrophyAwardCountsModule,
   ],
-  providers: [TeamsService, TeamsStatisticsService],
+  providers: [
+    TeamsService,
+    TeamsStatisticsService,
+    TeamAverageStatisticsService,
+  ],
   exports: [TeamsService],
 })
 export class TeamsModule {}

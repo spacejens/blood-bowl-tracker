@@ -155,6 +155,10 @@ export {
 export type { OngoingSppEntry } from './spp/spp-ongoing-estimate.service';
 export { SppOngoingEstimateService } from './spp/spp-ongoing-estimate.service';
 export { SppTotalsService } from './spp/spp-totals.service';
+export type {
+  TeamAverageDirection,
+  TeamAverageRow,
+} from './teams/team-average-statistics.service';
 export { TeamsModule } from './teams/teams.module';
 export type { TeamWithEras } from './teams/teams.service';
 export { TeamsService, TeamUpsertConflictError } from './teams/teams.service';
