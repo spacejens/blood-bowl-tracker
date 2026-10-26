@@ -63,7 +63,6 @@ import { implement } from '@orpc/server';
 import {
   buildCompetitionGroupsListRoute,
   buildExternalSystemsRoutes,
-  buildKeywordsListRoute,
   buildManualImportBatchesRoutes,
   buildMatchResolveOutcomesRoute,
   buildPlayerSkillsRoutes,
@@ -419,15 +418,12 @@ export class RpcRouterFactoryService {
         conflictError: SkillUpsertConflictError,
         unwrap: (r) => ({ entity: r.skill, created: r.created }),
       }),
-      keywords: {
-        ...this.buildStandardEntityRoutes({
-          procedures: contract.keywords,
-          service: this.keywordsService,
-          conflictError: KeywordUpsertConflictError,
-          unwrap: (r) => ({ entity: r.keyword, created: r.created }),
-        }),
-        ...buildKeywordsListRoute(this.keywordsService),
-      },
+      keywords: this.buildStandardEntityRoutes({
+        procedures: contract.keywords,
+        service: this.keywordsService,
+        conflictError: KeywordUpsertConflictError,
+        unwrap: (r) => ({ entity: r.keyword, created: r.created }),
+      }),
       positionRulesSetKeywords: buildPositionRulesSetKeywordsRoutes(
         this.upsertHandler,
         this.positionRulesSetKeywordsService,
