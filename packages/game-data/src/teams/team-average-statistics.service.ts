@@ -6,7 +6,9 @@ import {
   desc,
   eq,
   eras,
+  inArray,
   matches,
+  matchEvents,
   matchTeams,
   sql,
   teamEras,
@@ -15,6 +17,14 @@ import {
 import { Inject, Injectable } from '@nestjs/common';
 
 import type { FactScope } from '../shared/fact-scope';
+import type { MatchEventSelector } from '../shared/match-event-counts.service';
+import {
+  CASUALTY_CAUSED_TYPES,
+  CASUALTY_SUFFERED_TYPES,
+  LASTING_INJURY_SUFFERED_TYPES,
+  SERIOUS_INJURY_CAUSED_TYPES,
+  SERIOUS_INJURY_SUFFERED_TYPES,
+} from '../shared/match-event-types';
 
 /**
  * The fewest matches in scope a team needs before a per-match average ranks
@@ -35,16 +45,34 @@ export interface TeamAverageRow {
 }
 
 /**
+ * A derived table left-joined onto `match_teams`, holding at most one row per
+ * `match_teams.id`, so the join adds per-side values without fanning out.
+ */
+interface PerSideJoin {
+  table: SQL;
+  on: SQL;
+}
+
+/**
  * Options for the shared per-match average query. `perMatchValue` is
  * evaluated once per joined `match_teams` row (one team's side of one match)
  * and is what gets summed before dividing by the team's distinct matches.
+ * `perSideJoin`, when given, is left-joined onto `match_teams` first so
+ * `perMatchValue` can read from it.
  */
 interface AveragePerMatchByTeamOptions {
   perMatchValue: SQL;
+  perSideJoin?: PerSideJoin;
   direction: TeamAverageDirection;
   scope: FactScope;
   limit: number;
 }
+
+/** The per-side numerator and the join it reads from, for one statistic. */
+type PerSideCount = Pick<
+  AveragePerMatchByTeamOptions,
+  'perMatchValue' | 'perSideJoin'
+>;
 
 /**
  * Per-match averages per team: a sum over each of the team's match sides,
@@ -91,6 +119,129 @@ export class TeamAverageStatisticsService {
   }
 
   /**
+   * Casualties the team inflicted per match. Same type set as the
+   * casualties-caused total, so a foul that caused a casualty does not
+   * count: Blood Bowl awards no casualty credit for a foul.
+   */
+  averageCasualtiesCausedByTeam(
+    scope: FactScope,
+    direction: TeamAverageDirection,
+    limit: number,
+  ): Promise<TeamAverageRow[]> {
+    return this.averagePerMatchByTeam({
+      ...this.matchEventsOnSide({
+        role: 'acting',
+        types: CASUALTY_CAUSED_TYPES,
+      }),
+      direction,
+      scope,
+      limit,
+    });
+  }
+
+  /** Casualties of any severity the team's players suffered per match. */
+  averageCasualtiesSufferedByTeam(
+    scope: FactScope,
+    direction: TeamAverageDirection,
+    limit: number,
+  ): Promise<TeamAverageRow[]> {
+    return this.averagePerMatchByTeam({
+      ...this.matchEventsOnSide({
+        role: 'consequence',
+        types: CASUALTY_SUFFERED_TYPES,
+      }),
+      direction,
+      scope,
+      limit,
+    });
+  }
+
+  /** Serious injuries the team inflicted per match. */
+  averageSeriousInjuriesCausedByTeam(
+    scope: FactScope,
+    direction: TeamAverageDirection,
+    limit: number,
+  ): Promise<TeamAverageRow[]> {
+    return this.averagePerMatchByTeam({
+      ...this.matchEventsOnSide({
+        role: 'acting',
+        types: SERIOUS_INJURY_CAUSED_TYPES,
+      }),
+      direction,
+      scope,
+      limit,
+    });
+  }
+
+  /**
+   * Casualties whose effect outlasts the match, suffered by the team's
+   * players per match.
+   */
+  averageSeriousInjuriesSufferedByTeam(
+    scope: FactScope,
+    direction: TeamAverageDirection,
+    limit: number,
+  ): Promise<TeamAverageRow[]> {
+    return this.averagePerMatchByTeam({
+      ...this.matchEventsOnSide({
+        role: 'consequence',
+        types: SERIOUS_INJURY_SUFFERED_TYPES,
+      }),
+      direction,
+      scope,
+      limit,
+    });
+  }
+
+  /**
+   * Casualties that permanently diminish a player, suffered by the team's
+   * players per match.
+   */
+  averageLastingInjuriesSufferedByTeam(
+    scope: FactScope,
+    direction: TeamAverageDirection,
+    limit: number,
+  ): Promise<TeamAverageRow[]> {
+    return this.averagePerMatchByTeam({
+      ...this.matchEventsOnSide({
+        role: 'consequence',
+        types: LASTING_INJURY_SUFFERED_TYPES,
+      }),
+      direction,
+      scope,
+      limit,
+    });
+  }
+
+  /**
+   * The number of this side's match events matching the selector. The events
+   * are counted once per side in a pre-aggregated derived table (one scan of
+   * `match_events`, one row per side with a matching event), left-joined onto
+   * `match_teams`; a side without a matching event gets no row there and
+   * contributes zero instead of dropping out of the denominator. An acting
+   * selector groups by the acting side and filters `action_type`; a
+   * consequence selector groups by the victim's side and filters
+   * `consequence_type`, the same split the total-based team counts use.
+   */
+  private matchEventsOnSide(selector: MatchEventSelector): PerSideCount {
+    const sideColumn =
+      selector.role === 'acting'
+        ? matchEvents.actingMatchTeamId
+        : matchEvents.consequenceMatchTeamId;
+    const typeFilter =
+      selector.role === 'acting'
+        ? inArray(matchEvents.actionType, selector.types)
+        : inArray(matchEvents.consequenceType, selector.types);
+    return {
+      perMatchValue: sql`coalesce(side_event_counts.event_count, 0)`,
+      perSideJoin: {
+        table: sql`(select ${sideColumn} as match_team_id, count(*) as event_count from ${matchEvents} where ${typeFilter} group by ${sideColumn}) as side_event_counts`,
+        on: sql`side_event_counts.match_team_id = ${matchTeams.id}`,
+      },
+    };
+  }
+
+  /**
    * The league/era/match-category scope the matches-played toplists use.
    * Competition is deliberately ignored: too few teams reach the 5-match
    * floor inside a single competition for a ranking to be meaningful.
@@ -110,18 +261,24 @@ export class TeamAverageStatisticsService {
   private averagePerMatchByTeam(
     options: AveragePerMatchByTeamOptions,
   ): Promise<TeamAverageRow[]> {
-    const { perMatchValue, direction, scope, limit } = options;
+    const { perMatchValue, perSideJoin, direction, scope, limit } = options;
     // ::numeric before dividing and rounding so PostgreSQL rounds half away
     // from zero; ::double precision after so the driver returns a number
     // rather than numeric's string.
     const average = sql<number>`round(sum(${perMatchValue})::numeric / count(distinct ${matches.id}), 2)::double precision`;
-    return this.db
+    const joined = this.db
       .select({ teamId: teams.id, name: teams.name, average })
       .from(matches)
       .innerJoin(matchTeams, eq(matchTeams.matchId, matches.id))
       .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
       .innerJoin(eras, eq(eras.id, teamEras.eraId))
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .$dynamic();
+    const query =
+      perSideJoin === undefined
+        ? joined
+        : joined.leftJoin(perSideJoin.table, perSideJoin.on);
+    return query
       .where(this.scopeFilter(scope))
       .groupBy(teams.id, teams.name)
       .having(
