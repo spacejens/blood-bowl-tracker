@@ -40,7 +40,9 @@ interface AverageCase {
     | 'averageCasualtiesSufferedByTeam'
     | 'averageSeriousInjuriesCausedByTeam'
     | 'averageSeriousInjuriesSufferedByTeam'
-    | 'averageLastingInjuriesSufferedByTeam';
+    | 'averageLastingInjuriesSufferedByTeam'
+    | 'averageDeathsCausedByTeam'
+    | 'averageDeathsSufferedByTeam';
   direction: TeamAverageDirection;
   resolve: (service: TeamToplistService, scope: FactScope) => Promise<unknown>;
   expectedTitle: string;
@@ -172,6 +174,38 @@ const cases: AverageCase[] = [
       service.resolveAverageLastingInjuriesSufferedAscending(scope),
     expectedTitle:
       'Teams by average lasting injuries suffered per match (lowest first)',
+  },
+  {
+    resolverName: 'resolveAverageDeathsCausedDescending',
+    method: 'averageDeathsCausedByTeam',
+    direction: 'desc',
+    resolve: (service, scope) =>
+      service.resolveAverageDeathsCausedDescending(scope),
+    expectedTitle: 'Teams by average deaths caused per match (highest first)',
+  },
+  {
+    resolverName: 'resolveAverageDeathsCausedAscending',
+    method: 'averageDeathsCausedByTeam',
+    direction: 'asc',
+    resolve: (service, scope) =>
+      service.resolveAverageDeathsCausedAscending(scope),
+    expectedTitle: 'Teams by average deaths caused per match (lowest first)',
+  },
+  {
+    resolverName: 'resolveAverageDeathsSufferedDescending',
+    method: 'averageDeathsSufferedByTeam',
+    direction: 'desc',
+    resolve: (service, scope) =>
+      service.resolveAverageDeathsSufferedDescending(scope),
+    expectedTitle: 'Teams by average deaths suffered per match (highest first)',
+  },
+  {
+    resolverName: 'resolveAverageDeathsSufferedAscending',
+    method: 'averageDeathsSufferedByTeam',
+    direction: 'asc',
+    resolve: (service, scope) =>
+      service.resolveAverageDeathsSufferedAscending(scope),
+    expectedTitle: 'Teams by average deaths suffered per match (lowest first)',
   },
 ];
 

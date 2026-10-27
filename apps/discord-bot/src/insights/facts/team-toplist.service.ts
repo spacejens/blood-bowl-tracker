@@ -69,7 +69,9 @@ type TeamAverageMethod =
   | 'averageCasualtiesSufferedByTeam'
   | 'averageSeriousInjuriesCausedByTeam'
   | 'averageSeriousInjuriesSufferedByTeam'
-  | 'averageLastingInjuriesSufferedByTeam';
+  | 'averageLastingInjuriesSufferedByTeam'
+  | 'averageDeathsCausedByTeam'
+  | 'averageDeathsSufferedByTeam';
 
 @Injectable()
 export class TeamToplistService {
@@ -475,6 +477,50 @@ export class TeamToplistService {
     return this.resolveAverageToplist({
       measure: 'lasting injuries suffered',
       method: 'averageLastingInjuriesSufferedByTeam',
+      scope,
+      direction: 'asc',
+    });
+  }
+
+  resolveAverageDeathsCausedDescending(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageToplist({
+      measure: 'deaths caused',
+      method: 'averageDeathsCausedByTeam',
+      scope,
+      direction: 'desc',
+    });
+  }
+
+  resolveAverageDeathsCausedAscending(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageToplist({
+      measure: 'deaths caused',
+      method: 'averageDeathsCausedByTeam',
+      scope,
+      direction: 'asc',
+    });
+  }
+
+  resolveAverageDeathsSufferedDescending(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageToplist({
+      measure: 'deaths suffered',
+      method: 'averageDeathsSufferedByTeam',
+      scope,
+      direction: 'desc',
+    });
+  }
+
+  resolveAverageDeathsSufferedAscending(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageToplist({
+      measure: 'deaths suffered',
+      method: 'averageDeathsSufferedByTeam',
       scope,
       direction: 'asc',
     });

@@ -590,6 +590,130 @@ describe('TeamAverageStatisticsService (real Postgres)', () => {
     });
   });
 
+  describe('death averages', () => {
+    // Alpha kills once per match against Bravo in five matches, and its foul
+    // also kills one of Bravo's players in each (one combined row: a death
+    // suffered by Bravo but not a death caused by Alpha). Bravo also records
+    // one death of its own per match. Alpha plays five death-free matches
+    // against Charlie, which still count as matches. Charlie is seeded
+    // before Bravo so ids run opposite to name order and only the name
+    // tie-break orders their equal averages.
+    beforeEach(async () => {
+      const league = await seedLeague(db, 'One');
+      const alpha = await joinEra(
+        db,
+        await seedTeam(db, 'Alpha'),
+        league.eraId,
+      );
+      const charlie = await joinEra(
+        db,
+        await seedTeam(db, 'Charlie'),
+        league.eraId,
+      );
+      const bravo = await joinEra(
+        db,
+        await seedTeam(db, 'Bravo'),
+        league.eraId,
+      );
+      await playMatches(db, {
+        count: 5,
+        competitionId: league.competitionId,
+        sides: [
+          {
+            teamEraId: alpha,
+            score: 1,
+            events: [
+              { actionType: 'death' },
+              // A casualty, but not a death caused.
+              { actionType: 'badly_hurt' },
+              { actionType: 'foul', consequenceType: 'death', victimSide: 1 },
+            ],
+          },
+          {
+            teamEraId: bravo,
+            score: 0,
+            events: [
+              { consequenceType: 'death' },
+              // A casualty, but not a death suffered.
+              { consequenceType: 'serious_injury' },
+            ],
+          },
+        ],
+      });
+      await playMatches(db, {
+        count: 5,
+        competitionId: league.competitionId,
+        sides: [
+          { teamEraId: alpha, score: 0 },
+          { teamEraId: charlie, score: 0 },
+        ],
+      });
+    });
+
+    it('averages deaths caused over every match, highest first', async () => {
+      expect(
+        namesAndAverages(
+          await service.averageDeathsCausedByTeam(
+            FACT_SCOPE_ALL_TIME,
+            'desc',
+            10,
+          ),
+        ),
+      ).toEqual([
+        ['Alpha', 0.5],
+        ['Bravo', 0],
+        ['Charlie', 0],
+      ]);
+    });
+
+    it('ranks deaths caused lowest first, ties by name', async () => {
+      expect(
+        namesAndAverages(
+          await service.averageDeathsCausedByTeam(
+            FACT_SCOPE_ALL_TIME,
+            'asc',
+            10,
+          ),
+        ),
+      ).toEqual([
+        ['Bravo', 0],
+        ['Charlie', 0],
+        ['Alpha', 0.5],
+      ]);
+    });
+
+    it('averages deaths suffered on the victim side, fouls included', async () => {
+      expect(
+        namesAndAverages(
+          await service.averageDeathsSufferedByTeam(
+            FACT_SCOPE_ALL_TIME,
+            'desc',
+            10,
+          ),
+        ),
+      ).toEqual([
+        ['Bravo', 2],
+        ['Alpha', 0],
+        ['Charlie', 0],
+      ]);
+    });
+
+    it('ranks deaths suffered lowest first and honours the limit', async () => {
+      expect(
+        namesAndAverages(
+          await service.averageDeathsSufferedByTeam(
+            FACT_SCOPE_ALL_TIME,
+            'asc',
+            2,
+          ),
+        ),
+      ).toEqual([
+        ['Alpha', 0],
+        ['Charlie', 0],
+      ]);
+    });
+  });
+
   it('rounds the average to two decimals and returns it as a number', async () => {
     const league = await seedLeague(db, 'One');
     const x = await joinEra(db, await seedTeam(db, 'X Team'), league.eraId);

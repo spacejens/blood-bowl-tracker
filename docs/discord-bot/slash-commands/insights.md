@@ -212,6 +212,16 @@ button, in the same order as the list, that opens that coach's
   events credited to the acting team.
 - `team.toplist.deaths.suffered` — teams ranked by players killed. Counts match
   events that killed a player, credited to the team the dead player belongs to.
+- `team.toplist.deaths.average.caused.descending` — teams ranked by average
+  deaths caused per match, highest first. Counts the same events as
+  `team.toplist.deaths.caused`. Same 5-match floor and scopes.
+- `team.toplist.deaths.average.caused.ascending` — the same average, lowest
+  first. Same 5-match floor and scopes.
+- `team.toplist.deaths.average.suffered.descending` — teams ranked by average
+  deaths suffered per match, highest first. Counts the same events as
+  `team.toplist.deaths.suffered`. Same 5-match floor and scopes.
+- `team.toplist.deaths.average.suffered.ascending` — the same average, lowest
+  first. Same 5-match floor and scopes.
 - `team.toplist.fouls.committed` — teams ranked by fouls committed. Counts foul
   events credited to the acting team.
 - `team.toplist.sent_off` — teams ranked by players sent off. Counts match

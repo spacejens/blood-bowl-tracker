@@ -31,6 +31,10 @@ const TEAM_AVERAGE_PATHS = [
   'team.toplist.injuries.serious.average.suffered.ascending',
   'team.toplist.injuries.lasting.average.suffered.descending',
   'team.toplist.injuries.lasting.average.suffered.ascending',
+  'team.toplist.deaths.average.caused.descending',
+  'team.toplist.deaths.average.caused.ascending',
+  'team.toplist.deaths.average.suffered.descending',
+  'team.toplist.deaths.average.suffered.ascending',
 ] as const;
 
 describe('buildFactTree leaf capabilities', () => {
@@ -303,7 +307,7 @@ describe('buildFactTree match category capabilities', () => {
     const supported = factTreeNavigation
       .collectLeaves(tree)
       .filter((leaf) => leaf.supportsMatchCategory);
-    expect(supported).toHaveLength(64);
+    expect(supported).toHaveLength(68);
   });
 
   it('supports the match category on leaves that do not support a competition', () => {
