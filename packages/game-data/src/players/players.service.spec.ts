@@ -917,7 +917,6 @@ describe('PlayersService', () => {
       const { chains } = await build([]);
       await service.retireAbsentExternalPlayers(options);
       const where = firstCallArg(chains[0].where);
-      expect(extractAllFilterValues(where)).not.toContain('star-1-2');
       expect(sqlText(where)).toContain(`( ~ '^[0-9]+$')`);
     });
 

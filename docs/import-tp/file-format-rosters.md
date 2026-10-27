@@ -192,7 +192,8 @@ instead (see [index.md](./index.md)'s `TpRosterPlayersImportService` (server-sid
 `fanFactor`, `ruleSet`, `necromancer`, `reRolls`, `shortTeamName`, `sponsors`,
 `teamColor`, `treasury`, `extraGoldQuantity`, `teamSpecialRules`, `league`,
 `hasMatchesInProgress`, `hasMatchesPlayed`, and -- newly observed 2026-07 with
-Major Season 30, purely additive with nothing removed or reshaped -- top-level `state` (distinct from each `lineUps[]` entry's `state`, above),
+Major Season 30, purely additive with nothing removed or reshaped -- top-level
+`state` (distinct from each `lineUps[]` entry's `state`, above),
 `freeHireAndFireOrder`, `apothecary`; the parser reads only the fields it
 needs, so these required no code change). Note that the same roster shape
 reappears nested as `roster` inside `match` and `inscriptions` bodies — not a

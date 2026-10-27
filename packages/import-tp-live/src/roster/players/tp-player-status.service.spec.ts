@@ -33,6 +33,11 @@ describe('TpPlayerStatusService', () => {
       { state: 8192, isActive: true, listed: true },
       'temporarily_retired',
     ],
+    [
+      'bit 8192 on an unlisted inactive player as temporarily retired',
+      { state: 8192, isActive: false, listed: false },
+      'temporarily_retired',
+    ],
   ])('reads %s', (_label, input, expected) => {
     expect(service.forPlayer(input)).toBe(expected);
   });
