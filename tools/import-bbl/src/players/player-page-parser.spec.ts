@@ -13,6 +13,14 @@ function playerPage(html: string, pid = '5'): BblPage {
   return { type: 'pl', params: { pid }, load: () => load(html) };
 }
 
+/**
+ * A player page's header block, the name under the portrait, with any status
+ * icons inside its `<b>`. extractPlayer needs it to read the player's status.
+ */
+function playerHeader(icons = '', name = 'Griff Oberwald'): string {
+  return `<div style="color:#202020;font-size:11px;padding-bottom:1px"><b>${name}${icons}</b></div>`;
+}
+
 /** The all-clean lasting-injuries value a page with no injuries parses to. */
 const NO_INJURIES = {
   missNextGame: false,
@@ -53,8 +61,9 @@ describe('PlayerPageParser', () => {
     parser = moduleRef.get(PlayerPageParser);
   });
 
-  /** The two links every player page needs for extractPlayer to succeed. */
+  /** The header block and two links every player page needs for extractPlayer to succeed. */
   const PLAYER_LINKS =
+    playerHeader() +
     '<a href="default.asp?p=pt&typID=33">Goblin Linemen</a>' +
     '<a href="default.asp?p=tm&t=knu">Knights</a>';
 
@@ -76,6 +85,7 @@ describe('PlayerPageParser', () => {
   it('extracts the pid, name, position typId and team code', () => {
     const page = playerPage(
       '<h1>Griff Oberwald</h1>' +
+        playerHeader() +
         '<a href="default.asp?p=pt&typID=33">Goblin Linemen</a>' +
         '<a href="default.asp?p=tm&t=knu">Knights</a>' +
         characteristicsTable('5', '3', '3+', '4+', '8+'),
@@ -97,12 +107,14 @@ describe('PlayerPageParser', () => {
       lastingInjuries: NO_INJURIES,
       skills: [{ name: 'Sure Hands', source: 'starting' }],
       characteristicIncreaseCounts: NO_CHARACTERISTIC_INCREASES,
+      status: 'active',
     });
   });
 
   it('extracts a team code containing non-ASCII characters', () => {
     const page = playerPage(
       '<h1>Aspgren</h1>' +
+        playerHeader('', 'Aspgren') +
         '<a href="default.asp?p=pt&typID=169">Hafling Treeman</a>' +
         "<a href='default.asp?p=tm&t=gås' style='font-size:11px'>Gåshöjdens BK</a>" +
         characteristicsTable('5', '3', '3+', '4+', '8+'),
@@ -123,12 +135,14 @@ describe('PlayerPageParser', () => {
       lastingInjuries: NO_INJURIES,
       skills: [{ name: 'Sure Hands', source: 'starting' }],
       characteristicIncreaseCounts: NO_CHARACTERISTIC_INCREASES,
+      status: 'active',
     });
   });
 
   it('uses the first position and team links when several are present', () => {
     const page = playerPage(
       '<h1>Griff Oberwald</h1>' +
+        playerHeader() +
         '<a href="default.asp?p=pt&typID=33">Goblin Linemen</a>' +
         '<a href="default.asp?p=tm&t=knu">Knights</a>' +
         '<a href="default.asp?p=pt&typID=99">Other</a>' +
@@ -151,6 +165,7 @@ describe('PlayerPageParser', () => {
       lastingInjuries: NO_INJURIES,
       skills: [{ name: 'Sure Hands', source: 'starting' }],
       characteristicIncreaseCounts: NO_CHARACTERISTIC_INCREASES,
+      status: 'active',
     });
   });
 
@@ -180,6 +195,7 @@ describe('PlayerPageParser', () => {
   it('returns a player with an empty name when the h1 is present but empty', () => {
     const page = playerPage(
       '<h1></h1>' +
+        playerHeader('', '') +
         '<a href="default.asp?p=pt&typID=53">Skeleton Linemen</a>' +
         '<a href="default.asp?p=tm&t=nyt3">No name no pain!</a>' +
         characteristicsTable('5', '3', '3+', '4+', '8+'),
@@ -201,6 +217,7 @@ describe('PlayerPageParser', () => {
       lastingInjuries: NO_INJURIES,
       skills: [{ name: 'Sure Hands', source: 'starting' }],
       characteristicIncreaseCounts: NO_CHARACTERISTIC_INCREASES,
+      status: 'active',
     });
   });
 
@@ -500,8 +517,9 @@ describe('PlayerPageParser skills cell', () => {
     parser = moduleRef.get(PlayerPageParser);
   });
 
-  /** The links every player page needs for extractPlayer to succeed. */
+  /** The header block and links every player page needs for extractPlayer to succeed. */
   const PLAYER_LINKS =
+    playerHeader() +
     '<a href="default.asp?p=pt&typID=33">Goblin Linemen</a>' +
     '<a href="default.asp?p=tm&t=knu">Knights</a>';
 
@@ -697,5 +715,130 @@ describe('PlayerPageParser skills cell', () => {
       { name: 'Dodge', source: 'starting' },
     ]);
     expect(player?.characteristicIncreaseCounts).toEqual(ZERO_COUNTS);
+  });
+});
+
+describe('PlayerPageParser status', () => {
+  let parser: PlayerPageParser;
+
+  beforeEach(async () => {
+    // NormalizeExtractedTextService is pure and dependency-free, so it is
+    // passed real rather than mocked with a copy of its algorithm.
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        PlayerPageParser,
+        SustainedInjuriesParser,
+        SkillEntryService,
+        NormalizeExtractedTextService,
+      ],
+    }).compile();
+    parser = moduleRef.get(PlayerPageParser);
+  });
+
+  /** The position and team links every player page needs. */
+  const LINKS =
+    '<a href="default.asp?p=pt&typID=33">Goblin Linemen</a>' +
+    '<a href="default.asp?p=tm&t=knu">Knights</a>';
+
+  /** A characteristics table that always parses. */
+  const CHARACTERISTICS =
+    '<table class="tblist">' +
+    '<tr class="trlisthead">' +
+    '<th>MA</th><th>ST</th><th>AG</th><th>PA</th><th>AV</th><th>Skills</th>' +
+    '</tr>' +
+    '<tr><td>5</td><td>3</td><td>3+</td><td>4+</td><td>8+</td><td></td></tr>' +
+    '</table>';
+
+  const DEAD_ICON = "<img src='gfx/cross.gif' align='absmiddle' alt='dead'>";
+  const RETIRED_ICON =
+    "<img src='gfx/retired.gif' align='absmiddle' alt='retired'>";
+  const TEMPORARILY_RETIRED_ICON =
+    "<img src='https://bloodbowlleague.com/gfx/retire.png' align='absmiddle' " +
+    "alt='Temporarily retired' title='Temporarily retired'>";
+  const BOUNTY_ICON =
+    "<img src='gfx/bounty.gif' align='absmiddle' alt='Bounty of 50 kgp'>";
+
+  /** A full player page whose header carries the given icons, plus extra markup. */
+  function parseWithHeader(icons: string, extra = '') {
+    return parser.extractPlayer(
+      playerPage(
+        '<h1>Griff Oberwald</h1>' +
+          playerHeader(icons) +
+          LINKS +
+          extra +
+          CHARACTERISTICS,
+      ),
+    );
+  }
+
+  it('reads a header with no icon as active', () => {
+    expect(parseWithHeader('')?.status).toBe('active');
+  });
+
+  it('reads the cross icon as dead', () => {
+    expect(parseWithHeader(DEAD_ICON)?.status).toBe('dead');
+  });
+
+  it('reads the retired icon as retired', () => {
+    expect(parseWithHeader(RETIRED_ICON)?.status).toBe('retired');
+  });
+
+  it('reads dead when both the retired and the cross icon are present, whatever their order', () => {
+    expect(parseWithHeader(RETIRED_ICON + DEAD_ICON)?.status).toBe('dead');
+    expect(parseWithHeader(DEAD_ICON + RETIRED_ICON)?.status).toBe('dead');
+  });
+
+  it('does not treat a bounty icon as a status', () => {
+    expect(parseWithHeader(BOUNTY_ICON)?.status).toBe('active');
+  });
+
+  it('reads the status next to a bounty icon', () => {
+    expect(parseWithHeader(BOUNTY_ICON + DEAD_ICON)?.status).toBe('dead');
+    expect(parseWithHeader(BOUNTY_ICON + RETIRED_ICON)?.status).toBe('retired');
+  });
+
+  it('ignores a cross icon on a link to another player elsewhere on the page', () => {
+    const killerLink =
+      "<a href='default.asp?p=pl&pid=718'>Tarrakh" +
+      "<img src='gfx/cross.gif' border='0' align='absmiddle' title='dead'></a>";
+
+    expect(parseWithHeader('', killerLink)?.status).toBe('active');
+    expect(parseWithHeader(RETIRED_ICON, killerLink)?.status).toBe('retired');
+  });
+
+  it('ignores the retired-team icon beside the team link', () => {
+    const retiredTeam =
+      "<img src='gfx/retiredteam.gif' align='absmiddle' alt='team retired'>";
+
+    expect(parseWithHeader('', retiredTeam)?.status).toBe('active');
+  });
+
+  it('reads the temporarily-retired icon as temporarily_retired', () => {
+    expect(parseWithHeader(TEMPORARILY_RETIRED_ICON)?.status).toBe(
+      'temporarily_retired',
+    );
+  });
+
+  it('reads dead or retired over the temporarily-retired icon, whatever their order', () => {
+    expect(parseWithHeader(TEMPORARILY_RETIRED_ICON + DEAD_ICON)?.status).toBe(
+      'dead',
+    );
+    expect(parseWithHeader(DEAD_ICON + TEMPORARILY_RETIRED_ICON)?.status).toBe(
+      'dead',
+    );
+    expect(
+      parseWithHeader(TEMPORARILY_RETIRED_ICON + RETIRED_ICON)?.status,
+    ).toBe('retired');
+    expect(
+      parseWithHeader(RETIRED_ICON + TEMPORARILY_RETIRED_ICON)?.status,
+    ).toBe('retired');
+  });
+
+  it('returns null when the page has no player header block', () => {
+    const page = playerPage(
+      '<h1>Griff Oberwald</h1>' + LINKS + CHARACTERISTICS,
+    );
+
+    expect(parser.extractPlayer(page)).toBeNull();
   });
 });

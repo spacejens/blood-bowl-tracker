@@ -69,6 +69,7 @@ describe('BblPositionsImportService characteristics', () => {
             lastingInjuries: ANY_LASTING_INJURIES,
             skills: [],
             characteristicIncreaseCounts: ANY_CHARACTERISTIC_INCREASE_COUNTS,
+            status: 'active',
           }),
         ],
       }),
@@ -111,6 +112,7 @@ describe('BblPositionsImportService characteristics', () => {
             lastingInjuries: ANY_LASTING_INJURIES,
             skills: [],
             characteristicIncreaseCounts: ANY_CHARACTERISTIC_INCREASE_COUNTS,
+            status: 'active',
           }),
           plPage({
             pid: '2',
@@ -122,6 +124,7 @@ describe('BblPositionsImportService characteristics', () => {
             lastingInjuries: ANY_LASTING_INJURIES,
             skills: [],
             characteristicIncreaseCounts: ANY_CHARACTERISTIC_INCREASE_COUNTS,
+            status: 'active',
           }),
         ],
       }),
