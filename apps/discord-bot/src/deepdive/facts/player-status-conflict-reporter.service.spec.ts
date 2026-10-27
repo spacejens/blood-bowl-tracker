@@ -2,8 +2,8 @@ import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
 import { Test } from '@nestjs/testing';
 import { MessageFlags } from 'discord.js';
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
-import { mock, mockDeep } from 'vitest-mock-extended';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import { DiscordBotConfigService } from '../../discord-bot-config.service';
 import { ErrorLogService } from '../../shared/error-log.service';
@@ -16,12 +16,12 @@ const REPORT =
 
 describe('PlayerStatusConflictReporterService', () => {
   let service: PlayerStatusConflictReporterService;
-  let discordClient: DeepMockProxy<DiscordClientService>;
+  let discordClient: MockProxy<DiscordClientService>;
   let config: MockProxy<DiscordBotConfigService>;
   let errorLog: MockProxy<ErrorLogService>;
 
   beforeEach(async () => {
-    discordClient = mockDeep<DiscordClientService>();
+    discordClient = mock<DiscordClientService>();
     config = mock<DiscordBotConfigService>();
     config.getTpFeedDebugDiscordChannelId.mockReturnValue(DEBUG_CHANNEL);
     errorLog = mock<ErrorLogService>();
