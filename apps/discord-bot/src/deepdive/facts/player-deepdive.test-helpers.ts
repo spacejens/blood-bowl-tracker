@@ -49,8 +49,8 @@ import { PlayerStatusLineService } from './player-status-line.service';
  * `player-deepdive.service.spec.ts` (header, honors, category counts, SPP
  * totals, and killer/Status line), `player-deepdive-kills.service.spec.ts`
  * (the Kills section) and `player-deepdive-status.spec.ts` (the `Status:`
- * line for every stored status, and kill/status conflicts) to keep each file under the repo's 1000-line spec
- * ceiling — see `CLAUDE.md`'s "Maximum file size".
+ * line for every stored status, and kill/status conflicts) to keep each file
+ * under the repo's 1000-line spec ceiling — see `CLAUDE.md`'s "Maximum file size".
  *
  * `makeService` compiles `PlayerDeepdiveService` with its pure formatting
  * collaborators passed real: the chain `PlayerKillsSectionService` →
@@ -139,8 +139,8 @@ export function makeTrophyAwards(
 
 /**
  * A `PlayerDeathService` mock. Defaults to a living player (`undefined`) with
- * no kills, so tests about other parts of the embed never see a Status line or
- * a Kills section.
+ * no kills, so tests about other parts of the embed never see the killed Status
+ * line or a Kills section.
  */
 export function makePlayerDeath(
   killer?: PlayerKillerInfo,

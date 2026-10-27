@@ -96,8 +96,8 @@ describe('PlayerDeepdiveService status line', () => {
 
   it("decides whether the era has ended from the clock's today", async () => {
     const { description } = await resolveStatus({
-      player: { status: 'active', eraEndDate: '2026-10-27' },
-      now: new Date('2026-10-27T12:00:00.000Z'),
+      player: { status: 'active', eraEndDate: '2023-12-31' },
+      now: new Date('2023-06-01T12:00:00.000Z'),
     });
 
     expect(description).toContain('\nStatus: Active\n');

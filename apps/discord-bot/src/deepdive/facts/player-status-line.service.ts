@@ -51,6 +51,7 @@ export class PlayerStatusLineService {
   }
 
   private eraEnded(eraEndDate: string | null, today: Date): boolean {
+    // Fixed-width YYYY-MM-DD strings compare chronologically as plain strings.
     return eraEndDate !== null && eraEndDate < today.toISOString().slice(0, 10);
   }
 }

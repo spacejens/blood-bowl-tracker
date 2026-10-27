@@ -21,12 +21,18 @@ export interface PlayerStatusConflict {
  * The bug is always logged as an error. It is also posted to the TP feed's
  * debug channel when one is configured. A failed post is logged and dropped,
  * so `report` never rejects and callers can fire and forget.
+ *
+ * Each conflict, identified by player and stored status, is reported once per
+ * service instance (that is, once per bot run). Later reports of it are
+ * ignored, so showing the same player again does not repeat the report.
  */
 @Injectable()
 export class PlayerStatusConflictReporterService {
   private readonly logger = new Logger(
     PlayerStatusConflictReporterService.name,
   );
+
+  private readonly reported = new Set<string>();
 
   constructor(
     private readonly discordClient: DiscordClientService,
@@ -35,12 +41,17 @@ export class PlayerStatusConflictReporterService {
   ) {}
 
   async report(conflict: PlayerStatusConflict): Promise<void> {
+    const key = `${conflict.id}:${conflict.status}`;
+    if (this.reported.has(key)) {
+      return;
+    }
     const content = `Bug: player ${conflict.id} (${conflict.name}) is killed in match events, but their stored status is ${conflict.status}`;
     this.errorLog.logError(
       this.logger,
       'Player status conflicts with match events',
       new Error(content),
     );
+    this.reported.add(key);
     const channelId = this.config.getTpFeedDebugDiscordChannelId();
     if (!channelId) {
       return;

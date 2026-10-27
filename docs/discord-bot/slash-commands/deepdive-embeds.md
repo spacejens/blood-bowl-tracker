@@ -117,7 +117,8 @@ words:
 - `Status: Unknown`, when no source has reported a status.
 
 An era has ended once its end date is before today (read in UTC). An era
-ending today still counts as running. This is worked out each time the
+ending today still counts as running, and an ongoing era (no end date) never
+counts as ended. This is worked out each time the
 deepdive is shown, never stored.
 
 A death recorded in match events always wins over the stored status. A
@@ -126,7 +127,8 @@ with no status) points at an import bug. The deepdive still shows the
 killed line, and the bot logs the conflict as an error. It also posts a bug
 report naming the player's id, name and stored status to the
 [TP feed debug channel](../tp-feed.md#configuration), when one is
-configured. A failed post never affects the deepdive reply.
+configured. Each conflict (player and stored status) is reported once per
+bot run. A failed post never affects the deepdive reply.
 
 ### Characteristics
 

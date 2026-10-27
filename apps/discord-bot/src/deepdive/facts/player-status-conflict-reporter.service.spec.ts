@@ -76,4 +76,36 @@ describe('PlayerStatusConflictReporterService', () => {
       error,
     );
   });
+
+  it('does nothing when the same conflict was already reported', async () => {
+    await service.report(CONFLICT);
+    errorLog.logError.mockClear();
+    discordClient.sendMessage.mockClear();
+
+    await service.report(CONFLICT);
+
+    expect(errorLog.logError).not.toHaveBeenCalled();
+    expect(discordClient.sendMessage).not.toHaveBeenCalled();
+  });
+
+  it('reports the same player again when the stored status differs', async () => {
+    await service.report(CONFLICT);
+
+    await service.report({ ...CONFLICT, status: 'retired' });
+
+    expect(discordClient.sendMessage).toHaveBeenCalledTimes(2);
+    expect(discordClient.sendMessage).toHaveBeenLastCalledWith(DEBUG_CHANNEL, {
+      content: REPORT.replace('active', 'retired'),
+      allowedMentions: { parse: [] },
+      flags: [MessageFlags.SuppressEmbeds],
+    });
+  });
+
+  it('reports a different player with the same stored status', async () => {
+    await service.report(CONFLICT);
+
+    await service.report({ ...CONFLICT, id: 2, name: 'Other' });
+
+    expect(discordClient.sendMessage).toHaveBeenCalledTimes(2);
+  });
 });

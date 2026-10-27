@@ -164,7 +164,8 @@ Both channel variables are optional and are documented in
 - `TP_FEED_DEBUG_DISCORD_CHANNEL_ID` — the channel the interpretations, the
   notices about notifications that did not parse, and failed imports are
   posted to. The player deepdive also posts a bug report here when a player
-  killed in match events has a stored status that contradicts it (see
+  killed in match events has a stored status that contradicts it, once per
+  conflict per bot run (see
   [deepdive embeds](slash-commands/deepdive-embeds.md#status)). Left unset,
   notifications are still parsed and (while `TP_SCRAPING_ENABLED` is `true`)
   imported, and unrecognised shapes, failed imports and status conflicts are
