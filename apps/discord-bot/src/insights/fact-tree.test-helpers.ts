@@ -114,6 +114,18 @@ export function stubFactTreeDeps(): FactTreeDeps {
   );
   teamToplist.resolveDeathsCaused.mockResolvedValue('team deaths caused');
   teamToplist.resolveDeathsSuffered.mockResolvedValue('team deaths suffered');
+  teamToplist.resolveAverageDeathsCausedDescending.mockResolvedValue(
+    'team average deaths caused, highest first',
+  );
+  teamToplist.resolveAverageDeathsCausedAscending.mockResolvedValue(
+    'team average deaths caused, lowest first',
+  );
+  teamToplist.resolveAverageDeathsSufferedDescending.mockResolvedValue(
+    'team average deaths suffered, highest first',
+  );
+  teamToplist.resolveAverageDeathsSufferedAscending.mockResolvedValue(
+    'team average deaths suffered, lowest first',
+  );
   teamToplist.resolveFoulsCommitted.mockResolvedValue('team fouls committed');
   teamToplist.resolveTimesSentOff.mockResolvedValue('team times sent off');
   teamToplist.resolveTrophiesWon.mockResolvedValue('team trophies won');

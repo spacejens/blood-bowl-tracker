@@ -393,6 +393,24 @@ export class TeamsService {
     );
   }
 
+  /** Teams ranked by opponents killed per match. Same floor and scope. */
+  averageDeathsCausedByTeam(
+    scope: FactScope,
+    direction: TeamAverageDirection,
+    limit: number,
+  ): Promise<TeamAverageRow[]> {
+    return this.averages.averageDeathsCausedByTeam(scope, direction, limit);
+  }
+
+  /** Teams ranked by players killed per match. Same floor and scope. */
+  averageDeathsSufferedByTeam(
+    scope: FactScope,
+    direction: TeamAverageDirection,
+    limit: number,
+  ): Promise<TeamAverageRow[]> {
+    return this.averages.averageDeathsSufferedByTeam(scope, direction, limit);
+  }
+
   countCompletionsByTeam(
     scope: FactScope,
     limit: number,

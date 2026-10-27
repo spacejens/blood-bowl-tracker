@@ -17,10 +17,10 @@ beforeAll(async () => {
 });
 
 describe('buildFactTree', () => {
-  it('exposes exactly eighty-three leaf facts', () => {
+  it('exposes exactly eighty-seven leaf facts', () => {
     expect(
       factTreeNavigation.collectLeaves(buildFactTree(stubFactTreeDeps())),
-    ).toHaveLength(83);
+    ).toHaveLength(87);
   });
 
   it('wires coach.toplist.matches.played to CoachToplistService.resolveMatchesPlayed', async () => {
@@ -109,6 +109,26 @@ describe('buildFactTree', () => {
       'team.toplist.injuries.lasting.average.suffered.ascending',
       'teamToplist',
       'resolveAverageLastingInjuriesSufferedAscending',
+    ],
+    [
+      'team.toplist.deaths.average.caused.descending',
+      'teamToplist',
+      'resolveAverageDeathsCausedDescending',
+    ],
+    [
+      'team.toplist.deaths.average.caused.ascending',
+      'teamToplist',
+      'resolveAverageDeathsCausedAscending',
+    ],
+    [
+      'team.toplist.deaths.average.suffered.descending',
+      'teamToplist',
+      'resolveAverageDeathsSufferedDescending',
+    ],
+    [
+      'team.toplist.deaths.average.suffered.ascending',
+      'teamToplist',
+      'resolveAverageDeathsSufferedAscending',
     ],
     ['race.toplist.matches.won', 'raceToplist', 'resolveMatchesWon'],
     ['race.toplist.matches.lost', 'raceToplist', 'resolveMatchesLost'],
