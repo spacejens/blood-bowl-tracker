@@ -380,6 +380,19 @@ export class TeamsService {
     );
   }
 
+  /** Teams ranked by lasting injuries inflicted per match. Same floor and scope. */
+  averageLastingInjuriesCausedByTeam(
+    scope: FactScope,
+    direction: TeamAverageDirection,
+    limit: number,
+  ): Promise<TeamAverageRow[]> {
+    return this.averages.averageLastingInjuriesCausedByTeam(
+      scope,
+      direction,
+      limit,
+    );
+  }
+
   /** Teams ranked by lasting injuries suffered per match. Same floor and scope. */
   averageLastingInjuriesSufferedByTeam(
     scope: FactScope,
@@ -444,6 +457,13 @@ export class TeamsService {
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return this.statistics.countSeriousInjuriesCausedByTeam(scope, limit);
+  }
+
+  countLastingInjuriesCausedByTeam(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ teamId: number; name: string; count: number }[]> {
+    return this.statistics.countLastingInjuriesCausedByTeam(scope, limit);
   }
 
   countDeathsCausedByTeam(

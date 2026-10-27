@@ -40,6 +40,7 @@ interface AverageCase {
     | 'averageCasualtiesSufferedByTeam'
     | 'averageSeriousInjuriesCausedByTeam'
     | 'averageSeriousInjuriesSufferedByTeam'
+    | 'averageLastingInjuriesCausedByTeam'
     | 'averageLastingInjuriesSufferedByTeam'
     | 'averageDeathsCausedByTeam'
     | 'averageDeathsSufferedByTeam';
@@ -156,6 +157,24 @@ const cases: AverageCase[] = [
       service.resolveAverageSeriousInjuriesSufferedAscending(scope),
     expectedTitle:
       'Teams by average serious injuries suffered per match (lowest first)',
+  },
+  {
+    resolverName: 'resolveAverageLastingInjuriesCausedDescending',
+    method: 'averageLastingInjuriesCausedByTeam',
+    direction: 'desc',
+    resolve: (service, scope) =>
+      service.resolveAverageLastingInjuriesCausedDescending(scope),
+    expectedTitle:
+      'Teams by average lasting injuries caused per match (highest first)',
+  },
+  {
+    resolverName: 'resolveAverageLastingInjuriesCausedAscending',
+    method: 'averageLastingInjuriesCausedByTeam',
+    direction: 'asc',
+    resolve: (service, scope) =>
+      service.resolveAverageLastingInjuriesCausedAscending(scope),
+    expectedTitle:
+      'Teams by average lasting injuries caused per match (lowest first)',
   },
   {
     resolverName: 'resolveAverageLastingInjuriesSufferedDescending',

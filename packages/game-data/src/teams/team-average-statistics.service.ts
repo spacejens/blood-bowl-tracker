@@ -196,6 +196,28 @@ export class TeamAverageStatisticsService {
   }
 
   /**
+   * Lasting injuries the team's players inflicted per match. Same selector as
+   * the lasting-injuries-caused total: a casualty action whose own row
+   * carries a lasting consequence, so a foul does not count.
+   */
+  averageLastingInjuriesCausedByTeam(
+    scope: FactScope,
+    direction: TeamAverageDirection,
+    limit: number,
+  ): Promise<TeamAverageRow[]> {
+    return this.averagePerMatchByTeam({
+      ...this.matchEventsOnSide({
+        role: 'acting',
+        types: CASUALTY_CAUSED_TYPES,
+        consequenceTypes: LASTING_INJURY_SUFFERED_TYPES,
+      }),
+      direction,
+      scope,
+      limit,
+    });
+  }
+
+  /**
    * Casualties that permanently diminish a player, suffered by the team's
    * players per match.
    */
@@ -260,7 +282,9 @@ export class TeamAverageStatisticsService {
    * contributes zero instead of dropping out of the denominator. An acting
    * selector groups by the acting side and filters `action_type`; a
    * consequence selector groups by the victim's side and filters
-   * `consequence_type`, the same split the total-based team counts use.
+   * `consequence_type`, the same split the total-based team counts use. An
+   * acting selector's optional `consequenceTypes` also filters
+   * `consequence_type` on the same row, as the total-based counts do.
    */
   private matchEventsOnSide(selector: MatchEventSelector): PerSideCount {
     const sideColumn =
@@ -269,7 +293,12 @@ export class TeamAverageStatisticsService {
         : matchEvents.consequenceMatchTeamId;
     const typeFilter =
       selector.role === 'acting'
-        ? inArray(matchEvents.actionType, selector.types)
+        ? and(
+            inArray(matchEvents.actionType, selector.types),
+            selector.consequenceTypes === undefined
+              ? undefined
+              : inArray(matchEvents.consequenceType, selector.consequenceTypes),
+          )
         : inArray(matchEvents.consequenceType, selector.types);
     return {
       perMatchValue: sql`coalesce(side_event_counts.event_count, 0)`,

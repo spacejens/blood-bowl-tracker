@@ -35,9 +35,20 @@ import { MatchScopeFilterService } from './match-scope-filter.service';
  * parameters) so that a role/type-set mismatch — e.g. `role: 'acting'` with
  * consequence-only types — is a compile error instead of a cast-hidden bug
  * that only fails at the database.
+ *
+ * An acting selector may also name `consequenceTypes`: it then counts only
+ * rows whose action is one of `types` and whose consequence, on the same
+ * `match_events` row, is one of `consequenceTypes`, still grouped by the
+ * acting side. That is how a caused fact narrows on the outcome its action
+ * produced (lasting injuries caused). A consequence selector already filters
+ * on the consequence, so it has no such field.
  */
 export type MatchEventSelector =
-  | { role: 'acting'; types: readonly ActionType[] }
+  | {
+      role: 'acting';
+      types: readonly ActionType[];
+      consequenceTypes?: readonly ConsequenceType[];
+    }
   | { role: 'consequence'; types: readonly ConsequenceType[] };
 
 /**
@@ -79,7 +90,8 @@ export class MatchEventCountsService {
    * The where clause shared by every match-event count: the type filter for
    * the given selector's role, optionally narrowed to a league, era,
    * competition and/or match category. `undefined` for any scope field means
-   * "no filter", matching the public `count*` signatures.
+   * "no filter", matching the public `count*` signatures. An acting selector's
+   * optional `consequenceTypes` adds a consequence-type filter on the same row.
    */
   private matchEventFilter(
     selector: MatchEventSelector,
@@ -89,6 +101,9 @@ export class MatchEventCountsService {
       selector.role === 'acting'
         ? inArray(matchEvents.actionType, selector.types)
         : inArray(matchEvents.consequenceType, selector.types),
+      selector.role === 'acting' && selector.consequenceTypes !== undefined
+        ? inArray(matchEvents.consequenceType, selector.consequenceTypes)
+        : undefined,
       this.matchScopeFilter.build(scope),
     );
   }

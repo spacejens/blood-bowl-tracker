@@ -29,7 +29,7 @@ type TeamRow = {
   contextSuffix?: string;
 };
 
-/** The 14 team toplists the factory builds. */
+/** The 15 team toplists the factory builds. */
 type TeamFactoryMethod =
   | 'countTouchdownsScoredByTeam'
   | 'countCompletionsByTeam'
@@ -37,6 +37,7 @@ type TeamFactoryMethod =
   | 'countDeflectionsByTeam'
   | 'countCasualtiesCausedByTeam'
   | 'countSeriousInjuriesCausedByTeam'
+  | 'countLastingInjuriesCausedByTeam'
   | 'countDeathsCausedByTeam'
   | 'countFoulsCommittedByTeam'
   | 'countTimesSentOffByTeam'
@@ -172,6 +173,16 @@ const factoryCases: FactoryCase[] = [
     eraRows: [{ teamId: 1, name: '40 grinders', count: 2 }],
     competitionRows: [{ teamId: 1, name: '40 grinders', count: 1 }],
     expectedTitle: 'Teams by serious injuries inflicted',
+  },
+  {
+    describeName: 'resolveLastingInjuriesCaused',
+    method: 'countLastingInjuriesCausedByTeam',
+    resolve: (service, scope) =>
+      service.resolveLastingInjuriesCaused(scope as FactScope),
+    rows: [{ teamId: 1, name: '40 grinders', count: 3 }],
+    eraRows: [{ teamId: 1, name: '40 grinders', count: 2 }],
+    competitionRows: [{ teamId: 1, name: '40 grinders', count: 1 }],
+    expectedTitle: 'Teams by lasting injuries inflicted',
   },
   {
     describeName: 'resolveDeathsCaused',

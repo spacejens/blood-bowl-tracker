@@ -97,6 +97,12 @@ export function stubFactTreeDeps(): FactTreeDeps {
   teamToplist.resolveAverageSeriousInjuriesSufferedAscending.mockResolvedValue(
     'team average serious injuries suffered, lowest first',
   );
+  teamToplist.resolveAverageLastingInjuriesCausedDescending.mockResolvedValue(
+    'team average lasting injuries caused, highest first',
+  );
+  teamToplist.resolveAverageLastingInjuriesCausedAscending.mockResolvedValue(
+    'team average lasting injuries caused, lowest first',
+  );
   teamToplist.resolveAverageLastingInjuriesSufferedDescending.mockResolvedValue(
     'team average lasting injuries suffered, highest first',
   );
@@ -108,6 +114,9 @@ export function stubFactTreeDeps(): FactTreeDeps {
   );
   teamToplist.resolveSeriousInjuriesSuffered.mockResolvedValue(
     'team serious injuries suffered',
+  );
+  teamToplist.resolveLastingInjuriesCaused.mockResolvedValue(
+    'team lasting injuries caused',
   );
   teamToplist.resolveLastingInjuriesSuffered.mockResolvedValue(
     'team lasting injuries suffered',

@@ -199,6 +199,19 @@ button, in the same order as the list, that opens that coach's
   floor and scopes.
 - `team.toplist.injuries.serious.average.suffered.ascending` — the same
   average, lowest first. Same 5-match floor and scopes.
+- `team.toplist.injuries.lasting.caused` — teams ranked by lasting injuries
+  inflicted. Counts casualty events credited to the acting team whose outcome,
+  on the same event, is a niggling injury or a lasting characteristic
+  reduction. A foul that leaves a lasting injury does not count, nor does one
+  with no recorded causer, so across all teams this is usually lower than
+  lasting injuries suffered (see
+  [lasting injuries caused](../../insights/match-event-counts.md#lasting-injuries-caused)).
+- `team.toplist.injuries.lasting.average.caused.descending` — teams ranked by
+  average lasting injuries caused per match, highest first. Counts the same
+  events as `team.toplist.injuries.lasting.caused`. Same 5-match floor and
+  scopes.
+- `team.toplist.injuries.lasting.average.caused.ascending` — the same average,
+  lowest first. Same 5-match floor and scopes.
 - `team.toplist.injuries.lasting.suffered` — teams ranked by lasting injuries
   suffered. Counts only the career-spanning consequences — a niggling injury or a
   lasting characteristic reduction — credited to the team the victim belongs to.
