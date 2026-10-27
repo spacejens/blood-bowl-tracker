@@ -124,6 +124,19 @@ export interface TpRosterPlayer {
    * means.
    */
   skills?: TpPlayerSkills;
+  /**
+   * TP's `state` bitmask for the entry, or `undefined` when the entry carried
+   * none. TP does not document it; docs/import-tp/file-format-rosters.md
+   * records the bits whose meaning is inferred from the data. Read by the
+   * importer to derive the player's status, not interpreted here.
+   */
+  state?: number;
+  /**
+   * TP's `isActive` flag, or `undefined` when the entry carried none. Always
+   * `true` in a standalone roster file (it lists current players only); can
+   * be `false` in a match-embedded snapshot, for a player who has since left.
+   */
+  isActive?: boolean;
 }
 
 /**
@@ -283,6 +296,11 @@ export const LineUpSchema = z.object({
   // by the server's upsert schema.
   nigglingInjuries: z.number().int().nonnegative().optional(),
   canPlayNextGame: z.boolean().optional(),
+  // The player's status inputs: TP's undocumented state bitmask and its
+  // isActive flag. Optional so an entry without them still parses; the
+  // importer, not this parser, decides what they mean.
+  state: z.number().int().nonnegative().optional(),
+  isActive: z.boolean().optional(),
   // The nested position template, the baseline a current-vs-template stat
   // diff compares against. Optional for the same reason, and its own
   // characteristics are optional within it: TP's catalog entries are not
@@ -365,6 +383,8 @@ export class RosterParserService {
         fallbackPositionName: entry.position,
         isBigGuy: entry.isBigGuy ?? false,
         totalStarPlayerPoints: entry.totalStarPlayerPoints,
+        state: entry.state,
+        isActive: entry.isActive,
         careerCounts: this.careerCounts(entry),
         characteristics: this.playerCharacteristics(entry),
         lastingInjuries: this.lastingInjuries(entry),

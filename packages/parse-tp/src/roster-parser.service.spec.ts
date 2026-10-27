@@ -849,4 +849,72 @@ describe('RosterParserService', () => {
 
     expect(roster.players[0].skills).toBeUndefined();
   });
+
+  describe('state and isActive', () => {
+    it("keeps a lineUp entry's state and isActive", () => {
+      const roster = service.parse(
+        rosterBody({ lineUps: [lineUp({ state: 1, isActive: true })] }),
+      );
+
+      expect(roster.players[0].state).toBe(1);
+      expect(roster.players[0].isActive).toBe(true);
+    });
+
+    it('leaves both undefined when the entry carries neither', () => {
+      const roster = service.parse(rosterBody({ lineUps: [lineUp()] }));
+
+      expect(roster.players[0].state).toBeUndefined();
+      expect(roster.players[0].isActive).toBeUndefined();
+    });
+
+    it('rejects a negative state, naming the field', () => {
+      expect(() =>
+        service.parse(rosterBody({ lineUps: [lineUp({ state: -1 })] })),
+      ).toThrow(/lineUps\.0\.state/);
+    });
+
+    it('rejects a fractional state, naming the field', () => {
+      expect(() =>
+        service.parse(rosterBody({ lineUps: [lineUp({ state: 1.5 })] })),
+      ).toThrow(/lineUps\.0\.state/);
+    });
+
+    it('rejects a non-boolean isActive, naming the field', () => {
+      expect(() =>
+        service.parse(rosterBody({ lineUps: [lineUp({ isActive: 'yes' })] })),
+      ).toThrow(/lineUps\.0\.isActive/);
+    });
+
+    it('reads a real temporarily retired player still listed on the roster', () => {
+      // Trimmed from TP roster 179572 (Halfling team), lineUp 2616691, as TP
+      // returned it after the feed reported the player temporarily retired:
+      // still listed and active, with the 8192 bit set alongside 4096 and 1.
+      const drekavac = {
+        id: 2616691,
+        name: 'Drekavac the Undying',
+        number: 8,
+        lineUpMasterId: 969,
+        rosterId: 179572,
+        position: 'Halfling Hopeful',
+        isBigGuy: false,
+        totalStarPlayerPoints: 7,
+        state: 12289,
+        isActive: true,
+        nigglingInjuries: 0,
+        canPlayNextGame: false,
+      };
+
+      const roster = service.parse(
+        rosterBody({ id: 179572, lineUps: [drekavac] }),
+      );
+
+      expect(roster.players[0]).toMatchObject({
+        id: 2616691,
+        name: 'Drekavac the Undying',
+        state: 12289,
+        isActive: true,
+        lastingInjuries: { nigglingInjuries: 0, canPlayNextGame: false },
+      });
+    });
+  });
 });
