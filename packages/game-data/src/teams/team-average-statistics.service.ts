@@ -21,6 +21,8 @@ import type { MatchEventSelector } from '../shared/match-event-counts.service';
 import {
   CASUALTY_CAUSED_TYPES,
   CASUALTY_SUFFERED_TYPES,
+  DEATH_CAUSED_TYPES,
+  DEATH_SUFFERED_TYPES,
   LASTING_INJURY_SUFFERED_TYPES,
   SERIOUS_INJURY_CAUSED_TYPES,
   SERIOUS_INJURY_SUFFERED_TYPES,
@@ -206,6 +208,43 @@ export class TeamAverageStatisticsService {
       ...this.matchEventsOnSide({
         role: 'consequence',
         types: LASTING_INJURY_SUFFERED_TYPES,
+      }),
+      direction,
+      scope,
+      limit,
+    });
+  }
+
+  /**
+   * Opponents the team's players killed per match. Same type set as the
+   * deaths-caused total, so a foul that kills does not count.
+   */
+  averageDeathsCausedByTeam(
+    scope: FactScope,
+    direction: TeamAverageDirection,
+    limit: number,
+  ): Promise<TeamAverageRow[]> {
+    return this.averagePerMatchByTeam({
+      ...this.matchEventsOnSide({
+        role: 'acting',
+        types: DEATH_CAUSED_TYPES,
+      }),
+      direction,
+      scope,
+      limit,
+    });
+  }
+
+  /** The team's players killed per match, however they died. */
+  averageDeathsSufferedByTeam(
+    scope: FactScope,
+    direction: TeamAverageDirection,
+    limit: number,
+  ): Promise<TeamAverageRow[]> {
+    return this.averagePerMatchByTeam({
+      ...this.matchEventsOnSide({
+        role: 'consequence',
+        types: DEATH_SUFFERED_TYPES,
       }),
       direction,
       scope,

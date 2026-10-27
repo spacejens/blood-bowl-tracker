@@ -9,6 +9,8 @@ import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
 import {
   CASUALTY_CAUSED_TYPES,
   CASUALTY_SUFFERED_TYPES,
+  DEATH_CAUSED_TYPES,
+  DEATH_SUFFERED_TYPES,
   LASTING_INJURY_SUFFERED_TYPES,
   SERIOUS_INJURY_CAUSED_TYPES,
   SERIOUS_INJURY_SUFFERED_TYPES,
@@ -56,6 +58,8 @@ describe('TeamAverageStatisticsService', () => {
     'averageSeriousInjuriesCausedByTeam',
     'averageSeriousInjuriesSufferedByTeam',
     'averageLastingInjuriesSufferedByTeam',
+    'averageDeathsCausedByTeam',
+    'averageDeathsSufferedByTeam',
   ] as const)('%s', (method) => {
     it('returns the rows the query resolves to', async () => {
       const rows = [
@@ -244,6 +248,18 @@ describe('TeamAverageStatisticsService', () => {
       sideColumn: 'match_events.consequence_match_team_id',
       typeColumn: 'match_events.consequence_type',
       types: LASTING_INJURY_SUFFERED_TYPES,
+    },
+    {
+      method: 'averageDeathsCausedByTeam',
+      sideColumn: 'match_events.acting_match_team_id',
+      typeColumn: 'match_events.action_type',
+      types: DEATH_CAUSED_TYPES,
+    },
+    {
+      method: 'averageDeathsSufferedByTeam',
+      sideColumn: 'match_events.consequence_match_team_id',
+      typeColumn: 'match_events.consequence_type',
+      types: DEATH_SUFFERED_TYPES,
     },
   ] as const)(
     '$method counts this side’s events of the matching types per match',

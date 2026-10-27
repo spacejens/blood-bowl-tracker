@@ -3,7 +3,8 @@
 Per-match averages per team, backing the `/insights` team average top lists
 (see [`/insights`](../discord-bot/slash-commands/insights.md)). Today these
 are average touchdowns scored and conceded, casualties caused and suffered,
-serious injuries caused and suffered, and lasting injuries suffered, per match.
+serious injuries caused and suffered, lasting injuries suffered, and deaths
+caused and suffered, per match.
 
 Every such average is the same query, shaped by one input: the **per-side
 value** summed for each match the team played. The query divides that sum by
@@ -17,7 +18,7 @@ the team's number of distinct matches in scope. For the exact query, see
 - **Touchdowns conceded** — the summed final score of every _other_ side of
   the same match. A normal match has one opponent; a four-team merged final
   has three, and all of their touchdowns count as conceded.
-- **Casualties and injuries** — the number of this side's match events of
+- **Casualties, injuries and deaths** — the number of this side's match events of
   the right types. `match_events` is counted once per query into a
   pre-aggregated table of per-side counts, which is left-joined onto each
   side. Caused measures count events the team's players acted in
@@ -34,7 +35,11 @@ the team's number of distinct matches in scope. For the exact query, see
     through lasting injuries to death;
   - serious injuries suffered: consequences that outlast the match;
   - lasting injuries suffered: niggling injuries and characteristic
-    reductions.
+    reductions;
+  - deaths caused: death actions; like casualties caused, a foul that kills
+    does not count;
+  - deaths suffered: death consequences, however the player died, fouls
+    included.
 
 A match where the team recorded no such event counts as zero, so it still
 counts towards the matches played.
