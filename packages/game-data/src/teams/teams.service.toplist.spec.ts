@@ -84,6 +84,7 @@ describe('TeamsService toplist delegation', () => {
     'averageCasualtiesSufferedByTeam',
     'averageSeriousInjuriesCausedByTeam',
     'averageSeriousInjuriesSufferedByTeam',
+    'averageLastingInjuriesCausedByTeam',
     'averageLastingInjuriesSufferedByTeam',
     'averageDeathsCausedByTeam',
     'averageDeathsSufferedByTeam',
