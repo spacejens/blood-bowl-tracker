@@ -73,8 +73,8 @@ export class TpRosterPlayersImportService {
    * the caller defers it. Players carry only a TP external id (their
    * `lineUps[].id`), never a Name one: player names are not unique.
    * Every player's status is sent too, `null` when TP's data establishes
-   * none, so a re-import clears one the player no longer has; only a player
-   * the roster file lists can be active.
+   * none, so a re-import clears one the player no longer has; a roster file
+   * and a match snapshot count equally for deciding a player is active.
    */
   async importPlayers({
     roster,
@@ -85,7 +85,6 @@ export class TpRosterPlayersImportService {
     errors,
   }: ImportRosterPlayersOptions): Promise<TpRosterPlayersOutcome> {
     const merged = this.mergePlayers(roster.players, matchEmbeddedPlayers);
-    const listedIds = new Set(roster.players.map((player) => player.id));
     const catalogPositionIds = await this.positions.resolveCatalogPositions({
       players: merged,
       tpSystemId: context.tpSystemId,
@@ -111,7 +110,6 @@ export class TpRosterPlayersImportService {
       }
       const data = await this.buildPayload({
         player,
-        listed: listedIds.has(player.id),
         position,
         context,
         teamEraId,
@@ -238,7 +236,6 @@ export class TpRosterPlayersImportService {
    */
   private async buildPayload(options: {
     player: TpRosterPlayer;
-    listed: boolean;
     position: ResolvedPlayerPosition;
     context: TpRosterContext;
     teamEraId: number;
@@ -248,7 +245,6 @@ export class TpRosterPlayersImportService {
   }): Promise<UpsertPlayer> {
     const {
       player,
-      listed,
       position,
       context,
       teamEraId,
@@ -326,7 +322,6 @@ export class TpRosterPlayersImportService {
       status: this.status.forPlayer({
         state: player.state,
         isActive: player.isActive,
-        listed,
       }),
       externalIds: [
         { externalSystemId: context.tpSystemId, externalId: String(player.id) },

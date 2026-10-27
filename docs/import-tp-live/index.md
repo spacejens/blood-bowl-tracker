@@ -129,8 +129,8 @@ player's skills, and each player's status (active, dead, retired,
 temporarily retired or unknown), derived from TP's `state` and `isActive`
 exactly as the bulk import does (see
 [Player status](../import-tp/index.md#player-status)). A departed player
-added from a match snapshot gets a status from the snapshot too, but is
-never `active`. A team import also retires the team era's stored TP players
+added from a match snapshot gets a status from the snapshot too, decided
+the same way as a roster player's. A team import also retires the team era's stored TP players
 who are in neither the roster nor the snapshots, unless already dead, and does
 nothing of the kind when the roster lists no players (see the same section).
 

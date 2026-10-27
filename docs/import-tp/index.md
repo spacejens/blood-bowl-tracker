@@ -257,13 +257,15 @@ inferred to mean), checked in this order:
 2. bit 16 — `retired` (TP does not tell a fired player from a retired one, and
    a temporarily retired player who then left is retired);
 3. bit 8192 — `temporarily_retired`;
-4. listed in the standalone roster file with `isActive: true` — `active`;
+4. `isActive: true` — `active`;
 5. anything else — unknown. A missing `state` matches no bit in steps 1–3, so
-   a listed entry with `isActive: true` is still `active` at step 4.
+   an entry with `isActive: true` is still `active` at step 4.
 
-A player seen only in match snapshots is never `active`: only the roster file
-says who is currently on the roster. Their snapshot `state` still describes
-them as of the download, so a departed player is recorded as dead or retired.
+The source of the entry does not matter: a match snapshot is a download-time
+picture of the player just like a roster file. The bulk import reads only the
+first copy of each roster file, so players added to a team after that copy
+was downloaded are known only from snapshots, and their snapshot `state` and
+`isActive` are as trustworthy as a roster file's.
 
 The status is sent on every player upsert, unknown included (as `null`), so a
 re-import clears a status the player no longer has — one back from temporary

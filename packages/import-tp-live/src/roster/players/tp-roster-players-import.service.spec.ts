@@ -824,7 +824,7 @@ describe('TpRosterPlayersImportService', () => {
   });
 
   describe('status', () => {
-    it("decides a roster player's status as listed, from its own state and isActive", async () => {
+    it("decides a roster player's status from its own state and isActive", async () => {
       const service = await makeService((m) =>
         m.status.forPlayer.mockReturnValue('temporarily_retired'),
       );
@@ -836,34 +836,32 @@ describe('TpRosterPlayersImportService', () => {
       expect(mocks.status.forPlayer).toHaveBeenCalledWith({
         state: 12289,
         isActive: true,
-        listed: true,
       });
       expect(mocks.players.upsert.mock.calls[0][0]).toMatchObject({
         status: 'temporarily_retired',
       });
     });
 
-    it('decides a snapshot-only player as not listed', async () => {
+    it('sends an active snapshot-only player as active', async () => {
       const service = await makeService((m) =>
-        m.status.forPlayer.mockReturnValue('retired'),
+        m.status.forPlayer.mockReturnValue('active'),
       );
 
       await run(service, {
         players: [],
-        embedded: [rosterPlayer({ id: 5009, state: 16, isActive: false })],
+        embedded: [rosterPlayer({ id: 5009, state: 4096, isActive: true })],
       });
 
       expect(mocks.status.forPlayer).toHaveBeenCalledWith({
-        state: 16,
-        isActive: false,
-        listed: false,
+        state: 4096,
+        isActive: true,
       });
       expect(mocks.players.upsert.mock.calls[0][0]).toMatchObject({
-        status: 'retired',
+        status: 'active',
       });
     });
 
-    it("treats a player in both sources as listed, using the roster file's fields", async () => {
+    it("decides a player in both sources from the roster file's fields", async () => {
       const service = await makeService();
 
       await run(service, {
@@ -875,7 +873,6 @@ describe('TpRosterPlayersImportService', () => {
       expect(mocks.status.forPlayer).toHaveBeenCalledWith({
         state: 1,
         isActive: true,
-        listed: true,
       });
     });
 
@@ -898,7 +895,6 @@ describe('TpRosterPlayersImportService', () => {
       expect(mocks.status.forPlayer).toHaveBeenCalledWith({
         state: undefined,
         isActive: undefined,
-        listed: true,
       });
     });
   });
