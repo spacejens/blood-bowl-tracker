@@ -56,6 +56,11 @@ in-process import code [`/importtp`](slash-commands/import-tp.md) uses:
 | New skill/characteristic, player hired, fired, temporarily retired | the affected team, from its roster page link                                                                                           |
 | Competition trophy announcement                                    | the whole competition, as `/importtp` imports its scores page: every completed match, TP's awards, and the trophies TP does not record |
 
+A team import records each player's current status, so the import triggered
+by a player-temporarily-retired notification records that player as
+temporarily retired, and a later import records them as active again once
+TP lists them as back.
+
 A trophy announcement is only a signal. It imports all of the competition's
 awards, not just the trophy it names. TP posts one per trophy, all at once.
 While one is still waiting to start, further announcements for the same

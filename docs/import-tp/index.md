@@ -245,6 +245,32 @@ The player import also consumes `matchEmbeddedPlayersByRosterId` from `main.ts`'
 - A player who has since left/been replaced on the roster (absent from the standalone `rosters_<id>.json` file) is therefore still imported.
 - `roster.players`' own data wins on conflict for a given id — see [file-format-rosters.md](./file-format-rosters.md) for why.
 
+#### Player status
+
+Each player's status (`active`, `dead`, `retired`, `temporarily_retired`) is
+derived by `TpPlayerStatusService` from the `lineUps[]` entry's `state`
+bitmask and `isActive` flag (see
+[file-format-rosters.md](./file-format-rosters.md) for what the bits are
+inferred to mean), checked in this order:
+
+1. bit 8 — `dead`;
+2. bit 16 — `retired` (TP does not tell a fired player from a retired one, and
+   a temporarily retired player who then left is retired);
+3. bit 8192 — `temporarily_retired`;
+4. listed in the standalone roster file with `isActive: true` — `active`;
+5. anything else, including an entry without `state` — unknown.
+
+A player seen only in match snapshots is never `active`: only the roster file
+says who is currently on the roster. Their snapshot `state` still describes
+them as of the download, so a departed player is recorded as dead or retired.
+
+The status is sent on every player upsert, unknown included (as `null`), so a
+re-import clears a status the player no longer has — an `active` player who
+has since left becomes `retired`, and one back from temporary retirement
+becomes `active` again. A star player hired through an `inducements_roll`
+event has no `lineUps[]` entry, so no status is sent for them and theirs
+stays unknown.
+
 #### Current lasting injuries
 
 A roster player's current lasting injuries come from three places.
