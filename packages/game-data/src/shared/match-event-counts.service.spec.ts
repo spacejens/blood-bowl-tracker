@@ -137,6 +137,37 @@ describe('MatchEventCountsService', () => {
       ]);
     });
 
+    it('also filters the consequence on the same row when an acting selector names consequence types', async () => {
+      const { chains } = await build([]);
+      await service.countMatchEventsByTeam({
+        selector: {
+          role: 'acting',
+          types: ['serious_injury'],
+          consequenceTypes: ['niggling_injury'],
+        },
+        scope: { leagueId: 9 },
+        limit: 21,
+      });
+      // Still grouped by the acting side.
+      expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
+      ).toEqual(['match_teams.id', 'match_events.acting_match_team_id']);
+      expect(chains[0].where).toHaveBeenCalledTimes(1);
+      const where = firstCallArg(chains[0].where);
+      // Action types, then consequence types, then the scope.
+      expect(extractAllFilterValues(where)).toEqual([
+        'serious_injury',
+        'niggling_injury',
+        9,
+      ]);
+      expect(extractJoinColumns(where)).toEqual([
+        'match_events.action_type',
+        'match_events.consequence_type',
+        'eras.league_id',
+      ]);
+    });
+
     it('applies the SQL limit to the query', async () => {
       const { chains } = await build([]);
       await service.countMatchEventsByTeam({

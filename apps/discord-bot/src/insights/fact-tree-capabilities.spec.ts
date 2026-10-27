@@ -29,6 +29,8 @@ const TEAM_AVERAGE_PATHS = [
   'team.toplist.injuries.serious.average.caused.ascending',
   'team.toplist.injuries.serious.average.suffered.descending',
   'team.toplist.injuries.serious.average.suffered.ascending',
+  'team.toplist.injuries.lasting.average.caused.descending',
+  'team.toplist.injuries.lasting.average.caused.ascending',
   'team.toplist.injuries.lasting.average.suffered.descending',
   'team.toplist.injuries.lasting.average.suffered.ascending',
   'team.toplist.deaths.average.caused.descending',
@@ -118,6 +120,10 @@ describe('buildFactTree competition capabilities', () => {
         ),
         factTreeNavigation.resolvePath(
           tree,
+          'team.toplist.injuries.lasting.caused',
+        ),
+        factTreeNavigation.resolvePath(
+          tree,
           'team.toplist.injuries.lasting.suffered',
         ),
         factTreeNavigation.resolvePath(tree, 'team.toplist.deaths.caused'),
@@ -168,7 +174,7 @@ describe('buildFactTree competition capabilities', () => {
         factTreeNavigation.resolvePath(tree, 'date.onThisDate'),
       ]),
     );
-    expect(supported).toHaveLength(33);
+    expect(supported).toHaveLength(34);
   });
 
   it('excludes the coach fouls toplist from competition filtering', () => {
@@ -307,7 +313,7 @@ describe('buildFactTree match category capabilities', () => {
     const supported = factTreeNavigation
       .collectLeaves(tree)
       .filter((leaf) => leaf.supportsMatchCategory);
-    expect(supported).toHaveLength(68);
+    expect(supported).toHaveLength(71);
   });
 
   it('supports the match category on leaves that do not support a competition', () => {

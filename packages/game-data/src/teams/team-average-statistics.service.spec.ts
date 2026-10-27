@@ -57,6 +57,7 @@ describe('TeamAverageStatisticsService', () => {
     'averageCasualtiesSufferedByTeam',
     'averageSeriousInjuriesCausedByTeam',
     'averageSeriousInjuriesSufferedByTeam',
+    'averageLastingInjuriesCausedByTeam',
     'averageLastingInjuriesSufferedByTeam',
     'averageDeathsCausedByTeam',
     'averageDeathsSufferedByTeam',
@@ -292,4 +293,32 @@ describe('TeamAverageStatisticsService', () => {
       expect(extractJoinColumns(on)).toEqual(['match_teams.id']);
     },
   );
+
+  it('averageLastingInjuriesCausedByTeam counts this side’s casualty actions whose own row carries a lasting consequence', async () => {
+    const { db, chains } = await build([]);
+    await service.averageLastingInjuriesCausedByTeam(
+      FACT_SCOPE_ALL_TIME,
+      'desc',
+      21,
+    );
+    expect(sqlText(selectedAverage(db))).toContain(
+      'round(sum(coalesce(side_event_counts.event_count, 0))::numeric',
+    );
+
+    expect(chains[0].leftJoin).toHaveBeenCalledTimes(1);
+    const derivedTable = firstCallArg(chains[0].leftJoin, 0, 0);
+    // Two `in` filters joined by `and`: action first, then consequence.
+    expect(sqlText(derivedTable)).toContain('where (( in ) and ( in )) group');
+    // Grouped by the acting side; filtered on the action and the consequence.
+    expect(extractJoinColumns(derivedTable)).toEqual([
+      'match_events.acting_match_team_id',
+      'match_events.action_type',
+      'match_events.consequence_type',
+      'match_events.acting_match_team_id',
+    ]);
+    expect(extractAllFilterValues(derivedTable)).toEqual([
+      ...CASUALTY_CAUSED_TYPES,
+      ...LASTING_INJURY_SUFFERED_TYPES,
+    ]);
+  });
 });

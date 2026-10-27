@@ -714,6 +714,147 @@ describe('TeamAverageStatisticsService (real Postgres)', () => {
     });
   });
 
+  describe('lasting injuries caused averages', () => {
+    // In each of five matches against Bravo, Alpha records: a casualty action
+    // that leaves Bravo's player with a niggling injury (one row: counts);
+    // a foul that reduces a Bravo player's AV (not caused, still suffered); a
+    // serious injury that only misses the next game (not lasting); and a
+    // self-inflicted niggling injury on its own player (no causer). Alpha
+    // also plays five event-free matches against Charlie. Delta inflicts a
+    // lasting injury on Charlie in each of only four matches, below the
+    // floor. Charlie is seeded before Bravo so ids run opposite to name order
+    // and only the name tie-break orders their equal averages.
+    beforeEach(async () => {
+      const league = await seedLeague(db, 'One');
+      const alpha = await joinEra(
+        db,
+        await seedTeam(db, 'Alpha'),
+        league.eraId,
+      );
+      const charlie = await joinEra(
+        db,
+        await seedTeam(db, 'Charlie'),
+        league.eraId,
+      );
+      const bravo = await joinEra(
+        db,
+        await seedTeam(db, 'Bravo'),
+        league.eraId,
+      );
+      const delta = await joinEra(
+        db,
+        await seedTeam(db, 'Delta'),
+        league.eraId,
+      );
+      await playMatches(db, {
+        count: 5,
+        competitionId: league.competitionId,
+        sides: [
+          {
+            teamEraId: alpha,
+            score: 1,
+            events: [
+              {
+                actionType: 'serious_injury',
+                consequenceType: 'niggling_injury',
+                victimSide: 1,
+              },
+              {
+                actionType: 'foul',
+                consequenceType: 'stat_reduction_av',
+                victimSide: 1,
+              },
+              {
+                actionType: 'serious_injury',
+                consequenceType: 'miss_next_game',
+                victimSide: 1,
+              },
+              // self-inflicted: no action, so no acting side
+              { consequenceType: 'niggling_injury' },
+            ],
+          },
+          { teamEraId: bravo, score: 0 },
+        ],
+      });
+      await playMatches(db, {
+        count: 5,
+        competitionId: league.competitionId,
+        sides: [
+          { teamEraId: alpha, score: 0 },
+          { teamEraId: charlie, score: 0 },
+        ],
+      });
+      await playMatches(db, {
+        count: 4,
+        competitionId: league.competitionId,
+        sides: [
+          {
+            teamEraId: delta,
+            score: 0,
+            events: [
+              {
+                actionType: 'casualty',
+                consequenceType: 'stat_reduction_st',
+                victimSide: 1,
+              },
+            ],
+          },
+          { teamEraId: charlie, score: 0 },
+        ],
+      });
+    });
+
+    it('averages lasting injuries caused over every match, highest first', async () => {
+      expect(
+        namesAndAverages(
+          await service.averageLastingInjuriesCausedByTeam(
+            FACT_SCOPE_ALL_TIME,
+            'desc',
+            10,
+          ),
+        ),
+      ).toEqual([
+        ['Alpha', 0.5],
+        ['Bravo', 0],
+        ['Charlie', 0],
+      ]);
+    });
+
+    it('ranks lasting injuries caused lowest first, ties by name', async () => {
+      expect(
+        namesAndAverages(
+          await service.averageLastingInjuriesCausedByTeam(
+            FACT_SCOPE_ALL_TIME,
+            'asc',
+            10,
+          ),
+        ),
+      ).toEqual([
+        ['Bravo', 0],
+        ['Charlie', 0],
+        ['Alpha', 0.5],
+      ]);
+    });
+
+    it('still counts the foul-caused and self-inflicted ones as suffered', async () => {
+      // Bravo: niggling + foul AV reduction per match = 10 / 5. Alpha: its
+      // self-inflicted niggling injury, 5 / 10. Charlie: Delta's 4 / 9.
+      expect(
+        namesAndAverages(
+          await service.averageLastingInjuriesSufferedByTeam(
+            FACT_SCOPE_ALL_TIME,
+            'desc',
+            10,
+          ),
+        ),
+      ).toEqual([
+        ['Bravo', 2],
+        ['Alpha', 0.5],
+        ['Charlie', 0.44],
+      ]);
+    });
+  });
+
   it('rounds the average to two decimals and returns it as a number', async () => {
     const league = await seedLeague(db, 'One');
     const x = await joinEra(db, await seedTeam(db, 'X Team'), league.eraId);

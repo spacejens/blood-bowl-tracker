@@ -3,8 +3,8 @@
 Per-match averages per team, backing the `/insights` team average top lists
 (see [`/insights`](../discord-bot/slash-commands/insights.md)). Today these
 are average touchdowns scored and conceded, casualties caused and suffered,
-serious injuries caused and suffered, lasting injuries suffered, and deaths
-caused and suffered, per match.
+serious injuries caused and suffered, lasting injuries caused and suffered,
+and deaths caused and suffered, per match.
 
 Every such average is the same query, shaped by one input: the **per-side
 value** summed for each match the team played. The query divides that sum by
@@ -24,7 +24,10 @@ the team's number of distinct matches in scope. For the exact query, see
   side. Caused measures count events the team's players acted in
   (`acting_match_team_id` and `action_type`); suffered measures count events
   whose victim belongs to the team (`consequence_match_team_id` and
-  `consequence_type`). The type sets are the ones the total-based team
+  `consequence_type`). Lasting injuries caused also filters
+  `consequence_type` on the same row as the action (see
+  [lasting injuries caused](match-event-counts.md#lasting-injuries-caused)).
+  The type sets are the ones the total-based team
   toplists use, so an average times the matches played matches the
   total-based figure up to rounding, over the same league, era and match
   category scope (the averages ignore competition scope):
@@ -34,6 +37,9 @@ the team's number of distinct matches in scope. For the exact query, see
   - casualties suffered: any casualty consequence, from a plain knock-out
     through lasting injuries to death;
   - serious injuries suffered: consequences that outlast the match;
+  - lasting injuries caused: any casualty action whose own row carries a
+    niggling injury or characteristic reduction; a foul does not count,
+    nor does an injury with no causer;
   - lasting injuries suffered: niggling injuries and characteristic
     reductions;
   - deaths caused: death actions; like casualties caused, a foul that kills

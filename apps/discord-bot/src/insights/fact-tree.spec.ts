@@ -17,10 +17,10 @@ beforeAll(async () => {
 });
 
 describe('buildFactTree', () => {
-  it('exposes exactly eighty-seven leaf facts', () => {
+  it('exposes exactly ninety leaf facts', () => {
     expect(
       factTreeNavigation.collectLeaves(buildFactTree(stubFactTreeDeps())),
-    ).toHaveLength(87);
+    ).toHaveLength(90);
   });
 
   it('wires coach.toplist.matches.played to CoachToplistService.resolveMatchesPlayed', async () => {
@@ -99,6 +99,16 @@ describe('buildFactTree', () => {
       'team.toplist.injuries.serious.average.suffered.ascending',
       'teamToplist',
       'resolveAverageSeriousInjuriesSufferedAscending',
+    ],
+    [
+      'team.toplist.injuries.lasting.average.caused.descending',
+      'teamToplist',
+      'resolveAverageLastingInjuriesCausedDescending',
+    ],
+    [
+      'team.toplist.injuries.lasting.average.caused.ascending',
+      'teamToplist',
+      'resolveAverageLastingInjuriesCausedAscending',
     ],
     [
       'team.toplist.injuries.lasting.average.suffered.descending',
@@ -451,6 +461,16 @@ describe('buildFactTree', () => {
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
     expect(d.teamToplist.resolveSeriousInjuriesSuffered).toHaveBeenCalled();
+  });
+
+  it('wires team.toplist.injuries.lasting.caused to TeamToplistService.resolveLastingInjuriesCaused', async () => {
+    const d = stubFactTreeDeps();
+    const leaf = factTreeNavigation.resolvePath(
+      buildFactTree(d),
+      'team.toplist.injuries.lasting.caused',
+    );
+    await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
+    expect(d.teamToplist.resolveLastingInjuriesCaused).toHaveBeenCalled();
   });
 
   it('wires team.toplist.injuries.lasting.suffered to TeamToplistService.resolveLastingInjuriesSuffered', async () => {
