@@ -22,12 +22,13 @@ describe('PlayerStatusStratificationService', () => {
   let service: PlayerStatusStratificationService;
   let dbResult: MockDbResult;
   let externalSystems: MockProxy<ExternalSystemLookupService>;
+  let query: MockProxy<PlayerProjectionQueryService>;
 
   beforeEach(async () => {
     dbResult = mockDb([row]);
     externalSystems = mock<ExternalSystemLookupService>();
     externalSystems.getSystemId.mockResolvedValue(9);
-    const query = mock<PlayerProjectionQueryService>();
+    query = mock<PlayerProjectionQueryService>();
     query.base.mockReturnValue(
       dbResult.db.select() as unknown as ReturnType<
         PlayerProjectionQueryService['base']
@@ -118,6 +119,8 @@ describe('PlayerStatusStratificationService', () => {
       limit: 5,
     });
 
+    expect(externalSystems.getSystemId).toHaveBeenCalledWith('tp');
+    expect(query.base).toHaveBeenCalledWith(9);
     expect(dbResult.chains[0].orderBy).toHaveBeenCalled();
     expect(dbResult.chains[0].limit).toHaveBeenCalledWith(5);
   });

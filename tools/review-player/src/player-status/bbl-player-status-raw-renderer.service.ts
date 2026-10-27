@@ -6,7 +6,10 @@ import { BblRawPlayerPageLoaderService } from '../source/bbl-raw-player-page-loa
 
 /**
  * The player's own header block: the name under the portrait, whose `<b>`
- * carries the player's status icons.
+ * carries the player's status icons. The selector is deliberately identical
+ * to the one the BBL importer uses, since it matches the documented page
+ * shape; the review therefore verifies the icons read from that block, not
+ * the choice of block.
  */
 const PLAYER_HEADER = 'div[style*="padding-bottom:1px"] > b';
 

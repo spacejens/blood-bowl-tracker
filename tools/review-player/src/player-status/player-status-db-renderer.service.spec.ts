@@ -1,9 +1,10 @@
 import { DB } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import type { SQL } from '@blood-bowl-tracker/db/test-helpers';
+import { mockDb, PgDialect } from '@blood-bowl-tracker/db/test-helpers';
 import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, type Mock } from 'vitest';
 
 import type { SampledPlayer } from '../shared/review.types';
 import { PlayerStatusDbRendererService } from './player-status-db-renderer.service';
@@ -118,5 +119,18 @@ describe('PlayerStatusDbRendererService', () => {
 
     expect(dbResult.chains[0].innerJoin).toHaveBeenCalledTimes(2);
     expect(dbResult.chains[0].where).toHaveBeenCalled();
+  });
+
+  it('computes eraEnded as an end date that is set and already past', async () => {
+    const dbResult = mockDb([storedRow()]);
+    const service = await makeService(dbResult);
+
+    await service.render(player);
+
+    const select = dbResult.db.select as unknown as Mock;
+    const fields = select.mock.calls[0][0] as { eraEnded: SQL };
+    const query = new PgDialect().sqlToQuery(fields.eraEnded);
+    expect(query.sql).toContain('"eras"."end_date" is not null');
+    expect(query.sql).toContain('"eras"."end_date" < current_date');
   });
 });

@@ -129,8 +129,10 @@ export interface TpRawPlayerAggregate {
   templateIsBigGuy: boolean | null;
   /**
    * `state` / `isActive` from the roster file entry that supplied this
-   * player's characteristics (the same winning roster snapshot). Null when no
-   * roster file carries the player, or the entry carries neither field.
+   * player's characteristics: the status of the roster snapshot already chosen
+   * for the characteristics, by that snapshot's own selection rule. Other
+   * roster files that disagree are not shown. Null when no roster file carries
+   * the player, or the entry carries neither field.
    */
   rosterStatus: TpRawStatusEntry | null;
   /**
@@ -172,6 +174,12 @@ interface RawCharacteristics {
   templatePositionTypes: number | null;
   templateIsBigGuy: boolean | null;
   status: TpRawStatusEntry | null;
+}
+
+/** Which match file a line-up entry was read from. */
+interface MatchSource {
+  matchId: number;
+  fileName: string;
 }
 
 /**
@@ -261,7 +269,10 @@ export class TpRawPlayerIndexService {
       return;
     }
     if (matched !== null) {
-      this.absorb(players, body, Number(matched[1]));
+      this.absorb(players, body, {
+        matchId: Number(matched[1]),
+        fileName: file.name,
+      });
     } else if (rosterMatch !== null) {
       this.absorbRoster(characteristics, body, file.name);
     }
@@ -303,11 +314,11 @@ export class TpRawPlayerIndexService {
   private absorb(
     players: Map<number, Accumulator>,
     file: unknown,
-    matchId: number,
+    source: MatchSource,
   ): void {
     for (const key of INSCRIPTION_KEYS) {
       for (const entry of this.lineUpsOf(file, key)) {
-        this.absorbLineUp(players, entry, matchId);
+        this.absorbLineUp(players, entry, source);
       }
     }
     for (const event of this.arrayProperty(file, 'matchEvents')) {
@@ -323,8 +334,9 @@ export class TpRawPlayerIndexService {
   private absorbLineUp(
     players: Map<number, Accumulator>,
     entry: unknown,
-    matchId: number,
+    source: MatchSource,
   ): void {
+    const { matchId, fileName } = source;
     const id = this.property(entry, 'id');
     const name = this.property(entry, 'name');
     if (typeof id !== 'number' || typeof name !== 'string') {
@@ -370,7 +382,7 @@ export class TpRawPlayerIndexService {
       player.position = typeof position === 'string' ? position : 'unknown';
       player.totalStarPlayerPoints = typeof total === 'number' ? total : null;
     }
-    const status = this.statusOf(entry, `match_${matchId}.json`);
+    const status = this.statusOf(entry, fileName);
     if (status !== null && matchId >= player.latestStatusMatchId) {
       player.latestStatusMatchId = matchId;
       player.matchStatus = status;

@@ -139,9 +139,9 @@ tools/
   review-player/      — NestJS CLI application that renders raw BBL and TP
                         source data beside imported player records (identity,
                         SPP totals, characteristics, lasting injuries,
-                        advancements, keywords and status) as a
-                        static HTML report; sibling of review-match, likewise a
-                        developer review aid
+                        advancements, keywords and status) as a static HTML
+                        report; sibling of review-match, likewise a developer
+                        review aid
   review-race/        — NestJS CLI application that renders raw BBL, TP and
                         hand-curated source data beside imported races,
                         position availability and per-rules-set position
