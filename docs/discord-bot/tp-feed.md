@@ -163,11 +163,13 @@ Both channel variables are optional and are documented in
   feature is entirely off.
 - `TP_FEED_DEBUG_DISCORD_CHANNEL_ID` — the channel the interpretations, the
   notices about notifications that did not parse, and failed imports are
-  posted to. Left unset, notifications are still parsed and (while
-  `TP_SCRAPING_ENABLED` is `true`) imported, and
-  unrecognised shapes and failed imports are still logged, but nothing is
-  posted. Because this is diagnostic output, point it at a
-  maintainer channel rather than one real members read.
+  posted to. The player deepdive also posts a bug report here when a player
+  killed in match events has a stored status that contradicts it (see
+  [deepdive embeds](slash-commands/deepdive-embeds.md#status)). Left unset,
+  notifications are still parsed and (while `TP_SCRAPING_ENABLED` is `true`)
+  imported, and unrecognised shapes, failed imports and status conflicts are
+  still logged, but nothing is posted. Because this is diagnostic output,
+  point it at a maintainer channel rather than one real members read.
 
 The feed's imports also obey the bot's mandatory `TP_SCRAPING_ENABLED` switch
 (see [Configure the application](index.md#4-configure-the-application)).

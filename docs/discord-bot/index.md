@@ -124,9 +124,11 @@ Configuration is supplied through an environment file in the app directory.
      entirely off. See [TP notification feed](tp-feed.md).
    - `TP_FEED_DEBUG_DISCORD_CHANNEL_ID` — optional, and unset by default. The
      channel the bot echoes its one-line interpretation of each parsed TP
-     notification to. Left unset, notifications are still parsed and
-     unrecognised shapes still logged, but nothing is posted. This is
-     diagnostic output, so it belongs in a maintainer channel.
+     notification to, and posts bug reports to when a player deepdive finds
+     a killed player whose stored status contradicts the kill. Left unset,
+     notifications are still parsed and unrecognised shapes and status
+     conflicts still logged, but nothing is posted. This is diagnostic
+     output, so it belongs in a maintainer channel.
    - `API_TOKEN_IMPORT_BBL`, `API_TOKEN_IMPORT_TP`, `API_TOKEN_IMPORT_MANUAL`
      — the bearer tokens the API accepts on `/rpc`, one per importer tool
      (`tools/import-bbl`, `tools/import-tp`, `tools/import-manual`). Any
