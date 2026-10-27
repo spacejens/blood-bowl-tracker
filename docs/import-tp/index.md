@@ -258,7 +258,8 @@ inferred to mean), checked in this order:
    a temporarily retired player who then left is retired);
 3. bit 8192 — `temporarily_retired`;
 4. listed in the standalone roster file with `isActive: true` — `active`;
-5. anything else, including an entry without `state` — unknown.
+5. anything else — unknown. A missing `state` matches no bit in steps 1–3, so
+   a listed entry with `isActive: true` is still `active` at step 4.
 
 A player seen only in match snapshots is never `active`: only the roster file
 says who is currently on the roster. Their snapshot `state` still describes
