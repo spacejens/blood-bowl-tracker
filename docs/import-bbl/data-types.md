@@ -108,6 +108,14 @@ false` is reached only through `teamCodeOverrides`/`playerIdOverrides`. Its
   characteristics line cannot be read fails page parsing outright and is
   skipped with a recorded error, as is one whose era names a rules set that was
   not imported.
+  Its `status` is read from the icons in the page's player header: `dead` for
+  the cross icon, `retired` for the retired icon, `temporarily_retired` for
+  the `retire.png` icon, and `active` when none is present, since BBL marks a
+  player only once their status changes. When several icons are present, dead
+  wins over retired, which wins over temporarily retired. The status is sent
+  on every run, so a re-run updates an existing player's status. A page
+  without the player header block fails page parsing outright and is skipped
+  with a recorded error.
   Imported after rules sets, teams, team eras, and positions (all referenced).
 - **Competitions** — from the master competition dropdown on the `se`/`sr`
   pages (id/name) plus each competition's `p=ma&so=s&s=<id>` match-list page

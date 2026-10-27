@@ -61,7 +61,9 @@ export class BblPlayersImportService {
    * that declares no Passing characteristic receives a null Passing rather
    * than the value BBL's BB2020 migration wrote onto most players, and a
    * rules set that writes Agility/Armour as bare numbers receives those two
-   * converted out of BBL's BB2020 notation.
+   * converted out of BBL's BB2020 notation. Each player's status
+   * (active/dead/retired/temporarily retired, from their page header) is sent
+   * too.
    */
   async importPlayers({
     teamsByCode,
@@ -216,7 +218,7 @@ export class BblPlayersImportService {
           errors.push(
             this.importResults.error({
               item: { pid: page.params.pid },
-              message: `Failed to parse player page for pid "${page.params.pid}": missing pid, <h1>, position link, team link, or characteristics line.`,
+              message: `Failed to parse player page for pid "${page.params.pid}": missing pid, <h1>, player header, position link, team link, or characteristics line.`,
             }),
           );
           continue;
@@ -373,6 +375,9 @@ export class BblPlayersImportService {
             agilityIncreaseCount: player.characteristicIncreaseCounts.agility,
             passingIncreaseCount: player.characteristicIncreaseCounts.passing,
             armourIncreaseCount: player.characteristicIncreaseCounts.armour,
+            // Sent on every run, so a re-run updates an existing player's
+            // status (e.g. one who has died since the previous import).
+            status: player.status,
             rulesSetId: rulesSet.id,
             externalIds: [
               { externalSystemId: bblSystemId, externalId: player.pid },
