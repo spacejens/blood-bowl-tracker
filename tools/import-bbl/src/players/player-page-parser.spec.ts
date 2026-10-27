@@ -722,16 +722,14 @@ describe('PlayerPageParser status', () => {
   let parser: PlayerPageParser;
 
   beforeEach(async () => {
-    const normalizeText = mock<NormalizeExtractedTextService>();
-    normalizeText.normalize.mockImplementation((s: string) =>
-      s.replace(/\s+/g, ' ').trim(),
-    );
+    // NormalizeExtractedTextService is pure and dependency-free, so it is
+    // passed real rather than mocked with a copy of its algorithm.
     const moduleRef = await Test.createTestingModule({
       providers: [
         PlayerPageParser,
         SustainedInjuriesParser,
         SkillEntryService,
-        { provide: NormalizeExtractedTextService, useValue: normalizeText },
+        NormalizeExtractedTextService,
       ],
     }).compile();
     parser = moduleRef.get(PlayerPageParser);
