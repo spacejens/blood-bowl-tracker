@@ -18,8 +18,8 @@ the team's number of distinct matches in scope. For the exact query, see
 - **Touchdowns conceded** — the summed final score of every _other_ side of
   the same match. A normal match has one opponent; a four-team merged final
   has three, and all of their touchdowns count as conceded.
-- **Casualties, injuries and deaths** — the number of this side's match events of
-  the right types. `match_events` is counted once per query into a
+- **Casualties, injuries and deaths** — the number of this side's match events
+  of the right types. `match_events` is counted once per query into a
   pre-aggregated table of per-side counts, which is left-joined onto each
   side. Caused measures count events the team's players acted in
   (`acting_match_team_id` and `action_type`); suffered measures count events
