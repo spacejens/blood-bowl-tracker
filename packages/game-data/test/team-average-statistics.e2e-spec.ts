@@ -769,6 +769,7 @@ describe('TeamAverageStatisticsService (real Postgres)', () => {
                 consequenceType: 'miss_next_game',
                 victimSide: 1,
               },
+              // self-inflicted: no action, so no acting side
               { consequenceType: 'niggling_injury' },
             ],
           },

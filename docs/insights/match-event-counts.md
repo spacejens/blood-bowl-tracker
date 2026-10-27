@@ -6,7 +6,9 @@ backing the `/insights` top lists.
 Every such count is the same query shaped by three inputs: the **role** the counted entity played in
 the event (the acting side or the consequence side), the **set of event types** that count, and the
 **grouping entity** (player, team, or coach). Role and join columns co-vary: an acting-role count
-joins through the acting columns, a consequence-role count through the consequence columns.
+joins through the acting columns, a consequence-role count through the consequence columns. An
+acting-role count may also narrow on the consequence recorded on the same row (see
+[lasting injuries caused](#lasting-injuries-caused)).
 
 For the exact query shape behind all of these — which columns each role joins
 through, and how the grouping and filters are applied — see
@@ -59,8 +61,10 @@ This gives three accepted differences from the other caused counts:
    A count that filters on the action alone sees the merged row by its
    action severity; lasting injuries caused never counts it, since
    `casualty_avoided` is not a lasting consequence.
-3. Summed over all teams, lasting injuries caused is lower than lasting
-   injuries suffered by exactly the foul-caused and unattributable rows.
+3. Summed over all teams, lasting injuries caused is usually lower than
+   lasting injuries suffered, mainly because of the foul-caused and
+   unattributable rows (and any lasting consequence recorded against a
+   non-casualty action). This is not an invariant.
 
 ## Date-scoped counts
 

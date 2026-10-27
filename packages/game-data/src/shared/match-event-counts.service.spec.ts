@@ -161,12 +161,11 @@ describe('MatchEventCountsService', () => {
         'niggling_injury',
         9,
       ]);
-      expect(extractJoinColumns(where)).toEqual(
-        expect.arrayContaining([
-          'match_events.action_type',
-          'match_events.consequence_type',
-        ]),
-      );
+      expect(extractJoinColumns(where)).toEqual([
+        'match_events.action_type',
+        'match_events.consequence_type',
+        'eras.league_id',
+      ]);
     });
 
     it('applies the SQL limit to the query', async () => {

@@ -307,7 +307,8 @@ describe('TeamAverageStatisticsService', () => {
 
     expect(chains[0].leftJoin).toHaveBeenCalledTimes(1);
     const derivedTable = firstCallArg(chains[0].leftJoin, 0, 0);
-    expect(sqlText(derivedTable)).toContain(' and ');
+    // Two `in` filters joined by `and`: action first, then consequence.
+    expect(sqlText(derivedTable)).toContain('where (( in ) and ( in )) group');
     // Grouped by the acting side; filtered on the action and the consequence.
     expect(extractJoinColumns(derivedTable)).toEqual([
       'match_events.acting_match_team_id',
