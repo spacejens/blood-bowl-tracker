@@ -26,7 +26,7 @@ import { ToplistFactoryService } from './toplist-factory.service';
  * take fewer parameters than the (eraId?, competitionId?) shape the factory
  * binds to, but a function accepting fewer optional parameters is still
  * assignable to one expecting more, so `ScopedCountMethods<TeamsService>`
- * would otherwise include them too. Naming the 14 uniform methods explicitly
+ * would otherwise include them too. Naming the 15 uniform methods explicitly
  * keeps those three out and still gets checked against `ScopedCountMethods`
  * via `satisfies` below, so a genuinely mismatched entry still fails to
  * compile.
@@ -38,6 +38,7 @@ const _teamToplistMethods = [
   'countDeflectionsByTeam',
   'countCasualtiesCausedByTeam',
   'countSeriousInjuriesCausedByTeam',
+  'countLastingInjuriesCausedByTeam',
   'countDeathsCausedByTeam',
   'countFoulsCommittedByTeam',
   'countTimesSentOffByTeam',
@@ -69,6 +70,7 @@ type TeamAverageMethod =
   | 'averageCasualtiesSufferedByTeam'
   | 'averageSeriousInjuriesCausedByTeam'
   | 'averageSeriousInjuriesSufferedByTeam'
+  | 'averageLastingInjuriesCausedByTeam'
   | 'averageLastingInjuriesSufferedByTeam'
   | 'averageDeathsCausedByTeam'
   | 'averageDeathsSufferedByTeam';
@@ -104,6 +106,7 @@ export class TeamToplistService {
         countDeflectionsByTeam: 'Teams by deflections',
         countCasualtiesCausedByTeam: 'Teams by casualties inflicted',
         countSeriousInjuriesCausedByTeam: 'Teams by serious injuries inflicted',
+        countLastingInjuriesCausedByTeam: 'Teams by lasting injuries inflicted',
         countDeathsCausedByTeam: 'Teams by opponents killed',
         countFoulsCommittedByTeam: 'Teams by fouls committed',
         countTimesSentOffByTeam: 'Teams by times sent off',
@@ -162,6 +165,10 @@ export class TeamToplistService {
 
   resolveSeriousInjuriesCaused(scope: FactScope) {
     return this.resolvers.countSeriousInjuriesCausedByTeam(this.teams, scope);
+  }
+
+  resolveLastingInjuriesCaused(scope: FactScope) {
+    return this.resolvers.countLastingInjuriesCausedByTeam(this.teams, scope);
   }
 
   resolveDeathsCaused(scope: FactScope) {
@@ -455,6 +462,28 @@ export class TeamToplistService {
     return this.resolveAverageToplist({
       measure: 'serious injuries suffered',
       method: 'averageSeriousInjuriesSufferedByTeam',
+      scope,
+      direction: 'asc',
+    });
+  }
+
+  resolveAverageLastingInjuriesCausedDescending(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageToplist({
+      measure: 'lasting injuries caused',
+      method: 'averageLastingInjuriesCausedByTeam',
+      scope,
+      direction: 'desc',
+    });
+  }
+
+  resolveAverageLastingInjuriesCausedAscending(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageToplist({
+      measure: 'lasting injuries caused',
+      method: 'averageLastingInjuriesCausedByTeam',
       scope,
       direction: 'asc',
     });
