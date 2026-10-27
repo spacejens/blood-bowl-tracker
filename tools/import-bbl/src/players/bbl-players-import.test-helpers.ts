@@ -269,6 +269,7 @@ export const goodPlayer: BblPlayer = {
     passing: 0,
     armour: 0,
   },
+  status: 'active',
 };
 
 /**

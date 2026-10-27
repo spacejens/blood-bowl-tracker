@@ -66,6 +66,22 @@ value shown is not evidence about whether the player's rules set has Passing
 at all. The positions import also reads these pages, to resolve the race of a
 position whose `pt` page lists none.
 
+The player's name appears a second time in a header block under the
+portrait, `<div style="…;padding-bottom:1px"><b>Name</b></div>`, and the
+`<b>` also carries the player's status icons:
+`<img src='gfx/cross.gif' alt='dead'>` for a dead player,
+`<img src='gfx/retired.gif' alt='retired'>` for a retired one,
+`<img src='https://bloodbowlleague.com/gfx/retire.png' alt='Temporarily retired'>`
+for a temporarily retired one, and none for an active one (BBL marks a player
+only once their status changes). If several icons are present, dead wins over
+retired, which wins over temporarily retired. A bounty icon (`gfx/bounty.gif`,
+`alt='Bounty of <N> kgp'`) can share the block and is not a status. Only icons
+inside this block count: the same cross and retired icons also appear on links
+to other players elsewhere on the page (for example a killer named in a match
+report), and a retired team is marked by `gfx/retiredteam.gif` beside the team
+link. Every `pl` page in the reference dataset has exactly one such header
+block. Only one page (pid 5263) carries the temporarily-retired icon.
+
 Note on `se`/`sr` pages: `default.asp?p=se&s=<id>` ("played"/archived
 competitions) and `default.asp?p=sr&s=<id>` (current standings) share one
 numeric id space. Every `se`/`sr` page embeds the identical master dropdown

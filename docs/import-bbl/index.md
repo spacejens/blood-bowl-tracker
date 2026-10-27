@@ -212,8 +212,9 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   "(no effect)" is not counted — it means the rules absorbed the reduction, so
   the stored characteristic never moved — and it is not read as a
   miss-next-game either, since BBL prints that line itself whenever one applies.
-  The death marker is ignored: death is not modelled as a lasting injury. A page
-  with no such row is read as an uninjured player, not a parse failure.
+  The death marker is ignored here: death is not modelled as a lasting injury,
+  but as the player's status (below). A page with no such row is read as an
+  uninjured player, not a parse failure.
 
   The player page's Skills cell is read alongside the characteristics line. A
   plain entry is a starting skill; a coloured (green) entry is one gained via
@@ -226,6 +227,17 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   rendered in the same gained colour as a real skill; each is excluded from
   the skill list (no `advancementOrder` slot consumed) and instead counted
   directly, one count per characteristic, sent with every player.
+
+  The player's status comes from the icons inside the `<b>` of the page's
+  player header (the name block under the portrait): the cross icon is
+  `dead`, the retired icon is `retired`, the `retire.png` icon is
+  `temporarily_retired`, and no icon is `active`. Precedence is dead, then
+  retired, then temporarily retired. Icons elsewhere on the page belong to
+  links to other players and are ignored. A page without the header block
+  fails parsing like one without a name or team link, which also drops it
+  from the positions step's pre-scan of player pages without a recorded error.
+  A player on a retired team with no icon of their own is still `active`: the
+  team's `retiredteam.gif` marker says nothing about the player.
 
   A final step after the match-events step backfills lasting-injury history for
   the players this run inserted. See "Lasting-injury history backfill" in

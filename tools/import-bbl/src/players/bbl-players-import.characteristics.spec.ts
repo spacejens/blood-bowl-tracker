@@ -162,7 +162,7 @@ describe('BblPlayersImportService characteristics', () => {
       {
         item: { pid: '77' },
         message:
-          'Failed to parse player page for pid "77": missing pid, <h1>, position link, team link, or characteristics line.',
+          'Failed to parse player page for pid "77": missing pid, <h1>, player header, position link, team link, or characteristics line.',
       },
     ]);
   });
