@@ -73,6 +73,36 @@ export function stubFactTreeDeps(): FactTreeDeps {
   teamToplist.resolveCasualtiesSuffered.mockResolvedValue(
     'team casualties suffered',
   );
+  teamToplist.resolveAverageCasualtiesCausedDescending.mockResolvedValue(
+    'team average casualties caused, highest first',
+  );
+  teamToplist.resolveAverageCasualtiesCausedAscending.mockResolvedValue(
+    'team average casualties caused, lowest first',
+  );
+  teamToplist.resolveAverageCasualtiesSufferedDescending.mockResolvedValue(
+    'team average casualties suffered, highest first',
+  );
+  teamToplist.resolveAverageCasualtiesSufferedAscending.mockResolvedValue(
+    'team average casualties suffered, lowest first',
+  );
+  teamToplist.resolveAverageSeriousInjuriesCausedDescending.mockResolvedValue(
+    'team average serious injuries caused, highest first',
+  );
+  teamToplist.resolveAverageSeriousInjuriesCausedAscending.mockResolvedValue(
+    'team average serious injuries caused, lowest first',
+  );
+  teamToplist.resolveAverageSeriousInjuriesSufferedDescending.mockResolvedValue(
+    'team average serious injuries suffered, highest first',
+  );
+  teamToplist.resolveAverageSeriousInjuriesSufferedAscending.mockResolvedValue(
+    'team average serious injuries suffered, lowest first',
+  );
+  teamToplist.resolveAverageLastingInjuriesSufferedDescending.mockResolvedValue(
+    'team average lasting injuries suffered, highest first',
+  );
+  teamToplist.resolveAverageLastingInjuriesSufferedAscending.mockResolvedValue(
+    'team average lasting injuries suffered, lowest first',
+  );
   teamToplist.resolveSeriousInjuriesCaused.mockResolvedValue(
     'team serious injuries caused',
   );

@@ -2,7 +2,8 @@
 
 Per-match averages per team, backing the `/insights` team average top lists
 (see [`/insights`](../discord-bot/slash-commands/insights.md)). Today these
-are average touchdowns scored and conceded per match.
+are average touchdowns scored and conceded, casualties caused and suffered,
+serious injuries caused and suffered, and lasting injuries suffered, per match.
 
 Every such average is the same query, shaped by one input: the **per-side
 value** summed for each match the team played. The query divides that sum by
@@ -16,9 +17,31 @@ the team's number of distinct matches in scope. For the exact query, see
 - **Touchdowns conceded** — the summed final score of every _other_ side of
   the same match. A normal match has one opponent; a four-team merged final
   has three, and all of their touchdowns count as conceded.
+- **Casualties and injuries** — the number of this side's match events of
+  the right types. `match_events` is counted once per query into a
+  pre-aggregated table of per-side counts, which is left-joined onto each
+  side. Caused measures count events the team's players acted in
+  (`acting_match_team_id` and `action_type`); suffered measures count events
+  whose victim belongs to the team (`consequence_match_team_id` and
+  `consequence_type`). The type sets are the ones the total-based team
+  toplists use, so an average times the matches played matches the
+  total-based figure up to rounding, over the same league, era and match
+  category scope (the averages ignore competition scope):
+  - casualties caused: any casualty severity; a foul that injures does not
+    count, as Blood Bowl awards no casualty credit for a foul;
+  - serious injuries caused: serious-injury actions;
+  - casualties suffered: any casualty consequence, from a plain knock-out
+    through lasting injuries to death;
+  - serious injuries suffered: consequences that outlast the match;
+  - lasting injuries suffered: niggling injuries and characteristic
+    reductions.
 
-A new average (casualties, deaths, ...) adds only its per-side value; the
-division, floor, rounding, ordering and scope stay shared.
+A match where the team recorded no such event counts as zero, so it still
+counts towards the matches played.
+
+A new average adds only its per-side value (and, for event counts, the
+per-side join that value reads from); the division, floor, rounding, ordering
+and scope stay shared.
 
 ## Minimum matches
 

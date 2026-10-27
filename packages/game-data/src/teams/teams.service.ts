@@ -329,6 +329,70 @@ export class TeamsService {
     );
   }
 
+  /**
+   * Teams ranked by casualties inflicted per match. Same floor and scope as
+   * `averageTouchdownsScoredByTeam`.
+   */
+  averageCasualtiesCausedByTeam(
+    scope: FactScope,
+    direction: TeamAverageDirection,
+    limit: number,
+  ): Promise<TeamAverageRow[]> {
+    return this.averages.averageCasualtiesCausedByTeam(scope, direction, limit);
+  }
+
+  /** Teams ranked by casualties suffered per match. Same floor and scope. */
+  averageCasualtiesSufferedByTeam(
+    scope: FactScope,
+    direction: TeamAverageDirection,
+    limit: number,
+  ): Promise<TeamAverageRow[]> {
+    return this.averages.averageCasualtiesSufferedByTeam(
+      scope,
+      direction,
+      limit,
+    );
+  }
+
+  /** Teams ranked by serious injuries inflicted per match. Same floor and scope. */
+  averageSeriousInjuriesCausedByTeam(
+    scope: FactScope,
+    direction: TeamAverageDirection,
+    limit: number,
+  ): Promise<TeamAverageRow[]> {
+    return this.averages.averageSeriousInjuriesCausedByTeam(
+      scope,
+      direction,
+      limit,
+    );
+  }
+
+  /** Teams ranked by serious injuries suffered per match. Same floor and scope. */
+  averageSeriousInjuriesSufferedByTeam(
+    scope: FactScope,
+    direction: TeamAverageDirection,
+    limit: number,
+  ): Promise<TeamAverageRow[]> {
+    return this.averages.averageSeriousInjuriesSufferedByTeam(
+      scope,
+      direction,
+      limit,
+    );
+  }
+
+  /** Teams ranked by lasting injuries suffered per match. Same floor and scope. */
+  averageLastingInjuriesSufferedByTeam(
+    scope: FactScope,
+    direction: TeamAverageDirection,
+    limit: number,
+  ): Promise<TeamAverageRow[]> {
+    return this.averages.averageLastingInjuriesSufferedByTeam(
+      scope,
+      direction,
+      limit,
+    );
+  }
+
   countCompletionsByTeam(
     scope: FactScope,
     limit: number,

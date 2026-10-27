@@ -7,6 +7,13 @@ import { describe, expect, it } from 'vitest';
 
 import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
 import {
+  CASUALTY_CAUSED_TYPES,
+  CASUALTY_SUFFERED_TYPES,
+  LASTING_INJURY_SUFFERED_TYPES,
+  SERIOUS_INJURY_CAUSED_TYPES,
+  SERIOUS_INJURY_SUFFERED_TYPES,
+} from '../shared/match-event-types';
+import {
   extractAllFilterValues,
   extractJoinColumns,
   firstCallArg,
@@ -44,6 +51,11 @@ describe('TeamAverageStatisticsService', () => {
   describe.each([
     'averageTouchdownsScoredByTeam',
     'averageTouchdownsConcededByTeam',
+    'averageCasualtiesCausedByTeam',
+    'averageCasualtiesSufferedByTeam',
+    'averageSeriousInjuriesCausedByTeam',
+    'averageSeriousInjuriesSufferedByTeam',
+    'averageLastingInjuriesSufferedByTeam',
   ] as const)('%s', (method) => {
     it('returns the rows the query resolves to', async () => {
       const rows = [
@@ -159,6 +171,15 @@ describe('TeamAverageStatisticsService', () => {
     });
   });
 
+  it.each([
+    'averageTouchdownsScoredByTeam',
+    'averageTouchdownsConcededByTeam',
+  ] as const)('%s joins no per-side event counts', async (method) => {
+    const { chains } = await build([]);
+    await service[method](FACT_SCOPE_ALL_TIME, 'desc', 21);
+    expect(chains[0].leftJoin).not.toHaveBeenCalled();
+  });
+
   it('sums each side’s own score for touchdowns scored', async () => {
     const { db } = await build([]);
     await service.averageTouchdownsScoredByTeam(
@@ -192,4 +213,67 @@ describe('TeamAverageStatisticsService', () => {
       'matches.id',
     ]);
   });
+
+  it.each([
+    {
+      method: 'averageCasualtiesCausedByTeam',
+      sideColumn: 'match_events.acting_match_team_id',
+      typeColumn: 'match_events.action_type',
+      types: CASUALTY_CAUSED_TYPES,
+    },
+    {
+      method: 'averageSeriousInjuriesCausedByTeam',
+      sideColumn: 'match_events.acting_match_team_id',
+      typeColumn: 'match_events.action_type',
+      types: SERIOUS_INJURY_CAUSED_TYPES,
+    },
+    {
+      method: 'averageCasualtiesSufferedByTeam',
+      sideColumn: 'match_events.consequence_match_team_id',
+      typeColumn: 'match_events.consequence_type',
+      types: CASUALTY_SUFFERED_TYPES,
+    },
+    {
+      method: 'averageSeriousInjuriesSufferedByTeam',
+      sideColumn: 'match_events.consequence_match_team_id',
+      typeColumn: 'match_events.consequence_type',
+      types: SERIOUS_INJURY_SUFFERED_TYPES,
+    },
+    {
+      method: 'averageLastingInjuriesSufferedByTeam',
+      sideColumn: 'match_events.consequence_match_team_id',
+      typeColumn: 'match_events.consequence_type',
+      types: LASTING_INJURY_SUFFERED_TYPES,
+    },
+  ] as const)(
+    '$method counts this side’s events of the matching types per match',
+    async ({ method, sideColumn, typeColumn, types }) => {
+      const { db, chains } = await build([]);
+      await service[method](FACT_SCOPE_ALL_TIME, 'desc', 21);
+      const average = selectedAverage(db);
+      expect(sqlText(average)).toContain(
+        'round(sum(coalesce(side_event_counts.event_count, 0))::numeric',
+      );
+      expect(extractJoinColumns(average)).toEqual(['matches.id']);
+
+      expect(chains[0].leftJoin).toHaveBeenCalledTimes(1);
+      const derivedTable = firstCallArg(chains[0].leftJoin, 0, 0);
+      const derivedText = sqlText(derivedTable);
+      expect(derivedText).toMatch(
+        /^\(select .* as match_team_id, count\(\*\) as event_count from /,
+      );
+      expect(derivedText).toContain(' group by ');
+      expect(derivedText).toMatch(/\) as side_event_counts$/);
+      expect(extractJoinColumns(derivedTable)).toEqual([
+        sideColumn,
+        typeColumn,
+        sideColumn,
+      ]);
+      expect(extractAllFilterValues(derivedTable)).toEqual([...types]);
+
+      const on = firstCallArg(chains[0].leftJoin, 0, 1);
+      expect(sqlText(on)).toMatch(/^side_event_counts\.match_team_id = /);
+      expect(extractJoinColumns(on)).toEqual(['match_teams.id']);
+    },
+  );
 });

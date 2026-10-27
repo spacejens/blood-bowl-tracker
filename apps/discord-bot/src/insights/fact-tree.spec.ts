@@ -17,10 +17,10 @@ beforeAll(async () => {
 });
 
 describe('buildFactTree', () => {
-  it('exposes exactly seventy-three leaf facts', () => {
+  it('exposes exactly eighty-three leaf facts', () => {
     expect(
       factTreeNavigation.collectLeaves(buildFactTree(stubFactTreeDeps())),
-    ).toHaveLength(73);
+    ).toHaveLength(83);
   });
 
   it('wires coach.toplist.matches.played to CoachToplistService.resolveMatchesPlayed', async () => {
@@ -59,6 +59,56 @@ describe('buildFactTree', () => {
       'team.toplist.touchdowns.average.conceded.ascending',
       'teamToplist',
       'resolveAverageTouchdownsConcededAscending',
+    ],
+    [
+      'team.toplist.casualties.average.caused.descending',
+      'teamToplist',
+      'resolveAverageCasualtiesCausedDescending',
+    ],
+    [
+      'team.toplist.casualties.average.caused.ascending',
+      'teamToplist',
+      'resolveAverageCasualtiesCausedAscending',
+    ],
+    [
+      'team.toplist.casualties.average.suffered.descending',
+      'teamToplist',
+      'resolveAverageCasualtiesSufferedDescending',
+    ],
+    [
+      'team.toplist.casualties.average.suffered.ascending',
+      'teamToplist',
+      'resolveAverageCasualtiesSufferedAscending',
+    ],
+    [
+      'team.toplist.injuries.serious.average.caused.descending',
+      'teamToplist',
+      'resolveAverageSeriousInjuriesCausedDescending',
+    ],
+    [
+      'team.toplist.injuries.serious.average.caused.ascending',
+      'teamToplist',
+      'resolveAverageSeriousInjuriesCausedAscending',
+    ],
+    [
+      'team.toplist.injuries.serious.average.suffered.descending',
+      'teamToplist',
+      'resolveAverageSeriousInjuriesSufferedDescending',
+    ],
+    [
+      'team.toplist.injuries.serious.average.suffered.ascending',
+      'teamToplist',
+      'resolveAverageSeriousInjuriesSufferedAscending',
+    ],
+    [
+      'team.toplist.injuries.lasting.average.suffered.descending',
+      'teamToplist',
+      'resolveAverageLastingInjuriesSufferedDescending',
+    ],
+    [
+      'team.toplist.injuries.lasting.average.suffered.ascending',
+      'teamToplist',
+      'resolveAverageLastingInjuriesSufferedAscending',
     ],
     ['race.toplist.matches.won', 'raceToplist', 'resolveMatchesWon'],
     ['race.toplist.matches.lost', 'raceToplist', 'resolveMatchesLost'],
