@@ -51,20 +51,6 @@
       matchPackageNames: ['vitest', '@vitest/coverage-v8'],
     },
     {
-      // Coordinated release train: drizzle-kit declares drizzle-orm as a
-      // peer dependency (>=1.0.0-rc.5), and both are pinned to the same exact
-      // release candidate, so they must move together in one PR — bumping
-      // one alone would leave mismatched versions installed.
-      // respectLatest: false because the npm `latest` dist-tag of both
-      // packages is still the 0.x line (the 1.0 release candidates live
-      // under the `rc` tag), and Renovate's default respectLatest: true
-      // filters out versions newer than `latest`. Disabling it guarantees
-      // newer release candidates are always considered.
-      groupName: 'drizzle',
-      matchPackageNames: ['drizzle-orm', 'drizzle-kit'],
-      respectLatest: false,
-    },
-    {
       // Node stays fully owned by code-hygiene's Node version task: it keeps
       // .nvmrc, every Dockerfile FROM node:... line, and every workspace's
       // @types/node in lock-step, and understands LTS semantics for the
@@ -116,6 +102,35 @@
       matchManagers: ['npm'],
       matchUpdateTypes: ['patch', 'minor'],
       automerge: true,
+    },
+    {
+      // Coordinated release train: drizzle-kit declares drizzle-orm as a
+      // peer dependency (>=1.0.0-rc.5), and both are pinned to the same exact
+      // release candidate, so they must move together in one PR — bumping
+      // one alone would leave mismatched versions installed.
+      // respectLatest: false because the npm `latest` dist-tag of both
+      // packages is still the 0.x line (the 1.0 release candidates live
+      // under the `rc` tag), and Renovate's default respectLatest: true
+      // filters out versions newer than `latest`. Disabling it guarantees
+      // newer release candidates are always considered.
+      // allowedVersions admits only numbered releases: x.y.z, optionally
+      // followed by -alpha.N, -beta.N or -rc.N. drizzle also publishes
+      // build-hash snapshots such as 1.0.0-rc.5-ab785fc to npm, and semver
+      // ranks a non-numeric prerelease identifier above a numeric one, so a
+      // snapshot sorts above the release it was built from and even above
+      // the next numbered release candidate. Ordering alone cannot be relied
+      // on to avoid that, so the versions themselves are filtered.
+      // automerge: false because every bump of this pinned pre-release is a
+      // deliberate, reviewed change (see the drizzle notes in
+      // docs/architecture.md), even when Renovate classes it as a patch.
+      // This rule must stay below the npm patch/minor automerge rule: later
+      // packageRules override earlier ones, so above it this automerge:
+      // false would be overridden.
+      groupName: 'drizzle',
+      matchPackageNames: ['drizzle-orm', 'drizzle-kit'],
+      respectLatest: false,
+      allowedVersions: '/^\\d+\\.\\d+\\.\\d+(-(alpha|beta|rc)\\.\\d+)?$/',
+      automerge: false,
     },
     {
       // Majors get a longer soak than the repo-wide 1-day gate. A brand-new
