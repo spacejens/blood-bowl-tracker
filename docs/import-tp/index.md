@@ -258,8 +258,10 @@ inferred to mean), checked in this order:
    a temporarily retired player who then left is retired);
 3. bit 8192 — `temporarily_retired`;
 4. `isActive: true` — `active`;
-5. anything else — unknown. A missing `state` matches no bit in steps 1–3, so
-   an entry with `isActive: true` is still `active` at step 4.
+5. `isActive: false` — `retired`: a player leaves a team by dying or by being
+   fired or retired, and step 1 has ruled out dead;
+6. anything else (no `isActive`) — unknown. A missing `state` matches no bit
+   in steps 1–3, so an entry with `isActive` is still decided at step 4 or 5.
 
 The source of the entry does not matter: a match snapshot is a download-time
 picture of the player just like a roster file. The bulk import reads only the

@@ -28,10 +28,13 @@ export class TpPlayerStatusService {
    * establish one. Checked in order: dead, then left the roster (recorded as
    * retired, which also wins over a temporary retirement the player then
    * left from), then temporarily retired. A player with none of those bits
-   * is active when TP flags them active. A roster file and a match snapshot
+   * is active when TP flags them active, and retired when TP flags them
+   * inactive: a player leaves a team by dying or by being fired or retired,
+   * and the dead bit has been ruled out. A roster file and a match snapshot
    * are both download-time pictures of the player, so the source does not
    * matter. A missing `state` matches no bit, so it is treated like any
-   * other player with none of those bits.
+   * other player with none of those bits; a missing `isActive` establishes
+   * nothing.
    */
   forPlayer({ state, isActive }: TpPlayerStatusInput): PlayerStatus | null {
     if (this.hasBit(state, DEAD_BIT)) {
@@ -43,7 +46,10 @@ export class TpPlayerStatusService {
     if (this.hasBit(state, TEMPORARILY_RETIRED_BIT)) {
       return 'temporarily_retired';
     }
-    return isActive === true ? 'active' : null;
+    if (isActive === true) {
+      return 'active';
+    }
+    return isActive === false ? 'retired' : null;
   }
 
   /** Whether `state` has the single-bit flag `bit` set. */

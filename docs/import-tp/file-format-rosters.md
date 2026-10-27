@@ -86,6 +86,10 @@ number, lineUpMasterId, rosterId, fallbackPositionName, isBigGuy }`. `id` is
       in match snapshots (who also carry bit 16).
 
     Other bits (1, 4096, …) carry no known status meaning and are ignored.
+    One departed player in the downloaded data has `isActive: false` with
+    none of the bits above (`state` 4100, bit 4 on no other player, no `Dead`
+    event), so a departed player is recognised by `isActive: false`, not only
+    by bit 16.
     Both fields are optional to the parser: an entry without them parses as
     before. How they become a player's status is described in
     [index.md](./index.md#player-status).
