@@ -122,9 +122,10 @@ counts as ended. This is worked out each time the
 deepdive is shown, never stored.
 
 A death recorded in match events always wins over the stored status. A
-player killed in match events but stored as anything other than dead (or
-with no status) points at an import bug. The deepdive still shows the
-killed line, and the bot logs the conflict as an error. It also posts a bug
+player killed in match events whose stored status is set and is not dead
+points at an import bug. A killed player with no stored status is not a
+conflict and is not reported. The deepdive still shows the killed line in
+every case, and the bot logs a conflict as an error. It also posts a bug
 report naming the player's id, name and stored status to the
 [TP feed debug channel](../tp-feed.md#configuration), when one is
 configured. Each conflict (player and stored status) is reported once per
