@@ -889,6 +889,7 @@ describe('PlayersService', () => {
         10,
         'dead',
         5,
+        5,
         '101',
         '102',
       ]);
@@ -900,8 +901,24 @@ describe('PlayersService', () => {
         'players_external_ids.player_id',
         'players_external_ids.external_system_id',
         'players_external_ids.external_id',
+        'players_external_ids.player_id',
+        'players.id',
+        'players_external_ids.external_system_id',
+        'players_external_ids.external_id',
       ]);
-      expect(sqlText(where).toLowerCase()).toContain('not (');
+      const text = sqlText(where).toLowerCase();
+      expect(text).toContain('( is null)) or ( <> ))');
+      expect(text).not.toContain('or ( = ))');
+      expect(text).toContain('not exists');
+      expect(text).toContain('~');
+    });
+
+    it('only considers numeric lineUps ids, never a star hire id', async () => {
+      const { chains } = await build([]);
+      await service.retireAbsentExternalPlayers(options);
+      const where = firstCallArg(chains[0].where);
+      expect(extractAllFilterValues(where)).not.toContain('star-1-2');
+      expect(sqlText(where)).toContain(`( ~ '^[0-9]+$')`);
     });
 
     it('excludes no id when none are given', async () => {
@@ -914,7 +931,7 @@ describe('PlayersService', () => {
       ).resolves.toBe(0);
       const where = firstCallArg(chains[0].where);
       expect(extractAllFilterValues(where)).toEqual([10, 'dead', 5]);
-      expect(sqlText(where).toLowerCase()).not.toContain('not (');
+      expect(sqlText(where).toLowerCase()).not.toContain('not exists');
     });
   });
 

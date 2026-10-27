@@ -164,9 +164,9 @@ export class TpRosterPlayersImportService {
    * A player whose own upsert failed still counts as present, so a transient
    * failure never retires him. Skipped when the roster file lists no players:
    * a truncated or failed roster must never retire a whole team. Only players
-   * carrying a TP external id in this era are considered, so inducement hires
-   * without a `lineUps` id are left alone. A failure is recorded and does not
-   * affect the players already imported.
+   * with a numeric TP external id (a `lineUps` id) are considered, so
+   * inducement hires, whose ids start with `star-`, are left alone. A failure
+   * is recorded and does not affect the players already imported.
    */
   private async retireDepartedPlayers(options: {
     roster: TpRoster;

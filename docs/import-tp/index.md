@@ -268,10 +268,11 @@ The status is sent on every player upsert, unknown included (as `null`), so a
 re-import clears a status the player no longer has — one back from temporary
 retirement becomes `active` again. A star player hired through an
 `inducements_roll` event has no `lineUps[]` entry, so no status is sent for
-them and theirs stays unknown.
+them and theirs stays unknown. The retirement below never touches them
+either: their TP external id is not a `lineUps` id (it starts with `star-`).
 
 Every roster import then retires the players who left: a stored TP player of
-the team era (one with a TP external id) who is in neither the roster file nor
+the team era with a numeric TP external id (a `lineUps` id) who is in neither the roster file nor
 the match snapshots is no longer on the team, so he becomes `retired` unless
 already `dead` (a `dead` status is never downgraded). This is what turns a
 formerly `active` player into `retired` when a roster-only import, such as the
