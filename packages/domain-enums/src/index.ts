@@ -4,6 +4,7 @@ export * from './external-systems';
 export * from './keywords';
 export * from './match-events';
 export * from './matches';
+export * from './player-statuses';
 export * from './rules-sets';
 export * from './skills';
 export * from './trophies';

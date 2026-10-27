@@ -1,6 +1,7 @@
 import { DB, players } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import type { PlayerStatus } from '@blood-bowl-tracker/domain-enums';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -232,6 +233,45 @@ describe('PlayersService', () => {
       expect(firstCallArg(chains[1].set)).toEqual({
         name: 'Griff Oberwald',
         sppTotal: null,
+      });
+    });
+
+    it('writes status through to the entity columns', async () => {
+      const { chains } = await build([], [fakePlayer]);
+
+      await service.upsert({ ...base, status: 'retired', externalIds });
+
+      // chains[1] is the insert; its .values() carries the entity columns.
+      expect(firstCallArg(chains[1].values)).toMatchObject({
+        status: 'retired',
+      });
+    });
+
+    it('leaves status undefined in the columns when the caller omits it', async () => {
+      const { chains } = await build([], [fakePlayer]);
+
+      await service.upsert({ ...base, externalIds });
+
+      expect(
+        (firstCallArg(chains[1].values) as { status?: string }).status,
+      ).toBeUndefined();
+    });
+
+    it('writes a null status through to the updated columns', async () => {
+      const { chains } = await build(
+        [{ ownerId: 1, externalSystemId: 1, externalId: '12345' }],
+        [fakePlayer],
+      );
+
+      await service.upsert({
+        name: 'Griff Oberwald',
+        status: null,
+        externalIds: [{ externalSystemId: 1, externalId: '12345' }],
+      });
+
+      expect(firstCallArg(chains[1].set)).toEqual({
+        name: 'Griff Oberwald',
+        status: null,
       });
     });
 
@@ -551,6 +591,7 @@ describe('PlayersService', () => {
         eraEndDate: null as string | null,
         sppTotal: 24,
         sppAdjustment: 2,
+        status: 'active' as PlayerStatus | null,
         move: 7,
         strength: 3,
         agility: 3,
@@ -573,6 +614,7 @@ describe('PlayersService', () => {
           'eraId',
           'sppTotal',
           'sppAdjustment',
+          'status',
           'move',
           'strength',
           'agility',
@@ -733,6 +775,16 @@ describe('PlayersService', () => {
       // The selection is built on `players` itself — no extra join was added
       // for the increase counts.
       expect(chains).toHaveLength(1);
+    });
+
+    it('passes a null status through as unknown, not active', async () => {
+      // NULL means no source has reported a status; findById must not coerce
+      // it to 'active'.
+      await build([{ ...fakePlayer, status: null }]);
+
+      await expect(service.findById(1)).resolves.toMatchObject({
+        status: null,
+      });
     });
   });
 
