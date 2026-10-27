@@ -234,7 +234,10 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   `temporarily_retired`, and no icon is `active`. Precedence is dead, then
   retired, then temporarily retired. Icons elsewhere on the page belong to
   links to other players and are ignored. A page without the header block
-  fails parsing like one without a name or team link.
+  fails parsing like one without a name or team link, which also drops it
+  from the positions step's pre-scan of player pages without a recorded error.
+  A player on a retired team with no icon of their own is still `active`: the
+  team's `retiredteam.gif` marker says nothing about the player.
 
   A final step after the match-events step backfills lasting-injury history for
   the players this run inserted. See "Lasting-injury history backfill" in
