@@ -273,6 +273,27 @@ export class TeamsStatisticsService {
     });
   }
 
+  /**
+   * Lasting injuries the team's players inflicted: a casualty-severity action
+   * whose own row carries a lasting consequence. A foul does not count, as
+   * for the other caused facts, and a consequence-only row has no causer, so
+   * it counts for no team.
+   */
+  countLastingInjuriesCausedByTeam(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ teamId: number; name: string; count: number }[]> {
+    return this.matchEventCounts.countMatchEventsByTeam({
+      selector: {
+        role: 'acting',
+        types: CASUALTY_CAUSED_TYPES,
+        consequenceTypes: LASTING_INJURY_SUFFERED_TYPES,
+      },
+      scope,
+      limit,
+    });
+  }
+
   countDeathsCausedByTeam(
     scope: FactScope,
     limit: number,

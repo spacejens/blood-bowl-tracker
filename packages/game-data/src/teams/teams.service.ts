@@ -446,6 +446,13 @@ export class TeamsService {
     return this.statistics.countSeriousInjuriesCausedByTeam(scope, limit);
   }
 
+  countLastingInjuriesCausedByTeam(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ teamId: number; name: string; count: number }[]> {
+    return this.statistics.countLastingInjuriesCausedByTeam(scope, limit);
+  }
+
   countDeathsCausedByTeam(
     scope: FactScope,
     limit: number,

@@ -49,6 +49,7 @@ describe('TeamsService toplist delegation', () => {
     'countDeflectionsByTeam',
     'countCasualtiesCausedByTeam',
     'countSeriousInjuriesCausedByTeam',
+    'countLastingInjuriesCausedByTeam',
     'countDeathsCausedByTeam',
     'countFoulsCommittedByTeam',
     'countTimesSentOffByTeam',

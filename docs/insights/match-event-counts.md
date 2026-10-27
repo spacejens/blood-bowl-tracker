@@ -30,6 +30,38 @@ Not every count exists for both grouping entities, and that is by design — not
 The shared count helper makes filling in the grid mechanically trivial. Do not. A count exists
 because someone wants to read it, not because the grid has a hole.
 
+## Lasting injuries caused
+
+Most caused counts filter on the action alone. Lasting injuries caused
+cannot: a serious-injury action may end in a missed next game or in a lasting
+injury, so the action does not say which. This count therefore takes an
+acting-side selector that also names consequence types: it counts a row when
+its action is any casualty severity **and** the consequence on that same row
+is a niggling injury or a characteristic reduction, and credits it to the
+acting side.
+
+- A foul that leaves a lasting injury does not count, as for casualties,
+  serious injuries and deaths caused: Blood Bowl awards no casualty credit
+  for a foul. Lasting injuries suffered still counts it for the victim.
+- A consequence-only row (a self-inflicted injury, or a BBL group whose
+  action and consequences could not be paired) has no causer and counts for
+  no team.
+- The causer is read from the row; the importers already pair an action with
+  its consequence where the source allows it.
+
+This gives three accepted differences from the other caused counts:
+
+1. When BBL cannot pair a group, it stores the action and its consequences as
+   separate rows. Serious injuries caused still counts the action; lasting
+   injuries caused cannot classify it, so it skips it.
+2. A casualty an apothecary prevented is stored with the consequence
+   `casualty_avoided` (see [BBL file format](../import-bbl/file-format.md)).
+   A count that filters on the action alone sees the merged row by its
+   action severity; lasting injuries caused never counts it, since
+   `casualty_avoided` is not a lasting consequence.
+3. Summed over all teams, lasting injuries caused is lower than lasting
+   injuries suffered by exactly the foul-caused and unattributable rows.
+
 ## Date-scoped counts
 
 The [on-this-date](on-this-date.md) insight counts these same event

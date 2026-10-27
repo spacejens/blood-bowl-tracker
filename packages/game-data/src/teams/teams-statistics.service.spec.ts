@@ -17,6 +17,7 @@ import {
   DEFLECTION_TYPES,
   FOUL_TYPES,
   INTERCEPTION_TYPES,
+  LASTING_INJURY_SUFFERED_TYPES,
   SENT_OFF_TYPES,
   SERIOUS_INJURY_CAUSED_TYPES,
   TOUCHDOWN_TYPES,
@@ -265,6 +266,26 @@ describe('TeamsStatisticsService', () => {
         });
       },
     );
+
+    it('countLastingInjuriesCausedByTeam counts casualty actions whose own row carries a lasting consequence', async () => {
+      const rows = [{ teamId: 1, name: '40 grinders', count: 3 }];
+      matchEventCounts.countMatchEventsByTeam.mockResolvedValue(rows);
+      await build();
+
+      await expect(
+        service.countLastingInjuriesCausedByTeam(FACT_SCOPE_ALL_TIME, 21),
+      ).resolves.toEqual(rows);
+
+      expect(matchEventCounts.countMatchEventsByTeam).toHaveBeenCalledWith({
+        selector: {
+          role: 'acting',
+          types: CASUALTY_CAUSED_TYPES,
+          consequenceTypes: LASTING_INJURY_SUFFERED_TYPES,
+        },
+        scope: FACT_SCOPE_ALL_TIME,
+        limit: 21,
+      });
+    });
 
     it('countMatchesPlayedByTeam filters by the match category', async () => {
       const { chains } = await build([]);
