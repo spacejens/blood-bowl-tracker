@@ -326,8 +326,11 @@ Notable remaining fields seen: `matchId`, `state`, `statePostMatch`,
 side's roster `id` is parsed into `homeTeamTpId`/`awayTeamTpId`, and its
 `lineUps[]` — a per-match snapshot of that side's roster, same shape as the
 standalone roster file's own `lineUps[]` — is parsed into
-`homeRosterPlayers`/`awayRosterPlayers`, see [`rosters_<id>.json`](./file-format-rosters.md); the
-rest of these nested roster bodies remains unhandled), `scoreResume
+`homeRosterPlayers`/`awayRosterPlayers`, see [`rosters_<id>.json`](./file-format-rosters.md);
+each snapshot entry's `state` and `isActive` are kept too, but they describe
+the player as of the download, not as of the match, so a snapshot also says
+whether a player who has since left died, retired or is temporarily retired;
+the rest of these nested roster bodies remains unhandled), `scoreResume
 { startInstant, finishInstant }`, and — importantly — `scheduledDate`/
 `endScheduledDate`.
 `scheduledDate` (and `scoreResume.startInstant`, which tracks it closely) is

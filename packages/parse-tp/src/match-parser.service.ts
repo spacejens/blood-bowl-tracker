@@ -214,6 +214,8 @@ export class MatchParserService {
       fallbackPositionName: entry.position,
       isBigGuy: entry.isBigGuy ?? false,
       totalStarPlayerPoints: entry.totalStarPlayerPoints,
+      state: entry.state,
+      isActive: entry.isActive,
     });
     return {
       id: matchId,

@@ -273,6 +273,63 @@ describe('MatchParserService', () => {
     ]);
   });
 
+  it("keeps a match-embedded entry's state and isActive", () => {
+    const result = service.parse(
+      matchBody({
+        inscriptionLocal: {
+          roster: {
+            id: 10,
+            lineUps: [
+              {
+                id: 2412500,
+                name: 'A Departed Player',
+                number: 7,
+                lineUpMasterId: 953,
+                position: 'Dwarf Runner',
+                isBigGuy: false,
+                totalStarPlayerPoints: 35,
+                state: 8209,
+                isActive: false,
+              },
+            ],
+          },
+        },
+      }),
+    );
+
+    expect(result.homeRosterPlayers[0]).toMatchObject({
+      id: 2412500,
+      state: 8209,
+      isActive: false,
+    });
+  });
+
+  it('leaves state and isActive undefined on a snapshot entry carrying neither', () => {
+    const result = service.parse(
+      matchBody({
+        inscriptionLocal: {
+          roster: {
+            id: 10,
+            lineUps: [
+              {
+                id: 2412443,
+                name: 'The Agitated Deviation',
+                number: 1,
+                lineUpMasterId: 952,
+                position: 'Dwarf Lineman',
+                isBigGuy: false,
+                totalStarPlayerPoints: 23,
+              },
+            ],
+          },
+        },
+      }),
+    );
+
+    expect(result.homeRosterPlayers[0].state).toBeUndefined();
+    expect(result.homeRosterPlayers[0].isActive).toBeUndefined();
+  });
+
   it('returns empty homeRosterPlayers/awayRosterPlayers when lineUps is an empty array', () => {
     const result = service.parse(matchBody());
     expect(result.homeRosterPlayers).toEqual([]);
