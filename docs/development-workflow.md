@@ -33,7 +33,7 @@ Runs a fixed set of code cleanup checks — Node version updates, unused depende
 Takes one stuck Renovate dependency-update PR to a mergeable state (`/finish-renovate-pr 544`).
 
 - Renovate opens these PRs on its own and automerges npm patch and minor updates once CI passes.
-- Everything else — major bumps, Docker tag updates, and anything whose CI fails — waits for a human.
+- Everything else — major bumps, `drizzle-orm`/`drizzle-kit` updates (which never automerge), Docker tag updates, and anything whose CI fails — waits for a human.
 - This skill investigates why a given one is stuck:
   - reading Renovate's own PR body and changelog links
   - reading the failing CI job's logs
@@ -46,7 +46,7 @@ It takes a **pull request** number rather than an issue number, and handles one 
 - Renovate stops rebasing a branch once it carries commits it did not author.
 - Ticking the "rebase/retry" checkbox in its PR body after that point discards those commits — so merge the PR rather than asking Renovate to retry it.
 
-Often the outcome is that no code change is needed at all: a green major bump is stuck only because `renovate.json5` deliberately does not automerge it, and the skill then reports it as ready for human review and stops without pushing anything.
+Often the outcome is that no code change is needed at all: a green major bump or drizzle bump is stuck only because `renovate.json5` deliberately does not automerge it, and the skill then reports it as ready for human review and stops without pushing anything.
 
 ## wrap-up
 

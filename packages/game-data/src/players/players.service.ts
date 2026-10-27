@@ -24,6 +24,7 @@ import {
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
+import type { PlayerStatus } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { countRows } from '../shared/count-all';
@@ -79,6 +80,11 @@ export interface PlayerDetail
   eraEndDate: string | null;
   sppTotal: number | null;
   sppAdjustment: number | null;
+  /**
+   * The player's current status as their source reports it; `null` means no
+   * source has reported one (unknown), never "active".
+   */
+  status: PlayerStatus | null;
   move: number;
   strength: number;
   agility: number;
@@ -119,6 +125,7 @@ export class PlayersService {
         eraEndDate: eras.endDate,
         sppTotal: players.sppTotal,
         sppAdjustment: players.sppAdjustment,
+        status: players.status,
         // The player's own current characteristics. No new join: they live on
         // `players` itself. A stored 0 is passed through as-is — a
         // placeholder for the four NOT NULL columns, a real value for a
@@ -265,6 +272,9 @@ export class PlayersService {
       teamEraId: data.teamEraId,
       positionId: data.positionId,
       sppTotal: data.sppTotal,
+      // Undefined is stripped by upsertByExternalIds, so an omitted status
+      // leaves the stored one alone; an explicit null clears it to unknown.
+      status: data.status,
       // Undefined keys are stripped by upsertByExternalIds, so a payload
       // that says nothing about characteristics leaves the stored line
       // alone; an explicit null passing really writes null.

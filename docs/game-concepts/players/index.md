@@ -8,6 +8,11 @@ A [player](../../glossary.md#player) is an individual on a [team era](../team-er
   available for the team era's [race era](../../glossary.md#race-era) — i.e. the
   position must have a relation to that race era. (This is still aspirational:
   no validation code enforces it yet.)
+- A player has a **current status**: active, dead, retired, or temporarily
+  retired, as their source reports it. A player whose status no source has
+  reported has an _unknown_ status, which is deliberately kept distinct from
+  being known to be active. This is the source's live state; deaths derived
+  from [match events](../match-events/index.md) are a separate thing.
 - A player has a **current [lasting injury](../../glossary.md#lasting-injury) state**: whether they must miss
   their next game, how many niggling injuries they carry, and how many
   reductions each of their five [characteristics](../../glossary.md#characteristics)

@@ -19,6 +19,7 @@ import {
   matchEvents,
   matchTeams,
   players,
+  playerStatusEnum,
   positionExternalIds,
   positionRulesSetKeywords,
   positionRulesSets,
@@ -190,6 +191,28 @@ describe('schema', () => {
     // confirmed "no unexplained SPP" answer and is stored as 0, not NULL.
     expect(sppAdjustment!.notNull).toBe(false);
     expect(sppAdjustment!.getSQLType()).toBe('integer');
+  });
+
+  it('exports the player status enum', () => {
+    expect(playerStatusEnum.enumName).toBe('player_status');
+    expect(playerStatusEnum.enumValues).toEqual([
+      'active',
+      'dead',
+      'retired',
+      'temporarily_retired',
+    ]);
+  });
+
+  it('exports players.status as a nullable player_status column with no default', () => {
+    const config = getTableConfig(players);
+    const status = config.columns.find((c) => c.name === 'status');
+    expect(status).toBeDefined();
+    // Nullable on purpose: NULL means no source has reported a status, which
+    // must stay distinguishable from a known 'active'. No default, so
+    // existing rows are unknown rather than silently active.
+    expect(status!.notNull).toBe(false);
+    expect(status!.hasDefault).toBe(false);
+    expect(status!.getSQLType()).toBe('player_status');
   });
 
   it('exports matches table', () => {

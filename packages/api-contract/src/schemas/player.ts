@@ -1,3 +1,4 @@
+import { PLAYER_STATUSES } from '@blood-bowl-tracker/domain-enums';
 import { z } from 'zod';
 
 import { ExternalIdSchema } from './external-id';
@@ -127,6 +128,11 @@ export const UpsertPlayerSchema = z
     // total untouched. Nullable like `passing`, since the column is nullable:
     // an explicit null clears the stored total.
     sppTotal: z.number().int().nullable().optional(),
+    // The player's current status as their source reports it. Same contract
+    // as `sppTotal`: an omitted value leaves any stored status untouched, and
+    // an explicit null clears it back to unknown. See `PLAYER_STATUSES` in
+    // `@blood-bowl-tracker/domain-enums` for what each value means.
+    status: z.enum(PLAYER_STATUSES).nullable().optional(),
     // The five characteristics form one optional, all-or-nothing group: a
     // caller supplies all of them (with `passing` possibly null) or none.
     // A partial line cannot be meaningfully validated or stored, and an

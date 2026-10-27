@@ -208,6 +208,7 @@ describe('RpcRouterFactoryService batch upserts', () => {
         armour: 9,
         sppTotal: null,
         sppAdjustment: null,
+        status: null,
         missNextGame: false,
         nigglingInjuryCount: 0,
         moveReductionCount: 0,
