@@ -1,3 +1,4 @@
+import { PLAYER_STATUSES } from '@blood-bowl-tracker/domain-enums';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -112,6 +113,40 @@ describe('player schemas', () => {
     expect(() =>
       UpsertPlayerSchema.parse({
         sppTotal: 1.5,
+        externalIds: [{ externalSystemId: 1, externalId: 'x' }],
+      }),
+    ).toThrow();
+  });
+
+  it.each(PLAYER_STATUSES)('UpsertPlayerSchema accepts status %s', (status) => {
+    const parsed = UpsertPlayerSchema.parse({
+      status,
+      externalIds: [{ externalSystemId: 1, externalId: 'x' }],
+    });
+    expect(parsed.status).toBe(status);
+  });
+
+  it('UpsertPlayerSchema leaves status undefined when omitted', () => {
+    // An omitted status is "no instruction about that column" and must never
+    // clobber a previously-stored status.
+    const parsed = UpsertPlayerSchema.parse({
+      externalIds: [{ externalSystemId: 1, externalId: 'x' }],
+    });
+    expect(parsed.status).toBeUndefined();
+  });
+
+  it('UpsertPlayerSchema accepts a null status, which clears the stored status', () => {
+    const parsed = UpsertPlayerSchema.parse({
+      status: null,
+      externalIds: [{ externalSystemId: 1, externalId: 'x' }],
+    });
+    expect(parsed.status).toBeNull();
+  });
+
+  it('UpsertPlayerSchema rejects an unknown status', () => {
+    expect(() =>
+      UpsertPlayerSchema.parse({
+        status: 'injured',
         externalIds: [{ externalSystemId: 1, externalId: 'x' }],
       }),
     ).toThrow();
