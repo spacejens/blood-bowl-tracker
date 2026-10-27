@@ -57,6 +57,40 @@ describe('ImportTpRosterSchema', () => {
     expect(parsed.matchEmbeddedPlayers).toEqual([embedded]);
   });
 
+  it("keeps a match-embedded player's state and isActive", () => {
+    const parsed = ImportTpRosterSchema.parse({
+      roster: {},
+      era: 'Fourth era',
+      externalSystemName: 'TP',
+      matchEmbeddedPlayers: [{ ...embedded, state: 8209, isActive: false }],
+    });
+    expect(parsed.matchEmbeddedPlayers).toEqual([
+      { ...embedded, state: 8209, isActive: false },
+    ]);
+  });
+
+  it('accepts a match-embedded player without state or isActive', () => {
+    const parsed = ImportTpRosterSchema.parse({
+      roster: {},
+      era: 'Fourth era',
+      externalSystemName: 'TP',
+      matchEmbeddedPlayers: [embedded],
+    });
+    expect(parsed.matchEmbeddedPlayers[0].state).toBeUndefined();
+    expect(parsed.matchEmbeddedPlayers[0].isActive).toBeUndefined();
+  });
+
+  it.each([-1, 1.5])('rejects a match-embedded state of %s', (state) => {
+    expect(
+      ImportTpRosterSchema.safeParse({
+        roster: {},
+        era: 'Fourth era',
+        externalSystemName: 'TP',
+        matchEmbeddedPlayers: [{ ...embedded, state }],
+      }).success,
+    ).toBe(false);
+  });
+
   it('rejects an empty era or external system name', () => {
     expect(
       ImportTpRosterSchema.safeParse({

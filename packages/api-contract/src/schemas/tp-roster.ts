@@ -6,7 +6,7 @@ import { TeamEraSchema } from './team';
 /**
  * A player known only from a match's embedded roster snapshot: a player who
  * has since left the roster is absent from the roster file itself, while
- * match events still name them. Only these fields exist on such an entry.
+ * match events still name them. Only these fields are carried for such an entry.
  */
 export const TpMatchEmbeddedPlayerSchema = z.object({
   id: z.number().int(),
@@ -17,6 +17,13 @@ export const TpMatchEmbeddedPlayerSchema = z.object({
   fallbackPositionName: z.string(),
   isBigGuy: z.boolean(),
   totalStarPlayerPoints: z.number(),
+  /**
+   * TP's undocumented `state` bitmask, describing the player as of the
+   * download rather than as of the match. Optional: older data may lack it.
+   */
+  state: z.number().int().nonnegative().optional(),
+  /** TP's `isActive` flag, as of the download. Optional like `state`. */
+  isActive: z.boolean().optional(),
 });
 
 /** Input of `tpRosters.import`. */

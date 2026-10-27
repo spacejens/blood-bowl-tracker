@@ -18,6 +18,7 @@ import {
   extractFilterValues,
   extractJoinColumns,
   firstCallArg,
+  sqlText,
 } from '../shared/query-assertions.test-helpers';
 import { SppTotalsService } from '../spp/spp-totals.service';
 import { PlayerCharacteristicIncreaseValidationService } from './player-characteristic-increase-validation.service';
@@ -866,6 +867,70 @@ describe('PlayersService', () => {
       expect(
         playerContextNames.getPlayerContextNamesByIds,
       ).toHaveBeenCalledWith([1]);
+    });
+  });
+
+  describe('retireAbsentExternalPlayers', () => {
+    const options = {
+      teamEraId: 10,
+      externalSystemId: 5,
+      presentExternalIds: ['101', '102'],
+    };
+
+    it('retires the era players absent from the given ids and returns how many', async () => {
+      const { db, chains } = await build([{ id: 7 }, { id: 8 }]);
+      await expect(service.retireAbsentExternalPlayers(options)).resolves.toBe(
+        2,
+      );
+      expect(db.update).toHaveBeenCalledWith(players);
+      expect(firstCallArg(chains[0].set)).toEqual({ status: 'retired' });
+      const where = firstCallArg(chains[0].where);
+      expect(extractAllFilterValues(where)).toEqual([
+        10,
+        'dead',
+        5,
+        5,
+        '101',
+        '102',
+      ]);
+      expect(extractJoinColumns(where)).toEqual([
+        'players.team_era_id',
+        'players.status',
+        'players.status',
+        'players.id',
+        'players_external_ids.player_id',
+        'players_external_ids.external_system_id',
+        'players_external_ids.external_id',
+        'players_external_ids.player_id',
+        'players.id',
+        'players_external_ids.external_system_id',
+        'players_external_ids.external_id',
+      ]);
+      const text = sqlText(where).toLowerCase();
+      expect(text).toContain('( is null)) or ( <> ))');
+      expect(text).not.toContain('or ( = ))');
+      expect(text).toContain('not exists');
+      expect(text).toContain('~');
+    });
+
+    it('only considers numeric lineUps ids, never a star hire id', async () => {
+      const { chains } = await build([]);
+      await service.retireAbsentExternalPlayers(options);
+      const where = firstCallArg(chains[0].where);
+      expect(sqlText(where)).toContain(`( ~ '^[0-9]+$')`);
+    });
+
+    it('excludes no id when none are given', async () => {
+      const { chains } = await build([]);
+      await expect(
+        service.retireAbsentExternalPlayers({
+          ...options,
+          presentExternalIds: [],
+        }),
+      ).resolves.toBe(0);
+      const where = firstCallArg(chains[0].where);
+      expect(extractAllFilterValues(where)).toEqual([10, 'dead', 5]);
+      expect(sqlText(where).toLowerCase()).not.toContain('not exists');
     });
   });
 

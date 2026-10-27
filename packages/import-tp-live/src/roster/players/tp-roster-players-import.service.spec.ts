@@ -24,6 +24,7 @@ import type { MercenaryCurated } from './tp-mercenary-characteristics.service';
 import { TpMercenaryCharacteristicsService } from './tp-mercenary-characteristics.service';
 import { TpPlayerCharacteristicsBuilderService } from './tp-player-characteristics-builder.service';
 import { TpPlayerPositionService } from './tp-player-position.service';
+import { TpPlayerStatusService } from './tp-player-status.service';
 import { TpRosterPlayersImportService } from './tp-roster-players-import.service';
 
 const TEAM_ERA_ID = 31;
@@ -34,6 +35,7 @@ interface Mocks {
   mercenaryCharacteristics: MockProxy<TpMercenaryCharacteristicsService>;
   lastingInjuries: MockProxy<TpLastingInjuryBuilderService>;
   increases: MockProxy<TpCharacteristicIncreasesService>;
+  status: MockProxy<TpPlayerStatusService>;
 }
 
 describe('TpRosterPlayersImportService', () => {
@@ -57,6 +59,7 @@ describe('TpRosterPlayersImportService', () => {
       mercenaryCharacteristics: mock<TpMercenaryCharacteristicsService>(),
       lastingInjuries: mock<TpLastingInjuryBuilderService>(),
       increases: mock<TpCharacteristicIncreasesService>(),
+      status: mock<TpPlayerStatusService>(),
     };
     mocks.positions.resolveCatalogPositions.mockResolvedValue(
       new Map([[77, 11]]),
@@ -76,6 +79,7 @@ describe('TpRosterPlayersImportService', () => {
       baselinesByPositionId: new Map(),
       reportedGaps: new Set(),
     });
+    mocks.status.forPlayer.mockReturnValue(null);
     configure(mocks);
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -97,6 +101,7 @@ describe('TpRosterPlayersImportService', () => {
           provide: TpCharacteristicIncreasesService,
           useValue: mocks.increases,
         },
+        { provide: TpPlayerStatusService, useValue: mocks.status },
       ],
     }).compile();
     return moduleRef.get(TpRosterPlayersImportService);
@@ -130,6 +135,7 @@ describe('TpRosterPlayersImportService', () => {
       teamEraId: TEAM_ERA_ID,
       positionId: 11,
       sppTotal: 12,
+      status: null,
       externalIds: [{ externalSystemId: TP_SYSTEM_ID, externalId: '5001' }],
     });
     expect(outcome).toEqual({
@@ -748,6 +754,148 @@ describe('TpRosterPlayersImportService', () => {
       expect(
         mocks.mercenaryCharacteristics.forRosterPlayer,
       ).toHaveBeenCalledWith(expect.objectContaining({ rulesSet: undefined }));
+    });
+  });
+
+  describe('retiring players who left the roster', () => {
+    it('retires the era players absent from the roster file and the snapshots', async () => {
+      const service = await makeService();
+
+      await run(service, {
+        players: [rosterPlayer({ id: 5001 }), rosterPlayer({ id: 5002 })],
+        embedded: [rosterPlayer({ id: 5009 })],
+      });
+
+      expect(mocks.players.retireAbsentExternalPlayers).toHaveBeenCalledTimes(
+        1,
+      );
+      const options =
+        mocks.players.retireAbsentExternalPlayers.mock.calls[0][0];
+      expect(options.teamEraId).toBe(TEAM_ERA_ID);
+      expect(options.externalSystemId).toBe(TP_SYSTEM_ID);
+      expect([...options.presentExternalIds].sort()).toEqual([
+        '5001',
+        '5002',
+        '5009',
+      ]);
+    });
+
+    it('keeps a player whose own upsert failed out of the retirement', async () => {
+      const service = await makeService((m) => {
+        m.players.upsert.mockRejectedValue(new Error('boom'));
+      });
+
+      await run(service, { players: [rosterPlayer({ id: 5001 })] });
+
+      expect(
+        mocks.players.retireAbsentExternalPlayers.mock.calls[0][0]
+          .presentExternalIds,
+      ).toEqual(['5001']);
+    });
+
+    it('retires nobody when the roster file lists no players', async () => {
+      const service = await makeService();
+
+      await run(service, {
+        players: [],
+        embedded: [rosterPlayer({ id: 5009 })],
+      });
+
+      expect(mocks.players.retireAbsentExternalPlayers).not.toHaveBeenCalled();
+    });
+
+    it('records a failure and still returns the imported players', async () => {
+      const service = await makeService((m) => {
+        m.players.retireAbsentExternalPlayers.mockRejectedValue(
+          new Error('db down'),
+        );
+      });
+
+      const outcome = await run(service);
+
+      expect(outcome.imported).toBe(1);
+      expect(errors).toEqual([
+        {
+          item: { teamEraId: TEAM_ERA_ID },
+          message: 'Failed to retire players who left the roster: db down',
+        },
+      ]);
+    });
+  });
+
+  describe('status', () => {
+    it("decides a roster player's status from its own state and isActive", async () => {
+      const service = await makeService((m) =>
+        m.status.forPlayer.mockReturnValue('temporarily_retired'),
+      );
+
+      await run(service, {
+        players: [rosterPlayer({ state: 12289, isActive: true })],
+      });
+
+      expect(mocks.status.forPlayer).toHaveBeenCalledWith({
+        state: 12289,
+        isActive: true,
+      });
+      expect(mocks.players.upsert.mock.calls[0][0]).toMatchObject({
+        status: 'temporarily_retired',
+      });
+    });
+
+    it('sends an active snapshot-only player as active', async () => {
+      const service = await makeService((m) =>
+        m.status.forPlayer.mockReturnValue('active'),
+      );
+
+      await run(service, {
+        players: [],
+        embedded: [rosterPlayer({ id: 5009, state: 4096, isActive: true })],
+      });
+
+      expect(mocks.status.forPlayer).toHaveBeenCalledWith({
+        state: 4096,
+        isActive: true,
+      });
+      expect(mocks.players.upsert.mock.calls[0][0]).toMatchObject({
+        status: 'active',
+      });
+    });
+
+    it("decides a player in both sources from the roster file's fields", async () => {
+      const service = await makeService();
+
+      await run(service, {
+        players: [rosterPlayer({ state: 1, isActive: true })],
+        embedded: [rosterPlayer({ state: 16, isActive: false })],
+      });
+
+      expect(mocks.status.forPlayer).toHaveBeenCalledTimes(1);
+      expect(mocks.status.forPlayer).toHaveBeenCalledWith({
+        state: 1,
+        isActive: true,
+      });
+    });
+
+    it('sends an unknown status explicitly as null', async () => {
+      const service = await makeService();
+
+      await run(service);
+
+      expect(mocks.players.upsert.mock.calls[0][0]).toHaveProperty(
+        'status',
+        null,
+      );
+    });
+
+    it('passes undefined fields through for an entry carrying neither', async () => {
+      const service = await makeService();
+
+      await run(service);
+
+      expect(mocks.status.forPlayer).toHaveBeenCalledWith({
+        state: undefined,
+        isActive: undefined,
+      });
     });
   });
 });

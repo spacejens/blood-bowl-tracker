@@ -15,7 +15,11 @@ import {
   eq,
   eras,
   ilike,
+  inArray,
   isNotNull,
+  isNull,
+  ne,
+  or,
   playerExternalIds,
   players,
   positions,
@@ -93,6 +97,9 @@ export interface PlayerDetail
 }
 
 export class PlayerUpsertConflictError extends UpsertConflictError {}
+
+/** A `lineUps` id is purely numeric; inducement hires carry `star-…` ids. */
+const NUMERIC_EXTERNAL_ID_PATTERN = sql.raw("'^[0-9]+$'");
 
 @Injectable()
 export class PlayersService {
@@ -325,6 +332,52 @@ export class PlayersService {
     });
 
     return { player, created };
+  }
+
+  /**
+   * Marks `retired` every player of the team era whose external ids in the
+   * given system include a purely numeric one (a roster `lineUps` id) but none
+   * of `presentExternalIds`: a source's roster lists only a team's current
+   * players, so one it no longer lists has left the team. A player with
+   * several ids in the system stays when any of them is present. A `dead`
+   * player is never downgraded; a NULL status is included. Only a numeric
+   * external id makes a player a candidate, so inducement hires (whose ids
+   * start with `star-`) and players the source never identified are left
+   * alone. An empty `presentExternalIds` excludes nothing — callers decide
+   * whether an empty source listing may be trusted. Returns the number of rows
+   * updated.
+   */
+  async retireAbsentExternalPlayers(options: {
+    teamEraId: number;
+    externalSystemId: number;
+    presentExternalIds: readonly string[];
+  }): Promise<number> {
+    const { teamEraId, externalSystemId, presentExternalIds } = options;
+    const hasLineUpId = sql`${players.id} in (select ${playerExternalIds.playerId} from ${playerExternalIds} where ${and(
+      eq(playerExternalIds.externalSystemId, externalSystemId),
+      sql`${playerExternalIds.externalId} ~ ${NUMERIC_EXTERNAL_ID_PATTERN}`,
+    )})`;
+    const hasPresentId =
+      presentExternalIds.length === 0
+        ? undefined
+        : sql`not exists (select 1 from ${playerExternalIds} where ${and(
+            eq(playerExternalIds.playerId, players.id),
+            eq(playerExternalIds.externalSystemId, externalSystemId),
+            inArray(playerExternalIds.externalId, [...presentExternalIds]),
+          )})`;
+    const rows = await this.db
+      .update(players)
+      .set({ status: 'retired' })
+      .where(
+        and(
+          eq(players.teamEraId, teamEraId),
+          or(isNull(players.status), ne(players.status, 'dead')),
+          hasLineUpId,
+          hasPresentId,
+        ),
+      )
+      .returning({ id: players.id });
+    return rows.length;
   }
 
   countMvpAwardsByPlayer(

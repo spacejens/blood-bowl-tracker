@@ -70,6 +70,29 @@ number, lineUpMasterId, rosterId, fallbackPositionName, isBigGuy }`. `id` is
   - `canPlayNextGame` — `false` means the player must miss their next game.
     Independent of `nigglingInjuries`: entries exist with either one set and
     the other not.
+  - `isActive` — `true` on every entry of a standalone roster file, which
+    lists only current players (a player who left is absent from it). In a
+    match-embedded snapshot it can be `false`, for a player who has since
+    left.
+  - `state` — a bitmask TP does not document. The meanings below are
+    inferred from the downloaded data and a fresh roster download:
+    - 8 — dead. Every player with the bit has a `Dead` match event, and no
+      player listed on a roster has it.
+    - 16 — left the roster without dying (always with `isActive: false`).
+      TP's UI shows a single "Retired" list for players who left and no bit
+      separates a subset, so fired and retired are one thing in TP's data.
+    - 8192 — temporarily retired. Seen on a player still listed with
+      `isActive: true` (`state` 12289, no bit 16) and on departed players
+      in match snapshots (who also carry bit 16).
+
+    Other bits (1, 4096, …) carry no known status meaning and are ignored.
+    One departed player in the downloaded data has `isActive: false` with
+    none of the bits above (`state` 4100, bit 4 on no other player, no `Dead`
+    event), so a departed player is recognised by `isActive: false`, not only
+    by bit 16.
+    Both fields are optional to the parser: an entry without them parses as
+    before. How they become a player's status is described in
+    [index.md](./index.md#player-status).
   - `lineUpMaster` — the position template the player was recruited from,
     repeated inline on every entry. Only its `ma/st/ag/pa/av` are read, as the
     baseline a current-vs-template characteristic comparison needs. The
@@ -173,7 +196,8 @@ instead (see [index.md](./index.md)'s `TpRosterPlayersImportService` (server-sid
 `fanFactor`, `ruleSet`, `necromancer`, `reRolls`, `shortTeamName`, `sponsors`,
 `teamColor`, `treasury`, `extraGoldQuantity`, `teamSpecialRules`, `league`,
 `hasMatchesInProgress`, `hasMatchesPlayed`, and -- newly observed 2026-07 with
-Major Season 30, purely additive with nothing removed or reshaped -- `state`,
+Major Season 30, purely additive with nothing removed or reshaped -- top-level
+`state` (distinct from each `lineUps[]` entry's `state`, above),
 `freeHireAndFireOrder`, `apothecary`; the parser reads only the fields it
 needs, so these required no code change). Note that the same roster shape
 reappears nested as `roster` inside `match` and `inscriptions` bodies — not a

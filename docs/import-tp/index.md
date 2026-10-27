@@ -245,6 +245,51 @@ The player import also consumes `matchEmbeddedPlayersByRosterId` from `main.ts`'
 - A player who has since left/been replaced on the roster (absent from the standalone `rosters_<id>.json` file) is therefore still imported.
 - `roster.players`' own data wins on conflict for a given id — see [file-format-rosters.md](./file-format-rosters.md) for why.
 
+#### Player status
+
+Each player's status (`active`, `dead`, `retired`, `temporarily_retired`) is
+derived by `TpPlayerStatusService` from the `lineUps[]` entry's `state`
+bitmask and `isActive` flag (see
+[file-format-rosters.md](./file-format-rosters.md) for what the bits are
+inferred to mean), checked in this order:
+
+1. bit 8 — `dead`;
+2. bit 16 — `retired` (TP does not tell a fired player from a retired one, and
+   a temporarily retired player who then left is retired);
+3. bit 8192 — `temporarily_retired`;
+4. `isActive: true` — `active`;
+5. `isActive: false` — `retired`: a player leaves a team by dying or by being
+   fired or retired, and step 1 has ruled out dead;
+6. anything else (no `isActive`) — unknown. A missing `state` matches no bit
+   in steps 1–3, so an entry with `isActive` is still decided at step 4 or 5.
+
+The source of the entry does not matter: a match snapshot is a download-time
+picture of the player just like a roster file. The bulk import reads only the
+first copy of each roster file, so players added to a team after that copy
+was downloaded are known only from snapshots, and their snapshot `state` and
+`isActive` are as trustworthy as a roster file's.
+
+The status is sent on every player upsert, unknown included (as `null`), so a
+re-import clears a status the player no longer has — one back from temporary
+retirement becomes `active` again. A star player hired through an
+`inducements_roll` event has no `lineUps[]` entry, so no status is sent for
+them and theirs stays unknown. The retirement below never touches them
+either: their TP external id is not a `lineUps` id (it starts with `star-`).
+
+Every roster import then retires the players who left: a stored TP player of
+the team era with a numeric TP external id (a `lineUps` id) who is in neither
+the roster file nor the match snapshots is no longer on the team, so he
+becomes `retired` unless
+already `dead` (a `dead` status is never downgraded). This is what turns a
+formerly `active` player into `retired` when a roster-only import, such as the
+live team import after a "fired" notification, no longer lists him. A player
+who died but whose match has not been imported yet reads `retired` until that
+match import sets `dead`. A roster file listing no players retires nobody, so
+a truncated or failed roster can never retire a whole team. A player whose own
+upsert failed still counts as present. The roster file is trusted as the
+team's current players, so re-importing an older download retires players
+added to the team since that download.
+
 #### Current lasting injuries
 
 A roster player's current lasting injuries come from three places.
