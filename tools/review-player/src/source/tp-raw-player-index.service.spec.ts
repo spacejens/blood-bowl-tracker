@@ -751,4 +751,98 @@ describe('TpRawPlayerIndexService', () => {
     expect(aggregate?.canPlayNextGame).toBeNull();
     expect(aggregate?.templateArmour).toBeNull();
   });
+
+  function matchWithStatus(fields: Record<string, unknown>) {
+    const file = matchFile({ lineUpTotal: 7, events: [] });
+    Object.assign(file.inscriptionLocal.roster.lineUps[0], fields);
+    return file;
+  }
+
+  it("carries the roster entry's state and isActive verbatim, with its file name", async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    writeRoster(500, [
+      {
+        id: 2477481,
+        ma: 6,
+        st: 4,
+        ag: 3,
+        pa: 5,
+        av: 7,
+        state: 12289,
+        isActive: true,
+      },
+    ]);
+
+    const aggregate = await service.aggregateFor('2477481');
+
+    expect(aggregate?.rosterStatus).toEqual({
+      file: 'rosters_500.json',
+      state: 12289,
+      isActive: true,
+    });
+  });
+
+  it('carries a roster entry with only one of the two fields', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    writeRoster(500, [
+      { id: 2477481, ma: 6, st: 4, ag: 3, pa: 5, av: 7, isActive: false },
+    ]);
+
+    const aggregate = await service.aggregateFor('2477481');
+
+    expect(aggregate?.rosterStatus).toEqual({
+      file: 'rosters_500.json',
+      state: null,
+      isActive: false,
+    });
+  });
+
+  it('leaves rosterStatus null for a roster entry with neither field', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    writeRoster(500, [{ id: 2477481, ma: 6, st: 4, ag: 3, pa: 5, av: 7 }]);
+
+    expect((await service.aggregateFor('2477481'))?.rosterStatus).toBeNull();
+  });
+
+  it('leaves rosterStatus null for a player no roster file carries', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+
+    expect((await service.aggregateFor('2477481'))?.rosterStatus).toBeNull();
+  });
+
+  it('carries the match snapshot state and isActive from the highest match id carrying either', async () => {
+    writeMatch(3, matchWithStatus({ state: 24, isActive: false }));
+    writeMatch(7, matchWithStatus({ state: 16, isActive: false }));
+    writeMatch(9, matchFile({ lineUpTotal: 7, events: [] }));
+
+    const aggregate = await service.aggregateFor('2477481');
+
+    expect(aggregate?.matchStatus).toEqual({
+      file: 'match_7.json',
+      state: 16,
+      isActive: false,
+    });
+  });
+
+  it('keeps the higher match id even when it is scanned first', async () => {
+    // `entries()` sorts by name, so match_10 is visited before match_9.
+    writeMatch(9, matchWithStatus({ state: 24, isActive: false }));
+    writeMatch(10, matchWithStatus({ state: 16, isActive: false }));
+
+    const aggregate = await service.aggregateFor('2477481');
+
+    expect(aggregate?.matchStatus?.file).toBe('match_10.json');
+  });
+
+  it('leaves matchStatus null when no match snapshot carries either field', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+
+    expect((await service.aggregateFor('2477481'))?.matchStatus).toBeNull();
+  });
+
+  it('ignores non-numeric state and non-boolean isActive', async () => {
+    writeMatch(1, matchWithStatus({ state: 'dead', isActive: 'no' }));
+
+    expect((await service.aggregateFor('2477481'))?.matchStatus).toBeNull();
+  });
 });
