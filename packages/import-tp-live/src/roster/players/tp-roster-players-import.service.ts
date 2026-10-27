@@ -144,7 +144,53 @@ export class TpRosterPlayersImportService {
         });
       }
     }
+    await this.retireDepartedPlayers({
+      roster,
+      presentIds: merged.map((player) => player.id),
+      context,
+      teamEraId,
+      errors,
+    });
     return outcome;
+  }
+
+  /**
+   * A roster file lists only a team's current players, and a match snapshot
+   * covers the rest of those a match event can name, so a stored TP player of
+   * the team era that appears in neither has left the team and becomes
+   * `retired` (fired and retired are the same thing in TP) — unless already
+   * `dead`, which is never downgraded; a player who died but whose match has
+   * not been imported yet reads `retired` until that match import sets `dead`.
+   * A player whose own upsert failed still counts as present, so a transient
+   * failure never retires him. Skipped when the roster file lists no players:
+   * a truncated or failed roster must never retire a whole team. Only players
+   * carrying a TP external id in this era are considered, so inducement hires
+   * without a `lineUps` id are left alone. A failure is recorded and does not
+   * affect the players already imported.
+   */
+  private async retireDepartedPlayers(options: {
+    roster: TpRoster;
+    presentIds: number[];
+    context: TpRosterContext;
+    teamEraId: number;
+    errors: ImportError[];
+  }): Promise<void> {
+    const { roster, presentIds, context, teamEraId, errors } = options;
+    if (roster.players.length === 0) {
+      return;
+    }
+    await this.runner.record({
+      run: () =>
+        this.players.retireAbsentExternalPlayers({
+          teamEraId,
+          externalSystemId: context.tpSystemId,
+          presentExternalIds: presentIds.map(String),
+        }),
+      item: { teamEraId },
+      errors,
+      buildErrorMessage: (error) =>
+        `Failed to retire players who left the roster: ${this.runner.messageOf(error)}`,
+    });
   }
 
   /**

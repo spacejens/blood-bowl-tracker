@@ -299,4 +299,7 @@ retired, temporarily retired). NULL means no source has reported a status and
 is deliberately distinct from a known `active`, so no default is set and
 existing rows stay NULL. `PlayersService.upsert` leaves the stored status alone
 when the caller omits it and clears it back to NULL when the caller sends an
-explicit null.
+explicit null. `PlayersService.retireAbsentExternalPlayers` sets `retired` on
+the players of a team era that have an external id in a given system but none
+of the ids the caller says are still present, skipping `dead` ones (NULL
+statuses are included); the TP roster import uses it for players who left.

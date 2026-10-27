@@ -265,11 +265,21 @@ says who is currently on the roster. Their snapshot `state` still describes
 them as of the download, so a departed player is recorded as dead or retired.
 
 The status is sent on every player upsert, unknown included (as `null`), so a
-re-import clears a status the player no longer has — an `active` player who
-has since left becomes `retired`, and one back from temporary retirement
-becomes `active` again. A star player hired through an `inducements_roll`
-event has no `lineUps[]` entry, so no status is sent for them and theirs
-stays unknown.
+re-import clears a status the player no longer has — one back from temporary
+retirement becomes `active` again. A star player hired through an
+`inducements_roll` event has no `lineUps[]` entry, so no status is sent for
+them and theirs stays unknown.
+
+Every roster import then retires the players who left: a stored TP player of
+the team era (one with a TP external id) who is in neither the roster file nor
+the match snapshots is no longer on the team, so he becomes `retired` unless
+already `dead` (a `dead` status is never downgraded). This is what turns a
+formerly `active` player into `retired` when a roster-only import, such as the
+live team import after a "fired" notification, no longer lists him. A player
+who died but whose match has not been imported yet reads `retired` until that
+match import sets `dead`. A roster file listing no players retires nobody, so
+a truncated or failed roster can never retire a whole team. A player whose own
+upsert failed still counts as present.
 
 #### Current lasting injuries
 

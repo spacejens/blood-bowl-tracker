@@ -15,7 +15,12 @@ import {
   eq,
   eras,
   ilike,
+  inArray,
   isNotNull,
+  isNull,
+  ne,
+  not,
+  or,
   playerExternalIds,
   players,
   positions,
@@ -325,6 +330,41 @@ export class PlayersService {
     });
 
     return { player, created };
+  }
+
+  /**
+   * Marks `retired` every player of the team era that carries an external id
+   * in the given system but none of `presentExternalIds`: a source's roster
+   * lists only a team's current players, so one it no longer lists has left
+   * the team. A `dead` player is never downgraded; a NULL status is included. Only players with an external id in that system are
+   * candidates, so players the source never identified are left alone. An
+   * empty `presentExternalIds` excludes nothing — callers decide whether an
+   * empty source listing may be trusted. Returns the number of rows updated.
+   */
+  async retireAbsentExternalPlayers(options: {
+    teamEraId: number;
+    externalSystemId: number;
+    presentExternalIds: readonly string[];
+  }): Promise<number> {
+    const { teamEraId, externalSystemId, presentExternalIds } = options;
+    const external = and(
+      eq(playerExternalIds.externalSystemId, externalSystemId),
+      presentExternalIds.length === 0
+        ? undefined
+        : not(inArray(playerExternalIds.externalId, [...presentExternalIds])),
+    );
+    const rows = await this.db
+      .update(players)
+      .set({ status: 'retired' })
+      .where(
+        and(
+          eq(players.teamEraId, teamEraId),
+          or(isNull(players.status), ne(players.status, 'dead')),
+          sql`${players.id} in (select ${playerExternalIds.playerId} from ${playerExternalIds} where ${external})`,
+        ),
+      )
+      .returning({ id: players.id });
+    return rows.length;
   }
 
   countMvpAwardsByPlayer(
