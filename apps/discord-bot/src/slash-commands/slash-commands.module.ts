@@ -13,6 +13,8 @@ import { PlayerDeepdiveService } from '../deepdive/facts/player-deepdive.service
 import { PlayerKeywordsSectionService } from '../deepdive/facts/player-keywords-section.service';
 import { PlayerKillsSectionService } from '../deepdive/facts/player-kills-section.service';
 import { PlayerSkillsSectionService } from '../deepdive/facts/player-skills-section.service';
+import { PlayerStatusConflictReporterService } from '../deepdive/facts/player-status-conflict-reporter.service';
+import { PlayerStatusLineService } from '../deepdive/facts/player-status-line.service';
 import { PositionCharacteristicsLineFormatterService } from '../deepdive/facts/position-characteristics-line-formatter.service';
 import { PositionDeepdiveService } from '../deepdive/facts/position-deepdive.service';
 import { PositionKeywordsSectionService } from '../deepdive/facts/position-keywords-section.service';
@@ -22,6 +24,7 @@ import { StarPlayerDeepdiveService } from '../deepdive/facts/star-player-deepdiv
 import { TeamDeepdiveService } from '../deepdive/facts/team-deepdive.service';
 import { TrophyDeepdiveService } from '../deepdive/facts/trophy-deepdive.service';
 import { InsightsModule } from '../insights/insights.module';
+import { ErrorLogService } from '../shared/error-log.service';
 import { AdminModule } from './admin/admin.module';
 import { DebugModule } from './debug/debug.module';
 import { DeepdiveAutocompleteService } from './deepdive-autocomplete.service';
@@ -49,6 +52,9 @@ import { SlashCommandRegistryModule } from './slash-command-registry.module';
   // singleton that both this module's command services and DebugModule's
   // register against - see that module's doc comment for why it is pulled out
   // rather than provided directly here.
+  // ClockService also arrives transitively through InsightsModule's exports.
+  // ErrorLogService is dependency-free and provided here for the player
+  // status conflict reporter and the player deepdive that calls it.
   imports: [
     InsightsModule,
     TrophiesModule,
@@ -75,6 +81,9 @@ import { SlashCommandRegistryModule } from './slash-command-registry.module';
     PlayerKillsSectionService,
     PlayerSkillsSectionService,
     PlayerKeywordsSectionService,
+    PlayerStatusLineService,
+    PlayerStatusConflictReporterService,
+    ErrorLogService,
     CompetitionDeepdiveService,
     CompetitionGroupDeepdiveService,
     EraDeepdiveService,

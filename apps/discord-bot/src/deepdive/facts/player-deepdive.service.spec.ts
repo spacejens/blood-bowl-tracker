@@ -293,6 +293,7 @@ describe('PlayerDeepdiveService', () => {
         'Era: Season 5 (2020-01-01 – 2023-12-31)',
         'Race: Human',
         'Position: Blitzer',
+        'Status: Unknown',
         '',
         'Trophies:',
         'Major Season 24 (MVP)',
@@ -324,6 +325,7 @@ describe('PlayerDeepdiveService', () => {
         'Era: Season 5 (2020-01-01 – 2023-12-31)',
         'Race: Human',
         'Position: Blitzer',
+        'Status: Unknown',
         '',
         'Touchdowns scored: 3',
       ].join('\n'),
@@ -640,6 +642,7 @@ describe('PlayerDeepdiveService', () => {
         'Era: Season 5 (2020-01-01 – 2023-12-31)',
         'Race: Human',
         'Position: Blitzer',
+        'Status: Unknown',
         '',
         'Touchdowns scored: 3',
       ].join('\n'),
@@ -657,6 +660,7 @@ describe('PlayerDeepdiveService', () => {
         'Era: Season 5 (2020-01-01 – 2023-12-31)',
         'Race: Human',
         'Position: Blitzer',
+        'Status: Unknown',
         '',
         'Touchdowns scored: 3',
         '',
@@ -682,6 +686,7 @@ describe('PlayerDeepdiveService', () => {
         'Era: Season 5 (2020-01-01 – 2023-12-31)',
         'Race: Human',
         'Position: Blitzer',
+        'Status: Unknown',
         '',
         'Touchdowns scored: 3',
         '',
@@ -699,6 +704,7 @@ describe('PlayerDeepdiveService', () => {
         'Era: Season 5 (2020-01-01 – 2023-12-31)',
         'Race: Human',
         'Position: Blitzer',
+        'Status: Unknown',
         '',
         'Touchdowns scored: 3',
         '',
@@ -731,6 +737,7 @@ describe('PlayerDeepdiveService', () => {
         'Era: Season 5 (2020-01-01 – 2023-12-31)',
         'Race: Human',
         'Position: Blitzer',
+        'Status: Unknown',
         '',
         DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE,
         '',
@@ -739,7 +746,7 @@ describe('PlayerDeepdiveService', () => {
     );
   });
 
-  it('shows no Status line for a player who has not died', async () => {
+  it('shows Status: Unknown for a living player with no stored status', async () => {
     const { service } = await makeService({
       players: makePlayers({
         player: griff,
@@ -751,7 +758,9 @@ describe('PlayerDeepdiveService', () => {
       embeds: { description: string }[];
     };
 
-    expect(result.embeds[0].description).not.toContain('Status:');
+    expect(result.embeds[0].description).toContain(
+      'Position: Blitzer\nStatus: Unknown\n',
+    );
   });
 
   it('names the killing team when the individual is unidentified', async () => {
