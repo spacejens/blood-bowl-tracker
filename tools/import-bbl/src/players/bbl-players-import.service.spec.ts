@@ -599,6 +599,7 @@ describe('BblPlayersImportService', () => {
       lastingInjuries: goodPlayer.lastingInjuries,
       skills: [],
       characteristicIncreaseCounts: goodPlayer.characteristicIncreaseCounts,
+      status: 'active',
     };
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({ pl: [plPage(namelessPlayer)] }),
@@ -736,6 +737,7 @@ describe('BblPlayersImportService', () => {
       lastingInjuries: goodPlayer.lastingInjuries,
       skills: [],
       characteristicIncreaseCounts: goodPlayer.characteristicIncreaseCounts,
+      status: 'active',
     };
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({

@@ -1,4 +1,5 @@
 import type { PlayerLastingInjuries } from '@blood-bowl-tracker/api-contract';
+import type { PlayerStatus } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 import type { CheerioAPI } from 'cheerio';
 import type { AnyNode } from 'domhandler';
@@ -43,6 +44,23 @@ const PENDING_MARKER_COLOUR = '#f02020';
 
 /** The pending advancement marker's own, normalized text content. */
 const PENDING_MARKER_TEXT = '?';
+
+/**
+ * The player's own header block: the name under the portrait, whose `<b>`
+ * also holds the player's status icons. Icons elsewhere on the page (on links
+ * to other players, or beside the team link) are not this player's status.
+ */
+const PLAYER_HEADER_SELECTOR = 'div[style*="padding-bottom:1px"] > b';
+
+/** The header icon BBL shows for a dead player. */
+const DEAD_ICON_SRC = 'gfx/cross.gif';
+
+/** The header icon BBL shows for a retired player. */
+const RETIRED_ICON_SRC = 'gfx/retired.gif';
+
+/** The header icon BBL shows for a temporarily retired player. */
+const TEMPORARILY_RETIRED_ICON_SRC =
+  'https://bloodbowlleague.com/gfx/retire.png';
 
 /**
  * How many times each characteristic was increased by advancement, for one
@@ -146,6 +164,16 @@ export interface BblPlayer {
    * value.
    */
   characteristicIncreaseCounts: BblPlayerCharacteristicIncreaseCounts;
+  /**
+   * The player's current status, from the icons in their header block:
+   * `dead` for the cross, `retired` for the retired icon, `temporarily_retired`
+   * for the temporary-retirement icon, and `active` when none is present (BBL
+   * marks a player only once their status changes). When several icons are
+   * present the precedence is dead, then retired, then temporarily retired. A
+   * page without the header block fails player extraction entirely, like a
+   * missing name/position/team link.
+   */
+  status: PlayerStatus;
 }
 
 @Injectable()
@@ -161,10 +189,11 @@ export class PlayerPageParser {
    * `name` from the `<h1>` element, and `typId`/`teamCode` from position/team
    * links. A player page links its position (`default.asp?p=pt&typID=<digits>`)
    * and its team (`default.asp?p=tm&t=<code>`). The first of each is used.
-   * Returns null when the pid, position link, team link, or readable
-   * characteristics line is absent, or when the page has no `<h1>` element at
-   * all. An `<h1>` that is present but empty is accepted as a valid, empty
-   * name (`''`) — some BBL players legitimately have no name.
+   * Returns null when the pid, position link, team link, readable
+   * characteristics line, or player header block is absent, or when the page
+   * has no `<h1>` element at all. An `<h1>` that is present but empty is
+   * accepted as a valid, empty name (`''`) — some BBL players legitimately
+   * have no name.
    */
   extractPlayer(page: BblPage): BblPlayer | null {
     const $ = page.load();
@@ -199,6 +228,10 @@ export class PlayerPageParser {
     if (!characteristics) {
       return null;
     }
+    const status = this.extractStatus($);
+    if (status === null) {
+      return null;
+    }
     const { skills, characteristicIncreaseCounts } = this.extractSkills($);
     return {
       pid,
@@ -210,7 +243,36 @@ export class PlayerPageParser {
       lastingInjuries: this.extractLastingInjuries($),
       skills,
       characteristicIncreaseCounts,
+      status,
     };
+  }
+
+  /**
+   * The player's status, from the image sources inside their header `<b>`.
+   * Matched on the exact `src`, so the retired-team icon
+   * (`gfx/retiredteam.gif`) and the bounty icon never count. Precedence when
+   * several are present: dead, retired, temporarily retired, active. Returns
+   * null when the page has no header block at all.
+   */
+  private extractStatus($: CheerioAPI): PlayerStatus | null {
+    const header = $(PLAYER_HEADER_SELECTOR).first();
+    if (header.length === 0) {
+      return null;
+    }
+    const sources = header
+      .find('img')
+      .toArray()
+      .map((image) => $(image).attr('src') ?? '');
+    if (sources.includes(DEAD_ICON_SRC)) {
+      return 'dead';
+    }
+    if (sources.includes(RETIRED_ICON_SRC)) {
+      return 'retired';
+    }
+    if (sources.includes(TEMPORARILY_RETIRED_ICON_SRC)) {
+      return 'temporarily_retired';
+    }
+    return 'active';
   }
 
   /**
