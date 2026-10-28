@@ -84,8 +84,9 @@ Configuration is supplied through an environment file in the app directory.
    - `DEBUG_COMMAND_DISCORD_ROLE_ID` — optional, and unset by default. The id of a
      Discord server role whose members may run the `debug` maintainer slash commands
      ([`/debuginteractions`](slash-commands/debug-interactions.md),
-     [`/debugtopusers`](slash-commands/debug-top-users.md) and
-     [`/debugfilterusage`](slash-commands/debug-filter-usage.md)). Left unset,
+     [`/debugtopusers`](slash-commands/debug-top-users.md),
+     [`/debugfilterusage`](slash-commands/debug-filter-usage.md) and
+     [`/debugincompleteimport`](slash-commands/debug-incomplete-import.md)). Left unset,
      those commands are open to everyone who can see them. Set it and anyone
      without the role gets a private refusal instead — including anyone
      running one in a direct message with the bot, where there is no server
@@ -218,6 +219,10 @@ effect immediately.
   tooling: which Discord users have ever narrowed a command with an optional
   filter argument versus those who have only ever invoked commands plain,
   optionally narrowed to a recent window, replied ephemerally.
+- [`/debugincompleteimport`](slash-commands/debug-incomplete-import.md) —
+  maintainer tooling: the teams with players whose import data is
+  incomplete, grouped by coach with the largest problems first, paginated
+  and replied ephemerally.
 - [`/importtp`](slash-commands/import-tp.md) — league-administrator tooling:
   imports the TP competition, match, team or official team list a URL
   points to, right away, replied ephemerally with a per-stage summary.

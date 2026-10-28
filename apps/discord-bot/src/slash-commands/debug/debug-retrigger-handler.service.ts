@@ -30,8 +30,9 @@ import { DEBUG_RETRIGGER_CUSTOM_ID_PREFIX } from './debug-custom-ids';
  * The registered handler is invoked *directly*, not through
  * `DiscordClientService.handleInteraction`. That is safe because every real
  * slash command's `execute` reads only `interaction.options`, every button
- * handler only `interaction.customId`, and every select-menu handler only
- * `interaction.values` - replying, logging and notifying the
+ * handler `interaction.customId` (plus `member`, for role-checking handlers
+ * such as the incomplete-import page buttons), and every select-menu handler
+ * only `interaction.values` - replying, logging and notifying the
  * interaction-handled listeners that record usage are all dispatcher
  * concerns. So a minimal synthetic object exposing just those properties is
  * enough.
@@ -48,9 +49,10 @@ import { DEBUG_RETRIGGER_CUSTOM_ID_PREFIX } from './debug-custom-ids';
  * clicked in - matching how the original command would have replied. A
  * restricted command (one with a `restrictedRole`)'s reply keeps its flags
  * exactly as `execute()` returned them, so it stays ephemeral - since
- * `/debuginteractions`, `/debugtopusers` and `/debugfilterusage` (the three
- * commands that appear in `/debuginteractions`' own listing) all have a
- * `restrictedRole`, their retriggered replies are never posted publicly.
+ * `/debuginteractions`, `/debugtopusers`, `/debugfilterusage` and
+ * `/debugincompleteimport` (the debug commands that appear in
+ * `/debuginteractions`' own listing) all have a `restrictedRole`, their
+ * retriggered replies are never posted publicly.
  *
  * Retriggering a restricted command also re-checks the clicking member
  * against the role `DiscordClientService.requiredRoleId` names for it, the
@@ -76,8 +78,9 @@ import { DEBUG_RETRIGGER_CUSTOM_ID_PREFIX } from './debug-custom-ids';
  *
  * The synthetic button/select-menu interactions built for `retriggerButton`
  * and `retriggerSelectMenu` also carry `member`, forwarded from the real
- * interaction that triggered the retrigger - unused by every other
- * registered button/select-menu handler, but needed for one nested case:
+ * interaction that triggered the retrigger - read only by role-checking
+ * handlers such as the incomplete-import page buttons, and needed for one
+ * nested case:
  * this handler is itself a normally-registered button handler (on
  * `DEBUG_RETRIGGER_CUSTOM_ID_PREFIX`), so retriggering a past retrigger of a
  * restricted command routes back into `handle` via `retriggerButton`. Without

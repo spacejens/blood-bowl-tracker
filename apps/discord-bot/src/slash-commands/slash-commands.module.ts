@@ -44,8 +44,8 @@ import { SlashCommandRegistryModule } from './slash-command-registry.module';
   // transitively through InsightsModule, which provides and exports both for
   // its own on-this-date insight, so neither is redeclared here.
   // DebugModule supplies the debug-prefixed commands (/debuginteractions,
-  // /debugtopusers, /debugfilterusage) and their own dependencies, including
-  // DiscordBotUsageModule.
+  // /debugtopusers, /debugfilterusage, /debugincompleteimport) and their own
+  // dependencies, including DiscordBotUsageModule.
   // AdminModule supplies the admin-role commands (/importtp) and their own
   // dependencies, including packages/import-tp-live.
   // SlashCommandRegistryModule supplies the shared SlashCommandRegistryService
