@@ -73,7 +73,12 @@ describe('curated batch 004 advancement costs', () => {
   });
 
   it('holds 18 fixed-threshold and 84 type-priced rows', () => {
-    expect(readBatch(BATCH_004).advancementCosts).toHaveLength(102);
+    const costs = readBatch(BATCH_004).advancementCosts;
+    const fixedThreshold = costs.filter(
+      (cost) => cost.advancementKind === 'table_roll',
+    );
+    expect(fixedThreshold).toHaveLength(18);
+    expect(costs.length - fixedThreshold.length).toBe(84);
   });
 
   it('references only rules sets batch 001 declares', () => {

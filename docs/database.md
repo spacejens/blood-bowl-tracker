@@ -225,8 +225,9 @@ advancement table whose outcome is not modelled. A rules set that prices
 advancements by what the coach takes has one row per kind for each
 advancement number: a random or chosen primary skill, a random or chosen
 secondary skill, or a random characteristic increase. A row stores the cost of
-that one advancement, never a cumulative threshold, so the costs of a player's
-first N advancements sum to the Nth threshold. Storing costs keeps one rule
+that one advancement, never a cumulative threshold; under fixed thresholds the
+costs of a player's first N advancements sum to the Nth threshold. Storing
+costs keeps one rule
 for every rules set: unspent SPP is total SPP minus the costs of the
 advancements gained. Both numbers are checked positive. The costs are curated
 by `tools/import-manual` in batch 004 (see
