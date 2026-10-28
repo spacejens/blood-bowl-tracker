@@ -20,7 +20,7 @@ import {
   StarPlayersService,
   TrophyAwardsService,
 } from '@blood-bowl-tracker/game-data';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
@@ -43,7 +43,9 @@ import {
   DEEPDIVE_PLAYER_STAR_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { ClockService } from '../../shared/clock.service';
 import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
+import { ErrorLogService } from '../../shared/error-log.service';
 import { EventCountLinesService } from '../../shared/event-count-lines.service';
 import { NumberFormatterService } from '../../shared/number-formatter.service';
 import {
@@ -59,6 +61,8 @@ import { PlayerKeywordsSectionService } from './player-keywords-section.service'
 import { PlayerKillerInfoFormatterService } from './player-killer-info-formatter.service';
 import { PlayerKillsSectionService } from './player-kills-section.service';
 import { PlayerSkillsSectionService } from './player-skills-section.service';
+import { PlayerStatusConflictReporterService } from './player-status-conflict-reporter.service';
+import { PlayerStatusLineService } from './player-status-line.service';
 
 /**
  * Most honors listed in one player embed. Deliberately its own constant rather
@@ -128,6 +132,8 @@ const INCREASE_FIELDS = [
  */
 @Injectable()
 export class PlayerDeepdiveService {
+  private readonly logger = new Logger(PlayerDeepdiveService.name);
+
   constructor(
     private readonly players: PlayersService,
     private readonly databaseTimeout: DatabaseTimeoutService,
@@ -146,6 +152,10 @@ export class PlayerDeepdiveService {
     private readonly positionRulesSetKeywords: PositionRulesSetKeywordsService,
     private readonly keywordsSection: PlayerKeywordsSectionService,
     private readonly numbers: NumberFormatterService,
+    private readonly clock: ClockService,
+    private readonly statusLine: PlayerStatusLineService,
+    private readonly statusConflicts: PlayerStatusConflictReporterService,
+    private readonly errorLog: ErrorLogService,
   ) {}
 
   async resolve(playerId: number): Promise<string | InteractionReplyOptions> {
@@ -325,7 +335,7 @@ export class PlayerDeepdiveService {
       `Era: ${this.dateRangeFormatter.formatNamed(player.eraName, player.eraStartDate, player.eraEndDate)}`,
       `Race: ${player.raceName}`,
       `Position: ${player.positionName}`,
-      ...(killer === undefined ? [] : [this.buildStatusLine(killer)]),
+      this.buildStatusLine(player, killer),
       ...(conditionLines.length === 0 ? [] : ['', ...conditionLines]),
     ];
 
@@ -563,12 +573,38 @@ export class PlayerDeepdiveService {
   }
 
   /**
-   * The `Status:` line for a player who died, at whatever precision the data
-   * supports, with a trailing note when the fatal blow was a foul. Only
-   * rendered when the player actually died — there is no always-present
-   * placeholder line for living players.
+   * The `Status:` line, shown for every player. A death recorded in match
+   * events wins: the line names whoever was responsible, at whatever
+   * precision the data supports, with a trailing note when the fatal blow
+   * was a foul. Otherwise the line shows the player's stored status.
+   *
+   * A kill alongside a stored status other than `dead` (or none at all) is
+   * an import bug. The killed line is still shown, and the conflict is
+   * reported without waiting for, or depending on, the report's outcome.
    */
-  private buildStatusLine(killer: PlayerKillerInfo): string {
+  private buildStatusLine(
+    player: PlayerDetail,
+    killer: PlayerKillerInfo | undefined,
+  ): string {
+    if (killer === undefined) {
+      return this.statusLine.build({
+        status: player.status,
+        eraEndDate: player.eraEndDate,
+        today: this.clock.now(),
+      });
+    }
+    if (player.status !== null && player.status !== 'dead') {
+      const { id, name, status } = player;
+      void this.statusConflicts
+        .report({ id, name, status })
+        .catch((error: unknown) => {
+          this.errorLog.logError(
+            this.logger,
+            'Failed to report a player status conflict',
+            error,
+          );
+        });
+    }
     const note = killer.viaFoul ? ' (via a foul)' : '';
     return `Status: ${this.formatKiller(killer)}${note}`;
   }

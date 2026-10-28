@@ -27,8 +27,10 @@ import { DatabaseTimeoutService } from '../../database-timeout.service';
 import { mockDatabaseTimeout } from '../../database-timeout-mock.test-helpers';
 import { EntityComponentsService } from '../../entity-components.service';
 import { nullEntityComponents } from '../../entity-components-mock.test-helpers';
+import { ClockService } from '../../shared/clock.service';
 import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
 import { makeDateRangeFormatter } from '../../shared/date-range-formatter-mock.test-helpers';
+import { ErrorLogService } from '../../shared/error-log.service';
 import { EventCountLinesService } from '../../shared/event-count-lines.service';
 import { NumberFormatterService } from '../../shared/number-formatter.service';
 import { PlayerRowButtonService } from '../player-row-button.service';
@@ -37,28 +39,33 @@ import { PlayerKeywordsSectionService } from './player-keywords-section.service'
 import { PlayerKillerInfoFormatterService } from './player-killer-info-formatter.service';
 import { PlayerKillsSectionService } from './player-kills-section.service';
 import { PlayerSkillsSectionService } from './player-skills-section.service';
+import { PlayerStatusConflictReporterService } from './player-status-conflict-reporter.service';
+import { PlayerStatusLineService } from './player-status-line.service';
 
 /**
  * Test-only helper. Do not import from production code.
  *
  * Shared fixtures and builders for `PlayerDeepdiveService` specs, split across
  * `player-deepdive.service.spec.ts` (header, honors, category counts, SPP
- * totals, and killer/Status line) and `player-deepdive-kills.service.spec.ts`
- * (the Kills section) to keep each file under the repo's 1000-line spec
- * ceiling — see `CLAUDE.md`'s "Maximum file size".
+ * totals, and killer/Status line), `player-deepdive-kills.service.spec.ts`
+ * (the Kills section) and `player-deepdive-status.spec.ts` (the `Status:`
+ * line for every stored status, and kill/status conflicts) to keep each file
+ * under the repo's 1000-line spec ceiling — see `CLAUDE.md`'s "Maximum file size".
  *
  * `makeService` compiles `PlayerDeepdiveService` with its pure formatting
  * collaborators passed real: the chain `PlayerKillsSectionService` →
  * `PlayerKillerInfoFormatterService` → `PlayerRowButtonService`, with
  * `NumberFormatterService` a further link under `PlayerKillsSectionService`,
  * plus the dependency-free `EventCountLinesService`,
- * `CharacteristicDisplayFormattingService`, `PlayerSkillsSectionService` and
- * `PlayerKeywordsSectionService`. This follows `CLAUDE.md`'s "Testing
- * services" carve-out for a pure chain inside an otherwise-mocked subject:
- * every collaborator with I/O or external state (the game-data services,
- * `DatabaseTimeoutService` and `EntityComponentsService`) is a mock, built
- * fresh per call. `DateRangeFormatterService` is stubbed with a canned era
- * label.
+ * `CharacteristicDisplayFormattingService`, `PlayerSkillsSectionService`,
+ * `PlayerKeywordsSectionService` and `PlayerStatusLineService`. This follows
+ * `CLAUDE.md`'s "Testing services" carve-out for a pure chain inside an
+ * otherwise-mocked subject: every collaborator with I/O or external state
+ * (the game-data services, `DatabaseTimeoutService`,
+ * `EntityComponentsService`, `ClockService` (stubbed at `TODAY`),
+ * `PlayerStatusConflictReporterService` and `ErrorLogService`) is a mock,
+ * built fresh per call. `DateRangeFormatterService` is stubbed with a canned
+ * era label.
  */
 
 export const griff = {
@@ -132,8 +139,8 @@ export function makeTrophyAwards(
 
 /**
  * A `PlayerDeathService` mock. Defaults to a living player (`undefined`) with
- * no kills, so tests about other parts of the embed never see a Status line or
- * a Kills section.
+ * no kills, so tests about other parts of the embed never see the killed Status
+ * line or a Kills section.
  */
 export function makePlayerDeath(
   killer?: PlayerKillerInfo,
@@ -147,6 +154,29 @@ export function makePlayerDeath(
   return playerDeath;
 }
 
+/** The clock's "now" in every player deepdive spec unless a test overrides it. */
+export const TODAY = new Date('2026-10-27T12:00:00.000Z');
+
+/**
+ * A `ClockService` mock fixed at `now`. Defaults to `TODAY`, which is after
+ * `griff`'s era ended (2023-12-31).
+ */
+export function makeClock(now: Date = TODAY): MockProxy<ClockService> {
+  const clock = mock<ClockService>();
+  clock.now.mockReturnValue(now);
+  return clock;
+}
+
+/**
+ * A `PlayerStatusConflictReporterService` mock whose `report` resolves, as
+ * the real one always does.
+ */
+export function makeStatusConflicts(): MockProxy<PlayerStatusConflictReporterService> {
+  const statusConflicts = mock<PlayerStatusConflictReporterService>();
+  statusConflicts.report.mockResolvedValue(undefined);
+  return statusConflicts;
+}
+
 export interface MakeServiceOptions {
   players: PlayersService;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
@@ -158,6 +188,9 @@ export interface MakeServiceOptions {
   dateRangeFormatter?: MockProxy<DateRangeFormatterService>;
   playerSkills?: MockProxy<PlayerSkillsService>;
   positionRulesSetKeywords?: MockProxy<PositionRulesSetKeywordsService>;
+  clock?: MockProxy<ClockService>;
+  statusConflicts?: MockProxy<PlayerStatusConflictReporterService>;
+  errorLog?: MockProxy<ErrorLogService>;
 }
 
 /**
@@ -222,6 +255,9 @@ export async function makeService({
   ),
   playerSkills = makePlayerSkills(),
   positionRulesSetKeywords = makePositionRulesSetKeywords(),
+  clock = makeClock(),
+  statusConflicts = makeStatusConflicts(),
+  errorLog = mock<ErrorLogService>(),
 }: MakeServiceOptions): Promise<{
   service: PlayerDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;
@@ -232,6 +268,9 @@ export async function makeService({
   dateRangeFormatter: MockProxy<DateRangeFormatterService>;
   playerSkills: MockProxy<PlayerSkillsService>;
   positionRulesSetKeywords: MockProxy<PositionRulesSetKeywordsService>;
+  clock: MockProxy<ClockService>;
+  statusConflicts: MockProxy<PlayerStatusConflictReporterService>;
+  errorLog: MockProxy<ErrorLogService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -248,6 +287,7 @@ export async function makeService({
       CharacteristicDisplayFormattingService,
       PlayerSkillsSectionService,
       PlayerKeywordsSectionService,
+      PlayerStatusLineService,
       { provide: PlayersService, useValue: players },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
@@ -261,6 +301,12 @@ export async function makeService({
         provide: PositionRulesSetKeywordsService,
         useValue: positionRulesSetKeywords,
       },
+      { provide: ClockService, useValue: clock },
+      {
+        provide: PlayerStatusConflictReporterService,
+        useValue: statusConflicts,
+      },
+      { provide: ErrorLogService, useValue: errorLog },
     ],
   }).compile();
   return {
@@ -273,6 +319,9 @@ export async function makeService({
     dateRangeFormatter,
     playerSkills,
     positionRulesSetKeywords,
+    clock,
+    statusConflicts,
+    errorLog,
   };
 }
 

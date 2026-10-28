@@ -87,9 +87,11 @@ belongs to exactly one team-era, and therefore to exactly one era). The era
 line names the era and its date range, with an ongoing era marked as still
 running.
 
-### Killer status
+### Status
 
-Then — only for a player who died — a status line naming whoever was
+Then a status line, for every player.
+
+For a player whose death is recorded in match events, it names whoever was
 responsible, at the best precision the recorded match event supports: the
 specific killer player, with their position, team, race and coach, when the
 event indexes one; the killing team alone, with its race and coach, when
@@ -100,8 +102,34 @@ killing teams when a multi-team match leaves several candidates; and a
 "mysterious circumstances" fallback when nothing can be attributed at all.
 When the fatal event was recorded as a foul rather than a regular blocking
 action, the line notes that, in all four of those forms.
-Only a fatal consequence produces this line; a player who has not died
-shows no status line at all, rather than a placeholder.
+
+Every other player's line shows the status their source reports, in plain
+words:
+
+- `Status: Active`, or `Status: Active until the end of the era` once the
+  player's era has ended.
+- `Status: Temporarily retired`, or
+  `Status: Temporarily retired until the end of the era` once the player's
+  era has ended.
+- `Status: Retired`, whatever the era.
+- `Status: Killed`, for a player stored as dead with no fatal match event
+  to name a killer from.
+- `Status: Unknown`, when no source has reported a status.
+
+An era has ended once its end date is before today (read in UTC). An era
+ending today still counts as running, and an ongoing era (no end date) never
+counts as ended. This is worked out each time the
+deepdive is shown, never stored.
+
+A death recorded in match events always wins over the stored status. A
+player killed in match events whose stored status is set and is not dead
+points at an import bug. A killed player with no stored status is not a
+conflict and is not reported. The deepdive still shows the killed line in
+every case, and the bot logs a conflict as an error. It also posts a bug
+report naming the player's id, name and stored status to the
+[TP feed debug channel](../tp-feed.md#configuration), when one is
+configured. Each conflict (player and stored status) is reported once per
+bot run. A failed post never affects the deepdive reply.
 
 ### Characteristics
 
