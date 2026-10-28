@@ -225,6 +225,21 @@ describe('ManualDataReader', () => {
     expect(data.advancementCosts.map((c) => c.sppCost)).toEqual([6, 10]);
   });
 
+  it('keeps the league and skill of an advancementCosts entry when pooling', async () => {
+    write(
+      'a.json5',
+      `{ advancementCosts: [{ rulesSet: { system: 'Name', id: 'CRP' },
+         league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
+         advancementNumber: 7, advancementKind: 'granted_skill',
+         skill: { system: 'Name', id: 'Fan Favourite' }, sppCost: 125 }] }`,
+    );
+
+    const [cost] = (await reader.read(dir)).advancementCosts;
+
+    expect(cost.league).toEqual({ system: 'tloeg.bbleague.se', id: 'tLoEG' });
+    expect(cost.skill).toEqual({ system: 'Name', id: 'Fan Favourite' });
+  });
+
   it('pools the keywords section across files', async () => {
     write(
       'a.json5',

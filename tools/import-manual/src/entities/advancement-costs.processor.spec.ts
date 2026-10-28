@@ -27,6 +27,20 @@ function apiCost(advancementNumber: number, sppCost: number) {
   };
 }
 
+const TLOEG = { system: 'tloeg.bbleague.se', id: 'tLoEG' };
+const FAN_FAVOURITE = { system: 'Name', id: 'Fan Favourite' };
+
+function leagueEntry() {
+  return {
+    rulesSet: { system: 'Name', id: 'CRP' },
+    league: TLOEG,
+    advancementNumber: 7,
+    advancementKind: 'granted_skill',
+    skill: FAN_FAVOURITE,
+    sppCost: 125,
+  };
+}
+
 describe('AdvancementCostsProcessor', () => {
   let processor: AdvancementCostsProcessor;
   let costsImport: MockProxy<AdvancementCostsImportService>;
@@ -35,6 +49,10 @@ describe('AdvancementCostsProcessor', () => {
   beforeEach(async () => {
     costsImport = mock<AdvancementCostsImportService>();
     refResolver = mock<ReferenceResolverService>();
+    refResolver.resolveOptionalRef.mockResolvedValue({
+      ok: true,
+      id: undefined,
+    });
     const moduleRef = await Test.createTestingModule({
       providers: [
         AdvancementCostsProcessor,
@@ -121,5 +139,98 @@ describe('AdvancementCostsProcessor', () => {
     const imported = await processor.process(makeContext([entry('CRP', 1, 6)]));
 
     expect(imported).toBe(0);
+  });
+
+  it('resolves the league and skill an entry names and sends their ids', async () => {
+    refResolver.resolveRef.mockResolvedValue(5);
+    refResolver.resolveOptionalRef
+      .mockResolvedValueOnce({ ok: true, id: 3 })
+      .mockResolvedValueOnce({ ok: true, id: 40 });
+    costsImport.syncAdvancementCosts.mockResolvedValue({
+      advancementCostIds: [21],
+    });
+
+    const ctx = makeContext([leagueEntry()]);
+    const imported = await processor.process(ctx);
+
+    expect(imported).toBe(1);
+    expect(costsImport.syncAdvancementCosts).toHaveBeenCalledWith(
+      {
+        costs: [
+          {
+            rulesSetId: 5,
+            leagueId: 3,
+            advancementNumber: 7,
+            advancementKind: 'granted_skill',
+            skillId: 40,
+            sppCost: 125,
+          },
+        ],
+      },
+      ctx.errors,
+    );
+    expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ref: TLOEG,
+        kind: 'league',
+        errors: ctx.errors,
+      }),
+    );
+    expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ref: FAN_FAVOURITE,
+        kind: 'skill',
+        errors: ctx.errors,
+      }),
+    );
+  });
+
+  it('sends no league or skill id for an entry that names neither', async () => {
+    refResolver.resolveRef.mockResolvedValue(5);
+    costsImport.syncAdvancementCosts.mockResolvedValue({
+      advancementCostIds: [11],
+    });
+
+    await processor.process(makeContext([entry('CRP', 1, 6)]));
+
+    const [{ costs }] = costsImport.syncAdvancementCosts.mock.calls[0];
+    expect(Object.keys(costs[0]).sort()).toEqual([
+      'advancementKind',
+      'advancementNumber',
+      'rulesSetId',
+      'sppCost',
+    ]);
+    expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
+      expect.objectContaining({ ref: undefined, kind: 'league' }),
+    );
+  });
+
+  it('skips an entry whose league does not resolve and still syncs the rest', async () => {
+    refResolver.resolveRef.mockResolvedValue(5);
+    refResolver.resolveOptionalRef.mockResolvedValueOnce({ ok: false });
+    costsImport.syncAdvancementCosts.mockResolvedValue({
+      advancementCostIds: [11],
+    });
+
+    const ctx = makeContext([leagueEntry(), entry('CRP', 1, 6)]);
+    const imported = await processor.process(ctx);
+
+    expect(imported).toBe(1);
+    expect(costsImport.syncAdvancementCosts).toHaveBeenCalledWith(
+      { costs: [apiCost(1, 6)] },
+      ctx.errors,
+    );
+  });
+
+  it('skips an entry whose skill does not resolve', async () => {
+    refResolver.resolveRef.mockResolvedValue(5);
+    refResolver.resolveOptionalRef
+      .mockResolvedValueOnce({ ok: true, id: 3 })
+      .mockResolvedValueOnce({ ok: false });
+
+    const imported = await processor.process(makeContext([leagueEntry()]));
+
+    expect(imported).toBe(0);
+    expect(costsImport.syncAdvancementCosts).not.toHaveBeenCalled();
   });
 });
