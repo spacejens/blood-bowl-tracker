@@ -10,6 +10,7 @@ import { TpOfficialKeywordCatalogService } from './tp-official-keyword-catalog.s
 import { TpOfficialKeywordsSyncService } from './tp-official-keywords-sync.service';
 import { TpOfficialPositionsUpsertService } from './tp-official-positions-upsert.service';
 import { TpOfficialRacesUpsertService } from './tp-official-races-upsert.service';
+import { TpOfficialSkillCategoriesSyncService } from './tp-official-skill-categories-sync.service';
 import { TpOfficialSkillRefsService } from './tp-official-skill-refs.service';
 import { TpOfficialStartingSkillsService } from './tp-official-starting-skills.service';
 import {
@@ -38,6 +39,7 @@ describe('TpOfficialTeamsImportService', () => {
   let keywordsSync: MockProxy<TpOfficialKeywordsSyncService>;
   let skillRefs: MockProxy<TpOfficialSkillRefsService>;
   let startingSkills: MockProxy<TpOfficialStartingSkillsService>;
+  let skillCategoriesSync: MockProxy<TpOfficialSkillCategoriesSyncService>;
 
   const races = [officialRace()];
   const racesByCode = new Map([['orc20', { raceId: 10, raceName: 'Orc' }]]);
@@ -68,6 +70,8 @@ describe('TpOfficialTeamsImportService', () => {
     skillRefs.resolve.mockResolvedValue(refsByPositionId);
     startingSkills = mock<TpOfficialStartingSkillsService>();
     startingSkills.syncStartingSkills.mockResolvedValue(3);
+    skillCategoriesSync = mock<TpOfficialSkillCategoriesSyncService>();
+    skillCategoriesSync.syncSkillCategories.mockResolvedValue(4);
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpOfficialTeamsImportService,
@@ -86,6 +90,10 @@ describe('TpOfficialTeamsImportService', () => {
         { provide: TpOfficialKeywordsSyncService, useValue: keywordsSync },
         { provide: TpOfficialSkillRefsService, useValue: skillRefs },
         { provide: TpOfficialStartingSkillsService, useValue: startingSkills },
+        {
+          provide: TpOfficialSkillCategoriesSyncService,
+          useValue: skillCategoriesSync,
+        },
       ],
     }).compile();
     service = moduleRef.get(TpOfficialTeamsImportService);
@@ -125,6 +133,9 @@ describe('TpOfficialTeamsImportService', () => {
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
       expect.objectContaining({ refsByPositionId }),
     );
+    expect(skillCategoriesSync.syncSkillCategories).toHaveBeenCalledWith(
+      expect.objectContaining({ slots, context: officialTeamsContext() }),
+    );
     const characteristicsOrder =
       characteristicsSync.syncCharacteristics.mock.invocationCallOrder[0];
     expect(characteristicsOrder).toBeLessThan(
@@ -133,12 +144,16 @@ describe('TpOfficialTeamsImportService', () => {
     expect(characteristicsOrder).toBeLessThan(
       startingSkills.syncStartingSkills.mock.invocationCallOrder[0],
     );
+    expect(characteristicsOrder).toBeLessThan(
+      skillCategoriesSync.syncSkillCategories.mock.invocationCallOrder[0],
+    );
     expect(result).toEqual({
       races: { success: true, imported: 1, errors: [] },
       positions: { success: true, imported: 1, errors: [] },
       characteristics: { success: true, imported: 1, errors: [] },
       keywords: { success: true, imported: 2, errors: [] },
       startingSkills: { success: true, imported: 3, errors: [] },
+      skillCategories: { success: true, imported: 4, errors: [] },
       positionCharacteristics,
     });
   });
@@ -175,6 +190,25 @@ describe('TpOfficialTeamsImportService', () => {
     ]);
   });
 
+  it('reports skill category failures only under skillCategories', async () => {
+    skillCategoriesSync.syncSkillCategories.mockImplementation((options) => {
+      pushError('categories failed')(options);
+      return Promise.resolve(0);
+    });
+
+    const result = await service.importOfficialTeams({
+      rulesSet: 'BB2020',
+      races,
+      externalSystemName: 'TP',
+    });
+
+    expect(result.skillCategories.errors).toEqual([
+      { item: null, message: 'categories failed' },
+    ]);
+    expect(result.startingSkills.errors).toEqual([]);
+    expect(result.keywords.errors).toEqual([]);
+  });
+
   it('defaults to no skill master names', async () => {
     await service.importOfficialTeams({
       rulesSet: 'BB2020',
@@ -200,6 +234,7 @@ describe('TpOfficialTeamsImportService', () => {
     });
 
     expect(racesUpsert.upsertRaces).not.toHaveBeenCalled();
+    expect(skillCategoriesSync.syncSkillCategories).not.toHaveBeenCalled();
     const nothing = { success: true, imported: 0, errors: [] };
     expect(result).toEqual({
       races: {
@@ -211,6 +246,7 @@ describe('TpOfficialTeamsImportService', () => {
       characteristics: nothing,
       keywords: nothing,
       startingSkills: nothing,
+      skillCategories: nothing,
       positionCharacteristics: [],
     });
   });

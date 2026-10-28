@@ -67,6 +67,7 @@ const OFFICIAL_TEAMS_WRITE_STAGES = [
   { key: 'characteristics', label: 'characteristics' },
   { key: 'keywords', label: 'keywords' },
   { key: 'startingSkills', label: 'starting skills' },
+  { key: 'skillCategories', label: 'skill categories' },
 ] as const satisfies readonly {
   key: keyof TpOfficialTeamsImportResult;
   label: string;

@@ -174,6 +174,7 @@ export const TpOfficialTeamsImportResultSchema = z.object({
   characteristics: ImportResultSchema,
   keywords: ImportResultSchema,
   startingSkills: ImportResultSchema,
+  skillCategories: ImportResultSchema,
   positionCharacteristics: z.array(TpOfficialPositionCharacteristicsSchema),
 });
 

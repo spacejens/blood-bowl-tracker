@@ -84,6 +84,7 @@ describe('TpOfficialPositionsUpsertService', () => {
           characteristics: CHARACTERISTICS,
           skills: [],
           keywordCodes: [],
+          skillCategories: { primary: [], secondary: [] },
         },
       ],
     });
@@ -148,6 +149,43 @@ describe('TpOfficialPositionsUpsertService', () => {
       expect(result.slots[0].characteristics).toEqual(CHARACTERISTICS);
     },
   );
+
+  it('keeps the official skill categories over the legacy ones, and carries a categories error', async () => {
+    const result = await service.upsertPositions({
+      races: [
+        officialRace({
+          teamRaceCode: 'orcLegacy20',
+          isOfficial: false,
+          positions: [
+            officialPosition({
+              skillCategories: { primary: ['strength'], secondary: [] },
+            }),
+          ],
+        }),
+        officialRace({
+          teamRaceCode: 'orc20',
+          positions: [
+            officialPosition({
+              skillCategories: { primary: ['general'], secondary: ['agility'] },
+              skillCategoriesError: 'Orc / Blitzer: both',
+            }),
+          ],
+        }),
+      ],
+      racesByCode: new Map([
+        ['orc20', ORC],
+        ['orcLegacy20', ORC],
+      ]),
+      context: officialTeamsContext(),
+      errors,
+    });
+
+    expect(result.slots[0].skillCategories).toEqual({
+      primary: ['general'],
+      secondary: ['agility'],
+    });
+    expect(result.slots[0].skillCategoriesError).toBe('Orc / Blitzer: both');
+  });
 
   it('keeps a legacy-only position with its legacy characteristics', async () => {
     const result = await service.upsertPositions({
@@ -248,6 +286,7 @@ describe('TpOfficialPositionsUpsertService', () => {
         characteristics: CHARACTERISTICS,
         skills: [],
         keywordCodes: [],
+        skillCategories: { primary: [], secondary: [] },
       },
     ]);
   });
@@ -294,6 +333,7 @@ describe('TpOfficialPositionsUpsertService', () => {
         characteristics: CHARACTERISTICS,
         skills: [],
         keywordCodes: [],
+        skillCategories: { primary: [], secondary: [] },
       },
     ]);
   });

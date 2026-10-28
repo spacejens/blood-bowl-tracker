@@ -428,6 +428,7 @@ describe('ImportTpReplyService', () => {
       characteristics: imported(190),
       keywords: failedWith('unknown keyword Foo'),
       startingSkills: imported(300),
+      skillCategories: imported(310),
       positionCharacteristics: [],
     };
 
@@ -451,7 +452,7 @@ describe('ImportTpReplyService', () => {
         description: [
           '**Completed with errors**',
           '',
-          '- Rules set BB2025: fetched 30 races; wrote 30 races, 200 positions, 190 characteristics, 0 keywords, 300 starting skills',
+          '- Rules set BB2025: fetched 30 races; wrote 30 races, 200 positions, 190 characteristics, 0 keywords, 300 starting skills, 310 skill categories',
           '- Rules set BB2020: fetched 0 races, nothing written',
           '',
           '**Errors**',

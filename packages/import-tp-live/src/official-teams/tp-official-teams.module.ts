@@ -3,6 +3,7 @@ import {
   ExternalSystemsModule,
   KeywordsModule,
   PositionRulesSetKeywordsModule,
+  PositionRulesSetSkillCategoriesModule,
   PositionRulesSetSkillsModule,
   PositionRulesSetsModule,
   PositionsModule,
@@ -22,6 +23,7 @@ import { TpOfficialKeywordCatalogService } from './tp-official-keyword-catalog.s
 import { TpOfficialKeywordsSyncService } from './tp-official-keywords-sync.service';
 import { TpOfficialPositionsUpsertService } from './tp-official-positions-upsert.service';
 import { TpOfficialRacesUpsertService } from './tp-official-races-upsert.service';
+import { TpOfficialSkillCategoriesSyncService } from './tp-official-skill-categories-sync.service';
 import { TpOfficialSkillRefsService } from './tp-official-skill-refs.service';
 import { TpOfficialStartingSkillsService } from './tp-official-starting-skills.service';
 import { TpOfficialTeamsContextService } from './tp-official-teams-context.service';
@@ -29,7 +31,7 @@ import { TpOfficialTeamsImportService } from './tp-official-teams-import.service
 
 /**
  * Imports one rules set's TP official team list -- races, positions and
- * stars, characteristics, keywords and starting skills -- straight into the
+ * stars, characteristics, keywords, starting skills and skill categories -- straight into the
  * database through packages/game-data. packages/api-server imports it to
  * implement `tpOfficialTeams.import`; ImportTpLiveModule imports it for the
  * live import. The importing app provides packages/db's `DB`.
@@ -40,6 +42,7 @@ import { TpOfficialTeamsImportService } from './tp-official-teams-import.service
     ExternalSystemsModule,
     KeywordsModule,
     PositionRulesSetKeywordsModule,
+    PositionRulesSetSkillCategoriesModule,
     PositionRulesSetSkillsModule,
     PositionRulesSetsModule,
     PositionsModule,
@@ -62,6 +65,7 @@ import { TpOfficialTeamsImportService } from './tp-official-teams-import.service
     TpOfficialSkillRefsService,
     TpSkillIdLookupService,
     TpOfficialStartingSkillsService,
+    TpOfficialSkillCategoriesSyncService,
   ],
   exports: [TpOfficialTeamsImportService],
 })

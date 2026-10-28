@@ -101,6 +101,7 @@ describe('TpOfficialTeamsImportResultSchema', () => {
       characteristics: one,
       keywords: one,
       startingSkills: one,
+      skillCategories: one,
       positionCharacteristics: [
         { positionId: 9, rulesSetId: 20, ...characteristics },
       ],

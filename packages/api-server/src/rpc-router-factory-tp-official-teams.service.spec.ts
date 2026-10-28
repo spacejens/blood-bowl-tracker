@@ -18,6 +18,7 @@ describe('RpcRouterFactoryService tpOfficialTeams router', () => {
       characteristics: one,
       keywords: one,
       startingSkills: one,
+      skillCategories: one,
       positionCharacteristics: [
         {
           positionId: 9,

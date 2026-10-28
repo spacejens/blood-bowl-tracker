@@ -26,6 +26,7 @@ const WRITTEN: TpOfficialTeamsImportResult = {
   characteristics: ONE,
   keywords: ONE,
   startingSkills: ONE,
+  skillCategories: ONE,
   positionCharacteristics: [],
 };
 const RACES: TpOfficialRace[] = [

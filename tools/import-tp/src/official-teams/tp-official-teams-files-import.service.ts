@@ -31,6 +31,7 @@ export interface OfficialTeamsFilesImportOutcome {
   characteristicsResult: ImportResult;
   keywordsResult: ImportResult;
   startingSkillsResult: ImportResult;
+  skillCategoriesResult: ImportResult;
   /**
    * positionId -> rulesSetId -> characteristics, for the hired-star step,
    * which uses them as a freshly hired star's template values.
@@ -52,6 +53,7 @@ const STAGES: readonly Stage[] = [
   'characteristics',
   'keywords',
   'startingSkills',
+  'skillCategories',
 ];
 
 interface Tally {
@@ -73,7 +75,7 @@ export class TpOfficialTeamsFilesImportService {
    * that rules set's parsed races and the whole scanned skill-name lookup
    * (TP's list names skills by id only, and the scan is what lets the server
    * upsert a skill no earlier import has registered yet); the server writes
-   * the races, positions, characteristics, keywords and starting skills. A
+   * the races, positions, characteristics, keywords, starting skills and skill categories. A
    * call that fails outright is recorded under races and the other rules
    * sets still import. This includes an unexpected database error on the
    * server: it comes back as a rejected call, which is recorded the same
@@ -96,6 +98,7 @@ export class TpOfficialTeamsFilesImportService {
       characteristics: { imported: 0, errors: [] },
       keywords: { imported: 0, errors: [] },
       startingSkills: { imported: 0, errors: [] },
+      skillCategories: { imported: 0, errors: [] },
     };
     const characteristicsByPositionId = new Map<
       number,
@@ -143,6 +146,7 @@ export class TpOfficialTeamsFilesImportService {
       characteristicsResult: this.importResults.result(tallies.characteristics),
       keywordsResult: this.importResults.result(tallies.keywords),
       startingSkillsResult: this.importResults.result(tallies.startingSkills),
+      skillCategoriesResult: this.importResults.result(tallies.skillCategories),
       characteristicsByPositionId,
     };
   }

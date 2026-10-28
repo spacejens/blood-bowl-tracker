@@ -2,7 +2,7 @@
 
 `packages/import-tp-live` imports TP's official team list — the races,
 positions and star players TP publishes per rules set, with their
-characteristics, keywords and starting skills — in two ways that share one
+characteristics, keywords, starting skills and skill categories — in two ways that share one
 write path:
 
 - **Live**, `TpLiveOfficialTeamsImportService.importOfficialTeams(...)`
@@ -42,20 +42,24 @@ for (const { rulesSet, fetch, write } of rulesSets) {
    the inducement-hire path and the BBL importer. An official roster's
    characteristics win over a legacy roster's for the same position.
 4. **Characteristics**, then **keywords** (codes decoded through the curated
-   keyword catalogue) and **starting skills** — the last two only after
-   characteristics, since the server rejects them for a position with no
-   characteristics row.
+   keyword catalogue), **starting skills** and **skill categories**. The last
+   three run only after characteristics, since the server rejects them for a
+   position with no characteristics row. Skill categories are written as each
+   position's complete primary/secondary set (decoded from TP's
+   `skillNormal`/`skillDouble`), so a category TP stops listing is flagged
+   removed. A position whose categories are corrupt in TP's data is reported
+   and skipped, leaving its existing categories untouched.
 
 ## Batched writes
 
-Races and positions are upserted one at a time, but each of the three
+Races and positions are upserted one at a time, but each of the four
 stages in step 4 writes the whole rules set in a single sync call carrying
 every position's entries, instead of one call per position. The server
 validates a sync all-or-nothing, so when a stage's batch is rejected (for
 example a keyword for a position whose characteristics failed to write)
 that stage retries one position at a time. A characteristics or keywords
 failure names the position; a starting-skills failure identifies it by
-position id. Every other position is still written. A stage with nothing to
+position id; a skill-categories failure names the position. Every other position is still written. A stage with nothing to
 write makes no call.
 
 ## Starting skills

@@ -68,6 +68,7 @@ export function positionSlot(
     characteristics: CHARACTERISTICS,
     skills: [],
     keywordCodes: [],
+    skillCategories: { primary: [], secondary: [] },
     ...overrides,
   };
 }

@@ -358,6 +358,7 @@ async function run(): Promise<ImportResult> {
       officialTeamsOutcome.characteristicsResult,
       officialTeamsOutcome.keywordsResult,
       officialTeamsOutcome.startingSkillsResult,
+      officialTeamsOutcome.skillCategoriesResult,
       rosterImport.teamResult,
       rosterImport.playerResult,
       starHiresOutcome.result,
