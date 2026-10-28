@@ -10,6 +10,7 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mockDeep } from 'vitest-mock-extended';
 
+import { AdvancementCostsImportService } from './advancement-costs-import.service';
 import { BatchBufferService } from './batch-buffer.service';
 import { CoachesImportService } from './coaches-import.service';
 import { CompetitionGroupsImportService } from './competition-groups-import.service';
@@ -73,6 +74,7 @@ const providers = [
   SkillRulesSetsImportService,
   SkillsImportService,
   SppAdjustmentsImportService,
+  AdvancementCostsImportService,
   SppAwardValuesImportService,
   StartingSkillsImportService,
   ErasImportService,
