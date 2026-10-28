@@ -111,8 +111,8 @@ re-checks the clicking member's role, exactly as described there.
 - An interaction that matched no registered handler was never recorded at
   all, so it cannot appear here.
 - **`debug`-prefixed commands' own invocations.** `/debugfilterusage`,
-  `/debugtopusers`, and `/debuginteractions` are excluded from the report
-  entirely, whether or not an optional option was supplied. Without this,
+  `/debugtopusers`, `/debuginteractions` and `/debugincompleteimport` are
+  excluded from the report entirely, whether or not an optional option was supplied. Without this,
   a maintainer running one of these commands to check the bot would plant
   themselves in the "Plain only" bucket — self-usage of maintainer tooling
   is not a signal about regular bot usage.
