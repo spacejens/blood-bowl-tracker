@@ -1,3 +1,4 @@
+export * from './advancement-kinds';
 export * from './competitions';
 export * from './discord-bot-usage';
 export * from './external-systems';
