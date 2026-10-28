@@ -76,6 +76,10 @@ describe('TrophyAwardsProcessor', () => {
     awards = mock<TrophyAwardsImportService>();
     trophies = mock<TrophiesImportService>();
     refResolver = mock<ReferenceResolverService>();
+    refResolver.resolveOptionalRef.mockResolvedValue({
+      ok: true,
+      id: undefined,
+    });
     importResults = mock<ImportResultService>();
     importResults.error.mockReturnValue({
       item: entry,
@@ -165,6 +169,54 @@ describe('TrophyAwardsProcessor', () => {
       .mockResolvedValueOnce(12)
       .mockResolvedValueOnce(undefined);
     const ctx = makeContext({ ...emptyData(), trophyAwards: [entry] });
+
+    await expect(processor.process(ctx)).resolves.toBe(0);
+    expect(awards.upsert).not.toHaveBeenCalled();
+  });
+
+  it('resolves an optional granted skill by external id and sends it', async () => {
+    trophies.resolveByName.mockResolvedValue(31);
+    refResolver.resolveRef.mockResolvedValueOnce(12).mockResolvedValueOnce(9);
+    refResolver.resolveOptionalRef.mockResolvedValue({ ok: true, id: 41 });
+    awards.upsert.mockResolvedValue(awardRow);
+    const withSkill = {
+      ...entry,
+      grantedSkill: { system: 'Name', id: 'Tentacles' },
+    };
+    const ctx = makeContext({ ...emptyData(), trophyAwards: [withSkill] });
+
+    await expect(processor.process(ctx)).resolves.toBe(1);
+
+    expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
+      expect.objectContaining({ ref: withSkill.grantedSkill, kind: 'skill' }),
+    );
+    expect(awards.upsert).toHaveBeenCalledWith(
+      { trophyId: 31, competitionId: 12, playerId: 9, grantedSkillId: 41 },
+      ctx.errors,
+    );
+  });
+
+  it('sends no granted skill when the entry names none', async () => {
+    trophies.resolveByName.mockResolvedValue(31);
+    refResolver.resolveRef.mockResolvedValueOnce(12).mockResolvedValueOnce(9);
+    awards.upsert.mockResolvedValue(awardRow);
+    const ctx = makeContext({ ...emptyData(), trophyAwards: [entry] });
+
+    await processor.process(ctx);
+
+    expect(awards.upsert.mock.calls[0][0].grantedSkillId).toBeUndefined();
+  });
+
+  it('skips the entry when its granted skill does not resolve', async () => {
+    trophies.resolveByName.mockResolvedValue(31);
+    refResolver.resolveRef.mockResolvedValueOnce(12).mockResolvedValueOnce(9);
+    refResolver.resolveOptionalRef.mockResolvedValue({ ok: false });
+    const ctx = makeContext({
+      ...emptyData(),
+      trophyAwards: [
+        { ...entry, grantedSkill: { system: 'Name', id: 'Not A Skill' } },
+      ],
+    });
 
     await expect(processor.process(ctx)).resolves.toBe(0);
     expect(awards.upsert).not.toHaveBeenCalled();

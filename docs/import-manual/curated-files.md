@@ -221,7 +221,10 @@ Rumble` events become `Reserves Rumble 1`–`3`). Batch 001
   (Season MVP, Gudarnas Förkämpe), for which no importer records a
   winner. It is applied after the sources because each entry references a
   competition and a player by external id, both created by the BBL/TP
-  importers.
+  importers. An entry may also name a `grantedSkill`, the skill the trophy
+  gave the player outside their advancements (see
+  [trophy awards](../game-concepts/trophies/index.md#trophy-award)); leaving
+  it out leaves any stored one alone.
 - `position-skills.json5` — hand-curated starting skills
   (`position_rules_set_skills`) for CRP, CRP+ and BB2016, one entry per
   (position, rules set) carrying that position's whole skill list. Each entry's

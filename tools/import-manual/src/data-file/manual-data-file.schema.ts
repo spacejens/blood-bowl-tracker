@@ -365,6 +365,11 @@ const TrophyAwardEntrySchema = z.object({
   trophy: z.string().min(1),
   competition: ExternalRefSchema,
   player: ExternalRefSchema,
+  // The skill the trophy gave the player outside their advancements (the
+  // Gudarnas Förkämpe free mutation), as an external-id reference. Optional:
+  // most trophies grant nothing, and an entry that leaves it out leaves any
+  // stored granted skill alone.
+  grantedSkill: ExternalRefSchema.optional(),
 });
 
 export const ManualDataFileSchema = z

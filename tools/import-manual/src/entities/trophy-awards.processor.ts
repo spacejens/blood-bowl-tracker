@@ -22,11 +22,14 @@ export class TrophyAwardsProcessor {
    * classified `manual` in `batches/001-initial-seed/trophies.json5`, whose
    * winner no statistic determines and no source records.
    *
-   * Three lookups per entry, each of which skips the entry (with one
-   * ImportError) when it fails: the trophy by its exact curated *name* (see
+   * Three lookups per entry, plus a fourth for an optional granted skill,
+   * each of which skips the entry (with one ImportError) when it fails: the
+   * trophy by its exact curated *name* (see
    * `TrophiesImportService.resolveByName` for why not by external id), and
    * the competition and player by external id like every other
-   * cross-reference in this tool.
+   * cross-reference in this tool. An omitted `grantedSkill` sends no
+   * `grantedSkillId`, so the API leaves the stored one alone, while an
+   * unresolved one skips the entry like any other reference.
    *
    * No `teamEraId` is sent: a player never changes teams, so the API derives
    * the award's team era from the resolved player's own row.
@@ -76,8 +79,19 @@ export class TrophyAwardsProcessor {
       if (playerId === undefined) {
         continue;
       }
+      const grantedSkill = await this.refResolver.resolveOptionalRef({
+        ref: entry.grantedSkill,
+        systemIds: ctx.systemIds,
+        errors: ctx.errors,
+        item: entry,
+        label,
+        kind: 'skill',
+      });
+      if (!grantedSkill.ok) {
+        continue;
+      }
       const upserted = await this.trophyAwardsImport.upsert(
-        { trophyId, competitionId, playerId },
+        { trophyId, competitionId, playerId, grantedSkillId: grantedSkill.id },
         ctx.errors,
       );
       if (upserted) {
