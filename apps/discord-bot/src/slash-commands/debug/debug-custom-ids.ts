@@ -10,3 +10,12 @@
  * prefixes.
  */
 export const DEBUG_RETRIGGER_CUSTOM_ID_PREFIX = 'debug:retrigger:';
+
+/**
+ * Routing prefix for the `/debugincompleteimport` page buttons. The dynamic
+ * remainder is the 1-based page number to show - nothing else, because the
+ * report is re-queried on every click. Kept inside the `debug:` namespace and
+ * clear of `DEBUG_RETRIGGER_CUSTOM_ID_PREFIX`, since handlers match by
+ * `startsWith`.
+ */
+export const DEBUG_INCOMPLETE_IMPORT_CUSTOM_ID_PREFIX = 'debug:incomplete:';
