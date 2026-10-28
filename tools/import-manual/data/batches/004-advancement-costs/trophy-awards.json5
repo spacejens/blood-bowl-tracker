@@ -10,7 +10,7 @@
 // Every award below has exactly one gained mutation. Where the position
 // cannot take mutations as advancements (per its BBL position page, or TP's
 // skillNormal/skillDouble masks), that mutation can only be the free one.
-// Where it can, the choice is an inference and its entry says so.
+// Where it can, the entry says so and the developer confirmed the choice.
 //
 // Each entry names the award's competition and player by external id: the
 // same award the BBL importer (or batch 002, for Chaos Cup 8) already
@@ -46,8 +46,8 @@
       grantedSkill: { system: 'Name', id: 'Disturbing Presence' },
     },
     // Chaos Cup 3: Lord Foul (Chaos Chosen Blocker). The position takes
-    // mutations as normal advancements, so this is inferred from Foul
-    // Appearance being his only gained mutation.
+    // mutations as normal advancements, but Foul Appearance is his only
+    // gained mutation and the developer confirmed it is the trophy's.
     {
       trophy: 'Gudarnas Förkämpe',
       competition: { system: 'tloeg.bbleague.se', id: '27' },
