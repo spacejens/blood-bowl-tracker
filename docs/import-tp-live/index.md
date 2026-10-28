@@ -51,6 +51,10 @@ procedures use it:
   skill from the skill masters that JSON embeds.
 - **The live team entry point**: `TpLiveTeamImportService.importTeam(...)`,
   in `ImportTpLiveModule`.
+- **SPP adjustments**: `TpPlayerSppFactsService` builds each imported
+  player's SPP facts, and `TpLiveSppAdjustmentsService` settles them through
+  game-data's `SppAdjustmentsService` at the end of a live match or
+  competition import (never of a team import alone).
 - **Match import**: `TpMatchModule`, with `TpMatchImportService` and its
   match-context, upsert, events and outcome services, plus
   `TpLiveMatchImportService`, `TpLiveMatchTeamsImportService`, their
@@ -182,12 +186,12 @@ the era name, the name TP's external system is registered under, and
 optionally the roster's players seen only in match snapshots, and optionally
 `deferSppTotal`: when true the players' `spp_total` is left alone, because the
 caller writes it afterwards through `players.syncReportedSppAdjustments` (the
-bulk importer does; the live import does not, so it stores TP's raw total).
-The live import stores TP's raw total while the bulk run stores the corrected
-total, so a live import of a player the bulk run already imported rewrites
-`spp_total` (raw, then corrected on the next bulk run), adding history rows
-each way; this is accepted because the live import never runs the adjustments
-step.
+bulk importer does). The live import does not defer: it stores TP's raw total
+and, in a match or competition import, overwrites it in-process with the
+settled total once the match events are in. A live team import on its own
+leaves TP's raw total in place, so re-importing a bulk-imported player's team
+that way rewrites `spp_total` (raw, then settled again by the next match,
+competition or bulk import), adding history rows each way.
 Output: the `team` and `players` results, plus the team's team eras, each
 imported player's `lineUpId` → player id (and whether it was inserted) and the
 career SPP total TP reports for it, and the

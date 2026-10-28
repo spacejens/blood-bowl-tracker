@@ -17,6 +17,7 @@ import { TpCompetitionMatchesBackfillService } from './tp-competition-matches-ba
 import type { TpLiveCompetitionTeamResult } from './tp-competition-participants-backfill.service';
 import { TpCompetitionParticipantsBackfillService } from './tp-competition-participants-backfill.service';
 import { TpExtraTrophyAwardsService } from './tp-extra-trophy-awards.service';
+import { TpLiveSppAdjustmentsService } from './tp-live-spp-adjustments.service';
 
 export type { TpLiveCompetitionTeamResult } from './tp-competition-participants-backfill.service';
 
@@ -63,6 +64,13 @@ export interface TpLiveCompetitionImportResult {
    */
   extraTrophyAwards: ImportResult;
   /**
+   * Settling the SPP total and adjustment of every registered team's
+   * players, last, once the competition is imported (after its match
+   * backfill, when that ran). Nothing imported otherwise; a failure here
+   * never fails the import.
+   */
+  sppAdjustments: ImportResult;
+  /**
    * The era the competition was imported under: the given one, or the one
    * its teams agreed on. Undefined when the import stopped before an era was
    * settled.
@@ -87,6 +95,7 @@ export class TpLiveCompetitionImportService {
     private readonly matchesBackfill: TpCompetitionMatchesBackfillService,
     private readonly extraTrophyAwards: TpExtraTrophyAwardsService,
     private readonly importResults: ImportResultService,
+    private readonly sppAdjustmentsSync: TpLiveSppAdjustmentsService,
   ) {}
 
   /**
@@ -119,7 +128,10 @@ export class TpLiveCompetitionImportService {
    * reported errors, since a missing match would skew them for good; when no
    * backfill ran they rely on the matches imported earlier. That stage
    * reports its own failures in `extraTrophyAwards` and never fails the
-   * import. A failed awards or inscriptions fetch leaves the competition's
+   * import. Last of all, once the competition is imported, every registered
+   * team's players have their SPP total and adjustment settled through
+   * `TpLiveSppAdjustmentsService`, after the match backfill (the backfill
+   * re-imports their rosters), reported in `sppAdjustments`. A failed awards or inscriptions fetch leaves the competition's
    * finished state unknown, so its stored end date is left as stored.
    */
   async importCompetition({
@@ -211,6 +223,7 @@ export class TpLiveCompetitionImportService {
           imported: 0,
           errors: [],
         }),
+        sppAdjustments: this.importResults.result({ imported: 0, errors: [] }),
         era: competitionEra,
       };
       backfilling =
@@ -234,9 +247,16 @@ export class TpLiveCompetitionImportService {
               matchesBackfill,
             })
           : imported.extraTrophyAwards;
+      const sppAdjustments =
+        core.competition.imported > 0
+          ? await this.sppAdjustmentsSync.settle(
+              teams.flatMap((team) => team.sppPlayers),
+            )
+          : imported.sppAdjustments;
       return {
         ...imported,
         extraTrophyAwards,
+        sppAdjustments,
         ...(matchesBackfill === undefined ? {} : { matchesBackfill }),
       };
     } catch (error) {
@@ -313,6 +333,7 @@ export class TpLiveCompetitionImportService {
       participation: nothing(),
       trophyAwards: nothing(),
       extraTrophyAwards: nothing(),
+      sppAdjustments: nothing(),
       era: undefined,
     };
   }

@@ -35,6 +35,7 @@ const COMPETITION_RESULT: TpLiveCompetitionImportResult = {
   participation: one,
   trophyAwards: one,
   extraTrophyAwards: one,
+  sppAdjustments: one,
   era: 'Fourth era',
 };
 const MATCH_RESULT: TpLiveMatchImportResult = {

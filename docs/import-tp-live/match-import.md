@@ -96,25 +96,27 @@ up to four more steps after the shared core:
    award, which means the competition is finished (a failed awards fetch
    leaves that unknown, so nothing here runs). Re-upsert the competition as
    finished over the whole bracket's played dates, which settles its end
-   date, then award the trophies TP does not record itself, the same step 8 a
-   live competition import runs (see
+   date, then award the trophies TP does not record itself, the live competition
+   import's step 8 (see
    [competition-import.md](competition-import.md)). The awards run after
    step 2 and are skipped, with one error in `extraTrophyAwards`, when step 2
    reported errors, since a missing match would skew them for good; the end
    date is settled either way.
-4. **Settle the players' SPP** (step 8 above), now for both match teams
-   and every backfilled team, after steps 1–3: the match backfill re-imports
-   every registered team's roster, which writes TP's raw total back, so the
-   settling has to come after it. A player imported several times is settled
-   once.
+4. **Settle the players' SPP** (the match import's step 8 above), now for
+   both match teams and every backfilled team, after steps 1–3: the match
+   backfill re-imports every registered team's roster, which writes TP's raw
+   total back, so the settling has to come after it. A player imported
+   several times is settled once. When the bracket fetch or the competition
+   upsert fails, the teams already re-imported are left unsettled.
 
 The result then also carries `participantsBackfill` (`teams`,
 `participation`, `trophyAwards`) and `matchesBackfill` (one `ImportResult`
 for all backfilled matches) and `extraTrophyAwards` (one `ImportResult`: the
 finishing re-upsert's errors and the extra awards created; nothing imported
 when TP has no awards yet or they could not be fetched). A backfill failure is
-reported there and never fails the match import itself. The bulk `tpMatches.import` procedure never
-upserts a competition, so it never backfills.
+reported there and never fails the match import itself. The bulk
+`tpMatches.import` procedure never upserts a competition, so it never
+backfills.
 
 ## Importing a match's teams live
 

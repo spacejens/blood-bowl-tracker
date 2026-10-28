@@ -138,6 +138,7 @@ describe('TpImportFailureService', () => {
           participation: imported(0),
           trophyAwards: imported(3),
           extraTrophyAwards: failedWith('database down'),
+          sppAdjustments: imported(0),
           era: 'Fourth era',
         },
       });
@@ -212,6 +213,7 @@ describe('TpImportFailureService', () => {
           participation: imported(0),
           trophyAwards: imported(0),
           extraTrophyAwards: imported(0),
+          sppAdjustments: imported(0),
           era: 'Fourth era',
         },
       });
