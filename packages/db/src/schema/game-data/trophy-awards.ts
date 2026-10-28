@@ -4,6 +4,7 @@ import { historyTrackedTable } from '../history';
 import { competitions } from './competitions';
 import { gameData } from './pg-schema';
 import { players } from './players';
+import { skills } from './skills';
 import { teamEras } from './team-eras';
 import { trophies } from './trophies';
 
@@ -24,6 +25,13 @@ import { trophies } from './trophies';
  * `competition_teams` gets. That constraint is NULLS NOT DISTINCT, which is
  * what makes a team award (always `player_id = NULL`) dedup at all; Postgres's
  * default would treat two NULLs as different and allow a duplicate.
+ *
+ * `granted_skill_id` names a skill the trophy itself gave its player outside
+ * their advancements (Gudarnas Förkämpe's free mutation). It is not part of
+ * the natural key: it describes the award rather than identifying it, and it
+ * is set only on a player award (enforced in `TrophyAwardsService`, for the
+ * same cross-table reason as `player_id`). Null means the trophy grants no
+ * skill, the player has not chosen it, or which skill it was is unknown.
  */
 const trophyAwardsTable = historyTrackedTable({
   schema: gameData,
@@ -40,6 +48,7 @@ const trophyAwardsTable = historyTrackedTable({
       .references(() => teamEras.id)
       .notNull(),
     playerId: integer('player_id').references(() => players.id),
+    grantedSkillId: integer('granted_skill_id').references(() => skills.id),
   },
   extraConfig: (t) => ({
     uniqueTrophyAward: unique(

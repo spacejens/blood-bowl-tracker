@@ -61,14 +61,17 @@ The batches:
   are currently none. CRP+ primary comes from NTBB2015's
   Talent column and secondary from the CRP entry. BB2016 comes from the
   Teams of Legend PDF and the developer's physical BB2016 rulebook (see
-  [Batch 004](curated-files.md#batch-004)). The advancement costs reference
-  only the rules sets, the tLoEG league and the Fan Favourite skill that
-  batch 001 declares, but the skill categories reference positions and
-  characteristics that the source importers and batch 002 create, so the
-  batch applies after them, in a plain `apply`. The api-server must already
-  run a release whose `advancementCosts.sync` accepts league and skill ids
-  and that has the `positionRulesSetSkillCategories.sync` procedure before
-  the batch is applied.
+  [Batch 004](curated-files.md#batch-004)). It also names the free mutation of
+  every Gudarnas Förkämpe award (`trophy-awards.json5`). The advancement
+  costs reference only the rules sets, the tLoEG league and the Fan Favourite
+  skill that batch 001 declares, but the skill categories reference positions
+  and characteristics that the source importers and batch 002 create, and the
+  trophy awards reference competitions and players the BBL and TP importers
+  create, so the batch applies after them, in a plain `apply`. The api-server
+  must already run a release whose `advancementCosts.sync` accepts league and
+  skill ids, whose `trophyAwards.upsert` accepts `grantedSkillId` and that has
+  the `positionRulesSetSkillCategories.sync` procedure before the batch is
+  applied.
 
 ## Changing curated data
 

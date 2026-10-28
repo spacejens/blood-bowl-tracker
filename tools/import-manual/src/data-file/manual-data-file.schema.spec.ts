@@ -42,6 +42,29 @@ describe('ManualDataFileSchema', () => {
     expect(parsed.trophyAwards[0].trophy).toBe('Season MVP');
   });
 
+  it('accepts an optional grantedSkill reference on a trophy award', () => {
+    const parsed = ManualDataFileSchema.parse({
+      trophyAwards: [
+        {
+          trophy: 'Gudarnas F\u00f6rk\u00e4mpe',
+          competition: { system: 'tloeg.bbleague.se', id: '21' },
+          player: { system: 'tloeg.bbleague.se', id: '127' },
+          grantedSkill: { system: 'Name', id: 'Disturbing Presence' },
+        },
+        {
+          trophy: 'Season MVP',
+          competition: { system: 'tloeg.bbleague.se', id: '10' },
+          player: { system: 'tloeg.bbleague.se', id: '388' },
+        },
+      ],
+    });
+    expect(parsed.trophyAwards[0].grantedSkill).toEqual({
+      system: 'Name',
+      id: 'Disturbing Presence',
+    });
+    expect(parsed.trophyAwards[1].grantedSkill).toBeUndefined();
+  });
+
   it('defaults a trophy\u2019s eligible positions to an empty array', () => {
     const parsed = ManualDataFileSchema.parse({
       trophies: [

@@ -10,6 +10,7 @@ import {
   SppAwardValueValidationError,
   SyncBatchValidationError,
   TrophyAwardCompetitionGroupMismatchError,
+  TrophyAwardGrantedSkillError,
   TrophyAwardRecipientMismatchError,
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
@@ -107,6 +108,17 @@ describe('UpsertHandlerService', () => {
     });
   });
 
+  it('translates a trophy award granted skill error into a BAD_REQUEST reply', async () => {
+    await expect(
+      handler.run(errors, TestConflictError, () => {
+        throw new TrophyAwardGrantedSkillError('no such skill');
+      }),
+    ).rejects.toBeInstanceOf(BadRequestReply);
+    expect(errors.BAD_REQUEST).toHaveBeenCalledWith({
+      message: 'no such skill',
+    });
+  });
+
   it('rethrows any other error untouched', async () => {
     const boom = new Error('db is down');
     await expect(
@@ -133,6 +145,17 @@ describe('UpsertHandlerService', () => {
       ).rejects.toBeInstanceOf(BadRequestReply);
       expect(errors.BAD_REQUEST).toHaveBeenCalledWith({
         message: 'wrong recipient',
+      });
+    });
+
+    it('translates a trophy award granted skill error into a BAD_REQUEST reply', async () => {
+      await expect(
+        handler.runWithoutConflict(errors, () => {
+          throw new TrophyAwardGrantedSkillError('no such skill');
+        }),
+      ).rejects.toBeInstanceOf(BadRequestReply);
+      expect(errors.BAD_REQUEST).toHaveBeenCalledWith({
+        message: 'no such skill',
       });
     });
 
@@ -286,6 +309,16 @@ describe('UpsertHandlerService', () => {
         error: 'wrong group',
       },
     ]);
+  });
+
+  it('turns a trophy award granted skill error into a per-item failure', async () => {
+    await expect(
+      handler.runBatch(TestConflictError, [
+        () => {
+          throw new TrophyAwardGrantedSkillError('no such skill');
+        },
+      ]),
+    ).resolves.toEqual([{ success: false, error: 'no such skill' }]);
   });
 
   it('propagates an unknown error and abandons the remaining items', async () => {

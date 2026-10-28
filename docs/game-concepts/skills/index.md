@@ -101,6 +101,14 @@ Unique skill as gained looks impossible under the base rules, but house rules
 and competition-specific quirks can genuinely produce one, so what the source
 published is stored as-is.
 
+A skill a [trophy award](../trophies/index.md#trophy-award) granted is
+recorded like any other gained skill, with whatever source the source system
+gave it: neither BBL nor TP marks it as free. It is the award naming the skill
+that marks it, so when a player's skills are listed each one is flagged as
+**trophy-granted** when one of the player's own trophy awards names that skill.
+A trophy-granted skill is not an advancement: it costs no SPP and does not
+count towards the player's advancements.
+
 Syncing player skills only adds or updates rows for what's supplied. A player
 skill that a later sync no longer includes is not automatically removed —
 its row stays in place.

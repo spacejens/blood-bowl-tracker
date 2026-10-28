@@ -9,10 +9,12 @@ import {
   DB,
   eq,
   inArray,
+  isNotNull,
   players,
   playerSkills,
   skillRulesSets,
   skills,
+  trophyAwards,
 } from '@blood-bowl-tracker/db';
 import type {
   PlayerSkillSource,
@@ -47,6 +49,16 @@ export interface PlayerSkillRow {
    * column's own `NOT NULL DEFAULT false` makes.
    */
   isElite: boolean;
+  /**
+   * Whether one of the player's own trophy awards names this skill as the
+   * skill it granted (Gudarnas Förkämpe's free mutation). Such a skill is not
+   * an advancement: it costs no SPP and is left out of the player's
+   * advancement count. Source-system independent, because it comes from the
+   * curated award rather than from how the importer recorded the skill. It is
+   * matched on the skill alone, so it applies to whichever of the player's rows
+   * carries that skill; a cost model reads it on the gained rows it counts.
+   */
+  isTrophyGranted: boolean;
 }
 
 /**
@@ -305,6 +317,8 @@ export class PlayerSkillsService {
    * PositionRulesSetSkillsService: `sync` above deliberately accepts a player
    * skill with no curated row for the rules set, so a missed join is a normal
    * state to report rather than a reason to drop the skill from the list.
+   * Each row also says whether one of the player's trophy awards granted that
+   * skill.
    */
   async listByPlayer(
     playerId: number,
@@ -341,8 +355,25 @@ export class PlayerSkillsService {
         asc(playerSkills.advancementOrder),
         asc(skills.name),
       );
+    // A second query rather than a join: a player holds at most a handful of
+    // awards, and joining them onto every skill row would duplicate a row if
+    // two awards ever named the same skill.
+    const grantedRows = await this.db
+      .select({ skillId: trophyAwards.grantedSkillId })
+      .from(trophyAwards)
+      .where(
+        and(
+          eq(trophyAwards.playerId, playerId),
+          isNotNull(trophyAwards.grantedSkillId),
+        ),
+      );
+    const grantedSkillIds = new Set(grantedRows.map((row) => row.skillId));
     // A missed left join yields a null `isElite`; collapse it to the column's
     // own default so every consumer sees one plain boolean.
-    return rows.map((row) => ({ ...row, isElite: row.isElite ?? false }));
+    return rows.map((row) => ({
+      ...row,
+      isElite: row.isElite ?? false,
+      isTrophyGranted: grantedSkillIds.has(row.skillId),
+    }));
   }
 }

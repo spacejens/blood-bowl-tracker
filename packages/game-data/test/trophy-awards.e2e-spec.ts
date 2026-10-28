@@ -9,6 +9,7 @@ import {
   players,
   positions,
   races,
+  skills,
   teamEras,
   teams,
   trophies,
@@ -31,6 +32,7 @@ interface TrophyFixtures {
   playerId: number;
   playerTrophyId: number;
   teamTrophyId: number;
+  skillId: number;
 }
 
 /**
@@ -115,6 +117,10 @@ async function seedTrophyFixtures(db: Db): Promise<TrophyFixtures> {
       awardProcedure: 'Taken from the season standings.',
     })
     .returning();
+  const [skill] = await db
+    .insert(skills)
+    .values({ name: 'Tentacles' })
+    .returning();
 
   return {
     competitionId: competition.id,
@@ -122,6 +128,7 @@ async function seedTrophyFixtures(db: Db): Promise<TrophyFixtures> {
     playerId: player.id,
     playerTrophyId: playerTrophy.id,
     teamTrophyId: teamTrophy.id,
+    skillId: skill.id,
   };
 }
 
@@ -210,5 +217,41 @@ describe('TrophyAwardsService.upsert (real Postgres)', () => {
     expect(second.created).toBe(false);
     expect(second.trophyAward.id).toBe(first.trophyAward.id);
     expect(await db.select().from(trophyAwards)).toHaveLength(1);
+  });
+
+  it('keeps a curated granted skill when an importer re-upserts the award without one', async () => {
+    const base = {
+      trophyId: fixtures.playerTrophyId,
+      competitionId: fixtures.competitionId,
+      playerId: fixtures.playerId,
+    };
+
+    // Importer first, curation second, importer again: order must not matter.
+    await service.upsert(base);
+    const curated = await service.upsert({
+      ...base,
+      grantedSkillId: fixtures.skillId,
+    });
+    const reimported = await service.upsert(base);
+
+    expect(curated.trophyAward.grantedSkillId).toBe(fixtures.skillId);
+    expect(reimported.trophyAward.grantedSkillId).toBe(fixtures.skillId);
+    const rows = await db.select().from(trophyAwards);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].grantedSkillId).toBe(fixtures.skillId);
+    // One history version for the insert, one for the overlay update.
+    expect(await db.select().from(trophyAwardsHistory)).toHaveLength(2);
+  });
+
+  it('stores a granted skill on a freshly inserted award', async () => {
+    const result = await service.upsert({
+      trophyId: fixtures.playerTrophyId,
+      competitionId: fixtures.competitionId,
+      playerId: fixtures.playerId,
+      grantedSkillId: fixtures.skillId,
+    });
+
+    expect(result.created).toBe(true);
+    expect(result.trophyAward.grantedSkillId).toBe(fixtures.skillId);
   });
 });

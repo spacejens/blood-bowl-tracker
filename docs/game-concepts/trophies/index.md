@@ -15,3 +15,4 @@ A [trophy award](../../glossary.md#trophy-award) is one concrete instance of a t
 - It additionally identifies a [player](../players/index.md), but only when its trophy is a player trophy.
 - Its recipient kind must match its trophy's, and the competition it was awarded in must fall inside the trophy's curated scope — a Major-Season trophy cannot be awarded for a Minor-Season competition.
 - The same recipient cannot receive the same trophy more than once for the same competition.
+- A player award can name a **granted skill**: a skill the trophy itself gives its player, outside the player's advancements. tLoEG's Gudarnas Förkämpe gives its player a free mutation. Holding the award is what entitles the player to the skill, so an award may name a skill before the player's own skill list shows it, and an award that names none is normal: the player has not chosen yet, or the sources do not settle which skill it was. A team award never grants a skill.

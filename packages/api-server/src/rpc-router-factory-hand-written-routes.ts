@@ -347,8 +347,9 @@ export function buildPositionRulesSetSkillCategoriesRoutes(
 // BAD_REQUEST.
 //
 // `list` delegates to `listByPlayer`, whose rows also carry the skill's name
-// and its category and elite flag under the requested rules set; the
-// contract's output schema carries none of those.
+// and its category and elite flag under the requested rules set, plus
+// whether a trophy award granted it (`isTrophyGranted`); the contract's output
+// schema carries none of those, so that flag is available in-process only.
 export function buildPlayerSkillsRoutes(
   upsertHandler: UpsertHandlerService,
   playerSkillsService: PlayerSkillsService,
