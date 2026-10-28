@@ -32,11 +32,25 @@
 //   chosen_secondary_skill    10  12  16  20  24  34
 //   random_characteristic     14  16  20  24  28  38
 //
-// The rules sets already exist (batch 001 declares them), so entries
-// reference them under the "Name" system by bare name.
-// curated-data-batch-004.spec.ts pins every cost listed here.
+// tLoEG house rule: a tLoEG player who reaches 301 total SPP gains the Fan
+// Favourite skill as a seventh advancement, after the rules set's six, with
+// no roll (`granted_skill`). It held while tLoEG played under CRP, CRP+ and
+// BB2016, and does not apply under BB2020, DB2021 or BB2025, so it is
+// curated only for those three rules sets. Its cost is the gap from the
+// sixth threshold: 176 + 125 = 301. These rows add to the rules set's rows
+// for tLoEG's players; they do not replace them. The source is the
+// developer's statement of the league's rule.
+//
+// The rules sets, the tLoEG league and the Fan Favourite skill already exist
+// (batch 001 declares them). The rules sets and the skill are referenced
+// under the "Name" system by bare name, the league under its BBL system
+// `tloeg.bbleague.se`. curated-data-batch-004.spec.ts pins every cost listed
+// here, including the tLoEG total of 301.
 {
-  externalSystems: [{ name: 'Name', category: 'bookkeeping' }],
+  externalSystems: [
+    { name: 'Name', category: 'bookkeeping' },
+    { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
+  ],
 
   advancementCosts: [
     // --- CRP ---
@@ -152,5 +166,10 @@
     { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 4, advancementKind: 'random_characteristic', sppCost: 24 },
     { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 5, advancementKind: 'random_characteristic', sppCost: 28 },
     { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 6, advancementKind: 'random_characteristic', sppCost: 38 },
+
+    // --- tLoEG house rule: Fan Favourite at 301 SPP (176 + 125) ---
+    { rulesSet: { system: 'Name', id: 'CRP' }, league: { system: 'tloeg.bbleague.se', id: 'tLoEG' }, advancementNumber: 7, advancementKind: 'granted_skill', skill: { system: 'Name', id: 'Fan Favourite' }, sppCost: 125 },
+    { rulesSet: { system: 'Name', id: 'CRP+' }, league: { system: 'tloeg.bbleague.se', id: 'tLoEG' }, advancementNumber: 7, advancementKind: 'granted_skill', skill: { system: 'Name', id: 'Fan Favourite' }, sppCost: 125 },
+    { rulesSet: { system: 'Name', id: 'BB2016' }, league: { system: 'tloeg.bbleague.se', id: 'tLoEG' }, advancementNumber: 7, advancementKind: 'granted_skill', skill: { system: 'Name', id: 'Fan Favourite' }, sppCost: 125 },
   ],
 }

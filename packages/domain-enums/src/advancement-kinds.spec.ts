@@ -12,6 +12,7 @@ describe('ADVANCEMENT_KINDS', () => {
       'random_secondary_skill',
       'chosen_secondary_skill',
       'random_characteristic',
+      'granted_skill',
     ]);
   });
 
@@ -27,6 +28,7 @@ describe('ADVANCEMENT_KINDS', () => {
       | 'random_secondary_skill'
       | 'chosen_secondary_skill'
       | 'random_characteristic'
+      | 'granted_skill'
     >();
   });
 });

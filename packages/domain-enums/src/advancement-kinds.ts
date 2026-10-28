@@ -10,6 +10,9 @@
  * - `random_secondary_skill` — a skill rolled from a secondary skill category.
  * - `chosen_secondary_skill` — a skill chosen from a secondary skill category.
  * - `random_characteristic` — a roll for a characteristic increase.
+ * - `granted_skill` — one fixed skill, named by the cost row, with no roll.
+ *   A league house rule that hands out a set skill at an SPP threshold is
+ *   recorded this way.
  *
  * A fixed-threshold rules set holds only `table_roll` costs. A rules set that
  * prices advancements by type holds one cost per kind it offers for each
@@ -22,6 +25,7 @@ export const ADVANCEMENT_KINDS = [
   'random_secondary_skill',
   'chosen_secondary_skill',
   'random_characteristic',
+  'granted_skill',
 ] as const;
 
 export type AdvancementKind = (typeof ADVANCEMENT_KINDS)[number];

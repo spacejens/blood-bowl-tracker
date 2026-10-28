@@ -87,4 +87,28 @@ describe('AdvancementCostsImportService', () => {
       'Failed to sync 1 advancement cost(s): nope',
     );
   });
+
+  it('hands a league granted-skill cost to the client unchanged', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
+    client.advancementCosts.sync.mockResolvedValue({
+      advancementCostIds: [21],
+    });
+    const leagueData = {
+      costs: [
+        {
+          rulesSetId: 1,
+          leagueId: 3,
+          advancementNumber: 7,
+          advancementKind: 'granted_skill' as const,
+          skillId: 40,
+          sppCost: 125,
+        },
+      ],
+    };
+
+    await service.syncAdvancementCosts(leagueData, []);
+
+    await recordUpsertResultOptions(runner).upsert();
+    expect(client.advancementCosts.sync).toHaveBeenCalledWith(leagueData);
+  });
 });

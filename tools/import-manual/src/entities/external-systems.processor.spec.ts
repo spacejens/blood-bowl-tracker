@@ -346,6 +346,34 @@ describe('ExternalSystemsProcessor', () => {
     );
   });
 
+  it('bootstraps the league and skill systems an advancementCosts entry references', async () => {
+    externalSystemsImport.upsertExternalSystem.mockResolvedValue(1);
+    const data = emptyData();
+    data.externalSystems = [
+      { name: 'RulesSys', category: 'bookkeeping' },
+      { name: 'LeagueSys', category: 'imported_data_source' },
+      { name: 'SkillSys', category: 'bookkeeping' },
+    ];
+    data.advancementCosts = [
+      {
+        rulesSet: { system: 'RulesSys', id: 'CRP' },
+        league: { system: 'LeagueSys', id: 'tLoEG' },
+        advancementNumber: 7,
+        advancementKind: 'granted_skill',
+        skill: { system: 'SkillSys', id: 'Fan Favourite' },
+        sppCost: 125,
+      },
+    ];
+
+    const systemIds = await processor.bootstrap(data);
+
+    expect([...systemIds.keys()].sort()).toEqual([
+      'LeagueSys',
+      'RulesSys',
+      'SkillSys',
+    ]);
+  });
+
   it('bootstraps a system referenced only from keywords', async () => {
     externalSystemsImport.upsertExternalSystem.mockResolvedValue(1);
     const data = emptyData();

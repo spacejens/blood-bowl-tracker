@@ -1,0 +1,363 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "ac47d6ea-d40c-4294-b3ef-aacc729bc214",
+  "prevIds": [
+    "af781321-23d5-4994-af05-046b1e13fb35"
+  ],
+  "footprints": [
+    {
+      "statementType": "alter_enum",
+      "statementTarget": [
+        "enum",
+        "game_data",
+        "advancement_kind"
+      ],
+      "writes": [
+        "s|enum|game_data.advancement_kind"
+      ],
+      "reads": [
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "drop_unique",
+      "statementTarget": [
+        "table",
+        "game_data",
+        "advancement_costs"
+      ],
+      "writes": [
+        "s|uq|game_data.advancement_costs.advancement_costs_rules_set_number_kind_unique",
+        "n|uq|game_data.advancement_costs.advancement_costs_rules_set_number_kind_unique",
+        "e|uq|game_data.advancement_costs.advancement_costs_rules_set_number_kind_unique",
+        "n|con|game_data.advancement_costs.advancement_costs_rules_set_number_kind_unique",
+        "n|rel|game_data.advancement_costs_rules_set_number_kind_unique"
+      ],
+      "reads": [
+        "n|tbl|game_data.advancement_costs",
+        "n|sch|game_data",
+        "e|col|game_data.advancement_costs.rules_set_id",
+        "e|col|game_data.advancement_costs.advancement_number",
+        "e|col|game_data.advancement_costs.advancement_kind"
+      ],
+      "sharedWrites": [
+        "e|uniqueness|game_data.advancement_costs.advancement_kind.advancement_number.rules_set_id"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "advancement_costs",
+        "league_id"
+      ],
+      "writes": [
+        "s|col|game_data.advancement_costs.league_id",
+        "n|col|game_data.advancement_costs.league_id",
+        "e|col|game_data.advancement_costs.league_id"
+      ],
+      "reads": [
+        "n|tbl|game_data.advancement_costs",
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "advancement_costs",
+        "skill_id"
+      ],
+      "writes": [
+        "s|col|game_data.advancement_costs.skill_id",
+        "n|col|game_data.advancement_costs.skill_id",
+        "e|col|game_data.advancement_costs.skill_id"
+      ],
+      "reads": [
+        "n|tbl|game_data.advancement_costs",
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "advancement_costs_history",
+        "league_id"
+      ],
+      "writes": [
+        "s|col|game_data.advancement_costs_history.league_id",
+        "n|col|game_data.advancement_costs_history.league_id",
+        "e|col|game_data.advancement_costs_history.league_id"
+      ],
+      "reads": [
+        "n|tbl|game_data.advancement_costs_history",
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "advancement_costs_history",
+        "skill_id"
+      ],
+      "writes": [
+        "s|col|game_data.advancement_costs_history.skill_id",
+        "n|col|game_data.advancement_costs_history.skill_id",
+        "e|col|game_data.advancement_costs_history.skill_id"
+      ],
+      "reads": [
+        "n|tbl|game_data.advancement_costs_history",
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "add_unique",
+      "statementTarget": [
+        "table",
+        "game_data",
+        "advancement_costs"
+      ],
+      "writes": [
+        "s|uq|game_data.advancement_costs.advancement_costs_rules_set_league_number_kind_unique",
+        "n|uq|game_data.advancement_costs.advancement_costs_rules_set_league_number_kind_unique",
+        "e|uq|game_data.advancement_costs.advancement_costs_rules_set_league_number_kind_unique",
+        "n|con|game_data.advancement_costs.advancement_costs_rules_set_league_number_kind_unique",
+        "n|rel|game_data.advancement_costs_rules_set_league_number_kind_unique"
+      ],
+      "reads": [
+        "n|tbl|game_data.advancement_costs",
+        "n|sch|game_data",
+        "n|col|game_data.advancement_costs.rules_set_id",
+        "n|col|game_data.advancement_costs.league_id",
+        "n|col|game_data.advancement_costs.advancement_number",
+        "n|col|game_data.advancement_costs.advancement_kind"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "game_data",
+        "advancement_costs"
+      ],
+      "writes": [
+        "s|fk|game_data.advancement_costs.advancement_costs_league_id_leagues_id_fkey",
+        "n|fk|game_data.advancement_costs.advancement_costs_league_id_leagues_id_fkey",
+        "e|fk|game_data.advancement_costs.advancement_costs_league_id_leagues_id_fkey",
+        "n|con|game_data.advancement_costs.advancement_costs_league_id_leagues_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|game_data.advancement_costs",
+        "n|sch|game_data",
+        "n|tbl|game_data.leagues",
+        "n|sch|game_data",
+        "n|col|game_data.advancement_costs.league_id",
+        "n|col|game_data.leagues.id",
+        "e|uniqueness|game_data.leagues.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "game_data",
+        "advancement_costs"
+      ],
+      "writes": [
+        "s|fk|game_data.advancement_costs.advancement_costs_skill_id_skills_id_fkey",
+        "n|fk|game_data.advancement_costs.advancement_costs_skill_id_skills_id_fkey",
+        "e|fk|game_data.advancement_costs.advancement_costs_skill_id_skills_id_fkey",
+        "n|con|game_data.advancement_costs.advancement_costs_skill_id_skills_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|game_data.advancement_costs",
+        "n|sch|game_data",
+        "n|tbl|game_data.skills",
+        "n|sch|game_data",
+        "n|col|game_data.advancement_costs.skill_id",
+        "n|col|game_data.skills.id",
+        "e|uniqueness|game_data.skills.id"
+      ]
+    },
+    {
+      "statementType": "add_check",
+      "statementTarget": [
+        "table",
+        "game_data",
+        "advancement_costs"
+      ],
+      "writes": [
+        "s|ck|game_data.advancement_costs.advancement_costs_skill_matches_kind",
+        "n|ck|game_data.advancement_costs.advancement_costs_skill_matches_kind",
+        "e|ck|game_data.advancement_costs.advancement_costs_skill_matches_kind",
+        "n|con|game_data.advancement_costs.advancement_costs_skill_matches_kind"
+      ],
+      "reads": [
+        "n|tbl|game_data.advancement_costs",
+        "n|sch|game_data",
+        "n|col|game_data.advancement_costs.skill_id",
+        "n|col|game_data.advancement_costs.advancement_kind"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "advancement_costs",
+        "name": "league_id",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "advancement_costs",
+        "name": "skill_id",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "advancement_costs_history",
+        "name": "league_id",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "advancement_costs_history",
+        "name": "skill_id",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "advancement_costs",
+        "name": "advancement_costs_league_id_leagues_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "league_id"
+        ],
+        "schemaTo": "game_data",
+        "tableTo": "leagues",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "NO ACTION",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "advancement_costs",
+        "name": "advancement_costs_skill_id_skills_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "skill_id"
+        ],
+        "schemaTo": "game_data",
+        "tableTo": "skills",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "NO ACTION",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "advancement_costs",
+        "name": "advancement_costs_rules_set_league_number_kind_unique",
+        "nameExplicit": true,
+        "columns": [
+          "rules_set_id",
+          "league_id",
+          "advancement_number",
+          "advancement_kind"
+        ],
+        "nullsNotDistinct": true,
+        "entityType": "uniques"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "advancement_costs",
+        "name": "advancement_costs_skill_matches_kind",
+        "value": "(\"skill_id\" is not null) = (\"advancement_kind\"::text = 'granted_skill')",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "drop",
+      "key": "uniques\u0000[\"game_data\",\"advancement_costs\",\"advancement_costs_rules_set_number_kind_unique\"]"
+    },
+    {
+      "op": "alter",
+      "key": "enums\u0000[\"game_data\",\"advancement_kind\"]",
+      "set": {
+        "values": [
+          "table_roll",
+          "random_primary_skill",
+          "chosen_primary_skill",
+          "random_secondary_skill",
+          "chosen_secondary_skill",
+          "random_characteristic",
+          "granted_skill"
+        ]
+      }
+    }
+  ]
+}

@@ -217,23 +217,41 @@ before the source importers, so the table exists before any BBL or TP
 match data is imported.
 
 `advancement_costs` holds what each advancement costs, keyed
-`(rules_set_id, advancement_number, advancement_kind)`. `advancement_number`
-is 1-based and counts every advancement a player gains, skills and
-characteristic increases alike; `advancement_kind` says what the cost buys. A
-rules set with fixed thresholds has only `table_roll` rows, a roll on its
-advancement table whose outcome is not modelled. A rules set that prices
-advancements by what the coach takes has one row per kind for each
+`(rules_set_id, league_id, advancement_number, advancement_kind)`.
+`advancement_number` is 1-based and counts every advancement a player gains,
+skills and characteristic increases alike; `advancement_kind` says what the
+cost buys. A rules set with fixed thresholds has only `table_roll` rows of its
+own (those without a league), a roll on its advancement table whose outcome
+is not modelled; a league's rows are described below. A rules set that
+prices advancements by what the coach takes has one row per kind for each
 advancement number: a random or chosen primary skill, a random or chosen
-secondary skill, or a random characteristic increase. A row stores the cost of
-that one advancement, never a cumulative threshold; under fixed thresholds the
-costs of a player's first N advancements sum to the Nth threshold. Storing
-costs keeps one rule
-for every rules set: unspent SPP is total SPP minus the costs of the
-advancements gained. Both numbers are checked positive. The costs are curated
-by `tools/import-manual` in batch 004 (see
+secondary skill, or a random characteristic increase. `granted_skill` is one
+fixed skill named by `skill_id`; a check keeps `skill_id` set on exactly the
+`granted_skill` rows. A row stores the cost of that one advancement, never a
+cumulative threshold; under fixed thresholds the costs of a player's first N
+advancements sum to the Nth threshold. Storing costs keeps one rule for every
+rules set: unspent SPP is total SPP minus the costs of the advancements
+gained. Both numbers are checked positive.
+
+A row with a null `league_id` is the rules set's own cost and applies to
+every player under it. A row with a `league_id` is a league house rule: it
+applies only to players of that league, in addition to the rules set's rows,
+never in place of them. A player's league comes from player -> `team_eras` ->
+era -> league; the rules set is supplied by the caller, since an era may list
+several. The unique key is `NULLS NOT DISTINCT`, so rules-set rows stay
+unique per `(rules_set_id, advancement_number, advancement_kind)`. Nothing
+reads the table yet, so there is no read API.
+
+The costs are curated by `tools/import-manual` in batch 004 (see
 [batches](import-manual/batches.md)): fixed thresholds of 6, 16, 31, 51, 76
 and 176 SPP for CRP, CRP+ and BB2016, and costs by kind for BB2020, DB2021
-and BB2025.
+and BB2025. The same batch curates tLoEG's house rule under CRP, CRP+ and
+BB2016 (the rule does not apply under BB2020, DB2021 or BB2025): a seventh
+advancement, costing 125 and so reached at 301 SPP, that grants Fan
+Favourite. It is the only league house rule curated. `granted_skill` fits a
+league threshold that grants one fixed skill; house rules whose cost depends
+on the type of advancement fit the per-kind rows, which sit beside these
+rather than replacing them.
 
 `rules_sets` also carries five `characteristic_format` columns
 (`move_format`, `strength_format`, `agility_format`, `passing_format`,

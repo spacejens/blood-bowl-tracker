@@ -242,11 +242,21 @@ const SppAwardValueEntrySchema = z.object({
  * 1-based (skills and characteristic increases counted alike) and `sppCost`
  * is that advancement's own cost -- the gap to the previous threshold, not a
  * cumulative threshold.
+ *
+ * `league` is optional. An entry without one is the rules set's own cost and
+ * applies to every player under it; an entry naming a league, in the source
+ * system's own namespace (e.g. { system: 'tloeg.bbleague.se', id: 'tLoEG' }),
+ * is a house rule that applies only to that league's players, on top of the
+ * rules set's entries. `skill` names the fixed skill a `granted_skill`
+ * advancement grants (e.g. { system: 'Name', id: 'Fan Favourite' }); the API
+ * rejects a `granted_skill` entry without one and a skill on any other kind.
  */
 const AdvancementCostEntrySchema = z.object({
   rulesSet: ExternalRefSchema,
+  league: ExternalRefSchema.optional(),
   advancementNumber: z.number().int().positive(),
   advancementKind: AdvancementKindSchema,
+  skill: ExternalRefSchema.optional(),
   sppCost: z.number().int().positive(),
 });
 
