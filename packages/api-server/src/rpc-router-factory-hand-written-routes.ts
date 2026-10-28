@@ -10,6 +10,7 @@ import {
   PlayerLastingInjuryBackfillService,
   PlayerSkillsService,
   PositionRulesSetKeywordsService,
+  PositionRulesSetSkillCategoriesService,
   PositionRulesSetSkillsService,
   PositionRulesSetsService,
   PositionsService,
@@ -317,6 +318,24 @@ export function buildPositionRulesSetKeywordsRoutes(
     list: implement(contract.positionRulesSetKeywords.list).handler(
       ({ input }) =>
         positionRulesSetKeywordsService.listByPosition(input.positionId),
+    ),
+  };
+}
+
+// positionRulesSetSkillCategories: same shape as positionRulesSetKeywords
+// above, but sync only. `runSync` maps the service's authored-data
+// rejections to BAD_REQUEST: a pair with no characteristics row, a trait or
+// unique category, a category listed twice, or a pair repeated in the batch.
+export function buildPositionRulesSetSkillCategoriesRoutes(
+  upsertHandler: UpsertHandlerService,
+  positionRulesSetSkillCategoriesService: PositionRulesSetSkillCategoriesService,
+) {
+  return {
+    sync: implement(contract.positionRulesSetSkillCategories.sync).handler(
+      ({ input, errors }) =>
+        upsertHandler.runSync(errors, () =>
+          positionRulesSetSkillCategoriesService.sync(input),
+        ),
     ),
   };
 }

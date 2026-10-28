@@ -4,6 +4,7 @@ import {
   KeywordValidationError,
   MatchCategoryMismatchError,
   MissingRequiredFieldError,
+  PositionSkillCategoryValidationError,
   PositionValidationError,
   SkillValidationError,
   SppAwardValueValidationError,
@@ -439,6 +440,10 @@ describe('UpsertHandlerService', () => {
       [
         'a position validation error',
         new PositionValidationError('Entry 3 is not valid'),
+      ],
+      [
+        'a position skill category validation error',
+        new PositionSkillCategoryValidationError('Entry 3 is not valid'),
       ],
     ])('maps %s to BAD_REQUEST', async (_label, error) => {
       await expect(

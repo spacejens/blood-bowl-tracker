@@ -26,6 +26,7 @@ import {
   PlayersService,
   PlayerUpsertConflictError,
   PositionRulesSetKeywordsService,
+  PositionRulesSetSkillCategoriesService,
   PositionRulesSetSkillsService,
   PositionRulesSetsService,
   PositionsService,
@@ -70,6 +71,7 @@ import {
   buildPlayerSkillsRoutes,
   buildPlayerSppAdjustmentRoutes,
   buildPositionRulesSetKeywordsRoutes,
+  buildPositionRulesSetSkillCategoriesRoutes,
   buildPositionRulesSetSkillsRoutes,
   buildPositionRulesSetsRoutes,
   buildPositionSyncRaceErasRoute,
@@ -120,6 +122,7 @@ export class RpcRouterFactoryService {
     private readonly positionRulesSetsService: PositionRulesSetsService,
     private readonly positionRulesSetSkillsService: PositionRulesSetSkillsService,
     private readonly positionRulesSetKeywordsService: PositionRulesSetKeywordsService,
+    private readonly positionRulesSetSkillCategoriesService: PositionRulesSetSkillCategoriesService,
     private readonly playerSkillsService: PlayerSkillsService,
     private readonly skillsService: SkillsService,
     private readonly keywordsService: KeywordsService,
@@ -431,6 +434,11 @@ export class RpcRouterFactoryService {
         this.upsertHandler,
         this.positionRulesSetKeywordsService,
       ),
+      positionRulesSetSkillCategories:
+        buildPositionRulesSetSkillCategoriesRoutes(
+          this.upsertHandler,
+          this.positionRulesSetSkillCategoriesService,
+        ),
       skillRulesSets: buildSkillRulesSetsRoutes(
         this.upsertHandler,
         this.skillRulesSetsService,
