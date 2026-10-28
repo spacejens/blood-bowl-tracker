@@ -13,7 +13,8 @@ import { DebugIncompleteImportReplyService } from './debug-incomplete-import-rep
 
 /**
  * Answers the `/debugincompleteimport` Previous/Next buttons: the custom id's
- * remainder is the page to show, and anything that is not a positive integer shows page 1.
+ * remainder is the page to show, and anything that is not a positive integer
+ * shows page 1.
  *
  * `DiscordClientService` role-checks slash commands but not buttons, so this
  * handler applies the `debug` restriction itself, against the same

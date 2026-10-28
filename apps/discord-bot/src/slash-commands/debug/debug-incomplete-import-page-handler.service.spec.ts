@@ -108,15 +108,7 @@ describe('DebugIncompleteImportPageHandlerService', () => {
     expect(reply.buildReply).not.toHaveBeenCalled();
   });
 
-  it('falls back to the first page for a malformed page number', async () => {
-    const { service, reply } = await makeService(undefined);
-
-    await service.handle(click('abc'));
-
-    expect(reply.buildReply).toHaveBeenCalledWith(1);
-  });
-
-  it.each(['', '0', '-2', '1.5', '2x', 'NaN', ' ', 'Infinity', '1e2'])(
+  it.each(['abc', '', '0', '-2', '1.5', '2x', 'NaN', ' ', 'Infinity', '1e2'])(
     'falls back to the first page for the malformed page %j',
     async (remainder) => {
       const { service, reply } = await makeService(undefined);

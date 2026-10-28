@@ -33,7 +33,7 @@ interface PagingContext {
  *
  * Pure and dependency-free; `budget` is a parameter (defaulting to Discord's
  * embed description limit) so specs can exercise page breaks with small data.
- * A single line is bounded by two 255-character names, so header + heading +
+ * A single line is bounded by three 255-character names, so header + heading +
  * one team line always fits a 4096-character page.
  */
 @Injectable()

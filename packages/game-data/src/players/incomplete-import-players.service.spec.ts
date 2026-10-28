@@ -1,5 +1,13 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB, players, teamEras } from '@blood-bowl-tracker/db';
+import {
+  coaches,
+  DB,
+  eras,
+  players,
+  races,
+  teamEras,
+  teams,
+} from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
@@ -112,6 +120,14 @@ describe('IncompleteImportPlayersService', () => {
     await service.findTeamsWithIncompletePlayers();
 
     expect(chains[0].groupBy).toHaveBeenCalledTimes(1);
-    expect(chains[0].groupBy.mock.calls[0]).toContain(teamEras.id);
+    expect(chains[0].groupBy.mock.calls[0]).toEqual([
+      teamEras.id,
+      teams.id,
+      teams.name,
+      coaches.id,
+      coaches.name,
+      races.name,
+      eras.name,
+    ]);
   });
 });

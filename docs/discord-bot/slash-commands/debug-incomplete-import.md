@@ -57,9 +57,11 @@ roster is imported separately; the `Teams` total counts it once.
 Coaches with the most incomplete players come first, and within a coach the
 team lines with the most incomplete players come first, so the biggest
 correction jobs are at the top.
+Coaches, teams and eras with equal counts are ordered by name ascending
+(coach name, then team name, then era name).
 
-When nothing is incomplete, the reply is the plain message `No players
-with incomplete import data.` with no embed.
+When nothing is incomplete, the reply is the plain message
+`No players with incomplete import data.` with no embed.
 
 The reply is ephemeral, like every `debug`-prefixed command's — see
 [`/debuginteractions`](debug-interactions.md#ephemeral-by-design).
