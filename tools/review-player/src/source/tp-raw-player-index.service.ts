@@ -44,6 +44,16 @@ const BIG_GUY_KEYWORD_CODE = 134;
  */
 const DB2021_BIG_GUY_BIT = 128;
 
+/** One lineUps[] entry's raw status fields, verbatim, and the file they came from. */
+export interface TpRawStatusEntry {
+  /** The file name the entry was read from, e.g. `rosters_500.json` or `match_12.json`. */
+  file: string;
+  /** `lineUps[].state`, an undocumented bitmask, verbatim; null when absent. */
+  state: number | null;
+  /** `lineUps[].isActive`, verbatim; null when absent. */
+  isActive: boolean | null;
+}
+
 /** Everything the raw side knows about one TP player, from the files alone. */
 export interface TpRawPlayerAggregate {
   lineUpId: number;
@@ -117,11 +127,28 @@ export interface TpRawPlayerAggregate {
    */
   templatePositionTypes: number | null;
   templateIsBigGuy: boolean | null;
+  /**
+   * `state` / `isActive` from the roster file entry that supplied this
+   * player's characteristics: the status of the roster snapshot already chosen
+   * for the characteristics, by that snapshot's own selection rule. Other
+   * roster files that disagree are not shown. Null when no roster file carries
+   * the player, or the entry carries neither field.
+   */
+  rosterStatus: TpRawStatusEntry | null;
+  /**
+   * `state` / `isActive` from the highest-id match file whose embedded
+   * line-up entry for this player carries either field. Match snapshots
+   * describe the player as of the download, not as of the match. Null when
+   * no match file's entry carries either field.
+   */
+  matchStatus: TpRawStatusEntry | null;
 }
 
 /** Mutable accumulator, plus the match id the reported total came from. */
 interface Accumulator extends TpRawPlayerAggregate {
   latestMatchId: number;
+  /** The match id `matchStatus` came from; 0 while none has. */
+  latestStatusMatchId: number;
 }
 
 /**
@@ -146,6 +173,13 @@ interface RawCharacteristics {
   templateKeywordCodes: number[] | null;
   templatePositionTypes: number | null;
   templateIsBigGuy: boolean | null;
+  status: TpRawStatusEntry | null;
+}
+
+/** Which match file a line-up entry was read from. */
+interface MatchSource {
+  matchId: number;
+  fileName: string;
 }
 
 /**
@@ -167,6 +201,10 @@ interface RawCharacteristics {
  * disk, and a raw panel that throws is strictly worse for a reviewer than one
  * that shows a gap. A malformed or unreadable file is skipped rather than
  * failing the run.
+ *
+ * Each line-up entry's raw `state` and `isActive` are kept too, from the
+ * winning roster snapshot and from the latest match snapshot carrying them,
+ * so the status panel can show both origins side by side.
  */
 @Injectable()
 export class TpRawPlayerIndexService {
@@ -231,9 +269,12 @@ export class TpRawPlayerIndexService {
       return;
     }
     if (matched !== null) {
-      this.absorb(players, body, Number(matched[1]));
+      this.absorb(players, body, {
+        matchId: Number(matched[1]),
+        fileName: file.name,
+      });
     } else if (rosterMatch !== null) {
-      this.absorbRoster(characteristics, body);
+      this.absorbRoster(characteristics, body, file.name);
     }
   }
 
@@ -264,6 +305,7 @@ export class TpRawPlayerIndexService {
         player.templateKeywordCodes = line.templateKeywordCodes;
         player.templatePositionTypes = line.templatePositionTypes;
         player.templateIsBigGuy = line.templateIsBigGuy;
+        player.rosterStatus = line.status;
       }
     }
   }
@@ -272,11 +314,11 @@ export class TpRawPlayerIndexService {
   private absorb(
     players: Map<number, Accumulator>,
     file: unknown,
-    matchId: number,
+    source: MatchSource,
   ): void {
     for (const key of INSCRIPTION_KEYS) {
       for (const entry of this.lineUpsOf(file, key)) {
-        this.absorbLineUp(players, entry, matchId);
+        this.absorbLineUp(players, entry, source);
       }
     }
     for (const event of this.arrayProperty(file, 'matchEvents')) {
@@ -292,8 +334,9 @@ export class TpRawPlayerIndexService {
   private absorbLineUp(
     players: Map<number, Accumulator>,
     entry: unknown,
-    matchId: number,
+    source: MatchSource,
   ): void {
+    const { matchId, fileName } = source;
     const id = this.property(entry, 'id');
     const name = this.property(entry, 'name');
     if (typeof id !== 'number' || typeof name !== 'string') {
@@ -326,6 +369,9 @@ export class TpRawPlayerIndexService {
       templateKeywordCodes: null,
       templatePositionTypes: null,
       templateIsBigGuy: null,
+      rosterStatus: null,
+      matchStatus: null,
+      latestStatusMatchId: 0,
     };
     player.matchCount += 1;
     // TP's match ids increase over time, so the highest one a player appears
@@ -335,6 +381,11 @@ export class TpRawPlayerIndexService {
       player.name = name;
       player.position = typeof position === 'string' ? position : 'unknown';
       player.totalStarPlayerPoints = typeof total === 'number' ? total : null;
+    }
+    const status = this.statusOf(entry, fileName);
+    if (status !== null && matchId >= player.latestStatusMatchId) {
+      player.latestStatusMatchId = matchId;
+      player.matchStatus = status;
     }
     players.set(id, player);
   }
@@ -376,6 +427,7 @@ export class TpRawPlayerIndexService {
   private absorbRoster(
     characteristics: Map<number, RawCharacteristics>,
     file: unknown,
+    fileName: string,
   ): void {
     for (const entry of this.arrayProperty(file, 'lineUps')) {
       const id = this.property(entry, 'id');
@@ -434,6 +486,7 @@ export class TpRawPlayerIndexService {
         templateIsBigGuy: this.templateIsBigGuy(
           this.property(entry, 'lineUpMaster'),
         ),
+        status: this.statusOf(entry, fileName),
       });
     }
   }
@@ -495,6 +548,19 @@ export class TpRawPlayerIndexService {
       return null;
     }
     return isBigGuy === true;
+  }
+
+  /**
+   * A line-up entry's `state` and `isActive`, verbatim — no bit is decoded
+   * here, since what the bits mean is the importer's judgement under review.
+   * Null when the entry carries neither.
+   */
+  private statusOf(entry: unknown, file: string): TpRawStatusEntry | null {
+    const state = this.numberProperty(entry, 'state');
+    const isActive = this.booleanProperty(entry, 'isActive');
+    return state === null && isActive === null
+      ? null
+      : { file, state, isActive };
   }
 
   private numberProperty(value: unknown, key: string): number | null {

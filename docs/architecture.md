@@ -138,9 +138,10 @@ tools/
                         developer review aid, not part of any import path
   review-player/      — NestJS CLI application that renders raw BBL and TP
                         source data beside imported player records (identity,
-                        team, position, era) and star player point totals as a
-                        static HTML report; sibling of review-match, likewise a
-                        developer review aid
+                        SPP totals, characteristics, lasting injuries,
+                        advancements, keywords and status) as a static HTML
+                        report; sibling of review-match, likewise a developer
+                        review aid
   review-race/        — NestJS CLI application that renders raw BBL, TP and
                         hand-curated source data beside imported races,
                         position availability and per-rules-set position
@@ -276,7 +277,7 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
 - **`tools/review-match`** (consumer, review aid) — renders raw BBL and TP source data beside imported match events, so a change to what either importer stores for match events usually needs a matching renderer change here
   - It deliberately interprets the raw sources itself and must never depend on `packages/parse-tp` or importer logic (the mechanical file access is shared via `packages/read-bbl-mirror`, which carries no interpretation and so does not weaken that rule) (see `docs/review-match/index.md`). Depending on `packages/domain-enums` for match categories is likewise allowed, since it holds constants and types only, no interpretation.
   - That independence rule covers the domain-specific half only; the generic report scaffolding is shared on purpose via `packages/review-harness`, where its `ReviewService` and `ReportBuilderService` subclass `ReviewServiceBase`/`ReportBuilderBase` and add only the match-result lookup and the per-match section.
-- **`tools/review-player`** (consumer, review aid) — renders raw BBL and TP source data beside imported player records (identity, team, position, era) and star player point totals, so a change to what either importer stores for players usually needs a matching renderer change here
+- **`tools/review-player`** (consumer, review aid) — renders raw BBL and TP source data beside imported player records (identity, SPP totals, characteristics, lasting injuries, advancements, keywords and status), so a change to what either importer stores for players usually needs a matching renderer change here
   - Sibling of `tools/review-match`, structured the same way and deliberately independent of it.
   - It interprets the raw sources itself and must never depend on `packages/game-data`, `packages/parse-tp`, `packages/import`, or either importer (the mechanical file access is shared via `packages/read-bbl-mirror`, which carries no interpretation) (see `docs/review-player/index.md`).
   - Walking the curated keyword batches is shared the same way, via `packages/review-harness`'s `ManualBatchReaderService`, which shapes no entry: every reading of what a curated keyword means stays in this tool.

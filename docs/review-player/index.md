@@ -32,12 +32,12 @@ per-entity preparation hook is a pass-through here. `harness.module.ts` stays lo
 because it _is_ this tool's own composition.
 
 Scope today is player info, [Star Player Points](../glossary.md#star-player-points-spp)
-totals, characteristics, current lasting injuries, skill advancements and BB2025
-keywords.
+totals, characteristics, current lasting injuries, skill advancements, BB2025
+keywords and player status.
 
 ## What it does
 
-1. Samples players per source (BBL and TP) across sixteen strata:
+1. Samples players per source (BBL and TP) across twenty-two strata:
    1. **SPP totals disagree** — every player, star or not, whose SPP computed from
       the events where they are the acting participant, plus any stored adjustment,
       differs from their stored total (a nonzero adjustment on its own is not a
@@ -127,6 +127,27 @@ keywords.
        is the closest DB-visible signal that a keyword was dropped.
        "BB2025" is resolved by the rules set's own name, never a hard-coded
        id.
+   17. **Active, running era** — `playersPerStratum` players whose stored
+       status is `active` and whose era has no end date or one not yet
+       passed.
+   18. **Dead** — `playersPerStratum` players whose stored status is `dead`.
+   19. **Retired** — `playersPerStratum` players whose stored status is
+       `retired`.
+   20. **Temporarily retired** — `playersPerStratum` players whose stored
+       status is `temporarily_retired`.
+   21. **Unknown status** — `playersPerStratum` players with no stored status
+       (NULL: no source reported one).
+   22. **Active, ended era** — `playersPerStratum` players whose stored status
+       is `active` and whose era's end date is set and earlier than today.
+
+       None of these six is a finding on its own: they exist so a run always
+       shows each status, including the rare ones (TP and especially BBL have
+       few temporarily retired players, so that stratum is often a gap). The
+       two active strata do not overlap; an era has ended when
+       `eras.end_date` is set and before today. All six exclude star players,
+       like the random-sample stratum: a star hired through an
+       `inducements_roll` event has no TP status, so they would crowd the
+       unknown sample, and the star player review covers them separately.
 
    The random-sample stratum excludes star players outright: today's data model
    gives a popular star their own `players` row per team that induces them, so
@@ -148,7 +169,7 @@ keywords.
    the extremes. A player with no stored total at all — commonly an induced star
    player — is excluded from all three, needing no exclusion of its own to arrange.
 2. Adds every player id listed in `overrides`, whatever the strata picked.
-3. For each sampled player, renders six panel pairs:
+3. For each sampled player, renders seven panel pairs:
    - **player-info** — left: BBL's own player page (`default.asp?p=pl&pid=<id>`) parsed
      for name, position, team and its career achievement counters, including the career
      SPP figure BBL publishes in the "Unspent SPP" row; or, for TP (which has no
@@ -251,6 +272,18 @@ keywords.
      this panel deciding which one applies. This panel deliberately does not
      diff itself against the raw panel — that would mean re-running the
      importer's own code resolution, the thing under review.
+   - **player-status** — left: what the source itself shows. For BBL, every
+     icon in the player page's header block (the name under the portrait),
+     as its `alt` text and image file name, in page order with no precedence
+     applied; icons on links to other players elsewhere on the page and the
+     bounty icon are not listed, and a header with no icon says so rather than
+     calling the player active. For TP, the raw `state` bitmask and `isActive`
+     flag of the player's `lineUps[]` entry, verbatim with no bit decoded, from
+     the roster file and from the latest match snapshot carrying them, each
+     with the file it came from. Right: the stored `players.status`, with NULL
+     shown as "unknown (no source reported a status)", never as active; an
+     active player whose era has ended gets a note naming the era and its end
+     date.
 4. Writes the report under `tools/review-player/output/` (gitignored) with a timestamp in
    the filename, and prints where it landed.
 
@@ -266,7 +299,7 @@ cp tools/review-player/review-player-config.example.json5 tools/review-player/re
 | Key | Meaning |
 | --- | --- |
 | `database.url` | Connection string of the database holding the imported data (required) |
-| `playersPerStratum` | Players sampled per source for every bounded stratum — random, star-players, non-standard-SPP, the three magnitude strata, and the currently-injured and healed-injury strata (default 3); the discrepancy stratum ignores it |
+| `playersPerStratum` | Players sampled per source for every bounded stratum — random, star-players, non-standard-SPP, the three magnitude strata, the currently-injured and healed-injury strata, and the six player-status strata (default 3); the discrepancy stratum ignores it |
 | `bbl.dataDir` / `tp.dataDir` | The same downloaded data directories `tools/import-bbl` / `tools/import-tp` read |
 | `overrides.bbl` / `overrides.tp` | External player ids always included (BBL: `pid`; TP: the line-up `id`) |
 | `outputPath` | Base path each report is written next to, timestamped (default `output/report.html`) |

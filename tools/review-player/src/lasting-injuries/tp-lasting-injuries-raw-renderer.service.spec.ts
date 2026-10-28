@@ -34,6 +34,8 @@ function aggregate(
     templateKeywordCodes: null,
     templatePositionTypes: null,
     templateIsBigGuy: null,
+    rosterStatus: null,
+    matchStatus: null,
     ...overrides,
   };
 }
