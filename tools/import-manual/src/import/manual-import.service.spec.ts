@@ -15,6 +15,7 @@ import { ErasProcessor } from '../entities/eras.processor';
 import { ExternalSystemsProcessor } from '../entities/external-systems.processor';
 import { KeywordsProcessor } from '../entities/keywords.processor';
 import { LeaguesProcessor } from '../entities/leagues.processor';
+import { PositionRulesSetSkillCategoriesProcessor } from '../entities/position-rules-set-skill-categories.processor';
 import { PositionRulesSetSkillsProcessor } from '../entities/position-rules-set-skills.processor';
 import { PositionRulesSetsProcessor } from '../entities/position-rules-sets.processor';
 import { PositionsProcessor } from '../entities/positions.processor';
@@ -62,6 +63,7 @@ function emptyData(): ManualDataFile {
     positions: [],
     positionRulesSets: [],
     positionRulesSetSkills: [],
+    positionRulesSetSkillCategories: [],
     skills: [],
     skillRulesSets: [],
     keywords: [],
@@ -94,6 +96,7 @@ interface ProcessorMocks {
   positions: MockProxy<PositionsProcessor>;
   positionRulesSets: MockProxy<PositionRulesSetsProcessor>;
   positionRulesSetSkills: MockProxy<PositionRulesSetSkillsProcessor>;
+  positionRulesSetSkillCategories: MockProxy<PositionRulesSetSkillCategoriesProcessor>;
   coaches: MockProxy<CoachesProcessor>;
   teams: MockProxy<TeamsProcessor>;
   competitionGroups: MockProxy<CompetitionGroupsProcessor>;
@@ -141,6 +144,8 @@ async function makeService(overrides: Overrides = {}): Promise<{
     positions: mock<PositionsProcessor>(),
     positionRulesSets: mock<PositionRulesSetsProcessor>(),
     positionRulesSetSkills: mock<PositionRulesSetSkillsProcessor>(),
+    positionRulesSetSkillCategories:
+      mock<PositionRulesSetSkillCategoriesProcessor>(),
     coaches: mock<CoachesProcessor>(),
     teams: mock<TeamsProcessor>(),
     competitionGroups: mock<CompetitionGroupsProcessor>(),
@@ -169,6 +174,9 @@ async function makeService(overrides: Overrides = {}): Promise<{
   );
   procs.positionRulesSetSkills.process.mockImplementation(
     processImpl('positionRulesSetSkills', overrides),
+  );
+  procs.positionRulesSetSkillCategories.process.mockImplementation(
+    processImpl('positionRulesSetSkillCategories', overrides),
   );
   procs.coaches.process.mockImplementation(processImpl('coaches', overrides));
   procs.teams.process.mockImplementation(processImpl('teams', overrides));
@@ -213,6 +221,10 @@ async function makeService(overrides: Overrides = {}): Promise<{
         provide: PositionRulesSetSkillsProcessor,
         useValue: procs.positionRulesSetSkills,
       },
+      {
+        provide: PositionRulesSetSkillCategoriesProcessor,
+        useValue: procs.positionRulesSetSkillCategories,
+      },
       { provide: CoachesProcessor, useValue: procs.coaches },
       { provide: TeamsProcessor, useValue: procs.teams },
       {
@@ -253,6 +265,7 @@ describe('ManualImportService', () => {
         races: 1,
         positionRulesSets: 1,
         positionRulesSetSkills: 1,
+        positionRulesSetSkillCategories: 1,
         coaches: 1,
         teams: 1,
         competitionGroups: 1,
@@ -266,7 +279,7 @@ describe('ManualImportService', () => {
 
     await service.run('/data/dir');
 
-    expect(resultArgs(importResults)).toEqual({ imported: 18, errors: [] });
+    expect(resultArgs(importResults)).toEqual({ imported: 19, errors: [] });
   });
 
   it('returns the ImportResult built by ImportResultService unchanged', async () => {
@@ -336,6 +349,10 @@ describe('ManualImportService', () => {
       order.push('positionRulesSetSkills');
       return Promise.resolve(0);
     });
+    procs.positionRulesSetSkillCategories.process.mockImplementation(() => {
+      order.push('positionRulesSetSkillCategories');
+      return Promise.resolve(0);
+    });
     procs.coaches.process.mockImplementation(() => {
       order.push('coaches');
       return Promise.resolve(0);
@@ -382,6 +399,7 @@ describe('ManualImportService', () => {
       'positions',
       'positionRulesSets',
       'positionRulesSetSkills',
+      'positionRulesSetSkillCategories',
       'coaches',
       'teams',
       'competitionGroups',

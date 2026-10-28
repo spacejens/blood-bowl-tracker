@@ -208,6 +208,29 @@ describe('ManualDataReader', () => {
     ]);
   });
 
+  it('pools the positionRulesSetSkillCategories section across files', async () => {
+    write(
+      'a.json5',
+      `{ positionRulesSetSkillCategories: [{
+         position: { system: 'Name', id: 'Human: Lineman' },
+         rulesSet: { system: 'Name', id: 'CRP' },
+         primary: ['general'], secondary: ['agility'] }] }`,
+    );
+    write(
+      'b.json5',
+      `{ positionRulesSetSkillCategories: [{
+         position: { system: 'Name', id: 'Human: Blitzer' },
+         rulesSet: { system: 'Name', id: 'CRP' },
+         primary: ['general', 'strength'], secondary: [] }] }`,
+    );
+
+    const data = await reader.read(dir);
+
+    expect(
+      data.positionRulesSetSkillCategories.map((c) => c.position.id),
+    ).toEqual(['Human: Lineman', 'Human: Blitzer']);
+  });
+
   it('pools the advancementCosts section across files', async () => {
     write(
       'a.json5',

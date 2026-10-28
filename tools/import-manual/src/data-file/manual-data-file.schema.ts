@@ -11,7 +11,10 @@ import {
   TrophyAwardRuleRoleSchema,
   TrophyRecipientKindSchema,
 } from '@blood-bowl-tracker/api-contract';
-import { COMPETITION_TYPES } from '@blood-bowl-tracker/domain-enums';
+import {
+  COMPETITION_TYPES,
+  LEARNABLE_SKILL_CATEGORIES,
+} from '@blood-bowl-tracker/domain-enums';
 import { z } from 'zod';
 
 /** An external-id pair, both in an entry's own externalIds and in a
@@ -167,6 +170,31 @@ const PositionRulesSetSkillsEntrySchema = z.object({
   rulesSet: ExternalRefSchema,
   skills: z.array(PositionRulesSetSkillRefSchema).min(1),
 });
+
+/**
+ * One position's complete primary and secondary skill categories under one
+ * rules set: what an advancing player of that position may take skills from.
+ *
+ * - Only learnable categories are allowed (no trait or unique).
+ * - A category may appear only once across both lists.
+ * - An empty list is allowed (some positions have no primary category).
+ *
+ * The sync replaces the pair's whole set, so an entry is always the complete
+ * set, never a delta.
+ */
+const PositionRulesSetSkillCategoriesEntrySchema = z
+  .object({
+    position: ExternalRefSchema,
+    rulesSet: ExternalRefSchema,
+    primary: z.array(z.enum(LEARNABLE_SKILL_CATEGORIES)),
+    secondary: z.array(z.enum(LEARNABLE_SKILL_CATEGORIES)),
+  })
+  .refine(
+    (entry) =>
+      new Set([...entry.primary, ...entry.secondary]).size ===
+      entry.primary.length + entry.secondary.length,
+    { message: 'lists a skill category more than once' },
+  );
 
 /**
  * One curated BB2025 keyword. Hand-authored because no imported source
@@ -381,6 +409,9 @@ export const ManualDataFileSchema = z
     positionRulesSets: z.array(PositionRulesSetEntrySchema).default([]),
     positionRulesSetSkills: z
       .array(PositionRulesSetSkillsEntrySchema)
+      .default([]),
+    positionRulesSetSkillCategories: z
+      .array(PositionRulesSetSkillCategoriesEntrySchema)
       .default([]),
     coaches: z.array(CoachEntrySchema).default([]),
     teams: z.array(TeamEntrySchema).default([]),

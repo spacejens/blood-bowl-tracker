@@ -20,6 +20,7 @@ function emptyData(): ManualDataFile {
     positions: [],
     positionRulesSets: [],
     positionRulesSetSkills: [],
+    positionRulesSetSkillCategories: [],
     skills: [],
     skillRulesSets: [],
     keywords: [],

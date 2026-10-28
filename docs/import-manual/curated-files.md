@@ -230,6 +230,11 @@ Rumble` events become `Reserves Rumble 1`–`3`). Batch 001
   asserted by `curated-data-skills.spec.ts`. Star players under these three
   rules sets are absent because they have no curated characteristics to hang a
   starting skill off.
+  The `positionRulesSetSkillCategories` section (fields `position`, `rulesSet`,
+  `primary` and `secondary`) uses the same (position, rules set) keying to
+  record the skill categories a position may take as primary and secondary;
+  only learnable categories are allowed (no trait or unique), a category may
+  appear once across both lists, and each entry is the pair's complete set.
 
 ### Expected first-run import errors
 

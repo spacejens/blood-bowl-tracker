@@ -17,6 +17,7 @@ describe('ManualDataFileSchema', () => {
       positions: [],
       positionRulesSets: [],
       positionRulesSetSkills: [],
+      positionRulesSetSkillCategories: [],
       coaches: [],
       teams: [],
       competitions: [],
