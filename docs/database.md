@@ -220,8 +220,9 @@ match data is imported.
 `(rules_set_id, league_id, advancement_number, advancement_kind)`.
 `advancement_number` is 1-based and counts every advancement a player gains,
 skills and characteristic increases alike; `advancement_kind` says what the
-cost buys. A rules set with fixed thresholds has only `table_roll` rows, a
-roll on its advancement table whose outcome is not modelled. A rules set that
+cost buys. A rules set with fixed thresholds has only `table_roll` rows of its
+own (those without a league), a roll on its advancement table whose outcome
+is not modelled; a league's rows are described below. A rules set that
 prices advancements by what the coach takes has one row per kind for each
 advancement number: a random or chosen primary skill, a random or chosen
 secondary skill, or a random characteristic increase. `granted_skill` is one
