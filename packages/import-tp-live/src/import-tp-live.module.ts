@@ -30,6 +30,7 @@ import { TpLiveSppAdjustmentsService } from './live/tp-live-spp-adjustments.serv
 import { TpLiveStarPlayerHiresService } from './live/tp-live-star-player-hires.service';
 import { TpLiveTeamImportService } from './live/tp-live-team-import.service';
 import { TpMatchDataImportService } from './live/tp-match-data-import.service';
+import { TpMatchEventsImportedService } from './live/tp-match-events-imported.service';
 import { TpMatchFetchService } from './live/tp-match-fetch.service';
 import { TpOfficialTeamsFetchService } from './live/tp-official-teams-fetch.service';
 import { TpPlayerSppFactsService } from './live/tp-player-spp-facts.service';
@@ -76,6 +77,7 @@ import { TpRosterModule } from './roster/tp-roster.module';
     TpLiveSppAdjustmentsService,
     TpMatchFetchService,
     TpMatchDataImportService,
+    TpMatchEventsImportedService,
     TpCompetitionMatchesBackfillService,
     TpBracketFetchService,
     TpLiveMatchImportService,

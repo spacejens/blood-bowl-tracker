@@ -33,7 +33,7 @@ SPP adjustment missing until a match or competition import covers it: only
 those settle SPP, once the players' match events are in. A live match or
 competition import settles every player it imported, including players seen
 only in backfilled match snapshots and teams not in the inscriptions, except
-players whose match events failed to import, who wait for a later successful
+players whose match events were not imported, who wait for a later successful
 import.
 
 Passing is deliberately not checked: a missing or zero passing value is

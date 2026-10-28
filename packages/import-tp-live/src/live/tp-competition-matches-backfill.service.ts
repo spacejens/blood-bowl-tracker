@@ -10,6 +10,7 @@ import { Injectable } from '@nestjs/common';
 import type { TpBracket } from './tp-bracket-fetch.service';
 import type { TpMatchDataImportResult } from './tp-match-data-import.service';
 import { TpMatchDataImportService } from './tp-match-data-import.service';
+import { TpMatchEventsImportedService } from './tp-match-events-imported.service';
 import type { TpLivePlayerSppFacts } from './tp-player-spp-facts.service';
 
 /** Options for {@link TpCompetitionMatchesBackfillService.backfill}. */
@@ -38,8 +39,9 @@ export interface MatchesBackfillOutcome {
   sppPlayers: TpLivePlayerSppFacts[];
   /**
    * The ids, without repeats, of both teams' players of every backfilled
-   * match whose events failed to import: their imported-event sum is
-   * incomplete, so the caller must not settle them.
+   * match whose events were not imported (a failed team import, an unwritten
+   * match row, unlinked participation or event errors): their imported-event
+   * sum is incomplete, so the caller must not settle them.
    */
   eventFailedPlayerIds: number[];
 }
@@ -56,6 +58,7 @@ export class TpCompetitionMatchesBackfillService {
   constructor(
     private readonly matchData: TpMatchDataImportService,
     private readonly importResults: ImportResultService,
+    private readonly eventsImported: TpMatchEventsImportedService,
   ) {}
 
   /**
@@ -99,7 +102,7 @@ export class TpCompetitionMatchesBackfillService {
           ...result.awayTeam.sppPlayers,
         ];
         sppPlayers.push(...matchPlayers);
-        if (result.events.errors.length > 0) {
+        if (!this.eventsImported.eventsImported(result)) {
           matchPlayers.forEach(({ playerId }) => eventFailed.add(playerId));
         }
       } catch (error) {

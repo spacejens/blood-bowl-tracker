@@ -22,6 +22,7 @@ import { TpLiveSppAdjustmentsService } from './tp-live-spp-adjustments.service';
 import { TpLiveStarPlayerHiresService } from './tp-live-star-player-hires.service';
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
 import { TpMatchDataImportService } from './tp-match-data-import.service';
+import { TpMatchEventsImportedService } from './tp-match-events-imported.service';
 import type { TpLivePlayerSppFacts } from './tp-player-spp-facts.service';
 
 /** Options for {@link TpLiveMatchImportService.importMatch}. */
@@ -119,6 +120,7 @@ export class TpLiveMatchImportService {
     private readonly importResults: ImportResultService,
     private readonly extraTrophyAwards: TpExtraTrophyAwardsService,
     private readonly sppAdjustmentsSync: TpLiveSppAdjustmentsService,
+    private readonly eventsImported: TpMatchEventsImportedService,
   ) {}
 
   /**
@@ -235,10 +237,9 @@ export class TpLiveMatchImportService {
       if (!upserted.created && !forceMatchBackfill) {
         return {
           ...imported,
-          sppAdjustments:
-            core.match.imported > 0 && core.events.success
-              ? await this.settleSpp([homeTeam, awayTeam])
-              : imported.sppAdjustments,
+          sppAdjustments: this.eventsImported.eventsImported(core)
+            ? await this.settleSpp([homeTeam, awayTeam])
+            : imported.sppAdjustments,
         };
       }
       backfilling = true;

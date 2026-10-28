@@ -13,6 +13,7 @@ import { TpCompetitionMatchesBackfillService } from './tp-competition-matches-ba
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
 import type { TpMatchDataImportResult } from './tp-match-data-import.service';
 import { TpMatchDataImportService } from './tp-match-data-import.service';
+import { TpMatchEventsImportedService } from './tp-match-events-imported.service';
 
 const EXTERNAL_SYSTEM_NAME = 'some-external-system';
 
@@ -62,6 +63,7 @@ describe('TpCompetitionMatchesBackfillService', () => {
       providers: [
         TpCompetitionMatchesBackfillService,
         ImportResultService,
+        TpMatchEventsImportedService,
         { provide: TpMatchDataImportService, useValue: matchData },
       ],
     }).compile();
@@ -175,6 +177,73 @@ describe('TpCompetitionMatchesBackfillService', () => {
 
     expect(eventFailedPlayerIds).toEqual([11, 12, 13, 31]);
     expect(sppPlayers).toHaveLength(7);
+  });
+
+  describe('a match whose events were not imported', () => {
+    const withTeams = (
+      overrides: Partial<TpMatchDataImportResult>,
+    ): TpMatchDataImportResult => ({
+      ...IMPORTED,
+      homeTeam: { ...teamImported, sppPlayers: [{ playerId: 11 }] },
+      awayTeam: { ...teamImported, sppPlayers: [{ playerId: 12 }] },
+      ...overrides,
+    });
+    const failed: ImportResult = {
+      success: false,
+      imported: 0,
+      errors: [{ item: 1, message: 'broken' }],
+    };
+
+    it.each([
+      [
+        'a team import failed',
+        {
+          awayTeam: { ...teamImported, team: failed, sppPlayers: [] },
+          match: failed,
+          participation: nothing,
+          events: nothing,
+          outcome: nothing,
+        },
+        [11],
+      ],
+      [
+        'participation was not linked',
+        { participation: failed, events: nothing },
+        [11, 12],
+      ],
+      [
+        'participation was skipped without an error',
+        { participation: nothing, events: nothing },
+        [11, 12],
+      ],
+      ['the match row was not written', { match: nothing }, [11, 12]],
+      ['the events reported errors', { events: failed }, [11, 12]],
+    ] as const)(
+      'has both teams players left out when %s',
+      async (_name, overrides, expected) => {
+        matchData.importMatchData.mockResolvedValue(
+          withTeams(overrides as Partial<TpMatchDataImportResult>),
+        );
+
+        const { eventFailedPlayerIds } = await backfill({
+          ...BRACKET,
+          matches: [bracketMatch({ id: 1 })],
+        });
+
+        expect(eventFailedPlayerIds).toEqual(expected);
+      },
+    );
+
+    it('leaves out nothing for a match whose events were imported', async () => {
+      matchData.importMatchData.mockResolvedValue(withTeams({}));
+
+      const { eventFailedPlayerIds } = await backfill({
+        ...BRACKET,
+        matches: [bracketMatch({ id: 1 })],
+      });
+
+      expect(eventFailedPlayerIds).toEqual([]);
+    });
   });
 
   it('does not report players of a match whose only errors are in other stages', async () => {

@@ -32,6 +32,7 @@ import { TpLiveStarPlayerHiresService } from './tp-live-star-player-hires.servic
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
 import type { TpMatchTeamsImport } from './tp-match-data-import.service';
 import { TpMatchDataImportService } from './tp-match-data-import.service';
+import { TpMatchEventsImportedService } from './tp-match-events-imported.service';
 
 const EXTERNAL_SYSTEM_NAME = 'some-external-system';
 
@@ -178,6 +179,7 @@ describe('TpLiveMatchImportService', () => {
       providers: [
         TpLiveMatchImportService,
         ImportResultService,
+        TpMatchEventsImportedService,
         { provide: TpFetcherService, useValue: fetcher },
         { provide: TpBracketFetchService, useValue: bracketFetch },
         {
@@ -623,16 +625,29 @@ describe('TpLiveMatchImportService', () => {
           imported: 0,
           errors: [{ item: 1, message: 'bad outcome' }],
         },
-        participation: {
-          success: false,
-          imported: 0,
-          errors: [{ item: 1, message: 'bad participation' }],
-        },
       });
 
       await importMatch();
 
       expect(sppAdjustments.settle).toHaveBeenCalledWith([HOME_SPP, AWAY_SPP]);
+    });
+
+    it('settles nothing when participation was not linked, so the events were never attempted, and no backfill runs', async () => {
+      matchData.writeMatch.mockResolvedValue({
+        match: one,
+        participation: {
+          success: false,
+          imported: 0,
+          errors: [{ item: 1, message: 'bad participation' }],
+        },
+        events: nothing,
+        outcome: nothing,
+      });
+
+      const result = await importMatch();
+
+      expect(sppAdjustments.settle).not.toHaveBeenCalled();
+      expect(result.sppAdjustments).toEqual(nothing);
     });
 
     it('settles after a backfill even when its own match row could not be written', async () => {
