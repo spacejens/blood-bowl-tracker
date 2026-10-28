@@ -60,4 +60,18 @@ describe('TpSkillCategoryMaskDecoderService', () => {
   it('rejects a negative mask', () => {
     expect(() => decoder.decode(-1)).toThrow(/unknown bit/);
   });
+
+  it.each([2 ** 32, 2 ** 32 + 2, 2 ** 53, Number.MAX_SAFE_INTEGER])(
+    'rejects mask %d, which lies beyond 32 bits',
+    (mask) => {
+      expect(() => decoder.decode(mask)).toThrow(/unknown bit/);
+    },
+  );
+
+  it.each([1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+    'rejects mask %d, which is not an integer',
+    (mask) => {
+      expect(() => decoder.decode(mask)).toThrow(/unknown bit/);
+    },
+  );
 });

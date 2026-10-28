@@ -1,7 +1,8 @@
 // Batch 004 (continued): every position's primary and secondary skill
 // categories under the rules sets TP's official team list does not cover
-// (CRP, CRP+ and BB2016), plus gap-fill pairs under BB2020, DB2021 and
-// BB2025 that TP does not supply.
+// (CRP, CRP+ and BB2016). Gap-fill entries for BB2020, DB2021 and BB2025
+// pairs that TP does not supply are allowed here too, but there are
+// currently none (see below).
 //
 // Each entry is the pair's COMPLETE set: the sync flags any category an entry
 // leaves out as removed. Only learnable categories appear (general, agility,

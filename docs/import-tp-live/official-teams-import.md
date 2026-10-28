@@ -2,8 +2,8 @@
 
 `packages/import-tp-live` imports TP's official team list — the races,
 positions and star players TP publishes per rules set, with their
-characteristics, keywords, starting skills and skill categories — in two ways that share one
-write path:
+characteristics, keywords, starting skills and skill categories — in two
+ways that share one write path:
 
 - **Live**, `TpLiveOfficialTeamsImportService.importOfficialTeams(...)`
   (in `ImportTpLiveModule`): fetches every rules set TP has an id for
@@ -59,8 +59,8 @@ validates a sync all-or-nothing, so when a stage's batch is rejected (for
 example a keyword for a position whose characteristics failed to write)
 that stage retries one position at a time. A characteristics or keywords
 failure names the position; a starting-skills failure identifies it by
-position id; a skill-categories failure names the position. Every other position is still written. A stage with nothing to
-write makes no call.
+position id; a skill-categories failure names the position. Every other
+position is still written. A stage with nothing to write makes no call.
 
 ## Starting skills
 

@@ -177,7 +177,9 @@ const PositionRulesSetSkillsEntrySchema = z.object({
  *
  * - Only learnable categories are allowed (no trait or unique).
  * - A category may appear only once across both lists.
- * - An empty list is allowed (some positions have no primary category).
+ * - An empty list is allowed. Every curated CRP, CRP+ and BB2016 entry has a
+ *   primary category, but a gap-fill pair may have none: DB2021's Beer Boar,
+ *   for example, has no skill categories at all in TP's list.
  *
  * The sync replaces the pair's whole set, so an entry is always the complete
  * set, never a delta.

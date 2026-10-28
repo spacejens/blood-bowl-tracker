@@ -57,11 +57,11 @@ export class TpOfficialTeamsImportService {
    * Resolves the rules set's context, then upserts its races, its positions
    * (regular and star) with their race/era availability, their
    * characteristics, and -- only after characteristics, since the server
-   * rejects a keyword, starting skill or skill category for a position with no
-   * characteristics row -- their keywords, starting skills and skill categories. Each stage's
-   * failures are reported in that stage's result and never stop the stages
-   * after it; nothing is imported when the context cannot be resolved (its
-   * failure is reported under `races`).
+   * rejects a keyword, starting skill or skill category for a position with
+   * no characteristics row -- their keywords, starting skills and skill
+   * categories. Each stage's failures are reported in that stage's result and
+   * never stop the stages after it; nothing is imported when the context
+   * cannot be resolved (its failure is reported under `races`).
    */
   async importOfficialTeams({
     rulesSet,

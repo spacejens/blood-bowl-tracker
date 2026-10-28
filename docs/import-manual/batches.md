@@ -56,8 +56,9 @@ The batches:
   Favourite advancement under CRP, CRP+ and BB2016 (see
   [Star Player Points sections](star-player-points.md#advancement-costs)).
   It also holds the primary and secondary skill categories of every CRP, CRP+
-  and BB2016 position, plus the BB2020, DB2021 and BB2025 positions TP's
-  official team list does not supply. CRP+ primary comes from NTBB2015's
+  and BB2016 position. Gap-fill entries for BB2020, DB2021 and BB2025
+  positions TP's official team list does not supply are allowed, but there
+  are currently none. CRP+ primary comes from NTBB2015's
   Talent column and secondary from the CRP entry. BB2016 comes from the
   Teams of Legend PDF and the developer's physical BB2016 rulebook (see
   [Batch 004](curated-files.md#batch-004)). The advancement costs reference

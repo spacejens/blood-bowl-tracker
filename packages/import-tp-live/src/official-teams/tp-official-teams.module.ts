@@ -31,10 +31,11 @@ import { TpOfficialTeamsImportService } from './tp-official-teams-import.service
 
 /**
  * Imports one rules set's TP official team list -- races, positions and
- * stars, characteristics, keywords, starting skills and skill categories -- straight into the
- * database through packages/game-data. packages/api-server imports it to
- * implement `tpOfficialTeams.import`; ImportTpLiveModule imports it for the
- * live import. The importing app provides packages/db's `DB`.
+ * stars, characteristics, keywords, starting skills and skill categories --
+ * straight into the database through packages/game-data.
+ * packages/api-server imports it to implement `tpOfficialTeams.import`;
+ * ImportTpLiveModule imports it for the live import. The importing app
+ * provides packages/db's `DB`.
  */
 @Module({
   imports: [

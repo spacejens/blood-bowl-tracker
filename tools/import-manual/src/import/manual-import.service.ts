@@ -56,10 +56,9 @@ export class ManualImportService {
    * Read and pool every `.json5` file in `dir`, bootstrap the external systems
    * it references, then process each entity section in dependency order —
    * rulesSets, skills, skillRulesSets, keywords, leagues, eras, races,
-   * positions, positionRulesSets, positionRulesSetSkills, positionRulesSetSkillCategories,
-   * coaches, teams,
-   * competitionGroups, competitions, sppAwardValues, advancementCosts,
-   * trophies, trophyAwards —
+   * positions, positionRulesSets, positionRulesSetSkills,
+   * positionRulesSetSkillCategories, coaches, teams, competitionGroups,
+   * competitions, sppAwardValues, advancementCosts, trophies, trophyAwards —
    * with skills and skillRulesSets running right after rulesSets, since
    * skills need only the rules sets and running them early keeps the
    * category table available to everything after, positionRulesSets running
@@ -69,25 +68,24 @@ export class ManualImportService {
    * under that rules set, or whose skill has no category row there),
    * positionRulesSetSkillCategories running right after
    * positionRulesSetSkills (the API rejects categories for a position with no
-   * characteristics under that rules set), keywords
-   * seeding the BB2025 keyword catalogue that tools/import-tp resolves its
-   * numeric codes against in a later, separate invocation (so the catalogue
-   * must already exist by then, but nothing in this file itself references a
-   * keyword, so its position relative to the other sections here is
-   * otherwise free), competitionGroups running after leagues (whose
-   * external ids its entries reference) and before competitions and trophies
-   * (which resolve the groups it upserts, by their "Name"-system external
-   * id), sppAwardValues running after rulesSets and races (which it
-   * references), advancementCosts running after the rulesSets, leagues and skills
-   * it references, trophies running after the leagues it may also reference,
-   * and trophyAwards last of all, after the trophies whose curated names its
-   * entries quote — sharing one error collector so one bad entry never aborts
-   * the rest. Reference-resolution
-   * and upsert failures are collected; a missing directory, malformed file,
-   * or unreachable API throws out of here to be reported as an unexpected
-   * failure. A same-kind
-   * external-id collision is detected server-side: the API's upsert reports
-   * it as a CONFLICT, collected like any other ImportError.
+   * characteristics under that rules set), keywords seeding the BB2025
+   * keyword catalogue that tools/import-tp resolves its numeric codes against
+   * in a later, separate invocation (so the catalogue must already exist by
+   * then, but nothing in this file itself references a keyword, so its
+   * position relative to the other sections here is otherwise free),
+   * competitionGroups running after leagues (whose external ids its entries
+   * reference) and before competitions and trophies (which resolve the groups
+   * it upserts, by their "Name"-system external id), sppAwardValues running
+   * after rulesSets and races (which it references), advancementCosts running
+   * after the rulesSets, leagues and skills it references, trophies running
+   * after the leagues it may also reference, and trophyAwards last of all,
+   * after the trophies whose curated names its entries quote — sharing one
+   * error collector so one bad entry never aborts the rest.
+   * Reference-resolution and upsert failures are collected; a missing
+   * directory, malformed file, or unreachable API throws out of here to be
+   * reported as an unexpected failure. A same-kind external-id collision is
+   * detected server-side: the API's upsert reports it as a CONFLICT, collected
+   * like any other ImportError.
    */
   async run(dir: string): Promise<ImportResult> {
     const data = await this.reader.read(dir);

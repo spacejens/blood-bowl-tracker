@@ -296,6 +296,64 @@ describe('PositionRulesSetSkillCategoriesService', () => {
       });
     });
 
+    it('maps each entry to its own anchor when the anchor rows come back in another order', async () => {
+      // Entry order is position 1 then position 3; the anchor query answers
+      // position 3 (row 60) first.
+      const otherAnchor = { id: 60, positionId: 3, rulesSetId: 2 };
+      const db = mockDb(
+        [otherAnchor, anchor],
+        [
+          stored({ id: 70, skillCategory: 'general', access: 'primary' }),
+          stored({ id: 72, skillCategory: 'strength', access: 'secondary' }),
+          {
+            id: 80,
+            positionRulesSetId: 60,
+            skillCategory: 'agility',
+            access: 'primary',
+            removed: false,
+          },
+          {
+            id: 81,
+            positionRulesSetId: 60,
+            skillCategory: 'strength',
+            access: 'secondary',
+            removed: false,
+          },
+        ],
+        [],
+      );
+      const service = await makeService(db);
+
+      const result = await service.sync({
+        entries: [
+          entry(['general'], []),
+          {
+            positionId: 3,
+            rulesSetId: 2,
+            primary: ['agility'],
+            secondary: ['strength'],
+          },
+        ],
+      });
+
+      expect(result).toEqual({
+        positionRulesSetSkillCategoryIds: [70, 80, 81],
+      });
+      expect(extractAllFilterValues(firstCallArg(db.chains[1].where))).toEqual([
+        50, 60,
+      ]);
+      // Only position 1's dropped strength is flagged; position 3's strength
+      // row, the same category under the other anchor, is not written.
+      expect(db.chains).toHaveLength(3);
+      expect(firstCallArg(db.chains[2].set)).toEqual({
+        access: 'secondary',
+        removed: true,
+      });
+      expect(extractAllFilterValues(firstCallArg(db.chains[2].where))).toEqual([
+        72,
+      ]);
+    });
+
     it('throws when the insert returns no row for a new category', async () => {
       const db = mockDb([anchor], [], []);
       const service = await makeService(db);
