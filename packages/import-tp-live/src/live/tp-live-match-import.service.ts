@@ -18,9 +18,12 @@ import { TpCompetitionMatchesBackfillService } from './tp-competition-matches-ba
 import type { TpParticipantsBackfillResult } from './tp-competition-participants-backfill.service';
 import { TpCompetitionParticipantsBackfillService } from './tp-competition-participants-backfill.service';
 import { TpExtraTrophyAwardsService } from './tp-extra-trophy-awards.service';
+import { TpLiveSppAdjustmentsService } from './tp-live-spp-adjustments.service';
 import { TpLiveStarPlayerHiresService } from './tp-live-star-player-hires.service';
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
 import { TpMatchDataImportService } from './tp-match-data-import.service';
+import { TpMatchEventsImportedService } from './tp-match-events-imported.service';
+import type { TpLivePlayerSppFacts } from './tp-player-spp-facts.service';
 
 /** Options for {@link TpLiveMatchImportService.importMatch}. */
 export interface ImportLiveMatchOptions {
@@ -94,6 +97,14 @@ export interface TpLiveMatchImportResult {
    * or its awards could not be fetched.
    */
   extraTrophyAwards?: ImportResult;
+  /**
+   * Settling the SPP total and adjustment of the players whose match events
+   * this import wrote: both teams' once the match row is written, and, when
+   * the backfill ran, every player it imported, after both backfills.
+   * Nothing imported when the match was not written; a failure here never
+   * fails the import.
+   */
+  sppAdjustments: ImportResult;
 }
 
 @Injectable()
@@ -108,6 +119,8 @@ export class TpLiveMatchImportService {
     private readonly matchesBackfill: TpCompetitionMatchesBackfillService,
     private readonly importResults: ImportResultService,
     private readonly extraTrophyAwards: TpExtraTrophyAwardsService,
+    private readonly sppAdjustmentsSync: TpLiveSppAdjustmentsService,
+    private readonly eventsImported: TpMatchEventsImportedService,
   ) {}
 
   /**
@@ -131,12 +144,17 @@ export class TpLiveMatchImportService {
    * every request. A block met during the competition's backfill has its
    * `backfillInterrupted` set first, so a retry knows to force the backfill
    * of a competition that now exists. The competition is created
-   * unfinished, with no end date. When the participants backfill fetched TP awards, the competition is
-   * finished after both backfills: re-upserted as finished, which settles
-   * its end date, and awarded the trophies TP does not record, reported in
-   * `extraTrophyAwards` (skipped, with one error, when the match backfill
-   * reported errors). A failed awards fetch leaves the finished state
-   * unknown, so neither happens.
+   * unfinished, with no end date. When the participants backfill fetched TP
+   * awards, the competition is finished after both backfills: re-upserted as
+   * finished, which settles its end date, and awarded the trophies TP does
+   * not record, reported in `extraTrophyAwards` (skipped, with one error,
+   * when the match backfill reported errors). A failed awards fetch leaves
+   * the finished state unknown, so neither happens. Last, once the match row
+   * is written (and after the backfill, when it ran), the SPP total and
+   * adjustment of the players whose events it wrote are settled through
+   * `TpLiveSppAdjustmentsService`, reported in `sppAdjustments`; after a
+   * backfill that covers every player it imported, including those seen only
+   * in the backfilled matches' snapshots.
    */
   async importMatch({
     matchId,
@@ -214,9 +232,15 @@ export class TpLiveMatchImportService {
         awayTeam,
         starPlayerHires,
         ...core,
+        sppAdjustments: this.importResults.result({ imported: 0, errors: [] }),
       };
       if (!upserted.created && !forceMatchBackfill) {
-        return imported;
+        return {
+          ...imported,
+          sppAdjustments: this.eventsImported.eventsImported(core)
+            ? await this.settleSpp([homeTeam, awayTeam])
+            : imported.sppAdjustments,
+        };
       }
       backfilling = true;
       const participantsBackfill = await this.participantsBackfill.backfill({
@@ -227,13 +251,14 @@ export class TpLiveMatchImportService {
         session: visit,
         competition: upserted,
       });
-      const matchesBackfill = await this.matchesBackfill.backfill({
+      const backfilledMatches = await this.matchesBackfill.backfill({
         tournamentSlug,
         era: ready.era,
         externalSystemName,
         session: visit,
         bracket,
       });
+      const matchesBackfill = backfilledMatches.result;
       const finished =
         participantsBackfill.awardsFetched !== undefined &&
         participantsBackfill.awardsFetched > 0;
@@ -247,11 +272,17 @@ export class TpLiveMatchImportService {
             matchesBackfillFailed: matchesBackfill.errors.length > 0,
           })
         : this.importResults.result({ imported: 0, errors: [] });
+      const sppAdjustments = await this.settleSpp(
+        [homeTeam, awayTeam, ...participantsBackfill.teams],
+        backfilledMatches.sppPlayers,
+        backfilledMatches.eventFailedPlayerIds,
+      );
       return {
         ...imported,
         participantsBackfill,
         matchesBackfill,
         extraTrophyAwards,
+        sppAdjustments,
       };
     } catch (error) {
       if (error instanceof TpBlockedError) {
@@ -319,6 +350,27 @@ export class TpLiveMatchImportService {
     });
   }
 
+  /**
+   * Settles the SPP of the given teams' players, and of any extra players
+   * given: run last, once their match events are written and no later step
+   * re-imports their rosters (which would write TP's raw total back over the
+   * settled one). Players in `excludePlayerIds` (those whose match events
+   * failed to import) are left unsettled.
+   */
+  private async settleSpp(
+    teams: TpLiveTeamImportResult[],
+    extraPlayers: TpLivePlayerSppFacts[] = [],
+    excludePlayerIds?: number[],
+  ): Promise<ImportResult> {
+    const players = [
+      ...teams.flatMap((team) => team.sppPlayers),
+      ...extraPlayers,
+    ];
+    return excludePlayerIds === undefined
+      ? this.sppAdjustmentsSync.settle(players)
+      : this.sppAdjustmentsSync.settle(players, { excludePlayerIds });
+  }
+
   private failed(errors: ImportError[]): ImportResult {
     return this.importResults.result({ imported: 0, errors });
   }
@@ -332,6 +384,7 @@ export class TpLiveMatchImportService {
       players: nothing(),
       era: undefined,
       teamEra: undefined,
+      sppPlayers: [],
     });
     return {
       competition: nothing(),
@@ -342,6 +395,7 @@ export class TpLiveMatchImportService {
       participation: nothing(),
       events: nothing(),
       outcome: nothing(),
+      sppAdjustments: nothing(),
     };
   }
 }

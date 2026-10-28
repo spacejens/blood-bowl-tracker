@@ -5,6 +5,7 @@ import {
   PositionRulesSetsModule,
   PositionsModule,
   RacesModule,
+  SppModule,
   TrophyAwardsModule,
 } from '@blood-bowl-tracker/game-data';
 import { ImportSharedModule } from '@blood-bowl-tracker/import-shared';
@@ -25,11 +26,14 @@ import { TpLiveCompetitionImportService } from './live/tp-live-competition-impor
 import { TpLiveMatchImportService } from './live/tp-live-match-import.service';
 import { TpLiveMatchTeamsImportService } from './live/tp-live-match-teams-import.service';
 import { TpLiveOfficialTeamsImportService } from './live/tp-live-official-teams-import.service';
+import { TpLiveSppAdjustmentsService } from './live/tp-live-spp-adjustments.service';
 import { TpLiveStarPlayerHiresService } from './live/tp-live-star-player-hires.service';
 import { TpLiveTeamImportService } from './live/tp-live-team-import.service';
 import { TpMatchDataImportService } from './live/tp-match-data-import.service';
+import { TpMatchEventsImportedService } from './live/tp-match-events-imported.service';
 import { TpMatchFetchService } from './live/tp-match-fetch.service';
 import { TpOfficialTeamsFetchService } from './live/tp-official-teams-fetch.service';
+import { TpPlayerSppFactsService } from './live/tp-player-spp-facts.service';
 import { TpRosterFetchService } from './live/tp-roster-fetch.service';
 import { TpMatchModule } from './match/tp-match.module';
 import { TpOfficialTeamsModule } from './official-teams/tp-official-teams.module';
@@ -41,8 +45,10 @@ import { TpRosterModule } from './roster/tp-roster.module';
  * its registered teams and trophy awards; or TP's official team list for
  * every rules set. Each is fetched from TP's API and imported in-process
  * through TpRosterModule, TpMatchModule, TpCompetitionModule and
- * TpOfficialTeamsModule. The importing app provides
- * TP_CONNECTION_PROVIDER from a `@Global()` module and packages/db's `DB`.
+ * TpOfficialTeamsModule. Live match and competition imports finish by
+ * settling their players' SPP through game-data's SppModule. The importing
+ * app provides TP_CONNECTION_PROVIDER from a `@Global()` module and
+ * packages/db's `DB`.
  */
 @Module({
   imports: [
@@ -58,6 +64,7 @@ import { TpRosterModule } from './roster/tp-roster.module';
     PlayersModule,
     PositionRulesSetsModule,
     PositionsModule,
+    SppModule,
     TrophyAwardsModule,
     TpCompetitionModule,
     TpOfficialTeamsModule,
@@ -66,8 +73,11 @@ import { TpRosterModule } from './roster/tp-roster.module';
     TpRosterFetchService,
     TpEraResolutionService,
     TpLiveTeamImportService,
+    TpPlayerSppFactsService,
+    TpLiveSppAdjustmentsService,
     TpMatchFetchService,
     TpMatchDataImportService,
+    TpMatchEventsImportedService,
     TpCompetitionMatchesBackfillService,
     TpBracketFetchService,
     TpLiveMatchImportService,

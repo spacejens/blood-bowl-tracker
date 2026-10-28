@@ -32,6 +32,7 @@ const teamImported: TpLiveTeamImportResult = {
   players: one,
   era: 'Fourth era',
   teamEra: { id: 31, eraId: 40 },
+  sppPlayers: [],
 };
 const teamNotImported: TpLiveTeamImportResult = {
   team: {
@@ -42,12 +43,14 @@ const teamNotImported: TpLiveTeamImportResult = {
   players: nothing,
   era: undefined,
   teamEra: undefined,
+  sppPlayers: [],
 };
 const notAttemptedTeam: TpLiveTeamImportResult = {
   team: nothing,
   players: nothing,
   era: undefined,
   teamEra: undefined,
+  sppPlayers: [],
 };
 const BRACKET: TpBracket = {
   tournament: {

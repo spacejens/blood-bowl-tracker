@@ -10,6 +10,8 @@ import { Injectable } from '@nestjs/common';
 import type { TpBracket } from './tp-bracket-fetch.service';
 import type { TpMatchDataImportResult } from './tp-match-data-import.service';
 import { TpMatchDataImportService } from './tp-match-data-import.service';
+import { TpMatchEventsImportedService } from './tp-match-events-imported.service';
+import type { TpLivePlayerSppFacts } from './tp-player-spp-facts.service';
 
 /** Options for {@link TpCompetitionMatchesBackfillService.backfill}. */
 export interface BackfillMatchesOptions {
@@ -25,6 +27,25 @@ export interface BackfillMatchesOptions {
   bracket: TpBracket;
 }
 
+/** What {@link TpCompetitionMatchesBackfillService.backfill} reports. */
+export interface MatchesBackfillOutcome {
+  /** The backfill's counts and errors. */
+  result: ImportResult;
+  /**
+   * The SPP facts of both teams' players of every backfilled match, for the
+   * caller to settle once the backfill is over: the backfill re-imports those
+   * rosters at TP's raw total, including players seen only in match snapshots.
+   */
+  sppPlayers: TpLivePlayerSppFacts[];
+  /**
+   * The ids, without repeats, of both teams' players of every backfilled
+   * match whose events were not imported (a failed team import, an unwritten
+   * match row, unlinked participation or event errors): their imported-event
+   * sum is incomplete, so the caller must not settle them.
+   */
+  eventFailedPlayerIds: number[];
+}
+
 /**
  * Imports every completed match of a competition already imported, from
  * TP's live API: each bracket match with a recorded result, one at a time
@@ -37,14 +58,16 @@ export class TpCompetitionMatchesBackfillService {
   constructor(
     private readonly matchData: TpMatchDataImportService,
     private readonly importResults: ImportResultService,
+    private readonly eventsImported: TpMatchEventsImportedService,
   ) {}
 
   /**
    * One result for the whole backfill: `imported` counts the matches whose
-   * row was written, and `errors` holds every stage error of every match. A
-   * match that fails, even by throwing, is reported and the rest are still
-   * imported — except for a TP block (`TpBlockedError`), which is rethrown at
-   * once so no further match is attempted.
+   * row was written, and `errors` holds every stage error of every match; the
+   * SPP facts of the matches' players come alongside. A match that fails,
+   * even by throwing, is reported and the rest are still imported — except
+   * for a TP block (`TpBlockedError`), which is rethrown at once so no
+   * further match is attempted.
    */
   async backfill({
     tournamentSlug,
@@ -52,12 +75,14 @@ export class TpCompetitionMatchesBackfillService {
     externalSystemName,
     session,
     bracket,
-  }: BackfillMatchesOptions): Promise<ImportResult> {
+  }: BackfillMatchesOptions): Promise<MatchesBackfillOutcome> {
     const completed = bracket.matches.filter(
       (match) => match.winner !== undefined,
     );
     let imported = 0;
     const errors: ImportError[] = [];
+    const sppPlayers: TpLivePlayerSppFacts[] = [];
+    const eventFailed = new Set<number>();
     for (const { id: matchId } of completed) {
       try {
         const result = await this.matchData.importMatchData({
@@ -72,6 +97,14 @@ export class TpCompetitionMatchesBackfillService {
           imported += 1;
         }
         errors.push(...this.errorsOf(result));
+        const matchPlayers = [
+          ...result.homeTeam.sppPlayers,
+          ...result.awayTeam.sppPlayers,
+        ];
+        sppPlayers.push(...matchPlayers);
+        if (!this.eventsImported.eventsImported(result)) {
+          matchPlayers.forEach(({ playerId }) => eventFailed.add(playerId));
+        }
       } catch (error) {
         if (error instanceof TpBlockedError) {
           throw error;
@@ -85,7 +118,11 @@ export class TpCompetitionMatchesBackfillService {
         );
       }
     }
-    return this.importResults.result({ imported, errors });
+    return {
+      result: this.importResults.result({ imported, errors }),
+      sppPlayers,
+      eventFailedPlayerIds: [...eventFailed],
+    };
   }
 
   /** Every error one match's import reported, in stage order. */

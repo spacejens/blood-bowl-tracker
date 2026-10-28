@@ -222,6 +222,7 @@ export class TpMatchDataImportService {
       players: this.nothing(),
       era: undefined,
       teamEra: undefined,
+      sppPlayers: [],
     };
   }
 }

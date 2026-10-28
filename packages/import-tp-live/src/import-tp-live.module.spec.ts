@@ -10,6 +10,7 @@ import { TpLiveCompetitionImportService } from './live/tp-live-competition-impor
 import { TpLiveMatchImportService } from './live/tp-live-match-import.service';
 import { TpLiveMatchTeamsImportService } from './live/tp-live-match-teams-import.service';
 import { TpLiveOfficialTeamsImportService } from './live/tp-live-official-teams-import.service';
+import { TpLiveSppAdjustmentsService } from './live/tp-live-spp-adjustments.service';
 import { TpLiveTeamImportService } from './live/tp-live-team-import.service';
 import { TP_CONNECTION_PROVIDER } from './tp-import-providers';
 
@@ -88,6 +89,16 @@ describe('ImportTpLiveModule', () => {
 
     expect(moduleRef.get(TpExtraTrophyAwardsService)).toBeInstanceOf(
       TpExtraTrophyAwardsService,
+    );
+  });
+
+  it('composes TpLiveSppAdjustmentsService with its real dependencies wired', async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [TestTpProvidersModule, ImportTpLiveModule],
+    }).compile();
+
+    expect(moduleRef.get(TpLiveSppAdjustmentsService)).toBeInstanceOf(
+      TpLiveSppAdjustmentsService,
     );
   });
 });

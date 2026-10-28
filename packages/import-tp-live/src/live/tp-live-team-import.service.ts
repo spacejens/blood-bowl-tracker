@@ -11,6 +11,8 @@ import { Injectable } from '@nestjs/common';
 
 import { TpRosterImportService } from '../roster/tp-roster-import.service';
 import { TpEraResolutionService } from './tp-era-resolution.service';
+import type { TpLivePlayerSppFacts } from './tp-player-spp-facts.service';
+import { TpPlayerSppFactsService } from './tp-player-spp-facts.service';
 import { TpRosterFetchService } from './tp-roster-fetch.service';
 
 /** Options for {@link TpLiveTeamImportService.importTeam}. */
@@ -51,6 +53,13 @@ export interface TpLiveTeamImportResult {
    * team era for that era, was not imported.
    */
   teamEra: TeamEra | undefined;
+  /**
+   * The SPP facts of every player imported, for the SPP adjustments step a
+   * live match or competition import runs once the players' match events
+   * are written; empty when the team was not imported. A plain team import
+   * settles nothing itself.
+   */
+  sppPlayers: TpLivePlayerSppFacts[];
 }
 
 @Injectable()
@@ -60,6 +69,7 @@ export class TpLiveTeamImportService {
     private readonly eraResolution: TpEraResolutionService,
     private readonly rosterImport: TpRosterImportService,
     private readonly importResults: ImportResultService,
+    private readonly sppFacts: TpPlayerSppFactsService,
   ) {}
 
   /**
@@ -72,7 +82,9 @@ export class TpLiveTeamImportService {
    * returned results, never thrown; the players are skipped when the team
    * itself was not imported. A TP block (`TpBlockedError`) is the one
    * exception: it is rethrown at once, so no further request is made to a
-   * TP that refuses every request.
+   * TP that refuses every request. The result carries the imported players'
+   * SPP facts; this import does not settle their SPP adjustments (a live
+   * match or competition import does, once their match events are written).
    */
   async importTeam({
     rosterId,
@@ -102,18 +114,20 @@ export class TpLiveTeamImportService {
         return this.notImported(errors);
       }
 
-      const { team, players, teamEra } = await this.rosterImport.importRoster({
-        roster,
-        era: resolvedEra,
-        externalSystemName,
-        matchEmbeddedPlayers,
-        rawContent: content,
-      });
+      const { team, players, teamEra, importedPlayers } =
+        await this.rosterImport.importRoster({
+          roster,
+          era: resolvedEra,
+          externalSystemName,
+          matchEmbeddedPlayers,
+          rawContent: content,
+        });
       return {
         team,
         players,
         era: team.imported > 0 ? resolvedEra : undefined,
         teamEra,
+        sppPlayers: this.sppFacts.collect({ roster, importedPlayers }),
       };
     } catch (error) {
       if (error instanceof TpBlockedError) {
@@ -135,6 +149,7 @@ export class TpLiveTeamImportService {
       players: this.importResults.result({ imported: 0, errors: [] }),
       era: undefined,
       teamEra: undefined,
+      sppPlayers: [],
     };
   }
 }

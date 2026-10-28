@@ -29,6 +29,7 @@ const teamImported: TpLiveTeamImportResult = {
   players: one,
   era: 'Fourth era',
   teamEra: { id: 31, eraId: 40 },
+  sppPlayers: [],
 };
 const teamNotImported: TpLiveTeamImportResult = {
   team: {
@@ -39,6 +40,7 @@ const teamNotImported: TpLiveTeamImportResult = {
   players: nothing,
   era: undefined,
   teamEra: undefined,
+  sppPlayers: [],
 };
 const AWARD: TpCompetitionAward = { id: 24112, awardType: 1, rosterId: 179769 };
 const LINKED = new Map([

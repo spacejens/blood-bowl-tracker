@@ -27,6 +27,7 @@ const TEAM_RESULT: TpLiveTeamImportResult = {
   players: one,
   era: 'Fourth era',
   teamEra: { id: 31, eraId: 40 },
+  sppPlayers: [],
 };
 const COMPETITION_RESULT: TpLiveCompetitionImportResult = {
   competition: one,
@@ -34,6 +35,7 @@ const COMPETITION_RESULT: TpLiveCompetitionImportResult = {
   participation: one,
   trophyAwards: one,
   extraTrophyAwards: one,
+  sppAdjustments: one,
   era: 'Fourth era',
 };
 const MATCH_RESULT: TpLiveMatchImportResult = {
@@ -45,6 +47,7 @@ const MATCH_RESULT: TpLiveMatchImportResult = {
   participation: one,
   events: one,
   outcome: one,
+  sppAdjustments: one,
 };
 const MATCH_TEAMS_RESULT: TpLiveMatchTeamsImportResult = {
   match: { success: true, imported: 0, errors: [] },

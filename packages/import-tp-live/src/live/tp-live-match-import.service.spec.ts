@@ -27,10 +27,12 @@ import type { TpParticipantsBackfillResult } from './tp-competition-participants
 import { TpCompetitionParticipantsBackfillService } from './tp-competition-participants-backfill.service';
 import { TpExtraTrophyAwardsService } from './tp-extra-trophy-awards.service';
 import { TpLiveMatchImportService } from './tp-live-match-import.service';
+import { TpLiveSppAdjustmentsService } from './tp-live-spp-adjustments.service';
 import { TpLiveStarPlayerHiresService } from './tp-live-star-player-hires.service';
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
 import type { TpMatchTeamsImport } from './tp-match-data-import.service';
 import { TpMatchDataImportService } from './tp-match-data-import.service';
+import { TpMatchEventsImportedService } from './tp-match-events-imported.service';
 
 const EXTERNAL_SYSTEM_NAME = 'some-external-system';
 
@@ -41,6 +43,7 @@ const teamImported: TpLiveTeamImportResult = {
   players: one,
   era: 'Fourth era',
   teamEra: { id: 31, eraId: 40 },
+  sppPlayers: [],
 };
 const teamNotImported: TpLiveTeamImportResult = {
   team: {
@@ -51,12 +54,14 @@ const teamNotImported: TpLiveTeamImportResult = {
   players: nothing,
   era: undefined,
   teamEra: undefined,
+  sppPlayers: [],
 };
 const notAttemptedTeam: TpLiveTeamImportResult = {
   team: nothing,
   players: nothing,
   era: undefined,
   teamEra: undefined,
+  sppPlayers: [],
 };
 const TEAMS_READY: TpMatchTeamsImport = {
   matchFetch: nothing,
@@ -106,6 +111,11 @@ const FAILED_MATCHES_BACKFILL: ImportResult = {
   imported: 1,
   errors: [{ item: { matchId: 3 }, message: 'status 403' }],
 };
+const SETTLED: ImportResult = { success: true, imported: 3, errors: [] };
+const HOME_SPP = { playerId: 501, reportedSppTotal: 12 };
+const AWAY_SPP = { playerId: 601, reportedSppTotal: 7 };
+const REGISTERED_SPP = { playerId: 701, reportedSppTotal: 30 };
+const BACKFILLED_SPP = { playerId: 801, reportedSppTotal: 5 };
 const EXTRAS: ImportResult = { success: true, imported: 2, errors: [] };
 const MATCHES_BACKFILL: ImportResult = {
   success: true,
@@ -135,6 +145,7 @@ describe('TpLiveMatchImportService', () => {
   let participantsBackfill: MockProxy<TpCompetitionParticipantsBackfillService>;
   let matchesBackfill: MockProxy<TpCompetitionMatchesBackfillService>;
   let extraTrophyAwards: MockProxy<TpExtraTrophyAwardsService>;
+  let sppAdjustments: MockProxy<TpLiveSppAdjustmentsService>;
 
   beforeEach(async () => {
     fetcher = mock<TpFetcherService>();
@@ -154,14 +165,21 @@ describe('TpLiveMatchImportService', () => {
     participantsBackfill = mock<TpCompetitionParticipantsBackfillService>();
     matchesBackfill = mock<TpCompetitionMatchesBackfillService>();
     participantsBackfill.backfill.mockResolvedValue(PARTICIPANTS_BACKFILL);
-    matchesBackfill.backfill.mockResolvedValue(MATCHES_BACKFILL);
+    matchesBackfill.backfill.mockResolvedValue({
+      result: MATCHES_BACKFILL,
+      sppPlayers: [],
+      eventFailedPlayerIds: [],
+    });
     extraTrophyAwards = mock<TpExtraTrophyAwardsService>();
     extraTrophyAwards.computeExtras.mockResolvedValue(EXTRAS);
     extraTrophyAwards.skippedForBackfillErrors.mockReturnValue(SKIPPED);
+    sppAdjustments = mock<TpLiveSppAdjustmentsService>();
+    sppAdjustments.settle.mockResolvedValue(SETTLED);
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpLiveMatchImportService,
         ImportResultService,
+        TpMatchEventsImportedService,
         { provide: TpFetcherService, useValue: fetcher },
         { provide: TpBracketFetchService, useValue: bracketFetch },
         {
@@ -179,6 +197,7 @@ describe('TpLiveMatchImportService', () => {
           useValue: matchesBackfill,
         },
         { provide: TpExtraTrophyAwardsService, useValue: extraTrophyAwards },
+        { provide: TpLiveSppAdjustmentsService, useValue: sppAdjustments },
       ],
     }).compile();
     service = moduleRef.get(TpLiveMatchImportService);
@@ -199,6 +218,7 @@ describe('TpLiveMatchImportService', () => {
       awayTeam: teamImported,
       starPlayerHires: one,
       ...CORE,
+      sppAdjustments: SETTLED,
     });
     expect(matchData.importTeams).toHaveBeenCalledWith({
       matchId: MATCH_TP_ID,
@@ -320,6 +340,7 @@ describe('TpLiveMatchImportService', () => {
       participation: nothing,
       events: nothing,
       outcome: nothing,
+      sppAdjustments: nothing,
     });
     expect(starPlayerHires.importHires).not.toHaveBeenCalled();
     expect(bracketFetch.fetchBracket).not.toHaveBeenCalled();
@@ -447,6 +468,203 @@ describe('TpLiveMatchImportService', () => {
     expect(blocked.backfillInterrupted).toBe(true);
   });
 
+  describe('SPP adjustments', () => {
+    beforeEach(() => {
+      matchData.importTeams.mockResolvedValue({
+        ...TEAMS_READY,
+        homeTeam: { ...teamImported, sppPlayers: [HOME_SPP] },
+        awayTeam: { ...teamImported, sppPlayers: [AWAY_SPP] },
+      });
+    });
+
+    it("settles both teams' players once the match is written", async () => {
+      const result = await importMatch();
+
+      expect(sppAdjustments.settle).toHaveBeenCalledWith([HOME_SPP, AWAY_SPP]);
+      expect(result.sppAdjustments).toEqual(SETTLED);
+      const [writeOrder] = matchData.writeMatch.mock.invocationCallOrder;
+      const [settleOrder] = sppAdjustments.settle.mock.invocationCallOrder;
+      expect(writeOrder).toBeLessThan(settleOrder);
+    });
+
+    it('settles nothing when the match row could not be written', async () => {
+      matchData.writeMatch.mockResolvedValue({
+        ...CORE,
+        match: {
+          success: false,
+          imported: 0,
+          errors: [{ item: 1, message: 'no context' }],
+        },
+      });
+
+      const result = await importMatch();
+
+      expect(sppAdjustments.settle).not.toHaveBeenCalled();
+      expect(result.sppAdjustments).toEqual(nothing);
+    });
+
+    it("settles nothing when the match's teams are not ready", async () => {
+      matchData.importTeams.mockResolvedValue({
+        ...TEAMS_READY,
+        ready: undefined,
+      });
+
+      const result = await importMatch();
+
+      expect(sppAdjustments.settle).not.toHaveBeenCalled();
+      expect(result.sppAdjustments).toEqual(nothing);
+    });
+
+    it('settles nothing when the competition upsert fails', async () => {
+      competitionUpsert.upsertCompetition.mockResolvedValue(undefined);
+
+      const result = await importMatch();
+
+      expect(sppAdjustments.settle).not.toHaveBeenCalled();
+      expect(result.sppAdjustments).toEqual(nothing);
+    });
+
+    it('reports a failed settle in its own stage without failing the match', async () => {
+      const failed: ImportResult = {
+        success: false,
+        imported: 0,
+        errors: [{ item: { playerIds: [501] }, message: 'database down' }],
+      };
+      sppAdjustments.settle.mockResolvedValue(failed);
+
+      const result = await importMatch();
+
+      expect(result.match).toEqual(CORE.match);
+      expect(result.sppAdjustments).toEqual(failed);
+    });
+
+    it("settles the match's and every backfilled team's players after both backfills and the extras", async () => {
+      competitionUpsert.upsertCompetition.mockResolvedValue(
+        upsertedCompetition({ created: true }),
+      );
+      participantsBackfill.backfill.mockResolvedValue({
+        ...AWARDED_BACKFILL,
+        teams: [
+          { rosterId: 163386, ...teamImported, sppPlayers: [REGISTERED_SPP] },
+        ],
+      });
+
+      const result = await importMatch();
+
+      expect(sppAdjustments.settle).toHaveBeenCalledTimes(1);
+      expect(sppAdjustments.settle).toHaveBeenCalledWith(
+        [HOME_SPP, AWAY_SPP, REGISTERED_SPP],
+        { excludePlayerIds: [] },
+      );
+      expect(result.sppAdjustments).toEqual(SETTLED);
+      const [matchesOrder] = matchesBackfill.backfill.mock.invocationCallOrder;
+      const [extrasOrder] =
+        extraTrophyAwards.computeExtras.mock.invocationCallOrder;
+      const [settleOrder] = sppAdjustments.settle.mock.invocationCallOrder;
+      expect(matchesOrder).toBeLessThan(settleOrder);
+      expect(extrasOrder).toBeLessThan(settleOrder);
+    });
+
+    it("also settles the players of the backfilled matches' teams", async () => {
+      competitionUpsert.upsertCompetition.mockResolvedValue(
+        upsertedCompetition({ created: true }),
+      );
+      matchesBackfill.backfill.mockResolvedValue({
+        result: MATCHES_BACKFILL,
+        sppPlayers: [BACKFILLED_SPP],
+        eventFailedPlayerIds: [],
+      });
+
+      await importMatch();
+
+      expect(sppAdjustments.settle).toHaveBeenCalledWith(
+        [HOME_SPP, AWAY_SPP, BACKFILLED_SPP],
+        { excludePlayerIds: [] },
+      );
+    });
+
+    it('leaves out the players of backfilled matches whose events failed to import, whichever source they came from', async () => {
+      competitionUpsert.upsertCompetition.mockResolvedValue(
+        upsertedCompetition({ created: true }),
+      );
+      matchesBackfill.backfill.mockResolvedValue({
+        result: MATCHES_BACKFILL,
+        sppPlayers: [BACKFILLED_SPP],
+        eventFailedPlayerIds: [HOME_SPP.playerId, BACKFILLED_SPP.playerId],
+      });
+
+      await importMatch();
+
+      expect(sppAdjustments.settle).toHaveBeenCalledWith(
+        [HOME_SPP, AWAY_SPP, BACKFILLED_SPP],
+        { excludePlayerIds: [HOME_SPP.playerId, BACKFILLED_SPP.playerId] },
+      );
+    });
+
+    it('settles nothing when the events of the written match failed to import and no backfill runs', async () => {
+      matchData.writeMatch.mockResolvedValue({
+        ...CORE,
+        events: {
+          success: false,
+          imported: 0,
+          errors: [{ item: 1, message: 'unknown player' }],
+        },
+      });
+
+      const result = await importMatch();
+
+      expect(sppAdjustments.settle).not.toHaveBeenCalled();
+      expect(result.sppAdjustments).toEqual(nothing);
+    });
+
+    it('still settles when only another stage of the written match failed and no backfill runs', async () => {
+      matchData.writeMatch.mockResolvedValue({
+        ...CORE,
+        outcome: {
+          success: false,
+          imported: 0,
+          errors: [{ item: 1, message: 'bad outcome' }],
+        },
+      });
+
+      await importMatch();
+
+      expect(sppAdjustments.settle).toHaveBeenCalledWith([HOME_SPP, AWAY_SPP]);
+    });
+
+    it('settles nothing when participation was not linked, so the events were never attempted, and no backfill runs', async () => {
+      matchData.writeMatch.mockResolvedValue({
+        match: one,
+        participation: {
+          success: false,
+          imported: 0,
+          errors: [{ item: 1, message: 'bad participation' }],
+        },
+        events: nothing,
+        outcome: nothing,
+      });
+
+      const result = await importMatch();
+
+      expect(sppAdjustments.settle).not.toHaveBeenCalled();
+      expect(result.sppAdjustments).toEqual(nothing);
+    });
+
+    it('settles after a backfill even when its own match row could not be written', async () => {
+      competitionUpsert.upsertCompetition.mockResolvedValue(
+        upsertedCompetition({ created: true }),
+      );
+      matchData.writeMatch.mockResolvedValue({
+        ...CORE,
+        match: { success: false, imported: 0, errors: [] },
+      });
+
+      await importMatch();
+
+      expect(sppAdjustments.settle).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('when its competition upsert created the competition', () => {
     beforeEach(() => {
       competitionUpsert.upsertCompetition.mockResolvedValue(
@@ -464,6 +682,7 @@ describe('TpLiveMatchImportService', () => {
         participantsBackfill: PARTICIPANTS_BACKFILL,
         matchesBackfill: MATCHES_BACKFILL,
         extraTrophyAwards: nothing,
+        sppAdjustments: SETTLED,
       });
       expect(participantsBackfill.backfill).toHaveBeenCalledWith({
         tournamentSlug: 's30',
@@ -572,7 +791,11 @@ describe('TpLiveMatchImportService', () => {
 
     it('settles the end date but awards no extras, recording one error, when the match backfill reported errors', async () => {
       participantsBackfill.backfill.mockResolvedValue(AWARDED_BACKFILL);
-      matchesBackfill.backfill.mockResolvedValue(FAILED_MATCHES_BACKFILL);
+      matchesBackfill.backfill.mockResolvedValue({
+        result: FAILED_MATCHES_BACKFILL,
+        sppPlayers: [],
+        eventFailedPlayerIds: [],
+      });
 
       const result = await importMatch();
 
