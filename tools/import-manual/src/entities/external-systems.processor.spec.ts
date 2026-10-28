@@ -24,6 +24,7 @@ function emptyData(): ManualDataFile {
     teams: [],
     competitions: [],
     sppAwardValues: [],
+    advancementCosts: [],
     trophies: [],
     competitionGroups: [],
     trophyAwards: [],
@@ -327,6 +328,22 @@ describe('ExternalSystemsProcessor', () => {
     const systemIds = await processor.bootstrap(data);
 
     expect([...systemIds.keys()].sort()).toEqual(['RaceSys', 'RulesSys']);
+  });
+
+  it('throws when an advancementCosts entry references an undeclared system', async () => {
+    const data = emptyData();
+    data.advancementCosts = [
+      {
+        rulesSet: { system: 'RulesSys', id: 'rs:crp' },
+        advancementNumber: 1,
+        advancementKind: 'table_roll',
+        sppCost: 6,
+      },
+    ];
+
+    await expect(processor.bootstrap(data)).rejects.toThrow(
+      'External system "RulesSys" is referenced but not declared in externalSystems',
+    );
   });
 
   it('bootstraps a system referenced only from keywords', async () => {

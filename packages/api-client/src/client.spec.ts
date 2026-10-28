@@ -166,6 +166,7 @@ describe('createApiClient', () => {
       stubFetch,
     );
     expect(Object.keys(client).sort()).toEqual([
+      'advancementCosts',
       'coaches',
       'competitionGroups',
       'competitions',

@@ -33,6 +33,7 @@ export class ManualDataReader {
       teams: [],
       competitions: [],
       sppAwardValues: [],
+      advancementCosts: [],
       trophies: [],
       competitionGroups: [],
       trophyAwards: [],
@@ -58,6 +59,7 @@ export class ManualDataReader {
       pooled.teams.push(...file.teams);
       pooled.competitions.push(...file.competitions);
       pooled.sppAwardValues.push(...file.sppAwardValues);
+      pooled.advancementCosts.push(...file.advancementCosts);
       pooled.trophies.push(...file.trophies);
       pooled.competitionGroups.push(...file.competitionGroups);
       pooled.trophyAwards.push(...file.trophyAwards);

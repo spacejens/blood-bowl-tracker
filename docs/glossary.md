@@ -8,6 +8,10 @@ Entries are split into two sections: terms a [coach](#coach) directly encounters
 
 ## User-facing terms
 
+### Advancement
+
+A permanent improvement a [player](#player) gains — a new [skill](#skill) or a characteristic increase — paid for with [SPP](#star-player-points-spp). Each [rules set](#rules-set) prices advancements in its own way; the tracker records the SPP cost of each successive advancement per rules set (see [database.md](database.md#star-player-points)).
+
 ### Apothecary
 
 Team staff who can be called upon during a [match](#match) to attempt to heal or reduce the severity of an injury that would otherwise be a [casualty](#casualty). See also [regeneration](#regeneration), a similar effect rolled on the [player](#player)'s own skill rather than provided by team staff.

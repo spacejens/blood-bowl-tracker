@@ -1,6 +1,7 @@
 import { ImportSharedModule } from '@blood-bowl-tracker/import-shared';
 import { Module } from '@nestjs/common';
 
+import { AdvancementCostsImportService } from './advancement-costs-import.service';
 import { BatchBufferService } from './batch-buffer.service';
 import { CoachesImportService } from './coaches-import.service';
 import { CompetitionGroupsImportService } from './competition-groups-import.service';
@@ -72,6 +73,7 @@ import { TrophyAwardsImportService } from './trophy-awards-import.service';
     SkillRulesSetsImportService,
     SkillsImportService,
     SppAdjustmentsImportService,
+    AdvancementCostsImportService,
     SppAwardValuesImportService,
     StartingSkillsImportService,
     ErasImportService,
@@ -109,6 +111,7 @@ import { TrophyAwardsImportService } from './trophy-awards-import.service';
     SkillRulesSetsImportService,
     SkillsImportService,
     SppAdjustmentsImportService,
+    AdvancementCostsImportService,
     SppAwardValuesImportService,
     StartingSkillsImportService,
     ErasImportService,

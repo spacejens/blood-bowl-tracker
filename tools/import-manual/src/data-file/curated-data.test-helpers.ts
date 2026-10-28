@@ -16,6 +16,9 @@ export const BATCH_002 = 'batches/002-initial-cleanup';
 /** Batch 003: every curated name restated once, for a long-lived database. */
 export const BATCH_003 = 'batches/003-reset-curated-names';
 
+/** Batch 004: the SPP cost of each advancement for the fixed-threshold rules sets. */
+export const BATCH_004 = 'batches/004-advancement-costs';
+
 /** Every batch directory, as `batches/<name>`, in name order. */
 export function listBatches(): string[] {
   return readdirSync(join(DATA_ROOT, 'batches'), { withFileTypes: true })

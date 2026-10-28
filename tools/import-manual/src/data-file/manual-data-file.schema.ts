@@ -1,4 +1,5 @@
 import {
+  AdvancementKindSchema,
   CharacteristicFormatSchema,
   ExternalSystemCategorySchema,
   KeywordKindSchema,
@@ -236,6 +237,19 @@ const SppAwardValueEntrySchema = z.object({
   sppValue: z.number().int(),
 });
 
+/**
+ * The SPP cost of one advancement under a rules set: `advancementNumber` is
+ * 1-based (skills and characteristic increases counted alike) and `sppCost`
+ * is that advancement's own cost -- the gap to the previous threshold, not a
+ * cumulative threshold.
+ */
+const AdvancementCostEntrySchema = z.object({
+  rulesSet: ExternalRefSchema,
+  advancementNumber: z.number().int().positive(),
+  advancementKind: AdvancementKindSchema,
+  sppCost: z.number().int().positive(),
+});
+
 const TrophyEntrySchema = z.object({
   name: z.string().min(1),
   recipientKind: TrophyRecipientKindSchema,
@@ -372,6 +386,7 @@ export const ManualDataFileSchema = z
     teams: z.array(TeamEntrySchema).default([]),
     competitions: z.array(CompetitionEntrySchema).default([]),
     sppAwardValues: z.array(SppAwardValueEntrySchema).default([]),
+    advancementCosts: z.array(AdvancementCostEntrySchema).default([]),
     trophies: z.array(TrophyEntrySchema).default([]),
     competitionGroups: z.array(CompetitionGroupEntrySchema).default([]),
     trophyAwards: z.array(TrophyAwardEntrySchema).default([]),

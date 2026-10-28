@@ -1,4 +1,5 @@
 import {
+  AdvancementCostsService,
   CoachesService,
   CompetitionGroupsService,
   CompetitionsService,
@@ -78,6 +79,7 @@ export async function createRouterHarness() {
     matchEventsService: mock<MatchEventsService>(),
     sppAdjustmentsService: mock<SppAdjustmentsService>(),
     sppAwardValuesService: mock<SppAwardValuesService>(),
+    advancementCostsService: mock<AdvancementCostsService>(),
     playerLastingInjuryBackfillService:
       mock<PlayerLastingInjuryBackfillService>(),
     tpRosterImportService: mock<TpRosterImportService>(),
@@ -145,6 +147,10 @@ export async function createRouterHarness() {
       {
         provide: SppAwardValuesService,
         useValue: mocks.sppAwardValuesService,
+      },
+      {
+        provide: AdvancementCostsService,
+        useValue: mocks.advancementCostsService,
       },
       {
         provide: PlayerLastingInjuryBackfillService,

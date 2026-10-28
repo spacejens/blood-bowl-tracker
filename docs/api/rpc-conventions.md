@@ -111,7 +111,7 @@ without repetition. An entity that adds a procedure of its own
 (`positions.syncRaceEras`, `matches.resolveOutcomes`, the players
 SPP-adjustment syncs, `competitionGroups.list`) composes only the pieces that
 apply to it and hand-writes the rest, so the extra procedure stays visible at
-its own block. A few entities — `sppAwardValues`, `trophyAwards` and
+its own block. A few entities — `sppAwardValues`, `advancementCosts`, `trophyAwards` and
 `externalSystems` — stay fully hand-written because they use a different
 upsert handler or return a different result shape; each carries its own
 comment in `packages/api-contract/src/contract.ts` saying why. The assembly
@@ -142,7 +142,7 @@ own: because every `upsert` persists immediately, any record created
 earlier — in this run, an earlier phase, or a different tool entirely — is
 already resolvable.
 
-Matches, match events, trophy awards, SPP award values and external systems
+Matches, match events, trophy awards, SPP award values, advancement costs and external systems
 deliberately have no resolve procedure: nothing references them by external
 id across files, phases or tools.
 
@@ -162,13 +162,14 @@ entry awards.
 ## Other procedures
 
 Not every procedure is upsert-shaped. Some entities instead — or in addition —
-expose a custom procedure that recomputes or syncs already-imported data in
-place rather than importing new records — `sppAwardValues.sync`,
-`matches.resolveOutcomes`,
+expose a custom procedure that either recomputes data already in the database
+or syncs a caller-authored batch of rows by their own natural key, rather than
+importing records identified by an external id — `sppAwardValues.sync`,
+`advancementCosts.sync`, `matches.resolveOutcomes`,
 `positions.syncRaceEras`, `positionRulesSets.sync` and
 `players.syncScrapedSppAdjustments`/`syncReportedSppAdjustments` are current
-examples of the pattern, not an exhaustive list. Because nothing is being newly
-identified or created, these have no external-id conflict to detect and no
+examples of the pattern, not an exhaustive list. Because nothing is identified
+by an external id, these have no external-id conflict to detect and no
 `created` boolean to return: they answer with what was actually written — at
 minimum the resulting row or record ids, occasionally alongside a small
 summary of what changed. Where the recomputation can fail for individual
@@ -181,8 +182,9 @@ router's own comment and result schema in
 shaped this way instead of as an upsert, and its exact result shape.
 
 A sync that writes a caller-authored batch — `sppAwardValues.sync`,
-`positions.syncRaceEras`, `positionRulesSets.sync`,
-`positionRulesSetKeywords.sync` and `skillRulesSets.sync` among them — validates the whole batch before writing anything. A batch that
+`advancementCosts.sync`, `positions.syncRaceEras`, `positionRulesSets.sync`,
+`positionRulesSetKeywords.sync` and `skillRulesSets.sync` among them —
+validates the whole batch before writing anything. A batch that
 names one natural key twice, or an entry that references a row that does not
 exist, fails the whole call with `BAD_REQUEST` naming the offending entry,
 instead of a raw database error or an entry silently left out; the import

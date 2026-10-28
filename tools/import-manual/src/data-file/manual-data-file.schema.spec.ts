@@ -21,6 +21,7 @@ describe('ManualDataFileSchema', () => {
       teams: [],
       competitions: [],
       sppAwardValues: [],
+      advancementCosts: [],
       trophies: [],
       competitionGroups: [],
       trophyAwards: [],
@@ -471,6 +472,45 @@ describe('ManualDataFileSchema', () => {
             rulesSet: { system: 'Name', id: 'CRP' },
             actionType: 'foul',
             sppValue: 0,
+          },
+        ],
+      }),
+    ).toThrow();
+  });
+
+  it('parses an advancementCosts section', () => {
+    const entry = {
+      rulesSet: { system: 'Name', id: 'CRP' },
+      advancementNumber: 1,
+      advancementKind: 'table_roll',
+      sppCost: 6,
+    };
+
+    expect(
+      ManualDataFileSchema.parse({ advancementCosts: [entry] })
+        .advancementCosts,
+    ).toEqual([entry]);
+  });
+
+  it('defaults advancementCosts to an empty array', () => {
+    expect(ManualDataFileSchema.parse({}).advancementCosts).toEqual([]);
+  });
+
+  it.each([
+    ['an unknown advancement kind', { advancementKind: 'skill' }],
+    ['a zero advancement number', { advancementNumber: 0 }],
+    ['a negative SPP cost', { sppCost: -6 }],
+    ['a zero SPP cost', { sppCost: 0 }],
+  ])('rejects an advancementCosts entry with %s', (_label, override) => {
+    expect(() =>
+      ManualDataFileSchema.parse({
+        advancementCosts: [
+          {
+            rulesSet: { system: 'Name', id: 'CRP' },
+            advancementNumber: 1,
+            advancementKind: 'table_roll',
+            sppCost: 6,
+            ...override,
           },
         ],
       }),

@@ -7,6 +7,10 @@ import {
   resolveProcedure,
   ResolveResultSchema,
 } from './resolve-procedure';
+import {
+  SyncAdvancementCostsResultSchema,
+  SyncAdvancementCostsSchema,
+} from './schemas/advancement-cost';
 import { CoachSchema, UpsertCoachSchema } from './schemas/coach';
 import {
   CompetitionSchema,
@@ -347,6 +351,23 @@ export const contract = {
         },
       })
       .output(SyncSppAwardValuesResultSchema),
+  },
+  advancementCosts: {
+    // Not an upsert: a cost has no external ids — it is keyed by
+    // (rulesSetId, advancementNumber, advancementKind) — so there is no
+    // conflict to detect and no entity+created shape to return, only the
+    // resulting row ids. BAD_REQUEST is declared because the server rejects a
+    // batch naming the same key twice, and a cost naming a rules set that
+    // does not exist; both are authored-data feedback the importer reports,
+    // not a server fault.
+    sync: oc
+      .input(SyncAdvancementCostsSchema)
+      .errors({
+        BAD_REQUEST: {
+          message: 'Advancement costs are not valid',
+        },
+      })
+      .output(SyncAdvancementCostsResultSchema),
   },
   eras: {
     upsert: upsertProcedure(UpsertEraSchema, EraSchema),

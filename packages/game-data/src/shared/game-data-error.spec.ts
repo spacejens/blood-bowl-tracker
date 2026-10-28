@@ -6,6 +6,7 @@ import {
   TrophyAwardCompetitionGroupMismatchError,
   TrophyAwardRecipientMismatchError,
 } from '../trophy-awards/trophy-awards.service';
+import { AdvancementCostValidationError } from './advancement-cost-validation-error';
 import { CharacteristicFormatMismatchError } from './characteristic-format-mismatch-error';
 import { CharacteristicIncreaseValidationError } from './characteristic-increase-validation-error';
 import { GameDataError } from './game-data-error';
@@ -30,6 +31,7 @@ const gameDataErrors: (new (message?: string) => GameDataError)[] = [
   SkillValidationError,
   SyncBatchValidationError,
   SppAwardValueValidationError,
+  AdvancementCostValidationError,
   PositionValidationError,
   LastingInjuryValidationError,
   ManualImportBatchContentMismatchError,

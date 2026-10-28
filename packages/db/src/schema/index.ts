@@ -6,6 +6,7 @@ export * from './discord-bot-usage/interaction-events';
 export * from './discord-bot-usage/interaction-types';
 export * from './discord-bot-usage/pg-schema';
 export * from './discord-bot-usage/users';
+export * from './game-data/advancement-costs';
 export * from './game-data/coach-external-ids';
 export * from './game-data/coaches';
 export * from './game-data/competition-external-ids';

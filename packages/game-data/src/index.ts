@@ -116,6 +116,7 @@ export {
   RulesSetsService,
   RulesSetUpsertConflictError,
 } from './rules-sets/rules-sets.service';
+export { AdvancementCostValidationError } from './shared/advancement-cost-validation-error';
 export { CharacteristicDisplayFormattingModule } from './shared/characteristic-display-formatting.module';
 export { CharacteristicDisplayFormattingService } from './shared/characteristic-display-formatting.service';
 export { CharacteristicFormatMismatchError } from './shared/characteristic-format-mismatch-error';
@@ -144,6 +145,7 @@ export {
   SkillsService,
   SkillUpsertConflictError,
 } from './skills/skills.service';
+export { AdvancementCostsService } from './spp/advancement-costs.service';
 export { SppModule } from './spp/spp.module';
 export { SppAdjustmentsService } from './spp/spp-adjustments.service';
 export type { ResolveSppValueOptions } from './spp/spp-award-values.service';

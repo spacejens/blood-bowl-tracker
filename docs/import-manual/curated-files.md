@@ -271,3 +271,13 @@ marker on a skill this file has not caught up with — fix the curated row.
 every coach, team, race, position, competition and skill that batches 001 and
 002 curate; see [Batches](batches.md) for what it does and why. A new curated
 rename goes into a new batch, restating `name` and the row's `externalIds`.
+
+## Batch 004
+
+`data/batches/004-advancement-costs/advancement-costs.json5` holds the SPP
+cost of advancements 1 to 6 under CRP, CRP+ and BB2016, which share the
+thresholds 6, 16, 31, 51, 76 and 176 SPP. Each row stores the gap to the
+previous threshold (6, 10, 15, 20, 25, 100), not the threshold; the file's
+header comment shows the derivation and `curated-data-batch-004.spec.ts`
+checks the running totals against the thresholds. The rules sets are
+referenced under the `Name` system by bare name, as batch 001 declares them.
