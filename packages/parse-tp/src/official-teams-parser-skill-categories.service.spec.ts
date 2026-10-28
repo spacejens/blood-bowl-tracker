@@ -69,14 +69,42 @@ describe('OfficialTeamsParserService skill categories', () => {
     expect(race.positions[0].skillCategoriesError).toBeUndefined();
   });
 
-  it('treats absent masks as no categories, for positions and stars alike', () => {
-    const [race] = parser.parse(response([{}], {}));
+  it('treats absent masks on a star player as no categories', () => {
+    const [race] = parser.parse(
+      response([{ skillNormal: 2, skillDouble: 17 }], {}),
+    );
 
-    expect(race.positions.map((p) => p.skillCategories)).toEqual([
-      { primary: [], secondary: [] },
-      { primary: [], secondary: [] },
-    ]);
+    expect(race.positions[1]).toMatchObject({
+      isStarPlayer: true,
+      skillCategories: { primary: [], secondary: [] },
+    });
+    expect(race.positions[1].skillCategoriesError).toBeUndefined();
   });
+
+  it.each(['skillNormal', 'skillDouble'])(
+    'rejects a regular position missing %s, naming the roster, position and field',
+    (field) => {
+      const masks = { skillNormal: 2, skillDouble: 17 };
+      delete (masks as Record<string, number>)[field];
+
+      expect(() => parser.parse(response([masks]))).toThrow(
+        `Invalid TP official teams JSON: Human / Human Lineman ${field}: missing`,
+      );
+    },
+  );
+
+  it.each(['skillNormal', 'skillDouble'])(
+    'rejects a regular position whose %s is null',
+    (field) => {
+      expect(() =>
+        parser.parse(
+          response([{ skillNormal: 2, skillDouble: 17, [field]: null }]),
+        ),
+      ).toThrow(
+        `Invalid TP official teams JSON: Human / Human Lineman ${field}: missing`,
+      );
+    },
+  );
 
   it('keeps a zero primary mask with a non-zero secondary one', () => {
     const [race] = parser.parse(response([{ skillNormal: 0, skillDouble: 1 }]));

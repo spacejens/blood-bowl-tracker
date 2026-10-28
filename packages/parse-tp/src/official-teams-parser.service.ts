@@ -108,7 +108,8 @@ const PositionalKeywordFields = {
  * TP's skill category bitmasks: `skillNormal` lists the primary categories
  * and `skillDouble` the secondary ones (see TpSkillCategoryMaskDecoderService).
  * Nullish rather than required: BB2025 star players omit both, and since a
- * star cannot advance, an absent mask reads the same as 0.
+ * star cannot advance, an absent mask reads the same as 0. A regular
+ * position must carry both; `skillCategories` enforces that.
  */
 const SkillCategoryMaskFields = {
   skillNormal: z.number().int().nullish(),
@@ -268,7 +269,7 @@ export class OfficialTeamsParserService {
           : [{ name: entry.specialRuleName }]),
       ],
       keywordCodes: this.keywordCodes(entry),
-      ...this.skillCategories(entry, rosterName),
+      ...this.skillCategories(entry, rosterName, isStarPlayer),
     };
   }
 
@@ -282,14 +283,26 @@ export class OfficialTeamsParserService {
    * problem: that position gets empty categories plus a
    * `skillCategoriesError` naming the roster and position, so the consumer
    * can report it for that position alone and import the rest.
+   *
+   * Only a star player may omit a mask, which then reads as 0. A regular
+   * position missing one fails the file like an unknown bit, since reading it
+   * as 0 would sync the position to an empty set and flag every category it
+   * already has as removed.
    */
   private skillCategories(
     entry: z.infer<typeof LineUpMasterSchema>,
     rosterName: string,
+    isStarPlayer: boolean,
   ): Pick<TpOfficialPosition, 'skillCategories' | 'skillCategoriesError'> {
     const decode = (field: 'skillNormal' | 'skillDouble') => {
+      const mask = entry[field] ?? (isStarPlayer ? 0 : undefined);
+      if (mask === undefined) {
+        throw new Error(
+          `Invalid TP official teams JSON: ${rosterName} / ${entry.position} ${field}: missing`,
+        );
+      }
       try {
-        return this.skillCategoryMasks.decode(entry[field] ?? 0);
+        return this.skillCategoryMasks.decode(mask);
       } catch (error) {
         throw new Error(
           `Invalid TP official teams JSON: ${rosterName} / ${entry.position} ${field}: ${error instanceof Error ? error.message : String(error)}`,
