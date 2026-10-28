@@ -23,6 +23,9 @@ import { StarPlayerStratificationService } from '../player-info/star-player-stra
 import { PlayerKeywordsModule } from '../player-keywords/player-keywords.module';
 import { PlayerKeywordsReviewerService } from '../player-keywords/player-keywords-reviewer.service';
 import { PlayerKeywordsStratificationService } from '../player-keywords/player-keywords-stratification.service';
+import { PlayerStatusModule } from '../player-status/player-status.module';
+import { PlayerStatusReviewerService } from '../player-status/player-status-reviewer.service';
+import { PlayerStatusStratificationService } from '../player-status/player-status-stratification.service';
 import { PLAYER_DATA_TYPE_REVIEWERS } from '../shared/data-type-reviewer';
 import { PLAYER_STRATIFIERS } from '../shared/player-stratifier';
 import { SharedModule } from '../shared/shared.module';
@@ -52,6 +55,7 @@ import { ReviewService } from './review.service';
     SppTotalsModule,
     LastingInjuriesModule,
     PlayerKeywordsModule,
+    PlayerStatusModule,
   ],
   providers: [
     PlayerLookupService,
@@ -67,6 +71,7 @@ import { ReviewService } from './review.service';
       PlayerAdvancementsReviewerService,
       LastingInjuriesReviewerService,
       PlayerKeywordsReviewerService,
+      PlayerStatusReviewerService,
     ]),
     createRegistryProvider(PLAYER_STRATIFIERS, [
       SppDiscrepancyStratificationService,
@@ -79,6 +84,7 @@ import { ReviewService } from './review.service';
       RandomPlayerStratificationService,
       StarPlayerStratificationService,
       PlayerKeywordsStratificationService,
+      PlayerStatusStratificationService,
     ]),
   ],
   exports: [ReviewService],

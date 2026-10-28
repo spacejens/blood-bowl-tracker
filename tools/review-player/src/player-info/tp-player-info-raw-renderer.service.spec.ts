@@ -35,6 +35,8 @@ const aggregate: TpRawPlayerAggregate = {
   templateKeywordCodes: null,
   templatePositionTypes: null,
   templateIsBigGuy: null,
+  rosterStatus: null,
+  matchStatus: null,
 };
 
 async function makeService(found: TpRawPlayerAggregate | null): Promise<{
