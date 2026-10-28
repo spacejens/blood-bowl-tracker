@@ -14,7 +14,7 @@ const FILE = 'position-skill-categories.json5';
  * every regular position whose characteristics are curated. Grows by one
  * rules set per curation task.
  */
-const FULLY_CURATED_RULES_SETS = ['CRP', 'CRP+'];
+const FULLY_CURATED_RULES_SETS = ['CRP', 'CRP+', 'BB2016'];
 
 /** Every (position, rules set) pair any batch curates characteristics for. */
 function curatedCharacteristicPairs(): Set<string> {

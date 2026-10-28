@@ -56,7 +56,8 @@ The batches:
   and the primary and secondary skill categories of every CRP, CRP+ and
   BB2016 position, plus the BB2020, DB2021 and BB2025 positions TP's
   official team list does not supply. CRP+ primary comes from NTBB2015's
-  Talent column and secondary from the CRP entry (see
+  Talent column and secondary from the CRP entry. BB2016 comes from the
+  Teams of Legend PDF and the developer's physical BB2016 rulebook (see
   [Batch 004](curated-files.md#batch-004)). The categories reference positions
   and characteristics that the source importers and batch 002 create, so the
   batch applies after them, in a plain `apply`. The api-server must already

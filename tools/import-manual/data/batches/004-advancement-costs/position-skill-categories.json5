@@ -33,6 +33,14 @@
 //   CRP+   -- the developer's physical rulebooks (Normal = primary, Double =
 //             secondary) for the positions CRP has no entry for: the
 //             Halfling Catcher, Slann and Underworld Denizens.
+//   BB2016 -- BB-Teams-of-Legend-Revised-1.pdf, pages 1-9 (Normal column =
+//             primary, Double column = secondary), for the 58 positions of
+//             the teams it lists.
+//   BB2016 -- the developer's physical BB2016 rulebook for the other 47
+//             positions (Human, Orc, Dwarf, Skaven, Dark Elf, Elven Union,
+//             High Elf, Wood Elf, Nurgle and Slann). The developer confirmed
+//             that each equals the same position's CRP entry above (CRP+
+//             for Slann, which has no CRP entry).
 {
   externalSystems: [{ name: 'Name', category: 'bookkeeping' }],
 
@@ -355,5 +363,163 @@
     { position: { system: 'Name', id: 'Wood Elf: Wood Elf Thrower' }, rulesSet: { system: 'Name', id: 'CRP+' }, primary: ['general', 'agility', 'passing'], secondary: ['strength'] },
     { position: { system: 'Name', id: 'Wood Elf: Wardancer' }, rulesSet: { system: 'Name', id: 'CRP+' }, primary: ['general', 'agility'], secondary: ['passing', 'strength'] },
     { position: { system: 'Name', id: 'Wood Elf: Loren Forest Treeman' }, rulesSet: { system: 'Name', id: 'CRP+' }, primary: ['strength'], secondary: ['general', 'agility', 'passing'] },
+
+    // --- BB2016: Amazon (Teams of Legend p.1) ---
+    { position: { system: 'Name', id: 'Amazon: Tribal Linewoman' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general'], secondary: ['agility', 'passing', 'strength'] },
+    { position: { system: 'Name', id: 'Amazon: Eagle Warrior Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'passing'], secondary: ['agility', 'strength'] },
+    { position: { system: 'Name', id: 'Amazon: Piranha Warrior Catcher' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility'], secondary: ['passing', 'strength'] },
+    { position: { system: 'Name', id: 'Amazon: Koka Kalim Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'strength'], secondary: ['agility', 'passing'] },
+
+    // --- BB2016: Chaos Dwarf (Teams of Legend p.2) ---
+    { position: { system: 'Name', id: 'Chaos Dwarf: Hobgoblin Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general'], secondary: ['agility', 'passing', 'strength'] },
+    { position: { system: 'Name', id: 'Chaos Dwarf: Chaos Dwarf Blockers' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'strength'], secondary: ['agility', 'passing', 'mutation'] },
+    { position: { system: 'Name', id: 'Chaos Dwarf: Bull Centaur' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'strength'], secondary: ['agility', 'passing'] },
+    { position: { system: 'Name', id: 'Chaos Dwarf: Enslaved Minotaur' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['strength'], secondary: ['general', 'agility', 'passing', 'mutation'] },
+
+    // --- BB2016: Chaos Renegades (Teams of Legend p.2) ---
+    // The Renegade Human Lineman's Normal column is GSPM and its Double
+    // column only A, as printed.
+    { position: { system: 'Name', id: 'Chaos Renegade: Renegade Human Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'passing', 'strength', 'mutation'], secondary: ['agility'] },
+    { position: { system: 'Name', id: 'Chaos Renegade: Renegade Goblin' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['agility', 'mutation'], secondary: ['general', 'passing', 'strength'] },
+    { position: { system: 'Name', id: 'Chaos Renegade: Renegade Skaven' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'mutation'], secondary: ['agility', 'passing', 'strength'] },
+    { position: { system: 'Name', id: 'Chaos Renegade: Renegade Dark Elf' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility', 'mutation'], secondary: ['passing', 'strength'] },
+    { position: { system: 'Name', id: 'Chaos Renegade: Renegade Troll' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['strength'], secondary: ['general', 'agility', 'passing', 'mutation'] },
+    { position: { system: 'Name', id: 'Chaos Renegade: Renegade Ogre' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['strength'], secondary: ['general', 'agility', 'passing', 'mutation'] },
+    { position: { system: 'Name', id: 'Chaos Renegade: Renegade Minotaur' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['strength'], secondary: ['general', 'agility', 'passing', 'mutation'] },
+
+    // --- BB2016: Chaos Chosen (Teams of Legend p.3) ---
+    { position: { system: 'Name', id: 'Chaos Chosen: Beastman Runner Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'strength', 'mutation'], secondary: ['agility', 'passing'] },
+    { position: { system: 'Name', id: 'Chaos Chosen: Chosen Blockers' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'strength', 'mutation'], secondary: ['agility', 'passing'] },
+    { position: { system: 'Name', id: 'Chaos Chosen: Minotaur' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['strength', 'mutation'], secondary: ['general', 'agility', 'passing'] },
+
+    // --- BB2016: Goblin (Teams of Legend p.3) ---
+    { position: { system: 'Name', id: 'Goblin: Goblin Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['agility'], secondary: ['general', 'passing', 'strength'] },
+    { position: { system: 'Name', id: 'Goblin: Bomma' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['agility'], secondary: ['general', 'passing', 'strength'] },
+    { position: { system: 'Name', id: 'Goblin: Looney' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['agility'], secondary: ['general', 'passing', 'strength'] },
+    { position: { system: 'Name', id: 'Goblin: Fanatic' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['strength'], secondary: ['general', 'agility', 'passing'] },
+    { position: { system: 'Name', id: 'Goblin: Pogoer' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['agility'], secondary: ['general', 'passing', 'strength'] },
+    { position: { system: 'Name', id: 'Goblin: Untrained Troll' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['strength'], secondary: ['general', 'agility', 'passing'] },
+
+    // --- BB2016: Halfling (Teams of Legend p.5) ---
+    { position: { system: 'Name', id: 'Halfling: Hafling Treeman' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['strength'], secondary: ['general', 'agility', 'passing'] },
+    { position: { system: 'Name', id: 'Halfling: Halfling Hopeful Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['agility'], secondary: ['general', 'passing', 'strength'] },
+
+    // --- BB2016: Khemri Tomb Kings (Teams of Legend p.5) ---
+    { position: { system: 'Name', id: 'Tomb Kings: Skeleton Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general'], secondary: ['agility', 'passing', 'strength'] },
+    { position: { system: 'Name', id: 'Tomb Kings: Anointed Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'passing'], secondary: ['agility', 'strength'] },
+    { position: { system: 'Name', id: 'Tomb Kings: Anointed Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'strength'], secondary: ['agility', 'passing'] },
+    { position: { system: 'Name', id: 'Tomb Kings: Tomb Guardians' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['strength'], secondary: ['general', 'agility', 'passing'] },
+
+    // --- BB2016: Lizardmen (Teams of Legend p.6) ---
+    { position: { system: 'Name', id: 'Lizardmen: Skink Runner Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['agility'], secondary: ['general', 'passing', 'strength'] },
+    { position: { system: 'Name', id: 'Lizardmen: Saurus Blockers' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'strength'], secondary: ['agility', 'passing'] },
+    { position: { system: 'Name', id: 'Lizardmen: Kroxigor' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['strength'], secondary: ['general', 'agility', 'passing'] },
+
+    // --- BB2016: Norse (Teams of Legend p.6) ---
+    { position: { system: 'Name', id: 'Norse: Norse Raider Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general'], secondary: ['agility', 'passing', 'strength'] },
+    { position: { system: 'Name', id: 'Norse: Norse Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'passing'], secondary: ['agility', 'strength'] },
+    { position: { system: 'Name', id: 'Norse: Norse Catchers' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility'], secondary: ['passing', 'strength'] },
+    { position: { system: 'Name', id: 'Norse: Norse Berserkers' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'strength'], secondary: ['agility', 'passing'] },
+    { position: { system: 'Name', id: 'Norse: Ulfwerener' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'strength'], secondary: ['agility', 'passing'] },
+    { position: { system: 'Name', id: 'Norse: Yhetee' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['strength'], secondary: ['general', 'agility', 'passing'] },
+
+    // --- BB2016: Necromantic Horror (Teams of Legend p.7) ---
+    { position: { system: 'Name', id: 'Necromantic Horror: Zombie' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general'], secondary: ['agility', 'passing', 'strength'] },
+    { position: { system: 'Name', id: 'Necromantic Horror: Ghoul Runners' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility'], secondary: ['passing', 'strength'] },
+    { position: { system: 'Name', id: 'Necromantic Horror: Wight Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'strength'], secondary: ['agility', 'passing'] },
+    { position: { system: 'Name', id: 'Necromantic Horror: Flesh Golem' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'strength'], secondary: ['agility', 'passing'] },
+    { position: { system: 'Name', id: 'Necromantic Horror: Werewolf' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility'], secondary: ['passing', 'strength'] },
+
+    // --- BB2016: Shambling Undead (Teams of Legend p.7) ---
+    { position: { system: 'Name', id: 'Shambling Undead: Skeleton Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general'], secondary: ['agility', 'passing', 'strength'] },
+    { position: { system: 'Name', id: 'Shambling Undead: Zombie' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general'], secondary: ['agility', 'passing', 'strength'] },
+    { position: { system: 'Name', id: 'Shambling Undead: Ghoul Runners' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility'], secondary: ['passing', 'strength'] },
+    { position: { system: 'Name', id: 'Shambling Undead: Wight Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'strength'], secondary: ['agility', 'passing'] },
+    { position: { system: 'Name', id: 'Shambling Undead: Mummy' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['strength'], secondary: ['general', 'agility', 'passing'] },
+
+    // --- BB2016: Ogre (Teams of Legend p.8) ---
+    { position: { system: 'Name', id: 'Ogre: Gnoblar Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['agility'], secondary: ['general', 'passing', 'strength'] },
+    { position: { system: 'Name', id: 'Ogre: Ogre Blockers' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['strength'], secondary: ['general', 'agility', 'passing'] },
+
+    // --- BB2016: Underworld Denizens (Teams of Legend p.8) ---
+    { position: { system: 'Name', id: 'Underworld Denizens: Underworld Goblin Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['agility', 'mutation'], secondary: ['general', 'passing', 'strength'] },
+    { position: { system: 'Name', id: 'Underworld Denizens: Underworld Skaven Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'mutation'], secondary: ['agility', 'passing', 'strength'] },
+    { position: { system: 'Name', id: 'Underworld Denizens: Underworld Skaven Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'passing', 'mutation'], secondary: ['agility', 'strength'] },
+    { position: { system: 'Name', id: 'Underworld Denizens: Underworld Skaven Blitzers' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'strength', 'mutation'], secondary: ['agility', 'passing'] },
+    { position: { system: 'Name', id: 'Underworld Denizens: Warpstone Troll' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['strength', 'mutation'], secondary: ['general', 'agility', 'passing'] },
+
+    // --- BB2016: Vampire (Teams of Legend p.9) ---
+    { position: { system: 'Name', id: 'Vampire: Thrall Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general'], secondary: ['agility', 'passing', 'strength'] },
+    { position: { system: 'Name', id: 'Vampire: Vampire Blitzers' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility', 'strength'], secondary: ['passing'] },
+
+    // Teams of Legend does not cover the teams below: their values come
+    // from the developer's physical BB2016 rulebook.
+
+    // --- BB2016: Human (physical rulebook) ---
+    { position: { system: 'Name', id: 'Human: Human Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general'], secondary: ['agility', 'passing', 'strength'] },
+    { position: { system: 'Name', id: 'Human: Human Catcher' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility'], secondary: ['passing', 'strength'] },
+    { position: { system: 'Name', id: 'Human: Human Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'passing'], secondary: ['agility', 'strength'] },
+    { position: { system: 'Name', id: 'Human: Human Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'strength'], secondary: ['agility', 'passing'] },
+    { position: { system: 'Name', id: 'Human: Ogre' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['strength'], secondary: ['general', 'agility', 'passing'] },
+
+    // --- BB2016: Orc (physical rulebook) ---
+    { position: { system: 'Name', id: 'Orc: Orc Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general'], secondary: ['agility', 'passing', 'strength'] },
+    { position: { system: 'Name', id: 'Orc: Goblin Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['agility'], secondary: ['general', 'passing', 'strength'] },
+    { position: { system: 'Name', id: 'Orc: Orc Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'passing'], secondary: ['agility', 'strength'] },
+    { position: { system: 'Name', id: 'Orc: Big Un Blocker' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'strength'], secondary: ['agility', 'passing'] },
+    { position: { system: 'Name', id: 'Orc: Orc Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'strength'], secondary: ['agility', 'passing'] },
+    { position: { system: 'Name', id: 'Orc: Untrained Troll' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['strength'], secondary: ['general', 'agility', 'passing'] },
+
+    // --- BB2016: Dwarf (physical rulebook) ---
+    { position: { system: 'Name', id: 'Dwarf: Dwarf Blocker Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'strength'], secondary: ['agility', 'passing'] },
+    { position: { system: 'Name', id: 'Dwarf: Dwarf Runner' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'passing'], secondary: ['agility', 'strength'] },
+    { position: { system: 'Name', id: 'Dwarf: Dwarf Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'strength'], secondary: ['agility', 'passing'] },
+    { position: { system: 'Name', id: 'Dwarf: Troll Slayer' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'strength'], secondary: ['agility', 'passing'] },
+    { position: { system: 'Name', id: 'Dwarf: Deathroller' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['strength'], secondary: ['general', 'agility', 'passing'] },
+
+    // --- BB2016: Skaven (physical rulebook) ---
+    { position: { system: 'Name', id: 'Skaven: Skaven Clanrat Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general'], secondary: ['agility', 'passing', 'strength', 'mutation'] },
+    { position: { system: 'Name', id: 'Skaven: Skaven Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'passing'], secondary: ['agility', 'strength', 'mutation'] },
+    { position: { system: 'Name', id: 'Skaven: Gutter Runner' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility'], secondary: ['passing', 'strength', 'mutation'] },
+    { position: { system: 'Name', id: 'Skaven: Skaven Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'strength'], secondary: ['agility', 'passing', 'mutation'] },
+    { position: { system: 'Name', id: 'Skaven: Rat Ogre' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['strength'], secondary: ['general', 'agility', 'passing', 'mutation'] },
+
+    // --- BB2016: Dark Elf (physical rulebook) ---
+    { position: { system: 'Name', id: 'Dark Elf: Dark Elf Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility'], secondary: ['passing', 'strength'] },
+    { position: { system: 'Name', id: 'Dark Elf: Dark Elf Runner' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility', 'passing'], secondary: ['strength'] },
+    { position: { system: 'Name', id: 'Dark Elf: Assassin' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility'], secondary: ['passing', 'strength'] },
+    { position: { system: 'Name', id: 'Dark Elf: Dark Elf Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility'], secondary: ['passing', 'strength'] },
+    { position: { system: 'Name', id: 'Dark Elf: Witch Elf' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility'], secondary: ['passing', 'strength'] },
+
+    // --- BB2016: Elven Union (physical rulebook) ---
+    { position: { system: 'Name', id: 'Elven Union: Elven Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility'], secondary: ['passing', 'strength'] },
+    { position: { system: 'Name', id: 'Elven Union: Elven Throwers' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility', 'passing'], secondary: ['strength'] },
+    { position: { system: 'Name', id: 'Elven Union: Elven Catchers' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility'], secondary: ['passing', 'strength'] },
+    { position: { system: 'Name', id: 'Elven Union: Elven Blitzers' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility'], secondary: ['passing', 'strength'] },
+
+    // --- BB2016: High Elf (physical rulebook) ---
+    { position: { system: 'Name', id: 'High Elf: High Elf Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility'], secondary: ['passing', 'strength'] },
+    { position: { system: 'Name', id: 'High Elf: High Elf Throwers' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility', 'passing'], secondary: ['strength'] },
+    { position: { system: 'Name', id: 'High Elf: High Elf Catchers' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility'], secondary: ['passing', 'strength'] },
+    { position: { system: 'Name', id: 'High Elf: High Elf Blitzers' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility'], secondary: ['passing', 'strength'] },
+
+    // --- BB2016: Wood Elf (physical rulebook) ---
+    { position: { system: 'Name', id: 'Wood Elf: Wood Elf Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility'], secondary: ['passing', 'strength'] },
+    { position: { system: 'Name', id: 'Wood Elf: Wood Elf Catcher' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility'], secondary: ['passing', 'strength'] },
+    { position: { system: 'Name', id: 'Wood Elf: Wood Elf Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility', 'passing'], secondary: ['strength'] },
+    { position: { system: 'Name', id: 'Wood Elf: Wardancer' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility'], secondary: ['passing', 'strength'] },
+    { position: { system: 'Name', id: 'Wood Elf: Loren Forest Treeman' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['strength'], secondary: ['general', 'agility', 'passing'] },
+
+    // --- BB2016: Nurgle (physical rulebook) ---
+    { position: { system: 'Name', id: 'Nurgle: Rotter Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'mutation'], secondary: ['agility', 'passing', 'strength'] },
+    { position: { system: 'Name', id: 'Nurgle: Pestigors' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'strength', 'mutation'], secondary: ['agility', 'passing'] },
+    { position: { system: 'Name', id: 'Nurgle: Bloaters' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'strength', 'mutation'], secondary: ['agility', 'passing'] },
+    { position: { system: 'Name', id: 'Nurgle: Rotspawn' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['strength'], secondary: ['general', 'agility', 'passing', 'mutation'] },
+
+    // --- BB2016: Slann (physical rulebook) ---
+    { position: { system: 'Name', id: 'Slann: Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general'], secondary: ['agility', 'passing', 'strength'] },
+    { position: { system: 'Name', id: 'Slann: Catcher' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility'], secondary: ['passing', 'strength'] },
+    { position: { system: 'Name', id: 'Slann: Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['general', 'agility', 'strength'], secondary: ['passing'] },
+    { position: { system: 'Name', id: 'Slann: Kroxigor' }, rulesSet: { system: 'Name', id: 'BB2016' }, primary: ['strength'], secondary: ['general', 'agility', 'passing'] },
   ],
 }
