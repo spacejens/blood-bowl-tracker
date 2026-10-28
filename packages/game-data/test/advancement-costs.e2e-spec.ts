@@ -76,6 +76,44 @@ describe('AdvancementCostsService.sync (real Postgres)', () => {
     expect(rows.every((row) => row.historyVersion === 1)).toBe(true);
   });
 
+  it('holds one cost per kind for the same advancement number', async () => {
+    const typePriced = [
+      { advancementKind: 'random_primary_skill', sppCost: 3 },
+      { advancementKind: 'chosen_primary_skill', sppCost: 6 },
+      { advancementKind: 'random_secondary_skill', sppCost: 6 },
+      { advancementKind: 'chosen_secondary_skill', sppCost: 12 },
+      { advancementKind: 'random_characteristic', sppCost: 18 },
+    ] as const;
+
+    const result = await service.sync({
+      costs: typePriced.map((cost) => ({
+        rulesSetId,
+        advancementNumber: 1,
+        ...cost,
+      })),
+    });
+
+    expect(result.advancementCostIds).toHaveLength(typePriced.length);
+    const rows = await db.select().from(advancementCosts);
+    const byKind = (
+      a: { advancementKind: string },
+      b: { advancementKind: string },
+    ) => a.advancementKind.localeCompare(b.advancementKind);
+    expect(
+      rows
+        .map((row) => ({
+          advancementNumber: row.advancementNumber,
+          advancementKind: row.advancementKind,
+          sppCost: row.sppCost,
+        }))
+        .sort(byKind),
+    ).toEqual(
+      typePriced
+        .map((cost) => ({ advancementNumber: 1, ...cost }))
+        .sort(byKind),
+    );
+  });
+
   it('rejects an unknown rules set and writes nothing', async () => {
     await expect(
       service.sync({

@@ -1,0 +1,41 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "af781321-23d5-4994-af05-046b1e13fb35",
+  "prevIds": [
+    "6f833371-97d0-4939-b07a-d69fd0468c73"
+  ],
+  "footprints": [
+    {
+      "statementType": "alter_enum",
+      "statementTarget": [
+        "enum",
+        "game_data",
+        "advancement_kind"
+      ],
+      "writes": [
+        "s|enum|game_data.advancement_kind"
+      ],
+      "reads": [
+        "n|sch|game_data"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "alter",
+      "key": "enums\u0000[\"game_data\",\"advancement_kind\"]",
+      "set": {
+        "values": [
+          "table_roll",
+          "random_primary_skill",
+          "chosen_primary_skill",
+          "random_secondary_skill",
+          "chosen_secondary_skill",
+          "random_characteristic"
+        ]
+      }
+    }
+  ]
+}

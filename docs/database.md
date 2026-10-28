@@ -220,11 +220,14 @@ match data is imported.
 `(rules_set_id, league_id, advancement_number, advancement_kind)`.
 `advancement_number` is 1-based and counts every advancement a player gains,
 skills and characteristic increases alike; `advancement_kind` says what the
-cost buys: `table_roll`, a roll on the rules set's advancement table whose
-outcome is not modelled, or `granted_skill`, one fixed skill named by
-`skill_id`. A check keeps `skill_id` set on exactly the `granted_skill` rows.
-A row stores the cost of that one advancement (the gap to the previous
-threshold), never a cumulative threshold, so the costs of a player's first N
+cost buys. A rules set with fixed thresholds has only `table_roll` rows, a
+roll on its advancement table whose outcome is not modelled. A rules set that
+prices advancements by what the coach takes has one row per kind for each
+advancement number: a random or chosen primary skill, a random or chosen
+secondary skill, or a random characteristic increase. `granted_skill` is one
+fixed skill named by `skill_id`; a check keeps `skill_id` set on exactly the
+`granted_skill` rows. A row stores the cost of that one advancement, never a
+cumulative threshold; under fixed thresholds the costs of a player's first N
 advancements sum to the Nth threshold. Storing costs keeps one rule for every
 rules set: unspent SPP is total SPP minus the costs of the advancements
 gained. Both numbers are checked positive.
@@ -239,14 +242,15 @@ unique per `(rules_set_id, advancement_number, advancement_kind)`. Nothing
 reads the table yet, so there is no read API.
 
 The costs are curated by `tools/import-manual` in batch 004 (see
-[batches](import-manual/batches.md)) for CRP, CRP+ and BB2016, which share
-the thresholds 6, 16, 31, 51, 76 and 176 SPP. The same batch curates tLoEG's
-house rule under those three rules sets (the rule does not apply under
-BB2020, DB2021 or BB2025): a seventh advancement, costing 125 and so reached
-at 301 SPP, that grants Fan Favourite. It is the only league house rule
-curated. `granted_skill` fits any fixed-result league threshold; house rules
-whose cost depends on the type of advancement belong with per-type pricing,
-which sits beside these rows rather than replacing them.
+[batches](import-manual/batches.md)): fixed thresholds of 6, 16, 31, 51, 76
+and 176 SPP for CRP, CRP+ and BB2016, and costs by kind for BB2020, DB2021
+and BB2025. The same batch curates tLoEG's house rule under CRP, CRP+ and
+BB2016 (the rule does not apply under BB2020, DB2021 or BB2025): a seventh
+advancement, costing 125 and so reached at 301 SPP, that grants Fan
+Favourite. It is the only league house rule curated. `granted_skill` fits any
+fixed-result league threshold; house rules whose cost depends on the type of
+advancement fit the per-kind rows, which sit beside these rather than
+replacing them.
 
 `rules_sets` also carries five `characteristic_format` columns
 (`move_format`, `strength_format`, `agility_format`, `passing_format`,

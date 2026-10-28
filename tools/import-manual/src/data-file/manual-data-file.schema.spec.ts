@@ -513,6 +513,27 @@ describe('ManualDataFileSchema', () => {
   });
 
   it.each([
+    'table_roll',
+    'random_primary_skill',
+    'chosen_primary_skill',
+    'random_secondary_skill',
+    'chosen_secondary_skill',
+    'random_characteristic',
+  ])('accepts an advancementCosts entry of kind %s', (advancementKind) => {
+    const entry = {
+      rulesSet: { system: 'Name', id: 'BB2020' },
+      advancementNumber: 1,
+      advancementKind,
+      sppCost: 6,
+    };
+
+    expect(
+      ManualDataFileSchema.parse({ advancementCosts: [entry] })
+        .advancementCosts,
+    ).toEqual([entry]);
+  });
+
+  it.each([
     ['an unknown advancement kind', { advancementKind: 'skill' }],
     ['a zero advancement number', { advancementNumber: 0 }],
     ['a negative SPP cost', { sppCost: -6 }],

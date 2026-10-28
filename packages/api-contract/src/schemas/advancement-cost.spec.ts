@@ -23,12 +23,19 @@ const leagueEntry = {
   sppCost: 125,
 };
 
+const ALL_KINDS = [
+  'table_roll',
+  'random_primary_skill',
+  'chosen_primary_skill',
+  'random_secondary_skill',
+  'chosen_secondary_skill',
+  'random_characteristic',
+  'granted_skill',
+];
+
 describe('AdvancementKindSchema', () => {
   it('lists exactly the domain advancement kinds', () => {
-    expect(AdvancementKindSchema.options).toEqual([
-      'table_roll',
-      'granted_skill',
-    ]);
+    expect(AdvancementKindSchema.options).toEqual(ALL_KINDS);
   });
 });
 
@@ -51,6 +58,12 @@ describe('AdvancementCostEntrySchema', () => {
     expect(() =>
       AdvancementCostEntrySchema.parse({ ...leagueEntry, [field]: 1.5 }),
     ).toThrow();
+  });
+
+  it.each(ALL_KINDS)('accepts a %s cost', (advancementKind) => {
+    expect(
+      AdvancementCostEntrySchema.parse({ ...entry, advancementKind }),
+    ).toEqual({ ...entry, advancementKind });
   });
 
   it('rejects an unknown advancement kind', () => {

@@ -2,9 +2,9 @@
   "type": "diff",
   "version": "9",
   "dialect": "postgres",
-  "id": "e4ec75d7-4b75-4cb1-97b9-dba9581ef754",
+  "id": "ac47d6ea-d40c-4294-b3ef-aacc729bc214",
   "prevIds": [
-    "6f833371-97d0-4939-b07a-d69fd0468c73"
+    "af781321-23d5-4994-af05-046b1e13fb35"
   ],
   "footprints": [
     {
@@ -350,6 +350,11 @@
       "set": {
         "values": [
           "table_roll",
+          "random_primary_skill",
+          "chosen_primary_skill",
+          "random_secondary_skill",
+          "chosen_secondary_skill",
+          "random_characteristic",
           "granted_skill"
         ]
       }
