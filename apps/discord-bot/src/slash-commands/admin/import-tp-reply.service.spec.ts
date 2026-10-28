@@ -90,6 +90,7 @@ describe('ImportTpReplyService', () => {
           '- Participation: 2 imported',
           '- Trophy awards: 1 imported',
           '- Extra trophy awards: 2 imported',
+          '- SPP adjustments: 0 imported',
         ].join('\n'),
       });
     });
@@ -119,6 +120,7 @@ describe('ImportTpReplyService', () => {
           '- Participation: 0 imported',
           '- Trophy awards: 0 imported',
           '- Extra trophy awards: 0 imported',
+          '- SPP adjustments: 0 imported',
           '',
           '**Errors**',
           '- Competition: Could not resolve an era',
@@ -187,6 +189,7 @@ describe('ImportTpReplyService', () => {
           '- Trophy awards: 0 imported',
           '- Extra trophy awards: 0 imported',
           '- Matches backfill: 5 imported',
+          '- SPP adjustments: 0 imported',
           '',
           '**Errors**',
           '- Matches backfill: match 7 not completed',
@@ -230,6 +233,7 @@ describe('ImportTpReplyService', () => {
           '- Participation: 2 imported',
           '- Events: 40 imported',
           '- Outcome: 1 imported',
+          '- SPP adjustments: 0 imported',
         ].join('\n'),
       });
     });
@@ -338,6 +342,7 @@ describe('ImportTpReplyService', () => {
           '- Backfilled trophy awards: 0 imported',
           '- Backfilled extra trophy awards: 0 imported',
           '- Matches backfill: 6 imported',
+          '- SPP adjustments: 0 imported',
           '',
           '**Errors**',
           '- Team 2: no coach',

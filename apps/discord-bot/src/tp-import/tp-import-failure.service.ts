@@ -85,7 +85,8 @@ const OFFICIAL_TEAMS_WRITE_STAGES = [
  *
  * A backfill the import ran (a new competition's matches and, for a match
  * import, its registered teams) gets its own rows after the import's own
- * stages.
+ * stages. A match or competition import's SPP adjustments, settled last, get
+ * the last row.
  *
  * Pure, with no dependencies, so specs may pass it real.
  */
@@ -144,6 +145,7 @@ export class TpImportFailureService {
       { label: 'Trophy awards', result: result.trophyAwards },
       { label: 'Extra trophy awards', result: result.extraTrophyAwards },
       ...this.ranOnly('Matches backfill', result.matchesBackfill),
+      { label: 'SPP adjustments', result: result.sppAdjustments },
     ]);
     return {
       subject: `competition ${tournamentSlug}`,
@@ -168,12 +170,15 @@ export class TpImportFailureService {
       { label: 'Outcome', result: result.outcome },
     ]);
     const backfill = this.matchBackfill(result);
+    const spp = this.stages([
+      { label: 'SPP adjustments', result: result.sppAdjustments },
+    ]);
     return {
       subject,
       failed: result.match.imported === 0,
       notes: [this.eraNote(result.homeTeam.era)],
-      rows: [...own.rows, ...backfill.rows],
-      errors: [...own.errors, ...backfill.errors],
+      rows: [...own.rows, ...backfill.rows, ...spp.rows],
+      errors: [...own.errors, ...backfill.errors, ...spp.errors],
     };
   }
 

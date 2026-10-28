@@ -128,6 +128,58 @@ describe('TpImportFailureService', () => {
       ]);
     });
 
+    it("reports a match's SPP adjustments as its last row, with their errors", () => {
+      const result = service.assess({
+        kind: 'match',
+        tournamentSlug: 's30',
+        matchId: 576264,
+        result: {
+          competition: imported(1),
+          homeTeam: team(12),
+          awayTeam: team(11),
+          starPlayerHires: imported(0),
+          match: imported(1),
+          participation: imported(2),
+          events: imported(40),
+          outcome: imported(1),
+          matchesBackfill: imported(3),
+          sppAdjustments: failedWith('database down'),
+        },
+      });
+
+      expect(result.rows.at(-1)).toEqual({
+        label: 'SPP adjustments',
+        summary: '0 imported',
+      });
+      expect(result.status).toBe('completedWithErrors');
+      expect(result.errors).toEqual([
+        { label: 'SPP adjustments', message: 'database down' },
+      ]);
+    });
+
+    it("reports a competition's SPP adjustments as its last row", () => {
+      const result = service.assess({
+        kind: 'competition',
+        tournamentSlug: 's30',
+        result: {
+          competition: imported(1),
+          teams: [],
+          participation: imported(0),
+          trophyAwards: imported(0),
+          extraTrophyAwards: imported(0),
+          sppAdjustments: imported(23),
+          era: 'Fourth era',
+          matchesBackfill: imported(5),
+        },
+      });
+
+      expect(result.rows.at(-1)).toEqual({
+        label: 'SPP adjustments',
+        summary: '23 imported',
+      });
+      expect(result.status).toBe('completed');
+    });
+
     it("reports a competition's extra trophy awards next to its TP awards, with their errors", () => {
       const result = service.assess({
         kind: 'competition',

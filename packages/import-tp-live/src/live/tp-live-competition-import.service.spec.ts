@@ -517,6 +517,23 @@ describe('TpLiveCompetitionImportService', () => {
       expect(matchesOrder).toBeLessThan(settleOrder);
     });
 
+    it('still settles the players when the match backfill reported errors', async () => {
+      matchesBackfill.backfill.mockResolvedValue(MATCHES_BACKFILL);
+      competitionImport.importCompetition.mockResolvedValue({
+        ...CORE,
+        competitionCreated: true,
+      });
+
+      const result = await importCompetition();
+
+      expect(result.matchesBackfill?.errors).toHaveLength(1);
+      expect(sppAdjustments.settle).toHaveBeenCalledWith([
+        FIRST_SPP,
+        SECOND_SPP,
+      ]);
+      expect(result.sppAdjustments).toEqual(SETTLED);
+    });
+
     it('settles the registered teams even when no match backfill ran', async () => {
       const result = await importCompetition();
 

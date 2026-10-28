@@ -82,6 +82,11 @@ all fit within Discord's embed limit, the reply lists the first ones that do and
 ends with a line saying how many more were left out, such as "…and 12 more
 errors not shown."; when the first error is itself too long to fit, it is cut
 short and the note still says how many more were left out.
+A match or competition import ends with an **SPP adjustments** line counting
+the players whose SPP total and adjustment were settled against their
+imported match events (for a match that created its competition, after the
+backfill, so the backfilled teams' players too); a team import has none, since
+it settles nothing.
 
 If the import breaks outright instead of collecting its problems — the
 database being unreachable, say — the reply is an embed titled **TP import

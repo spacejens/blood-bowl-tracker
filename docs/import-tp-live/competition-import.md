@@ -72,7 +72,8 @@ when an earlier one fails:
    after step 7: the match backfill re-imports every team's roster, which
    writes TP's raw total back. It runs even when no backfill ran, since step
    3 re-imported the rosters too. A failure is reported in `sppAdjustments`
-   and never fails the import.
+   and never fails the import. When the era is unresolved or the competition
+   upsert fails, the teams already re-imported are left unsettled.
 
 ### Fetch failures
 

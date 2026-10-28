@@ -131,8 +131,9 @@ export class TpLiveCompetitionImportService {
    * import. Last of all, once the competition is imported, every registered
    * team's players have their SPP total and adjustment settled through
    * `TpLiveSppAdjustmentsService`, after the match backfill (the backfill
-   * re-imports their rosters), reported in `sppAdjustments`. A failed awards or inscriptions fetch leaves the competition's
-   * finished state unknown, so its stored end date is left as stored.
+   * re-imports their rosters), reported in `sppAdjustments`. A failed awards or inscriptions fetch leaves the
+   * competition's finished state unknown, so its stored end date is left as
+   * stored.
    */
   async importCompetition({
     tournamentSlug,

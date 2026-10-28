@@ -28,6 +28,10 @@ A player counts as having incomplete import data when any of these holds:
 - Their total star player points, their SPP adjustment or their status is
   missing — no data source populated it.
 
+A team imported only through a roster `/importtp` keeps its new players'
+SPP adjustment missing until a match or competition import covers it: only
+those settle SPP, once the players' match events are in.
+
 Passing is deliberately not checked: a missing or zero passing value is
 legitimate for many positions.
 
