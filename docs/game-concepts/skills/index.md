@@ -52,6 +52,20 @@ or updates rows for what's supplied. A starting skill or skill × rules-set
 association that a later sync no longer includes is not automatically
 removed — its row stays in place.
 
+## Primary and secondary categories
+
+Under each rules set, a position has the skill categories it may learn skills
+from when it advances. Each is marked primary (its normal access) or
+secondary (access that is harder or costlier to use, depending on the rules
+set). Only the learnable categories can appear: General, Agility, Passing,
+Strength, Mutation and Devious, never Trait or Unique. A category is never
+both primary and secondary for one position.
+
+Like starting skills, these are recorded only for a position that already
+has characteristics under that rules set. Unlike starting skills, each sync
+replaces a position's whole set: a category a later sync leaves out is
+marked removed (never deleted) and no longer counts.
+
 ## Player skills
 
 Every skill an individual [player](../players/index.md) has is recorded

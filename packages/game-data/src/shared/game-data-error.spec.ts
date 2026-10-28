@@ -13,6 +13,7 @@ import { GameDataError } from './game-data-error';
 import { KeywordValidationError } from './keyword-validation-error';
 import { LastingInjuryValidationError } from './lasting-injury-validation-error';
 import { MissingRequiredFieldError } from './missing-required-field-error';
+import { PositionSkillCategoryValidationError } from './position-skill-category-validation-error';
 import { PositionValidationError } from './position-validation-error';
 import { SkillValidationError } from './skill-validation-error';
 import { SppAwardValueValidationError } from './spp-award-value-validation-error';
@@ -26,6 +27,7 @@ const gameDataErrors: (new (message?: string) => GameDataError)[] = [
   CharacteristicIncreaseValidationError,
   UpsertConflictError,
   KeywordValidationError,
+  PositionSkillCategoryValidationError,
   CharacteristicFormatMismatchError,
   MissingRequiredFieldError,
   SkillValidationError,
