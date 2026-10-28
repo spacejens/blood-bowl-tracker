@@ -48,9 +48,10 @@ import { DEBUG_RETRIGGER_CUSTOM_ID_PREFIX } from './debug-custom-ids';
  * clicked in - matching how the original command would have replied. A
  * restricted command (one with a `restrictedRole`)'s reply keeps its flags
  * exactly as `execute()` returned them, so it stays ephemeral - since
- * `/debuginteractions`, `/debugtopusers` and `/debugfilterusage` (the three
- * commands that appear in `/debuginteractions`' own listing) all have a
- * `restrictedRole`, their retriggered replies are never posted publicly.
+ * `/debuginteractions`, `/debugtopusers`, `/debugfilterusage` and
+ * `/debugincompleteimport` (the debug commands that appear in
+ * `/debuginteractions`' own listing) all have a `restrictedRole`, their
+ * retriggered replies are never posted publicly.
  *
  * Retriggering a restricted command also re-checks the clicking member
  * against the role `DiscordClientService.requiredRoleId` names for it, the

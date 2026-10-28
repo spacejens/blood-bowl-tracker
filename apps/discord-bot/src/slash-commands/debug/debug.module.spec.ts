@@ -6,6 +6,8 @@ import { describe, expect, it } from 'vitest';
 
 import { DebugModule } from './debug.module';
 import { DebugFilterUsageCommandService } from './debug-filter-usage-command.service';
+import { DebugIncompleteImportCommandService } from './debug-incomplete-import-command.service';
+import { DebugIncompleteImportPageHandlerService } from './debug-incomplete-import-page-handler.service';
 import { DebugInteractionsCommandService } from './debug-interactions-command.service';
 import { DebugRetriggerHandlerService } from './debug-retrigger-handler.service';
 import { DebugTopUsersCommandService } from './debug-top-users-command.service';
@@ -60,6 +62,12 @@ describe('DebugModule', () => {
     expect(moduleRef.get(DebugFilterUsageCommandService)).toBeInstanceOf(
       DebugFilterUsageCommandService,
     );
+    expect(moduleRef.get(DebugIncompleteImportCommandService)).toBeInstanceOf(
+      DebugIncompleteImportCommandService,
+    );
+    expect(
+      moduleRef.get(DebugIncompleteImportPageHandlerService),
+    ).toBeInstanceOf(DebugIncompleteImportPageHandlerService);
   });
 
   it('resolves the debug commands and the retrigger handler with their dependencies wired, via forRootAsync', async () => {
@@ -90,5 +98,11 @@ describe('DebugModule', () => {
     expect(moduleRef.get(DebugFilterUsageCommandService)).toBeInstanceOf(
       DebugFilterUsageCommandService,
     );
+    expect(moduleRef.get(DebugIncompleteImportCommandService)).toBeInstanceOf(
+      DebugIncompleteImportCommandService,
+    );
+    expect(
+      moduleRef.get(DebugIncompleteImportPageHandlerService),
+    ).toBeInstanceOf(DebugIncompleteImportPageHandlerService);
   });
 });
