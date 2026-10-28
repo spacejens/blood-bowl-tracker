@@ -5,7 +5,7 @@ import { ADVANCEMENT_KINDS } from './advancement-kinds';
 
 describe('ADVANCEMENT_KINDS', () => {
   it('lists every advancement kind in schema order', () => {
-    expect(ADVANCEMENT_KINDS).toEqual(['table_roll']);
+    expect(ADVANCEMENT_KINDS).toEqual(['table_roll', 'granted_skill']);
   });
 
   it('has no duplicate values', () => {
@@ -13,6 +13,8 @@ describe('ADVANCEMENT_KINDS', () => {
   });
 
   it('types AdvancementKind as exactly its listed values', () => {
-    expectTypeOf<AdvancementKind>().toEqualTypeOf<'table_roll'>();
+    expectTypeOf<AdvancementKind>().toEqualTypeOf<
+      'table_roll' | 'granted_skill'
+    >();
   });
 });

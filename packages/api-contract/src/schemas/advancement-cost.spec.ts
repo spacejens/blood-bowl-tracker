@@ -14,15 +14,43 @@ const entry = {
   sppCost: 6,
 };
 
+const leagueEntry = {
+  rulesSetId: 1,
+  leagueId: 3,
+  advancementNumber: 7,
+  advancementKind: 'granted_skill',
+  skillId: 40,
+  sppCost: 125,
+};
+
 describe('AdvancementKindSchema', () => {
   it('lists exactly the domain advancement kinds', () => {
-    expect(AdvancementKindSchema.options).toEqual(['table_roll']);
+    expect(AdvancementKindSchema.options).toEqual([
+      'table_roll',
+      'granted_skill',
+    ]);
   });
 });
 
 describe('AdvancementCostEntrySchema', () => {
   it('accepts a table-roll cost', () => {
     expect(AdvancementCostEntrySchema.parse(entry)).toEqual(entry);
+  });
+
+  it('accepts a league cost granting a fixed skill', () => {
+    expect(AdvancementCostEntrySchema.parse(leagueEntry)).toEqual(leagueEntry);
+  });
+
+  it('leaves leagueId and skillId absent when an entry omits them', () => {
+    const parsed = AdvancementCostEntrySchema.parse(entry);
+    expect('leagueId' in parsed).toBe(false);
+    expect('skillId' in parsed).toBe(false);
+  });
+
+  it.each(['leagueId', 'skillId'])('rejects a fractional %s', (field) => {
+    expect(() =>
+      AdvancementCostEntrySchema.parse({ ...leagueEntry, [field]: 1.5 }),
+    ).toThrow();
   });
 
   it('rejects an unknown advancement kind', () => {
