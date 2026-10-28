@@ -1,5 +1,6 @@
 import { contract } from '@blood-bowl-tracker/api-contract';
 import {
+  AdvancementCostsService,
   CoachesService,
   CoachUpsertConflictError,
   CompetitionGroupsService,
@@ -61,6 +62,7 @@ import type {
 import { implement } from '@orpc/server';
 
 import {
+  buildAdvancementCostsRoutes,
   buildCompetitionGroupsListRoute,
   buildExternalSystemsRoutes,
   buildManualImportBatchesRoutes,
@@ -103,6 +105,7 @@ export class RpcRouterFactoryService {
     private readonly racesService: RacesService,
     private readonly rulesSetsService: RulesSetsService,
     private readonly sppAwardValuesService: SppAwardValuesService,
+    private readonly advancementCostsService: AdvancementCostsService,
     private readonly sppAdjustmentsService: SppAdjustmentsService,
     private readonly playerLastingInjuryBackfillService: PlayerLastingInjuryBackfillService,
     private readonly erasService: ErasService,
@@ -441,6 +444,10 @@ export class RpcRouterFactoryService {
       sppAwardValues: buildSppAwardValuesRoutes(
         this.upsertHandler,
         this.sppAwardValuesService,
+      ),
+      advancementCosts: buildAdvancementCostsRoutes(
+        this.upsertHandler,
+        this.advancementCostsService,
       ),
       eras: this.buildStandardEntityRoutes({
         procedures: contract.eras,

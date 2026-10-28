@@ -1,4 +1,5 @@
 import {
+  AdvancementCostValidationError,
   CharacteristicFormatMismatchError,
   KeywordValidationError,
   MatchCategoryMismatchError,
@@ -430,6 +431,10 @@ describe('UpsertHandlerService', () => {
       [
         'an SPP award value validation error',
         new SppAwardValueValidationError('Entry 3 is not valid'),
+      ],
+      [
+        'an advancement cost validation error',
+        new AdvancementCostValidationError('Entry 3 is not valid'),
       ],
       [
         'a position validation error',

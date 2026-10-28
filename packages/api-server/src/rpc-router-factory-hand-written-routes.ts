@@ -1,5 +1,6 @@
 import { contract } from '@blood-bowl-tracker/api-contract';
 import {
+  AdvancementCostsService,
   CompetitionGroupsService,
   ExternalSystemsService,
   ManualImportBatchContentMismatchError,
@@ -30,7 +31,7 @@ import type { UpsertHandlerService } from './upsert-handler.service';
 /**
  * Route-building for procedures that are fully hand-written forever — they
  * never use any of RpcRouterFactoryService's generic route builders, either
- * because the whole entity is non-standard (sppAwardValues, trophyAwards,
+ * because the whole entity is non-standard (sppAwardValues, advancementCosts, trophyAwards,
  * externalSystems) or because the procedure is a one-off extra alongside an
  * otherwise-standard entity (e.g. positions.syncRaceEras). These live here —
  * rather than the generic builder methods, which stay in
@@ -57,6 +58,26 @@ export function buildSppAwardValuesRoutes(
   return {
     sync: implement(contract.sppAwardValues.sync).handler(({ input, errors }) =>
       upsertHandler.runSync(errors, () => sppAwardValuesService.sync(input)),
+    ),
+  };
+}
+
+// advancementCosts: hand-written for the same reason as sppAwardValues —
+// costs are keyed by (rulesSetId, advancementNumber, advancementKind) rather
+// than external ids, so there is no CONFLICT error to map and no
+// entity+created shape to return. `runSync` maps the service's authored-data
+// rejections — a key named twice in one batch, and a rules set that does not
+// exist — to BAD_REQUEST.
+export function buildAdvancementCostsRoutes(
+  upsertHandler: UpsertHandlerService,
+  advancementCostsService: AdvancementCostsService,
+) {
+  return {
+    sync: implement(contract.advancementCosts.sync).handler(
+      ({ input, errors }) =>
+        upsertHandler.runSync(errors, () =>
+          advancementCostsService.sync(input),
+        ),
     ),
   };
 }
