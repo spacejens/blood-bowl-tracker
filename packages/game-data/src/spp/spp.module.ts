@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { MatchScopeFilterModule } from '../shared/match-scope-filter.module';
+import { AdvancementCostsService } from './advancement-costs.service';
 import { SppAdjustmentsService } from './spp-adjustments.service';
 import { SppAwardValuesService } from './spp-award-values.service';
 import { SppEventCountsService } from './spp-event-counts.service';
@@ -11,6 +12,7 @@ import { SppTotalsService } from './spp-totals.service';
 @Module({
   imports: [MatchScopeFilterModule],
   providers: [
+    AdvancementCostsService,
     SppAdjustmentsService,
     SppAwardValuesService,
     SppEventCountsService,
@@ -19,6 +21,7 @@ import { SppTotalsService } from './spp-totals.service';
     SppTotalsService,
   ],
   exports: [
+    AdvancementCostsService,
     SppAdjustmentsService,
     SppAwardValuesService,
     SppEventCountsService,
