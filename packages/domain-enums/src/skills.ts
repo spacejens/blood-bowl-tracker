@@ -80,3 +80,35 @@ export const PLAYER_SKILL_SOURCES = [
 ] as const;
 
 export type PlayerSkillSource = (typeof PLAYER_SKILL_SOURCES)[number];
+
+/**
+ * The skill categories an advancement can grant: every SKILL_CATEGORIES value
+ * except `trait` (intrinsic, never learned) and `unique` (a star player's own
+ * exclusive skill). Only these can be a position's primary or secondary
+ * category.
+ */
+export const LEARNABLE_SKILL_CATEGORIES = [
+  'general',
+  'agility',
+  'passing',
+  'strength',
+  'mutation',
+  'devious',
+] as const satisfies readonly SkillCategory[];
+
+export type LearnableSkillCategory =
+  (typeof LEARNABLE_SKILL_CATEGORIES)[number];
+
+/**
+ * How freely a position may take skills from one category when it advances.
+ *
+ * - `primary` — the position's normal access to that category.
+ * - `secondary` — access that is harder or costlier to use. The cost differs
+ *   by rules set (a doubles roll in older ones, a higher SPP cost in newer
+ *   ones) and is not modelled here.
+ *
+ * A closed, small list, consumed as a Postgres enum like SKILL_CATEGORIES.
+ */
+export const SKILL_ACCESS_LEVELS = ['primary', 'secondary'] as const;
+
+export type SkillAccess = (typeof SKILL_ACCESS_LEVELS)[number];
