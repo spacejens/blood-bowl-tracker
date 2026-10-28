@@ -84,4 +84,15 @@ describe('curated batch 004 position skill categories', () => {
       ).toEqual([]);
     },
   );
+
+  it('curates gap-fill pairs only under the rules sets TP covers', () => {
+    const gapFillRulesSets = new Set(
+      entries
+        .filter((e) => !FULLY_CURATED_RULES_SETS.includes(e.rulesSet.id))
+        .map((e) => e.rulesSet.id),
+    );
+    for (const id of gapFillRulesSets) {
+      expect(['BB2020', 'DB2021', 'BB2025']).toContain(id);
+    }
+  });
 });
