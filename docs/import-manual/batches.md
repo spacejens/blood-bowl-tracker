@@ -52,10 +52,15 @@ The batches:
   and 002.
 - **004-advancement-costs** — the SPP cost of each advancement for CRP, CRP+
   and BB2016 (see
-  [Star Player Points sections](star-player-points.md#advancement-costs)). It
-  references only the rules sets batch 001 declares, so it needs nothing from
-  the source importers. The api-server must already run a release with the
-  `advancementCosts.sync` procedure before it is applied.
+  [Star Player Points sections](star-player-points.md#advancement-costs)),
+  and the primary and secondary skill categories of every CRP, CRP+ and
+  BB2016 position, plus the BB2020, DB2021 and BB2025 positions TP's
+  official team list does not supply. The categories reference positions
+  and characteristics that the source importers and batch 002 create, so the
+  batch applies after them, in a plain `apply`. The api-server must already
+  run a release with the `advancementCosts.sync` and
+  `positionRulesSetSkillCategories.sync` procedures before the batch is
+  applied.
 
 ## Changing curated data
 

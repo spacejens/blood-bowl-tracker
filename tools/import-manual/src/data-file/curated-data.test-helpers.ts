@@ -16,7 +16,7 @@ export const BATCH_002 = 'batches/002-initial-cleanup';
 /** Batch 003: every curated name restated once, for a long-lived database. */
 export const BATCH_003 = 'batches/003-reset-curated-names';
 
-/** Batch 004: the SPP cost of each advancement for the fixed-threshold rules sets. */
+/** Batch 004: advancement SPP costs for the fixed-threshold rules sets, and positions' skill categories TP does not supply. */
 export const BATCH_004 = 'batches/004-advancement-costs';
 
 /** Every batch directory, as `batches/<name>`, in name order. */

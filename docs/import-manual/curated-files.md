@@ -286,3 +286,15 @@ previous threshold (6, 10, 15, 20, 25, 100), not the threshold; the file's
 header comment shows the derivation and `curated-data-batch-004.spec.ts`
 checks the running totals against the thresholds. The rules sets are
 referenced under the `Name` system by bare name, as batch 001 declares them.
+
+`data/batches/004-advancement-costs/position-skill-categories.json5` holds the
+primary and secondary skill categories of each position under a rules set.
+Every entry is the pair's complete set: the sync flags any category an entry
+leaves out as removed. Only learnable categories are allowed (general,
+agility, passing, strength, mutation, devious), and a category is never both
+primary and secondary. The rulebooks' letter codes map as G general, A
+agility, P passing, S strength, M mutation, D devious; the Normal column is
+primary and the Double column secondary. `curated-data-batch-004-skill-categories.spec.ts`
+checks that every CRP position with curated characteristics has an entry. A
+gap-fill entry must never name a pair TP's official team list supplies,
+because the next TP import would replace it with TP's set.
