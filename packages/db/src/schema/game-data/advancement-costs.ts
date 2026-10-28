@@ -17,10 +17,11 @@ export const advancementKindEnum = gameData.enum(
  *
  * `advancementNumber` is 1-based: the nth advancement a player gains, skills
  * and characteristic increases counted alike. `sppCost` is the cost of that
- * one advancement -- the gap to the previous threshold -- never a cumulative
- * threshold, so the costs of a player's first N advancements sum to the Nth
- * threshold. That keeps a single rule for every rules set: unspent SPP is
- * total SPP minus the costs of the advancements gained.
+ * one advancement, never a cumulative threshold. Under fixed thresholds it is
+ * the gap to the previous threshold, so the costs of a player's first N
+ * advancements sum to the Nth threshold. That keeps a single rule for every
+ * rules set: unspent SPP is total SPP minus the costs of the advancements
+ * gained.
  *
  * `advancementKind` says what the cost buys. The unique key includes it so a
  * rules set that prices advancements by type can hold one row per kind for

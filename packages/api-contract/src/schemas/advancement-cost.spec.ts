@@ -14,15 +14,30 @@ const entry = {
   sppCost: 6,
 };
 
+const ALL_KINDS = [
+  'table_roll',
+  'random_primary_skill',
+  'chosen_primary_skill',
+  'random_secondary_skill',
+  'chosen_secondary_skill',
+  'random_characteristic',
+];
+
 describe('AdvancementKindSchema', () => {
   it('lists exactly the domain advancement kinds', () => {
-    expect(AdvancementKindSchema.options).toEqual(['table_roll']);
+    expect(AdvancementKindSchema.options).toEqual(ALL_KINDS);
   });
 });
 
 describe('AdvancementCostEntrySchema', () => {
   it('accepts a table-roll cost', () => {
     expect(AdvancementCostEntrySchema.parse(entry)).toEqual(entry);
+  });
+
+  it.each(ALL_KINDS)('accepts a %s cost', (advancementKind) => {
+    expect(
+      AdvancementCostEntrySchema.parse({ ...entry, advancementKind }),
+    ).toEqual({ ...entry, advancementKind });
   });
 
   it('rejects an unknown advancement kind', () => {
