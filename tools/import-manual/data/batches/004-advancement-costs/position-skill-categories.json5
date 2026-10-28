@@ -46,7 +46,7 @@
     { position: { system: 'Name', id: 'Amazon: Tribal Linewoman' }, rulesSet: { system: 'Name', id: 'CRP' }, primary: ['general'], secondary: ['agility', 'strength', 'passing'] },
     { position: { system: 'Name', id: 'Amazon: Eagle Warrior Thrower' }, rulesSet: { system: 'Name', id: 'CRP' }, primary: ['general', 'passing'], secondary: ['agility', 'strength'] },
     { position: { system: 'Name', id: 'Amazon: Piranha Warrior Catcher' }, rulesSet: { system: 'Name', id: 'CRP' }, primary: ['general', 'agility'], secondary: ['strength', 'passing'] },
-    { position: { system: 'Name', id: 'Amazon: Koka Kalim Blitzer' }, rulesSet: { system: 'Name', id: 'CRP' }, primary: ['general', 'agility'], secondary: ['strength', 'passing'] },
+    { position: { system: 'Name', id: 'Amazon: Koka Kalim Blitzer' }, rulesSet: { system: 'Name', id: 'CRP' }, primary: ['general', 'strength'], secondary: ['agility', 'passing'] },
 
     // --- CRP: Elf (CRP p.23) ---
     { position: { system: 'Name', id: 'Elven Union: Elven Linemen' }, rulesSet: { system: 'Name', id: 'CRP' }, primary: ['general', 'agility'], secondary: ['strength', 'passing'] },
