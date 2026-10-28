@@ -68,6 +68,7 @@ coaches
 teams
 competitions
 sppAwardValues
+advancementCosts
 trophies
 trophyAwards
 ```
@@ -264,18 +265,11 @@ reference, this file also registers each of them — with the external ids the
 source importers will send, so their own upsert lands on the same row, the same
 technique `star-players.json5` uses.
 
-### SPP award values
+### Star Player Points
 
-`sppAwardValues` entries seed the standardised Star Player Points award
-table. Each entry is `{ rulesSet, race?, actionType, sppValue }`:
-`rulesSet` is an external-id pair pointing at a rules set, `race` is an
-optional external-id pair pointing at a race, `actionType` is one of the
-action types that award Star Player Points (not every match-event action
-type — a foul, for example, earns no SPP), and `sppValue` is the SPP
-awarded. An entry that
-omits `race` is that rules set's baseline, applying to every race with no more
-specific entry; an entry naming a race overrides the baseline for it. This
-section is processed after the rules sets and races it references.
+`sppAwardValues` (the standardised award table) and `advancementCosts` (what
+each advancement costs) are described in
+[Star Player Points sections](star-player-points.md).
 
 ### Competition groups
 
@@ -474,7 +468,7 @@ See [Running import tools against production](../discord-bot/production-imports.
   the pooled data, building a name → id map.
 - **Entity processors** (rules sets, keywords, leagues, eras, races, positions,
   position characteristics, coaches, teams, competition groups, competitions,
-  SPP award values, trophies) — each resolves its references and calls the
+  SPP award values, advancement costs, trophies) — each resolves its references and calls the
   shared
   `*ImportService` from `packages/import`. The positions processor
   additionally calls `syncRaceEras` to set race/era availability; a curated

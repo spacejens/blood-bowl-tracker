@@ -208,6 +208,23 @@ describe('ManualDataReader', () => {
     ]);
   });
 
+  it('pools the advancementCosts section across files', async () => {
+    write(
+      'a.json5',
+      `{ advancementCosts: [{ rulesSet: { system: 'Name', id: 'CRP' },
+         advancementNumber: 1, advancementKind: 'table_roll', sppCost: 6 }] }`,
+    );
+    write(
+      'b.json5',
+      `{ advancementCosts: [{ rulesSet: { system: 'Name', id: 'CRP' },
+         advancementNumber: 2, advancementKind: 'table_roll', sppCost: 10 }] }`,
+    );
+
+    const data = await reader.read(dir);
+
+    expect(data.advancementCosts.map((c) => c.sppCost)).toEqual([6, 10]);
+  });
+
   it('pools the keywords section across files', async () => {
     write(
       'a.json5',

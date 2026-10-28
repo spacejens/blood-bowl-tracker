@@ -2,6 +2,7 @@ import { ImportModule } from '@blood-bowl-tracker/import';
 import { Module } from '@nestjs/common';
 
 import { ReferenceResolverService } from '../references/reference-resolver.service';
+import { AdvancementCostsProcessor } from './advancement-costs.processor';
 import { CoachesProcessor } from './coaches.processor';
 import { CompetitionGroupsProcessor } from './competition-groups.processor';
 import { CompetitionsProcessor } from './competitions.processor';
@@ -38,6 +39,7 @@ const processors = [
   CompetitionGroupsProcessor,
   CompetitionsProcessor,
   SppAwardValuesProcessor,
+  AdvancementCostsProcessor,
   TrophiesProcessor,
   TrophyAwardsProcessor,
 ];

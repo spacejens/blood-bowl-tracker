@@ -27,6 +27,7 @@ function emptyData(): ManualDataFile {
     teams: [],
     competitions: [],
     sppAwardValues: [],
+    advancementCosts: [],
     trophies: [],
     competitionGroups: [],
     trophyAwards: [],

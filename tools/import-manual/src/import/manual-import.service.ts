@@ -3,6 +3,7 @@ import { ImportResultService } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { ManualDataReader } from '../data-file/manual-data-reader.service';
+import { AdvancementCostsProcessor } from '../entities/advancement-costs.processor';
 import { CoachesProcessor } from '../entities/coaches.processor';
 import { CompetitionGroupsProcessor } from '../entities/competition-groups.processor';
 import { CompetitionsProcessor } from '../entities/competitions.processor';
@@ -43,6 +44,7 @@ export class ManualImportService {
     private readonly competitionGroups: CompetitionGroupsProcessor,
     private readonly competitions: CompetitionsProcessor,
     private readonly sppAwardValues: SppAwardValuesProcessor,
+    private readonly advancementCosts: AdvancementCostsProcessor,
     private readonly trophies: TrophiesProcessor,
     private readonly trophyAwards: TrophyAwardsProcessor,
     private readonly importResults: ImportResultService,
@@ -53,7 +55,7 @@ export class ManualImportService {
    * it references, then process each entity section in dependency order —
    * rulesSets, skills, skillRulesSets, keywords, leagues, eras, races,
    * positions, positionRulesSets, positionRulesSetSkills, coaches, teams,
-   * competitionGroups, competitions, sppAwardValues, trophies, trophyAwards —
+   * competitionGroups, competitions, sppAwardValues, advancementCosts, trophies, trophyAwards —
    * with skills and skillRulesSets running right after rulesSets, since
    * skills need only the rules sets and running them early keeps the
    * category table available to everything after, positionRulesSets running
@@ -69,7 +71,8 @@ export class ManualImportService {
    * external ids its entries reference) and before competitions and trophies
    * (which resolve the groups it upserts, by their "Name"-system external
    * id), sppAwardValues running after rulesSets and races (which it
-   * references), trophies running after the leagues it may also reference,
+   * references), advancementCosts running after the rulesSets it references,
+   * trophies running after the leagues it may also reference,
    * and trophyAwards last of all, after the trophies whose curated names its
    * entries quote — sharing one error collector so one bad entry never aborts
    * the rest. Reference-resolution
@@ -106,6 +109,7 @@ export class ManualImportService {
     imported += await this.competitionGroups.process(ctx);
     imported += await this.competitions.process(ctx);
     imported += await this.sppAwardValues.process(ctx);
+    imported += await this.advancementCosts.process(ctx);
     imported += await this.trophies.process(ctx);
     imported += await this.trophyAwards.process(ctx);
 
