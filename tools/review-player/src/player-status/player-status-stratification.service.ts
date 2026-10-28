@@ -9,6 +9,7 @@ import {
   lt,
   or,
   players,
+  positions,
   sql,
 } from '@blood-bowl-tracker/db';
 import { ExternalSystemLookupService } from '@blood-bowl-tracker/review-harness';
@@ -41,6 +42,11 @@ const TODAY = sql`current_date`;
  * non-null and before today, decided in SQL): an active player in a closed
  * era is a different reading than one still playing. The two active strata
  * do not overlap.
+ *
+ * Excludes star players from every stratum: an induced star gets one
+ * `players` row per hire and TP records no status for one, so they would
+ * crowd the samples. `StarPlayerStratificationService` and the star player
+ * review tool cover them separately.
  */
 @Injectable()
 export class PlayerStatusStratificationService implements PlayerStratifier {
@@ -83,7 +89,10 @@ export class PlayerStatusStratificationService implements PlayerStratifier {
     stratumId,
     limit,
   }: StratumSampleRequest): Promise<ReviewPlayer[]> {
-    const condition = this.filterFor(stratumId);
+    const condition = and(
+      eq(positions.isStarPlayer, false),
+      this.filterFor(stratumId),
+    ) as SQL;
     const externalSystemId = await this.externalSystems.getSystemId(source);
     const rows = await this.query
       .base(externalSystemId)

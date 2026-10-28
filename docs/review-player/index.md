@@ -144,7 +144,10 @@ keywords and player status.
        shows each status, including the rare ones (TP and especially BBL have
        few temporarily retired players, so that stratum is often a gap). The
        two active strata do not overlap; an era has ended when
-       `eras.end_date` is set and before today.
+       `eras.end_date` is set and before today. All six exclude star players,
+       like the random-sample stratum: a star hired through an
+       `inducements_roll` event has no TP status, so they would crowd the
+       unknown sample, and the star player review covers them separately.
 
    The random-sample stratum excludes star players outright: today's data model
    gives a popular star their own `players` row per team that induces them, so

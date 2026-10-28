@@ -78,28 +78,42 @@ describe('PlayerStatusStratificationService', () => {
   });
 
   it.each([
+    'status-active-running-era',
+    'status-dead',
+    'status-retired',
+    'status-temporarily-retired',
+    'status-unknown',
+    'status-active-ended-era',
+  ])('excludes star players from %s', async (stratumId) => {
+    const query = await whereFor(stratumId);
+
+    expect(query.sql).toContain('"positions"."is_star_player" = $1');
+    expect(query.params[0]).toBe(false);
+  });
+
+  it.each([
     ['status-dead', 'dead'],
     ['status-retired', 'retired'],
     ['status-temporarily-retired', 'temporarily_retired'],
   ])('filters %s on players.status = %s alone', async (stratumId, status) => {
     const query = await whereFor(stratumId);
 
-    expect(query.sql).toContain('"players"."status" = $1');
+    expect(query.sql).toContain('"players"."status" = $2');
     expect(query.sql).not.toContain('end_date');
-    expect(query.params).toEqual([status]);
+    expect(query.params).toEqual([false, status]);
   });
 
   it('filters the unknown stratum on a NULL status', async () => {
     const query = await whereFor('status-unknown');
 
     expect(query.sql).toContain('"players"."status" is null');
-    expect(query.params).toEqual([]);
+    expect(query.params).toEqual([false]);
   });
 
   it('keeps active players whose era has no end date or one not yet passed', async () => {
     const query = await whereFor('status-active-running-era');
 
-    expect(query.params).toEqual(['active']);
+    expect(query.params).toEqual([false, 'active']);
     expect(query.sql).toContain('"eras"."end_date" is null');
     expect(query.sql).toContain('"eras"."end_date" >= current_date');
   });
@@ -107,7 +121,7 @@ describe('PlayerStatusStratificationService', () => {
   it('keeps active players whose era end date has passed', async () => {
     const query = await whereFor('status-active-ended-era');
 
-    expect(query.params).toEqual(['active']);
+    expect(query.params).toEqual([false, 'active']);
     expect(query.sql).toContain('"eras"."end_date" is not null');
     expect(query.sql).toContain('"eras"."end_date" < current_date');
   });
