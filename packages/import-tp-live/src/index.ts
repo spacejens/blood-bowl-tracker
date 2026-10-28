@@ -47,6 +47,10 @@ export type {
   TpLiveOfficialTeamsRulesSetResult,
 } from './live/tp-live-official-teams-import.service';
 export { TpLiveOfficialTeamsImportService } from './live/tp-live-official-teams-import.service';
+export {
+  SPP_ADJUSTMENTS_CHUNK_SIZE,
+  TpLiveSppAdjustmentsService,
+} from './live/tp-live-spp-adjustments.service';
 export type { ImportStarPlayerHiresOptions } from './live/tp-live-star-player-hires.service';
 export { TpLiveStarPlayerHiresService } from './live/tp-live-star-player-hires.service';
 export type {

@@ -1,0 +1,174 @@
+import { SppAdjustmentsService } from '@blood-bowl-tracker/game-data';
+import {
+  ImportResultService,
+  UpsertRecorderService,
+} from '@blood-bowl-tracker/import-shared';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
+
+import {
+  SPP_ADJUSTMENTS_CHUNK_SIZE,
+  TpLiveSppAdjustmentsService,
+} from './tp-live-spp-adjustments.service';
+
+const COUNTS = {
+  touchdown: 3,
+  completion: 4,
+  interception: 1,
+  mvp_award: 2,
+  casualty: 5,
+};
+
+describe('TpLiveSppAdjustmentsService', () => {
+  let service: TpLiveSppAdjustmentsService;
+  let sppAdjustments: MockProxy<SppAdjustmentsService>;
+
+  beforeEach(async () => {
+    sppAdjustments = mock<SppAdjustmentsService>();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        TpLiveSppAdjustmentsService,
+        ImportResultService,
+        UpsertRecorderService,
+        { provide: SppAdjustmentsService, useValue: sppAdjustments },
+      ],
+    }).compile();
+    service = moduleRef.get(TpLiveSppAdjustmentsService);
+  });
+
+  it('settles nothing, and calls nothing, when there are no players', async () => {
+    await expect(service.settle([])).resolves.toEqual({
+      success: true,
+      imported: 0,
+      errors: [],
+    });
+    expect(sppAdjustments.syncReportedAdjustments).not.toHaveBeenCalled();
+  });
+
+  it("sends each player's facts and counts the players the sync updated", async () => {
+    sppAdjustments.syncReportedAdjustments.mockResolvedValue({
+      updatedPlayerIds: [1, 2],
+      nonzeroAdjustments: [],
+    });
+
+    const result = await service.settle([
+      { playerId: 1, reportedSppTotal: 12, careerCounts: COUNTS },
+      { playerId: 2, reportedSppTotal: 4 },
+    ]);
+
+    expect(sppAdjustments.syncReportedAdjustments).toHaveBeenCalledWith({
+      players: [
+        { playerId: 1, reportedSppTotal: 12, careerCounts: COUNTS },
+        { playerId: 2, reportedSppTotal: 4 },
+      ],
+    });
+    expect(result).toEqual({ success: true, imported: 2, errors: [] });
+  });
+
+  it('merges a repeated player, keeping the highest total and the highest of each counter', async () => {
+    sppAdjustments.syncReportedAdjustments.mockResolvedValue({
+      updatedPlayerIds: [1],
+    });
+
+    await service.settle([
+      {
+        playerId: 1,
+        reportedSppTotal: 14,
+        careerCounts: { ...COUNTS, touchdown: 5 },
+      },
+      {
+        playerId: 1,
+        reportedSppTotal: 12,
+        careerCounts: { ...COUNTS, casualty: 9 },
+      },
+    ]);
+
+    expect(sppAdjustments.syncReportedAdjustments).toHaveBeenCalledWith({
+      players: [
+        {
+          playerId: 1,
+          reportedSppTotal: 14,
+          careerCounts: { ...COUNTS, touchdown: 5, casualty: 9 },
+        },
+      ],
+    });
+  });
+
+  it('keeps the career counts of whichever repeated entry has them', async () => {
+    sppAdjustments.syncReportedAdjustments.mockResolvedValue({
+      updatedPlayerIds: [1],
+    });
+
+    await service.settle([
+      { playerId: 1, reportedSppTotal: 12 },
+      { playerId: 1, reportedSppTotal: 12, careerCounts: COUNTS },
+    ]);
+
+    expect(sppAdjustments.syncReportedAdjustments).toHaveBeenCalledWith({
+      players: [{ playerId: 1, reportedSppTotal: 12, careerCounts: COUNTS }],
+    });
+  });
+
+  it('passes a player with no reported total through, for the sync to skip', async () => {
+    sppAdjustments.syncReportedAdjustments.mockResolvedValue({
+      updatedPlayerIds: [],
+    });
+
+    const result = await service.settle([
+      { playerId: 1 },
+      { playerId: 1, reportedSppTotal: undefined },
+    ]);
+
+    expect(sppAdjustments.syncReportedAdjustments).toHaveBeenCalledWith({
+      players: [{ playerId: 1 }],
+    });
+    expect(result).toEqual({ success: true, imported: 0, errors: [] });
+  });
+
+  it('settles the players in chunks', async () => {
+    sppAdjustments.syncReportedAdjustments
+      .mockResolvedValueOnce({ updatedPlayerIds: [1, 2] })
+      .mockResolvedValueOnce({ updatedPlayerIds: [3] });
+    const players = Array.from(
+      { length: SPP_ADJUSTMENTS_CHUNK_SIZE + 1 },
+      (_, index) => ({ playerId: index + 1, reportedSppTotal: 1 }),
+    );
+
+    const result = await service.settle(players);
+
+    const calls = sppAdjustments.syncReportedAdjustments.mock.calls;
+    expect(calls).toHaveLength(2);
+    expect(calls[0][0].players).toHaveLength(SPP_ADJUSTMENTS_CHUNK_SIZE);
+    expect(calls[1][0].players).toEqual([
+      { playerId: SPP_ADJUSTMENTS_CHUNK_SIZE + 1, reportedSppTotal: 1 },
+    ]);
+    expect(result.imported).toBe(3);
+  });
+
+  it('records a failed chunk instead of throwing, and still settles the next one', async () => {
+    sppAdjustments.syncReportedAdjustments
+      .mockRejectedValueOnce(new Error('database down'))
+      .mockResolvedValueOnce({ updatedPlayerIds: [501] });
+    const players = Array.from(
+      { length: SPP_ADJUSTMENTS_CHUNK_SIZE + 1 },
+      (_, index) => ({ playerId: index + 1, reportedSppTotal: 1 }),
+    );
+
+    const result = await service.settle(players);
+
+    expect(result.success).toBe(false);
+    expect(result.imported).toBe(1);
+    expect(result.errors).toEqual([
+      {
+        item: {
+          playerIds: players
+            .slice(0, SPP_ADJUSTMENTS_CHUNK_SIZE)
+            .map((player) => player.playerId),
+        },
+        message: `Failed to settle the SPP adjustments of ${SPP_ADJUSTMENTS_CHUNK_SIZE} players: database down`,
+      },
+    ]);
+  });
+});
