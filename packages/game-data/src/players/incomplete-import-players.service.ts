@@ -1,5 +1,6 @@
 import type { Db, SQL } from '@blood-bowl-tracker/db';
 import {
+  and,
   coaches,
   count,
   DB,
@@ -8,6 +9,7 @@ import {
   isNull,
   or,
   players,
+  positions,
   races,
   teamEras,
   teams,
@@ -36,6 +38,10 @@ export interface IncompleteImportTeamRow {
  * real value. A NULL `spp_total`/`spp_adjustment`/`status` means no source
  * populated it. `passing` is deliberately absent: NULL and 0 are both
  * legitimate there. A new kind of gap is a one-line addition here.
+ *
+ * Star players are never counted, whatever these columns hold. That exclusion
+ * is applied in the query, not in this list, because it narrows which players
+ * are looked at rather than describing a kind of gap.
  */
 const INCOMPLETE_PLAYER_CRITERIA: readonly SQL[] = [
   eq(players.move, 0),
@@ -57,8 +63,9 @@ export class IncompleteImportPlayersService {
   constructor(@Inject(DB) private readonly db: Db) {}
 
   /**
-   * One row per affected team-era. Every join is on a NOT NULL foreign key,
-   * so the inner joins can never drop a matching player.
+   * One row per affected team-era, counting only players whose position is
+   * not a star player. Every join is on a NOT NULL foreign key, so the inner
+   * joins can never drop a matching player.
    */
   async findTeamsWithIncompletePlayers(): Promise<IncompleteImportTeamRow[]> {
     return this.db
@@ -78,7 +85,13 @@ export class IncompleteImportPlayersService {
       .innerJoin(coaches, eq(coaches.id, teams.coachId))
       .innerJoin(races, eq(races.id, teams.raceId))
       .innerJoin(eras, eq(eras.id, teamEras.eraId))
-      .where(or(...INCOMPLETE_PLAYER_CRITERIA))
+      .innerJoin(positions, eq(positions.id, players.positionId))
+      .where(
+        and(
+          eq(positions.isStarPlayer, false),
+          or(...INCOMPLETE_PLAYER_CRITERIA),
+        ),
+      )
       .groupBy(
         teamEras.id,
         teams.id,

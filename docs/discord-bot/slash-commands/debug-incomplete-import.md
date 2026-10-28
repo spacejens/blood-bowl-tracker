@@ -31,6 +31,10 @@ A player counts as having incomplete import data when any of these holds:
 Passing is deliberately not checked: a missing or zero passing value is
 legitimate for many positions.
 
+Star players are never counted, whatever their data looks like: a player
+whose position is a star player position is left out, so a team is only
+listed for its regular players.
+
 The criteria are kept as one named list in
 `packages/game-data/src/players/incomplete-import-players.service.ts`, so a
 newly discovered kind of gap is a one-line addition.

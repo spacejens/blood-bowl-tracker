@@ -79,7 +79,7 @@ describe('IncompleteImportPlayersService', () => {
     expect(chains[0].from).toHaveBeenCalledWith(players);
   });
 
-  it('joins team eras, teams, coaches, races and eras', async () => {
+  it('joins team eras, teams, coaches, races, eras and positions', async () => {
     const { chains } = await build([]);
 
     await service.findTeamsWithIncompletePlayers();
@@ -93,16 +93,18 @@ describe('IncompleteImportPlayersService', () => {
       ['coaches.id', 'teams.coach_id'],
       ['races.id', 'teams.race_id'],
       ['eras.id', 'team_eras.era_id'],
+      ['positions.id', 'players.position_id'],
     ]);
   });
 
-  it('filters on every incomplete-data criterion and never on passing', async () => {
+  it('excludes star players and filters on every incomplete-data criterion, never on passing', async () => {
     const { chains } = await build([]);
 
     await service.findTeamsWithIncompletePlayers();
 
     const condition = firstCallArg(chains[0].where);
     expect(extractJoinColumns(condition)).toEqual([
+      'positions.is_star_player',
       'players.move',
       'players.strength',
       'players.agility',
@@ -111,7 +113,7 @@ describe('IncompleteImportPlayersService', () => {
       'players.spp_adjustment',
       'players.status',
     ]);
-    expect(extractAllFilterValues(condition)).toEqual([0, 0, 0, 0]);
+    expect(extractAllFilterValues(condition)).toEqual([false, 0, 0, 0, 0]);
   });
 
   it('groups by team era', async () => {
