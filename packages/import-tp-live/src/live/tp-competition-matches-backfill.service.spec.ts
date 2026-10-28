@@ -23,6 +23,7 @@ const teamImported: TpLiveTeamImportResult = {
   players: one,
   era: 'Fourth era',
   teamEra: { id: 31, eraId: 40 },
+  sppPlayers: [],
 };
 const IMPORTED: TpMatchDataImportResult = {
   homeTeam: teamImported,
@@ -124,6 +125,7 @@ describe('TpCompetitionMatchesBackfillService', () => {
           players: nothing,
           era: undefined,
           teamEra: undefined,
+          sppPlayers: [],
         },
         match: {
           success: false,

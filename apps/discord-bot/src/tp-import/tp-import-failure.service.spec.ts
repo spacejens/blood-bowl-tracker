@@ -21,6 +21,7 @@ const team = (players: number): TpLiveTeamImportResult => ({
   players: imported(players),
   era: 'Fourth era',
   teamEra: { id: 31, eraId: 40 },
+  sppPlayers: [],
 });
 const assessment = (
   status: TpImportAssessment['status'],
@@ -67,6 +68,7 @@ describe('TpImportFailureService', () => {
           players: imported(0),
           era: undefined,
           teamEra: undefined,
+          sppPlayers: [],
         },
       });
 
@@ -154,6 +156,7 @@ describe('TpImportFailureService', () => {
         players: imported(12),
         era: 'Fourth era',
         teamEra: undefined,
+        sppPlayers: [],
       };
       const result = service.assess({
         kind: 'match',
@@ -200,6 +203,7 @@ describe('TpImportFailureService', () => {
               players: imported(0),
               era: undefined,
               teamEra: undefined,
+              sppPlayers: [],
             },
           ],
           participation: imported(0),
@@ -252,6 +256,7 @@ describe('TpImportFailureService', () => {
         players: imported(0),
         era: undefined,
         teamEra: undefined,
+        sppPlayers: [],
       };
 
       it('assesses both teams of an unfinished match imported as completed', () => {

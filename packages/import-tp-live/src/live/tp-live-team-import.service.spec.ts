@@ -14,6 +14,8 @@ import { mock } from 'vitest-mock-extended';
 import { TpRosterImportService } from '../roster/tp-roster-import.service';
 import { TpEraResolutionService } from './tp-era-resolution.service';
 import { TpLiveTeamImportService } from './tp-live-team-import.service';
+import type { TpLivePlayerSppFacts } from './tp-player-spp-facts.service';
+import { TpPlayerSppFactsService } from './tp-player-spp-facts.service';
 import { TpRosterFetchService } from './tp-roster-fetch.service';
 
 const EXTERNAL_SYSTEM_NAME = 'some-external-system';
@@ -46,17 +48,21 @@ describe('TpLiveTeamImportService', () => {
   let rosterFetch: MockProxy<TpRosterFetchService>;
   let eraResolution: MockProxy<TpEraResolutionService>;
   let rosterImport: MockProxy<TpRosterImportService>;
+  let sppFacts: MockProxy<TpPlayerSppFactsService>;
 
   beforeEach(async () => {
     rosterFetch = mock<TpRosterFetchService>();
     eraResolution = mock<TpEraResolutionService>();
     rosterImport = mock<TpRosterImportService>();
+    sppFacts = mock<TpPlayerSppFactsService>();
+    sppFacts.collect.mockReturnValue([]);
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpLiveTeamImportService,
         { provide: TpRosterFetchService, useValue: rosterFetch },
         { provide: TpEraResolutionService, useValue: eraResolution },
         { provide: TpRosterImportService, useValue: rosterImport },
+        { provide: TpPlayerSppFactsService, useValue: sppFacts },
         ImportResultService,
       ],
     }).compile();
@@ -89,6 +95,7 @@ describe('TpLiveTeamImportService', () => {
       players: PLAYERS_RESULT,
       era: 'Fourth era',
       teamEra: TEAM_ERA,
+      sppPlayers: [],
     });
     expect(rosterFetch.fetchRoster).toHaveBeenCalledWith({
       rosterId: 163386,
@@ -294,6 +301,48 @@ describe('TpLiveTeamImportService', () => {
     expect(result.era).toBeUndefined();
     expect(result).toHaveProperty('teamEra', undefined);
     expect(result.team.success).toBe(false);
+  });
+
+  it("returns the imported players' SPP facts, built from the roster and the roster import", async () => {
+    stubHappyPath();
+    const importedPlayers = [
+      { lineUpId: 5001, playerId: 9, created: true, reportedSppTotal: 12 },
+    ];
+    rosterImport.importRoster.mockResolvedValue({
+      team: TEAM_RESULT,
+      players: PLAYERS_RESULT,
+      teamEras: [],
+      teamEra: TEAM_ERA,
+      importedPlayers,
+      mercenaryPositionUsages: [],
+    });
+    const facts: TpLivePlayerSppFacts[] = [
+      { playerId: 9, reportedSppTotal: 12 },
+    ];
+    sppFacts.collect.mockReturnValue(facts);
+
+    const result = await service.importTeam({
+      rosterId: 163386,
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
+    });
+
+    expect(sppFacts.collect).toHaveBeenCalledWith({
+      roster: ROSTER,
+      importedPlayers,
+    });
+    expect(result.sppPlayers).toBe(facts);
+  });
+
+  it('returns no SPP facts when the team could not be fetched', async () => {
+    rosterFetch.fetchRoster.mockResolvedValue(undefined);
+
+    const result = await service.importTeam({
+      rosterId: 163386,
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
+    });
+
+    expect(result.sppPlayers).toEqual([]);
+    expect(sppFacts.collect).not.toHaveBeenCalled();
   });
 
   it('stops at a TP block instead of reporting it', async () => {

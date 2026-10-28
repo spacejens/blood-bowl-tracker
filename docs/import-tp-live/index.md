@@ -90,7 +90,17 @@ The result carries two `ImportResult`s: `team` (the team upsert, plus any
 failure before it) and `players`. It also names the era the team was
 imported under (`era`), undefined when the team was not imported, and its
 team era's numeric ids (`teamEra`, as `{ id, eraId }`), undefined when the
-team, or its team era for that era, could not be resolved.
+team, or its team era for that era, could not be resolved. `sppPlayers`
+lists each imported player's id, the career SPP total TP reports for it and,
+for a roster player, TP's career action counts; empty when the team was not
+imported.
+
+A team import on its own never computes SPP adjustments: the players'
+match events may not be imported yet, so `spp_adjustment` stays as it was
+(NULL for a new player) and `spp_total` is TP's reported total. A live match
+or competition import settles both once the events are in (see
+[match-import.md](match-import.md) and
+[competition-import.md](competition-import.md)).
 
 A team needs no competition. It is a complete entity on its own, and TP's
 roster data carries no competition either. See [match-import.md](match-import.md)

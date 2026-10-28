@@ -27,6 +27,7 @@ const team = (players: number): TpLiveTeamImportResult => ({
   players: imported(players),
   era: 'Fourth era',
   teamEra: { id: 31, eraId: 40 },
+  sppPlayers: [],
 });
 
 /** The reply's single embed. */
@@ -136,6 +137,7 @@ describe('ImportTpReplyService', () => {
               players: imported(0),
               era: undefined,
               teamEra: undefined,
+              sppPlayers: [],
             },
           ],
           participation: imported(0),
@@ -296,6 +298,7 @@ describe('ImportTpReplyService', () => {
                 players: imported(0),
                 era: undefined,
                 teamEra: undefined,
+                sppPlayers: [],
               },
             ],
             participation: imported(1),
@@ -364,6 +367,7 @@ describe('ImportTpReplyService', () => {
           players: imported(0),
           era: undefined,
           teamEra: undefined,
+          sppPlayers: [],
         },
       });
 
@@ -474,6 +478,7 @@ describe('ImportTpReplyService', () => {
           players: imported(0),
           era: undefined,
           teamEra: undefined,
+          sppPlayers: [],
         })),
         participation: imported(0),
         trophyAwards: imported(0),
