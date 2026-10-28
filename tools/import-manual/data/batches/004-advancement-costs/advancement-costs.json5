@@ -1,0 +1,45 @@
+// Batch 004: the SPP cost of each advancement under the rules sets that use
+// fixed thresholds -- CRP, CRP+ and BB2016.
+//
+// All three share the cumulative thresholds 6, 16, 31, 51, 76 and 176 SPP;
+// reaching each one earns a roll on the rules set's advancement table
+// (`table_roll`). A row stores the cost of one advancement -- the gap to the
+// previous threshold -- not the threshold itself, so the costs of a player's
+// first N advancements sum to the Nth threshold:
+//
+//   advancement   1    2    3    4    5    6
+//   threshold     6   16   31   51   76  176
+//   cost          6   10   15   20   25  100
+//
+// The rules sets already exist (batch 001 declares them), so entries
+// reference them under the "Name" system by bare name.
+// curated-data-batch-004.spec.ts checks the costs against the thresholds.
+{
+  externalSystems: [{ name: 'Name', category: 'bookkeeping' }],
+
+  advancementCosts: [
+    // --- CRP ---
+    { rulesSet: { system: 'Name', id: 'CRP' }, advancementNumber: 1, advancementKind: 'table_roll', sppCost: 6 },
+    { rulesSet: { system: 'Name', id: 'CRP' }, advancementNumber: 2, advancementKind: 'table_roll', sppCost: 10 },
+    { rulesSet: { system: 'Name', id: 'CRP' }, advancementNumber: 3, advancementKind: 'table_roll', sppCost: 15 },
+    { rulesSet: { system: 'Name', id: 'CRP' }, advancementNumber: 4, advancementKind: 'table_roll', sppCost: 20 },
+    { rulesSet: { system: 'Name', id: 'CRP' }, advancementNumber: 5, advancementKind: 'table_roll', sppCost: 25 },
+    { rulesSet: { system: 'Name', id: 'CRP' }, advancementNumber: 6, advancementKind: 'table_roll', sppCost: 100 },
+
+    // --- CRP+ (identical to CRP) ---
+    { rulesSet: { system: 'Name', id: 'CRP+' }, advancementNumber: 1, advancementKind: 'table_roll', sppCost: 6 },
+    { rulesSet: { system: 'Name', id: 'CRP+' }, advancementNumber: 2, advancementKind: 'table_roll', sppCost: 10 },
+    { rulesSet: { system: 'Name', id: 'CRP+' }, advancementNumber: 3, advancementKind: 'table_roll', sppCost: 15 },
+    { rulesSet: { system: 'Name', id: 'CRP+' }, advancementNumber: 4, advancementKind: 'table_roll', sppCost: 20 },
+    { rulesSet: { system: 'Name', id: 'CRP+' }, advancementNumber: 5, advancementKind: 'table_roll', sppCost: 25 },
+    { rulesSet: { system: 'Name', id: 'CRP+' }, advancementNumber: 6, advancementKind: 'table_roll', sppCost: 100 },
+
+    // --- BB2016 (identical to CRP) ---
+    { rulesSet: { system: 'Name', id: 'BB2016' }, advancementNumber: 1, advancementKind: 'table_roll', sppCost: 6 },
+    { rulesSet: { system: 'Name', id: 'BB2016' }, advancementNumber: 2, advancementKind: 'table_roll', sppCost: 10 },
+    { rulesSet: { system: 'Name', id: 'BB2016' }, advancementNumber: 3, advancementKind: 'table_roll', sppCost: 15 },
+    { rulesSet: { system: 'Name', id: 'BB2016' }, advancementNumber: 4, advancementKind: 'table_roll', sppCost: 20 },
+    { rulesSet: { system: 'Name', id: 'BB2016' }, advancementNumber: 5, advancementKind: 'table_roll', sppCost: 25 },
+    { rulesSet: { system: 'Name', id: 'BB2016' }, advancementNumber: 6, advancementKind: 'table_roll', sppCost: 100 },
+  ],
+}

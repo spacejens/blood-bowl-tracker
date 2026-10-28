@@ -13,6 +13,7 @@ tools/import-manual/data/batches/
   001-initial-seed/
   002-initial-cleanup/
   003-reset-curated-names/
+  004-advancement-costs/
 ```
 
 A batch directory is named `NNN-<slug>`: a three-digit number and a lowercase
@@ -49,6 +50,15 @@ The initial batches:
   row on the name a fresh import ends with. On a fresh import it changes
   nothing. `curated-data-batch-003.spec.ts` keeps it in step with batches 001
   and 002.
+
+Later batches:
+
+- **004-advancement-costs** — the SPP cost of each advancement for CRP, CRP+
+  and BB2016 (see
+  [Star Player Points sections](star-player-points.md#advancement-costs)). It
+  references only the rules sets batch 001 declares, so it needs nothing from
+  the source importers. The api-server must already run a release with the
+  `advancementCosts.sync` procedure before it is applied.
 
 ## Changing curated data
 
@@ -128,7 +138,7 @@ Passing a directory instead imports that directory ad hoc and records nothing
 ## Operating procedure
 
 - **Scratch database:** `apply 001-initial-seed`, the BBL importer, the TP
-  importer, then a plain `apply`, which applies 002, 003 and anything newer.
+  importer, then a plain `apply`, which applies 002, 003, 004 and anything newer.
   A plain `apply` on a fresh database before the source importers fails at
   002, which references rows only the sources create, and leaves it
   unrecorded; it is safe to rerun after the sources.
