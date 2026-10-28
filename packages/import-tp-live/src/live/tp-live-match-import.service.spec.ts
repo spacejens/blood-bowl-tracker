@@ -114,6 +114,7 @@ const SETTLED: ImportResult = { success: true, imported: 3, errors: [] };
 const HOME_SPP = { playerId: 501, reportedSppTotal: 12 };
 const AWAY_SPP = { playerId: 601, reportedSppTotal: 7 };
 const REGISTERED_SPP = { playerId: 701, reportedSppTotal: 30 };
+const BACKFILLED_SPP = { playerId: 801, reportedSppTotal: 5 };
 const EXTRAS: ImportResult = { success: true, imported: 2, errors: [] };
 const MATCHES_BACKFILL: ImportResult = {
   success: true,
@@ -163,7 +164,10 @@ describe('TpLiveMatchImportService', () => {
     participantsBackfill = mock<TpCompetitionParticipantsBackfillService>();
     matchesBackfill = mock<TpCompetitionMatchesBackfillService>();
     participantsBackfill.backfill.mockResolvedValue(PARTICIPANTS_BACKFILL);
-    matchesBackfill.backfill.mockResolvedValue(MATCHES_BACKFILL);
+    matchesBackfill.backfill.mockResolvedValue({
+      result: MATCHES_BACKFILL,
+      sppPlayers: [],
+    });
     extraTrophyAwards = mock<TpExtraTrophyAwardsService>();
     extraTrophyAwards.computeExtras.mockResolvedValue(EXTRAS);
     extraTrophyAwards.skippedForBackfillErrors.mockReturnValue(SKIPPED);
@@ -559,6 +563,24 @@ describe('TpLiveMatchImportService', () => {
       expect(extrasOrder).toBeLessThan(settleOrder);
     });
 
+    it("also settles the players of the backfilled matches' teams", async () => {
+      competitionUpsert.upsertCompetition.mockResolvedValue(
+        upsertedCompetition({ created: true }),
+      );
+      matchesBackfill.backfill.mockResolvedValue({
+        result: MATCHES_BACKFILL,
+        sppPlayers: [BACKFILLED_SPP],
+      });
+
+      await importMatch();
+
+      expect(sppAdjustments.settle).toHaveBeenCalledWith([
+        HOME_SPP,
+        AWAY_SPP,
+        BACKFILLED_SPP,
+      ]);
+    });
+
     it('settles after a backfill even when its own match row could not be written', async () => {
       competitionUpsert.upsertCompetition.mockResolvedValue(
         upsertedCompetition({ created: true }),
@@ -700,7 +722,10 @@ describe('TpLiveMatchImportService', () => {
 
     it('settles the end date but awards no extras, recording one error, when the match backfill reported errors', async () => {
       participantsBackfill.backfill.mockResolvedValue(AWARDED_BACKFILL);
-      matchesBackfill.backfill.mockResolvedValue(FAILED_MATCHES_BACKFILL);
+      matchesBackfill.backfill.mockResolvedValue({
+        result: FAILED_MATCHES_BACKFILL,
+        sppPlayers: [],
+      });
 
       const result = await importMatch();
 

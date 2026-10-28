@@ -36,6 +36,7 @@ const EXTRAS: ImportResult = { success: true, imported: 2, errors: [] };
 const SETTLED: ImportResult = { success: true, imported: 4, errors: [] };
 const FIRST_SPP = { playerId: 501, reportedSppTotal: 12 };
 const SECOND_SPP = { playerId: 601, reportedSppTotal: 7 };
+const BACKFILLED_SPP = { playerId: 801, reportedSppTotal: 5 };
 const teamImported: TpLiveTeamImportResult = {
   team: one,
   players: one,
@@ -141,7 +142,10 @@ describe('TpLiveCompetitionImportService', () => {
     awardsFetch.fetchAwards.mockResolvedValue([AWARD]);
     competitionImport.importCompetition.mockResolvedValue(CORE);
     matchesBackfill = mock<TpCompetitionMatchesBackfillService>();
-    matchesBackfill.backfill.mockResolvedValue(MATCHES_BACKFILL);
+    matchesBackfill.backfill.mockResolvedValue({
+      result: MATCHES_BACKFILL,
+      sppPlayers: [],
+    });
     extraTrophyAwards = mock<TpExtraTrophyAwardsService>();
     extraTrophyAwards.computeExtras.mockResolvedValue(EXTRAS);
     extraTrophyAwards.skippedForBackfillErrors.mockReturnValue(SKIPPED);
@@ -420,7 +424,10 @@ describe('TpLiveCompetitionImportService', () => {
     });
 
     it('computes the extras after backfilling the matches', async () => {
-      matchesBackfill.backfill.mockResolvedValue(CLEAN_MATCHES_BACKFILL);
+      matchesBackfill.backfill.mockResolvedValue({
+        result: CLEAN_MATCHES_BACKFILL,
+        sppPlayers: [],
+      });
       competitionImport.importCompetition.mockResolvedValue({
         ...CORE,
         competitionCreated: true,
@@ -469,7 +476,10 @@ describe('TpLiveCompetitionImportService', () => {
     });
 
     it('computes the extras when the match backfill of this import was clean', async () => {
-      matchesBackfill.backfill.mockResolvedValue(CLEAN_MATCHES_BACKFILL);
+      matchesBackfill.backfill.mockResolvedValue({
+        result: CLEAN_MATCHES_BACKFILL,
+        sppPlayers: [],
+      });
       competitionImport.importCompetition.mockResolvedValue({
         ...CORE,
         competitionCreated: true,
@@ -517,8 +527,30 @@ describe('TpLiveCompetitionImportService', () => {
       expect(matchesOrder).toBeLessThan(settleOrder);
     });
 
+    it("also settles the players of the backfilled matches' teams", async () => {
+      matchesBackfill.backfill.mockResolvedValue({
+        result: CLEAN_MATCHES_BACKFILL,
+        sppPlayers: [BACKFILLED_SPP],
+      });
+      competitionImport.importCompetition.mockResolvedValue({
+        ...CORE,
+        competitionCreated: true,
+      });
+
+      await importCompetition();
+
+      expect(sppAdjustments.settle).toHaveBeenCalledWith([
+        FIRST_SPP,
+        SECOND_SPP,
+        BACKFILLED_SPP,
+      ]);
+    });
+
     it('still settles the players when the match backfill reported errors', async () => {
-      matchesBackfill.backfill.mockResolvedValue(MATCHES_BACKFILL);
+      matchesBackfill.backfill.mockResolvedValue({
+        result: MATCHES_BACKFILL,
+        sppPlayers: [],
+      });
       competitionImport.importCompetition.mockResolvedValue({
         ...CORE,
         competitionCreated: true,

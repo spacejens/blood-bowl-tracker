@@ -22,6 +22,7 @@ import { TpLiveSppAdjustmentsService } from './tp-live-spp-adjustments.service';
 import { TpLiveStarPlayerHiresService } from './tp-live-star-player-hires.service';
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
 import { TpMatchDataImportService } from './tp-match-data-import.service';
+import type { TpLivePlayerSppFacts } from './tp-player-spp-facts.service';
 
 /** Options for {@link TpLiveMatchImportService.importMatch}. */
 export interface ImportLiveMatchOptions {
@@ -98,7 +99,7 @@ export interface TpLiveMatchImportResult {
   /**
    * Settling the SPP total and adjustment of the players whose match events
    * this import wrote: both teams' once the match row is written, and, when
-   * the backfill ran, every backfilled team's too, after both backfills.
+   * the backfill ran, every player it imported, after both backfills.
    * Nothing imported when the match was not written; a failure here never
    * fails the import.
    */
@@ -141,15 +142,17 @@ export class TpLiveMatchImportService {
    * every request. A block met during the competition's backfill has its
    * `backfillInterrupted` set first, so a retry knows to force the backfill
    * of a competition that now exists. The competition is created
-   * unfinished, with no end date. When the participants backfill fetched TP awards, the competition is
-   * finished after both backfills: re-upserted as finished, which settles
-   * its end date, and awarded the trophies TP does not record, reported in
-   * `extraTrophyAwards` (skipped, with one error, when the match backfill
-   * reported errors). A failed awards fetch leaves the finished state
-   * unknown, so neither happens. Last, once the match row is written (and
-   * after the backfill, when it ran), the SPP total and adjustment of the
-   * players whose events it wrote are settled through
-   * `TpLiveSppAdjustmentsService`, reported in `sppAdjustments`.
+   * unfinished, with no end date. When the participants backfill fetched TP
+   * awards, the competition is finished after both backfills: re-upserted as
+   * finished, which settles its end date, and awarded the trophies TP does
+   * not record, reported in `extraTrophyAwards` (skipped, with one error,
+   * when the match backfill reported errors). A failed awards fetch leaves
+   * the finished state unknown, so neither happens. Last, once the match row
+   * is written (and after the backfill, when it ran), the SPP total and
+   * adjustment of the players whose events it wrote are settled through
+   * `TpLiveSppAdjustmentsService`, reported in `sppAdjustments`; after a
+   * backfill that covers every player it imported, including those seen only
+   * in the backfilled matches' snapshots.
    */
   async importMatch({
     matchId,
@@ -247,13 +250,14 @@ export class TpLiveMatchImportService {
         session: visit,
         competition: upserted,
       });
-      const matchesBackfill = await this.matchesBackfill.backfill({
+      const backfilledMatches = await this.matchesBackfill.backfill({
         tournamentSlug,
         era: ready.era,
         externalSystemName,
         session: visit,
         bracket,
       });
+      const matchesBackfill = backfilledMatches.result;
       const finished =
         participantsBackfill.awardsFetched !== undefined &&
         participantsBackfill.awardsFetched > 0;
@@ -267,11 +271,10 @@ export class TpLiveMatchImportService {
             matchesBackfillFailed: matchesBackfill.errors.length > 0,
           })
         : this.importResults.result({ imported: 0, errors: [] });
-      const sppAdjustments = await this.settleSpp([
-        homeTeam,
-        awayTeam,
-        ...participantsBackfill.teams,
-      ]);
+      const sppAdjustments = await this.settleSpp(
+        [homeTeam, awayTeam, ...participantsBackfill.teams],
+        backfilledMatches.sppPlayers,
+      );
       return {
         ...imported,
         participantsBackfill,
@@ -346,16 +349,19 @@ export class TpLiveMatchImportService {
   }
 
   /**
-   * Settles the SPP of the given teams' players: run last, once their match
-   * events are written and no later step re-imports their rosters (which
-   * would write TP's raw total back over the settled one).
+   * Settles the SPP of the given teams' players, and of any extra players
+   * given: run last, once their match events are written and no later step
+   * re-imports their rosters (which would write TP's raw total back over the
+   * settled one).
    */
   private async settleSpp(
     teams: TpLiveTeamImportResult[],
+    extraPlayers: TpLivePlayerSppFacts[] = [],
   ): Promise<ImportResult> {
-    return this.sppAdjustmentsSync.settle(
-      teams.flatMap((team) => team.sppPlayers),
-    );
+    return this.sppAdjustmentsSync.settle([
+      ...teams.flatMap((team) => team.sppPlayers),
+      ...extraPlayers,
+    ]);
   }
 
   private failed(errors: ImportError[]): ImportResult {

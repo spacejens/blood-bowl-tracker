@@ -10,6 +10,7 @@ import { Injectable } from '@nestjs/common';
 import type { TpBracket } from './tp-bracket-fetch.service';
 import type { TpMatchDataImportResult } from './tp-match-data-import.service';
 import { TpMatchDataImportService } from './tp-match-data-import.service';
+import type { TpLivePlayerSppFacts } from './tp-player-spp-facts.service';
 
 /** Options for {@link TpCompetitionMatchesBackfillService.backfill}. */
 export interface BackfillMatchesOptions {
@@ -23,6 +24,18 @@ export interface BackfillMatchesOptions {
   session: TpFetchSession;
   /** The competition's whole bracket, already fetched; never re-fetched here. */
   bracket: TpBracket;
+}
+
+/** What {@link TpCompetitionMatchesBackfillService.backfill} reports. */
+export interface MatchesBackfillOutcome {
+  /** The backfill's counts and errors. */
+  result: ImportResult;
+  /**
+   * The SPP facts of both teams' players of every backfilled match, for the
+   * caller to settle once the backfill is over: the backfill re-imports those
+   * rosters at TP's raw total, including players seen only in match snapshots.
+   */
+  sppPlayers: TpLivePlayerSppFacts[];
 }
 
 /**
@@ -41,7 +54,8 @@ export class TpCompetitionMatchesBackfillService {
 
   /**
    * One result for the whole backfill: `imported` counts the matches whose
-   * row was written, and `errors` holds every stage error of every match. A
+   * row was written, and `errors` holds every stage error of every match; the
+   * SPP facts of the matches' players come alongside. A
    * match that fails, even by throwing, is reported and the rest are still
    * imported — except for a TP block (`TpBlockedError`), which is rethrown at
    * once so no further match is attempted.
@@ -52,12 +66,13 @@ export class TpCompetitionMatchesBackfillService {
     externalSystemName,
     session,
     bracket,
-  }: BackfillMatchesOptions): Promise<ImportResult> {
+  }: BackfillMatchesOptions): Promise<MatchesBackfillOutcome> {
     const completed = bracket.matches.filter(
       (match) => match.winner !== undefined,
     );
     let imported = 0;
     const errors: ImportError[] = [];
+    const sppPlayers: TpLivePlayerSppFacts[] = [];
     for (const { id: matchId } of completed) {
       try {
         const result = await this.matchData.importMatchData({
@@ -72,6 +87,10 @@ export class TpCompetitionMatchesBackfillService {
           imported += 1;
         }
         errors.push(...this.errorsOf(result));
+        sppPlayers.push(
+          ...result.homeTeam.sppPlayers,
+          ...result.awayTeam.sppPlayers,
+        );
       } catch (error) {
         if (error instanceof TpBlockedError) {
           throw error;
@@ -85,7 +104,10 @@ export class TpCompetitionMatchesBackfillService {
         );
       }
     }
-    return this.importResults.result({ imported, errors });
+    return {
+      result: this.importResults.result({ imported, errors }),
+      sppPlayers,
+    };
   }
 
   /** Every error one match's import reported, in stage order. */

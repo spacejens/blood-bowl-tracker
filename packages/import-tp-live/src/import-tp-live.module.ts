@@ -45,8 +45,9 @@ import { TpRosterModule } from './roster/tp-roster.module';
  * every rules set. Each is fetched from TP's API and imported in-process
  * through TpRosterModule, TpMatchModule, TpCompetitionModule and
  * TpOfficialTeamsModule. Live match and competition imports finish by
- * settling their players' SPP through game-data's SppModule. The importing app provides
- * TP_CONNECTION_PROVIDER from a `@Global()` module and packages/db's `DB`.
+ * settling their players' SPP through game-data's SppModule. The importing
+ * app provides TP_CONNECTION_PROVIDER from a `@Global()` module and
+ * packages/db's `DB`.
  */
 @Module({
   imports: [

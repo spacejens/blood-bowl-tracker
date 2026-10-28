@@ -79,9 +79,8 @@ describe('TpCompetitionMatchesBackfillService', () => {
 
   it("imports every completed match of the bracket, skipping those not played yet, under the competition's era and the given session", async () => {
     await expect(backfill()).resolves.toEqual({
-      success: true,
-      imported: 2,
-      errors: [],
+      result: { success: true, imported: 2, errors: [] },
+      sppPlayers: [],
     });
     expect(matchData.importMatchData).toHaveBeenCalledTimes(2);
     expect(matchData.importMatchData).toHaveBeenNthCalledWith(1, {
@@ -96,6 +95,44 @@ describe('TpCompetitionMatchesBackfillService', () => {
       2,
       expect.objectContaining({ matchId: 3 }),
     );
+  });
+
+  it('returns the SPP facts of both teams of every backfilled match, also when another match fails', async () => {
+    const withPlayers = (
+      home: number,
+      away: number,
+    ): TpMatchDataImportResult => ({
+      ...IMPORTED,
+      homeTeam: {
+        ...teamImported,
+        sppPlayers: [{ playerId: home, reportedSppTotal: 3 }],
+      },
+      awayTeam: {
+        ...teamImported,
+        sppPlayers: [{ playerId: away, reportedSppTotal: 4 }],
+      },
+    });
+    matchData.importMatchData
+      .mockResolvedValueOnce(withPlayers(11, 12))
+      .mockResolvedValueOnce(withPlayers(21, 22));
+    const bracket: TpBracket = {
+      ...BRACKET,
+      matches: [
+        bracketMatch({ id: 1 }),
+        bracketMatch({ id: 3 }),
+        bracketMatch({ id: 4 }),
+      ],
+    };
+    matchData.importMatchData.mockRejectedValueOnce(new Error('db down'));
+
+    const { sppPlayers } = await backfill(bracket);
+
+    expect(sppPlayers).toEqual([
+      { playerId: 11, reportedSppTotal: 3 },
+      { playerId: 12, reportedSppTotal: 4 },
+      { playerId: 21, reportedSppTotal: 3 },
+      { playerId: 22, reportedSppTotal: 4 },
+    ]);
   });
 
   it('imports the matches one at a time, never in parallel', async () => {
@@ -146,13 +183,16 @@ describe('TpCompetitionMatchesBackfillService', () => {
       });
 
     await expect(backfill()).resolves.toEqual({
-      success: false,
-      imported: 1,
-      errors: [
-        { item: 7, message: 'no coach' },
-        { item: 1, message: 'status 403' },
-        { item: 3, message: 'unknown player' },
-      ],
+      result: {
+        success: false,
+        imported: 1,
+        errors: [
+          { item: 7, message: 'no coach' },
+          { item: 1, message: 'status 403' },
+          { item: 3, message: 'unknown player' },
+        ],
+      },
+      sppPlayers: [],
     });
   });
 
@@ -162,14 +202,17 @@ describe('TpCompetitionMatchesBackfillService', () => {
       .mockResolvedValueOnce(IMPORTED);
 
     await expect(backfill()).resolves.toEqual({
-      success: false,
-      imported: 1,
-      errors: [
-        {
-          item: { matchId: 1 },
-          message: 'Unexpected error backfilling match 1: db down',
-        },
-      ],
+      result: {
+        success: false,
+        imported: 1,
+        errors: [
+          {
+            item: { matchId: 1 },
+            message: 'Unexpected error backfilling match 1: db down',
+          },
+        ],
+      },
+      sppPlayers: [],
     });
     expect(matchData.importMatchData).toHaveBeenCalledTimes(2);
   });
@@ -188,7 +231,7 @@ describe('TpCompetitionMatchesBackfillService', () => {
         ...BRACKET,
         matches: [bracketMatch({ id: 2, winner: undefined })],
       }),
-    ).resolves.toEqual(nothing);
+    ).resolves.toEqual({ result: nothing, sppPlayers: [] });
     expect(matchData.importMatchData).not.toHaveBeenCalled();
   });
 });

@@ -65,7 +65,9 @@ when an earlier one fails:
    - When no backfill ran in this import (a plain re-import of an existing competition), the step relies on the matches imported earlier, and cannot tell whether any is missing.
    - The step is idempotent, so re-importing is harmless.
 9. **Settle the players' SPP**: once the competition is imported, every
-   registered team's players get their `spp_total` and `spp_adjustment`
+   registered team's players, and every player the match backfill imported
+   (including players seen only in backfilled match snapshots and teams not
+   in the inscriptions), get their `spp_total` and `spp_adjustment`
    from game-data's `SppAdjustmentsService.syncReportedAdjustments`, as in
    a live match import (see
    [match-import.md](match-import.md#importing-a-match-live)). It runs last,

@@ -72,7 +72,9 @@ an earlier one fails:
    after an estimate of the SPP from competitions not imported yet (from
    TP's career action counts, which only a roster player has). Reported in
    `sppAdjustments`; a failure there never fails the import. When the
-   backfill below runs, this step moves to the very end instead.
+   backfill below runs, this step moves to the very end instead. When the
+   bracket fetch or the competition upsert fails, nothing is written and
+   nothing is settled.
 
 Only the requested match is imported; its bracket siblings are used only for
 classification and the competition's dates — unless step 6 created the
@@ -103,11 +105,13 @@ up to four more steps after the shared core:
    reported errors, since a missing match would skew them for good; the end
    date is settled either way.
 4. **Settle the players' SPP** (the match import's step 8 above), now for
-   both match teams and every backfilled team, after steps 1–3: the match
-   backfill re-imports every registered team's roster, which writes TP's raw
+   both match teams and every player the backfill imported, after steps 1–3:
+   the registered teams, and the teams and players of every backfilled match,
+   including players seen only in match snapshots and teams not in the
+   inscriptions. The backfill re-imports those rosters, which writes TP's raw
    total back, so the settling has to come after it. A player imported
-   several times is settled once. When the bracket fetch or the competition
-   upsert fails, the teams already re-imported are left unsettled.
+   several times is settled once. A TP block (`TpBlockedError`) during the
+   backfill skips settling until the retry with `forceMatchBackfill`.
 
 The result then also carries `participantsBackfill` (`teams`,
 `participation`, `trophyAwards`) and `matchesBackfill` (one `ImportResult`
@@ -136,7 +140,8 @@ each with that side's match roster snapshot, the away team under the era the
 home team was imported under — the same era rule as a full match import. It
 accepts a match in any state: a match that has not finished yet is not an
 error, because its teams exist and can be brought up to date before it is
-played. It writes no match, competition or star player hire. Nor does it settle any SPP: the match may not be played yet, so the players' events are not in.
+played. It writes no match, competition or star player hire. Nor does it settle
+any SPP: the match may not be played yet, so the players' events are not in.
 
 The result carries `match` (the match fetch: only ever failures, never
 counted as imported), `homeTeam` and `awayTeam`. A failed fetch imports no
