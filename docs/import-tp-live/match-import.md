@@ -63,6 +63,16 @@ an earlier one fails:
    [competition-import.md](competition-import.md)); a match import does not
    link the competition's other teams or record its awards.
 7. **The shared core**, below, importing the match itself.
+8. **Settle the players' SPP**, once step 7 wrote the match row: both
+   teams' players get their `spp_total` and `spp_adjustment` from
+   game-data's `SppAdjustmentsService.syncReportedAdjustments`, the step
+   the bulk TP import runs after its match events (see
+   [SPP reconciliation](../import-tp/index.md#spp-reconciliation)). It
+   measures TP's reported career total against the imported match events,
+   after an estimate of the SPP from competitions not imported yet (from
+   TP's career action counts, which only a roster player has). Reported in
+   `sppAdjustments`; a failure there never fails the import. When the
+   backfill below runs, this step moves to the very end instead.
 
 Only the requested match is imported; its bracket siblings are used only for
 classification and the competition's dates — unless step 6 created the
@@ -72,7 +82,7 @@ competition, below.
 
 When step 6 creates the competition (it was never imported before), the
 import then completes it rather than leaving it holding one match, running
-up to three more steps after the shared core:
+up to four more steps after the shared core:
 
 1. **Backfill its registered teams**: fetch the inscriptions, import each
    registered team live under the competition's era, link them to the
@@ -92,6 +102,11 @@ up to three more steps after the shared core:
    step 2 and are skipped, with one error in `extraTrophyAwards`, when step 2
    reported errors, since a missing match would skew them for good; the end
    date is settled either way.
+4. **Settle the players' SPP** (step 8 above), now for both match teams
+   and every backfilled team, after steps 1–3: the match backfill re-imports
+   every registered team's roster, which writes TP's raw total back, so the
+   settling has to come after it. A player imported several times is settled
+   once.
 
 The result then also carries `participantsBackfill` (`teams`,
 `participation`, `trophyAwards`) and `matchesBackfill` (one `ImportResult`
@@ -119,7 +134,7 @@ each with that side's match roster snapshot, the away team under the era the
 home team was imported under — the same era rule as a full match import. It
 accepts a match in any state: a match that has not finished yet is not an
 error, because its teams exist and can be brought up to date before it is
-played. It writes no match, competition or star player hire.
+played. It writes no match, competition or star player hire. Nor does it settle any SPP: the match may not be played yet, so the players' events are not in.
 
 The result carries `match` (the match fetch: only ever failures, never
 counted as imported), `homeTeam` and `awayTeam`. A failed fetch imports no

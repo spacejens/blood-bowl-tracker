@@ -206,6 +206,7 @@ describe('ImportTpReplyService', () => {
           participation: imported(2),
           events: imported(40),
           outcome: imported(1),
+          sppAdjustments: imported(0),
         },
       });
 
@@ -243,6 +244,7 @@ describe('ImportTpReplyService', () => {
           participation: imported(0),
           events: imported(0),
           outcome: imported(0),
+          sppAdjustments: imported(0),
         },
       });
 
@@ -265,6 +267,7 @@ describe('ImportTpReplyService', () => {
           participation: imported(2),
           events: imported(40),
           outcome: imported(1),
+          sppAdjustments: imported(0),
         },
       });
 
@@ -289,6 +292,7 @@ describe('ImportTpReplyService', () => {
           participation: imported(2),
           events: imported(40),
           outcome: imported(1),
+          sppAdjustments: imported(0),
           participantsBackfill: {
             teams: [
               { rosterId: 1, ...team(12) },

@@ -18,6 +18,7 @@ import { TpCompetitionMatchesBackfillService } from './tp-competition-matches-ba
 import type { TpParticipantsBackfillResult } from './tp-competition-participants-backfill.service';
 import { TpCompetitionParticipantsBackfillService } from './tp-competition-participants-backfill.service';
 import { TpExtraTrophyAwardsService } from './tp-extra-trophy-awards.service';
+import { TpLiveSppAdjustmentsService } from './tp-live-spp-adjustments.service';
 import { TpLiveStarPlayerHiresService } from './tp-live-star-player-hires.service';
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
 import { TpMatchDataImportService } from './tp-match-data-import.service';
@@ -94,6 +95,14 @@ export interface TpLiveMatchImportResult {
    * or its awards could not be fetched.
    */
   extraTrophyAwards?: ImportResult;
+  /**
+   * Settling the SPP total and adjustment of the players whose match events
+   * this import wrote: both teams' once the match row is written, and, when
+   * the backfill ran, every backfilled team's too, after both backfills.
+   * Nothing imported when the match was not written; a failure here never
+   * fails the import.
+   */
+  sppAdjustments: ImportResult;
 }
 
 @Injectable()
@@ -108,6 +117,7 @@ export class TpLiveMatchImportService {
     private readonly matchesBackfill: TpCompetitionMatchesBackfillService,
     private readonly importResults: ImportResultService,
     private readonly extraTrophyAwards: TpExtraTrophyAwardsService,
+    private readonly sppAdjustmentsSync: TpLiveSppAdjustmentsService,
   ) {}
 
   /**
@@ -136,7 +146,10 @@ export class TpLiveMatchImportService {
    * its end date, and awarded the trophies TP does not record, reported in
    * `extraTrophyAwards` (skipped, with one error, when the match backfill
    * reported errors). A failed awards fetch leaves the finished state
-   * unknown, so neither happens.
+   * unknown, so neither happens. Last, once the match row is written (and
+   * after the backfill, when it ran), the SPP total and adjustment of the
+   * players whose events it wrote are settled through
+   * `TpLiveSppAdjustmentsService`, reported in `sppAdjustments`.
    */
   async importMatch({
     matchId,
@@ -214,9 +227,16 @@ export class TpLiveMatchImportService {
         awayTeam,
         starPlayerHires,
         ...core,
+        sppAdjustments: this.importResults.result({ imported: 0, errors: [] }),
       };
       if (!upserted.created && !forceMatchBackfill) {
-        return imported;
+        return {
+          ...imported,
+          sppAdjustments:
+            core.match.imported > 0
+              ? await this.settleSpp([homeTeam, awayTeam])
+              : imported.sppAdjustments,
+        };
       }
       backfilling = true;
       const participantsBackfill = await this.participantsBackfill.backfill({
@@ -247,11 +267,17 @@ export class TpLiveMatchImportService {
             matchesBackfillFailed: matchesBackfill.errors.length > 0,
           })
         : this.importResults.result({ imported: 0, errors: [] });
+      const sppAdjustments = await this.settleSpp([
+        homeTeam,
+        awayTeam,
+        ...participantsBackfill.teams,
+      ]);
       return {
         ...imported,
         participantsBackfill,
         matchesBackfill,
         extraTrophyAwards,
+        sppAdjustments,
       };
     } catch (error) {
       if (error instanceof TpBlockedError) {
@@ -319,6 +345,19 @@ export class TpLiveMatchImportService {
     });
   }
 
+  /**
+   * Settles the SPP of the given teams' players: run last, once their match
+   * events are written and no later step re-imports their rosters (which
+   * would write TP's raw total back over the settled one).
+   */
+  private async settleSpp(
+    teams: TpLiveTeamImportResult[],
+  ): Promise<ImportResult> {
+    return this.sppAdjustmentsSync.settle(
+      teams.flatMap((team) => team.sppPlayers),
+    );
+  }
+
   private failed(errors: ImportError[]): ImportResult {
     return this.importResults.result({ imported: 0, errors });
   }
@@ -343,6 +382,7 @@ export class TpLiveMatchImportService {
       participation: nothing(),
       events: nothing(),
       outcome: nothing(),
+      sppAdjustments: nothing(),
     };
   }
 }

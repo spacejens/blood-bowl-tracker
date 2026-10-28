@@ -46,6 +46,7 @@ const MATCH_RESULT: TpLiveMatchImportResult = {
   participation: one,
   events: one,
   outcome: one,
+  sppAdjustments: one,
 };
 const MATCH_TEAMS_RESULT: TpLiveMatchTeamsImportResult = {
   match: { success: true, imported: 0, errors: [] },
