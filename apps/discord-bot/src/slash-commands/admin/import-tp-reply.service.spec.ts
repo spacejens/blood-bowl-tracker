@@ -27,6 +27,7 @@ const team = (players: number): TpLiveTeamImportResult => ({
   players: imported(players),
   era: 'Fourth era',
   teamEra: { id: 31, eraId: 40 },
+  sppPlayers: [],
 });
 
 /** The reply's single embed. */
@@ -73,6 +74,7 @@ describe('ImportTpReplyService', () => {
           participation: imported(2),
           trophyAwards: imported(1),
           extraTrophyAwards: imported(2),
+          sppAdjustments: imported(0),
           era: 'Fourth era',
         },
       });
@@ -88,6 +90,7 @@ describe('ImportTpReplyService', () => {
           '- Participation: 2 imported',
           '- Trophy awards: 1 imported',
           '- Extra trophy awards: 2 imported',
+          '- SPP adjustments: 0 imported',
         ].join('\n'),
       });
     });
@@ -102,6 +105,7 @@ describe('ImportTpReplyService', () => {
           participation: imported(0),
           trophyAwards: imported(0),
           extraTrophyAwards: imported(0),
+          sppAdjustments: imported(0),
           era: undefined,
         },
       });
@@ -116,6 +120,7 @@ describe('ImportTpReplyService', () => {
           '- Participation: 0 imported',
           '- Trophy awards: 0 imported',
           '- Extra trophy awards: 0 imported',
+          '- SPP adjustments: 0 imported',
           '',
           '**Errors**',
           '- Competition: Could not resolve an era',
@@ -136,11 +141,13 @@ describe('ImportTpReplyService', () => {
               players: imported(0),
               era: undefined,
               teamEra: undefined,
+              sppPlayers: [],
             },
           ],
           participation: imported(0),
           trophyAwards: imported(0),
           extraTrophyAwards: imported(0),
+          sppAdjustments: imported(0),
           era: 'Fourth era',
         },
       });
@@ -161,6 +168,7 @@ describe('ImportTpReplyService', () => {
           participation: imported(0),
           trophyAwards: imported(0),
           extraTrophyAwards: imported(0),
+          sppAdjustments: imported(0),
           era: 'Fourth era',
           matchesBackfill: {
             success: false,
@@ -181,6 +189,7 @@ describe('ImportTpReplyService', () => {
           '- Trophy awards: 0 imported',
           '- Extra trophy awards: 0 imported',
           '- Matches backfill: 5 imported',
+          '- SPP adjustments: 0 imported',
           '',
           '**Errors**',
           '- Matches backfill: match 7 not completed',
@@ -204,6 +213,7 @@ describe('ImportTpReplyService', () => {
           participation: imported(2),
           events: imported(40),
           outcome: imported(1),
+          sppAdjustments: imported(0),
         },
       });
 
@@ -223,6 +233,7 @@ describe('ImportTpReplyService', () => {
           '- Participation: 2 imported',
           '- Events: 40 imported',
           '- Outcome: 1 imported',
+          '- SPP adjustments: 0 imported',
         ].join('\n'),
       });
     });
@@ -241,6 +252,7 @@ describe('ImportTpReplyService', () => {
           participation: imported(0),
           events: imported(0),
           outcome: imported(0),
+          sppAdjustments: imported(0),
         },
       });
 
@@ -263,6 +275,7 @@ describe('ImportTpReplyService', () => {
           participation: imported(2),
           events: imported(40),
           outcome: imported(1),
+          sppAdjustments: imported(0),
         },
       });
 
@@ -287,6 +300,7 @@ describe('ImportTpReplyService', () => {
           participation: imported(2),
           events: imported(40),
           outcome: imported(1),
+          sppAdjustments: imported(0),
           participantsBackfill: {
             teams: [
               { rosterId: 1, ...team(12) },
@@ -296,6 +310,7 @@ describe('ImportTpReplyService', () => {
                 players: imported(0),
                 era: undefined,
                 teamEra: undefined,
+                sppPlayers: [],
               },
             ],
             participation: imported(1),
@@ -327,6 +342,7 @@ describe('ImportTpReplyService', () => {
           '- Backfilled trophy awards: 0 imported',
           '- Backfilled extra trophy awards: 0 imported',
           '- Matches backfill: 6 imported',
+          '- SPP adjustments: 0 imported',
           '',
           '**Errors**',
           '- Team 2: no coach',
@@ -364,6 +380,7 @@ describe('ImportTpReplyService', () => {
           players: imported(0),
           era: undefined,
           teamEra: undefined,
+          sppPlayers: [],
         },
       });
 
@@ -474,10 +491,12 @@ describe('ImportTpReplyService', () => {
           players: imported(0),
           era: undefined,
           teamEra: undefined,
+          sppPlayers: [],
         })),
         participation: imported(0),
         trophyAwards: imported(0),
         extraTrophyAwards: imported(0),
+        sppAdjustments: imported(0),
         era: 'Fourth era',
       },
     });

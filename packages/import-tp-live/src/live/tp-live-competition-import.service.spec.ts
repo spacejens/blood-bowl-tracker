@@ -25,6 +25,7 @@ import type { TpRegisteredTeamsImport } from './tp-competition-participants-back
 import { TpCompetitionParticipantsBackfillService } from './tp-competition-participants-backfill.service';
 import { TpExtraTrophyAwardsService } from './tp-extra-trophy-awards.service';
 import { TpLiveCompetitionImportService } from './tp-live-competition-import.service';
+import { TpLiveSppAdjustmentsService } from './tp-live-spp-adjustments.service';
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
 
 const EXTERNAL_SYSTEM_NAME = 'some-external-system';
@@ -32,11 +33,16 @@ const EXTERNAL_SYSTEM_NAME = 'some-external-system';
 const nothing: ImportResult = { success: true, imported: 0, errors: [] };
 const one: ImportResult = { success: true, imported: 1, errors: [] };
 const EXTRAS: ImportResult = { success: true, imported: 2, errors: [] };
+const SETTLED: ImportResult = { success: true, imported: 4, errors: [] };
+const FIRST_SPP = { playerId: 501, reportedSppTotal: 12 };
+const SECOND_SPP = { playerId: 601, reportedSppTotal: 7 };
+const BACKFILLED_SPP = { playerId: 801, reportedSppTotal: 5 };
 const teamImported: TpLiveTeamImportResult = {
   team: one,
   players: one,
   era: 'Fourth era',
   teamEra: { id: 31, eraId: 40 },
+  sppPlayers: [],
 };
 const teamNotImported: TpLiveTeamImportResult = {
   team: {
@@ -47,6 +53,7 @@ const teamNotImported: TpLiveTeamImportResult = {
   players: nothing,
   era: undefined,
   teamEra: undefined,
+  sppPlayers: [],
 };
 const BRACKET: TpBracket = {
   tournament: {
@@ -118,6 +125,7 @@ describe('TpLiveCompetitionImportService', () => {
   let competitionImport: MockProxy<TpCompetitionImportService>;
   let matchesBackfill: MockProxy<TpCompetitionMatchesBackfillService>;
   let extraTrophyAwards: MockProxy<TpExtraTrophyAwardsService>;
+  let sppAdjustments: MockProxy<TpLiveSppAdjustmentsService>;
 
   beforeEach(async () => {
     fetcher = mock<TpFetcherService>();
@@ -134,10 +142,16 @@ describe('TpLiveCompetitionImportService', () => {
     awardsFetch.fetchAwards.mockResolvedValue([AWARD]);
     competitionImport.importCompetition.mockResolvedValue(CORE);
     matchesBackfill = mock<TpCompetitionMatchesBackfillService>();
-    matchesBackfill.backfill.mockResolvedValue(MATCHES_BACKFILL);
+    matchesBackfill.backfill.mockResolvedValue({
+      result: MATCHES_BACKFILL,
+      sppPlayers: [],
+      eventFailedPlayerIds: [],
+    });
     extraTrophyAwards = mock<TpExtraTrophyAwardsService>();
     extraTrophyAwards.computeExtras.mockResolvedValue(EXTRAS);
     extraTrophyAwards.skippedForBackfillErrors.mockReturnValue(SKIPPED);
+    sppAdjustments = mock<TpLiveSppAdjustmentsService>();
+    sppAdjustments.settle.mockResolvedValue(SETTLED);
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpLiveCompetitionImportService,
@@ -155,6 +169,7 @@ describe('TpLiveCompetitionImportService', () => {
           useValue: matchesBackfill,
         },
         { provide: TpExtraTrophyAwardsService, useValue: extraTrophyAwards },
+        { provide: TpLiveSppAdjustmentsService, useValue: sppAdjustments },
       ],
     }).compile();
     service = moduleRef.get(TpLiveCompetitionImportService);
@@ -177,6 +192,7 @@ describe('TpLiveCompetitionImportService', () => {
       participation: CORE.participation,
       trophyAwards: one,
       extraTrophyAwards: EXTRAS,
+      sppAdjustments: SETTLED,
       era: 'Fourth era',
     });
     expect(bracketFetch.fetchBracket).toHaveBeenCalledWith({
@@ -237,6 +253,7 @@ describe('TpLiveCompetitionImportService', () => {
       participation: nothing,
       trophyAwards: nothing,
       extraTrophyAwards: nothing,
+      sppAdjustments: nothing,
       era: undefined,
     });
     expect(participantsBackfill.importRegisteredTeams).not.toHaveBeenCalled();
@@ -333,6 +350,7 @@ describe('TpLiveCompetitionImportService', () => {
       participation: nothing,
       trophyAwards: nothing,
       extraTrophyAwards: nothing,
+      sppAdjustments: nothing,
       era: undefined,
     });
   });
@@ -407,7 +425,11 @@ describe('TpLiveCompetitionImportService', () => {
     });
 
     it('computes the extras after backfilling the matches', async () => {
-      matchesBackfill.backfill.mockResolvedValue(CLEAN_MATCHES_BACKFILL);
+      matchesBackfill.backfill.mockResolvedValue({
+        result: CLEAN_MATCHES_BACKFILL,
+        sppPlayers: [],
+        eventFailedPlayerIds: [],
+      });
       competitionImport.importCompetition.mockResolvedValue({
         ...CORE,
         competitionCreated: true,
@@ -456,7 +478,11 @@ describe('TpLiveCompetitionImportService', () => {
     });
 
     it('computes the extras when the match backfill of this import was clean', async () => {
-      matchesBackfill.backfill.mockResolvedValue(CLEAN_MATCHES_BACKFILL);
+      matchesBackfill.backfill.mockResolvedValue({
+        result: CLEAN_MATCHES_BACKFILL,
+        sppPlayers: [],
+        eventFailedPlayerIds: [],
+      });
       competitionImport.importCompetition.mockResolvedValue({
         ...CORE,
         competitionCreated: true,
@@ -473,6 +499,144 @@ describe('TpLiveCompetitionImportService', () => {
 
       expect(matchesBackfill.backfill).not.toHaveBeenCalled();
       expect(result.extraTrophyAwards).toEqual(EXTRAS);
+    });
+  });
+
+  describe('SPP adjustments', () => {
+    beforeEach(() => {
+      participantsBackfill.importRegisteredTeams.mockResolvedValue(
+        registered(
+          { ...teamImported, sppPlayers: [FIRST_SPP] },
+          { ...teamImported, sppPlayers: [SECOND_SPP] },
+        ),
+      );
+    });
+
+    it("settles every registered team's players after the match backfill", async () => {
+      competitionImport.importCompetition.mockResolvedValue({
+        ...CORE,
+        competitionCreated: true,
+      });
+
+      const result = await importCompetition();
+
+      expect(sppAdjustments.settle).toHaveBeenCalledWith(
+        [FIRST_SPP, SECOND_SPP],
+        { excludePlayerIds: [] },
+      );
+      expect(result.sppAdjustments).toEqual(SETTLED);
+      const [matchesOrder] = matchesBackfill.backfill.mock.invocationCallOrder;
+      const [settleOrder] = sppAdjustments.settle.mock.invocationCallOrder;
+      expect(matchesOrder).toBeLessThan(settleOrder);
+    });
+
+    it("also settles the players of the backfilled matches' teams", async () => {
+      matchesBackfill.backfill.mockResolvedValue({
+        result: CLEAN_MATCHES_BACKFILL,
+        sppPlayers: [BACKFILLED_SPP],
+        eventFailedPlayerIds: [],
+      });
+      competitionImport.importCompetition.mockResolvedValue({
+        ...CORE,
+        competitionCreated: true,
+      });
+
+      await importCompetition();
+
+      expect(sppAdjustments.settle).toHaveBeenCalledWith(
+        [FIRST_SPP, SECOND_SPP, BACKFILLED_SPP],
+        { excludePlayerIds: [] },
+      );
+    });
+
+    it('leaves out the players of backfilled matches whose events failed to import, whichever source they came from', async () => {
+      matchesBackfill.backfill.mockResolvedValue({
+        result: CLEAN_MATCHES_BACKFILL,
+        sppPlayers: [BACKFILLED_SPP],
+        eventFailedPlayerIds: [FIRST_SPP.playerId, BACKFILLED_SPP.playerId],
+      });
+      competitionImport.importCompetition.mockResolvedValue({
+        ...CORE,
+        competitionCreated: true,
+      });
+
+      await importCompetition();
+
+      expect(sppAdjustments.settle).toHaveBeenCalledWith(
+        [FIRST_SPP, SECOND_SPP, BACKFILLED_SPP],
+        { excludePlayerIds: [FIRST_SPP.playerId, BACKFILLED_SPP.playerId] },
+      );
+    });
+
+    it('still settles the players when the match backfill reported errors', async () => {
+      matchesBackfill.backfill.mockResolvedValue({
+        result: MATCHES_BACKFILL,
+        sppPlayers: [],
+        eventFailedPlayerIds: [],
+      });
+      competitionImport.importCompetition.mockResolvedValue({
+        ...CORE,
+        competitionCreated: true,
+      });
+
+      const result = await importCompetition();
+
+      expect(result.matchesBackfill?.errors).toHaveLength(1);
+      expect(sppAdjustments.settle).toHaveBeenCalledWith(
+        [FIRST_SPP, SECOND_SPP],
+        { excludePlayerIds: [] },
+      );
+      expect(result.sppAdjustments).toEqual(SETTLED);
+    });
+
+    it('settles the registered teams even when no match backfill ran', async () => {
+      const result = await importCompetition();
+
+      expect(matchesBackfill.backfill).not.toHaveBeenCalled();
+      expect(sppAdjustments.settle).toHaveBeenCalledWith(
+        [FIRST_SPP, SECOND_SPP],
+        { excludePlayerIds: [] },
+      );
+      expect(result.sppAdjustments).toEqual(SETTLED);
+    });
+
+    it('settles nothing when the competition itself was not imported', async () => {
+      competitionImport.importCompetition.mockResolvedValue({
+        ...CORE,
+        competition: {
+          success: false,
+          imported: 0,
+          errors: [{ item: 1, message: 'no group' }],
+        },
+      });
+
+      const result = await importCompetition();
+
+      expect(sppAdjustments.settle).not.toHaveBeenCalled();
+      expect(result.sppAdjustments).toEqual(nothing);
+    });
+
+    it('settles nothing when the bracket fetch fails', async () => {
+      bracketFetch.fetchBracket.mockResolvedValue(undefined);
+
+      const result = await importCompetition();
+
+      expect(sppAdjustments.settle).not.toHaveBeenCalled();
+      expect(result.sppAdjustments).toEqual(nothing);
+    });
+
+    it('reports a failed settle in its own stage without failing the competition', async () => {
+      const failed: ImportResult = {
+        success: false,
+        imported: 0,
+        errors: [{ item: { playerIds: [501] }, message: 'database down' }],
+      };
+      sppAdjustments.settle.mockResolvedValue(failed);
+
+      const result = await importCompetition();
+
+      expect(result.competition).toEqual(one);
+      expect(result.sppAdjustments).toEqual(failed);
     });
   });
 
@@ -535,6 +699,7 @@ describe('TpLiveCompetitionImportService', () => {
         participation: nothing,
         trophyAwards: nothing,
         extraTrophyAwards: nothing,
+        sppAdjustments: nothing,
         era: undefined,
       });
       expect(awardsFetch.fetchAwards).not.toHaveBeenCalled();

@@ -40,7 +40,8 @@ export const ImportTpRosterSchema = z.object({
    * When true, the players' `spp_total` is left alone: the caller writes it
    * afterwards through `players.syncReportedSppAdjustments`, from the
    * `reportedSppTotal` this import returns. tools/import-tp sends it; the
-   * live import, which runs no adjustments step, does not.
+   * live import does not: it writes TP's total here and, in a match or
+   * competition import, settles it in-process afterwards.
    */
   deferSppTotal: z.boolean().optional(),
 });

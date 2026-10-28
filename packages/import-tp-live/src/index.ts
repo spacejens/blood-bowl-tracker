@@ -47,6 +47,10 @@ export type {
   TpLiveOfficialTeamsRulesSetResult,
 } from './live/tp-live-official-teams-import.service';
 export { TpLiveOfficialTeamsImportService } from './live/tp-live-official-teams-import.service';
+export {
+  SPP_ADJUSTMENTS_CHUNK_SIZE,
+  TpLiveSppAdjustmentsService,
+} from './live/tp-live-spp-adjustments.service';
 export type { ImportStarPlayerHiresOptions } from './live/tp-live-star-player-hires.service';
 export { TpLiveStarPlayerHiresService } from './live/tp-live-star-player-hires.service';
 export type {
@@ -67,6 +71,11 @@ export type { FetchMatchOptions } from './live/tp-match-fetch.service';
 export { TpMatchFetchService } from './live/tp-match-fetch.service';
 export type { FetchOfficialTeamsOptions } from './live/tp-official-teams-fetch.service';
 export { TpOfficialTeamsFetchService } from './live/tp-official-teams-fetch.service';
+export type {
+  CollectPlayerSppFactsOptions,
+  TpLivePlayerSppFacts,
+} from './live/tp-player-spp-facts.service';
+export { TpPlayerSppFactsService } from './live/tp-player-spp-facts.service';
 export type { FetchRosterOptions } from './live/tp-roster-fetch.service';
 export { TpRosterFetchService } from './live/tp-roster-fetch.service';
 export { TpMatchModule } from './match/tp-match.module';

@@ -141,6 +141,7 @@ export class TpLiveMatchTeamsImportService {
       players: nothing(),
       era: undefined,
       teamEra: undefined,
+      sppPlayers: [],
     };
   }
 }

@@ -83,7 +83,9 @@ packages/
                         one completed TP match, with its teams and
                         competition, or one rules set's official team list,
                         through packages/game-data: the core behind
-                        tpRosters/tpMatches/tpCompetitions/tpOfficialTeams.import and live entry points
+                        tpRosters/tpMatches/tpCompetitions/tpOfficialTeams.import and live entry points;
+                        live match and competition imports also settle their
+                        players' SPP adjustments, roster-only imports do not
   parse-tp/           — library package for reusable TP JSON-parsing logic
                         (matches, rosters, awards, tournaments) and the TP
                         keys both import paths must agree on (the hired-star

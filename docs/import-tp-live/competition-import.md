@@ -64,6 +64,24 @@ when an earlier one fails:
    - This runs after step 7 and is skipped, with one error in `extraTrophyAwards`, when step 7 reported errors: a trophy already awarded is never recomputed, so an award computed while a match is missing would stay wrong.
    - When no backfill ran in this import (a plain re-import of an existing competition), the step relies on the matches imported earlier, and cannot tell whether any is missing.
    - The step is idempotent, so re-importing is harmless.
+9. **Settle the players' SPP**: once the competition is imported, every
+   registered team's players, and every player the match backfill imported
+   (including players seen only in backfilled match snapshots and teams not
+   in the inscriptions), get their `spp_total` and `spp_adjustment`
+   from game-data's `SppAdjustmentsService.syncReportedAdjustments`, as in
+   a live match import (see
+   [match-import.md](match-import.md#importing-a-match-live)). It runs last,
+   after step 7: the match backfill re-imports every team's roster, which
+   writes TP's raw total back. It runs even when no backfill ran, since step
+   3 re-imported the rosters too. A failure is reported in `sppAdjustments`
+   and never fails the import. A player of a backfilled match whose events
+   were not imported (a team import failed, the match row was not written,
+   participation was not linked, or the events stage reported errors) is not
+   settled, from any source, since the imported-event sum is incomplete; a
+   later successful import settles them, and errors in other stages do not
+   hold settling back. A backfilled match that throws names no players to
+   leave out. When the era is unresolved or the competition upsert fails, the
+   teams already re-imported are left unsettled.
 
 ### Fetch failures
 
@@ -81,6 +99,7 @@ The result carries:
 - `era`: the era the competition was imported under — the given one or the one the teams agreed on — or undefined when the import stopped before settling one.
 - When step 7 ran, `matchesBackfill`: one `ImportResult` counting the matches written and holding every backfilled match's errors.
 - `extraTrophyAwards`: one `ImportResult` counting the awards step 8 created (nothing imported when it did not run, and one error when it was skipped because step 7 reported errors).
+- `sppAdjustments`: one `ImportResult` counting the players step 9 settled (nothing imported when the competition was not imported).
 
 A team whose coach was never imported before is still imported: the live
 team import creates the coach from the roster's own coach id and name, with

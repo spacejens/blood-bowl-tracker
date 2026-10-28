@@ -17,6 +17,7 @@ import { TpCompetitionMatchesBackfillService } from './tp-competition-matches-ba
 import type { TpLiveCompetitionTeamResult } from './tp-competition-participants-backfill.service';
 import { TpCompetitionParticipantsBackfillService } from './tp-competition-participants-backfill.service';
 import { TpExtraTrophyAwardsService } from './tp-extra-trophy-awards.service';
+import { TpLiveSppAdjustmentsService } from './tp-live-spp-adjustments.service';
 
 export type { TpLiveCompetitionTeamResult } from './tp-competition-participants-backfill.service';
 
@@ -63,6 +64,13 @@ export interface TpLiveCompetitionImportResult {
    */
   extraTrophyAwards: ImportResult;
   /**
+   * Settling the SPP total and adjustment of every registered team's
+   * players, last, once the competition is imported (after its match
+   * backfill, when that ran). Nothing imported otherwise; a failure here
+   * never fails the import.
+   */
+  sppAdjustments: ImportResult;
+  /**
    * The era the competition was imported under: the given one, or the one
    * its teams agreed on. Undefined when the import stopped before an era was
    * settled.
@@ -87,6 +95,7 @@ export class TpLiveCompetitionImportService {
     private readonly matchesBackfill: TpCompetitionMatchesBackfillService,
     private readonly extraTrophyAwards: TpExtraTrophyAwardsService,
     private readonly importResults: ImportResultService,
+    private readonly sppAdjustmentsSync: TpLiveSppAdjustmentsService,
   ) {}
 
   /**
@@ -111,16 +120,21 @@ export class TpLiveCompetitionImportService {
    * of a competition that now exists. Once the competition is imported,
    * every completed match of its bracket is backfilled — reusing the
    * bracket already fetched — when the competition was newly created or
-   * `forceMatchBackfill` is set; the backfill reports its own
-   * failures in `matchesBackfill` and never fails the import. Last, once
+   * `forceMatchBackfill` is set; the backfill reports its own failures in
+   * `matchesBackfill` and never fails the import. Last, once
    * the competition is imported and finished (TP returned at least one
    * award), the trophies TP does not record itself are awarded, after the
    * match backfill. They are skipped, with one error, when that backfill
    * reported errors, since a missing match would skew them for good; when no
    * backfill ran they rely on the matches imported earlier. That stage
    * reports its own failures in `extraTrophyAwards` and never fails the
-   * import. A failed awards or inscriptions fetch leaves the competition's
-   * finished state unknown, so its stored end date is left as stored.
+   * import. Last of all, once the competition is imported, every registered
+   * team's players, and every player the match backfill imported, have their
+   * SPP total and adjustment settled through `TpLiveSppAdjustmentsService`,
+   * after the match backfill (the backfill re-imports their rosters),
+   * reported in `sppAdjustments`. A failed awards or inscriptions fetch
+   * leaves the competition's finished state unknown, so its stored end date
+   * is left as stored.
    */
   async importCompetition({
     tournamentSlug,
@@ -211,12 +225,13 @@ export class TpLiveCompetitionImportService {
           imported: 0,
           errors: [],
         }),
+        sppAdjustments: this.importResults.result({ imported: 0, errors: [] }),
         era: competitionEra,
       };
       backfilling =
         core.competition.imported > 0 &&
         (core.competitionCreated || forceMatchBackfill);
-      const matchesBackfill = backfilling
+      const backfilledMatches = backfilling
         ? await this.matchesBackfill.backfill({
             tournamentSlug,
             era: competitionEra,
@@ -225,6 +240,7 @@ export class TpLiveCompetitionImportService {
             bracket,
           })
         : undefined;
+      const matchesBackfill = backfilledMatches?.result;
       const finished = awards !== undefined && awards.length > 0;
       const extraTrophyAwards =
         finished && core.competitionId !== undefined
@@ -234,9 +250,22 @@ export class TpLiveCompetitionImportService {
               matchesBackfill,
             })
           : imported.extraTrophyAwards;
+      const sppAdjustments =
+        core.competition.imported > 0
+          ? await this.sppAdjustmentsSync.settle(
+              [
+                ...teams.flatMap((team) => team.sppPlayers),
+                ...(backfilledMatches?.sppPlayers ?? []),
+              ],
+              {
+                excludePlayerIds: backfilledMatches?.eventFailedPlayerIds ?? [],
+              },
+            )
+          : imported.sppAdjustments;
       return {
         ...imported,
         extraTrophyAwards,
+        sppAdjustments,
         ...(matchesBackfill === undefined ? {} : { matchesBackfill }),
       };
     } catch (error) {
@@ -313,6 +342,7 @@ export class TpLiveCompetitionImportService {
       participation: nothing(),
       trophyAwards: nothing(),
       extraTrophyAwards: nothing(),
+      sppAdjustments: nothing(),
       era: undefined,
     };
   }
