@@ -1,5 +1,11 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { advancementCosts, DB, rulesSets } from '@blood-bowl-tracker/db';
+import {
+  advancementCosts,
+  DB,
+  leagues,
+  rulesSets,
+  skills,
+} from '@blood-bowl-tracker/db';
 import {
   closeTestDb,
   resetGameDataTables,
@@ -91,6 +97,140 @@ describe('AdvancementCostsService.sync (real Postgres)', () => {
       service.sync({ costs: [...costs([6]), ...costs([7])] }),
     ).rejects.toBeInstanceOf(AdvancementCostValidationError);
     expect(await db.select().from(advancementCosts)).toHaveLength(0);
+  });
+
+  async function seedLeagueAndSkill(): Promise<{
+    leagueId: number;
+    skillId: number;
+  }> {
+    const [league] = await db
+      .insert(leagues)
+      .values({ name: 'tLoEG' })
+      .returning();
+    const [skill] = await db
+      .insert(skills)
+      .values({ name: 'Fan Favourite' })
+      .returning();
+    return { leagueId: league.id, skillId: skill.id };
+  }
+
+  const grantedSkillCost = (leagueId: number, skillId: number) => ({
+    rulesSetId,
+    leagueId,
+    advancementNumber: 7,
+    advancementKind: 'granted_skill' as const,
+    skillId,
+    sppCost: 125,
+  });
+
+  it('stores a league granted-skill cost beside the rules-set costs and re-syncs it in place', async () => {
+    const { leagueId, skillId } = await seedLeagueAndSkill();
+    const leagueCost = grantedSkillCost(leagueId, skillId);
+    await service.sync({
+      costs: [...costs([6, 10, 15, 20, 25, 100]), leagueCost],
+    });
+    const second = await service.sync({ costs: [leagueCost] });
+
+    const rows = await db.select().from(advancementCosts);
+    expect(rows).toHaveLength(7);
+    const leagueRow = rows.find((row) => row.leagueId === leagueId);
+    expect(leagueRow).toMatchObject({
+      skillId,
+      sppCost: 125,
+      historyVersion: 1,
+    });
+    expect(second.advancementCostIds).toEqual([leagueRow!.id]);
+    expect(rows.filter((row) => row.leagueId === null)).toHaveLength(6);
+  });
+
+  it('keeps a league cost apart from the rules-set cost with the same number and kind', async () => {
+    const { leagueId } = await seedLeagueAndSkill();
+    await service.sync({ costs: costs([6]) });
+    await service.sync({ costs: [{ ...costs([9])[0], leagueId }] });
+
+    const rows = await db.select().from(advancementCosts);
+    expect(rows).toHaveLength(2);
+    expect(rows.find((row) => row.leagueId === null)?.sppCost).toBe(6);
+    expect(rows.find((row) => row.leagueId === leagueId)?.sppCost).toBe(9);
+  });
+
+  it('rejects an unknown league and writes nothing', async () => {
+    const { skillId } = await seedLeagueAndSkill();
+    await expect(
+      service.sync({ costs: [grantedSkillCost(999_999, skillId)] }),
+    ).rejects.toBeInstanceOf(AdvancementCostValidationError);
+    expect(await db.select().from(advancementCosts)).toHaveLength(0);
+  });
+
+  it('rejects an unknown skill and writes nothing', async () => {
+    const { leagueId } = await seedLeagueAndSkill();
+    await expect(
+      service.sync({ costs: [grantedSkillCost(leagueId, 999_999)] }),
+    ).rejects.toBeInstanceOf(AdvancementCostValidationError);
+    expect(await db.select().from(advancementCosts)).toHaveLength(0);
+  });
+
+  it('the service rejects a granted_skill cost without a skill and a skill on another kind', async () => {
+    const { leagueId, skillId } = await seedLeagueAndSkill();
+    const { skillId: _omitted, ...withoutSkill } = grantedSkillCost(
+      leagueId,
+      skillId,
+    );
+    await expect(
+      service.sync({ costs: [withoutSkill] }),
+    ).rejects.toBeInstanceOf(AdvancementCostValidationError);
+    await expect(
+      service.sync({ costs: [{ ...costs([6])[0], skillId }] }),
+    ).rejects.toBeInstanceOf(AdvancementCostValidationError);
+    expect(await db.select().from(advancementCosts)).toHaveLength(0);
+  });
+
+  it('the database rejects a granted_skill row without a skill and a table_roll row with one', async () => {
+    const { skillId } = await seedLeagueAndSkill();
+    const base = { rulesSetId, advancementNumber: 7, sppCost: 125 };
+    await expect(
+      db
+        .insert(advancementCosts)
+        .values({ ...base, advancementKind: 'granted_skill' }),
+    ).rejects.toMatchObject({
+      cause: { constraint_name: 'advancement_costs_skill_matches_kind' },
+    });
+    await expect(
+      db
+        .insert(advancementCosts)
+        .values({ ...base, advancementKind: 'table_roll', skillId }),
+    ).rejects.toMatchObject({
+      cause: { constraint_name: 'advancement_costs_skill_matches_kind' },
+    });
+  });
+
+  it('the database treats a null league as a value: duplicates are rejected, a league row is allowed beside it', async () => {
+    const { leagueId } = await seedLeagueAndSkill();
+    const row = {
+      rulesSetId,
+      advancementNumber: 1,
+      advancementKind: 'table_roll' as const,
+      sppCost: 6,
+    };
+    await db.insert(advancementCosts).values(row);
+    await expect(db.insert(advancementCosts).values(row)).rejects.toMatchObject(
+      {
+        cause: {
+          constraint_name:
+            'advancement_costs_rules_set_league_number_kind_unique',
+        },
+      },
+    );
+    await db.insert(advancementCosts).values({ ...row, leagueId });
+    await expect(
+      db.insert(advancementCosts).values({ ...row, leagueId }),
+    ).rejects.toMatchObject({
+      cause: {
+        constraint_name:
+          'advancement_costs_rules_set_league_number_kind_unique',
+      },
+    });
+    expect(await db.select().from(advancementCosts)).toHaveLength(2);
   });
 
   it.each([
