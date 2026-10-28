@@ -14,6 +14,7 @@ export const TrophyAwardSchema = z.object({
   competitionId: z.number(),
   teamEraId: z.number(),
   playerId: z.number().nullable(),
+  grantedSkillId: z.number().nullable(),
   createdAt: z.coerce.date(),
 });
 
@@ -37,6 +38,12 @@ export const TrophyAwardSchema = z.object({
  * already knows the team era may still supply it, and its value wins. A team
  * award has no player to derive from, so it must still state one — which the
  * refinement below, not the service, rejects.
+ *
+ * `grantedSkillId` follows the overlay convention: omitted leaves any stored
+ * granted skill untouched (which is why an importer that never sends it can
+ * never clear a curated one), `null` clears it, and a number sets it. Only a
+ * player award may grant a skill, and the skill must exist; both are checked
+ * in `TrophyAwardsService`.
  */
 export const UpsertTrophyAwardSchema = z
   .object({
@@ -44,6 +51,7 @@ export const UpsertTrophyAwardSchema = z
     competitionId: z.number().int(),
     teamEraId: z.number().int().optional(),
     playerId: z.number().int().nullable().default(null),
+    grantedSkillId: z.number().int().nullable().optional(),
   })
   .refine((v) => v.teamEraId !== undefined || v.playerId !== null, {
     message: 'teamEraId is required for a team award (playerId is null)',

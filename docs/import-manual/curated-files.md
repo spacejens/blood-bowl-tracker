@@ -221,7 +221,11 @@ Rumble` events become `Reserves Rumble 1`–`3`). Batch 001
   (Season MVP, Gudarnas Förkämpe), for which no importer records a
   winner. It is applied after the sources because each entry references a
   competition and a player by external id, both created by the BBL/TP
-  importers.
+  importers. An entry may also name a `grantedSkill`, the skill the trophy
+  gave the player outside their advancements (see
+  [trophy awards](../game-concepts/trophies/index.md#trophy-award)); leaving
+  it out leaves any stored one alone. A later batch can replace a granted skill
+  but not remove one, because an entry has no way to say "no skill".
 - `position-skills.json5` — hand-curated starting skills
   (`position_rules_set_skills`) for CRP, CRP+ and BB2016, one entry per
   (position, rules set) carrying that position's whole skill list. Each entry's
@@ -291,3 +295,10 @@ league `{ system: 'tloeg.bbleague.se', id: 'tLoEG' }`, advancement 7, kind
 at 176 + 125 = 301 SPP. The header comment records the rule and the rules
 sets it applies to, and `curated-data-batch-004.spec.ts` checks that the
 league rows exist only for CRP, CRP+ and BB2016 and bring each total to 301.
+
+`data/batches/004-advancement-costs/trophy-awards.json5` names the free
+mutation each Gudarnas Förkämpe award granted, as a `grantedSkill` on an entry
+that otherwise repeats the award's trophy, competition and player. Each skill
+was identified from the downloaded BBL/TP data as the player's gained
+mutation; an award the data does not settle carries no skill.
+`curated-data-batch-004-trophy-awards.spec.ts` pins every entry.

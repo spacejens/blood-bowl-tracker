@@ -4,6 +4,7 @@ import {
   MissingRequiredFieldError,
   SyncBatchValidationError,
   TrophyAwardCompetitionGroupMismatchError,
+  TrophyAwardGrantedSkillError,
   TrophyAwardRecipientMismatchError,
 } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
@@ -52,7 +53,8 @@ export type BatchUpsertItemResult<TEntity extends object> =
  * BAD_REQUEST, as does a trophy award whose player id does not fit its
  * trophy's recipient kind (`TrophyAwardRecipientMismatchError`) and one whose
  * competition belongs to a different competition group than its trophy is
- * curated for (`TrophyAwardCompetitionGroupMismatchError`).
+ * curated for (`TrophyAwardCompetitionGroupMismatchError`), and one that names
+ * a granted skill it cannot carry (`TrophyAwardGrantedSkillError`).
  * Anything else propagates untouched.
  * {@link runWithoutConflict} is the same body minus the CONFLICT branch, for
  * an entity whose natural key is enforced by a database constraint.
@@ -101,7 +103,8 @@ export class UpsertHandlerService {
         err instanceof CharacteristicFormatMismatchError ||
         err instanceof MatchCategoryMismatchError ||
         err instanceof TrophyAwardRecipientMismatchError ||
-        err instanceof TrophyAwardCompetitionGroupMismatchError
+        err instanceof TrophyAwardCompetitionGroupMismatchError ||
+        err instanceof TrophyAwardGrantedSkillError
       ) {
         throw errors.BAD_REQUEST({ message: err.message });
       }
@@ -189,7 +192,8 @@ export class UpsertHandlerService {
           err instanceof CharacteristicFormatMismatchError ||
           err instanceof MatchCategoryMismatchError ||
           err instanceof TrophyAwardRecipientMismatchError ||
-          err instanceof TrophyAwardCompetitionGroupMismatchError
+          err instanceof TrophyAwardCompetitionGroupMismatchError ||
+          err instanceof TrophyAwardGrantedSkillError
         ) {
           results.push({ success: false, error: err.message });
           continue;

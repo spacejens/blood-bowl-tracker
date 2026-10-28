@@ -1,0 +1,97 @@
+// Batch 004: the free mutation each Gudarnas Förkämpe award granted.
+//
+// The trophy gives its player a mutation that costs no SPP and is not one of
+// their advancements. Neither BBL nor TP marks which of a player's skills
+// was the free one, so each was identified from the downloaded data as the
+// player's gained mutation-category skill. An entry with no grantedSkill is
+// one where the data does not settle which mutation was free, or where the
+// player has not chosen one yet.
+//
+// Every award below has exactly one gained mutation. Where the position
+// cannot take mutations as advancements (per its BBL position page, or TP's
+// skillNormal/skillDouble masks), that mutation can only be the free one.
+// Where it can, the entry says so and the developer confirmed the choice.
+//
+// Each entry names the award's competition and player by external id: the
+// same award the BBL importer (or batch 002, for Chaos Cup 8) already
+// recorded, so the upsert overlays the granted skill onto that row. Skills
+// are referenced under the "Name" system by their curated display name.
+//
+// ENTRY SHAPE: as in batch 002's trophy-awards.json5, plus
+//   grantedSkill  Optional. An external-id reference to the skill the trophy
+//                 granted. Leaving it out never clears a stored one.
+//
+// curated-data-batch-004-trophy-awards.spec.ts pins every entry.
+{
+  externalSystems: [
+    { name: 'Name', category: 'bookkeeping' },
+    { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
+    { name: 'tourplay.net', category: 'imported_data_source' },
+  ],
+  trophyAwards: [
+    // Chaos Cup 1: The Young King (Tomb Guardian, no mutation access); his
+    // only mutation.
+    {
+      trophy: 'Gudarnas Förkämpe',
+      competition: { system: 'tloeg.bbleague.se', id: '14' },
+      player: { system: 'tloeg.bbleague.se', id: '319' },
+      grantedSkill: { system: 'Name', id: 'Tentacles' },
+    },
+    // Chaos Cup 2: Nudeliti Irontracer (Dark Elf Blitzer, no mutation
+    // access); his only mutation.
+    {
+      trophy: 'Gudarnas Förkämpe',
+      competition: { system: 'tloeg.bbleague.se', id: '21' },
+      player: { system: 'tloeg.bbleague.se', id: '127' },
+      grantedSkill: { system: 'Name', id: 'Disturbing Presence' },
+    },
+    // Chaos Cup 3: Lord Foul (Chaos Chosen Blocker). The position takes
+    // mutations as normal advancements, but Foul Appearance is his only
+    // gained mutation and the developer confirmed it is the trophy's.
+    {
+      trophy: 'Gudarnas Förkämpe',
+      competition: { system: 'tloeg.bbleague.se', id: '27' },
+      player: { system: 'tloeg.bbleague.se', id: '554' },
+      grantedSkill: { system: 'Name', id: 'Foul Appearance' },
+    },
+    // Chaos Cup 4: Sobo (Orc Blitzer, no mutation access); his only mutation.
+    {
+      trophy: 'Gudarnas Förkämpe',
+      competition: { system: 'tloeg.bbleague.se', id: '34' },
+      player: { system: 'tloeg.bbleague.se', id: '962' },
+      grantedSkill: { system: 'Name', id: 'Horns' },
+    },
+    // Chaos Cup 5: Melia Feldragryl (Wood Elf Lineman, no mutation access);
+    // her only mutation.
+    {
+      trophy: 'Gudarnas Förkämpe',
+      competition: { system: 'tloeg.bbleague.se', id: '41' },
+      player: { system: 'tloeg.bbleague.se', id: '1236' },
+      grantedSkill: { system: 'Name', id: 'Very Long Legs' },
+    },
+    // Chaos Cup 6: Willow Frailtwig (Treeman, no mutation access); the only
+    // mutation.
+    {
+      trophy: 'Gudarnas Förkämpe',
+      competition: { system: 'tloeg.bbleague.se', id: '51' },
+      player: { system: 'tloeg.bbleague.se', id: '3078' },
+      grantedSkill: { system: 'Name', id: 'Tentacles' },
+    },
+    // Chaos Cup 7: Olaf Thoraldsson (Norse Catcher, no mutation access); his
+    // only mutation.
+    {
+      trophy: 'Gudarnas Förkämpe',
+      competition: { system: 'tloeg.bbleague.se', id: '56' },
+      player: { system: 'tloeg.bbleague.se', id: '374' },
+      grantedSkill: { system: 'Name', id: 'Tentacles' },
+    },
+    // Chaos Cup 8: Snarg Half-Thought (Trained Troll, no mutation access);
+    // TP marks Tentacles as a hand-added extra.
+    {
+      trophy: 'Gudarnas Förkämpe',
+      competition: { system: 'tourplay.net', id: '18616' },
+      player: { system: 'tourplay.net', id: '2464143' },
+      grantedSkill: { system: 'Name', id: 'Tentacles' },
+    },
+  ],
+}

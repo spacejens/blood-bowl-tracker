@@ -373,6 +373,23 @@ describe('schema', () => {
     expect(unique.nullsNotDistinct).toBe(true);
   });
 
+  it('exports trophy_awards.granted_skill_id as a nullable FK to skills, outside the natural key', () => {
+    // Nullable: only a few trophies grant a skill, and a player who holds
+    // one may not have chosen it yet.
+    expect(trophyAwards.grantedSkillId).toBeDefined();
+    expect(trophyAwards.grantedSkillId.notNull).toBe(false);
+    expect(trophyAwards.grantedSkillId.getSQLType()).toBe('integer');
+    const config = getTableConfig(trophyAwards);
+    expect(
+      config.foreignKeys.some((fk) =>
+        fk.reference().columns.some((c) => c.name === 'granted_skill_id'),
+      ),
+    ).toBe(true);
+    expect(
+      config.uniqueConstraints[0].columns.map((c) => c.name),
+    ).not.toContain('granted_skill_id');
+  });
+
   it('exports trophyAwards link table with a nullable playerId', () => {
     expect(trophyAwards.id).toBeDefined();
     expect(trophyAwards.trophyId).toBeDefined();

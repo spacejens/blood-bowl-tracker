@@ -184,6 +184,7 @@ export type {
 } from './trophy-awards/trophy-awards.service';
 export {
   TrophyAwardCompetitionGroupMismatchError,
+  TrophyAwardGrantedSkillError,
   TrophyAwardRecipientMismatchError,
   TrophyAwardsService,
 } from './trophy-awards/trophy-awards.service';

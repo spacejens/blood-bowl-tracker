@@ -55,10 +55,14 @@ The batches:
   advancement kind for BB2020, DB2021 and BB2025, plus tLoEG's house-rule Fan
   Favourite advancement under CRP, CRP+ and BB2016 (see
   [Star Player Points sections](star-player-points.md#advancement-costs)). It
-  references only the rules sets, the tLoEG league and the Fan Favourite
-  skill that batch 001 declares, so it needs nothing from the source
-  importers. The api-server must already run a release whose
-  `advancementCosts.sync` accepts league and skill ids before it is applied.
+  references the rules sets, the tLoEG league and the Fan Favourite skill that
+  batch 001 declares, so its cost rows need nothing from the source importers.
+  It also names the free mutation of every Gudarnas Förkämpe award
+  (`trophy-awards.json5`). Those entries reference competitions and players
+  the BBL and TP importers create, so the batch lands after them like every
+  batch above 002. The api-server must already run a release whose
+  `advancementCosts.sync` accepts league and skill ids and whose
+  `trophyAwards.upsert` accepts `grantedSkillId` before the batch is applied.
 
 ## Changing curated data
 
