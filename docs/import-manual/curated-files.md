@@ -224,7 +224,8 @@ Rumble` events become `Reserves Rumble 1`–`3`). Batch 001
   importers. An entry may also name a `grantedSkill`, the skill the trophy
   gave the player outside their advancements (see
   [trophy awards](../game-concepts/trophies/index.md#trophy-award)); leaving
-  it out leaves any stored one alone.
+  it out leaves any stored one alone. A later batch can replace a granted skill
+  but not remove one, because an entry has no way to say "no skill".
 - `position-skills.json5` — hand-curated starting skills
   (`position_rules_set_skills`) for CRP, CRP+ and BB2016, one entry per
   (position, rules set) carrying that position's whole skill list. Each entry's

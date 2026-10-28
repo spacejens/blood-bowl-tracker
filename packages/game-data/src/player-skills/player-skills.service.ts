@@ -54,7 +54,9 @@ export interface PlayerSkillRow {
    * skill it granted (Gudarnas Förkämpe's free mutation). Such a skill is not
    * an advancement: it costs no SPP and is left out of the player's
    * advancement count. Source-system independent, because it comes from the
-   * curated award rather than from how the importer recorded the skill.
+   * curated award rather than from how the importer recorded the skill. It is
+   * matched on the skill alone, so it applies to whichever of the player's rows
+   * carries that skill; a cost model reads it on the gained rows it counts.
    */
   isTrophyGranted: boolean;
 }

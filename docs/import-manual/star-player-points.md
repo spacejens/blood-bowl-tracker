@@ -41,5 +41,5 @@ one error. This section is processed after the rules sets it references.
 
 A skill a trophy award grants (see
 [trophy awards](../game-concepts/trophies/index.md#trophy-award)) is not an
-advancement. A cost model skips every trophy-granted skill when numbering a
-player's advancements and when summing the SPP they have spent.
+advancement. A cost model must skip every trophy-granted skill when numbering
+a player's advancements and when summing the SPP they have spent.
