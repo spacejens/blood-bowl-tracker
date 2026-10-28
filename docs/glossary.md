@@ -10,7 +10,7 @@ Entries are split into two sections: terms a [coach](#coach) directly encounters
 
 ### Advancement
 
-A permanent improvement a [player](#player) gains — a new [skill](#skill) or a characteristic increase — paid for with [SPP](#star-player-points-spp). Each [rules set](#rules-set) prices advancements in its own way; the tracker records the SPP cost of each successive advancement per rules set (see [database.md](database.md#star-player-points)).
+A permanent improvement a [player](#player) gains — a new [skill](#skill) or a characteristic increase — paid for with [SPP](#star-player-points-spp). Each [rules set](#rules-set) prices advancements in its own way; the tracker records the SPP cost of each successive advancement per rules set, and per kind of advancement where the rules set prices them by type (see [database.md](database.md#star-player-points)).
 
 ### Apothecary
 

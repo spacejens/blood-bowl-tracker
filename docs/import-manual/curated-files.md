@@ -275,9 +275,12 @@ rename goes into a new batch, restating `name` and the row's `externalIds`.
 ## Batch 004
 
 `data/batches/004-advancement-costs/advancement-costs.json5` holds the SPP
-cost of advancements 1 to 6 under CRP, CRP+ and BB2016, which share the
-thresholds 6, 16, 31, 51, 76 and 176 SPP. Each row stores the gap to the
-previous threshold (6, 10, 15, 20, 25, 100), not the threshold; the file's
-header comment shows the derivation and `curated-data-batch-004.spec.ts`
-checks the running totals against the thresholds. The rules sets are
-referenced under the `Name` system by bare name, as batch 001 declares them.
+cost of advancements 1 to 6 under every rules set. CRP, CRP+ and BB2016 share
+the thresholds 6, 16, 31, 51, 76 and 176 SPP; each row stores the gap to the
+previous threshold (6, 10, 15, 20, 25, 100), not the threshold, and the
+file's header comment shows the derivation. BB2020, DB2021 and BB2025 price an
+advancement by what the coach takes, so each has one row per kind for every
+advancement number (BB2025 has no random secondary skill). The header comment
+tabulates these costs and `curated-data-batch-004.spec.ts` pins them and
+checks the fixed-threshold running totals. The rules sets are referenced under
+the `Name` system by bare name, as batch 001 declares them.

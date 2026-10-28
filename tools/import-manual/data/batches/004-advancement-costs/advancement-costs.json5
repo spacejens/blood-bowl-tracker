@@ -1,19 +1,40 @@
-// Batch 004: the SPP cost of each advancement under the rules sets that use
-// fixed thresholds -- CRP, CRP+ and BB2016.
+// Batch 004: the SPP cost of each advancement under every rules set the
+// tracker holds.
 //
-// All three share the cumulative thresholds 6, 16, 31, 51, 76 and 176 SPP;
-// reaching each one earns a roll on the rules set's advancement table
-// (`table_roll`). A row stores the cost of one advancement -- the gap to the
-// previous threshold -- not the threshold itself, so the costs of a player's
+// A row stores the cost of one advancement, never a cumulative threshold, and
+// `advancementNumber` counts skills and characteristic increases alike.
+//
+// CRP, CRP+ and BB2016 use fixed thresholds: reaching 6, 16, 31, 51, 76 and
+// 176 SPP earns a roll on the rules set's advancement table (`table_roll`).
+// Each row is the gap to the previous threshold, so the costs of a player's
 // first N advancements sum to the Nth threshold:
 //
 //   advancement   1    2    3    4    5    6
 //   threshold     6   16   31   51   76  176
 //   cost          6   10   15   20   25  100
 //
+// BB2020, DB2021 and BB2025 price an advancement by what the coach takes, so
+// they hold one row per kind for each advancement number. BB2020 and DB2021
+// share these costs:
+//
+//   advancement                1   2   3   4   5   6
+//   random_primary_skill       3   4   6   8  10  15
+//   chosen_primary_skill       6   8  12  16  20  30
+//   random_secondary_skill     6   8  12  16  20  30
+//   chosen_secondary_skill    12  14  18  22  26  40
+//   random_characteristic     18  20  24  28  32  50
+//
+// BB2025 has no random secondary skill option:
+//
+//   advancement                1   2   3   4   5   6
+//   random_primary_skill       3   4   6   8  10  15
+//   chosen_primary_skill       6   8  12  16  20  30
+//   chosen_secondary_skill    10  12  16  20  24  34
+//   random_characteristic     14  16  20  24  28  38
+//
 // The rules sets already exist (batch 001 declares them), so entries
 // reference them under the "Name" system by bare name.
-// curated-data-batch-004.spec.ts checks the costs against the thresholds.
+// curated-data-batch-004.spec.ts pins every cost listed here.
 {
   externalSystems: [{ name: 'Name', category: 'bookkeeping' }],
 
@@ -41,5 +62,95 @@
     { rulesSet: { system: 'Name', id: 'BB2016' }, advancementNumber: 4, advancementKind: 'table_roll', sppCost: 20 },
     { rulesSet: { system: 'Name', id: 'BB2016' }, advancementNumber: 5, advancementKind: 'table_roll', sppCost: 25 },
     { rulesSet: { system: 'Name', id: 'BB2016' }, advancementNumber: 6, advancementKind: 'table_roll', sppCost: 100 },
+
+    // --- BB2020 ---
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 1, advancementKind: 'random_primary_skill', sppCost: 3 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 2, advancementKind: 'random_primary_skill', sppCost: 4 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 3, advancementKind: 'random_primary_skill', sppCost: 6 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 4, advancementKind: 'random_primary_skill', sppCost: 8 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 5, advancementKind: 'random_primary_skill', sppCost: 10 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 6, advancementKind: 'random_primary_skill', sppCost: 15 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 1, advancementKind: 'chosen_primary_skill', sppCost: 6 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 2, advancementKind: 'chosen_primary_skill', sppCost: 8 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 3, advancementKind: 'chosen_primary_skill', sppCost: 12 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 4, advancementKind: 'chosen_primary_skill', sppCost: 16 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 5, advancementKind: 'chosen_primary_skill', sppCost: 20 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 6, advancementKind: 'chosen_primary_skill', sppCost: 30 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 1, advancementKind: 'random_secondary_skill', sppCost: 6 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 2, advancementKind: 'random_secondary_skill', sppCost: 8 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 3, advancementKind: 'random_secondary_skill', sppCost: 12 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 4, advancementKind: 'random_secondary_skill', sppCost: 16 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 5, advancementKind: 'random_secondary_skill', sppCost: 20 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 6, advancementKind: 'random_secondary_skill', sppCost: 30 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 1, advancementKind: 'chosen_secondary_skill', sppCost: 12 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 2, advancementKind: 'chosen_secondary_skill', sppCost: 14 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 3, advancementKind: 'chosen_secondary_skill', sppCost: 18 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 4, advancementKind: 'chosen_secondary_skill', sppCost: 22 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 5, advancementKind: 'chosen_secondary_skill', sppCost: 26 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 6, advancementKind: 'chosen_secondary_skill', sppCost: 40 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 1, advancementKind: 'random_characteristic', sppCost: 18 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 2, advancementKind: 'random_characteristic', sppCost: 20 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 3, advancementKind: 'random_characteristic', sppCost: 24 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 4, advancementKind: 'random_characteristic', sppCost: 28 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 5, advancementKind: 'random_characteristic', sppCost: 32 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, advancementNumber: 6, advancementKind: 'random_characteristic', sppCost: 50 },
+
+    // --- DB2021 (identical to BB2020) ---
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 1, advancementKind: 'random_primary_skill', sppCost: 3 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 2, advancementKind: 'random_primary_skill', sppCost: 4 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 3, advancementKind: 'random_primary_skill', sppCost: 6 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 4, advancementKind: 'random_primary_skill', sppCost: 8 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 5, advancementKind: 'random_primary_skill', sppCost: 10 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 6, advancementKind: 'random_primary_skill', sppCost: 15 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 1, advancementKind: 'chosen_primary_skill', sppCost: 6 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 2, advancementKind: 'chosen_primary_skill', sppCost: 8 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 3, advancementKind: 'chosen_primary_skill', sppCost: 12 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 4, advancementKind: 'chosen_primary_skill', sppCost: 16 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 5, advancementKind: 'chosen_primary_skill', sppCost: 20 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 6, advancementKind: 'chosen_primary_skill', sppCost: 30 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 1, advancementKind: 'random_secondary_skill', sppCost: 6 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 2, advancementKind: 'random_secondary_skill', sppCost: 8 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 3, advancementKind: 'random_secondary_skill', sppCost: 12 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 4, advancementKind: 'random_secondary_skill', sppCost: 16 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 5, advancementKind: 'random_secondary_skill', sppCost: 20 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 6, advancementKind: 'random_secondary_skill', sppCost: 30 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 1, advancementKind: 'chosen_secondary_skill', sppCost: 12 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 2, advancementKind: 'chosen_secondary_skill', sppCost: 14 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 3, advancementKind: 'chosen_secondary_skill', sppCost: 18 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 4, advancementKind: 'chosen_secondary_skill', sppCost: 22 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 5, advancementKind: 'chosen_secondary_skill', sppCost: 26 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 6, advancementKind: 'chosen_secondary_skill', sppCost: 40 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 1, advancementKind: 'random_characteristic', sppCost: 18 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 2, advancementKind: 'random_characteristic', sppCost: 20 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 3, advancementKind: 'random_characteristic', sppCost: 24 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 4, advancementKind: 'random_characteristic', sppCost: 28 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 5, advancementKind: 'random_characteristic', sppCost: 32 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, advancementNumber: 6, advancementKind: 'random_characteristic', sppCost: 50 },
+
+    // --- BB2025 ---
+    { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 1, advancementKind: 'random_primary_skill', sppCost: 3 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 2, advancementKind: 'random_primary_skill', sppCost: 4 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 3, advancementKind: 'random_primary_skill', sppCost: 6 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 4, advancementKind: 'random_primary_skill', sppCost: 8 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 5, advancementKind: 'random_primary_skill', sppCost: 10 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 6, advancementKind: 'random_primary_skill', sppCost: 15 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 1, advancementKind: 'chosen_primary_skill', sppCost: 6 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 2, advancementKind: 'chosen_primary_skill', sppCost: 8 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 3, advancementKind: 'chosen_primary_skill', sppCost: 12 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 4, advancementKind: 'chosen_primary_skill', sppCost: 16 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 5, advancementKind: 'chosen_primary_skill', sppCost: 20 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 6, advancementKind: 'chosen_primary_skill', sppCost: 30 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 1, advancementKind: 'chosen_secondary_skill', sppCost: 10 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 2, advancementKind: 'chosen_secondary_skill', sppCost: 12 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 3, advancementKind: 'chosen_secondary_skill', sppCost: 16 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 4, advancementKind: 'chosen_secondary_skill', sppCost: 20 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 5, advancementKind: 'chosen_secondary_skill', sppCost: 24 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 6, advancementKind: 'chosen_secondary_skill', sppCost: 34 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 1, advancementKind: 'random_characteristic', sppCost: 14 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 2, advancementKind: 'random_characteristic', sppCost: 16 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 3, advancementKind: 'random_characteristic', sppCost: 20 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 4, advancementKind: 'random_characteristic', sppCost: 24 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 5, advancementKind: 'random_characteristic', sppCost: 28 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, advancementNumber: 6, advancementKind: 'random_characteristic', sppCost: 38 },
   ],
 }

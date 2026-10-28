@@ -27,10 +27,14 @@ rules set. Each entry is
 `{ rulesSet, advancementNumber, advancementKind, sppCost }`: `rulesSet` is an
 external-id pair pointing at a rules set, `advancementNumber` is the 1-based
 count of advancements a player has gained (skills and characteristic
-increases alike), `advancementKind` says what the cost buys (`table_roll`: a
-roll on the rules set's advancement table), and `sppCost` is that
-advancement's own cost — the gap to the previous threshold, not the
-cumulative threshold. Both numbers must be positive. A rules set,
+increases alike), `advancementKind` says what the cost buys, and `sppCost` is
+that one advancement's own cost, not a cumulative threshold. A rules set with
+fixed thresholds uses `table_roll` (a roll on its advancement table), each
+cost being the gap to the previous threshold. A rules set that prices
+advancements by type has one entry per kind it offers for each advancement
+number: `random_primary_skill`, `chosen_primary_skill`,
+`random_secondary_skill`, `chosen_secondary_skill` or
+`random_characteristic`. Both numbers must be positive. A rules set,
 advancement number and kind may appear only once across a run's pooled
 entries; the API rejects the whole sync otherwise, and the run records it as
 one error. This section is processed after the rules sets it references.
