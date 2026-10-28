@@ -55,7 +55,9 @@ The batches:
   [Star Player Points sections](star-player-points.md#advancement-costs)),
   and the primary and secondary skill categories of every CRP, CRP+ and
   BB2016 position, plus the BB2020, DB2021 and BB2025 positions TP's
-  official team list does not supply. The categories reference positions
+  official team list does not supply. CRP+ primary comes from NTBB2015's
+  Talent column and secondary from the CRP entry (see
+  [Batch 004](curated-files.md#batch-004)). The categories reference positions
   and characteristics that the source importers and batch 002 create, so the
   batch applies after them, in a plain `apply`. The api-server must already
   run a release with the `advancementCosts.sync` and

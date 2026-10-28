@@ -294,7 +294,12 @@ leaves out as removed. Only learnable categories are allowed (general,
 agility, passing, strength, mutation, devious), and a category is never both
 primary and secondary. The rulebooks' letter codes map as G general, A
 agility, P passing, S strength, M mutation, D devious; the Normal column is
-primary and the Double column secondary. `curated-data-batch-004-skill-categories.spec.ts`
-checks that every CRP position with curated characteristics has an entry. A
+primary and the Double column secondary. CRP+'s source (NTBB2015) has only a
+Talent column, so CRP+ takes primary from it and secondary from the same
+position's CRP entry; mutation that NTBB2015 allows only on a doubles roll is
+secondary. The few CRP+ positions with no CRP entry come from the developer's
+physical rulebooks. `curated-data-batch-004-skill-categories.spec.ts`
+checks that every CRP and CRP+ position with curated characteristics has an
+entry. A
 gap-fill entry must never name a pair TP's official team list supplies,
 because the next TP import would replace it with TP's set.
