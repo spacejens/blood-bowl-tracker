@@ -139,7 +139,8 @@ a genuinely new entity.
 ### Worked example
 
 In a new batch, e.g.
-`data/batches/005-necromantic-2020/necromantic-2020.json5`:
+`data/batches/999-necromantic-2020/necromantic-2020.json5` (999 stands in for
+whatever the next free batch number is):
 
 ```jsonc
 {
