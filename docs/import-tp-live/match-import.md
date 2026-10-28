@@ -116,8 +116,12 @@ up to four more steps after the shared core:
    total back, so the settling has to come after it. A player imported
    several times is settled once. A player of any backfilled match whose
    events failed to import is left out of this, from every source, and
-   stays unsettled until a later successful import. A TP block (`TpBlockedError`) during the
-   backfill skips settling until the retry with `forceMatchBackfill`.
+   stays unsettled until a later successful import. A backfilled match that
+   throws, or whose team import fails, names no players to leave out, so
+   players it would have covered are not held back; a player with career
+   counts is still safe, since the unimported events are estimated away. A TP
+   block (`TpBlockedError`) during the backfill skips settling until the
+   retry with `forceMatchBackfill`.
 
 The result then also carries `participantsBackfill` (`teams`,
 `participation`, `trophyAwards`) and `matchesBackfill` (one `ImportResult`

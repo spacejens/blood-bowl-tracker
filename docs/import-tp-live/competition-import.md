@@ -77,8 +77,10 @@ when an earlier one fails:
    and never fails the import. A player of a backfilled match whose events
    failed to import is not settled, from any source, since the
    imported-event sum is incomplete; a later successful import settles
-   them, and errors in other stages do not hold settling back. When the era is unresolved or the competition
-   upsert fails, the teams already re-imported are left unsettled.
+   them, and errors in other stages do not hold settling back. A backfilled
+   match that throws, or whose team import fails, names no players to leave
+   out. When the era is unresolved or the competition upsert fails, the
+   teams already re-imported are left unsettled.
 
 ### Fetch failures
 
