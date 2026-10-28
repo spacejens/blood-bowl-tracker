@@ -72,8 +72,12 @@ an earlier one fails:
    after an estimate of the SPP from competitions not imported yet (from
    TP's career action counts, which only a roster player has). Reported in
    `sppAdjustments`; a failure there never fails the import. When the
-   backfill below runs, this step moves to the very end instead. When the
-   bracket fetch or the competition upsert fails, nothing is written and
+   backfill below runs, this step moves to the very end instead. A player
+   whose match events failed to import (the `events` stage reported errors)
+   is not settled: the imported-event sum is incomplete, and a player
+   without career counts has no estimate to cover the gap. Such a player
+   stays as is until a later successful import settles them; errors in other
+   stages do not hold settling back. When the bracket fetch or the competition upsert fails, nothing is written and
    nothing is settled.
 
 Only the requested match is imported; its bracket siblings are used only for
@@ -110,7 +114,9 @@ up to four more steps after the shared core:
    including players seen only in match snapshots and teams not in the
    inscriptions. The backfill re-imports those rosters, which writes TP's raw
    total back, so the settling has to come after it. A player imported
-   several times is settled once. A TP block (`TpBlockedError`) during the
+   several times is settled once. A player of any backfilled match whose
+   events failed to import is left out of this, from every source, and
+   stays unsettled until a later successful import. A TP block (`TpBlockedError`) during the
    backfill skips settling until the retry with `forceMatchBackfill`.
 
 The result then also carries `participantsBackfill` (`teams`,

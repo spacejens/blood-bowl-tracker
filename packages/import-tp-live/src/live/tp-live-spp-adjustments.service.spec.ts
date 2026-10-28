@@ -47,6 +47,33 @@ describe('TpLiveSppAdjustmentsService', () => {
     expect(sppAdjustments.syncReportedAdjustments).not.toHaveBeenCalled();
   });
 
+  it('leaves out the excluded players, and calls nothing when that leaves no one', async () => {
+    sppAdjustments.syncReportedAdjustments.mockResolvedValue({
+      updatedPlayerIds: [2],
+    });
+
+    const result = await service.settle(
+      [
+        { playerId: 1, reportedSppTotal: 5 },
+        { playerId: 2, reportedSppTotal: 6 },
+      ],
+      { excludePlayerIds: [1] },
+    );
+
+    expect(sppAdjustments.syncReportedAdjustments).toHaveBeenCalledWith({
+      players: [{ playerId: 2, reportedSppTotal: 6 }],
+    });
+    expect(result.imported).toBe(1);
+
+    sppAdjustments.syncReportedAdjustments.mockClear();
+    await expect(
+      service.settle([{ playerId: 1, reportedSppTotal: 5 }], {
+        excludePlayerIds: [1],
+      }),
+    ).resolves.toEqual({ success: true, imported: 0, errors: [] });
+    expect(sppAdjustments.syncReportedAdjustments).not.toHaveBeenCalled();
+  });
+
   it("sends each player's facts and counts the players the sync updated", async () => {
     sppAdjustments.syncReportedAdjustments.mockResolvedValue({
       updatedPlayerIds: [1, 2],

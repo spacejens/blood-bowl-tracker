@@ -81,6 +81,7 @@ describe('TpCompetitionMatchesBackfillService', () => {
     await expect(backfill()).resolves.toEqual({
       result: { success: true, imported: 2, errors: [] },
       sppPlayers: [],
+      eventFailedPlayerIds: [],
     });
     expect(matchData.importMatchData).toHaveBeenCalledTimes(2);
     expect(matchData.importMatchData).toHaveBeenNthCalledWith(1, {
@@ -133,6 +134,71 @@ describe('TpCompetitionMatchesBackfillService', () => {
       { playerId: 21, reportedSppTotal: 3 },
       { playerId: 22, reportedSppTotal: 4 },
     ]);
+  });
+
+  it('returns, deduplicated, the players of both teams of every match whose events failed to import', async () => {
+    const withPlayers = (
+      homeIds: number[],
+      awayIds: number[],
+      events: ImportResult,
+    ): TpMatchDataImportResult => ({
+      ...IMPORTED,
+      homeTeam: {
+        ...teamImported,
+        sppPlayers: homeIds.map((playerId) => ({ playerId })),
+      },
+      awayTeam: {
+        ...teamImported,
+        sppPlayers: awayIds.map((playerId) => ({ playerId })),
+      },
+      events,
+    });
+    const failedEvents: ImportResult = {
+      success: false,
+      imported: 0,
+      errors: [{ item: 1, message: 'unknown player' }],
+    };
+    matchData.importMatchData
+      .mockResolvedValueOnce(withPlayers([11, 12], [13], failedEvents))
+      .mockResolvedValueOnce(withPlayers([21], [22], one))
+      .mockResolvedValueOnce(withPlayers([11], [31], failedEvents));
+    const bracket: TpBracket = {
+      ...BRACKET,
+      matches: [
+        bracketMatch({ id: 1 }),
+        bracketMatch({ id: 3 }),
+        bracketMatch({ id: 4 }),
+      ],
+    };
+
+    const { eventFailedPlayerIds, sppPlayers } = await backfill(bracket);
+
+    expect(eventFailedPlayerIds).toEqual([11, 12, 13, 31]);
+    expect(sppPlayers).toHaveLength(7);
+  });
+
+  it('does not report players of a match whose only errors are in other stages', async () => {
+    matchData.importMatchData.mockResolvedValue({
+      ...IMPORTED,
+      homeTeam: {
+        ...teamImported,
+        players: {
+          success: false,
+          imported: 0,
+          errors: [{ item: 1, message: 'bad' }],
+        },
+        sppPlayers: [{ playerId: 11 }],
+      },
+      outcome: {
+        success: false,
+        imported: 0,
+        errors: [{ item: 1, message: 'bad' }],
+      },
+    });
+
+    const { eventFailedPlayerIds } = await backfill();
+
+    expect(eventFailedPlayerIds).toEqual([]);
   });
 
   it('imports the matches one at a time, never in parallel', async () => {
@@ -193,6 +259,7 @@ describe('TpCompetitionMatchesBackfillService', () => {
         ],
       },
       sppPlayers: [],
+      eventFailedPlayerIds: [],
     });
   });
 
@@ -213,6 +280,7 @@ describe('TpCompetitionMatchesBackfillService', () => {
         ],
       },
       sppPlayers: [],
+      eventFailedPlayerIds: [],
     });
     expect(matchData.importMatchData).toHaveBeenCalledTimes(2);
   });
@@ -231,7 +299,11 @@ describe('TpCompetitionMatchesBackfillService', () => {
         ...BRACKET,
         matches: [bracketMatch({ id: 2, winner: undefined })],
       }),
-    ).resolves.toEqual({ result: nothing, sppPlayers: [] });
+    ).resolves.toEqual({
+      result: nothing,
+      sppPlayers: [],
+      eventFailedPlayerIds: [],
+    });
     expect(matchData.importMatchData).not.toHaveBeenCalled();
   });
 });

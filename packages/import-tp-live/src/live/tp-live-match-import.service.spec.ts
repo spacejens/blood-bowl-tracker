@@ -167,6 +167,7 @@ describe('TpLiveMatchImportService', () => {
     matchesBackfill.backfill.mockResolvedValue({
       result: MATCHES_BACKFILL,
       sppPlayers: [],
+      eventFailedPlayerIds: [],
     });
     extraTrophyAwards = mock<TpExtraTrophyAwardsService>();
     extraTrophyAwards.computeExtras.mockResolvedValue(EXTRAS);
@@ -549,11 +550,10 @@ describe('TpLiveMatchImportService', () => {
       const result = await importMatch();
 
       expect(sppAdjustments.settle).toHaveBeenCalledTimes(1);
-      expect(sppAdjustments.settle).toHaveBeenCalledWith([
-        HOME_SPP,
-        AWAY_SPP,
-        REGISTERED_SPP,
-      ]);
+      expect(sppAdjustments.settle).toHaveBeenCalledWith(
+        [HOME_SPP, AWAY_SPP, REGISTERED_SPP],
+        { excludePlayerIds: [] },
+      );
       expect(result.sppAdjustments).toEqual(SETTLED);
       const [matchesOrder] = matchesBackfill.backfill.mock.invocationCallOrder;
       const [extrasOrder] =
@@ -570,15 +570,69 @@ describe('TpLiveMatchImportService', () => {
       matchesBackfill.backfill.mockResolvedValue({
         result: MATCHES_BACKFILL,
         sppPlayers: [BACKFILLED_SPP],
+        eventFailedPlayerIds: [],
       });
 
       await importMatch();
 
-      expect(sppAdjustments.settle).toHaveBeenCalledWith([
-        HOME_SPP,
-        AWAY_SPP,
-        BACKFILLED_SPP,
-      ]);
+      expect(sppAdjustments.settle).toHaveBeenCalledWith(
+        [HOME_SPP, AWAY_SPP, BACKFILLED_SPP],
+        { excludePlayerIds: [] },
+      );
+    });
+
+    it('leaves out the players of backfilled matches whose events failed to import, whichever source they came from', async () => {
+      competitionUpsert.upsertCompetition.mockResolvedValue(
+        upsertedCompetition({ created: true }),
+      );
+      matchesBackfill.backfill.mockResolvedValue({
+        result: MATCHES_BACKFILL,
+        sppPlayers: [BACKFILLED_SPP],
+        eventFailedPlayerIds: [HOME_SPP.playerId, BACKFILLED_SPP.playerId],
+      });
+
+      await importMatch();
+
+      expect(sppAdjustments.settle).toHaveBeenCalledWith(
+        [HOME_SPP, AWAY_SPP, BACKFILLED_SPP],
+        { excludePlayerIds: [HOME_SPP.playerId, BACKFILLED_SPP.playerId] },
+      );
+    });
+
+    it('settles nothing when the events of the written match failed to import and no backfill runs', async () => {
+      matchData.writeMatch.mockResolvedValue({
+        ...CORE,
+        events: {
+          success: false,
+          imported: 0,
+          errors: [{ item: 1, message: 'unknown player' }],
+        },
+      });
+
+      const result = await importMatch();
+
+      expect(sppAdjustments.settle).not.toHaveBeenCalled();
+      expect(result.sppAdjustments).toEqual(nothing);
+    });
+
+    it('still settles when only another stage of the written match failed and no backfill runs', async () => {
+      matchData.writeMatch.mockResolvedValue({
+        ...CORE,
+        outcome: {
+          success: false,
+          imported: 0,
+          errors: [{ item: 1, message: 'bad outcome' }],
+        },
+        participation: {
+          success: false,
+          imported: 0,
+          errors: [{ item: 1, message: 'bad participation' }],
+        },
+      });
+
+      await importMatch();
+
+      expect(sppAdjustments.settle).toHaveBeenCalledWith([HOME_SPP, AWAY_SPP]);
     });
 
     it('settles after a backfill even when its own match row could not be written', async () => {
@@ -725,6 +779,7 @@ describe('TpLiveMatchImportService', () => {
       matchesBackfill.backfill.mockResolvedValue({
         result: FAILED_MATCHES_BACKFILL,
         sppPlayers: [],
+        eventFailedPlayerIds: [],
       });
 
       const result = await importMatch();

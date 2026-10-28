@@ -18,6 +18,16 @@ import type { TpLivePlayerSppFacts } from './tp-player-spp-facts.service';
  */
 export const SPP_ADJUSTMENTS_CHUNK_SIZE = 500;
 
+/** Options for {@link TpLiveSppAdjustmentsService.settle}. */
+export interface SettleSppOptions {
+  /**
+   * Players to leave unsettled, from every entry given: those whose match
+   * events failed to import, whose imported-event sum is incomplete, so a
+   * later successful import settles them instead.
+   */
+  excludePlayerIds?: number[];
+}
+
 /**
  * Settles `players.spp_total` and `players.spp_adjustment` for the players a
  * live TP import touched, through game-data's
@@ -40,10 +50,17 @@ export class TpLiveSppAdjustmentsService {
    * `imported` counts the players the sync updated. A player given more
    * than once (a team re-imported by a backfill) is sent once, with the
    * highest reported total and the highest of each career counter, since
-   * both only ever grow.
+   * both only ever grow. Excluded players are dropped before anything is
+   * sent; when none remain, the sync is not called.
    */
-  async settle(players: TpLivePlayerSppFacts[]): Promise<ImportResult> {
-    const merged = this.merge(players);
+  async settle(
+    players: TpLivePlayerSppFacts[],
+    { excludePlayerIds = [] }: SettleSppOptions = {},
+  ): Promise<ImportResult> {
+    const excluded = new Set(excludePlayerIds);
+    const merged = this.merge(
+      players.filter((player) => !excluded.has(player.playerId)),
+    );
     const errors: ImportError[] = [];
     let imported = 0;
     for (let i = 0; i < merged.length; i += SPP_ADJUSTMENTS_CHUNK_SIZE) {

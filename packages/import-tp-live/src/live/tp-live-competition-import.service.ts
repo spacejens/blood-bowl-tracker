@@ -252,10 +252,15 @@ export class TpLiveCompetitionImportService {
           : imported.extraTrophyAwards;
       const sppAdjustments =
         core.competition.imported > 0
-          ? await this.sppAdjustmentsSync.settle([
-              ...teams.flatMap((team) => team.sppPlayers),
-              ...(backfilledMatches?.sppPlayers ?? []),
-            ])
+          ? await this.sppAdjustmentsSync.settle(
+              [
+                ...teams.flatMap((team) => team.sppPlayers),
+                ...(backfilledMatches?.sppPlayers ?? []),
+              ],
+              {
+                excludePlayerIds: backfilledMatches?.eventFailedPlayerIds ?? [],
+              },
+            )
           : imported.sppAdjustments;
       return {
         ...imported,

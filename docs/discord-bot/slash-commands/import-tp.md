@@ -86,7 +86,9 @@ A match or competition import ends with an **SPP adjustments** line counting
 the players whose SPP total and adjustment were settled against their
 imported match events (for a match that created its competition or forced a
 backfill, after the backfill, so every player the backfill imported too); a
-team import has none, since it settles nothing.
+team import has none, since it settles nothing. A player whose match events
+failed to import is not counted: they stay unsettled until a later import
+succeeds.
 
 If the import breaks outright instead of collecting its problems — the
 database being unreachable, say — the reply is an embed titled **TP import

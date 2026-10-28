@@ -236,7 +236,7 @@ export class TpLiveMatchImportService {
         return {
           ...imported,
           sppAdjustments:
-            core.match.imported > 0
+            core.match.imported > 0 && core.events.success
               ? await this.settleSpp([homeTeam, awayTeam])
               : imported.sppAdjustments,
         };
@@ -274,6 +274,7 @@ export class TpLiveMatchImportService {
       const sppAdjustments = await this.settleSpp(
         [homeTeam, awayTeam, ...participantsBackfill.teams],
         backfilledMatches.sppPlayers,
+        backfilledMatches.eventFailedPlayerIds,
       );
       return {
         ...imported,
@@ -352,16 +353,21 @@ export class TpLiveMatchImportService {
    * Settles the SPP of the given teams' players, and of any extra players
    * given: run last, once their match events are written and no later step
    * re-imports their rosters (which would write TP's raw total back over the
-   * settled one).
+   * settled one). Players in `excludePlayerIds` (those whose match events
+   * failed to import) are left unsettled.
    */
   private async settleSpp(
     teams: TpLiveTeamImportResult[],
     extraPlayers: TpLivePlayerSppFacts[] = [],
+    excludePlayerIds?: number[],
   ): Promise<ImportResult> {
-    return this.sppAdjustmentsSync.settle([
+    const players = [
       ...teams.flatMap((team) => team.sppPlayers),
       ...extraPlayers,
-    ]);
+    ];
+    return excludePlayerIds === undefined
+      ? this.sppAdjustmentsSync.settle(players)
+      : this.sppAdjustmentsSync.settle(players, { excludePlayerIds });
   }
 
   private failed(errors: ImportError[]): ImportResult {

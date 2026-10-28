@@ -145,6 +145,7 @@ describe('TpLiveCompetitionImportService', () => {
     matchesBackfill.backfill.mockResolvedValue({
       result: MATCHES_BACKFILL,
       sppPlayers: [],
+      eventFailedPlayerIds: [],
     });
     extraTrophyAwards = mock<TpExtraTrophyAwardsService>();
     extraTrophyAwards.computeExtras.mockResolvedValue(EXTRAS);
@@ -427,6 +428,7 @@ describe('TpLiveCompetitionImportService', () => {
       matchesBackfill.backfill.mockResolvedValue({
         result: CLEAN_MATCHES_BACKFILL,
         sppPlayers: [],
+        eventFailedPlayerIds: [],
       });
       competitionImport.importCompetition.mockResolvedValue({
         ...CORE,
@@ -479,6 +481,7 @@ describe('TpLiveCompetitionImportService', () => {
       matchesBackfill.backfill.mockResolvedValue({
         result: CLEAN_MATCHES_BACKFILL,
         sppPlayers: [],
+        eventFailedPlayerIds: [],
       });
       competitionImport.importCompetition.mockResolvedValue({
         ...CORE,
@@ -517,10 +520,10 @@ describe('TpLiveCompetitionImportService', () => {
 
       const result = await importCompetition();
 
-      expect(sppAdjustments.settle).toHaveBeenCalledWith([
-        FIRST_SPP,
-        SECOND_SPP,
-      ]);
+      expect(sppAdjustments.settle).toHaveBeenCalledWith(
+        [FIRST_SPP, SECOND_SPP],
+        { excludePlayerIds: [] },
+      );
       expect(result.sppAdjustments).toEqual(SETTLED);
       const [matchesOrder] = matchesBackfill.backfill.mock.invocationCallOrder;
       const [settleOrder] = sppAdjustments.settle.mock.invocationCallOrder;
@@ -531,6 +534,7 @@ describe('TpLiveCompetitionImportService', () => {
       matchesBackfill.backfill.mockResolvedValue({
         result: CLEAN_MATCHES_BACKFILL,
         sppPlayers: [BACKFILLED_SPP],
+        eventFailedPlayerIds: [],
       });
       competitionImport.importCompetition.mockResolvedValue({
         ...CORE,
@@ -539,17 +543,36 @@ describe('TpLiveCompetitionImportService', () => {
 
       await importCompetition();
 
-      expect(sppAdjustments.settle).toHaveBeenCalledWith([
-        FIRST_SPP,
-        SECOND_SPP,
-        BACKFILLED_SPP,
-      ]);
+      expect(sppAdjustments.settle).toHaveBeenCalledWith(
+        [FIRST_SPP, SECOND_SPP, BACKFILLED_SPP],
+        { excludePlayerIds: [] },
+      );
+    });
+
+    it('leaves out the players of backfilled matches whose events failed to import, whichever source they came from', async () => {
+      matchesBackfill.backfill.mockResolvedValue({
+        result: CLEAN_MATCHES_BACKFILL,
+        sppPlayers: [BACKFILLED_SPP],
+        eventFailedPlayerIds: [FIRST_SPP.playerId, BACKFILLED_SPP.playerId],
+      });
+      competitionImport.importCompetition.mockResolvedValue({
+        ...CORE,
+        competitionCreated: true,
+      });
+
+      await importCompetition();
+
+      expect(sppAdjustments.settle).toHaveBeenCalledWith(
+        [FIRST_SPP, SECOND_SPP, BACKFILLED_SPP],
+        { excludePlayerIds: [FIRST_SPP.playerId, BACKFILLED_SPP.playerId] },
+      );
     });
 
     it('still settles the players when the match backfill reported errors', async () => {
       matchesBackfill.backfill.mockResolvedValue({
         result: MATCHES_BACKFILL,
         sppPlayers: [],
+        eventFailedPlayerIds: [],
       });
       competitionImport.importCompetition.mockResolvedValue({
         ...CORE,
@@ -559,10 +582,10 @@ describe('TpLiveCompetitionImportService', () => {
       const result = await importCompetition();
 
       expect(result.matchesBackfill?.errors).toHaveLength(1);
-      expect(sppAdjustments.settle).toHaveBeenCalledWith([
-        FIRST_SPP,
-        SECOND_SPP,
-      ]);
+      expect(sppAdjustments.settle).toHaveBeenCalledWith(
+        [FIRST_SPP, SECOND_SPP],
+        { excludePlayerIds: [] },
+      );
       expect(result.sppAdjustments).toEqual(SETTLED);
     });
 
@@ -570,10 +593,10 @@ describe('TpLiveCompetitionImportService', () => {
       const result = await importCompetition();
 
       expect(matchesBackfill.backfill).not.toHaveBeenCalled();
-      expect(sppAdjustments.settle).toHaveBeenCalledWith([
-        FIRST_SPP,
-        SECOND_SPP,
-      ]);
+      expect(sppAdjustments.settle).toHaveBeenCalledWith(
+        [FIRST_SPP, SECOND_SPP],
+        { excludePlayerIds: [] },
+      );
       expect(result.sppAdjustments).toEqual(SETTLED);
     });
 

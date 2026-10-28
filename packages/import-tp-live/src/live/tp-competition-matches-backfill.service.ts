@@ -36,6 +36,12 @@ export interface MatchesBackfillOutcome {
    * rosters at TP's raw total, including players seen only in match snapshots.
    */
   sppPlayers: TpLivePlayerSppFacts[];
+  /**
+   * The ids, without repeats, of both teams' players of every backfilled
+   * match whose events failed to import: their imported-event sum is
+   * incomplete, so the caller must not settle them.
+   */
+  eventFailedPlayerIds: number[];
 }
 
 /**
@@ -73,6 +79,7 @@ export class TpCompetitionMatchesBackfillService {
     let imported = 0;
     const errors: ImportError[] = [];
     const sppPlayers: TpLivePlayerSppFacts[] = [];
+    const eventFailed = new Set<number>();
     for (const { id: matchId } of completed) {
       try {
         const result = await this.matchData.importMatchData({
@@ -87,10 +94,14 @@ export class TpCompetitionMatchesBackfillService {
           imported += 1;
         }
         errors.push(...this.errorsOf(result));
-        sppPlayers.push(
+        const matchPlayers = [
           ...result.homeTeam.sppPlayers,
           ...result.awayTeam.sppPlayers,
-        );
+        ];
+        sppPlayers.push(...matchPlayers);
+        if (result.events.errors.length > 0) {
+          matchPlayers.forEach(({ playerId }) => eventFailed.add(playerId));
+        }
       } catch (error) {
         if (error instanceof TpBlockedError) {
           throw error;
@@ -107,6 +118,7 @@ export class TpCompetitionMatchesBackfillService {
     return {
       result: this.importResults.result({ imported, errors }),
       sppPlayers,
+      eventFailedPlayerIds: [...eventFailed],
     };
   }
 

@@ -74,7 +74,10 @@ when an earlier one fails:
    after step 7: the match backfill re-imports every team's roster, which
    writes TP's raw total back. It runs even when no backfill ran, since step
    3 re-imported the rosters too. A failure is reported in `sppAdjustments`
-   and never fails the import. When the era is unresolved or the competition
+   and never fails the import. A player of a backfilled match whose events
+   failed to import is not settled, from any source, since the
+   imported-event sum is incomplete; a later successful import settles
+   them, and errors in other stages do not hold settling back. When the era is unresolved or the competition
    upsert fails, the teams already re-imported are left unsettled.
 
 ### Fetch failures
