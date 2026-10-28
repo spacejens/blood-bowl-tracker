@@ -31,8 +31,8 @@ import type { UpsertHandlerService } from './upsert-handler.service';
 /**
  * Route-building for procedures that are fully hand-written forever — they
  * never use any of RpcRouterFactoryService's generic route builders, either
- * because the whole entity is non-standard (sppAwardValues, advancementCosts, trophyAwards,
- * externalSystems) or because the procedure is a one-off extra alongside an
+ * because the whole entity is non-standard (sppAwardValues, advancementCosts,
+ * trophyAwards, externalSystems) or because the procedure is a one-off extra alongside an
  * otherwise-standard entity (e.g. positions.syncRaceEras). These live here —
  * rather than the generic builder methods, which stay in
  * rpc-router-factory.service.ts — purely to keep that file under its

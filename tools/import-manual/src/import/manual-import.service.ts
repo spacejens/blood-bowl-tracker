@@ -55,7 +55,8 @@ export class ManualImportService {
    * it references, then process each entity section in dependency order —
    * rulesSets, skills, skillRulesSets, keywords, leagues, eras, races,
    * positions, positionRulesSets, positionRulesSetSkills, coaches, teams,
-   * competitionGroups, competitions, sppAwardValues, advancementCosts, trophies, trophyAwards —
+   * competitionGroups, competitions, sppAwardValues, advancementCosts,
+   * trophies, trophyAwards —
    * with skills and skillRulesSets running right after rulesSets, since
    * skills need only the rules sets and running them early keeps the
    * category table available to everything after, positionRulesSets running

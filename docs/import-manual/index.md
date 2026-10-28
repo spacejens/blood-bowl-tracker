@@ -139,7 +139,7 @@ a genuinely new entity.
 ### Worked example
 
 In a new batch, e.g.
-`data/batches/004-necromantic-2020/necromantic-2020.json5`:
+`data/batches/005-necromantic-2020/necromantic-2020.json5`:
 
 ```jsonc
 {
@@ -468,9 +468,8 @@ See [Running import tools against production](../discord-bot/production-imports.
   the pooled data, building a name → id map.
 - **Entity processors** (rules sets, keywords, leagues, eras, races, positions,
   position characteristics, coaches, teams, competition groups, competitions,
-  SPP award values, advancement costs, trophies) — each resolves its references and calls the
-  shared
-  `*ImportService` from `packages/import`. The positions processor
+  SPP award values, advancement costs, trophies) — each resolves its
+  references and calls the shared `*ImportService` from `packages/import`. The positions processor
   additionally calls `syncRaceEras` to set race/era availability; a curated
   pair whose race has no `race_eras` row for that era fails that position's
   availability sync with one recorded error (the `race_eras` rows come from
