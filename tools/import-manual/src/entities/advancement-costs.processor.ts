@@ -2,17 +2,21 @@ import type { AdvancementCostEntry as ApiAdvancementCostEntry } from '@blood-bow
 import { AdvancementCostsImportService } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
+import type { ManualDataFile } from '../data-file/manual-data-file.schema';
 import type { ProcessContext } from '../references/process-context';
 import { ReferenceResolverService } from '../references/reference-resolver.service';
+
+type AdvancementCostDataEntry = ManualDataFile['advancementCosts'][number];
 
 /**
  * Turns the data file's `advancementCosts` entries into one sync call. Every
  * entry is resolved first and the resolved costs are sent together, the same
- * way SppAwardValuesProcessor does: an entry whose rules set does not resolve
- * is dropped with an error recorded, without stopping the others.
+ * way SppAwardValuesProcessor does: an entry whose rules set, league or
+ * skill does not resolve is dropped with an error recorded, without stopping
+ * the others. A league or skill the entry omits stays absent from its cost.
  *
- * Must run after the rulesSets processor, since it references rows it
- * creates.
+ * Must run after the rulesSets, leagues and skills processors, since it
+ * references rows they create.
  */
 @Injectable()
 export class AdvancementCostsProcessor {
@@ -25,23 +29,10 @@ export class AdvancementCostsProcessor {
     const costs: ApiAdvancementCostEntry[] = [];
 
     for (const entry of ctx.data.advancementCosts) {
-      const rulesSetId = await this.refResolver.resolveRef({
-        ref: entry.rulesSet,
-        systemIds: ctx.systemIds,
-        errors: ctx.errors,
-        item: entry,
-        label: `Cannot import advancement cost for advancement ${entry.advancementNumber} (${entry.advancementKind})`,
-        kind: 'rulesSet',
-      });
-      if (rulesSetId === undefined) {
-        continue;
+      const cost = await this.resolveEntry(ctx, entry);
+      if (cost !== undefined) {
+        costs.push(cost);
       }
-      costs.push({
-        rulesSetId,
-        advancementNumber: entry.advancementNumber,
-        advancementKind: entry.advancementKind,
-        sppCost: entry.sppCost,
-      });
     }
 
     if (costs.length === 0) {
@@ -53,5 +44,50 @@ export class AdvancementCostsProcessor {
       ctx.errors,
     );
     return result === undefined ? 0 : costs.length;
+  }
+
+  /** The entry as an API cost, or undefined when a reference fails to resolve. */
+  private async resolveEntry(
+    ctx: ProcessContext,
+    entry: AdvancementCostDataEntry,
+  ): Promise<ApiAdvancementCostEntry | undefined> {
+    const common = {
+      systemIds: ctx.systemIds,
+      errors: ctx.errors,
+      item: entry,
+      label: `Cannot import advancement cost for advancement ${entry.advancementNumber} (${entry.advancementKind}) under rules set ${entry.rulesSet.id}`,
+    };
+    const rulesSetId = await this.refResolver.resolveRef({
+      ...common,
+      ref: entry.rulesSet,
+      kind: 'rulesSet',
+    });
+    if (rulesSetId === undefined) {
+      return undefined;
+    }
+    const league = await this.refResolver.resolveOptionalRef({
+      ...common,
+      ref: entry.league,
+      kind: 'league',
+    });
+    if (!league.ok) {
+      return undefined;
+    }
+    const skill = await this.refResolver.resolveOptionalRef({
+      ...common,
+      ref: entry.skill,
+      kind: 'skill',
+    });
+    if (!skill.ok) {
+      return undefined;
+    }
+    return {
+      rulesSetId,
+      ...(league.id === undefined ? {} : { leagueId: league.id }),
+      advancementNumber: entry.advancementNumber,
+      advancementKind: entry.advancementKind,
+      ...(skill.id === undefined ? {} : { skillId: skill.id }),
+      sppCost: entry.sppCost,
+    };
   }
 }

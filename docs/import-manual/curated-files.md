@@ -289,6 +289,13 @@ tabulates these costs and `curated-data-batch-004.spec.ts` pins them and
 checks the fixed-threshold running totals. The rules sets are referenced under
 the `Name` system by bare name, as batch 001 declares them.
 
+Three more rows hold tLoEG's house rule under each of CRP, CRP+ and BB2016:
+league `{ system: 'tloeg.bbleague.se', id: 'tLoEG' }`, advancement 7, kind
+`granted_skill`, skill Fan Favourite, cost 125, so a tLoEG player reaches it
+at 176 + 125 = 301 SPP. The header comment records the rule and the rules
+sets it applies to, and `curated-data-batch-004.spec.ts` checks that the
+league rows exist only for CRP, CRP+ and BB2016 and bring each total to 301.
+
 `data/batches/004-advancement-costs/trophy-awards.json5` names the free
 mutation each Gudarnas Förkämpe award granted, as a `grantedSkill` on an entry
 that otherwise repeats the award's trophy, competition and player. Each skill

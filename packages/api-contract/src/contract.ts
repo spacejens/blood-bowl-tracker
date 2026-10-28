@@ -354,12 +354,13 @@ export const contract = {
   },
   advancementCosts: {
     // Not an upsert: a cost has no external ids — it is keyed by
-    // (rulesSetId, advancementNumber, advancementKind) — so there is no
-    // conflict to detect and no entity+created shape to return, only the
-    // resulting row ids. BAD_REQUEST is declared because the server rejects a
-    // batch naming the same key twice, and a cost naming a rules set that
-    // does not exist; both are authored-data feedback the importer reports,
-    // not a server fault.
+    // (rulesSetId, leagueId, advancementNumber, advancementKind) — so there
+    // is no conflict to detect and no entity+created shape to return, only
+    // the resulting row ids. BAD_REQUEST is declared because the server
+    // rejects a batch naming the same key twice, a cost naming a rules set,
+    // league or skill that does not exist, and a cost whose kind and skill
+    // disagree; all are authored-data feedback the importer reports, not a
+    // server fault.
     sync: oc
       .input(SyncAdvancementCostsSchema)
       .errors({
