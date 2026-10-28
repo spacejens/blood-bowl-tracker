@@ -281,3 +281,10 @@ previous threshold (6, 10, 15, 20, 25, 100), not the threshold; the file's
 header comment shows the derivation and `curated-data-batch-004.spec.ts`
 checks the running totals against the thresholds. The rules sets are
 referenced under the `Name` system by bare name, as batch 001 declares them.
+
+Three more rows hold tLoEG's house rule under each of those rules sets: league
+`{ system: 'tloeg.bbleague.se', id: 'tLoEG' }`, advancement 7, kind
+`granted_skill`, skill Fan Favourite, cost 125, so a tLoEG player reaches it
+at 176 + 125 = 301 SPP. The header comment records the rule and the rules
+sets it applies to, and `curated-data-batch-004.spec.ts` checks that the
+league rows exist only for CRP, CRP+ and BB2016 and bring each total to 301.

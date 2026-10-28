@@ -188,7 +188,9 @@ validates the whole batch before writing anything. A batch that
 names one natural key twice, or an entry that references a row that does not
 exist, fails the whole call with `BAD_REQUEST` naming the offending entry,
 instead of a raw database error or an entry silently left out; the import
-tools record it as one `ImportError`. `positions.syncRaceEras` only ever adds
+tools record it as one `ImportError`. `advancementCosts.sync` also rejects a
+cost whose kind and skill disagree: a `granted_skill` cost must name a skill
+and no other kind may. `positions.syncRaceEras` only ever adds
 availability links, so a pair repeated within its batch is not an error: it
 lands as one link.
 

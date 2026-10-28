@@ -24,13 +24,23 @@ references.
 
 `advancementCosts` entries record how many SPP each advancement costs under a
 rules set. Each entry is
-`{ rulesSet, advancementNumber, advancementKind, sppCost }`: `rulesSet` is an
-external-id pair pointing at a rules set, `advancementNumber` is the 1-based
-count of advancements a player has gained (skills and characteristic
-increases alike), `advancementKind` says what the cost buys (`table_roll`: a
-roll on the rules set's advancement table), and `sppCost` is that
-advancement's own cost — the gap to the previous threshold, not the
-cumulative threshold. Both numbers must be positive. A rules set,
-advancement number and kind may appear only once across a run's pooled
-entries; the API rejects the whole sync otherwise, and the run records it as
-one error. This section is processed after the rules sets it references.
+`{ rulesSet, league?, advancementNumber, advancementKind, skill?, sppCost }`:
+`rulesSet` is an external-id pair pointing at a rules set,
+`advancementNumber` is the 1-based count of advancements a player has gained
+(skills and characteristic increases alike), `advancementKind` says what the
+cost buys (`table_roll`: a roll on the rules set's advancement table;
+`granted_skill`: the fixed skill `skill` names), and `sppCost` is that
+advancement's own cost - the gap to the previous threshold, not the
+cumulative threshold. Both numbers must be positive.
+
+An entry without `league` is the rules set's own cost. An entry naming a
+league (an external-id pair such as
+`{ system: 'tloeg.bbleague.se', id: 'tLoEG' }`) is a house rule for that
+league's players, added to the rules set's entries rather than replacing
+them. `skill` (for example `{ system: 'Name', id: 'Fan Favourite' }`) is
+required on a `granted_skill` entry and not allowed on any other kind.
+
+A rules set, league, advancement number and kind may appear only once across
+a run's pooled entries; the API rejects the whole sync otherwise, and the run
+records it as one error. This section is processed after the rules sets,
+leagues and skills it references.

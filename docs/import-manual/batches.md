@@ -50,12 +50,14 @@ The batches:
   row on the name a fresh import ends with. On a fresh import it changes
   nothing. `curated-data-batch-003.spec.ts` keeps it in step with batches 001
   and 002.
-- **004-advancement-costs** — the SPP cost of each advancement for CRP, CRP+
-  and BB2016 (see
+- **004-advancement-costs** - the SPP cost of each advancement for CRP, CRP+
+  and BB2016, plus tLoEG's house-rule Fan Favourite advancement under those
+  three (see
   [Star Player Points sections](star-player-points.md#advancement-costs)). It
-  references only the rules sets batch 001 declares, so it needs nothing from
-  the source importers. The api-server must already run a release with the
-  `advancementCosts.sync` procedure before it is applied.
+  references only the rules sets, the tLoEG league and the Fan Favourite
+  skill that batch 001 declares, so it needs nothing from the source
+  importers. The api-server must already run a release whose
+  `advancementCosts.sync` accepts league and skill ids before it is applied.
 
 ## Changing curated data
 
