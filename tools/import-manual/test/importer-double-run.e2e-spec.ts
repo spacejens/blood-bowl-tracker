@@ -48,7 +48,8 @@ import { curatedPicks, runSourceStandIn } from './source-stand-in.test-helpers';
  * batch 002 has entries that reference rows only they create; those fail with
  * recorded errors, so a plain apply stops there and the suite asserts the
  * errors are of the two known kinds and the same on both runs rather than
- * empty.
+ * empty. Trophy awards in the later batches fail the same way and are
+ * asserted the same way.
  */
 
 const DATA = join(__dirname, '../data');
@@ -160,11 +161,22 @@ describe('the importer sequence, run twice (real Postgres, real api-server)', ()
     }
   });
 
-  it('imports the batches after the stopping point without errors, both times', () => {
+  it('imports the batches after the stopping point with only the known errors, both times', () => {
+    // A later batch may also name trophy awards, whose players only the real
+    // BBL/TP importers create; those are the only errors allowed, and a
+    // re-run must report the same ones.
     expect(second.later).toHaveLength(first.later.length);
-    for (const result of [...first.later, ...second.later]) {
-      expect(messages(result.errors)).toEqual([]);
-    }
+    first.later.forEach((result, index) => {
+      const firstMessages = messages(result.errors);
+      expect(messages(second.later[index]?.errors ?? [])).toEqual(
+        firstMessages,
+      );
+      for (const message of firstMessages) {
+        expect(message).toMatch(
+          /^Cannot import award of trophy ".+": could not resolve reference (?:tloeg\.bbleague\.se|tourplay\.net)\|\d+\.$/,
+        );
+      }
+    });
   });
 
   it('records only the batches that applied cleanly, and nothing more on the second run', () => {

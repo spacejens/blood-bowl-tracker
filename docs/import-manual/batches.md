@@ -54,9 +54,12 @@ The batches:
   rules set: fixed thresholds for CRP, CRP+ and BB2016, and a cost per
   advancement kind for BB2020, DB2021 and BB2025 (see
   [Star Player Points sections](star-player-points.md#advancement-costs)). It
-  references only the rules sets batch 001 declares, so it needs nothing from
-  the source importers. The api-server must already run a release with the
-  `advancementCosts.sync` procedure before it is applied.
+  also names the free mutation of every Gudarnas Förkämpe award. Those
+  entries reference competitions and players the BBL and TP importers create,
+  so the batch lands after them like every batch above 002. The api-server
+  must already run a release with the `advancementCosts.sync` procedure and a
+  `trophyAwards.upsert` that accepts `grantedSkillId` before the batch is
+  applied.
 
 ## Changing curated data
 

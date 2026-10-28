@@ -287,3 +287,10 @@ advancement number (BB2025 has no random secondary skill). The header comment
 tabulates these costs and `curated-data-batch-004.spec.ts` pins them and
 checks the fixed-threshold running totals. The rules sets are referenced under
 the `Name` system by bare name, as batch 001 declares them.
+
+`data/batches/004-advancement-costs/trophy-awards.json5` names the free
+mutation each Gudarnas Förkämpe award granted, as a `grantedSkill` on an entry
+that otherwise repeats the award's trophy, competition and player. Each skill
+was identified from the downloaded BBL/TP data as the player's gained
+mutation; an award the data does not settle carries no skill.
+`curated-data-batch-004-trophy-awards.spec.ts` pins every entry.
