@@ -180,6 +180,7 @@ describe('createApiClient', () => {
       'playerSkills',
       'players',
       'positionRulesSetKeywords',
+      'positionRulesSetSkillCategories',
       'positionRulesSetSkills',
       'positionRulesSets',
       'positions',

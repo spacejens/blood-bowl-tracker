@@ -20,6 +20,7 @@ export * from './schemas/position';
 export * from './schemas/position-rules-set';
 export * from './schemas/position-rules-set-keyword';
 export * from './schemas/position-rules-set-skill';
+export * from './schemas/position-rules-set-skill-category';
 export * from './schemas/race';
 export * from './schemas/rules-set';
 export * from './schemas/skill';

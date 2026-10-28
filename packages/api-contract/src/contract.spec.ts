@@ -181,6 +181,12 @@ describe('contract', () => {
     ]);
   });
 
+  it('defines positionRulesSetSkillCategories.sync with a BAD_REQUEST error', () => {
+    expect(errorCodesOf(contract.positionRulesSetSkillCategories.sync)).toEqual(
+      ['BAD_REQUEST'],
+    );
+  });
+
   it('exposes a players.syncLastingInjuryHistory procedure', () => {
     expect(contract.players.syncLastingInjuryHistory).toBeDefined();
     // Writes nothing a caller can conflict on, returns no entity and rejects
@@ -355,6 +361,7 @@ describe('resolve procedures', () => {
     'trophies',
     'trophyAwards',
     'advancementCosts',
+    'positionRulesSetSkillCategories',
     'sppAwardValues',
     'externalSystems',
     'manualImportBatches',

@@ -79,6 +79,10 @@ import {
   SyncPositionRulesSetSkillsResultSchema,
   SyncPositionRulesSetSkillsSchema,
 } from './schemas/position-rules-set-skill';
+import {
+  SyncPositionRulesSetSkillCategoriesResultSchema,
+  SyncPositionRulesSetSkillCategoriesSchema,
+} from './schemas/position-rules-set-skill-category';
 import { RaceSchema, UpsertRaceSchema } from './schemas/race';
 import { RulesSetSchema, UpsertRulesSetSchema } from './schemas/rules-set';
 import { SkillSchema, UpsertSkillSchema } from './schemas/skill';
@@ -306,6 +310,22 @@ export const contract = {
     list: oc
       .input(ListPositionRulesSetKeywordsSchema)
       .output(z.array(PositionRulesSetKeywordRefSchema)),
+  },
+  positionRulesSetSkillCategories: {
+    // Not an upsert, for the same reason positionRulesSetSkills.sync is not.
+    // BAD_REQUEST is declared because the server rejects a pair with no
+    // position_rules_sets row yet, a trait or unique category, a category
+    // listed twice for one pair, and a batch naming the same pair twice.
+    // All of these are authored-data feedback the importer reports per
+    // entry, not server faults.
+    sync: oc
+      .input(SyncPositionRulesSetSkillCategoriesSchema)
+      .errors({
+        BAD_REQUEST: {
+          message: 'Position skill categories are not valid',
+        },
+      })
+      .output(SyncPositionRulesSetSkillCategoriesResultSchema),
   },
   playerSkills: {
     // Not an upsert, for the same reason positionRulesSetSkills.sync is not:
