@@ -30,6 +30,9 @@ function apiCost(advancementNumber: number, sppCost: number) {
 const TLOEG = { system: 'tloeg.bbleague.se', id: 'tLoEG' };
 const FAN_FAVOURITE = { system: 'Name', id: 'Fan Favourite' };
 
+const LEAGUE_ENTRY_LABEL =
+  'Cannot import advancement cost for advancement 7 (granted_skill) under rules set CRP';
+
 function leagueEntry() {
   return {
     rulesSet: { system: 'Name', id: 'CRP' },
@@ -98,7 +101,8 @@ describe('AdvancementCostsProcessor', () => {
         ref: { system: 'Name', id: 'CRP' },
         kind: 'rulesSet',
         errors: ctx.errors,
-        label: 'Cannot import advancement cost for advancement 1 (table_roll)',
+        label:
+          'Cannot import advancement cost for advancement 1 (table_roll) under rules set CRP',
       }),
     );
   });
@@ -174,6 +178,7 @@ describe('AdvancementCostsProcessor', () => {
         ref: TLOEG,
         kind: 'league',
         errors: ctx.errors,
+        label: LEAGUE_ENTRY_LABEL,
       }),
     );
     expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
@@ -181,6 +186,7 @@ describe('AdvancementCostsProcessor', () => {
         ref: FAN_FAVOURITE,
         kind: 'skill',
         errors: ctx.errors,
+        label: LEAGUE_ENTRY_LABEL,
       }),
     );
   });

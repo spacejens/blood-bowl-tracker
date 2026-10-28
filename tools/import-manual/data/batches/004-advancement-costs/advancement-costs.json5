@@ -11,7 +11,6 @@
 //   threshold     6   16   31   51   76  176
 //   cost          6   10   15   20   25  100
 //
-//
 // tLoEG house rule: a tLoEG player who reaches 301 total SPP gains the Fan
 // Favourite skill as a seventh advancement, after the rules set's six, with
 // no roll (`granted_skill`). It held while tLoEG played under CRP, CRP+ and

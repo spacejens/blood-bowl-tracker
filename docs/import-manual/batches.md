@@ -50,7 +50,7 @@ The batches:
   row on the name a fresh import ends with. On a fresh import it changes
   nothing. `curated-data-batch-003.spec.ts` keeps it in step with batches 001
   and 002.
-- **004-advancement-costs** - the SPP cost of each advancement for CRP, CRP+
+- **004-advancement-costs** — the SPP cost of each advancement for CRP, CRP+
   and BB2016, plus tLoEG's house-rule Fan Favourite advancement under those
   three (see
   [Star Player Points sections](star-player-points.md#advancement-costs)). It

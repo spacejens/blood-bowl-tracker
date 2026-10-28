@@ -30,7 +30,7 @@ rules set. Each entry is
 (skills and characteristic increases alike), `advancementKind` says what the
 cost buys (`table_roll`: a roll on the rules set's advancement table;
 `granted_skill`: the fixed skill `skill` names), and `sppCost` is that
-advancement's own cost - the gap to the previous threshold, not the
+advancement's own cost — the gap to the previous threshold, not the
 cumulative threshold. Both numbers must be positive.
 
 An entry without `league` is the rules set's own cost. An entry naming a

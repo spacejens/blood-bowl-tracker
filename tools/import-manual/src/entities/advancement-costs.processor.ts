@@ -55,7 +55,7 @@ export class AdvancementCostsProcessor {
       systemIds: ctx.systemIds,
       errors: ctx.errors,
       item: entry,
-      label: `Cannot import advancement cost for advancement ${entry.advancementNumber} (${entry.advancementKind})`,
+      label: `Cannot import advancement cost for advancement ${entry.advancementNumber} (${entry.advancementKind}) under rules set ${entry.rulesSet.id}`,
     };
     const rulesSetId = await this.refResolver.resolveRef({
       ...common,
