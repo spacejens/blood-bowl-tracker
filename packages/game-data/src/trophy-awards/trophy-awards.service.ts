@@ -15,6 +15,7 @@ import {
   isUniqueViolationOn,
   players,
   positions,
+  skills,
   teamEras,
   teams,
   trophies,
@@ -53,6 +54,15 @@ export class TrophyAwardRecipientMismatchError extends GameDataError {}
  * curated data, never an expected-and-skippable condition.
  */
 export class TrophyAwardCompetitionGroupMismatchError extends GameDataError {}
+
+/**
+ * The award names a granted skill it cannot carry: the award has no player
+ * (only a player award can grant a skill), or the skill does not exist. Like
+ * the two errors above, it is authored-data feedback the API reports as
+ * BAD_REQUEST. The player is deliberately not required to hold the skill
+ * already: holding the award is what entitles them to it.
+ */
+export class TrophyAwardGrantedSkillError extends GameDataError {}
 
 /**
  * One award of a trophy, as the trophy deepdive renders it: which competition
@@ -440,9 +450,11 @@ export class TrophyAwardsService {
   /**
    * Record one trophy award, idempotently.
    *
-   * There is no update path: an award row is nothing but the four ids it
-   * links, so "already recorded" means "identical" and the existing row is
-   * returned untouched.
+   * The four natural-key ids identify the award. The only mutable field is
+   * `grantedSkillId`, which overlays: when the award is already recorded and
+   * the caller sent a granted skill (or `null`) that differs from the stored
+   * one, that one column is updated; otherwise the existing row is returned
+   * untouched.
    *
    * Insert-first rather than select-first, so the natural-key unique
    * constraint arbitrates and leaves no window for a concurrent importer to
@@ -479,6 +491,7 @@ export class TrophyAwardsService {
     const trophy = await this.assertRecipientFitsTrophy(data);
     await this.assertScopeMatchesTrophy(data, trophy);
     const teamEraId = await this.resolveTeamEraId(data);
+    await this.assertGrantedSkillFits(data);
 
     try {
       const [inserted] = await this.db
@@ -488,6 +501,7 @@ export class TrophyAwardsService {
           competitionId: data.competitionId,
           teamEraId,
           playerId: data.playerId,
+          grantedSkillId: data.grantedSkillId,
         })
         .returning();
       if (inserted === undefined) {
@@ -530,7 +544,73 @@ export class TrophyAwardsService {
       );
     }
 
-    return { trophyAward: existingAward, created: false };
+    return {
+      trophyAward: await this.overlayGrantedSkill(
+        existingAward,
+        data.grantedSkillId,
+      ),
+      created: false,
+    };
+  }
+
+  /**
+   * A granted skill can only sit on a player award, and must name a real
+   * skill. Runs only when the caller sends a skill id: an omitted value
+   * leaves the stored one alone and `null` clears it, and neither needs
+   * checking.
+   */
+  private async assertGrantedSkillFits(data: UpsertTrophyAward): Promise<void> {
+    if (data.grantedSkillId === undefined || data.grantedSkillId === null) {
+      return;
+    }
+    if (data.playerId === null) {
+      throw new TrophyAwardGrantedSkillError(
+        `Trophy ${data.trophyId}'s award in competition ` +
+          `${data.competitionId} names granted skill ${data.grantedSkillId}, ` +
+          'but only a player award can grant a skill.',
+      );
+    }
+    const [skill] = await this.db
+      .select({ id: skills.id })
+      .from(skills)
+      .where(eq(skills.id, data.grantedSkillId));
+    if (skill === undefined) {
+      throw new TrophyAwardGrantedSkillError(
+        `Cannot grant skill ${data.grantedSkillId} with trophy ` +
+          `${data.trophyId} to player ${data.playerId}: the skill does not ` +
+          'exist.',
+      );
+    }
+  }
+
+  /**
+   * The overlay half of the conflict path: an already-recorded award takes
+   * the caller's granted skill when one was sent and differs, and is
+   * returned untouched otherwise. This is what lets a curated granted skill
+   * survive every later importer run, since importers never send one.
+   */
+  private async overlayGrantedSkill(
+    existing: TrophyAward,
+    grantedSkillId: number | null | undefined,
+  ): Promise<TrophyAward> {
+    if (
+      grantedSkillId === undefined ||
+      grantedSkillId === existing.grantedSkillId
+    ) {
+      return existing;
+    }
+    const [updated] = await this.db
+      .update(trophyAwards)
+      .set({ grantedSkillId })
+      .where(eq(trophyAwards.id, existing.id))
+      .returning();
+    if (updated === undefined) {
+      throw new Error(
+        `trophy_awards update of award ${existing.id}'s granted skill ` +
+          'reported success but returned no row.',
+      );
+    }
+    return updated;
   }
 
   /**

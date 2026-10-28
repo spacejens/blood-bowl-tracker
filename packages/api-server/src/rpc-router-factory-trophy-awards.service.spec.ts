@@ -25,6 +25,7 @@ describe('RpcRouterFactoryService trophyAwards router', () => {
       competitionId: 2,
       teamEraId: 3,
       playerId: 4,
+      grantedSkillId: null,
       createdAt: new Date('2026-01-01'),
       updatedAt: new Date('2026-01-01'),
       historyVersion: 1,
@@ -43,6 +44,7 @@ describe('RpcRouterFactoryService trophyAwards router', () => {
       competitionId: 2,
       teamEraId: 3,
       playerId: 4,
+      grantedSkillId: null,
       createdAt: trophyAward.createdAt,
       created: true,
     });

@@ -25,6 +25,7 @@ const awardRow = {
   competitionId: 12,
   teamEraId: 5,
   playerId: 9,
+  grantedSkillId: null,
   createdAt: new Date('2026-01-01'),
   created: true,
 };
