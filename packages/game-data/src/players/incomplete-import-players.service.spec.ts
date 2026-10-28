@@ -8,8 +8,8 @@ import {
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
-import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import type { QueryChain, SQL } from '@blood-bowl-tracker/db/test-helpers';
+import { mockDb, PgDialect } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
@@ -114,6 +114,27 @@ describe('IncompleteImportPlayersService', () => {
       'players.status',
     ]);
     expect(extractAllFilterValues(condition)).toEqual([false, 0, 0, 0, 0]);
+  });
+
+  it('keeps regular players that match any criterion and drops star players', async () => {
+    const { chains } = await build([]);
+
+    await service.findTeamsWithIncompletePlayers();
+
+    const query = new PgDialect().sqlToQuery(
+      firstCallArg(chains[0].where) as SQL,
+    );
+    expect(query.sql).toBe(
+      '(("game_data"."positions"."is_star_player" = $1) and ((' +
+        '("game_data"."players"."move" = $2) ' +
+        'or ("game_data"."players"."strength" = $3) ' +
+        'or ("game_data"."players"."agility" = $4) ' +
+        'or ("game_data"."players"."armour" = $5) ' +
+        'or (("game_data"."players"."spp_total" is null)) ' +
+        'or (("game_data"."players"."spp_adjustment" is null)) ' +
+        'or (("game_data"."players"."status" is null)))))',
+    );
+    expect(query.params).toEqual([false, 0, 0, 0, 0]);
   });
 
   it('groups by team era', async () => {
