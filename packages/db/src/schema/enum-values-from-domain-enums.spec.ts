@@ -66,9 +66,13 @@ const isStringArray = (value: unknown): value is readonly string[] =>
 /**
  * String-array exports of domain-enums that are deliberately not db enums:
  * a curated subset of `ACTION_TYPES` that api-contract and game-data consume,
- * stored in no enum column.
+ * and the learnable subset of the skill categories that game-data validates
+ * against; neither is stored in an enum column.
  */
-const NOT_DB_ENUMS: ReadonlySet<string> = new Set(['SPP_EARNING_ACTION_TYPES']);
+const NOT_DB_ENUMS: ReadonlySet<string> = new Set([
+  'SPP_EARNING_ACTION_TYPES',
+  'LEARNABLE_SKILL_CATEGORIES',
+]);
 
 /** Every export of `@blood-bowl-tracker/domain-enums` that is a string array. */
 const domainEnumExports: ReadonlyArray<readonly [string, readonly string[]]> =

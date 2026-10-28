@@ -166,6 +166,8 @@ synced by flagging rows, not deleting them. The three trophy award rule tables
 row, sets `removed` on a row the curation no longer lists, clears it when the
 curation lists that row again, and writes nothing for an unchanged curation.
 Every reader filters on `removed = false`.
+`position_rules_set_skill_categories` uses the same `removed` flag, synced by
+`PositionRulesSetSkillCategoriesService`.
 
 ## Re-running importers
 
@@ -174,6 +176,9 @@ every write path is safe to repeat:
 
 - A record re-sent with the same external IDs updates its row in place; one
   that matches nothing creates a row. No import ever deletes a row.
+  The one importer-driven shrink is a position's skill categories: TP's
+  official team list import flags a category `removed` when TP stops listing
+  it.
 - An unchanged re-run writes nothing: no `updated_at` bump and no history row
   (see [History tracking](#history-tracking)). This is pinned against real
   Postgres by `packages/game-data/test/importer-rerun.e2e-spec.ts` and
@@ -288,6 +293,20 @@ rules set that already has characteristics recorded.
 place that writes it, and it rejects a row naming a skill with no
 `skill_rules_sets` entry for that rules set, or a position/rules-set pair with
 no `position_rules_sets` row yet.
+
+`position_rules_set_skill_categories` records which
+[skill categories](glossary.md#skill-category) a position may take skills
+from when it advances under one rules set, and whether each is `primary` or
+`secondary` (Postgres enum `skill_access`). Like `position_rules_set_skills`
+it is anchored to `position_rules_sets.id`. It is unique on that anchor and
+the category, so one category is never both primary and secondary for the
+same pair. Only the learnable categories are accepted; `trait` and `unique`
+are rejected. `PositionRulesSetSkillCategoriesService.sync` in
+`packages/game-data` is the single place that writes it. Each call carries a
+pair's complete set, and a category the set no longer lists is flagged
+`removed` (see [Curated sets that shrink](#curated-sets-that-shrink)). The
+sources are TP's official team list and `tools/import-manual` (CRP, CRP+,
+BB2016, and gap-fill for pairs TP does not supply). BBL is not a source.
 
 `players` carries its own `move`, `strength`, `agility`, `passing` and
 `armour`: both BBL and TP report a player's _current_ characteristics, which

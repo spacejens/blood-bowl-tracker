@@ -32,6 +32,7 @@ export * from './game-data/player-skills';
 export * from './game-data/players';
 export * from './game-data/players-external-ids';
 export * from './game-data/position-rules-set-keywords';
+export * from './game-data/position-rules-set-skill-categories';
 export * from './game-data/position-rules-set-skills';
 export * from './game-data/position-rules-sets';
 export * from './game-data/positions';
