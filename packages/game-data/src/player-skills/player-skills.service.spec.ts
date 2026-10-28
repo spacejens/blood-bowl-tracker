@@ -323,20 +323,22 @@ describe('PlayerSkillsService', () => {
     };
 
     it("returns the player's skills with their category and elite flag", async () => {
-      const db = mockDb([eliteRow]);
+      const db = mockDb([eliteRow], []);
       const service = await makeService(db);
 
-      await expect(service.listByPlayer(1, 3)).resolves.toEqual([eliteRow]);
+      await expect(service.listByPlayer(1, 3)).resolves.toEqual([
+        { ...eliteRow, isTrophyGranted: false },
+      ]);
       expect(extractFilterValues(firstCallArg(db.chains[0].where))).toBe(1);
       expect(db.chains[0].orderBy).toHaveBeenCalled();
     });
 
     it('keeps a non-elite curated skill non-elite', async () => {
-      const db = mockDb([{ ...eliteRow, isElite: false }]);
+      const db = mockDb([{ ...eliteRow, isElite: false }], []);
       const service = await makeService(db);
 
       await expect(service.listByPlayer(1, 3)).resolves.toEqual([
-        { ...eliteRow, isElite: false },
+        { ...eliteRow, isElite: false, isTrophyGranted: false },
       ]);
     });
 
@@ -345,16 +347,21 @@ describe('PlayerSkillsService', () => {
       // is normalised to false: "not elite" and "this rules set has no such
       // concept" are the same thing to every consumer, exactly as the column's
       // own NOT NULL DEFAULT false says.
-      const db = mockDb([{ ...eliteRow, category: null, isElite: null }]);
+      const db = mockDb([{ ...eliteRow, category: null, isElite: null }], []);
       const service = await makeService(db);
 
       await expect(service.listByPlayer(1, 3)).resolves.toEqual([
-        { ...eliteRow, category: null, isElite: false },
+        {
+          ...eliteRow,
+          category: null,
+          isElite: false,
+          isTrophyGranted: false,
+        },
       ]);
     });
 
     it('joins the skill rules set rows on the requested rules set', async () => {
-      const db = mockDb([eliteRow]);
+      const db = mockDb([eliteRow], []);
       const service = await makeService(db);
 
       await service.listByPlayer(1, 3);
@@ -362,6 +369,45 @@ describe('PlayerSkillsService', () => {
       expect(
         extractAllFilterValues(firstCallArg(db.chains[0].leftJoin, 0, 1)),
       ).toContain(3);
+    });
+
+    it("flags a skill one of the player's own trophy awards granted", async () => {
+      const db = mockDb(
+        [eliteRow, { ...eliteRow, skillId: 8, skillName: 'Tentacles' }],
+        [{ skillId: 8 }],
+      );
+      const service = await makeService(db);
+
+      await expect(service.listByPlayer(1, 3)).resolves.toEqual([
+        { ...eliteRow, isTrophyGranted: false },
+        {
+          ...eliteRow,
+          skillId: 8,
+          skillName: 'Tentacles',
+          isTrophyGranted: true,
+        },
+      ]);
+    });
+
+    it('does not flag a skill when the awards name a different skill', async () => {
+      const db = mockDb([eliteRow], [{ skillId: 99 }]);
+      const service = await makeService(db);
+
+      await expect(service.listByPlayer(1, 3)).resolves.toEqual([
+        { ...eliteRow, isTrophyGranted: false },
+      ]);
+    });
+
+    it("looks up granted skills on the player's own awards only", async () => {
+      const db = mockDb([eliteRow], []);
+      const service = await makeService(db);
+
+      await service.listByPlayer(1, 3);
+
+      expect(db.chains).toHaveLength(2);
+      expect(
+        extractAllFilterValues(firstCallArg(db.chains[1].where)),
+      ).toContain(1);
     });
   });
 });

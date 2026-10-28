@@ -51,6 +51,7 @@ describe('RpcRouterFactoryService playerSkills router', () => {
         advancementOrder: null,
         category: 'general',
         isElite: false,
+        isTrophyGranted: false,
       },
     ]);
 
