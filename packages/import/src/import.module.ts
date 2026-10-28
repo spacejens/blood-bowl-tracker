@@ -22,6 +22,7 @@ import { MissingTrophyAwardsImportService } from './missing-trophy-awards-import
 import { PlayerSkillsImportService } from './player-skills-import.service';
 import { PlayersImportService } from './players-import.service';
 import { PositionRulesSetKeywordsImportService } from './position-rules-set-keywords-import.service';
+import { PositionRulesSetSkillCategoriesImportService } from './position-rules-set-skill-categories-import.service';
 import { PositionRulesSetSkillsImportService } from './position-rules-set-skills-import.service';
 import { PositionRulesSetsImportService } from './position-rules-sets-import.service';
 import { PositionsImportService } from './positions-import.service';
@@ -62,6 +63,7 @@ import { TrophyAwardsImportService } from './trophy-awards-import.service';
     PlayerSkillsImportService,
     PositionRulesSetKeywordsImportService,
     PositionRulesSetsImportService,
+    PositionRulesSetSkillCategoriesImportService,
     PositionRulesSetSkillsImportService,
     PositionsImportService,
     RacesImportService,
@@ -100,6 +102,7 @@ import { TrophyAwardsImportService } from './trophy-awards-import.service';
     PlayerSkillsImportService,
     PositionRulesSetKeywordsImportService,
     PositionRulesSetsImportService,
+    PositionRulesSetSkillCategoriesImportService,
     PositionRulesSetSkillsImportService,
     PositionsImportService,
     RacesImportService,

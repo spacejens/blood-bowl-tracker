@@ -29,6 +29,7 @@ import { MatchOutcomesImportService } from './match-outcomes-import.service';
 import { MatchesImportService } from './matches-import.service';
 import { PlayersImportService } from './players-import.service';
 import { PositionRulesSetKeywordsImportService } from './position-rules-set-keywords-import.service';
+import { PositionRulesSetSkillCategoriesImportService } from './position-rules-set-skill-categories-import.service';
 import { PositionRulesSetSkillsImportService } from './position-rules-set-skills-import.service';
 import { PositionRulesSetsImportService } from './position-rules-sets-import.service';
 import { PositionsImportService } from './positions-import.service';
@@ -63,6 +64,7 @@ const providers = [
   PlayersImportService,
   PositionRulesSetKeywordsImportService,
   PositionRulesSetsImportService,
+  PositionRulesSetSkillCategoriesImportService,
   PositionRulesSetSkillsImportService,
   PositionsImportService,
   RacesImportService,

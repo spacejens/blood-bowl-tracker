@@ -58,6 +58,7 @@ export {
 } from './player-skills-import.service';
 export { PlayersImportService } from './players-import.service';
 export { PositionRulesSetKeywordsImportService } from './position-rules-set-keywords-import.service';
+export { PositionRulesSetSkillCategoriesImportService } from './position-rules-set-skill-categories-import.service';
 export { PositionRulesSetSkillsImportService } from './position-rules-set-skills-import.service';
 export { PositionRulesSetsImportService } from './position-rules-sets-import.service';
 export { PositionsImportService } from './positions-import.service';
