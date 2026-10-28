@@ -87,6 +87,7 @@ real-world entity differently:
   matching events, `max_spp_sum` for its leader on the Star Player Points
   those events awarded, and `career_threshold` for every player who passes a
   lifetime figure, however many that turns out to be.
+
 - `position-characteristics-gap-fill.json5` — gap-fill `position_rules_sets`
   rows: `(position, rules set)` pairs no source importer can ever produce,
   curated early so a source importer can read them back. Also registers the
@@ -107,6 +108,7 @@ real-world entity differently:
   category, so it is a separate boolean. The field is optional and defaults
   to `false`; only the four BB2025 elite rows spell it out, and no rules set
   older than BB2025 has the concept at all.
+
 - `keywords.json5` — the sole source of every BB2025 keyword's name and
   `kind` (`species`/`positional`/`special`). No downloaded source names a
   keyword at all — `tourplay.net` exposes only the opaque numeric codes it
@@ -280,12 +282,22 @@ rename goes into a new batch, restating `name` and the row's `externalIds`.
 ## Batch 004
 
 `data/batches/004-advancement-costs/advancement-costs.json5` holds the SPP
-cost of advancements 1 to 6 under CRP, CRP+ and BB2016, which share the
-thresholds 6, 16, 31, 51, 76 and 176 SPP. Each row stores the gap to the
-previous threshold (6, 10, 15, 20, 25, 100), not the threshold; the file's
-header comment shows the derivation and `curated-data-batch-004.spec.ts`
-checks the running totals against the thresholds. The rules sets are
-referenced under the `Name` system by bare name, as batch 001 declares them.
+cost of advancements 1 to 6 under every rules set. CRP, CRP+ and BB2016 share
+the thresholds 6, 16, 31, 51, 76 and 176 SPP; each row stores the gap to the
+previous threshold (6, 10, 15, 20, 25, 100), not the threshold, and the
+file's header comment shows the derivation. BB2020, DB2021 and BB2025 price an
+advancement by what the coach takes, so each has one row per kind for every
+advancement number (BB2025 has no random secondary skill). The header comment
+tabulates these costs and `curated-data-batch-004.spec.ts` pins them and
+checks the fixed-threshold running totals. The rules sets are referenced under
+the `Name` system by bare name, as batch 001 declares them.
+
+Three more rows hold tLoEG's house rule under each of CRP, CRP+ and BB2016:
+league `{ system: 'tloeg.bbleague.se', id: 'tLoEG' }`, advancement 7, kind
+`granted_skill`, skill Fan Favourite, cost 125, so a tLoEG player reaches it
+at 176 + 125 = 301 SPP. The header comment records the rule and the rules
+sets it applies to, and `curated-data-batch-004.spec.ts` checks that the
+league rows exist only for CRP, CRP+ and BB2016 and bring each total to 301.
 
 `data/batches/004-advancement-costs/position-skill-categories.json5` holds the
 primary and secondary skill categories of each position under a rules set.

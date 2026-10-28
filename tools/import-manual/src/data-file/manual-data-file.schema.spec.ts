@@ -493,8 +493,45 @@ describe('ManualDataFileSchema', () => {
     ).toEqual([entry]);
   });
 
+  it('parses an advancementCosts entry naming a league and a granted skill', () => {
+    const entry = {
+      rulesSet: { system: 'Name', id: 'CRP' },
+      league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
+      advancementNumber: 7,
+      advancementKind: 'granted_skill',
+      skill: { system: 'Name', id: 'Fan Favourite' },
+      sppCost: 125,
+    };
+
+    expect(
+      ManualDataFileSchema.parse({ advancementCosts: [entry] })
+        .advancementCosts,
+    ).toEqual([entry]);
+  });
+
   it('defaults advancementCosts to an empty array', () => {
     expect(ManualDataFileSchema.parse({}).advancementCosts).toEqual([]);
+  });
+
+  it.each([
+    'table_roll',
+    'random_primary_skill',
+    'chosen_primary_skill',
+    'random_secondary_skill',
+    'chosen_secondary_skill',
+    'random_characteristic',
+  ])('accepts an advancementCosts entry of kind %s', (advancementKind) => {
+    const entry = {
+      rulesSet: { system: 'Name', id: 'BB2020' },
+      advancementNumber: 1,
+      advancementKind,
+      sppCost: 6,
+    };
+
+    expect(
+      ManualDataFileSchema.parse({ advancementCosts: [entry] })
+        .advancementCosts,
+    ).toEqual([entry]);
   });
 
   it.each([

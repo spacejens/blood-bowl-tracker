@@ -64,11 +64,12 @@ export function buildSppAwardValuesRoutes(
 }
 
 // advancementCosts: hand-written for the same reason as sppAwardValues —
-// costs are keyed by (rulesSetId, advancementNumber, advancementKind) rather
-// than external ids, so there is no CONFLICT error to map and no
-// entity+created shape to return. `runSync` maps the service's authored-data
-// rejections — a key named twice in one batch, and a rules set that does not
-// exist — to BAD_REQUEST.
+// costs are keyed by (rulesSetId, leagueId, advancementNumber,
+// advancementKind) rather than external ids, so there is no CONFLICT error
+// to map and no entity+created shape to return. `runSync` maps the service's
+// authored-data rejections — a key named twice in one batch, a rules set,
+// league or skill that does not exist, and a kind/skill mismatch — to
+// BAD_REQUEST.
 export function buildAdvancementCostsRoutes(
   upsertHandler: UpsertHandlerService,
   advancementCostsService: AdvancementCostsService,

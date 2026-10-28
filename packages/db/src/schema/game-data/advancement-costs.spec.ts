@@ -3,7 +3,9 @@ import { getTableConfig } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 
 import { advancementCosts, advancementKindEnum } from './advancement-costs';
+import { leagues } from './leagues';
 import { rulesSets } from './rules-sets';
+import { skills } from './skills';
 
 describe('advancement_costs', () => {
   const config = getTableConfig(advancementCosts);
@@ -36,16 +38,46 @@ describe('advancement_costs', () => {
     expect(fk!.reference().foreignTable).toBe(rulesSets);
   });
 
-  it('is unique on (rules_set_id, advancement_number, advancement_kind)', () => {
+  it('has nullable integer league and skill columns', () => {
+    const byName = new Map(config.columns.map((c) => [c.name, c]));
+    expect(byName.get('league_id')?.notNull).toBe(false);
+    expect(byName.get('skill_id')?.notNull).toBe(false);
+    expect(byName.get('league_id')?.getSQLType()).toBe('integer');
+    expect(byName.get('skill_id')?.getSQLType()).toBe('integer');
+  });
+
+  it.each([
+    ['league_id', leagues],
+    ['skill_id', skills],
+  ])('%s references its table', (column, table) => {
+    const fk = config.foreignKeys.find((f) =>
+      f.reference().columns.some((c) => c.name === column),
+    );
+    expect(fk).toBeDefined();
+    expect(fk!.reference().foreignTable).toBe(table);
+  });
+
+  it('is unique on (rules_set_id, league_id, advancement_number, advancement_kind) with NULLS NOT DISTINCT', () => {
     const constraint = config.uniqueConstraints.find(
-      (c) => c.name === 'advancement_costs_rules_set_number_kind_unique',
+      (c) => c.name === 'advancement_costs_rules_set_league_number_kind_unique',
     );
     expect(constraint).toBeDefined();
     expect(constraint!.columns.map((c) => c.name)).toEqual([
       'rules_set_id',
+      'league_id',
       'advancement_number',
       'advancement_kind',
     ]);
+    // Without NULLS NOT DISTINCT, Postgres would let two rules-set rows
+    // (league_id null) share a number and kind.
+    expect(constraint!.nullsNotDistinct).toBe(true);
+    expect(config.uniqueConstraints).toHaveLength(1);
+  });
+
+  it('checks that a skill is named exactly on granted_skill rows', () => {
+    expect(config.checks.map((c) => c.name)).toContain(
+      'advancement_costs_skill_matches_kind',
+    );
   });
 
   it('checks that the advancement number and the SPP cost are positive', () => {

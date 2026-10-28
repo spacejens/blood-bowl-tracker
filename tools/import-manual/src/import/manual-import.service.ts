@@ -78,8 +78,8 @@ export class ManualImportService {
    * external ids its entries reference) and before competitions and trophies
    * (which resolve the groups it upserts, by their "Name"-system external
    * id), sppAwardValues running after rulesSets and races (which it
-   * references), advancementCosts running after the rulesSets it references,
-   * trophies running after the leagues it may also reference,
+   * references), advancementCosts running after the rulesSets, leagues and skills
+   * it references, trophies running after the leagues it may also reference,
    * and trophyAwards last of all, after the trophies whose curated names its
    * entries quote — sharing one error collector so one bad entry never aborts
    * the rest. Reference-resolution

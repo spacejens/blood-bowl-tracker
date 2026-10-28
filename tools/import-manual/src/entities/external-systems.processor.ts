@@ -74,6 +74,8 @@ export class ExternalSystemsProcessor {
     }
     for (const entry of data.advancementCosts) {
       add(entry.rulesSet);
+      addIfPresent(entry.league);
+      addIfPresent(entry.skill);
     }
     for (const entry of data.keywords) {
       addAll(entry.externalIds);
