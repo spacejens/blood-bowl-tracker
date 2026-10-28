@@ -175,6 +175,12 @@ describe('contract', () => {
     expect(errorCodesOf(contract.sppAwardValues.sync)).toEqual(['BAD_REQUEST']);
   });
 
+  it('defines advancementCosts.sync with a BAD_REQUEST error', () => {
+    expect(errorCodesOf(contract.advancementCosts.sync)).toEqual([
+      'BAD_REQUEST',
+    ]);
+  });
+
   it('exposes a players.syncLastingInjuryHistory procedure', () => {
     expect(contract.players.syncLastingInjuryHistory).toBeDefined();
     // Writes nothing a caller can conflict on, returns no entity and rejects
@@ -348,6 +354,7 @@ describe('resolve procedures', () => {
     'matchEvents',
     'trophies',
     'trophyAwards',
+    'advancementCosts',
     'sppAwardValues',
     'externalSystems',
     'manualImportBatches',

@@ -1,6 +1,7 @@
 export { contract } from './contract';
 export type { ResolveResult } from './resolve-procedure';
 export { ResolveResultSchema } from './resolve-procedure';
+export * from './schemas/advancement-cost';
 export * from './schemas/coach';
 export * from './schemas/competition';
 export * from './schemas/competition-group';
