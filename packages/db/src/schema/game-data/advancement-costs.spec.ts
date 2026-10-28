@@ -1,3 +1,4 @@
+import { ADVANCEMENT_KINDS } from '@blood-bowl-tracker/domain-enums';
 import { getTableConfig } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 
@@ -24,7 +25,7 @@ describe('advancement_costs', () => {
 
   it('uses the shared domain-enums advancement kind list', () => {
     expect(advancementKindEnum.enumName).toBe('advancement_kind');
-    expect(advancementKindEnum.enumValues).toEqual(['table_roll']);
+    expect(advancementKindEnum.enumValues).toEqual(ADVANCEMENT_KINDS);
   });
 
   it('references rules_sets', () => {

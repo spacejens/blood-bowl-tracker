@@ -48,6 +48,20 @@ describe('AdvancementCostEntrySchema', () => {
       AdvancementCostEntrySchema.parse({ ...entry, sppCost: 2.5 }),
     ).toThrow();
   });
+
+  it('rejects a fractional advancement number', () => {
+    expect(() =>
+      AdvancementCostEntrySchema.parse({ ...entry, advancementNumber: 1.5 }),
+    ).toThrow();
+  });
+
+  it.each(['rulesSetId', 'advancementNumber', 'advancementKind', 'sppCost'])(
+    'rejects an entry missing %s',
+    (field) => {
+      const { [field]: _omitted, ...rest } = entry as Record<string, unknown>;
+      expect(() => AdvancementCostEntrySchema.parse(rest)).toThrow();
+    },
+  );
 });
 
 describe('SyncAdvancementCostsSchema', () => {
@@ -55,6 +69,14 @@ describe('SyncAdvancementCostsSchema', () => {
     expect(SyncAdvancementCostsSchema.parse({ costs: [] })).toEqual({
       costs: [],
     });
+  });
+
+  it('rejects a malformed entry inside the costs list', () => {
+    expect(() =>
+      SyncAdvancementCostsSchema.parse({
+        costs: [entry, { ...entry, sppCost: 0 }],
+      }),
+    ).toThrow();
   });
 
   it('parses a result of synced ids', () => {
