@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { OfficialTeamsParserService } from './official-teams-parser.service';
+import { TpSkillCategoryMaskDecoderService } from './tp-skill-category-mask-decoder.service';
 
 /**
  * Trimmed excerpts from the real recorded responses
@@ -261,7 +262,10 @@ describe('OfficialTeamsParserService', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [OfficialTeamsParserService],
+      providers: [
+        OfficialTeamsParserService,
+        TpSkillCategoryMaskDecoderService,
+      ],
     }).compile();
     service = moduleRef.get(OfficialTeamsParserService);
   });
@@ -289,6 +293,7 @@ describe('OfficialTeamsParserService', () => {
       },
       skills: [],
       keywordCodes: [],
+      skillCategories: { primary: [], secondary: [] },
     });
   });
 
@@ -308,6 +313,7 @@ describe('OfficialTeamsParserService', () => {
       },
       skills: [{ name: 'Consummate Professional' }],
       keywordCodes: [],
+      skillCategories: { primary: [], secondary: [] },
     });
   });
 

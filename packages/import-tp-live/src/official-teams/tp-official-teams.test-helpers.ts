@@ -42,6 +42,7 @@ export function officialPosition(
     characteristics: CHARACTERISTICS,
     skills: [],
     keywordCodes: [],
+    skillCategories: { primary: [], secondary: [] },
     ...overrides,
   };
 }

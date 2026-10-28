@@ -36,6 +36,7 @@ const AMAZON = {
       },
       skills: [],
       keywordCodes: [],
+      skillCategories: { primary: [], secondary: [] },
     },
   ],
 };

@@ -52,6 +52,7 @@ describe('RpcRouterFactoryService tpOfficialTeams router', () => {
             },
             skills: [{ skillMasterId: 41 }, { name: 'Brutal Charge' }],
             keywordCodes: [4],
+            skillCategories: { primary: [], secondary: [] },
           },
         ],
       },
