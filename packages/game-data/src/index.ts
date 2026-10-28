@@ -60,6 +60,8 @@ export {
 export { PlayerSkillsModule } from './player-skills/player-skills.module';
 export type { PlayerSkillRow } from './player-skills/player-skills.service';
 export { PlayerSkillsService } from './player-skills/player-skills.service';
+export type { IncompleteImportTeamRow } from './players/incomplete-import-players.service';
+export { IncompleteImportPlayersService } from './players/incomplete-import-players.service';
 export type {
   PlayerKillEntry,
   PlayerKillerInfo,
