@@ -5,6 +5,7 @@ import { LikePatternModule } from '../shared/like-pattern.module';
 import { MatchEventCountsModule } from '../shared/match-event-counts.module';
 import { PlayerContextNamesModule } from '../shared/player-context-names.module';
 import { SppModule } from '../spp/spp.module';
+import { IncompleteImportPlayersService } from './incomplete-import-players.service';
 import { PlayerCharacteristicIncreaseValidationService } from './player-characteristic-increase-validation.service';
 import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
 import { PlayerDeathService } from './player-death.service';
@@ -23,6 +24,7 @@ import { StarPlayersService } from './star-players.service';
     SppModule,
   ],
   providers: [
+    IncompleteImportPlayersService,
     PlayersService,
     PlayerCharacteristicIncreaseValidationService,
     PlayerCharacteristicsValidationService,
@@ -33,6 +35,7 @@ import { StarPlayersService } from './star-players.service';
     StarPlayersService,
   ],
   exports: [
+    IncompleteImportPlayersService,
     PlayersService,
     PlayerDeathService,
     PlayerLastingInjuryBackfillService,

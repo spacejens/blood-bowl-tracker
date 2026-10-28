@@ -93,8 +93,10 @@ Two things follow from how retriggering reruns the interaction:
   restricted to a role, this is also an intentional exception to the
   "Ephemeral by design" rule below: the reply is posted publicly rather than
   ephemerally, so a retrigger reproduces the answer as everyone would have
-  seen it. `/debuginteractions`, [`/debugtopusers`](debug-top-users.md) and
-  `/debugfilterusage` are all restricted to the `debug` role, though, so
+  seen it. `/debuginteractions`, [`/debugtopusers`](debug-top-users.md),
+  `/debugfilterusage` and
+  [`/debugincompleteimport`](debug-incomplete-import.md) are all restricted
+  to the `debug` role, though, so
   retriggering any of them keeps the reply ephemeral, visible only to
   whoever clicked retrigger — it is never posted publicly.
 

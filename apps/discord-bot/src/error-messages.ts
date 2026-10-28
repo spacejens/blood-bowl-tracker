@@ -302,6 +302,11 @@ export const DEBUG_RETRIGGER_HANDLER_NOT_FOUND_MESSAGE =
 export const DEBUG_RETRIGGER_ACCESS_DENIED_MESSAGE =
   "You don't have permission to use this command.";
 
+// --- Debug incomplete-import command (slash-commands/debug/debug-incomplete-import-*.service.ts) ---
+// Plain maintainer wording, like the other debug messages.
+export const DEBUG_INCOMPLETE_IMPORT_NO_RESULTS_MESSAGE =
+  'No players with incomplete import data.';
+
 // --- Import TP command (slash-commands/admin/import-tp-command.service.ts) ---
 // Deliberately plain rather than in-universe: this is administrator tooling.
 export const IMPORT_TP_UNSUPPORTED_URL_MESSAGE =
