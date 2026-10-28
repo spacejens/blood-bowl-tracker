@@ -55,10 +55,10 @@ export class TpCompetitionMatchesBackfillService {
   /**
    * One result for the whole backfill: `imported` counts the matches whose
    * row was written, and `errors` holds every stage error of every match; the
-   * SPP facts of the matches' players come alongside. A
-   * match that fails, even by throwing, is reported and the rest are still
-   * imported — except for a TP block (`TpBlockedError`), which is rethrown at
-   * once so no further match is attempted.
+   * SPP facts of the matches' players come alongside. A match that fails,
+   * even by throwing, is reported and the rest are still imported — except
+   * for a TP block (`TpBlockedError`), which is rethrown at once so no
+   * further match is attempted.
    */
   async backfill({
     tournamentSlug,
