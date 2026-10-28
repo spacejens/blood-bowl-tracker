@@ -248,10 +248,10 @@ and 176 SPP for CRP, CRP+ and BB2016, and costs by kind for BB2020, DB2021
 and BB2025. The same batch curates tLoEG's house rule under CRP, CRP+ and
 BB2016 (the rule does not apply under BB2020, DB2021 or BB2025): a seventh
 advancement, costing 125 and so reached at 301 SPP, that grants Fan
-Favourite. It is the only league house rule curated. `granted_skill` fits any
-fixed-result league threshold; house rules whose cost depends on the type of
-advancement fit the per-kind rows, which sit beside these rather than
-replacing them.
+Favourite. It is the only league house rule curated. `granted_skill` fits a
+league threshold that grants one fixed skill; house rules whose cost depends
+on the type of advancement fit the per-kind rows, which sit beside these
+rather than replacing them.
 
 `rules_sets` also carries five `characteristic_format` columns
 (`move_format`, `strength_format`, `agility_format`, `passing_format`,
