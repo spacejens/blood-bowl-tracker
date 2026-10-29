@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { MatchScopeFilterModule } from '../shared/match-scope-filter.module';
 import { AdvancementCostsService } from './advancement-costs.service';
+import { AdvancementKindCandidatesService } from './advancement-kind-candidates.service';
 import { AdvancementSpendRangeService } from './advancement-spend-range.service';
 import { SppAdjustmentsService } from './spp-adjustments.service';
 import { SppAwardValuesService } from './spp-award-values.service';
@@ -14,6 +15,7 @@ import { SppTotalsService } from './spp-totals.service';
   imports: [MatchScopeFilterModule],
   providers: [
     AdvancementCostsService,
+    AdvancementKindCandidatesService,
     AdvancementSpendRangeService,
     SppAdjustmentsService,
     SppAwardValuesService,
@@ -24,6 +26,7 @@ import { SppTotalsService } from './spp-totals.service';
   ],
   exports: [
     AdvancementCostsService,
+    AdvancementKindCandidatesService,
     AdvancementSpendRangeService,
     SppAdjustmentsService,
     SppAwardValuesService,

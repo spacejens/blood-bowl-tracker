@@ -149,6 +149,7 @@ export {
   SkillUpsertConflictError,
 } from './skills/skills.service';
 export { AdvancementCostsService } from './spp/advancement-costs.service';
+export { AdvancementKindCandidatesService } from './spp/advancement-kind-candidates.service';
 export { AdvancementSpendRangeService } from './spp/advancement-spend-range.service';
 export { SppModule } from './spp/spp.module';
 export { SppAdjustmentsService } from './spp/spp-adjustments.service';
