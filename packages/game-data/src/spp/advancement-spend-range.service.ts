@@ -55,7 +55,10 @@ export class AdvancementSpendRangeService {
       : { spentMin, spentMax };
   }
 
-  /** The cheapest cost of any kind at this advancement number, or null when the table has none. */
+  /**
+   * The cheapest cost of any kind at this advancement number, or null when
+   * the table has none.
+   */
   cheapestCostAt(
     costs: ApplicableAdvancementCost[],
     advancementNumber: number,

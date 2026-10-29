@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   extractAllFilterValues,
+  extractJoinColumns,
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
 import {
@@ -81,7 +82,14 @@ describe('UnspentSppService loading', () => {
     expect(filterValues(db.chains[0].where)).toEqual([1, 2]);
     expect(filterValues(db.chains[1].where)).toEqual([ERA, 21]);
     expect(filterValues(db.chains[2].where)).toEqual([1, 2]);
+    expect(extractJoinColumns(firstCallArg(db.chains[2].where))).toEqual([
+      'player_skills.player_id',
+    ]);
     expect(filterValues(db.chains[3].where)).toEqual([1, 2]);
+    expect(extractJoinColumns(firstCallArg(db.chains[3].where))).toEqual([
+      'trophy_awards.player_id',
+      'trophy_awards.granted_skill_id',
+    ]);
     expect(filterValues(db.chains[4].where)).toEqual(
       expect.arrayContaining([101, CRP]),
     );
@@ -91,6 +99,20 @@ describe('UnspentSppService loading', () => {
     expect(filterValues(db.chains[6].where)).toEqual(
       expect.arrayContaining([CRP, 30, 31]),
     );
+  });
+
+  it('skips the rules set queries when no era lists a rules set', async () => {
+    const db = unspentSppDb({
+      players: [playerRow({ sppTotal: 10 })],
+      playerSkills: gainedSkills(1),
+    });
+    const service = await makeUnspentSppService(db);
+
+    expect(await service.forPlayer(1)).toEqual({
+      status: 'unknown',
+      reason: 'no_rules_set',
+    });
+    expect(db.chains).toHaveLength(4);
   });
 
   it('works each player out on their own', async () => {
@@ -129,6 +151,14 @@ describe('UnspentSppService unknown reasons', () => {
       players: [playerRow({ sppTotal: null })],
       eraRulesSets: CRP_ERA,
       costs: crpCosts(),
+    });
+
+    expect(result).toEqual({ status: 'unknown', reason: 'no_total_spp' });
+  });
+
+  it('reports a missing total SPP before a missing rules set', async () => {
+    const result = await unspentSppFor({
+      players: [playerRow({ sppTotal: null })],
     });
 
     expect(result).toEqual({ status: 'unknown', reason: 'no_total_spp' });
@@ -500,6 +530,92 @@ describe('UnspentSppService with several rules sets in the era', () => {
       spentMin: 6,
       spentMax: 6,
       cheapestNextCost: 10,
+    });
+  });
+
+  it('reports an inconsistent history when the other rules sets have no costs', async () => {
+    const result = await unspentSppFor({
+      players: [playerRow({ sppTotal: 400 })],
+      eraRulesSets: [...CRP_ERA, ...BB2020_ERA],
+      playerSkills: gainedSkills(7),
+      costs: crpCosts(),
+    });
+
+    expect(result).toEqual({
+      status: 'unknown',
+      reason: 'inconsistent_history',
+    });
+  });
+
+  it('says maybe when the rules sets disagree on the verdict', async () => {
+    // CRP: spent 76, unspent 24, next 100: no.
+    // BB2020: spent 31, unspent 69, next 15: yes.
+    const result = await unspentSppFor({
+      players: [playerRow({ sppTotal: 100 })],
+      eraRulesSets: [...CRP_ERA, ...BB2020_ERA],
+      playerSkills: gainedSkills(5, 'random'),
+      skillCategories: [101, 102, 103, 104, 105].map((skillId) => ({
+        skillId,
+        rulesSetId: BB2020,
+        category: 'general' as const,
+      })),
+      positionAccess: [
+        {
+          positionId: POSITION,
+          rulesSetId: BB2020,
+          category: 'general',
+          access: 'primary',
+        },
+      ],
+      costs: [...crpCosts(), ...bb2020Costs()],
+    });
+
+    expect(result).toEqual({
+      status: 'known',
+      totalSpp: 100,
+      advancementsGained: 5,
+      spentMin: 31,
+      spentMax: 76,
+      unspentMin: 24,
+      unspentMax: 69,
+      cheapestNextCost: 15,
+      coversAnother: 'maybe',
+    });
+  });
+
+  it('says no when every rules set says no', async () => {
+    // CRP: spent 31, unspent 19, next 20: no.
+    // BB2020: spent 44, unspent 6, next 8: no.
+    const result = await unspentSppFor({
+      players: [playerRow({ sppTotal: 50 })],
+      eraRulesSets: [...CRP_ERA, ...BB2020_ERA],
+      playerSkills: gainedSkills(3, 'chosen'),
+      skillCategories: [101, 102, 103].map((skillId) => ({
+        skillId,
+        rulesSetId: BB2020,
+        category: 'agility' as const,
+      })),
+      positionAccess: [
+        {
+          positionId: POSITION,
+          rulesSetId: BB2020,
+          category: 'agility',
+          access: 'secondary',
+        },
+      ],
+      costs: [...crpCosts(), ...bb2020Costs()],
+    });
+
+    expect(result).toEqual({
+      status: 'known',
+      totalSpp: 50,
+      advancementsGained: 3,
+      spentMin: 31,
+      spentMax: 44,
+      unspentMin: 6,
+      unspentMax: 19,
+      cheapestNextCost: 8,
+      coversAnother: 'no',
     });
   });
 

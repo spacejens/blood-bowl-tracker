@@ -46,6 +46,11 @@ interface PlayerFacts {
   characteristicIncreases: number;
 }
 
+/** A player whose total SPP is known, so their spend can be priced. */
+interface PricedPlayer extends PlayerFacts {
+  sppTotal: number;
+}
+
 /** A cost row with the rules set and league it belongs to. */
 interface StoredCost extends ApplicableAdvancementCost {
   rulesSetId: number;
@@ -71,6 +76,7 @@ interface FittingOutcome {
   spentMin: number;
   spentMax: number;
   cheapestNextCost: number | null;
+  coversAnother: CoversAnother;
 }
 
 type RulesSetOutcome =
@@ -87,7 +93,8 @@ type RulesSetOutcome =
  * advancement could have been and AdvancementSpendRangeService prices every
  * fitting order. An era can list several rules sets; each is tried, the
  * widest range is kept, and one whose costs the history cannot fit is
- * ignored.
+ * ignored. The verdict is `yes` or `no` only when every fitting rules set
+ * agrees on it.
  *
  * Holding unspent SPP is a normal state, so this is information only. Player
  * status is not consulted: dead, retired and departed players are worked out
@@ -110,6 +117,10 @@ export class UnspentSppService {
   /**
    * Each requested player's result, keyed by player id. A requested id with
    * no player is absent. The whole batch is loaded in one query per table.
+   *
+   * Meant for one player or one roster at a time: the player ids go into a
+   * single unchunked `inArray`, so a very large batch could exceed Postgres's
+   * bind-parameter limit.
    */
   async forPlayers(
     playerIds: number[],
@@ -144,14 +155,15 @@ export class UnspentSppService {
     if (rulesSetIds.length === 0) {
       return this.unknown('no_rules_set');
     }
+    const priced: PricedPlayer = { ...player, sppTotal: player.sppTotal };
     const outcomes = rulesSetIds.map((rulesSetId) =>
-      this.outcomeFor(player, rulesSetId, data),
+      this.outcomeFor(priced, rulesSetId, data),
     );
     return this.combine(player.sppTotal, outcomes);
   }
 
   private outcomeFor(
-    player: PlayerFacts,
+    player: PricedPlayer,
     rulesSetId: number,
     data: UnspentSppData,
   ): RulesSetOutcome {
@@ -181,20 +193,29 @@ export class UnspentSppService {
     if (range === null) {
       return { kind: 'inconsistent' };
     }
+    const cheapestNextCost = this.spendRange.cheapestCostAt(
+      costs,
+      options.length + 1,
+    );
     return {
       kind: 'fits',
       advancementsGained: options.length,
       ...range,
-      cheapestNextCost: this.spendRange.cheapestCostAt(
-        costs,
-        options.length + 1,
+      cheapestNextCost,
+      coversAnother: this.coversAnother(
+        player.sppTotal - range.spentMax,
+        player.sppTotal - range.spentMin,
+        cheapestNextCost,
       ),
     };
   }
 
   /**
    * The widest range over the rules sets whose costs fit: the lowest spend,
-   * the highest spend and the lowest next cost.
+   * the highest spend and the lowest next cost. The verdict is each rules
+   * set's own, merged: `yes` or `no` only when all of them say so, otherwise
+   * `maybe`. Comparing the merged range against the merged next cost instead
+   * would mix figures from different rules sets.
    */
   private combine(
     totalSpp: number,
@@ -228,12 +249,13 @@ export class UnspentSppService {
       unspentMin,
       unspentMax,
       cheapestNextCost,
-      coversAnother: this.coversAnother(
-        unspentMin,
-        unspentMax,
-        cheapestNextCost,
-      ),
+      coversAnother: this.mergeVerdicts(fits.map((fit) => fit.coversAnother)),
     };
+  }
+
+  private mergeVerdicts(verdicts: CoversAnother[]): CoversAnother {
+    const [first] = verdicts;
+    return verdicts.every((verdict) => verdict === first) ? first : 'maybe';
   }
 
   /**
@@ -329,6 +351,55 @@ export class UnspentSppService {
           isNotNull(trophyAwards.grantedSkillId),
         ),
       );
+    const trophySkillsByPlayer = new Map<number, Set<number>>();
+    for (const row of trophyRows) {
+      const playerId = row.playerId as number;
+      const granted = trophySkillsByPlayer.get(playerId) ?? new Set<number>();
+      granted.add(row.skillId as number);
+      trophySkillsByPlayer.set(playerId, granted);
+    }
+
+    return {
+      rulesSetIdsByEra: this.group(
+        eraRows,
+        (row) => row.eraId,
+        (row) => row.rulesSetId,
+      ),
+      skillsByPlayer: this.group(
+        skillRows,
+        (row) => row.playerId,
+        (row) => ({ skillId: row.skillId, source: row.source }),
+      ),
+      trophySkillsByPlayer,
+      ...(await this.loadRulesSetData(
+        facts,
+        this.distinct(skillRows.map((row) => row.skillId)),
+        rulesSetIds,
+      )),
+    };
+  }
+
+  /**
+   * Queries 5-7: skill categories, position access and costs under the
+   * batch's rules sets. None is run when there is no rules set to ask about.
+   */
+  private async loadRulesSetData(
+    facts: PlayerFacts[],
+    skillIds: number[],
+    rulesSetIds: number[],
+  ): Promise<
+    Pick<
+      UnspentSppData,
+      'categoriesByRulesSet' | 'accessByPositionRulesSet' | 'costs'
+    >
+  > {
+    if (rulesSetIds.length === 0) {
+      return {
+        categoriesByRulesSet: new Map(),
+        accessByPositionRulesSet: new Map(),
+        costs: [],
+      };
+    }
     const categoryRows = await this.db
       .select({
         skillId: skillRulesSets.skillId,
@@ -338,10 +409,7 @@ export class UnspentSppService {
       .from(skillRulesSets)
       .where(
         and(
-          inArray(
-            skillRulesSets.skillId,
-            this.distinct(skillRows.map((row) => row.skillId)),
-          ),
+          inArray(skillRulesSets.skillId, skillIds),
           inArray(skillRulesSets.rulesSetId, rulesSetIds),
         ),
       );
@@ -413,30 +481,7 @@ export class UnspentSppService {
       access.set(row.category, row.access);
       accessByPositionRulesSet.set(key, access);
     }
-    const trophySkillsByPlayer = new Map<number, Set<number>>();
-    for (const row of trophyRows) {
-      const playerId = row.playerId as number;
-      const granted = trophySkillsByPlayer.get(playerId) ?? new Set<number>();
-      granted.add(row.skillId as number);
-      trophySkillsByPlayer.set(playerId, granted);
-    }
-
-    return {
-      rulesSetIdsByEra: this.group(
-        eraRows,
-        (row) => row.eraId,
-        (row) => row.rulesSetId,
-      ),
-      skillsByPlayer: this.group(
-        skillRows,
-        (row) => row.playerId,
-        (row) => ({ skillId: row.skillId, source: row.source }),
-      ),
-      trophySkillsByPlayer,
-      categoriesByRulesSet,
-      accessByPositionRulesSet,
-      costs,
-    };
+    return { categoriesByRulesSet, accessByPositionRulesSet, costs };
   }
 
   private group<T, V>(
@@ -447,7 +492,12 @@ export class UnspentSppService {
     const grouped = new Map<number, V[]>();
     for (const item of items) {
       const key = keyOf(item);
-      grouped.set(key, [...(grouped.get(key) ?? []), valueOf(item)]);
+      const values = grouped.get(key);
+      if (values === undefined) {
+        grouped.set(key, [valueOf(item)]);
+      } else {
+        values.push(valueOf(item));
+      }
     }
     return grouped;
   }

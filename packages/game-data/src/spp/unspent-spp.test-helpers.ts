@@ -156,16 +156,27 @@ export interface UnspentSppFixture {
   costs?: CostRowFixture[];
 }
 
-/** A mock db answering UnspentSppService's queries in the order it issues them. */
+/**
+ * A mock db answering UnspentSppService's queries in the order it issues them.
+ * With no era rules set rows the service stops after query 4, so the last
+ * three answers are only supplied when there are some.
+ */
 export function unspentSppDb(fixture: UnspentSppFixture): MockDbResult {
+  const eraRulesSets = fixture.eraRulesSets ?? [];
+  const rulesSetAnswers =
+    eraRulesSets.length === 0
+      ? []
+      : [
+          fixture.skillCategories ?? [],
+          fixture.positionAccess ?? [],
+          fixture.costs ?? [],
+        ];
   return mockDb(
     fixture.players,
-    fixture.eraRulesSets ?? [],
+    eraRulesSets,
     fixture.playerSkills ?? [],
     fixture.trophyAwards ?? [],
-    fixture.skillCategories ?? [],
-    fixture.positionAccess ?? [],
-    fixture.costs ?? [],
+    ...rulesSetAnswers,
   );
 }
 

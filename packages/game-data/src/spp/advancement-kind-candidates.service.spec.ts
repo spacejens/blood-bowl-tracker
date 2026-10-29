@@ -208,4 +208,43 @@ describe('AdvancementKindCandidatesService', () => {
       [{ advancementKind: 'granted_skill', advancementNumber: 7 }],
     ]);
   });
+
+  it('offers each number at which a cost row grants the skill', () => {
+    const grantedAt = (
+      advancementNumber: number,
+    ): ApplicableAdvancementCost => ({
+      advancementNumber,
+      advancementKind: 'granted_skill',
+      skillId: 500,
+      sppCost: 125,
+    });
+
+    const result = service.candidates(
+      input({
+        skills: [{ skillId: 500, source: 'advancement' }],
+        costs: [...FIXED, grantedAt(7), grantedAt(8)],
+      }),
+    );
+
+    expect(result).toEqual([
+      [
+        { advancementKind: 'granted_skill', advancementNumber: 7 },
+        { advancementKind: 'granted_skill', advancementNumber: 8 },
+      ],
+    ]);
+  });
+
+  it.each([
+    ['BB2020', BB2020],
+    ['BB2025', BB2025],
+  ])(
+    'drops table_roll for a characteristic increase under %s',
+    (_name, rulesSetCosts) => {
+      const result = service.candidates(
+        input({ characteristicIncreases: 1, costs: rulesSetCosts }),
+      );
+
+      expect(result).toEqual([anyNumber('random_characteristic')]);
+    },
+  );
 });

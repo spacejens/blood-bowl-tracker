@@ -79,10 +79,16 @@ error, and dead, retired and departed players are worked out like any other.
 - **The verdict.** _Yes_ when even the smallest unspent figure covers the
   cheapest next advancement, _no_ when even the largest does not or no further
   advancement exists, and _maybe_ otherwise. A negative unspent figure is
-  reported as is.
+  reported as is. When the era lists several rules sets, each one that fits
+  gives its own verdict: the answer is _yes_ or _no_ only when every one of
+  them says so, and _maybe_ otherwise.
 - **Accuracy.** Advancements missing from the recorded history make the spend
   look smaller and unspent SPP larger than it is. A _no_ is therefore
-  reliable, while a _yes_ can be generous.
+  reliable, while a _yes_ can be generous. The exception is a tLoEG player
+  under fixed thresholds who has Fan Favourite but a gap in the recorded
+  history: Fan Favourite can only be the seventh advancement, so too few
+  recorded advancements before it leave no fitting order, and the answer is
+  unknown (an inconsistent history) rather than a generous range.
 - **Unknown.** The answer is unknown, with a reason, for a star player (star
   players never advance), a player with no total SPP, an era with no rules
   set, rules sets with no advancement costs, or a history that no rules set's
