@@ -46,6 +46,8 @@ interface SeededPlayers {
   trophyGranted: number;
   starPlayer: number;
   twoRulesSets: number;
+  /** Seeded but never requested: its rows must not leak into the batch. */
+  outsider: number;
 }
 
 /** Each skill's id by name. */
@@ -335,6 +337,14 @@ async function seed(db: Db): Promise<SeededPlayers> {
     playerId: trophyGranted,
     grantedSkillId: skill.Tentacles,
   });
+  // A trophy that grants no skill leaves its player's figures alone.
+  await db.insert(trophyAwards).values({
+    trophyId: trophy.id,
+    competitionId: competition.id,
+    teamEraId: fixedTeamEra,
+    playerId: fixedThreshold,
+    grantedSkillId: null,
+  });
 
   const starPlayer = await player({
     name: 'Star',
@@ -351,7 +361,23 @@ async function seed(db: Db): Promise<SeededPlayers> {
   });
   await gained(twoRulesSets, ['Sidestep', 'Jump Up', 'Leap'], 'chosen');
 
+  // Never requested: many gained skills and a skill-granting trophy.
+  const outsider = await player({
+    name: 'Outsider',
+    teamEraId: fixedTeamEra,
+    sppTotal: 200,
+  });
+  await gained(outsider, ['Block', 'Dodge', 'Sure Hands', 'Tackle', 'Wrestle']);
+  await db.insert(trophyAwards).values({
+    trophyId: trophy.id,
+    competitionId: competition.id,
+    teamEraId: fixedTeamEra,
+    playerId: outsider,
+    grantedSkillId: skill.Tentacles,
+  });
+
   return {
+    outsider,
     fixedThreshold,
     fanFavourite,
     typePriced,
@@ -398,6 +424,19 @@ describe('UnspentSppService.forPlayers (real Postgres)', () => {
       seeded.starPlayer,
       seeded.twoRulesSets,
     ]);
+
+    // Only the requested players come back; the outsider's rows stay out.
+    expect([...results.keys()].sort((a, b) => a - b)).toEqual(
+      [
+        seeded.fixedThreshold,
+        seeded.fanFavourite,
+        seeded.typePriced,
+        seeded.trophyGranted,
+        seeded.starPlayer,
+        seeded.twoRulesSets,
+      ].sort((a, b) => a - b),
+    );
+    expect(results.has(seeded.outsider)).toBe(false);
 
     expect(results.get(seeded.fixedThreshold)).toEqual({
       status: 'known',
@@ -464,9 +503,16 @@ describe('UnspentSppService.forPlayers (real Postgres)', () => {
   });
 
   it('answers a single player with forPlayer', async () => {
-    expect(await service.forPlayer(seeded.fixedThreshold)).toMatchObject({
+    expect(await service.forPlayer(seeded.fixedThreshold)).toEqual({
       status: 'known',
+      totalSpp: 20,
+      advancementsGained: 2,
+      spentMin: 16,
+      spentMax: 16,
       unspentMin: 4,
+      unspentMax: 4,
+      cheapestNextCost: 15,
+      coversAnother: 'no',
     });
   });
 });

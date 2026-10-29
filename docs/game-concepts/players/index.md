@@ -81,7 +81,10 @@ error, and dead, retired and departed players are worked out like any other.
   advancement exists, and _maybe_ otherwise. A negative unspent figure is
   reported as is. When the era lists several rules sets, each one that fits
   gives its own verdict: the answer is _yes_ or _no_ only when every one of
-  them says so, and _maybe_ otherwise.
+  them says so, and _maybe_ otherwise. The reported unspent range and cheapest
+  next cost are the widest across those rules sets and can come from different
+  ones, so the verdict can be _maybe_ even when the reported smallest unspent
+  figure is at least the reported next cost.
 - **Accuracy.** Advancements missing from the recorded history make the spend
   look smaller and unspent SPP larger than it is. A _no_ is therefore
   reliable, while a _yes_ can be generous. The exception is a tLoEG player
