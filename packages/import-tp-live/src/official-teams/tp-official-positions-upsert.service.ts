@@ -1,6 +1,7 @@
 import type {
   ExternalId,
   ImportError,
+  PositionSkillCategories,
   TpOfficialCharacteristics,
   TpOfficialPosition,
   TpOfficialRace,
@@ -27,6 +28,9 @@ export interface TpOfficialPositionSlot {
   characteristics: TpOfficialCharacteristics;
   skills: TpOfficialSkillRef[];
   keywordCodes: number[];
+  skillCategories: PositionSkillCategories;
+  /** Set when TP's categories for this position are corrupt; they must not be written. */
+  skillCategoriesError?: string;
 }
 
 /** Options for {@link TpOfficialPositionsUpsertService.upsertPositions}. */
@@ -50,6 +54,8 @@ interface PositionSource {
   characteristics: TpOfficialCharacteristics;
   skills: TpOfficialSkillRef[];
   keywordCodes: number[];
+  skillCategories: PositionSkillCategories;
+  skillCategoriesError?: string;
   isOfficial: boolean;
 }
 
@@ -120,7 +126,13 @@ export class TpOfficialPositionsUpsertService {
       }
       imported += 1;
       const positionId = upserted.position.id;
-      const { characteristics, skills, keywordCodes } = group.source;
+      const {
+        characteristics,
+        skills,
+        keywordCodes,
+        skillCategories,
+        skillCategoriesError,
+      } = group.source;
       // A star fielded by several races is one group per race, all landing on
       // one row, so the row keeps a single slot; an official listing's values
       // win over a legacy one's, the same precedence groupPositions applies
@@ -136,6 +148,8 @@ export class TpOfficialPositionsUpsertService {
           characteristics,
           skills,
           keywordCodes,
+          skillCategories,
+          skillCategoriesError,
         });
         if (group.source.isOfficial) {
           officialSlotPositionIds.add(positionId);
@@ -217,6 +231,8 @@ export class TpOfficialPositionsUpsertService {
       characteristics: position.characteristics,
       skills: position.skills,
       keywordCodes: position.keywordCodes,
+      skillCategories: position.skillCategories,
+      skillCategoriesError: position.skillCategoriesError,
       isOfficial,
     };
     const key = `${raceRef.raceId} ${position.name}`;

@@ -17,6 +17,7 @@ function emptyData(): ManualDataFile {
     positions: [],
     positionRulesSets: [],
     positionRulesSetSkills: [],
+    positionRulesSetSkillCategories: [],
     skills: [],
     skillRulesSets: [],
     keywords: [],
@@ -328,6 +329,22 @@ describe('ExternalSystemsProcessor', () => {
     const systemIds = await processor.bootstrap(data);
 
     expect([...systemIds.keys()].sort()).toEqual(['RaceSys', 'RulesSys']);
+  });
+
+  it('throws when a positionRulesSetSkillCategories entry references an undeclared system', async () => {
+    const data = emptyData();
+    data.positionRulesSetSkillCategories = [
+      {
+        position: { system: 'PosSys', id: 'Human: Lineman' },
+        rulesSet: { system: 'RulesSys', id: 'rs:crp' },
+        primary: ['general'],
+        secondary: [],
+      },
+    ];
+
+    await expect(processor.bootstrap(data)).rejects.toThrow(
+      'External system "PosSys" is referenced but not declared in externalSystems',
+    );
   });
 
   it('throws when an advancementCosts entry references an undeclared system', async () => {

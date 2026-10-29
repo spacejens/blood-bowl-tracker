@@ -112,7 +112,32 @@ plus the Secret Bowl `Bretonnian_2020`. This matches what
   integers; `pa: 0` means "cannot pass".
 - `skills[]` — always present, may be empty. See below.
 - `skillNormal`, `skillDouble` — `129`, `26`. Bitmasks of the skill categories
-  the position may take.
+  the position may take as primary (`skillNormal`) and secondary
+  (`skillDouble`):
+  - `1` Agility
+  - `2` General
+  - `4` Mutation
+  - `8` Passing
+  - `16` Strength
+  - `128` Devious (BB2025 only)
+
+  So `129/26` is primary Agility + Devious, secondary General + Passing +
+  Strength. The mapping is inferred from the data and confirmed against the
+  physical rulebooks.
+
+  Bits `32` and `64` appear on no position in any rules set. They are
+  unobserved and unconfirmed (plausibly Trait and Unique). The importer
+  rejects any bit outside the six above, which fails that file's import.
+
+  A category set in both masks of one position is corrupt source data. It
+  does not occur in the imported rosters (`teamRosterType` 0 and 1). The
+  parser gives that position empty categories and a `skillCategoriesError`
+  naming the roster and position, so only that position is reported as an
+  error and every other position imports normally.
+
+  Stars carry no categories: BB2020 stars have `0/0`, and BB2025 stars omit
+  both fields. The import records the categories in
+  `position_rules_set_skill_categories`.
 - `iconClass`, `iconVariation` — `"Goblin-Bruiser-Linemen"`, `6`. Presentation
   only.
 - `isBigGuy` — `true`. Optional; absent means false.

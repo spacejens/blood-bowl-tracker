@@ -36,6 +36,10 @@ const input = {
             { name: 'Brutal Charge' },
           ],
           keywordCodes: [4, 12],
+          skillCategories: {
+            primary: ['general'],
+            secondary: ['agility', 'strength'],
+          },
         },
       ],
     },
@@ -97,6 +101,7 @@ describe('TpOfficialTeamsImportResultSchema', () => {
       characteristics: one,
       keywords: one,
       startingSkills: one,
+      skillCategories: one,
       positionCharacteristics: [
         { positionId: 9, rulesSetId: 20, ...characteristics },
       ],
@@ -132,8 +137,44 @@ describe('TpOfficialPositionSchema', () => {
       characteristics,
       skills: [],
       keywordCodes: [],
+      skillCategories: { primary: [], secondary: [] },
     };
     expect(TpOfficialPositionSchema.parse(position)).toEqual(position);
+  });
+
+  it('rejects a position without skillCategories', () => {
+    expect(
+      TpOfficialPositionSchema.safeParse({
+        name: 'Blitzer',
+        isStarPlayer: false,
+        characteristics,
+        skills: [],
+        keywordCodes: [],
+      }).success,
+    ).toBe(false);
+  });
+
+  it('accepts a skill categories error and rejects an empty one', () => {
+    const position = {
+      name: 'Blitzer',
+      isStarPlayer: false,
+      characteristics,
+      skills: [],
+      keywordCodes: [],
+      skillCategories: { primary: [], secondary: [] },
+    };
+    expect(
+      TpOfficialPositionSchema.safeParse({
+        ...position,
+        skillCategoriesError: 'Human / Blitzer: both',
+      }).success,
+    ).toBe(true);
+    expect(
+      TpOfficialPositionSchema.safeParse({
+        ...position,
+        skillCategoriesError: '',
+      }).success,
+    ).toBe(false);
   });
 });
 

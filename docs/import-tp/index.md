@@ -190,7 +190,7 @@ The tool never parses a roster or a match for those upserts; it does parse roste
   upserts the races (variant codes merged by display name), positions and
   stars (race-scoped / bare Name ids, official characteristics winning over
   legacy), their availability in every TP era declaring the rules set, and
-  their characteristics, keywords and starting skills. The `teams/<rulesSet>`
+  their characteristics, keywords, starting skills and skill categories. The `teams/<rulesSet>`
   folder name must be spelled exactly like the rules set's name in
   `league.eras[].identity.rulesSets`, since the server resolves the rules set
   by that name. Returns one `ImportResult` per stage plus
@@ -425,7 +425,7 @@ which would take a data migration (see
 5. Coaches.
 6. The roster files and TP's official team list, each scanned and parsed once client-side (the roster import call re-sends each file's raw content, which `TpRosterImportService.importRawRoster` parses a second time, server-side).
 7. The skill-name scan.
-8. The official team list import (races, positions, characteristics, keywords and starting skills, all in one `tpOfficialTeams.import` call per rules set).
+8. The official team list import (races, positions, characteristics, keywords, starting skills and skill categories, all in one `tpOfficialTeams.import` call per rules set).
 9. Roster import — teams, players and the players' own skills together, one `tpRosters.import` call per distinct era/roster pair (a roster id in more than one era is sent once per era; see [import-tp-live's architecture](../import-tp-live/index.md#what-it-owns)).
 10. Induced star hires.
 11. Roster player facts (career SPP counts).

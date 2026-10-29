@@ -183,7 +183,8 @@ shaped this way instead of as an upsert, and its exact result shape.
 
 A sync that writes a caller-authored batch — `sppAwardValues.sync`,
 `advancementCosts.sync`, `positions.syncRaceEras`, `positionRulesSets.sync`,
-`positionRulesSetKeywords.sync` and `skillRulesSets.sync` among them —
+`positionRulesSetKeywords.sync`,
+`positionRulesSetSkillCategories.sync` and `skillRulesSets.sync` among them —
 validates the whole batch before writing anything. A batch that
 names one natural key twice, or an entry that references a row that does not
 exist, fails the whole call with `BAD_REQUEST` naming the offending entry,
@@ -192,7 +193,9 @@ tools record it as one `ImportError`. `advancementCosts.sync` also rejects a
 cost whose kind and skill disagree: a `granted_skill` cost must name a skill
 and no other kind may. `positions.syncRaceEras` only ever adds
 availability links, so a pair repeated within its batch is not an error: it
-lands as one link.
+lands as one link. `positionRulesSetSkillCategories.sync` replaces each named
+pair's whole category set. A category the entry leaves out is flagged removed,
+so a caller always sends the complete set.
 
 A procedure may also be plainly read-only, existing because a caller needs data
 that no `upsert` call's input or output can give it. Such a procedure writes
@@ -250,10 +253,11 @@ It also declares no contract errors.
 
 `tpOfficialTeams.import` is the same shape for TP's official team list: it
 takes one rules set's name, its parsed races (official and legacy, with their
-positions, stars, characteristics, skill references and keyword codes),
-optional skill names for the referenced `skillMasterId`s and the external
-system name, and writes the races, positions, characteristics, keywords and
-starting skills server-side through `packages/import-tp-live`. Besides one
+positions, stars, characteristics, skill references, keyword codes and
+primary and secondary skill categories), optional skill names for the
+referenced `skillMasterId`s and the external system name, and writes the
+races, positions, characteristics, keywords, starting skills and skill
+categories server-side through `packages/import-tp-live`. Besides one
 `ImportResult` per stage it returns every position's characteristics, which a
 caller importing hired star players needs. See [import-tp-live's official team
 list import](../import-tp-live/official-teams-import.md). It also declares no

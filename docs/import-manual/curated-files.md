@@ -87,6 +87,7 @@ real-world entity differently:
   matching events, `max_spp_sum` for its leader on the Star Player Points
   those events awarded, and `career_threshold` for every player who passes a
   lifetime figure, however many that turns out to be.
+
 - `position-characteristics-gap-fill.json5` — gap-fill `position_rules_sets`
   rows: `(position, rules set)` pairs no source importer can ever produce,
   curated early so a source importer can read them back. Also registers the
@@ -107,6 +108,7 @@ real-world entity differently:
   category, so it is a separate boolean. The field is optional and defaults
   to `false`; only the four BB2025 elite rows spell it out, and no rules set
   older than BB2025 has the concept at all.
+
 - `keywords.json5` — the sole source of every BB2025 keyword's name and
   `kind` (`species`/`positional`/`special`). No downloaded source names a
   keyword at all — `tourplay.net` exposes only the opaque numeric codes it
@@ -234,6 +236,11 @@ Rumble` events become `Reserves Rumble 1`–`3`). Batch 001
   asserted by `curated-data-skills.spec.ts`. Star players under these three
   rules sets are absent because they have no curated characteristics to hang a
   starting skill off.
+  The `positionRulesSetSkillCategories` section (fields `position`, `rulesSet`,
+  `primary` and `secondary`) uses the same (position, rules set) keying to
+  record the skill categories a position may take as primary and secondary;
+  only learnable categories are allowed (no trait or unique), a category may
+  appear once across both lists, and each entry is the pair's complete set.
 
 ### Expected first-run import errors
 
@@ -295,6 +302,24 @@ league `{ system: 'tloeg.bbleague.se', id: 'tLoEG' }`, advancement 7, kind
 at 176 + 125 = 301 SPP. The header comment records the rule and the rules
 sets it applies to, and `curated-data-batch-004.spec.ts` checks that the
 league rows exist only for CRP, CRP+ and BB2016 and bring each total to 301.
+
+`data/batches/004-advancement-costs/position-skill-categories.json5` holds the
+primary and secondary skill categories of each position under a rules set.
+Every entry is the pair's complete set: the sync flags any category an entry
+leaves out as removed. Only learnable categories are allowed (general,
+agility, passing, strength, mutation, devious), and a category is never both
+primary and secondary. The rulebooks' letter codes map as G general, A
+agility, P passing, S strength, M mutation, D devious; the Normal column is
+primary and the Double column secondary. CRP+'s source (NTBB2015) has only a
+Talent column, so CRP+ takes primary from it and secondary from the same
+position's CRP entry; mutation that NTBB2015 allows only on a doubles roll is
+secondary. The few CRP+ positions with no CRP entry come from the developer's
+physical rulebooks. BB2016 comes from the Teams of Legend PDF for the teams
+it lists, and from the developer's physical BB2016 rulebook for the rest.
+`curated-data-batch-004-skill-categories.spec.ts` checks that every CRP,
+CRP+ and BB2016 position with curated characteristics has an entry. A
+gap-fill entry must never name a pair TP's official team list supplies,
+because the next TP import would replace it with TP's set.
 
 `data/batches/004-advancement-costs/trophy-awards.json5` names the free
 mutation each Gudarnas Förkämpe award granted, as a `grantedSkill` on an entry

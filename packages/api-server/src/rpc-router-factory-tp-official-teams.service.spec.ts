@@ -18,6 +18,7 @@ describe('RpcRouterFactoryService tpOfficialTeams router', () => {
       characteristics: one,
       keywords: one,
       startingSkills: one,
+      skillCategories: one,
       positionCharacteristics: [
         {
           positionId: 9,
@@ -52,6 +53,7 @@ describe('RpcRouterFactoryService tpOfficialTeams router', () => {
             },
             skills: [{ skillMasterId: 41 }, { name: 'Brutal Charge' }],
             keywordCodes: [4],
+            skillCategories: { primary: [], secondary: [] },
           },
         ],
       },

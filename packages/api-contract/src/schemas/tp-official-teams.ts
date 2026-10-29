@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { ImportResultSchema } from './import-result';
+import { PositionSkillCategoriesSchema } from './position-rules-set-skill-category';
 
 /**
  * One position's five characteristics, as TP publishes them per lineUp/star
@@ -89,6 +90,23 @@ export const TpOfficialPositionSchema = z.object({
    * so this field can be non-empty for those rules sets too.
    */
   keywordCodes: z.array(z.number().int()),
+  /**
+   * The categories the position may take skills from when it advances,
+   * decoded from TP's `skillNormal` (primary) and `skillDouble` (secondary)
+   * bitmasks. Both lists are empty for a star player, which cannot advance:
+   * BB2020 publishes 0/0 for every star, and BB2025 omits both fields.
+   * Required rather than defaulted, because an omitted field would sync every
+   * position to an empty set and flag all its categories removed.
+   */
+  skillCategories: PositionSkillCategoriesSchema,
+  /**
+   * Set when the position's categories could not be read: a category listed
+   * as both primary and secondary, which is corrupt source data. The message
+   * names the roster and position. `skillCategories` is then empty and must
+   * not be synced; the consumer reports the message as an error for this
+   * position only and imports every other position normally.
+   */
+  skillCategoriesError: z.string().min(1).optional(),
 });
 
 /**
@@ -156,6 +174,7 @@ export const TpOfficialTeamsImportResultSchema = z.object({
   characteristics: ImportResultSchema,
   keywords: ImportResultSchema,
   startingSkills: ImportResultSchema,
+  skillCategories: ImportResultSchema,
   positionCharacteristics: z.array(TpOfficialPositionCharacteristicsSchema),
 });
 

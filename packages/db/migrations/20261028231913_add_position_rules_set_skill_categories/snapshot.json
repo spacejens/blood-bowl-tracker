@@ -1,0 +1,517 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "807a1a8b-c705-47e7-aba0-f1c4b8c3b1b0",
+  "prevIds": [
+    "9a7ceae2-9c14-440a-8446-949cd3c5303e"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_enum",
+      "statementTarget": [
+        "enum",
+        "game_data",
+        "skill_access"
+      ],
+      "writes": [
+        "s|enum|game_data.skill_access",
+        "n|enum|game_data.skill_access",
+        "e|enum|game_data.skill_access",
+        "n|type|game_data.skill_access"
+      ],
+      "reads": [
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "game_data",
+        "position_rules_set_skill_categories"
+      ],
+      "writes": [
+        "s|tbl|game_data.position_rules_set_skill_categories",
+        "n|tbl|game_data.position_rules_set_skill_categories",
+        "e|tbl|game_data.position_rules_set_skill_categories",
+        "n|rel|game_data.position_rules_set_skill_categories",
+        "n|type|game_data.position_rules_set_skill_categories",
+        "n|rel|game_data.position_rules_set_skill_categories_pkey",
+        "n|rel|game_data.position_rules_set_skill_categories_anchor_category_unique"
+      ],
+      "reads": [
+        "n|sch|game_data",
+        "n|enum|game_data.skill_category",
+        "n|enum|game_data.skill_access"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "game_data",
+        "position_rules_set_skill_categories_history"
+      ],
+      "writes": [
+        "s|tbl|game_data.position_rules_set_skill_categories_history",
+        "n|tbl|game_data.position_rules_set_skill_categories_history",
+        "e|tbl|game_data.position_rules_set_skill_categories_history",
+        "n|rel|game_data.position_rules_set_skill_categories_history",
+        "n|type|game_data.position_rules_set_skill_categories_history",
+        "n|rel|game_data.position_rules_set_skill_categories_history_pkey"
+      ],
+      "reads": [
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "game_data",
+        "position_rules_set_skill_categories"
+      ],
+      "writes": [
+        "s|fk|game_data.position_rules_set_skill_categories.position_rules_set_skill_categories_Duubz1897a0c_fkey",
+        "n|fk|game_data.position_rules_set_skill_categories.position_rules_set_skill_categories_Duubz1897a0c_fkey",
+        "e|fk|game_data.position_rules_set_skill_categories.position_rules_set_skill_categories_Duubz1897a0c_fkey",
+        "n|con|game_data.position_rules_set_skill_categories.position_rules_set_skill_categories_Duubz1897a0c_fkey"
+      ],
+      "reads": [
+        "n|tbl|game_data.position_rules_set_skill_categories",
+        "n|sch|game_data",
+        "n|tbl|game_data.position_rules_sets",
+        "n|sch|game_data",
+        "n|col|game_data.position_rules_set_skill_categories.position_rules_set_id",
+        "n|col|game_data.position_rules_sets.id",
+        "e|uniqueness|game_data.position_rules_sets.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "game_data",
+        "position_rules_set_skill_categories_history"
+      ],
+      "writes": [
+        "s|fk|game_data.position_rules_set_skill_categories_history.position_rules_set_skill_categories_history_Nlg2ASKVmDsY_fkey",
+        "n|fk|game_data.position_rules_set_skill_categories_history.position_rules_set_skill_categories_history_Nlg2ASKVmDsY_fkey",
+        "e|fk|game_data.position_rules_set_skill_categories_history.position_rules_set_skill_categories_history_Nlg2ASKVmDsY_fkey",
+        "n|con|game_data.position_rules_set_skill_categories_history.position_rules_set_skill_categories_history_Nlg2ASKVmDsY_fkey"
+      ],
+      "reads": [
+        "n|tbl|game_data.position_rules_set_skill_categories_history",
+        "n|sch|game_data",
+        "n|tbl|game_data.position_rules_set_skill_categories",
+        "n|sch|game_data",
+        "n|col|game_data.position_rules_set_skill_categories_history.id",
+        "n|col|game_data.position_rules_set_skill_categories.id",
+        "e|uniqueness|game_data.position_rules_set_skill_categories.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "name": "position_rules_set_skill_categories",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "name": "position_rules_set_skill_categories_history",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "name": "skill_access",
+        "values": [
+          "primary",
+          "secondary"
+        ],
+        "entityType": "enums"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "position_rules_set_skill_categories",
+        "name": "id",
+        "type": "serial",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "position_rules_set_skill_categories",
+        "name": "position_rules_set_id",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "position_rules_set_skill_categories",
+        "name": "skill_category",
+        "type": "skill_category",
+        "typeSchema": "game_data",
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "position_rules_set_skill_categories",
+        "name": "access",
+        "type": "skill_access",
+        "typeSchema": "game_data",
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "position_rules_set_skill_categories",
+        "name": "removed",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "false",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "position_rules_set_skill_categories",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "position_rules_set_skill_categories",
+        "name": "updated_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "position_rules_set_skill_categories",
+        "name": "history_version",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "1",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "position_rules_set_skill_categories",
+        "name": "history_period",
+        "type": "tstzrange",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "tstzrange(now(), null)",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "position_rules_set_skill_categories_history",
+        "name": "id",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "position_rules_set_skill_categories_history",
+        "name": "position_rules_set_id",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "position_rules_set_skill_categories_history",
+        "name": "skill_category",
+        "type": "\"game_data\".\"skill_category\"",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "position_rules_set_skill_categories_history",
+        "name": "access",
+        "type": "\"game_data\".\"skill_access\"",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "position_rules_set_skill_categories_history",
+        "name": "removed",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "position_rules_set_skill_categories_history",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "position_rules_set_skill_categories_history",
+        "name": "updated_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "position_rules_set_skill_categories_history",
+        "name": "history_version",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "position_rules_set_skill_categories_history",
+        "name": "history_period",
+        "type": "tstzrange",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "position_rules_set_skill_categories",
+        "name": "position_rules_set_skill_categories_Duubz1897a0c_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "position_rules_set_id"
+        ],
+        "schemaTo": "game_data",
+        "tableTo": "position_rules_sets",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "NO ACTION",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "position_rules_set_skill_categories_history",
+        "name": "position_rules_set_skill_categories_history_Nlg2ASKVmDsY_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "id"
+        ],
+        "schemaTo": "game_data",
+        "tableTo": "position_rules_set_skill_categories",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "NO ACTION",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "position_rules_set_skill_categories_history",
+        "name": "position_rules_set_skill_categories_history_pkey",
+        "columns": [
+          "id",
+          "history_version"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "position_rules_set_skill_categories",
+        "name": "position_rules_set_skill_categories_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "position_rules_set_skill_categories",
+        "name": "position_rules_set_skill_categories_anchor_category_unique",
+        "nameExplicit": true,
+        "columns": [
+          "position_rules_set_id",
+          "skill_category"
+        ],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    }
+  ]
+}

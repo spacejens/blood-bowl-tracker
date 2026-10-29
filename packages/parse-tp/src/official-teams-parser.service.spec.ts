@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { OfficialTeamsParserService } from './official-teams-parser.service';
+import { TpSkillCategoryMaskDecoderService } from './tp-skill-category-mask-decoder.service';
 
 /**
  * Trimmed excerpts from the real recorded responses
@@ -32,6 +33,8 @@ const RESPONSE = {
           ag: 3,
           pa: 4,
           av: 9,
+          skillNormal: 2,
+          skillDouble: 17,
           skills: [],
         },
         {
@@ -45,6 +48,8 @@ const RESPONSE = {
           ag: 4,
           pa: 5,
           av: 10,
+          skillNormal: 2,
+          skillDouble: 17,
           isBigGuy: true,
           skills: [],
         },
@@ -69,6 +74,8 @@ const RESPONSE = {
           ag: 2,
           pa: 4,
           av: 8,
+          skillNormal: 2,
+          skillDouble: 17,
           skills: [],
         },
       ],
@@ -94,6 +101,8 @@ const RESPONSE = {
           ag: 3,
           pa: 4,
           av: 8,
+          skillNormal: 2,
+          skillDouble: 17,
           skills: [],
         },
       ],
@@ -182,6 +191,8 @@ const BB2025_RESPONSE = {
           ag: 2,
           pa: 4,
           av: 8,
+          skillNormal: 2,
+          skillDouble: 17,
           race: [101],
           skills: [],
         },
@@ -207,6 +218,8 @@ const BB2025_RESPONSE = {
           ag: 3,
           pa: 4,
           av: 8,
+          skillNormal: 2,
+          skillDouble: 17,
           race: [112],
           skills: [],
         },
@@ -261,7 +274,10 @@ describe('OfficialTeamsParserService', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [OfficialTeamsParserService],
+      providers: [
+        OfficialTeamsParserService,
+        TpSkillCategoryMaskDecoderService,
+      ],
     }).compile();
     service = moduleRef.get(OfficialTeamsParserService);
   });
@@ -289,6 +305,10 @@ describe('OfficialTeamsParserService', () => {
       },
       skills: [],
       keywordCodes: [],
+      skillCategories: {
+        primary: ['general'],
+        secondary: ['agility', 'strength'],
+      },
     });
   });
 
@@ -308,6 +328,7 @@ describe('OfficialTeamsParserService', () => {
       },
       skills: [{ name: 'Consummate Professional' }],
       keywordCodes: [],
+      skillCategories: { primary: [], secondary: [] },
     });
   });
 
@@ -393,6 +414,8 @@ describe('OfficialTeamsParserService', () => {
               ag: 3,
               pa: 4,
               av: 8,
+              skillNormal: 2,
+              skillDouble: 17,
             },
           ],
         },
@@ -440,6 +463,8 @@ describe('OfficialTeamsParserService', () => {
               ag: 3,
               pa: 4,
               av: 8,
+              skillNormal: 2,
+              skillDouble: 17,
               skills: [
                 { skillMasterId: 87 },
                 {
@@ -478,6 +503,8 @@ describe('OfficialTeamsParserService', () => {
               ag: 4,
               pa: 4,
               av: 8,
+              skillNormal: 2,
+              skillDouble: 17,
               skills: [
                 {
                   skillMasterId: 269,
@@ -510,7 +537,16 @@ describe('OfficialTeamsParserService', () => {
           teamSpecialRules: 1,
           selectableTeamSpecialRules: 0,
           lineUpMasters: [
-            { position: 'Goblin', ma: 6, st: 2, ag: 3, pa: 4, av: 8 },
+            {
+              position: 'Goblin',
+              ma: 6,
+              st: 2,
+              ag: 3,
+              pa: 4,
+              av: 8,
+              skillNormal: 2,
+              skillDouble: 17,
+            },
           ],
         },
       ],
@@ -583,6 +619,8 @@ describe('OfficialTeamsParserService', () => {
               ag: 4,
               pa: 6,
               av: 9,
+              skillNormal: 2,
+              skillDouble: 17,
               race: [112, 121, 110],
             },
           ],
@@ -611,7 +649,17 @@ describe('OfficialTeamsParserService', () => {
           teamSpecialRules: 0,
           selectableTeamSpecialRules: 0,
           lineUpMasters: [
-            { id: 1, position: 'Lineman', ma: 6, st: 3, ag: 3, pa: 4, av: 9 },
+            {
+              id: 1,
+              position: 'Lineman',
+              ma: 6,
+              st: 3,
+              ag: 3,
+              pa: 4,
+              av: 9,
+              skillNormal: 2,
+              skillDouble: 17,
+            },
           ],
         },
       ],
@@ -644,6 +692,8 @@ describe('OfficialTeamsParserService', () => {
             ag: 4,
             pa: 5,
             av: 10,
+            skillNormal: 2,
+            skillDouble: 17,
             ...entry,
           },
         ],
@@ -762,6 +812,8 @@ describe('OfficialTeamsParserService', () => {
                 ag: 3,
                 pa: 4,
                 av: 9,
+                skillNormal: 2,
+                skillDouble: 17,
                 race: ['Human'],
               },
             ],

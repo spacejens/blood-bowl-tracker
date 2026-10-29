@@ -36,6 +36,7 @@ function outcome(
     characteristics: ONE,
     keywords: ONE,
     startingSkills: ONE,
+    skillCategories: ONE,
     positionCharacteristics: [{ positionId: 9, rulesSetId, ...STATS }],
     ...overrides,
   };
@@ -102,6 +103,7 @@ describe('TpOfficialTeamsFilesImportService', () => {
       .mockResolvedValueOnce(
         outcome(25, {
           startingSkills: { success: false, imported: 2, errors: [failure] },
+          skillCategories: { success: false, imported: 1, errors: [failure] },
         }),
       );
 
@@ -119,6 +121,7 @@ describe('TpOfficialTeamsFilesImportService', () => {
       [{ imported: 2, errors: [] }],
       [{ imported: 2, errors: [] }],
       [{ imported: 3, errors: [failure] }],
+      [{ imported: 2, errors: [failure] }],
     ]);
     expect(result.racesResult).toBe(CANNED_RESULT);
     expect(result.characteristicsByPositionId).toEqual(

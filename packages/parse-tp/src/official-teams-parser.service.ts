@@ -5,6 +5,8 @@ import type {
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
+import { TpSkillCategoryMaskDecoderService } from './tp-skill-category-mask-decoder.service';
+
 /**
  * The `teamRosterType` values marking a roster as one of the rules set's real
  * teams: `0` official and `1` legacy. TP's own teams page splits this one
@@ -102,6 +104,18 @@ const PositionalKeywordFields = {
   isBigGuy: z.boolean().nullish(),
 };
 
+/**
+ * TP's skill category bitmasks: `skillNormal` lists the primary categories
+ * and `skillDouble` the secondary ones (see TpSkillCategoryMaskDecoderService).
+ * Nullish rather than required: BB2025 star players omit both, and since a
+ * star cannot advance, an absent mask reads the same as 0. A regular
+ * position must carry both; `skillCategories` enforces that.
+ */
+const SkillCategoryMaskFields = {
+  skillNormal: z.number().int().nullish(),
+  skillDouble: z.number().int().nullish(),
+};
+
 const LineUpMasterSchema = z.object({
   id: z.number().optional(),
   position: z.string(),
@@ -110,6 +124,7 @@ const LineUpMasterSchema = z.object({
   ...SpecialRuleField,
   ...KeywordCodesField,
   ...PositionalKeywordFields,
+  ...SkillCategoryMaskFields,
 });
 
 /**
@@ -129,6 +144,7 @@ const StarPlayerMasterSchema = z.object({
   ...SpecialRuleField,
   ...KeywordCodesField,
   ...PositionalKeywordFields,
+  ...SkillCategoryMaskFields,
 });
 
 const RosterMasterSchema = z.object({
@@ -154,6 +170,10 @@ type StarPlayerMaster = z.infer<typeof StarPlayerMasterSchema>;
 
 @Injectable()
 export class OfficialTeamsParserService {
+  constructor(
+    private readonly skillCategoryMasks: TpSkillCategoryMaskDecoderService,
+  ) {}
+
   /**
    * Validate and flatten one recorded official-team-list response into its
    * official and legacy races (see `IMPORTED_ROSTER_TYPES`). Extra fields (costs, skills, quantity limits, icons) are
@@ -180,10 +200,12 @@ export class OfficialTeamsParserService {
         teamRaceCode: roster.teamRace,
         isOfficial: roster.teamRosterType === 0,
         positions: [
-          ...roster.lineUpMasters.map((entry) => this.position(entry, false)),
+          ...roster.lineUpMasters.map((entry) =>
+            this.position(entry, false, roster.name),
+          ),
           ...stars
             .filter((star) => this.isAvailableTo(star, roster))
-            .map((star) => this.position(star, true)),
+            .map((star) => this.position(star, true, roster.name)),
         ],
       }));
   }
@@ -215,6 +237,7 @@ export class OfficialTeamsParserService {
   private position(
     entry: z.infer<typeof LineUpMasterSchema>,
     isStarPlayer: boolean,
+    rosterName: string,
   ): TpOfficialPosition {
     return {
       name: entry.position,
@@ -246,7 +269,59 @@ export class OfficialTeamsParserService {
           : [{ name: entry.specialRuleName }]),
       ],
       keywordCodes: this.keywordCodes(entry),
+      ...this.skillCategories(entry, rosterName, isStarPlayer),
     };
+  }
+
+  /**
+   * One entry's primary and secondary categories. An unknown bit fails the
+   * whole file with the same "Invalid TP official teams JSON" prefix as a
+   * shape mismatch, naming the roster, position and field, so the import
+   * reports it as that file's error.
+   *
+   * A category in both masks is corrupt source data, not a file-level
+   * problem: that position gets empty categories plus a
+   * `skillCategoriesError` naming the roster and position, so the consumer
+   * can report it for that position alone and import the rest.
+   *
+   * Only a star player may omit a mask, which then reads as 0. A regular
+   * position missing one fails the file like an unknown bit, since reading it
+   * as 0 would sync the position to an empty set and flag every category it
+   * already has as removed.
+   */
+  private skillCategories(
+    entry: z.infer<typeof LineUpMasterSchema>,
+    rosterName: string,
+    isStarPlayer: boolean,
+  ): Pick<TpOfficialPosition, 'skillCategories' | 'skillCategoriesError'> {
+    const decode = (field: 'skillNormal' | 'skillDouble') => {
+      const mask = entry[field] ?? (isStarPlayer ? 0 : undefined);
+      if (mask === undefined) {
+        throw new Error(
+          `Invalid TP official teams JSON: ${rosterName} / ${entry.position} ${field}: missing`,
+        );
+      }
+      try {
+        return this.skillCategoryMasks.decode(mask);
+      } catch (error) {
+        throw new Error(
+          `Invalid TP official teams JSON: ${rosterName} / ${entry.position} ${field}: ${error instanceof Error ? error.message : String(error)}`,
+          { cause: error },
+        );
+      }
+    };
+    const primary = decode('skillNormal');
+    const secondary = decode('skillDouble');
+    const both = primary.filter((category) => secondary.includes(category));
+    if (both.length > 0) {
+      return {
+        skillCategories: { primary: [], secondary: [] },
+        skillCategoriesError:
+          `${rosterName} / ${entry.position}: skill ${both.length === 1 ? 'category' : 'categories'} ` +
+          `${both.join(', ')} ${both.length === 1 ? 'is' : 'are'} listed as both primary and secondary`,
+      };
+    }
+    return { skillCategories: { primary, secondary } };
   }
 
   /**

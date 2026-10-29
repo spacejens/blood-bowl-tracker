@@ -1,7 +1,17 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
-import type { PlayerSkillSource, SkillCategory } from './skills';
-import { PLAYER_SKILL_SOURCES, SKILL_CATEGORIES } from './skills';
+import type {
+  LearnableSkillCategory,
+  PlayerSkillSource,
+  SkillAccess,
+  SkillCategory,
+} from './skills';
+import {
+  LEARNABLE_SKILL_CATEGORIES,
+  PLAYER_SKILL_SOURCES,
+  SKILL_ACCESS_LEVELS,
+  SKILL_CATEGORIES,
+} from './skills';
 
 describe('SKILL_CATEGORIES', () => {
   it('lists every skill category in schema order', () => {
@@ -32,6 +42,43 @@ describe('SKILL_CATEGORIES', () => {
       | 'trait'
       | 'unique'
     >();
+  });
+});
+
+describe('LEARNABLE_SKILL_CATEGORIES', () => {
+  it('lists the categories an advancement can grant, in SKILL_CATEGORIES order', () => {
+    expect(LEARNABLE_SKILL_CATEGORIES).toEqual([
+      'general',
+      'agility',
+      'passing',
+      'strength',
+      'mutation',
+      'devious',
+    ]);
+  });
+
+  it('is SKILL_CATEGORIES without trait and unique', () => {
+    expect(
+      SKILL_CATEGORIES.filter((c) => c !== 'trait' && c !== 'unique'),
+    ).toEqual([...LEARNABLE_SKILL_CATEGORIES]);
+  });
+
+  it('types LearnableSkillCategory as a subset of SkillCategory', () => {
+    expectTypeOf<LearnableSkillCategory>().toMatchTypeOf<SkillCategory>();
+  });
+});
+
+describe('SKILL_ACCESS_LEVELS', () => {
+  it('lists primary before secondary', () => {
+    expect(SKILL_ACCESS_LEVELS).toEqual(['primary', 'secondary']);
+  });
+
+  it('has no duplicate values', () => {
+    expect(new Set(SKILL_ACCESS_LEVELS).size).toBe(SKILL_ACCESS_LEVELS.length);
+  });
+
+  it('types SkillAccess as exactly its listed values', () => {
+    expectTypeOf<SkillAccess>().toEqualTypeOf<'primary' | 'secondary'>();
   });
 });
 

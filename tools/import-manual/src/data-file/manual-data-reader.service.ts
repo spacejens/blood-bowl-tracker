@@ -26,6 +26,7 @@ export class ManualDataReader {
       positions: [],
       positionRulesSets: [],
       positionRulesSetSkills: [],
+      positionRulesSetSkillCategories: [],
       skills: [],
       skillRulesSets: [],
       keywords: [],
@@ -52,6 +53,9 @@ export class ManualDataReader {
       pooled.positions.push(...file.positions);
       pooled.positionRulesSets.push(...file.positionRulesSets);
       pooled.positionRulesSetSkills.push(...file.positionRulesSetSkills);
+      pooled.positionRulesSetSkillCategories.push(
+        ...file.positionRulesSetSkillCategories,
+      );
       pooled.skills.push(...file.skills);
       pooled.skillRulesSets.push(...file.skillRulesSets);
       pooled.keywords.push(...file.keywords);

@@ -23,6 +23,7 @@ import {
   positionExternalIds,
   positionRulesSetKeywords,
   positionRulesSets,
+  positionRulesSetSkillCategories,
   positionRulesSetSkills,
   positions,
   positionsRaceEras,
@@ -478,6 +479,13 @@ describe('schema', () => {
   it('exports skills table', () => {
     expect(skills.id).toBeDefined();
     expect(skills.name).toBeDefined();
+  });
+
+  it('exports positionRulesSetSkillCategories table', () => {
+    expect(positionRulesSetSkillCategories.positionRulesSetId).toBeDefined();
+    expect(positionRulesSetSkillCategories.skillCategory).toBeDefined();
+    expect(positionRulesSetSkillCategories.access).toBeDefined();
+    expect(positionRulesSetSkillCategories.removed).toBeDefined();
   });
 
   it('exports keywords table', () => {

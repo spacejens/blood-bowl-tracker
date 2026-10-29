@@ -16,6 +16,7 @@ import {
   PlayerSkillsService,
   PlayersService,
   PositionRulesSetKeywordsService,
+  PositionRulesSetSkillCategoriesService,
   PositionRulesSetSkillsService,
   PositionRulesSetsService,
   PositionsService,
@@ -63,6 +64,8 @@ export async function createRouterHarness() {
     positionRulesSetsService: mock<PositionRulesSetsService>(),
     positionRulesSetSkillsService: mock<PositionRulesSetSkillsService>(),
     positionRulesSetKeywordsService: mock<PositionRulesSetKeywordsService>(),
+    positionRulesSetSkillCategoriesService:
+      mock<PositionRulesSetSkillCategoriesService>(),
     playerSkillsService: mock<PlayerSkillsService>(),
     skillsService: mock<SkillsService>(),
     keywordsService: mock<KeywordsService>(),
@@ -116,6 +119,10 @@ export async function createRouterHarness() {
       {
         provide: PositionRulesSetKeywordsService,
         useValue: mocks.positionRulesSetKeywordsService,
+      },
+      {
+        provide: PositionRulesSetSkillCategoriesService,
+        useValue: mocks.positionRulesSetSkillCategoriesService,
       },
       { provide: PlayerSkillsService, useValue: mocks.playerSkillsService },
       { provide: SkillsService, useValue: mocks.skillsService },

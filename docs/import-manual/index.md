@@ -64,6 +64,7 @@ races
 positions
 positionRulesSets
 positionRulesSetSkills
+positionRulesSetSkillCategories
 coaches
 teams
 competitions

@@ -12,6 +12,7 @@ import { TpOfficialKeywordCatalogService } from './tp-official-keyword-catalog.s
 import { TpOfficialKeywordsSyncService } from './tp-official-keywords-sync.service';
 import { TpOfficialPositionsUpsertService } from './tp-official-positions-upsert.service';
 import { TpOfficialRacesUpsertService } from './tp-official-races-upsert.service';
+import { TpOfficialSkillCategoriesSyncService } from './tp-official-skill-categories-sync.service';
 import { TpOfficialSkillRefsService } from './tp-official-skill-refs.service';
 import { TpOfficialStartingSkillsService } from './tp-official-starting-skills.service';
 import { TpOfficialTeamsContextService } from './tp-official-teams-context.service';
@@ -48,6 +49,7 @@ export class TpOfficialTeamsImportService {
     private readonly keywordsSync: TpOfficialKeywordsSyncService,
     private readonly skillRefs: TpOfficialSkillRefsService,
     private readonly startingSkills: TpOfficialStartingSkillsService,
+    private readonly skillCategoriesSync: TpOfficialSkillCategoriesSyncService,
     private readonly importResults: ImportResultService,
   ) {}
 
@@ -55,11 +57,11 @@ export class TpOfficialTeamsImportService {
    * Resolves the rules set's context, then upserts its races, its positions
    * (regular and star) with their race/era availability, their
    * characteristics, and -- only after characteristics, since the server
-   * rejects a keyword or starting skill for a position with no
-   * characteristics row -- their keywords and starting skills. Each stage's
-   * failures are reported in that stage's result and never stop the stages
-   * after it; nothing is imported when the context cannot be resolved (its
-   * failure is reported under `races`).
+   * rejects a keyword, starting skill or skill category for a position with
+   * no characteristics row -- their keywords, starting skills and skill
+   * categories. Each stage's failures are reported in that stage's result and
+   * never stop the stages after it; nothing is imported when the context
+   * cannot be resolved (its failure is reported under `races`).
    */
   async importOfficialTeams({
     rulesSet,
@@ -124,6 +126,14 @@ export class TpOfficialTeamsImportService {
       errors: skillErrors,
     });
 
+    const skillCategoryErrors: ImportError[] = [];
+    const skillCategoriesImported =
+      await this.skillCategoriesSync.syncSkillCategories({
+        slots,
+        context,
+        errors: skillCategoryErrors,
+      });
+
     return {
       races: this.importResults.result({
         imported: upsertedRaces.imported,
@@ -145,6 +155,10 @@ export class TpOfficialTeamsImportService {
         imported: skillsImported,
         errors: skillErrors,
       }),
+      skillCategories: this.importResults.result({
+        imported: skillCategoriesImported,
+        errors: skillCategoryErrors,
+      }),
       positionCharacteristics: characteristics.positionCharacteristics,
     };
   }
@@ -158,6 +172,7 @@ export class TpOfficialTeamsImportService {
       characteristics: nothing(),
       keywords: nothing(),
       startingSkills: nothing(),
+      skillCategories: nothing(),
       positionCharacteristics: [],
     };
   }
