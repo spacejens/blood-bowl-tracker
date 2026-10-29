@@ -95,4 +95,6 @@ error, and dead, retired and departed players are worked out like any other.
 - **Unknown.** The answer is unknown, with a reason, for a star player (star
   players never advance), a player with no total SPP, an era with no rules
   set, rules sets with no advancement costs, or a history that no rules set's
-  costs can fit. When several apply, the first in that list is reported.
+  costs can fit. A history of more than 16 advancements is not searched at all
+  and counts as one that cannot fit; no rules set prices anywhere near that
+  many. When several apply, the first in that list is reported.

@@ -13,6 +13,14 @@ type CostPicker = (costs: number[]) => number;
 type TotalComparer = (candidate: number, best: number) => boolean;
 
 /**
+ * The most advancements `range` prices. The search holds the numbers used so
+ * far as a bitmask, so its table doubles with every advancement and a 32-bit
+ * mask overflows at 32. No rules set prices anywhere near this many, and a
+ * history longer than this is reported as not fitting rather than searched.
+ */
+const MAX_ADVANCEMENTS = 16;
+
+/**
  * Prices a player's gained advancements against a cost table when neither
  * their order nor their kind is fully known.
  *
@@ -26,13 +34,17 @@ export class AdvancementSpendRangeService {
   /**
    * The least and most the advancements can have cost, or null when no
    * assignment fits the costs at all, meaning the recorded history does not
-   * fit this cost table.
+   * fit this cost table, or when there are more advancements than
+   * {@link MAX_ADVANCEMENTS}.
    */
   range(
     options: AdvancementOption[][],
     costs: ApplicableAdvancementCost[],
   ): SpendRange | null {
     const count = options.length;
+    if (count > MAX_ADVANCEMENTS) {
+      return null;
+    }
     for (
       let advancementNumber = 1;
       advancementNumber <= count;

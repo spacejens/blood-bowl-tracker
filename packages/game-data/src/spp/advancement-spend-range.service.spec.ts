@@ -133,6 +133,42 @@ describe('AdvancementSpendRangeService', () => {
         service.range([anyNumber('random_characteristic')], FIXED),
       ).toBeNull();
     });
+
+    describe('with a very long cost table', () => {
+      function pricedUpTo(count: number): {
+        options: AdvancementOption[][];
+        table: ApplicableAdvancementCost[];
+      } {
+        return {
+          options: Array.from({ length: count }, () => anyNumber('table_roll')),
+          table: costs(
+            'table_roll',
+            Array.from({ length: count }, (_, index) => index + 1),
+          ),
+        };
+      }
+
+      it('still prices the most advancements it supports', () => {
+        const { options, table } = pricedUpTo(16);
+
+        expect(service.range(options, table)).toEqual({
+          spentMin: 136,
+          spentMax: 136,
+        });
+      });
+
+      it('finds no fit beyond the most advancements it supports', () => {
+        const { options, table } = pricedUpTo(17);
+
+        expect(service.range(options, table)).toBeNull();
+      });
+
+      it('finds no fit rather than overflowing the number set', () => {
+        const { options, table } = pricedUpTo(32);
+
+        expect(service.range(options, table)).toBeNull();
+      });
+    });
   });
 
   describe('cheapestCostAt', () => {
