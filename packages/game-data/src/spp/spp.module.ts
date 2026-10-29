@@ -10,6 +10,7 @@ import { SppEventCountsService } from './spp-event-counts.service';
 import { SppForcedRateService } from './spp-forced-rate.service';
 import { SppOngoingEstimateService } from './spp-ongoing-estimate.service';
 import { SppTotalsService } from './spp-totals.service';
+import { UnspentSppService } from './unspent-spp.service';
 
 @Module({
   imports: [MatchScopeFilterModule],
@@ -23,6 +24,7 @@ import { SppTotalsService } from './spp-totals.service';
     SppForcedRateService,
     SppOngoingEstimateService,
     SppTotalsService,
+    UnspentSppService,
   ],
   exports: [
     AdvancementCostsService,
@@ -34,6 +36,7 @@ import { SppTotalsService } from './spp-totals.service';
     SppForcedRateService,
     SppOngoingEstimateService,
     SppTotalsService,
+    UnspentSppService,
   ],
 })
 export class SppModule {}

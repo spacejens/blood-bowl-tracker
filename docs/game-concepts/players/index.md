@@ -43,3 +43,47 @@ A [player](../../glossary.md#player) is an individual on a [team era](../team-er
   it.
 - Death is not tracked as a lasting injury. It is recorded as a match event
   and surfaced separately.
+
+## Unspent SPP
+
+A player's unspent [SPP](../../glossary.md#star-player-points-spp) is their
+total SPP less what their [advancements](../../glossary.md#advancement) cost.
+`UnspentSppService` in `packages/game-data` works it out, together with
+whether it covers at least the cheapest advancement the player could take
+next. Holding SPP back is a normal state, so this is information, never a data
+error, and dead, retired and departed players are worked out like any other.
+
+- **It is a range.** CRP, CRP+ and BB2016 charge the same for every
+  advancement of a given number, so the spend is exact. BB2020, DB2021 and
+  BB2025 price an advancement by its number and its kind, and the recorded
+  history rarely pins both down. BBL does not say whether a gained skill was
+  rolled or chosen
+  ([#1235](https://github.com/spacejens/blood-bowl-tracker/issues/1235)).
+  Characteristic increases are counts with no order
+  ([#1233](https://github.com/spacejens/blood-bowl-tracker/issues/1233)).
+  The recorded skill order is unverified, so it is ignored
+  ([#1234](https://github.com/spacejens/blood-bowl-tracker/issues/1234)).
+  Whether a skill was primary or secondary comes from the position's
+  [skill categories](../skills/index.md#primary-and-secondary-categories); a
+  skill outside them could be either. Unspent SPP is therefore the least and
+  the most it could be over every order and kind the history allows.
+  Importing the unspent figure each source reports could settle it
+  ([#1232](https://github.com/spacejens/blood-bowl-tracker/issues/1232)).
+- **What counts as an advancement.** Starting skills and a skill a trophy
+  granted (Gudarnas Förkämpe's mutation) cost nothing. A skill a league's
+  house rule grants at a fixed advancement (tLoEG's Fan Favourite) counts only
+  as that advancement.
+- **Several rules sets.** When the player's era lists several rules sets, each
+  is tried and the widest range kept. A rules set whose costs the history
+  cannot fit is ignored.
+- **The verdict.** _Yes_ when even the smallest unspent figure covers the
+  cheapest next advancement, _no_ when even the largest does not or no further
+  advancement exists, and _maybe_ otherwise. A negative unspent figure is
+  reported as is.
+- **Accuracy.** Advancements missing from the recorded history make the spend
+  look smaller and unspent SPP larger than it is. A _no_ is therefore
+  reliable, while a _yes_ can be generous.
+- **Unknown.** The answer is unknown, with a reason, for a star player (star
+  players never advance), a player with no total SPP, an era with no rules
+  set, rules sets with no advancement costs, or a history that no rules set's
+  costs can fit. When several apply, the first in that list is reported.

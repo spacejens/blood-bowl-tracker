@@ -164,6 +164,7 @@ export {
 export type { OngoingSppEntry } from './spp/spp-ongoing-estimate.service';
 export { SppOngoingEstimateService } from './spp/spp-ongoing-estimate.service';
 export { SppTotalsService } from './spp/spp-totals.service';
+export { UnspentSppService } from './spp/unspent-spp.service';
 export type {
   AdvancementCandidatesInput,
   AdvancementOption,

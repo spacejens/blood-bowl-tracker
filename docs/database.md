@@ -242,10 +242,14 @@ A row with a null `league_id` is the rules set's own cost and applies to
 every player under it. A row with a `league_id` is a league house rule: it
 applies only to players of that league, in addition to the rules set's rows,
 never in place of them. A player's league comes from player -> `team_eras` ->
-era -> league; the rules set is supplied by the caller, since an era may list
-several. The unique key is `NULLS NOT DISTINCT`, so rules-set rows stay
-unique per `(rules_set_id, advancement_number, advancement_kind)`. Nothing
-reads the table yet, so there is no read API.
+era -> league. The unique key is `NULLS NOT DISTINCT`, so rules-set rows stay
+unique per `(rules_set_id, advancement_number, advancement_kind)`.
+
+`UnspentSppService` in `packages/game-data` reads the table to work out how
+much of a player's SPP is unspent (see
+[players](game-concepts/players/index.md#unspent-spp)). It tries each rules
+set the player's era lists, using that rules set's rows plus the player's
+league's rows. It has no RPC route.
 
 The costs are curated by `tools/import-manual` in batch 004 (see
 [batches](import-manual/batches.md)): fixed thresholds of 6, 16, 31, 51, 76
