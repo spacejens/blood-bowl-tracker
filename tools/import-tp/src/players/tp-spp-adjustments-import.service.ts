@@ -1,6 +1,7 @@
 import type {
   SppAdjustmentSummary,
   SppCareerCounts,
+  UnspentSppSnapshot,
 } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
@@ -27,6 +28,12 @@ export interface ImportSppAdjustmentsOptions {
    * player missing here (an induced star) is skipped server-side.
    */
   reportedSppTotalsByPlayerId?: Map<number, number>;
+  /**
+   * TP's unspent figure with its same-entry total, per DB player id, from
+   * the roster import. A player missing here sends none, and the server
+   * stores no TP figure for them.
+   */
+  unspentSppSnapshotsByPlayerId?: Map<number, UnspentSppSnapshot>;
 }
 
 /**
@@ -38,7 +45,8 @@ export interface ImportSppAdjustmentsOptions {
  * ongoing-competition estimate backed out) and the remaining gap as
  * `spp_adjustment`. It is the only writer of `spp_total` in a TP run. Players
  * TP reported no total for (e.g. an induced star player) are skipped and keep
- * a NULL adjustment.
+ * a NULL adjustment. TP's unspent figure goes along with the total from the
+ * same roster entry, for the server to settle `players.unspent_spp`.
  *
  * TP's total is career-wide, including competitions still in progress that have
  * not been downloaded/imported yet, so each player's career action counts are
@@ -62,6 +70,7 @@ export class TpSppAdjustmentsImportService {
     playerIds,
     careerCountsByPlayerId,
     reportedSppTotalsByPlayerId,
+    unspentSppSnapshotsByPlayerId,
   }: ImportSppAdjustmentsOptions): Promise<{
     result: ImportResult;
     nonzeroAdjustments: SppAdjustmentSummary[];
@@ -81,6 +90,7 @@ export class TpSppAdjustmentsImportService {
             playerId,
             reportedSppTotal: reportedSppTotalsByPlayerId?.get(playerId),
             careerCounts: careerCountsByPlayerId?.get(playerId),
+            unspentSppSnapshot: unspentSppSnapshotsByPlayerId?.get(playerId),
           })),
         },
         errors,

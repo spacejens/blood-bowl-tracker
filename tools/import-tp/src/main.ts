@@ -232,6 +232,7 @@ async function run(): Promise<ImportResult> {
       insertedPlayerIds,
       mercenaryPositionUsages,
       reportedSppTotalsByPlayerId,
+      unspentSppSnapshotsByPlayerId,
     } = rosterImport;
 
     // Star players hired through an inducements_roll are on no roster file,
@@ -323,6 +324,7 @@ async function run(): Promise<ImportResult> {
         ],
         careerCountsByPlayerId: careerSppCountsByPlayerId,
         reportedSppTotalsByPlayerId,
+        unspentSppSnapshotsByPlayerId,
       });
 
     // Also runs after the match-files step, and for the same structural

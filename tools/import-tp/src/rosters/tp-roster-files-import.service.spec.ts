@@ -147,6 +147,33 @@ describe('TpRosterFilesImportService', () => {
     expect(result.reportedSppTotalsByPlayerId).toEqual(new Map([[9, 10]]));
   });
 
+  it('keeps the unspent snapshot reported beside the highest total', async () => {
+    const listing = (snapshotSppTotal: number, unspentSpp: number) =>
+      outcome({
+        importedPlayers: [
+          {
+            lineUpId: 5001,
+            playerId: 9,
+            created: false,
+            reportedSppTotal: snapshotSppTotal,
+            unspentSppSnapshot: { unspentSpp, snapshotSppTotal },
+          },
+        ],
+      });
+    importRunner.recordUpsertResult
+      .mockResolvedValueOnce(listing(10, 4))
+      .mockResolvedValueOnce(listing(7, 1));
+
+    const result = await service.importRosterFiles({
+      rosters: [entry(1, 'Fourth era'), entry(1, 'Third era')],
+      matchEmbeddedPlayersByRosterId: new Map(),
+    });
+
+    expect(result.unspentSppSnapshotsByPlayerId).toEqual(
+      new Map([[9, { unspentSpp: 4, snapshotSppTotal: 10 }]]),
+    );
+  });
+
   it('sends a roster found in several competitions of one era once', async () => {
     importRunner.recordUpsertResult.mockResolvedValue(outcome());
 

@@ -2,9 +2,11 @@ import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
 import type {
   TeamEra,
+  TpImportedPlayer,
   TpMatchEmbeddedPlayer,
   TpMercenaryPositionUsage,
   TpRosterImportResult,
+  UnspentSppSnapshot,
 } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
@@ -39,6 +41,11 @@ export interface RosterFilesImportOutcome {
    * every roster import of the player, for the reported-adjustments step.
    */
   reportedSppTotalsByPlayerId: Map<number, number>;
+  /**
+   * TP's unspent figure with the total from the same roster entry, per DB
+   * player id, from the import that reported the highest such total.
+   */
+  unspentSppSnapshotsByPlayerId: Map<number, UnspentSppSnapshot>;
 }
 
 @Injectable()
@@ -72,6 +79,7 @@ export class TpRosterFilesImportService {
     const playerIdsByLineUpId = new Map<number, number>();
     const insertedPlayerIds: number[] = [];
     const reportedSppTotalsByPlayerId = new Map<number, number>();
+    const unspentSppSnapshotsByPlayerId = new Map<number, UnspentSppSnapshot>();
     const mercenaryPositionUsages: TpMercenaryPositionUsage[] = [];
 
     for (const entry of this.distinctByEraAndRoster(rosters)) {
@@ -118,6 +126,7 @@ export class TpRosterFilesImportService {
             player.reportedSppTotal,
           ),
         );
+        this.keepFresherSnapshot(unspentSppSnapshotsByPlayerId, player);
         if (player.created) {
           insertedPlayerIds.push(player.playerId);
         }
@@ -139,7 +148,26 @@ export class TpRosterFilesImportService {
       insertedPlayerIds,
       mercenaryPositionUsages,
       reportedSppTotalsByPlayerId,
+      unspentSppSnapshotsByPlayerId,
     };
+  }
+
+  /** Keeps the snapshot reported beside the higher total, the later on a tie. */
+  private keepFresherSnapshot(
+    snapshots: Map<number, UnspentSppSnapshot>,
+    player: TpImportedPlayer,
+  ): void {
+    const candidate = player.unspentSppSnapshot;
+    if (candidate === undefined) {
+      return;
+    }
+    const known = snapshots.get(player.playerId);
+    if (
+      known === undefined ||
+      candidate.snapshotSppTotal >= known.snapshotSppTotal
+    ) {
+      snapshots.set(player.playerId, candidate);
+    }
   }
 
   /**
