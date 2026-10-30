@@ -93,7 +93,6 @@ number, lineUpMasterId, rosterId, fallbackPositionName, isBigGuy }`. `id` is
     Both fields are optional to the parser: an entry without them parses as
     before. How they become a player's status is described in
     [index.md](./index.md#player-status).
-
   - `lineUpMaster` — the position template the player was recruited from,
     repeated inline on every entry. Only its `ma/st/ag/pa/av` are read, as the
     baseline a current-vs-template characteristic comparison needs. The
@@ -198,7 +197,7 @@ advancements: across the 1336 entries in the 108 downloaded roster files,
 `totalStarPlayerPoints - starPlayerPoints` is zero in 626 entries and
 otherwise a sum that the BB2025 advancement costs allow (among the most
 common gaps are 3, 6, 7, 10, 14, 20 and 26). Hand-checked examples: a chosen
-primary skill (6), a random then a random primary skill (3 + 4 = 7), a chosen
+primary skill (6), two random primary skills (3 + 4 = 7), a chosen
 then a random primary skill (6 + 4 = 10), three chosen primary skills
 (6 + 8 + 12 = 26), a chosen secondary skill (10), and a lone characteristic
 increase (14) all match. The secondary-skill and characteristic costs fit
