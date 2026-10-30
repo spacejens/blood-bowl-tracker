@@ -604,6 +604,10 @@ export class TrophyAwardsService {
    * the caller's granted skill when one was sent and differs, and is
    * returned untouched otherwise. This is what lets a curated granted skill
    * survive every later importer run, since importers never send one.
+   *
+   * A recorded award that grants a skill to a player is re-priced even when
+   * nothing changes, so a refresh that failed after the original write is
+   * repaired by the retry instead of leaving a stale fixed-threshold value.
    */
   private async overlayGrantedSkill(
     existing: TrophyAward,
@@ -613,6 +617,11 @@ export class TrophyAwardsService {
       grantedSkillId === undefined ||
       grantedSkillId === existing.grantedSkillId
     ) {
+      if (existing.playerId !== null && existing.grantedSkillId !== null) {
+        await this.unspentSppDecision.refreshFixedThreshold([
+          existing.playerId,
+        ]);
+      }
       return existing;
     }
     const [updated] = await this.db

@@ -141,6 +141,40 @@ describe('TrophyAwardsService.upsert granted skill', () => {
     });
     // No skill lookup and no update: trophy, competition, player, insert, select.
     expect(db.chains).toHaveLength(5);
+    // The stored skill is still re-priced, so a refresh that failed after the
+    // original insert is repaired by the retry.
+    expect(unspent.refreshFixedThreshold).toHaveBeenCalledWith([4]);
+  });
+
+  it('does not re-price a recorded player award that has no granted skill', async () => {
+    const { service, unspent } = await build(
+      playerTrophyRow,
+      matchingCompetitionRow,
+      playerRow,
+      uniqueViolation(),
+      [awardWithoutSkill],
+    );
+
+    await service.upsert(playerAward);
+
+    expect(unspent.refreshFixedThreshold).not.toHaveBeenCalled();
+  });
+
+  it('does not re-price a recorded team award', async () => {
+    const { service, unspent } = await build(
+      teamTrophyRow,
+      matchingCompetitionRow,
+      uniqueViolation(),
+      [{ ...awardWithSkill, playerId: null }],
+    );
+
+    await service.upsert({
+      trophyId: 1,
+      competitionId: 2,
+      teamEraId: 3,
+      playerId: null,
+    });
+
     expect(unspent.refreshFixedThreshold).not.toHaveBeenCalled();
   });
 
@@ -158,7 +192,8 @@ describe('TrophyAwardsService.upsert granted skill', () => {
       service.upsert({ ...playerAward, grantedSkillId: 11 }),
     ).resolves.toEqual({ trophyAward: awardWithSkill, created: false });
     expect(db.chains).toHaveLength(6);
-    expect(unspent.refreshFixedThreshold).not.toHaveBeenCalled();
+    // Unchanged skill: no update, but the stored value is still re-priced.
+    expect(unspent.refreshFixedThreshold).toHaveBeenCalledWith([4]);
   });
 
   it('clears a stored granted skill when the upsert sends null', async () => {
