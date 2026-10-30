@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
+import { MonotonicClockService } from './monotonic-clock.service';
 import { TpOfficialCharacteristicsSyncService } from './tp-official-characteristics-sync.service';
 import { TpOfficialKeywordCatalogService } from './tp-official-keyword-catalog.service';
 import { TpOfficialKeywordsSyncService } from './tp-official-keywords-sync.service';
@@ -29,6 +30,18 @@ const pushError =
     errors.push({ item: null, message });
   };
 
+const ALL_STAGES = [
+  'context',
+  'races',
+  'positions',
+  'characteristics',
+  'keywordCatalog',
+  'keywords',
+  'skillRefs',
+  'startingSkills',
+  'skillCategories',
+];
+
 describe('TpOfficialTeamsImportService', () => {
   let service: TpOfficialTeamsImportService;
   let context: MockProxy<TpOfficialTeamsContextService>;
@@ -40,6 +53,7 @@ describe('TpOfficialTeamsImportService', () => {
   let skillRefs: MockProxy<TpOfficialSkillRefsService>;
   let startingSkills: MockProxy<TpOfficialStartingSkillsService>;
   let skillCategoriesSync: MockProxy<TpOfficialSkillCategoriesSyncService>;
+  let clock: MockProxy<MonotonicClockService>;
 
   const races = [officialRace()];
   const racesByCode = new Map([['orc20', { raceId: 10, raceName: 'Orc' }]]);
@@ -72,10 +86,13 @@ describe('TpOfficialTeamsImportService', () => {
     startingSkills.syncStartingSkills.mockResolvedValue(3);
     skillCategoriesSync = mock<TpOfficialSkillCategoriesSyncService>();
     skillCategoriesSync.syncSkillCategories.mockResolvedValue(4);
+    clock = mock<MonotonicClockService>();
+    clock.nowMs.mockReturnValue(0);
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpOfficialTeamsImportService,
         ImportResultService,
+        { provide: MonotonicClockService, useValue: clock },
         { provide: TpOfficialTeamsContextService, useValue: context },
         { provide: TpOfficialRacesUpsertService, useValue: racesUpsert },
         {
@@ -155,6 +172,7 @@ describe('TpOfficialTeamsImportService', () => {
       startingSkills: { success: true, imported: 3, errors: [] },
       skillCategories: { success: true, imported: 4, errors: [] },
       positionCharacteristics,
+      timings: ALL_STAGES.map((stage) => ({ stage, ms: 0 })),
     });
   });
 
@@ -248,6 +266,59 @@ describe('TpOfficialTeamsImportService', () => {
       startingSkills: nothing,
       skillCategories: nothing,
       positionCharacteristics: [],
+      timings: [{ stage: 'context', ms: 0 }],
     });
+  });
+
+  it('times each stage from the clock reading before and after it', async () => {
+    const readings = [
+      100, 101, 101, 103, 103, 106, 106, 110, 110, 115, 115, 121, 121, 128, 128,
+      136, 136, 145,
+    ];
+    for (const reading of readings) {
+      clock.nowMs.mockReturnValueOnce(reading);
+    }
+
+    const result = await service.importOfficialTeams({
+      rulesSet: 'BB2020',
+      races,
+      externalSystemName: 'TP',
+    });
+
+    expect(result.timings).toEqual(
+      ALL_STAGES.map((stage, index) => ({ stage, ms: index + 1 })),
+    );
+  });
+
+  it('reports every stage timing even when stages report errors', async () => {
+    racesUpsert.upsertRaces.mockImplementation((options) => {
+      pushError('race failed')(options);
+      return Promise.resolve({ imported: 0, racesByCode });
+    });
+    skillCategoriesSync.syncSkillCategories.mockImplementation((options) => {
+      pushError('categories failed')(options);
+      return Promise.resolve(0);
+    });
+
+    const result = await service.importOfficialTeams({
+      rulesSet: 'BB2020',
+      races,
+      externalSystemName: 'TP',
+    });
+
+    expect(result.timings?.map(({ stage }) => stage)).toEqual(ALL_STAGES);
+  });
+
+  it('times the context stage when the context cannot be resolved', async () => {
+    clock.nowMs.mockReturnValueOnce(10).mockReturnValueOnce(14);
+    context.resolve.mockResolvedValue(undefined);
+
+    const result = await service.importOfficialTeams({
+      rulesSet: 'BB2016',
+      races,
+      externalSystemName: 'TP',
+    });
+
+    expect(result.timings).toEqual([{ stage: 'context', ms: 4 }]);
   });
 });

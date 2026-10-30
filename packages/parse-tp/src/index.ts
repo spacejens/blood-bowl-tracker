@@ -38,6 +38,11 @@ export type {
   TpTournamentPhase,
 } from './tournament-parser.service';
 export { TournamentParserService } from './tournament-parser.service';
+export type {
+  TpOfficialListing,
+  TpOfficialListingPrecedenceOptions,
+} from './tp-official-listing-precedence.service';
+export { TpOfficialListingPrecedenceService } from './tp-official-listing-precedence.service';
 export type { TpStarHireKeyOptions } from './tp-star-hire-key.service';
 export { TpStarHireKeyService } from './tp-star-hire-key.service';
 // Exported for direct construction (tests); not in ParseTpModule.exports — nothing outside this package injects it via DI.

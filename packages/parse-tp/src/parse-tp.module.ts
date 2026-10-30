@@ -11,6 +11,7 @@ import { RosterParserService } from './roster-parser.service';
 import { SecretObjectiveService } from './secret-objective.service';
 import { SkillMasterNamesParserService } from './skill-master-names-parser.service';
 import { TournamentParserService } from './tournament-parser.service';
+import { TpOfficialListingPrecedenceService } from './tp-official-listing-precedence.service';
 import { TpSkillCategoryMaskDecoderService } from './tp-skill-category-mask-decoder.service';
 import { TpStarHireKeyService } from './tp-star-hire-key.service';
 import { WeatherTypeService } from './weather-type.service';
@@ -28,6 +29,7 @@ import { WeatherTypeService } from './weather-type.service';
     RosterParserService,
     SecretObjectiveService,
     SkillMasterNamesParserService,
+    TpOfficialListingPrecedenceService,
     TpSkillCategoryMaskDecoderService,
     TpStarHireKeyService,
     WeatherTypeService,
@@ -42,6 +44,7 @@ import { WeatherTypeService } from './weather-type.service';
     PhaseFixturesParserService,
     RosterParserService,
     SkillMasterNamesParserService,
+    TpOfficialListingPrecedenceService,
     TpStarHireKeyService,
   ],
 })

@@ -14,6 +14,7 @@ import { TpErasImportService } from './eras/tp-eras-import.service';
 import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
 import { TpMatchFilesImportService } from './match-files/tp-match-files-import.service';
 import { TpOfficialTeamsFilesImportService } from './official-teams/tp-official-teams-files-import.service';
+import { TpOfficialTeamsTimingReportService } from './official-teams/tp-official-teams-timing-report.service';
 import type { InducedStarPlayerHireGroup } from './players/tp-induced-star-players-import.service';
 import { TpInducedStarPlayersStepService } from './players/tp-induced-star-players-step.service';
 import { TpLastingInjuryBackfillImportService } from './players/tp-lasting-injury-backfill-import.service';
@@ -90,22 +91,32 @@ async function run(): Promise<ImportResult> {
       errors: skillNameErrors,
     });
 
-    // Each rules set's official team list goes to the server in one
-    // tpOfficialTeams.import call, which writes its races, positions and
-    // stars (with their race/era availability), characteristics, keywords
-    // and starting skills. This runs in the same TP importer invocation
-    // that writes position availability, which is a separate (and later)
-    // invocation than the BBL importer's -- so for every position both
-    // sources describe, TP's characteristics overwrite BBL's (BBL only ever
-    // inserts these rows, so its re-runs leave TP's values alone). That
-    // ordering is deliberate: TP's values are per-rules-set and authoritative,
-    // where BBL's are a converted single snapshot. It runs before the
-    // rosters, because players resolve their position against what it
-    // upserts.
+    // Each rules set's official team list goes to the server as several
+    // tpOfficialTeams.import calls (chunks of whole races, shared stars
+    // normalized first so chunk order cannot matter), which write its races,
+    // positions and stars (with their race/era availability),
+    // characteristics, keywords and starting skills. This runs in the same
+    // TP importer invocation that writes position availability, which is a
+    // separate (and later) invocation than the BBL importer's -- so for every
+    // position both sources describe, TP's characteristics overwrite BBL's
+    // (BBL only ever inserts these rows, so its re-runs leave TP's values
+    // alone). That ordering is deliberate: TP's values are per-rules-set and
+    // authoritative, where BBL's are a converted single snapshot. It runs
+    // before the rosters, because players resolve their position against what
+    // it upserts.
     const officialTeamsOutcome = await app
       .get(TpOfficialTeamsFilesImportService)
       .importOfficialTeams({ officialTeams, skillMastersByMasterId });
     const { characteristicsByPositionId } = officialTeamsOutcome;
+
+    // Printed right away, so a failure in a later step cannot lose it: how
+    // long each official team list request took and where the server spent
+    // that time, so a slow stage shows up without extra instrumentation.
+    for (const line of app
+      .get(TpOfficialTeamsTimingReportService)
+      .summaryLines(officialTeamsOutcome.requestTimings)) {
+      console.log(line);
+    }
 
     // A roster id can be imported under more than one era, so resolving a
     // hired star player's team era later needs the real eraId the

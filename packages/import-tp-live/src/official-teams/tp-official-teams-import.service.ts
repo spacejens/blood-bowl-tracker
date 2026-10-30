@@ -2,11 +2,14 @@ import type {
   ImportError,
   ImportTpOfficialTeams,
   TpOfficialTeamsImportResult,
+  TpOfficialTeamsStage,
+  TpOfficialTeamsStageTiming,
   TpSkillMasterName,
 } from '@blood-bowl-tracker/api-contract';
 import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import { Injectable } from '@nestjs/common';
 
+import { MonotonicClockService } from './monotonic-clock.service';
 import { TpOfficialCharacteristicsSyncService } from './tp-official-characteristics-sync.service';
 import { TpOfficialKeywordCatalogService } from './tp-official-keyword-catalog.service';
 import { TpOfficialKeywordsSyncService } from './tp-official-keywords-sync.service';
@@ -51,6 +54,7 @@ export class TpOfficialTeamsImportService {
     private readonly startingSkills: TpOfficialStartingSkillsService,
     private readonly skillCategoriesSync: TpOfficialSkillCategoriesSyncService,
     private readonly importResults: ImportResultService,
+    private readonly clock: MonotonicClockService,
   ) {}
 
   /**
@@ -61,7 +65,8 @@ export class TpOfficialTeamsImportService {
    * no characteristics row -- their keywords, starting skills and skill
    * categories. Each stage's failures are reported in that stage's result and
    * never stop the stages after it; nothing is imported when the context
-   * cannot be resolved (its failure is reported under `races`).
+   * cannot be resolved (its failure is reported under `races`). Each stage
+   * that runs is timed, in order, in the result's `timings`.
    */
   async importOfficialTeams({
     rulesSet,
@@ -69,70 +74,87 @@ export class TpOfficialTeamsImportService {
     skillMasters = [],
     externalSystemName,
   }: ImportOfficialTeamsOptions): Promise<TpOfficialTeamsImportResult> {
+    const timings: TpOfficialTeamsStageTiming[] = [];
     const raceErrors: ImportError[] = [];
-    const context = await this.context.resolve({
-      rulesSet,
-      externalSystemName,
-      errors: raceErrors,
-    });
+    const context = await this.timed(timings, 'context', () =>
+      this.context.resolve({
+        rulesSet,
+        externalSystemName,
+        errors: raceErrors,
+      }),
+    );
     if (context === undefined) {
-      return this.notImported(raceErrors);
+      return this.notImported(raceErrors, timings);
     }
-    const upsertedRaces = await this.racesUpsert.upsertRaces({
-      races,
-      context,
-      errors: raceErrors,
-    });
+    const upsertedRaces = await this.timed(timings, 'races', () =>
+      this.racesUpsert.upsertRaces({ races, context, errors: raceErrors }),
+    );
 
     const positionErrors: ImportError[] = [];
-    const positions = await this.positionsUpsert.upsertPositions({
-      races,
-      racesByCode: upsertedRaces.racesByCode,
-      context,
-      errors: positionErrors,
-    });
+    const positions = await this.timed(timings, 'positions', () =>
+      this.positionsUpsert.upsertPositions({
+        races,
+        racesByCode: upsertedRaces.racesByCode,
+        context,
+        errors: positionErrors,
+      }),
+    );
     const { slots } = positions;
 
     const characteristicErrors: ImportError[] = [];
-    const characteristics = await this.characteristicsSync.syncCharacteristics({
-      slots,
-      context,
-      errors: characteristicErrors,
-    });
-
-    const keywordErrors: ImportError[] = [];
-    const catalog = await this.keywordCatalog.load({
-      tpSystemId: context.tpSystemId,
-      errors: keywordErrors,
-    });
-    const keywordsImported = await this.keywordsSync.syncKeywords({
-      slots,
-      catalog,
-      context,
-      errors: keywordErrors,
-    });
-
-    const skillErrors: ImportError[] = [];
-    const refsByPositionId = await this.skillRefs.resolve({
-      slots,
-      skillMasters,
-      catalog,
-      context,
-      errors: skillErrors,
-    });
-    const skillsImported = await this.startingSkills.syncStartingSkills({
-      refsByPositionId,
-      context,
-      errors: skillErrors,
-    });
-
-    const skillCategoryErrors: ImportError[] = [];
-    const skillCategoriesImported =
-      await this.skillCategoriesSync.syncSkillCategories({
+    const characteristics = await this.timed(timings, 'characteristics', () =>
+      this.characteristicsSync.syncCharacteristics({
         slots,
         context,
-        errors: skillCategoryErrors,
-      });
+        errors: characteristicErrors,
+      }),
+    );
+
+    const keywordErrors: ImportError[] = [];
+    const catalog = await this.timed(timings, 'keywordCatalog', () =>
+      this.keywordCatalog.load({
+        tpSystemId: context.tpSystemId,
+        errors: keywordErrors,
+      }),
+    );
+    const keywordsImported = await this.timed(timings, 'keywords', () =>
+      this.keywordsSync.syncKeywords({
+        slots,
+        catalog,
+        context,
+        errors: keywordErrors,
+      }),
+    );
+
+    const skillErrors: ImportError[] = [];
+    const refsByPositionId = await this.timed(timings, 'skillRefs', () =>
+      this.skillRefs.resolve({
+        slots,
+        skillMasters,
+        catalog,
+        context,
+        errors: skillErrors,
+      }),
+    );
+    const skillsImported = await this.timed(timings, 'startingSkills', () =>
+      this.startingSkills.syncStartingSkills({
+        refsByPositionId,
+        context,
+        errors: skillErrors,
+      }),
+    );
+
+    const skillCategoryErrors: ImportError[] = [];
+    const skillCategoriesImported = await this.timed(
+      timings,
+      'skillCategories',
+      () =>
+        this.skillCategoriesSync.syncSkillCategories({
+          slots,
+          context,
+          errors: skillCategoryErrors,
+        }),
+    );
 
     return {
       races: this.importResults.result({
@@ -160,10 +182,26 @@ export class TpOfficialTeamsImportService {
         errors: skillCategoryErrors,
       }),
       positionCharacteristics: characteristics.positionCharacteristics,
+      timings,
     };
   }
 
-  private notImported(raceErrors: ImportError[]): TpOfficialTeamsImportResult {
+  /** Runs one stage, recording how long it took under `stage`. */
+  private async timed<T>(
+    timings: TpOfficialTeamsStageTiming[],
+    stage: TpOfficialTeamsStage,
+    run: () => Promise<T>,
+  ): Promise<T> {
+    const started = this.clock.nowMs();
+    const result = await run();
+    timings.push({ stage, ms: this.clock.nowMs() - started });
+    return result;
+  }
+
+  private notImported(
+    raceErrors: ImportError[],
+    timings: TpOfficialTeamsStageTiming[],
+  ): TpOfficialTeamsImportResult {
     const nothing = () =>
       this.importResults.result({ imported: 0, errors: [] });
     return {
@@ -174,6 +212,7 @@ export class TpOfficialTeamsImportService {
       startingSkills: nothing(),
       skillCategories: nothing(),
       positionCharacteristics: [],
+      timings,
     };
   }
 }

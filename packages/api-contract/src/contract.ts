@@ -553,11 +553,15 @@ export const contract = {
   },
   tpOfficialTeams: {
     // A coarse, TP-specific import, like tpRosters.import: the server writes
-    // one rules set's parsed official team list -- races, positions and
+    // a parsed official team list for one rules set -- races, positions and
     // stars with their race/era availability, characteristics, keywords and
-    // starting skills -- in-process. Each failure comes back in the result's
-    // per-stage ImportResults, so it declares no errors. Safe to retry:
-    // everything it writes is an upsert or an add-only sync.
+    // starting skills -- in-process. A caller may send the whole rules set
+    // or split its races across several calls (tools/import-tp sends chunks
+    // of whole races so each call stays short); every stage works only on
+    // the races it is given. Each failure comes back in the result's
+    // per-stage ImportResults, so it declares no errors. The optional
+    // `timings` reports how long each stage took. Safe to retry: everything
+    // it writes is an upsert or an add-only sync.
     import: oc
       .input(ImportTpOfficialTeamsSchema)
       .output(TpOfficialTeamsImportResultSchema),

@@ -7,6 +7,7 @@ import {
   TpOfficialRaceSchema,
   TpOfficialSkillRefSchema,
   TpOfficialTeamsImportResultSchema,
+  TpOfficialTeamsStageTimingSchema,
 } from './tp-official-teams';
 
 const characteristics = {
@@ -112,6 +113,50 @@ describe('TpOfficialTeamsImportResultSchema', () => {
     const { keywords: _keywords, ...missingStage } = result;
     expect(
       TpOfficialTeamsImportResultSchema.safeParse(missingStage).success,
+    ).toBe(false);
+  });
+
+  const wholeResult = {
+    races: one,
+    positions: one,
+    characteristics: one,
+    keywords: one,
+    startingSkills: one,
+    skillCategories: one,
+    positionCharacteristics: [],
+  };
+
+  it('accepts a result without timings', () => {
+    const parsed = TpOfficialTeamsImportResultSchema.parse(wholeResult);
+
+    expect(parsed.timings).toBeUndefined();
+  });
+
+  it('accepts and keeps stage timings in order', () => {
+    const timings = [
+      { stage: 'context', ms: 1.5 },
+      { stage: 'positions', ms: 0 },
+    ];
+
+    expect(
+      TpOfficialTeamsImportResultSchema.parse({ ...wholeResult, timings })
+        .timings,
+    ).toEqual(timings);
+  });
+});
+
+describe('TpOfficialTeamsStageTimingSchema', () => {
+  it('rejects an unknown stage', () => {
+    expect(
+      TpOfficialTeamsStageTimingSchema.safeParse({ stage: 'teams', ms: 1 })
+        .success,
+    ).toBe(false);
+  });
+
+  it('rejects a negative duration', () => {
+    expect(
+      TpOfficialTeamsStageTimingSchema.safeParse({ stage: 'races', ms: -1 })
+        .success,
     ).toBe(false);
   });
 });
