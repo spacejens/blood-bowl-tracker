@@ -103,6 +103,8 @@ error, and dead, retired and departed players are worked out like any other.
   shows it, under `Total SPP:`. The bot's toplists of players by SPP
   deliberately leave it out.
 - **Checked against the sources.** `tools/review-player` re-prices each
-  player's advancements independently and compares the resulting range
-  with the unspent figure BBL and TP report
+  player's advancements independently and compares the resulting spend
+  range with the spend each source reports (its total minus its unspent
+  figure); BBL is not compared under the fixed-threshold rules sets, since
+  it prices every player at BB2020 costs
   ([review-player](../../review-player/index.md)).

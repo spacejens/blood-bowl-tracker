@@ -7,9 +7,10 @@ import { BblAdvancementCostsRawRendererService } from './bbl-advancement-costs-r
 import { TpAdvancementCostsRawRendererService } from './tp-advancement-costs-raw-renderer.service';
 
 /**
- * The advancement-costs data type: the source's own unspent figure and
+ * The advancement-costs data type: the source's own total, unspent figure and
  * gained skills on the left, each stored advancement's modelled cost and the
- * modelled unspent range on the right.
+ * modelled spend and unspent ranges beside the source's reported spend on the
+ * right.
  */
 @Injectable()
 export class AdvancementCostsReviewerService implements PlayerDataTypeReviewer {
