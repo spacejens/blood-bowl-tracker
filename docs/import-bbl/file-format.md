@@ -57,8 +57,11 @@ union with the curated list instead of being excluded from it. See
 
 Note on `pl` pages: a player page carries the player's `<h1>` name, two links —
 the player's position (`default.asp?p=pt&typID=<id>`) and team
-(`default.asp?p=tm&t=<code>`) — an "Unspent SPP" row whose parenthesized figure
-is the site's own career total, and the same MA/ST/AG/PA/AV characteristics
+(`default.asp?p=tm&t=<code>`) — an "Unspent SPP" row whose middle cell is the
+site's own unspent figure (signed: it can be negative) and whose parenthesized
+figure is its career total, both as of the scrape and sent to the server
+together (the unspent figure is stored only under rules sets that price by
+kind, see [players](../game-concepts/players/index.md#unspent-spp)), and the same MA/ST/AG/PA/AV characteristics
 table the `pt` pages carry. Most player pages carry a Passing value,
 including players whose era predates the characteristic existing, an artifact
 of the site's BB2016-to-BB2020 conversion; others show `-`. Either way the

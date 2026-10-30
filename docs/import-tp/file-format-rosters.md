@@ -223,7 +223,16 @@ Chaos Cup 8 carries 2 unspent points against a total of 0 (a gap of -2),
 already present in its first match snapshot, whose only events there are a
 foul (31), a sent-off (32) and injuries suffered (8), none of which award
 SPP to the player.
-`pendingImprovements` and `starPlayerPoints` are not read by any importer.
+`starPlayerPoints` is imported: both importers send it with the
+`totalStarPlayerPoints` of the same entry, never with a higher total a match
+snapshot reports, and the server stores it as the player's unspent SPP under
+rules sets that price by kind when it is not negative, not above that total,
+and that total is the one stored (see
+[players](../game-concepts/players/index.md#unspent-spp)). It is a snapshot
+as of the download. Match-embedded snapshots carry no `starPlayerPoints` and
+send nothing. `pendingImprovements` is not imported: it is 0 on every
+downloaded entry and looks like a count of bought advancements whose random
+result is not chosen yet.
 
 **Still not handled** (future work): the other top-level fields on a roster
 (`imageFile`, `assistantCoaches`, `cheerLeaders`,
