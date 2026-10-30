@@ -3,7 +3,7 @@ import { API_CLIENT } from '@blood-bowl-tracker/api-client';
 import type {
   TpOfficialCharacteristics,
   TpOfficialRace,
-  TpOfficialTeamsImportResult,
+  TpSkillMasterName,
 } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
@@ -15,6 +15,15 @@ import type { TpSkillMaster } from '@blood-bowl-tracker/parse-tp';
 import { Inject, Injectable } from '@nestjs/common';
 
 import type { OfficialTeamsEntry } from '../source/official-teams-collection.service';
+import { MonotonicClockService } from './monotonic-clock.service';
+import { TpOfficialStarNormalizerService } from './tp-official-star-normalizer.service';
+import type { RulesSetChunkOutcome } from './tp-official-teams-chunk-merge.service';
+import { TpOfficialTeamsChunkMergeService } from './tp-official-teams-chunk-merge.service';
+import {
+  OFFICIAL_TEAMS_POSITION_BUDGET,
+  TpOfficialTeamsChunkerService,
+} from './tp-official-teams-chunker.service';
+import type { OfficialTeamsRequestTiming } from './tp-official-teams-timing-report.service';
 
 /** Options for {@link TpOfficialTeamsFilesImportService.importOfficialTeams}. */
 export interface ImportOfficialTeamsFilesOptions {
@@ -40,25 +49,17 @@ export interface OfficialTeamsFilesImportOutcome {
     number,
     Map<number, TpOfficialCharacteristics>
   >;
+  /** How long each request took, in the order they were sent. */
+  requestTimings: OfficialTeamsRequestTiming[];
 }
 
-type Stage = Exclude<
-  keyof TpOfficialTeamsImportResult,
-  'positionCharacteristics' | 'timings'
->;
-
-const STAGES: readonly Stage[] = [
-  'races',
-  'positions',
-  'characteristics',
-  'keywords',
-  'startingSkills',
-  'skillCategories',
-];
-
-interface Tally {
-  imported: number;
-  errors: ImportError[];
+/** One chunk to send, and where its result or failure goes. */
+interface ImportChunkOptions {
+  rulesSet: string;
+  races: TpOfficialRace[];
+  skillMasters: TpSkillMasterName[];
+  outcomes: RulesSetChunkOutcome[];
+  failureErrors: ImportError[];
 }
 
 @Injectable()
@@ -67,20 +68,27 @@ export class TpOfficialTeamsFilesImportService {
     @Inject(API_CLIENT) private readonly client: ApiClient,
     private readonly importRunner: ImportRunnerService,
     private readonly importResults: ImportResultService,
+    private readonly starNormalizer: TpOfficialStarNormalizerService,
+    private readonly chunker: TpOfficialTeamsChunkerService,
+    private readonly chunkMerge: TpOfficialTeamsChunkMergeService,
+    private readonly clock: MonotonicClockService,
   ) {}
 
   /**
    * Imports TP's downloaded official team list through
-   * `tpOfficialTeams.import`, one call per rules set folder. Each call sends
-   * that rules set's parsed races and the whole scanned skill-name lookup
-   * (TP's list names skills by id only, and the scan is what lets the server
-   * upsert a skill no earlier import has registered yet); the server writes
-   * the races, positions, characteristics, keywords, starting skills and
-   * skill categories. A call that fails outright is recorded under races and
-   * the other rules sets still import. This includes an unexpected database
-   * error on the server: it comes back as a rejected call, which is recorded
-   * the same way as any other failure rather than propagating out of this
-   * method.
+   * `tpOfficialTeams.import`. Each rules set folder's races have their shared
+   * stars normalized, then are split into chunks of whole races (every
+   * variant of a race name together) within OFFICIAL_TEAMS_POSITION_BUDGET
+   * positions, and each chunk is sent, one after another, as its own
+   * request with the whole scanned skill-name lookup (TP's list names
+   * skills by id only, and the scan is what lets the server upsert a skill
+   * no earlier import has registered yet). The server writes the races,
+   * positions, characteristics, keywords, starting skills and skill
+   * categories. A request that fails outright, including an unexpected
+   * database error on the server, is recorded under races, naming its rules
+   * set and races, and the other requests still run. The results are merged
+   * as if each rules set had been sent whole, and every request's timing is
+   * returned for the run's summary.
    */
   async importOfficialTeams({
     officialTeams,
@@ -93,54 +101,32 @@ export class TpOfficialTeamsFilesImportService {
         isElite: master.isElite,
       }),
     );
-    const tallies: Record<Stage, Tally> = {
-      races: { imported: 0, errors: [] },
-      positions: { imported: 0, errors: [] },
-      characteristics: { imported: 0, errors: [] },
-      keywords: { imported: 0, errors: [] },
-      startingSkills: { imported: 0, errors: [] },
-      skillCategories: { imported: 0, errors: [] },
-    };
-    const characteristicsByPositionId = new Map<
-      number,
-      Map<number, TpOfficialCharacteristics>
-    >();
+    const outcomes: RulesSetChunkOutcome[] = [];
+    const failureErrors: ImportError[] = [];
+    const requestTimings: OfficialTeamsRequestTiming[] = [];
 
     for (const [rulesSet, races] of this.racesByRulesSet(officialTeams)) {
-      const outcome = await this.importRunner.recordUpsertResult({
-        upsert: () =>
-          this.client.tpOfficialTeams.import({
-            rulesSet,
-            races,
-            skillMasters,
-            externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
-          }),
-        item: { rulesSet },
-        errors: tallies.races.errors,
-        buildErrorMessage: (err) =>
-          `Failed to import TP's official team list for rules set "${rulesSet}": ${err instanceof Error ? err.message : String(err)}`,
+      const chunks = this.chunker.chunk({
+        races: this.starNormalizer.normalize(races),
+        positionBudget: OFFICIAL_TEAMS_POSITION_BUDGET,
       });
-      if (outcome === undefined) {
-        continue;
-      }
-      for (const stage of STAGES) {
-        tallies[stage].imported += outcome[stage].imported;
-        tallies[stage].errors.push(...outcome[stage].errors);
-      }
-      for (const {
-        positionId,
-        rulesSetId,
-        ...characteristics
-      } of outcome.positionCharacteristics) {
-        let byRulesSetId = characteristicsByPositionId.get(positionId);
-        if (byRulesSetId === undefined) {
-          byRulesSetId = new Map();
-          characteristicsByPositionId.set(positionId, byRulesSetId);
-        }
-        byRulesSetId.set(rulesSetId, characteristics);
+      for (const chunk of chunks) {
+        requestTimings.push(
+          await this.importChunk({
+            rulesSet,
+            races: chunk,
+            skillMasters,
+            outcomes,
+            failureErrors,
+          }),
+        );
       }
     }
 
+    const { tallies, characteristicsByPositionId } = this.chunkMerge.merge({
+      outcomes,
+      failureErrors,
+    });
     return {
       racesResult: this.importResults.result(tallies.races),
       positionsResult: this.importResults.result(tallies.positions),
@@ -149,7 +135,51 @@ export class TpOfficialTeamsFilesImportService {
       startingSkillsResult: this.importResults.result(tallies.startingSkills),
       skillCategoriesResult: this.importResults.result(tallies.skillCategories),
       characteristicsByPositionId,
+      requestTimings,
     };
+  }
+
+  /**
+   * Sends one chunk, adding its result to `outcomes` or its failure to
+   * `failureErrors`, and returns how long it took.
+   */
+  private async importChunk({
+    rulesSet,
+    races,
+    skillMasters,
+    outcomes,
+    failureErrors,
+  }: ImportChunkOptions): Promise<OfficialTeamsRequestTiming> {
+    const raceNames = [...new Set(races.map((race) => race.name))];
+    const positions = races.reduce(
+      (sum, race) => sum + race.positions.length,
+      0,
+    );
+    const started = this.clock.nowMs();
+    const outcome = await this.importRunner.recordUpsertResult({
+      upsert: () =>
+        this.client.tpOfficialTeams.import({
+          rulesSet,
+          races,
+          skillMasters,
+          externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
+        }),
+      item: { rulesSet, races: raceNames },
+      errors: failureErrors,
+      buildErrorMessage: (err) =>
+        `Failed to import TP's official team list for rules set "${rulesSet}", races ${raceNames.join(', ')}: ${err instanceof Error ? err.message : String(err)}`,
+    });
+    const timing = {
+      rulesSet,
+      races: raceNames,
+      positions,
+      wallMs: this.clock.nowMs() - started,
+    };
+    if (outcome === undefined) {
+      return timing;
+    }
+    outcomes.push({ rulesSet, outcome });
+    return { ...timing, stages: outcome.timings ?? [] };
   }
 
   /** Each rules set folder's races, in first-seen order. */
