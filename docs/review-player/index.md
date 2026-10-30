@@ -17,6 +17,11 @@ config loading, the `DataTypeReviewer`/`Stratifier` plug-in contracts and the ap
 wiring) is shared with the other review tools through
 `packages/review-harness` — it never touches a raw source's meaning, so it
 cannot agree with itself about one.
+The advancement-cost check follows the same rule: it re-prices a player's
+stored advancements against `advancement_costs` itself rather than using
+`packages/game-data`'s `UnspentSppService`, and does so more coarsely on
+purpose, so a wrong curated cost or a wrong derivation shows up as a
+difference instead of agreeing with itself.
 Locating and byte-decoding a BBL mirror file is shared on a similar basis, via
 `packages/read-bbl-mirror`: it carries no BBL-page-type awareness or HTML
 parsing, so depending on it does not weaken the boundary above.
@@ -33,11 +38,11 @@ because it _is_ this tool's own composition.
 
 Scope today is player info, [Star Player Points](../glossary.md#star-player-points-spp)
 totals, characteristics, current lasting injuries, skill advancements, BB2025
-keywords and player status.
+keywords, player status, and advancement costs with unspent SPP.
 
 ## What it does
 
-1. Samples players per source (BBL and TP) across twenty-two strata:
+1. Samples players per source (BBL and TP) across twenty-three strata:
    1. **SPP totals disagree** — every player, star or not, whose SPP computed from
       the events where they are the acting participant, plus any stored adjustment,
       differs from their stored total (a nonzero adjustment on its own is not a
@@ -105,9 +110,9 @@ keywords and player status.
        the skills their position carries under the era's last-listed rules
        set. A starting skill set is copied from the position, so a difference
        is either a mis-parsed player page or a position whose own skills are
-       wrong — either is worth a human's eyes. A stratifier only ever sees the
-       database, so "differs from the raw source" cannot itself be a stratum;
-       this is the closest DB-expressible signal.
+       wrong — either is worth a human's eyes. This stratum reads only the
+       database, so it cannot itself be "differs from the raw source"; it is
+       the closest DB-expressible signal.
    13. **Gained an elite skill** — a player with at least one gained
        (non-`starting`) skill flagged elite under the era's last-listed rules
        set. BB2025's elite distinction is rare, so this guarantees a run
@@ -120,9 +125,10 @@ keywords and player status.
        None of the last three strata is a finding on its own: a run simply
        always contains an elite, a randomly rolled and a freely chosen gained
        skill, each of which exercises a different importer path.
+
    16. **BB2025 position without keywords** — a player whose position has a
        BB2025 `position_rules_sets` row with no matching
-       `position_rules_set_keywords` row. A stratifier only ever sees the
+       `position_rules_set_keywords` row. This stratum reads only the
        database, so "differs from TP" cannot itself be a stratum here; this
        is the closest DB-visible signal that a keyword was dropped.
        "BB2025" is resolved by the rules set's own name, never a hard-coded
@@ -149,6 +155,20 @@ keywords and player status.
        `inducements_roll` event has no TP status, so they would crowd the
        unknown sample, and the star player review covers them separately.
 
+   23. **Source unspent SPP outside the modelled range** — every player whose
+       unspent figure as the source reports it (BBL: the player page's
+       "Unspent SPP" row; TP: the roster entry's `starPlayerPoints`) lies
+       outside the unspent range modelled from their stored advancements and
+       `advancement_costs`. Like the discrepancy stratum it ignores
+       `playersPerStratum`, so a real disagreement is never sampled away.
+       Holding unspent SPP is normal and never selects anyone. Players with
+       no source figure, star players (they never advance), players with no
+       stored total and players whose rules set has no costs, or has none for
+       one of their advancement numbers, are never listed. It is the one
+       stratum that reads the raw sources rather than only the database,
+       through the same readers the panels use; the BBL pages it reads are
+       cached, so a run reads each mirror page once.
+
    The random-sample stratum excludes star players outright: today's data model
    gives a popular star their own `players` row per team that induces them, so
    an unbounded stratum would be dominated by the same few stars appearing many
@@ -168,8 +188,9 @@ keywords and player status.
    parts of the SPP pipeline; a single undifferentiated random sample under-covers
    the extremes. A player with no stored total at all — commonly an induced star
    player — is excluded from all three, needing no exclusion of its own to arrange.
+
 2. Adds every player id listed in `overrides`, whatever the strata picked.
-3. For each sampled player, renders seven panel pairs:
+3. For each sampled player, renders eight panel pairs:
    - **player-info** — left: BBL's own player page (`default.asp?p=pl&pid=<id>`) parsed
      for name, position, team and its career achievement counters, including the career
      SPP figure BBL publishes in the "Unspent SPP" row; or, for TP (which has no
@@ -205,6 +226,7 @@ keywords and player status.
      must not read the importers' configs. That is an insertion-order heuristic
      matching what the importers themselves mean by "last-listed", accepted here
      to keep the single-player comparison simple.
+
    - **lasting-injuries** — left: what the source itself says is outstanding.
      BBL's player page states it as free text ("Sustained Injuries"), rendered
      verbatim; TP states `nigglingInjuries` and `canPlayNextGame` directly and
@@ -252,6 +274,7 @@ keywords and player status.
      only: TP publishes no comparable counts at all (its raw panel already
      shows a derived template diff instead), and no importer writes these
      columns from TP, so comparing them there would be noise, not a finding.
+
    - **player-keywords** — a player carries no keywords of their own; they
      come from the player's _position_, so this panel pair differs in shape
      from the others. Left: the BB2025 keyword codes TP publishes on the
@@ -284,6 +307,35 @@ keywords and player status.
      shown as "unknown (no source reported a status)", never as active; an
      active player whose era has ended gets a note naming the era and its end
      date.
+   - **advancement-costs** — left: the figures the source itself reports
+     about spending SPP. For BBL, both figures of the player page's
+     "Unspent SPP" row — the reported unspent figure, which can be
+     negative, and the career total in brackets — with the gained skills in
+     page order and the `+MA`/`+ST`/`+AG`/`+PA`/`+AV` counts; the panel says
+     in words that BBL cannot tell a rolled skill from a chosen one. For TP,
+     the roster entry's `totalStarPlayerPoints`, `starPlayerPoints` (the SPP
+     TP holds unspent, see
+     [the roster file format](../import-tp/file-format-rosters.md)) and
+     `pendingImprovements`, with each gained skill's `isRandom` and
+     `isElite`; the panel says that TP's download carries no
+     per-advancement cost. Right: the era's last-listed rules set, then one
+     row per advancement with the cost `advancement_costs` gives it at its
+     number — a single number under fixed thresholds, the candidate cost of
+     each kind under a rules set that prices by kind, narrowed to random or
+     chosen kinds where the stored skill source says which. Starting skills
+     and the skill a player's own trophy award granted (Gudarnas Förkämpe's
+     mutation, `trophy_awards.granted_skill_id`) cost 0 and take no number;
+     a skill a league house rule grants (tLoEG's Fan Favourite) shows as that
+     rule's advancement with its cost. Gained skills come first in their
+     stored order, which is unverified, then the characteristic increases,
+     whose order is unknown. A footer gives the stored total, the modelled
+     spend and unspent ranges and the source's figures beside them. The
+     range takes, per advancement number, the cheapest and dearest cost of
+     any kind the player's advancements could be, so it holds for every
+     order and kind assignment: a source figure outside it is a real
+     disagreement and is the only thing highlighted, labelled in words; a
+     figure inside it proves nothing. A note says that gaps in the recorded
+     advancement history can explain a figure below the range.
 4. Writes the report under `tools/review-player/output/` (gitignored) with a timestamp in
    the filename, and prints where it landed.
 
@@ -296,13 +348,13 @@ gaps in the report (and as console warnings) — never as failures.
 cp tools/review-player/review-player-config.example.json5 tools/review-player/review-player-config.json5
 ```
 
-| Key | Meaning |
-| --- | --- |
-| `database.url` | Connection string of the database holding the imported data (required) |
-| `playersPerStratum` | Players sampled per source for every bounded stratum — random, star-players, non-standard-SPP, the three magnitude strata, the currently-injured and healed-injury strata, and the six player-status strata (default 3); the discrepancy stratum ignores it |
-| `bbl.dataDir` / `tp.dataDir` | The same downloaded data directories `tools/import-bbl` / `tools/import-tp` read |
-| `overrides.bbl` / `overrides.tp` | External player ids always included (BBL: `pid`; TP: the line-up `id`) |
-| `outputPath` | Base path each report is written next to, timestamped (default `output/report.html`) |
+| Key                              | Meaning                                                                                                                                                                                                                                                                                 |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `database.url`                   | Connection string of the database holding the imported data (required)                                                                                                                                                                                                                  |
+| `playersPerStratum`              | Players sampled per source for every bounded stratum — random, star-players, non-standard-SPP, the three magnitude strata, the currently-injured and healed-injury strata, and the six player-status strata (default 3); the discrepancy and unspent-SPP-outside-range strata ignore it |
+| `bbl.dataDir` / `tp.dataDir`     | The same downloaded data directories `tools/import-bbl` / `tools/import-tp` read                                                                                                                                                                                                        |
+| `overrides.bbl` / `overrides.tp` | External player ids always included (BBL: `pid`; TP: the line-up `id`)                                                                                                                                                                                                                  |
+| `outputPath`                     | Base path each report is written next to, timestamped (default `output/report.html`)                                                                                                                                                                                                    |
 
 The tool finds BBL and TP records by their shared external-system names
 (`tloeg.bbleague.se` and `tourplay.net`), so they are not configured.
@@ -326,6 +378,8 @@ A TP-sampled player makes the tool scan every downloaded `match_<id>.json` once 
 process (TP publishes no per-player file), which is the slowest part of a run by a wide
 margin. That cost is the price of not reusing `tools/import-tp`'s reader, which is code
 under review.
+
+The unspent-SPP stratum reads every mirrored BBL player page and the TP roster files once per run, so a run takes longer than the number of sampled players suggests.
 
 The tool only reads game data. It does connect through `packages/db`'s `DbModule`, which
 applies any pending migrations on connect — against a stack deployed from the same branch

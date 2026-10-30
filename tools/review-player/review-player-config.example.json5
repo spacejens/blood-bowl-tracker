@@ -17,9 +17,12 @@
 
   // How many players each bounded stratum picks, per source: random sample,
   // star players, non-standard per-event SPP, the zero/small/large
-  // stored-total strata, and the player-status strata. Defaults to 3. The
-  // SPP-discrepancy stratum ignores this: it reports every disagreement except induced star players with no
-  // stored total; the bounded star-player stratum samples those expected cases.
+  // stored-total strata, and the player-status strata. Defaults to 3. Two
+  // strata ignore this: SPP-discrepancy reports every disagreement except
+  // induced star players with no stored total (the bounded star-player
+  // stratum samples those expected cases), and unspent-SPP-outside-range
+  // reports every player whose source unspent figure lies outside the
+  // modelled range.
   playersPerStratum: 3,
 
   // Where each source's raw downloaded data lives. Relative paths resolve

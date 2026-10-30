@@ -102,3 +102,7 @@ error, and dead, retired and departed players are worked out like any other.
   [player deepdive](../../discord-bot/slash-commands/deepdive-embeds.md#star-player-points)
   shows it, under `Total SPP:`. The bot's toplists of players by SPP
   deliberately leave it out.
+- **Checked against the sources.** `tools/review-player` re-prices each
+  player's advancements independently and compares the resulting range
+  with the unspent figure BBL and TP report
+  ([review-player](../../review-player/index.md)).
