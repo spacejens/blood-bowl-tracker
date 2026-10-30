@@ -38,6 +38,11 @@ export interface TpRawGainedSkill extends TpRawPlayerSkill {
    * not the same as "chosen" and is never guessed at.
    */
   isRandom: boolean | null;
+  /**
+   * TP's `isExtra` flag: true on a skill granted on top of the player's
+   * advancements (such as Hatred). Absent when the entry carried no boolean.
+   */
+  isExtra?: boolean;
 }
 
 /** Everything TP's roster files say about one player's advancements. */
@@ -52,11 +57,31 @@ export interface TpRawPlayerAdvancements {
    * DERIVED, not reported. TP publishes no advancement counter at all, and a
    * reduction (injury) and an advancement on the same characteristic cancel
    * out here. It is shown for orientation, never compared against the stored
-   * `*IncreaseCount` columns — no importer writes those from TP.
+   * `*IncreaseCount` columns, which the TP importer derives by its own,
+   * separate comparison against the position's baseline characteristics.
    */
   characteristicDiffs: RawIncreaseCounts;
   /** False when the roster entry carried no position template at all. */
   hasTemplate: boolean;
+}
+
+/**
+ * The SPP fields of the roster entry the advancements came from, verbatim.
+ * Each is null when the entry carried no numeric value — never coerced to 0.
+ * What `starPlayerPoints` means is documented in
+ * `docs/import-tp/file-format-rosters.md`.
+ */
+export interface TpRawSppFigures {
+  totalStarPlayerPoints: number | null;
+  starPlayerPoints: number | null;
+  pendingImprovements: number | null;
+}
+
+/** One indexed line-up: its tie-break key and what the index serves. */
+interface IndexedLineUp {
+  totalStarPlayerPoints: number;
+  advancements: TpRawPlayerAdvancements;
+  sppFigures: TpRawSppFigures;
 }
 
 /**
@@ -86,6 +111,10 @@ export interface TpRawPlayerAdvancements {
  * disagreements between the raw and imported sides; it does not also try to
  * arbitrate between two raw sources that disagree with each other.
  *
+ * It also keeps that snapshot's SPP fields, served by `sppFiguresFor`, so the
+ * unspent figure a reviewer reads comes from the same entry as the gained
+ * skills beside it.
+ *
  * Every shape check is defensive: this reads unvalidated JSON straight off
  * disk, and a raw panel that throws is strictly worse for a reviewer than one
  * that shows a gap. Deliberately does not use `packages/parse-tp` — that
@@ -93,17 +122,7 @@ export interface TpRawPlayerAdvancements {
  */
 @Injectable()
 export class TpRawPlayerSkillsIndexService {
-  private index:
-    | Promise<
-        Map<
-          number,
-          {
-            totalStarPlayerPoints: number;
-            advancements: TpRawPlayerAdvancements;
-          }
-        >
-      >
-    | undefined;
+  private index: Promise<Map<number, IndexedLineUp>> | undefined;
 
   constructor(
     private readonly config: ReviewPlayerConfigService,
@@ -121,16 +140,17 @@ export class TpRawPlayerSkillsIndexService {
     return (await this.index).get(lineUpId)?.advancements ?? null;
   }
 
-  private async buildIndex(): Promise<
-    Map<
-      number,
-      { totalStarPlayerPoints: number; advancements: TpRawPlayerAdvancements }
-    >
-  > {
-    const players = new Map<
-      number,
-      { totalStarPlayerPoints: number; advancements: TpRawPlayerAdvancements }
-    >();
+  async sppFiguresFor(externalId: string): Promise<TpRawSppFigures | null> {
+    const lineUpId = Number(externalId);
+    if (!Number.isInteger(lineUpId)) {
+      return null;
+    }
+    this.index ??= this.buildIndex();
+    return (await this.index).get(lineUpId)?.sppFigures ?? null;
+  }
+
+  private async buildIndex(): Promise<Map<number, IndexedLineUp>> {
+    const players = new Map<number, IndexedLineUp>();
     const dataDir = this.config.getDataDir('tp');
     for (const era of await this.subdirectories(dataDir)) {
       const eraDir = join(dataDir, era.name);
@@ -149,10 +169,7 @@ export class TpRawPlayerSkillsIndexService {
   }
 
   private async absorb(
-    players: Map<
-      number,
-      { totalStarPlayerPoints: number; advancements: TpRawPlayerAdvancements }
-    >,
+    players: Map<number, IndexedLineUp>,
     file: unknown,
   ): Promise<void> {
     for (const entry of this.arrayProperty(file, 'lineUps')) {
@@ -172,6 +189,17 @@ export class TpRawPlayerSkillsIndexService {
       players.set(id, {
         totalStarPlayerPoints,
         advancements: await this.advancements(entry),
+        sppFigures: {
+          totalStarPlayerPoints: this.numberProperty(
+            entry,
+            'totalStarPlayerPoints',
+          ),
+          starPlayerPoints: this.numberProperty(entry, 'starPlayerPoints'),
+          pendingImprovements: this.numberProperty(
+            entry,
+            'pendingImprovements',
+          ),
+        },
       });
     }
   }
@@ -194,10 +222,12 @@ export class TpRawPlayerSkillsIndexService {
             return [];
           }
           const isRandom = this.property(skill, 'isRandom');
+          const isExtra = this.property(skill, 'isExtra');
           return [
             {
               ...base,
               isRandom: typeof isRandom === 'boolean' ? isRandom : null,
+              ...(typeof isExtra === 'boolean' ? { isExtra } : {}),
             },
           ];
         }),

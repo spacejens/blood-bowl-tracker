@@ -93,6 +93,7 @@ number, lineUpMasterId, rosterId, fallbackPositionName, isBigGuy }`. `id` is
     Both fields are optional to the parser: an entry without them parses as
     before. How they become a player's status is described in
     [index.md](./index.md#player-status).
+
   - `lineUpMaster` — the position template the player was recruited from,
     repeated inline on every entry. Only its `ma/st/ag/pa/av` are read, as the
     baseline a current-vs-template characteristic comparison needs. The
@@ -190,6 +191,39 @@ These entries also never carry `ma/st/ag/pa/av`, in either the standalone
 roster file or the match-embedded snapshot, so a mercenary's characteristics
 cannot come from TP at all — the importer takes them from a curated table
 instead (see [index.md](./index.md)'s `TpRosterPlayersImportService` (server-side) entry).
+
+**SPP fields on a `lineUps[]` entry.** `totalStarPlayerPoints` is the
+player's career SPP. `starPlayerPoints` is the part of it not yet spent on
+advancements: across the 1336 entries in the 108 downloaded roster files,
+`totalStarPlayerPoints - starPlayerPoints` is zero in 626 entries and
+otherwise a sum of advancement costs. The most common gaps (3, 6, 7, 10, 14,
+20 and 26) are sums of primary-skill prices, which are the same in BB2020,
+DB2021 and BB2025. Hand-checked examples: a chosen primary skill (6), two
+random primary skills (3 + 4 = 7), a chosen then a random primary skill
+(6 + 4 = 10), and three chosen primary skills (6 + 8 + 12 = 26). The
+secondary-skill and characteristic prices differ between the rules sets, and
+the gaps follow the roster's own rules set. Counted per line-up, from its
+snapshot with the highest total, BB2020 rosters (rule set 20) have a lone
+chosen skill with a gap of 12, the secondary-skill price, twice, and a
+line-up with no gained skill and a gap of 18, a lone characteristic
+increase, once; BB2025 rosters (rule set 25) have a lone chosen skill with a
+gap of 10, their secondary-skill price, twice. `pendingImprovements` is 0 on
+every downloaded entry. The exceptions seen: five entries with a visible skill and
+a zero gap are all Hatred flagged `isExtra` or a Journeyman's Loner, so those
+skills are present without any SPP having been spent; three line-ups
+have a single chosen skill and a gap equal to the characteristic price, not
+to any skill price: line-up 2094737 in Sasong 29 (a BB2020 roster, gap 18
+against a secondary-skill price of 12) and two BB2025 line-ups (gap 14
+against 10). Either a characteristic roll was taken as a skill at the
+characteristic price, or a characteristic increase is missing from the
+recorded history, and the data cannot tell which (the review tool,
+`tools/review-player`, models neither, so it lists such a line-up as a
+spend outside its modelled range); and line-up 2464153 in
+Chaos Cup 8 carries 2 unspent points against a total of 0 (a gap of -2),
+already present in its first match snapshot, whose only events there are a
+foul (31), a sent-off (32) and injuries suffered (8), none of which award
+SPP to the player.
+`pendingImprovements` and `starPlayerPoints` are not read by any importer.
 
 **Still not handled** (future work): the other top-level fields on a roster
 (`imageFile`, `assistantCoaches`, `cheerLeaders`,

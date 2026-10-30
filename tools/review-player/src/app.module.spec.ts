@@ -7,6 +7,7 @@ import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { UnspentSppOutsideRangeStratificationService } from './advancement-costs/unspent-spp-outside-range-stratification.service';
 import { AppModule } from './app.module';
 import { REVIEW_PLAYER_CONFIG_PATH } from './config/review-player-config.service';
 import { ReviewService } from './harness/review.service';
@@ -57,7 +58,7 @@ describe('AppModule', () => {
     expect(moduleRef.get(ReviewService)).toBeInstanceOf(ReviewService);
   });
 
-  it('registers all eleven player stratifiers in PLAYER_STRATIFIERS', async () => {
+  it('registers all twelve player stratifiers in PLAYER_STRATIFIERS', async () => {
     const configPath = join(dir, 'review-player-config.json5');
     writeFileSync(
       configPath,
@@ -75,7 +76,7 @@ describe('AppModule', () => {
       .compile();
 
     const stratifiers = moduleRef.get<PlayerStratifier[]>(PLAYER_STRATIFIERS);
-    expect(stratifiers).toHaveLength(11);
+    expect(stratifiers).toHaveLength(12);
     expect(
       [
         RandomPlayerStratificationService,
@@ -89,6 +90,7 @@ describe('AppModule', () => {
         HealedInjuryStratificationService,
         PlayerKeywordsStratificationService,
         PlayerStatusStratificationService,
+        UnspentSppOutsideRangeStratificationService,
       ].every((serviceClass) =>
         stratifiers.some((stratifier) => stratifier instanceof serviceClass),
       ),

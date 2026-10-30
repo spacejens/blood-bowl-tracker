@@ -504,4 +504,129 @@ describe('TpRawPlayerSkillsIndexService', () => {
 
     expect(await service.advancementsFor('not-a-number')).toBeNull();
   });
+
+  it("reports the roster entry's SPP fields verbatim", async () => {
+    const service = await makeService({
+      'rosters_1.json': {
+        lineUps: [
+          {
+            id: 77,
+            totalStarPlayerPoints: 16,
+            starPlayerPoints: 4,
+            pendingImprovements: 0,
+          },
+        ],
+      },
+    });
+
+    expect(await service.sppFiguresFor('77')).toEqual({
+      totalStarPlayerPoints: 16,
+      starPlayerPoints: 4,
+      pendingImprovements: 0,
+    });
+  });
+
+  it('reports a missing SPP field as null, never as zero', async () => {
+    const service = await makeService({
+      'rosters_1.json': { lineUps: [{ id: 77, starPlayerPoints: 'x' }] },
+    });
+
+    expect(await service.sppFiguresFor('77')).toEqual({
+      totalStarPlayerPoints: null,
+      starPlayerPoints: null,
+      pendingImprovements: null,
+    });
+  });
+
+  it('takes the SPP fields from the same snapshot as the skills', async () => {
+    const service = await makeService({
+      'rosters_1.json': {
+        lineUps: [{ id: 77, totalStarPlayerPoints: 30, starPlayerPoints: 2 }],
+      },
+      'rosters_2.json': {
+        lineUps: [{ id: 77, totalStarPlayerPoints: 10, starPlayerPoints: 10 }],
+      },
+    });
+
+    expect(await service.sppFiguresFor('77')).toEqual({
+      totalStarPlayerPoints: 30,
+      starPlayerPoints: 2,
+      pendingImprovements: null,
+    });
+  });
+
+  it('lets a later file with a higher totalStarPlayerPoints override an earlier one', async () => {
+    const service = await makeService({
+      'rosters_1.json': {
+        lineUps: [{ id: 77, totalStarPlayerPoints: 10, starPlayerPoints: 10 }],
+      },
+      'rosters_2.json': {
+        lineUps: [
+          {
+            id: 77,
+            totalStarPlayerPoints: 30,
+            starPlayerPoints: 2,
+            skills: [
+              { skillMasterId: 20, skillMaster: { id: 20, name: 'Dodge' } },
+            ],
+          },
+        ],
+      },
+    });
+
+    expect(await service.sppFiguresFor('77')).toEqual({
+      totalStarPlayerPoints: 30,
+      starPlayerPoints: 2,
+      pendingImprovements: null,
+    });
+    expect(
+      (await service.advancementsFor('77'))?.gainedSkills.map((s) => s.name),
+    ).toEqual(['Dodge']);
+  });
+
+  it("keeps a gained skill's boolean isExtra flag and omits a missing one", async () => {
+    const service = await makeService({
+      'rosters_1.json': {
+        lineUps: [
+          {
+            id: 77,
+            skills: [
+              {
+                skillMasterId: 30,
+                skillMaster: { id: 30, name: 'Hatred' },
+                isExtra: true,
+              },
+              {
+                skillMasterId: 31,
+                skillMaster: { id: 31, name: 'Block' },
+                isExtra: false,
+              },
+              {
+                skillMasterId: 32,
+                skillMaster: { id: 32, name: 'Dodge' },
+                isExtra: 'yes',
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    const gained = (await service.advancementsFor('77'))?.gainedSkills;
+
+    expect(gained?.map((s) => s.isExtra)).toEqual([true, false, undefined]);
+    expect(gained?.[2]).not.toHaveProperty('isExtra');
+  });
+
+  it('returns null for a line-up id no roster file carries', async () => {
+    const service = await makeService({ 'rosters_1.json': { lineUps: [] } });
+
+    expect(await service.sppFiguresFor('77')).toBeNull();
+  });
+
+  it('returns null for an external id that is not a line-up id', async () => {
+    const service = await makeService({});
+
+    expect(await service.sppFiguresFor('abc')).toBeNull();
+  });
 });
