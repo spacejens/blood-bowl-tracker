@@ -163,6 +163,53 @@ describe('RosterParserService', () => {
     });
   });
 
+  it('reads the unspent starPlayerPoints beside the career total', () => {
+    const roster = service.parse(
+      rosterBody({
+        lineUps: [
+          {
+            id: 2412443,
+            name: 'The Agitated Deviation',
+            number: 1,
+            lineUpMasterId: 952,
+            rosterId: 123,
+            position: 'Dwarf Lineman',
+            totalStarPlayerPoints: 23,
+            starPlayerPoints: 7,
+          },
+        ],
+      }),
+    );
+    expect(roster.players[0]?.starPlayerPoints).toBe(7);
+  });
+
+  it('leaves starPlayerPoints undefined when the entry has none', () => {
+    expect(
+      service.parse(rosterBody()).players[0]?.starPlayerPoints,
+    ).toBeUndefined();
+  });
+
+  it('rejects a fractional starPlayerPoints', () => {
+    expect(() =>
+      service.parse(
+        rosterBody({
+          lineUps: [
+            {
+              id: 2412443,
+              name: 'The Agitated Deviation',
+              number: 1,
+              lineUpMasterId: 952,
+              rosterId: 123,
+              position: 'Dwarf Lineman',
+              totalStarPlayerPoints: 23,
+              starPlayerPoints: 1.5,
+            },
+          ],
+        }),
+      ),
+    ).toThrow(/starPlayerPoints/);
+  });
+
   it('parses each starPlayersMasters entry into a star position', () => {
     const roster = service.parse(rosterBody());
     expect(roster.starPositions).toEqual([

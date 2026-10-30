@@ -73,12 +73,16 @@ export interface TpRosterPlayer {
   isBigGuy: boolean;
   /**
    * TP's own reported CAREER Star Player Points total for this player
-   * (`lineUps[].totalStarPlayerPoints`). Distinct from the sibling
-   * `starPlayerPoints` field, which is the unspent figure and was
-   * investigated and rejected as an SPP ground truth -- see
-   * tools/import-tp/src/match-events/tp-spp-cross-check.spec.ts.
+   * (`lineUps[].totalStarPlayerPoints`). Distinct from `starPlayerPoints` below.
    */
   totalStarPlayerPoints: number;
+  /**
+   * TP's unspent SPP for this player (`lineUps[].starPlayerPoints`), from the
+   * same entry as `totalStarPlayerPoints`, or `undefined` when the entry has
+   * none (a match-embedded snapshot). docs/import-tp/file-format-rosters.md
+   * describes what TP's SPP fields mean.
+   */
+  starPlayerPoints?: number;
   /**
    * TP's per-action-type career counters, or `undefined` when the source entry
    * carried none. Only a standalone `rosters_<id>.json` entry has them: the
@@ -270,6 +274,11 @@ export const LineUpSchema = z.object({
   position: z.string(),
   isBigGuy: z.boolean().optional(),
   totalStarPlayerPoints: z.number().int(),
+  // The part of the career total not yet spent on advancements. Optional
+  // because match-embedded roster snapshots reuse this schema and carry
+  // none. Not checked for sign or against the total here: the server
+  // decides whether a reported figure makes sense.
+  starPlayerPoints: z.number().int().optional(),
   // Optional because match-embedded roster snapshots reuse this schema (see
   // MatchLineUpSchema) and carry none of these counters. Nonnegative to match
   // SppCareerCountsSchema (packages/api-contract), which TpSppAdjustmentsImportService
@@ -383,6 +392,7 @@ export class RosterParserService {
         fallbackPositionName: entry.position,
         isBigGuy: entry.isBigGuy ?? false,
         totalStarPlayerPoints: entry.totalStarPlayerPoints,
+        starPlayerPoints: entry.starPlayerPoints,
         state: entry.state,
         isActive: entry.isActive,
         careerCounts: this.careerCounts(entry),
