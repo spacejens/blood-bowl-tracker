@@ -232,8 +232,8 @@ and that total is the one stored (see
 as of the download. A match-embedded snapshot's line-ups do carry
 `starPlayerPoints`, but it is the figure as of that match: the match parser
 does not carry it over and the importers read it only from roster files, so a
-snapshot's figure is never sent. `pendingImprovements` is not imported: it is 0 on every
-downloaded entry and looks like a count of bought advancements whose random
+snapshot's figure is never sent. `pendingImprovements` is not imported: it
+is 0 on every downloaded entry and looks like a count of bought advancements whose random
 result is not chosen yet.
 
 **Still not handled** (future work): the other top-level fields on a roster

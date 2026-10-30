@@ -175,8 +175,8 @@ keywords, player status, and advancement costs with unspent SPP.
        total is the highest over the roster file and every match snapshot,
        while both TP figures come from one roster snapshot. Like the
        discrepancy stratum it ignores `playersPerStratum`, so a real
-       disagreement is never sampled away. Holding unspent SPP is normal and
-       never selects anyone. Star players (they never advance), players with
+       disagreement is never sampled away. The amount of unspent SPP held,
+       on its own, never selects anyone. Star players (they never advance), players with
        no stored total and players whose rules set has no costs, or has none
        for one of their advancement numbers, are never listed. BBL
        recalculates older totals at BB2020 rates and prices every player's
@@ -376,7 +376,7 @@ keywords, player status, and advancement costs with unspent SPP.
      dearest cost of any kind the player's advancements could be, so it holds
      for every order and kind assignment. The source's derived spend is placed
      against the modelled spend range, the same comparison the stratum makes:
-     a spend outside it is a real disagreement and is the only thing
+     a spend outside it is a real disagreement and is the only source figure
      highlighted, labelled in words; a spend inside it proves nothing, and the
      source's own unspent figure is never highlighted. When either source
      figure is missing the spend shows as a dash and nothing is compared. BBL

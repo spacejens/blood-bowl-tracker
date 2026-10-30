@@ -259,8 +259,8 @@ import that writes the column, so the two always describe the same total.
 A player upsert or a skill sync clears it (the import's closing sync writes
 it back), and a trophy award that grants a skill, which only the manual
 import writes, works the fixed-threshold value out again. A stored
-fixed-threshold value is recomputed on the writes that change a player's
-history, but not when reference data (advancement costs, era rules sets,
+fixed-threshold value is cleared or recomputed on the writes that change a
+player's history, but not when reference data (advancement costs, era rules sets,
 skill categories, position access) or the model code changes; it refreshes
 the next time the player is imported. Rows that existed before the column
 was added stay NULL until the next import.
