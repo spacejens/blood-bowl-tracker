@@ -95,19 +95,28 @@ async function run(): Promise<ImportResult> {
     // tpOfficialTeams.import calls (chunks of whole races, shared stars
     // normalized first so chunk order cannot matter), which write its races,
     // positions and stars (with their race/era availability),
-    // characteristics, keywords and starting skills. This runs in the same TP importer invocation
-    // that writes position availability, which is a separate (and later)
-    // invocation than the BBL importer's -- so for every position both
-    // sources describe, TP's characteristics overwrite BBL's (BBL only ever
-    // inserts these rows, so its re-runs leave TP's values alone). That
-    // ordering is deliberate: TP's values are per-rules-set and authoritative,
-    // where BBL's are a converted single snapshot. It runs before the
-    // rosters, because players resolve their position against what it
-    // upserts.
+    // characteristics, keywords and starting skills. This runs in the same
+    // TP importer invocation that writes position availability, which is a
+    // separate (and later) invocation than the BBL importer's -- so for every
+    // position both sources describe, TP's characteristics overwrite BBL's
+    // (BBL only ever inserts these rows, so its re-runs leave TP's values
+    // alone). That ordering is deliberate: TP's values are per-rules-set and
+    // authoritative, where BBL's are a converted single snapshot. It runs
+    // before the rosters, because players resolve their position against what
+    // it upserts.
     const officialTeamsOutcome = await app
       .get(TpOfficialTeamsFilesImportService)
       .importOfficialTeams({ officialTeams, skillMastersByMasterId });
     const { characteristicsByPositionId } = officialTeamsOutcome;
+
+    // Printed right away, so a failure in a later step cannot lose it: how
+    // long each official team list request took and where the server spent
+    // that time, so a slow stage shows up without extra instrumentation.
+    for (const line of app
+      .get(TpOfficialTeamsTimingReportService)
+      .summaryLines(officialTeamsOutcome.requestTimings)) {
+      console.log(line);
+    }
 
     // A roster id can be imported under more than one era, so resolving a
     // hired star player's team era later needs the real eraId the
@@ -343,15 +352,6 @@ async function run(): Promise<ImportResult> {
     for (const line of app
       .get(TpSppAdjustmentsImportService)
       .summaryLines(sppAdjustmentsOutcome.nonzeroAdjustments)) {
-      console.log(line);
-    }
-
-    // Every run ends with how long each official team list request took and
-    // where the server spent that time, so a slow stage shows up without
-    // extra instrumentation.
-    for (const line of app
-      .get(TpOfficialTeamsTimingReportService)
-      .summaryLines(officialTeamsOutcome.requestTimings)) {
       console.log(line);
     }
 

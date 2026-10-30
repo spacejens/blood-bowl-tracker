@@ -14,8 +14,10 @@ ways that share one write path:
   several times per downloaded rules set, with chunks of whole races (see
   [tools/import-tp's official team list requests](../import-tp/official-teams-requests.md)).
   Every stage works only on the races it is given, so a chunk is imported
-  exactly like a small rules set. The live import, which runs in-process with
-  no HTTP timeout, still writes each rules set in one call.
+  exactly like a small rules set. The live import runs in-process, so the
+  api-client's per-request timeout does not apply to it (it still fetches TP
+  through scrape-tp, with that tool's own timeouts), and it writes each rules
+  set in one call.
 
 Both go through `TpOfficialTeamsImportService` (in `TpOfficialTeamsModule`),
 which writes one rules set at a time.

@@ -19,6 +19,9 @@ instead, one after another.
    `TpOfficialListingPrecedenceService`, so they cannot drift. Each copy
    keeps its own TP position id. Every chunk then writes identical star data,
    and the order of the chunks does not matter.
+   The normalization covers every race in the rules set's list, including a
+   race the server later fails to import, so such a race still takes part in
+   choosing the winning listing.
 2. **Races are packed into chunks.** `TpOfficialTeamsChunkerService` packs
    whole races, in first-seen order, into chunks of at most
    `OFFICIAL_TEAMS_POSITION_BUDGET` (40) positions. Every variant of one race
@@ -52,8 +55,9 @@ re-running the import repairs a failed chunk.
 
 ## Reading the timing summary
 
-Every run that sends at least one call ends with a timing summary of the
-official team list calls:
+Every run that sends at least one call prints a timing summary of the
+official team list calls as soon as that import step finishes, before the
+later steps run, so a failure further on does not lose it:
 
 ```text
 Official team list import timing:

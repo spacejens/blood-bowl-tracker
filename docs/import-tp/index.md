@@ -426,7 +426,7 @@ which would take a data migration (see
 5. Coaches.
 6. The roster files and TP's official team list, each scanned and parsed once client-side (the roster import call re-sends each file's raw content, which `TpRosterImportService.importRawRoster` parses a second time, server-side).
 7. The skill-name scan.
-8. The official team list import (races, positions, characteristics, keywords, starting skills and skill categories, sent as chunked `tpOfficialTeams.import` calls per rules set, with a timing summary at the end of the run).
+8. The official team list import (races, positions, characteristics, keywords, starting skills and skill categories, sent as chunked `tpOfficialTeams.import` calls per rules set, with a timing summary printed as soon as that step finishes).
 9. Roster import — teams, players and the players' own skills together, one `tpRosters.import` call per distinct era/roster pair (a roster id in more than one era is sent once per era; see [import-tp-live's architecture](../import-tp-live/index.md#what-it-owns)).
 10. Induced star hires.
 11. Roster player facts (career SPP counts).
