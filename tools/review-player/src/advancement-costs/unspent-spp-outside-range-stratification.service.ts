@@ -41,8 +41,10 @@ const OUTSIDE_RANGE_STRATUM = 'unspent-spp-outside-range';
  *
  * Deliberately ignores the caller's `limit`, like the SPP-discrepancy stratum:
  * a real disagreement must never be sampled away. Star players (they never
- * advance), players with no stored total, players whose rules set has no
- * costs and players with no complete source figure are never listed.
+ * advance), players with no stored total and players whose rules set has no
+ * costs are never listed. A player with no complete source figure has no
+ * source spend to compare, so only a stored unspent SPP outside the modelled
+ * range lists them.
  */
 @Injectable()
 export class UnspentSppOutsideRangeStratificationService implements PlayerStratifier {

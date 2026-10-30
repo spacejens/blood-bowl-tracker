@@ -214,6 +214,16 @@ describe('UnspentSppOutsideRangeStratificationService', () => {
     expect(await listed('tp', KIND_PRICED, figure('tp', 15))).toEqual([1]);
   });
 
+  it('lists a player with no source figure whose stored unspent SPP is outside the range', async () => {
+    await build([row(1)], 39);
+    expect(await listed('tp', KIND_PRICED, null)).toEqual([1]);
+  });
+
+  it('does not list a player with no source figure whose stored unspent SPP is inside the range', async () => {
+    await build([row(1)], 45);
+    expect(await listed('tp', KIND_PRICED, null)).toEqual([]);
+  });
+
   it('lists a player whose stored unspent SPP differs from the source', async () => {
     await build([row(1)], 45);
     expect(await listed('tp', KIND_PRICED, figure('tp', 15))).toEqual([1]);

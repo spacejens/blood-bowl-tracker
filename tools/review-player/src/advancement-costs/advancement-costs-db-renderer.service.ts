@@ -36,7 +36,7 @@ const ORDER_RANGE_NOTE =
   ' The modelled range in the next table holds for any order and any kind.';
 
 const READING_NOTE =
-  "Holding unspent SPP is normal and is never flagged. The source's own spend (its total minus its unspent SPP) outside the modelled spend range is a real disagreement; one inside it proves nothing. Gaps in the recorded advancement history make the modelled spend too small, which can explain a reported spend above the range.";
+  "Holding unspent SPP is normal and the source's own unspent figure is never flagged. The source's own spend (its total minus its unspent SPP) outside the modelled spend range is a real disagreement; one inside it proves nothing. Gaps in the recorded advancement history make the modelled spend too small, which can explain a reported spend above the range.";
 
 /** The note shown when `SourceSpendComparisonService` does not compare. */
 const NOT_COMPARED_NOTE =
@@ -48,7 +48,7 @@ const NOT_COMPARED_NOTE =
  * the stored total, the modelled spend and unspent range, and the source's
  * own total, unspent SPP and derived spend beside them. Only a reported spend
  * outside the modelled spend range is highlighted, with a label in words;
- * unspent SPP itself never is. Last comes the stored unspent SPP, checked
+ * the source's own unspent SPP never is. Last comes the stored unspent SPP, checked
  * against the modelled unspent range and the source's own unspent figure
  * (`StoredUnspentSppCheckService`) and highlighted the same way when it
  * disagrees.
@@ -252,7 +252,7 @@ export class AdvancementCostsDbRendererService {
     }
     return placement === 'inside'
       ? 'inside the modelled unspent range'
-      : `${placement} the modelled unspent range`;
+      : `${placement} the modelled unspent range, which may mean a gap in the recorded history, a free skill, or an unrecorded order or chosen-or-random choice`;
   }
 
   private storedSourceNote(

@@ -253,7 +253,7 @@ describe('AdvancementCostsDbRendererService', () => {
     figures.figureFor.mockResolvedValue(figure(20));
 
     expect(await service.render(player)).toContain(
-      '<tr class="mismatch"><td>Stored unspent SPP</td><td class="mismatch-cell">40 (above the modelled unspent range; differs from the source figure, 20)</td></tr>',
+      '<tr class="mismatch"><td>Stored unspent SPP</td><td class="mismatch-cell">40 (above the modelled unspent range, which may mean a gap in the recorded history, a free skill, or an unrecorded order or chosen-or-random choice; differs from the source figure, 20)</td></tr>',
     );
   });
 

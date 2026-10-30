@@ -127,8 +127,8 @@ export interface BblPlayer {
   teamCode: string;
   /**
    * BBL's own displayed career SPP total — the parenthesized figure on the
-   * "Unspent SPP" row (the middle cell is `reportedUnspentSpp`). `null` when the row is absent or carries no
-   * parenthesized figure. Used only as an input to computing
+   * "Unspent SPP" row (the middle cell is `reportedUnspentSpp`). `null` when
+   * the row is absent or carries no parenthesized figure. Used only as an input to computing
    * `players.spp_adjustment`; it is never stored as `players.spp_total`,
    * because BBL's figure mixes award rates across eras — its site
    * recalculated pre-BB2020 totals at BB2020 rates, so the raw scraped

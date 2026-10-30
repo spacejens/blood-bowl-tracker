@@ -92,6 +92,12 @@ describe('StoredUnspentSppCheckService', () => {
     });
   });
 
+  it('flags a stored figure outside the range by placement alone when the source has no figure', () => {
+    const check = service.check(KIND_PRICED, 55, figure('tp', null));
+    expect(check).toMatchObject({ placement: 'above', source: 'no_figure' });
+    expect(service.disagrees(check)).toBe(true);
+  });
+
   it('has no source comparison without a figure, and no placement without a range', () => {
     expect(service.check({ ...KIND_PRICED, range: null }, 45, null)).toEqual({
       kind: 'stored',

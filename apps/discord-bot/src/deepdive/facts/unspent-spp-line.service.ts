@@ -27,12 +27,12 @@ const VERDICTS: Record<CoversAnother, string> = {
 };
 
 /**
- * Added when the source's own figure lies outside the modelled range. "May":
+ * Added when the stored figure lies outside the modelled range. "May":
  * free skills, an unrecorded order and rolled-or-chosen uncertainty can put
  * it there too.
  */
 const OUTSIDE_RANGE_NOTE =
-  'the source reports a figure outside this range, so the recorded advancement history may be incomplete or misrecorded';
+  'the stored figure lies outside this range, so the recorded advancement history may be incomplete or misrecorded';
 
 /**
  * The player deepdive's `Unspent SPP:` line, from `UnspentSppService`'s
