@@ -236,7 +236,8 @@ describes:
   `no further advancements available`. Nothing to spend (`0` or less) gets no
   note.
 - `unknown`, with the reason in plain words, when it cannot be worked out or
-  the lookup timed out. A timeout never replaces the rest of the embed.
+  the lookup timed out or failed (`lookup unavailable`). Neither replaces the
+  rest of the embed.
 - Advancements missing from the recorded history make a _yes_ generous.
 
 The bot's toplists of players by SPP deliberately leave unspent SPP out.

@@ -28,7 +28,7 @@ const VERDICTS: Record<CoversAnother, string> = {
 
 /**
  * The player deepdive's `Unspent SPP:` line, from `UnspentSppService`'s
- * result. `null` is a lookup that timed out: the line then reads as unknown
+ * result. `null` is a lookup that timed out or failed: the line then reads as unknown
  * rather than costing the reader the rest of the deepdive.
  *
  * A figure is one number when the spend is exact, otherwise the least and
@@ -43,7 +43,7 @@ export class UnspentSppLineService {
 
   build(result: UnspentSppResult | null): string {
     if (result === null) {
-      return 'Unspent SPP: unknown (lookup timed out)';
+      return 'Unspent SPP: unknown (lookup unavailable)';
     }
     if (result.status === 'unknown') {
       return `Unspent SPP: unknown (${UNKNOWN_REASONS[result.reason]})`;

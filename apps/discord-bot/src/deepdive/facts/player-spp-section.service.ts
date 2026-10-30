@@ -10,7 +10,7 @@ export interface PlayerSppSectionInput {
   /**
    * The player's unspent SPP lookup: `undefined` when it was not looked up
    * (or found no such player), so no unspent line is shown; `null` when it
-   * timed out, shown as unknown.
+   * timed out or failed, shown as unknown.
    */
   unspent: UnspentSppResult | null | undefined;
 }

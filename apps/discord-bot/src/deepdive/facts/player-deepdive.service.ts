@@ -306,17 +306,23 @@ export class PlayerDeepdiveService {
       keywordRows = rows;
     }
 
-    // Supplementary, so a timeout (null) shows the line as unknown instead
-    // of discarding the rest of the deepdive. Skipped without a total: the
-    // whole total section is then absent. Appended last so the earlier
-    // queries' timeout specs keep their `run` ordering.
+    // Supplementary, so a timeout or a failure (null) shows the line as
+    // unknown instead of discarding the rest of the deepdive. Skipped
+    // without a total: the whole total section is then absent. Appended last
+    // so the earlier queries' timeout specs keep their `run` ordering.
     const unspent: UnspentSppResult | undefined | null =
       player.sppTotal === null
         ? undefined
-        : await this.databaseTimeout.run(
-            this.unspentSpp.forPlayer(playerId),
-            null,
-          );
+        : await this.databaseTimeout
+            .run(this.unspentSpp.forPlayer(playerId), null)
+            .catch((error: unknown) => {
+              this.errorLog.logError(
+                this.logger,
+                'Failed to look up the unspent SPP',
+                error,
+              );
+              return null;
+            });
 
     // Omitted entirely when no rules set applies to the player's era: there
     // is then no way to know how to write the values, and a wrongly

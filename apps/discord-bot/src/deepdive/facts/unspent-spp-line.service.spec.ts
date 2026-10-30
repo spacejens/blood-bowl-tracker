@@ -107,8 +107,10 @@ describe('UnspentSppLineService', () => {
     expect(service.build(result)).toBe(expected);
   });
 
-  it('shows a timed-out lookup as unknown', () => {
-    expect(service.build(null)).toBe('Unspent SPP: unknown (lookup timed out)');
+  it('shows a timed-out or failed lookup as unknown', () => {
+    expect(service.build(null)).toBe(
+      'Unspent SPP: unknown (lookup unavailable)',
+    );
   });
 
   it.each([

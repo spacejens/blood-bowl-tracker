@@ -122,7 +122,30 @@ describe('PlayerDeepdiveService unspent SPP line', () => {
 
     expect(description).toContain('Team: Reikland Reavers');
     expect(description).toContain(
-      'Total SPP: 12\nUnspent SPP: unknown (lookup timed out)',
+      'Total SPP: 12\nUnspent SPP: unknown (lookup unavailable)',
+    );
+  });
+
+  it('shows unknown, logs and keeps the rest of the embed when the lookup rejects', async () => {
+    const unspentSpp = mock<UnspentSppService>();
+    const failure = new Error('connection lost');
+    unspentSpp.forPlayer.mockRejectedValue(failure);
+
+    const { service, errorLog } = await makeService({
+      players: makePlayers({ player: withTotal }),
+      unspentSpp,
+    });
+
+    const description = descriptionOf(await service.resolve(1));
+
+    expect(description).toContain('Team: Reikland Reavers');
+    expect(description).toContain(
+      'Total SPP: 12\nUnspent SPP: unknown (lookup unavailable)',
+    );
+    expect(errorLog.logError).toHaveBeenCalledWith(
+      expect.anything(),
+      'Failed to look up the unspent SPP',
+      failure,
     );
   });
 

@@ -88,6 +88,10 @@ describe('PlayerSppSectionService', () => {
   it('shows a timed-out unspent lookup as unknown', () => {
     expect(
       service.build({ sppTotal: 12, sppAdjustment: null, unspent: null }),
-    ).toEqual(['', 'Total SPP: 12', 'Unspent SPP: unknown (lookup timed out)']);
+    ).toEqual([
+      '',
+      'Total SPP: 12',
+      'Unspent SPP: unknown (lookup unavailable)',
+    ]);
   });
 });
