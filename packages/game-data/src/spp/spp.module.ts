@@ -13,6 +13,7 @@ import { SppOngoingEstimateService } from './spp-ongoing-estimate.service';
 import { SppTotalsService } from './spp-totals.service';
 import { StoredUnspentSppSettlementService } from './stored-unspent-spp-settlement.service';
 import { UnspentSppService } from './unspent-spp.service';
+import { UnspentSppDecisionService } from './unspent-spp-decision.service';
 
 @Module({
   imports: [MatchScopeFilterModule],
@@ -28,6 +29,7 @@ import { UnspentSppService } from './unspent-spp.service';
     SppOngoingEstimateService,
     SppTotalsService,
     StoredUnspentSppSettlementService,
+    UnspentSppDecisionService,
     UnspentSppService,
   ],
   exports: [
@@ -42,6 +44,7 @@ import { UnspentSppService } from './unspent-spp.service';
     SppOngoingEstimateService,
     SppTotalsService,
     StoredUnspentSppSettlementService,
+    UnspentSppDecisionService,
     UnspentSppService,
   ],
 })
