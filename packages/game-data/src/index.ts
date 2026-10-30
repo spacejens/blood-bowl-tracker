@@ -149,6 +149,8 @@ export {
   SkillUpsertConflictError,
 } from './skills/skills.service';
 export { AdvancementCostsService } from './spp/advancement-costs.service';
+export { AdvancementKindCandidatesService } from './spp/advancement-kind-candidates.service';
+export { AdvancementSpendRangeService } from './spp/advancement-spend-range.service';
 export { SppModule } from './spp/spp.module';
 export { SppAdjustmentsService } from './spp/spp-adjustments.service';
 export type { ResolveSppValueOptions } from './spp/spp-award-values.service';
@@ -162,6 +164,19 @@ export {
 export type { OngoingSppEntry } from './spp/spp-ongoing-estimate.service';
 export { SppOngoingEstimateService } from './spp/spp-ongoing-estimate.service';
 export { SppTotalsService } from './spp/spp-totals.service';
+export { UnspentSppService } from './spp/unspent-spp.service';
+export type {
+  AdvancementCandidatesInput,
+  AdvancementOption,
+  ApplicableAdvancementCost,
+  CoversAnother,
+  KnownUnspentSpp,
+  PlayerSkillEntry,
+  SpendRange,
+  UnknownUnspentSpp,
+  UnspentSppResult,
+  UnspentSppUnknownReason,
+} from './spp/unspent-spp.types';
 export type {
   TeamAverageDirection,
   TeamAverageRow,
