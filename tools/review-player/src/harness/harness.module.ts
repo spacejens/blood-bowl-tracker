@@ -5,6 +5,9 @@ import {
 } from '@blood-bowl-tracker/review-harness';
 import { Module } from '@nestjs/common';
 
+import { AdvancementCostsModule } from '../advancement-costs/advancement-costs.module';
+import { AdvancementCostsReviewerService } from '../advancement-costs/advancement-costs-reviewer.service';
+import { UnspentSppOutsideRangeStratificationService } from '../advancement-costs/unspent-spp-outside-range-stratification.service';
 import { ReviewPlayerConfigService } from '../config/review-player-config.service';
 import { CurrentInjuryStratificationService } from '../lasting-injuries/current-injury-stratification.service';
 import { HealedInjuryStratificationService } from '../lasting-injuries/healed-injury-stratification.service';
@@ -52,6 +55,7 @@ import { ReviewService } from './review.service';
     PlayerInfoModule,
     PlayerCharacteristicsModule,
     PlayerAdvancementsModule,
+    AdvancementCostsModule,
     SppTotalsModule,
     LastingInjuriesModule,
     PlayerKeywordsModule,
@@ -69,6 +73,7 @@ import { ReviewService } from './review.service';
       PlayerSppTotalsReviewerService,
       PlayerCharacteristicsReviewerService,
       PlayerAdvancementsReviewerService,
+      AdvancementCostsReviewerService,
       LastingInjuriesReviewerService,
       PlayerKeywordsReviewerService,
       PlayerStatusReviewerService,
@@ -85,6 +90,7 @@ import { ReviewService } from './review.service';
       StarPlayerStratificationService,
       PlayerKeywordsStratificationService,
       PlayerStatusStratificationService,
+      UnspentSppOutsideRangeStratificationService,
     ]),
   ],
   exports: [ReviewService],
