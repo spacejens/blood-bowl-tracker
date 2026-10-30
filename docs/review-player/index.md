@@ -338,11 +338,17 @@ keywords, player status, and advancement costs with unspent SPP.
      row per advancement with the cost `advancement_costs` gives it at its
      number — a single number under fixed thresholds, the candidate cost of
      each kind under a rules set that prices by kind, narrowed to random or
-     chosen kinds where the stored skill source says which. A coach who
-     rolls a characteristic result may take a skill instead and pays the
-     characteristic price, so under a kind-priced rules set a gained skill
-     not stored as random also allows the `random_characteristic` cost.
-     Starting skills and the skill a player's own trophy award granted
+     chosen kinds where the stored skill source says which. A gained skill
+     is also priced by whether the player's position has the skill's
+     category (`skill_rules_sets`, under the same rules set) as primary or
+     as secondary (`position_rules_set_skill_categories`): only the primary
+     kinds for a primary category (also when the category is recorded both
+     ways), only the secondary kinds for a secondary one, and both when the
+     position has the category neither way or no categories are recorded.
+     A coach who rolls a characteristic result may take a skill instead and
+     pay the characteristic price; that is not modelled, so a skill is
+     never priced as `random_characteristic`, and a player whose reported
+     spend can only be explained that way is listed. Starting skills and the skill a player's own trophy award granted
      (Gudarnas Förkämpe's mutation, `trophy_awards.granted_skill_id`) cost 0
      and take no number;
      a skill a league house rule grants (tLoEG's Fan Favourite) shows as that
@@ -365,7 +371,9 @@ keywords, player status, and advancement costs with unspent SPP.
      reported spend above the range. The cost check reads
      `advancement_costs`, `players`, `player_skills`, `trophy_awards`, the
      era, rules set and league chain (`team_eras`, `eras`, `era_rules_sets`,
-     `rules_sets`) and `positions` and `skills`, all through `packages/db`.
+     `rules_sets`), `positions`, `skills`, `skill_rules_sets`,
+     `position_rules_sets` and `position_rules_set_skill_categories`, all
+     through `packages/db`.
 4. Writes the report under `tools/review-player/output/` (gitignored) with a timestamp in
    the filename, and prints where it landed.
 

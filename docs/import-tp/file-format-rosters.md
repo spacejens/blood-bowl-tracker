@@ -93,6 +93,7 @@ number, lineUpMasterId, rosterId, fallbackPositionName, isBigGuy }`. `id` is
     Both fields are optional to the parser: an entry without them parses as
     before. How they become a player's status is described in
     [index.md](./index.md#player-status).
+
   - `lineUpMaster` — the position template the player was recruited from,
     repeated inline on every entry. Only its `ma/st/ag/pa/av` are read, as the
     baseline a current-vs-template characteristic comparison needs. The
@@ -207,7 +208,9 @@ a zero gap are all Hatred flagged `isExtra` or a Journeyman's Loner, so those
 skills are present without any SPP having been spent; one entry (line-up
 2477740 in Sasong 30) has a gap of 14 with a single chosen skill, which is
 the characteristic price: a coach who rolls a characteristic result may take
-a skill instead and pays the characteristic cost; and line-up 2464153 in
+a skill instead and pays the characteristic cost (the review tool,
+`tools/review-player`, does not model this, so it lists such a line-up as a
+spend outside its modelled range); and line-up 2464153 in
 Chaos Cup 8 carries 2 unspent points against a total of 0 (a gap of -2),
 already present in its first match snapshot, whose only events there are a
 foul (31), a sent-off (32) and injuries suffered (8), none of which award
