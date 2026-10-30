@@ -98,3 +98,7 @@ error, and dead, retired and departed players are worked out like any other.
   costs can fit. A history of more than 16 advancements is not searched at all
   and counts as one that cannot fit; no rules set prices anywhere near that
   many. When several apply, the first in that list is reported.
+- **Where it is shown.** Of the Discord bot's views, only the
+  [player deepdive](../../discord-bot/slash-commands/deepdive-embeds.md#star-player-points)
+  shows it, under `Total SPP:`. The bot's toplists of players by SPP
+  deliberately leave it out.

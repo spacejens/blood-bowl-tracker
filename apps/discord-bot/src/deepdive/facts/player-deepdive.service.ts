@@ -9,6 +9,7 @@ import type {
   PositionCharacteristicsContext,
   PositionKeyword,
   StarPlayerIdentity,
+  UnspentSppResult,
 } from '@blood-bowl-tracker/game-data';
 import {
   CharacteristicDisplayFormattingService,
@@ -19,6 +20,7 @@ import {
   PositionRulesSetsService,
   StarPlayersService,
   TrophyAwardsService,
+  UnspentSppService,
 } from '@blood-bowl-tracker/game-data';
 import { Injectable, Logger } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
@@ -61,6 +63,7 @@ import { PlayerKeywordsSectionService } from './player-keywords-section.service'
 import { PlayerKillerInfoFormatterService } from './player-killer-info-formatter.service';
 import { PlayerKillsSectionService } from './player-kills-section.service';
 import { PlayerSkillsSectionService } from './player-skills-section.service';
+import { PlayerSppSectionService } from './player-spp-section.service';
 import { PlayerStatusConflictReporterService } from './player-status-conflict-reporter.service';
 import { PlayerStatusLineService } from './player-status-line.service';
 
@@ -156,6 +159,8 @@ export class PlayerDeepdiveService {
     private readonly statusLine: PlayerStatusLineService,
     private readonly statusConflicts: PlayerStatusConflictReporterService,
     private readonly errorLog: ErrorLogService,
+    private readonly sppSection: PlayerSppSectionService,
+    private readonly unspentSpp: UnspentSppService,
   ) {}
 
   async resolve(playerId: number): Promise<string | InteractionReplyOptions> {
@@ -301,6 +306,24 @@ export class PlayerDeepdiveService {
       keywordRows = rows;
     }
 
+    // Supplementary, so a timeout or a failure (null) shows the line as
+    // unknown instead of discarding the rest of the deepdive. Skipped
+    // without a total: the whole total section is then absent. Appended last
+    // so the earlier queries' timeout specs keep their `run` ordering.
+    const unspent: UnspentSppResult | undefined | null =
+      player.sppTotal === null
+        ? undefined
+        : await this.databaseTimeout
+            .run(this.unspentSpp.forPlayer(playerId), null)
+            .catch((error: unknown) => {
+              this.errorLog.logError(
+                this.logger,
+                'Failed to look up the unspent SPP',
+                error,
+              );
+              return null;
+            });
+
     // Omitted entirely when no rules set applies to the player's era: there
     // is then no way to know how to write the values, and a wrongly
     // formatted stat line would read as fact.
@@ -361,7 +384,12 @@ export class PlayerDeepdiveService {
     // and only one of the two can be trimmed against a stale view of the
     // other. Trimming honors — the older, less specific content — is the
     // better trade.
-    const countLines = [...categoryLines, ...this.buildTotalLines(player)];
+    const totalLines = this.sppSection.build({
+      sppTotal: player.sppTotal,
+      sppAdjustment: player.sppAdjustment,
+      unspent,
+    });
+    const countLines = [...categoryLines, ...totalLines];
     const killsSection = this.playerKills.build({
       kills,
       killsTotal,
@@ -442,7 +470,7 @@ export class PlayerDeepdiveService {
       ...(honorLines.length === 0 ? [] : ['', 'Trophies:', ...honorLines]),
       '',
       ...categoryLines,
-      ...this.buildTotalLines(player),
+      ...totalLines,
       ...killsSection.lines,
       ...(overflowNote === null ? [] : [overflowNote]),
     ].join('\n');
@@ -537,39 +565,6 @@ export class PlayerDeepdiveService {
   /** One honor's description line: `<competition> (<trophy>)`. */
   private formatHonor(honor: PlayerHonor): string {
     return `${honor.competitionName} (${honor.trophyName})`;
-  }
-
-  /**
-   * The trailing total section: nothing at all when no total has been computed
-   * (null), otherwise a blank separator line, an optional adjustment line, and
-   * the total. A computed total of 0 is shown — unlike a zero category count,
-   * it is a real value rather than an absence. `sppTotal` already includes
-   * `sppAdjustment`, so the adjustment line calls that out explicitly rather
-   * than leaving a reader to assume the two lines should be summed.
-   * `sppAdjustment` is clamped non-negative wherever it's written today
-   * (`SppAdjustmentsService`), so the negative-sign branch below is
-   * defensive against a future or manually-edited negative value.
-   */
-  private buildTotalLines(player: PlayerDetail): string[] {
-    if (player.sppTotal === null) {
-      return [];
-    }
-    const adjustment = player.sppAdjustment;
-    const adjustmentLines =
-      adjustment === null || adjustment === 0
-        ? []
-        : [
-            `SPP adjustment: ${
-              adjustment > 0
-                ? `+${this.numbers.count(adjustment)}`
-                : this.numbers.count(adjustment)
-            } (included)`,
-          ];
-    return [
-      '',
-      ...adjustmentLines,
-      `Total SPP: ${this.numbers.count(player.sppTotal)}`,
-    ];
   }
 
   /**
