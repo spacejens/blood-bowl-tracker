@@ -9,15 +9,18 @@ import type {
   AdvancementHistory,
   ApplicableCost,
   CandidateCost,
-  FigurePlacement,
   ModelledAdvancement,
-  ModelledRange,
   StoredIncreaseCounts,
   StoredPlayerSkill,
   UnspentSppModel,
 } from './advancement-cost-model.types';
 
-/** The skill kinds a gained skill's stored source allows. */
+/**
+ * The kinds a gained skill's stored source allows under a kind-priced rules
+ * set. A coach who rolls a characteristic result may take a skill instead and
+ * pays the characteristic price, so a skill not known to be random may also
+ * have cost a `random_characteristic`.
+ */
 const SKILL_KINDS: Readonly<
   Record<PlayerSkillSource, readonly AdvancementKind[]>
 > = {
@@ -27,8 +30,13 @@ const SKILL_KINDS: Readonly<
     'chosen_primary_skill',
     'random_secondary_skill',
     'chosen_secondary_skill',
+    'random_characteristic',
   ],
-  chosen: ['chosen_primary_skill', 'chosen_secondary_skill'],
+  chosen: [
+    'chosen_primary_skill',
+    'chosen_secondary_skill',
+    'random_characteristic',
+  ],
   random: ['random_primary_skill', 'random_secondary_skill'],
 };
 
@@ -47,9 +55,11 @@ const INCREASES: readonly (readonly [keyof StoredIncreaseCounts, string])[] = [
  * whose derivation is what the review checks, and deliberately coarser: the
  * range takes, per advancement number, the cheapest and dearest cost of any
  * kind any of the player's paid advancements could be. That holds for every
- * order and every kind assignment, so a source figure outside it is a real
- * disagreement while a figure inside proves nothing. Primary versus
- * secondary is not narrowed.
+ * order and every kind assignment, so a source's spend outside it is a real
+ * disagreement while a spend inside proves nothing. Primary versus secondary
+ * is not narrowed, and under a kind-priced rules set a skill not known to be
+ * random may also have been a characteristic roll taken as a skill, at the
+ * characteristic price.
  *
  * Starting skills and a skill one of the player's own trophy awards granted
  * cost nothing and take no number. A skill a `granted_skill` row names (a
@@ -98,15 +108,10 @@ export class AdvancementCostRangeService {
     };
   }
 
-  placement(figure: number, range: ModelledRange): FigurePlacement {
-    if (figure < range.unspentMin) {
-      return 'below';
-    }
-    return figure > range.unspentMax ? 'above' : 'inside';
-  }
-
+  /** True when every one of the rules set's own costs is a `table_roll`. */
   private isFixedThresholds(costs: readonly ApplicableCost[]): boolean {
-    const own = costs.filter((c) => c.advancementKind !== 'granted_skill');
+    // A league's house-rule rows are not the rules set's own costs.
+    const own = costs.filter((c) => c.leagueId === null);
     return (
       own.length > 0 && own.every((c) => c.advancementKind === 'table_roll')
     );

@@ -6,6 +6,7 @@ import type {
   AdvancementHistory,
   ApplicableCost,
   StoredPlayerSkill,
+  UnknownRangeReason,
 } from './advancement-cost-model.types';
 import { AdvancementCostRangeService } from './advancement-cost-range.service';
 
@@ -42,10 +43,17 @@ const FAN_FAVOURITE: ApplicableCost = {
   leagueId: 5,
 };
 
+/** Default ids per name, unique across the names these specs use. */
+const SKILL_IDS: Readonly<Record<string, number>> = {
+  Block: 1,
+  Dodge: 2,
+  Guard: 3,
+};
+
 function skill(
   skillName: string,
   source: StoredPlayerSkill['source'],
-  skillId = skillName.length,
+  skillId = SKILL_IDS[skillName],
 ): StoredPlayerSkill {
   return {
     skillId,
@@ -131,17 +139,95 @@ describe('AdvancementCostRangeService', () => {
     expect(model.rows[1].candidates).toEqual([
       { advancementKind: 'chosen_primary_skill', sppCost: 8 },
       { advancementKind: 'chosen_secondary_skill', sppCost: 14 },
+      { advancementKind: 'random_characteristic', sppCost: 20 },
     ]);
-    // Any order, any kind: #1 is 3..12 and #2 is 4..14 over the union.
+    // Any order, any kind: #1 is 3..18 and #2 is 4..20 over the union.
     expect(model.range).toEqual({
       spentMin: 7,
-      spentMax: 26,
-      unspentMin: 4,
+      spentMax: 38,
+      unspentMin: -8,
       unspentMax: 23,
     });
   });
 
-  it('offers all four skill kinds for an ambiguous gained skill', () => {
+  it('allows a chosen skill to have been a characteristic roll taken as a skill', () => {
+    const model = service.model(
+      history({
+        rulesSet: { id: 2, name: 'BB2020' },
+        costs: BB2020,
+        sppTotal: 30,
+        skills: [skill('Block', 'chosen')],
+      }),
+    );
+
+    expect(model.rows[0].candidates).toEqual([
+      { advancementKind: 'chosen_primary_skill', sppCost: 6 },
+      { advancementKind: 'chosen_secondary_skill', sppCost: 12 },
+      { advancementKind: 'random_characteristic', sppCost: 18 },
+    ]);
+    expect(model.range).toEqual({
+      spentMin: 6,
+      spentMax: 18,
+      unspentMin: 12,
+      unspentMax: 24,
+    });
+  });
+
+  it('never prices a random skill as a characteristic roll', () => {
+    const model = service.model(
+      history({
+        rulesSet: { id: 2, name: 'BB2020' },
+        costs: BB2020,
+        sppTotal: 30,
+        skills: [skill('Guard', 'random')],
+      }),
+    );
+
+    expect(model.range).toEqual({
+      spentMin: 3,
+      spentMax: 6,
+      unspentMin: 24,
+      unspentMax: 27,
+    });
+  });
+
+  it('prices a chosen skill as a table roll under fixed thresholds', () => {
+    const model = service.model(
+      history({ skills: [skill('Block', 'chosen')] }),
+    );
+
+    expect(model.rows[0].candidates).toEqual([
+      { advancementKind: 'table_roll', sppCost: 6 },
+    ]);
+    expect(model.range?.spentMax).toBe(6);
+  });
+
+  it('models the whole total as unspent with no paid advancements', () => {
+    const model = service.model(
+      history({ skills: [skill('Block', 'starting')] }),
+    );
+
+    expect(model.range).toEqual({
+      spentMin: 0,
+      spentMax: 0,
+      unspentMin: 40,
+      unspentMax: 40,
+    });
+  });
+
+  it('does not treat a set with only a league granted_skill row as fixed thresholds', () => {
+    const model = service.model(history({ costs: [FAN_FAVOURITE] }));
+
+    expect(model.fixedThresholds).toBe(false);
+    expect(model.range).toEqual({
+      spentMin: 0,
+      spentMax: 0,
+      unspentMin: 40,
+      unspentMax: 40,
+    });
+  });
+
+  it('offers every skill kind and a characteristic roll for an ambiguous gained skill', () => {
     const model = service.model(
       history({
         rulesSet: { id: 2, name: 'BB2020' },
@@ -155,6 +241,7 @@ describe('AdvancementCostRangeService', () => {
       'chosen_primary_skill',
       'random_secondary_skill',
       'chosen_secondary_skill',
+      'random_characteristic',
     ]);
   });
 
@@ -267,7 +354,7 @@ describe('AdvancementCostRangeService', () => {
     expect(model.unknownReason).toBe('unpriced_advancement');
   });
 
-  it.each<[Partial<AdvancementHistory>, string]>([
+  it.each<[Partial<AdvancementHistory>, UnknownRangeReason]>([
     [{ isStarPlayer: true }, 'star_player'],
     [{ sppTotal: null }, 'no_total_spp'],
     [{ rulesSet: null }, 'no_rules_set'],
@@ -286,22 +373,5 @@ describe('AdvancementCostRangeService', () => {
 
     expect(model.rows).toEqual([]);
     expect(model.rulesSetName).toBeNull();
-  });
-
-  it.each([
-    [3, 'below'],
-    [-10, 'below'],
-    [4, 'inside'],
-    [23, 'inside'],
-    [24, 'above'],
-  ] as const)('places %d %s the range 4 to 23', (figure, placement) => {
-    expect(
-      service.placement(figure, {
-        spentMin: 7,
-        spentMax: 26,
-        unspentMin: 4,
-        unspentMax: 23,
-      }),
-    ).toBe(placement);
   });
 });
