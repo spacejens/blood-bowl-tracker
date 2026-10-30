@@ -11,6 +11,7 @@ import {
   SyncReportedSppAdjustmentsSchema,
   SyncScrapedSppAdjustmentsSchema,
   SyncSppAdjustmentsResultSchema,
+  UnspentSppSnapshotSchema,
   UpsertPlayerSchema,
 } from './player';
 
@@ -46,10 +47,64 @@ describe('player schemas', () => {
       armour: 9,
       ...noLastingInjuries,
       ...noIncreases,
+      unspentSpp: null,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.name).toBe('Griff Oberwald');
     expect(parsed.createdAt).toBeInstanceOf(Date);
+  });
+
+  it('PlayerSchema requires unspentSpp, which may be null', () => {
+    const valid = {
+      id: 1,
+      name: 'Griff Oberwald',
+      teamEraId: 10,
+      positionId: 20,
+      move: 6,
+      strength: 3,
+      agility: 3,
+      passing: 4,
+      armour: 9,
+      ...noLastingInjuries,
+      ...noIncreases,
+      createdAt: '2026-01-01T00:00:00.000Z',
+    };
+    expect(PlayerSchema.parse({ ...valid, unspentSpp: 7 }).unspentSpp).toBe(7);
+    expect(() => PlayerSchema.parse(valid)).toThrow(/unspentSpp/);
+  });
+
+  it('UnspentSppSnapshotSchema takes whole numbers, a negative figure included', () => {
+    expect(
+      UnspentSppSnapshotSchema.parse({ unspentSpp: -2, snapshotSppTotal: 0 }),
+    ).toEqual({ unspentSpp: -2, snapshotSppTotal: 0 });
+    expect(() =>
+      UnspentSppSnapshotSchema.parse({ unspentSpp: 1.5, snapshotSppTotal: 3 }),
+    ).toThrow();
+  });
+
+  it('SyncScrapedSppAdjustmentsSchema carries an optional reported unspent figure', () => {
+    expect(
+      SyncScrapedSppAdjustmentsSchema.parse({
+        players: [
+          { playerId: 1, scrapedTotal: 31, reportedUnspentSpp: -7 },
+          { playerId: 2, scrapedTotal: null },
+        ],
+      }).players,
+    ).toEqual([
+      { playerId: 1, scrapedTotal: 31, reportedUnspentSpp: -7 },
+      { playerId: 2, scrapedTotal: null },
+    ]);
+  });
+
+  it('SyncReportedSppAdjustmentsSchema carries an optional unspent snapshot', () => {
+    const snapshot = { unspentSpp: 4, snapshotSppTotal: 12 };
+    expect(
+      SyncReportedSppAdjustmentsSchema.parse({
+        players: [
+          { playerId: 1, reportedSppTotal: 12, unspentSppSnapshot: snapshot },
+        ],
+      }).players[0].unspentSppSnapshot,
+    ).toEqual(snapshot);
   });
 
   it('UpsertPlayerSchema accepts an empty name', () => {
@@ -174,6 +229,7 @@ describe('player schemas', () => {
       armour: 9,
       ...noLastingInjuries,
       ...noIncreases,
+      unspentSpp: null,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.move).toBe(6);
@@ -193,6 +249,7 @@ describe('player schemas', () => {
       armour: 8,
       ...noLastingInjuries,
       ...noIncreases,
+      unspentSpp: null,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.passing).toBeNull();
@@ -314,6 +371,7 @@ describe('player schemas', () => {
       armour: 9,
       ...noLastingInjuries,
       ...noIncreases,
+      unspentSpp: null,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.moveIncreaseCount).toBe(0);

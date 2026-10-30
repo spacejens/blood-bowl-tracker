@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { ImportResultSchema } from './import-result';
+import { UnspentSppSnapshotSchema } from './player';
 import { TeamEraSchema } from './team';
 
 /**
@@ -53,6 +54,13 @@ export const TpImportedPlayerSchema = z.object({
   created: z.boolean(),
   /** The career SPP total TP reports for the player (roster or snapshot, the higher). */
   reportedSppTotal: z.number().int(),
+  /**
+   * The roster file entry's own `starPlayerPoints` with that entry's own
+   * `totalStarPlayerPoints` (not the higher total a match snapshot may
+   * report). Absent for a match-snapshot-only player and for an entry with
+   * no `starPlayerPoints`.
+   */
+  unspentSppSnapshot: UnspentSppSnapshotSchema.optional(),
 });
 
 /**

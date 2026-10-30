@@ -106,6 +106,10 @@ export const PlayerSchema = z.object({
   // the same reason the lasting injuries above are: every stored row has
   // concrete values, and 0 is a real "never increased", not a placeholder.
   ...PlayerCharacteristicIncreasesSchema.shape,
+  // The player's unspent SPP when it is known exactly; null means not known
+  // exactly, never an estimate. Decided server-side by the SPP adjustment
+  // syncs, so UpsertPlayerSchema does not carry it.
+  unspentSpp: z.number().int().nullable(),
   createdAt: z.coerce.date(),
 });
 
@@ -227,19 +231,38 @@ export const UpsertPlayerSchema = z
   });
 
 /**
+ * The unspent SPP a source reports for a player, with the career total
+ * reported beside it in the same snapshot (one roster file entry). The
+ * server keeps the unspent figure only when that total is also the total it
+ * stores, so a figure is never paired with a total it was not reported
+ * against.
+ */
+export const UnspentSppSnapshotSchema = z.object({
+  unspentSpp: z.number().int(),
+  snapshotSppTotal: z.number().int(),
+});
+
+/**
  * Recompute `players.spp_adjustment` (and `players.spp_total`) for players
  * whose source publishes a career SPP total that this repo does not store
  * verbatim — BBL. `scrapedTotal` is that published figure, or `null` when
  * the source page had none: `null` is a real instruction ("no evidence"),
  * which is why it is required rather than optional. Not an upsert (same
  * rationale as `positions.syncRaceEras`): no external ids, no conflict to
- * detect, no entity+created shape to return.
+ * detect, no entity+created shape to return. The same call writes
+ * `players.unspent_spp`.
  */
 export const SyncScrapedSppAdjustmentsSchema = z.object({
   players: z.array(
     z.object({
       playerId: z.number().int(),
       scrapedTotal: z.number().int().nullable(),
+      /**
+       * The middle cell of the same page's "Unspent SPP" row, signed.
+       * Omitted when the page has none. Checked against `scrapedTotal`,
+       * which comes from the same row.
+       */
+      reportedUnspentSpp: z.number().int().optional(),
     }),
   ),
 });
@@ -273,7 +296,7 @@ export const SppCareerCountsSchema = z.object({
  * contribute before measuring what is left unexplained. When absent — e.g. a
  * player only ever seen in a match-embedded roster snapshot, which carries no
  * counters — no estimate is made and the gap is measured against the imported
- * events alone.
+ * events alone. The same call writes `players.unspent_spp`.
  */
 export const SyncReportedSppAdjustmentsSchema = z.object({
   players: z.array(
@@ -286,6 +309,12 @@ export const SyncReportedSppAdjustmentsSchema = z.object({
        */
       reportedSppTotal: z.number().int().optional(),
       careerCounts: SppCareerCountsSchema.optional(),
+      /**
+       * TP's `starPlayerPoints` with the `totalStarPlayerPoints` of the same
+       * roster entry. Omitted for a player seen only in match snapshots,
+       * which carry no unspent figure.
+       */
+      unspentSppSnapshot: UnspentSppSnapshotSchema.optional(),
     }),
   ),
 });
@@ -399,6 +428,7 @@ export type SyncLastingInjuryHistoryResult = z.infer<
 export type SyncScrapedSppAdjustments = z.infer<
   typeof SyncScrapedSppAdjustmentsSchema
 >;
+export type UnspentSppSnapshot = z.infer<typeof UnspentSppSnapshotSchema>;
 export type SppCareerCounts = z.infer<typeof SppCareerCountsSchema>;
 export type SyncReportedSppAdjustments = z.infer<
   typeof SyncReportedSppAdjustmentsSchema

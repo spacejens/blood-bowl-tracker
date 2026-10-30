@@ -131,4 +131,20 @@ describe('TpRosterImportResultSchema', () => {
       }).success,
     ).toBe(true);
   });
+
+  it('TpImportedPlayerSchema carries an optional unspent snapshot', () => {
+    const base = {
+      lineUpId: 5001,
+      playerId: 700,
+      created: true,
+      reportedSppTotal: 20,
+    };
+    expect(TpImportedPlayerSchema.parse(base)).toEqual(base);
+    expect(
+      TpImportedPlayerSchema.parse({
+        ...base,
+        unspentSppSnapshot: { unspentSpp: 4, snapshotSppTotal: 12 },
+      }).unspentSppSnapshot,
+    ).toEqual({ unspentSpp: 4, snapshotSppTotal: 12 });
+  });
 });
