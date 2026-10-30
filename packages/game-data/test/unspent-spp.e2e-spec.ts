@@ -33,12 +33,18 @@ import type {
 } from '@blood-bowl-tracker/domain-enums';
 import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
 import { AdvancementKindCandidatesService } from '../src/spp/advancement-kind-candidates.service';
 import { AdvancementPricingModelService } from '../src/spp/advancement-pricing-model.service';
 import { AdvancementSpendRangeService } from '../src/spp/advancement-spend-range.service';
+import { SppAdjustmentsService } from '../src/spp/spp-adjustments.service';
+import { SppForcedRateService } from '../src/spp/spp-forced-rate.service';
+import { SppOngoingEstimateService } from '../src/spp/spp-ongoing-estimate.service';
+import { SppTotalsService } from '../src/spp/spp-totals.service';
 import { StoredUnspentSppSettlementService } from '../src/spp/stored-unspent-spp-settlement.service';
 import { UnspentSppService } from '../src/spp/unspent-spp.service';
+import { UnspentSppDecisionService } from '../src/spp/unspent-spp-decision.service';
 import { connectTestDb } from './e2e-database';
 
 /** The players seeded for the batch, one per scenario. */
@@ -52,6 +58,9 @@ interface SeededPlayers {
   /** Seeded but never requested: its rows must not leak into the batch. */
   outsider: number;
 }
+
+/** Reported SPP totals by player, read by the mocked totals service. */
+const REPORTED = new Map<number, number>();
 
 /** Each skill's id by name. */
 type SkillIds = Record<string, number>;
@@ -545,5 +554,113 @@ describe('UnspentSppService.forPlayers (real Postgres)', () => {
       coversAnother: 'yes',
       storedVerdict: 'settled',
     });
+  });
+});
+
+describe('unspent_spp storage (real Postgres)', () => {
+  let db: Db;
+  let seeded: SeededPlayers;
+  let adjustments: SppAdjustmentsService;
+  let decision: UnspentSppDecisionService;
+
+  beforeAll(async () => {
+    db = await connectTestDb();
+  });
+
+  afterAll(async () => {
+    await closeTestDb(db);
+  });
+
+  beforeEach(async () => {
+    await resetGameDataTables(db);
+    seeded = await seed(db);
+    REPORTED.clear();
+    REPORTED.set(seeded.fixedThreshold, 20);
+    REPORTED.set(seeded.typePriced, 30);
+    REPORTED.set(seeded.twoRulesSets, 50);
+    // The event-sum collaborators are mocked: this spec is about the
+    // unspent_spp write, and every reported total equals the imported sum.
+    const totals = mock<SppTotalsService>();
+    totals.totalsForPlayers.mockImplementation((ids: number[]) =>
+      Promise.resolve(new Map(ids.map((id) => [id, REPORTED.get(id) ?? 0]))),
+    );
+    const ongoing = mock<SppOngoingEstimateService>();
+    ongoing.estimateForPlayers.mockResolvedValue(new Map());
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        SppAdjustmentsService,
+        UnspentSppDecisionService,
+        UnspentSppService,
+        AdvancementKindCandidatesService,
+        AdvancementSpendRangeService,
+        AdvancementPricingModelService,
+        StoredUnspentSppSettlementService,
+        { provide: DB, useValue: db },
+        { provide: SppTotalsService, useValue: totals },
+        {
+          provide: SppForcedRateService,
+          useValue: mock<SppForcedRateService>(),
+        },
+        { provide: SppOngoingEstimateService, useValue: ongoing },
+      ],
+    }).compile();
+    adjustments = moduleRef.get(SppAdjustmentsService);
+    decision = moduleRef.get(UnspentSppDecisionService);
+  });
+
+  async function stored(playerId: number): Promise<number | null> {
+    const [row] = await db
+      .select({ unspentSpp: players.unspentSpp })
+      .from(players)
+      .where(eq(players.id, playerId));
+    return row.unspentSpp;
+  }
+
+  it('stores each pricing model its own way', async () => {
+    await adjustments.syncReportedAdjustments({
+      players: [
+        {
+          playerId: seeded.fixedThreshold,
+          reportedSppTotal: 20,
+          unspentSppSnapshot: { unspentSpp: 9, snapshotSppTotal: 20 },
+        },
+        {
+          playerId: seeded.typePriced,
+          reportedSppTotal: 30,
+          unspentSppSnapshot: { unspentSpp: 25, snapshotSppTotal: 30 },
+        },
+        {
+          playerId: seeded.twoRulesSets,
+          reportedSppTotal: 50,
+          unspentSppSnapshot: { unspentSpp: 10, snapshotSppTotal: 50 },
+        },
+      ],
+    });
+
+    // CRP: the modelled exact value, not the reported 9.
+    expect(await stored(seeded.fixedThreshold)).toBe(4);
+    // BB2020: the reported figure, kept although the model says 10 to 16.
+    expect(await stored(seeded.typePriced)).toBe(25);
+    // CRP and BB2020 price differently, so nothing is known exactly.
+    expect(await stored(seeded.twoRulesSets)).toBeNull();
+  });
+
+  it('re-prices fixed-threshold players and leaves kind-priced ones alone', async () => {
+    await db
+      .update(players)
+      .set({ unspentSpp: 99 })
+      .where(eq(players.id, seeded.fixedThreshold));
+    await db
+      .update(players)
+      .set({ unspentSpp: 12 })
+      .where(eq(players.id, seeded.typePriced));
+
+    await decision.refreshFixedThreshold([
+      seeded.fixedThreshold,
+      seeded.typePriced,
+    ]);
+
+    expect(await stored(seeded.fixedThreshold)).toBe(4);
+    expect(await stored(seeded.typePriced)).toBe(12);
   });
 });
