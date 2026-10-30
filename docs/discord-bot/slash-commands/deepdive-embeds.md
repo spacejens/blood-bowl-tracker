@@ -235,8 +235,8 @@ describes:
   `may cover another advancement`, `not enough for another advancement`, or
   `no further advancements available`. Nothing to spend (`0` or less) gets no
   note.
-- When the source's own unspent figure lies outside the modelled range, a
-  further note says the recorded advancement history may be incomplete or
+- When the stored unspent figure lies outside the modelled range, a further
+  note says the recorded advancement history may be incomplete or
   misrecorded. A stored figure inside the range shows as that one number.
 - `unknown`, with the reason in plain words, when it cannot be worked out or
   the lookup timed out or failed (`lookup unavailable`). Neither replaces the

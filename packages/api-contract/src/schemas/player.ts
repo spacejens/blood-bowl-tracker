@@ -311,8 +311,8 @@ export const SyncReportedSppAdjustmentsSchema = z.object({
       careerCounts: SppCareerCountsSchema.optional(),
       /**
        * TP's `starPlayerPoints` with the `totalStarPlayerPoints` of the same
-       * roster entry. Omitted for a player seen only in match snapshots,
-       * which carry no unspent figure.
+       * roster entry. Omitted for a player seen only in match snapshots:
+       * a snapshot's figure is as of that match, so it is never sent.
        */
       unspentSppSnapshot: UnspentSppSnapshotSchema.optional(),
     }),

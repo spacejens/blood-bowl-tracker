@@ -79,8 +79,10 @@ export interface TpRosterPlayer {
   /**
    * TP's unspent SPP for this player (`lineUps[].starPlayerPoints`), from the
    * same entry as `totalStarPlayerPoints`, or `undefined` when the entry has
-   * none (a match-embedded snapshot). docs/import-tp/file-format-rosters.md
-   * describes what TP's SPP fields mean.
+   * none. Only roster-file entries are read for it: a match-embedded
+   * snapshot's figure is as of that match, and `MatchParserService` does not
+   * carry it over. docs/import-tp/file-format-rosters.md describes what TP's
+   * SPP fields mean.
    */
   starPlayerPoints?: number;
   /**
@@ -274,10 +276,11 @@ export const LineUpSchema = z.object({
   position: z.string(),
   isBigGuy: z.boolean().optional(),
   totalStarPlayerPoints: z.number().int(),
-  // The part of the career total not yet spent on advancements. Optional
-  // because match-embedded roster snapshots reuse this schema and carry
-  // none. Not checked for sign or against the total here: the server
-  // decides whether a reported figure makes sense.
+  // The part of the career total not yet spent on advancements. Optional so
+  // an entry without it still parses. Match-embedded roster snapshots reuse
+  // this schema and do carry it, but as of that match, and
+  // MatchParserService does not pass it on. Not checked for sign or against
+  // the total here: the server decides whether a reported figure makes sense.
   starPlayerPoints: z.number().int().optional(),
   // Optional because match-embedded roster snapshots reuse this schema (see
   // MatchLineUpSchema) and carry none of these counters. Nonnegative to match

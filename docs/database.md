@@ -254,13 +254,16 @@ league's rows. It has no RPC route.
 `players.unspent_spp` holds a player's unspent SPP only when it is known
 exactly (see [players](game-concepts/players/index.md#unspent-spp)); NULL
 means not known exactly. It is written by `SppAdjustmentsService` together
-with `spp_total`, in the SPP adjustment sync that ends every BBL and TP
-import, so the two always describe the same total. Writes outside that sync
-never leave it stale: a player upsert or a skill sync clears it (the
-import's closing sync writes it back), and a trophy award that grants a
-skill, which only the manual import writes, works the fixed-threshold value
-out again. Rows that existed before the column was added stay NULL until
-the next import.
+with `spp_total`, in the SPP adjustment sync, the last step of a BBL or TP
+import that writes the column, so the two always describe the same total.
+A player upsert or a skill sync clears it (the import's closing sync writes
+it back), and a trophy award that grants a skill, which only the manual
+import writes, works the fixed-threshold value out again. A stored
+fixed-threshold value is recomputed on the writes that change a player's
+history, but not when reference data (advancement costs, era rules sets,
+skill categories, position access) or the model code changes; it refreshes
+the next time the player is imported. Rows that existed before the column
+was added stay NULL until the next import.
 
 The costs are curated by `tools/import-manual` in batch 004 (see
 [batches](import-manual/batches.md)): fixed thresholds of 6, 16, 31, 51, 76

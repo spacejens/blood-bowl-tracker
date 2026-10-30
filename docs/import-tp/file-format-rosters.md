@@ -229,8 +229,10 @@ snapshot reports, and the server stores it as the player's unspent SPP under
 rules sets that price by kind when it is not negative, not above that total,
 and that total is the one stored (see
 [players](../game-concepts/players/index.md#unspent-spp)). It is a snapshot
-as of the download. Match-embedded snapshots carry no `starPlayerPoints` and
-send nothing. `pendingImprovements` is not imported: it is 0 on every
+as of the download. A match-embedded snapshot's line-ups do carry
+`starPlayerPoints`, but it is the figure as of that match: the match parser
+does not carry it over and the importers read it only from roster files, so a
+snapshot's figure is never sent. `pendingImprovements` is not imported: it is 0 on every
 downloaded entry and looks like a count of bought advancements whose random
 result is not chosen yet.
 
