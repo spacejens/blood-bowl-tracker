@@ -13,6 +13,7 @@ import {
   SkillsModule,
 } from '@blood-bowl-tracker/game-data';
 import { ImportSharedModule } from '@blood-bowl-tracker/import-shared';
+import { ParseTpModule } from '@blood-bowl-tracker/parse-tp';
 import { Module } from '@nestjs/common';
 
 import { TpSkillIdLookupService } from '../tp-skill-id-lookup.service';
@@ -52,6 +53,7 @@ import { TpOfficialTeamsImportService } from './tp-official-teams-import.service
     SkillRulesSetsModule,
     SkillsModule,
     ImportSharedModule,
+    ParseTpModule,
   ],
   providers: [
     TpOfficialTeamsImportService,
