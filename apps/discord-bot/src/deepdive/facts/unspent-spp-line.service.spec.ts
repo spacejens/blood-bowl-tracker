@@ -104,6 +104,31 @@ describe('UnspentSppLineService', () => {
       known({ unspentMin: 1234, unspentMax: 2345 }),
       'Unspent SPP: 1,234–2,345 (covers another advancement)',
     ],
+    [
+      'a range the stored figure lies outside',
+      known({
+        unspentMin: 5,
+        unspentMax: 11,
+        coversAnother: 'maybe',
+        storedVerdict: 'outside_range',
+      }),
+      'Unspent SPP: 5–11 (may cover another advancement; the source reports a figure outside this range, so the recorded advancement history may be incomplete or misrecorded)',
+    ],
+    [
+      'nothing to spend, with the stored figure outside the range',
+      known({
+        unspentMin: 0,
+        unspentMax: 0,
+        coversAnother: 'no',
+        storedVerdict: 'outside_range',
+      }),
+      'Unspent SPP: 0 (the source reports a figure outside this range, so the recorded advancement history may be incomplete or misrecorded)',
+    ],
+    [
+      'a settled figure, shown as one number',
+      known({ unspentMin: 9, unspentMax: 9, storedVerdict: 'settled' }),
+      'Unspent SPP: 9 (covers another advancement)',
+    ],
   ])('shows %s', (_case, result, expected) => {
     expect(service.build(result)).toBe(expected);
   });
