@@ -70,13 +70,14 @@ export class TpRosterPlayersImportService {
    * match snapshots — a player who has since left is still referenced by
    * match events); the roster file wins for any id both list, being the
    * freshest, except for the career SPP total, which only ever grows and so
-   * takes the highest value seen; it is returned per player, and stored unless
-   * the caller defers it. TP's unspent figure is returned only from the
-   * roster file's own entry, with that entry's own total. Players carry only a TP external id (their
-   * `lineUps[].id`), never a Name one: player names are not unique.
-   * Every player's status is sent too, `null` when TP's data establishes
-   * none, so a re-import clears one the player no longer has; a roster file
-   * and a match snapshot count equally for deciding a player is active.
+   * takes the highest value seen; it is returned per player, and stored
+   * unless the caller defers it. TP's unspent figure is returned only from
+   * the roster file's own entry, with that entry's own total. Players carry
+   * only a TP external id (their `lineUps[].id`), never a Name one: player
+   * names are not unique. Every player's status is sent too, `null` when
+   * TP's data establishes none, so a re-import clears one the player no
+   * longer has; a roster file and a match snapshot count equally for
+   * deciding a player is active.
    */
   async importPlayers({
     roster,

@@ -174,6 +174,81 @@ describe('TpRosterFilesImportService', () => {
     );
   });
 
+  describe('merging unspent snapshots across entries', () => {
+    const listing = (snapshot?: {
+      unspentSpp: number;
+      snapshotSppTotal: number;
+    }) =>
+      outcome({
+        importedPlayers: [
+          {
+            lineUpId: 5001,
+            playerId: 9,
+            created: false,
+            reportedSppTotal: snapshot?.snapshotSppTotal ?? 7,
+            ...(snapshot === undefined ? {} : { unspentSppSnapshot: snapshot }),
+          },
+        ],
+      });
+
+    const importTwo = async (
+      first: ReturnType<typeof listing>,
+      second: ReturnType<typeof listing>,
+    ) => {
+      importRunner.recordUpsertResult
+        .mockResolvedValueOnce(first)
+        .mockResolvedValueOnce(second);
+      return service.importRosterFiles({
+        rosters: [entry(1, 'Fourth era'), entry(1, 'Third era')],
+        matchEmbeddedPlayersByRosterId: new Map(),
+      });
+    };
+
+    it('replaces a lower-total snapshot with a later, higher-total one', async () => {
+      const result = await importTwo(
+        listing({ unspentSpp: 1, snapshotSppTotal: 7 }),
+        listing({ unspentSpp: 4, snapshotSppTotal: 10 }),
+      );
+
+      expect(result.unspentSppSnapshotsByPlayerId).toEqual(
+        new Map([[9, { unspentSpp: 4, snapshotSppTotal: 10 }]]),
+      );
+    });
+
+    it('lets the later entry win when the totals are equal', async () => {
+      const result = await importTwo(
+        listing({ unspentSpp: 1, snapshotSppTotal: 10 }),
+        listing({ unspentSpp: 4, snapshotSppTotal: 10 }),
+      );
+
+      expect(result.unspentSppSnapshotsByPlayerId).toEqual(
+        new Map([[9, { unspentSpp: 4, snapshotSppTotal: 10 }]]),
+      );
+    });
+
+    it('keeps a known snapshot when a later entry has none', async () => {
+      const result = await importTwo(
+        listing({ unspentSpp: 4, snapshotSppTotal: 10 }),
+        listing(),
+      );
+
+      expect(result.unspentSppSnapshotsByPlayerId).toEqual(
+        new Map([[9, { unspentSpp: 4, snapshotSppTotal: 10 }]]),
+      );
+    });
+
+    it('takes a snapshot from a later entry when the first had none', async () => {
+      const result = await importTwo(
+        listing(),
+        listing({ unspentSpp: 4, snapshotSppTotal: 10 }),
+      );
+
+      expect(result.unspentSppSnapshotsByPlayerId).toEqual(
+        new Map([[9, { unspentSpp: 4, snapshotSppTotal: 10 }]]),
+      );
+    });
+  });
+
   it('sends a roster found in several competitions of one era once', async () => {
     importRunner.recordUpsertResult.mockResolvedValue(outcome());
 

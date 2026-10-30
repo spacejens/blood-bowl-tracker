@@ -50,9 +50,10 @@ export class TpLiveSppAdjustmentsService {
   /**
    * `imported` counts the players the sync updated. A player given more
    * than once (a team re-imported by a backfill) is sent once, with the
-   * highest reported total and the highest of each career counter, and the unspent
-   * snapshot reported beside the higher total, since totals only ever grow. Excluded players are dropped before anything is
-   * sent; when none remain, the sync is not called.
+   * highest reported total and the highest of each career counter, and the
+   * unspent snapshot reported beside the higher total, since totals only
+   * ever grow. Excluded players are dropped before anything is sent; when
+   * none remain, the sync is not called.
    */
   async settle(
     players: TpLivePlayerSppFacts[],

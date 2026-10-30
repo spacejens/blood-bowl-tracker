@@ -158,6 +158,71 @@ describe('TpLiveSppAdjustmentsService', () => {
     });
   });
 
+  describe('merging unspent snapshots of a repeated player', () => {
+    const older = { unspentSpp: 2, snapshotSppTotal: 10 };
+    const newer = { unspentSpp: 5, snapshotSppTotal: 14 };
+
+    beforeEach(() => {
+      sppAdjustments.syncReportedAdjustments.mockResolvedValue({
+        updatedPlayerIds: [1],
+      });
+    });
+
+    it('replaces a lower-total snapshot with a later, higher-total one', async () => {
+      await service.settle([
+        { playerId: 1, reportedSppTotal: 10, unspentSppSnapshot: older },
+        { playerId: 1, reportedSppTotal: 14, unspentSppSnapshot: newer },
+      ]);
+
+      expect(sppAdjustments.syncReportedAdjustments).toHaveBeenCalledWith({
+        players: [
+          { playerId: 1, reportedSppTotal: 14, unspentSppSnapshot: newer },
+        ],
+      });
+    });
+
+    it('lets the later entry win when the totals are equal', async () => {
+      const tied = { unspentSpp: 9, snapshotSppTotal: 10 };
+
+      await service.settle([
+        { playerId: 1, reportedSppTotal: 10, unspentSppSnapshot: older },
+        { playerId: 1, reportedSppTotal: 10, unspentSppSnapshot: tied },
+      ]);
+
+      expect(sppAdjustments.syncReportedAdjustments).toHaveBeenCalledWith({
+        players: [
+          { playerId: 1, reportedSppTotal: 10, unspentSppSnapshot: tied },
+        ],
+      });
+    });
+
+    it('takes a snapshot from a later entry when the first had none', async () => {
+      await service.settle([
+        { playerId: 1, reportedSppTotal: 10 },
+        { playerId: 1, reportedSppTotal: 10, unspentSppSnapshot: older },
+      ]);
+
+      expect(sppAdjustments.syncReportedAdjustments).toHaveBeenCalledWith({
+        players: [
+          { playerId: 1, reportedSppTotal: 10, unspentSppSnapshot: older },
+        ],
+      });
+    });
+
+    it('keeps a known snapshot when a later entry has none', async () => {
+      await service.settle([
+        { playerId: 1, reportedSppTotal: 10, unspentSppSnapshot: older },
+        { playerId: 1, reportedSppTotal: 10 },
+      ]);
+
+      expect(sppAdjustments.syncReportedAdjustments).toHaveBeenCalledWith({
+        players: [
+          { playerId: 1, reportedSppTotal: 10, unspentSppSnapshot: older },
+        ],
+      });
+    });
+  });
+
   it('passes a player with no reported total through, for the sync to skip', async () => {
     sppAdjustments.syncReportedAdjustments.mockResolvedValue({
       updatedPlayerIds: [],
