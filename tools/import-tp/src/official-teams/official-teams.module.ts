@@ -7,6 +7,7 @@ import { TpOfficialStarNormalizerService } from './tp-official-star-normalizer.s
 import { TpOfficialTeamsChunkMergeService } from './tp-official-teams-chunk-merge.service';
 import { TpOfficialTeamsChunkerService } from './tp-official-teams-chunker.service';
 import { TpOfficialTeamsFilesImportService } from './tp-official-teams-files-import.service';
+import { TpOfficialTeamsTimingReportService } from './tp-official-teams-timing-report.service';
 
 @Module({
   imports: [ImportModule, ParseTpModule, SourceModule],
@@ -15,7 +16,11 @@ import { TpOfficialTeamsFilesImportService } from './tp-official-teams-files-imp
     TpOfficialTeamsChunkMergeService,
     TpOfficialTeamsChunkerService,
     TpOfficialTeamsFilesImportService,
+    TpOfficialTeamsTimingReportService,
   ],
-  exports: [TpOfficialTeamsFilesImportService],
+  exports: [
+    TpOfficialTeamsFilesImportService,
+    TpOfficialTeamsTimingReportService,
+  ],
 })
 export class OfficialTeamsModule {}
