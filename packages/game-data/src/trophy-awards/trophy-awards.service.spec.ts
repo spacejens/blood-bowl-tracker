@@ -4,6 +4,7 @@ import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
 import { DrizzleQueryError, mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
 import {
   extractAllFilterValues,
@@ -12,6 +13,7 @@ import {
   firstCallArg,
   sqlText,
 } from '../shared/query-assertions.test-helpers';
+import { UnspentSppDecisionService } from '../spp/unspent-spp-decision.service';
 import {
   TrophyAwardCompetitionGroupMismatchError,
   TrophyAwardRecipientMismatchError,
@@ -83,7 +85,14 @@ describe('TrophyAwardsService', () => {
   }> {
     const { db, chains } = mockDb(...rowsPerQuery);
     const moduleRef = await Test.createTestingModule({
-      providers: [TrophyAwardsService, { provide: DB, useValue: db }],
+      providers: [
+        TrophyAwardsService,
+        { provide: DB, useValue: db },
+        {
+          provide: UnspentSppDecisionService,
+          useValue: mock<UnspentSppDecisionService>(),
+        },
+      ],
     }).compile();
     service = moduleRef.get(TrophyAwardsService);
     return { db, chains };

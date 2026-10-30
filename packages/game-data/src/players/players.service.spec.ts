@@ -188,7 +188,25 @@ describe('PlayersService', () => {
 
       expect(firstCallArg(chains[1].set)).toEqual({
         name: 'Griff Oberwald II',
+        unspentSpp: null,
       });
+    });
+
+    it('clears the stored unspent SPP on insert', async () => {
+      const { chains } = await build([], [fakePlayer]);
+      await service.upsert({ ...base, externalIds });
+      expect(firstCallArg(chains[1].values)).toMatchObject({
+        unspentSpp: null,
+      });
+    });
+
+    it('clears the stored unspent SPP on update', async () => {
+      const { chains } = await build(
+        [{ ownerId: 1, externalSystemId: 1, externalId: '12345' }],
+        [fakePlayer],
+      );
+      await service.upsert({ ...base, externalIds });
+      expect(firstCallArg(chains[1].set)).toMatchObject({ unspentSpp: null });
     });
 
     it('writes sppTotal through to the entity columns', async () => {
@@ -234,6 +252,7 @@ describe('PlayersService', () => {
       expect(firstCallArg(chains[1].set)).toEqual({
         name: 'Griff Oberwald',
         sppTotal: null,
+        unspentSpp: null,
       });
     });
 
@@ -273,6 +292,7 @@ describe('PlayersService', () => {
       expect(firstCallArg(chains[1].set)).toEqual({
         name: 'Griff Oberwald',
         status: null,
+        unspentSpp: null,
       });
     });
 

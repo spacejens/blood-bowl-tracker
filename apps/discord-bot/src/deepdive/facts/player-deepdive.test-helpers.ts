@@ -90,6 +90,7 @@ export const griff = {
   eraEndDate: '2023-12-31' as string | null,
   sppTotal: null as number | null,
   sppAdjustment: null as number | null,
+  unspentSpp: null as number | null,
   status: null as PlayerStatus | null,
   move: 7,
   strength: 3,

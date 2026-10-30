@@ -163,6 +163,7 @@ export class PlayerSkillsService {
     const toInsert: NewPlayerSkill[] = [];
     const toInsertIndexes: number[] = [];
     const toUpdate: PlayerSkillUpdate[] = [];
+    const changedPlayerIds = new Set<number>();
     for (const [index, row] of resolved.entries()) {
       const existing = existingByKey.get(
         naturalKey(row.playerId, row.skillId, row.attributeValue),
@@ -181,6 +182,7 @@ export class PlayerSkillsService {
             row.source === 'starting' ? null : (row.advancementOrder ?? null),
         });
         toInsertIndexes.push(index);
+        changedPlayerIds.add(row.playerId);
         continue;
       }
       resultIds[index] = existing.id;
@@ -203,6 +205,7 @@ export class PlayerSkillsService {
       }
       if (Object.keys(values).length > 0) {
         toUpdate.push({ id: existing.id, values });
+        changedPlayerIds.add(existing.playerId);
       }
     }
 
@@ -220,45 +223,56 @@ export class PlayerSkillsService {
           .where(eq(playerSkills.id, id));
       }
 
-      if (toInsert.length === 0) {
-        return { playerSkillIds: resultIds };
+      if (toInsert.length > 0) {
+        const inserted = await tx
+          .insert(playerSkills)
+          .values(toInsert)
+          .returning({
+            id: playerSkills.id,
+            playerId: playerSkills.playerId,
+            skillId: playerSkills.skillId,
+            attributeValue: playerSkills.attributeValue,
+          });
+        // Postgres does not guarantee INSERT ... RETURNING preserves the input
+        // `values()` order, so the returned rows cannot be zipped back onto
+        // `toInsert` by array position — match by natural key instead.
+        const insertedIdByKey = new Map(
+          inserted.map((row) => [
+            naturalKey(row.playerId, row.skillId, row.attributeValue),
+            row.id,
+          ]),
+        );
+        toInsert.forEach((row, insertedIndex) => {
+          const key = naturalKey(
+            row.playerId,
+            row.skillId,
+            row.attributeValue ?? null,
+          );
+          const id = insertedIdByKey.get(key);
+          if (id === undefined) {
+            // Every `toInsert` row was just inserted in this same statement, so
+            // its key must be present in `inserted` — this can only mean the
+            // insert silently dropped a row.
+            throw new Error(
+              `Insert into player_skills did not return a row for key ${key}`,
+            );
+          }
+          resultIds[toInsertIndexes[insertedIndex]] = id;
+        });
       }
 
-      const inserted = await tx
-        .insert(playerSkills)
-        .values(toInsert)
-        .returning({
-          id: playerSkills.id,
-          playerId: playerSkills.playerId,
-          skillId: playerSkills.skillId,
-          attributeValue: playerSkills.attributeValue,
-        });
-      // Postgres does not guarantee INSERT ... RETURNING preserves the input
-      // `values()` order, so the returned rows cannot be zipped back onto
-      // `toInsert` by array position — match by natural key instead.
-      const insertedIdByKey = new Map(
-        inserted.map((row) => [
-          naturalKey(row.playerId, row.skillId, row.attributeValue),
-          row.id,
-        ]),
-      );
-      toInsert.forEach((row, insertedIndex) => {
-        const key = naturalKey(
-          row.playerId,
-          row.skillId,
-          row.attributeValue ?? null,
+      // A changed skill can change what the player's advancements cost, so
+      // the stored unspent SPP is cleared until the import's SPP adjustment
+      // sync writes it again. Rows already cleared are left alone.
+      await tx
+        .update(players)
+        .set({ unspentSpp: null })
+        .where(
+          and(
+            inArray(players.id, [...changedPlayerIds]),
+            isNotNull(players.unspentSpp),
+          ),
         );
-        const id = insertedIdByKey.get(key);
-        if (id === undefined) {
-          // Every `toInsert` row was just inserted in this same statement, so
-          // its key must be present in `inserted` — this can only mean the
-          // insert silently dropped a row.
-          throw new Error(
-            `Insert into player_skills did not return a row for key ${key}`,
-          );
-        }
-        resultIds[toInsertIndexes[insertedIndex]] = id;
-      });
       return { playerSkillIds: resultIds };
     });
   }

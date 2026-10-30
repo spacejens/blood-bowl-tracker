@@ -25,6 +25,7 @@ import type { TrophyRecipientKind } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { GameDataError } from '../shared/game-data-error';
+import { UnspentSppDecisionService } from '../spp/unspent-spp-decision.service';
 
 /**
  * The award's `playerId` does not fit the referenced trophy's
@@ -197,7 +198,10 @@ export type PlayerHonor = {
 
 @Injectable()
 export class TrophyAwardsService {
-  constructor(@Inject(DB) private readonly db: Db) {}
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    private readonly unspentSppDecision: UnspentSppDecisionService,
+  ) {}
 
   /**
    * Every recipient of one trophy, most recent competition first, capped at
@@ -478,6 +482,9 @@ export class TrophyAwardsService {
    * competition differ in `playerId` and each gets a row. No cutoff on tie
    * size is applied — real BBL data has ties of up to four.
    *
+   * Writing a granted skill re-prices the winner's stored unspent SPP
+   * (`UnspentSppDecisionService.refreshFixedThreshold`).
+   *
    * Must not be called inside a caller-supplied transaction without a
    * savepoint: a caught unique violation leaves that transaction aborted
    * (Postgres SQLSTATE 25P02) until rolled back, so the fallback SELECT right
@@ -510,6 +517,15 @@ export class TrophyAwardsService {
             `${data.competitionId}, team era ${teamEraId}, player ` +
             `${data.playerId ?? 'none'} reported success but returned no row.`,
         );
+      }
+      // A granted skill costs no SPP, so it changes what the winner's
+      // fixed-threshold advancements cost. Only the manual import sends one,
+      // and it runs no SPP adjustment sync, so the stored unspent SPP is
+      // worked out again here rather than cleared.
+      if (inserted.playerId !== null && inserted.grantedSkillId !== null) {
+        await this.unspentSppDecision.refreshFixedThreshold([
+          inserted.playerId,
+        ]);
       }
       return { trophyAward: inserted, created: true };
     } catch (error) {
@@ -609,6 +625,10 @@ export class TrophyAwardsService {
         `trophy_awards update of award ${existing.id}'s granted skill ` +
           'reported success but returned no row.',
       );
+    }
+    // The stored skill changed (set or cleared): re-price, as on insert.
+    if (updated.playerId !== null) {
+      await this.unspentSppDecision.refreshFixedThreshold([updated.playerId]);
     }
     return updated;
   }
