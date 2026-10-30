@@ -68,6 +68,12 @@ export type UnspentSppUnknownReason =
 /** Whether a player's unspent SPP covers the cheapest next advancement. */
 export type CoversAnother = 'yes' | 'no' | 'maybe';
 
+/** How a rules set prices advancements. */
+export type PricingModel = 'fixed_threshold' | 'kind_priced';
+
+/** What the stored `players.unspent_spp` did to the modelled range. */
+export type StoredUnspentVerdict = 'settled' | 'outside_range' | 'none_stored';
+
 /** A player's unspent SPP, as a range over what the history allows. */
 export interface KnownUnspentSpp {
   status: 'known';
@@ -79,6 +85,13 @@ export interface KnownUnspentSpp {
   unspentMax: number;
   cheapestNextCost: number | null;
   coversAnother: CoversAnother;
+  /**
+   * `settled` when the stored figure lies inside the modelled range and the
+   * range was narrowed to it, `outside_range` when it lies outside and the
+   * range was kept, `none_stored` when nothing is stored or the figure was
+   * not consulted.
+   */
+  storedVerdict: StoredUnspentVerdict;
 }
 
 /** A player whose unspent SPP cannot be worked out, and why. */
@@ -88,3 +101,11 @@ export interface UnknownUnspentSpp {
 }
 
 export type UnspentSppResult = KnownUnspentSpp | UnknownUnspentSpp;
+
+/** A modelled result with the pricing model of the player's era. */
+export interface ModelledUnspentSpp {
+  /** Null when the era's rules sets disagree or none has its own costs. */
+  pricingModel: PricingModel | null;
+  /** The range the history allows; the stored figure is not consulted. */
+  result: UnspentSppResult;
+}

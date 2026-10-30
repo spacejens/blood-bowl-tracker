@@ -10,9 +10,11 @@ import type {
 import { Test } from '@nestjs/testing';
 
 import { AdvancementKindCandidatesService } from './advancement-kind-candidates.service';
+import { AdvancementPricingModelService } from './advancement-pricing-model.service';
 import { AdvancementSpendRangeService } from './advancement-spend-range.service';
+import { StoredUnspentSppSettlementService } from './stored-unspent-spp-settlement.service';
 import { UnspentSppService } from './unspent-spp.service';
-import type { UnspentSppResult } from './unspent-spp.types';
+import type { ModelledUnspentSpp, UnspentSppResult } from './unspent-spp.types';
 
 export const CRP = 1;
 export const BB2020 = 2;
@@ -26,6 +28,7 @@ export const FAN_FAVOURITE = 500;
 export interface PlayerRowFixture {
   playerId: number;
   sppTotal: number | null;
+  unspentSpp: number | null;
   positionId: number;
   isStarPlayer: boolean;
   eraId: number;
@@ -43,6 +46,7 @@ export function playerRow(
   return {
     playerId: 1,
     sppTotal: 0,
+    unspentSpp: null,
     positionId: POSITION,
     isStarPlayer: false,
     eraId: ERA,
@@ -181,7 +185,7 @@ export function unspentSppDb(fixture: UnspentSppFixture): MockDbResult {
 }
 
 /**
- * The service under test on a mock db. Its two collaborators are pure and
+ * The service under test on a mock db. Its four collaborators are pure and
  * dependency-free, so they are passed real as a pure chain (CLAUDE.md).
  */
 export async function makeUnspentSppService(
@@ -192,6 +196,8 @@ export async function makeUnspentSppService(
       UnspentSppService,
       AdvancementKindCandidatesService,
       AdvancementSpendRangeService,
+      AdvancementPricingModelService,
+      StoredUnspentSppSettlementService,
       { provide: DB, useValue: db.db },
     ],
   }).compile();
@@ -204,4 +210,13 @@ export async function unspentSppFor(
 ): Promise<UnspentSppResult | undefined> {
   const service = await makeUnspentSppService(unspentSppDb(fixture));
   return service.forPlayer(1);
+}
+
+/** Player 1's modelled result for this fixture. */
+export async function modelledUnspentSppFor(
+  fixture: UnspentSppFixture,
+  sppTotals?: ReadonlyMap<number, number>,
+): Promise<ModelledUnspentSpp | undefined> {
+  const service = await makeUnspentSppService(unspentSppDb(fixture));
+  return (await service.modelledForPlayers([1], sppTotals)).get(1);
 }

@@ -5,6 +5,7 @@ import {
   competitionGroups,
   competitions,
   DB,
+  eq,
   eraRulesSets,
   eras,
   leagues,
@@ -34,7 +35,9 @@ import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { AdvancementKindCandidatesService } from '../src/spp/advancement-kind-candidates.service';
+import { AdvancementPricingModelService } from '../src/spp/advancement-pricing-model.service';
 import { AdvancementSpendRangeService } from '../src/spp/advancement-spend-range.service';
+import { StoredUnspentSppSettlementService } from '../src/spp/stored-unspent-spp-settlement.service';
 import { UnspentSppService } from '../src/spp/unspent-spp.service';
 import { connectTestDb } from './e2e-database';
 
@@ -403,12 +406,14 @@ describe('UnspentSppService.forPlayers (real Postgres)', () => {
   beforeEach(async () => {
     await resetGameDataTables(db);
     seeded = await seed(db);
-    // The two collaborators are pure and dependency-free, so they are real.
+    // The four collaborators are pure and dependency-free, so they are real.
     const moduleRef = await Test.createTestingModule({
       providers: [
         UnspentSppService,
         AdvancementKindCandidatesService,
         AdvancementSpendRangeService,
+        AdvancementPricingModelService,
+        StoredUnspentSppSettlementService,
         { provide: DB, useValue: db },
       ],
     }).compile();
@@ -448,6 +453,7 @@ describe('UnspentSppService.forPlayers (real Postgres)', () => {
       unspentMax: 4,
       cheapestNextCost: 15,
       coversAnother: 'no',
+      storedVerdict: 'none_stored',
     });
     // The other league's 50-SPP Fan Favourite row does not apply.
     expect(results.get(seeded.fanFavourite)).toEqual({
@@ -460,6 +466,7 @@ describe('UnspentSppService.forPlayers (real Postgres)', () => {
       unspentMax: 19,
       cheapestNextCost: null,
       coversAnother: 'no',
+      storedVerdict: 'none_stored',
     });
     // Block chosen primary; Mighty Blow chosen primary or secondary.
     expect(results.get(seeded.typePriced)).toEqual({
@@ -472,6 +479,7 @@ describe('UnspentSppService.forPlayers (real Postgres)', () => {
       unspentMax: 16,
       cheapestNextCost: 6,
       coversAnother: 'yes',
+      storedVerdict: 'none_stored',
     });
     expect(results.get(seeded.trophyGranted)).toEqual({
       status: 'known',
@@ -483,6 +491,7 @@ describe('UnspentSppService.forPlayers (real Postgres)', () => {
       unspentMax: 0,
       cheapestNextCost: 10,
       coversAnother: 'no',
+      storedVerdict: 'none_stored',
     });
     expect(results.get(seeded.starPlayer)).toEqual({
       status: 'unknown',
@@ -499,6 +508,7 @@ describe('UnspentSppService.forPlayers (real Postgres)', () => {
       unspentMax: 19,
       cheapestNextCost: 8,
       coversAnother: 'no',
+      storedVerdict: 'none_stored',
     });
   });
 
@@ -513,6 +523,27 @@ describe('UnspentSppService.forPlayers (real Postgres)', () => {
       unspentMax: 4,
       cheapestNextCost: 15,
       coversAnother: 'no',
+      storedVerdict: 'none_stored',
+    });
+  });
+
+  it('settles a player to the stored figure inside the modelled range', async () => {
+    await db
+      .update(players)
+      .set({ unspentSpp: 12 })
+      .where(eq(players.id, seeded.typePriced));
+
+    expect(await service.forPlayer(seeded.typePriced)).toEqual({
+      status: 'known',
+      totalSpp: 30,
+      advancementsGained: 2,
+      spentMin: 18,
+      spentMax: 18,
+      unspentMin: 12,
+      unspentMax: 12,
+      cheapestNextCost: 6,
+      coversAnother: 'yes',
+      storedVerdict: 'settled',
     });
   });
 });

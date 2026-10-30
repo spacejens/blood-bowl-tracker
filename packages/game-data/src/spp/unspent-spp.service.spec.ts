@@ -226,6 +226,7 @@ describe('UnspentSppService under fixed thresholds', () => {
       unspentMax: 9,
       cheapestNextCost: 20,
       coversAnother: 'no',
+      storedVerdict: 'none_stored',
     });
   });
 
@@ -264,6 +265,7 @@ describe('UnspentSppService under fixed thresholds', () => {
       unspentMin: 24,
       cheapestNextCost: null,
       coversAnother: 'no',
+      storedVerdict: 'none_stored',
     });
   });
 
@@ -279,6 +281,7 @@ describe('UnspentSppService under fixed thresholds', () => {
       unspentMin: -3,
       unspentMax: -3,
       coversAnother: 'no',
+      storedVerdict: 'none_stored',
     });
   });
 
@@ -301,6 +304,7 @@ describe('UnspentSppService under fixed thresholds', () => {
       unspentMin: 0,
       cheapestNextCost: 10,
       coversAnother: 'no',
+      storedVerdict: 'none_stored',
     });
   });
 });
@@ -324,6 +328,7 @@ describe('UnspentSppService under type-priced rules sets', () => {
       unspentMax: 23,
       cheapestNextCost: 6,
       coversAnother: 'maybe',
+      storedVerdict: 'none_stored',
     });
   });
 
@@ -352,6 +357,7 @@ describe('UnspentSppService under type-priced rules sets', () => {
       unspentMin: 4,
       cheapestNextCost: 4,
       coversAnother: 'yes',
+      storedVerdict: 'none_stored',
     });
   });
 
@@ -375,6 +381,7 @@ describe('UnspentSppService under type-priced rules sets', () => {
       unspentMin: 2,
       cheapestNextCost: 6,
       coversAnother: 'no',
+      storedVerdict: 'none_stored',
     });
   });
 
@@ -449,6 +456,7 @@ describe("UnspentSppService with a league's granted skill", () => {
       unspentMin: 19,
       cheapestNextCost: null,
       coversAnother: 'no',
+      storedVerdict: 'none_stored',
     });
   });
 
@@ -464,6 +472,7 @@ describe("UnspentSppService with a league's granted skill", () => {
       unspentMin: 125,
       cheapestNextCost: 125,
       coversAnother: 'yes',
+      storedVerdict: 'none_stored',
     });
   });
 
@@ -504,6 +513,7 @@ describe('UnspentSppService with several rules sets in the era', () => {
       unspentMax: 14,
       cheapestNextCost: 4,
       coversAnother: 'maybe',
+      storedVerdict: 'none_stored',
     });
   });
 
@@ -580,6 +590,7 @@ describe('UnspentSppService with several rules sets in the era', () => {
       unspentMax: 69,
       cheapestNextCost: 15,
       coversAnother: 'maybe',
+      storedVerdict: 'none_stored',
     });
   });
 
@@ -616,6 +627,7 @@ describe('UnspentSppService with several rules sets in the era', () => {
       unspentMax: 19,
       cheapestNextCost: 8,
       coversAnother: 'no',
+      storedVerdict: 'none_stored',
     });
   });
 
@@ -644,6 +656,7 @@ describe('UnspentSppService verdict boundaries', () => {
       unspentMin: 10,
       cheapestNextCost: 10,
       coversAnother: 'yes',
+      storedVerdict: 'none_stored',
     });
   });
 
@@ -659,6 +672,7 @@ describe('UnspentSppService verdict boundaries', () => {
       unspentMax: 9,
       cheapestNextCost: 10,
       coversAnother: 'no',
+      storedVerdict: 'none_stored',
     });
   });
 
@@ -676,6 +690,7 @@ describe('UnspentSppService verdict boundaries', () => {
       unspentMax: 6,
       cheapestNextCost: 6,
       coversAnother: 'maybe',
+      storedVerdict: 'none_stored',
     });
   });
 });

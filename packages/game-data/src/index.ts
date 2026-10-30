@@ -150,6 +150,8 @@ export {
 } from './skills/skills.service';
 export { AdvancementCostsService } from './spp/advancement-costs.service';
 export { AdvancementKindCandidatesService } from './spp/advancement-kind-candidates.service';
+export type { PricedCostRow } from './spp/advancement-pricing-model.service';
+export { AdvancementPricingModelService } from './spp/advancement-pricing-model.service';
 export { AdvancementSpendRangeService } from './spp/advancement-spend-range.service';
 export { SppModule } from './spp/spp.module';
 export { SppAdjustmentsService } from './spp/spp-adjustments.service';
@@ -164,6 +166,8 @@ export {
 export type { OngoingSppEntry } from './spp/spp-ongoing-estimate.service';
 export { SppOngoingEstimateService } from './spp/spp-ongoing-estimate.service';
 export { SppTotalsService } from './spp/spp-totals.service';
+export type { StoredFigure } from './spp/stored-unspent-spp-settlement.service';
+export { StoredUnspentSppSettlementService } from './spp/stored-unspent-spp-settlement.service';
 export { UnspentSppService } from './spp/unspent-spp.service';
 export type {
   AdvancementCandidatesInput,
@@ -171,8 +175,11 @@ export type {
   ApplicableAdvancementCost,
   CoversAnother,
   KnownUnspentSpp,
+  ModelledUnspentSpp,
   PlayerSkillEntry,
+  PricingModel,
   SpendRange,
+  StoredUnspentVerdict,
   UnknownUnspentSpp,
   UnspentSppResult,
   UnspentSppUnknownReason,
