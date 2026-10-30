@@ -224,8 +224,22 @@ nothing-memorable-yet-style message instead of an empty list.
 Then — only when the player has a computed star player point total, with no
 line at all otherwise — a blank line, an optional `SPP adjustment:` line,
 shown only when a nonzero manual adjustment has been applied (the total
-already includes it; the line is just calling that out), and the player's
-`Total SPP:` line.
+already includes it; the line is just calling that out), the player's
+`Total SPP:` line, and an `Unspent SPP:` line for every player status alike,
+worked out as [unspent SPP](../../game-concepts/players/index.md#unspent-spp)
+describes:
+
+- One figure when the spend is exact, otherwise the least and most it could
+  be, joined by an en dash (`5–11`). A negative figure is shown as is.
+- A note in brackets: `covers another advancement`,
+  `may cover another advancement`, `not enough for another advancement`, or
+  `no further advancements available`. Nothing to spend (`0` or less) gets no
+  note.
+- `unknown`, with the reason in plain words, when it cannot be worked out or
+  the lookup timed out. A timeout never replaces the rest of the embed.
+- Advancements missing from the recorded history make a _yes_ generous.
+
+The bot's toplists of players by SPP deliberately leave unspent SPP out.
 
 ### Kills list
 
