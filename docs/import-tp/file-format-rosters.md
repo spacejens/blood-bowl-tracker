@@ -93,6 +93,7 @@ number, lineUpMasterId, rosterId, fallbackPositionName, isBigGuy }`. `id` is
     Both fields are optional to the parser: an entry without them parses as
     before. How they become a player's status is described in
     [index.md](./index.md#player-status).
+
   - `lineUpMaster` — the position template the player was recruited from,
     repeated inline on every entry. Only its `ma/st/ag/pa/av` are read, as the
     baseline a current-vs-template characteristic comparison needs. The
@@ -190,6 +191,22 @@ These entries also never carry `ma/st/ag/pa/av`, in either the standalone
 roster file or the match-embedded snapshot, so a mercenary's characteristics
 cannot come from TP at all — the importer takes them from a curated table
 instead (see [index.md](./index.md)'s `TpRosterPlayersImportService` (server-side) entry).
+
+**SPP fields on a `lineUps[]` entry.** `totalStarPlayerPoints` is the
+player's career SPP. `starPlayerPoints` is the part of it not yet spent on
+advancements: across the 1336 entries in the 108 downloaded roster files,
+`totalStarPlayerPoints - starPlayerPoints` is zero in 626 entries (the player
+has no advancement, or none that cost SPP) and otherwise a sum the rules
+set's advancement costs allow (the most common gaps are 3, 6, 7, 14, 10, 13
+and 26 under BB2020/BB2025). `pendingImprovements` is 0 on every downloaded
+entry. The exceptions seen: five entries with a visible skill and a zero gap
+are all skills flagged `isExtra` (Hatred) or the Journeyman's Loner, which
+TP grants without charging SPP; and line-up 2464153 in Chaos Cup 8 carries 2
+unspent points against a total of 0 (a gap of -2), already present in its
+first match snapshot, with no match event that awards SPP, so the points were
+most likely entered by hand. No importer reads `starPlayerPoints` or
+`pendingImprovements`; `tools/review-player` compares `starPlayerPoints`
+with its own modelled unspent range.
 
 **Still not handled** (future work): the other top-level fields on a roster
 (`imageFile`, `assistantCoaches`, `cheerLeaders`,
