@@ -10,8 +10,14 @@ ways that share one write path:
   (`BB2020`, `DB2021`, `BB2025`, from `packages/tp-paths`'
   `TpOfficialTeamsPathsService`) through one scrape-tp session, the way TP's
   teams page requests each tab, and writes each one.
-- **`tpOfficialTeams.import`**, which `tools/import-tp`'s bulk run calls once
-  per downloaded rules set.
+- **`tpOfficialTeams.import`**, which `tools/import-tp`'s bulk run calls
+  several times per downloaded rules set, with chunks of whole races (see
+  [tools/import-tp's official team list requests](../import-tp/official-teams-requests.md)).
+  Every stage works only on the races it is given, so a chunk is imported
+  exactly like a small rules set. The live import runs in-process, so the
+  api-client's per-request timeout does not apply to it (it still fetches TP
+  through scrape-tp, with that tool's own timeouts), and it writes each rules
+  set in one call.
 
 Both go through `TpOfficialTeamsImportService` (in `TpOfficialTeamsModule`),
 which writes one rules set at a time.
@@ -91,10 +97,24 @@ reports it as an `ImportError` instead, and `tools/import-tp`'s bulk run
 likewise converts a failed procedure call into an `ImportError` rather than
 letting it propagate further.
 
-The server-side write also dedupes each kind of error — an uncurated keyword
-code or an unresolvable skill id, for example — per `tpOfficialTeams.import`
-call, so the same gap is reported once per rules set rather than once for the
-whole import; the same underlying data is written either way.
+The server-side write also dedupes each kind of error (an uncurated keyword
+code or an unresolvable skill id, for example) per `tpOfficialTeams.import`
+call, so the same gap is reported once per call rather than once per
+position. `tools/import-tp` sends a rules set in several calls and
+de-duplicates those repeats again when it merges them, so its run still
+reports each gap once per rules set. The same underlying data is written
+either way.
+
+## Stage timings
+
+`TpOfficialTeamsImportService` times each stage it runs, with a monotonic
+clock, and returns the durations in the result's optional `timings`, in
+order: `context`, `races`, `positions`, `characteristics`, `keywordCatalog`,
+`keywords`, `skillRefs`, `startingSkills`, `skillCategories`, each as
+`{ stage, ms }`. A stage that reports errors is still timed. When the rules
+set's context cannot be resolved, only `context` is listed. `tools/import-tp`
+prints them per request at the end of every run. The live import ignores
+them.
 
 ## External system
 

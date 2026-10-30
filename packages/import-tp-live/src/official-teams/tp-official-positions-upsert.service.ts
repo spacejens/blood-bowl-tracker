@@ -13,6 +13,7 @@ import {
   NameExternalIdService,
   UpsertRecorderService,
 } from '@blood-bowl-tracker/import-shared';
+import { TpOfficialListingPrecedenceService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 import type { TpOfficialRaceRef } from './tp-official-races-upsert.service';
@@ -75,6 +76,7 @@ export class TpOfficialPositionsUpsertService {
     private readonly nameExternalId: NameExternalIdService,
     private readonly importResults: ImportResultService,
     private readonly runner: UpsertRecorderService,
+    private readonly precedence: TpOfficialListingPrecedenceService,
   ) {}
 
   /**
@@ -103,7 +105,7 @@ export class TpOfficialPositionsUpsertService {
     const { context, errors } = options;
     let imported = 0;
     const slotsByPositionId = new Map<number, TpOfficialPositionSlot>();
-    const officialSlotPositionIds = new Set<number>();
+    const slotIsOfficial = new Map<number, boolean>();
     for (const group of this.groupPositions(options).values()) {
       const upserted = await this.runner.record({
         run: () =>
@@ -134,13 +136,16 @@ export class TpOfficialPositionsUpsertService {
         skillCategoriesError,
       } = group.source;
       // A star fielded by several races is one group per race, all landing on
-      // one row, so the row keeps a single slot; an official listing's values
-      // win over a legacy one's, the same precedence groupPositions applies
-      // within one race, since the races can disagree on a star's stats.
+      // one row, so the row keeps a single slot, chosen by the same
+      // precedence groupPositions applies within one race, since the races
+      // can disagree on a star's stats.
+      const slotOfficial = slotIsOfficial.get(positionId);
       if (
-        !slotsByPositionId.has(positionId) ||
-        group.source.isOfficial ||
-        !officialSlotPositionIds.has(positionId)
+        slotOfficial === undefined ||
+        this.precedence.replaces({
+          current: { isOfficial: slotOfficial },
+          candidate: group.source,
+        })
       ) {
         slotsByPositionId.set(positionId, {
           positionId,
@@ -151,9 +156,7 @@ export class TpOfficialPositionsUpsertService {
           skillCategories,
           skillCategoriesError,
         });
-        if (group.source.isOfficial) {
-          officialSlotPositionIds.add(positionId);
-        }
+        slotIsOfficial.set(positionId, group.source.isOfficial);
       }
       if (context.eraIds.length > 0) {
         await this.runner.record({
@@ -215,10 +218,10 @@ export class TpOfficialPositionsUpsertService {
   }
 
   /**
-   * Adds one listing of a position to its group, created on first use. A
-   * legacy listing never replaces an official one already recorded; any
-   * other listing replaces what is there, so an official value arriving
-   * after a legacy one still wins.
+   * Adds one listing of a position to its group, created on first use. The
+   * listing replaces the recorded one when TpOfficialListingPrecedenceService
+   * says so: a legacy listing never replaces an official one, and any other
+   * listing does, so an official value arriving after a legacy one still wins.
    */
   private addToGroup(options: {
     groups: Map<string, PositionGroup>;
@@ -246,7 +249,9 @@ export class TpOfficialPositionsUpsertService {
         source,
       };
       groups.set(key, group);
-    } else if (!group.source.isOfficial || isOfficial) {
+    } else if (
+      this.precedence.replaces({ current: group.source, candidate: source })
+    ) {
       group.source = source;
     }
     if (position.tpPositionId !== undefined) {

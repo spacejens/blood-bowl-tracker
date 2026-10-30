@@ -6,6 +6,7 @@ import {
   NameExternalIdService,
   UpsertRecorderService,
 } from '@blood-bowl-tracker/import-shared';
+import { TpOfficialListingPrecedenceService } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -46,6 +47,7 @@ describe('TpOfficialPositionsUpsertService', () => {
         NameExternalIdService,
         ImportResultService,
         UpsertRecorderService,
+        TpOfficialListingPrecedenceService,
         { provide: PositionsService, useValue: positions },
       ],
     }).compile();
@@ -289,6 +291,40 @@ describe('TpOfficialPositionsUpsertService', () => {
         skillCategories: { primary: [], secondary: [] },
       },
     ]);
+  });
+
+  it("lets a later official listing of a star replace an earlier official listing's values", async () => {
+    const firstOfficialStar = officialPosition({
+      name: 'Grim Ironjaw',
+      isStarPlayer: true,
+      tpPositionId: 501,
+      characteristics: LEGACY_STATS,
+    });
+    const secondOfficialStar = officialPosition({
+      name: 'Grim Ironjaw',
+      isStarPlayer: true,
+      tpPositionId: 501,
+    });
+
+    const result = await service.upsertPositions({
+      races: [
+        officialRace({ teamRaceCode: 'orc20', positions: [firstOfficialStar] }),
+        officialRace({
+          name: 'Dwarf',
+          teamRaceCode: 'dwarf20',
+          positions: [secondOfficialStar],
+        }),
+      ],
+      racesByCode: new Map([
+        ['orc20', ORC],
+        ['dwarf20', DWARF],
+      ]),
+      context: officialTeamsContext(),
+      errors,
+    });
+
+    expect(result.slots).toHaveLength(1);
+    expect(result.slots[0].characteristics).toEqual(CHARACTERISTICS);
   });
 
   it("lets a later legacy listing of a star replace an earlier legacy listing's values", async () => {
