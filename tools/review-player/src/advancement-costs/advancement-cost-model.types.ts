@@ -1,0 +1,100 @@
+import type {
+  AdvancementKind,
+  PlayerSkillSource,
+} from '@blood-bowl-tracker/domain-enums';
+
+/** One `advancement_costs` row that applies to a player. */
+export interface ApplicableCost {
+  advancementNumber: number;
+  advancementKind: AdvancementKind;
+  /** Set only on a `granted_skill` row: the skill it grants. */
+  skillId: number | null;
+  sppCost: number;
+  /** Null on the rules set's own row; the league's id on a house rule. */
+  leagueId: number | null;
+}
+
+/** One stored `player_skills` row, as the cost check needs it. */
+export interface StoredPlayerSkill {
+  skillId: number;
+  skillName: string;
+  source: PlayerSkillSource;
+  advancementOrder: number | null;
+}
+
+/** The stored `*_increase_count` columns. */
+export interface StoredIncreaseCounts {
+  move: number;
+  strength: number;
+  agility: number;
+  passing: number;
+  armour: number;
+}
+
+/** What the database holds about one player's advancements and their prices. */
+export interface AdvancementHistory {
+  playerId: number;
+  sppTotal: number | null;
+  isStarPlayer: boolean;
+  /** The era's last-listed rules set; null when the era lists none. */
+  rulesSet: { id: number; name: string } | null;
+  /** Starting skills first, then gained skills in stored order. */
+  skills: StoredPlayerSkill[];
+  /** Skills one of the player's own trophy awards granted for free. */
+  trophyGrantedSkillIds: ReadonlySet<number>;
+  increaseCounts: StoredIncreaseCounts;
+  /** The rules set's own costs plus the player's league's house rules. */
+  costs: ApplicableCost[];
+}
+
+/** Why a row costs what it does. */
+export type AdvancementRowKind =
+  'starting' | 'trophy' | 'granted' | 'skill' | 'characteristic';
+
+/** One cost an advancement could have had at its number. */
+export interface CandidateCost {
+  advancementKind: AdvancementKind;
+  sppCost: number;
+}
+
+/** One row of the imported panel. */
+export interface ModelledAdvancement {
+  /** The skill's name, or `+MA`/`+ST`/`+AG`/`+PA`/`+AV`. */
+  label: string;
+  kind: AdvancementRowKind;
+  /** The stored `player_skills.source`; null for a characteristic increase. */
+  storedSource: PlayerSkillSource | null;
+  /** The number this row is priced at; null for a free row. */
+  advancementNumber: number | null;
+  /** Costs it could have had at that number; empty for a free row. */
+  candidates: CandidateCost[];
+}
+
+/** Why no range could be modelled, in the order they are checked. */
+export type UnknownRangeReason =
+  | 'star_player'
+  | 'no_total_spp'
+  | 'no_rules_set'
+  | 'no_costs'
+  | 'unpriced_advancement';
+
+export interface ModelledRange {
+  spentMin: number;
+  spentMax: number;
+  unspentMin: number;
+  unspentMax: number;
+}
+
+export interface UnspentSppModel {
+  rulesSetName: string | null;
+  /** True when every one of the rules set's own costs is a `table_roll`. */
+  fixedThresholds: boolean;
+  rows: ModelledAdvancement[];
+  totalSpp: number | null;
+  /** Null exactly when `unknownReason` is set. */
+  range: ModelledRange | null;
+  unknownReason: UnknownRangeReason | null;
+}
+
+/** Where a source's figure lies against the modelled unspent range. */
+export type FigurePlacement = 'below' | 'inside' | 'above';
