@@ -555,6 +555,69 @@ describe('TpRawPlayerSkillsIndexService', () => {
     });
   });
 
+  it('lets a later file with a higher totalStarPlayerPoints override an earlier one', async () => {
+    const service = await makeService({
+      'rosters_1.json': {
+        lineUps: [{ id: 77, totalStarPlayerPoints: 10, starPlayerPoints: 10 }],
+      },
+      'rosters_2.json': {
+        lineUps: [
+          {
+            id: 77,
+            totalStarPlayerPoints: 30,
+            starPlayerPoints: 2,
+            skills: [
+              { skillMasterId: 20, skillMaster: { id: 20, name: 'Dodge' } },
+            ],
+          },
+        ],
+      },
+    });
+
+    expect(await service.sppFiguresFor('77')).toEqual({
+      totalStarPlayerPoints: 30,
+      starPlayerPoints: 2,
+      pendingImprovements: null,
+    });
+    expect(
+      (await service.advancementsFor('77'))?.gainedSkills.map((s) => s.name),
+    ).toEqual(['Dodge']);
+  });
+
+  it("keeps a gained skill's boolean isExtra flag and omits a missing one", async () => {
+    const service = await makeService({
+      'rosters_1.json': {
+        lineUps: [
+          {
+            id: 77,
+            skills: [
+              {
+                skillMasterId: 30,
+                skillMaster: { id: 30, name: 'Hatred' },
+                isExtra: true,
+              },
+              {
+                skillMasterId: 31,
+                skillMaster: { id: 31, name: 'Block' },
+                isExtra: false,
+              },
+              {
+                skillMasterId: 32,
+                skillMaster: { id: 32, name: 'Dodge' },
+                isExtra: 'yes',
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    const gained = (await service.advancementsFor('77'))?.gainedSkills;
+
+    expect(gained?.map((s) => s.isExtra)).toEqual([true, false, undefined]);
+    expect(gained?.[2]).not.toHaveProperty('isExtra');
+  });
+
   it('returns null for a line-up id no roster file carries', async () => {
     const service = await makeService({ 'rosters_1.json': { lineUps: [] } });
 

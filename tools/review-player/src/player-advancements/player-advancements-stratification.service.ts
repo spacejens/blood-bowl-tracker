@@ -30,13 +30,12 @@ const CHOSEN = 'freely-chosen-skill';
  * rather than only suspect data.
  *
  * These strata read only the database, so "differs from the raw source" is
- * not one of them (the unspent-SPP stratum in `advancement-costs/` is the one
- * stratum that reads the raw sources). The closest
- * DB-expressible signal is the first one: a player whose STARTING skills
- * differ from the set their position carries under the era's rules set. A
- * starting skill set is copied from the position, so a difference is either a
- * mis-parsed player page or a position whose own skills are wrong — and
- * either is worth a human's eyes.
+ * not one of them (the reported-spend stratum in `advancement-costs/` is the
+ * one stratum that reads the raw sources). The closest DB-expressible signal
+ * is the first one: a player whose STARTING skills differ from the set their
+ * position carries under the era's rules set. A starting skill set is copied
+ * from the position, so a difference is either a mis-parsed player page or a
+ * position whose own skills are wrong — and either is worth a human's eyes.
  *
  * The other three simply guarantee that a run contains elite, randomly rolled
  * and freely chosen gained skills at all: each is rare, each exercises a

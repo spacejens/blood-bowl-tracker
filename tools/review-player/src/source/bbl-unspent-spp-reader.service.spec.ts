@@ -92,4 +92,22 @@ describe('BblUnspentSppReaderService', () => {
 
     expect(loader.loadPlayerPage).toHaveBeenCalledTimes(1);
   });
+
+  it('gives a null career total when the bracket is missing', async () => {
+    const { service } = await makeService(page('4', ''));
+
+    expect(await service.read('1020')).toEqual({
+      unspent: 4,
+      careerTotal: null,
+    });
+  });
+
+  it('retries a page whose read failed instead of caching the failure', async () => {
+    const { service, loader } = await makeService(page('4', LINKED_TOTAL));
+    loader.loadPlayerPage.mockRejectedValueOnce(new Error('EIO'));
+
+    await expect(service.read('1020')).rejects.toThrow('EIO');
+    expect(await service.read('1020')).toEqual({ unspent: 4, careerTotal: 34 });
+    expect(loader.loadPlayerPage).toHaveBeenCalledTimes(2);
+  });
 });

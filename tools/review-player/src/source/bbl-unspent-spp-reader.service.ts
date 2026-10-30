@@ -27,9 +27,9 @@ export interface BblUnspentSppFigures {
  * is code under review.
  *
  * Results are cached per pid for the lifetime of the process. The
- * unspent-SPP stratum reads every BBL player's page once, and the panels for
- * a sampled player then read the same figures again; the cache makes that
- * one mirror read per page per run.
+ * reported-spend stratum reads every BBL player's page once, and the panels
+ * for a sampled player then read the same figures again; the cache makes that
+ * one read of this row per page per run. A read that fails is not cached.
  */
 @Injectable()
 export class BblUnspentSppReaderService {
@@ -43,8 +43,15 @@ export class BblUnspentSppReaderService {
   read(externalId: string): Promise<BblUnspentSppFigures | null> {
     let cached = this.cache.get(externalId);
     if (cached === undefined) {
-      cached = this.load(externalId);
-      this.cache.set(externalId, cached);
+      const loading = this.load(externalId);
+      // A failed read is evicted so the next call retries it.
+      loading.catch(() => {
+        if (this.cache.get(externalId) === loading) {
+          this.cache.delete(externalId);
+        }
+      });
+      this.cache.set(externalId, loading);
+      cached = loading;
     }
     return cached;
   }

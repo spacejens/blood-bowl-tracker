@@ -38,6 +38,11 @@ export interface TpRawGainedSkill extends TpRawPlayerSkill {
    * not the same as "chosen" and is never guessed at.
    */
   isRandom: boolean | null;
+  /**
+   * TP's `isExtra` flag: true on a skill granted on top of the player's
+   * advancements (such as Hatred). Absent when the entry carried no boolean.
+   */
+  isExtra?: boolean;
 }
 
 /** Everything TP's roster files say about one player's advancements. */
@@ -52,7 +57,8 @@ export interface TpRawPlayerAdvancements {
    * DERIVED, not reported. TP publishes no advancement counter at all, and a
    * reduction (injury) and an advancement on the same characteristic cancel
    * out here. It is shown for orientation, never compared against the stored
-   * `*IncreaseCount` columns — no importer writes those from TP.
+   * `*IncreaseCount` columns, which the TP importer derives by its own,
+   * separate comparison against the position's baseline characteristics.
    */
   characteristicDiffs: RawIncreaseCounts;
   /** False when the roster entry carried no position template at all. */
@@ -216,10 +222,12 @@ export class TpRawPlayerSkillsIndexService {
             return [];
           }
           const isRandom = this.property(skill, 'isRandom');
+          const isExtra = this.property(skill, 'isExtra');
           return [
             {
               ...base,
               isRandom: typeof isRandom === 'boolean' ? isRandom : null,
+              ...(typeof isExtra === 'boolean' ? { isExtra } : {}),
             },
           ];
         }),

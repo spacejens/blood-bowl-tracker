@@ -24,6 +24,14 @@ const ADVANCEMENTS = {
       isElite: true,
       isRandom: null,
     },
+    {
+      skillMasterId: 263,
+      name: 'Hatred',
+      attributeValue: null,
+      isElite: false,
+      isRandom: false,
+      isExtra: true,
+    },
   ],
   characteristicDiffs: {
     move: 0,
@@ -65,11 +73,22 @@ describe('TpAdvancementCostsRawRendererService', () => {
     expect(html).toContain('<td>totalStarPlayerPoints</td><td>16</td>');
     expect(html).toContain('<td>starPlayerPoints</td><td>4</td>');
     expect(html).toContain('<td>pendingImprovements</td><td>0</td>');
-    expect(html).toContain('<td>Guard</td><td>true</td><td>false</td>');
     expect(html).toContain(
-      '<td>skillMasterId 262</td><td>not recorded</td><td>true</td>',
+      '<tr><th>Skill</th><th>isRandom</th><th>isElite</th><th>isExtra</th></tr>',
+    );
+    expect(html).toContain(
+      '<td>Guard</td><td>true</td><td>false</td><td>—</td>',
+    );
+    expect(html).toContain(
+      '<td>skillMasterId 262</td><td>not recorded</td><td>true</td><td>—</td>',
+    );
+    expect(html).toContain(
+      '<td>Hatred</td><td>false</td><td>false</td><td>true</td>',
     );
     expect(html).toContain('carries no per-advancement SPP cost');
+    expect(html).toContain(
+      'Extra skills (isExtra, such as Hatred) and a Journeyman&#39;s Loner are granted without SPP being spent',
+    );
   });
 
   it('says a skill without a random/chosen flag is not recorded as chosen', async () => {
@@ -81,7 +100,7 @@ describe('TpAdvancementCostsRawRendererService', () => {
     index.advancementsFor.mockResolvedValue(ADVANCEMENTS);
 
     expect(await service.render('77')).toContain(
-      'recorded no random/chosen flag',
+      'Skills marked not recorded had no random/chosen flag in TP&#39;s data; that is not the same as chosen.',
     );
   });
 
@@ -97,7 +116,7 @@ describe('TpAdvancementCostsRawRendererService', () => {
     });
 
     expect(await service.render('77')).not.toContain(
-      'recorded no random/chosen flag',
+      'had no random/chosen flag',
     );
   });
 
