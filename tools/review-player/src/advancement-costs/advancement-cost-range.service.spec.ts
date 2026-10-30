@@ -1,4 +1,7 @@
-import type { AdvancementKind } from '@blood-bowl-tracker/domain-enums';
+import type {
+  AdvancementKind,
+  SkillCategory,
+} from '@blood-bowl-tracker/domain-enums';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -60,7 +63,15 @@ function skill(
     skillName,
     source,
     advancementOrder: source === 'starting' ? null : 1,
+    category: null,
   };
+}
+
+function inCategory(
+  stored: StoredPlayerSkill,
+  category: SkillCategory,
+): StoredPlayerSkill {
+  return { ...stored, category };
 }
 
 function history(overrides: Partial<AdvancementHistory>): AdvancementHistory {
@@ -71,6 +82,8 @@ function history(overrides: Partial<AdvancementHistory>): AdvancementHistory {
     rulesSet: { id: 1, name: 'CRP' },
     skills: [],
     trophyGrantedSkillIds: new Set<number>(),
+    primaryCategories: new Set<SkillCategory>(),
+    secondaryCategories: new Set<SkillCategory>(),
     increaseCounts: { move: 0, strength: 0, agility: 0, passing: 0, armour: 0 },
     costs: CRP,
     ...overrides,
@@ -139,18 +152,17 @@ describe('AdvancementCostRangeService', () => {
     expect(model.rows[1].candidates).toEqual([
       { advancementKind: 'chosen_primary_skill', sppCost: 8 },
       { advancementKind: 'chosen_secondary_skill', sppCost: 14 },
-      { advancementKind: 'random_characteristic', sppCost: 20 },
     ]);
-    // Any order, any kind: #1 is 3..18 and #2 is 4..20 over the union.
+    // Any order, any kind: #1 is 3..12 and #2 is 4..14 over the union.
     expect(model.range).toEqual({
       spentMin: 7,
-      spentMax: 38,
-      unspentMin: -8,
+      spentMax: 26,
+      unspentMin: 4,
       unspentMax: 23,
     });
   });
 
-  it('allows a chosen skill to have been a characteristic roll taken as a skill', () => {
+  it('does not price a chosen skill as a characteristic roll', () => {
     const model = service.model(
       history({
         rulesSet: { id: 2, name: 'BB2020' },
@@ -163,12 +175,11 @@ describe('AdvancementCostRangeService', () => {
     expect(model.rows[0].candidates).toEqual([
       { advancementKind: 'chosen_primary_skill', sppCost: 6 },
       { advancementKind: 'chosen_secondary_skill', sppCost: 12 },
-      { advancementKind: 'random_characteristic', sppCost: 18 },
     ]);
     expect(model.range).toEqual({
       spentMin: 6,
-      spentMax: 18,
-      unspentMin: 12,
+      spentMax: 12,
+      unspentMin: 18,
       unspentMax: 24,
     });
   });
@@ -227,7 +238,7 @@ describe('AdvancementCostRangeService', () => {
     });
   });
 
-  it('offers every skill kind and a characteristic roll for an ambiguous gained skill', () => {
+  it('offers every skill kind for an ambiguous gained skill', () => {
     const model = service.model(
       history({
         rulesSet: { id: 2, name: 'BB2020' },
@@ -241,8 +252,141 @@ describe('AdvancementCostRangeService', () => {
       'chosen_primary_skill',
       'random_secondary_skill',
       'chosen_secondary_skill',
-      'random_characteristic',
     ]);
+  });
+
+  describe('narrowing by the position skill categories', () => {
+    const BB2020_SET = { id: 2, name: 'BB2020' };
+
+    function kinds(
+      overrides: Partial<AdvancementHistory>,
+      gained: StoredPlayerSkill,
+    ): AdvancementKind[] {
+      const model = service.model(
+        history({
+          rulesSet: BB2020_SET,
+          costs: BB2020,
+          skills: [gained],
+          ...overrides,
+        }),
+      );
+      return model.rows[0].candidates.map((c) => c.advancementKind);
+    }
+
+    it.each<[StoredPlayerSkill['source'], AdvancementKind[]]>([
+      ['random', ['random_primary_skill']],
+      ['chosen', ['chosen_primary_skill']],
+      ['advancement', ['random_primary_skill', 'chosen_primary_skill']],
+    ])(
+      'prices a %s skill of a primary category as primary only',
+      (source, expected) => {
+        expect(
+          kinds(
+            { primaryCategories: new Set(['general']) },
+            inCategory(skill('Guard', source), 'general'),
+          ),
+        ).toEqual(expected);
+      },
+    );
+
+    it.each<[StoredPlayerSkill['source'], AdvancementKind[]]>([
+      ['random', ['random_secondary_skill']],
+      ['chosen', ['chosen_secondary_skill']],
+      ['advancement', ['random_secondary_skill', 'chosen_secondary_skill']],
+    ])(
+      'prices a %s skill of a secondary category as secondary only',
+      (source, expected) => {
+        expect(
+          kinds(
+            {
+              primaryCategories: new Set(['general']),
+              secondaryCategories: new Set(['strength']),
+            },
+            inCategory(skill('Guard', source), 'strength'),
+          ),
+        ).toEqual(expected);
+      },
+    );
+
+    it('offers both kinds for a category the position has neither way', () => {
+      expect(
+        kinds(
+          {
+            primaryCategories: new Set(['general']),
+            secondaryCategories: new Set(['strength']),
+          },
+          inCategory(skill('Guard', 'random'), 'agility'),
+        ),
+      ).toEqual(['random_primary_skill', 'random_secondary_skill']);
+    });
+
+    it('offers both kinds when the rules set lists no category for the skill', () => {
+      expect(
+        kinds(
+          { primaryCategories: new Set(['general']) },
+          skill('Guard', 'chosen'),
+        ),
+      ).toEqual(['chosen_primary_skill', 'chosen_secondary_skill']);
+    });
+
+    it('offers both kinds when the position has no category data', () => {
+      expect(
+        kinds({}, inCategory(skill('Guard', 'random'), 'general')),
+      ).toEqual(['random_primary_skill', 'random_secondary_skill']);
+    });
+
+    it('treats a category listed both ways as primary', () => {
+      expect(
+        kinds(
+          {
+            primaryCategories: new Set(['general']),
+            secondaryCategories: new Set(['general']),
+          },
+          inCategory(skill('Guard', 'chosen'), 'general'),
+        ),
+      ).toEqual(['chosen_primary_skill']);
+    });
+
+    it('narrows the spend range to the kinds the gained skills allow', () => {
+      const model = service.model(
+        history({
+          rulesSet: BB2020_SET,
+          costs: BB2020,
+          sppTotal: 14,
+          primaryCategories: new Set(['general']),
+          secondaryCategories: new Set(['strength']),
+          skills: [
+            inCategory(skill('Dodge', 'random'), 'general'),
+            inCategory(skill('Guard', 'chosen'), 'general'),
+          ],
+        }),
+      );
+
+      expect(model.rows.map((row) => row.candidates)).toEqual([
+        [{ advancementKind: 'random_primary_skill', sppCost: 3 }],
+        [{ advancementKind: 'chosen_primary_skill', sppCost: 8 }],
+      ]);
+      // Any order, any kind: #1 is 3..6 and #2 is 4..8 over the union.
+      expect(model.range).toEqual({
+        spentMin: 7,
+        spentMax: 14,
+        unspentMin: 0,
+        unspentMax: 7,
+      });
+    });
+
+    it('leaves a fixed-threshold rules set priced by table roll', () => {
+      const model = service.model(
+        history({
+          primaryCategories: new Set(['general']),
+          skills: [inCategory(skill('Guard', 'chosen'), 'general')],
+        }),
+      );
+
+      expect(model.rows[0].candidates).toEqual([
+        { advancementKind: 'table_roll', sppCost: 6 },
+      ]);
+    });
   });
 
   it('prices a characteristic increase as a random characteristic roll', () => {

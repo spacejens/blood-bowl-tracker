@@ -1,6 +1,7 @@
 import type {
   AdvancementKind,
   PlayerSkillSource,
+  SkillCategory,
 } from '@blood-bowl-tracker/domain-enums';
 
 /** One `advancement_costs` row that applies to a player. */
@@ -20,6 +21,8 @@ export interface StoredPlayerSkill {
   skillName: string;
   source: PlayerSkillSource;
   advancementOrder: number | null;
+  /** The skill's category under the player's rules set; null when unlisted. */
+  category: SkillCategory | null;
 }
 
 /** The stored `*_increase_count` columns. */
@@ -42,6 +45,12 @@ export interface AdvancementHistory {
   skills: StoredPlayerSkill[];
   /** Skills one of the player's own trophy awards granted for free. */
   trophyGrantedSkillIds: ReadonlySet<number>;
+  /**
+   * The categories the player's position has as primary and as secondary
+   * under the rules set; both empty when none are recorded for the pair.
+   */
+  primaryCategories: ReadonlySet<SkillCategory>;
+  secondaryCategories: ReadonlySet<SkillCategory>;
   increaseCounts: StoredIncreaseCounts;
   /** The rules set's own costs plus the player's league's house rules. */
   costs: ApplicableCost[];

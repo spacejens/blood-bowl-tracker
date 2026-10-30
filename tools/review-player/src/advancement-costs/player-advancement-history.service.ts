@@ -11,12 +11,16 @@ import {
   isNotNull,
   players,
   playerSkills,
+  positionRulesSets,
+  positionRulesSetSkillCategories,
   positions,
   rulesSets,
+  skillRulesSets,
   skills,
   teamEras,
   trophyAwards,
 } from '@blood-bowl-tracker/db';
+import type { SkillCategory } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 import type {
@@ -44,6 +48,23 @@ interface ChunkContext {
   result: Map<number, AdvancementHistory>;
 }
 
+/** A stored skill before its category under the player's rules set is known. */
+type UncategorisedSkill = Omit<StoredPlayerSkill, 'category'>;
+
+/** One position's primary and secondary categories under one rules set. */
+interface PositionCategories {
+  primary: Set<SkillCategory>;
+  secondary: Set<SkillCategory>;
+}
+
+/** The per-chunk lookups, keyed by `pairKey`. */
+interface CategoryLookups {
+  /** By position id and rules set id. */
+  positions: Map<string, PositionCategories>;
+  /** By skill id and rules set id. */
+  skills: Map<string, SkillCategory>;
+}
+
 /**
  * Loads what the advancement-cost check needs about a batch of players,
  * straight from `packages/db`: total SPP, star status, the era's last-listed
@@ -51,7 +72,10 @@ interface ChunkContext {
  * heuristic the other panels use), the stored skills, the skills one of the
  * player's own trophy awards granted, the five increase counts, and the
  * `advancement_costs` rows that apply (the rules set's own plus the player's
- * league's house rules: player -> team era -> era -> league).
+ * league's house rules: player -> team era -> era -> league), plus the
+ * categories the player's position has as primary and as secondary under
+ * that rules set (`position_rules_set_skill_categories`, ignoring removed
+ * rows) and each stored skill's category under it (`skill_rules_sets`).
  *
  * The era -> rules-set map and the cost table are small and loaded once per
  * process. Players are loaded in chunks, because the unspent-SPP stratum asks
@@ -98,6 +122,7 @@ export class PlayerAdvancementHistoryService {
         isStarPlayer: positions.isStarPlayer,
         eraId: teamEras.eraId,
         leagueId: eras.leagueId,
+        positionId: players.positionId,
         move: players.moveIncreaseCount,
         strength: players.strengthIncreaseCount,
         agility: players.agilityIncreaseCount,
@@ -114,14 +139,37 @@ export class PlayerAdvancementHistoryService {
     }
     const skillsByPlayer = await this.loadSkills(ids);
     const trophySkillsByPlayer = await this.loadTrophySkills(ids);
+    const lookups: CategoryLookups = {
+      positions: await this.loadPositionCategories([
+        ...new Set(playerRows.map((row) => row.positionId)),
+      ]),
+      skills: await this.loadSkillCategories([
+        ...new Set(
+          [...skillsByPlayer.values()].flat().map((skill) => skill.skillId),
+        ),
+      ]),
+    };
     for (const row of playerRows) {
       const rulesSet = context.rulesSetsByEra.get(row.eraId) ?? null;
+      const positionCategories =
+        rulesSet === null
+          ? undefined
+          : lookups.positions.get(this.pairKey(row.positionId, rulesSet.id));
       context.result.set(row.playerId, {
         playerId: row.playerId,
         sppTotal: row.sppTotal,
         isStarPlayer: row.isStarPlayer,
         rulesSet,
-        skills: skillsByPlayer.get(row.playerId) ?? [],
+        skills: (skillsByPlayer.get(row.playerId) ?? []).map((skill) => ({
+          ...skill,
+          category:
+            rulesSet === null
+              ? null
+              : (lookups.skills.get(this.pairKey(skill.skillId, rulesSet.id)) ??
+                null),
+        })),
+        primaryCategories: positionCategories?.primary ?? new Set(),
+        secondaryCategories: positionCategories?.secondary ?? new Set(),
         trophyGrantedSkillIds:
           trophySkillsByPlayer.get(row.playerId) ?? new Set<number>(),
         increaseCounts: {
@@ -153,7 +201,7 @@ export class PlayerAdvancementHistoryService {
 
   private async loadSkills(
     ids: number[],
-  ): Promise<Map<number, StoredPlayerSkill[]>> {
+  ): Promise<Map<number, UncategorisedSkill[]>> {
     const rows = await this.db
       .select({
         playerId: playerSkills.playerId,
@@ -170,7 +218,7 @@ export class PlayerAdvancementHistoryService {
         asc(playerSkills.advancementOrder),
         asc(skills.name),
       );
-    const byPlayer = new Map<number, StoredPlayerSkill[]>();
+    const byPlayer = new Map<number, UncategorisedSkill[]>();
     for (const { playerId, ...skill } of rows) {
       const list = byPlayer.get(playerId) ?? [];
       list.push(skill);
@@ -212,6 +260,71 @@ export class PlayerAdvancementHistoryService {
       byPlayer.set(playerId, granted);
     }
     return byPlayer;
+  }
+
+  private async loadPositionCategories(
+    positionIds: number[],
+  ): Promise<Map<string, PositionCategories>> {
+    const rows = await this.db
+      .select({
+        positionId: positionRulesSets.positionId,
+        rulesSetId: positionRulesSets.rulesSetId,
+        category: positionRulesSetSkillCategories.skillCategory,
+        access: positionRulesSetSkillCategories.access,
+      })
+      .from(positionRulesSetSkillCategories)
+      .innerJoin(
+        positionRulesSets,
+        eq(
+          positionRulesSets.id,
+          positionRulesSetSkillCategories.positionRulesSetId,
+        ),
+      )
+      .where(
+        and(
+          inArray(positionRulesSets.positionId, positionIds),
+          eq(positionRulesSetSkillCategories.removed, false),
+        ),
+      );
+    const byPair = new Map<string, PositionCategories>();
+    for (const { positionId, rulesSetId, category, access } of rows) {
+      const key = this.pairKey(positionId, rulesSetId);
+      const categories = byPair.get(key) ?? {
+        primary: new Set<SkillCategory>(),
+        secondary: new Set<SkillCategory>(),
+      };
+      categories[access].add(category);
+      byPair.set(key, categories);
+    }
+    return byPair;
+  }
+
+  /** No query when the chunk's players have no skills at all. */
+  private async loadSkillCategories(
+    skillIds: number[],
+  ): Promise<Map<string, SkillCategory>> {
+    if (skillIds.length === 0) {
+      return new Map();
+    }
+    const rows = await this.db
+      .select({
+        skillId: skillRulesSets.skillId,
+        rulesSetId: skillRulesSets.rulesSetId,
+        category: skillRulesSets.category,
+      })
+      .from(skillRulesSets)
+      .where(inArray(skillRulesSets.skillId, skillIds));
+    return new Map(
+      rows.map((row) => [
+        this.pairKey(row.skillId, row.rulesSetId),
+        row.category,
+      ]),
+    );
+  }
+
+  /** One lookup key for an id paired with a rules set id. */
+  private pairKey(id: number, rulesSetId: number): string {
+    return `${String(id)}:${String(rulesSetId)}`;
   }
 
   /** Later rows overwrite earlier ones, so each era keeps its highest id. */

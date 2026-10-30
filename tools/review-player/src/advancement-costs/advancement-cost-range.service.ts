@@ -1,6 +1,7 @@
 import type {
   AdvancementKind,
   PlayerSkillSource,
+  SkillAccess,
 } from '@blood-bowl-tracker/domain-enums';
 import { ADVANCEMENT_KINDS } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
@@ -15,12 +16,7 @@ import type {
   UnspentSppModel,
 } from './advancement-cost-model.types';
 
-/**
- * The kinds a gained skill's stored source allows under a kind-priced rules
- * set. A coach who rolls a characteristic result may take a skill instead and
- * pays the characteristic price, so a skill not known to be random may also
- * have cost a `random_characteristic`.
- */
+/** The kinds a gained skill's stored source allows, when priced by kind. */
 const SKILL_KINDS: Readonly<
   Record<PlayerSkillSource, readonly AdvancementKind[]>
 > = {
@@ -30,15 +26,23 @@ const SKILL_KINDS: Readonly<
     'chosen_primary_skill',
     'random_secondary_skill',
     'chosen_secondary_skill',
-    'random_characteristic',
   ],
-  chosen: [
-    'chosen_primary_skill',
-    'chosen_secondary_skill',
-    'random_characteristic',
-  ],
+  chosen: ['chosen_primary_skill', 'chosen_secondary_skill'],
   random: ['random_primary_skill', 'random_secondary_skill'],
 };
+
+/** The skill kinds a skill of a primary or a secondary category can cost. */
+const ACCESS_KINDS: Readonly<Record<SkillAccess, readonly AdvancementKind[]>> =
+  {
+    primary: ['random_primary_skill', 'chosen_primary_skill'],
+    secondary: ['random_secondary_skill', 'chosen_secondary_skill'],
+  };
+
+/** A row and the kinds its cost may be of; none for a free or fixed row. */
+interface PricedRow {
+  row: ModelledAdvancement;
+  kinds: readonly AdvancementKind[];
+}
 
 /** Increase-count columns and the label BBL itself uses for each. */
 const INCREASES: readonly (readonly [keyof StoredIncreaseCounts, string])[] = [
@@ -56,10 +60,15 @@ const INCREASES: readonly (readonly [keyof StoredIncreaseCounts, string])[] = [
  * range takes, per advancement number, the cheapest and dearest cost of any
  * kind any of the player's paid advancements could be. That holds for every
  * order and every kind assignment, so a source's spend outside it is a real
- * disagreement while a spend inside proves nothing. Primary versus secondary
- * is not narrowed, and under a kind-priced rules set a skill not known to be
- * random may also have been a characteristic roll taken as a skill, at the
- * characteristic price.
+ * disagreement while a spend inside proves nothing.
+ *
+ * Under a kind-priced rules set a gained skill's kinds follow its stored
+ * source (random, chosen, or either) and its category under the rules set: a
+ * category the position has as primary allows only the primary kinds, one it
+ * has as secondary only the secondary kinds (primary wins when both are
+ * recorded), and a category it has neither way, or one that is not recorded,
+ * allows both. A characteristic roll taken as a skill is not modelled, so a
+ * skill is never priced as a `random_characteristic`.
  *
  * Starting skills and a skill one of the player's own trophy awards granted
  * cost nothing and take no number. A skill a `granted_skill` row names (a
@@ -72,8 +81,9 @@ const INCREASES: readonly (readonly [keyof StoredIncreaseCounts, string])[] = [
 export class AdvancementCostRangeService {
   model(history: AdvancementHistory): UnspentSppModel {
     const fixedThresholds = this.isFixedThresholds(history.costs);
-    const rows =
-      history.rulesSet === null ? [] : this.rows(history, fixedThresholds);
+    const priced =
+      history.rulesSet === null ? [] : this.priced(history, fixedThresholds);
+    const rows = priced.map((entry) => entry.row);
     const base: Omit<UnspentSppModel, 'unknownReason'> = {
       rulesSetName: history.rulesSet?.name ?? null,
       fixedThresholds,
@@ -93,7 +103,7 @@ export class AdvancementCostRangeService {
     if (history.costs.length === 0) {
       return { ...base, unknownReason: 'no_costs' };
     }
-    const spend = this.spend(history.costs, rows, fixedThresholds);
+    const spend = this.spend(history.costs, priced);
     if (spend === null) {
       return { ...base, unknownReason: 'unpriced_advancement' };
     }
@@ -117,24 +127,26 @@ export class AdvancementCostRangeService {
     );
   }
 
-  private rows(
+  private priced(
     history: AdvancementHistory,
     fixedThresholds: boolean,
-  ): ModelledAdvancement[] {
+  ): PricedRow[] {
     const entries = [
-      ...history.skills.map((skill) => this.skillEntry(skill, history)),
-      ...this.increaseEntries(history.increaseCounts),
+      ...history.skills.map((skill) =>
+        this.skillEntry(skill, history, fixedThresholds),
+      ),
+      ...this.increaseEntries(history.increaseCounts, fixedThresholds),
     ];
     const reserved = new Set(
-      entries.flatMap((entry) =>
-        entry.kind === 'granted' && entry.advancementNumber !== null
-          ? [entry.advancementNumber]
+      entries.flatMap(({ row }) =>
+        row.kind === 'granted' && row.advancementNumber !== null
+          ? [row.advancementNumber]
           : [],
       ),
     );
     let next = 1;
     return entries.map((entry) => {
-      if (entry.kind !== 'skill' && entry.kind !== 'characteristic') {
+      if (entry.row.kind !== 'skill' && entry.row.kind !== 'characteristic') {
         return entry;
       }
       while (reserved.has(next)) {
@@ -144,12 +156,15 @@ export class AdvancementCostRangeService {
       next += 1;
       return {
         ...entry,
-        advancementNumber,
-        candidates: this.costsAt(
-          history.costs,
+        row: {
+          ...entry.row,
           advancementNumber,
-          this.kindsFor(entry, fixedThresholds),
-        ),
+          candidates: this.costsAt(
+            history.costs,
+            advancementNumber,
+            entry.kinds,
+          ),
+        },
       };
     });
   }
@@ -157,7 +172,8 @@ export class AdvancementCostRangeService {
   private skillEntry(
     skill: StoredPlayerSkill,
     history: AdvancementHistory,
-  ): ModelledAdvancement {
+    fixedThresholds: boolean,
+  ): PricedRow {
     const row: Omit<ModelledAdvancement, 'kind'> = {
       label: skill.skillName,
       storedSource: skill.source,
@@ -165,10 +181,10 @@ export class AdvancementCostRangeService {
       candidates: [],
     };
     if (skill.source === 'starting') {
-      return { ...row, kind: 'starting' };
+      return { row: { ...row, kind: 'starting' }, kinds: [] };
     }
     if (history.trophyGrantedSkillIds.has(skill.skillId)) {
-      return { ...row, kind: 'trophy' };
+      return { row: { ...row, kind: 'trophy' }, kinds: [] };
     }
     const granting = history.costs.find(
       (c) =>
@@ -176,40 +192,71 @@ export class AdvancementCostRangeService {
     );
     if (granting !== undefined) {
       return {
-        ...row,
-        kind: 'granted',
-        advancementNumber: granting.advancementNumber,
-        candidates: [
-          { advancementKind: 'granted_skill', sppCost: granting.sppCost },
-        ],
+        row: {
+          ...row,
+          kind: 'granted',
+          advancementNumber: granting.advancementNumber,
+          candidates: [
+            { advancementKind: 'granted_skill', sppCost: granting.sppCost },
+          ],
+        },
+        kinds: [],
       };
     }
-    return { ...row, kind: 'skill' };
+    return {
+      row: { ...row, kind: 'skill' },
+      kinds: fixedThresholds ? ['table_roll'] : this.skillKinds(skill, history),
+    };
   }
 
-  private increaseEntries(counts: StoredIncreaseCounts): ModelledAdvancement[] {
+  /** The source's kinds, narrowed to the position's access to the category. */
+  private skillKinds(
+    skill: StoredPlayerSkill,
+    history: AdvancementHistory,
+  ): readonly AdvancementKind[] {
+    const allowed = SKILL_KINDS[skill.source];
+    const access = this.access(skill, history);
+    return access === null
+      ? allowed
+      : allowed.filter((kind) => ACCESS_KINDS[access].includes(kind));
+  }
+
+  /** Primary wins over secondary; null when neither applies or is recorded. */
+  private access(
+    skill: StoredPlayerSkill,
+    history: AdvancementHistory,
+  ): SkillAccess | null {
+    if (skill.category === null) {
+      return null;
+    }
+    if (history.primaryCategories.has(skill.category)) {
+      return 'primary';
+    }
+    if (history.secondaryCategories.has(skill.category)) {
+      return 'secondary';
+    }
+    return null;
+  }
+
+  private increaseEntries(
+    counts: StoredIncreaseCounts,
+    fixedThresholds: boolean,
+  ): PricedRow[] {
+    const kinds: readonly AdvancementKind[] = fixedThresholds
+      ? ['table_roll']
+      : ['random_characteristic'];
     return INCREASES.flatMap(([key, label]) =>
-      Array.from({ length: counts[key] }, (): ModelledAdvancement => ({
-        label,
-        kind: 'characteristic',
-        storedSource: null,
-        advancementNumber: null,
-        candidates: [],
+      Array.from({ length: counts[key] }, (): PricedRow => ({
+        row: {
+          label,
+          kind: 'characteristic',
+          storedSource: null,
+          advancementNumber: null,
+          candidates: [],
+        },
+        kinds,
       })),
     );
-  }
-
-  private kindsFor(
-    row: ModelledAdvancement,
-    fixedThresholds: boolean,
-  ): readonly AdvancementKind[] {
-    if (row.kind === 'characteristic') {
-      return fixedThresholds ? ['table_roll'] : ['random_characteristic'];
-    }
-    if (row.kind === 'skill' && row.storedSource !== null) {
-      return fixedThresholds ? ['table_roll'] : SKILL_KINDS[row.storedSource];
-    }
-    return [];
   }
 
   private costsAt(
@@ -234,15 +281,12 @@ export class AdvancementCostRangeService {
   /** Least and most spent, or null when a paid number has no cost at all. */
   private spend(
     costs: readonly ApplicableCost[],
-    rows: readonly ModelledAdvancement[],
-    fixedThresholds: boolean,
+    priced: readonly PricedRow[],
   ): { spentMin: number; spentMax: number } | null {
-    const kinds = [
-      ...new Set(rows.flatMap((row) => this.kindsFor(row, fixedThresholds))),
-    ];
+    const kinds = [...new Set(priced.flatMap((entry) => entry.kinds))];
     let spentMin = 0;
     let spentMax = 0;
-    for (const row of rows) {
+    for (const { row } of priced) {
       if (row.kind === 'granted') {
         const fixed = row.candidates.reduce((sum, c) => sum + c.sppCost, 0);
         spentMin += fixed;
