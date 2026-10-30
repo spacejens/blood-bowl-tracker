@@ -206,10 +206,12 @@ BB2025 and not BB2020 (12 and 18). `pendingImprovements` is 0 on every
 downloaded entry. The exceptions seen: five entries with a visible skill and
 a zero gap are all Hatred flagged `isExtra` or a Journeyman's Loner, so those
 skills are present without any SPP having been spent; one entry (line-up
-2477740 in Sasong 30) has a gap of 14 with a single chosen skill, which is
-the characteristic price: a coach who rolls a characteristic result may take
-a skill instead and pays the characteristic cost (the review tool,
-`tools/review-player`, does not model this, so it lists such a line-up as a
+2094737 in Sasong 29, a BB2020 roster) has a gap of 18 with a single chosen
+skill, which is the BB2020 characteristic price and not its secondary-skill
+price of 12: either a characteristic roll was taken as a skill at the
+characteristic price, or a characteristic increase is missing from the
+recorded history, and the data cannot tell which (the review tool,
+`tools/review-player`, models neither, so it lists such a line-up as a
 spend outside its modelled range); and line-up 2464153 in
 Chaos Cup 8 carries 2 unspent points against a total of 0 (a gap of -2),
 already present in its first match snapshot, whose only events there are a
