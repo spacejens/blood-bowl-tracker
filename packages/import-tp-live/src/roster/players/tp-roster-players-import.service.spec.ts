@@ -193,6 +193,36 @@ describe('TpRosterPlayersImportService', () => {
     expect(outcome.importedPlayers[0].reportedSppTotal).toBe(20);
   });
 
+  it("reports the roster file's own unspent snapshot, not the higher match total", async () => {
+    const service = await makeService();
+
+    const outcome = await run(service, {
+      players: [
+        rosterPlayer({ totalStarPlayerPoints: 12, starPlayerPoints: 4 }),
+      ],
+      embedded: [rosterPlayer({ totalStarPlayerPoints: 20 })],
+    });
+
+    expect(outcome.importedPlayers[0]).toMatchObject({
+      reportedSppTotal: 20,
+      unspentSppSnapshot: { unspentSpp: 4, snapshotSppTotal: 12 },
+    });
+  });
+
+  it('reports no unspent snapshot without starPlayerPoints or a roster entry', async () => {
+    const service = await makeService();
+
+    const outcome = await run(service, {
+      players: [rosterPlayer()],
+      embedded: [rosterPlayer({ id: 5002 })],
+    });
+
+    expect(outcome.importedPlayers.map((p) => p.unspentSppSnapshot)).toEqual([
+      undefined,
+      undefined,
+    ]);
+  });
+
   it('sends no sppTotal when the caller defers it, but still reports it', async () => {
     const service = await makeService();
 

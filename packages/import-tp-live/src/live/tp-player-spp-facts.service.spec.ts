@@ -84,6 +84,28 @@ describe('TpPlayerSppFactsService', () => {
     ).toEqual([{ playerId: 10, reportedSppTotal: 30 }]);
   });
 
+  it('passes each imported player its unspent snapshot when it has one', () => {
+    const snapshot = { unspentSpp: 4, snapshotSppTotal: 12 };
+    expect(
+      service.collect({
+        roster: tpRoster({ players: [] }),
+        importedPlayers: [
+          {
+            lineUpId: 1,
+            playerId: 10,
+            created: false,
+            reportedSppTotal: 12,
+            unspentSppSnapshot: snapshot,
+          },
+          { lineUpId: 2, playerId: 11, created: false, reportedSppTotal: 5 },
+        ],
+      }),
+    ).toEqual([
+      { playerId: 10, reportedSppTotal: 12, unspentSppSnapshot: snapshot },
+      { playerId: 11, reportedSppTotal: 5 },
+    ]);
+  });
+
   it('returns nothing when no player was imported', () => {
     expect(
       service.collect({ roster: tpRoster(), importedPlayers: [] }),

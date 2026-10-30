@@ -3,6 +3,7 @@ import type {
   TpImportedPlayer,
   TpMatchEmbeddedPlayer,
   TpMercenaryPositionUsage,
+  UnspentSppSnapshot,
   UpsertPlayer,
   UpsertPlayerCharacteristics,
 } from '@blood-bowl-tracker/api-contract';
@@ -70,7 +71,8 @@ export class TpRosterPlayersImportService {
    * match events); the roster file wins for any id both list, being the
    * freshest, except for the career SPP total, which only ever grows and so
    * takes the highest value seen; it is returned per player, and stored unless
-   * the caller defers it. Players carry only a TP external id (their
+   * the caller defers it. TP's unspent figure is returned only from the
+   * roster file's own entry, with that entry's own total. Players carry only a TP external id (their
    * `lineUps[].id`), never a Name one: player names are not unique.
    * Every player's status is sent too, `null` when TP's data establishes
    * none, so a re-import clears one the player no longer has; a roster file
@@ -89,6 +91,9 @@ export class TpRosterPlayersImportService {
       players: merged,
       tpSystemId: context.tpSystemId,
     });
+    const rosterEntries = new Map(
+      roster.players.map((entry) => [entry.id, entry]),
+    );
     const mercenaryCache: MercenaryPositionCache = new Map();
     const baselineCache = this.characteristicIncreases.newCache();
     const outcome: TpRosterPlayersOutcome = {
@@ -128,11 +133,13 @@ export class TpRosterPlayersImportService {
         continue;
       }
       outcome.imported += 1;
+      const snapshot = this.unspentSnapshot(rosterEntries.get(player.id));
       outcome.importedPlayers.push({
         lineUpId: player.id,
         playerId: upserted.player.id,
         created: upserted.created,
         reportedSppTotal: player.totalStarPlayerPoints,
+        ...(snapshot === undefined ? {} : { unspentSppSnapshot: snapshot }),
       });
       if (position.mercenary !== undefined) {
         outcome.mercenaryPositionUsages.push({
@@ -150,6 +157,22 @@ export class TpRosterPlayersImportService {
       errors,
     });
     return outcome;
+  }
+
+  /**
+   * The roster file entry's unspent SPP with that entry's own total. The
+   * merged player's total may be a match snapshot's higher one, which the
+   * unspent figure was never reported against.
+   */
+  private unspentSnapshot(
+    entry: TpRosterPlayer | undefined,
+  ): UnspentSppSnapshot | undefined {
+    return entry?.starPlayerPoints === undefined
+      ? undefined
+      : {
+          unspentSpp: entry.starPlayerPoints,
+          snapshotSppTotal: entry.totalStarPlayerPoints,
+        };
   }
 
   /**

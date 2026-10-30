@@ -138,6 +138,26 @@ describe('TpLiveSppAdjustmentsService', () => {
     });
   });
 
+  it('keeps the unspent snapshot reported beside the higher total', async () => {
+    sppAdjustments.syncReportedAdjustments.mockResolvedValue({
+      updatedPlayerIds: [1],
+    });
+    const older = { unspentSpp: 2, snapshotSppTotal: 10 };
+    const newer = { unspentSpp: 5, snapshotSppTotal: 14 };
+
+    await service.settle([
+      { playerId: 1, reportedSppTotal: 14, unspentSppSnapshot: newer },
+      { playerId: 1, reportedSppTotal: 10, unspentSppSnapshot: older },
+      { playerId: 1, reportedSppTotal: 14 },
+    ]);
+
+    expect(sppAdjustments.syncReportedAdjustments).toHaveBeenCalledWith({
+      players: [
+        { playerId: 1, reportedSppTotal: 14, unspentSppSnapshot: newer },
+      ],
+    });
+  });
+
   it('passes a player with no reported total through, for the sync to skip', async () => {
     sppAdjustments.syncReportedAdjustments.mockResolvedValue({
       updatedPlayerIds: [],

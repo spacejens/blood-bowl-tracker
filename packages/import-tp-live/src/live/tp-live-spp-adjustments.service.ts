@@ -2,6 +2,7 @@ import type {
   ImportError,
   ImportResult,
   SppCareerCounts,
+  UnspentSppSnapshot,
 } from '@blood-bowl-tracker/api-contract';
 import { SppAdjustmentsService } from '@blood-bowl-tracker/game-data';
 import {
@@ -49,8 +50,8 @@ export class TpLiveSppAdjustmentsService {
   /**
    * `imported` counts the players the sync updated. A player given more
    * than once (a team re-imported by a backfill) is sent once, with the
-   * highest reported total and the highest of each career counter, since
-   * both only ever grow. Excluded players are dropped before anything is
+   * highest reported total and the highest of each career counter, and the unspent
+   * snapshot reported beside the higher total, since totals only ever grow. Excluded players are dropped before anything is
    * sent; when none remain, the sync is not called.
    */
   async settle(
@@ -106,11 +107,33 @@ export class TpLiveSppAdjustmentsService {
         : second.careerCounts === undefined
           ? first.careerCounts
           : this.highest(first.careerCounts, second.careerCounts);
+    const snapshot = this.fresherSnapshot(
+      first.unspentSppSnapshot,
+      second.unspentSppSnapshot,
+    );
     return {
       playerId: first.playerId,
       ...(totals.length === 0 ? {} : { reportedSppTotal: Math.max(...totals) }),
       ...(careerCounts === undefined ? {} : { careerCounts }),
+      ...(snapshot === undefined ? {} : { unspentSppSnapshot: snapshot }),
     };
+  }
+
+  /**
+   * The snapshot reported beside the higher total, the later one on a tie:
+   * totals only grow, so that is the fresher roster read.
+   */
+  private fresherSnapshot(
+    first: UnspentSppSnapshot | undefined,
+    second: UnspentSppSnapshot | undefined,
+  ): UnspentSppSnapshot | undefined {
+    if (first === undefined) {
+      return second;
+    }
+    if (second === undefined) {
+      return first;
+    }
+    return second.snapshotSppTotal >= first.snapshotSppTotal ? second : first;
   }
 
   private highest(a: SppCareerCounts, b: SppCareerCounts): SppCareerCounts {
