@@ -13,6 +13,8 @@ import type {
 } from './advancement-cost-model.types';
 import { AdvancementCostRangeService } from './advancement-cost-range.service';
 import { PlayerAdvancementHistoryService } from './player-advancement-history.service';
+import { SourceSpendComparisonService } from './source-spend-comparison.service';
+import type { SourceUnspentSppFigure } from './source-unspent-spp-figure.service';
 import { SourceUnspentSppFigureService } from './source-unspent-spp-figure.service';
 import { UnspentSppOutsideRangeStratificationService } from './unspent-spp-outside-range-stratification.service';
 
@@ -29,26 +31,37 @@ function row(playerId: number) {
   };
 }
 
-const KNOWN: UnspentSppModel = {
-  rulesSetName: 'CRP',
-  fixedThresholds: true,
+const KIND_PRICED: UnspentSppModel = {
+  rulesSetName: 'BB2020',
+  fixedThresholds: false,
   rows: [],
-  totalSpp: 40,
-  range: { spentMin: 31, spentMax: 31, unspentMin: 9, unspentMax: 9 },
+  totalSpp: 60,
+  range: { spentMin: 10, spentMax: 20, unspentMin: 40, unspentMax: 50 },
   unknownReason: null,
 };
+const FIXED: UnspentSppModel = {
+  ...KIND_PRICED,
+  rulesSetName: 'CRP',
+  fixedThresholds: true,
+};
 const UNKNOWN: UnspentSppModel = {
-  ...KNOWN,
+  ...KIND_PRICED,
   range: null,
   unknownReason: 'no_costs',
 };
 
-function figure(unspent: number | null) {
+/** A source figure whose own spend is `total - unspent`. */
+function figure(
+  source: 'bbl' | 'tp',
+  spend: number | null,
+): SourceUnspentSppFigure {
   return {
-    unspentLabel: 'BBL Unspent SPP',
-    unspent,
-    totalLabel: 'BBL career SPP (bracketed)',
-    reportedTotal: 40,
+    source,
+    unspentLabel: 'unspent',
+    unspent: spend === null ? null : 30 - spend,
+    totalLabel: 'total',
+    reportedTotal: 30,
+    spendLabel: 'spend',
   };
 }
 
@@ -88,9 +101,27 @@ describe('UnspentSppOutsideRangeStratificationService', () => {
         { provide: PlayerAdvancementHistoryService, useValue: history },
         { provide: AdvancementCostRangeService, useValue: range },
         { provide: SourceUnspentSppFigureService, useValue: figures },
+        // A pure, dependency-free decision service: passed real so the
+        // stratum is checked against the same comparison the panel uses.
+        SourceSpendComparisonService,
       ],
     }).compile();
     service = moduleRef.get(UnspentSppOutsideRangeStratificationService);
+  }
+
+  async function listed(
+    source: 'bbl' | 'tp',
+    model: UnspentSppModel,
+    reported: SourceUnspentSppFigure | null,
+  ): Promise<number[]> {
+    range.model.mockReturnValue(model);
+    figures.figureFor.mockResolvedValue(reported);
+    const found = await service.sampleStratum({
+      source,
+      stratumId: STRATUM,
+      limit: 3,
+    });
+    return found.map((p) => p.playerId);
   }
 
   beforeEach(async () => {
@@ -101,20 +132,19 @@ describe('UnspentSppOutsideRangeStratificationService', () => {
     expect(service.listStrata()).toEqual([
       {
         id: STRATUM,
-        label: 'Source unspent SPP outside the modelled range',
+        label: 'Source-reported spend outside the modelled spend range',
         sources: ['bbl', 'tp'],
       },
     ]);
   });
 
-  it('lists every player whose figure is outside, ignoring the limit', async () => {
+  it('lists every player whose reported spend is outside, ignoring the limit', async () => {
     await build([row(1), row(2), row(3)]);
-    range.model.mockReturnValue(KNOWN);
-    figures.figureFor.mockResolvedValue(figure(3));
-    range.placement
-      .mockReturnValueOnce('below')
-      .mockReturnValueOnce('inside')
-      .mockReturnValueOnce('above');
+    range.model.mockReturnValue(KIND_PRICED);
+    figures.figureFor
+      .mockResolvedValueOnce(figure('bbl', 9))
+      .mockResolvedValueOnce(figure('bbl', 15))
+      .mockResolvedValueOnce(figure('bbl', 21));
 
     const found = await service.sampleStratum({
       source: 'bbl',
@@ -131,31 +161,50 @@ describe('UnspentSppOutsideRangeStratificationService', () => {
     expect(history.forPlayers).toHaveBeenCalledWith([1, 2, 3]);
   });
 
-  it('passes the modelled range and the source figure to the placement check', async () => {
-    range.model.mockReturnValue(KNOWN);
-    figures.figureFor.mockResolvedValue(figure(9));
-    range.placement.mockReturnValue('inside');
+  it.each([
+    ['below', 9, [1]],
+    ['at the lower bound of', 10, []],
+    ['inside', 15, []],
+    ['at the upper bound of', 20, []],
+    ['above', 21, [1]],
+  ] as const)(
+    'places a reported spend %s the modelled spend range',
+    async (_where, spend, expected) => {
+      expect(await listed('tp', KIND_PRICED, figure('tp', spend))).toEqual(
+        expected,
+      );
+      expect(figures.figureFor).toHaveBeenCalledWith({
+        source: 'tp',
+        externalId: '1001',
+      });
+    },
+  );
 
-    const found = await service.sampleStratum({
-      source: 'tp',
-      stratumId: STRATUM,
-      limit: 3,
-    });
+  it.each([
+    ['a null total', { ...figure('tp', 99), reportedTotal: null }],
+    ['a null unspent figure', figure('tp', null)],
+    ['no source figure', null],
+  ])('never lists a player with %s', async (_what, reported) => {
+    expect(await listed('tp', KIND_PRICED, reported)).toEqual([]);
+  });
 
-    expect(found).toEqual([]);
-    expect(range.placement).toHaveBeenCalledWith(9, KNOWN.range);
-    expect(figures.figureFor).toHaveBeenCalledWith({
-      source: 'tp',
-      externalId: '1001',
-    });
+  it('never lists a BBL player under a fixed-threshold rules set', async () => {
+    expect(await listed('bbl', FIXED, figure('bbl', 99))).toEqual([]);
+  });
+
+  it('compares a BBL player under a kind-priced rules set', async () => {
+    expect(await listed('bbl', KIND_PRICED, figure('bbl', 99))).toEqual([1]);
+  });
+
+  it('compares a TP player under a fixed-threshold rules set', async () => {
+    expect(await listed('tp', FIXED, figure('tp', 99))).toEqual([1]);
   });
 
   it('handles a large candidate set in one history load', async () => {
     const many = Array.from({ length: 2500 }, (_, i) => row(i + 1));
     await build(many);
-    range.model.mockReturnValue(KNOWN);
-    figures.figureFor.mockResolvedValue(figure(3));
-    range.placement.mockReturnValue('above');
+    range.model.mockReturnValue(KIND_PRICED);
+    figures.figureFor.mockResolvedValue(figure('bbl', 99));
 
     const found = await service.sampleStratum({
       source: 'bbl',
@@ -179,23 +228,6 @@ describe('UnspentSppOutsideRangeStratificationService', () => {
     ).toEqual([]);
     expect(figures.figureFor).not.toHaveBeenCalled();
   });
-
-  it.each([null, figure(null)])(
-    'never lists a player with no source figure (%o)',
-    async (reported) => {
-      range.model.mockReturnValue(KNOWN);
-      figures.figureFor.mockResolvedValue(reported);
-
-      expect(
-        await service.sampleStratum({
-          source: 'tp',
-          stratumId: STRATUM,
-          limit: 3,
-        }),
-      ).toEqual([]);
-      expect(range.placement).not.toHaveBeenCalled();
-    },
-  );
 
   it('skips a candidate the history load did not return', async () => {
     history.forPlayers.mockResolvedValue(new Map());

@@ -5,11 +5,13 @@ import { Injectable } from '@nestjs/common';
 import type { SampledPlayer } from '../shared/review.types';
 import type {
   ModelledAdvancement,
+  SpendComparison,
   UnknownRangeReason,
   UnspentSppModel,
 } from './advancement-cost-model.types';
 import { AdvancementCostRangeService } from './advancement-cost-range.service';
 import { PlayerAdvancementHistoryService } from './player-advancement-history.service';
+import { SourceSpendComparisonService } from './source-spend-comparison.service';
 import type { SourceUnspentSppFigure } from './source-unspent-spp-figure.service';
 import { SourceUnspentSppFigureService } from './source-unspent-spp-figure.service';
 
@@ -25,17 +27,25 @@ const UNKNOWN_REASONS: Readonly<Record<UnknownRangeReason, string>> = {
 };
 
 const ORDER_NOTE =
-  'Gained skills are listed in their stored order, which is unverified; characteristic increases are counts, so their order is unknown. The numbers shown are one possible order: the range below holds for any order and any kind.';
+  'Gained skills are listed in their stored order, which is unverified; characteristic increases are counts, so their order is unknown. The numbers shown are one possible order.';
+
+const ORDER_RANGE_NOTE =
+  ' The modelled range in the next table holds for any order and any kind.';
 
 const READING_NOTE =
-  'Holding unspent SPP is normal and is never flagged. A source figure outside the modelled unspent range is a real disagreement; one inside it proves nothing. Gaps in the recorded advancement history make the modelled spend too small, which can explain a source figure below the range.';
+  "Holding unspent SPP is normal and is never flagged. The source's own spend (its total minus its unspent SPP) outside the modelled spend range is a real disagreement; one inside it proves nothing. Gaps in the recorded advancement history make the modelled spend too small, which can explain a reported spend above the range.";
+
+/** The note shown when `SourceSpendComparisonService` does not compare. */
+const NOT_COMPARED_NOTE =
+  'BBL prices every player at BB2020 costs, so its figure is not compared under this rules set.';
 
 /**
  * The stored side of the advancement-cost check: each of the player's
  * advancements with the cost the curated `advancement_costs` give it, then
  * the stored total, the modelled spend and unspent range, and the source's
- * own figures beside them. Only a source figure outside the modelled range
- * is highlighted, with a label in words; unspent SPP itself never is.
+ * own total, unspent SPP and derived spend beside them. Only a reported spend
+ * outside the modelled spend range is highlighted, with a label in words;
+ * unspent SPP itself never is.
  */
 @Injectable()
 export class AdvancementCostsDbRendererService {
@@ -43,6 +53,7 @@ export class AdvancementCostsDbRendererService {
     private readonly history: PlayerAdvancementHistoryService,
     private readonly range: AdvancementCostRangeService,
     private readonly figures: SourceUnspentSppFigureService,
+    private readonly comparison: SourceSpendComparisonService,
     private readonly html: HtmlService,
   ) {}
 
@@ -57,13 +68,20 @@ export class AdvancementCostsDbRendererService {
     }
     const model = this.range.model(history);
     const figure = await this.figures.figureFor(player);
+    const compared = this.comparison.compare(model, figure);
     return (
       this.advancements(model) +
       this.html.subheading('Unspent SPP') +
-      this.html.table(['Figure', 'Value'], this.footerRows(model, figure)) +
+      this.html.table(
+        ['Figure', 'Value'],
+        this.footerRows(model, figure, compared),
+      ) +
       (model.unknownReason === null
         ? ''
         : this.html.note(UNKNOWN_REASONS[model.unknownReason])) +
+      (compared.kind === 'not_compared'
+        ? this.html.note(NOT_COMPARED_NOTE)
+        : '') +
       this.html.note(READING_NOTE)
     );
   }
@@ -86,7 +104,9 @@ export class AdvancementCostsDbRendererService {
           this.cost(row),
         ]),
       ) +
-      this.html.note(ORDER_NOTE)
+      this.html.note(
+        model.range === null ? ORDER_NOTE : ORDER_NOTE + ORDER_RANGE_NOTE,
+      )
     );
   }
 
@@ -128,6 +148,7 @@ export class AdvancementCostsDbRendererService {
   private footerRows(
     model: UnspentSppModel,
     figure: SourceUnspentSppFigure | null,
+    compared: SpendComparison,
   ): TableRow[] {
     const rows: TableRow[] = [
       [
@@ -151,39 +172,49 @@ export class AdvancementCostsDbRendererService {
       rows.push(['Source figures', 'none read']);
       return rows;
     }
-    rows.push(this.unspentRow(model, figure));
-    rows.push([
-      figure.totalLabel,
-      figure.reportedTotal === null ? NONE : String(figure.reportedTotal),
-    ]);
+    rows.push(
+      [figure.totalLabel, this.value(figure.reportedTotal)],
+      [figure.unspentLabel, this.value(figure.unspent)],
+      this.spendRow(figure, compared),
+    );
     return rows;
   }
 
-  private unspentRow(
-    model: UnspentSppModel,
+  private spendRow(
     figure: SourceUnspentSppFigure,
+    compared: SpendComparison,
   ): TableRow {
-    if (figure.unspent === null) {
-      return [figure.unspentLabel, NONE];
+    if (compared.kind === 'none') {
+      const spend =
+        figure.reportedTotal === null || figure.unspent === null
+          ? null
+          : figure.reportedTotal - figure.unspent;
+      return [figure.spendLabel, this.value(spend)];
     }
-    if (model.range === null) {
-      return [figure.unspentLabel, String(figure.unspent)];
-    }
-    const placement = this.range.placement(figure.unspent, model.range);
-    if (placement === 'inside') {
+    if (compared.kind === 'not_compared') {
       return [
-        figure.unspentLabel,
-        `${figure.unspent} (inside the modelled range)`,
+        figure.spendLabel,
+        `${compared.reportedSpend} (not compared under this rules set)`,
       ];
     }
-    // Cell 1 holds the source's figure: that is the disagreeing cell.
+    if (compared.placement === 'inside') {
+      return [
+        figure.spendLabel,
+        `${compared.reportedSpend} (inside the modelled spend range)`,
+      ];
+    }
+    // Cell 1 holds the source's spend: that is the disagreeing cell.
     return this.html.highlight(
       [
-        figure.unspentLabel,
-        `${figure.unspent} — outside the modelled range (${placement} it)`,
+        figure.spendLabel,
+        `${compared.reportedSpend} — outside the modelled spend range (${compared.placement} it)`,
       ],
       [1],
     );
+  }
+
+  private value(figure: number | null): string {
+    return figure === null ? NONE : String(figure);
   }
 
   private span(min: number, max: number): string {

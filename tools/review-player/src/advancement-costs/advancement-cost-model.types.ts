@@ -96,5 +96,16 @@ export interface UnspentSppModel {
   unknownReason: UnknownRangeReason | null;
 }
 
-/** Where a source's figure lies against the modelled unspent range. */
+/** Where a source's reported spend lies against the modelled spend range. */
 export type FigurePlacement = 'below' | 'inside' | 'above';
+
+/**
+ * The outcome of placing a source's own spend (its reported total minus its
+ * reported unspent SPP) against the modelled spend range: `none` when either
+ * source number or the range is missing, `not_compared` when the source's
+ * figure is known but is not placed under this rules set, else `compared`.
+ */
+export type SpendComparison =
+  | { kind: 'none' }
+  | { kind: 'not_compared'; reportedSpend: number }
+  | { kind: 'compared'; reportedSpend: number; placement: FigurePlacement };

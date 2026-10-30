@@ -7,14 +7,15 @@ import { AdvancementCostsDbRendererService } from './advancement-costs-db-render
 import { AdvancementCostsReviewerService } from './advancement-costs-reviewer.service';
 import { BblAdvancementCostsRawRendererService } from './bbl-advancement-costs-raw-renderer.service';
 import { PlayerAdvancementHistoryService } from './player-advancement-history.service';
+import { SourceSpendComparisonService } from './source-spend-comparison.service';
 import { SourceUnspentSppFigureService } from './source-unspent-spp-figure.service';
 import { TpAdvancementCostsRawRendererService } from './tp-advancement-costs-raw-renderer.service';
 import { UnspentSppOutsideRangeStratificationService } from './unspent-spp-outside-range-stratification.service';
 
 /**
- * The advancement-costs data type: each source's own unspent SPP figure
- * beside each stored advancement's modelled cost, and the always-listed
- * stratum of players whose source figure lies outside the modelled range.
+ * The advancement-costs data type: each source's own SPP figures beside each
+ * stored advancement's modelled cost, and the always-listed stratum of
+ * players whose source-reported spend lies outside the modelled spend range.
  */
 @Module({
   imports: [SharedModule, SourceModule],
@@ -24,6 +25,7 @@ import { UnspentSppOutsideRangeStratificationService } from './unspent-spp-outsi
     AdvancementCostsReviewerService,
     BblAdvancementCostsRawRendererService,
     PlayerAdvancementHistoryService,
+    SourceSpendComparisonService,
     SourceUnspentSppFigureService,
     TpAdvancementCostsRawRendererService,
     UnspentSppOutsideRangeStratificationService,

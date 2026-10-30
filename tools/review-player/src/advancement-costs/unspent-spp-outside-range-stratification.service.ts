@@ -17,33 +17,35 @@ import type {
 import type { ReviewPlayer, ReviewStratum } from '../shared/review.types';
 import { AdvancementCostRangeService } from './advancement-cost-range.service';
 import { PlayerAdvancementHistoryService } from './player-advancement-history.service';
+import { SourceSpendComparisonService } from './source-spend-comparison.service';
 import { SourceUnspentSppFigureService } from './source-unspent-spp-figure.service';
 
 const OUTSIDE_RANGE_STRATUM = 'unspent-spp-outside-range';
 
 /**
- * Every player whose source-reported unspent SPP lies outside the unspent
- * range modelled from their stored advancements and `advancement_costs`.
- * Holding unspent SPP is normal and never selects anyone; only a figure the
- * modelled range cannot contain does.
+ * Every player whose source-reported spend (the source's total minus its
+ * unspent SPP) lies outside the spend range modelled from their stored
+ * advancements and `advancement_costs`. Holding unspent SPP is normal and
+ * never selects anyone; only a spend the modelled range cannot contain does.
+ * The comparison itself, including which figures are not compared, is
+ * `SourceSpendComparisonService`'s, shared with the imported panel.
  *
  * Unlike the other strata this one reads the raw sources (BBL's Unspent SPP
- * row, TP's roster `starPlayerPoints`), through the same `source/` readers the
- * panels use. That is the only way to express "the source disagrees" as a
- * stratum. The readers cache per player, so the panels of a selected player
- * read nothing again.
+ * row and bracketed total, TP's roster `starPlayerPoints` and
+ * `totalStarPlayerPoints`), through the same `source/` readers the panels
+ * use. That is the only way to express "the source disagrees" as a stratum.
  *
  * Deliberately ignores the caller's `limit`, like the SPP-discrepancy stratum:
  * a real disagreement must never be sampled away. Star players (they never
  * advance), players with no stored total, players whose rules set has no
- * costs and players with no source figure are never listed.
+ * costs and players with no complete source figure are never listed.
  */
 @Injectable()
 export class UnspentSppOutsideRangeStratificationService implements PlayerStratifier {
   private readonly strata: readonly ReviewStratum[] = [
     {
       id: OUTSIDE_RANGE_STRATUM,
-      label: 'Source unspent SPP outside the modelled range',
+      label: 'Source-reported spend outside the modelled spend range',
       sources: ['bbl', 'tp'],
     },
   ];
@@ -54,6 +56,7 @@ export class UnspentSppOutsideRangeStratificationService implements PlayerStrati
     private readonly history: PlayerAdvancementHistoryService,
     private readonly range: AdvancementCostRangeService,
     private readonly figures: SourceUnspentSppFigureService,
+    private readonly comparison: SourceSpendComparisonService,
   ) {}
 
   listStrata(): ReviewStratum[] {
@@ -93,10 +96,8 @@ export class UnspentSppOutsideRangeStratificationService implements PlayerStrati
         source,
         externalId: candidate.externalId,
       });
-      if (figure === null || figure.unspent === null) {
-        continue;
-      }
-      if (this.range.placement(figure.unspent, model.range) !== 'inside') {
+      const compared = this.comparison.compare(model, figure);
+      if (compared.kind === 'compared' && compared.placement !== 'inside') {
         listed.push({ source, ...candidate });
       }
     }

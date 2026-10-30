@@ -31,10 +31,12 @@ describe('SourceUnspentSppFigureService', () => {
     expect(
       await service.figureFor({ source: 'bbl', externalId: '1020' }),
     ).toEqual({
+      source: 'bbl',
       unspentLabel: 'BBL Unspent SPP',
       unspent: -4,
       totalLabel: 'BBL career SPP (bracketed)',
       reportedTotal: 34,
+      spendLabel: 'BBL spent SPP (career minus unspent)',
     });
     expect(bbl.read).toHaveBeenCalledWith('1020');
   });
@@ -44,10 +46,12 @@ describe('SourceUnspentSppFigureService', () => {
 
     expect(await service.figureFor({ source: 'bbl', externalId: '5' })).toEqual(
       {
+        source: 'bbl',
         unspentLabel: 'BBL Unspent SPP',
         unspent: null,
         totalLabel: 'BBL career SPP (bracketed)',
         reportedTotal: null,
+        spendLabel: 'BBL spent SPP (career minus unspent)',
       },
     );
   });
@@ -61,10 +65,12 @@ describe('SourceUnspentSppFigureService', () => {
 
     expect(await service.figureFor({ source: 'tp', externalId: '77' })).toEqual(
       {
+        source: 'tp',
         unspentLabel: 'TP starPlayerPoints',
         unspent: 4,
         totalLabel: 'TP totalStarPlayerPoints',
         reportedTotal: 16,
+        spendLabel: 'TP spent SPP (total minus starPlayerPoints)',
       },
     );
     expect(tp.sppFiguresFor).toHaveBeenCalledWith('77');
@@ -79,10 +85,12 @@ describe('SourceUnspentSppFigureService', () => {
 
     expect(await service.figureFor({ source: 'tp', externalId: '77' })).toEqual(
       {
+        source: 'tp',
         unspentLabel: 'TP starPlayerPoints',
         unspent: null,
         totalLabel: 'TP totalStarPlayerPoints',
         reportedTotal: null,
+        spendLabel: 'TP spent SPP (total minus starPlayerPoints)',
       },
     );
   });

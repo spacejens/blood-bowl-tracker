@@ -18,7 +18,7 @@ function player(source: 'bbl' | 'tp'): SampledPlayer {
     teamName: 'Reikland Reavers',
     positionName: 'Blitzer',
     eraName: 'Fourth Era',
-    selectedFor: ['Source unspent SPP outside the modelled range'],
+    selectedFor: ['Source-reported spend outside the modelled spend range'],
   };
 }
 
