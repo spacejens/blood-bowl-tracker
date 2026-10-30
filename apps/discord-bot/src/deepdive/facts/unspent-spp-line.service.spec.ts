@@ -64,6 +64,16 @@ describe('UnspentSppLineService', () => {
       'Unspent SPP: 40 (no further advancements available)',
     ],
     [
+      'a range with no further advancement',
+      known({
+        unspentMin: 38,
+        unspentMax: 40,
+        cheapestNextCost: null,
+        coversAnother: 'no',
+      }),
+      'Unspent SPP: 38–40 (no further advancements available)',
+    ],
+    [
       'zero, with no verdict',
       known({ unspentMin: 0, unspentMax: 0, coversAnother: 'no' }),
       'Unspent SPP: 0',
