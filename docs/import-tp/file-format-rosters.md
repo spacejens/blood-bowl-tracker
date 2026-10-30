@@ -196,19 +196,25 @@ instead (see [index.md](./index.md)'s `TpRosterPlayersImportService` (server-sid
 player's career SPP. `starPlayerPoints` is the part of it not yet spent on
 advancements: across the 1336 entries in the 108 downloaded roster files,
 `totalStarPlayerPoints - starPlayerPoints` is zero in 626 entries and
-otherwise a sum that the BB2025 advancement costs allow (among the most
-common gaps are 3, 6, 7, 10, 14, 20 and 26). Hand-checked examples: a chosen
-primary skill (6), two random primary skills (3 + 4 = 7), a chosen
-then a random primary skill (6 + 4 = 10), three chosen primary skills
-(6 + 8 + 12 = 26), a chosen secondary skill (10), and a lone characteristic
-increase (14) all match. The secondary-skill and characteristic costs fit
-BB2025 and not BB2020 (12 and 18). `pendingImprovements` is 0 on every
-downloaded entry. The exceptions seen: five entries with a visible skill and
+otherwise a sum of advancement costs. The most common gaps (3, 6, 7, 10, 14,
+20 and 26) are sums of primary-skill prices, which are the same in BB2020,
+DB2021 and BB2025. Hand-checked examples: a chosen primary skill (6), two
+random primary skills (3 + 4 = 7), a chosen then a random primary skill
+(6 + 4 = 10), and three chosen primary skills (6 + 8 + 12 = 26). The
+secondary-skill and characteristic prices differ between the rules sets, and
+the gaps follow the roster's own rules set. Counted per line-up, from its
+snapshot with the highest total, BB2020 rosters (rule set 20) have a lone
+chosen skill with a gap of 12, the secondary-skill price, twice, and a
+line-up with no gained skill and a gap of 18, a lone characteristic
+increase, once; BB2025 rosters (rule set 25) have a lone chosen skill with a
+gap of 10, their secondary-skill price, twice. `pendingImprovements` is 0 on
+every downloaded entry. The exceptions seen: five entries with a visible skill and
 a zero gap are all Hatred flagged `isExtra` or a Journeyman's Loner, so those
-skills are present without any SPP having been spent; one entry (line-up
-2094737 in Sasong 29, a BB2020 roster) has a gap of 18 with a single chosen
-skill, which is the BB2020 characteristic price and not its secondary-skill
-price of 12: either a characteristic roll was taken as a skill at the
+skills are present without any SPP having been spent; three line-ups
+have a single chosen skill and a gap equal to the characteristic price, not
+to any skill price: line-up 2094737 in Sasong 29 (a BB2020 roster, gap 18
+against a secondary-skill price of 12) and two BB2025 line-ups (gap 14
+against 10). Either a characteristic roll was taken as a skill at the
 characteristic price, or a characteristic increase is missing from the
 recorded history, and the data cannot tell which (the review tool,
 `tools/review-player`, models neither, so it lists such a line-up as a
