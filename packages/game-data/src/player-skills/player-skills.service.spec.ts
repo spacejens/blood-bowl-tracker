@@ -64,6 +64,7 @@ describe('PlayerSkillsService', () => {
       const clear = db.chains[db.chains.length - 1];
       expect(db.db.update).toHaveBeenLastCalledWith(players);
       expect(firstCallArg(clear.set)).toEqual({ unspentSpp: null });
+      expect(extractAllFilterValues(firstCallArg(clear.where))).toContain(1);
     });
 
     it('inserts a gained skill with its variant and order', async () => {
@@ -165,6 +166,8 @@ describe('PlayerSkillsService', () => {
       // Only the two precondition selects and the existing-rows select ran.
       expect(db.chains).toHaveLength(3);
       expect(db.transaction).not.toHaveBeenCalled();
+      // No change, so the stored unspent SPP is not cleared either.
+      expect(db.db.update).not.toHaveBeenCalled();
     });
 
     it("updates an existing row's source when the entry disagrees", async () => {

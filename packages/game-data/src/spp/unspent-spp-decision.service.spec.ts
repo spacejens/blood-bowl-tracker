@@ -86,6 +86,7 @@ describe('UnspentSppDecisionService.decide', () => {
 
   it.each([
     ['an exact figure', known(4, 4), 4],
+    ['an exact zero', known(0, 0), 0],
     ['nothing for a range', known(4, 6), null],
     ['nothing for a negative exact figure', known(-2, -2), null],
     [
@@ -142,6 +143,21 @@ describe('UnspentSppDecisionService.decide', () => {
     },
   );
 
+  it('stores a valid source figure under kind pricing when the model result is unknown', async () => {
+    const { service } = await makeService([
+      [
+        1,
+        modelled('kind_priced', {
+          status: 'unknown',
+          reason: 'inconsistent_history',
+        }),
+      ],
+    ]);
+    expect(
+      await service.decide([{ playerId: 1, sppTotal: 30, snapshot: SNAPSHOT }]),
+    ).toEqual(new Map([[1, 9]]));
+  });
+
   it('stores nothing without a pricing model or a player row', async () => {
     const { service } = await makeService([[1, modelled(null, known(9, 9))]]);
     expect(
@@ -188,5 +204,36 @@ describe('UnspentSppDecisionService.refreshFixedThreshold', () => {
     expect(extractAllFilterValues(firstCallArg(db.chains[1].where))).toEqual([
       2,
     ]);
+  });
+
+  it('groups a negative exact value with the players stored as null', async () => {
+    const { service, db } = await makeService([
+      [1, modelled('fixed_threshold', known(-2, -2))],
+    ]);
+
+    await service.refreshFixedThreshold([1]);
+
+    expect(db.chains).toHaveLength(1);
+    expect(firstCallArg(db.chains[0].set)).toEqual({ unspentSpp: null });
+    expect(extractAllFilterValues(firstCallArg(db.chains[0].where))).toEqual([
+      1,
+    ]);
+  });
+
+  it('groups an unknown result with the players stored as null', async () => {
+    const { service, db } = await makeService([
+      [
+        1,
+        modelled('fixed_threshold', {
+          status: 'unknown',
+          reason: 'inconsistent_history',
+        }),
+      ],
+    ]);
+
+    await service.refreshFixedThreshold([1]);
+
+    expect(db.chains).toHaveLength(1);
+    expect(firstCallArg(db.chains[0].set)).toEqual({ unspentSpp: null });
   });
 });

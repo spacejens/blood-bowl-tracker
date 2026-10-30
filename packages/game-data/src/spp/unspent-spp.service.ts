@@ -129,9 +129,9 @@ export class UnspentSppService {
    * Each requested player's result, keyed by player id. A requested id with
    * no player is absent. The whole batch is loaded in one query per table.
    *
-   * Meant for one player or one roster at a time: the player ids go into a
-   * single unchunked `inArray`, so a very large batch could exceed Postgres's
-   * bind-parameter limit.
+   * The player ids go into a single unchunked `inArray`, so the caller keeps
+   * the batch bounded (the importers send their SPP adjustments in chunks of
+   * 500); a very large batch could exceed Postgres's bind-parameter limit.
    */
   async forPlayers(
     playerIds: number[],
