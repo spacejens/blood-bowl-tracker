@@ -9,6 +9,7 @@ import type {
   PositionCharacteristicsContext,
   PositionKeyword,
   StarPlayerIdentity,
+  UnspentSppResult,
 } from '@blood-bowl-tracker/game-data';
 import {
   CharacteristicDisplayFormattingService,
@@ -19,6 +20,7 @@ import {
   PositionRulesSetsService,
   StarPlayersService,
   TrophyAwardsService,
+  UnspentSppService,
 } from '@blood-bowl-tracker/game-data';
 import { Injectable, Logger } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
@@ -158,6 +160,7 @@ export class PlayerDeepdiveService {
     private readonly statusConflicts: PlayerStatusConflictReporterService,
     private readonly errorLog: ErrorLogService,
     private readonly sppSection: PlayerSppSectionService,
+    private readonly unspentSpp: UnspentSppService,
   ) {}
 
   async resolve(playerId: number): Promise<string | InteractionReplyOptions> {
@@ -303,6 +306,18 @@ export class PlayerDeepdiveService {
       keywordRows = rows;
     }
 
+    // Supplementary, so a timeout (null) shows the line as unknown instead
+    // of discarding the rest of the deepdive. Skipped without a total: the
+    // whole total section is then absent. Appended last so the earlier
+    // queries' timeout specs keep their `run` ordering.
+    const unspent: UnspentSppResult | undefined | null =
+      player.sppTotal === null
+        ? undefined
+        : await this.databaseTimeout.run(
+            this.unspentSpp.forPlayer(playerId),
+            null,
+          );
+
     // Omitted entirely when no rules set applies to the player's era: there
     // is then no way to know how to write the values, and a wrongly
     // formatted stat line would read as fact.
@@ -366,7 +381,7 @@ export class PlayerDeepdiveService {
     const totalLines = this.sppSection.build({
       sppTotal: player.sppTotal,
       sppAdjustment: player.sppAdjustment,
-      unspent: undefined,
+      unspent,
     });
     const countLines = [...categoryLines, ...totalLines];
     const killsSection = this.playerKills.build({

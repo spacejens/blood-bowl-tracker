@@ -8,6 +8,7 @@ import type {
   PlayerSkillRow,
   PositionCharacteristicsContext,
   PositionKeyword,
+  UnspentSppResult,
 } from '@blood-bowl-tracker/game-data';
 import {
   CharacteristicDisplayFormattingService,
@@ -18,6 +19,7 @@ import {
   PositionRulesSetsService,
   StarPlayersService,
   TrophyAwardsService,
+  UnspentSppService,
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -51,7 +53,8 @@ import { UnspentSppLineService } from './unspent-spp-line.service';
  * `player-deepdive.service.spec.ts` (header, honors, category counts, SPP
  * totals, and killer/Status line), `player-deepdive-kills.service.spec.ts`
  * (the Kills section) and `player-deepdive-status.spec.ts` (the `Status:`
- * line for every stored status, and kill/status conflicts) to keep each file
+ * line for every stored status, and kill/status conflicts) and
+ * `player-deepdive-unspent-spp.spec.ts` (the `Unspent SPP:` line) to keep each file
  * under the repo's 1000-line spec ceiling — see `CLAUDE.md`'s "Maximum file size".
  *
  * `makeService` compiles `PlayerDeepdiveService` with its pure formatting
@@ -172,6 +175,19 @@ export function makeClock(now: Date = TODAY): MockProxy<ClockService> {
 }
 
 /**
+ * An `UnspentSppService` mock. Defaults to `undefined` (the lookup found no
+ * such player), so specs about other parts of the embed never see an
+ * `Unspent SPP:` line.
+ */
+export function makeUnspentSpp(
+  result: UnspentSppResult | undefined = undefined,
+): MockProxy<UnspentSppService> {
+  const unspentSpp = mock<UnspentSppService>();
+  unspentSpp.forPlayer.mockResolvedValue(result);
+  return unspentSpp;
+}
+
+/**
  * A `PlayerStatusConflictReporterService` mock whose `report` resolves, as
  * the real one always does.
  */
@@ -195,6 +211,7 @@ export interface MakeServiceOptions {
   clock?: MockProxy<ClockService>;
   statusConflicts?: MockProxy<PlayerStatusConflictReporterService>;
   errorLog?: MockProxy<ErrorLogService>;
+  unspentSpp?: MockProxy<UnspentSppService>;
 }
 
 /**
@@ -262,6 +279,7 @@ export async function makeService({
   clock = makeClock(),
   statusConflicts = makeStatusConflicts(),
   errorLog = mock<ErrorLogService>(),
+  unspentSpp = makeUnspentSpp(),
 }: MakeServiceOptions): Promise<{
   service: PlayerDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;
@@ -275,6 +293,7 @@ export async function makeService({
   clock: MockProxy<ClockService>;
   statusConflicts: MockProxy<PlayerStatusConflictReporterService>;
   errorLog: MockProxy<ErrorLogService>;
+  unspentSpp: MockProxy<UnspentSppService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -315,6 +334,7 @@ export async function makeService({
         useValue: statusConflicts,
       },
       { provide: ErrorLogService, useValue: errorLog },
+      { provide: UnspentSppService, useValue: unspentSpp },
     ],
   }).compile();
   return {
@@ -330,6 +350,7 @@ export async function makeService({
     clock,
     statusConflicts,
     errorLog,
+    unspentSpp,
   };
 }
 
