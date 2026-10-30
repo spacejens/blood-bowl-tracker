@@ -1,0 +1,81 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "ff54adfb-d238-4e14-a20a-85d32b8b5661",
+  "prevIds": [
+    "807a1a8b-c705-47e7-aba0-f1c4b8c3b1b0"
+  ],
+  "footprints": [
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "players",
+        "unspent_spp"
+      ],
+      "writes": [
+        "s|col|game_data.players.unspent_spp",
+        "n|col|game_data.players.unspent_spp",
+        "e|col|game_data.players.unspent_spp"
+      ],
+      "reads": [
+        "n|tbl|game_data.players",
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "players_history",
+        "unspent_spp"
+      ],
+      "writes": [
+        "s|col|game_data.players_history.unspent_spp",
+        "n|col|game_data.players_history.unspent_spp",
+        "e|col|game_data.players_history.unspent_spp"
+      ],
+      "reads": [
+        "n|tbl|game_data.players_history",
+        "n|sch|game_data"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "players",
+        "name": "unspent_spp",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "players_history",
+        "name": "unspent_spp",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    }
+  ]
+}
