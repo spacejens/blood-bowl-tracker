@@ -17,6 +17,7 @@ import { ParseTpModule } from '@blood-bowl-tracker/parse-tp';
 import { Module } from '@nestjs/common';
 
 import { TpSkillIdLookupService } from '../tp-skill-id-lookup.service';
+import { MonotonicClockService } from './monotonic-clock.service';
 import { TpKeywordTargetDecoderService } from './tp-keyword-target-decoder.service';
 import { TpOfficialBatchSyncService } from './tp-official-batch-sync.service';
 import { TpOfficialCharacteristicsSyncService } from './tp-official-characteristics-sync.service';
@@ -57,6 +58,7 @@ import { TpOfficialTeamsImportService } from './tp-official-teams-import.service
   ],
   providers: [
     TpOfficialTeamsImportService,
+    MonotonicClockService,
     TpOfficialTeamsContextService,
     TpOfficialRacesUpsertService,
     TpOfficialPositionsUpsertService,
