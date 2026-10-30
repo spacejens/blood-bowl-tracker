@@ -97,6 +97,7 @@ describe('PlayerPageParser', () => {
       typId: '33',
       teamCode: 'knu',
       sppTotal: null,
+      reportedUnspentSpp: null,
       characteristics: {
         move: 5,
         strength: 3,
@@ -125,6 +126,7 @@ describe('PlayerPageParser', () => {
       typId: '169',
       teamCode: 'gås',
       sppTotal: null,
+      reportedUnspentSpp: null,
       characteristics: {
         move: 5,
         strength: 3,
@@ -155,6 +157,7 @@ describe('PlayerPageParser', () => {
       typId: '33',
       teamCode: 'knu',
       sppTotal: null,
+      reportedUnspentSpp: null,
       characteristics: {
         move: 5,
         strength: 3,
@@ -207,6 +210,7 @@ describe('PlayerPageParser', () => {
       typId: '53',
       teamCode: 'nyt3',
       sppTotal: null,
+      reportedUnspentSpp: null,
       characteristics: {
         move: 5,
         strength: 3,
@@ -272,7 +276,7 @@ describe('PlayerPageParser', () => {
     expect(parser.extractPlayer(page)?.sppTotal).toBe(0);
   });
 
-  it('ignores the unspent figure, including a negative one', () => {
+  it('reads the unspent figure, including a negative one', () => {
     const page = playerPage(
       '<h1>Griff Oberwald</h1>' +
         PLAYER_LINKS +
@@ -281,7 +285,58 @@ describe('PlayerPageParser', () => {
         '<td class="esmall"><span class="opaque50">(<a href=\'x\'>31</a>)</span></td></tr></table>' +
         characteristicsTable('5', '3', '3+', '4+', '8+'),
     );
-    expect(parser.extractPlayer(page)?.sppTotal).toBe(31);
+    expect(parser.extractPlayer(page)).toMatchObject({
+      sppTotal: 31,
+      reportedUnspentSpp: -7,
+    });
+  });
+
+  it('reads the unspent figure of the Unspent SPP row', () => {
+    const page = playerPage(
+      '<h1>Griff Oberwald</h1>' +
+        PLAYER_LINKS +
+        UNSPENT_SPP_ROW +
+        characteristicsTable('5', '3', '3+', '4+', '8+'),
+    );
+    expect(parser.extractPlayer(page)?.reportedUnspentSpp).toBe(5);
+  });
+
+  it('reads the unspent figure of a row with no bracketed total', () => {
+    const page = playerPage(
+      '<h1>Griff Oberwald</h1>' +
+        PLAYER_LINKS +
+        '<table><tr><td class="small">Unspent SPP:</td>' +
+        '<td class="esmall" align="center">5</td></tr></table>' +
+        characteristicsTable('5', '3', '3+', '4+', '8+'),
+    );
+    expect(parser.extractPlayer(page)).toMatchObject({
+      sppTotal: null,
+      reportedUnspentSpp: 5,
+    });
+  });
+
+  it('returns a null unspent figure when the middle cell is not a whole number', () => {
+    const page = playerPage(
+      '<h1>Griff Oberwald</h1>' +
+        PLAYER_LINKS +
+        '<table><tr><td class="small">Unspent SPP:</td>' +
+        '<td class="esmall" align="center">-</td>' +
+        '<td class="esmall"><span class="opaque50">(11)</span></td></tr></table>' +
+        characteristicsTable('5', '3', '3+', '4+', '8+'),
+    );
+    expect(parser.extractPlayer(page)).toMatchObject({
+      sppTotal: 11,
+      reportedUnspentSpp: null,
+    });
+  });
+
+  it('returns a null unspent figure when the page has no Unspent SPP row', () => {
+    const page = playerPage(
+      '<h1>Griff Oberwald</h1>' +
+        PLAYER_LINKS +
+        characteristicsTable('5', '3', '3+', '4+', '8+'),
+    );
+    expect(parser.extractPlayer(page)?.reportedUnspentSpp).toBeNull();
   });
 
   it('returns a null career total when the page has no Unspent SPP row', () => {

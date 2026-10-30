@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
+import type { BblScrapedSpp } from './bbl-spp-adjustments-import.service';
 import { BblSppAdjustmentsImportService } from './bbl-spp-adjustments-import.service';
 
 /**
@@ -60,8 +61,8 @@ describe('BblSppAdjustmentsImportService', () => {
 
     await service.importSppAdjustments(
       new Map([
-        [1, 16],
-        [2, null],
+        [1, { scrapedTotal: 16, reportedUnspentSpp: -2 }],
+        [2, { scrapedTotal: null, reportedUnspentSpp: null }],
       ]),
     );
 
@@ -69,7 +70,7 @@ describe('BblSppAdjustmentsImportService', () => {
     expect(adjustments.syncScrapedSppAdjustments).toHaveBeenCalledWith(
       {
         players: [
-          { playerId: 1, scrapedTotal: 16 },
+          { playerId: 1, scrapedTotal: 16, reportedUnspentSpp: -2 },
           { playerId: 2, scrapedTotal: null },
         ],
       },
@@ -79,9 +80,9 @@ describe('BblSppAdjustmentsImportService', () => {
   });
 
   it('chunks a player list larger than DEFAULT_BATCH_CHUNK_SIZE, summing imported across chunks', async () => {
-    const scraped = new Map<number, number | null>();
+    const scraped = new Map<number, BblScrapedSpp>();
     for (let i = 1; i <= DEFAULT_BATCH_CHUNK_SIZE + 3; i += 1) {
-      scraped.set(i, i);
+      scraped.set(i, { scrapedTotal: i, reportedUnspentSpp: null });
     }
     adjustments.syncScrapedSppAdjustments
       .mockResolvedValueOnce({
@@ -105,9 +106,9 @@ describe('BblSppAdjustmentsImportService', () => {
   });
 
   it('keeps going after a failed chunk and counts the surviving one', async () => {
-    const scraped = new Map<number, number | null>();
+    const scraped = new Map<number, BblScrapedSpp>();
     for (let i = 1; i <= DEFAULT_BATCH_CHUNK_SIZE + 1; i += 1) {
-      scraped.set(i, null);
+      scraped.set(i, { scrapedTotal: null, reportedUnspentSpp: null });
     }
     adjustments.syncScrapedSppAdjustments
       .mockResolvedValueOnce(undefined)

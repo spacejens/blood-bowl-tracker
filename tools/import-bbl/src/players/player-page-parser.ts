@@ -127,8 +127,7 @@ export interface BblPlayer {
   teamCode: string;
   /**
    * BBL's own displayed career SPP total — the parenthesized figure on the
-   * "Unspent SPP" row (the middle cell is unspent SPP, which can be
-   * negative, and is not this). `null` when the row is absent or carries no
+   * "Unspent SPP" row (the middle cell is `reportedUnspentSpp`). `null` when the row is absent or carries no
    * parenthesized figure. Used only as an input to computing
    * `players.spp_adjustment`; it is never stored as `players.spp_total`,
    * because BBL's figure mixes award rates across eras — its site
@@ -136,6 +135,13 @@ export interface BblPlayer {
    * number isn't the era-correct total this repo wants `spp_total` to mean.
    */
   sppTotal: number | null;
+  /**
+   * BBL's own unspent SPP: the middle cell of the "Unspent SPP" row, signed
+   * (BBL shows negative figures). `null` when the row is absent or the cell
+   * holds no whole number. Sent to the server beside `sppTotal`, which comes
+   * from the same row; the server decides whether to store it.
+   */
+  reportedUnspentSpp: number | null;
   /**
    * The MA/ST/AG/PA/AV line from the player's own characteristics table.
    * Non-nullable: a page whose line cannot be read fails player extraction
@@ -238,7 +244,7 @@ export class PlayerPageParser {
       name,
       typId,
       teamCode,
-      sppTotal: this.extractSppTotal($),
+      ...this.extractSppFigures($),
       characteristics,
       lastingInjuries: this.extractLastingInjuries($),
       skills,
@@ -276,25 +282,34 @@ export class PlayerPageParser {
   }
 
   /**
-   * The career SPP total from the "Unspent SPP" row: find the label cell,
-   * then read the first parenthesized integer in that row. A missing row (or
-   * a row with no parenthesized figure) is not an error — the caller treats
-   * it as "no total scraped".
+   * Both figures of the "Unspent SPP" row: find the label cell, then read
+   * the cell next to it as the unspent figure and the first parenthesized
+   * integer in the row as the career total. A missing row, or a cell with no
+   * usable number, is not an error: that figure is null.
    */
-  private extractSppTotal($: ReturnType<BblPage['load']>): number | null {
+  private extractSppFigures($: ReturnType<BblPage['load']>): {
+    sppTotal: number | null;
+    reportedUnspentSpp: number | null;
+  } {
     for (const element of $('td').toArray()) {
       if (this.normalizeText.normalize($(element).text()) !== 'Unspent SPP:') {
         continue;
       }
       const rowText = this.normalizeText.normalize($(element).parent().text());
-      const match = /\((\d+)\)/.exec(rowText);
-      return match ? Number(match[1]) : null;
+      const total = /\((\d+)\)/.exec(rowText);
+      const unspent = this.normalizeText.normalize(
+        $(element).next('td').text(),
+      );
+      return {
+        sppTotal: total ? Number(total[1]) : null,
+        reportedUnspentSpp: /^-?\d+$/.test(unspent) ? Number(unspent) : null,
+      };
     }
-    return null;
+    return { sppTotal: null, reportedUnspentSpp: null };
   }
 
   /**
-   * The sustained-injuries cell, located the same way the SPP total is: find
+   * The sustained-injuries cell, located the same way the SPP figures are: find
    * the label cell by its exact text, then read the cell next to it. Cheerio
    * flattens the label's anchor, so the comparison is against plain text.
    *

@@ -6,6 +6,12 @@ import {
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
+/** The SPP figures one BBL player page shows, from its "Unspent SPP" row. */
+export interface BblScrapedSpp {
+  scrapedTotal: number | null;
+  reportedUnspentSpp: number | null;
+}
+
 /**
  * Reconciles `players.spp_adjustment` and `players.spp_total` for every
  * player this BBL run imported.
@@ -21,6 +27,10 @@ import { Injectable } from '@nestjs/common';
  * Must run after the match-events step, since it depends on
  * `match_events.spp_value` already being populated. Idempotent: the server
  * writes absolute values on every run.
+ *
+ * BBL's unspent figure goes along when the page has one; the server stores it
+ * only under rules sets that price by kind, and only when it fits the
+ * bracketed total from the same row.
  */
 @Injectable()
 export class BblSppAdjustmentsImportService {
@@ -30,13 +40,17 @@ export class BblSppAdjustmentsImportService {
   ) {}
 
   async importSppAdjustments(
-    scrapedTotalsByPlayerId: Map<number, number | null>,
+    scrapedSppByPlayerId: Map<number, BblScrapedSpp>,
   ): Promise<{ result: ImportResult }> {
     const errors: ImportError[] = [];
     let imported = 0;
 
-    const entries = [...scrapedTotalsByPlayerId].map(
-      ([playerId, scrapedTotal]) => ({ playerId, scrapedTotal }),
+    const entries = [...scrapedSppByPlayerId].map(
+      ([playerId, { scrapedTotal, reportedUnspentSpp }]) => ({
+        playerId,
+        scrapedTotal,
+        ...(reportedUnspentSpp === null ? {} : { reportedUnspentSpp }),
+      }),
     );
 
     // Chunk rather than sending every player in one RPC call: an unbounded

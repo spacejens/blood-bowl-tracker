@@ -596,6 +596,7 @@ describe('BblPlayersImportService', () => {
       typId: '33',
       teamCode: 'knu',
       sppTotal: null,
+      reportedUnspentSpp: null,
       characteristics: goodPlayer.characteristics,
       lastingInjuries: goodPlayer.lastingInjuries,
       skills: [],
@@ -735,6 +736,7 @@ describe('BblPlayersImportService', () => {
       typId: '33',
       teamCode: 'bad',
       sppTotal: null,
+      reportedUnspentSpp: null,
       characteristics: goodPlayer.characteristics,
       lastingInjuries: goodPlayer.lastingInjuries,
       skills: [],
@@ -813,20 +815,22 @@ describe('BblPlayersImportService', () => {
     expect(result).toBe(CANNED_RESULT);
   });
 
-  it('returns each upserted player’s scraped career SPP total', async () => {
-    const playerWithTotal: BblPlayer = {
+  it('returns each upserted player’s scraped SPP figures', async () => {
+    const playerWithFigures: BblPlayer = {
       ...goodPlayer,
       pid: '42',
       sppTotal: 16,
+      reportedUnspentSpp: -2,
     };
-    const playerWithoutTotal: BblPlayer = {
+    const playerWithout: BblPlayer = {
       ...goodPlayer,
       pid: '43',
       sppTotal: null,
+      reportedUnspentSpp: null,
     };
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({
-        pl: [plPage(playerWithTotal, '42'), plPage(playerWithoutTotal, '43')],
+        pl: [plPage(playerWithFigures, '42'), plPage(playerWithout, '43')],
       }),
     );
     mocks.playersImport.upsertPlayerResult
@@ -835,10 +839,10 @@ describe('BblPlayersImportService', () => {
 
     const outcome = await service.importPlayers(importOptions);
 
-    expect(outcome.scrapedSppTotalsByPlayerId).toEqual(
+    expect(outcome.scrapedSppByPlayerId).toEqual(
       new Map([
-        [101, 16],
-        [102, null],
+        [101, { scrapedTotal: 16, reportedUnspentSpp: -2 }],
+        [102, { scrapedTotal: null, reportedUnspentSpp: null }],
       ]),
     );
   });
@@ -851,6 +855,6 @@ describe('BblPlayersImportService', () => {
 
     const outcome = await service.importPlayers(importOptions);
 
-    expect(outcome.scrapedSppTotalsByPlayerId).toEqual(new Map());
+    expect(outcome.scrapedSppByPlayerId).toEqual(new Map());
   });
 });

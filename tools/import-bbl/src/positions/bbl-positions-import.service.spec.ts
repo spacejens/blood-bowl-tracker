@@ -162,6 +162,7 @@ describe('BblPositionsImportService', () => {
             typId: '60',
             teamCode: 'knu', // -> race 140 (Norse Team, bblId '14'), NOT listed
             sppTotal: null,
+            reportedUnspentSpp: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
             lastingInjuries: ANY_LASTING_INJURIES,
             skills: [],
@@ -244,6 +245,7 @@ describe('BblPositionsImportService', () => {
             typId: '60',
             teamCode: 'knu', // -> race 140 (Norse Team, bblId '14'), NOT listed
             sppTotal: null,
+            reportedUnspentSpp: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
             lastingInjuries: ANY_LASTING_INJURIES,
             skills: [],
@@ -331,6 +333,7 @@ describe('BblPositionsImportService', () => {
             typId: '33',
             teamCode: 'col', // -> race 480 (College of Shadow, bblId '48') = already listed
             sppTotal: null,
+            reportedUnspentSpp: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
             lastingInjuries: ANY_LASTING_INJURIES,
             skills: [],
@@ -397,6 +400,7 @@ describe('BblPositionsImportService', () => {
             typId: '99',
             teamCode: 'knu',
             sppTotal: null,
+            reportedUnspentSpp: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
             lastingInjuries: ANY_LASTING_INJURIES,
             skills: [],
@@ -409,6 +413,7 @@ describe('BblPositionsImportService', () => {
             typId: '99',
             teamCode: 'col',
             sppTotal: null,
+            reportedUnspentSpp: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
             lastingInjuries: ANY_LASTING_INJURIES,
             skills: [],
@@ -483,6 +488,7 @@ describe('BblPositionsImportService', () => {
             typId: '121',
             teamCode: 'knu',
             sppTotal: null,
+            reportedUnspentSpp: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
             lastingInjuries: ANY_LASTING_INJURIES,
             skills: [],
@@ -597,6 +603,7 @@ describe('BblPositionsImportService', () => {
             typId: '99',
             teamCode: 'unknown-code',
             sppTotal: null,
+            reportedUnspentSpp: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
             lastingInjuries: ANY_LASTING_INJURIES,
             skills: [],
@@ -716,6 +723,7 @@ describe('BblPositionsImportService', () => {
             typId: '10',
             teamCode: 'ghost', // not in teamRaceIdsByCode
             sppTotal: null,
+            reportedUnspentSpp: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
             lastingInjuries: ANY_LASTING_INJURIES,
             skills: [],
@@ -765,6 +773,7 @@ describe('BblPositionsImportService', () => {
             typId: '10',
             teamCode: 'orphan', // -> db id 999, absent from racesByBblId
             sppTotal: null,
+            reportedUnspentSpp: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
             lastingInjuries: ANY_LASTING_INJURIES,
             skills: [],
