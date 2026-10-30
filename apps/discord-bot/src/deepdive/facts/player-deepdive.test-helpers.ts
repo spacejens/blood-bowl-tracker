@@ -39,8 +39,10 @@ import { PlayerKeywordsSectionService } from './player-keywords-section.service'
 import { PlayerKillerInfoFormatterService } from './player-killer-info-formatter.service';
 import { PlayerKillsSectionService } from './player-kills-section.service';
 import { PlayerSkillsSectionService } from './player-skills-section.service';
+import { PlayerSppSectionService } from './player-spp-section.service';
 import { PlayerStatusConflictReporterService } from './player-status-conflict-reporter.service';
 import { PlayerStatusLineService } from './player-status-line.service';
+import { UnspentSppLineService } from './unspent-spp-line.service';
 
 /**
  * Test-only helper. Do not import from production code.
@@ -58,7 +60,9 @@ import { PlayerStatusLineService } from './player-status-line.service';
  * `NumberFormatterService` a further link under `PlayerKillsSectionService`,
  * plus the dependency-free `EventCountLinesService`,
  * `CharacteristicDisplayFormattingService`, `PlayerSkillsSectionService`,
- * `PlayerKeywordsSectionService` and `PlayerStatusLineService`. This follows
+ * `PlayerKeywordsSectionService` and `PlayerStatusLineService`, plus the chain
+ * `PlayerSppSectionService` → `UnspentSppLineService` (over
+ * `NumberFormatterService`). This follows
  * `CLAUDE.md`'s "Testing services" carve-out for a pure chain inside an
  * otherwise-mocked subject: every collaborator with I/O or external state
  * (the game-data services, `DatabaseTimeoutService`,
@@ -288,6 +292,10 @@ export async function makeService({
       PlayerSkillsSectionService,
       PlayerKeywordsSectionService,
       PlayerStatusLineService,
+      // A pure chain of its own: the total section and its unspent line,
+      // both over NumberFormatterService.
+      PlayerSppSectionService,
+      UnspentSppLineService,
       { provide: PlayersService, useValue: players },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },

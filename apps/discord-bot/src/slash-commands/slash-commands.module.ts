@@ -13,6 +13,7 @@ import { PlayerDeepdiveService } from '../deepdive/facts/player-deepdive.service
 import { PlayerKeywordsSectionService } from '../deepdive/facts/player-keywords-section.service';
 import { PlayerKillsSectionService } from '../deepdive/facts/player-kills-section.service';
 import { PlayerSkillsSectionService } from '../deepdive/facts/player-skills-section.service';
+import { PlayerSppSectionService } from '../deepdive/facts/player-spp-section.service';
 import { PlayerStatusConflictReporterService } from '../deepdive/facts/player-status-conflict-reporter.service';
 import { PlayerStatusLineService } from '../deepdive/facts/player-status-line.service';
 import { PositionCharacteristicsLineFormatterService } from '../deepdive/facts/position-characteristics-line-formatter.service';
@@ -23,6 +24,7 @@ import { RaceDeepdiveService } from '../deepdive/facts/race-deepdive.service';
 import { StarPlayerDeepdiveService } from '../deepdive/facts/star-player-deepdive.service';
 import { TeamDeepdiveService } from '../deepdive/facts/team-deepdive.service';
 import { TrophyDeepdiveService } from '../deepdive/facts/trophy-deepdive.service';
+import { UnspentSppLineService } from '../deepdive/facts/unspent-spp-line.service';
 import { InsightsModule } from '../insights/insights.module';
 import { ErrorLogService } from '../shared/error-log.service';
 import { AdminModule } from './admin/admin.module';
@@ -82,6 +84,8 @@ import { SlashCommandRegistryModule } from './slash-command-registry.module';
     PlayerSkillsSectionService,
     PlayerKeywordsSectionService,
     PlayerStatusLineService,
+    PlayerSppSectionService,
+    UnspentSppLineService,
     PlayerStatusConflictReporterService,
     ErrorLogService,
     CompetitionDeepdiveService,
