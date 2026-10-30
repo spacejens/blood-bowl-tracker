@@ -195,18 +195,23 @@ instead (see [index.md](./index.md)'s `TpRosterPlayersImportService` (server-sid
 **SPP fields on a `lineUps[]` entry.** `totalStarPlayerPoints` is the
 player's career SPP. `starPlayerPoints` is the part of it not yet spent on
 advancements: across the 1336 entries in the 108 downloaded roster files,
-`totalStarPlayerPoints - starPlayerPoints` is zero in 626 entries (the player
-has no advancement, or none that cost SPP) and otherwise a sum the rules
-set's advancement costs allow (the most common gaps are 3, 6, 7, 14, 10, 13
-and 26 under BB2020/BB2025). `pendingImprovements` is 0 on every downloaded
-entry. The exceptions seen: five entries with a visible skill and a zero gap
-are all skills flagged `isExtra` (Hatred) or the Journeyman's Loner, which
-TP grants without charging SPP; and line-up 2464153 in Chaos Cup 8 carries 2
+`totalStarPlayerPoints - starPlayerPoints` is zero in 626 entries and
+otherwise a sum that the BB2025 advancement costs allow (among the most
+common gaps are 3, 6, 7, 10, 14, 20 and 26). Hand-checked examples: a chosen
+primary skill (6), a random then a random primary skill (3 + 4 = 7), a chosen
+then a random primary skill (6 + 4 = 10), three chosen primary skills
+(6 + 8 + 12 = 26), a chosen secondary skill (10), and a lone characteristic
+increase (14) all match. The secondary-skill and characteristic costs fit
+BB2025 and not BB2020 (12 and 18). `pendingImprovements` is 0 on every
+downloaded entry. The exceptions seen: five entries with a visible skill and
+a zero gap are all Hatred flagged `isExtra` or a Journeyman's Loner, so those
+skills are present without any SPP having been spent; one entry (line-up
+2477740 in Sasong 30) has a gap of 14 with a single chosen skill, which no
+single advancement explains; and line-up 2464153 in Chaos Cup 8 carries 2
 unspent points against a total of 0 (a gap of -2), already present in its
-first match snapshot, with no match event that awards SPP, so the points were
-most likely entered by hand. No importer reads `starPlayerPoints` or
-`pendingImprovements`; `tools/review-player` compares `starPlayerPoints`
-with its own modelled unspent range.
+first match snapshot, whose only events there are a foul (31), a sent-off
+(32) and injuries suffered (8), none of which award SPP to the player.
+`pendingImprovements` and `starPlayerPoints` are not read by any importer.
 
 **Still not handled** (future work): the other top-level fields on a roster
 (`imageFile`, `assistantCoaches`, `cheerLeaders`,
