@@ -125,7 +125,7 @@ Teams, players, competitions, matches and TP's official team list are imported s
 - `TpRosterFilesImportService` sends each roster file's raw content to the `tpRosters.import` procedure.
 - `TpCompetitionsImportService` sends each competition's parsed data to `tpCompetitions.import`.
 - `TpMatchFilesImportService` sends each match file's raw content to `tpMatches.import`.
-- `TpOfficialTeamsFilesImportService` sends each rules set's parsed races, plus the scanned skill names, to `tpOfficialTeams.import`.
+- `TpOfficialTeamsFilesImportService` sends each rules set's parsed races, in chunks (see [official-teams-requests.md](./official-teams-requests.md)), plus the scanned skill names, to `tpOfficialTeams.import`.
 
 All are implemented by `packages/import-tp-live` (see [docs/import-tp-live/index.md](../import-tp-live/index.md)).
 
@@ -183,8 +183,9 @@ The tool never parses a roster or a match for those upserts; it does parse roste
 
 - **TpOfficialTeamsFilesImportService** — imports TP's official team list (read via
   `OfficialTeamsCollectionService`, not from played rosters) through
-  `tpOfficialTeams.import`, one call per `teams/<rulesSet>` folder. Each call
-  sends that rules set's parsed races and the whole scanned
+  `tpOfficialTeams.import`, in chunks of whole races per `teams/<rulesSet>` folder
+  (see [official-teams-requests.md](./official-teams-requests.md)). Each call
+  sends a chunk of that rules set's parsed races and the whole scanned
   `skillMasterId -> name` lookup; the server (see
   [import-tp-live's official team list import](../import-tp-live/official-teams-import.md))
   upserts the races (variant codes merged by display name), positions and
@@ -425,7 +426,7 @@ which would take a data migration (see
 5. Coaches.
 6. The roster files and TP's official team list, each scanned and parsed once client-side (the roster import call re-sends each file's raw content, which `TpRosterImportService.importRawRoster` parses a second time, server-side).
 7. The skill-name scan.
-8. The official team list import (races, positions, characteristics, keywords, starting skills and skill categories, all in one `tpOfficialTeams.import` call per rules set).
+8. The official team list import (races, positions, characteristics, keywords, starting skills and skill categories, sent as chunked `tpOfficialTeams.import` calls per rules set, with a timing summary at the end of the run).
 9. Roster import — teams, players and the players' own skills together, one `tpRosters.import` call per distinct era/roster pair (a roster id in more than one era is sent once per era; see [import-tp-live's architecture](../import-tp-live/index.md#what-it-owns)).
 10. Induced star hires.
 11. Roster player facts (career SPP counts).
@@ -492,6 +493,7 @@ alike — see [Keyword target decoding](./keyword-target-decoding.md).
 
 - [import-tp-live](../import-tp-live/index.md) — the server-side team/player import behind `tpRosters.import` and the live team import, and the server-side match import behind `tpMatches.import` and the live match import (see its [match-import.md](../import-tp-live/match-import.md)).
 - [official-teams-import.md](../import-tp-live/official-teams-import.md) — the server-side official team list import behind `tpOfficialTeams.import` and the live official-teams import.
+- [official-teams-requests.md](./official-teams-requests.md) — how the official team list is split into requests and how to read the timing summary.
 - [file-format.md](./file-format.md) — working notes on the source JSON format.
 - [keyword-target-decoding.md](./keyword-target-decoding.md) — type-3
   `Hatred`/`Animosity` skill-attribute decoding and skillMasterId curation.
