@@ -164,9 +164,33 @@ export const TpOfficialPositionCharacteristicsSchema =
   });
 
 /**
+ * The stages `tpOfficialTeams.import` runs, in order, as named in its
+ * `timings`.
+ */
+export const TpOfficialTeamsStageSchema = z.enum([
+  'context',
+  'races',
+  'positions',
+  'characteristics',
+  'keywordCatalog',
+  'keywords',
+  'skillRefs',
+  'startingSkills',
+  'skillCategories',
+]);
+
+/** How long one stage of one `tpOfficialTeams.import` call took, in milliseconds. */
+export const TpOfficialTeamsStageTimingSchema = z.object({
+  stage: TpOfficialTeamsStageSchema,
+  ms: z.number().nonnegative(),
+});
+
+/**
  * Output of `tpOfficialTeams.import`, one result per stage, plus every
  * imported position's characteristics under the rules set, which a caller
- * importing hired star players later needs as their template values.
+ * importing hired star players later needs as their template values, and
+ * how long each stage that ran took. `timings` is optional so a result
+ * without it still parses; a caller that does not report timings ignores it.
  */
 export const TpOfficialTeamsImportResultSchema = z.object({
   races: ImportResultSchema,
@@ -176,10 +200,15 @@ export const TpOfficialTeamsImportResultSchema = z.object({
   startingSkills: ImportResultSchema,
   skillCategories: ImportResultSchema,
   positionCharacteristics: z.array(TpOfficialPositionCharacteristicsSchema),
+  timings: z.array(TpOfficialTeamsStageTimingSchema).optional(),
 });
 
 export type TpOfficialCharacteristics = z.infer<
   typeof TpOfficialCharacteristicsSchema
+>;
+export type TpOfficialTeamsStage = z.infer<typeof TpOfficialTeamsStageSchema>;
+export type TpOfficialTeamsStageTiming = z.infer<
+  typeof TpOfficialTeamsStageTimingSchema
 >;
 export type TpOfficialSkillIdRef = z.infer<typeof TpOfficialSkillIdRefSchema>;
 export type TpOfficialSkillNameRef = z.infer<

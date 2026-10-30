@@ -44,7 +44,7 @@ export interface OfficialTeamsFilesImportOutcome {
 
 type Stage = Exclude<
   keyof TpOfficialTeamsImportResult,
-  'positionCharacteristics'
+  'positionCharacteristics' | 'timings'
 >;
 
 const STAGES: readonly Stage[] = [
