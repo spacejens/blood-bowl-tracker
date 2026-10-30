@@ -15,6 +15,7 @@ import { PlayerAdvancementHistoryService } from './player-advancement-history.se
 import { SourceSpendComparisonService } from './source-spend-comparison.service';
 import type { SourceUnspentSppFigure } from './source-unspent-spp-figure.service';
 import { SourceUnspentSppFigureService } from './source-unspent-spp-figure.service';
+import { StoredUnspentSppCheckService } from './stored-unspent-spp-check.service';
 
 const player: SampledPlayer = {
   source: 'bbl',
@@ -27,7 +28,7 @@ const player: SampledPlayer = {
   selectedFor: ['Random sample'],
 };
 
-const HISTORY = { playerId: 42 } as AdvancementHistory;
+const HISTORY = { playerId: 42, storedUnspentSpp: null } as AdvancementHistory;
 
 const KIND_PRICED: UnspentSppModel = {
   rulesSetName: 'BB2020',
@@ -136,6 +137,7 @@ describe('AdvancementCostsDbRendererService', () => {
         // A pure, dependency-free decision service: passed real so the panel
         // is checked against the same comparison the stratum uses.
         SourceSpendComparisonService,
+        StoredUnspentSppCheckService,
       ],
     }).compile();
     service = moduleRef.get(AdvancementCostsDbRendererService);
@@ -224,9 +226,54 @@ describe('AdvancementCostsDbRendererService', () => {
       '<td>BBL spent SPP</td><td>39 (not compared under this rules set)</td>',
     );
     expect(html).toContain(
-      'BBL prices every player at BB2020 costs, so its figure is not compared under this rules set.',
+      'BBL prices every player at BB2020 costs and recalculates older totals at BB2020 rates, so under a fixed-threshold rules set its figures are never compared; the stored unspent SPP, computed from the stored history, is checked instead.',
     );
     expect(html).not.toContain('class="mismatch');
+  });
+
+  function withStored(storedUnspentSpp: number | null): void {
+    history.forPlayers.mockResolvedValue(
+      new Map([[42, { ...HISTORY, storedUnspentSpp }]]),
+    );
+  }
+
+  it('shows a stored figure inside the range that matches the source', async () => {
+    withStored(20);
+    range.model.mockReturnValue(KIND_PRICED);
+    figures.figureFor.mockResolvedValue(figure(20));
+
+    expect(await service.render(player)).toContain(
+      '<td>Stored unspent SPP</td><td>20 (inside the modelled unspent range; matches the source figure)</td>',
+    );
+  });
+
+  it('highlights a stored figure outside the range and unlike the source', async () => {
+    withStored(40);
+    range.model.mockReturnValue(KIND_PRICED);
+    figures.figureFor.mockResolvedValue(figure(20));
+
+    expect(await service.render(player)).toContain(
+      '<tr class="mismatch"><td>Stored unspent SPP</td><td class="mismatch-cell">40 (above the modelled unspent range; differs from the source figure, 20)</td></tr>',
+    );
+  });
+
+  it('does not compare the stored figure with BBL under fixed thresholds', async () => {
+    withStored(20);
+    range.model.mockReturnValue({ ...KIND_PRICED, fixedThresholds: true });
+    figures.figureFor.mockResolvedValue(figure(1));
+
+    expect(await service.render(player)).toContain(
+      '<td>Stored unspent SPP</td><td>20 (inside the modelled unspent range; not compared with the source figure under this rules set)</td>',
+    );
+  });
+
+  it('says when no unspent SPP is stored', async () => {
+    range.model.mockReturnValue(KIND_PRICED);
+    figures.figureFor.mockResolvedValue(figure(20));
+
+    expect(await service.render(player)).toContain(
+      '<td>Stored unspent SPP</td><td>— (not known exactly)</td>',
+    );
   });
 
   it('compares a TP figure under a fixed-threshold rules set', async () => {

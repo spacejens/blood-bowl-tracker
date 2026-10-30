@@ -34,10 +34,28 @@ export interface StoredIncreaseCounts {
   armour: number;
 }
 
+/** How a stored unspent SPP compares with the source's own unspent figure. */
+export type StoredSourceComparison =
+  'matches' | 'differs' | 'not_compared' | 'no_figure';
+
+/** The stored `players.unspent_spp`, checked against the model and the source. */
+export type StoredUnspentCheck =
+  | { kind: 'none_stored' }
+  | {
+      kind: 'stored';
+      stored: number;
+      /** Against the modelled unspent range; null when no range is modelled. */
+      placement: FigurePlacement | null;
+      source: StoredSourceComparison;
+      sourceUnspent: number | null;
+    };
+
 /** What the database holds about one player's advancements and their prices. */
 export interface AdvancementHistory {
   playerId: number;
   sppTotal: number | null;
+  /** The stored `players.unspent_spp`; null when not known exactly. */
+  storedUnspentSpp: number | null;
   isStarPlayer: boolean;
   /** The era's last-listed rules set; null when the era lists none. */
   rulesSet: { id: number; name: string } | null;

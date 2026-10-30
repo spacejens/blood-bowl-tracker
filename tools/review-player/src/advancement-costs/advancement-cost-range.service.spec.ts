@@ -78,6 +78,7 @@ function history(overrides: Partial<AdvancementHistory>): AdvancementHistory {
   return {
     playerId: 42,
     sppTotal: 40,
+    storedUnspentSpp: null,
     isStarPlayer: false,
     rulesSet: { id: 1, name: 'CRP' },
     skills: [],

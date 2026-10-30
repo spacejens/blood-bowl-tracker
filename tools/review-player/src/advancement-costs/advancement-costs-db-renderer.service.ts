@@ -4,8 +4,10 @@ import { Injectable } from '@nestjs/common';
 
 import type { SampledPlayer } from '../shared/review.types';
 import type {
+  FigurePlacement,
   ModelledAdvancement,
   SpendComparison,
+  StoredUnspentCheck,
   UnknownRangeReason,
   UnspentSppModel,
 } from './advancement-cost-model.types';
@@ -14,6 +16,7 @@ import { PlayerAdvancementHistoryService } from './player-advancement-history.se
 import { SourceSpendComparisonService } from './source-spend-comparison.service';
 import type { SourceUnspentSppFigure } from './source-unspent-spp-figure.service';
 import { SourceUnspentSppFigureService } from './source-unspent-spp-figure.service';
+import { StoredUnspentSppCheckService } from './stored-unspent-spp-check.service';
 
 const NONE = '—';
 
@@ -37,7 +40,7 @@ const READING_NOTE =
 
 /** The note shown when `SourceSpendComparisonService` does not compare. */
 const NOT_COMPARED_NOTE =
-  'BBL prices every player at BB2020 costs, so its figure is not compared under this rules set.';
+  'BBL prices every player at BB2020 costs and recalculates older totals at BB2020 rates, so under a fixed-threshold rules set its figures are never compared; the stored unspent SPP, computed from the stored history, is checked instead.';
 
 /**
  * The stored side of the advancement-cost check: each of the player's
@@ -45,7 +48,10 @@ const NOT_COMPARED_NOTE =
  * the stored total, the modelled spend and unspent range, and the source's
  * own total, unspent SPP and derived spend beside them. Only a reported spend
  * outside the modelled spend range is highlighted, with a label in words;
- * unspent SPP itself never is.
+ * unspent SPP itself never is. Last comes the stored unspent SPP, checked
+ * against the modelled unspent range and the source's own unspent figure
+ * (`StoredUnspentSppCheckService`) and highlighted the same way when it
+ * disagrees.
  */
 @Injectable()
 export class AdvancementCostsDbRendererService {
@@ -54,6 +60,7 @@ export class AdvancementCostsDbRendererService {
     private readonly range: AdvancementCostRangeService,
     private readonly figures: SourceUnspentSppFigureService,
     private readonly comparison: SourceSpendComparisonService,
+    private readonly storedCheck: StoredUnspentSppCheckService,
     private readonly html: HtmlService,
   ) {}
 
@@ -69,12 +76,17 @@ export class AdvancementCostsDbRendererService {
     const model = this.range.model(history);
     const figure = await this.figures.figureFor(player);
     const compared = this.comparison.compare(model, figure);
+    const stored = this.storedCheck.check(
+      model,
+      history.storedUnspentSpp,
+      figure,
+    );
     return (
       this.advancements(model) +
       this.html.subheading('Unspent SPP') +
       this.html.table(
         ['Figure', 'Value'],
-        this.footerRows(model, figure, compared),
+        [...this.footerRows(model, figure, compared), this.storedRow(stored)],
       ) +
       (model.unknownReason === null
         ? ''
@@ -211,6 +223,51 @@ export class AdvancementCostsDbRendererService {
       ],
       [1],
     );
+  }
+
+  private storedRow(check: StoredUnspentCheck): TableRow {
+    const label = 'Stored unspent SPP';
+    if (check.kind === 'none_stored') {
+      return [label, `${NONE} (not known exactly)`];
+    }
+    const notes = [
+      this.storedPlacementNote(check.placement),
+      this.storedSourceNote(check),
+    ].filter((note): note is string => note !== null);
+    const text =
+      notes.length === 0
+        ? String(check.stored)
+        : `${check.stored} (${notes.join('; ')})`;
+    // Cell 1 holds the stored figure: that is the disagreeing cell.
+    return this.storedCheck.disagrees(check)
+      ? this.html.highlight([label, text], [1])
+      : [label, text];
+  }
+
+  private storedPlacementNote(
+    placement: FigurePlacement | null,
+  ): string | null {
+    if (placement === null) {
+      return null;
+    }
+    return placement === 'inside'
+      ? 'inside the modelled unspent range'
+      : `${placement} the modelled unspent range`;
+  }
+
+  private storedSourceNote(
+    check: Extract<StoredUnspentCheck, { kind: 'stored' }>,
+  ): string | null {
+    switch (check.source) {
+      case 'matches':
+        return 'matches the source figure';
+      case 'differs':
+        return `differs from the source figure, ${check.sourceUnspent}`;
+      case 'not_compared':
+        return 'not compared with the source figure under this rules set';
+      case 'no_figure':
+        return null;
+    }
   }
 
   private value(figure: number | null): string {
