@@ -226,6 +226,97 @@ describe('TpOfficialTeamsFilesImportService', () => {
     });
   });
 
+  it('sends every chunk with the same rules set, system name and skill masters, and only its own races', async () => {
+    chunker.chunk.mockReturnValueOnce([[ORC, ORC_LEGACY], [DWARF], [ELF]]);
+    client.tpOfficialTeams.import.mockResolvedValue(outcome());
+
+    await service.importOfficialTeams({
+      officialTeams: [
+        { race: ORC, rulesSet: 'BB2020' },
+        { race: ORC_LEGACY, rulesSet: 'BB2020' },
+        { race: DWARF, rulesSet: 'BB2020' },
+        { race: ELF, rulesSet: 'BB2020' },
+      ],
+      skillMastersByMasterId: new Map([
+        [41, { name: 'Block', isElite: false }],
+      ]),
+    });
+    for (const [options] of importRunner.recordUpsertResult.mock.calls) {
+      await options.upsert();
+    }
+
+    const skillMasters = [{ skillMasterId: 41, name: 'Block', isElite: false }];
+    expect(client.tpOfficialTeams.import.mock.calls).toEqual([
+      [
+        {
+          rulesSet: 'BB2020',
+          races: [ORC, ORC_LEGACY],
+          skillMasters,
+          externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
+        },
+      ],
+      [
+        {
+          rulesSet: 'BB2020',
+          races: [DWARF],
+          skillMasters,
+          externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
+        },
+      ],
+      [
+        {
+          rulesSet: 'BB2020',
+          races: [ELF],
+          skillMasters,
+          externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
+        },
+      ],
+    ]);
+  });
+
+  it('keeps importing the next rules set after a chunk of one is rejected, naming the failed rules set and races', async () => {
+    chunker.chunk.mockReturnValueOnce([[ORC, DWARF]]);
+    chunker.chunk.mockReturnValueOnce([[ELF]]);
+    const second = outcome({ keywords: { ...ONE, imported: 7 } });
+    client.tpOfficialTeams.import
+      .mockRejectedValueOnce(new Error('timeout'))
+      .mockResolvedValueOnce(second);
+    importRunner.recordUpsertResult.mockImplementation(
+      async ({ upsert, errors, item, buildErrorMessage }) => {
+        try {
+          return await upsert();
+        } catch (err) {
+          errors.push({ item, message: buildErrorMessage(err) });
+          return undefined;
+        }
+      },
+    );
+
+    await service.importOfficialTeams({
+      officialTeams: [
+        { race: ORC, rulesSet: 'BB2020' },
+        { race: DWARF, rulesSet: 'BB2020' },
+        { race: ELF, rulesSet: 'BB2025' },
+      ],
+      skillMastersByMasterId: new Map(),
+    });
+
+    expect(client.tpOfficialTeams.import).toHaveBeenCalledTimes(2);
+    expect(client.tpOfficialTeams.import.mock.calls[1][0].rulesSet).toBe(
+      'BB2025',
+    );
+    expect(chunkMerge.merge).toHaveBeenCalledWith({
+      outcomes: [{ rulesSet: 'BB2025', outcome: second }],
+      failureErrors: [
+        {
+          item: { rulesSet: 'BB2020', races: ['Orc', 'Dwarf'] },
+          message:
+            'Failed to import TP\'s official team list for rules set "BB2020", races Orc, Dwarf: timeout',
+        },
+      ],
+    });
+  });
+
   it('merges nothing but the failures when every chunk fails', async () => {
     chunker.chunk.mockReturnValueOnce([[ORC], [DWARF]]);
     importRunner.recordUpsertResult.mockResolvedValue(undefined);

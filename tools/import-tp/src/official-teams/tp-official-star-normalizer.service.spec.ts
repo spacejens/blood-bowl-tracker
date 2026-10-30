@@ -107,6 +107,69 @@ describe('TpOfficialStarNormalizerService', () => {
     ]);
   });
 
+  it.each([
+    { order: 'legacy variant listed first', officialFlags: [false, true] },
+    { order: 'official variant listed first', officialFlags: [true, false] },
+  ])(
+    'lets the official variant of one race name win ($order)',
+    ({ officialFlags }) => {
+      const races = officialFlags.map((isOfficial, index) =>
+        officialRace({
+          teamRaceCode: `orcVariant${index}`,
+          isOfficial,
+          positions: [
+            star({
+              tpPositionId: 500 + index,
+              characteristics: isOfficial ? STATS : LEGACY_STATS,
+            }),
+          ],
+        }),
+      );
+
+      const result = service.normalize(races);
+
+      expect(result.map((race) => race.positions[0].characteristics)).toEqual([
+        STATS,
+        STATS,
+      ]);
+      expect(result.map((race) => race.positions[0].tpPositionId)).toEqual([
+        500, 501,
+      ]);
+    },
+  );
+
+  it('chooses across three races as the server does: official beats legacy, then the later listing wins', () => {
+    const races = [
+      officialRace({
+        name: 'Orc',
+        teamRaceCode: 'orc20',
+        positions: [star({ characteristics: STATS, tpPositionId: 500 })],
+      }),
+      officialRace({
+        name: 'Dwarf',
+        teamRaceCode: 'dwarf20',
+        positions: [star({ characteristics: OTHER_STATS, tpPositionId: 501 })],
+      }),
+      officialRace({
+        name: 'Elf',
+        teamRaceCode: 'elf20',
+        isOfficial: false,
+        positions: [star({ characteristics: LEGACY_STATS, tpPositionId: 502 })],
+      }),
+    ];
+
+    const result = service.normalize(races);
+
+    expect(result.map((race) => race.positions[0].characteristics)).toEqual([
+      OTHER_STATS,
+      OTHER_STATS,
+      OTHER_STATS,
+    ]);
+    expect(result.map((race) => race.positions[0].tpPositionId)).toEqual([
+      500, 501, 502,
+    ]);
+  });
+
   it("drops a loser's own categories error when the winner has none", () => {
     const result = service.normalize([
       officialRace({
