@@ -23,7 +23,7 @@ const OVERRIDE_REASON = 'override';
 /**
  * Decides which players the report covers: every registered stratifier's
  * strata (every stratum honours `playersPerStratum` except the SPP-discrepancy
- * one, which deliberately ignores it) plus the config's pinned override ids,
+ * and unspent-SPP-outside-range ones, which deliberately ignore it) plus the config's pinned override ids,
  * deduplicated so a player picked several times is reported once with every
  * reason it was picked for.
  */

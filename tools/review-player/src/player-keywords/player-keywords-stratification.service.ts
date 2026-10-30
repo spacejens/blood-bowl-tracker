@@ -29,8 +29,8 @@ const BB2025_RULES_SET_NAME = 'BB2025';
  * A player whose position has a BB2025 `position_rules_sets` row with no
  * matching `position_rules_set_keywords` row -- the closest DB-visible
  * signal that a keyword was dropped. "BB2025" is resolved by the rules set's
- * own name, never a hard-coded id. A stratifier only ever sees the database,
- * so "differs from TP" cannot itself be a stratum here.
+ * own name, never a hard-coded id. This stratifier reads only the database, so
+ * "differs from TP" is not a stratum here.
  */
 @Injectable()
 export class PlayerKeywordsStratificationService implements PlayerStratifier {

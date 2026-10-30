@@ -29,8 +29,9 @@ const CHOSEN = 'freely-chosen-skill';
  * Four strata, each oversampling a different interesting advancement case
  * rather than only suspect data.
  *
- * A stratifier only ever sees the database — it cannot read a raw source file
- * — so "differs from the raw source" cannot be a stratum. The closest
+ * These strata read only the database, so "differs from the raw source" is
+ * not one of them (the unspent-SPP stratum in `advancement-costs/` is the one
+ * stratum that reads the raw sources). The closest
  * DB-expressible signal is the first one: a player whose STARTING skills
  * differ from the set their position carries under the era's rules set. A
  * starting skill set is copied from the position, so a difference is either a
