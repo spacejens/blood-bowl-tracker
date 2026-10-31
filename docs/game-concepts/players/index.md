@@ -106,9 +106,10 @@ error, and dead, retired and departed players are worked out like any other.
   skill, which can differ from how it was gained when BBL priced a free or
   rolled skill as a chosen advancement (see **The stored figure** above). It
   stays recorded as gained by advancement when no order fits (an
-  inconsistent history), when the fits disagree, when two skills could swap
-  places, when the page gives no usable unspent figure, and whenever the era
-  only prices by fixed thresholds, where every advancement costs the same.
+  inconsistent history), when the fits disagree (including over which of two
+  skills that could swap places was the rolled one), when the page gives no
+  usable unspent figure, and whenever the era only prices by fixed
+  thresholds, where every advancement costs the same.
   `BblSkillSourceInferenceService` does this in the import's closing SPP
   sync, before the unspent figure is stored; the stored figure is BBL's own
   and does not depend on it. A skill settled once stays settled: a later
