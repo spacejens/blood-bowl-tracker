@@ -87,7 +87,7 @@ describe('TpAdvancementCostsRawRendererService', () => {
     );
     expect(html).toContain('carries no per-advancement SPP cost');
     expect(html).toContain(
-      'Extra skills (isExtra, such as Hatred) and a Journeyman&#39;s Loner are granted without SPP being spent',
+      'Extra skills (isExtra, such as Hatred) are imported as free extras, so the modelled range prices them at 0. A Journeyman&#39;s Loner is also granted without SPP being spent',
     );
   });
 

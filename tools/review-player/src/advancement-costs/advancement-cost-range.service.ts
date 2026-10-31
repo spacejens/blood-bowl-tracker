@@ -70,9 +70,9 @@ const INCREASES: readonly (readonly [keyof StoredIncreaseCounts, string])[] = [
  * allows both. A characteristic roll taken as a skill is not modelled, so a
  * skill is never priced as a `random_characteristic`.
  *
- * Starting skills and a skill one of the player's own trophy awards granted
- * cost nothing and take no number. A skill a `granted_skill` row names (a
- * league house rule) takes that row's number and cost. Every other gained
+ * Starting skills and a skill stored as a free extra (a gained Hatred, a skill
+ * TP flags as extra, a skill a trophy award granted) cost nothing and take
+ * no number. A skill a `granted_skill` row names (a league house rule) takes that row's number and cost. Every other gained
  * skill and every characteristic increase takes the next free number in
  * display order; that number is illustrative only, because the stored skill
  * order is unverified and increases have none.
@@ -183,8 +183,8 @@ export class AdvancementCostRangeService {
     if (skill.source === 'starting') {
       return { row: { ...row, kind: 'starting' }, kinds: [] };
     }
-    if (history.trophyGrantedSkillIds.has(skill.skillId)) {
-      return { row: { ...row, kind: 'trophy' }, kinds: [] };
+    if (skill.isFreeExtra) {
+      return { row: { ...row, kind: 'free_extra' }, kinds: [] };
     }
     const granting = history.costs.find(
       (c) =>

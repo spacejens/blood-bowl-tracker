@@ -43,7 +43,7 @@ const KIND_PRICED: UnspentSppModel = {
     },
     {
       label: 'Tentacles',
-      kind: 'trophy',
+      kind: 'free_extra',
       storedSource: 'chosen',
       advancementNumber: null,
       candidates: [],
@@ -156,7 +156,7 @@ describe('AdvancementCostsDbRendererService', () => {
       '<td>Block</td><td>starting</td><td>free</td><td>0 (starting skill)</td>',
     );
     expect(html).toContain(
-      '<td>Tentacles</td><td>chosen</td><td>free</td><td>0 (trophy mutation)</td>',
+      '<td>Tentacles</td><td>chosen</td><td>free</td><td>0 (free extra skill)</td>',
     );
     expect(html).toContain(
       '<td>Guard</td><td>random</td><td>#1</td><td>random_primary_skill: 3<br>random_secondary_skill: 6</td>',

@@ -8,7 +8,6 @@ import {
   eraRulesSets,
   eras,
   inArray,
-  isNotNull,
   players,
   playerSkills,
   positionRulesSets,
@@ -18,7 +17,6 @@ import {
   skillRulesSets,
   skills,
   teamEras,
-  trophyAwards,
 } from '@blood-bowl-tracker/db';
 import type { SkillCategory } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
@@ -69,8 +67,8 @@ interface CategoryLookups {
  * Loads what the advancement-cost check needs about a batch of players,
  * straight from `packages/db`: total SPP, star status, the era's last-listed
  * rules set (`era_rules_sets`, highest id — the same insertion-order
- * heuristic the other panels use), the stored skills, the skills one of the
- * player's own trophy awards granted, the five increase counts, and the
+ * heuristic the other panels use), the stored skills with their
+ * free-extra flag, the five increase counts, and the
  * `advancement_costs` rows that apply (the rules set's own plus the player's
  * league's house rules: player -> team era -> era -> league), plus the
  * categories the player's position has as primary and as secondary under
@@ -139,7 +137,6 @@ export class PlayerAdvancementHistoryService {
       return;
     }
     const skillsByPlayer = await this.loadSkills(ids);
-    const trophySkillsByPlayer = await this.loadTrophySkills(ids);
     const lookups: CategoryLookups = {
       positions: await this.loadPositionCategories([
         ...new Set(playerRows.map((row) => row.positionId)),
@@ -172,8 +169,6 @@ export class PlayerAdvancementHistoryService {
         })),
         primaryCategories: positionCategories?.primary ?? new Set(),
         secondaryCategories: positionCategories?.secondary ?? new Set(),
-        trophyGrantedSkillIds:
-          trophySkillsByPlayer.get(row.playerId) ?? new Set<number>(),
         increaseCounts: {
           move: row.move,
           strength: row.strength,
@@ -211,6 +206,7 @@ export class PlayerAdvancementHistoryService {
         skillName: skills.name,
         source: playerSkills.source,
         advancementOrder: playerSkills.advancementOrder,
+        isFreeExtra: playerSkills.isFreeExtra,
       })
       .from(playerSkills)
       .innerJoin(skills, eq(skills.id, playerSkills.skillId))
@@ -231,35 +227,6 @@ export class PlayerAdvancementHistoryService {
         ...list.filter((skill) => skill.source === 'starting'),
         ...list.filter((skill) => skill.source !== 'starting'),
       ]);
-    }
-    return byPlayer;
-  }
-
-  private async loadTrophySkills(
-    ids: number[],
-  ): Promise<Map<number, Set<number>>> {
-    const rows = await this.db
-      .select({
-        playerId: trophyAwards.playerId,
-        skillId: trophyAwards.grantedSkillId,
-      })
-      .from(trophyAwards)
-      .where(
-        and(
-          inArray(trophyAwards.playerId, ids),
-          isNotNull(trophyAwards.grantedSkillId),
-        ),
-      );
-    const byPlayer = new Map<number, Set<number>>();
-    for (const { playerId, skillId } of rows) {
-      // Both columns are nullable in the schema; the filter keeps only rows
-      // with both set, but the types do not know that.
-      if (playerId === null || skillId === null) {
-        continue;
-      }
-      const granted = byPlayer.get(playerId) ?? new Set<number>();
-      granted.add(skillId);
-      byPlayer.set(playerId, granted);
     }
     return byPlayer;
   }

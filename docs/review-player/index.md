@@ -341,10 +341,10 @@ keywords, player status, and advancement costs with unspent SPP.
      [the roster file format](../import-tp/file-format-rosters.md)) and
      `pendingImprovements`, with each gained skill's `isRandom`, `isElite`
      and `isExtra`; the panel says that TP's download carries no
-     per-advancement cost, and that extra skills such as Hatred and a
-     Journeyman's Loner are granted without SPP being spent, which the
-     modelled range does not recognise, so such a player can legitimately
-     be listed. Right: the era's last-listed rules set, then one
+     per-advancement cost, that extra skills such as Hatred are imported
+     as free extras and priced at 0, and that a Journeyman's Loner is also
+     granted without SPP being spent, which the modelled range does not
+     recognise, so such a player can legitimately be listed. Right: the era's last-listed rules set, then one
      row per advancement with the cost `advancement_costs` gives it at its
      number — a single number under fixed thresholds, the candidate cost of
      each kind under a rules set that prices by kind, narrowed to random or
@@ -358,9 +358,10 @@ keywords, player status, and advancement costs with unspent SPP.
      A coach who rolls a characteristic result may take a skill instead and
      pay the characteristic price; that is not modelled, so a skill is never
      priced as `random_characteristic`, and a player whose reported spend can
-     only be explained that way is listed. Starting skills and the skill a
-     player's own trophy award granted (Gudarnas Förkämpe's mutation,
-     `trophy_awards.granted_skill_id`) cost 0 and take no number; a skill a
+     only be explained that way is listed. Starting skills and a skill
+     stored as a free extra (`player_skills.is_free_extra`: a gained Hatred,
+     a skill TP flags `isExtra`, or Gudarnas Förkämpe's mutation) cost 0 and
+     take no number; a skill a
      league house rule grants (tLoEG's Fan Favourite) shows as that rule's
      advancement with its cost. Gained skills come first in their stored
      order, which is unverified, then the characteristic increases, whose
@@ -385,7 +386,7 @@ keywords, player status, and advancement costs with unspent SPP.
      the stored unspent SPP is checked instead. A note says that gaps in the
      recorded advancement history can explain a reported spend above the
      range. The cost check reads `advancement_costs`, `players`,
-     `player_skills`, `trophy_awards`, the era, rules set and league chain
+     `player_skills`, the era, rules set and league chain
      (`team_eras`, `eras`, `era_rules_sets`, `rules_sets`), `positions`,
      `skills`, `skill_rules_sets`, `position_rules_sets` and
      `position_rules_set_skill_categories`, all through `packages/db`.
