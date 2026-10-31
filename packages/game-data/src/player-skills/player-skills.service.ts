@@ -187,7 +187,7 @@ export class PlayerSkillsService {
       }
       resultIds[index] = existing.id;
       const values: PlayerSkillUpdate['values'] = {};
-      if (row.source !== existing.source) {
+      if (this.sourceChanges(existing.source, row.source)) {
         values.source = row.source;
       }
       if (row.source === 'starting') {
@@ -275,6 +275,27 @@ export class PlayerSkillsService {
         );
       return { playerSkillIds: resultIds };
     });
+  }
+
+  /**
+   * Whether an entry's source replaces the stored one. A stored `chosen` or
+   * `random` is kept when the entry only says `advancement`: that is the
+   * generic source a system that cannot tell the two apart (BBL) sends every
+   * time, and the stored value is the more specific record of the same
+   * skill, settled by BblSkillSourceInferenceService or by the source itself.
+   * Overwriting it would make every unchanged re-run write a row.
+   */
+  private sourceChanges(
+    stored: PlayerSkillSource,
+    incoming: PlayerSkillSource,
+  ): boolean {
+    if (
+      incoming === 'advancement' &&
+      (stored === 'chosen' || stored === 'random')
+    ) {
+      return false;
+    }
+    return incoming !== stored;
   }
 
   /**

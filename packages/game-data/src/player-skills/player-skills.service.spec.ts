@@ -200,6 +200,92 @@ describe('PlayerSkillsService', () => {
       expect(extractAllFilterValues(firstCallArg(clear.where))).toContain(1);
     });
 
+    it.each(['chosen', 'random'] as const)(
+      'keeps a stored %s source when the entry only says advancement',
+      async (stored) => {
+        const db = mockDb(
+          [playerRow],
+          [skillRow],
+          [
+            {
+              id: 51,
+              playerId: 1,
+              skillId: 7,
+              source: stored,
+              attributeValue: null,
+              advancementOrder: 2,
+            },
+          ],
+        );
+        const service = await makeService(db);
+
+        const result = await service.sync({
+          entries: [{ ...entry, source: 'advancement', advancementOrder: 2 }],
+        });
+
+        expect(result).toEqual({ playerSkillIds: [51] });
+        // Nothing changed, so nothing is written and the stored unspent SPP
+        // is not cleared.
+        expect(db.chains).toHaveLength(3);
+        expect(db.transaction).not.toHaveBeenCalled();
+        expect(db.db.update).not.toHaveBeenCalled();
+      },
+    );
+
+    it('keeps a stored chosen source but still updates the order an advancement entry gives', async () => {
+      const db = mockDb(
+        [playerRow],
+        [skillRow],
+        [
+          {
+            id: 51,
+            playerId: 1,
+            skillId: 7,
+            source: 'chosen',
+            attributeValue: null,
+            advancementOrder: 2,
+          },
+        ],
+      );
+      const service = await makeService(db);
+
+      await service.sync({
+        entries: [{ ...entry, source: 'advancement', advancementOrder: 3 }],
+      });
+
+      expect(firstCallArg(db.chains[3].set)).toEqual({ advancementOrder: 3 });
+    });
+
+    it.each([
+      ['advancement', 'chosen'],
+      ['advancement', 'random'],
+      ['starting', 'advancement'],
+      ['advancement', 'starting'],
+    ] as const)(
+      'updates a stored %s source to the %s the entry gives',
+      async (stored, incoming) => {
+        const db = mockDb(
+          [playerRow],
+          [skillRow],
+          [
+            {
+              id: 51,
+              playerId: 1,
+              skillId: 7,
+              source: stored,
+              attributeValue: null,
+              advancementOrder: null,
+            },
+          ],
+        );
+        const service = await makeService(db);
+
+        await service.sync({ entries: [{ ...entry, source: incoming }] });
+
+        expect(firstCallArg(db.chains[3].set)).toEqual({ source: incoming });
+      },
+    );
+
     it('clears advancementOrder when a gained skill changes to starting, even though the entry omits it', async () => {
       const db = mockDb(
         [playerRow],

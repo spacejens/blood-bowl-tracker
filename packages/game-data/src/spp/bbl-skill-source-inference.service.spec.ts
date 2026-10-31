@@ -277,6 +277,44 @@ describe('BblSkillSourceInferenceService', () => {
     expect(h.db.chains).toHaveLength(0);
   });
 
+  it.each([
+    ['a negative unspent figure', { unspentSpp: -3, snapshotSppTotal: 0 }],
+    [
+      'an unspent figure above the career total',
+      { unspentSpp: 9, snapshotSppTotal: 6 },
+    ],
+  ])('skips a snapshot with %s', async (_label, snapshot) => {
+    // Either figure would otherwise read as a spend of 3: a random primary.
+    const h = await makeService(new Map([[1, [bb2020([gained(BLOCK)])]]]));
+
+    await h.service.inferSources(new Map([[1, snapshot]]));
+
+    expect(h.db.chains).toHaveLength(0);
+  });
+
+  it('never writes a starting skill', async () => {
+    // A random Block costs 3 either way; the starting Tackle costs nothing.
+    const h = await inferFor(
+      [bb2020([gained(TACKLE, 'starting'), gained(BLOCK)])],
+      3,
+    );
+
+    expect(writes(h.db)).toEqual([
+      { set: { source: 'random' }, filter: ['advancement', 1, BLOCK] },
+    ]);
+  });
+
+  it('never writes a skill a trophy granted', async () => {
+    // The granted Tackle costs nothing, so its source cannot be told apart.
+    const input = bb2020([gained(TACKLE), gained(BLOCK)]);
+    input.candidatesInput.trophyGrantedSkillIds = new Set([TACKLE]);
+    const h = await inferFor([input], 3);
+
+    expect(writes(h.db)).toEqual([
+      { set: { source: 'random' }, filter: ['advancement', 1, BLOCK] },
+    ]);
+  });
+
   it('settles each player of a batch on their own spend', async () => {
     const h = await makeService(
       new Map([

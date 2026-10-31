@@ -201,8 +201,9 @@ export class AdvancementSpendRangeService {
    * The best total over every way to give each advancement its own number: a
    * dynamic programme over the set of numbers used so far, held as a bitmask.
    * Advancements are placed in list order, so the count of used numbers says
-   * which advancement comes next. The table has 2^N entries; `range` has
-   * already checked that every number up to N is priced, so N never exceeds
+   * which advancement comes next. The table has 2^N entries; every caller has
+   * already checked, via `priceable`, that every number up to N is priced, so
+   * N never exceeds
    * the highest advancement number in the cost table.
    */
   private bestTotal(

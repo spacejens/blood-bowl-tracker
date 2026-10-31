@@ -11,6 +11,7 @@ import {
   leagues,
   players,
   playerSkills,
+  playerSkillsHistory,
   positionRulesSets,
   positionRulesSetSkillCategories,
   positions,
@@ -33,6 +34,7 @@ import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
+import { PlayerSkillsService } from '../src/player-skills/player-skills.service';
 import { AdvancementKindCandidatesService } from '../src/spp/advancement-kind-candidates.service';
 import { AdvancementPricingModelService } from '../src/spp/advancement-pricing-model.service';
 import { AdvancementSpendRangeService } from '../src/spp/advancement-spend-range.service';
@@ -199,6 +201,7 @@ describe('BBL skill source inference in the closing SPP sync (real Postgres)', (
   let db: Db;
   let seeded: SeededPlayers;
   let adjustments: SppAdjustmentsService;
+  let playerSkillsService: PlayerSkillsService;
 
   beforeAll(async () => {
     db = await connectTestDb();
@@ -222,6 +225,7 @@ describe('BBL skill source inference in the closing SPP sync (real Postgres)', (
     const moduleRef = await Test.createTestingModule({
       providers: [
         SppAdjustmentsService,
+        PlayerSkillsService,
         BblSkillSourceInferenceService,
         UnspentSppDecisionService,
         UnspentSppService,
@@ -240,6 +244,7 @@ describe('BBL skill source inference in the closing SPP sync (real Postgres)', (
       ],
     }).compile();
     adjustments = moduleRef.get(SppAdjustmentsService);
+    playerSkillsService = moduleRef.get(PlayerSkillsService);
   });
 
   async function sources(
@@ -289,18 +294,26 @@ describe('BBL skill source inference in the closing SPP sync (real Postgres)', (
     expect(await storedUnspent(seeded.settled)).toBe(3);
   });
 
-  it('settles the same way again after the import resets the sources', async () => {
+  it('keeps the settled sources when a re-run re-sends them as advancement', async () => {
     await sync();
-    await db
-      .update(playerSkills)
-      .set({ source: 'advancement' })
-      .where(
-        and(
-          eq(playerSkills.playerId, seeded.settled),
-          inArray(playerSkills.source, ['chosen', 'random']),
-        ),
-      );
+    const historyBefore = await db.select().from(playerSkillsHistory);
+    const skillRows = await db
+      .select({
+        playerId: playerSkills.playerId,
+        skillId: playerSkills.skillId,
+        source: playerSkills.source,
+      })
+      .from(playerSkills)
+      .where(eq(playerSkills.playerId, seeded.settled));
 
+    // The BBL import re-sends every gained skill as advancement.
+    await playerSkillsService.sync({
+      entries: skillRows.map((row) => ({
+        playerId: row.playerId,
+        skillId: row.skillId,
+        source: row.source === 'starting' ? 'starting' : 'advancement',
+      })),
+    });
     await sync();
 
     expect(await sources(seeded.settled)).toEqual({
@@ -308,5 +321,32 @@ describe('BBL skill source inference in the closing SPP sync (real Postgres)', (
       Block: 'random',
       Sidestep: 'chosen',
     });
+    expect(await db.select().from(playerSkillsHistory)).toEqual(historyBefore);
+    expect(await storedUnspent(seeded.settled)).toBe(3);
+  });
+
+  it('leaves the stored unspent SPP alone when a skill re-sync after inference changes nothing', async () => {
+    await sync();
+    const historyBefore = await db.select().from(playerSkillsHistory);
+
+    await playerSkillsService.sync({
+      entries: (
+        await db
+          .select({
+            playerId: playerSkills.playerId,
+            skillId: playerSkills.skillId,
+          })
+          .from(playerSkills)
+          .where(
+            and(
+              eq(playerSkills.playerId, seeded.settled),
+              inArray(playerSkills.source, ['chosen', 'random']),
+            ),
+          )
+      ).map((row) => ({ ...row, source: 'advancement' as const })),
+    });
+
+    expect(await db.select().from(playerSkillsHistory)).toEqual(historyBefore);
+    expect(await storedUnspent(seeded.settled)).toBe(3);
   });
 });

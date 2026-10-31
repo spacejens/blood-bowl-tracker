@@ -50,7 +50,8 @@ interface AdjustmentWrite extends TotalWrite {
  *
  * The BBL sync also records a gained skill as chosen or random when the
  * spend BBL reports settles it (see `BblSkillSourceInferenceService`),
- * before the unspent SPP is decided.
+ * before the unspent SPP is stored. A skill settled on an earlier import
+ * stays settled.
  */
 @Injectable()
 export class SppAdjustmentsService {
@@ -110,8 +111,9 @@ export class SppAdjustmentsService {
     }
 
     // BBL does not say whether a gained skill was rolled or chosen, but the
-    // spend its page implies can settle it. This runs first so the unspent
-    // decision below reads the narrowed history.
+    // spend its page implies can settle it. This runs in the same closing
+    // sync, before the unspent value is stored; that value is BBL's own
+    // figure and does not depend on the sources written here.
     await this.skillSources.inferSources(snapshots);
     return this.applyWrites(await this.withUnspentSpp(totals, snapshots));
   }

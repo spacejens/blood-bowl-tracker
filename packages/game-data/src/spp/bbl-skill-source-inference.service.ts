@@ -41,10 +41,16 @@ interface PlayerSkillKey {
  * skills of a player whose spend fits no rules set, and every skill when the
  * era only prices by fixed thresholds.
  *
+ * BBL prices every advancement at BB2020 costs, so its spend is matched
+ * against each rules set's own cost table: BBL's kind-priced eras (BB2020,
+ * DB2021) use exactly those costs.
+ *
  * Only rows still recorded `advancement` are written, so a starting skill or
- * a source a coach's record already states is never changed. The BBL import
- * re-sends every gained skill as `advancement` before the closing SPP sync
- * that calls this, so the result depends only on the current page.
+ * a source already recorded `chosen` or `random` is never changed. The BBL
+ * import re-sends every gained skill as `advancement`, but
+ * PlayerSkillsService keeps a settled source against that generic value, so
+ * a skill settled once stays settled and later imports only work on the
+ * skills still open, with the settled ones as fixed constraints.
  */
 @Injectable()
 export class BblSkillSourceInferenceService {
@@ -59,24 +65,33 @@ export class BblSkillSourceInferenceService {
   async inferSources(
     snapshots: ReadonlyMap<number, UnspentSppSnapshot>,
   ): Promise<void> {
-    if (snapshots.size === 0) {
+    // The same bounds UnspentSppDecisionService.trusted puts on a figure
+    // before storing it: a negative unspent figure, or one above the career
+    // total it sits beside, is not a spend to reason from.
+    const usable = [...snapshots].filter(
+      ([, { unspentSpp, snapshotSppTotal }]) =>
+        unspentSpp >= 0 && unspentSpp <= snapshotSppTotal,
+    );
+    if (usable.length === 0) {
       return;
     }
-    const inputs = await this.unspentSpp.advancementInputsForPlayers([
-      ...snapshots.keys(),
-    ]);
+    const inputs = await this.unspentSpp.advancementInputsForPlayers(
+      usable.map(([playerId]) => playerId),
+    );
     const settled = new Map<SettledSource, PlayerSkillKey[]>();
-    for (const [playerId, snapshot] of snapshots) {
+    for (const [playerId, snapshot] of usable) {
       const rulesSets = inputs.get(playerId) ?? [];
       if (!rulesSets.some((input) => input.pricingModel === 'kind_priced')) {
         continue;
       }
       const spent = snapshot.snapshotSppTotal - snapshot.unspentSpp;
       for (const [skillId, source] of this.settledSources(rulesSets, spent)) {
-        settled.set(source, [
-          ...(settled.get(source) ?? []),
-          { playerId, skillId },
-        ]);
+        let keys = settled.get(source);
+        if (keys === undefined) {
+          keys = [];
+          settled.set(source, keys);
+        }
+        keys.push({ playerId, skillId });
       }
     }
     await this.write(settled);
@@ -108,10 +123,8 @@ export class BblSkillSourceInferenceService {
     }
     const settled = new Map<number, SettledSource>();
     for (const [skillId, sources] of possible) {
-      for (const source of sources) {
-        if (sources.size === 1) {
-          settled.set(skillId, source);
-        }
+      if (sources.size === 1) {
+        settled.set(skillId, [...sources][0]);
       }
     }
     return settled;
