@@ -205,8 +205,8 @@ The tool never parses a roster or a match for those upserts; it does parse roste
   team played in; the freshest [copy](./file-format-rosters.md#roster-copies)
   is sent. Each call sends the file's raw content, its era (from the directory
   it was found in), the configured external system name, and the roster's
-  match-snapshot-only players. The server upserts the team (keyed by roster id
-  + name; race resolved by TP external id, skipped with an error if
+  match-snapshot-only players. The server upserts the team (keyed by
+  roster id and name; race resolved by TP external id, skipped with an error if
   unresolved; coach upserted from the roster's own coach id and name, created
   if unknown; an existing coach keeps its stored name — see
   [import-tp-live/index.md](../import-tp-live/index.md)) and its players. A
