@@ -23,6 +23,12 @@ export const PlayerSkillSourceSchema = z.enum(PLAYER_SKILL_SOURCES);
  * records a confirmed sequence, only a presentation-order proxy — and is only
  * ever meaningful for a gained source (`advancement`, `chosen` or `random`).
  * A `starting` entry leaves it unset.
+ *
+ * `isFreeExtra` says the source system flags this gained skill as granted on
+ * top of the player's advancements (TP's `isExtra`): it cost no SPP and is
+ * not an advancement. Absent means false. The server also marks a skill as
+ * free on its own (a skill one of the player's trophy awards grants, and
+ * every non-`starting` Hatred), so a caller only sends what its source says.
  */
 export const PlayerSkillEntrySchema = z
   .object({
@@ -31,6 +37,7 @@ export const PlayerSkillEntrySchema = z
     source: PlayerSkillSourceSchema,
     attributeValue: z.string().nullable().optional(),
     advancementOrder: z.number().int().nonnegative().nullable().optional(),
+    isFreeExtra: z.boolean().optional(),
   })
   .superRefine((data, ctx) => {
     if (
@@ -64,12 +71,15 @@ export const SyncPlayerSkillsResultSchema = z.object({
  * `nullable()` rather than optional here, matching the stored columns: the
  * read-back genuinely returns `null` for a skill with no variant and for a
  * starting skill, which has no sequence.
+ *
+ * `isFreeExtra` is the stored flag, always present on a read-back row.
  */
 export const PlayerSkillRefSchema = z.object({
   skillId: z.number().int(),
   source: PlayerSkillSourceSchema,
   attributeValue: z.string().nullable(),
   advancementOrder: z.number().int().nonnegative().nullable(),
+  isFreeExtra: z.boolean(),
 });
 
 /**
