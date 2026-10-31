@@ -44,6 +44,7 @@ import { SppOngoingEstimateService } from '../src/spp/spp-ongoing-estimate.servi
 import { SppTotalsService } from '../src/spp/spp-totals.service';
 import { StoredUnspentSppSettlementService } from '../src/spp/stored-unspent-spp-settlement.service';
 import { UnspentSppService } from '../src/spp/unspent-spp.service';
+import { UnspentSppCombinationService } from '../src/spp/unspent-spp-combination.service';
 import { UnspentSppDecisionService } from '../src/spp/unspent-spp-decision.service';
 import { connectTestDb } from './e2e-database';
 
@@ -415,7 +416,7 @@ describe('UnspentSppService.forPlayers (real Postgres)', () => {
   beforeEach(async () => {
     await resetGameDataTables(db);
     seeded = await seed(db);
-    // The four collaborators are pure and dependency-free, so they are real.
+    // The five collaborators are pure and dependency-free, so they are real.
     const moduleRef = await Test.createTestingModule({
       providers: [
         UnspentSppService,
@@ -423,6 +424,7 @@ describe('UnspentSppService.forPlayers (real Postgres)', () => {
         AdvancementSpendRangeService,
         AdvancementPricingModelService,
         StoredUnspentSppSettlementService,
+        UnspentSppCombinationService,
         { provide: DB, useValue: db },
       ],
     }).compile();
@@ -602,6 +604,7 @@ describe('unspent_spp storage (real Postgres)', () => {
         AdvancementSpendRangeService,
         AdvancementPricingModelService,
         StoredUnspentSppSettlementService,
+        UnspentSppCombinationService,
         { provide: DB, useValue: db },
         { provide: SppTotalsService, useValue: totals },
         {

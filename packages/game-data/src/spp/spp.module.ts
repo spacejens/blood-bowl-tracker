@@ -13,6 +13,7 @@ import { SppOngoingEstimateService } from './spp-ongoing-estimate.service';
 import { SppTotalsService } from './spp-totals.service';
 import { StoredUnspentSppSettlementService } from './stored-unspent-spp-settlement.service';
 import { UnspentSppService } from './unspent-spp.service';
+import { UnspentSppCombinationService } from './unspent-spp-combination.service';
 import { UnspentSppDecisionService } from './unspent-spp-decision.service';
 
 @Module({
@@ -29,6 +30,7 @@ import { UnspentSppDecisionService } from './unspent-spp-decision.service';
     SppOngoingEstimateService,
     SppTotalsService,
     StoredUnspentSppSettlementService,
+    UnspentSppCombinationService,
     UnspentSppDecisionService,
     UnspentSppService,
   ],
@@ -44,6 +46,7 @@ import { UnspentSppDecisionService } from './unspent-spp-decision.service';
     SppOngoingEstimateService,
     SppTotalsService,
     StoredUnspentSppSettlementService,
+    UnspentSppCombinationService,
     UnspentSppDecisionService,
     UnspentSppService,
   ],

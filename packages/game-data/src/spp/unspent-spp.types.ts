@@ -107,6 +107,20 @@ export interface UnknownUnspentSpp {
 
 export type UnspentSppResult = KnownUnspentSpp | UnknownUnspentSpp;
 
+/** What one rules set's costs make of a player's history, when they fit. */
+export interface FittingOutcome {
+  kind: 'fits';
+  advancementsGained: number;
+  spentMin: number;
+  spentMax: number;
+  cheapestNextCost: number | null;
+  coversAnother: CoversAnother;
+}
+
+/** What one rules set's costs make of a player's history. */
+export type RulesSetOutcome =
+  { kind: 'no_costs' } | { kind: 'inconsistent' } | FittingOutcome;
+
 /** A modelled result with the pricing model of the player's era. */
 export interface ModelledUnspentSpp {
   /** Null when the era's rules sets disagree or none has its own costs. */

@@ -184,6 +184,7 @@ export type {
   UnspentSppResult,
   UnspentSppUnknownReason,
 } from './spp/unspent-spp.types';
+export { UnspentSppCombinationService } from './spp/unspent-spp-combination.service';
 export type { UnspentSppCandidate } from './spp/unspent-spp-decision.service';
 export { UnspentSppDecisionService } from './spp/unspent-spp-decision.service';
 export type {

@@ -15,6 +15,7 @@ import { AdvancementSpendRangeService } from './advancement-spend-range.service'
 import { StoredUnspentSppSettlementService } from './stored-unspent-spp-settlement.service';
 import { UnspentSppService } from './unspent-spp.service';
 import type { ModelledUnspentSpp, UnspentSppResult } from './unspent-spp.types';
+import { UnspentSppCombinationService } from './unspent-spp-combination.service';
 
 export const CRP = 1;
 export const BB2020 = 2;
@@ -185,7 +186,7 @@ export function unspentSppDb(fixture: UnspentSppFixture): MockDbResult {
 }
 
 /**
- * The service under test on a mock db. Its four collaborators are pure and
+ * The service under test on a mock db. Its five collaborators are pure and
  * dependency-free, so they are passed real as a pure chain (CLAUDE.md).
  */
 export async function makeUnspentSppService(
@@ -198,6 +199,7 @@ export async function makeUnspentSppService(
       AdvancementSpendRangeService,
       AdvancementPricingModelService,
       StoredUnspentSppSettlementService,
+      UnspentSppCombinationService,
       { provide: DB, useValue: db.db },
     ],
   }).compile();
