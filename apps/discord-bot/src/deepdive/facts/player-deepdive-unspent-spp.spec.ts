@@ -26,6 +26,7 @@ const covers: KnownUnspentSpp = {
   cheapestNextCost: 6,
   coversAnother: 'yes',
   storedVerdict: 'none_stored',
+  storedUnspentSpp: null,
 };
 
 /** Griff with a computed total, so the total section is shown. */

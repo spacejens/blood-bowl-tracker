@@ -92,6 +92,11 @@ export interface KnownUnspentSpp {
    * not consulted.
    */
   storedVerdict: StoredUnspentVerdict;
+  /**
+   * The stored figure the verdict was reached against; null when none is
+   * stored or the figure was not consulted.
+   */
+  storedUnspentSpp: number | null;
 }
 
 /** A player whose unspent SPP cannot be worked out, and why. */

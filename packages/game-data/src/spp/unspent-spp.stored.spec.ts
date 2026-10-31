@@ -38,6 +38,7 @@ describe('UnspentSppService with a stored unspent figure', () => {
       cheapestNextCost: 6,
       coversAnother: 'yes',
       storedVerdict: 'settled',
+      storedUnspentSpp: 10,
     });
   });
 
@@ -53,6 +54,7 @@ describe('UnspentSppService with a stored unspent figure', () => {
       cheapestNextCost: 6,
       coversAnother: 'maybe',
       storedVerdict: 'outside_range',
+      storedUnspentSpp: 2,
     });
   });
 
@@ -72,6 +74,7 @@ describe('UnspentSppService with a stored unspent figure', () => {
       cheapestNextCost: 4,
       coversAnother: 'maybe',
       storedVerdict: 'settled',
+      storedUnspentSpp: 5,
     });
   });
 });
@@ -80,7 +83,12 @@ describe('UnspentSppService.modelledForPlayers', () => {
   it('ignores the stored figure', async () => {
     expect(await modelledUnspentSppFor(typePriced(10))).toMatchObject({
       pricingModel: 'kind_priced',
-      result: { unspentMin: 4, unspentMax: 23, storedVerdict: 'none_stored' },
+      result: {
+        unspentMin: 4,
+        unspentMax: 23,
+        storedVerdict: 'none_stored',
+        storedUnspentSpp: null,
+      },
     });
   });
 

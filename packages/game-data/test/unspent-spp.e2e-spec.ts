@@ -463,6 +463,7 @@ describe('UnspentSppService.forPlayers (real Postgres)', () => {
       cheapestNextCost: 15,
       coversAnother: 'no',
       storedVerdict: 'none_stored',
+      storedUnspentSpp: null,
     });
     // The other league's 50-SPP Fan Favourite row does not apply.
     expect(results.get(seeded.fanFavourite)).toEqual({
@@ -476,6 +477,7 @@ describe('UnspentSppService.forPlayers (real Postgres)', () => {
       cheapestNextCost: null,
       coversAnother: 'no',
       storedVerdict: 'none_stored',
+      storedUnspentSpp: null,
     });
     // Block chosen primary; Mighty Blow chosen primary or secondary.
     expect(results.get(seeded.typePriced)).toEqual({
@@ -489,6 +491,7 @@ describe('UnspentSppService.forPlayers (real Postgres)', () => {
       cheapestNextCost: 6,
       coversAnother: 'yes',
       storedVerdict: 'none_stored',
+      storedUnspentSpp: null,
     });
     expect(results.get(seeded.trophyGranted)).toEqual({
       status: 'known',
@@ -501,6 +504,7 @@ describe('UnspentSppService.forPlayers (real Postgres)', () => {
       cheapestNextCost: 10,
       coversAnother: 'no',
       storedVerdict: 'none_stored',
+      storedUnspentSpp: null,
     });
     expect(results.get(seeded.starPlayer)).toEqual({
       status: 'unknown',
@@ -518,6 +522,7 @@ describe('UnspentSppService.forPlayers (real Postgres)', () => {
       cheapestNextCost: 8,
       coversAnother: 'no',
       storedVerdict: 'none_stored',
+      storedUnspentSpp: null,
     });
   });
 
@@ -533,6 +538,7 @@ describe('UnspentSppService.forPlayers (real Postgres)', () => {
       cheapestNextCost: 15,
       coversAnother: 'no',
       storedVerdict: 'none_stored',
+      storedUnspentSpp: null,
     });
   });
 
@@ -553,6 +559,7 @@ describe('UnspentSppService.forPlayers (real Postgres)', () => {
       cheapestNextCost: 6,
       coversAnother: 'yes',
       storedVerdict: 'settled',
+      storedUnspentSpp: 12,
     });
   });
 });

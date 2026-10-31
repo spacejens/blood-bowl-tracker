@@ -127,8 +127,8 @@ error, and dead, retired and departed players are worked out like any other.
 - **Where it is shown.** Of the Discord bot's views, only the
   [player deepdive](../../discord-bot/slash-commands/deepdive-embeds.md#star-player-points)
   shows it, under `Total SPP:`. The bot's toplists of players by SPP
-  deliberately leave it out. The deepdive notes when the source's figure lies
-  outside the range.
+  deliberately leave it out. When the stored figure lies outside the range, the
+  deepdive shows both the stored figure and the calculated range.
 - **Checked against the sources.** `tools/review-player` re-prices each
   player's advancements independently and compares the resulting spend
   range with the spend each source reports (its total minus its unspent

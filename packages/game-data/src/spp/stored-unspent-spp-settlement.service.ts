@@ -22,10 +22,18 @@ export class StoredUnspentSppSettlementService {
   settle(result: KnownUnspentSpp, figure: StoredFigure): KnownUnspentSpp {
     const { stored, nextCosts } = figure;
     if (stored === null) {
-      return { ...result, storedVerdict: 'none_stored' };
+      return {
+        ...result,
+        storedVerdict: 'none_stored',
+        storedUnspentSpp: null,
+      };
     }
     if (stored < result.unspentMin || stored > result.unspentMax) {
-      return { ...result, storedVerdict: 'outside_range' };
+      return {
+        ...result,
+        storedVerdict: 'outside_range',
+        storedUnspentSpp: stored,
+      };
     }
     return {
       ...result,
@@ -35,6 +43,7 @@ export class StoredUnspentSppSettlementService {
       unspentMax: stored,
       coversAnother: this.verdict(stored, nextCosts),
       storedVerdict: 'settled',
+      storedUnspentSpp: stored,
     };
   }
 

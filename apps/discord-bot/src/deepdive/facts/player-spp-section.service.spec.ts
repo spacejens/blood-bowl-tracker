@@ -17,6 +17,7 @@ const covers: KnownUnspentSpp = {
   cheapestNextCost: 6,
   coversAnother: 'yes',
   storedVerdict: 'none_stored',
+  storedUnspentSpp: null,
 };
 
 describe('PlayerSppSectionService', () => {

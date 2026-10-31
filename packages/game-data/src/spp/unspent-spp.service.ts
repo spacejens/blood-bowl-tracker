@@ -307,6 +307,7 @@ export class UnspentSppService {
       cheapestNextCost,
       coversAnother: this.mergeVerdicts(fits.map((fit) => fit.coversAnother)),
       storedVerdict: 'none_stored',
+      storedUnspentSpp: null,
     };
   }
 

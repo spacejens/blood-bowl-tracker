@@ -30,6 +30,7 @@ function known(unspentMin: number, unspentMax: number): KnownUnspentSpp {
     cheapestNextCost: 6,
     coversAnother: 'maybe',
     storedVerdict: 'none_stored',
+    storedUnspentSpp: null,
   };
 }
 

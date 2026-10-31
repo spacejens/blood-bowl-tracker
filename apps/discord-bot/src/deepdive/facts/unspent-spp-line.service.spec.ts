@@ -21,6 +21,7 @@ function known(overrides: Partial<KnownUnspentSpp>): KnownUnspentSpp {
     cheapestNextCost: 6,
     coversAnother: 'yes',
     storedVerdict: 'none_stored',
+    storedUnspentSpp: null,
     ...overrides,
   };
 }
@@ -105,14 +106,37 @@ describe('UnspentSppLineService', () => {
       'Unspent SPP: 1,234–2,345 (covers another advancement)',
     ],
     [
-      'a range the stored figure lies outside',
+      'a stored figure below the calculated range',
       known({
         unspentMin: 5,
         unspentMax: 11,
         coversAnother: 'maybe',
         storedVerdict: 'outside_range',
+        storedUnspentSpp: 2,
       }),
-      'Unspent SPP: 5–11 (may cover another advancement; the stored figure lies outside this range, so the recorded advancement history may be incomplete or misrecorded)',
+      'Unspent SPP: 2 stored, 5–11 calculated (may cover another advancement; the stored figure lies outside the calculated range, so the recorded advancement history may be incomplete or misrecorded)',
+    ],
+    [
+      'a stored figure above the calculated range',
+      known({
+        unspentMin: 5,
+        unspentMax: 11,
+        coversAnother: 'maybe',
+        storedVerdict: 'outside_range',
+        storedUnspentSpp: 1234,
+      }),
+      'Unspent SPP: 1,234 stored, 5–11 calculated (may cover another advancement; the stored figure lies outside the calculated range, so the recorded advancement history may be incomplete or misrecorded)',
+    ],
+    [
+      'a single-number calculated range the stored figure lies outside',
+      known({
+        unspentMin: 4,
+        unspentMax: 4,
+        coversAnother: 'no',
+        storedVerdict: 'outside_range',
+        storedUnspentSpp: 9,
+      }),
+      'Unspent SPP: 9 stored, 4 calculated (not enough for another advancement; the stored figure lies outside the calculated range, so the recorded advancement history may be incomplete or misrecorded)',
     ],
     [
       'nothing to spend, with the stored figure outside the range',
@@ -121,8 +145,9 @@ describe('UnspentSppLineService', () => {
         unspentMax: 0,
         coversAnother: 'no',
         storedVerdict: 'outside_range',
+        storedUnspentSpp: 3,
       }),
-      'Unspent SPP: 0 (the stored figure lies outside this range, so the recorded advancement history may be incomplete or misrecorded)',
+      'Unspent SPP: 3 stored, 0 calculated (the stored figure lies outside the calculated range, so the recorded advancement history may be incomplete or misrecorded)',
     ],
     [
       'a settled figure, shown as one number',

@@ -16,6 +16,7 @@ const RANGE: KnownUnspentSpp = {
   cheapestNextCost: 6,
   coversAnother: 'maybe',
   storedVerdict: 'none_stored',
+  storedUnspentSpp: null,
 };
 
 describe('StoredUnspentSppSettlementService', () => {
@@ -43,6 +44,7 @@ describe('StoredUnspentSppSettlementService', () => {
       unspentMax: 10,
       coversAnother: 'yes',
       storedVerdict: 'settled',
+      storedUnspentSpp: 10,
     });
   });
 
@@ -59,7 +61,11 @@ describe('StoredUnspentSppSettlementService', () => {
     expect(service.settle(RANGE, { stored: 3, nextCosts: [6] })).toEqual({
       ...RANGE,
       storedVerdict: 'outside_range',
+      storedUnspentSpp: 3,
     });
+    expect(
+      service.settle(RANGE, { stored: 24, nextCosts: [6] }).storedUnspentSpp,
+    ).toBe(24);
     expect(
       service.settle(RANGE, { stored: 24, nextCosts: [6] }).storedVerdict,
     ).toBe('outside_range');
