@@ -3,6 +3,7 @@ import type {
   TpImportedPlayer,
   TpMatchEmbeddedPlayer,
   TpMercenaryPositionUsage,
+  UnspentSppSnapshot,
   UpsertPlayer,
   UpsertPlayerCharacteristics,
 } from '@blood-bowl-tracker/api-contract';
@@ -49,6 +50,12 @@ export interface TpRosterPlayersOutcome {
   mercenaryPositionUsages: TpMercenaryPositionUsage[];
 }
 
+/** An entry's unspent SPP and the career total reported beside it. */
+interface UnspentSource {
+  starPlayerPoints?: number;
+  totalStarPlayerPoints: number;
+}
+
 @Injectable()
 export class TpRosterPlayersImportService {
   constructor(
@@ -69,12 +76,16 @@ export class TpRosterPlayersImportService {
    * match snapshots — a player who has since left is still referenced by
    * match events); the roster file wins for any id both list, being the
    * freshest, except for the career SPP total, which only ever grows and so
-   * takes the highest value seen; it is returned per player, and stored unless
-   * the caller defers it. Players carry only a TP external id (their
-   * `lineUps[].id`), never a Name one: player names are not unique.
-   * Every player's status is sent too, `null` when TP's data establishes
-   * none, so a re-import clears one the player no longer has; a roster file
-   * and a match snapshot count equally for deciding a player is active.
+   * takes the highest value seen; it is returned per player, and stored
+   * unless the caller defers it. TP's unspent figure is returned with the
+   * total of the very entry it came from: the roster file's own entry, or,
+   * only for a player this roster file does not list, the freshest
+   * match-embedded entry that carries one. Players carry
+   * only a TP external id (their `lineUps[].id`), never a Name one: player
+   * names are not unique. Every player's status is sent too, `null` when
+   * TP's data establishes none, so a re-import clears one the player no
+   * longer has; a roster file and a match snapshot count equally for
+   * deciding a player is active.
    */
   async importPlayers({
     roster,
@@ -89,6 +100,10 @@ export class TpRosterPlayersImportService {
       players: merged,
       tpSystemId: context.tpSystemId,
     });
+    const rosterEntries = new Map(
+      roster.players.map((entry) => [entry.id, entry]),
+    );
+    const matchEntries = this.freshestUnspentMatchEntries(matchEmbeddedPlayers);
     const mercenaryCache: MercenaryPositionCache = new Map();
     const baselineCache = this.characteristicIncreases.newCache();
     const outcome: TpRosterPlayersOutcome = {
@@ -128,11 +143,16 @@ export class TpRosterPlayersImportService {
         continue;
       }
       outcome.imported += 1;
+      const snapshot = this.unspentSnapshot(
+        rosterEntries.get(player.id) ??
+          this.unlistedMatchEntry(rosterEntries, matchEntries, player.id),
+      );
       outcome.importedPlayers.push({
         lineUpId: player.id,
         playerId: upserted.player.id,
         created: upserted.created,
         reportedSppTotal: player.totalStarPlayerPoints,
+        ...(snapshot === undefined ? {} : { unspentSppSnapshot: snapshot }),
       });
       if (position.mercenary !== undefined) {
         outcome.mercenaryPositionUsages.push({
@@ -150,6 +170,65 @@ export class TpRosterPlayersImportService {
       errors,
     });
     return outcome;
+  }
+
+  /**
+   * The entry's unspent SPP with that entry's own total. The merged player's
+   * total may be another entry's higher one, which the unspent figure was
+   * never reported against.
+   */
+  private unspentSnapshot(
+    entry: UnspentSource | undefined,
+  ): UnspentSppSnapshot | undefined {
+    return entry?.starPlayerPoints === undefined
+      ? undefined
+      : {
+          unspentSpp: entry.starPlayerPoints,
+          snapshotSppTotal: entry.totalStarPlayerPoints,
+        };
+  }
+
+  /**
+   * The match-embedded entry to take a player's unspent figure from, only
+   * when this roster file does not list the player at all: a player still on
+   * the roster is covered by the roster file's own entry (even one with no
+   * unspent figure), so a match entry is never mixed in for him.
+   */
+  private unlistedMatchEntry(
+    rosterEntries: Map<number, TpRosterPlayer>,
+    matchEntries: Map<number, TpMatchEmbeddedPlayer>,
+    playerId: number,
+  ): TpMatchEmbeddedPlayer | undefined {
+    return rosterEntries.has(playerId) ? undefined : matchEntries.get(playerId);
+  }
+
+  /**
+   * Per player, the match-embedded entry carrying an unspent figure with the
+   * highest career total: every entry shows the player as of the download,
+   * so the highest total is the freshest. At equal totals the lower unspent
+   * figure wins (unspent only rises with the total), the later entry on a
+   * full tie. One entry's unspent figure and total are never mixed with
+   * another's.
+   */
+  private freshestUnspentMatchEntries(
+    matchEmbeddedPlayers: TpMatchEmbeddedPlayer[],
+  ): Map<number, TpMatchEmbeddedPlayer> {
+    const freshest = new Map<number, TpMatchEmbeddedPlayer>();
+    for (const entry of matchEmbeddedPlayers) {
+      if (entry.starPlayerPoints === undefined) {
+        continue;
+      }
+      const known = freshest.get(entry.id);
+      if (
+        known === undefined ||
+        entry.totalStarPlayerPoints > known.totalStarPlayerPoints ||
+        (entry.totalStarPlayerPoints === known.totalStarPlayerPoints &&
+          entry.starPlayerPoints <= (known.starPlayerPoints ?? Infinity))
+      ) {
+        freshest.set(entry.id, entry);
+      }
+    }
+    return freshest;
   }
 
   /**

@@ -119,6 +119,7 @@ export class PlayerAdvancementHistoryService {
       .select({
         playerId: players.id,
         sppTotal: players.sppTotal,
+        unspentSpp: players.unspentSpp,
         isStarPlayer: positions.isStarPlayer,
         eraId: teamEras.eraId,
         leagueId: eras.leagueId,
@@ -158,6 +159,7 @@ export class PlayerAdvancementHistoryService {
       context.result.set(row.playerId, {
         playerId: row.playerId,
         sppTotal: row.sppTotal,
+        storedUnspentSpp: row.unspentSpp,
         isStarPlayer: row.isStarPlayer,
         rulesSet,
         skills: (skillsByPlayer.get(row.playerId) ?? []).map((skill) => ({

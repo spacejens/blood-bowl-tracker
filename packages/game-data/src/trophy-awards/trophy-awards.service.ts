@@ -25,6 +25,7 @@ import type { TrophyRecipientKind } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { GameDataError } from '../shared/game-data-error';
+import { UnspentSppDecisionService } from '../spp/unspent-spp-decision.service';
 
 /**
  * The award's `playerId` does not fit the referenced trophy's
@@ -197,7 +198,10 @@ export type PlayerHonor = {
 
 @Injectable()
 export class TrophyAwardsService {
-  constructor(@Inject(DB) private readonly db: Db) {}
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    private readonly unspentSppDecision: UnspentSppDecisionService,
+  ) {}
 
   /**
    * Every recipient of one trophy, most recent competition first, capped at
@@ -478,6 +482,9 @@ export class TrophyAwardsService {
    * competition differ in `playerId` and each gets a row. No cutoff on tie
    * size is applied — real BBL data has ties of up to four.
    *
+   * Writing a granted skill re-prices the winner's stored unspent SPP
+   * (`UnspentSppDecisionService.refreshFixedThreshold`).
+   *
    * Must not be called inside a caller-supplied transaction without a
    * savepoint: a caught unique violation leaves that transaction aborted
    * (Postgres SQLSTATE 25P02) until rolled back, so the fallback SELECT right
@@ -510,6 +517,15 @@ export class TrophyAwardsService {
             `${data.competitionId}, team era ${teamEraId}, player ` +
             `${data.playerId ?? 'none'} reported success but returned no row.`,
         );
+      }
+      // A granted skill costs no SPP, so it changes what the winner's
+      // fixed-threshold advancements cost. Only the manual import sends one,
+      // and it runs no SPP adjustment sync, so the stored unspent SPP is
+      // worked out again here rather than cleared.
+      if (inserted.playerId !== null && inserted.grantedSkillId !== null) {
+        await this.unspentSppDecision.refreshFixedThreshold([
+          inserted.playerId,
+        ]);
       }
       return { trophyAward: inserted, created: true };
     } catch (error) {
@@ -588,6 +604,10 @@ export class TrophyAwardsService {
    * the caller's granted skill when one was sent and differs, and is
    * returned untouched otherwise. This is what lets a curated granted skill
    * survive every later importer run, since importers never send one.
+   *
+   * A recorded award that grants a skill to a player is re-priced even when
+   * nothing changes, so a refresh that failed after the original write is
+   * repaired by the retry instead of leaving a stale fixed-threshold value.
    */
   private async overlayGrantedSkill(
     existing: TrophyAward,
@@ -597,6 +617,11 @@ export class TrophyAwardsService {
       grantedSkillId === undefined ||
       grantedSkillId === existing.grantedSkillId
     ) {
+      if (existing.playerId !== null && existing.grantedSkillId !== null) {
+        await this.unspentSppDecision.refreshFixedThreshold([
+          existing.playerId,
+        ]);
+      }
       return existing;
     }
     const [updated] = await this.db
@@ -609,6 +634,10 @@ export class TrophyAwardsService {
         `trophy_awards update of award ${existing.id}'s granted skill ` +
           'reported success but returned no row.',
       );
+    }
+    // The stored skill changed (set or cleared): re-price, as on insert.
+    if (updated.playerId !== null) {
+      await this.unspentSppDecision.refreshFixedThreshold([updated.playerId]);
     }
     return updated;
   }

@@ -16,6 +16,7 @@ import { PlayerAdvancementHistoryService } from './player-advancement-history.se
 import { SourceSpendComparisonService } from './source-spend-comparison.service';
 import type { SourceUnspentSppFigure } from './source-unspent-spp-figure.service';
 import { SourceUnspentSppFigureService } from './source-unspent-spp-figure.service';
+import { StoredUnspentSppCheckService } from './stored-unspent-spp-check.service';
 import { UnspentSppOutsideRangeStratificationService } from './unspent-spp-outside-range-stratification.service';
 
 const STRATUM = 'unspent-spp-outside-range';
@@ -72,7 +73,10 @@ describe('UnspentSppOutsideRangeStratificationService', () => {
   let range: MockProxy<AdvancementCostRangeService>;
   let figures: MockProxy<SourceUnspentSppFigureService>;
 
-  async function build(candidates: ReturnType<typeof row>[]): Promise<void> {
+  async function build(
+    candidates: ReturnType<typeof row>[],
+    stored: number | null = null,
+  ): Promise<void> {
     dbResult = mockDb(candidates);
     const externalSystems = mock<ExternalSystemLookupService>();
     externalSystems.getSystemId.mockResolvedValue(9);
@@ -87,7 +91,10 @@ describe('UnspentSppOutsideRangeStratificationService', () => {
       new Map(
         candidates.map((c) => [
           c.playerId,
-          { playerId: c.playerId } as AdvancementHistory,
+          {
+            playerId: c.playerId,
+            storedUnspentSpp: stored,
+          } as AdvancementHistory,
         ]),
       ),
     );
@@ -104,6 +111,7 @@ describe('UnspentSppOutsideRangeStratificationService', () => {
         // A pure, dependency-free decision service: passed real so the
         // stratum is checked against the same comparison the panel uses.
         SourceSpendComparisonService,
+        StoredUnspentSppCheckService,
       ],
     }).compile();
     service = moduleRef.get(UnspentSppOutsideRangeStratificationService);
@@ -132,7 +140,7 @@ describe('UnspentSppOutsideRangeStratificationService', () => {
     expect(service.listStrata()).toEqual([
       {
         id: STRATUM,
-        label: 'Source-reported spend outside the modelled spend range',
+        label: 'Unspent SPP disagreeing with the modelled range or the source',
         sources: ['bbl', 'tp'],
       },
     ]);
@@ -198,6 +206,32 @@ describe('UnspentSppOutsideRangeStratificationService', () => {
 
   it('compares a TP player under a fixed-threshold rules set', async () => {
     expect(await listed('tp', FIXED, figure('tp', 99))).toEqual([1]);
+  });
+
+  it('lists a player whose stored unspent SPP is outside the modelled range', async () => {
+    await build([row(1)], 39);
+    // Spend 15 is inside, and the source's unspent figure is 30 - 15 = 15.
+    expect(await listed('tp', KIND_PRICED, figure('tp', 15))).toEqual([1]);
+  });
+
+  it('lists a player with no source figure whose stored unspent SPP is outside the range', async () => {
+    await build([row(1)], 39);
+    expect(await listed('tp', KIND_PRICED, null)).toEqual([1]);
+  });
+
+  it('does not list a player with no source figure whose stored unspent SPP is inside the range', async () => {
+    await build([row(1)], 45);
+    expect(await listed('tp', KIND_PRICED, null)).toEqual([]);
+  });
+
+  it('lists a player whose stored unspent SPP differs from the source', async () => {
+    await build([row(1)], 45);
+    expect(await listed('tp', KIND_PRICED, figure('tp', 15))).toEqual([1]);
+  });
+
+  it('does not list a BBL player under fixed thresholds whose stored figure fits the range', async () => {
+    await build([row(1)], 45);
+    expect(await listed('bbl', FIXED, figure('bbl', 99))).toEqual([]);
   });
 
   it('handles a large candidate set in one history load', async () => {

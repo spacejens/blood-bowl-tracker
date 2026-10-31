@@ -49,6 +49,7 @@ function playerRow(overrides: Record<string, unknown> = {}) {
   return {
     playerId: 42,
     sppTotal: 40,
+    unspentSpp: 7,
     isStarPlayer: false,
     eraId: 3,
     leagueId: 5,
@@ -133,6 +134,7 @@ describe('PlayerAdvancementHistoryService', () => {
     expect(history).toEqual({
       playerId: 42,
       sppTotal: 40,
+      storedUnspentSpp: 7,
       isStarPlayer: false,
       rulesSet: { id: 2, name: 'BB2016' },
       skills: [

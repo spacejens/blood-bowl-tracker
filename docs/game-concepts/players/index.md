@@ -67,8 +67,35 @@ error, and dead, retired and departed players are worked out like any other.
   [skill categories](../skills/index.md#primary-and-secondary-categories); a
   skill outside them could be either. Unspent SPP is therefore the least and
   the most it could be over every order and kind the history allows.
-  Importing the unspent figure each source reports could settle it
-  ([#1232](https://github.com/spacejens/blood-bowl-tracker/issues/1232)).
+  A stored figure inside the range settles it to that one value; one outside
+  it leaves the range and is flagged.
+- **The stored figure.** The player record holds unspent SPP only when it is
+  known exactly; an empty value means not known exactly, never an estimate.
+  How it is known depends on how the rules sets of the player's era price
+  advancements, and they must agree, or nothing is stored. Under fixed
+  thresholds (CRP, CRP+, BB2016) the cost depends only on how many
+  advancements there are, so it is the total less that cost, kept only when
+  the history makes it exact. A source's own figure is ignored there: BBL
+  prices every player at BB2020 costs. Under rules sets that price by kind
+  (BB2020, DB2021, BB2025) it is the figure the source reports (for a TP
+  player no roster file lists, the freshest match-embedded entry's), kept unless
+  it makes no sense on its own terms: negative, larger than the total
+  reported beside it, or reported beside a total other than the stored one.
+  It is never worked out from the range, and a figure outside the range is
+  still kept: the model does not yet know the order of advancements
+  ([#1233](https://github.com/spacejens/blood-bowl-tracker/issues/1233),
+  [#1234](https://github.com/spacejens/blood-bowl-tracker/issues/1234)),
+  whether a skill was rolled or chosen
+  ([#1235](https://github.com/spacejens/blood-bowl-tracker/issues/1235)) or
+  which skills were free
+  ([#1242](https://github.com/spacejens/blood-bowl-tracker/issues/1242)),
+  and the stored figure is what shows the gap. A BBL figure on a rules set
+  that prices by kind can still be too low when BBL priced a free or rolled
+  skill as a chosen advancement; it is stored as reported unless it fails
+  the checks above. Being outside the range only points to a possible gap
+  in the history: free skills, an unrecorded order of advancements and
+  uncertainty over chosen or random can also cause it. Both sources'
+  figures are as of the download or import that read them.
 - **What counts as an advancement.** Starting skills and a skill a trophy
   granted (Gudarnas Förkämpe's mutation) cost nothing. A skill a league's
   house rule grants at a fixed advancement (tLoEG's Fan Favourite) counts only
@@ -101,10 +128,14 @@ error, and dead, retired and departed players are worked out like any other.
 - **Where it is shown.** Of the Discord bot's views, only the
   [player deepdive](../../discord-bot/slash-commands/deepdive-embeds.md#star-player-points)
   shows it, under `Total SPP:`. The bot's toplists of players by SPP
-  deliberately leave it out.
+  deliberately leave it out. When the stored figure lies outside the range, the
+  deepdive shows both the stored figure and the calculated range.
 - **Checked against the sources.** `tools/review-player` re-prices each
   player's advancements independently and compares the resulting spend
   range with the spend each source reports (its total minus its unspent
   figure); BBL is not compared under the fixed-threshold rules sets, since
   it prices every player at BB2020 costs
-  ([review-player](../../review-player/index.md)).
+  ([review-player](../../review-player/index.md)). It also checks the stored
+  figure against the range and against the source's own unspent figure. BBL's
+  figures are never compared under the fixed-threshold rules sets; the stored
+  figure, worked out from the history, covers those players.

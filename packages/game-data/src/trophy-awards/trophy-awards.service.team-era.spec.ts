@@ -3,11 +3,13 @@ import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
 import {
   extractFilterValues,
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
+import { UnspentSppDecisionService } from '../spp/unspent-spp-decision.service';
 import {
   TrophyAwardRecipientMismatchError,
   TrophyAwardsService,
@@ -37,7 +39,14 @@ async function build(...rowsPerQuery: unknown[][]): Promise<{
 }> {
   const { db, chains } = mockDb(...rowsPerQuery);
   const moduleRef = await Test.createTestingModule({
-    providers: [TrophyAwardsService, { provide: DB, useValue: db }],
+    providers: [
+      TrophyAwardsService,
+      { provide: DB, useValue: db },
+      {
+        provide: UnspentSppDecisionService,
+        useValue: mock<UnspentSppDecisionService>(),
+      },
+    ],
   }).compile();
   return { service: moduleRef.get(TrophyAwardsService), chains };
 }

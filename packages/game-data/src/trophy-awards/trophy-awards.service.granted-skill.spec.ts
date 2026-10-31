@@ -3,11 +3,14 @@ import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import {
   extractFilterValues,
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
+import { UnspentSppDecisionService } from '../spp/unspent-spp-decision.service';
 import {
   TrophyAwardGrantedSkillError,
   TrophyAwardsService,
@@ -43,12 +46,18 @@ const playerAward = { trophyId: 1, competitionId: 2, playerId: 4 };
 async function build(...rowsPerQuery: (unknown[] | Error)[]): Promise<{
   service: TrophyAwardsService;
   db: MockDbResult;
+  unspent: MockProxy<UnspentSppDecisionService>;
 }> {
   const db = mockDb(...rowsPerQuery);
+  const unspent = mock<UnspentSppDecisionService>();
   const moduleRef = await Test.createTestingModule({
-    providers: [TrophyAwardsService, { provide: DB, useValue: db.db }],
+    providers: [
+      TrophyAwardsService,
+      { provide: DB, useValue: db.db },
+      { provide: UnspentSppDecisionService, useValue: unspent },
+    ],
   }).compile();
-  return { service: moduleRef.get(TrophyAwardsService), db };
+  return { service: moduleRef.get(TrophyAwardsService), db, unspent };
 }
 
 describe('TrophyAwardsService.upsert granted skill', () => {
@@ -74,8 +83,31 @@ describe('TrophyAwardsService.upsert granted skill', () => {
     });
   });
 
+  it('re-prices the winner after inserting an award that grants a skill', async () => {
+    const { service, unspent } = await build(
+      playerTrophyRow,
+      matchingCompetitionRow,
+      playerRow,
+      skillRow,
+      [awardWithSkill],
+    );
+    await service.upsert({ ...playerAward, grantedSkillId: 11 });
+    expect(unspent.refreshFixedThreshold).toHaveBeenCalledWith([4]);
+  });
+
+  it('does not re-price after inserting an award without a skill', async () => {
+    const { service, unspent } = await build(
+      playerTrophyRow,
+      matchingCompetitionRow,
+      playerRow,
+      [awardWithoutSkill],
+    );
+    await service.upsert(playerAward);
+    expect(unspent.refreshFixedThreshold).not.toHaveBeenCalled();
+  });
+
   it('overlays the granted skill onto an award an importer already recorded', async () => {
-    const { service, db } = await build(
+    const { service, db, unspent } = await build(
       playerTrophyRow,
       matchingCompetitionRow,
       playerRow,
@@ -91,10 +123,11 @@ describe('TrophyAwardsService.upsert granted skill', () => {
     expect(db.db.update).toHaveBeenCalledWith(trophyAwards);
     expect(db.chains[6].set).toHaveBeenCalledWith({ grantedSkillId: 11 });
     expect(extractFilterValues(firstCallArg(db.chains[6].where))).toBe(10);
+    expect(unspent.refreshFixedThreshold).toHaveBeenCalledWith([4]);
   });
 
   it('leaves a stored granted skill alone when the upsert omits it', async () => {
-    const { service, db } = await build(
+    const { service, db, unspent } = await build(
       playerTrophyRow,
       matchingCompetitionRow,
       playerRow,
@@ -108,10 +141,45 @@ describe('TrophyAwardsService.upsert granted skill', () => {
     });
     // No skill lookup and no update: trophy, competition, player, insert, select.
     expect(db.chains).toHaveLength(5);
+    // The stored skill is still re-priced, so a refresh that failed after the
+    // original insert is repaired by the retry.
+    expect(unspent.refreshFixedThreshold).toHaveBeenCalledWith([4]);
+  });
+
+  it('does not re-price a recorded player award that has no granted skill', async () => {
+    const { service, unspent } = await build(
+      playerTrophyRow,
+      matchingCompetitionRow,
+      playerRow,
+      uniqueViolation(),
+      [awardWithoutSkill],
+    );
+
+    await service.upsert(playerAward);
+
+    expect(unspent.refreshFixedThreshold).not.toHaveBeenCalled();
+  });
+
+  it('does not re-price a recorded team award', async () => {
+    const { service, unspent } = await build(
+      teamTrophyRow,
+      matchingCompetitionRow,
+      uniqueViolation(),
+      [{ ...awardWithSkill, playerId: null }],
+    );
+
+    await service.upsert({
+      trophyId: 1,
+      competitionId: 2,
+      teamEraId: 3,
+      playerId: null,
+    });
+
+    expect(unspent.refreshFixedThreshold).not.toHaveBeenCalled();
   });
 
   it('issues no update when the stored granted skill already matches', async () => {
-    const { service, db } = await build(
+    const { service, db, unspent } = await build(
       playerTrophyRow,
       matchingCompetitionRow,
       playerRow,
@@ -124,10 +192,12 @@ describe('TrophyAwardsService.upsert granted skill', () => {
       service.upsert({ ...playerAward, grantedSkillId: 11 }),
     ).resolves.toEqual({ trophyAward: awardWithSkill, created: false });
     expect(db.chains).toHaveLength(6);
+    // Unchanged skill: no update, but the stored value is still re-priced.
+    expect(unspent.refreshFixedThreshold).toHaveBeenCalledWith([4]);
   });
 
   it('clears a stored granted skill when the upsert sends null', async () => {
-    const { service, db } = await build(
+    const { service, db, unspent } = await build(
       playerTrophyRow,
       matchingCompetitionRow,
       playerRow,
@@ -141,6 +211,7 @@ describe('TrophyAwardsService.upsert granted skill', () => {
     ).resolves.toEqual({ trophyAward: awardWithoutSkill, created: false });
     // null needs no skill lookup, so the update is the sixth query.
     expect(db.chains[5].set).toHaveBeenCalledWith({ grantedSkillId: null });
+    expect(unspent.refreshFixedThreshold).toHaveBeenCalledWith([4]);
   });
 
   it('rejects a granted skill on a team award', async () => {

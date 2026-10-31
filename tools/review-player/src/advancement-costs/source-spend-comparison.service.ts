@@ -43,10 +43,13 @@ export class SourceSpendComparisonService {
   /**
    * BBL prices every player's spend at BB2020 costs and recalculates older
    * totals at BB2020 rates, so under a fixed-threshold rules set (CRP, CRP+,
-   * BB2016) its figure is not comparable with the modelled spend and is not
-   * placed against it. TP figures are compared under every rules set.
+   * BB2016) neither its spend nor its unspent figure can match era-correct
+   * data. They are shown but never compared, and the importer ignores them
+   * as well: a BBL player under those rules sets is checked through the
+   * stored unspent SPP, which is computed from the stored history. TP figures
+   * are compared under every rules set.
    */
-  private isBblFigureUnderFixedThresholds(
+  isBblFigureUnderFixedThresholds(
     model: UnspentSppModel,
     figure: SourceUnspentSppFigure,
   ): boolean {

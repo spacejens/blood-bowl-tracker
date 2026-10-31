@@ -1,4 +1,4 @@
-import { DB } from '@blood-bowl-tracker/db';
+import { DB, players } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
@@ -61,6 +61,10 @@ describe('PlayerSkillsService', () => {
         },
       ]);
       expect(db.transaction).toHaveBeenCalled();
+      const clear = db.chains[db.chains.length - 1];
+      expect(db.db.update).toHaveBeenLastCalledWith(players);
+      expect(firstCallArg(clear.set)).toEqual({ unspentSpp: null });
+      expect(extractAllFilterValues(firstCallArg(clear.where))).toContain(1);
     });
 
     it('inserts a gained skill with its variant and order', async () => {
@@ -162,6 +166,8 @@ describe('PlayerSkillsService', () => {
       // Only the two precondition selects and the existing-rows select ran.
       expect(db.chains).toHaveLength(3);
       expect(db.transaction).not.toHaveBeenCalled();
+      // No change, so the stored unspent SPP is not cleared either.
+      expect(db.db.update).not.toHaveBeenCalled();
     });
 
     it("updates an existing row's source when the entry disagrees", async () => {
@@ -188,6 +194,10 @@ describe('PlayerSkillsService', () => {
       expect(result).toEqual({ playerSkillIds: [51] });
       expect(db.transaction).toHaveBeenCalled();
       expect(firstCallArg(db.chains[3].set)).toEqual({ source: 'chosen' });
+      const clear = db.chains[db.chains.length - 1];
+      expect(db.db.update).toHaveBeenLastCalledWith(players);
+      expect(firstCallArg(clear.set)).toEqual({ unspentSpp: null });
+      expect(extractAllFilterValues(firstCallArg(clear.where))).toContain(1);
     });
 
     it('clears advancementOrder when a gained skill changes to starting, even though the entry omits it', async () => {

@@ -84,6 +84,8 @@ export interface PlayerDetail
   eraEndDate: string | null;
   sppTotal: number | null;
   sppAdjustment: number | null;
+  /** Unspent SPP when known exactly; `null` means not known exactly. */
+  unspentSpp: number | null;
   /**
    * The player's current status as their source reports it; `null` means no
    * source has reported one (unknown), never "active".
@@ -132,6 +134,7 @@ export class PlayersService {
         eraEndDate: eras.endDate,
         sppTotal: players.sppTotal,
         sppAdjustment: players.sppAdjustment,
+        unspentSpp: players.unspentSpp,
         status: players.status,
         // The player's own current characteristics. No new join: they live on
         // `players` itself. A stored 0 is passed through as-is — a
@@ -279,6 +282,11 @@ export class PlayersService {
       teamEraId: data.teamEraId,
       positionId: data.positionId,
       sppTotal: data.sppTotal,
+      // Cleared on every write: anything here can change what it should be,
+      // and every import that upserts players ends with the SPP adjustment
+      // sync, which writes it back against the final total. Null until then
+      // is never wrong.
+      unspentSpp: null,
       // Undefined is stripped by upsertByExternalIds, so an omitted status
       // leaves the stored one alone; an explicit null clears it to unknown.
       status: data.status,

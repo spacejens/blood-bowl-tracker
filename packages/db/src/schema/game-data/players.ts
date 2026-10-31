@@ -41,6 +41,16 @@ const playersTable = historyTrackedTable({
     // (clamped to 0). Nullable, mirroring `spp_total`: NULL means not
     // computed; a number — including 0 — means computed and confirmed.
     sppAdjustment: integer('spp_adjustment'),
+    // The player's unspent Star Player Points, stored only when known
+    // exactly: NULL means "not known exactly", never an estimate. Written at
+    // the end of every import by SppAdjustmentsService, together with
+    // spp_total. Under fixed-threshold rules sets (CRP, CRP+, BB2016) it is
+    // spp_total less the cost of the recorded advancements, kept only when
+    // that cost is exact; under rules sets that price by kind (BB2020,
+    // DB2021, BB2025) it is the figure the source reports, kept only when it
+    // makes sense against the total reported beside it. Never derived from
+    // the modelled unspent range.
+    unspentSpp: integer('unspent_spp'),
     // The player's current status as their source reports it (see
     // `PLAYER_STATUSES`). Nullable with no default: NULL means no source has
     // reported a status, which is deliberately distinct from a known
@@ -114,9 +124,10 @@ const playersTable = historyTrackedTable({
     // How many times each characteristic has been INCREASED via advancement.
     // Counts, not per-event rows: neither source publishes a reliable
     // per-increase signal. TP never records characteristic-increase events at
-    // all (its `pendingImprovements` is an unspent-SPP counter, not a
-    // history), so an increase is only ever inferable by diffing a player's
-    // current characteristics against their position's baseline. BBL does
+    // all (its `pendingImprovements`, 0 on every downloaded line-up, looks
+    // like a count of bought advancements whose random result is not chosen
+    // yet, not a history), so an increase is only ever inferable by diffing a
+    // player's current characteristics against their position's baseline. BBL does
     // interleave increases with gained skills in its advancement list, but a
     // best-effort order populated for only that minority of the data would
     // not be worth its own table.

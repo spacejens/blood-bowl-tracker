@@ -9,13 +9,15 @@ import { BblAdvancementCostsRawRendererService } from './bbl-advancement-costs-r
 import { PlayerAdvancementHistoryService } from './player-advancement-history.service';
 import { SourceSpendComparisonService } from './source-spend-comparison.service';
 import { SourceUnspentSppFigureService } from './source-unspent-spp-figure.service';
+import { StoredUnspentSppCheckService } from './stored-unspent-spp-check.service';
 import { TpAdvancementCostsRawRendererService } from './tp-advancement-costs-raw-renderer.service';
 import { UnspentSppOutsideRangeStratificationService } from './unspent-spp-outside-range-stratification.service';
 
 /**
  * The advancement-costs data type: each source's own SPP figures beside each
  * stored advancement's modelled cost, and the always-listed stratum of
- * players whose source-reported spend lies outside the modelled spend range.
+ * players whose source-reported spend, or stored unspent SPP, disagrees with
+ * the modelled range or the source.
  */
 @Module({
   imports: [SharedModule, SourceModule],
@@ -27,6 +29,7 @@ import { UnspentSppOutsideRangeStratificationService } from './unspent-spp-outsi
     PlayerAdvancementHistoryService,
     SourceSpendComparisonService,
     SourceUnspentSppFigureService,
+    StoredUnspentSppCheckService,
     TpAdvancementCostsRawRendererService,
     UnspentSppOutsideRangeStratificationService,
   ],

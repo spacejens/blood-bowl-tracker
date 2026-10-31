@@ -22,7 +22,9 @@ import {
 } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
+import { UnspentSppDecisionService } from '../src/spp/unspent-spp-decision.service';
 import { TrophyAwardsService } from '../src/trophy-awards/trophy-awards.service';
 import { connectTestDb } from './e2e-database';
 
@@ -153,7 +155,14 @@ describe('TrophyAwardsService.upsert (real Postgres)', () => {
     // given a real migrated Db instead of mockDb(), which is the whole point
     // of an e2e spec. Direct instantiation stays forbidden.
     const moduleRef = await Test.createTestingModule({
-      providers: [TrophyAwardsService, { provide: DB, useValue: db }],
+      providers: [
+        TrophyAwardsService,
+        { provide: DB, useValue: db },
+        {
+          provide: UnspentSppDecisionService,
+          useValue: mock<UnspentSppDecisionService>(),
+        },
+      ],
     }).compile();
     service = moduleRef.get(TrophyAwardsService);
   });

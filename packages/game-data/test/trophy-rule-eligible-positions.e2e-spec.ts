@@ -29,8 +29,10 @@ import {
 import { NAME_EXTERNAL_SYSTEM } from '@blood-bowl-tracker/domain-enums';
 import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
 import { MatchScopeFilterService } from '../src/shared/match-scope-filter.service';
+import { UnspentSppDecisionService } from '../src/spp/unspent-spp-decision.service';
 import { MaxCountTrophyRuleService } from '../src/trophy-awards/max-count-trophy-rule.service';
 import { MaxSppSumTrophyRuleService } from '../src/trophy-awards/max-spp-sum-trophy-rule.service';
 import { MissingTrophyAwardsService } from '../src/trophy-awards/missing-trophy-awards.service';
@@ -265,6 +267,10 @@ describe('trophy award rule eligible positions (real Postgres)', () => {
         TrophyTiedWinnersService,
         MatchScopeFilterService,
         { provide: DB, useValue: db },
+        {
+          provide: UnspentSppDecisionService,
+          useValue: mock<UnspentSppDecisionService>(),
+        },
       ],
     }).compile();
     service = moduleRef.get(MissingTrophyAwardsService);

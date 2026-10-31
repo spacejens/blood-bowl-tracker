@@ -121,10 +121,11 @@ async function run(): Promise<ImportResult> {
     // those events just wrote. BBL's own displayed career total (scraped by
     // the players step) is not stored directly — the server uses it to
     // recover spp_adjustment, then rebuilds spp_total as the era-correct
-    // event sum plus that adjustment.
+    // event sum plus that adjustment. BBL's unspent figure goes along for the
+    // server to settle `players.unspent_spp`.
     const sppAdjustmentsOutcome = await app
       .get(BblSppAdjustmentsImportService)
-      .importSppAdjustments(playerOutcome.scrapedSppTotalsByPlayerId);
+      .importSppAdjustments(playerOutcome.scrapedSppByPlayerId);
 
     // Also runs after the match-events step, and for the same structural
     // reason: it recomputes each freshly-inserted player's accumulated

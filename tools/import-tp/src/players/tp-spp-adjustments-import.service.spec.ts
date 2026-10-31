@@ -111,6 +111,23 @@ describe('TpSppAdjustmentsImportService', () => {
     ]);
   });
 
+  it('sends each player its unspent snapshot when one was reported', async () => {
+    adjustments.syncReportedSppAdjustments.mockResolvedValue({
+      updatedPlayerIds: [1],
+    });
+    const snapshot = { unspentSpp: 4, snapshotSppTotal: 14 };
+
+    await service.importSppAdjustments({
+      playerIds: [1, 2],
+      reportedSppTotalsByPlayerId: new Map([[1, 14]]),
+      unspentSppSnapshotsByPlayerId: new Map([[1, snapshot]]),
+    });
+
+    const [payload] = adjustments.syncReportedSppAdjustments.mock.calls[0];
+    expect(payload.players[0].unspentSppSnapshot).toEqual(snapshot);
+    expect(payload.players[1].unspentSppSnapshot).toBeUndefined();
+  });
+
   it('chunks an id list larger than DEFAULT_BATCH_CHUNK_SIZE', async () => {
     const ids = Array.from(
       { length: DEFAULT_BATCH_CHUNK_SIZE + 2 },

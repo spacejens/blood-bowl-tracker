@@ -725,6 +725,7 @@ describe('RpcRouterFactoryService', () => {
         agilityIncreaseCount: 0,
         passingIncreaseCount: 0,
         armourIncreaseCount: 0,
+        unspentSpp: null,
         createdAt: new Date('2026-01-01'),
         updatedAt: new Date('2026-01-01'),
         historyVersion: 1,
@@ -762,6 +763,7 @@ describe('RpcRouterFactoryService', () => {
       agilityIncreaseCount: 0,
       passingIncreaseCount: 0,
       armourIncreaseCount: 0,
+      unspentSpp: null,
       createdAt: new Date('2026-01-01'),
       created: true,
     });

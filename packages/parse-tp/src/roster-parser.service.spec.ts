@@ -163,6 +163,53 @@ describe('RosterParserService', () => {
     });
   });
 
+  it('reads the unspent starPlayerPoints beside the career total', () => {
+    const roster = service.parse(
+      rosterBody({
+        lineUps: [
+          {
+            id: 2412443,
+            name: 'The Agitated Deviation',
+            number: 1,
+            lineUpMasterId: 952,
+            rosterId: 123,
+            position: 'Dwarf Lineman',
+            totalStarPlayerPoints: 23,
+            starPlayerPoints: 7,
+          },
+        ],
+      }),
+    );
+    expect(roster.players[0]?.starPlayerPoints).toBe(7);
+  });
+
+  it('leaves starPlayerPoints undefined when the entry has none', () => {
+    expect(
+      service.parse(rosterBody()).players[0]?.starPlayerPoints,
+    ).toBeUndefined();
+  });
+
+  it('rejects a fractional starPlayerPoints', () => {
+    expect(() =>
+      service.parse(
+        rosterBody({
+          lineUps: [
+            {
+              id: 2412443,
+              name: 'The Agitated Deviation',
+              number: 1,
+              lineUpMasterId: 952,
+              rosterId: 123,
+              position: 'Dwarf Lineman',
+              totalStarPlayerPoints: 23,
+              starPlayerPoints: 1.5,
+            },
+          ],
+        }),
+      ),
+    ).toThrow(/starPlayerPoints/);
+  });
+
   it('parses each starPlayersMasters entry into a star position', () => {
     const roster = service.parse(rosterBody());
     expect(roster.starPositions).toEqual([
@@ -915,6 +962,57 @@ describe('RosterParserService', () => {
         isActive: true,
         lastingInjuries: { nigglingInjuries: 0, canPlayNextGame: false },
       });
+    });
+  });
+
+  describe('lastMatchFinishedAt', () => {
+    const finished = (...instants: unknown[]) => ({
+      lastMatches: instants.map((finishInstant) => ({
+        scores: [{ finishInstant }],
+      })),
+    });
+
+    it('is the latest finishInstant across lastMatches, as epoch milliseconds', () => {
+      const roster = service.parse(
+        rosterBody(
+          finished(
+            '2026-02-24T19:14:21.4342804+00:00',
+            '2026-05-25T10:00:00+00:00',
+            '2026-03-01T10:00:00+00:00',
+          ),
+        ),
+      );
+      expect(roster.lastMatchFinishedAt).toBe(
+        Date.parse('2026-05-25T10:00:00Z'),
+      );
+    });
+
+    it('is undefined without lastMatches', () => {
+      expect(service.parse(rosterBody()).lastMatchFinishedAt).toBeUndefined();
+    });
+
+    it('is undefined when lastMatches carry no finish instants', () => {
+      const roster = service.parse(
+        rosterBody({
+          lastMatches: [
+            { scores: [] },
+            { scores: [{ finishInstant: null }] },
+            {},
+          ],
+        }),
+      );
+      expect(roster.lastMatchFinishedAt).toBeUndefined();
+    });
+
+    it('ignores an unparseable instant and a malformed lastMatches', () => {
+      expect(
+        service.parse(
+          rosterBody(finished('not a date', '2026-05-25T10:00:00Z')),
+        ).lastMatchFinishedAt,
+      ).toBe(Date.parse('2026-05-25T10:00:00Z'));
+      expect(
+        service.parse(rosterBody({ lastMatches: 'oops' })).lastMatchFinishedAt,
+      ).toBeUndefined();
     });
   });
 });

@@ -14,6 +14,7 @@ import { SppAdjustmentsService } from './spp-adjustments.service';
 import { SppForcedRateService } from './spp-forced-rate.service';
 import { SppOngoingEstimateService } from './spp-ongoing-estimate.service';
 import { SppTotalsService } from './spp-totals.service';
+import { UnspentSppDecisionService } from './unspent-spp-decision.service';
 
 interface Harness {
   service: SppAdjustmentsService;
@@ -21,6 +22,7 @@ interface Harness {
   totals: MockProxy<SppTotalsService>;
   forcedRate: MockProxy<SppForcedRateService>;
   ongoing: MockProxy<SppOngoingEstimateService>;
+  unspent: MockProxy<UnspentSppDecisionService>;
 }
 
 async function makeService(db: MockDbResult): Promise<Harness> {
@@ -28,6 +30,8 @@ async function makeService(db: MockDbResult): Promise<Harness> {
   const forcedRate = mock<SppForcedRateService>();
   const ongoing = mock<SppOngoingEstimateService>();
   ongoing.estimateForPlayers.mockResolvedValue(new Map());
+  const unspent = mock<UnspentSppDecisionService>();
+  unspent.decide.mockResolvedValue(new Map());
   const moduleRef = await Test.createTestingModule({
     providers: [
       SppAdjustmentsService,
@@ -35,6 +39,7 @@ async function makeService(db: MockDbResult): Promise<Harness> {
       { provide: SppTotalsService, useValue: totals },
       { provide: SppForcedRateService, useValue: forcedRate },
       { provide: SppOngoingEstimateService, useValue: ongoing },
+      { provide: UnspentSppDecisionService, useValue: unspent },
     ],
   }).compile();
   return {
@@ -43,6 +48,7 @@ async function makeService(db: MockDbResult): Promise<Harness> {
     totals,
     forcedRate,
     ongoing,
+    unspent,
   };
 }
 
@@ -65,7 +71,7 @@ describe('SppAdjustmentsService.syncScrapedAdjustments', () => {
 
     expect(result).toEqual({ updatedPlayerIds: [1] });
     expect(writtenValues(h.db, 0)).toEqual([
-      { sppAdjustment: 4, sppTotal: 26 },
+      { sppAdjustment: 4, sppTotal: 26, unspentSpp: null },
     ]);
   });
 
@@ -79,7 +85,7 @@ describe('SppAdjustmentsService.syncScrapedAdjustments', () => {
     });
 
     expect(writtenValues(h.db, 0)).toEqual([
-      { sppAdjustment: 0, sppTotal: 30 },
+      { sppAdjustment: 0, sppTotal: 30, unspentSpp: null },
     ]);
   });
 
@@ -93,7 +99,7 @@ describe('SppAdjustmentsService.syncScrapedAdjustments', () => {
     });
 
     expect(writtenValues(h.db, 0)).toEqual([
-      { sppAdjustment: null, sppTotal: 9 },
+      { sppAdjustment: null, sppTotal: 9, unspentSpp: null },
     ]);
   });
 
@@ -139,7 +145,9 @@ describe('SppAdjustmentsService.syncScrapedAdjustments', () => {
     });
 
     expect(h.totals.totalsForPlayers).toHaveBeenCalledWith([1]);
-    expect(writtenValues(h.db, 0)).toEqual([{ sppAdjustment: 7, sppTotal: 7 }]);
+    expect(writtenValues(h.db, 0)).toEqual([
+      { sppAdjustment: 7, sppTotal: 7, unspentSpp: null },
+    ]);
   });
 
   it('issues no query for an empty player list', async () => {
@@ -206,7 +214,9 @@ describe('SppAdjustmentsService.syncScrapedAdjustments', () => {
       players: [{ playerId: 1, scrapedTotal: 5 }],
     });
 
-    expect(writtenValues(h.db, 0)).toEqual([{ sppAdjustment: 5, sppTotal: 5 }]);
+    expect(writtenValues(h.db, 0)).toEqual([
+      { sppAdjustment: 5, sppTotal: 5, unspentSpp: null },
+    ]);
   });
 });
 
@@ -226,7 +236,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
 
     expect(result.updatedPlayerIds).toEqual([1]);
     expect(writtenValues(h.db, 1)).toEqual([
-      { sppAdjustment: 3, sppTotal: 20 },
+      { sppAdjustment: 3, sppTotal: 20, unspentSpp: null },
     ]);
   });
 
@@ -241,7 +251,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     });
 
     expect(writtenValues(h.db, 1)).toEqual([
-      { sppAdjustment: 0, sppTotal: 17 },
+      { sppAdjustment: 0, sppTotal: 17, unspentSpp: null },
     ]);
   });
 
@@ -273,7 +283,9 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
 
     expect(result.updatedPlayerIds).toEqual([1, 2]);
     expect(h.db.chains).toHaveLength(2);
-    expect(writtenValues(h.db, 1)).toEqual([{ sppAdjustment: 2, sppTotal: 8 }]);
+    expect(writtenValues(h.db, 1)).toEqual([
+      { sppAdjustment: 2, sppTotal: 8, unspentSpp: null },
+    ]);
     expect(h.db.transaction).toHaveBeenCalledTimes(1);
   });
 
@@ -318,9 +330,9 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     });
 
     expect(writtenValues(h.db, 1)).toEqual([
-      { sppAdjustment: 3, sppTotal: 11 },
-      { sppAdjustment: 0, sppTotal: 15 },
-      { sppAdjustment: 0, sppTotal: 10 },
+      { sppAdjustment: 3, sppTotal: 11, unspentSpp: null },
+      { sppAdjustment: 0, sppTotal: 15, unspentSpp: null },
+      { sppAdjustment: 0, sppTotal: 10, unspentSpp: null },
     ]);
   });
 
@@ -343,7 +355,9 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
       players: [{ playerId: 1, reportedSppTotal: 0 }],
     });
 
-    expect(writtenValues(h.db, 1)).toEqual([{ sppAdjustment: 0, sppTotal: 0 }]);
+    expect(writtenValues(h.db, 1)).toEqual([
+      { sppAdjustment: 0, sppTotal: 0, unspentSpp: null },
+    ]);
   });
 
   it('subtracts the ongoing-competition estimate before measuring the gap, and writes the corrected total', async () => {
@@ -362,7 +376,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     });
 
     expect(writtenValues(h.db, 1)).toEqual([
-      { sppAdjustment: 3, sppTotal: 11 },
+      { sppAdjustment: 3, sppTotal: 11, unspentSpp: null },
     ]);
   });
 
@@ -380,7 +394,9 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
       players: [{ playerId: 1, reportedSppTotal: 20 }],
     });
 
-    expect(writtenValues(h.db, 1)).toEqual([{ sppAdjustment: 0, sppTotal: 8 }]);
+    expect(writtenValues(h.db, 1)).toEqual([
+      { sppAdjustment: 0, sppTotal: 8, unspentSpp: null },
+    ]);
   });
 
   it('clamps the corrected total to the imported sum, never below it, when the estimate overshoots the gap', async () => {
@@ -400,7 +416,9 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
       players: [{ playerId: 1, reportedSppTotal: 20 }],
     });
 
-    expect(writtenValues(h.db, 1)).toEqual([{ sppAdjustment: 0, sppTotal: 8 }]);
+    expect(writtenValues(h.db, 1)).toEqual([
+      { sppAdjustment: 0, sppTotal: 8, unspentSpp: null },
+    ]);
   });
 
   it('passes each player its own career counts to the estimator', async () => {
@@ -437,7 +455,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     });
 
     expect(writtenValues(h.db, 1)).toEqual([
-      { sppAdjustment: 3, sppTotal: 20 },
+      { sppAdjustment: 3, sppTotal: 20, unspentSpp: null },
     ]);
   });
 
@@ -601,7 +619,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     });
 
     expect(writtenValues(h.db, 1)).toEqual([
-      { sppAdjustment: 3, sppTotal: 20 },
+      { sppAdjustment: 3, sppTotal: 20, unspentSpp: null },
     ]);
   });
 
@@ -618,6 +636,123 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
       ],
     });
 
-    expect(writtenValues(h.db, 1)).toEqual([{ sppAdjustment: 9, sppTotal: 9 }]);
+    expect(writtenValues(h.db, 1)).toEqual([
+      { sppAdjustment: 9, sppTotal: 9, unspentSpp: null },
+    ]);
+  });
+});
+
+describe('SppAdjustmentsService unspent SPP', () => {
+  it("pairs BBL's unspent figure with the bracketed total from the same page", async () => {
+    const h = await makeService(mockDb([{ id: 1 }]));
+    h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 22]]));
+    h.forcedRate.forcedRateSumsForPlayers.mockResolvedValue(new Map([[1, 16]]));
+    h.unspent.decide.mockResolvedValue(new Map([[1, 3]]));
+
+    await h.service.syncScrapedAdjustments({
+      players: [{ playerId: 1, scrapedTotal: 20, reportedUnspentSpp: 3 }],
+    });
+
+    expect(h.unspent.decide).toHaveBeenCalledWith([
+      {
+        playerId: 1,
+        sppTotal: 26,
+        snapshot: { unspentSpp: 3, snapshotSppTotal: 20 },
+      },
+    ]);
+    expect(writtenValues(h.db, 0)).toEqual([
+      { sppAdjustment: 4, sppTotal: 26, unspentSpp: 3 },
+    ]);
+  });
+
+  it('sends no BBL snapshot without both figures', async () => {
+    const h = await makeService(mockDb([{ id: 1 }, { id: 2 }]));
+    h.totals.totalsForPlayers.mockResolvedValue(new Map());
+    h.forcedRate.forcedRateSumsForPlayers.mockResolvedValue(new Map());
+
+    await h.service.syncScrapedAdjustments({
+      players: [
+        { playerId: 1, scrapedTotal: null, reportedUnspentSpp: 3 },
+        { playerId: 2, scrapedTotal: 5 },
+      ],
+    });
+
+    expect(h.unspent.decide).toHaveBeenCalledWith([
+      { playerId: 1, sppTotal: 0, snapshot: null },
+      { playerId: 2, sppTotal: 5, snapshot: null },
+    ]);
+  });
+
+  it("sends TP's snapshot with the corrected total, the last entry winning", async () => {
+    const h = await makeService(mockDb([{ id: 1, name: 'Grim' }]));
+    h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 12]]));
+    h.unspent.decide.mockResolvedValue(new Map([[1, 4]]));
+    const snapshot = { unspentSpp: 4, snapshotSppTotal: 12 };
+
+    await h.service.syncReportedAdjustments({
+      players: [
+        { playerId: 1, reportedSppTotal: 12 },
+        { playerId: 1, reportedSppTotal: 12, unspentSppSnapshot: snapshot },
+      ],
+    });
+
+    expect(h.unspent.decide).toHaveBeenCalledWith([
+      { playerId: 1, sppTotal: 12, snapshot },
+    ]);
+    expect(writtenValues(h.db, 1)).toEqual([
+      { sppAdjustment: 0, sppTotal: 12, unspentSpp: 4 },
+    ]);
+  });
+
+  it('drops an earlier TP snapshot when the last entry has none', async () => {
+    const h = await makeService(mockDb([{ id: 1, name: 'Grim' }]));
+    h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 12]]));
+
+    await h.service.syncReportedAdjustments({
+      players: [
+        {
+          playerId: 1,
+          reportedSppTotal: 12,
+          unspentSppSnapshot: { unspentSpp: 4, snapshotSppTotal: 12 },
+        },
+        { playerId: 1, reportedSppTotal: 12 },
+      ],
+    });
+
+    expect(h.unspent.decide).toHaveBeenCalledWith([
+      { playerId: 1, sppTotal: 12, snapshot: null },
+    ]);
+  });
+
+  it('splits players that differ only in unspent SPP into separate updates', async () => {
+    const h = await makeService(mockDb([{ id: 1 }], [{ id: 2 }]));
+    h.totals.totalsForPlayers.mockResolvedValue(
+      new Map([
+        [1, 10],
+        [2, 10],
+      ]),
+    );
+    h.forcedRate.forcedRateSumsForPlayers.mockResolvedValue(
+      new Map([
+        [1, 10],
+        [2, 10],
+      ]),
+    );
+    h.unspent.decide.mockResolvedValue(
+      new Map([
+        [1, 0],
+        [2, null],
+      ]),
+    );
+
+    const result = await h.service.syncScrapedAdjustments({
+      players: [
+        { playerId: 1, scrapedTotal: 10 },
+        { playerId: 2, scrapedTotal: 10 },
+      ],
+    });
+
+    expect(h.db.chains).toHaveLength(2);
+    expect(result.updatedPlayerIds).toEqual([1, 2]);
   });
 });

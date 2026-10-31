@@ -189,6 +189,43 @@ describe('MatchParserService', () => {
     ]);
   });
 
+  it('carries the unspent starPlayerPoints of a match-embedded entry', () => {
+    const result = service.parse(
+      matchBody({
+        inscriptionLocal: {
+          roster: {
+            id: 10,
+            lineUps: [
+              {
+                id: 1,
+                name: 'With unspent',
+                number: 1,
+                lineUpMasterId: 952,
+                rosterId: 10,
+                position: 'Dwarf Lineman',
+                totalStarPlayerPoints: 23,
+                starPlayerPoints: 4,
+              },
+              {
+                id: 2,
+                name: 'Without unspent',
+                number: 2,
+                lineUpMasterId: 952,
+                rosterId: 10,
+                position: 'Dwarf Lineman',
+                totalStarPlayerPoints: 5,
+              },
+            ],
+          },
+        },
+      }),
+    );
+    expect(result.homeRosterPlayers.map((p) => p.starPlayerPoints)).toEqual([
+      4,
+      undefined,
+    ]);
+  });
+
   it('leaves careerCounts undefined on match-embedded roster players', () => {
     // Match-embedded lineUps[] entries carry totalStarPlayerPoints but none of
     // the per-action-type career counters (verified against real TP data), so

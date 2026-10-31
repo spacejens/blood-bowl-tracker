@@ -155,30 +155,40 @@ keywords, player status, and advancement costs with unspent SPP.
        `inducements_roll` event has no TP status, so they would crowd the
        unknown sample, and the star player review covers them separately.
 
-   23. **Source-reported spend outside the modelled spend range** — every
-       player whose spend as the source reports it lies outside the spend
-       range modelled from their stored advancements and `advancement_costs`.
-       The source's spend is its own total minus its own unspent figure, both
-       from the same page or snapshot: for BBL the bracketed career total
-       minus the "Unspent SPP" figure, for TP `totalStarPlayerPoints` minus
-       `starPlayerPoints`. Spend is compared rather than unspent SPP because
-       the stored total need not be the total the source's unspent figure was
-       taken from: the stored TP total is the highest over the roster file
-       and every match snapshot, while both TP figures come from one roster
-       snapshot. Like the discrepancy stratum it ignores
-       `playersPerStratum`, so a real disagreement is never sampled away.
-       Holding unspent SPP is normal and never selects anyone. Players
-       missing either source figure, star players (they never advance),
-       players with no stored total and players whose rules set has no costs,
-       or has none for one of their advancement numbers, are never listed.
-       BBL recalculates older totals at BB2020 rates and prices every
-       player's spend at BB2020 costs, so a BBL player whose rules set uses
-       fixed thresholds (CRP, CRP+, BB2016) is never listed either; TP
-       players are compared under every rules set. It is the one stratum
-       that reads the raw sources rather than only the database, through the
-       same readers the panels use; only the BBL unspent-SPP reader caches
-       each page it reads, so the panels of a listed BBL player do not read
-       that page again.
+   23. **Unspent SPP disagreeing with the modelled range or the source** —
+       every player whose spend as the source reports it lies outside the
+       spend range modelled from their stored advancements and
+       `advancement_costs`. The source's spend is its own total minus its own
+       unspent figure, both from the same page or snapshot: for BBL the
+       bracketed career total minus the "Unspent SPP" figure, for TP
+       `totalStarPlayerPoints` minus `starPlayerPoints`. It also lists every
+       player whose stored unspent SPP lies outside the modelled unspent range
+       or differs from the source's own unspent figure; a player with no
+       source figure is listed on the stored figure's range placement alone.
+       The outside-range verdict only points to a possible gap: a gap in the
+       recorded history, free skills, an unrecorded order of advancements and
+       chosen-or-random uncertainty may all cause it. A BBL figure on a
+       kind-priced rules set (BB2020, DB2021, BB2025) can still be too low
+       when BBL priced a free or rolled skill as a chosen advancement. Spend
+       is compared rather than unspent SPP because the stored total need not
+       be the total the source's unspent figure was taken from: the stored TP
+       total is the highest over the roster file and every match snapshot,
+       while both TP figures come from one roster snapshot. Like the
+       discrepancy stratum it ignores `playersPerStratum`, so a real
+       disagreement is never sampled away. The amount of unspent SPP held,
+       on its own, never selects anyone. Star players (they never advance), players with
+       no stored total and players whose rules set has no costs, or has none
+       for one of their advancement numbers, are never listed. BBL
+       recalculates older totals at BB2020 rates and prices every player's
+       spend at BB2020 costs, so under fixed thresholds (CRP, CRP+, BB2016)
+       its figures are never compared and the importer ignores them as well.
+       Such a player is listed only when the stored unspent SPP, worked out
+       from the history, lies outside the modelled range; TP players are
+       compared under every rules set. The skip is permanent, because BBL's
+       figure is BB2020-priced there. It is the one stratum that reads the raw
+       sources rather than only the database, through the same readers the
+       panels use; only the BBL unspent-SPP reader caches each page it reads,
+       so the panels of a listed BBL player do not read that page again.
 
    The random-sample stratum excludes star players outright: today's data model
    gives a popular star their own `players` row per team that induces them, so
@@ -346,34 +356,39 @@ keywords, player status, and advancement costs with unspent SPP.
      ways), only the secondary kinds for a secondary one, and both when the
      position has the category neither way or no categories are recorded.
      A coach who rolls a characteristic result may take a skill instead and
-     pay the characteristic price; that is not modelled, so a skill is
-     never priced as `random_characteristic`, and a player whose reported
-     spend can only be explained that way is listed. Starting skills and the skill a player's own trophy award granted
-     (Gudarnas Förkämpe's mutation, `trophy_awards.granted_skill_id`) cost 0
-     and take no number;
-     a skill a league house rule grants (tLoEG's Fan Favourite) shows as that
-     rule's advancement with its cost. Gained skills come first in their
-     stored order, which is unverified, then the characteristic increases,
-     whose order is unknown. A footer gives the stored total, the modelled
-     spend and unspent ranges, and beside them the source's reported total,
-     its unspent figure and the spend derived from the two. The range
-     takes, per advancement number, the cheapest and dearest cost of any
-     kind the player's advancements could be, so it holds for every order
-     and kind assignment. The source's derived spend is placed against the
-     modelled spend range, the same comparison the stratum makes: a spend
-     outside it is a real disagreement and is the only thing highlighted,
-     labelled in words; a spend inside it proves nothing, and unspent SPP
-     itself is never highlighted. When either source figure is missing the
-     spend shows as a dash and nothing is compared. BBL prices every
-     player's spend at BB2020 costs, so under a fixed-threshold rules set
-     its spend is shown but not compared, with a note saying so. A note
-     says that gaps in the recorded advancement history can explain a
-     reported spend above the range. The cost check reads
-     `advancement_costs`, `players`, `player_skills`, `trophy_awards`, the
-     era, rules set and league chain (`team_eras`, `eras`, `era_rules_sets`,
-     `rules_sets`), `positions`, `skills`, `skill_rules_sets`,
-     `position_rules_sets` and `position_rules_set_skill_categories`, all
-     through `packages/db`.
+     pay the characteristic price; that is not modelled, so a skill is never
+     priced as `random_characteristic`, and a player whose reported spend can
+     only be explained that way is listed. Starting skills and the skill a
+     player's own trophy award granted (Gudarnas Förkämpe's mutation,
+     `trophy_awards.granted_skill_id`) cost 0 and take no number; a skill a
+     league house rule grants (tLoEG's Fan Favourite) shows as that rule's
+     advancement with its cost. Gained skills come first in their stored
+     order, which is unverified, then the characteristic increases, whose
+     order is unknown. A footer gives the stored total, the modelled spend and
+     unspent ranges, and beside them the source's reported total, its unspent
+     figure and the spend derived from the two. A last row gives the stored
+     unspent SPP, placed against the modelled unspent range and compared with
+     the source's own unspent figure, highlighted when it lies outside the
+     range or differs, and a dash when nothing is stored. An outside-range
+     stored figure is annotated as a possible gap only (a gap in the recorded
+     history, a free skill, or an unrecorded order or chosen-or-random choice
+     may cause it). The range takes, per advancement number, the cheapest and
+     dearest cost of any kind the player's advancements could be, so it holds
+     for every order and kind assignment. The source's derived spend is placed
+     against the modelled spend range, the same comparison the stratum makes:
+     a spend outside it is a real disagreement and is the only source figure
+     highlighted, labelled in words; a spend inside it proves nothing, and the
+     source's own unspent figure is never highlighted. When either source
+     figure is missing the spend shows as a dash and nothing is compared. BBL
+     prices every player's spend at BB2020 costs, so under a fixed-threshold
+     rules set its figures are shown but never compared, with a note saying
+     the stored unspent SPP is checked instead. A note says that gaps in the
+     recorded advancement history can explain a reported spend above the
+     range. The cost check reads `advancement_costs`, `players`,
+     `player_skills`, `trophy_awards`, the era, rules set and league chain
+     (`team_eras`, `eras`, `era_rules_sets`, `rules_sets`), `positions`,
+     `skills`, `skill_rules_sets`, `position_rules_sets` and
+     `position_rules_set_skill_categories`, all through `packages/db`.
 4. Writes the report under `tools/review-player/output/` (gitignored) with a timestamp in
    the filename, and prints where it landed.
 

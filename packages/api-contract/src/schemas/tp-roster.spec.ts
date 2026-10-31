@@ -69,6 +69,26 @@ describe('ImportTpRosterSchema', () => {
     ]);
   });
 
+  it("keeps a match-embedded player's unspent starPlayerPoints", () => {
+    const parsed = ImportTpRosterSchema.parse({
+      roster: {},
+      era: 'Fourth era',
+      externalSystemName: 'TP',
+      matchEmbeddedPlayers: [{ ...embedded, starPlayerPoints: 4 }],
+    });
+    expect(parsed.matchEmbeddedPlayers[0].starPlayerPoints).toBe(4);
+  });
+
+  it('accepts a match-embedded player without starPlayerPoints', () => {
+    const parsed = ImportTpRosterSchema.parse({
+      roster: {},
+      era: 'Fourth era',
+      externalSystemName: 'TP',
+      matchEmbeddedPlayers: [embedded],
+    });
+    expect(parsed.matchEmbeddedPlayers[0].starPlayerPoints).toBeUndefined();
+  });
+
   it('accepts a match-embedded player without state or isActive', () => {
     const parsed = ImportTpRosterSchema.parse({
       roster: {},
@@ -130,5 +150,21 @@ describe('TpRosterImportResultSchema', () => {
         ],
       }).success,
     ).toBe(true);
+  });
+
+  it('TpImportedPlayerSchema carries an optional unspent snapshot', () => {
+    const base = {
+      lineUpId: 5001,
+      playerId: 700,
+      created: true,
+      reportedSppTotal: 20,
+    };
+    expect(TpImportedPlayerSchema.parse(base)).toEqual(base);
+    expect(
+      TpImportedPlayerSchema.parse({
+        ...base,
+        unspentSppSnapshot: { unspentSpp: 4, snapshotSppTotal: 12 },
+      }).unspentSppSnapshot,
+    ).toEqual({ unspentSpp: 4, snapshotSppTotal: 12 });
   });
 });

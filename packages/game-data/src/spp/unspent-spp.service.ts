@@ -26,10 +26,13 @@ import type {
 import { Inject, Injectable } from '@nestjs/common';
 
 import { AdvancementKindCandidatesService } from './advancement-kind-candidates.service';
+import { AdvancementPricingModelService } from './advancement-pricing-model.service';
 import { AdvancementSpendRangeService } from './advancement-spend-range.service';
+import { StoredUnspentSppSettlementService } from './stored-unspent-spp-settlement.service';
 import type {
   ApplicableAdvancementCost,
   CoversAnother,
+  ModelledUnspentSpp,
   PlayerSkillEntry,
   UnspentSppResult,
   UnspentSppUnknownReason,
@@ -39,6 +42,7 @@ import type {
 interface PlayerFacts {
   playerId: number;
   sppTotal: number | null;
+  storedUnspentSpp: number | null;
   positionId: number;
   isStarPlayer: boolean;
   eraId: number;
@@ -100,6 +104,11 @@ type RulesSetOutcome =
  * status is not consulted: dead, retired and departed players are worked out
  * like any other. Advancements missing from the recorded history understate
  * the spend, so a `no` verdict is reliable while a `yes` can be generous.
+ *
+ * A stored `players.unspent_spp` inside the modelled range settles the result
+ * to that one value; one outside it leaves the range and flags the result
+ * (`storedVerdict`). `modelledForPlayers` is what `UnspentSppDecisionService`
+ * uses to decide what to store; it never reads the stored figure.
  */
 @Injectable()
 export class UnspentSppService {
@@ -107,6 +116,8 @@ export class UnspentSppService {
     @Inject(DB) private readonly db: Db,
     private readonly candidates: AdvancementKindCandidatesService,
     private readonly spendRange: AdvancementSpendRangeService,
+    private readonly pricingModel: AdvancementPricingModelService,
+    private readonly settlement: StoredUnspentSppSettlementService,
   ) {}
 
   /** One player's result, or undefined when no such player exists. */
@@ -118,25 +129,61 @@ export class UnspentSppService {
    * Each requested player's result, keyed by player id. A requested id with
    * no player is absent. The whole batch is loaded in one query per table.
    *
-   * Meant for one player or one roster at a time: the player ids go into a
-   * single unchunked `inArray`, so a very large batch could exceed Postgres's
-   * bind-parameter limit.
+   * The player ids go into a single unchunked `inArray`, so the caller keeps
+   * the batch bounded (the importers send their SPP adjustments in chunks of
+   * 500); a very large batch could exceed Postgres's bind-parameter limit.
    */
   async forPlayers(
     playerIds: number[],
   ): Promise<Map<number, UnspentSppResult>> {
-    const results = new Map<number, UnspentSppResult>();
+    const evaluated = await this.evaluate(playerIds, null, true);
+    return new Map(
+      [...evaluated].map(([playerId, { result }]) => [playerId, result]),
+    );
+  }
+
+  /**
+   * Each requested player's modelled range with their era's pricing model,
+   * for working out what to store. The stored unspent figure is ignored,
+   * since it is what the caller is about to replace, and `sppTotals`
+   * replaces the stored total of every player it names. Same batching rules
+   * as `forPlayers`.
+   */
+  async modelledForPlayers(
+    playerIds: number[],
+    sppTotals?: ReadonlyMap<number, number>,
+  ): Promise<Map<number, ModelledUnspentSpp>> {
+    return this.evaluate(playerIds, sppTotals ?? null, false);
+  }
+
+  private async evaluate(
+    playerIds: number[],
+    sppTotals: ReadonlyMap<number, number> | null,
+    settle: boolean,
+  ): Promise<Map<number, ModelledUnspentSpp>> {
+    const results = new Map<number, ModelledUnspentSpp>();
     const ids = this.distinct(playerIds);
     if (ids.length === 0) {
       return results;
     }
-    const facts = await this.loadPlayers(ids);
-    if (facts.length === 0) {
+    const loaded = await this.loadPlayers(ids);
+    if (loaded.length === 0) {
       return results;
     }
+    const facts = loaded.map((fact) => ({
+      ...fact,
+      sppTotal: sppTotals?.get(fact.playerId) ?? fact.sppTotal,
+      storedUnspentSpp: settle ? fact.storedUnspentSpp : null,
+    }));
     const data = await this.loadData(facts);
     for (const player of facts) {
-      results.set(player.playerId, this.resultFor(player, data));
+      results.set(player.playerId, {
+        pricingModel: this.pricingModel.modelFor(
+          data.rulesSetIdsByEra.get(player.eraId) ?? [],
+          data.costs,
+        ),
+        result: this.resultFor(player, data),
+      });
     }
     return results;
   }
@@ -159,7 +206,16 @@ export class UnspentSppService {
     const outcomes = rulesSetIds.map((rulesSetId) =>
       this.outcomeFor(priced, rulesSetId, data),
     );
-    return this.combine(player.sppTotal, outcomes);
+    const result = this.combine(player.sppTotal, outcomes);
+    if (result.status === 'unknown') {
+      return result;
+    }
+    return this.settlement.settle(result, {
+      stored: player.storedUnspentSpp,
+      nextCosts: outcomes
+        .filter((outcome): outcome is FittingOutcome => outcome.kind === 'fits')
+        .map((fit) => fit.cheapestNextCost),
+    });
   }
 
   private outcomeFor(
@@ -250,6 +306,8 @@ export class UnspentSppService {
       unspentMax,
       cheapestNextCost,
       coversAnother: this.mergeVerdicts(fits.map((fit) => fit.coversAnother)),
+      storedVerdict: 'none_stored',
+      storedUnspentSpp: null,
     };
   }
 
@@ -282,6 +340,7 @@ export class UnspentSppService {
       .select({
         playerId: players.id,
         sppTotal: players.sppTotal,
+        unspentSpp: players.unspentSpp,
         positionId: players.positionId,
         isStarPlayer: positions.isStarPlayer,
         eraId: teamEras.eraId,
@@ -300,6 +359,7 @@ export class UnspentSppService {
     return rows.map((row) => ({
       playerId: row.playerId,
       sppTotal: row.sppTotal,
+      storedUnspentSpp: row.unspentSpp,
       positionId: row.positionId,
       isStarPlayer: row.isStarPlayer,
       eraId: row.eraId,

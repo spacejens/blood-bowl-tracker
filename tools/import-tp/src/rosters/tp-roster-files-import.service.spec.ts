@@ -39,6 +39,24 @@ function entry(
   return { roster, era, competition, content: { raw: rosterId } };
 }
 
+/** A roster entry for one copy of a roster file, with its raw content. */
+function copy(options: {
+  era: string;
+  competition: string;
+  content: string;
+  lastMatchFinishedAt?: number;
+}): RosterEntry {
+  const base = entry(1, options.era, options.competition);
+  return {
+    ...base,
+    roster: {
+      ...base.roster,
+      lastMatchFinishedAt: options.lastMatchFinishedAt,
+    },
+    content: options.content,
+  };
+}
+
 /** A minimal match-embedded player, distinguishable by id/rosterId. */
 function rosterPlayer(
   overrides: Partial<TpMatchEmbeddedPlayer> = {},
@@ -145,6 +163,251 @@ describe('TpRosterFilesImportService', () => {
     });
 
     expect(result.reportedSppTotalsByPlayerId).toEqual(new Map([[9, 10]]));
+  });
+
+  describe('choosing one copy per era and roster', () => {
+    const sentCompetitions = async (rosters: RosterEntry[]) => {
+      importRunner.recordUpsertResult.mockResolvedValue(outcome());
+      client.tpRosters.import.mockResolvedValue(outcome());
+      await service.importRosterFiles({
+        rosters,
+        matchEmbeddedPlayersByRosterId: new Map(),
+      });
+      const sent: unknown[] = [];
+      for (const [options] of importRunner.recordUpsertResult.mock.calls) {
+        await options.upsert();
+      }
+      for (const [input] of client.tpRosters.import.mock.calls) {
+        sent.push(input.roster);
+      }
+      return sent;
+    };
+
+    it('keeps the copy whose newest match finished last', async () => {
+      const sent = await sentCompetitions([
+        copy({
+          era: 'Fourth era',
+          competition: 'older',
+          content: 'older',
+          lastMatchFinishedAt: 100,
+        }),
+        copy({
+          era: 'Fourth era',
+          competition: 'newer',
+          content: 'newer',
+          lastMatchFinishedAt: 300,
+        }),
+        copy({
+          era: 'Fourth era',
+          competition: 'middle',
+          content: 'middle',
+          lastMatchFinishedAt: 200,
+        }),
+      ]);
+
+      expect(sent).toEqual(['newer']);
+    });
+
+    it('keeps the first copy on a tie', async () => {
+      const sent = await sentCompetitions([
+        copy({
+          era: 'Fourth era',
+          competition: 'a',
+          content: 'first',
+          lastMatchFinishedAt: 100,
+        }),
+        copy({
+          era: 'Fourth era',
+          competition: 'b',
+          content: 'second',
+          lastMatchFinishedAt: 100,
+        }),
+      ]);
+
+      expect(sent).toEqual(['first']);
+    });
+
+    it('keeps the first copy when none has a finish instant', async () => {
+      const sent = await sentCompetitions([
+        copy({ era: 'Fourth era', competition: 'a', content: 'first' }),
+        copy({ era: 'Fourth era', competition: 'b', content: 'second' }),
+      ]);
+
+      expect(sent).toEqual(['first']);
+    });
+
+    it('prefers a copy with a finish instant over one without', async () => {
+      const sent = await sentCompetitions([
+        copy({ era: 'Fourth era', competition: 'a', content: 'undated' }),
+        copy({
+          era: 'Fourth era',
+          competition: 'b',
+          content: 'dated',
+          lastMatchFinishedAt: 5,
+        }),
+      ]);
+
+      expect(sent).toEqual(['dated']);
+    });
+
+    it('chooses per era and roster independently', async () => {
+      const sent = await sentCompetitions([
+        copy({
+          era: 'Fourth era',
+          competition: 'a',
+          content: 'fourth-old',
+          lastMatchFinishedAt: 1,
+        }),
+        copy({
+          era: 'Third era',
+          competition: 'b',
+          content: 'third',
+          lastMatchFinishedAt: 1,
+        }),
+        copy({
+          era: 'Fourth era',
+          competition: 'c',
+          content: 'fourth-new',
+          lastMatchFinishedAt: 2,
+        }),
+      ]);
+
+      expect(sent).toEqual(['fourth-new', 'third']);
+    });
+  });
+
+  it('keeps the unspent snapshot reported beside the highest total', async () => {
+    const listing = (snapshotSppTotal: number, unspentSpp: number) =>
+      outcome({
+        importedPlayers: [
+          {
+            lineUpId: 5001,
+            playerId: 9,
+            created: false,
+            reportedSppTotal: snapshotSppTotal,
+            unspentSppSnapshot: { unspentSpp, snapshotSppTotal },
+          },
+        ],
+      });
+    importRunner.recordUpsertResult
+      .mockResolvedValueOnce(listing(10, 4))
+      .mockResolvedValueOnce(listing(7, 1));
+
+    const result = await service.importRosterFiles({
+      rosters: [entry(1, 'Fourth era'), entry(1, 'Third era')],
+      matchEmbeddedPlayersByRosterId: new Map(),
+    });
+
+    expect(result.unspentSppSnapshotsByPlayerId).toEqual(
+      new Map([[9, { unspentSpp: 4, snapshotSppTotal: 10 }]]),
+    );
+  });
+
+  describe('merging unspent snapshots across entries', () => {
+    const listing = (snapshot?: {
+      unspentSpp: number;
+      snapshotSppTotal: number;
+    }) =>
+      outcome({
+        importedPlayers: [
+          {
+            lineUpId: 5001,
+            playerId: 9,
+            created: false,
+            reportedSppTotal: snapshot?.snapshotSppTotal ?? 7,
+            ...(snapshot === undefined ? {} : { unspentSppSnapshot: snapshot }),
+          },
+        ],
+      });
+
+    const importTwo = async (
+      first: ReturnType<typeof listing>,
+      second: ReturnType<typeof listing>,
+    ) => {
+      importRunner.recordUpsertResult
+        .mockResolvedValueOnce(first)
+        .mockResolvedValueOnce(second);
+      return service.importRosterFiles({
+        rosters: [entry(1, 'Fourth era'), entry(1, 'Third era')],
+        matchEmbeddedPlayersByRosterId: new Map(),
+      });
+    };
+
+    it('replaces a lower-total snapshot with a later, higher-total one', async () => {
+      const result = await importTwo(
+        listing({ unspentSpp: 1, snapshotSppTotal: 7 }),
+        listing({ unspentSpp: 4, snapshotSppTotal: 10 }),
+      );
+
+      expect(result.unspentSppSnapshotsByPlayerId).toEqual(
+        new Map([[9, { unspentSpp: 4, snapshotSppTotal: 10 }]]),
+      );
+    });
+
+    it('prefers the lower unspent figure at equal totals, in either order', async () => {
+      const stale = { unspentSpp: 6, snapshotSppTotal: 20 };
+      const fresh = { unspentSpp: 0, snapshotSppTotal: 20 };
+
+      for (const [first, second] of [
+        [stale, fresh],
+        [fresh, stale],
+      ]) {
+        const result = await importTwo(listing(first), listing(second));
+
+        expect(result.unspentSppSnapshotsByPlayerId).toEqual(
+          new Map([[9, fresh]]),
+        );
+      }
+    });
+
+    it('lets the later entry win when totals and unspent figures are equal', async () => {
+      const result = await importTwo(
+        listing({ unspentSpp: 3, snapshotSppTotal: 10 }),
+        listing({ unspentSpp: 3, snapshotSppTotal: 10 }),
+      );
+
+      expect(result.unspentSppSnapshotsByPlayerId).toEqual(
+        new Map([[9, { unspentSpp: 3, snapshotSppTotal: 10 }]]),
+      );
+    });
+
+    it('keeps the higher total even with a higher unspent figure, in either order', async () => {
+      const low = { unspentSpp: 0, snapshotSppTotal: 10 };
+      const high = { unspentSpp: 8, snapshotSppTotal: 14 };
+
+      for (const [first, second] of [
+        [low, high],
+        [high, low],
+      ]) {
+        const result = await importTwo(listing(first), listing(second));
+
+        expect(result.unspentSppSnapshotsByPlayerId).toEqual(
+          new Map([[9, high]]),
+        );
+      }
+    });
+
+    it('keeps a known snapshot when a later entry has none', async () => {
+      const result = await importTwo(
+        listing({ unspentSpp: 4, snapshotSppTotal: 10 }),
+        listing(),
+      );
+
+      expect(result.unspentSppSnapshotsByPlayerId).toEqual(
+        new Map([[9, { unspentSpp: 4, snapshotSppTotal: 10 }]]),
+      );
+    });
+
+    it('takes a snapshot from a later entry when the first had none', async () => {
+      const result = await importTwo(
+        listing(),
+        listing({ unspentSpp: 4, snapshotSppTotal: 10 }),
+      );
+
+      expect(result.unspentSppSnapshotsByPlayerId).toEqual(
+        new Map([[9, { unspentSpp: 4, snapshotSppTotal: 10 }]]),
+      );
+    });
   });
 
   it('sends a roster found in several competitions of one era once', async () => {

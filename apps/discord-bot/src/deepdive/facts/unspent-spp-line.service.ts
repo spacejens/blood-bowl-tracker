@@ -27,6 +27,14 @@ const VERDICTS: Record<CoversAnother, string> = {
 };
 
 /**
+ * Added when the stored figure lies outside the calculated range. "May":
+ * free skills, an unrecorded order and rolled-or-chosen uncertainty can put
+ * it there too.
+ */
+const OUTSIDE_RANGE_NOTE =
+  'the stored figure lies outside the calculated range, so the recorded advancement history may be incomplete or misrecorded';
+
+/**
  * The player deepdive's `Unspent SPP:` line, from `UnspentSppService`'s
  * result. `null` is a lookup that timed out or failed: the line then reads as unknown
  * rather than costing the reader the rest of the deepdive.
@@ -36,6 +44,9 @@ const VERDICTS: Record<CoversAnother, string> = {
  * figure is 0 or less) shows the figure alone, a legitimate zero included.
  * Otherwise a bracketed note follows: "no further advancements" when none
  * exists, which takes precedence over the verdict, or the verdict itself.
+ * A stored figure outside the calculated range shows both, as
+ * `<stored> stored, <range> calculated`, with a note after the verdict; a
+ * settled one already shows as one number.
  */
 @Injectable()
 export class UnspentSppLineService {
@@ -48,11 +59,26 @@ export class UnspentSppLineService {
     if (result.status === 'unknown') {
       return `Unspent SPP: unknown (${UNKNOWN_REASONS[result.reason]})`;
     }
-    const figure = this.figure(result);
-    const note = this.note(result);
-    return note === undefined
+    const figure = this.figureText(result);
+    const notes = [this.note(result), this.storedNote(result)].filter(
+      (note): note is string => note !== undefined,
+    );
+    return notes.length === 0
       ? `Unspent SPP: ${figure}`
-      : `Unspent SPP: ${figure} (${note})`;
+      : `Unspent SPP: ${figure} (${notes.join('; ')})`;
+  }
+
+  private storedNote(result: KnownUnspentSpp): string | undefined {
+    return result.storedVerdict === 'outside_range'
+      ? OUTSIDE_RANGE_NOTE
+      : undefined;
+  }
+
+  private figureText(result: KnownUnspentSpp): string {
+    return result.storedVerdict === 'outside_range' &&
+      result.storedUnspentSpp !== null
+      ? `${this.numbers.count(result.storedUnspentSpp)} stored, ${this.figure(result)} calculated`
+      : this.figure(result);
   }
 
   private figure({ unspentMin, unspentMax }: KnownUnspentSpp): string {

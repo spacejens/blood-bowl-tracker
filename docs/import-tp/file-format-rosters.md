@@ -10,8 +10,22 @@ remain the source for teams, players, and (via the
 match/competition directory structure) the teams registered to a competition
 (see `TpCompetitionsImportService` in [index.md](./index.md)).
 
+## Roster copies
+
+A roster file appears under every competition its team played in, and each
+copy was downloaded at its own time, so copies of one roster differ in how
+current they are (players hired later, a changed status). The importer sends
+one copy per (era, roster): the one whose newest finished match is latest,
+from the largest `lastMatches[].scores[].finishInstant`, which the parser
+exposes as `lastMatchFinishedAt` (epoch milliseconds). A copy with no finish
+instant counts as older than any copy with one, and a tie keeps the copy
+first seen in the order the source reader walks the folders.
+
+## What the parser extracts
+
 `packages/parse-tp`'s `RosterParserService.parse()` extracts `{ id, teamName,
-teamRaceCode, raceName, coachTpId, positions, starPositions, players }`:
+teamRaceCode, raceName, coachTpId, positions, starPositions, players,
+lastMatchFinishedAt }`:
 
 - `id` — TP's roster id, used as a TP external id for teams.
 - `teamName` — the team's registered name, used as a Name external id for teams.
@@ -223,7 +237,25 @@ Chaos Cup 8 carries 2 unspent points against a total of 0 (a gap of -2),
 already present in its first match snapshot, whose only events there are a
 foul (31), a sent-off (32) and injuries suffered (8), none of which award
 SPP to the player.
-`pendingImprovements` and `starPlayerPoints` are not read by any importer.
+`starPlayerPoints` is imported: both importers send it with the
+`totalStarPlayerPoints` of the same entry, never with a higher total another
+entry reports, and the server stores it as the player's unspent SPP under
+rules sets that price by kind when it is not negative, not above that total,
+and that total is the one stored (see
+[players](../game-concepts/players/index.md#unspent-spp)). It is a snapshot
+as of the download. A match-embedded line-up entry carries
+`starPlayerPoints` and `totalStarPlayerPoints` too, also as of the download
+(not as of the match), and the match parser carries both over. They are
+read only for a player the team's roster file does not list at all, such as
+a dead or retired player: then the freshest entry that carries a figure
+(highest total; at equal totals the lower unspent figure, since unspent only
+rises with the total; the later entry on a full tie) supplies the figure and
+its own total. The same ordering picks between roster copies of different
+eras. A player the roster file
+lists always uses the roster entry, even when it has no figure.
+`pendingImprovements` is not imported: it
+is 0 on every downloaded entry and looks like a count of bought advancements whose random
+result is not chosen yet.
 
 **Still not handled** (future work): the other top-level fields on a roster
 (`imageFile`, `assistantCoaches`, `cheerLeaders`,

@@ -15,6 +15,7 @@ import { CharacteristicNotationConversionService } from '../shared/characteristi
 import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.service';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { PageParseErrorService } from '../source/page-parse-error.service';
+import type { BblScrapedSpp } from './bbl-spp-adjustments-import.service';
 import type { BblPlayerSkillRef } from './player-page-parser';
 import { PlayerPageParser } from './player-page-parser';
 
@@ -80,7 +81,7 @@ export class BblPlayersImportService {
      */
     teamEraIdsByPid: Map<string, number>;
     positionsUsedByEra: Set<string>;
-    scrapedSppTotalsByPlayerId: Map<number, number | null>;
+    scrapedSppByPlayerId: Map<number, BblScrapedSpp>;
     insertedPlayerIds: number[];
     /**
      * Every imported player's own skills, keyed by their DATABASE id (not pid)
@@ -96,10 +97,10 @@ export class BblPlayersImportService {
     const playerIdsByPid = new Map<string, number>();
     const teamEraIdsByPid = new Map<string, number>();
     const positionsUsedByEra = new Set<string>();
-    // BBL's own displayed career total per imported player, keyed by DB id.
-    // Only an input to the spp_adjustment computation — never stored as
-    // players.spp_total, since BBL's figure mixes award rates across eras.
-    const scrapedSppTotalsByPlayerId = new Map<number, number | null>();
+    // BBL's own displayed career total and unspent figure per imported
+    // player, keyed by DB id. Inputs to the server's SPP adjustment sync;
+    // neither is stored as shown.
+    const scrapedSppByPlayerId = new Map<number, BblScrapedSpp>();
     // The DB ids of players this run INSERTED, as opposed to updated. Only
     // these need the post-matchEvents lasting-injury history backfill: an
     // existing player already has whatever history their earlier runs built,
@@ -123,7 +124,7 @@ export class BblPlayersImportService {
         playerIdsByPid,
         teamEraIdsByPid,
         positionsUsedByEra,
-        scrapedSppTotalsByPlayerId,
+        scrapedSppByPlayerId,
         insertedPlayerIds,
         skillsByPlayerId,
       };
@@ -390,7 +391,10 @@ export class BblPlayersImportService {
           playerIdsByPid.set(player.pid, upserted.id);
           teamEraIdsByPid.set(player.pid, teamEra.id);
           positionsUsedByEra.add(`${positionId}:${eraId}`);
-          scrapedSppTotalsByPlayerId.set(upserted.id, player.sppTotal);
+          scrapedSppByPlayerId.set(upserted.id, {
+            scrapedTotal: player.sppTotal,
+            reportedUnspentSpp: player.reportedUnspentSpp,
+          });
           if (upserted.created) {
             insertedPlayerIds.push(upserted.id);
           }
@@ -409,7 +413,7 @@ export class BblPlayersImportService {
       playerIdsByPid,
       teamEraIdsByPid,
       positionsUsedByEra,
-      scrapedSppTotalsByPlayerId,
+      scrapedSppByPlayerId,
       insertedPlayerIds,
       skillsByPlayerId,
     };

@@ -1,6 +1,7 @@
 import type {
   SppCareerCounts,
   TpImportedPlayer,
+  UnspentSppSnapshot,
 } from '@blood-bowl-tracker/api-contract';
 import type { TpCareerSppCounts, TpRoster } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
@@ -16,6 +17,11 @@ export interface TpLivePlayerSppFacts {
   playerId: number;
   reportedSppTotal?: number;
   careerCounts?: SppCareerCounts;
+  /**
+   * TP's unspent figure with the total from the same roster or match entry;
+   * absent when no entry of the player carries a figure.
+   */
+  unspentSppSnapshot?: UnspentSppSnapshot;
 }
 
 /** Options for {@link TpPlayerSppFactsService.collect}. */
@@ -44,12 +50,21 @@ export class TpPlayerSppFactsService {
         countsByLineUpId.set(player.id, player.careerCounts);
       }
     }
-    return importedPlayers.map(({ lineUpId, playerId, reportedSppTotal }) => {
-      const counts = countsByLineUpId.get(lineUpId);
-      return counts === undefined
-        ? { playerId, reportedSppTotal }
-        : { playerId, reportedSppTotal, careerCounts: this.groups(counts) };
-    });
+    return importedPlayers.map(
+      ({ lineUpId, playerId, reportedSppTotal, unspentSppSnapshot }) => {
+        const counts = countsByLineUpId.get(lineUpId);
+        const snapshot =
+          unspentSppSnapshot === undefined ? {} : { unspentSppSnapshot };
+        return counts === undefined
+          ? { playerId, reportedSppTotal, ...snapshot }
+          : {
+              playerId,
+              reportedSppTotal,
+              careerCounts: this.groups(counts),
+              ...snapshot,
+            };
+      },
+    );
   }
 
   /**
