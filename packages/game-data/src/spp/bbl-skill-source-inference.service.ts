@@ -65,9 +65,12 @@ export class BblSkillSourceInferenceService {
   async inferSources(
     snapshots: ReadonlyMap<number, UnspentSppSnapshot>,
   ): Promise<void> {
-    // The same bounds UnspentSppDecisionService.trusted puts on a figure
+    // The first two bounds UnspentSppDecisionService.trusted puts on a figure
     // before storing it: a negative unspent figure, or one above the career
-    // total it sits beside, is not a spend to reason from.
+    // total it sits beside, is not a spend to reason from. Its third check,
+    // that the snapshot's total is the total stored, is left out on purpose:
+    // the spend is worked out inside the page's own snapshot, so the stored
+    // total plays no part in it.
     const usable = [...snapshots].filter(
       ([, { unspentSpp, snapshotSppTotal }]) =>
         unspentSpp >= 0 && unspentSpp <= snapshotSppTotal,

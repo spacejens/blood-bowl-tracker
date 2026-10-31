@@ -203,8 +203,7 @@ export class AdvancementSpendRangeService {
    * Advancements are placed in list order, so the count of used numbers says
    * which advancement comes next. The table has 2^N entries; every caller has
    * already checked, via `priceable`, that every number up to N is priced, so
-   * N never exceeds
-   * the highest advancement number in the cost table.
+   * N never exceeds the highest advancement number in the cost table.
    */
   private bestTotal(
     matrix: (number | null)[][],

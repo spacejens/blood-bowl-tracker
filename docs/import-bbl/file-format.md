@@ -67,10 +67,9 @@ see [players](../game-concepts/players/index.md#unspent-spp)), and the same
 MA/ST/AG/PA/AV characteristics table the `pt` pages carry. Most player pages
 carry a Passing value, including players whose era predates the characteristic
 existing, an artifact of the site's BB2016-to-BB2020 conversion; others show
-`-`. Either way the
-value shown is not evidence about whether the player's rules set has Passing
-at all. The positions import also reads these pages, to resolve the race of a
-position whose `pt` page lists none.
+`-`. Either way the value shown is not evidence about whether the player's
+rules set has Passing at all. The positions import also reads these pages, to
+resolve the race of a position whose `pt` page lists none.
 
 The player's name appears a second time in a header block under the
 portrait, `<div style="…;padding-bottom:1px"><b>Name</b></div>`, and the
