@@ -1,6 +1,13 @@
 import { PLAYER_SKILL_SOURCES } from '@blood-bowl-tracker/domain-enums';
 import { sql } from 'drizzle-orm';
-import { check, integer, serial, text, unique } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  check,
+  integer,
+  serial,
+  text,
+  unique,
+} from 'drizzle-orm/pg-core';
 
 import { historyTrackedTable } from '../history';
 import { gameData } from './pg-schema';
@@ -47,6 +54,16 @@ export const playerSkillSourceEnum = gameData.enum(
  * trusted as the external source's own record, because house rules and
  * competition-specific quirks can legitimately produce a combination that
  * looks impossible.
+ *
+ * `isFreeExtra` marks a gained skill the player has without having spent SPP
+ * on it and that is not one of their advancements, so it costs nothing and
+ * does not raise the price of later advancements. It is independent of
+ * `source`, which keeps saying chosen/random/advancement as the source
+ * system reported. PlayerSkillsService sets it for a skill the entry flags
+ * (TP's `isExtra`), for a skill one of the player's own trophy awards
+ * grants, and for every non-`starting` Hatred (BB2025 grants Hatred only on
+ * top of a player's advancements; a player may hate several keywords, one
+ * row each). It is only ever set, never cleared, by application code.
  */
 const playerSkillsTable = historyTrackedTable({
   schema: gameData,
@@ -62,6 +79,7 @@ const playerSkillsTable = historyTrackedTable({
     source: playerSkillSourceEnum('source').notNull(),
     attributeValue: text('attribute_value'),
     advancementOrder: integer('advancement_order'),
+    isFreeExtra: boolean('is_free_extra').notNull().default(false),
   },
   extraConfig: (t) => ({
     // `.nullsNotDistinct()` because Postgres's default treats each NULL as
