@@ -200,12 +200,11 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   a player's own `pid`, `<h1>` name, position (`p=pt&typID`) and team
   (`p=tm&t`) links, and MA/ST/AG/PA/AV characteristics line off a `p=pl` page.
   The positions import uses the position/team links to resolve the races of
-  positions that list none;
-  `BblPlayersImportService` streams player pages and imports one row per
-  player, resolving its team era (via the team code and the era whose
-  configured player-id range contains the pid) and position (via the composite
-  `<typID>-<raceBblId>` key). Runs after teams, team eras, and positions (all
-  referenced).
+  positions that list none; `BblPlayersImportService` streams player pages and
+  imports one row per player, resolving its team era (via the team code and
+  the era whose configured player-id range contains the pid) and position (via
+  the composite `<typID>-<raceBblId>` key). Runs after teams, team eras, and
+  positions (all referenced).
 
   The player page's "Sustained Injuries" field is parsed into the player's
   current lasting injuries: a comma-separated list of stat-reduction tags, an
@@ -222,9 +221,10 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   advancement, recorded under the `advancement` source since BBL records
   nothing about how it was gained. The closing SPP adjustment sync then
   records it as `chosen` or `random` when the page's reported spend allows
-  only one (see [players](../game-concepts/players/index.md#unspent-spp)).
-  A coloured entry holding only the red `?`
-  marker is a pending, unresolved advancement roll, and is skipped silently.
+  only one (see [players](../game-concepts/players/index.md#unspent-spp)); a
+  later import keeps that settled source rather than resetting it to
+  `advancement`. A coloured entry holding only the red `?` marker is a
+  pending, unresolved advancement roll, and is skipped silently.
   `advancementOrder` counts gained skills only, and is a presentation-order
   proxy, not a confirmed sequence. The same cell also carries five
   characteristic-increase pseudo-entries (`+MA`/`+ST`/`+AG`/`+PA`/`+AV`),

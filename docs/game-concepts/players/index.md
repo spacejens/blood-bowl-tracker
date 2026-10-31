@@ -102,14 +102,18 @@ error, and dead, retired and departed players are worked out like any other.
   against the cost table. When every order and kind of the player's
   advancements that costs exactly that much, under every rules set of the
   era that fits, agrees that a skill was rolled, or that it was chosen, the
-  skill is recorded so. It stays recorded as gained by advancement when no
-  order fits (an inconsistent history, or an advancement BBL shows only as a
-  pending `?`), when the fits disagree, when two skills could swap places,
-  when the page gives no unspent figure, and whenever the era only prices by
-  fixed thresholds, where every advancement costs the same.
+  skill is recorded so. The recorded source is therefore how BBL priced the
+  skill, which can differ from how it was gained when BBL priced a free or
+  rolled skill as a chosen advancement (see **The stored figure** above). It
+  stays recorded as gained by advancement when no order fits (an
+  inconsistent history), when the fits disagree, when two skills could swap
+  places, when the page gives no usable unspent figure, and whenever the era
+  only prices by fixed thresholds, where every advancement costs the same.
   `BblSkillSourceInferenceService` does this in the import's closing SPP
-  sync, before the stored unspent figure is decided, and does it afresh on
-  every import.
+  sync, before the unspent figure is stored; the stored figure is BBL's own
+  and does not depend on it. A skill settled once stays settled: a later
+  import re-sends it as gained by advancement, which keeps the recorded
+  chosen or random, and only the skills still open are worked out again.
 - **What counts as an advancement.** Starting skills and a skill a trophy
   granted (Gudarnas Förkämpe's mutation) cost nothing. A skill a league's
   house rule grants at a fixed advancement (tLoEG's Fan Favourite) counts only
