@@ -72,10 +72,11 @@ const INCREASES: readonly (readonly [keyof StoredIncreaseCounts, string])[] = [
  *
  * Starting skills and a skill stored as a free extra (a gained Hatred, a skill
  * TP flags as extra, a skill a trophy award granted) cost nothing and take
- * no number. A skill a `granted_skill` row names (a league house rule) takes that row's number and cost. Every other gained
- * skill and every characteristic increase takes the next free number in
- * display order; that number is illustrative only, because the stored skill
- * order is unverified and increases have none.
+ * no number. A skill a `granted_skill` row names (a league house rule) takes
+ * that row's number and cost. Every other gained skill and every
+ * characteristic increase takes the next free number in display order; that
+ * number is illustrative only, because the stored skill order is unverified
+ * and increases have none.
  */
 @Injectable()
 export class AdvancementCostRangeService {

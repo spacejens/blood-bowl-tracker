@@ -610,6 +610,10 @@ export class TrophyAwardsService {
    * returned untouched otherwise. This is what lets a curated granted skill
    * survive every later importer run, since importers never send one.
    *
+   * A changed or cleared granted skill first unmarks the winner's rows of the
+   * old skill (`PlayerSkillsService.unmarkTrophyGranted`), then marks the new
+   * one and re-prices.
+   *
    * A recorded award that grants a skill to a player is re-priced even when
    * nothing changes, so a refresh that failed after the original write is
    * repaired by the retry instead of leaving a stale fixed-threshold value.
@@ -641,8 +645,15 @@ export class TrophyAwardsService {
           'reported success but returned no row.',
       );
     }
-    // The stored skill changed (set or cleared): re-price, as on insert.
+    // The stored skill changed (set, changed or cleared): drop the old
+    // skill's free flag, then mark the new one and re-price, as on insert.
     if (updated.playerId !== null) {
+      if (existing.grantedSkillId !== null) {
+        await this.playerSkills.unmarkTrophyGranted(
+          updated.playerId,
+          existing.grantedSkillId,
+        );
+      }
       await this.applyGrantedSkill(updated.playerId, updated.grantedSkillId);
     }
     return updated;
@@ -651,7 +662,8 @@ export class TrophyAwardsService {
   /**
    * Mark the winner's rows of the granted skill as free extras, then re-price
    * the winner's stored unspent SPP. Marking runs first so the re-pricing
-   * sees it. A cleared granted skill only re-prices: the flag is set-only.
+   * sees it. A cleared granted skill only re-prices; unmarking the previous
+   * skill is the caller's job and runs before this.
    */
   private async applyGrantedSkill(
     playerId: number,

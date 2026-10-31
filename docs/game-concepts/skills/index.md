@@ -115,6 +115,8 @@ are known:
 - **A skill a [trophy award](../trophies/index.md#trophy-award) grants**
   (Gudarnas Förkämpe's mutation). Neither BBL nor TP marks it as free; the
   award naming the skill is what marks it, whichever was recorded first.
+  Changing or clearing the award's skill unmarks it again, unless another
+  award of the same player still names it.
 
 A Journeyman's Loner is also granted without SPP, but no source marks it, so
 it is not recorded as a free extra.

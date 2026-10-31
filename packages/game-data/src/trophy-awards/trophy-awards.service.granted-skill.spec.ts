@@ -151,8 +151,30 @@ describe('TrophyAwardsService.upsert granted skill', () => {
     expect(playerSkills.markTrophyGranted).toHaveBeenCalledWith(4, 11);
   });
 
-  it('marks nothing when the granted skill is cleared', async () => {
-    const { service, playerSkills } = await build(
+  it('unmarks the old skill, then marks the new one, then re-prices when the skill changes', async () => {
+    const { service, unspent, playerSkills } = await build(
+      playerTrophyRow,
+      matchingCompetitionRow,
+      playerRow,
+      skillRow,
+      uniqueViolation(),
+      [{ ...awardWithSkill, grantedSkillId: 12 }],
+      [awardWithSkill],
+    );
+
+    await service.upsert({ ...playerAward, grantedSkillId: 11 });
+
+    expect(playerSkills.unmarkTrophyGranted).toHaveBeenCalledWith(4, 12);
+    expect(playerSkills.markTrophyGranted).toHaveBeenCalledWith(4, 11);
+    const [unmark] = playerSkills.unmarkTrophyGranted.mock.invocationCallOrder;
+    const [mark] = playerSkills.markTrophyGranted.mock.invocationCallOrder;
+    const [reprice] = unspent.refreshFixedThreshold.mock.invocationCallOrder;
+    expect(unmark).toBeLessThan(mark);
+    expect(mark).toBeLessThan(reprice);
+  });
+
+  it('unmarks the old skill, marks nothing, then re-prices when the skill is cleared', async () => {
+    const { service, unspent, playerSkills } = await build(
       playerTrophyRow,
       matchingCompetitionRow,
       playerRow,
@@ -163,7 +185,41 @@ describe('TrophyAwardsService.upsert granted skill', () => {
 
     await service.upsert({ ...playerAward, grantedSkillId: null });
 
+    expect(playerSkills.unmarkTrophyGranted).toHaveBeenCalledWith(4, 11);
     expect(playerSkills.markTrophyGranted).not.toHaveBeenCalled();
+    expect(
+      playerSkills.unmarkTrophyGranted.mock.invocationCallOrder[0],
+    ).toBeLessThan(unspent.refreshFixedThreshold.mock.invocationCallOrder[0]);
+  });
+
+  it('unmarks nothing when the award had no skill before', async () => {
+    const { service, playerSkills } = await build(
+      playerTrophyRow,
+      matchingCompetitionRow,
+      playerRow,
+      skillRow,
+      uniqueViolation(),
+      [awardWithoutSkill],
+      [awardWithSkill],
+    );
+
+    await service.upsert({ ...playerAward, grantedSkillId: 11 });
+
+    expect(playerSkills.unmarkTrophyGranted).not.toHaveBeenCalled();
+  });
+
+  it('unmarks nothing when the stored skill is left alone', async () => {
+    const { service, playerSkills } = await build(
+      playerTrophyRow,
+      matchingCompetitionRow,
+      playerRow,
+      uniqueViolation(),
+      [awardWithSkill],
+    );
+
+    await service.upsert(playerAward);
+
+    expect(playerSkills.unmarkTrophyGranted).not.toHaveBeenCalled();
   });
 
   it('marks nothing for a new award without a granted skill', async () => {

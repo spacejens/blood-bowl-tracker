@@ -63,7 +63,9 @@ export const playerSkillSourceEnum = gameData.enum(
  * (TP's `isExtra`), for a skill one of the player's own trophy awards
  * grants, and for every non-`starting` Hatred (BB2025 grants Hatred only on
  * top of a player's advancements; a player may hate several keywords, one
- * row each). It is only ever set, never cleared, by application code.
+ * row each). `sync` and a new trophy award only ever set it; changing or
+ * clearing an award's granted skill unmarks that skill's rows for the winner,
+ * unless it is Hatred or another award of the same player still grants it.
  */
 const playerSkillsTable = historyTrackedTable({
   schema: gameData,

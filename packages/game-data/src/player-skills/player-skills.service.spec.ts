@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
 import {
   extractAllFilterValues,
   extractFilterValues,
+  extractJoinColumns,
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
 import { SkillValidationError } from '../shared/skill-validation-error';
@@ -41,9 +42,11 @@ describe('PlayerSkillsService', () => {
 
       expect(db.db.update).toHaveBeenCalledWith(playerSkills);
       expect(firstCallArg(db.chains[1].set)).toEqual({ isFreeExtra: true });
-      expect(extractAllFilterValues(firstCallArg(db.chains[1].where))).toEqual(
-        expect.arrayContaining([1, 7, false]),
-      );
+      expect(extractAllFilterValues(firstCallArg(db.chains[1].where))).toEqual([
+        1,
+        7,
+        false,
+      ]);
     });
 
     it('never marks Hatred', async () => {
@@ -60,6 +63,62 @@ describe('PlayerSkillsService', () => {
       const service = await makeService(db);
 
       await service.markTrophyGranted(1, 7);
+
+      expect(db.db.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('unmarkTrophyGranted', () => {
+    it("unmarks the player's free rows of the old skill", async () => {
+      const db = mockDb([{ name: 'Tentacles' }], [], []);
+      const service = await makeService(db);
+
+      await service.unmarkTrophyGranted(1, 7);
+
+      expect(db.db.update).toHaveBeenCalledWith(playerSkills);
+      expect(firstCallArg(db.chains[2].set)).toEqual({ isFreeExtra: false });
+      expect(extractAllFilterValues(firstCallArg(db.chains[2].where))).toEqual([
+        1,
+        7,
+        true,
+      ]);
+    });
+
+    it("looks for another of the player's awards that still grants the skill", async () => {
+      const db = mockDb([{ name: 'Tentacles' }], [], []);
+      const service = await makeService(db);
+
+      await service.unmarkTrophyGranted(1, 7);
+
+      expect(db.chains[1].from).toHaveBeenCalledWith(trophyAwards);
+      expect(extractAllFilterValues(firstCallArg(db.chains[1].where))).toEqual([
+        1, 7,
+      ]);
+    });
+
+    it('does not unmark a skill another award of the player still grants', async () => {
+      const db = mockDb([{ name: 'Tentacles' }], [{ id: 99 }]);
+      const service = await makeService(db);
+
+      await service.unmarkTrophyGranted(1, 7);
+
+      expect(db.db.update).not.toHaveBeenCalled();
+    });
+
+    it('never unmarks Hatred', async () => {
+      const db = mockDb([{ name: 'Hatred' }]);
+      const service = await makeService(db);
+
+      await service.unmarkTrophyGranted(1, 7);
+
+      expect(db.db.update).not.toHaveBeenCalled();
+    });
+
+    it('does nothing for a skill that does not exist', async () => {
+      const db = mockDb([]);
+      const service = await makeService(db);
+
+      await service.unmarkTrophyGranted(1, 7);
 
       expect(db.db.update).not.toHaveBeenCalled();
     });
@@ -330,6 +389,13 @@ describe('PlayerSkillsService', () => {
       await service.sync({ entries: [entry] });
 
       expect(firstCallArg(db.chains[0].leftJoin)).toBe(trophyAwards);
+      expect(
+        extractJoinColumns(firstCallArg(db.chains[0].leftJoin, 0, 1)),
+      ).toEqual([
+        'trophy_awards.player_id',
+        'players.id',
+        'trophy_awards.granted_skill_id',
+      ]);
     });
 
     it('stores an entry the source flags as a free extra', async () => {

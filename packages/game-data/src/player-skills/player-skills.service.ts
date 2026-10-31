@@ -27,7 +27,8 @@ import { SkillValidationError } from '../shared/skill-validation-error';
 
 /**
  * The curated name of the one skill gained only as a free extra: BB2025
- * grants Hatred on top of a player's advancements, never as one.
+ * grants Hatred on top of a player's advancements, never as one. The skill
+ * name alone is Hatred's identity: its variants live in `attribute_value`.
  */
 const HATRED_SKILL_NAME = 'Hatred';
 
@@ -394,9 +395,9 @@ export class PlayerSkillsService {
   /**
    * Mark the player's rows of a skill one of their own trophy awards grants
    * as free extras. Covers an award recorded after the skill; `sync` covers
-   * the opposite order. Set-only, and never applied to Hatred, matching
-   * `sync`'s trophy rule. Clears nothing else: the caller re-prices the
-   * player's stored unspent SPP afterwards.
+   * the opposite order. Never applied to Hatred, matching `sync`'s trophy
+   * rule. Clears nothing: `unmarkTrophyGranted` is the counterpart, and the
+   * caller re-prices the player's stored unspent SPP afterwards.
    */
   async markTrophyGranted(playerId: number, skillId: number): Promise<void> {
     const [skill] = await this.db
@@ -414,6 +415,48 @@ export class PlayerSkillsService {
           eq(playerSkills.playerId, playerId),
           eq(playerSkills.skillId, skillId),
           eq(playerSkills.isFreeExtra, false),
+        ),
+      );
+  }
+
+  /**
+   * Unmark the player's rows of a skill a trophy award used to grant, after
+   * that award's granted skill changed or was cleared. Skips Hatred (free by
+   * its own rule) and a skill another of the player's awards still grants;
+   * the caller has already stored the change, so the changed award no longer
+   * counts. A row TP also flagged as an extra is unmarked too: the next TP
+   * import marks it again. The caller re-prices the player's stored unspent
+   * SPP afterwards.
+   */
+  async unmarkTrophyGranted(playerId: number, skillId: number): Promise<void> {
+    const [skill] = await this.db
+      .select({ name: skills.name })
+      .from(skills)
+      .where(eq(skills.id, skillId));
+    if (skill === undefined || skill.name === HATRED_SKILL_NAME) {
+      return;
+    }
+    const [stillGranted] = await this.db
+      .select({ id: trophyAwards.id })
+      .from(trophyAwards)
+      .where(
+        and(
+          eq(trophyAwards.playerId, playerId),
+          eq(trophyAwards.grantedSkillId, skillId),
+        ),
+      )
+      .limit(1);
+    if (stillGranted !== undefined) {
+      return;
+    }
+    await this.db
+      .update(playerSkills)
+      .set({ isFreeExtra: false })
+      .where(
+        and(
+          eq(playerSkills.playerId, playerId),
+          eq(playerSkills.skillId, skillId),
+          eq(playerSkills.isFreeExtra, true),
         ),
       );
   }

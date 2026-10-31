@@ -344,8 +344,8 @@ keywords, player status, and advancement costs with unspent SPP.
      per-advancement cost, that extra skills such as Hatred are imported
      as free extras and priced at 0, and that a Journeyman's Loner is also
      granted without SPP being spent, which the modelled range does not
-     recognise, so such a player can legitimately be listed. Right: the era's last-listed rules set, then one
-     row per advancement with the cost `advancement_costs` gives it at its
+     recognise, so such a player can legitimately be listed. Right: the
+     era's last-listed rules set, then one row per advancement with the cost `advancement_costs` gives it at its
      number — a single number under fixed thresholds, the candidate cost of
      each kind under a rules set that prices by kind, narrowed to random or
      chosen kinds where the stored skill source says which. A gained skill
@@ -361,9 +361,8 @@ keywords, player status, and advancement costs with unspent SPP.
      only be explained that way is listed. Starting skills and a skill
      stored as a free extra (`player_skills.is_free_extra`: a gained Hatred,
      a skill TP flags `isExtra`, or Gudarnas Förkämpe's mutation) cost 0 and
-     take no number; a skill a
-     league house rule grants (tLoEG's Fan Favourite) shows as that rule's
-     advancement with its cost. Gained skills come first in their stored
+     take no number; a skill a league house rule grants (tLoEG's Fan
+     Favourite) shows as that rule's advancement with its cost. Gained skills come first in their stored
      order, which is unverified, then the characteristic increases, whose
      order is unknown. A footer gives the stored total, the modelled spend and
      unspent ranges, and beside them the source's reported total, its unspent

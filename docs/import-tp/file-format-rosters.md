@@ -237,6 +237,7 @@ Chaos Cup 8 carries 2 unspent points against a total of 0 (a gap of -2),
 already present in its first match snapshot, whose only events there are a
 foul (31), a sent-off (32) and injuries suffered (8), none of which award
 SPP to the player.
+
 **Extra skills on a `lineUps[]` entry.** A gained skill can carry
 `isExtra: true`: TP granted it on top of the player's advancements, without
 SPP being spent. Across the downloaded roster files 13 gained skills carry
