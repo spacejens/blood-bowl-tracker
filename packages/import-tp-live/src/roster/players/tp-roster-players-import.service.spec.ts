@@ -209,6 +209,67 @@ describe('TpRosterPlayersImportService', () => {
     });
   });
 
+  it("reports a match-only player's unspent snapshot from that entry's own total", async () => {
+    const service = await makeService();
+
+    const outcome = await run(service, {
+      players: [rosterPlayer({ id: 5001 })],
+      embedded: [
+        rosterPlayer({
+          id: 5002,
+          totalStarPlayerPoints: 31,
+          starPlayerPoints: 9,
+        }),
+      ],
+    });
+
+    expect(
+      outcome.importedPlayers.find((p) => p.lineUpId === 5002),
+    ).toMatchObject({
+      unspentSppSnapshot: { unspentSpp: 9, snapshotSppTotal: 31 },
+    });
+  });
+
+  it('pairs the unspent figure with the total of the same match entry', async () => {
+    const service = await makeService();
+
+    const outcome = await run(service, {
+      players: [],
+      embedded: [
+        rosterPlayer({
+          id: 5002,
+          totalStarPlayerPoints: 31,
+          starPlayerPoints: 9,
+        }),
+        rosterPlayer({
+          id: 5002,
+          totalStarPlayerPoints: 40,
+          starPlayerPoints: 2,
+        }),
+        rosterPlayer({ id: 5002, totalStarPlayerPoints: 45 }),
+      ],
+    });
+
+    expect(outcome.importedPlayers).toHaveLength(1);
+    expect(outcome.importedPlayers[0]).toMatchObject({
+      reportedSppTotal: 45,
+      unspentSppSnapshot: { unspentSpp: 2, snapshotSppTotal: 40 },
+    });
+  });
+
+  it('prefers the roster entry over a match entry for a player the roster lists', async () => {
+    const service = await makeService();
+
+    const outcome = await run(service, {
+      players: [rosterPlayer({ totalStarPlayerPoints: 12 })],
+      embedded: [
+        rosterPlayer({ totalStarPlayerPoints: 20, starPlayerPoints: 7 }),
+      ],
+    });
+
+    expect(outcome.importedPlayers[0].unspentSppSnapshot).toBeUndefined();
+  });
+
   it('reports no unspent snapshot without starPlayerPoints or a roster entry', async () => {
     const service = await makeService();
 

@@ -50,6 +50,12 @@ export interface TpRosterPlayersOutcome {
   mercenaryPositionUsages: TpMercenaryPositionUsage[];
 }
 
+/** An entry's unspent SPP and the career total reported beside it. */
+interface UnspentSource {
+  starPlayerPoints?: number;
+  totalStarPlayerPoints: number;
+}
+
 @Injectable()
 export class TpRosterPlayersImportService {
   constructor(
@@ -71,8 +77,10 @@ export class TpRosterPlayersImportService {
    * match events); the roster file wins for any id both list, being the
    * freshest, except for the career SPP total, which only ever grows and so
    * takes the highest value seen; it is returned per player, and stored
-   * unless the caller defers it. TP's unspent figure is returned only from
-   * the roster file's own entry, with that entry's own total. Players carry
+   * unless the caller defers it. TP's unspent figure is returned with the
+   * total of the very entry it came from: the roster file's own entry, or,
+   * only for a player this roster file does not list, the freshest
+   * match-embedded entry that carries one. Players carry
    * only a TP external id (their `lineUps[].id`), never a Name one: player
    * names are not unique. Every player's status is sent too, `null` when
    * TP's data establishes none, so a re-import clears one the player no
@@ -95,6 +103,7 @@ export class TpRosterPlayersImportService {
     const rosterEntries = new Map(
       roster.players.map((entry) => [entry.id, entry]),
     );
+    const matchEntries = this.freshestUnspentMatchEntries(matchEmbeddedPlayers);
     const mercenaryCache: MercenaryPositionCache = new Map();
     const baselineCache = this.characteristicIncreases.newCache();
     const outcome: TpRosterPlayersOutcome = {
@@ -134,7 +143,10 @@ export class TpRosterPlayersImportService {
         continue;
       }
       outcome.imported += 1;
-      const snapshot = this.unspentSnapshot(rosterEntries.get(player.id));
+      const snapshot = this.unspentSnapshot(
+        rosterEntries.get(player.id) ??
+          this.unlistedMatchEntry(rosterEntries, matchEntries, player.id),
+      );
       outcome.importedPlayers.push({
         lineUpId: player.id,
         playerId: upserted.player.id,
@@ -161,12 +173,12 @@ export class TpRosterPlayersImportService {
   }
 
   /**
-   * The roster file entry's unspent SPP with that entry's own total. The
-   * merged player's total may be a match snapshot's higher one, which the
-   * unspent figure was never reported against.
+   * The entry's unspent SPP with that entry's own total. The merged player's
+   * total may be another entry's higher one, which the unspent figure was
+   * never reported against.
    */
   private unspentSnapshot(
-    entry: TpRosterPlayer | undefined,
+    entry: UnspentSource | undefined,
   ): UnspentSppSnapshot | undefined {
     return entry?.starPlayerPoints === undefined
       ? undefined
@@ -174,6 +186,45 @@ export class TpRosterPlayersImportService {
           unspentSpp: entry.starPlayerPoints,
           snapshotSppTotal: entry.totalStarPlayerPoints,
         };
+  }
+
+  /**
+   * The match-embedded entry to take a player's unspent figure from, only
+   * when this roster file does not list the player at all: a player still on
+   * the roster is covered by the roster file's own entry (even one with no
+   * unspent figure), so a match entry is never mixed in for him.
+   */
+  private unlistedMatchEntry(
+    rosterEntries: Map<number, TpRosterPlayer>,
+    matchEntries: Map<number, TpMatchEmbeddedPlayer>,
+    playerId: number,
+  ): TpMatchEmbeddedPlayer | undefined {
+    return rosterEntries.has(playerId) ? undefined : matchEntries.get(playerId);
+  }
+
+  /**
+   * Per player, the match-embedded entry carrying an unspent figure with the
+   * highest career total (the later one on a tie): every entry shows the
+   * player as of the download, so the highest total is the freshest, and one
+   * entry's unspent figure and total are never mixed with another's.
+   */
+  private freshestUnspentMatchEntries(
+    matchEmbeddedPlayers: TpMatchEmbeddedPlayer[],
+  ): Map<number, TpMatchEmbeddedPlayer> {
+    const freshest = new Map<number, TpMatchEmbeddedPlayer>();
+    for (const entry of matchEmbeddedPlayers) {
+      if (entry.starPlayerPoints === undefined) {
+        continue;
+      }
+      const known = freshest.get(entry.id);
+      if (
+        known === undefined ||
+        entry.totalStarPlayerPoints >= known.totalStarPlayerPoints
+      ) {
+        freshest.set(entry.id, entry);
+      }
+    }
+    return freshest;
   }
 
   /**

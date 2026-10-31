@@ -19,6 +19,13 @@ export const TpMatchEmbeddedPlayerSchema = z.object({
   isBigGuy: z.boolean(),
   totalStarPlayerPoints: z.number(),
   /**
+   * TP's unspent SPP from the same entry as `totalStarPlayerPoints`, as of
+   * the download. Optional: an entry may lack it. Not checked for sign or
+   * against the total here: the server decides whether a reported figure
+   * makes sense. Used only for a player no roster file lists.
+   */
+  starPlayerPoints: z.number().int().optional(),
+  /**
    * TP's undocumented `state` bitmask, describing the player as of the
    * download rather than as of the match. Optional: older data may lack it.
    */
@@ -55,10 +62,10 @@ export const TpImportedPlayerSchema = z.object({
   /** The career SPP total TP reports for the player (roster or snapshot, the higher). */
   reportedSppTotal: z.number().int(),
   /**
-   * The roster file entry's own `starPlayerPoints` with that entry's own
-   * `totalStarPlayerPoints` (not the higher total a match snapshot may
-   * report). Absent for a match-snapshot-only player and for an entry with
-   * no `starPlayerPoints`.
+   * One entry's own `starPlayerPoints` with that same entry's own
+   * `totalStarPlayerPoints` (not the higher total another entry may report).
+   * The entry is the roster file's, or, for a player no roster file lists,
+   * the match-embedded one. Absent for an entry with no `starPlayerPoints`.
    */
   unspentSppSnapshot: UnspentSppSnapshotSchema.optional(),
 });

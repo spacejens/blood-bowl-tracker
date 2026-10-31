@@ -20,6 +20,7 @@ import { TpInducedStarPlayersStepService } from './players/tp-induced-star-playe
 import { TpLastingInjuryBackfillImportService } from './players/tp-lasting-injury-backfill-import.service';
 import { TpMercenaryPositionRaceErasImportService } from './players/tp-mercenary-position-race-eras-import.service';
 import { TpSppAdjustmentsImportService } from './players/tp-spp-adjustments-import.service';
+import { TpMatchEmbeddedPlayerFreshnessService } from './rosters/tp-match-embedded-player-freshness.service';
 import { TpRosterFilesImportService } from './rosters/tp-roster-files-import.service';
 import { TpRosterPlayerFactsService } from './rosters/tp-roster-player-facts.service';
 import { TpRulesSetsImportService } from './rules-sets/tp-rules-sets-import.service';
@@ -154,6 +155,9 @@ async function run(): Promise<ImportResult> {
       number,
       Map<number, TpMatchEmbeddedPlayer>
     >();
+    // An entry shows the player as of the download, not as of its match, so
+    // the entry with the highest career total is the freshest one kept.
+    const freshness = app.get(TpMatchEmbeddedPlayerFreshnessService);
     const accumulateMatchEmbeddedPlayers = (
       rosterId: number,
       players: TpMatchEmbeddedPlayer[],
@@ -164,7 +168,10 @@ async function run(): Promise<ImportResult> {
         matchEmbeddedPlayersByRosterIdMut.set(rosterId, byPlayerId);
       }
       for (const player of players) {
-        byPlayerId.set(player.id, player);
+        byPlayerId.set(
+          player.id,
+          freshness.fresher(byPlayerId.get(player.id), player),
+        );
       }
     };
     for (const [

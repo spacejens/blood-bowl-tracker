@@ -69,6 +69,26 @@ describe('ImportTpRosterSchema', () => {
     ]);
   });
 
+  it("keeps a match-embedded player's unspent starPlayerPoints", () => {
+    const parsed = ImportTpRosterSchema.parse({
+      roster: {},
+      era: 'Fourth era',
+      externalSystemName: 'TP',
+      matchEmbeddedPlayers: [{ ...embedded, starPlayerPoints: 4 }],
+    });
+    expect(parsed.matchEmbeddedPlayers[0].starPlayerPoints).toBe(4);
+  });
+
+  it('accepts a match-embedded player without starPlayerPoints', () => {
+    const parsed = ImportTpRosterSchema.parse({
+      roster: {},
+      era: 'Fourth era',
+      externalSystemName: 'TP',
+      matchEmbeddedPlayers: [embedded],
+    });
+    expect(parsed.matchEmbeddedPlayers[0].starPlayerPoints).toBeUndefined();
+  });
+
   it('accepts a match-embedded player without state or isActive', () => {
     const parsed = ImportTpRosterSchema.parse({
       roster: {},
