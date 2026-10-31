@@ -5,6 +5,7 @@ import { AdvancementCostsService } from './advancement-costs.service';
 import { AdvancementKindCandidatesService } from './advancement-kind-candidates.service';
 import { AdvancementPricingModelService } from './advancement-pricing-model.service';
 import { AdvancementSpendRangeService } from './advancement-spend-range.service';
+import { BblSkillSourceInferenceService } from './bbl-skill-source-inference.service';
 import { SppAdjustmentsService } from './spp-adjustments.service';
 import { SppAwardValuesService } from './spp-award-values.service';
 import { SppEventCountsService } from './spp-event-counts.service';
@@ -23,6 +24,7 @@ import { UnspentSppDecisionService } from './unspent-spp-decision.service';
     AdvancementKindCandidatesService,
     AdvancementPricingModelService,
     AdvancementSpendRangeService,
+    BblSkillSourceInferenceService,
     SppAdjustmentsService,
     SppAwardValuesService,
     SppEventCountsService,
@@ -39,6 +41,7 @@ import { UnspentSppDecisionService } from './unspent-spp-decision.service';
     AdvancementKindCandidatesService,
     AdvancementPricingModelService,
     AdvancementSpendRangeService,
+    BblSkillSourceInferenceService,
     SppAdjustmentsService,
     SppAwardValuesService,
     SppEventCountsService,
