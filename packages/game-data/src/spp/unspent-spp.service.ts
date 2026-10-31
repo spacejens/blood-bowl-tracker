@@ -34,6 +34,7 @@ import type {
   FittingOutcome,
   ModelledUnspentSpp,
   PlayerSkillEntry,
+  RulesSetAdvancementInput,
   RulesSetOutcome,
   UnspentSppResult,
   UnspentSppUnknownReason,
@@ -146,6 +147,40 @@ export class UnspentSppService {
     return this.evaluate(playerIds, sppTotals ?? null, false);
   }
 
+  /**
+   * What each rules set of each requested player's era makes of their
+   * advancements, for working out what those advancements were. A requested
+   * id with no player is absent, and so is a star player, whose skills are
+   * never advancements. A rules set with no cost rows for the player is left
+   * out. Same batching rules as `forPlayers`.
+   */
+  async advancementInputsForPlayers(
+    playerIds: number[],
+  ): Promise<Map<number, RulesSetAdvancementInput[]>> {
+    const inputs = new Map<number, RulesSetAdvancementInput[]>();
+    const ids = this.distinct(playerIds);
+    if (ids.length === 0) {
+      return inputs;
+    }
+    const facts = await this.loadPlayers(ids);
+    if (facts.length === 0) {
+      return inputs;
+    }
+    const data = await this.loadData(facts);
+    for (const player of facts) {
+      if (player.isStarPlayer) {
+        continue;
+      }
+      inputs.set(
+        player.playerId,
+        (data.rulesSetIdsByEra.get(player.eraId) ?? [])
+          .map((rulesSetId) => this.rulesSetInput(player, rulesSetId, data))
+          .filter((input) => input.costs.length > 0),
+      );
+    }
+    return inputs;
+  }
+
   private async evaluate(
     playerIds: number[],
     sppTotals: ReadonlyMap<number, number> | null,
@@ -208,33 +243,51 @@ export class UnspentSppService {
     });
   }
 
-  private outcomeFor(
-    player: PricedPlayer,
+  private rulesSetInput(
+    player: PlayerFacts,
     rulesSetId: number,
     data: UnspentSppData,
-  ): RulesSetOutcome {
+  ): RulesSetAdvancementInput {
     const costs = data.costs.filter(
       (cost) =>
         cost.rulesSetId === rulesSetId &&
         (cost.leagueId === null || cost.leagueId === player.leagueId),
     );
+    return {
+      rulesSetId,
+      pricingModel: this.pricingModel.modelFor([rulesSetId], costs),
+      costs,
+      candidatesInput: {
+        skills: data.skillsByPlayer.get(player.playerId) ?? [],
+        trophyGrantedSkillIds:
+          data.trophySkillsByPlayer.get(player.playerId) ?? new Set<number>(),
+        characteristicIncreases: player.characteristicIncreases,
+        skillCategories:
+          data.categoriesByRulesSet.get(rulesSetId) ??
+          new Map<number, SkillCategory>(),
+        positionAccess:
+          data.accessByPositionRulesSet.get(
+            `${player.positionId}|${rulesSetId}`,
+          ) ?? new Map<SkillCategory, SkillAccess>(),
+        costs,
+      },
+    };
+  }
+
+  private outcomeFor(
+    player: PricedPlayer,
+    rulesSetId: number,
+    data: UnspentSppData,
+  ): RulesSetOutcome {
+    const { costs, candidatesInput } = this.rulesSetInput(
+      player,
+      rulesSetId,
+      data,
+    );
     if (costs.length === 0) {
       return { kind: 'no_costs' };
     }
-    const options = this.candidates.candidates({
-      skills: data.skillsByPlayer.get(player.playerId) ?? [],
-      trophyGrantedSkillIds:
-        data.trophySkillsByPlayer.get(player.playerId) ?? new Set<number>(),
-      characteristicIncreases: player.characteristicIncreases,
-      skillCategories:
-        data.categoriesByRulesSet.get(rulesSetId) ??
-        new Map<number, SkillCategory>(),
-      positionAccess:
-        data.accessByPositionRulesSet.get(
-          `${player.positionId}|${rulesSetId}`,
-        ) ?? new Map<SkillCategory, SkillAccess>(),
-      costs,
-    });
+    const options = this.candidates.candidates(candidatesInput);
     const range = this.spendRange.range(options, costs);
     if (range === null) {
       return { kind: 'inconsistent' };

@@ -178,6 +178,7 @@ export type {
   ModelledUnspentSpp,
   PlayerSkillEntry,
   PricingModel,
+  RulesSetAdvancementInput,
   SpendRange,
   StoredUnspentVerdict,
   UnknownUnspentSpp,

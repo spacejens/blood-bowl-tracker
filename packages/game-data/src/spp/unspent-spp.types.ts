@@ -128,3 +128,17 @@ export interface ModelledUnspentSpp {
   /** The range the history allows; the stored figure is not consulted. */
   result: UnspentSppResult;
 }
+
+/**
+ * What one rules set of a player's era makes of their advancements: the cost
+ * rows that apply to the player under it and the input
+ * AdvancementKindCandidatesService reads, for working out what the
+ * advancements were.
+ */
+export interface RulesSetAdvancementInput {
+  rulesSetId: number;
+  /** How this rules set alone prices advancements; null with no own rows. */
+  pricingModel: PricingModel | null;
+  costs: ApplicableAdvancementCost[];
+  candidatesInput: AdvancementCandidatesInput;
+}
