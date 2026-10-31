@@ -266,8 +266,10 @@ keywords, player status, and advancement costs with unspent SPP.
        randomly rolled or freely chosen, and it has no elite concept at all,
        so no skill in this panel ever carries the dice or diamond marker — the
        panel says so in words rather than showing an "unverifiable" mark per
-       row. It also shows BBL's own `+MA`/`+ST`/`+AG`/`+PA`/`+AV` characteristic
-       increase counts.
+       row. The import infers random or chosen from the SPP the page reports
+       as spent where only one answer fits, so the imported panel can show the
+       dice marker for a BBL player; this raw panel cannot. It also shows
+       BBL's own `+MA`/`+ST`/`+AG`/`+PA`/`+AV` characteristic increase counts.
      - TP's roster file gives the position template's skills as starting and
        the line-up entry's own skills as gained, each gained skill carrying
        `isRandom` and `isElite` where TP recorded them (a skill with no

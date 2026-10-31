@@ -81,6 +81,9 @@ describe('BblPlayerAdvancementsRawRendererService', () => {
 
     expect(html).not.toContain('⚄');
     expect(html).toContain('BBL does not record how a skill was gained');
+    expect(html).toContain(
+      'the import infers random or chosen from the SPP the page reports as spent',
+    );
   });
 
   it('shows the characteristic-increase counts', async () => {

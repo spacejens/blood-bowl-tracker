@@ -57,8 +57,8 @@ error, and dead, retired and departed players are worked out like any other.
   advancement of a given number, so the spend is exact. BB2020, DB2021 and
   BB2025 price an advancement by its number and its kind, and the recorded
   history rarely pins both down. BBL does not say whether a gained skill was
-  rolled or chosen
-  ([#1235](https://github.com/spacejens/blood-bowl-tracker/issues/1235)).
+  rolled or chosen; the import works it out where it can (see **Chosen or
+  random on BBL** below).
   Characteristic increases are counts with no order
   ([#1233](https://github.com/spacejens/blood-bowl-tracker/issues/1233)).
   The recorded skill order is unverified, so it is ignored
@@ -85,8 +85,7 @@ error, and dead, retired and departed players are worked out like any other.
   still kept: the model does not yet know the order of advancements
   ([#1233](https://github.com/spacejens/blood-bowl-tracker/issues/1233),
   [#1234](https://github.com/spacejens/blood-bowl-tracker/issues/1234)),
-  whether a skill was rolled or chosen
-  ([#1235](https://github.com/spacejens/blood-bowl-tracker/issues/1235)) or
+  whether a BBL skill the reported spend leaves open was rolled or chosen, or
   which skills were free
   ([#1242](https://github.com/spacejens/blood-bowl-tracker/issues/1242)),
   and the stored figure is what shows the gap. A BBL figure on a rules set
@@ -96,6 +95,21 @@ error, and dead, retired and departed players are worked out like any other.
   in the history: free skills, an unrecorded order of advancements and
   uncertainty over chosen or random can also cause it. Both sources'
   figures are as of the download or import that read them.
+- **Chosen or random on BBL.** BBL's player page does not say how a gained
+  skill was gained, so the BBL import records it as gained by advancement.
+  Under rules sets that price by kind (BB2020, DB2021, BB2025) the SPP BBL
+  counts as spent, its career total less its unspent figure, is matched
+  against the cost table. When every order and kind of the player's
+  advancements that costs exactly that much, under every rules set of the
+  era that fits, agrees that a skill was rolled, or that it was chosen, the
+  skill is recorded so. It stays recorded as gained by advancement when no
+  order fits (an inconsistent history, or an advancement BBL shows only as a
+  pending `?`), when the fits disagree, when two skills could swap places,
+  when the page gives no unspent figure, and whenever the era only prices by
+  fixed thresholds, where every advancement costs the same.
+  `BblSkillSourceInferenceService` does this in the import's closing SPP
+  sync, before the stored unspent figure is decided, and does it afresh on
+  every import.
 - **What counts as an advancement.** Starting skills and a skill a trophy
   granted (Gudarnas Förkämpe's mutation) cost nothing. A skill a league's
   house rule grants at a fixed advancement (tLoEG's Fan Favourite) counts only

@@ -52,9 +52,11 @@ export type SkillCategory = (typeof SKILL_CATEGORIES)[number];
  * - `starting` — came from the player's position (or star player template),
  *   i.e. every player holding that position has it.
  * - `advancement` — gained via advancement, but whether it was freely chosen
- *   or randomly rolled is unknown. This is what a source that marks a skill
- *   as gained without saying how records: BBL's player page colours a gained
- *   skill and says nothing more, unlike TP, which reports the roll outright.
+ *   or randomly rolled is unknown. BBL's player page colours a gained skill
+ *   and says nothing more, so the BBL import records every gained skill this
+ *   way; its closing SPP adjustment sync then records one as `chosen` or
+ *   `random` when the spend the page reports allows only one. TP reports the
+ *   roll outright.
  * - `chosen` — gained via advancement, freely picked by the coach.
  * - `random` — gained via advancement, randomly rolled.
  *

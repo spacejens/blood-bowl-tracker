@@ -102,8 +102,10 @@ function zeroCharacteristicIncreaseCounts(): BblPlayerCharacteristicIncreaseCoun
  *
  * BBL distinguishes only plain text (a starting skill) from a coloured span (a
  * skill gained via advancement). It records nothing about HOW a gained skill
- * was gained, which is why every one of them is `advancement` rather than
- * `chosen` or `random` -- unlike TP, which reports the roll outright.
+ * was gained, which is why every one of them is `advancement` here -- unlike
+ * TP, which reports the roll outright. The server's closing SPP adjustment
+ * sync later records a gained skill as `chosen` or `random` when the spend the
+ * page reports allows only one.
  *
  * `advancementOrder` counts GAINED skills only, 1-based: starting skills
  * interleaved in the same cell do not consume a position in the sequence. It

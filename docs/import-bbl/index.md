@@ -146,6 +146,7 @@ under the `tloeg.bbleague.se` external system (`BBL_EXTERNAL_SYSTEM_NAME` in
 
    `tools/import-bbl/import-bbl-config.json5` is git-ignored, so your
    configuration is never committed.
+
 2. Run the tool from the `tools/import-bbl/` directory so the config file is
    picked up automatically:
 
@@ -219,7 +220,10 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   The player page's Skills cell is read alongside the characteristics line. A
   plain entry is a starting skill; a coloured (green) entry is one gained via
   advancement, recorded under the `advancement` source since BBL records
-  nothing about how it was gained. A coloured entry holding only the red `?`
+  nothing about how it was gained. The closing SPP adjustment sync then
+  records it as `chosen` or `random` when the page's reported spend allows
+  only one (see [players](../game-concepts/players/index.md#unspent-spp)).
+  A coloured entry holding only the red `?`
   marker is a pending, unresolved advancement roll, and is skipped silently.
   `advancementOrder` counts gained skills only, and is a presentation-order
   proxy, not a confirmed sequence. The same cell also carries five
@@ -243,6 +247,7 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   the players this run inserted. See "Lasting-injury history backfill" in
   [the TP importer's documentation](../import-tp/index.md), which describes the
   identical step.
+
 - **TeamsModule** — data-type extractor for teams. `TeamPageParser` reads a
   team's page id and `<h1>` name from a team page; `BblTeamsImportService`
   streams team pages (independently of the coaches/races walks), deduplicates

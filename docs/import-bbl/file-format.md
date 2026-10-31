@@ -61,8 +61,10 @@ the player's position (`default.asp?p=pt&typID=<id>`) and team
 site's own unspent figure (signed: it can be negative) and whose parenthesized
 figure is its career total, both as of the scrape and sent to the server
 together (the unspent figure is stored only under rules sets that price by
-kind, see [players](../game-concepts/players/index.md#unspent-spp)), and the same MA/ST/AG/PA/AV characteristics
-table the `pt` pages carry. Most player pages carry a Passing value,
+kind, and there the difference between the two figures also settles, where
+it can, whether a gained skill was chosen or random, see
+[players](../game-concepts/players/index.md#unspent-spp)), and the same
+MA/ST/AG/PA/AV characteristics table the `pt` pages carry. Most player pages carry a Passing value,
 including players whose era predates the characteristic existing, an artifact
 of the site's BB2016-to-BB2020 conversion; others show `-`. Either way the
 value shown is not evidence about whether the player's rules set has Passing
