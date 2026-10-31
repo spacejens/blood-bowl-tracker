@@ -161,10 +161,13 @@ export interface TpPlayerSkillRef {
 /**
  * One skill the player gained via advancement. `isRandom` is TP's own record
  * of whether the advancement was randomly rolled rather than freely chosen --
- * a distinction BBL's data cannot make at all.
+ * a distinction BBL's data cannot make at all. `isExtra` is TP's flag for a
+ * skill granted on top of the player's advancements, without SPP being spent
+ * (such as Hatred); false when TP's entry carries no flag.
  */
 export interface TpGainedSkillRef extends TpPlayerSkillRef {
   isRandom: boolean;
+  isExtra: boolean;
 }
 
 /**
@@ -261,6 +264,7 @@ const TemplateSkillSchema = z.object({
 const PlayerSkillSchema = z.object({
   skillMasterId: z.number().int(),
   isRandom: z.boolean().optional(),
+  isExtra: z.boolean().optional(),
   ...SkillAttributeField,
 });
 
@@ -556,7 +560,11 @@ export class RosterParserService {
       if (skill.isRandom === undefined) {
         return undefined;
       }
-      gained.push({ ...this.skillRef(skill), isRandom: skill.isRandom });
+      gained.push({
+        ...this.skillRef(skill),
+        isRandom: skill.isRandom,
+        isExtra: skill.isExtra === true,
+      });
     }
     return {
       starting: master.skills.map((skill) => this.skillRef(skill)),

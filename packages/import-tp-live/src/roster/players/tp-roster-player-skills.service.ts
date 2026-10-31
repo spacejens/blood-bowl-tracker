@@ -60,6 +60,8 @@ interface SkillRefEntry {
   ref: TpPlayerSkillRef;
   source: PlayerSkillSource;
   advancementOrder?: number;
+  /** TP flags the skill as granted on top of the player's advancements. */
+  isFreeExtra?: boolean;
 }
 
 /**
@@ -68,6 +70,7 @@ interface SkillRefEntry {
  * `starting` entry is the position template's; a gained one is `random` or
  * `chosen` from TP's own `isRandom`, with `advancementOrder` its 1-based index
  * in TP's gained list (TP's presentation order, the best proxy it exposes).
+ * A gained skill TP flags `isExtra` is sent as a free extra (`isFreeExtra`).
  * Only a roster entry with a skills group contributes: a match-snapshot-only
  * player carries none.
  */
@@ -139,6 +142,7 @@ export class TpRosterPlayerSkillsService {
             ref,
             source: ref.isRandom ? 'random' : 'chosen',
             advancementOrder: index + 1,
+            isFreeExtra: ref.isExtra,
           }),
         ),
       ]);
@@ -181,7 +185,7 @@ export class TpRosterPlayerSkillsService {
    */
   private entry(
     run: SkillsRun,
-    { playerId, ref, source, advancementOrder }: SkillRefEntry,
+    { playerId, ref, source, advancementOrder, isFreeExtra }: SkillRefEntry,
   ): PlayerSkillEntry[] {
     const skill = run.skillsByMasterId.get(ref.skillMasterId);
     if (skill === undefined) {
@@ -198,6 +202,7 @@ export class TpRosterPlayerSkillsService {
         source,
         attributeValue: attribute.value,
         ...(advancementOrder === undefined ? {} : { advancementOrder }),
+        ...(isFreeExtra === true ? { isFreeExtra: true } : {}),
       },
     ];
   }
@@ -253,19 +258,22 @@ export class TpRosterPlayerSkillsService {
    * rejects a batch for repeating. A gained entry replaces a starting one
    * (the more specific provenance); otherwise the first entry wins, which
    * for two gained entries is the lower advancement order, since entries
-   * arrive starting first, then gained in order.
+   * arrive starting first, then gained in order. The kept entry is a free extra
+   * when any merged entry was.
    */
   private deduplicate(entries: PlayerSkillEntry[]): PlayerSkillEntry[] {
     const byKey = new Map<string, PlayerSkillEntry>();
     for (const entry of entries) {
       const key = JSON.stringify([entry.skillId, entry.attributeValue]);
       const existing = byKey.get(key);
-      if (
+      const winner =
         existing === undefined ||
         (existing.source === 'starting' && entry.source !== 'starting')
-      ) {
-        byKey.set(key, entry);
-      }
+          ? entry
+          : existing;
+      // A merged row is free when any of its entries was.
+      const free = entry.isFreeExtra === true || existing?.isFreeExtra === true;
+      byKey.set(key, free ? { ...winner, isFreeExtra: true } : winner);
     }
     return [...byKey.values()];
   }
