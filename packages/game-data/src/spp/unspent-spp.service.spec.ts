@@ -78,25 +78,20 @@ describe('UnspentSppService loading', () => {
     const results = await service.forPlayers([1, 2]);
 
     expect([...results.keys()]).toEqual([1, 2]);
-    expect(db.chains).toHaveLength(7);
+    expect(db.chains).toHaveLength(6);
     expect(filterValues(db.chains[0].where)).toEqual([1, 2]);
     expect(filterValues(db.chains[1].where)).toEqual([ERA, 21]);
     expect(filterValues(db.chains[2].where)).toEqual([1, 2]);
     expect(extractJoinColumns(firstCallArg(db.chains[2].where))).toEqual([
       'player_skills.player_id',
     ]);
-    expect(filterValues(db.chains[3].where)).toEqual([1, 2]);
-    expect(extractJoinColumns(firstCallArg(db.chains[3].where))).toEqual([
-      'trophy_awards.player_id',
-      'trophy_awards.granted_skill_id',
-    ]);
-    expect(filterValues(db.chains[4].where)).toEqual(
+    expect(filterValues(db.chains[3].where)).toEqual(
       expect.arrayContaining([101, CRP]),
     );
-    expect(filterValues(db.chains[5].where)).toEqual(
+    expect(filterValues(db.chains[4].where)).toEqual(
       expect.arrayContaining([POSITION, 11, CRP, false]),
     );
-    expect(filterValues(db.chains[6].where)).toEqual(
+    expect(filterValues(db.chains[5].where)).toEqual(
       expect.arrayContaining([CRP, 30, 31]),
     );
   });
@@ -112,7 +107,7 @@ describe('UnspentSppService loading', () => {
       status: 'unknown',
       reason: 'no_rules_set',
     });
-    expect(db.chains).toHaveLength(4);
+    expect(db.chains).toHaveLength(3);
   });
 
   it('works each player out on their own', async () => {
@@ -288,15 +283,15 @@ describe('UnspentSppService under fixed thresholds', () => {
     });
   });
 
-  it('skips starting skills and trophy-granted skills', async () => {
+  it('skips starting skills and free extra skills', async () => {
     const result = await unspentSppFor({
       players: [playerRow({ sppTotal: 6 })],
       eraRulesSets: CRP_ERA,
       playerSkills: [
-        { playerId: 1, skillId: 900, source: 'starting' },
-        ...gainedSkills(2),
+        { playerId: 1, skillId: 900, source: 'starting', isFreeExtra: false },
+        ...gainedSkills(1),
+        { playerId: 1, skillId: 102, source: 'advancement', isFreeExtra: true },
       ],
-      trophyAwards: [{ playerId: 1, skillId: 102 }],
       costs: crpCosts(),
     });
 
@@ -451,7 +446,12 @@ describe("UnspentSppService with a league's granted skill", () => {
       eraRulesSets: CRP_ERA,
       playerSkills: [
         ...gainedSkills(6),
-        { playerId: 1, skillId: FAN_FAVOURITE, source: 'advancement' },
+        {
+          playerId: 1,
+          skillId: FAN_FAVOURITE,
+          source: 'advancement',
+          isFreeExtra: false,
+        },
       ],
       costs: [...crpCosts(), fanFavouriteCost()],
     });
@@ -491,7 +491,12 @@ describe("UnspentSppService with a league's granted skill", () => {
       eraRulesSets: CRP_ERA,
       playerSkills: [
         ...gainedSkills(6),
-        { playerId: 1, skillId: FAN_FAVOURITE, source: 'advancement' },
+        {
+          playerId: 1,
+          skillId: FAN_FAVOURITE,
+          source: 'advancement',
+          isFreeExtra: false,
+        },
       ],
       costs: [...crpCosts(), fanFavouriteCost()],
     });

@@ -30,14 +30,14 @@ export interface AdvancementOption {
 export interface PlayerSkillEntry {
   skillId: number;
   source: PlayerSkillSource;
+  /** Gained without spending SPP and not one of the player's advancements. */
+  isFreeExtra: boolean;
 }
 
 /** What AdvancementKindCandidatesService needs for one player under one rules set. */
 export interface AdvancementCandidatesInput {
   /** Every skill the player has, starting skills included. */
   skills: PlayerSkillEntry[];
-  /** Skills one of the player's own trophy awards granted. */
-  trophyGrantedSkillIds: ReadonlySet<number>;
   /** The sum of the player's five characteristic increase counts. */
   characteristicIncreases: number;
   /** Each skill's category under this rules set; a skill with none is absent. */

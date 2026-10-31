@@ -7,7 +7,6 @@ import {
   eraRulesSets,
   eras,
   inArray,
-  isNotNull,
   isNull,
   or,
   players,
@@ -17,7 +16,6 @@ import {
   positions,
   skillRulesSets,
   teamEras,
-  trophyAwards,
 } from '@blood-bowl-tracker/db';
 import type {
   SkillAccess,
@@ -65,7 +63,6 @@ interface StoredCost extends ApplicableAdvancementCost {
 interface UnspentSppData {
   rulesSetIdsByEra: Map<number, number[]>;
   skillsByPlayer: Map<number, PlayerSkillEntry[]>;
-  trophySkillsByPlayer: Map<number, Set<number>>;
   /** Rules set id -> skill id -> the skill's category under that rules set. */
   categoriesByRulesSet: Map<number, Map<number, SkillCategory>>;
   /** `positionId|rulesSetId` -> category -> the position's access to it. */
@@ -233,8 +230,6 @@ export class UnspentSppService {
     }
     const options = this.candidates.candidates({
       skills: data.skillsByPlayer.get(player.playerId) ?? [],
-      trophyGrantedSkillIds:
-        data.trophySkillsByPlayer.get(player.playerId) ?? new Set<number>(),
       characteristicIncreases: player.characteristicIncreases,
       skillCategories:
         data.categoriesByRulesSet.get(rulesSetId) ??
@@ -373,7 +368,7 @@ export class UnspentSppService {
     }));
   }
 
-  /** Queries 2-7, in a fixed order, each covering the whole batch. */
+  /** Queries 2-6, in a fixed order, each covering the whole batch. */
   private async loadData(facts: PlayerFacts[]): Promise<UnspentSppData> {
     const playerIds = facts.map((fact) => fact.playerId);
     const eraRows = await this.db
@@ -394,30 +389,10 @@ export class UnspentSppService {
         playerId: playerSkills.playerId,
         skillId: playerSkills.skillId,
         source: playerSkills.source,
+        isFreeExtra: playerSkills.isFreeExtra,
       })
       .from(playerSkills)
       .where(inArray(playerSkills.playerId, playerIds));
-    // Both columns are nullable in general, but the filter keeps only rows
-    // with a player id from the batch and a granted skill.
-    const trophyRows = await this.db
-      .select({
-        playerId: trophyAwards.playerId,
-        skillId: trophyAwards.grantedSkillId,
-      })
-      .from(trophyAwards)
-      .where(
-        and(
-          inArray(trophyAwards.playerId, playerIds),
-          isNotNull(trophyAwards.grantedSkillId),
-        ),
-      );
-    const trophySkillsByPlayer = new Map<number, Set<number>>();
-    for (const row of trophyRows) {
-      const playerId = row.playerId as number;
-      const granted = trophySkillsByPlayer.get(playerId) ?? new Set<number>();
-      granted.add(row.skillId as number);
-      trophySkillsByPlayer.set(playerId, granted);
-    }
 
     return {
       rulesSetIdsByEra: this.group(
@@ -428,9 +403,12 @@ export class UnspentSppService {
       skillsByPlayer: this.group(
         skillRows,
         (row) => row.playerId,
-        (row) => ({ skillId: row.skillId, source: row.source }),
+        (row) => ({
+          skillId: row.skillId,
+          source: row.source,
+          isFreeExtra: row.isFreeExtra,
+        }),
       ),
-      trophySkillsByPlayer,
       ...(await this.loadRulesSetData(
         facts,
         this.distinct(skillRows.map((row) => row.skillId)),
@@ -440,7 +418,7 @@ export class UnspentSppService {
   }
 
   /**
-   * Queries 5-7: skill categories, position access and costs under the
+   * Queries 4-6: skill categories, position access and costs under the
    * batch's rules sets. None is run when there is no rules set to ask about.
    */
   private async loadRulesSetData(

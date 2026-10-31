@@ -300,13 +300,19 @@ async function seed(db: Db): Promise<SeededPlayers> {
   });
   await gained(typePriced, ['Block', 'Mighty Blow'], 'chosen');
 
-  // CRP: one gained skill plus a trophy's skill that costs nothing.
+  // CRP: one gained skill plus a free extra (a trophy's mutation) that costs nothing.
   const trophyGranted = await player({
     name: 'Mutant',
     teamEraId: fixedTeamEra,
     sppTotal: 6,
   });
-  await gained(trophyGranted, ['Dodge', 'Tentacles']);
+  await gained(trophyGranted, ['Dodge']);
+  await db.insert(playerSkills).values({
+    playerId: trophyGranted,
+    skillId: skill.Tentacles,
+    source: 'advancement',
+    isFreeExtra: true,
+  });
   const group = await insertOne(
     db
       .insert(competitionGroups)
