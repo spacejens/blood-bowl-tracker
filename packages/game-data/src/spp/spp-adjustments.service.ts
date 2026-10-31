@@ -10,6 +10,7 @@ import type { Db } from '@blood-bowl-tracker/db';
 import { DB, inArray, players } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 
+import { BblSkillSourceInferenceService } from './bbl-skill-source-inference.service';
 import { SppForcedRateService } from './spp-forced-rate.service';
 import { SppOngoingEstimateService } from './spp-ongoing-estimate.service';
 import { SppTotalsService } from './spp-totals.service';
@@ -46,6 +47,10 @@ interface AdjustmentWrite extends TotalWrite {
  * Both also write `players.unspent_spp` (see `UnspentSppDecisionService`): this
  * is the last step of every import, so it is where that column is settled
  * against the total being written.
+ *
+ * The BBL sync also records a gained skill as chosen or random when the
+ * spend BBL reports settles it (see `BblSkillSourceInferenceService`),
+ * before the unspent SPP is decided.
  */
 @Injectable()
 export class SppAdjustmentsService {
@@ -55,6 +60,7 @@ export class SppAdjustmentsService {
     private readonly forcedRate: SppForcedRateService,
     private readonly ongoingEstimate: SppOngoingEstimateService,
     private readonly unspentDecision: UnspentSppDecisionService,
+    private readonly skillSources: BblSkillSourceInferenceService,
   ) {}
 
   async syncScrapedAdjustments(
@@ -103,6 +109,10 @@ export class SppAdjustmentsService {
       }
     }
 
+    // BBL does not say whether a gained skill was rolled or chosen, but the
+    // spend its page implies can settle it. This runs first so the unspent
+    // decision below reads the narrowed history.
+    await this.skillSources.inferSources(snapshots);
     return this.applyWrites(await this.withUnspentSpp(totals, snapshots));
   }
 

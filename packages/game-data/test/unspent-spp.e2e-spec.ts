@@ -38,6 +38,7 @@ import { mock } from 'vitest-mock-extended';
 import { AdvancementKindCandidatesService } from '../src/spp/advancement-kind-candidates.service';
 import { AdvancementPricingModelService } from '../src/spp/advancement-pricing-model.service';
 import { AdvancementSpendRangeService } from '../src/spp/advancement-spend-range.service';
+import { BblSkillSourceInferenceService } from '../src/spp/bbl-skill-source-inference.service';
 import { SppAdjustmentsService } from '../src/spp/spp-adjustments.service';
 import { SppForcedRateService } from '../src/spp/spp-forced-rate.service';
 import { SppOngoingEstimateService } from '../src/spp/spp-ongoing-estimate.service';
@@ -598,6 +599,7 @@ describe('unspent_spp storage (real Postgres)', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         SppAdjustmentsService,
+        BblSkillSourceInferenceService,
         UnspentSppDecisionService,
         UnspentSppService,
         AdvancementKindCandidatesService,
