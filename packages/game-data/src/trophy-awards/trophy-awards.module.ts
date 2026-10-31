@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { PlayerSkillsModule } from '../player-skills/player-skills.module';
 import { MatchScopeFilterModule } from '../shared/match-scope-filter.module';
 import { SppModule } from '../spp/spp.module';
 import { MaxCountTrophyRuleService } from './max-count-trophy-rule.service';
@@ -12,7 +13,7 @@ import { TrophyRulePositionFilterService } from './trophy-rule-position-filter.s
 import { TrophyTiedWinnersService } from './trophy-tied-winners.service';
 
 @Module({
-  imports: [MatchScopeFilterModule, SppModule],
+  imports: [MatchScopeFilterModule, PlayerSkillsModule, SppModule],
   providers: [
     TrophyAwardsService,
     TrophyRuleEventTypeFilterService,

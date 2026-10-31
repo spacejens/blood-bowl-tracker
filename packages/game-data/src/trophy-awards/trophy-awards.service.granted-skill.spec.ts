@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
+import { PlayerSkillsService } from '../player-skills/player-skills.service';
 import {
   extractFilterValues,
   firstCallArg,
@@ -47,17 +48,25 @@ async function build(...rowsPerQuery: (unknown[] | Error)[]): Promise<{
   service: TrophyAwardsService;
   db: MockDbResult;
   unspent: MockProxy<UnspentSppDecisionService>;
+  playerSkills: MockProxy<PlayerSkillsService>;
 }> {
   const db = mockDb(...rowsPerQuery);
   const unspent = mock<UnspentSppDecisionService>();
+  const playerSkills = mock<PlayerSkillsService>();
   const moduleRef = await Test.createTestingModule({
     providers: [
       TrophyAwardsService,
       { provide: DB, useValue: db.db },
       { provide: UnspentSppDecisionService, useValue: unspent },
+      { provide: PlayerSkillsService, useValue: playerSkills },
     ],
   }).compile();
-  return { service: moduleRef.get(TrophyAwardsService), db, unspent };
+  return {
+    service: moduleRef.get(TrophyAwardsService),
+    db,
+    unspent,
+    playerSkills,
+  };
 }
 
 describe('TrophyAwardsService.upsert granted skill', () => {
@@ -93,6 +102,81 @@ describe('TrophyAwardsService.upsert granted skill', () => {
     );
     await service.upsert({ ...playerAward, grantedSkillId: 11 });
     expect(unspent.refreshFixedThreshold).toHaveBeenCalledWith([4]);
+  });
+
+  it("marks the winner's granted skill free before re-pricing a new award", async () => {
+    const { service, unspent, playerSkills } = await build(
+      playerTrophyRow,
+      matchingCompetitionRow,
+      playerRow,
+      skillRow,
+      [awardWithSkill],
+    );
+
+    await service.upsert({ ...playerAward, grantedSkillId: 11 });
+
+    expect(playerSkills.markTrophyGranted).toHaveBeenCalledWith(4, 11);
+    expect(
+      playerSkills.markTrophyGranted.mock.invocationCallOrder[0],
+    ).toBeLessThan(unspent.refreshFixedThreshold.mock.invocationCallOrder[0]);
+  });
+
+  it('marks the granted skill when it is overlaid onto a recorded award', async () => {
+    const { service, playerSkills } = await build(
+      playerTrophyRow,
+      matchingCompetitionRow,
+      playerRow,
+      skillRow,
+      uniqueViolation(),
+      [awardWithoutSkill],
+      [awardWithSkill],
+    );
+
+    await service.upsert({ ...playerAward, grantedSkillId: 11 });
+
+    expect(playerSkills.markTrophyGranted).toHaveBeenCalledWith(4, 11);
+  });
+
+  it('marks the stored granted skill again when the upsert omits it', async () => {
+    const { service, playerSkills } = await build(
+      playerTrophyRow,
+      matchingCompetitionRow,
+      playerRow,
+      uniqueViolation(),
+      [awardWithSkill],
+    );
+
+    await service.upsert(playerAward);
+
+    expect(playerSkills.markTrophyGranted).toHaveBeenCalledWith(4, 11);
+  });
+
+  it('marks nothing when the granted skill is cleared', async () => {
+    const { service, playerSkills } = await build(
+      playerTrophyRow,
+      matchingCompetitionRow,
+      playerRow,
+      uniqueViolation(),
+      [awardWithSkill],
+      [awardWithoutSkill],
+    );
+
+    await service.upsert({ ...playerAward, grantedSkillId: null });
+
+    expect(playerSkills.markTrophyGranted).not.toHaveBeenCalled();
+  });
+
+  it('marks nothing for a new award without a granted skill', async () => {
+    const { service, playerSkills } = await build(
+      playerTrophyRow,
+      matchingCompetitionRow,
+      playerRow,
+      [awardWithoutSkill],
+    );
+
+    await service.upsert(playerAward);
+
+    expect(playerSkills.markTrophyGranted).not.toHaveBeenCalled();
   });
 
   it('does not re-price after inserting an award without a skill', async () => {

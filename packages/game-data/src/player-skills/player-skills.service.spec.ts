@@ -1,4 +1,9 @@
-import { DB, players, trophyAwards } from '@blood-bowl-tracker/db';
+import {
+  DB,
+  players,
+  playerSkills,
+  trophyAwards,
+} from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
@@ -27,6 +32,39 @@ const skillRow = { id: 7 };
 const entry = { playerId: 1, skillId: 7, source: 'starting' as const };
 
 describe('PlayerSkillsService', () => {
+  describe('markTrophyGranted', () => {
+    it("marks the player's rows of that skill that are not yet free", async () => {
+      const db = mockDb([{ name: 'Tentacles' }], []);
+      const service = await makeService(db);
+
+      await service.markTrophyGranted(1, 7);
+
+      expect(db.db.update).toHaveBeenCalledWith(playerSkills);
+      expect(firstCallArg(db.chains[1].set)).toEqual({ isFreeExtra: true });
+      expect(extractAllFilterValues(firstCallArg(db.chains[1].where))).toEqual(
+        expect.arrayContaining([1, 7, false]),
+      );
+    });
+
+    it('never marks Hatred', async () => {
+      const db = mockDb([{ name: 'Hatred' }]);
+      const service = await makeService(db);
+
+      await service.markTrophyGranted(1, 7);
+
+      expect(db.db.update).not.toHaveBeenCalled();
+    });
+
+    it('does nothing for a skill that does not exist', async () => {
+      const db = mockDb([]);
+      const service = await makeService(db);
+
+      await service.markTrophyGranted(1, 7);
+
+      expect(db.db.update).not.toHaveBeenCalled();
+    });
+  });
+
   describe('sync', () => {
     it('returns no ids and issues no query for an empty entries list', async () => {
       const db = mockDb();

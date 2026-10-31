@@ -392,6 +392,33 @@ export class PlayerSkillsService {
   }
 
   /**
+   * Mark the player's rows of a skill one of their own trophy awards grants
+   * as free extras. Covers an award recorded after the skill; `sync` covers
+   * the opposite order. Set-only, and never applied to Hatred, matching
+   * `sync`'s trophy rule. Clears nothing else: the caller re-prices the
+   * player's stored unspent SPP afterwards.
+   */
+  async markTrophyGranted(playerId: number, skillId: number): Promise<void> {
+    const [skill] = await this.db
+      .select({ name: skills.name })
+      .from(skills)
+      .where(eq(skills.id, skillId));
+    if (skill === undefined || skill.name === HATRED_SKILL_NAME) {
+      return;
+    }
+    await this.db
+      .update(playerSkills)
+      .set({ isFreeExtra: true })
+      .where(
+        and(
+          eq(playerSkills.playerId, playerId),
+          eq(playerSkills.skillId, skillId),
+          eq(playerSkills.isFreeExtra, false),
+        ),
+      );
+  }
+
+  /**
    * Every skill recorded for this player, joined to `skills` for the name and
    * to `skill_rules_sets` for how `rulesSetId` categorises it, ordered by
    * source, then advancement order, then skill name so the list is stable
