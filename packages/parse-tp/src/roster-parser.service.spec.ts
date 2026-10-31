@@ -964,4 +964,55 @@ describe('RosterParserService', () => {
       });
     });
   });
+
+  describe('lastMatchFinishedAt', () => {
+    const finished = (...instants: unknown[]) => ({
+      lastMatches: instants.map((finishInstant) => ({
+        scores: [{ finishInstant }],
+      })),
+    });
+
+    it('is the latest finishInstant across lastMatches, as epoch milliseconds', () => {
+      const roster = service.parse(
+        rosterBody(
+          finished(
+            '2026-02-24T19:14:21.4342804+00:00',
+            '2026-05-25T10:00:00+00:00',
+            '2026-03-01T10:00:00+00:00',
+          ),
+        ),
+      );
+      expect(roster.lastMatchFinishedAt).toBe(
+        Date.parse('2026-05-25T10:00:00Z'),
+      );
+    });
+
+    it('is undefined without lastMatches', () => {
+      expect(service.parse(rosterBody()).lastMatchFinishedAt).toBeUndefined();
+    });
+
+    it('is undefined when lastMatches carry no finish instants', () => {
+      const roster = service.parse(
+        rosterBody({
+          lastMatches: [
+            { scores: [] },
+            { scores: [{ finishInstant: null }] },
+            {},
+          ],
+        }),
+      );
+      expect(roster.lastMatchFinishedAt).toBeUndefined();
+    });
+
+    it('ignores an unparseable instant and a malformed lastMatches', () => {
+      expect(
+        service.parse(
+          rosterBody(finished('not a date', '2026-05-25T10:00:00Z')),
+        ).lastMatchFinishedAt,
+      ).toBe(Date.parse('2026-05-25T10:00:00Z'));
+      expect(
+        service.parse(rosterBody({ lastMatches: 'oops' })).lastMatchFinishedAt,
+      ).toBeUndefined();
+    });
+  });
 });

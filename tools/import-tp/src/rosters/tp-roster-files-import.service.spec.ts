@@ -39,6 +39,24 @@ function entry(
   return { roster, era, competition, content: { raw: rosterId } };
 }
 
+/** A roster entry for one copy of a roster file, with its raw content. */
+function copy(options: {
+  era: string;
+  competition: string;
+  content: string;
+  lastMatchFinishedAt?: number;
+}): RosterEntry {
+  const base = entry(1, options.era, options.competition);
+  return {
+    ...base,
+    roster: {
+      ...base.roster,
+      lastMatchFinishedAt: options.lastMatchFinishedAt,
+    },
+    content: options.content,
+  };
+}
+
 /** A minimal match-embedded player, distinguishable by id/rosterId. */
 function rosterPlayer(
   overrides: Partial<TpMatchEmbeddedPlayer> = {},
@@ -145,6 +163,117 @@ describe('TpRosterFilesImportService', () => {
     });
 
     expect(result.reportedSppTotalsByPlayerId).toEqual(new Map([[9, 10]]));
+  });
+
+  describe('choosing one copy per era and roster', () => {
+    const sentCompetitions = async (rosters: RosterEntry[]) => {
+      importRunner.recordUpsertResult.mockResolvedValue(outcome());
+      client.tpRosters.import.mockResolvedValue(outcome());
+      await service.importRosterFiles({
+        rosters,
+        matchEmbeddedPlayersByRosterId: new Map(),
+      });
+      const sent: unknown[] = [];
+      for (const [options] of importRunner.recordUpsertResult.mock.calls) {
+        await options.upsert();
+      }
+      for (const [input] of client.tpRosters.import.mock.calls) {
+        sent.push(input.roster);
+      }
+      return sent;
+    };
+
+    it('keeps the copy whose newest match finished last', async () => {
+      const sent = await sentCompetitions([
+        copy({
+          era: 'Fourth era',
+          competition: 'older',
+          content: 'older',
+          lastMatchFinishedAt: 100,
+        }),
+        copy({
+          era: 'Fourth era',
+          competition: 'newer',
+          content: 'newer',
+          lastMatchFinishedAt: 300,
+        }),
+        copy({
+          era: 'Fourth era',
+          competition: 'middle',
+          content: 'middle',
+          lastMatchFinishedAt: 200,
+        }),
+      ]);
+
+      expect(sent).toEqual(['newer']);
+    });
+
+    it('keeps the first copy on a tie', async () => {
+      const sent = await sentCompetitions([
+        copy({
+          era: 'Fourth era',
+          competition: 'a',
+          content: 'first',
+          lastMatchFinishedAt: 100,
+        }),
+        copy({
+          era: 'Fourth era',
+          competition: 'b',
+          content: 'second',
+          lastMatchFinishedAt: 100,
+        }),
+      ]);
+
+      expect(sent).toEqual(['first']);
+    });
+
+    it('keeps the first copy when none has a finish instant', async () => {
+      const sent = await sentCompetitions([
+        copy({ era: 'Fourth era', competition: 'a', content: 'first' }),
+        copy({ era: 'Fourth era', competition: 'b', content: 'second' }),
+      ]);
+
+      expect(sent).toEqual(['first']);
+    });
+
+    it('prefers a copy with a finish instant over one without', async () => {
+      const sent = await sentCompetitions([
+        copy({ era: 'Fourth era', competition: 'a', content: 'undated' }),
+        copy({
+          era: 'Fourth era',
+          competition: 'b',
+          content: 'dated',
+          lastMatchFinishedAt: 5,
+        }),
+      ]);
+
+      expect(sent).toEqual(['dated']);
+    });
+
+    it('chooses per era and roster independently', async () => {
+      const sent = await sentCompetitions([
+        copy({
+          era: 'Fourth era',
+          competition: 'a',
+          content: 'fourth-old',
+          lastMatchFinishedAt: 1,
+        }),
+        copy({
+          era: 'Third era',
+          competition: 'b',
+          content: 'third',
+          lastMatchFinishedAt: 1,
+        }),
+        copy({
+          era: 'Fourth era',
+          competition: 'c',
+          content: 'fourth-new',
+          lastMatchFinishedAt: 2,
+        }),
+      ]);
+
+      expect(sent).toEqual(['fourth-new', 'third']);
+    });
   });
 
   it('keeps the unspent snapshot reported beside the highest total', async () => {

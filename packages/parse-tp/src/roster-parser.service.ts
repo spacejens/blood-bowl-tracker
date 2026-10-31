@@ -79,10 +79,10 @@ export interface TpRosterPlayer {
   /**
    * TP's unspent SPP for this player (`lineUps[].starPlayerPoints`), from the
    * same entry as `totalStarPlayerPoints`, or `undefined` when the entry has
-   * none. Only roster-file entries are read for it: a match-embedded
-   * snapshot's figure is as of that match, and `MatchParserService` does not
-   * carry it over. docs/import-tp/file-format-rosters.md describes what TP's
-   * SPP fields mean.
+   * none. A roster-file entry and a match-embedded entry both carry it, each
+   * with its own `totalStarPlayerPoints`; `MatchParserService` passes the
+   * match-embedded one on. docs/import-tp/file-format-rosters.md describes
+   * what TP's SPP fields mean.
    */
   starPlayerPoints?: number;
   /**
@@ -222,6 +222,15 @@ export interface TpRoster {
   positions: TpRosterPosition[];
   starPositions: TpRosterPosition[];
   players: TpRosterPlayer[];
+  /**
+   * When the newest of the roster's `lastMatches[]` finished
+   * (`scores[].finishInstant`, epoch milliseconds), or `undefined` when the
+   * file lists no finished match. A roster file appears under every
+   * competition its team played in, each copy downloaded at its own time, so
+   * this tells the copies apart: the one with the latest value is the
+   * freshest.
+   */
+  lastMatchFinishedAt?: number;
 }
 
 const CharacteristicsFields = {
@@ -342,6 +351,18 @@ const RosterSchema = z.object({
     userNameToShow: z.string(),
   }),
   lineUps: z.array(LineUpSchema),
+  // Only the finish instants are read, and leniently: a malformed
+  // lastMatches must never make an otherwise usable roster unparseable.
+  lastMatches: z
+    .array(
+      z.object({
+        scores: z
+          .array(z.object({ finishInstant: z.string().nullish().catch(null) }))
+          .catch([]),
+      }),
+    )
+    .catch([])
+    .optional(),
   rosterMaster: z.object({
     name: z.string(),
     starPlayersMasters: z.array(StarPlayerMasterSchema),
@@ -404,7 +425,19 @@ export class RosterParserService {
         positionTemplate: this.positionTemplate(entry),
         skills: this.skills(entry),
       })),
+      lastMatchFinishedAt: this.lastMatchFinishedAt(data.lastMatches),
     };
+  }
+
+  /** The latest parseable finish instant, or `undefined` when there is none. */
+  private lastMatchFinishedAt(
+    lastMatches: { scores: { finishInstant?: string | null }[] }[] | undefined,
+  ): number | undefined {
+    const instants = (lastMatches ?? [])
+      .flatMap((match) => match.scores)
+      .map((score) => Date.parse(score.finishInstant ?? ''))
+      .filter((instant) => !Number.isNaN(instant));
+    return instants.length === 0 ? undefined : Math.max(...instants);
   }
 
   /**

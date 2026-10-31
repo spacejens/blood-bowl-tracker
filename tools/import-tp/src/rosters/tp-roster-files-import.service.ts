@@ -61,7 +61,7 @@ export class TpRosterFilesImportService {
    * the era its directory belongs to, and the roster's match-snapshot-only
    * players. The server parses the roster and upserts the team and its
    * players. A roster file appears under every competition its team played
-   * in, so each (era, roster) pair is sent once, first file seen. A team
+   * in, so each (era, roster) pair is sent once, from the freshest copy. A team
    * seen under several eras is imported once per era; the server's era sync
    * only ever adds, so its team eras accumulate across those calls.
    */
@@ -191,11 +191,22 @@ export class TpRosterFilesImportService {
     }
   }
 
+  /**
+   * One copy per (era, roster). The copies differ in when they were
+   * downloaded, so the one whose newest match finished last wins; a copy
+   * with no finish instant counts as older than any with one, and a tie
+   * keeps the first seen.
+   */
   private distinctByEraAndRoster(rosters: RosterEntry[]): RosterEntry[] {
     const byKey = new Map<string, RosterEntry>();
     for (const entry of rosters) {
       const key = `${entry.era}\t${entry.roster.id}`;
-      if (!byKey.has(key)) {
+      const known = byKey.get(key);
+      if (
+        known === undefined ||
+        (entry.roster.lastMatchFinishedAt ?? Number.NEGATIVE_INFINITY) >
+          (known.roster.lastMatchFinishedAt ?? Number.NEGATIVE_INFINITY)
+      ) {
         byKey.set(key, entry);
       }
     }
