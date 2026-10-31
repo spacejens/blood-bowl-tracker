@@ -51,5 +51,7 @@ leagues and skills it references.
 
 A skill a trophy award grants (see
 [trophy awards](../game-concepts/trophies/index.md#trophy-award)) is not an
-advancement. A cost model must skip every trophy-granted skill when numbering
-a player's advancements and when summing the SPP they have spent.
+advancement. Writing such an award marks the player's matching skill as a
+free extra (see [skills](../game-concepts/skills/index.md#player-skills)),
+and a cost model skips every free extra when numbering a player's
+advancements and when summing the SPP they have spent.
