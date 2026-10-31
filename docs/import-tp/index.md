@@ -200,19 +200,20 @@ The tool never parses a roster or a match for those upserts; it does parse roste
 
 ### Rosters
 
-- **TpRosterFilesImportService** — calls `tpRosters.import` once per
-  distinct (era, roster id), since a roster file appears under every
-  competition its team played in. Each call sends the file's raw content,
-  its era (from the directory it was found in), the configured external
-  system name, and the roster's match-snapshot-only players. The server
-  upserts the team (keyed by roster id + name; race resolved by TP external
-  id, skipped with an error if unresolved; coach upserted from the roster's
-  own coach id and name, created if unknown; an existing coach keeps its
-  stored name — see [import-tp-live/index.md](../import-tp-live/index.md))
-  and its players. A team seen under several eras is sent once per era; the
-  server's era sync only ever adds, so its eras accumulate. Returns
-  `teamErasByRosterId`, `playerIdsByLineUpId`, `insertedPlayerIds` and
-  `mercenaryPositionUsages` for the later steps.
+- **TpRosterFilesImportService** — calls `tpRosters.import` once per distinct
+  (era, roster id), since a roster file appears under every competition its
+  team played in; the freshest [copy](./file-format-rosters.md#roster-copies)
+  is sent. Each call sends the file's raw content, its era (from the directory
+  it was found in), the configured external system name, and the roster's
+  match-snapshot-only players. The server upserts the team (keyed by roster id
+  + name; race resolved by TP external id, skipped with an error if
+  unresolved; coach upserted from the roster's own coach id and name, created
+  if unknown; an existing coach keeps its stored name — see
+  [import-tp-live/index.md](../import-tp-live/index.md)) and its players. A
+  team seen under several eras is sent once per era; the server's era sync
+  only ever adds, so its eras accumulate. Returns `teamErasByRosterId`,
+  `playerIdsByLineUpId`, `insertedPlayerIds` and `mercenaryPositionUsages` for
+  the later steps.
 
 ### Player import
 

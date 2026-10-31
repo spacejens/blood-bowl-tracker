@@ -77,7 +77,8 @@ error, and dead, retired and departed players are worked out like any other.
   advancements there are, so it is the total less that cost, kept only when
   the history makes it exact. A source's own figure is ignored there: BBL
   prices every player at BB2020 costs. Under rules sets that price by kind
-  (BB2020, DB2021, BB2025) it is the figure the source reports, kept unless
+  (BB2020, DB2021, BB2025) it is the figure the source reports (for a TP
+  player no roster file lists, the freshest match-embedded entry's), kept unless
   it makes no sense on its own terms: negative, larger than the total
   reported beside it, or reported beside a total other than the stored one.
   It is never worked out from the range, and a figure outside the range is

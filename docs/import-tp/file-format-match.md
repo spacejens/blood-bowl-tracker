@@ -327,9 +327,11 @@ side's roster `id` is parsed into `homeTeamTpId`/`awayTeamTpId`, and its
 `lineUps[]` — a per-match snapshot of that side's roster, same shape as the
 standalone roster file's own `lineUps[]` — is parsed into
 `homeRosterPlayers`/`awayRosterPlayers`, see [`rosters_<id>.json`](./file-format-rosters.md);
-each snapshot entry's `state` and `isActive` are kept too, but they describe
-the player as of the download, not as of the match, so a snapshot also says
-whether a player who has since left died, retired or is temporarily retired;
+each snapshot entry's `state`, `isActive` and `starPlayerPoints` (the unspent
+SPP, beside the entry's `totalStarPlayerPoints`) are kept too, but they
+describe the player as of the download, not as of the match, so a snapshot
+also says whether a player who has since left died, retired or is temporarily
+retired; the unspent figure is used for players no roster file lists;
 the rest of these nested roster bodies remains unhandled), `scoreResume
 { startInstant, finishInstant }`, and — importantly — `scheduledDate`/
 `endScheduledDate`.
