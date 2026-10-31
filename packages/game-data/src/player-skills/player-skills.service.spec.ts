@@ -396,6 +396,9 @@ describe('PlayerSkillsService', () => {
         'players.id',
         'trophy_awards.granted_skill_id',
       ]);
+      expect(
+        extractAllFilterValues(firstCallArg(db.chains[0].leftJoin, 0, 1)),
+      ).toEqual([]);
     });
 
     it('stores an entry the source flags as a free extra', async () => {

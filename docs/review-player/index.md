@@ -345,9 +345,9 @@ keywords, player status, and advancement costs with unspent SPP.
      as free extras and priced at 0, and that a Journeyman's Loner is also
      granted without SPP being spent, which the modelled range does not
      recognise, so such a player can legitimately be listed. Right: the
-     era's last-listed rules set, then one row per advancement with the cost `advancement_costs` gives it at its
-     number — a single number under fixed thresholds, the candidate cost of
-     each kind under a rules set that prices by kind, narrowed to random or
+     era's last-listed rules set, then one row per advancement with the cost
+     `advancement_costs` gives it at its number — a single number under fixed
+     thresholds, the candidate cost of each kind under a rules set that prices by kind, narrowed to random or
      chosen kinds where the stored skill source says which. A gained skill
      is also priced by whether the player's position has the skill's
      category (`skill_rules_sets`, under the same rules set) as primary or
@@ -362,14 +362,14 @@ keywords, player status, and advancement costs with unspent SPP.
      stored as a free extra (`player_skills.is_free_extra`: a gained Hatred,
      a skill TP flags `isExtra`, or Gudarnas Förkämpe's mutation) cost 0 and
      take no number; a skill a league house rule grants (tLoEG's Fan
-     Favourite) shows as that rule's advancement with its cost. Gained skills come first in their stored
-     order, which is unverified, then the characteristic increases, whose
-     order is unknown. A footer gives the stored total, the modelled spend and
-     unspent ranges, and beside them the source's reported total, its unspent
-     figure and the spend derived from the two. A last row gives the stored
-     unspent SPP, placed against the modelled unspent range and compared with
-     the source's own unspent figure, highlighted when it lies outside the
-     range or differs, and a dash when nothing is stored. An outside-range
+     Favourite) shows as that rule's advancement with its cost. Gained skills come
+     first in their stored order, which is unverified, then the characteristic
+     increases, whose order is unknown. A footer gives the stored total, the
+     modelled spend and unspent ranges, and beside them the source's reported
+     total, its unspent figure and the spend derived from the two. A last row
+     gives the stored unspent SPP, placed against the modelled unspent range
+     and compared with the source's own unspent figure, highlighted when it
+     lies outside the range or differs, and a dash when nothing is stored. An outside-range
      stored figure is annotated as a possible gap only (a gap in the recorded
      history, a free skill, or an unrecorded order or chosen-or-random choice
      may cause it). The range takes, per advancement number, the cheapest and
