@@ -46,7 +46,7 @@ export interface ImportSppAdjustmentsOptions {
  * `spp_adjustment`. It is the only writer of `spp_total` in a TP run. Players
  * TP reported no total for (e.g. an induced star player) are skipped and keep
  * a NULL adjustment. TP's unspent figure goes along with the total from the
- * same roster entry, for the server to settle `players.unspent_spp`.
+ * same roster or match entry, for the server to settle `players.unspent_spp`.
  *
  * TP's total is career-wide, including competitions still in progress that have
  * not been downloaded/imported yet, so each player's career action counts are

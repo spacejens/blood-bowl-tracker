@@ -121,8 +121,9 @@ export class TpLiveSppAdjustmentsService {
   }
 
   /**
-   * The snapshot reported beside the higher total, the later one on a tie:
-   * totals only grow, so that is the fresher roster read.
+   * The snapshot reported beside the higher total; at equal totals the lower
+   * unspent figure (unspent only rises with the total, so it is the fresher
+   * read), the later one on a full tie.
    */
   private fresherSnapshot(
     first: UnspentSppSnapshot | undefined,
@@ -134,7 +135,10 @@ export class TpLiveSppAdjustmentsService {
     if (second === undefined) {
       return first;
     }
-    return second.snapshotSppTotal >= first.snapshotSppTotal ? second : first;
+    if (second.snapshotSppTotal !== first.snapshotSppTotal) {
+      return second.snapshotSppTotal > first.snapshotSppTotal ? second : first;
+    }
+    return second.unspentSpp <= first.unspentSpp ? second : first;
   }
 
   private highest(a: SppCareerCounts, b: SppCareerCounts): SppCareerCounts {

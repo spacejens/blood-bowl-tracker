@@ -19,7 +19,7 @@ one copy per (era, roster): the one whose newest finished match is latest,
 from the largest `lastMatches[].scores[].finishInstant`, which the parser
 exposes as `lastMatchFinishedAt` (epoch milliseconds). A copy with no finish
 instant counts as older than any copy with one, and a tie keeps the copy
-first seen in sorted competition order.
+first seen in the order the source reader walks the folders.
 
 ## What the parser extracts
 
@@ -247,8 +247,11 @@ as of the download. A match-embedded line-up entry carries
 `starPlayerPoints` and `totalStarPlayerPoints` too, also as of the download
 (not as of the match), and the match parser carries both over. They are
 read only for a player the team's roster file does not list at all, such as
-a dead or retired player: then the freshest entry (highest total, the later
-on a tie) supplies the figure and its own total. A player the roster file
+a dead or retired player: then the freshest entry that carries a figure
+(highest total; at equal totals the lower unspent figure, since unspent only
+rises with the total; the later entry on a full tie) supplies the figure and
+its own total. The same ordering picks between roster copies of different
+eras. A player the roster file
 lists always uses the roster entry, even when it has no figure.
 `pendingImprovements` is not imported: it
 is 0 on every downloaded entry and looks like a count of bought advancements whose random

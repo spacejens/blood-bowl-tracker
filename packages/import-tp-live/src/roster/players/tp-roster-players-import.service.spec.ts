@@ -257,6 +257,81 @@ describe('TpRosterPlayersImportService', () => {
     });
   });
 
+  it('prefers the lower unspent figure at equal match totals, in either order', async () => {
+    const entries = [
+      rosterPlayer({
+        id: 5002,
+        totalStarPlayerPoints: 20,
+        starPlayerPoints: 6,
+      }),
+      rosterPlayer({
+        id: 5002,
+        totalStarPlayerPoints: 20,
+        starPlayerPoints: 0,
+      }),
+    ];
+
+    for (const embedded of [entries, [...entries].reverse()]) {
+      const service = await makeService();
+      const outcome = await run(service, { players: [], embedded });
+
+      expect(outcome.importedPlayers[0].unspentSppSnapshot).toEqual({
+        unspentSpp: 0,
+        snapshotSppTotal: 20,
+      });
+    }
+  });
+
+  it('lets the later match entry win when total and unspent figure are equal', async () => {
+    const service = await makeService();
+
+    const outcome = await run(service, {
+      players: [],
+      embedded: [
+        rosterPlayer({
+          id: 5002,
+          totalStarPlayerPoints: 20,
+          starPlayerPoints: 3,
+        }),
+        rosterPlayer({
+          id: 5002,
+          totalStarPlayerPoints: 20,
+          starPlayerPoints: 3,
+        }),
+      ],
+    });
+
+    expect(outcome.importedPlayers[0].unspentSppSnapshot).toEqual({
+      unspentSpp: 3,
+      snapshotSppTotal: 20,
+    });
+  });
+
+  it('keeps the higher-total match entry even with a higher unspent figure', async () => {
+    const entries = [
+      rosterPlayer({
+        id: 5002,
+        totalStarPlayerPoints: 20,
+        starPlayerPoints: 0,
+      }),
+      rosterPlayer({
+        id: 5002,
+        totalStarPlayerPoints: 24,
+        starPlayerPoints: 8,
+      }),
+    ];
+
+    for (const embedded of [entries, [...entries].reverse()]) {
+      const service = await makeService();
+      const outcome = await run(service, { players: [], embedded });
+
+      expect(outcome.importedPlayers[0].unspentSppSnapshot).toEqual({
+        unspentSpp: 8,
+        snapshotSppTotal: 24,
+      });
+    }
+  });
+
   it('prefers the roster entry over a match entry for a player the roster lists', async () => {
     const service = await makeService();
 

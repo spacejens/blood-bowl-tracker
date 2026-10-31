@@ -152,7 +152,11 @@ export class TpRosterFilesImportService {
     };
   }
 
-  /** Keeps the snapshot reported beside the higher total, the later on a tie. */
+  /**
+   * Keeps the snapshot reported beside the higher total; at equal totals the
+   * lower unspent figure (unspent only rises with the total, so it is the
+   * fresher read), the later one on a full tie.
+   */
   private keepFresherSnapshot(
     snapshots: Map<number, UnspentSppSnapshot>,
     player: TpImportedPlayer,
@@ -164,7 +168,9 @@ export class TpRosterFilesImportService {
     const known = snapshots.get(player.playerId);
     if (
       known === undefined ||
-      candidate.snapshotSppTotal >= known.snapshotSppTotal
+      candidate.snapshotSppTotal > known.snapshotSppTotal ||
+      (candidate.snapshotSppTotal === known.snapshotSppTotal &&
+        candidate.unspentSpp <= known.unspentSpp)
     ) {
       snapshots.set(player.playerId, candidate);
     }

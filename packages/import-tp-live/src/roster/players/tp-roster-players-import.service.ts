@@ -204,9 +204,11 @@ export class TpRosterPlayersImportService {
 
   /**
    * Per player, the match-embedded entry carrying an unspent figure with the
-   * highest career total (the later one on a tie): every entry shows the
-   * player as of the download, so the highest total is the freshest, and one
-   * entry's unspent figure and total are never mixed with another's.
+   * highest career total: every entry shows the player as of the download,
+   * so the highest total is the freshest. At equal totals the lower unspent
+   * figure wins (unspent only rises with the total), the later entry on a
+   * full tie. One entry's unspent figure and total are never mixed with
+   * another's.
    */
   private freshestUnspentMatchEntries(
     matchEmbeddedPlayers: TpMatchEmbeddedPlayer[],
@@ -219,7 +221,9 @@ export class TpRosterPlayersImportService {
       const known = freshest.get(entry.id);
       if (
         known === undefined ||
-        entry.totalStarPlayerPoints >= known.totalStarPlayerPoints
+        entry.totalStarPlayerPoints > known.totalStarPlayerPoints ||
+        (entry.totalStarPlayerPoints === known.totalStarPlayerPoints &&
+          entry.starPlayerPoints <= (known.starPlayerPoints ?? Infinity))
       ) {
         freshest.set(entry.id, entry);
       }

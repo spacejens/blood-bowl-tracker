@@ -20,7 +20,10 @@ import { TpInducedStarPlayersStepService } from './players/tp-induced-star-playe
 import { TpLastingInjuryBackfillImportService } from './players/tp-lasting-injury-backfill-import.service';
 import { TpMercenaryPositionRaceErasImportService } from './players/tp-mercenary-position-race-eras-import.service';
 import { TpSppAdjustmentsImportService } from './players/tp-spp-adjustments-import.service';
-import { TpMatchEmbeddedPlayerFreshnessService } from './rosters/tp-match-embedded-player-freshness.service';
+import {
+  type FreshestMatchEntries,
+  TpMatchEmbeddedPlayerFreshnessService,
+} from './rosters/tp-match-embedded-player-freshness.service';
 import { TpRosterFilesImportService } from './rosters/tp-roster-files-import.service';
 import { TpRosterPlayerFactsService } from './rosters/tp-roster-player-facts.service';
 import { TpRulesSetsImportService } from './rules-sets/tp-rules-sets-import.service';
@@ -153,10 +156,11 @@ async function run(): Promise<ImportResult> {
     >();
     const matchEmbeddedPlayersByRosterIdMut = new Map<
       number,
-      Map<number, TpMatchEmbeddedPlayer>
+      Map<number, FreshestMatchEntries>
     >();
     // An entry shows the player as of the download, not as of its match, so
-    // the entry with the highest career total is the freshest one kept.
+    // the freshest entry is kept, and separately the freshest one that
+    // carries an unspent figure (see TpMatchEmbeddedPlayerFreshnessService).
     const freshness = app.get(TpMatchEmbeddedPlayerFreshnessService);
     const accumulateMatchEmbeddedPlayers = (
       rosterId: number,
@@ -164,14 +168,11 @@ async function run(): Promise<ImportResult> {
     ) => {
       let byPlayerId = matchEmbeddedPlayersByRosterIdMut.get(rosterId);
       if (!byPlayerId) {
-        byPlayerId = new Map<number, TpMatchEmbeddedPlayer>();
+        byPlayerId = new Map<number, FreshestMatchEntries>();
         matchEmbeddedPlayersByRosterIdMut.set(rosterId, byPlayerId);
       }
       for (const player of players) {
-        byPlayerId.set(
-          player.id,
-          freshness.fresher(byPlayerId.get(player.id), player),
-        );
+        freshness.accumulate(byPlayerId, player);
       }
     };
     for (const [
@@ -219,7 +220,7 @@ async function run(): Promise<ImportResult> {
     );
     const matchEmbeddedPlayersByRosterId = new Map(
       Array.from(matchEmbeddedPlayersByRosterIdMut.entries()).map(
-        ([rosterId, byPlayerId]) => [rosterId, Array.from(byPlayerId.values())],
+        ([rosterId, byPlayerId]) => [rosterId, freshness.entries(byPlayerId)],
       ),
     );
 

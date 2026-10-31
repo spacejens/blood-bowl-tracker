@@ -344,15 +344,47 @@ describe('TpRosterFilesImportService', () => {
       );
     });
 
-    it('lets the later entry win when the totals are equal', async () => {
+    it('prefers the lower unspent figure at equal totals, in either order', async () => {
+      const stale = { unspentSpp: 6, snapshotSppTotal: 20 };
+      const fresh = { unspentSpp: 0, snapshotSppTotal: 20 };
+
+      for (const [first, second] of [
+        [stale, fresh],
+        [fresh, stale],
+      ]) {
+        const result = await importTwo(listing(first), listing(second));
+
+        expect(result.unspentSppSnapshotsByPlayerId).toEqual(
+          new Map([[9, fresh]]),
+        );
+      }
+    });
+
+    it('lets the later entry win when totals and unspent figures are equal', async () => {
       const result = await importTwo(
-        listing({ unspentSpp: 1, snapshotSppTotal: 10 }),
-        listing({ unspentSpp: 4, snapshotSppTotal: 10 }),
+        listing({ unspentSpp: 3, snapshotSppTotal: 10 }),
+        listing({ unspentSpp: 3, snapshotSppTotal: 10 }),
       );
 
       expect(result.unspentSppSnapshotsByPlayerId).toEqual(
-        new Map([[9, { unspentSpp: 4, snapshotSppTotal: 10 }]]),
+        new Map([[9, { unspentSpp: 3, snapshotSppTotal: 10 }]]),
       );
+    });
+
+    it('keeps the higher total even with a higher unspent figure, in either order', async () => {
+      const low = { unspentSpp: 0, snapshotSppTotal: 10 };
+      const high = { unspentSpp: 8, snapshotSppTotal: 14 };
+
+      for (const [first, second] of [
+        [low, high],
+        [high, low],
+      ]) {
+        const result = await importTwo(listing(first), listing(second));
+
+        expect(result.unspentSppSnapshotsByPlayerId).toEqual(
+          new Map([[9, high]]),
+        );
+      }
     });
 
     it('keeps a known snapshot when a later entry has none', async () => {

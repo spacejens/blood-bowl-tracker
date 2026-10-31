@@ -18,8 +18,8 @@ export interface TpLivePlayerSppFacts {
   reportedSppTotal?: number;
   careerCounts?: SppCareerCounts;
   /**
-   * TP's unspent figure with the total from the same roster entry; absent
-   * for a player seen only in a match snapshot.
+   * TP's unspent figure with the total from the same roster or match entry;
+   * absent when no entry of the player carries a figure.
    */
   unspentSppSnapshot?: UnspentSppSnapshot;
 }
