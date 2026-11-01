@@ -256,15 +256,19 @@ Run this section only if "Run the full import" was selected in step 0 above. Run
 
 This is the scratch-build sequence (see `docs/import-manual/batches.md`, "Operating procedure"): BBL and TP run twice because both read the advancement costs in batch 004, which can only be applied after their first run.
 
-1. **Guard: confirm the database is a scratch build.** From the worktree root, check whether the manual-batch ledger table exists:
+1. **Guard: confirm the database is a scratch build.** A scratch build has an empty manual-batch ledger *and* holds no players — an empty ledger alone is not enough, because a restored backup that predates batch tracking has an empty ledger yet full data, and a plain `apply` there would re-import batches 001 and 002 over later curation. From the worktree root, check whether the manual-batch ledger table exists:
    ```bash
    docker compose exec -T postgres psql -U blood_bowl -d blood_bowl -tAc "select to_regclass('game_data.manual_import_batches')"
    ```
-   Empty output means the table does not exist yet, so the ledger is empty: continue to step 2. Otherwise count its rows:
+   Empty output means the table does not exist yet, so the ledger is empty. Otherwise count its rows:
    ```bash
    docker compose exec -T postgres psql -U blood_bowl -d blood_bowl -tAc "select count(*) from game_data.manual_import_batches"
    ```
-   `0` means the ledger is empty: continue. Any other count means this database is not a scratch build (for example a restored backup or an earlier import): stop this section, tell the developer the full import is for scratch builds only, and point them at the individual import options instead. If either command fails (no `postgres` from this checkout running), report that and stop this section. A stopped full import also skips any individual importers chosen to follow it; say so.
+   `0` means the ledger is empty. Then confirm the database holds no data:
+   ```bash
+   docker compose exec -T postgres psql -U blood_bowl -d blood_bowl -tAc "select count(*) from game_data.players"
+   ```
+   Continue to step 2 only when the ledger is empty and this count is `0`. Any other ledger count or player count means this database is not a scratch build (for example a restored backup or an earlier import): stop this section, tell the developer the full import is for scratch builds only, and point them at the individual import options instead. If any of these commands fails (no `postgres` from this checkout running), report that and stop this section. A stopped full import also skips any individual importers chosen to follow it; say so.
 2. **Run the six steps in order**, each exactly as its individual section describes, including that section's config check (step 1) before the tool's first run and its outcome report (step 3):
    1. `apply 001-initial-seed` — "Run the manual import (first batch)" steps 1–3.
    2. BBL import — "Run the BBL import" steps 1–3.
@@ -272,7 +276,7 @@ This is the scratch-build sequence (see `docs/import-manual/batches.md`, "Operat
    4. Plain `apply` — "Run the manual import (remaining batches)" steps 1–3.
    5. BBL import again — `pnpm --filter @blood-bowl-tracker/import-bbl run start` (already built in step 2.2), reported as in "Run the BBL import" step 3.
    6. TP import again — `( cd tools/import-tp && node dist/main.js )` (already built in step 2.3), reported as in "Run the TP import" step 3.
-3. **A failing step stops the sequence:** a non-zero exit from any step means the later steps do not run. Report which step failed with its output, and which steps did not run. Every write is an idempotent upsert, but the guard now refuses a second full import (the ledger holds at least batch 001), so tell the developer to continue with the individual import options from the failed step on, ending with the BBL and TP imports again. Any individual importers chosen to follow the full import are skipped too; say so. No automatic rollback; never tear down containers regardless of the outcome — same non-goal as the "Deploy the stack" section.
+3. **Failure handling.** A step 2.1 (`apply 001-initial-seed`) failure, a step 2.4 (plain `apply`) failure, or an `Import failed:` crash in any step stops the sequence: the later steps do not run, because they depend on what the failed step would have written. A BBL or TP step that exits `1` with collected errors (`Import completed with <N> errors:`) is reported and the sequence continues, exactly like the individual BBL and TP sections: the first pass may leave out a record whose curation only a later batch supplies, and the second pass after the plain `apply` repairs that. Report which step failed with its output, and which steps did not run. Every write is an idempotent upsert. If step 2.1 failed, 001 is left unrecorded and the ledger is still empty, so the developer can simply run the full import again once the cause is fixed. For a stop at step 2.2 or later the ledger holds batch 001, so the guard refuses a second full import: tell the developer to continue with the individual import options from the failed step on, ending with the BBL and TP imports again. Any individual importers chosen to follow the full import are skipped too; say so. No automatic rollback; never tear down containers regardless of the outcome — same non-goal as the "Deploy the stack" section.
 4. Report each step that ran with its exit code and summary line.
 
 ### Run the match-event review tool
