@@ -40,8 +40,8 @@ describe('BblMirrorReaderService', () => {
       );
     });
 
-    it('decodes ISO-8859-1 bytes without throwing', async () => {
-      // 0xE4 is a-umlaut in ISO-8859-1 and an invalid lone byte in UTF-8.
+    it('decodes a byte above 0x9F as its Latin-1 character', async () => {
+      // 0xE4 is a-umlaut in Windows-1252 and an invalid lone byte in UTF-8.
       writeFileSync(
         join(dir, 'page'),
         Buffer.from([
@@ -49,16 +49,45 @@ describe('BblMirrorReaderService', () => {
         ]),
       );
 
-      expect(await service.readFile(dir, 'page')).toBe(
-        `<h1>${String.fromCharCode(0xe4)}</h1>`,
-      );
+      expect(await service.readFile(dir, 'page')).toBe('<h1>ä</h1>');
     });
 
-    it('preserves 0x80-0x9F bytes as their identical code points, not Windows-1252', async () => {
-      writeFileSync(join(dir, 'page'), Buffer.from([0x80]));
+    it('decodes 0x92 as a right single quotation mark', async () => {
+      // "Sydow" 0x92 "s", as BBL spells "Doctor Sydow's Mistakes".
+      writeFileSync(
+        join(dir, 'page'),
+        Buffer.from([0x53, 0x79, 0x64, 0x6f, 0x77, 0x92, 0x73]),
+      );
+
+      expect(await service.readFile(dir, 'page')).toBe('Sydow’s');
+    });
+
+    it.each([
+      ['0x80', 0x80, '€'],
+      ['0x85', 0x85, '…'],
+      ['0x91', 0x91, '‘'],
+      ['0x93', 0x93, '“'],
+      ['0x94', 0x94, '”'],
+      ['0x96', 0x96, '–'],
+      ['0x97', 0x97, '—'],
+      ['0x9E', 0x9e, 'ž'],
+    ])(
+      'decodes byte %s as its Windows-1252 character',
+      async (_label, byte, expected) => {
+        writeFileSync(join(dir, 'page'), Buffer.from([byte]));
+
+        expect(await service.readFile(dir, 'page')).toBe(expected);
+      },
+    );
+
+    it('decodes the five bytes Windows-1252 leaves undefined to C1 controls without throwing', async () => {
+      writeFileSync(
+        join(dir, 'page'),
+        Buffer.from([0x81, 0x8d, 0x8f, 0x90, 0x9d]),
+      );
 
       expect(await service.readFile(dir, 'page')).toBe(
-        String.fromCharCode(0x80),
+        '\u0081\u008d\u008f\u0090\u009d',
       );
     });
 

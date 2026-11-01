@@ -8,6 +8,16 @@ import { Injectable } from '@nestjs/common';
 const UNSAFE_FILENAME = /[/\\]|^\.\.$/;
 
 /**
+ * BBL pages declare `charset=iso-8859-1` but are really Windows-1252: bytes
+ * 0x80-0x9F carry curly quotes, dashes, the ellipsis and similar characters,
+ * which an ISO-8859-1 decode turns into invisible C1 control characters.
+ * The WHATWG Windows-1252 decoder maps every byte to a code point, so it
+ * never throws; the five bytes Windows-1252 leaves undefined (0x81, 0x8D,
+ * 0x8F, 0x90, 0x9D) decode to the C1 control of the same value.
+ */
+const WINDOWS_1252 = new TextDecoder('windows-1252');
+
+/**
  * Reads files out of a BBL wget mirror directory. Mirror filenames encode
  * their query string verbatim (`default.asp?p=tl`), so a page is normally
  * addressed directly rather than by scanning; `listFiles` exists for the
@@ -36,13 +46,7 @@ export class BblMirrorReaderService {
       }
       throw error;
     }
-    // ISO-8859-1 maps every byte to a code point, so decoding never throws on
-    // the mirror's stray/extended-ASCII bytes. `Buffer#toString('latin1')` is
-    // a true byte-preserving decode; `TextDecoder`'s `'latin1'` label is
-    // actually an alias for Windows-1252 per the WHATWG Encoding Standard,
-    // which remaps bytes 0x80-0x9F to different characters instead of
-    // preserving them.
-    return buffer.toString('latin1');
+    return WINDOWS_1252.decode(buffer);
   }
 
   /**

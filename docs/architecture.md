@@ -97,7 +97,7 @@ packages/
   read-bbl-mirror/    — library package with the mechanical half of reading
                         BBL's wget mirror: safe filename resolution against a
                         caller-supplied data directory, missing files and
-                        directories reported as null/empty, ISO-8859-1 byte
+                        directories reported as null/empty, Windows-1252 byte
                         decoding, and plain file listing; no BBL page-type
                         awareness or HTML parsing, and no dependency on any
                         other workspace package
@@ -244,7 +244,7 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
 - **`packages/read-bbl-mirror`** (shared mirror access) — the mechanics of getting text out of a BBL wget mirror directory.
   - It resolves a filename safely against a caller-supplied data directory.
   - It reports a missing file as `null` and a missing directory as an empty listing.
-  - It decodes bytes as ISO-8859-1, and lists plain files.
+  - It decodes bytes as Windows-1252 (BBL's pages declare ISO-8859-1, but their bytes 0x80-0x9F are Windows-1252's curly quotes, dashes and ellipsis), and lists plain files.
   - Consumed by `tools/import-bbl`, `tools/review-match`, `tools/review-player`, `tools/review-race` and `tools/review-star-player`, so a change here reaches all of them at once.
   - It carries no BBL-page-type awareness and no HTML parsing on purpose: which files matter, what their names mean and what their contents say stay with each consumer, which is what keeps the review tools' independence from importer logic intact.
   - Like `packages/config-loader`, it deliberately depends on no other workspace package.

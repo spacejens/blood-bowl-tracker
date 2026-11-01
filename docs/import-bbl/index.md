@@ -2,7 +2,7 @@
 
 `tools/import-bbl/` imports data from the BBL league website into the tracker
 via the API. The source data is a `wget` mirror: a folder of HTML pages named
-`default.asp?p=<type>&<params>`, encoded ISO-8859-1.
+`default.asp?p=<type>&<params>`, encoded Windows-1252 (the pages declare ISO-8859-1).
 
 ## Configuration
 
@@ -166,7 +166,7 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
 - **SourceModule** — reusable, data-type-agnostic core. `BblSourceReader`
   classifies files by page type (`p=` param) and streams pages one at a time
   (`pages(type)`), keeping memory bounded; listing the data folder and
-  decoding ISO-8859-1 are delegated to `packages/read-bbl-mirror`, shared with
+  decoding Windows-1252 are delegated to `packages/read-bbl-mirror`, shared with
   the review tools. This is the pattern future data types reuse.
 - **CoachesModule** — first data-type extractor. `CoachPageParser` reads a
   coach from a team page; `BblCoachesImportService` streams team pages,
