@@ -242,6 +242,31 @@ describe('CharacteristicAdvancementPlannerService', () => {
     expect(plan.updates).toEqual([{ id: 10, values: { removed: false } }]);
   });
 
+  it('clears a stale order and confirmation on a revived row', () => {
+    const plan = planner.plan({
+      stored: [
+        stored({
+          id: 10,
+          removed: true,
+          advancementOrder: 3,
+          orderConfirmed: true,
+        }),
+      ],
+      incoming: [incoming({ index: 0, advancementOrder: null })],
+      highestOrder: 0,
+    });
+    expect(plan.updates).toEqual([
+      {
+        id: 10,
+        values: {
+          removed: false,
+          advancementOrder: null,
+          orderConfirmed: false,
+        },
+      },
+    ]);
+  });
+
   it('plans each characteristic on its own', () => {
     const plan = planner.plan({
       stored: [stored({ id: 10, characteristic: 'MA', advancementOrder: 1 })],

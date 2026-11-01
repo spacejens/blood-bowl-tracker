@@ -34,6 +34,8 @@ import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
+import { CharacteristicAdvancementPlannerService } from '../src/player-skills/characteristic-advancement-planner.service';
+import { PlayerAdvancementSyncPlannerService } from '../src/player-skills/player-advancement-sync-planner.service';
 import { PlayerSkillsService } from '../src/player-skills/player-skills.service';
 import { AdvancementKindCandidatesService } from '../src/spp/advancement-kind-candidates.service';
 import { AdvancementPricingModelService } from '../src/spp/advancement-pricing-model.service';
@@ -226,6 +228,8 @@ describe('BBL skill source inference in the closing SPP sync (real Postgres)', (
       providers: [
         SppAdjustmentsService,
         PlayerSkillsService,
+        PlayerAdvancementSyncPlannerService,
+        CharacteristicAdvancementPlannerService,
         BblSkillSourceInferenceService,
         UnspentSppDecisionService,
         UnspentSppService,

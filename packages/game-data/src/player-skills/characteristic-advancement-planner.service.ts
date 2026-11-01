@@ -114,12 +114,18 @@ export class CharacteristicAdvancementPlannerService {
       const revived = revivable.shift();
       if (revived !== undefined) {
         plan.existingIdsByIndex.set(entry.index, revived.id);
+        // A revived row takes the entry's order and confirmation outright,
+        // so whatever it held while removed never survives.
         plan.updates.push({
           id: revived.id,
           values: {
             removed: false,
-            ...(order === null ? {} : { advancementOrder: order }),
-            ...(entry.orderConfirmed ? { orderConfirmed: true } : {}),
+            ...(order === revived.advancementOrder
+              ? {}
+              : { advancementOrder: order }),
+            ...(entry.orderConfirmed === revived.orderConfirmed
+              ? {}
+              : { orderConfirmed: entry.orderConfirmed }),
           },
         });
         return;

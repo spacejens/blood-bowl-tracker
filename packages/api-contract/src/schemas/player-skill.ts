@@ -1,4 +1,7 @@
-import { PLAYER_SKILL_SOURCES } from '@blood-bowl-tracker/domain-enums';
+import {
+  PLAYER_CHARACTERISTICS,
+  PLAYER_SKILL_SOURCES,
+} from '@blood-bowl-tracker/domain-enums';
 import { z } from 'zod';
 
 /**
@@ -7,22 +10,37 @@ import { z } from 'zod';
  */
 export const PlayerSkillSourceSchema = z.enum(PLAYER_SKILL_SOURCES);
 
+/** One of the five stat-line characteristics a player can raise. */
+export const PlayerCharacteristicSchema = z.enum(PLAYER_CHARACTERISTICS);
+
 /**
- * One skill one player has.
+ * One advancement-relevant row one player has: either a skill or a
+ * characteristic increase.
  *
- * Keyed by `(playerId, skillId, attributeValue)` — the same natural triple
- * the table is unique on. `attributeValue` is part of that key rather than a
- * plain attribute because BB2025's Hatred can be picked repeatedly against
- * different targets.
+ * A skill entry names `skillId` and is keyed by `(playerId, skillId,
+ * attributeValue)`, the same natural triple the table's skill rows are unique
+ * on. `attributeValue` is part of that key rather than a plain attribute
+ * because BB2025's Hatred can be picked repeatedly against different targets.
+ * It is `.nullable().optional()`, this contract's convention for a
+ * DB-nullable field: a caller with no value can omit it entirely and the
+ * stored column is genuinely `null`.
  *
- * `attributeValue` is `.nullable().optional()`, this contract's convention
- * for a DB-nullable field: a caller with no value can omit it entirely and
- * the stored column is genuinely `null`.
+ * A characteristic entry has `source: 'characteristic'` and names
+ * `characteristic` instead of a skill, with no variant and never a free
+ * extra. It is not keyed: a player can raise one characteristic more than
+ * once, so the batch's increases for a player listed in
+ * `characteristicPlayerIds` replace the stored ones as a whole.
  *
- * `advancementOrder` is best-effort and unverified — neither BBL nor TP
- * records a confirmed sequence, only a presentation-order proxy — and is only
- * ever meaningful for a gained source (`advancement`, `chosen` or `random`).
- * A `starting` entry leaves it unset.
+ * `advancementOrder` is one numbering shared by a player's skills and
+ * characteristic increases, and is only ever meaningful for a gained entry; a
+ * `starting` entry leaves it unset. `null` means the order is unknown. When it
+ * is omitted, a new characteristic increase is appended after the player's
+ * highest order, while a new skill stores `null`.
+ *
+ * `orderConfirmed` says `advancementOrder` is the player's real sequence
+ * rather than a best-effort proxy (BBL's ordered advancement list, TP's array
+ * position). It needs a numeric order. An unconfirmed order never overwrites
+ * a confirmed one.
  *
  * `isFreeExtra` says the source system flags this gained skill as granted on
  * top of the player's advancements (TP's `isExtra`): it cost no SPP and is
@@ -33,22 +51,44 @@ export const PlayerSkillSourceSchema = z.enum(PLAYER_SKILL_SOURCES);
 export const PlayerSkillEntrySchema = z
   .object({
     playerId: z.number().int(),
-    skillId: z.number().int(),
+    skillId: z.number().int().optional(),
+    characteristic: PlayerCharacteristicSchema.optional(),
     source: PlayerSkillSourceSchema,
     attributeValue: z.string().nullable().optional(),
     advancementOrder: z.number().int().nonnegative().nullable().optional(),
+    orderConfirmed: z.boolean().optional(),
     isFreeExtra: z.boolean().optional(),
   })
   .superRefine((data, ctx) => {
+    const issue = (message: string): void => {
+      ctx.addIssue({ code: 'custom', message });
+    };
+    const isCharacteristic = data.source === 'characteristic';
+    if (isCharacteristic !== (data.characteristic !== undefined)) {
+      issue('characteristic is required exactly when source is characteristic');
+    }
+    if ((data.skillId === undefined) === (data.characteristic === undefined)) {
+      issue('An entry names exactly one of skillId or characteristic');
+    }
+    if (isCharacteristic && (data.attributeValue ?? null) !== null) {
+      issue('A characteristic entry has no attributeValue');
+    }
+    if (isCharacteristic && data.isFreeExtra === true) {
+      issue('A characteristic increase is never a free extra');
+    }
     if (
       data.source === 'starting' &&
       typeof data.advancementOrder === 'number'
     ) {
-      ctx.addIssue({
-        code: 'custom',
-        message:
-          'advancementOrder is only meaningful for advancement/chosen/random skills; a starting entry must leave it unset',
-      });
+      issue(
+        'advancementOrder is only meaningful for a gained entry; a starting entry must leave it unset',
+      );
+    }
+    if (
+      data.orderConfirmed === true &&
+      typeof data.advancementOrder !== 'number'
+    ) {
+      issue('orderConfirmed needs a numeric advancementOrder');
     }
   });
 
@@ -59,6 +99,14 @@ export const PlayerSkillEntrySchema = z
  */
 export const SyncPlayerSkillsSchema = z.object({
   entries: z.array(PlayerSkillEntrySchema),
+  /**
+   * The players whose characteristic increases `entries` states in full. Each
+   * one's stored increase rows are reconciled to the batch, so listing a
+   * player with no characteristic entries means "no increases". A player not
+   * listed keeps their stored increase rows, and a characteristic entry for a
+   * player not listed is rejected.
+   */
+  characteristicPlayerIds: z.array(z.number().int()).optional(),
 });
 
 export const SyncPlayerSkillsResultSchema = z.object({

@@ -24,6 +24,8 @@ import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
+import { CharacteristicAdvancementPlannerService } from '../src/player-skills/characteristic-advancement-planner.service';
+import { PlayerAdvancementSyncPlannerService } from '../src/player-skills/player-advancement-sync-planner.service';
 import { PlayerSkillsService } from '../src/player-skills/player-skills.service';
 import { UnspentSppDecisionService } from '../src/spp/unspent-spp-decision.service';
 import { TrophyAwardsService } from '../src/trophy-awards/trophy-awards.service';
@@ -160,6 +162,8 @@ describe('Changing a trophy award granted skill (real Postgres)', () => {
       providers: [
         TrophyAwardsService,
         PlayerSkillsService,
+        PlayerAdvancementSyncPlannerService,
+        CharacteristicAdvancementPlannerService,
         { provide: DB, useValue: db },
         {
           provide: UnspentSppDecisionService,

@@ -1,10 +1,14 @@
 /// <reference types="node" />
 import type { Db } from '@blood-bowl-tracker/db';
 import {
+  asc,
   coaches,
+  DB,
+  eq,
   eras,
   leagues,
   playerAdvancements,
+  playerAdvancementsHistory,
   players,
   positions,
   races,
@@ -16,8 +20,12 @@ import {
   closeTestDb,
   resetGameDataTables,
 } from '@blood-bowl-tracker/db/test-helpers';
+import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
+import { CharacteristicAdvancementPlannerService } from '../src/player-skills/characteristic-advancement-planner.service';
+import { PlayerAdvancementSyncPlannerService } from '../src/player-skills/player-advancement-sync-planner.service';
+import { PlayerSkillsService } from '../src/player-skills/player-skills.service';
 import { connectTestDb } from './e2e-database';
 
 describe('player_advancements characteristic rows (real Postgres)', () => {
@@ -180,5 +188,83 @@ describe('player_advancements characteristic rows (real Postgres)', () => {
         .values({ ...skillRow, attributeValue: '' })
         .returning(),
     ).resolves.toHaveLength(1);
+  });
+
+  describe('PlayerSkillsService.sync round trip', () => {
+    let service: PlayerSkillsService;
+
+    beforeEach(async () => {
+      const moduleRef = await Test.createTestingModule({
+        providers: [
+          PlayerSkillsService,
+          PlayerAdvancementSyncPlannerService,
+          CharacteristicAdvancementPlannerService,
+          { provide: DB, useValue: db },
+        ],
+      }).compile();
+      service = moduleRef.get(PlayerSkillsService);
+    });
+
+    const byId = (a: number, b: number): number => a - b;
+
+    async function syncAg(count: number): Promise<number[]> {
+      const result = await service.sync({
+        entries: Array.from({ length: count }, () => ({
+          playerId,
+          ...characteristicRow,
+        })),
+        characteristicPlayerIds: [playerId],
+      });
+      return result.playerSkillIds;
+    }
+
+    async function storedRows(): Promise<{ id: number; removed: boolean }[]> {
+      return db
+        .select({
+          id: playerAdvancements.id,
+          removed: playerAdvancements.removed,
+        })
+        .from(playerAdvancements)
+        .where(eq(playerAdvancements.playerId, playerId))
+        .orderBy(asc(playerAdvancements.id));
+    }
+
+    it('writes, keeps, removes and revives increase rows', async () => {
+      const firstIds = (await syncAg(2)).sort(byId);
+      expect(await storedRows()).toEqual(
+        firstIds.map((id) => ({ id, removed: false })),
+      );
+
+      const historyBefore = await db.select().from(playerAdvancementsHistory);
+      expect((await syncAg(2)).sort(byId)).toEqual(firstIds);
+      expect(await db.select().from(playerAdvancementsHistory)).toHaveLength(
+        historyBefore.length,
+      );
+
+      await syncAg(1);
+      const afterRemoval = await storedRows();
+      expect(afterRemoval).toHaveLength(2);
+      expect(afterRemoval.filter((row) => row.removed)).toHaveLength(1);
+
+      expect((await syncAg(2)).sort(byId)).toEqual(firstIds);
+      expect(await storedRows()).toEqual(
+        firstIds.map((id) => ({ id, removed: false })),
+      );
+    });
+
+    it('appends unordered increases after the highest order', async () => {
+      await service.sync({
+        entries: [
+          { playerId, skillId, source: 'chosen', advancementOrder: 2 },
+          { playerId, ...characteristicRow },
+        ],
+        characteristicPlayerIds: [playerId],
+      });
+      const [row] = await db
+        .select({ advancementOrder: playerAdvancements.advancementOrder })
+        .from(playerAdvancements)
+        .where(eq(playerAdvancements.source, 'characteristic'));
+      expect(row.advancementOrder).toBe(3);
+    });
   });
 });

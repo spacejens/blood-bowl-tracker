@@ -1,12 +1,9 @@
 import {
-  DB,
   playerAdvancements,
   players,
   trophyAwards,
 } from '@blood-bowl-tracker/db';
-import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
-import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -16,14 +13,7 @@ import {
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
 import { SkillValidationError } from '../shared/skill-validation-error';
-import { PlayerSkillsService } from './player-skills.service';
-
-async function makeService(db: MockDbResult): Promise<PlayerSkillsService> {
-  const moduleRef = await Test.createTestingModule({
-    providers: [PlayerSkillsService, { provide: DB, useValue: db.db }],
-  }).compile();
-  return moduleRef.get(PlayerSkillsService);
-}
+import { makeService } from './player-skills.test-helpers';
 
 /** Player 1 exists. */
 const playerRow = { id: 1 };
