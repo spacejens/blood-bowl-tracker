@@ -10,6 +10,7 @@ import {
   extractAllFilterValues,
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
+import { BblSkillSourceInferenceService } from './bbl-skill-source-inference.service';
 import { SppAdjustmentsService } from './spp-adjustments.service';
 import { SppForcedRateService } from './spp-forced-rate.service';
 import { SppOngoingEstimateService } from './spp-ongoing-estimate.service';
@@ -23,6 +24,7 @@ interface Harness {
   forcedRate: MockProxy<SppForcedRateService>;
   ongoing: MockProxy<SppOngoingEstimateService>;
   unspent: MockProxy<UnspentSppDecisionService>;
+  skillSources: MockProxy<BblSkillSourceInferenceService>;
 }
 
 async function makeService(db: MockDbResult): Promise<Harness> {
@@ -32,6 +34,7 @@ async function makeService(db: MockDbResult): Promise<Harness> {
   ongoing.estimateForPlayers.mockResolvedValue(new Map());
   const unspent = mock<UnspentSppDecisionService>();
   unspent.decide.mockResolvedValue(new Map());
+  const skillSources = mock<BblSkillSourceInferenceService>();
   const moduleRef = await Test.createTestingModule({
     providers: [
       SppAdjustmentsService,
@@ -40,6 +43,7 @@ async function makeService(db: MockDbResult): Promise<Harness> {
       { provide: SppForcedRateService, useValue: forcedRate },
       { provide: SppOngoingEstimateService, useValue: ongoing },
       { provide: UnspentSppDecisionService, useValue: unspent },
+      { provide: BblSkillSourceInferenceService, useValue: skillSources },
     ],
   }).compile();
   return {
@@ -49,6 +53,7 @@ async function makeService(db: MockDbResult): Promise<Harness> {
     forcedRate,
     ongoing,
     unspent,
+    skillSources,
   };
 }
 
@@ -754,5 +759,44 @@ describe('SppAdjustmentsService unspent SPP', () => {
 
     expect(h.db.chains).toHaveLength(2);
     expect(result.updatedPlayerIds).toEqual([1, 2]);
+  });
+});
+
+describe('SppAdjustmentsService skill sources', () => {
+  it('infers BBL skill sources from the same snapshots, before deciding unspent SPP', async () => {
+    const h = await makeService(mockDb([{ id: 1 }, { id: 2 }]));
+    h.totals.totalsForPlayers.mockResolvedValue(new Map());
+    h.forcedRate.forcedRateSumsForPlayers.mockResolvedValue(new Map());
+
+    await h.service.syncScrapedAdjustments({
+      players: [
+        { playerId: 1, scrapedTotal: 20, reportedUnspentSpp: 3 },
+        { playerId: 2, scrapedTotal: null, reportedUnspentSpp: 5 },
+      ],
+    });
+
+    expect(h.skillSources.inferSources).toHaveBeenCalledWith(
+      new Map([[1, { unspentSpp: 3, snapshotSppTotal: 20 }]]),
+    );
+    expect(
+      h.skillSources.inferSources.mock.invocationCallOrder[0],
+    ).toBeLessThan(h.unspent.decide.mock.invocationCallOrder[0]);
+  });
+
+  it('does not infer skill sources in the TP sync', async () => {
+    const h = await makeService(mockDb([{ id: 1, name: 'Grim' }]));
+    h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 12]]));
+
+    await h.service.syncReportedAdjustments({
+      players: [
+        {
+          playerId: 1,
+          reportedSppTotal: 12,
+          unspentSppSnapshot: { unspentSpp: 4, snapshotSppTotal: 12 },
+        },
+      ],
+    });
+
+    expect(h.skillSources.inferSources).not.toHaveBeenCalled();
   });
 });

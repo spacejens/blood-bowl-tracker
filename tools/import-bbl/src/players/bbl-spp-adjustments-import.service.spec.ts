@@ -79,6 +79,30 @@ describe('BblSppAdjustmentsImportService', () => {
     expect(resultArgs(importResults)).toEqual({ imported: 2, errors: [] });
   });
 
+  it('keeps the scraped total but sends no unspent figure for a player whose skills are incomplete', async () => {
+    adjustments.syncScrapedSppAdjustments.mockResolvedValue({
+      updatedPlayerIds: [1, 2],
+    });
+
+    await service.importSppAdjustments(
+      new Map([
+        [1, { scrapedTotal: 16, reportedUnspentSpp: 3 }],
+        [2, { scrapedTotal: 20, reportedUnspentSpp: 5 }],
+      ]),
+      new Set([1]),
+    );
+
+    expect(adjustments.syncScrapedSppAdjustments).toHaveBeenCalledWith(
+      {
+        players: [
+          { playerId: 1, scrapedTotal: 16 },
+          { playerId: 2, scrapedTotal: 20, reportedUnspentSpp: 5 },
+        ],
+      },
+      [],
+    );
+  });
+
   it('chunks a player list larger than DEFAULT_BATCH_CHUNK_SIZE, summing imported across chunks', async () => {
     const scraped = new Map<number, BblScrapedSpp>();
     for (let i = 1; i <= DEFAULT_BATCH_CHUNK_SIZE + 3; i += 1) {

@@ -180,4 +180,80 @@ describe('AdvancementSpendRangeService', () => {
       expect(service.cheapestCostAt(FIXED, 7)).toBeNull();
     });
   });
+
+  describe('canSpendExactly', () => {
+    const PRIMARY = anyNumber('random_primary_skill', 'chosen_primary_skill');
+    const SECONDARY = anyNumber(
+      'random_secondary_skill',
+      'chosen_secondary_skill',
+    );
+
+    it('spends exactly nothing when no advancement was gained', () => {
+      expect(service.canSpendExactly([], FIXED, 0)).toBe(true);
+      expect(service.canSpendExactly([], FIXED, 3)).toBe(false);
+    });
+
+    it('is true for every total some assignment reaches', () => {
+      for (const spent of [10, 11, 14, 16, 17, 20]) {
+        expect(
+          service.canSpendExactly([PRIMARY, SECONDARY], BY_KIND, spent),
+        ).toBe(true);
+      }
+    });
+
+    it('is false for a total inside the range that no assignment reaches', () => {
+      expect(service.range([PRIMARY, SECONDARY], BY_KIND)).toEqual({
+        spentMin: 10,
+        spentMax: 20,
+      });
+      for (const spent of [12, 13, 15, 18, 19]) {
+        expect(
+          service.canSpendExactly([PRIMARY, SECONDARY], BY_KIND, spent),
+        ).toBe(false);
+      }
+    });
+
+    it('is false when a number the advancements need is not priced', () => {
+      const sevenRolls = Array.from({ length: 7 }, () =>
+        anyNumber('table_roll'),
+      );
+
+      expect(service.canSpendExactly(sevenRolls, FIXED, 176)).toBe(false);
+    });
+
+    it('is false when an advancement has no priced option', () => {
+      expect(
+        service.canSpendExactly(
+          [anyNumber('random_characteristic')],
+          FIXED,
+          18,
+        ),
+      ).toBe(false);
+    });
+
+    it('honours a granted skill fixed to its own number', () => {
+      const sixRolls = Array.from({ length: 6 }, () => anyNumber('table_roll'));
+
+      expect(
+        service.canSpendExactly(
+          [...sixRolls, GRANTED_AT_7],
+          [...FIXED, FAN_FAVOURITE],
+          301,
+        ),
+      ).toBe(true);
+    });
+
+    it('prices the most advancements it supports and no more', () => {
+      const rolls = (count: number) =>
+        Array.from({ length: count }, () => anyNumber('table_roll'));
+      const table = (count: number) =>
+        costs(
+          'table_roll',
+          Array.from({ length: count }, (_, index) => index + 1),
+        );
+
+      expect(service.canSpendExactly(rolls(16), table(16), 136)).toBe(true);
+      expect(service.canSpendExactly(rolls(17), table(17), 153)).toBe(false);
+    });
+  });
 });

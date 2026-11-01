@@ -250,6 +250,16 @@ much of a player's SPP is unspent (see
 [players](game-concepts/players/index.md#unspent-spp)). It tries each rules
 set the player's era lists, using that rules set's rows plus the player's
 league's rows. It has no RPC route.
+`BblSkillSourceInferenceService` reads the same rows, in the BBL SPP
+adjustment sync, to record a gained skill's `player_skills.source` as
+`chosen` or `random` when the spend BBL reports allows only one (see
+[players](game-concepts/players/index.md#unspent-spp)). Only rows still
+recorded `advancement` are rewritten. The skill sync keeps a stored `chosen`
+or `random` when a source re-sends the generic `advancement`, so a settled
+source stays settled and an unchanged re-run writes nothing. A source settled
+wrongly, for example before a correction to the cost tables, is fixed by a
+data change (see [Changing data in a long-lived
+database](#changing-data-in-a-long-lived-database)), not by re-importing.
 
 `players.unspent_spp` holds a player's unspent SPP only when it is known
 exactly (see [players](game-concepts/players/index.md#unspent-spp)); NULL

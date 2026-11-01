@@ -25,6 +25,13 @@ import type { BblPlayerSkillRef } from './player-page-parser';
  * BBL-local rather than shared because the parsed ref shape is BBL's own; the
  * shared piece is `PlayerSkillsImportService`, consumed unchanged and called
  * exactly once for the whole run.
+ *
+ * Also reports the players whose skills were not all written
+ * (`incompletePlayerIds`): a player with a skill whose upsert failed, and
+ * every player when the Name system could not be resolved or a sync chunk
+ * failed, since the shared sync cannot say which players a failed chunk held.
+ * Their history is then incomplete, which the closing SPP step must not reason
+ * from.
  */
 @Injectable()
 export class BblPlayerSkillsImportService {
@@ -38,24 +45,32 @@ export class BblPlayerSkillsImportService {
 
   async syncPlayerSkills(
     skillsByPlayerId: Map<number, BblPlayerSkillRef[]>,
-  ): Promise<{ result: ImportResult }> {
+  ): Promise<{ result: ImportResult; incompletePlayerIds: Set<number> }> {
     const errors: ImportError[] = [];
     if (skillsByPlayerId.size === 0) {
-      return { result: this.importResults.result({ imported: 0, errors }) };
+      return {
+        result: this.importResults.result({ imported: 0, errors }),
+        incompletePlayerIds: new Set(),
+      };
     }
+    const everyPlayerId = (): Set<number> => new Set(skillsByPlayerId.keys());
 
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
       NAME_EXTERNAL_SYSTEM,
     ]);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
-      return { result: this.importResults.result({ imported: 0, errors }) };
+      return {
+        result: this.importResults.result({ imported: 0, errors }),
+        incompletePlayerIds: everyPlayerId(),
+      };
     }
     const [nameSystemId] = bootstrap.ids;
 
     /** Skill name -> its database id, or undefined when its upsert failed. */
     const skillIdsByName = new Map<string, number | undefined>();
     const entries: PlayerSkillEntry[] = [];
+    const incompletePlayerIds = new Set<number>();
     for (const [playerId, refs] of skillsByPlayerId) {
       for (const ref of refs) {
         const skillId = await this.resolveSkillId({
@@ -65,6 +80,7 @@ export class BblPlayerSkillsImportService {
           errors,
         });
         if (skillId === undefined) {
+          incompletePlayerIds.add(playerId);
           continue;
         }
         entries.push({
@@ -79,8 +95,15 @@ export class BblPlayerSkillsImportService {
       }
     }
 
+    const errorsBeforeSync = errors.length;
     const imported = await this.playerSkills.syncPlayerSkills(entries, errors);
-    return { result: this.importResults.result({ imported, errors }) };
+    return {
+      result: this.importResults.result({ imported, errors }),
+      incompletePlayerIds:
+        errors.length > errorsBeforeSync
+          ? everyPlayerId()
+          : incompletePlayerIds,
+    };
   }
 
   /** One skill's database id, upserted at most once per run. */

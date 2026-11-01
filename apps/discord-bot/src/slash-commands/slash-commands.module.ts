@@ -13,6 +13,7 @@ import { LeagueDeepdiveService } from '../deepdive/facts/league-deepdive.service
 import { PlayerDeepdiveService } from '../deepdive/facts/player-deepdive.service';
 import { PlayerKeywordsSectionService } from '../deepdive/facts/player-keywords-section.service';
 import { PlayerKillsSectionService } from '../deepdive/facts/player-kills-section.service';
+import { PlayerSkillPricingService } from '../deepdive/facts/player-skill-pricing.service';
 import { PlayerSkillsSectionService } from '../deepdive/facts/player-skills-section.service';
 import { PlayerSppSectionService } from '../deepdive/facts/player-spp-section.service';
 import { PlayerStatusConflictReporterService } from '../deepdive/facts/player-status-conflict-reporter.service';
@@ -39,9 +40,9 @@ import { SlashCommandRegistryModule } from './slash-command-registry.module';
 
 @Module({
   // InsightsModule re-exports the game-data modules the other deepdives need;
-  // trophies, trophy awards and SPP (the player deepdive's unspent SPP) are
-  // used only here, so they are imported directly rather than widening the
-  // insights surface. Competition groups
+  // trophies, trophy awards and SPP (the player deepdive's unspent SPP and
+  // its era's advancement pricing model) are used only here, so they are
+  // imported directly rather than widening the insights surface. Competition groups
   // arrive transitively through InsightsModule (it needs
   // CompetitionGroupsService itself, for the competitionGroups.list fact).
   // PlayerRowButtonService and PlayerKillerInfoFormatterService also arrive
@@ -84,6 +85,7 @@ import { SlashCommandRegistryModule } from './slash-command-registry.module';
     PlayerDeepdiveService,
     StarPlayerDeepdiveService,
     PlayerKillsSectionService,
+    PlayerSkillPricingService,
     PlayerSkillsSectionService,
     PlayerKeywordsSectionService,
     PlayerStatusLineService,

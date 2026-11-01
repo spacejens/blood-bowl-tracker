@@ -153,6 +153,8 @@ export { AdvancementKindCandidatesService } from './spp/advancement-kind-candida
 export type { PricedCostRow } from './spp/advancement-pricing-model.service';
 export { AdvancementPricingModelService } from './spp/advancement-pricing-model.service';
 export { AdvancementSpendRangeService } from './spp/advancement-spend-range.service';
+export { BblSkillSourceInferenceService } from './spp/bbl-skill-source-inference.service';
+export { PlayerPricingModelService } from './spp/player-pricing-model.service';
 export { SppModule } from './spp/spp.module';
 export { SppAdjustmentsService } from './spp/spp-adjustments.service';
 export type { ResolveSppValueOptions } from './spp/spp-award-values.service';
@@ -178,12 +180,14 @@ export type {
   ModelledUnspentSpp,
   PlayerSkillEntry,
   PricingModel,
+  RulesSetAdvancementInput,
   SpendRange,
   StoredUnspentVerdict,
   UnknownUnspentSpp,
   UnspentSppResult,
   UnspentSppUnknownReason,
 } from './spp/unspent-spp.types';
+export { UnspentSppCombinationService } from './spp/unspent-spp-combination.service';
 export type { UnspentSppCandidate } from './spp/unspent-spp-decision.service';
 export { UnspentSppDecisionService } from './spp/unspent-spp-decision.service';
 export type {

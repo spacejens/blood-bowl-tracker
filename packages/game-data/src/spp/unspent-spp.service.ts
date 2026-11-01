@@ -29,12 +29,15 @@ import { AdvancementSpendRangeService } from './advancement-spend-range.service'
 import { StoredUnspentSppSettlementService } from './stored-unspent-spp-settlement.service';
 import type {
   ApplicableAdvancementCost,
-  CoversAnother,
+  FittingOutcome,
   ModelledUnspentSpp,
   PlayerSkillEntry,
+  RulesSetAdvancementInput,
+  RulesSetOutcome,
   UnspentSppResult,
   UnspentSppUnknownReason,
 } from './unspent-spp.types';
+import { UnspentSppCombinationService } from './unspent-spp-combination.service';
 
 /** One player, with what decides which rules sets and costs apply to them. */
 interface PlayerFacts {
@@ -70,19 +73,6 @@ interface UnspentSppData {
   costs: StoredCost[];
 }
 
-/** What one rules set's costs make of a player's history, when they fit. */
-interface FittingOutcome {
-  kind: 'fits';
-  advancementsGained: number;
-  spentMin: number;
-  spentMax: number;
-  cheapestNextCost: number | null;
-  coversAnother: CoversAnother;
-}
-
-type RulesSetOutcome =
-  { kind: 'no_costs' } | { kind: 'inconsistent' } | FittingOutcome;
-
 /**
  * How much of a player's SPP is unspent, and whether it covers at least the
  * cheapest advancement they could take next.
@@ -115,6 +105,7 @@ export class UnspentSppService {
     private readonly spendRange: AdvancementSpendRangeService,
     private readonly pricingModel: AdvancementPricingModelService,
     private readonly settlement: StoredUnspentSppSettlementService,
+    private readonly combination: UnspentSppCombinationService,
   ) {}
 
   /** One player's result, or undefined when no such player exists. */
@@ -151,6 +142,40 @@ export class UnspentSppService {
     sppTotals?: ReadonlyMap<number, number>,
   ): Promise<Map<number, ModelledUnspentSpp>> {
     return this.evaluate(playerIds, sppTotals ?? null, false);
+  }
+
+  /**
+   * What each rules set of each requested player's era makes of their
+   * advancements, for working out what those advancements were. A requested
+   * id with no player is absent, and so is a star player, whose skills are
+   * never advancements. A rules set with no cost rows for the player is left
+   * out. Same batching rules as `forPlayers`.
+   */
+  async advancementInputsForPlayers(
+    playerIds: number[],
+  ): Promise<Map<number, RulesSetAdvancementInput[]>> {
+    const inputs = new Map<number, RulesSetAdvancementInput[]>();
+    const ids = this.distinct(playerIds);
+    if (ids.length === 0) {
+      return inputs;
+    }
+    const facts = await this.loadPlayers(ids);
+    if (facts.length === 0) {
+      return inputs;
+    }
+    const data = await this.loadData(facts);
+    for (const player of facts) {
+      if (player.isStarPlayer) {
+        continue;
+      }
+      inputs.set(
+        player.playerId,
+        (data.rulesSetIdsByEra.get(player.eraId) ?? [])
+          .map((rulesSetId) => this.rulesSetInput(player, rulesSetId, data))
+          .filter((input) => input.costs.length > 0),
+      );
+    }
+    return inputs;
   }
 
   private async evaluate(
@@ -203,7 +228,7 @@ export class UnspentSppService {
     const outcomes = rulesSetIds.map((rulesSetId) =>
       this.outcomeFor(priced, rulesSetId, data),
     );
-    const result = this.combine(player.sppTotal, outcomes);
+    const result = this.combination.combine(player.sppTotal, outcomes);
     if (result.status === 'unknown') {
       return result;
     }
@@ -215,31 +240,49 @@ export class UnspentSppService {
     });
   }
 
-  private outcomeFor(
-    player: PricedPlayer,
+  private rulesSetInput(
+    player: PlayerFacts,
     rulesSetId: number,
     data: UnspentSppData,
-  ): RulesSetOutcome {
+  ): RulesSetAdvancementInput {
     const costs = data.costs.filter(
       (cost) =>
         cost.rulesSetId === rulesSetId &&
         (cost.leagueId === null || cost.leagueId === player.leagueId),
     );
+    return {
+      rulesSetId,
+      pricingModel: this.pricingModel.modelFor([rulesSetId], costs),
+      costs,
+      candidatesInput: {
+        skills: data.skillsByPlayer.get(player.playerId) ?? [],
+        characteristicIncreases: player.characteristicIncreases,
+        skillCategories:
+          data.categoriesByRulesSet.get(rulesSetId) ??
+          new Map<number, SkillCategory>(),
+        positionAccess:
+          data.accessByPositionRulesSet.get(
+            `${player.positionId}|${rulesSetId}`,
+          ) ?? new Map<SkillCategory, SkillAccess>(),
+        costs,
+      },
+    };
+  }
+
+  private outcomeFor(
+    player: PricedPlayer,
+    rulesSetId: number,
+    data: UnspentSppData,
+  ): RulesSetOutcome {
+    const { costs, candidatesInput } = this.rulesSetInput(
+      player,
+      rulesSetId,
+      data,
+    );
     if (costs.length === 0) {
       return { kind: 'no_costs' };
     }
-    const options = this.candidates.candidates({
-      skills: data.skillsByPlayer.get(player.playerId) ?? [],
-      characteristicIncreases: player.characteristicIncreases,
-      skillCategories:
-        data.categoriesByRulesSet.get(rulesSetId) ??
-        new Map<number, SkillCategory>(),
-      positionAccess:
-        data.accessByPositionRulesSet.get(
-          `${player.positionId}|${rulesSetId}`,
-        ) ?? new Map<SkillCategory, SkillAccess>(),
-      costs,
-    });
+    const options = this.candidates.candidates(candidatesInput);
     const range = this.spendRange.range(options, costs);
     if (range === null) {
       return { kind: 'inconsistent' };
@@ -253,77 +296,12 @@ export class UnspentSppService {
       advancementsGained: options.length,
       ...range,
       cheapestNextCost,
-      coversAnother: this.coversAnother(
+      coversAnother: this.combination.coversAnother(
         player.sppTotal - range.spentMax,
         player.sppTotal - range.spentMin,
         cheapestNextCost,
       ),
     };
-  }
-
-  /**
-   * The widest range over the rules sets whose costs fit: the lowest spend,
-   * the highest spend and the lowest next cost. The verdict is each rules
-   * set's own, merged: `yes` or `no` only when all of them say so, otherwise
-   * `maybe`. Comparing the merged range against the merged next cost instead
-   * would mix figures from different rules sets.
-   */
-  private combine(
-    totalSpp: number,
-    outcomes: RulesSetOutcome[],
-  ): UnspentSppResult {
-    const fits = outcomes.filter(
-      (outcome): outcome is FittingOutcome => outcome.kind === 'fits',
-    );
-    if (fits.length === 0) {
-      return this.unknown(
-        outcomes.every((outcome) => outcome.kind === 'no_costs')
-          ? 'no_costs'
-          : 'inconsistent_history',
-      );
-    }
-    const spentMin = Math.min(...fits.map((fit) => fit.spentMin));
-    const spentMax = Math.max(...fits.map((fit) => fit.spentMax));
-    const nextCosts = fits
-      .map((fit) => fit.cheapestNextCost)
-      .filter((cost): cost is number => cost !== null);
-    const cheapestNextCost =
-      nextCosts.length === 0 ? null : Math.min(...nextCosts);
-    const unspentMin = totalSpp - spentMax;
-    const unspentMax = totalSpp - spentMin;
-    return {
-      status: 'known',
-      totalSpp,
-      advancementsGained: fits[0].advancementsGained,
-      spentMin,
-      spentMax,
-      unspentMin,
-      unspentMax,
-      cheapestNextCost,
-      coversAnother: this.mergeVerdicts(fits.map((fit) => fit.coversAnother)),
-      storedVerdict: 'none_stored',
-      storedUnspentSpp: null,
-    };
-  }
-
-  private mergeVerdicts(verdicts: CoversAnother[]): CoversAnother {
-    const [first] = verdicts;
-    return verdicts.every((verdict) => verdict === first) ? first : 'maybe';
-  }
-
-  /**
-   * `no` when no further advancement exists or even the largest unspent
-   * figure falls short, `yes` when even the smallest covers it.
-   */
-  private coversAnother(
-    unspentMin: number,
-    unspentMax: number,
-    cheapestNextCost: number | null,
-  ): CoversAnother {
-    if (cheapestNextCost === null || unspentMax < cheapestNextCost) {
-      return 'no';
-    }
-    return unspentMin >= cheapestNextCost ? 'yes' : 'maybe';
   }
 
   private unknown(reason: UnspentSppUnknownReason): UnspentSppResult {

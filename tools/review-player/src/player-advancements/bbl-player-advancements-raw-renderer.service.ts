@@ -43,7 +43,7 @@ export class BblPlayerAdvancementsRawRendererService {
       this.html.subheading('Skills') +
       this.skillsTable(advancements) +
       this.html.note(
-        'BBL does not record how a skill was gained, so no random or elite marker can be shown here.',
+        'BBL does not record how a skill was gained; the import infers random or chosen from the SPP the page reports as spent where only one fits, so no random or elite marker can be shown in this raw view.',
       ) +
       this.html.subheading('Characteristic increases') +
       this.increasesTable(advancements)

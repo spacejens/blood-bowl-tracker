@@ -107,10 +107,38 @@ export interface UnknownUnspentSpp {
 
 export type UnspentSppResult = KnownUnspentSpp | UnknownUnspentSpp;
 
+/** What one rules set's costs make of a player's history, when they fit. */
+export interface FittingOutcome {
+  kind: 'fits';
+  advancementsGained: number;
+  spentMin: number;
+  spentMax: number;
+  cheapestNextCost: number | null;
+  coversAnother: CoversAnother;
+}
+
+/** What one rules set's costs make of a player's history. */
+export type RulesSetOutcome =
+  { kind: 'no_costs' } | { kind: 'inconsistent' } | FittingOutcome;
+
 /** A modelled result with the pricing model of the player's era. */
 export interface ModelledUnspentSpp {
   /** Null when the era's rules sets disagree or none has its own costs. */
   pricingModel: PricingModel | null;
   /** The range the history allows; the stored figure is not consulted. */
   result: UnspentSppResult;
+}
+
+/**
+ * What one rules set of a player's era makes of their advancements: the cost
+ * rows that apply to the player under it and the input
+ * AdvancementKindCandidatesService reads, for working out what the
+ * advancements were.
+ */
+export interface RulesSetAdvancementInput {
+  rulesSetId: number;
+  /** How this rules set alone prices advancements; null with no own rows. */
+  pricingModel: PricingModel | null;
+  costs: ApplicableAdvancementCost[];
+  candidatesInput: AdvancementCandidatesInput;
 }

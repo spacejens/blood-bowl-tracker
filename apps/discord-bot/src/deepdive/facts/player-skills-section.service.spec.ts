@@ -71,7 +71,7 @@ describe('PlayerSkillsSectionService', () => {
     ).toEqual(['Gained skills: ⚄ Guard']);
   });
 
-  it('leaves an unspecified advancement unmarked', () => {
+  it('leaves an unspecified advancement unmarked by default', () => {
     expect(
       service.build([
         skill({
@@ -80,6 +80,23 @@ describe('PlayerSkillsSectionService', () => {
           advancementOrder: 0,
         }),
       ]),
+    ).toEqual(['Gained skills: Guard']);
+  });
+
+  it('leaves an unspecified advancement unmarked in an era that does not price by kind', () => {
+    // Every advancement costs the same there, so nothing about the skill's
+    // cost depends on whether it was rolled or chosen.
+    expect(
+      service.build(
+        [
+          skill({
+            skillName: 'Guard',
+            source: 'advancement',
+            advancementOrder: 0,
+          }),
+        ],
+        { pricesByKind: false },
+      ),
     ).toEqual(['Gained skills: Guard']);
   });
 
@@ -316,5 +333,136 @@ describe('PlayerSkillsSectionService', () => {
         skill({ skillName: 'Block', source: 'chosen', advancementOrder: 1 }),
       ]),
     ).toEqual(['Gained skills: Block, Guard, Tackle']);
+  });
+
+  describe('in an era that prices advancements by kind', () => {
+    const KIND_PRICED = { pricesByKind: true };
+
+    it('marks an advancement of unknown source with the questioned dice', () => {
+      expect(
+        service.build(
+          [
+            skill({
+              skillName: 'Guard',
+              source: 'advancement',
+              advancementOrder: 0,
+            }),
+          ],
+          KIND_PRICED,
+        ),
+      ).toEqual(['Gained skills: ⚄? Guard']);
+    });
+
+    it('keeps the plain dice on a rolled skill', () => {
+      expect(
+        service.build(
+          [
+            skill({
+              skillName: 'Guard',
+              source: 'random',
+              advancementOrder: 0,
+            }),
+          ],
+          KIND_PRICED,
+        ),
+      ).toEqual(['Gained skills: ⚄ Guard']);
+    });
+
+    it('leaves a chosen skill unmarked', () => {
+      expect(
+        service.build(
+          [
+            skill({
+              skillName: 'Guard',
+              source: 'chosen',
+              advancementOrder: 0,
+            }),
+          ],
+          KIND_PRICED,
+        ),
+      ).toEqual(['Gained skills: Guard']);
+    });
+
+    it('never marks a starting skill', () => {
+      expect(
+        service.build([skill({ skillName: 'Block' })], KIND_PRICED),
+      ).toEqual(['Starting skills: Block']);
+    });
+
+    it('leaves a free extra with only its cross', () => {
+      // A free extra cost nothing, so whether it was rolled or chosen does
+      // not change any price.
+      expect(
+        service.build(
+          [
+            skill({
+              skillName: 'Hatred',
+              source: 'advancement',
+              advancementOrder: 0,
+              attributeValue: 'Undead',
+              isFreeExtra: true,
+            }),
+          ],
+          KIND_PRICED,
+        ),
+      ).toEqual(['Gained skills: ✚ Hatred (Undead)']);
+    });
+
+    it('shows the questioned dice before the gem', () => {
+      expect(
+        service.build(
+          [
+            skill({
+              skillName: 'Tackle',
+              source: 'advancement',
+              advancementOrder: 0,
+              isElite: true,
+            }),
+          ],
+          KIND_PRICED,
+        ),
+      ).toEqual(['Gained skills: ⚄? ♦ Tackle']);
+    });
+
+    it('shows the questioned dice before the star', () => {
+      expect(
+        service.build(
+          [
+            skill({
+              skillName: 'Treacherous',
+              source: 'advancement',
+              advancementOrder: 0,
+              category: 'unique',
+            }),
+          ],
+          KIND_PRICED,
+        ),
+      ).toEqual(['Gained skills: ⚄? ★ Treacherous']);
+    });
+
+    it('marks only the advancements of unknown source on a mixed line', () => {
+      expect(
+        service.build(
+          [
+            skill({
+              skillName: 'Block',
+              source: 'chosen',
+              advancementOrder: 0,
+            }),
+            skill({
+              skillName: 'Guard',
+              source: 'advancement',
+              advancementOrder: 1,
+            }),
+            skill({
+              skillName: 'Dodge',
+              source: 'random',
+              advancementOrder: 2,
+            }),
+          ],
+          KIND_PRICED,
+        ),
+      ).toEqual(['Gained skills: Block, ⚄? Guard, ⚄ Dodge']);
+    });
   });
 });

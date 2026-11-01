@@ -15,6 +15,7 @@ import {
   makePlayerSkills,
   makePositionRulesSets,
   makeService,
+  makeSkillPricing,
 } from './player-deepdive.test-helpers';
 
 /** The rules set the player's era resolves to in these tests. */
@@ -182,5 +183,56 @@ describe('PlayerDeepdiveService skill lines', () => {
     await expect(service.resolve(1)).resolves.toBe(
       DEEPDIVE_PLAYER_SKILLS_TIMEOUT_MESSAGE,
     );
+  });
+
+  it('flags an advancement of unknown source when the era prices by kind', async () => {
+    const rows = [
+      skill({ skillName: 'Block' }),
+      skill({ skillName: 'Guard', source: 'advancement', advancementOrder: 0 }),
+    ];
+    const { service, skillPricing } = await makeService({
+      players: makePlayers({ player: griff }),
+      positionRulesSets: makePositionRulesSets(context()),
+      playerSkills: makePlayerSkills(rows),
+      skillPricing: makeSkillPricing(true),
+    });
+
+    const description = descriptionOf(await service.resolve(1));
+
+    expect(description).toContain('Starting skills: Block');
+    expect(description).toContain('Gained skills: ⚄? Guard');
+    expect(skillPricing.pricesByKind).toHaveBeenCalledWith(1, rows);
+  });
+
+  it('leaves it unflagged when the era does not price by kind', async () => {
+    const { service } = await makeService({
+      players: makePlayers({ player: griff }),
+      positionRulesSets: makePositionRulesSets(context()),
+      playerSkills: makePlayerSkills([
+        skill({
+          skillName: 'Guard',
+          source: 'advancement',
+          advancementOrder: 0,
+        }),
+      ]),
+      skillPricing: makeSkillPricing(false),
+    });
+
+    const description = descriptionOf(await service.resolve(1));
+
+    expect(description).toContain('Gained skills: Guard');
+    expect(description).not.toContain('⚄?');
+  });
+
+  it('asks about no skills when no rules set applies to the era', async () => {
+    const { service, skillPricing } = await makeService({
+      players: makePlayers({ player: griff }),
+      positionRulesSets: makePositionRulesSets(undefined),
+      skillPricing: makeSkillPricing(true),
+    });
+
+    await service.resolve(1);
+
+    expect(skillPricing.pricesByKind).toHaveBeenCalledWith(1, []);
   });
 });

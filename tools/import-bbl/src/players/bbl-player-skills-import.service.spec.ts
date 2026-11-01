@@ -163,6 +163,78 @@ describe('BblPlayerSkillsImportService', () => {
     expect(result.errors).toHaveLength(1);
   });
 
+  it('reports a player whose skill upsert failed as incomplete, and only that player', async () => {
+    skillsImport.upsert.mockImplementation((skill) =>
+      Promise.resolve(
+        skill.name === 'Block' ? undefined : upserted(101, 'Dodge'),
+      ),
+    );
+
+    const { incompletePlayerIds } = await service.syncPlayerSkills(
+      new Map([
+        [
+          1,
+          [
+            { name: 'Block', source: 'starting' as const },
+            { name: 'Dodge', source: 'advancement' as const },
+          ],
+        ],
+        [2, [{ name: 'Dodge', source: 'advancement' as const }]],
+      ]),
+    );
+
+    expect(incompletePlayerIds).toEqual(new Set([1]));
+  });
+
+  it('reports no player as incomplete when every skill was written', async () => {
+    skillsImport.upsert.mockResolvedValue(upserted(100, 'Block'));
+    playerSkills.syncPlayerSkills.mockResolvedValue(2);
+
+    const { incompletePlayerIds } = await service.syncPlayerSkills(
+      new Map([
+        [1, [{ name: 'Block', source: 'starting' as const }]],
+        [2, [{ name: 'Block', source: 'starting' as const }]],
+      ]),
+    );
+
+    expect(incompletePlayerIds).toEqual(new Set());
+  });
+
+  it('reports every player as incomplete when the Name system cannot be resolved', async () => {
+    bootstrap.bootstrap.mockResolvedValue({
+      ok: false,
+      error: { item: {}, message: 'no name system' },
+    });
+
+    const { incompletePlayerIds } = await service.syncPlayerSkills(
+      new Map([
+        [1, [{ name: 'Block', source: 'starting' as const }]],
+        [2, [{ name: 'Block', source: 'starting' as const }]],
+      ]),
+    );
+
+    expect(incompletePlayerIds).toEqual(new Set([1, 2]));
+  });
+
+  it('reports every player as incomplete when a skill sync chunk failed', async () => {
+    skillsImport.upsert.mockResolvedValue(upserted(100, 'Block'));
+    // The shared sync records a failed chunk as an error and cannot say which
+    // players were in it.
+    playerSkills.syncPlayerSkills.mockImplementation((_entries, errors) => {
+      errors.push({ item: { playerSkills: 1 }, message: 'chunk failed' });
+      return Promise.resolve(0);
+    });
+
+    const { incompletePlayerIds } = await service.syncPlayerSkills(
+      new Map([
+        [1, [{ name: 'Block', source: 'starting' as const }]],
+        [2, [{ name: 'Block', source: 'starting' as const }]],
+      ]),
+    );
+
+    expect(incompletePlayerIds).toEqual(new Set([1, 2]));
+  });
+
   it('sends nothing when no player had any skills', async () => {
     const { result } = await service.syncPlayerSkills(new Map());
 

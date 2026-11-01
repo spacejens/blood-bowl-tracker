@@ -66,7 +66,7 @@ for each, including its drill-down buttons, is in
 - **`player:<player>`** — an embed for that player: their team, era, race and
   position, a killer-attribution line if they died, their characteristics, their
   trophies, their per-match-event counters, their star player points, and their
-  kills. See [the full format](deepdive-embeds.md#player).
+  kills. See [the full format](deepdive-embeds-player.md).
 - **A player that matches nothing** — the bot replies with a not-found message.
 - **`star-player:<star>`** — an embed for that star: one stat line per rules set
   they have recorded characteristics for, and every team that has hired them.

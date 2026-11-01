@@ -62,6 +62,7 @@ import {
 import { PlayerKeywordsSectionService } from './player-keywords-section.service';
 import { PlayerKillerInfoFormatterService } from './player-killer-info-formatter.service';
 import { PlayerKillsSectionService } from './player-kills-section.service';
+import { PlayerSkillPricingService } from './player-skill-pricing.service';
 import { PlayerSkillsSectionService } from './player-skills-section.service';
 import { PlayerSppSectionService } from './player-spp-section.service';
 import { PlayerStatusConflictReporterService } from './player-status-conflict-reporter.service';
@@ -161,6 +162,7 @@ export class PlayerDeepdiveService {
     private readonly errorLog: ErrorLogService,
     private readonly sppSection: PlayerSppSectionService,
     private readonly unspentSpp: UnspentSppService,
+    private readonly skillPricing: PlayerSkillPricingService,
   ) {}
 
   async resolve(playerId: number): Promise<string | InteractionReplyOptions> {
@@ -324,6 +326,13 @@ export class PlayerDeepdiveService {
               return null;
             });
 
+    // After every other query so the earlier specs keep their `run` order.
+    // Never fails the deepdive: no answer means the skills show unflagged.
+    const pricesByKind = await this.skillPricing.pricesByKind(
+      playerId,
+      skillRows,
+    );
+
     // Omitted entirely when no rules set applies to the player's era: there
     // is then no way to know how to write the values, and a wrongly
     // formatted stat line would read as fact.
@@ -344,7 +353,7 @@ export class PlayerDeepdiveService {
       ...[characteristicsLine, advancementsLine, lastingInjuriesLine].filter(
         (line): line is string => line !== undefined,
       ),
-      ...this.skillsSection.build(skillRows),
+      ...this.skillsSection.build(skillRows, { pricesByKind }),
       ...(characteristicsContext === undefined
         ? []
         : this.keywordsSection.build({

@@ -57,8 +57,8 @@ error, and dead, retired and departed players are worked out like any other.
   advancement of a given number, so the spend is exact. BB2020, DB2021 and
   BB2025 price an advancement by its number and its kind, and the recorded
   history rarely pins both down. BBL does not say whether a gained skill was
-  rolled or chosen
-  ([#1235](https://github.com/spacejens/blood-bowl-tracker/issues/1235)).
+  rolled or chosen; the import works it out where it can (see **Chosen or
+  random on BBL** below).
   Characteristic increases are counts with no order
   ([#1233](https://github.com/spacejens/blood-bowl-tracker/issues/1233)).
   The recorded skill order is unverified, so it is ignored
@@ -85,15 +85,37 @@ error, and dead, retired and departed players are worked out like any other.
   still kept: the model does not yet know the order of advancements
   ([#1233](https://github.com/spacejens/blood-bowl-tracker/issues/1233),
   [#1234](https://github.com/spacejens/blood-bowl-tracker/issues/1234)),
-  or whether a skill was rolled or chosen
-  ([#1235](https://github.com/spacejens/blood-bowl-tracker/issues/1235)),
+  or whether a BBL skill the reported spend leaves open was rolled or chosen,
   and the stored figure is what shows the gap. A BBL figure on a rules set
-  that prices by kind can still be too low when BBL priced a free or rolled
-  skill as a chosen advancement; it is stored as reported unless it fails
-  the checks above. Being outside the range only points to a possible gap
+  that prices by kind can still be too low when BBL priced a rolled skill as
+  a chosen advancement; it is stored as reported unless it fails the checks
+  above. Being outside the range only points to a possible gap
   in the history: free skills, an unrecorded order of advancements and
   uncertainty over chosen or random can also cause it. Both sources'
   figures are as of the download or import that read them.
+- **Chosen or random on BBL.** BBL's player page does not say how a gained
+  skill was gained, so the BBL import records it as gained by advancement.
+  Under rules sets that price by kind (BB2020, DB2021, BB2025) the SPP BBL
+  counts as spent, its career total less its unspent figure, is matched
+  against the cost table. When every order and kind of the player's
+  advancements that costs exactly that much, under every rules set of the
+  era that fits, agrees that a skill was rolled, or that it was chosen, the
+  skill is recorded so. The recorded source is therefore how BBL priced the
+  skill, which can differ from how it was gained when BBL priced a rolled
+  skill as a chosen advancement (see **The stored figure** above). It
+  stays recorded as gained by advancement when no order fits (an
+  inconsistent history), when the fits disagree (including over which of two
+  skills that could swap places was the rolled one), when the page gives no
+  usable unspent figure, and whenever the era only prices by fixed
+  thresholds, where every advancement costs the same.
+  `BblSkillSourceInferenceService` does this in the import's closing SPP
+  sync, before the unspent figure is stored; the stored figure is BBL's own
+  and does not depend on it. A skill settled once stays settled: a later
+  import re-sends it as gained by advancement, which keeps the recorded
+  chosen or random, and only the skills still open are worked out again.
+  The [player deepdive](../../discord-bot/slash-commands/deepdive-embeds-player.md#skills)
+  flags a skill still recorded as gained by advancement when the era prices
+  by kind, so it does not read as chosen.
 - **What counts as an advancement.** Starting skills and [free extra](../skills/index.md#player-skills)
   skills (a gained Hatred, a skill TP flags as extra, a skill a trophy granted
   such as Gudarnas Förkämpe's mutation) cost nothing and are not
@@ -126,7 +148,7 @@ error, and dead, retired and departed players are worked out like any other.
   and counts as one that cannot fit; no rules set prices anywhere near that
   many. When several apply, the first in that list is reported.
 - **Where it is shown.** Of the Discord bot's views, only the
-  [player deepdive](../../discord-bot/slash-commands/deepdive-embeds.md#star-player-points)
+  [player deepdive](../../discord-bot/slash-commands/deepdive-embeds-player.md#star-player-points)
   shows it, under `Total SPP:`. The bot's toplists of players by SPP
   deliberately leave it out. When the stored figure lies outside the range, the
   deepdive shows both the stored figure and the calculated range.

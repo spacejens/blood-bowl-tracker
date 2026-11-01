@@ -169,7 +169,7 @@ keywords, player status, and advancement costs with unspent SPP.
        recorded history, free skills, an unrecorded order of advancements and
        chosen-or-random uncertainty may all cause it. A BBL figure on a
        kind-priced rules set (BB2020, DB2021, BB2025) can still be too low
-       when BBL priced a free or rolled skill as a chosen advancement. Spend
+       when BBL priced a rolled skill as a chosen advancement. Spend
        is compared rather than unspent SPP because the stored total need not
        be the total the source's unspent figure was taken from: the stored TP
        total is the highest over the roster file and every match snapshot,
@@ -266,8 +266,10 @@ keywords, player status, and advancement costs with unspent SPP.
        randomly rolled or freely chosen, and it has no elite concept at all,
        so no skill in this panel ever carries the dice or diamond marker — the
        panel says so in words rather than showing an "unverifiable" mark per
-       row. It also shows BBL's own `+MA`/`+ST`/`+AG`/`+PA`/`+AV` characteristic
-       increase counts.
+       row. The import infers random or chosen from the SPP the page reports
+       as spent where only one answer fits, so the imported panel can show the
+       dice marker for a BBL player; this raw panel cannot. It also shows
+       BBL's own `+MA`/`+ST`/`+AG`/`+PA`/`+AV` characteristic increase counts.
      - TP's roster file gives the position template's skills as starting and
        the line-up entry's own skills as gained, each gained skill carrying
        `isRandom` and `isElite` where TP recorded them (a skill with no
