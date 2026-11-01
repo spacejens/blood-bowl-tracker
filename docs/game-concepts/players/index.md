@@ -87,9 +87,9 @@ error, and dead, retired and departed players are worked out like any other.
   [#1234](https://github.com/spacejens/blood-bowl-tracker/issues/1234)),
   or whether a BBL skill the reported spend leaves open was rolled or chosen,
   and the stored figure is what shows the gap. A BBL figure on a rules set
-  that prices by kind can still be too low when BBL priced a free or rolled
-  skill as a chosen advancement; it is stored as reported unless it fails
-  the checks above. Being outside the range only points to a possible gap
+  that prices by kind can still be too low when BBL priced a rolled skill as
+  a chosen advancement; it is stored as reported unless it fails the checks
+  above. Being outside the range only points to a possible gap
   in the history: free skills, an unrecorded order of advancements and
   uncertainty over chosen or random can also cause it. Both sources'
   figures are as of the download or import that read them.
@@ -101,8 +101,8 @@ error, and dead, retired and departed players are worked out like any other.
   advancements that costs exactly that much, under every rules set of the
   era that fits, agrees that a skill was rolled, or that it was chosen, the
   skill is recorded so. The recorded source is therefore how BBL priced the
-  skill, which can differ from how it was gained when BBL priced a free or
-  rolled skill as a chosen advancement (see **The stored figure** above). It
+  skill, which can differ from how it was gained when BBL priced a rolled
+  skill as a chosen advancement (see **The stored figure** above). It
   stays recorded as gained by advancement when no order fits (an
   inconsistent history), when the fits disagree (including over which of two
   skills that could swap places was the rolled one), when the page gives no

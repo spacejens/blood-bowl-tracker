@@ -169,7 +169,7 @@ keywords, player status, and advancement costs with unspent SPP.
        recorded history, free skills, an unrecorded order of advancements and
        chosen-or-random uncertainty may all cause it. A BBL figure on a
        kind-priced rules set (BB2020, DB2021, BB2025) can still be too low
-       when BBL priced a free or rolled skill as a chosen advancement. Spend
+       when BBL priced a rolled skill as a chosen advancement. Spend
        is compared rather than unspent SPP because the stored total need not
        be the total the source's unspent figure was taken from: the stored TP
        total is the highest over the roster file and every match snapshot,
