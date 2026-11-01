@@ -11,6 +11,15 @@ import { UNIQUE_SKILL_MARKER } from './skill-markers';
 const RANDOM_SKILL_MARKER = '⚄ ';
 
 /**
+ * Prefixed to a free extra: a gained skill that cost no SPP and is not one of
+ * the player's advancements (BB2025's Hatred, a trophy-granted mutation). Only
+ * ever on a gained skill — a starting skill was never gained, so marking one
+ * would read as a claim about how the player came by it. A plain Unicode
+ * symbol rather than an emoji, matching every other marker in these embeds.
+ */
+const FREE_EXTRA_SKILL_MARKER = '✚ ';
+
+/**
  * Prefixed to an elite skill, and only ever on a gained skill. Elite status
  * marks a skill that costs more player value to pick during advancement — it
  * is not a restriction on which skills can be picked. A starting skill was
@@ -81,22 +90,24 @@ export class PlayerSkillsSectionService {
   }
 
   /**
-   * `Block`, `Loner (4+)`, `⚄ Guard`, `★ Treacherous`, or `⚄ ♦ Mighty Blow`.
+   * `Block`, `Loner (4+)`, `⚄ Guard`, `✚ Hatred (Undead)`, `★ Treacherous`, or
+   * `⚄ ♦ Mighty Blow`.
    *
    * The star marks a skill's `unique` category under the rules set, mirroring
    * the position stat line, so it applies to starting and gained skills alike
    * -- it says what the skill is, not how the player came by it. A skill with
-   * no curated category there gets no star. Markers read dice, star, gem; a
-   * unique skill is never elite in curated data, so that last pairing is only
-   * a deterministic tie-break.
+   * no curated category there gets no star. Markers read dice, cross, star,
+   * gem; a unique skill is never elite in curated data, so that last pairing
+   * is only a deterministic tie-break.
    */
   private formatSkill(row: PlayerSkillRow): string {
+    const gained = row.source !== 'starting';
     const dice = row.source === 'random' ? RANDOM_SKILL_MARKER : '';
+    const cross = gained && row.isFreeExtra ? FREE_EXTRA_SKILL_MARKER : '';
     const star = row.category === 'unique' ? UNIQUE_SKILL_MARKER : '';
-    const gem =
-      row.source !== 'starting' && row.isElite ? ELITE_SKILL_MARKER : '';
+    const gem = gained && row.isElite ? ELITE_SKILL_MARKER : '';
     const attribute =
       row.attributeValue === null ? '' : ` (${row.attributeValue})`;
-    return `${dice}${star}${gem}${row.skillName}${attribute}`;
+    return `${dice}${cross}${star}${gem}${row.skillName}${attribute}`;
   }
 }

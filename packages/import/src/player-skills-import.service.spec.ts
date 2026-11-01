@@ -48,6 +48,25 @@ describe('PlayerSkillsImportService', () => {
     expect(runner.recordUpsertResult).not.toHaveBeenCalled();
   });
 
+  it('keeps a merged entry free when any duplicate of it was free', async () => {
+    runner.recordUpsertResult.mockResolvedValue({ playerSkillIds: [51] });
+
+    await service.syncPlayerSkills(
+      [
+        entry({ source: 'chosen', advancementOrder: 1 }),
+        entry({ source: 'chosen', advancementOrder: 3, isFreeExtra: true }),
+      ],
+      errors,
+    );
+
+    await recordUpsertResultOptions(runner).upsert();
+    expect(client.playerSkills.sync).toHaveBeenCalledWith({
+      entries: [
+        entry({ source: 'chosen', advancementOrder: 1, isFreeExtra: true }),
+      ],
+    });
+  });
+
   it('forwards the entries and returns how many were synced', async () => {
     runner.recordUpsertResult.mockResolvedValue({
       playerSkillIds: [51, 52],

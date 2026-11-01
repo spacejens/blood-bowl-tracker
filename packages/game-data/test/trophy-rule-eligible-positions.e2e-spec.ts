@@ -31,6 +31,7 @@ import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
+import { PlayerSkillsService } from '../src/player-skills/player-skills.service';
 import { MatchScopeFilterService } from '../src/shared/match-scope-filter.service';
 import { UnspentSppDecisionService } from '../src/spp/unspent-spp-decision.service';
 import { MaxCountTrophyRuleService } from '../src/trophy-awards/max-count-trophy-rule.service';
@@ -270,6 +271,10 @@ describe('trophy award rule eligible positions (real Postgres)', () => {
         {
           provide: UnspentSppDecisionService,
           useValue: mock<UnspentSppDecisionService>(),
+        },
+        {
+          provide: PlayerSkillsService,
+          useValue: mock<PlayerSkillsService>(),
         },
       ],
     }).compile();

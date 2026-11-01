@@ -96,8 +96,8 @@ describe('TpRosterPlayerSkillsService', () => {
           { skillMasterId: 60, attributeValue: '4+', attributeType: 1 },
         ],
         gained: [
-          { skillMasterId: 70, isRandom: true },
-          { skillMasterId: 80, isRandom: false },
+          { skillMasterId: 70, isRandom: true, isExtra: false },
+          { skillMasterId: 80, isRandom: false, isExtra: false },
         ],
       },
     });
@@ -243,6 +243,7 @@ describe('TpRosterPlayerSkillsService', () => {
             attributeValue: '111',
             attributeType: 3,
             isRandom: false,
+            isExtra: false,
           },
         ],
       },
@@ -298,7 +299,7 @@ describe('TpRosterPlayerSkillsService', () => {
     const player = rosterPlayer({
       skills: {
         starting: [{ skillMasterId: 41 }],
-        gained: [{ skillMasterId: 41, isRandom: false }],
+        gained: [{ skillMasterId: 41, isRandom: false, isExtra: false }],
       },
     });
 
@@ -323,8 +324,8 @@ describe('TpRosterPlayerSkillsService', () => {
       skills: {
         starting: [],
         gained: [
-          { skillMasterId: 41, isRandom: false },
-          { skillMasterId: 41, isRandom: true },
+          { skillMasterId: 41, isRandom: false, isExtra: false },
+          { skillMasterId: 41, isRandom: true, isExtra: false },
         ],
       },
     });
@@ -339,6 +340,73 @@ describe('TpRosterPlayerSkillsService', () => {
           source: 'chosen',
           attributeValue: null,
           advancementOrder: 1,
+        },
+      ],
+    });
+  });
+
+  it('sends a gained skill TP flags as extra as a free extra', async () => {
+    const player = rosterPlayer({
+      skills: {
+        starting: [],
+        gained: [
+          {
+            skillMasterId: 307,
+            attributeValue: '111',
+            attributeType: 3,
+            isRandom: false,
+            isExtra: true,
+          },
+          { skillMasterId: 70, isRandom: true, isExtra: false },
+        ],
+      },
+    });
+
+    await sync([player]);
+
+    expect(playerSkills.sync).toHaveBeenCalledWith({
+      entries: [
+        {
+          playerId: 700,
+          skillId: 504,
+          source: 'chosen',
+          attributeValue: 'Dwarf',
+          advancementOrder: 1,
+          isFreeExtra: true,
+        },
+        {
+          playerId: 700,
+          skillId: 502,
+          source: 'random',
+          attributeValue: null,
+          advancementOrder: 2,
+        },
+      ],
+    });
+  });
+
+  it('keeps the earlier of two gained entries free when the later one is flagged extra', async () => {
+    const player = rosterPlayer({
+      skills: {
+        starting: [{ skillMasterId: 41 }],
+        gained: [
+          { skillMasterId: 41, isRandom: false, isExtra: false },
+          { skillMasterId: 41, isRandom: true, isExtra: true },
+        ],
+      },
+    });
+
+    await sync([player]);
+
+    expect(playerSkills.sync).toHaveBeenCalledWith({
+      entries: [
+        {
+          playerId: 700,
+          skillId: 500,
+          source: 'chosen',
+          attributeValue: null,
+          advancementOrder: 1,
+          isFreeExtra: true,
         },
       ],
     });

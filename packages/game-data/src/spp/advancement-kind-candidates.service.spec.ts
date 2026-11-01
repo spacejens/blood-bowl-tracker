@@ -48,7 +48,6 @@ function input(
 ): AdvancementCandidatesInput {
   return {
     skills: [],
-    trophyGrantedSkillIds: new Set(),
     characteristicIncreases: 0,
     skillCategories: new Map(),
     positionAccess: new Map(),
@@ -67,14 +66,13 @@ describe('AdvancementKindCandidatesService', () => {
     service = moduleRef.get(AdvancementKindCandidatesService);
   });
 
-  it('skips starting skills and trophy-granted skills', () => {
+  it('skips starting skills and free extra skills', () => {
     const result = service.candidates(
       input({
         skills: [
-          { skillId: 1, source: 'starting' },
-          { skillId: 2, source: 'chosen' },
+          { skillId: 1, source: 'starting', isFreeExtra: false },
+          { skillId: 2, source: 'chosen', isFreeExtra: true },
         ],
-        trophyGrantedSkillIds: new Set([2]),
       }),
     );
 
@@ -83,7 +81,9 @@ describe('AdvancementKindCandidatesService', () => {
 
   it('allows every skill kind for a skill of unknown roll and category', () => {
     const result = service.candidates(
-      input({ skills: [{ skillId: 101, source: 'advancement' }] }),
+      input({
+        skills: [{ skillId: 101, source: 'advancement', isFreeExtra: false }],
+      }),
     );
 
     expect(result).toEqual([
@@ -99,7 +99,7 @@ describe('AdvancementKindCandidatesService', () => {
   it('keeps a chosen skill in a primary category to chosen primary', () => {
     const result = service.candidates(
       input({
-        skills: [{ skillId: 101, source: 'chosen' }],
+        skills: [{ skillId: 101, source: 'chosen', isFreeExtra: false }],
         skillCategories: new Map([[101, 'general']]),
         positionAccess: new Map([['general', 'primary']]),
       }),
@@ -111,7 +111,7 @@ describe('AdvancementKindCandidatesService', () => {
   it('keeps a random skill in a secondary category to random secondary', () => {
     const result = service.candidates(
       input({
-        skills: [{ skillId: 101, source: 'random' }],
+        skills: [{ skillId: 101, source: 'random', isFreeExtra: false }],
         skillCategories: new Map([[101, 'agility']]),
         positionAccess: new Map([['agility', 'secondary']]),
       }),
@@ -123,7 +123,7 @@ describe('AdvancementKindCandidatesService', () => {
   it('allows primary and secondary when the position has no access to the category', () => {
     const result = service.candidates(
       input({
-        skills: [{ skillId: 101, source: 'chosen' }],
+        skills: [{ skillId: 101, source: 'chosen', isFreeExtra: false }],
         skillCategories: new Map([[101, 'mutation']]),
         positionAccess: new Map([['general', 'primary']]),
       }),
@@ -137,7 +137,7 @@ describe('AdvancementKindCandidatesService', () => {
   it('leaves no option for a random secondary skill under BB2025', () => {
     const result = service.candidates(
       input({
-        skills: [{ skillId: 101, source: 'random' }],
+        skills: [{ skillId: 101, source: 'random', isFreeExtra: false }],
         skillCategories: new Map([[101, 'agility']]),
         positionAccess: new Map([['agility', 'secondary']]),
         costs: BB2025,
@@ -150,7 +150,7 @@ describe('AdvancementKindCandidatesService', () => {
   it('narrows an unknown-roll secondary skill to chosen under BB2025', () => {
     const result = service.candidates(
       input({
-        skills: [{ skillId: 101, source: 'advancement' }],
+        skills: [{ skillId: 101, source: 'advancement', isFreeExtra: false }],
         skillCategories: new Map([[101, 'agility']]),
         positionAccess: new Map([['agility', 'secondary']]),
         costs: BB2025,
@@ -163,7 +163,7 @@ describe('AdvancementKindCandidatesService', () => {
   it('prices every advancement as a table roll under fixed thresholds', () => {
     const result = service.candidates(
       input({
-        skills: [{ skillId: 101, source: 'chosen' }],
+        skills: [{ skillId: 101, source: 'chosen', isFreeExtra: false }],
         characteristicIncreases: 1,
         costs: FIXED,
       }),
@@ -175,7 +175,7 @@ describe('AdvancementKindCandidatesService', () => {
   it('lists skills first, then one random characteristic per increase', () => {
     const result = service.candidates(
       input({
-        skills: [{ skillId: 101, source: 'chosen' }],
+        skills: [{ skillId: 101, source: 'chosen', isFreeExtra: false }],
         skillCategories: new Map([[101, 'general']]),
         positionAccess: new Map([['general', 'primary']]),
         characteristicIncreases: 2,
@@ -199,7 +199,7 @@ describe('AdvancementKindCandidatesService', () => {
 
     const result = service.candidates(
       input({
-        skills: [{ skillId: 500, source: 'advancement' }],
+        skills: [{ skillId: 500, source: 'advancement', isFreeExtra: false }],
         costs: [...FIXED, fanFavourite],
       }),
     );
@@ -221,7 +221,7 @@ describe('AdvancementKindCandidatesService', () => {
 
     const result = service.candidates(
       input({
-        skills: [{ skillId: 500, source: 'advancement' }],
+        skills: [{ skillId: 500, source: 'advancement', isFreeExtra: false }],
         costs: [...FIXED, grantedAt(7), grantedAt(8)],
       }),
     );

@@ -6,6 +6,7 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
+import { PlayerSkillsService } from '../player-skills/player-skills.service';
 import {
   extractAllFilterValues,
   extractFilterValues,
@@ -91,6 +92,10 @@ describe('TrophyAwardsService', () => {
         {
           provide: UnspentSppDecisionService,
           useValue: mock<UnspentSppDecisionService>(),
+        },
+        {
+          provide: PlayerSkillsService,
+          useValue: mock<PlayerSkillsService>(),
         },
       ],
     }).compile();

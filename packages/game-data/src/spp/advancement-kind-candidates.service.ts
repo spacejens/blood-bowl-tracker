@@ -15,8 +15,9 @@ import type {
  * Turns a player's recorded advancements into the options each one could
  * have been under one rules set, for AdvancementSpendRangeService to price.
  *
- * - Starting skills, and skills one of the player's own trophy awards
- *   granted, are not advancements and are skipped.
+ * - Starting skills and free extra skills (a gained Hatred, a skill TP flags
+ *   as extra, a skill one of the player's own trophy awards granted) are not
+ *   advancements and are skipped.
  * - A skill that a cost row grants (`granted_skill`, a league house rule such
  *   as Fan Favourite) can only be that row's advancement.
  * - Any other gained skill is a skill advancement of any number. Its source
@@ -42,10 +43,7 @@ export class AdvancementKindCandidatesService {
     );
     const result: AdvancementOption[][] = [];
     for (const skill of input.skills) {
-      if (
-        skill.source !== 'starting' &&
-        !input.trophyGrantedSkillIds.has(skill.skillId)
-      ) {
+      if (skill.source !== 'starting' && !skill.isFreeExtra) {
         result.push(this.skillOptions(skill, input, offered));
       }
     }

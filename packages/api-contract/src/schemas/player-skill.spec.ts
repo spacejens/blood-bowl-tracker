@@ -111,6 +111,7 @@ describe('player skill schemas', () => {
       source: 'starting',
       attributeValue: null,
       advancementOrder: null,
+      isFreeExtra: false,
     });
     expect(parsed).not.toHaveProperty('playerId');
   });
@@ -129,6 +130,47 @@ describe('player skill schemas', () => {
         source: 'chosen',
         attributeValue: null,
         advancementOrder: -1,
+        isFreeExtra: false,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('accepts a free-extra flag on an entry and leaves it absent when omitted', () => {
+    expect(
+      PlayerSkillEntrySchema.parse({
+        playerId: 1,
+        skillId: 7,
+        source: 'chosen',
+        isFreeExtra: true,
+      }).isFreeExtra,
+    ).toBe(true);
+    expect(
+      PlayerSkillEntrySchema.parse({
+        playerId: 1,
+        skillId: 7,
+        source: 'chosen',
+      }),
+    ).not.toHaveProperty('isFreeExtra');
+  });
+
+  it('rejects a non-boolean free-extra flag on an entry', () => {
+    expect(
+      PlayerSkillEntrySchema.safeParse({
+        playerId: 1,
+        skillId: 7,
+        source: 'chosen',
+        isFreeExtra: 'yes',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('requires the free-extra flag on a read-back row', () => {
+    expect(
+      PlayerSkillRefSchema.safeParse({
+        skillId: 7,
+        source: 'chosen',
+        attributeValue: null,
+        advancementOrder: 1,
       }).success,
     ).toBe(false);
   });

@@ -21,6 +21,8 @@ export interface StoredPlayerSkill {
   skillName: string;
   source: PlayerSkillSource;
   advancementOrder: number | null;
+  /** The stored free-extra flag: costs no SPP and takes no advancement number. */
+  isFreeExtra: boolean;
   /** The skill's category under the player's rules set; null when unlisted. */
   category: SkillCategory | null;
 }
@@ -61,8 +63,6 @@ export interface AdvancementHistory {
   rulesSet: { id: number; name: string } | null;
   /** Starting skills first, then gained skills in stored order. */
   skills: StoredPlayerSkill[];
-  /** Skills one of the player's own trophy awards granted for free. */
-  trophyGrantedSkillIds: ReadonlySet<number>;
   /**
    * The categories the player's position has as primary and as secondary
    * under the rules set; both empty when none are recorded for the pair.
@@ -76,7 +76,7 @@ export interface AdvancementHistory {
 
 /** Why a row costs what it does. */
 export type AdvancementRowKind =
-  'starting' | 'trophy' | 'granted' | 'skill' | 'characteristic';
+  'starting' | 'free_extra' | 'granted' | 'skill' | 'characteristic';
 
 /** One cost an advancement could have had at its number. */
 export interface CandidateCost {

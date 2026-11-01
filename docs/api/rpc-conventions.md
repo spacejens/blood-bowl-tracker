@@ -213,7 +213,7 @@ not called out separately in this response — a caller identifies it by
 checking `skillRulesSets.list` for the `unique` category instead.
 `playerSkills.list`: given a player id, answers every skill recorded for that
 player — starting and gained alike — which `upsert` cannot answer either,
-since it only ever writes the skills it is given, not the player's full set.
+since it only ever writes the skills it is given, not the player's full set. Each row it answers says whether the skill is a free extra, which the server can mark on its own (from a trophy award, or for a gained Hatred) even when the caller never sent it.
 
 `manualImportBatches.list` and `manualImportBatches.record` are
 `tools/import-manual`'s ledger of applied curated-data batches (see

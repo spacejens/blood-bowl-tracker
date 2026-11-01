@@ -150,7 +150,7 @@ nothing of the kind when the roster lists no players (see the same section).
 
 Skills are written to `player_skills`: the position template's as
 `starting`, the player's gained ones as `chosen` or `random` (TP's own
-`isRandom`), numbered in TP's gained-list order. TP names a skill only by
+`isRandom`), numbered in TP's gained-list order. A gained skill TP flags `isExtra` is written as a free extra. TP names a skill only by
 id, so the roster's own JSON is scanned for the skill names it embeds; a
 named skill is upserted under the Name system and every TP id the roster
 gives it. An id the roster does not name resolves through a skill already

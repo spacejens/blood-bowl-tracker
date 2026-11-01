@@ -63,6 +63,7 @@ function skill(
     skillName,
     source,
     advancementOrder: source === 'starting' ? null : 1,
+    isFreeExtra: false,
     category: null,
   };
 }
@@ -82,7 +83,6 @@ function history(overrides: Partial<AdvancementHistory>): AdvancementHistory {
     isStarPlayer: false,
     rulesSet: { id: 1, name: 'CRP' },
     skills: [],
-    trophyGrantedSkillIds: new Set<number>(),
     primaryCategories: new Set<SkillCategory>(),
     secondaryCategories: new Set<SkillCategory>(),
     increaseCounts: { move: 0, strength: 0, agility: 0, passing: 0, armour: 0 },
@@ -421,21 +421,20 @@ describe('AdvancementCostRangeService', () => {
     });
   });
 
-  it('makes starting skills and a trophy mutation free and unnumbered', () => {
+  it('makes starting skills and a free extra skill free and unnumbered', () => {
     const model = service.model(
       history({
         skills: [
           skill('Block', 'starting', 1),
-          skill('Tentacles', 'chosen', 2),
+          { ...skill('Tentacles', 'chosen', 2), isFreeExtra: true },
           skill('Guard', 'random', 3),
         ],
-        trophyGrantedSkillIds: new Set([2]),
       }),
     );
 
     expect(model.rows.map((row) => [row.kind, row.advancementNumber])).toEqual([
       ['starting', null],
-      ['trophy', null],
+      ['free_extra', null],
       ['skill', 1],
     ]);
     expect(model.range?.spentMin).toBe(6);

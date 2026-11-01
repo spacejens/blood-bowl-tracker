@@ -42,7 +42,6 @@ describe('UnspentSppService.advancementInputsForPlayers', () => {
           { eraId: ERA, rulesSetId: BB2020 },
         ],
         playerSkills: gainedSkills(1),
-        trophyAwards: [{ playerId: 1, skillId: 900 }],
         skillCategories: [
           { skillId: 101, rulesSetId: BB2020, category: 'general' },
         ],
@@ -61,7 +60,9 @@ describe('UnspentSppService.advancementInputsForPlayers', () => {
 
     const inputs = await service.advancementInputsForPlayers([1]);
 
-    const skills = [{ skillId: 101, source: 'advancement' }];
+    const skills = [
+      { skillId: 101, source: 'advancement', isFreeExtra: false },
+    ];
     expect(inputs).toEqual(
       new Map([
         [
@@ -73,7 +74,6 @@ describe('UnspentSppService.advancementInputsForPlayers', () => {
               costs: crpCosts(),
               candidatesInput: {
                 skills,
-                trophyGrantedSkillIds: new Set([900]),
                 characteristicIncreases: 1,
                 skillCategories: new Map(),
                 positionAccess: new Map(),
@@ -86,7 +86,6 @@ describe('UnspentSppService.advancementInputsForPlayers', () => {
               costs: bb2020Costs(),
               candidatesInput: {
                 skills,
-                trophyGrantedSkillIds: new Set([900]),
                 characteristicIncreases: 1,
                 skillCategories: new Map([[101, 'general']]),
                 positionAccess: new Map([['general', 'primary']]),

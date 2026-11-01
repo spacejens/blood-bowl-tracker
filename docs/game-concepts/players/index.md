@@ -85,9 +85,7 @@ error, and dead, retired and departed players are worked out like any other.
   still kept: the model does not yet know the order of advancements
   ([#1233](https://github.com/spacejens/blood-bowl-tracker/issues/1233),
   [#1234](https://github.com/spacejens/blood-bowl-tracker/issues/1234)),
-  whether a BBL skill the reported spend leaves open was rolled or chosen, or
-  which skills were free
-  ([#1242](https://github.com/spacejens/blood-bowl-tracker/issues/1242)),
+  or whether a BBL skill the reported spend leaves open was rolled or chosen,
   and the stored figure is what shows the gap. A BBL figure on a rules set
   that prices by kind can still be too low when BBL priced a free or rolled
   skill as a chosen advancement; it is stored as reported unless it fails
@@ -115,8 +113,10 @@ error, and dead, retired and departed players are worked out like any other.
   and does not depend on it. A skill settled once stays settled: a later
   import re-sends it as gained by advancement, which keeps the recorded
   chosen or random, and only the skills still open are worked out again.
-- **What counts as an advancement.** Starting skills and a skill a trophy
-  granted (Gudarnas Förkämpe's mutation) cost nothing. A skill a league's
+- **What counts as an advancement.** Starting skills and [free extra](../skills/index.md#player-skills)
+  skills (a gained Hatred, a skill TP flags as extra, a skill a trophy granted
+  such as Gudarnas Förkämpe's mutation) cost nothing and are not
+  advancements; a Journeyman's Loner is not recognised as free. A skill a league's
   house rule grants at a fixed advancement (tLoEG's Fan Favourite) counts only
   as that advancement.
 - **Several rules sets.** When the player's era lists several rules sets, each

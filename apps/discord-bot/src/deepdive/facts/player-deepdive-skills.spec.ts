@@ -54,7 +54,7 @@ function skill(
     advancementOrder: null,
     category: 'general',
     isElite: false,
-    isTrophyGranted: false,
+    isFreeExtra: false,
     ...overrides,
   };
 }

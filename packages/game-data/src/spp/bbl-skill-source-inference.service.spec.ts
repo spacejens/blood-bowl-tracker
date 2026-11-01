@@ -45,8 +45,9 @@ const UNCATEGORISED = 104;
 function gained(
   skillId: number,
   source: PlayerSkillSource = 'advancement',
+  isFreeExtra = false,
 ): PlayerSkillEntry {
-  return { skillId, source };
+  return { skillId, source, isFreeExtra };
 }
 
 /** One rules set's input for a player of the test position. */
@@ -61,7 +62,6 @@ function inputFor(
     costs,
     candidatesInput: {
       skills,
-      trophyGrantedSkillIds: new Set<number>(),
       characteristicIncreases: 0,
       skillCategories: new Map<number, SkillCategory>([
         [BLOCK, 'general'],
@@ -304,11 +304,12 @@ describe('BblSkillSourceInferenceService', () => {
     ]);
   });
 
-  it('never writes a skill a trophy granted', async () => {
-    // The granted Tackle costs nothing, so its source cannot be told apart.
-    const input = bb2020([gained(TACKLE), gained(BLOCK)]);
-    input.candidatesInput.trophyGrantedSkillIds = new Set([TACKLE]);
-    const h = await inferFor([input], 3);
+  it('never writes a free extra skill', async () => {
+    // The free extra Tackle costs nothing, so its source cannot be told apart.
+    const h = await inferFor(
+      [bb2020([gained(TACKLE, 'advancement', true), gained(BLOCK)])],
+      3,
+    );
 
     expect(writes(h.db)).toEqual([
       { set: { source: 'random' }, filter: ['advancement', 1, BLOCK] },

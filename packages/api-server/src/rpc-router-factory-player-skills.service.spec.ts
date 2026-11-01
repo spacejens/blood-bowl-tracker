@@ -51,7 +51,7 @@ describe('RpcRouterFactoryService playerSkills router', () => {
         advancementOrder: null,
         category: 'general',
         isElite: false,
-        isTrophyGranted: false,
+        isFreeExtra: false,
       },
     ]);
 
@@ -70,6 +70,7 @@ describe('RpcRouterFactoryService playerSkills router', () => {
         source: 'starting',
         attributeValue: null,
         advancementOrder: null,
+        isFreeExtra: false,
       },
     ]);
   });

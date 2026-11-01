@@ -24,6 +24,7 @@ import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
+import { PlayerSkillsService } from '../src/player-skills/player-skills.service';
 import { UnspentSppDecisionService } from '../src/spp/unspent-spp-decision.service';
 import { TrophyAwardsService } from '../src/trophy-awards/trophy-awards.service';
 import { connectTestDb } from './e2e-database';
@@ -161,6 +162,10 @@ describe('TrophyAwardsService.upsert (real Postgres)', () => {
         {
           provide: UnspentSppDecisionService,
           useValue: mock<UnspentSppDecisionService>(),
+        },
+        {
+          provide: PlayerSkillsService,
+          useValue: mock<PlayerSkillsService>(),
         },
       ],
     }).compile();

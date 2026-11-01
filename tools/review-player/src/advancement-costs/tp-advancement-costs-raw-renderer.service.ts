@@ -60,7 +60,7 @@ export class TpAdvancementCostsRawRendererService {
           )
         : '') +
       this.html.note(
-        "Extra skills (isExtra, such as Hatred) and a Journeyman's Loner are granted without SPP being spent. The modelled range does not recognise them and prices them as advancements, so such a player can legitimately be listed.",
+        "Extra skills (isExtra, such as Hatred) are imported as free extras, so the modelled range prices them at 0. A Journeyman's Loner is also granted without SPP being spent; the modelled range does not recognise it and prices it as an advancement, so such a player can legitimately be listed.",
       ) +
       this.html.note(
         "TP's download carries no per-advancement SPP cost, so nothing here prices an advancement.",

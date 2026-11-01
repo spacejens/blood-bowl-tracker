@@ -139,8 +139,8 @@ export class AdvancementCostsDbRendererService {
     if (row.kind === 'starting') {
       return '0 (starting skill)';
     }
-    if (row.kind === 'trophy') {
-      return '0 (trophy mutation)';
+    if (row.kind === 'free_extra') {
+      return '0 (free extra skill)';
     }
     const [first] = row.candidates;
     if (first === undefined) {

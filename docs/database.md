@@ -268,12 +268,25 @@ with `spp_total`, in the SPP adjustment sync, the last step of a BBL or TP
 import that writes the column, so the two always describe the same total.
 A player upsert or a skill sync clears it (the import's closing sync writes
 it back), and a trophy award that grants a skill, which only the manual
-import writes, works the fixed-threshold value out again. A stored
-fixed-threshold value is cleared or recomputed on the writes that change a
-player's history, but not when reference data (advancement costs, era rules sets,
-skill categories, position access) or the model code changes; it refreshes
-the next time the player is imported. Rows that existed before the column
-was added stay NULL until the next import.
+import writes, marks the skill as a free extra and works the fixed-threshold
+value out again. A stored fixed-threshold value is cleared or recomputed on the
+writes that change a player's history, but not when reference data (advancement
+costs, era rules sets, skill categories, position access) or the model code
+changes; it refreshes the next time the player is imported. Rows that existed
+before the column was added stay NULL until the next import.
+
+`player_skills.is_free_extra` marks a gained skill that cost no SPP and is
+not one of the player's advancements (see
+[skills](game-concepts/skills/index.md#player-skills)); the cost model prices
+it at 0 and leaves it out of the advancement count. `PlayerSkillsService`
+sets it when a sync entry flags it (TP's `isExtra`), when one of the
+player's own trophy awards names the skill as `granted_skill_id` (never for
+Hatred), and for every non-`starting` Hatred; writing an award that grants a
+skill marks the player's matching rows too. `sync` and a new trophy award only
+ever set the flag. Changing or clearing an existing award's granted skill
+unmarks that skill's rows for the winner, unless it is Hatred or another award
+of the same player still grants it. The migration that added it backfilled both
+server rules over the existing rows.
 
 The costs are curated by `tools/import-manual` in batch 004 (see
 [batches](import-manual/batches.md)): fixed thresholds of 6, 16, 31, 51, 76
