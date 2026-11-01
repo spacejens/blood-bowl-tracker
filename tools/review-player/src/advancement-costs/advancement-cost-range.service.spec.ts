@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type {
   AdvancementHistory,
   ApplicableCost,
+  StoredIncrease,
   StoredPlayerSkill,
   UnknownRangeReason,
 } from './advancement-cost-model.types';
@@ -68,6 +69,13 @@ function skill(
   };
 }
 
+function increase(
+  characteristic: StoredIncrease['characteristic'],
+  advancementOrder: number | null = null,
+): StoredIncrease {
+  return { characteristic, advancementOrder, orderConfirmed: false };
+}
+
 function inCategory(
   stored: StoredPlayerSkill,
   category: SkillCategory,
@@ -85,7 +93,7 @@ function history(overrides: Partial<AdvancementHistory>): AdvancementHistory {
     skills: [],
     primaryCategories: new Set<SkillCategory>(),
     secondaryCategories: new Set<SkillCategory>(),
-    increaseCounts: { move: 0, strength: 0, agility: 0, passing: 0, armour: 0 },
+    increases: [],
     costs: CRP,
     ...overrides,
   };
@@ -105,13 +113,7 @@ describe('AdvancementCostRangeService', () => {
     const model = service.model(
       history({
         skills: [skill('Block', 'advancement'), skill('Dodge', 'advancement')],
-        increaseCounts: {
-          move: 1,
-          strength: 0,
-          agility: 0,
-          passing: 0,
-          armour: 0,
-        },
+        increases: [increase('MA')],
       }),
     );
 
@@ -396,13 +398,7 @@ describe('AdvancementCostRangeService', () => {
         rulesSet: { id: 2, name: 'BB2020' },
         costs: BB2020,
         skills: [skill('Guard', 'random')],
-        increaseCounts: {
-          move: 0,
-          strength: 1,
-          agility: 0,
-          passing: 0,
-          armour: 0,
-        },
+        increases: [increase('ST')],
       }),
     );
 
@@ -418,6 +414,94 @@ describe('AdvancementCostRangeService', () => {
       spentMax: 38,
       unspentMin: 2,
       unspentMax: 33,
+    });
+  });
+
+  it('numbers skills and increases in their stored sequence', () => {
+    const model = service.model(
+      history({
+        skills: [
+          { ...skill('Block', 'advancement'), advancementOrder: 3 },
+          { ...skill('Dodge', 'advancement'), advancementOrder: 1 },
+        ],
+        increases: [increase('AG', 2)],
+      }),
+    );
+
+    expect(model.rows.map((row) => [row.label, row.advancementNumber])).toEqual(
+      [
+        ['Dodge', 1],
+        ['+AG', 2],
+        ['Block', 3],
+      ],
+    );
+  });
+
+  it('puts unknown-order entries last, skills before increases', () => {
+    const model = service.model(
+      history({
+        skills: [
+          { ...skill('Block', 'advancement'), advancementOrder: null },
+          { ...skill('Dodge', 'advancement'), advancementOrder: 2 },
+        ],
+        increases: [increase('MA'), increase('ST', 1)],
+      }),
+    );
+
+    expect(model.rows.map((row) => row.label)).toEqual([
+      '+ST',
+      'Dodge',
+      'Block',
+      '+MA',
+    ]);
+  });
+
+  it('keeps starting skills first and a granted skill on its number', () => {
+    const model = service.model(
+      history({
+        costs: [...CRP, FAN_FAVOURITE],
+        skills: [
+          {
+            ...skill('Guard', 'advancement', FAN_FAVOURITE_ID),
+            advancementOrder: 1,
+          },
+          skill('Block', 'starting'),
+        ],
+        increases: [increase('PA', 2), increase('AV', 3)],
+      }),
+    );
+
+    expect(model.rows.map((row) => [row.label, row.advancementNumber])).toEqual(
+      [
+        ['Block', null],
+        ['Guard', 7],
+        ['+PA', 1],
+        ['+AV', 2],
+      ],
+    );
+  });
+
+  it('prices increases without an order like the old counts', () => {
+    const model = service.model(
+      history({
+        skills: [skill('Block', 'advancement')],
+        increases: [increase('MA'), increase('AV'), increase('AV')],
+      }),
+    );
+
+    expect(model.rows.map((row) => [row.label, row.advancementNumber])).toEqual(
+      [
+        ['Block', 1],
+        ['+MA', 2],
+        ['+AV', 3],
+        ['+AV', 4],
+      ],
+    );
+    expect(model.range).toEqual({
+      spentMin: 51,
+      spentMax: 51,
+      unspentMin: -11,
+      unspentMax: -11,
     });
   });
 

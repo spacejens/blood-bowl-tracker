@@ -24,6 +24,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type {
   AdvancementHistory,
   ApplicableCost,
+  StoredIncrease,
   StoredPlayerSkill,
 } from './advancement-cost-model.types';
 
@@ -68,7 +69,7 @@ interface CategoryLookups {
  * straight from `packages/db`: total SPP, star status, the era's last-listed
  * rules set (`era_rules_sets`, highest id — the same insertion-order
  * heuristic the other panels use), the stored skills with their
- * free-extra flag, the five increase counts, and the
+ * free-extra flag, the stored characteristic increases, and the
  * `advancement_costs` rows that apply (the rules set's own plus the player's
  * league's house rules: player -> team era -> era -> league), plus the
  * categories the player's position has as primary and as secondary under
@@ -122,11 +123,6 @@ export class PlayerAdvancementHistoryService {
         eraId: teamEras.eraId,
         leagueId: eras.leagueId,
         positionId: players.positionId,
-        move: players.moveIncreaseCount,
-        strength: players.strengthIncreaseCount,
-        agility: players.agilityIncreaseCount,
-        passing: players.passingIncreaseCount,
-        armour: players.armourIncreaseCount,
       })
       .from(players)
       .innerJoin(positions, eq(positions.id, players.positionId))
@@ -137,6 +133,7 @@ export class PlayerAdvancementHistoryService {
       return;
     }
     const skillsByPlayer = await this.loadSkills(ids);
+    const increasesByPlayer = await this.loadIncreases(ids);
     const lookups: CategoryLookups = {
       positions: await this.loadPositionCategories([
         ...new Set(playerRows.map((row) => row.positionId)),
@@ -169,13 +166,7 @@ export class PlayerAdvancementHistoryService {
         })),
         primaryCategories: positionCategories?.primary ?? new Set(),
         secondaryCategories: positionCategories?.secondary ?? new Set(),
-        increaseCounts: {
-          move: row.move,
-          strength: row.strength,
-          agility: row.agility,
-          passing: row.passing,
-          armour: row.armour,
-        },
+        increases: increasesByPlayer.get(row.playerId) ?? [],
         costs:
           rulesSet === null
             ? []
@@ -230,6 +221,41 @@ export class PlayerAdvancementHistoryService {
         ...list.filter((skill) => skill.source === 'starting'),
         ...list.filter((skill) => skill.source !== 'starting'),
       ]);
+    }
+    return byPlayer;
+  }
+
+  /** Characteristic rows that were not removed, in stored order. */
+  private async loadIncreases(
+    ids: number[],
+  ): Promise<Map<number, StoredIncrease[]>> {
+    const rows = await this.db
+      .select({
+        playerId: playerAdvancements.playerId,
+        characteristic: playerAdvancements.characteristic,
+        advancementOrder: playerAdvancements.advancementOrder,
+        orderConfirmed: playerAdvancements.orderConfirmed,
+      })
+      .from(playerAdvancements)
+      .where(
+        and(
+          inArray(playerAdvancements.playerId, ids),
+          eq(playerAdvancements.source, 'characteristic'),
+          eq(playerAdvancements.removed, false),
+        ),
+      )
+      .orderBy(
+        asc(playerAdvancements.playerId),
+        asc(playerAdvancements.advancementOrder),
+      );
+    const byPlayer = new Map<number, StoredIncrease[]>();
+    for (const { playerId, characteristic, ...increase } of rows) {
+      if (characteristic === null) {
+        continue;
+      }
+      const list = byPlayer.get(playerId) ?? [];
+      list.push({ characteristic, ...increase });
+      byPlayer.set(playerId, list);
     }
     return byPlayer;
   }

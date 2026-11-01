@@ -10,8 +10,8 @@ const NONE = '—';
 /**
  * BBL's own view of a player's SPP spending: both figures of the page's
  * "Unspent SPP" row (the reported figure, which can be negative, and the
- * career total in brackets), the gained skills in page order and the
- * `+MA`/`+ST`/`+AG`/`+PA`/`+AV` counts — all read through the same `source/`
+ * career total in brackets), the gained skills and
+ * `+MA`/`+ST`/`+AG`/`+PA`/`+AV` increases in one page-order list — all read through the same `source/`
  * services the imported panel compares against. BBL records nothing about
  * how a skill was gained, which the panel says in words.
  */
@@ -50,33 +50,33 @@ export class BblAdvancementCostsRawRendererService {
   }
 
   private advancementTables(advancements: BblRawPlayerAdvancements): string {
-    const gained = advancements.skills.filter(
-      (skill) => skill.source === 'gained',
+    const entries = [
+      ...advancements.skills
+        .filter((skill) => skill.source === 'gained')
+        .map((skill) => ({
+          order: skill.advancementOrder,
+          text:
+            skill.attributeValue === null
+              ? skill.name
+              : `${skill.name} (${skill.attributeValue})`,
+        })),
+      ...advancements.increases.map((increase) => ({
+        order: increase.advancementOrder,
+        text: `+${increase.characteristic}`,
+      })),
+    ].sort(
+      (a, b) =>
+        (a.order ?? Number.MAX_SAFE_INTEGER) -
+        (b.order ?? Number.MAX_SAFE_INTEGER),
     );
-    const counts = advancements.increaseCounts;
     return (
-      this.html.subheading('Gained skills (page order)') +
+      this.html.subheading('Advancements (page order)') +
       this.html.table(
-        ['#', 'Skill'],
-        gained.map((skill) => [
-          String(skill.advancementOrder),
-          skill.attributeValue === null
-            ? skill.name
-            : `${skill.name} (${skill.attributeValue})`,
+        ['#', 'Advancement'],
+        entries.map(({ order, text }) => [
+          order === null ? NONE : String(order),
+          text,
         ]),
-      ) +
-      this.html.subheading('Characteristic increases') +
-      this.html.table(
-        ['MA', 'ST', 'AG', 'PA', 'AV'],
-        [
-          [
-            counts.move,
-            counts.strength,
-            counts.agility,
-            counts.passing,
-            counts.armour,
-          ].map(String),
-        ],
       )
     );
   }

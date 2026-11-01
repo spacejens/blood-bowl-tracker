@@ -1,5 +1,6 @@
 import type {
   AdvancementKind,
+  PlayerCharacteristic,
   PlayerSkillSource,
   SkillCategory,
 } from '@blood-bowl-tracker/domain-enums';
@@ -27,13 +28,11 @@ export interface StoredPlayerSkill {
   category: SkillCategory | null;
 }
 
-/** The stored `*_increase_count` columns. */
-export interface StoredIncreaseCounts {
-  move: number;
-  strength: number;
-  agility: number;
-  passing: number;
-  armour: number;
+/** One stored characteristic increase. */
+export interface StoredIncrease {
+  characteristic: PlayerCharacteristic;
+  advancementOrder: number | null;
+  orderConfirmed: boolean;
 }
 
 /** How a stored unspent SPP compares with the source's own unspent figure. */
@@ -69,7 +68,8 @@ export interface AdvancementHistory {
    */
   primaryCategories: ReadonlySet<SkillCategory>;
   secondaryCategories: ReadonlySet<SkillCategory>;
-  increaseCounts: StoredIncreaseCounts;
+  /** The stored characteristic increases, not removed ones. */
+  increases: StoredIncrease[];
   /** The rules set's own costs plus the player's league's house rules. */
   costs: ApplicableCost[];
 }

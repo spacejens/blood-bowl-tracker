@@ -340,8 +340,8 @@ keywords, player status, and advancement costs with unspent SPP.
    - **advancement-costs** — left: the figures the source itself reports
      about spending SPP. For BBL, both figures of the player page's
      "Unspent SPP" row — the reported unspent figure, which can be
-     negative, and the career total in brackets — with the gained skills in
-     page order and the `+MA`/`+ST`/`+AG`/`+PA`/`+AV` counts; the panel says
+     negative, and the career total in brackets — with the gained skills and the
+     `+MA`/`+ST`/`+AG`/`+PA`/`+AV` increases in one page-order list; the panel says
      in words that BBL cannot tell a rolled skill from a chosen one. For TP,
      the roster entry's `totalStarPlayerPoints`, `starPlayerPoints` (the SPP
      TP holds unspent, see
@@ -369,9 +369,10 @@ keywords, player status, and advancement costs with unspent SPP.
      stored as a free extra (`player_skills.is_free_extra`: a gained Hatred,
      a skill TP flags `isExtra`, or Gudarnas Förkämpe's mutation) cost 0 and
      take no number; a skill a league house rule grants (tLoEG's Fan
-     Favourite) shows as that rule's advancement with its cost. Gained skills come
-     first in their stored order, which is unverified, then the characteristic
-     increases, whose order is unknown. A footer gives the stored total, the
+     Favourite) shows as that rule's advancement with its cost. Gained skills and
+     characteristic increases are listed together in their stored order,
+     which is unverified unless marked confirmed, entries without an order
+     last. A footer gives the stored total, the
      modelled spend and unspent ranges, and beside them the source's reported
      total, its unspent figure and the spend derived from the two. A last row
      gives the stored unspent SPP, placed against the modelled unspent range

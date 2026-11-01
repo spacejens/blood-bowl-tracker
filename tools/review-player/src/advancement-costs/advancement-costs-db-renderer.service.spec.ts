@@ -162,7 +162,7 @@ describe('AdvancementCostsDbRendererService', () => {
       '<td>Guard</td><td>random</td><td>#1</td><td>random_primary_skill: 3<br>random_secondary_skill: 6</td>',
     );
     expect(html).toContain(
-      '<td>+ST</td><td>characteristic increase</td><td>#2 (order unknown)</td><td>random_characteristic: 20</td>',
+      '<td>+ST</td><td>characteristic increase</td><td>#2</td><td>random_characteristic: 20</td>',
     );
     expect(html).toContain('<td>Stored total SPP</td><td>40</td>');
     expect(html).toContain('<td>Modelled spend</td><td>7 to 38</td>');
@@ -174,7 +174,9 @@ describe('AdvancementCostsDbRendererService', () => {
     );
     expect(html).not.toContain('outside the modelled spend range (');
     expect(html).not.toContain('class="mismatch');
-    expect(html).toContain('stored order, which is unverified');
+    expect(html).toContain(
+      'characteristic increases are listed in their stored order, which is unverified unless marked confirmed',
+    );
     expect(html).toContain(
       'The modelled range in the next table holds for any order and any kind.',
     );

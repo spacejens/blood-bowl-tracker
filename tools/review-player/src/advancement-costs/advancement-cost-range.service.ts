@@ -11,7 +11,7 @@ import type {
   ApplicableCost,
   CandidateCost,
   ModelledAdvancement,
-  StoredIncreaseCounts,
+  StoredIncrease,
   StoredPlayerSkill,
   UnspentSppModel,
 } from './advancement-cost-model.types';
@@ -45,15 +45,6 @@ interface PricedRow {
   kinds: readonly AdvancementKind[];
 }
 
-/** Increase-count columns and the label BBL itself uses for each. */
-const INCREASES: readonly (readonly [keyof StoredIncreaseCounts, string])[] = [
-  ['move', '+MA'],
-  ['strength', '+ST'],
-  ['agility', '+AG'],
-  ['passing', '+PA'],
-  ['armour', '+AV'],
-];
-
 /**
  * Prices a player's stored advancements against `advancement_costs`, for the
  * review. Re-implemented here rather than taken from `packages/game-data`,
@@ -75,9 +66,10 @@ const INCREASES: readonly (readonly [keyof StoredIncreaseCounts, string])[] = [
  * TP flags as extra, a skill a trophy award granted) cost nothing and take
  * no number. A skill a `granted_skill` row names (a league house rule) takes
  * that row's number and cost. Every other gained skill and every
- * characteristic increase takes the next free number in display order; that
- * number is illustrative only, because the stored skill order is unverified
- * and increases have none.
+ * characteristic increase takes the next free number, in their stored order
+ * with skills and increases in one sequence (unknown orders last, skills
+ * before increases); that number is illustrative unless the stored order is
+ * confirmed.
  */
 @Injectable()
 export class AdvancementCostRangeService {
@@ -133,12 +125,25 @@ export class AdvancementCostRangeService {
     history: AdvancementHistory,
     fixedThresholds: boolean,
   ): PricedRow[] {
-    const entries = [
-      ...history.skills.map((skill) =>
-        this.skillEntry(skill, history, fixedThresholds),
-      ),
-      ...this.increaseEntries(history.increaseCounts, fixedThresholds),
+    const sequenced = [
+      ...history.skills.map((skill) => ({
+        order: skill.source === 'starting' ? -1 : skill.advancementOrder,
+        entry: this.skillEntry(skill, history, fixedThresholds),
+      })),
+      ...history.increases.map((increase) => ({
+        order: increase.advancementOrder,
+        entry: this.increaseEntry(increase, fixedThresholds),
+      })),
     ];
+    // A stable sort: starting skills first, then by order with unknown ones
+    // last; ties keep skills before increases because skills are listed first.
+    const entries = [...sequenced]
+      .sort(
+        (a, b) =>
+          (a.order ?? Number.MAX_SAFE_INTEGER) -
+          (b.order ?? Number.MAX_SAFE_INTEGER),
+      )
+      .map(({ entry }) => entry);
     const reserved = new Set(
       entries.flatMap(({ row }) =>
         row.kind === 'granted' && row.advancementNumber !== null
@@ -240,25 +245,20 @@ export class AdvancementCostRangeService {
     return null;
   }
 
-  private increaseEntries(
-    counts: StoredIncreaseCounts,
+  private increaseEntry(
+    increase: StoredIncrease,
     fixedThresholds: boolean,
-  ): PricedRow[] {
-    const kinds: readonly AdvancementKind[] = fixedThresholds
-      ? ['table_roll']
-      : ['random_characteristic'];
-    return INCREASES.flatMap(([key, label]) =>
-      Array.from({ length: counts[key] }, (): PricedRow => ({
-        row: {
-          label,
-          kind: 'characteristic',
-          storedSource: null,
-          advancementNumber: null,
-          candidates: [],
-        },
-        kinds,
-      })),
-    );
+  ): PricedRow {
+    return {
+      row: {
+        label: `+${increase.characteristic}`,
+        kind: 'characteristic',
+        storedSource: null,
+        advancementNumber: null,
+        candidates: [],
+      },
+      kinds: fixedThresholds ? ['table_roll'] : ['random_characteristic'],
+    };
   }
 
   private costsAt(
