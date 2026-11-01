@@ -40,6 +40,7 @@ import { PlayerDeepdiveService } from './player-deepdive.service';
 import { PlayerKeywordsSectionService } from './player-keywords-section.service';
 import { PlayerKillerInfoFormatterService } from './player-killer-info-formatter.service';
 import { PlayerKillsSectionService } from './player-kills-section.service';
+import { PlayerSkillPricingService } from './player-skill-pricing.service';
 import { PlayerSkillsSectionService } from './player-skills-section.service';
 import { PlayerSppSectionService } from './player-spp-section.service';
 import { PlayerStatusConflictReporterService } from './player-status-conflict-reporter.service';
@@ -70,8 +71,8 @@ import { UnspentSppLineService } from './unspent-spp-line.service';
  * otherwise-mocked subject: every collaborator with I/O or external state
  * (the game-data services, `DatabaseTimeoutService`,
  * `EntityComponentsService`, `ClockService` (stubbed at `TODAY`),
- * `PlayerStatusConflictReporterService` and `ErrorLogService`) is a mock,
- * built fresh per call. `DateRangeFormatterService` is stubbed with a canned
+ * `PlayerStatusConflictReporterService`, `PlayerSkillPricingService` and
+ * `ErrorLogService`) is a mock, built fresh per call. `DateRangeFormatterService` is stubbed with a canned
  * era label.
  */
 
@@ -189,6 +190,19 @@ export function makeUnspentSpp(
 }
 
 /**
+ * A `PlayerSkillPricingService` mock. Defaults to `false` (the era does not
+ * price by kind, or there was nothing to ask about), so specs about other
+ * parts of the embed never see the unknown-source marker.
+ */
+export function makeSkillPricing(
+  pricesByKind = false,
+): MockProxy<PlayerSkillPricingService> {
+  const skillPricing = mock<PlayerSkillPricingService>();
+  skillPricing.pricesByKind.mockResolvedValue(pricesByKind);
+  return skillPricing;
+}
+
+/**
  * A `PlayerStatusConflictReporterService` mock whose `report` resolves, as
  * the real one always does.
  */
@@ -213,6 +227,7 @@ export interface MakeServiceOptions {
   statusConflicts?: MockProxy<PlayerStatusConflictReporterService>;
   errorLog?: MockProxy<ErrorLogService>;
   unspentSpp?: MockProxy<UnspentSppService>;
+  skillPricing?: MockProxy<PlayerSkillPricingService>;
 }
 
 /**
@@ -281,6 +296,7 @@ export async function makeService({
   statusConflicts = makeStatusConflicts(),
   errorLog = mock<ErrorLogService>(),
   unspentSpp = makeUnspentSpp(),
+  skillPricing = makeSkillPricing(),
 }: MakeServiceOptions): Promise<{
   service: PlayerDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;
@@ -295,6 +311,7 @@ export async function makeService({
   statusConflicts: MockProxy<PlayerStatusConflictReporterService>;
   errorLog: MockProxy<ErrorLogService>;
   unspentSpp: MockProxy<UnspentSppService>;
+  skillPricing: MockProxy<PlayerSkillPricingService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -336,6 +353,7 @@ export async function makeService({
       },
       { provide: ErrorLogService, useValue: errorLog },
       { provide: UnspentSppService, useValue: unspentSpp },
+      { provide: PlayerSkillPricingService, useValue: skillPricing },
     ],
   }).compile();
   return {
@@ -352,6 +370,7 @@ export async function makeService({
     statusConflicts,
     errorLog,
     unspentSpp,
+    skillPricing,
   };
 }
 
