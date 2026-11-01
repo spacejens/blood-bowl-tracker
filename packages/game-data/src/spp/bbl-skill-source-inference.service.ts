@@ -84,6 +84,13 @@ export class BblSkillSourceInferenceService {
     const settled = new Map<SettledSource, PlayerSkillKey[]>();
     for (const [playerId, snapshot] of usable) {
       const rulesSets = inputs.get(playerId) ?? [];
+      // BBL can price a free extra as a chosen advancement, which the cost
+      // model prices at 0, so the reported spend of such a player may include
+      // a charge the history does not account for. Fitting the remaining
+      // skills to it could settle a wrong source, so the player is skipped.
+      if (this.hasFreeExtra(rulesSets)) {
+        continue;
+      }
       const spent = snapshot.snapshotSppTotal - snapshot.unspentSpp;
       // A source is only settled on the evidence of a kind-priced rules set
       // that fits the spend. Every other fitting set, a fixed-threshold one or
@@ -106,6 +113,13 @@ export class BblSkillSourceInferenceService {
       }
     }
     await this.write(settled);
+  }
+
+  /** Whether any rules set's input holds a free extra among the skills. */
+  private hasFreeExtra(rulesSets: RulesSetAdvancementInput[]): boolean {
+    return rulesSets.some(({ candidatesInput }) =>
+      candidatesInput.skills.some((skill) => skill.isFreeExtra),
+    );
   }
 
   /** Each `advancement` skill id whose source only one answer fits. */

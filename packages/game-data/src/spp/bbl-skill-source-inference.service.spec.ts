@@ -304,15 +304,35 @@ describe('BblSkillSourceInferenceService', () => {
     ]);
   });
 
-  it('never writes a free extra skill', async () => {
-    // The free extra Tackle costs nothing, so its source cannot be told apart.
+  it('skips a player holding a free extra skill', async () => {
+    // Without the free extra Tackle, a spend of 3 settles Block as random. BBL
+    // may have charged for the free extra as a chosen advancement, which the
+    // cost model prices at 0, so the spend cannot be trusted to fit Block alone.
     const h = await inferFor(
       [bb2020([gained(TACKLE, 'advancement', true), gained(BLOCK)])],
       3,
     );
 
+    expect(h.db.chains).toHaveLength(0);
+  });
+
+  it('still settles another player in the batch who has no free extra', async () => {
+    const h = await makeService(
+      new Map([
+        [1, [bb2020([gained(TACKLE, 'advancement', true), gained(BLOCK)])]],
+        [2, [bb2020([gained(BLOCK)])]],
+      ]),
+    );
+
+    await h.service.inferSources(
+      new Map([
+        [1, spending(3)],
+        [2, spending(3)],
+      ]),
+    );
+
     expect(writes(h.db)).toEqual([
-      { set: { source: 'random' }, filter: ['advancement', 1, BLOCK] },
+      { set: { source: 'random' }, filter: ['advancement', 2, BLOCK] },
     ]);
   });
 

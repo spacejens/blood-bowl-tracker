@@ -106,8 +106,9 @@ error, and dead, retired and departed players are worked out like any other.
   stays recorded as gained by advancement when no order fits (an
   inconsistent history), when the fits disagree (including over which of two
   skills that could swap places was the rolled one), when the page gives no
-  usable unspent figure, and whenever the era only prices by fixed
-  thresholds, where every advancement costs the same.
+  usable unspent figure, when the player holds a free extra skill (BBL may
+  have charged for it, which the cost model does not), and whenever the era
+  only prices by fixed thresholds, where every advancement costs the same.
   `BblSkillSourceInferenceService` does this in the import's closing SPP
   sync, before the unspent figure is stored; the stored figure is BBL's own
   and does not depend on it. A skill settled once stays settled: a later
