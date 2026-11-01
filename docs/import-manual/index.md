@@ -12,7 +12,9 @@ hand-authored record (e.g. a race's full position list, or a team
 pre-registered with a BBL numeric ID) already exists for those importers to
 match against instead of creating a duplicate. The rest are applied after
 them, to clean up names or attach external IDs the system data could not
-supply.
+supply. On a scratch import the BBL and TP importers then run once more,
+because they read the advancement costs a later batch supplies (see
+[Batches](batches.md#operating-procedure)).
 
 Its data is organised in once-applied, numbered batches; see
 [Batches](batches.md).
