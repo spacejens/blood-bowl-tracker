@@ -85,8 +85,12 @@ To run an import against production:
    `game_data.players`, `teams`, `coaches` and `competitions` have no rows
    either (a read-only query against production answers it). An empty ledger
    beside real data means a plain `apply` would re-import batches 001 and 002
-   over later curation. Stop after any non-zero exit except a BBL or TP exit 1 that prints
-   `Import completed with <N> errors:` without `Import failed:`. Continue to
+   over later curation.
+   Run the commands one at a time and read each result before starting the
+   next — pasting the whole block as one input would carry on past a failure.
+   Stop after any non-zero exit of a manual `apply`. After a BBL or TP run,
+   stop on any non-zero exit except an exit 1 that prints
+   `Import completed with <N> errors:` without `Import failed:`; continue to
    the next command for that collected-error result:
 
    ```bash
