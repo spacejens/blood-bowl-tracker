@@ -26,20 +26,27 @@ export interface AdvancementOption {
   advancementNumber: number | null;
 }
 
-/** One skill a player has, as the advancement rules read it. */
+/** One advancement row of a player, as the advancement rules read it. */
 export interface PlayerSkillEntry {
-  skillId: number;
+  /** The `player_advancements` row id, so a caller can pin a particular row. */
+  id: number;
+  /** Null for a characteristic increase. */
+  skillId: number | null;
   source: PlayerSkillSource;
   /** Gained without spending SPP and not one of the player's advancements. */
   isFreeExtra: boolean;
+  advancementOrder: number | null;
+  /** True when `advancementOrder` is the real sequence. */
+  orderConfirmed: boolean;
 }
 
 /** What AdvancementKindCandidatesService needs for one player under one rules set. */
 export interface AdvancementCandidatesInput {
-  /** Every skill the player has, starting skills included. */
+  /**
+   * Every advancement row the player has, starting skills and characteristic
+   * increases included.
+   */
   skills: PlayerSkillEntry[];
-  /** The sum of the player's five characteristic increase counts. */
-  characteristicIncreases: number;
   /** Each skill's category under this rules set; a skill with none is absent. */
   skillCategories: ReadonlyMap<number, SkillCategory>;
   /**

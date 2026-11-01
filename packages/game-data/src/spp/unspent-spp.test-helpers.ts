@@ -34,11 +34,6 @@ export interface PlayerRowFixture {
   isStarPlayer: boolean;
   eraId: number;
   leagueId: number;
-  moveIncreaseCount: number;
-  strengthIncreaseCount: number;
-  agilityIncreaseCount: number;
-  passingIncreaseCount: number;
-  armourIncreaseCount: number;
 }
 
 export function playerRow(
@@ -52,11 +47,6 @@ export function playerRow(
     isStarPlayer: false,
     eraId: ERA,
     leagueId: LEAGUE,
-    moveIncreaseCount: 0,
-    strengthIncreaseCount: 0,
-    agilityIncreaseCount: 0,
-    passingIncreaseCount: 0,
-    armourIncreaseCount: 0,
     ...overrides,
   };
 }
@@ -122,11 +112,33 @@ export function fanFavouriteCost(leagueId = LEAGUE): CostRowFixture {
   };
 }
 
+/** One row of the player advancements query. */
 export interface PlayerSkillFixture {
+  id: number;
   playerId: number;
   skillId: number | null;
   source: PlayerSkillSource;
   isFreeExtra: boolean;
+  advancementOrder: number | null;
+  orderConfirmed: boolean;
+}
+
+/** One advancement row of player 1, a gained skill unless overridden. */
+export function skillRow(
+  overrides: Partial<PlayerSkillFixture> = {},
+): PlayerSkillFixture {
+  const playerId = overrides.playerId ?? 1;
+  const skillId = overrides.skillId === undefined ? 101 : overrides.skillId;
+  return {
+    id: playerId * 1000 + (skillId ?? 0),
+    playerId,
+    skillId,
+    source: 'advancement',
+    isFreeExtra: false,
+    advancementOrder: null,
+    orderConfirmed: false,
+    ...overrides,
+  };
 }
 
 /** `count` gained skills of one source, with skill ids from 101. */
@@ -135,12 +147,24 @@ export function gainedSkills(
   source: PlayerSkillSource = 'advancement',
   playerId = 1,
 ): PlayerSkillFixture[] {
-  return Array.from({ length: count }, (_, index) => ({
-    playerId,
-    skillId: 101 + index,
-    source,
-    isFreeExtra: false,
-  }));
+  return Array.from({ length: count }, (_, index) =>
+    skillRow({ playerId, skillId: 101 + index, source }),
+  );
+}
+
+/** `count` characteristic increase rows, with row ids from 901. */
+export function characteristicIncreases(
+  count: number,
+  playerId = 1,
+): PlayerSkillFixture[] {
+  return Array.from({ length: count }, (_, index) =>
+    skillRow({
+      id: playerId * 1000 + 901 + index,
+      playerId,
+      skillId: null,
+      source: 'characteristic',
+    }),
+  );
 }
 
 /** The rows each of UnspentSppService's six queries returns. */

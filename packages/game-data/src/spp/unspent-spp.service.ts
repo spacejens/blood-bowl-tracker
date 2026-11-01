@@ -48,7 +48,6 @@ interface PlayerFacts {
   isStarPlayer: boolean;
   eraId: number;
   leagueId: number;
-  characteristicIncreases: number;
 }
 
 /** A player whose total SPP is known, so their spend can be priced. */
@@ -256,7 +255,6 @@ export class UnspentSppService {
       costs,
       candidatesInput: {
         skills: data.skillsByPlayer.get(player.playerId) ?? [],
-        characteristicIncreases: player.characteristicIncreases,
         skillCategories:
           data.categoriesByRulesSet.get(rulesSetId) ??
           new Map<number, SkillCategory>(),
@@ -318,11 +316,6 @@ export class UnspentSppService {
         isStarPlayer: positions.isStarPlayer,
         eraId: teamEras.eraId,
         leagueId: eras.leagueId,
-        moveIncreaseCount: players.moveIncreaseCount,
-        strengthIncreaseCount: players.strengthIncreaseCount,
-        agilityIncreaseCount: players.agilityIncreaseCount,
-        passingIncreaseCount: players.passingIncreaseCount,
-        armourIncreaseCount: players.armourIncreaseCount,
       })
       .from(players)
       .innerJoin(positions, eq(positions.id, players.positionId))
@@ -337,12 +330,6 @@ export class UnspentSppService {
       isStarPlayer: row.isStarPlayer,
       eraId: row.eraId,
       leagueId: row.leagueId,
-      characteristicIncreases:
-        row.moveIncreaseCount +
-        row.strengthIncreaseCount +
-        row.agilityIncreaseCount +
-        row.passingIncreaseCount +
-        row.armourIncreaseCount,
     }));
   }
 
@@ -362,18 +349,23 @@ export class UnspentSppService {
         ),
       );
     const rulesSetIds = this.distinct(eraRows.map((row) => row.rulesSetId));
-    const storedRows = await this.db
+    const skillRows = await this.db
       .select({
+        id: playerAdvancements.id,
         playerId: playerAdvancements.playerId,
         skillId: playerAdvancements.skillId,
         source: playerAdvancements.source,
         isFreeExtra: playerAdvancements.isFreeExtra,
+        advancementOrder: playerAdvancements.advancementOrder,
+        orderConfirmed: playerAdvancements.orderConfirmed,
       })
       .from(playerAdvancements)
-      .where(inArray(playerAdvancements.playerId, playerIds));
-    const skillRows = storedRows.flatMap((row) =>
-      row.skillId === null ? [] : [{ ...row, skillId: row.skillId }],
-    );
+      .where(
+        and(
+          inArray(playerAdvancements.playerId, playerIds),
+          eq(playerAdvancements.removed, false),
+        ),
+      );
 
     return {
       rulesSetIdsByEra: this.group(
@@ -384,15 +376,22 @@ export class UnspentSppService {
       skillsByPlayer: this.group(
         skillRows,
         (row) => row.playerId,
-        (row) => ({
+        (row): PlayerSkillEntry => ({
+          id: row.id,
           skillId: row.skillId,
           source: row.source,
           isFreeExtra: row.isFreeExtra,
+          advancementOrder: row.advancementOrder,
+          orderConfirmed: row.orderConfirmed,
         }),
       ),
       ...(await this.loadRulesSetData(
         facts,
-        this.distinct(skillRows.map((row) => row.skillId)),
+        this.distinct(
+          skillRows.flatMap((row) =>
+            row.skillId === null ? [] : [row.skillId],
+          ),
+        ),
         rulesSetIds,
       )),
     };

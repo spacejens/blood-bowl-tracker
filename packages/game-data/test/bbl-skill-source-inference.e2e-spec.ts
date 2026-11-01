@@ -58,6 +58,8 @@ interface SeededPlayers {
   ambiguous: number;
   /** A gained skill but no unspent figure on the page. */
   unreported: number;
+  /** A gained skill and a characteristic increase. */
+  raised: number;
 }
 
 async function insertOne<T>(rows: Promise<T[]>): Promise<T> {
@@ -196,7 +198,14 @@ async function seed(db: Db): Promise<SeededPlayers> {
   await give(ambiguous, ['Block', 'Tackle']);
   const unreported = await player('Unreported');
   await give(unreported, ['Block']);
-  return { settled, ambiguous, unreported };
+  const raised = await player('Raised');
+  await give(raised, ['Tackle']);
+  await db.insert(playerAdvancements).values({
+    playerId: raised,
+    source: 'characteristic',
+    characteristic: 'ST',
+  });
+  return { settled, ambiguous, unreported, raised };
 }
 
 describe('BBL skill source inference in the closing SPP sync (real Postgres)', () => {
@@ -278,6 +287,8 @@ describe('BBL skill source inference in the closing SPP sync (real Postgres)', (
         // Spent 11: a random and a chosen primary, in either order.
         { playerId: seeded.ambiguous, scrapedTotal: 14, reportedUnspentSpp: 3 },
         { playerId: seeded.unreported, scrapedTotal: 3 },
+        // Spent 22: only a random characteristic then a random primary.
+        { playerId: seeded.raised, scrapedTotal: 25, reportedUnspentSpp: 3 },
       ],
     });
   }
@@ -296,6 +307,29 @@ describe('BBL skill source inference in the closing SPP sync (real Postgres)', (
     });
     expect(await sources(seeded.unreported)).toEqual({ Block: 'advancement' });
     expect(await storedUnspent(seeded.settled)).toBe(3);
+  });
+
+  it('counts a characteristic increase towards the spend and only rewrites the skill', async () => {
+    await sync();
+
+    expect(await sources(seeded.raised)).toEqual({ Tackle: 'random' });
+    expect(
+      await db
+        .select({
+          skillId: playerAdvancements.skillId,
+          characteristic: playerAdvancements.characteristic,
+          source: playerAdvancements.source,
+        })
+        .from(playerAdvancements)
+        .where(
+          and(
+            eq(playerAdvancements.playerId, seeded.raised),
+            eq(playerAdvancements.source, 'characteristic'),
+          ),
+        ),
+    ).toEqual([
+      { skillId: null, characteristic: 'ST', source: 'characteristic' },
+    ]);
   });
 
   it('keeps the settled sources when a re-run re-sends them as advancement', async () => {

@@ -246,7 +246,6 @@ async function seed(db: Db): Promise<SeededPlayers> {
     teamEraId: number;
     sppTotal: number;
     positionId?: number;
-    strengthIncreaseCount?: number;
   }) =>
     (
       await insertOne(
@@ -267,15 +266,28 @@ async function seed(db: Db): Promise<SeededPlayers> {
         names.map((name) => ({ playerId, skillId: skill[name], source })),
       );
 
-  // CRP: a starting skill, a gained skill and a strength increase.
+  // CRP: a starting skill, a gained skill and a strength increase. A removed
+  // increase row is no longer reported, so it is not an advancement.
   const fixedThreshold = await player({
     name: 'Fixed',
     teamEraId: fixedTeamEra,
     sppTotal: 20,
-    strengthIncreaseCount: 1,
   });
   await gained(fixedThreshold, ['Block'], 'starting');
   await gained(fixedThreshold, ['Dodge']);
+  await db.insert(playerAdvancements).values([
+    {
+      playerId: fixedThreshold,
+      source: 'characteristic',
+      characteristic: 'ST',
+    },
+    {
+      playerId: fixedThreshold,
+      source: 'characteristic',
+      characteristic: 'AG',
+      removed: true,
+    },
+  ]);
 
   // tLoEG under CRP: six table rolls and Fan Favourite as advancement 7.
   const fanFavourite = await player({
@@ -548,6 +560,55 @@ describe('UnspentSppService.forPlayers (real Postgres)', () => {
       coversAnother: 'no',
       storedVerdict: 'none_stored',
       storedUnspentSpp: null,
+    });
+  });
+
+  it('holds an increase confirmed at a number to that number', async () => {
+    // BB2020: Block as a random or chosen primary, plus one increase. In
+    // either order the spend is 22 to 26; with the increase confirmed as
+    // advancement 2, Block is advancement 1 and the spend is 23 to 26.
+    const [typed] = await db
+      .select({ teamEraId: players.teamEraId, positionId: players.positionId })
+      .from(players)
+      .where(eq(players.id, seeded.typePriced));
+    const [block] = await db
+      .select({ id: skills.id })
+      .from(skills)
+      .where(eq(skills.name, 'Block'));
+    const [raised] = await db
+      .insert(players)
+      .values({ name: 'Raised', sppTotal: 30, ...typed })
+      .returning();
+    await db.insert(playerAdvancements).values({
+      playerId: raised.id,
+      skillId: block.id,
+      source: 'advancement',
+    });
+    const [increase] = await db
+      .insert(playerAdvancements)
+      .values({
+        playerId: raised.id,
+        source: 'characteristic',
+        characteristic: 'MA',
+        advancementOrder: 2,
+      })
+      .returning();
+
+    expect(await service.forPlayer(raised.id)).toMatchObject({
+      advancementsGained: 2,
+      spentMin: 22,
+      spentMax: 26,
+    });
+
+    await db
+      .update(playerAdvancements)
+      .set({ orderConfirmed: true })
+      .where(eq(playerAdvancements.id, increase.id));
+
+    expect(await service.forPlayer(raised.id)).toMatchObject({
+      advancementsGained: 2,
+      spentMin: 23,
+      spentMax: 26,
     });
   });
 
