@@ -83,7 +83,11 @@ To run an import against production:
    Before the first command, confirm the database really is a scratch build:
    the `game_data.manual_import_batches` ledger has no rows, and
    `game_data.players`, `teams`, `coaches` and `competitions` have no rows
-   either (a read-only query against production answers it). An empty ledger
+   either (a read-only query against production answers it). The query reads
+   `DATABASE_URL` from `apps/discord-bot/.env.production`, but the importers
+   write through the deployed API, so run it from the main checkout's copy of
+   that file (the one pushed to Fly) and first confirm that copy has been
+   applied to Fly since its `DATABASE_URL` last changed. An empty ledger
    beside real data means a plain `apply` would re-import batches 001 and 002
    over later curation.
    Run the commands one at a time and read each result before starting the
