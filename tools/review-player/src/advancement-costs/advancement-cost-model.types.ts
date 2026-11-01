@@ -107,6 +107,12 @@ export interface ModelledAdvancement {
    * is confirmed, so the row sits at that number.
    */
   orderConfirmed?: boolean;
+  /**
+   * True when the row's confirmed number cannot hold: another row is pinned
+   * to the same number, it lies past the player's paid advancements, or a
+   * league house-rule skill is confirmed at a number other than its rule's.
+   */
+  orderClash?: boolean;
 }
 
 /** Why no range could be modelled, in the order they are checked. */
@@ -115,7 +121,8 @@ export type UnknownRangeReason =
   | 'no_total_spp'
   | 'no_rules_set'
   | 'no_costs'
-  | 'unpriced_advancement';
+  | 'unpriced_advancement'
+  | 'order_clash';
 
 export interface ModelledRange {
   spentMin: number;

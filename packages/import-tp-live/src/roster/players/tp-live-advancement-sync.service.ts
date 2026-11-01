@@ -33,9 +33,9 @@ export interface LivePlayerSyncOptions {
  * stored, lets TpAdvancementOrderService decide each entry's order, and
  * writes the entries. When new advancements are pending (several, or a lone
  * one while TP's spend is known), it asks AdvancementOrderDeductionService
- * which order the SPP TP reports as spent allows, reading the player's advancement inputs after the first write so
- * the new rows (and their skill categories) are part of them, and writes the
- * deduced order confirmed. Without one answer the unconfirmed write stands.
+ * which order the SPP TP reports as spent allows, reading the player's
+ * advancement inputs after the first write so the new rows (and their skill
+ * categories) are part of them, and writes the deduced order confirmed. Without one answer the unconfirmed write stands.
  */
 @Injectable()
 export class TpLiveAdvancementSyncService {

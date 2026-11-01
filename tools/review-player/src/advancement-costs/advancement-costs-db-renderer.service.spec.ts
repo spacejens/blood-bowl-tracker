@@ -217,6 +217,26 @@ describe('AdvancementCostsDbRendererService', () => {
     }
   });
 
+  it('highlights a clashing confirmed number and explains the missing range', async () => {
+    range.model.mockReturnValue({
+      ...KIND_PRICED,
+      rows: KIND_PRICED.rows.map((row) =>
+        row.label === 'Guard'
+          ? { ...row, orderConfirmed: true, orderClash: true }
+          : row,
+      ),
+      range: null,
+      unknownReason: 'order_clash',
+    });
+    figures.figureFor.mockResolvedValue(figure(20));
+
+    const html = await service.render(player);
+
+    expect(html).toContain('#1 (confirmed), clashes');
+    expect(html.match(/class="mismatch"/g)).toHaveLength(1);
+    expect(html).toContain('Confirmed advancement numbers clash');
+  });
+
   it('marks a confirmed gained skill and leaves an unconfirmed one plain', async () => {
     range.model.mockReturnValue({
       ...KIND_PRICED,

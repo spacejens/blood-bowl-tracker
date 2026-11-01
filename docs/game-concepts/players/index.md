@@ -84,9 +84,9 @@ error, and dead, retired and departed players are worked out like any other.
   it makes no sense on its own terms: negative, larger than the total
   reported beside it, or reported beside a total other than the stored one.
   It is never worked out from the range, and a figure outside the range is
-  still kept: the model does not yet know the order of advancements
-  ([#1233](https://github.com/spacejens/blood-bowl-tracker/issues/1233),
-  [#1234](https://github.com/spacejens/blood-bowl-tracker/issues/1234)),
+  still kept: the model pins only advancements whose order is confirmed and
+  treats every other order as unknown
+  ([#1234](https://github.com/spacejens/blood-bowl-tracker/issues/1234)),
   or whether a BBL skill the reported spend leaves open was rolled or chosen,
   and the stored figure is what shows the gap. A BBL figure on a rules set
   that prices by kind can still be too low when BBL priced a rolled skill as

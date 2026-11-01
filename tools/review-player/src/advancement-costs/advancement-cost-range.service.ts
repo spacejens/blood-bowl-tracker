@@ -73,7 +73,9 @@ interface PricedRow {
  * characteristic increase takes the next number not
  * already taken, in their stored order with skills and increases in one
  * sequence (unknown orders last, skills before increases); that number is
- * illustrative only.
+ * illustrative only. Confirmed numbers that cannot all hold (shared, past
+ * the paid advancements, or contradicting a house rule) flag their rows and
+ * model no range, as no order fits them on the server either.
  */
 @Injectable()
 export class AdvancementCostRangeService {
@@ -100,6 +102,9 @@ export class AdvancementCostRangeService {
     }
     if (history.costs.length === 0) {
       return { ...base, unknownReason: 'no_costs' };
+    }
+    if (rows.some((row) => row.orderClash === true)) {
+      return { ...base, unknownReason: 'order_clash' };
     }
     const spend = this.spend(history.costs, priced);
     if (spend === null) {
@@ -166,7 +171,7 @@ export class AdvancementCostRangeService {
       next += 1;
       return next - 1;
     };
-    return entries.map((entry) => {
+    return this.markClashes(entries).map((entry) => {
       if (entry.row.kind !== 'skill' && entry.row.kind !== 'characteristic') {
         return entry;
       }
@@ -184,6 +189,56 @@ export class AdvancementCostRangeService {
         },
       };
     });
+  }
+
+  /**
+   * Flags rows whose confirmed numbers cannot all hold. N paid advancements
+   * take the distinct numbers 1 to N, so a confirmed number shared with
+   * another confirmed row or a house-rule row, or one above N, leaves no
+   * order that fits, and the server's cost model then prices nothing.
+   */
+  private markClashes(entries: PricedRow[]): PricedRow[] {
+    const paidCount = entries.filter(
+      ({ row }) =>
+        row.kind === 'skill' ||
+        row.kind === 'characteristic' ||
+        row.kind === 'granted',
+    ).length;
+    const pinnedCounts = new Map<number, number>();
+    for (const { pinned } of entries) {
+      if (pinned !== undefined) {
+        pinnedCounts.set(pinned, (pinnedCounts.get(pinned) ?? 0) + 1);
+      }
+    }
+    const grantedNumbers = new Set(
+      entries.flatMap(({ row }) =>
+        row.kind === 'granted' && row.advancementNumber !== null
+          ? [row.advancementNumber]
+          : [],
+      ),
+    );
+    const clashes = ({ row, pinned }: PricedRow): boolean => {
+      if (row.orderClash === true) {
+        return true;
+      }
+      if (pinned !== undefined) {
+        return (
+          pinned > paidCount ||
+          (pinnedCounts.get(pinned) ?? 0) > 1 ||
+          grantedNumbers.has(pinned)
+        );
+      }
+      return (
+        row.kind === 'granted' &&
+        row.advancementNumber !== null &&
+        pinnedCounts.has(row.advancementNumber)
+      );
+    };
+    return entries.map((entry) =>
+      clashes(entry)
+        ? { ...entry, row: { ...entry.row, orderClash: true } }
+        : entry,
+    );
   }
 
   private skillEntry(
@@ -216,6 +271,13 @@ export class AdvancementCostRangeService {
           candidates: [
             { advancementKind: 'granted_skill', sppCost: granting.sppCost },
           ],
+          // The house rule fixes the number; a confirmed order elsewhere
+          // contradicts it.
+          ...(skill.orderConfirmed &&
+          skill.advancementOrder !== null &&
+          skill.advancementOrder !== granting.advancementNumber
+            ? { orderClash: true }
+            : {}),
         },
         kinds: [],
       };

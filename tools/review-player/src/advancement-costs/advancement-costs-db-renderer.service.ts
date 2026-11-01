@@ -27,6 +27,8 @@ const UNKNOWN_REASONS: Readonly<Record<UnknownRangeReason, string>> = {
   no_costs: 'The rules set has no advancement costs, so no range is modelled.',
   unpriced_advancement:
     'At least one advancement number has no cost row, so no range is modelled.',
+  order_clash:
+    "Confirmed advancement numbers clash: two entries are confirmed at the same number, one is confirmed past the number of paid advancements, or a league house-rule skill is confirmed at a number other than its rule's. No order of the advancements fits, so no range is modelled.",
 };
 
 const ORDER_NOTE =
@@ -109,12 +111,17 @@ export class AdvancementCostsDbRendererService {
       this.html.subheading(`Advancements (${model.rulesSetName}, ${pricing})`) +
       this.html.table(
         ['Advancement', 'Stored source', 'Number', 'Modelled cost'],
-        model.rows.map((row) => [
-          row.label,
-          row.storedSource ?? 'characteristic increase',
-          this.number(row),
-          this.cost(row),
-        ]),
+        model.rows.map((row) => {
+          const cells: TableCell[] = [
+            row.label,
+            row.storedSource ?? 'characteristic increase',
+            this.number(row),
+            this.cost(row),
+          ];
+          return row.orderClash === true
+            ? this.html.highlight(cells, [2])
+            : cells;
+        }),
       ) +
       this.html.note(
         model.range === null ? ORDER_NOTE : ORDER_NOTE + ORDER_RANGE_NOTE,
@@ -123,6 +130,11 @@ export class AdvancementCostsDbRendererService {
   }
 
   private number(row: ModelledAdvancement): string {
+    const label = this.numberLabel(row);
+    return row.orderClash === true ? `${label}, clashes` : label;
+  }
+
+  private numberLabel(row: ModelledAdvancement): string {
     if (row.advancementNumber === null) {
       return 'free';
     }

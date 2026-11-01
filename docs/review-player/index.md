@@ -375,7 +375,10 @@ keywords, player status, and advancement costs with unspent SPP.
      characteristic increases are listed together in their stored order,
      which is unverified unless an entry is marked `(confirmed)`; a
      confirmed skill or increase sits at its confirmed number, as the server
-     cost model pins it, and the other rows fill the numbers around it. An
+     cost model pins it, and the other rows fill the numbers around it.
+     Confirmed numbers that cannot all hold (two at one number, one past the
+     paid advancements, or one contradicting a house rule) are highlighted
+     as clashing and no range is modelled, since no order fits them. An
      increase with no stored order is marked `(order unknown)` and listed
      last. A footer gives the stored total, the
      modelled spend and unspent ranges, and beside them the source's reported

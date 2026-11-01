@@ -480,7 +480,10 @@ describe('AdvancementCostRangeService', () => {
     });
   });
 
-  it('keeps a confirmed number even when fewer advancements fill the gap', () => {
+  const clashing = (model: ReturnType<AdvancementCostRangeService['model']>) =>
+    model.rows.flatMap((row) => (row.orderClash === true ? [row.label] : []));
+
+  it('models no range when a confirmed number lies past the paid advancements', () => {
     const model = service.model(
       history({
         skills: [{ ...skill('Block', 'advancement'), advancementOrder: 1 }],
@@ -496,6 +499,89 @@ describe('AdvancementCostRangeService', () => {
         ['+ST', 3],
       ],
     );
+    expect(clashing(model)).toEqual(['+ST']);
+    expect(model.range).toBeNull();
+    expect(model.unknownReason).toBe('order_clash');
+  });
+
+  it('models no range when two entries are confirmed at the same number', () => {
+    const model = service.model(
+      history({
+        skills: [
+          {
+            ...skill('Block', 'advancement'),
+            advancementOrder: 1,
+            orderConfirmed: true,
+          },
+          {
+            ...skill('Dodge', 'advancement'),
+            advancementOrder: 2,
+            orderConfirmed: true,
+          },
+        ],
+        increases: [
+          { characteristic: 'AG', advancementOrder: 2, orderConfirmed: true },
+        ],
+      }),
+    );
+
+    expect(clashing(model)).toEqual(['Dodge', '+AG']);
+    expect(model.range).toBeNull();
+    expect(model.unknownReason).toBe('order_clash');
+  });
+
+  it('models no range when an entry is confirmed at a house-rule number', () => {
+    const model = service.model(
+      history({
+        costs: [...CRP, { ...FAN_FAVOURITE, advancementNumber: 2 }],
+        skills: [
+          { ...skill('Guard', 'advancement', FAN_FAVOURITE_ID) },
+          { ...skill('Block', 'advancement'), advancementOrder: 1 },
+        ],
+        increases: [
+          { characteristic: 'AG', advancementOrder: 2, orderConfirmed: true },
+        ],
+      }),
+    );
+
+    expect(clashing(model)).toEqual(['Guard', '+AG']);
+    expect(model.unknownReason).toBe('order_clash');
+  });
+
+  it('models no range when a house-rule skill is confirmed at another number', () => {
+    const model = service.model(
+      history({
+        costs: [...CRP, FAN_FAVOURITE],
+        skills: [
+          {
+            ...skill('Guard', 'advancement', FAN_FAVOURITE_ID),
+            advancementOrder: 1,
+            orderConfirmed: true,
+          },
+        ],
+      }),
+    );
+
+    expect(clashing(model)).toEqual(['Guard']);
+    expect(model.unknownReason).toBe('order_clash');
+  });
+
+  it('accepts a house-rule skill confirmed at its own number', () => {
+    const model = service.model(
+      history({
+        costs: [...CRP, FAN_FAVOURITE],
+        skills: [
+          {
+            ...skill('Guard', 'advancement', FAN_FAVOURITE_ID),
+            advancementOrder: 7,
+            orderConfirmed: true,
+          },
+        ],
+      }),
+    );
+
+    expect(clashing(model)).toEqual([]);
+    expect(model.unknownReason).toBeNull();
   });
 
   it('pins a confirmed skill to its order and numbers the rest around it', () => {
