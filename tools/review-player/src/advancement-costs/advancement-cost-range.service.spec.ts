@@ -408,6 +408,7 @@ describe('AdvancementCostRangeService', () => {
       storedSource: null,
       advancementNumber: 2,
       candidates: [{ advancementKind: 'random_characteristic', sppCost: 20 }],
+      increaseOrder: { known: false, confirmed: false },
     });
     expect(model.range).toEqual({
       spentMin: 7,
@@ -435,6 +436,21 @@ describe('AdvancementCostRangeService', () => {
         ['Block', 3],
       ],
     );
+  });
+
+  it('carries a stored increase order and its confirmation onto the row', () => {
+    const model = service.model(
+      history({
+        increases: [
+          { characteristic: 'AG', advancementOrder: 1, orderConfirmed: true },
+        ],
+      }),
+    );
+
+    expect(model.rows[0].increaseOrder).toEqual({
+      known: true,
+      confirmed: true,
+    });
   });
 
   it('puts unknown-order entries last, skills before increases', () => {

@@ -256,6 +256,10 @@ export class AdvancementCostRangeService {
         storedSource: null,
         advancementNumber: null,
         candidates: [],
+        increaseOrder: {
+          known: increase.advancementOrder !== null,
+          confirmed: increase.orderConfirmed,
+        },
       },
       kinds: fixedThresholds ? ['table_roll'] : ['random_characteristic'],
     };

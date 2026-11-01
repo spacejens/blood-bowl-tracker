@@ -30,7 +30,7 @@ const UNKNOWN_REASONS: Readonly<Record<UnknownRangeReason, string>> = {
 };
 
 const ORDER_NOTE =
-  'Gained skills and characteristic increases are listed in their stored order, which is unverified unless marked confirmed. The numbers shown are one possible order.';
+  'Gained skills and characteristic increases are listed in their stored order, which is unverified unless marked confirmed; an increase without a stored order is marked order unknown. The numbers shown are one possible order.';
 
 const ORDER_RANGE_NOTE =
   ' The modelled range in the next table holds for any order and any kind.';
@@ -125,6 +125,15 @@ export class AdvancementCostsDbRendererService {
   private number(row: ModelledAdvancement): string {
     if (row.advancementNumber === null) {
       return 'free';
+    }
+    if (row.increaseOrder !== undefined) {
+      const order = row.increaseOrder;
+      if (!order.known) {
+        return `#${row.advancementNumber} (order unknown)`;
+      }
+      return order.confirmed
+        ? `#${row.advancementNumber} (confirmed)`
+        : `#${row.advancementNumber}`;
     }
     if (row.kind === 'granted') {
       return `#${row.advancementNumber} (fixed by league house rule)`;

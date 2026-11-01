@@ -11,8 +11,8 @@ const NONE = '—';
  * BBL's own view of a player's SPP spending: both figures of the page's
  * "Unspent SPP" row (the reported figure, which can be negative, and the
  * career total in brackets), the gained skills and
- * `+MA`/`+ST`/`+AG`/`+PA`/`+AV` increases in one page-order list — all read through the same `source/`
- * services the imported panel compares against. BBL records nothing about
+ * `+MA`/`+ST`/`+AG`/`+PA`/`+AV` increases in one page-order list — all read
+ * through the same `source/` services the imported panel compares against. BBL records nothing about
  * how a skill was gained, which the panel says in words.
  */
 @Injectable()

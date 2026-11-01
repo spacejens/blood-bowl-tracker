@@ -64,6 +64,7 @@ const KIND_PRICED: UnspentSppModel = {
       storedSource: null,
       advancementNumber: 2,
       candidates: [{ advancementKind: 'random_characteristic', sppCost: 20 }],
+      increaseOrder: { known: true, confirmed: false },
     },
   ],
   totalSpp: 40,
@@ -180,6 +181,40 @@ describe('AdvancementCostsDbRendererService', () => {
     expect(html).toContain(
       'The modelled range in the next table holds for any order and any kind.',
     );
+  });
+
+  it.each([
+    [
+      'an ordered, unconfirmed increase',
+      { known: true, confirmed: false },
+      '#2</td>',
+    ],
+    [
+      'an increase without a stored order',
+      { known: false, confirmed: false },
+      '#2 (order unknown)',
+    ],
+    [
+      'a confirmed increase',
+      { known: true, confirmed: true },
+      '#2 (confirmed)',
+    ],
+  ])('marks the order of %s', async (_name, increaseOrder, expected) => {
+    range.model.mockReturnValue({
+      ...KIND_PRICED,
+      rows: KIND_PRICED.rows.map((row) =>
+        row.kind === 'characteristic' ? { ...row, increaseOrder } : row,
+      ),
+    });
+    figures.figureFor.mockResolvedValue(figure(20));
+
+    const html = await service.render(player);
+
+    expect(html).toContain(`characteristic increase</td><td>${expected}`);
+    if (expected === '#2</td>') {
+      expect(html).not.toContain('(order unknown)');
+      expect(html).not.toContain('(confirmed)');
+    }
   });
 
   it.each([

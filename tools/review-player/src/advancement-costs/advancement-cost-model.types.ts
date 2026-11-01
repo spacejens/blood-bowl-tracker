@@ -95,6 +95,11 @@ export interface ModelledAdvancement {
   advancementNumber: number | null;
   /** Costs it could have had at that number; empty for a free row. */
   candidates: CandidateCost[];
+  /**
+   * Set on a characteristic row only: whether its stored order is known, and
+   * whether that order is confirmed as the real sequence.
+   */
+  increaseOrder?: { known: boolean; confirmed: boolean };
 }
 
 /** Why no range could be modelled, in the order they are checked. */
