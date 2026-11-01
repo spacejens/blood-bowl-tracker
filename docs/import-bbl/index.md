@@ -326,7 +326,11 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   of the player's events to recover the unexplained remainder as
   `spp_adjustment`, then rebuilds `spp_total` as the era-correct event sum plus
   that adjustment. Runs after match events, since it depends on
-  `match_events.spp_value` already being populated.
+  `match_events.spp_value` already being populated. A player whose skills were
+  not all written (a skill whose upsert failed, or every player when a skill
+  sync failed) is sent without BBL's unspent figure, so the server does not
+  settle a skill's source from an incomplete history; the figure returns on the
+  next run that writes every skill.
 - **TrophyAwardsModule** — `BblTrophyAwardsImportService` records every team
   and player award from the competition results pages' trophy tables (read via
   the already-described `CompetitionTrophyPageParser` /

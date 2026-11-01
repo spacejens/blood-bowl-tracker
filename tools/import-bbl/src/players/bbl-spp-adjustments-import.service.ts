@@ -30,7 +30,11 @@ export interface BblScrapedSpp {
  *
  * BBL's unspent figure goes along when the page has one; the server stores it
  * only under rules sets that price by kind, and only when it fits the
- * bracketed total from the same row.
+ * bracketed total from the same row. It is left out for a player whose skills
+ * were not all written (`incompletePlayerIds`): the server settles a skill's
+ * source from that figure against the stored skills, and an incomplete history
+ * could make a wrong source fit. The player's total still goes along, and the
+ * figure returns on the next run that writes every skill.
  */
 @Injectable()
 export class BblSppAdjustmentsImportService {
@@ -41,6 +45,7 @@ export class BblSppAdjustmentsImportService {
 
   async importSppAdjustments(
     scrapedSppByPlayerId: Map<number, BblScrapedSpp>,
+    incompletePlayerIds: ReadonlySet<number> = new Set(),
   ): Promise<{ result: ImportResult }> {
     const errors: ImportError[] = [];
     let imported = 0;
@@ -49,7 +54,9 @@ export class BblSppAdjustmentsImportService {
       ([playerId, { scrapedTotal, reportedUnspentSpp }]) => ({
         playerId,
         scrapedTotal,
-        ...(reportedUnspentSpp === null ? {} : { reportedUnspentSpp }),
+        ...(reportedUnspentSpp === null || incompletePlayerIds.has(playerId)
+          ? {}
+          : { reportedUnspentSpp }),
       }),
     );
 

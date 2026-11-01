@@ -125,7 +125,10 @@ async function run(): Promise<ImportResult> {
     // server to settle `players.unspent_spp`.
     const sppAdjustmentsOutcome = await app
       .get(BblSppAdjustmentsImportService)
-      .importSppAdjustments(playerOutcome.scrapedSppByPlayerId);
+      .importSppAdjustments(
+        playerOutcome.scrapedSppByPlayerId,
+        playerSkillsOutcome.incompletePlayerIds,
+      );
 
     // Also runs after the match-events step, and for the same structural
     // reason: it recomputes each freshly-inserted player's accumulated
