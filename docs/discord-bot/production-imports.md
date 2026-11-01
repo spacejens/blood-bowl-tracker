@@ -79,7 +79,10 @@ To run an import against production:
    The second BBL and TP run is part of the sequence: both importers read the
    advancement costs in batch 004, which exist only once the remaining batches
    are applied (see
-   [import-manual batches](../import-manual/batches.md#operating-procedure)):
+   [import-manual batches](../import-manual/batches.md#operating-procedure)).
+   Run each command only after the previous one succeeded; if a command fails,
+   resolve the failure before running the next one, including the second BBL
+   and TP passes:
 
    ```bash
    ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js apply 001-initial-seed )
