@@ -325,7 +325,7 @@ describe('fix_bbl_windows_1252_text migration (real Postgres)', () => {
     ).toEqual(["Ogre's Den"]);
   });
 
-  it('gives a spelling two old ids fold to only to the lower-id row', async () => {
+  it('gives a spelling two old ids fold to only to the id registered first', async () => {
     await runFix(db);
 
     expect(await teamName(db, seeded.twinLeft)).toBe("Twin's");
@@ -406,9 +406,29 @@ describe('fix_bbl_windows_1252_text migration (real Postgres)', () => {
     const snapshot = async () => ({
       sydow: await teamIds(db, seeded.sydow, seeded.nameSystemId),
       ogre: await teamIds(db, seeded.ogreBroken, seeded.nameSystemId),
+      twinLeft: await teamIds(db, seeded.twinLeft, seeded.nameSystemId),
       twin: await teamIds(db, seeded.twinRight, seeded.nameSystemId),
+      teamNames: await Promise.all(
+        [
+          seeded.sydow,
+          seeded.ogreBroken,
+          seeded.twinLeft,
+          seeded.twinRight,
+        ].map((id) => teamName(db, id)),
+      ),
+      teamVersions: (
+        await db
+          .select({ id: teams.id, version: teams.historyVersion })
+          .from(teams)
+          .orderBy(teams.id)
+      ).map((team) => [team.id, team.version]),
+      position: await positionRow(db, seeded.blitzer),
+      players: await Promise.all(
+        [seeded.snikk, seeded.zuolas].map((id) => playerName(db, id)),
+      ),
       favoured: await skillRow(db, seeded.favoured),
       euro: await coachRow(db, seeded.euroCoach),
+      undefinedByte: await coachRow(db, seeded.undefinedByteCoach),
       history: await sydowHistoryRows(db, seeded.sydow),
     });
     await runFix(db);

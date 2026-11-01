@@ -167,12 +167,12 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   classifies files by page type (`p=` param) and streams pages one at a time
   (`pages(type)`), keeping memory bounded; listing the data folder and
   decoding Windows-1252 are delegated to `packages/read-bbl-mirror`, shared with
-  the review tools. `NormalizeExtractedTextService` cleans the text the page
-  parsers extract: it collapses whitespace (non-breaking spaces included) and
-  folds curly single and double quotes to `'` and `"`, so a BBL name equals
-  the same straight-quoted name from TP and the curated data, as Name external
-  IDs require. Dashes and ellipses are kept. This is the pattern future data
-  types reuse.
+  the review tools. This is the pattern future data types reuse.
+  `NormalizeExtractedTextService` cleans the text the page parsers extract: it
+  collapses whitespace (non-breaking spaces included) and folds curly single
+  and double quotes to `'` and `"`, so a BBL name equals the same
+  straight-quoted name from TP and the curated data, as Name external IDs
+  require. Dashes and ellipses are kept.
 - **CoachesModule** — first data-type extractor. `CoachPageParser` reads a
   coach from a team page; `BblCoachesImportService` streams team pages,
   deduplicates coaches by exact name, and upserts each through the API.

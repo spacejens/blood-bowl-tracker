@@ -42,7 +42,7 @@ END $$;
 -- from the row's name, because some Name ids are not the bare name (a
 -- position's is "<race>: <position>"). The insert is skipped when any row
 -- already holds the corrected spelling, and when two old spellings fold to
--- the same new one only the lower-id row gets it, so the unique
+-- the same new one only the external id registered first gets it, so the unique
 -- (external_system_id, external_id) key is never violated and no two rows
 -- are merged. A plain INSERT, never ON CONFLICT: see "History tracking" in
 -- docs/database.md. The character mapping is the same as in the statement

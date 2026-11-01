@@ -25,7 +25,9 @@ const CURLY_DOUBLE_QUOTES = /[“”„‟]/g;
  * BBL's Windows-1252 pages write apostrophes and quotes curly, while the
  * curated data and most TP names use straight ones, and Name external ids are
  * matched by exact string across sources. Dashes and ellipses are kept as
- * decoded.
+ * decoded. The `fix_bbl_windows_1252_text` migration applies the same quote
+ * folding to stored values, so a change to the folding here needs a new data
+ * migration for the rows already stored.
  */
 @Injectable()
 export class NormalizeExtractedTextService {
