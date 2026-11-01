@@ -28,15 +28,16 @@ A [player](../../glossary.md#player) is an individual on a [team era](../team-er
   every reduction ever suffered. A reduction the rules absorbed, because the
   characteristic was already at its floor or at the rules' cap on reductions,
   moved nothing and counts zero.
-- A player also has a set of **characteristic increase counts**: how many
-  times each of their five characteristics has been
-  increased by an advancement. These are plain counts rather than per-increase
-  records, because neither source publishes a reliable per-increase event: TP
-  never records characteristic increases at all (they are only inferable by
+- A player's **characteristic increases** are recorded one by one, as
+  [advancements](../../glossary.md#characteristic-increase) beside their
+  gained skills, each naming the characteristic it raised. An increase carries
+  its place among the player's advancements where a source knows it and no
+  place otherwise (see [advancement order](../skills/index.md#player-skills)).
+  Neither source publishes a per-increase event: BBL lists them in its
+  advancement list, and TP never records them, so they are inferred by
   diffing a player's current characteristics against their position's
-  baseline), and BBL's ordered advancement list would cover only a minority of
-  the data. Zero is a permanently legitimate "never increased", not a
-  placeholder.
+  baseline. The [deepdive](../../discord-bot/slash-commands/deepdive-embeds-player.md#skills)
+  shows them on its Advancements line.
 - A player has a set of **skills**, recorded individually rather than implied
   by their position — see [skills](../skills/index.md). Every skill a player
   has is recorded, starting skills included, each tagged with how they came by
@@ -59,9 +60,10 @@ error, and dead, retired and departed players are worked out like any other.
   history rarely pins both down. BBL does not say whether a gained skill was
   rolled or chosen; the import works it out where it can (see **Chosen or
   random on BBL** below).
-  Characteristic increases are counts with no order
-  ([#1233](https://github.com/spacejens/blood-bowl-tracker/issues/1233)).
-  The recorded skill order is unverified, so it is ignored
+  Characteristic increases are advancements of their own kind, and an entry
+  whose order is confirmed is pinned to its number while every other entry
+  stays interchangeable. The recorded skill order is unverified, so it is
+  ignored
   ([#1234](https://github.com/spacejens/blood-bowl-tracker/issues/1234)).
   Whether a skill was primary or secondary comes from the position's
   [skill categories](../skills/index.md#primary-and-secondary-categories); a

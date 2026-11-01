@@ -249,9 +249,11 @@ unique per `(rules_set_id, advancement_number, advancement_kind)`.
 much of a player's SPP is unspent (see
 [players](game-concepts/players/index.md#unspent-spp)). It tries each rules
 set the player's era lists, using that rules set's rows plus the player's
-league's rows. It has no RPC route.
+league's rows, and reads the player's characteristic increases as advancement
+rows, pinning each entry whose order is confirmed to its advancement number
+(see below). It has no RPC route.
 `BblSkillSourceInferenceService` reads the same rows, in the BBL SPP
-adjustment sync, to record a gained skill's `player_skills.source` as
+adjustment sync, to record a gained skill's `player_advancements.source` as
 `chosen` or `random` when the spend BBL reports allows only one (see
 [players](game-concepts/players/index.md#unspent-spp)). Only rows still
 recorded `advancement` are rewritten. The skill sync keeps a stored `chosen`
@@ -275,7 +277,7 @@ costs, era rules sets, skill categories, position access) or the model code
 changes; it refreshes the next time the player is imported. Rows that existed
 before the column was added stay NULL until the next import.
 
-`player_skills.is_free_extra` marks a gained skill that cost no SPP and is
+`player_advancements.is_free_extra` marks a gained skill that cost no SPP and is
 not one of the player's advancements (see
 [skills](game-concepts/skills/index.md#player-skills)); the cost model prices
 it at 0 and leaves it out of the advancement count. `PlayerSkillsService`
@@ -287,6 +289,30 @@ ever set the flag. Changing or clearing an existing award's granted skill
 unmarks that skill's rows for the winner, unless it is Hatred or another award
 of the same player still grants it. The migration that added it backfilled both
 server rules over the existing rows.
+
+`player_advancements` holds everything a player has been given: starting
+skills, gained skills, free extras and characteristic increases. A
+characteristic increase is a row whose `source` is `characteristic`, with its
+`characteristic` column (MA, ST, AG, PA or AV) set and no skill, attribute
+value or free-extra flag; a check keeps `source = 'characteristic'` and the
+two columns in step. A player can take the same characteristic more than
+once, so no uniqueness applies to those rows, while skill rows stay unique per
+player, skill and attribute value (two partial unique indexes, one for rows
+with an attribute value and one for rows without).
+
+`advancement_order` is nullable and is one numbering shared by gained skills
+and increases over the player's _paid_ advancements; free extras and starting
+skills take no number. Null means the order is unknown. `order_confirmed`
+marks an order that is trusted rather than a presentation proxy (a check
+requires an order for it); the cost model pins only confirmed entries to
+their advancement number, and every other entry is interchangeable with the
+rest. A sync never lets an unconfirmed incoming order overwrite a confirmed
+stored one. A row tracked by history cannot be deleted, so an increase a
+source stops reporting is flagged `removed` instead (only characteristic rows
+may be); readers leave removed rows out. The migration that introduced
+characteristic rows backfilled one row of unknown order per unit of the five
+`*_increase_count` columns it then dropped from `players`, so the rows are the
+only record of increases.
 
 The costs are curated by `tools/import-manual` in batch 004 (see
 [batches](import-manual/batches.md)): fixed thresholds of 6, 16, 31, 51, 76

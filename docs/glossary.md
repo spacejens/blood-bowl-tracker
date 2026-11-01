@@ -12,6 +12,10 @@ Entries are split into two sections: terms a [coach](#coach) directly encounters
 
 A permanent improvement a [player](#player) gains — a new [skill](#skill) or a characteristic increase — paid for with [SPP](#star-player-points-spp). Each [rules set](#rules-set) prices advancements in its own way; the tracker records the SPP cost of each successive advancement per rules set, and per kind of advancement where the rules set prices them by type, plus any extra advancements a league's house rules add for its players (see [database.md](database.md#star-player-points)).
 
+### Advancement order
+
+The position of an [advancement](#advancement) in the sequence a [player](#player) gained them, shared by gained skills and characteristic increases. It is unknown for some entries, and otherwise either a proxy taken from how a source lists them or confirmed as the real sequence; only a confirmed order affects what the advancements are priced at (see [skills](game-concepts/skills/index.md#player-skills)).
+
 ### Apothecary
 
 Team staff who can be called upon during a [match](#match) to attempt to heal or reduce the severity of an injury that would otherwise be a [casualty](#casualty). See also [regeneration](#regeneration), a similar effect rolled on the [player](#player)'s own skill rather than provided by team staff.
@@ -25,6 +29,10 @@ See [game-concepts/coaches](game-concepts/coaches/index.md).
 ### Casualty
 
 A player who has been seriously injured or killed during a match, removing them from the current game and potentially affecting future matches.
+
+### Characteristic increase
+
+An [advancement](#advancement) that raises one of a [player](#player)'s [characteristics](#characteristics) by one. Each increase is recorded individually, with its [advancement order](#advancement-order) where known.
 
 ### Characteristics
 

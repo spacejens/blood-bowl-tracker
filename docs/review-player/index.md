@@ -106,7 +106,7 @@ keywords, player status, and advancement costs with unspent SPP.
        predates the import, so this stratum is what makes that step
        observable.
    12. **Starting skills differ from position** — a player whose stored
-       `player_skills` rows tagged `starting` do not match, as a skill-id set,
+       `player_advancements` rows tagged `starting` do not match, as a skill-id set,
        the skills their position carries under the era's last-listed rules
        set. A starting skill set is copied from the position, so a difference
        is either a mis-parsed player page or a position whose own skills are
@@ -284,7 +284,7 @@ keywords, player status, and advancement costs with unspent SPP.
        only and never compared against anything, since an injury and an
        advancement on the same characteristic cancel out in the same diff.
 
-     Right: every stored `player_skills` row for the player, resolved against
+     Right: every stored `player_advancements` row for the player, resolved against
      the era's last-listed rules set the same way the stratification service
      does. A starting row is always plain; a gained row takes the dice marker
      when its stored source is `random` and the diamond when the skill is
@@ -366,7 +366,7 @@ keywords, player status, and advancement costs with unspent SPP.
      pay the characteristic price; that is not modelled, so a skill is never
      priced as `random_characteristic`, and a player whose reported spend can
      only be explained that way is listed. Starting skills and a skill
-     stored as a free extra (`player_skills.is_free_extra`: a gained Hatred,
+     stored as a free extra (`player_advancements.is_free_extra`: a gained Hatred,
      a skill TP flags `isExtra`, or Gudarnas Förkämpe's mutation) cost 0 and
      take no number; a skill a league house rule grants (tLoEG's Fan
      Favourite) shows as that rule's advancement with its cost. Gained skills and
@@ -394,7 +394,7 @@ keywords, player status, and advancement costs with unspent SPP.
      the stored unspent SPP is checked instead. A note says that gaps in the
      recorded advancement history can explain a reported spend above the
      range. The cost check reads `advancement_costs`, `players`,
-     `player_skills`, the era, rules set and league chain
+     `player_advancements`, the era, rules set and league chain
      (`team_eras`, `eras`, `era_rules_sets`, `rules_sets`), `positions`,
      `skills`, `skill_rules_sets`, `position_rules_sets` and
      `position_rules_set_skill_categories`, all through `packages/db`.

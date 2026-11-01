@@ -310,7 +310,7 @@ A star player hired mid-season through an `inducements_roll` event has no `lineU
 - `TpRosterPlayerSkillsService` (in `packages/import-tp-live`) writes each roster player's own skills in the same `tpRosters.import` call, naming each skill from the skill masters the roster file itself embeds; an id the file does not name resolves through a skill already carrying it as a TP external id.
 - A roster player's `lineUpMaster.skills` are their starting skills; their own `skills` are the ones gained via advancement, mapped to `random`/`chosen` via TP's `isRandom` flag, with `advancementOrder` set to each skill's 1-based index in that array. A gained skill TP flags `isExtra` is recorded as a free extra.
 - A match-embedded-only (departed) player gets no skills at all: their only surviving data is the flat bare-id list described above, with no starting/gained split, no `isRandom`, and no attribute values.
-- Characteristic-increase counts are derived the same way BBL's are: diffing converted characteristics against the position's stored values under the era's rules set, adding back outstanding reductions.
+- Characteristic increases are derived the same way BBL's are: diffing converted characteristics against the position's stored values under the era's rules set, adding back outstanding reductions. The bulk import sends them as characteristic entries with unknown order, one per increase.
 
 ### Hired stars, player facts and mercenary availability
 
