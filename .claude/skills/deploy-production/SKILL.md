@@ -497,7 +497,7 @@ This is the scratch-build sequence (see `docs/import-manual/batches.md`, "Operat
    ```bash
    cmp -s "<main-root>/apps/discord-bot/.env.production" apps/discord-bot/.env.production && echo SAME || echo DIFFERENT
    ```
-   Skip the comparison when `mainRoot` is this worktree itself. On `DIFFERENT`, stop this section: the guard could be reading a database other than the one the deployed API uses. Tell the developer the worktree's copy differs from the main checkout's and ask them to reconcile it; do not overwrite or edit it yourself. Write this query to a scratch file with the `Write` tool and pipe it in, as that section's step 3 describes:
+   Skip the comparison when `mainRoot` is this worktree itself. On `DIFFERENT`, stop this section: the guard could be reading a database other than the one the deployed API uses. Tell the developer the worktree's copy differs from the main checkout's and ask them to reconcile it; do not overwrite or edit it yourself. Matching files still do not prove the deployed API uses that `DATABASE_URL`, since a change may never have been applied to Fly, so also ask the developer with `AskUserQuestion` (single-select, `header` `Fly config`) "Has the main checkout's `apps/discord-bot/.env.production` been applied to Fly (\"Apply production configuration\") since its `DATABASE_URL` last changed?", with the options **Yes, it is applied** and **Not sure or not applied**. On the second, stop this section and suggest the \"Apply production configuration\" action first. Write this query to a scratch file with the `Write` tool and pipe it in, as that section's step 3 describes:
    ```sql
    select to_regclass('game_data.manual_import_batches') as ledger_table
    ```
