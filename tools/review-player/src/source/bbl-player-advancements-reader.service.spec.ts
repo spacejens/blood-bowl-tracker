@@ -16,6 +16,7 @@ const ADVANCEMENTS = {
       advancementOrder: null,
     },
   ],
+  increases: [],
   increaseCounts: {
     move: 0,
     strength: 0,

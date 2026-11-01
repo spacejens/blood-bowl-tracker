@@ -269,7 +269,9 @@ keywords, player status, and advancement costs with unspent SPP.
        row. The import infers random or chosen from the SPP the page reports
        as spent where only one answer fits, so the imported panel can show the
        dice marker for a BBL player; this raw panel cannot. It also shows
-       BBL's own `+MA`/`+ST`/`+AG`/`+PA`/`+AV` characteristic increase counts.
+       BBL's own `+MA`/`+ST`/`+AG`/`+PA`/`+AV` characteristic increase
+       markers, each with its place among the player's advancements (gained
+       skills and increases share one numbering).
      - TP's roster file gives the position template's skills as starting and
        the line-up entry's own skills as gained, each gained skill carrying
        `isRandom` and `isElite` where TP recorded them (a skill with no
@@ -292,13 +294,16 @@ keywords, player status, and advancement costs with unspent SPP.
      skill missing from the raw source, or a raw skill nothing was stored for,
      is highlighted and says so in words. This comparison is presence-only: it
      does not check that a skill's source (starting vs. gained) or its order
-     among the source's own list agrees with what was stored. The five stored
-     increase-count columns are compared against BBL's own counts for a BBL-sourced player
-     only: TP publishes no comparable counts at all (its raw panel already
-     shows a derived template diff instead), and the TP importer derives these
-     columns itself from the same kind of comparison against the position's
-     baseline, so comparing them there would only check one derivation
-     against another, not against the source.
+     among the source's own list agrees with what was stored. The stored
+     characteristic increases (`player_advancements` rows, removed ones left
+     out) are listed in stored order with their order and whether it is
+     confirmed. For a BBL-sourced player each is checked against the raw
+     markers: it must match one of the same characteristic at the same place
+     among the advancements, so both the count and the relative order are
+     verified; a stored increase with no marker, and a marker with no stored
+     increase, are highlighted and say so in words. TP publishes no markers
+     (its raw panel already shows a derived template diff instead), so a TP
+     player's increases are listed without a comparison.
 
    - **player-keywords** — a player carries no keywords of their own; they
      come from the player's _position_, so this panel pair differs in shape

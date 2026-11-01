@@ -14,6 +14,7 @@ import type { SampledPlayer } from '../shared/review.types';
 import { BblPlayerAdvancementsReaderService } from '../source/bbl-player-advancements-reader.service';
 import { TpRawPlayerSkillsIndexService } from '../source/tp-raw-player-skills-index.service';
 import { PlayerAdvancementsDbRendererService } from './player-advancements-db-renderer.service';
+import { PlayerIncreasesDbRendererService } from './player-increases-db-renderer.service';
 
 const player: SampledPlayer = {
   source: 'bbl',
@@ -29,11 +30,6 @@ const player: SampledPlayer = {
 const playerRow = {
   positionId: 3,
   eraId: 10,
-  moveIncreaseCount: 0,
-  strengthIncreaseCount: 0,
-  agilityIncreaseCount: 0,
-  passingIncreaseCount: 0,
-  armourIncreaseCount: 0,
 };
 
 const rulesSetRow = { rulesSetId: 100, rulesSetName: 'BB2020' };
@@ -42,9 +38,12 @@ async function makeService(dbResult: MockDbResult): Promise<{
   service: PlayerAdvancementsDbRendererService;
   bbl: MockProxy<BblPlayerAdvancementsReaderService>;
   tp: MockProxy<TpRawPlayerSkillsIndexService>;
+  increases: MockProxy<PlayerIncreasesDbRendererService>;
 }> {
   const bbl = mock<BblPlayerAdvancementsReaderService>();
   const tp = mock<TpRawPlayerSkillsIndexService>();
+  const increases = mock<PlayerIncreasesDbRendererService>();
+  increases.render.mockResolvedValue('');
   bbl.read.mockResolvedValue(null);
   tp.advancementsFor.mockResolvedValue(null);
   const moduleRef = await Test.createTestingModule({
@@ -53,6 +52,7 @@ async function makeService(dbResult: MockDbResult): Promise<{
       { provide: DB, useValue: dbResult.db },
       { provide: BblPlayerAdvancementsReaderService, useValue: bbl },
       { provide: TpRawPlayerSkillsIndexService, useValue: tp },
+      { provide: PlayerIncreasesDbRendererService, useValue: increases },
       HtmlService,
       SkillFormatService,
     ],
@@ -61,6 +61,7 @@ async function makeService(dbResult: MockDbResult): Promise<{
     service: moduleRef.get(PlayerAdvancementsDbRendererService),
     bbl,
     tp,
+    increases,
   };
 }
 
@@ -186,6 +187,7 @@ describe('PlayerAdvancementsDbRendererService', () => {
           advancementOrder: null,
         },
       ],
+      increases: [],
       increaseCounts: {
         move: 0,
         strength: 0,
@@ -222,6 +224,7 @@ describe('PlayerAdvancementsDbRendererService', () => {
     );
     bbl.read.mockResolvedValue({
       skills: [],
+      increases: [],
       increaseCounts: {
         move: 0,
         strength: 0,
@@ -273,6 +276,7 @@ describe('PlayerAdvancementsDbRendererService', () => {
           advancementOrder: null,
         },
       ],
+      increases: [],
       increaseCounts: {
         move: 0,
         strength: 0,
@@ -301,6 +305,7 @@ describe('PlayerAdvancementsDbRendererService', () => {
           advancementOrder: 1,
         },
       ],
+      increases: [],
       increaseCounts: {
         move: 0,
         strength: 0,
@@ -342,6 +347,7 @@ describe('PlayerAdvancementsDbRendererService', () => {
           advancementOrder: null,
         },
       ],
+      increases: [],
       increaseCounts: {
         move: 0,
         strength: 0,
@@ -402,47 +408,16 @@ describe('PlayerAdvancementsDbRendererService', () => {
     expect(html).toContain('in the raw source only');
   });
 
-  it('highlights a stored increase count that disagrees with the BBL page', async () => {
-    const { service, bbl } = await makeService(
-      mockDb([{ ...playerRow, agilityIncreaseCount: 0 }], [rulesSetRow], []),
+  it('renders the increases section through the increases renderer', async () => {
+    const { service, increases } = await makeService(
+      mockDb([playerRow], [rulesSetRow], []),
     );
-    bbl.read.mockResolvedValue({
-      skills: [],
-      increaseCounts: {
-        move: 0,
-        strength: 0,
-        agility: 2,
-        passing: 0,
-        armour: 0,
-      },
-    });
+    increases.render.mockResolvedValue('<p>INCREASES</p>');
 
     const html = await service.render(player);
 
-    expect(html).toContain('mismatch-cell');
-  });
-
-  it('never flags increase counts for a TP-sourced player', async () => {
-    const { service, tp } = await makeService(
-      mockDb([playerRow], [rulesSetRow], []),
-    );
-    tp.advancementsFor.mockResolvedValue({
-      startingSkills: [],
-      gainedSkills: [],
-      characteristicDiffs: {
-        move: 0,
-        strength: 1,
-        agility: 0,
-        passing: 0,
-        armour: 0,
-      },
-      hasTemplate: true,
-    });
-
-    const html = await service.render({ ...player, source: 'tp' });
-
-    expect(html).toContain('TP publishes no advancement counts');
-    expect(html).not.toContain('mismatch-cell');
+    expect(html).toContain('<p>INCREASES</p>');
+    expect(increases.render).toHaveBeenCalledWith(player);
   });
 
   it('renders a note when the player row is missing', async () => {

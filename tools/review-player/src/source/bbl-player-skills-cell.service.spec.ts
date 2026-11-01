@@ -86,9 +86,31 @@ describe('BblPlayerSkillsCellService', () => {
         name: 'Guard',
         attributeValue: null,
         source: 'gained',
-        advancementOrder: 1,
+        advancementOrder: 4,
       },
     ]);
+    expect(parsed?.increases).toEqual([
+      { characteristic: 'MA', advancementOrder: 1 },
+      { characteristic: 'AG', advancementOrder: 2 },
+      { characteristic: 'AG', advancementOrder: 3 },
+    ]);
+  });
+
+  it('numbers increases and gained skills together, and a pending marker takes no number', () => {
+    const cell =
+      '<span style="color:#006020">Dodge</span>, ' +
+      '<span style="color:#006020"> +MA</span>, ' +
+      '<span style="color:#006020"> Sprint</span>, ' +
+      '<span style="color:#006020"><span style="color:#f02020">?</span></span>';
+    const parsed = service.parse(page(cell));
+
+    expect(parsed?.skills.map((skill) => skill.advancementOrder)).toEqual([
+      1, 3,
+    ]);
+    expect(parsed?.increases).toEqual([
+      { characteristic: 'MA', advancementOrder: 2 },
+    ]);
+    expect(parsed?.increaseCounts.move).toBe(1);
   });
 
   it('drops a pending advancement marker', () => {

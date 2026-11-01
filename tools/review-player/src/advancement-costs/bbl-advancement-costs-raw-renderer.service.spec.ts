@@ -29,6 +29,7 @@ const ADVANCEMENTS = {
       advancementOrder: 2,
     },
   ],
+  increases: [],
   increaseCounts: { move: 1, strength: 0, agility: 0, passing: 0, armour: 2 },
 };
 
@@ -92,6 +93,7 @@ describe('BblAdvancementCostsRawRendererService', () => {
           advancementOrder: null,
         },
       ],
+      increases: [],
       increaseCounts: {
         move: 0,
         strength: 0,
