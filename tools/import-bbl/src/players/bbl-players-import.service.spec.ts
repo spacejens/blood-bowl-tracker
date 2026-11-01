@@ -79,11 +79,6 @@ describe('BblPlayersImportService', () => {
         passing: 4,
         armour: 8,
         ...goodPlayer.lastingInjuries,
-        moveIncreaseCount: 0,
-        strengthIncreaseCount: 0,
-        agilityIncreaseCount: 0,
-        passingIncreaseCount: 0,
-        armourIncreaseCount: 0,
         status: 'active',
         rulesSetId: 800,
         externalIds: [{ externalSystemId: 1, externalId: '42' }],
@@ -600,7 +595,7 @@ describe('BblPlayersImportService', () => {
       characteristics: goodPlayer.characteristics,
       lastingInjuries: goodPlayer.lastingInjuries,
       skills: [],
-      characteristicIncreaseCounts: goodPlayer.characteristicIncreaseCounts,
+      characteristicIncreases: goodPlayer.characteristicIncreases,
       status: 'active',
     };
     const { service, mocks } = await makeService(
@@ -622,11 +617,6 @@ describe('BblPlayersImportService', () => {
         passing: 4,
         armour: 8,
         ...goodPlayer.lastingInjuries,
-        moveIncreaseCount: 0,
-        strengthIncreaseCount: 0,
-        agilityIncreaseCount: 0,
-        passingIncreaseCount: 0,
-        armourIncreaseCount: 0,
         status: 'active',
         rulesSetId: 800,
         externalIds: [{ externalSystemId: 1, externalId: '388' }],
@@ -740,7 +730,7 @@ describe('BblPlayersImportService', () => {
       characteristics: goodPlayer.characteristics,
       lastingInjuries: goodPlayer.lastingInjuries,
       skills: [],
-      characteristicIncreaseCounts: goodPlayer.characteristicIncreaseCounts,
+      characteristicIncreases: goodPlayer.characteristicIncreases,
       status: 'active',
     };
     const { service, mocks } = await makeService(

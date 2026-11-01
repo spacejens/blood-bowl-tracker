@@ -16,7 +16,7 @@ import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.se
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { PageParseErrorService } from '../source/page-parse-error.service';
 import type { BblScrapedSpp } from './bbl-spp-adjustments-import.service';
-import type { BblPlayerSkillRef } from './player-page-parser';
+import type { BblPlayerAdvancements } from './player-page-parser';
 import { PlayerPageParser } from './player-page-parser';
 
 const PLAYER_PAGE_TYPE = 'pl';
@@ -84,13 +84,15 @@ export class BblPlayersImportService {
     scrapedSppByPlayerId: Map<number, BblScrapedSpp>;
     insertedPlayerIds: number[];
     /**
-     * Every imported player's own skills, keyed by their DATABASE id (not pid)
-     * so the sync step needs no second resolution. Accumulated across the
-     * whole page scan and written by one BblPlayerSkillsImportService call
-     * after this step, mirroring how position starting skills accumulate
-     * before their single StartingSkillsImportService call.
+     * Every upserted player's skills and characteristic increases, keyed by
+     * their DATABASE id (not pid) so the sync step needs no second
+     * resolution. A player with neither is included, so the sync states their
+     * increases as none. Accumulated across the whole page scan and written by
+     * one BblPlayerSkillsImportService call after this step, mirroring how
+     * position starting skills accumulate before their single
+     * StartingSkillsImportService call.
      */
-    skillsByPlayerId: Map<number, BblPlayerSkillRef[]>;
+    advancementsByPlayerId: Map<number, BblPlayerAdvancements>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
@@ -106,12 +108,13 @@ export class BblPlayersImportService {
     // existing player already has whatever history their earlier runs built,
     // and re-manufacturing it would add a spurious version pair every run.
     const insertedPlayerIds: number[] = [];
-    // Every imported player's own skills, keyed by their DATABASE id (not
-    // pid) so the sync step needs no second resolution. Accumulated across
-    // the whole page scan and written by one BblPlayerSkillsImportService
-    // call after this step, mirroring how position starting skills
-    // accumulate before their single StartingSkillsImportService call.
-    const skillsByPlayerId = new Map<number, BblPlayerSkillRef[]>();
+    // Every upserted player's skills and characteristic increases, keyed by
+    // their DATABASE id (not pid) so the sync step needs no second
+    // resolution. Accumulated across the whole page scan and written by one
+    // BblPlayerSkillsImportService call after this step, mirroring how
+    // position starting skills accumulate before their single
+    // StartingSkillsImportService call.
+    const advancementsByPlayerId = new Map<number, BblPlayerAdvancements>();
 
     const bootstrap = await this.externalSystemBootstrap.bootstrap(
       [{ name: BBL_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' }],
@@ -126,7 +129,7 @@ export class BblPlayersImportService {
         positionsUsedByEra,
         scrapedSppByPlayerId,
         insertedPlayerIds,
-        skillsByPlayerId,
+        advancementsByPlayerId,
       };
     }
     const [bblSystemId] = bootstrap.ids;
@@ -371,11 +374,6 @@ export class BblPlayersImportService {
             passing,
             armour,
             ...player.lastingInjuries,
-            moveIncreaseCount: player.characteristicIncreaseCounts.move,
-            strengthIncreaseCount: player.characteristicIncreaseCounts.strength,
-            agilityIncreaseCount: player.characteristicIncreaseCounts.agility,
-            passingIncreaseCount: player.characteristicIncreaseCounts.passing,
-            armourIncreaseCount: player.characteristicIncreaseCounts.armour,
             // Sent on every run, so a re-run updates an existing player's
             // status (e.g. one who has died since the previous import).
             status: player.status,
@@ -398,9 +396,10 @@ export class BblPlayersImportService {
           if (upserted.created) {
             insertedPlayerIds.push(upserted.id);
           }
-          if (player.skills.length > 0) {
-            skillsByPlayerId.set(upserted.id, player.skills);
-          }
+          advancementsByPlayerId.set(upserted.id, {
+            skills: player.skills,
+            characteristicIncreases: player.characteristicIncreases,
+          });
         }
       } catch (error) {
         errors.push(this.pageParseError.build(page.params, 'player', error));
@@ -415,7 +414,7 @@ export class BblPlayersImportService {
       positionsUsedByEra,
       scrapedSppByPlayerId,
       insertedPlayerIds,
-      skillsByPlayerId,
+      advancementsByPlayerId,
     };
   }
 }

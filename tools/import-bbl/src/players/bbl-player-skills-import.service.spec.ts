@@ -11,6 +11,10 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { BblPlayerSkillsImportService } from './bbl-player-skills-import.service';
+import type {
+  BblPlayerAdvancements,
+  BblPlayerSkillRef,
+} from './player-page-parser';
 
 /**
  * The real `SkillsImportService.upsert` resolved shape (see
@@ -18,6 +22,10 @@ import { BblPlayerSkillsImportService } from './bbl-player-skills-import.service
  * placeholder -- `id`, `name`, `createdAt` and `created` are all present on
  * every real response.
  */
+function withSkills(skills: BblPlayerSkillRef[]): BblPlayerAdvancements {
+  return { skills, characteristicIncreases: [] };
+}
+
 function upserted(id: number, name: string) {
   return { id, name, createdAt: new Date(0), created: false };
 }
@@ -59,8 +67,8 @@ describe('BblPlayerSkillsImportService', () => {
 
     await service.syncPlayerSkills(
       new Map([
-        [1, [{ name: 'Block', source: 'starting' as const }]],
-        [2, [{ name: 'Block', source: 'starting' as const }]],
+        [1, withSkills([{ name: 'Block', source: 'starting' as const }])],
+        [2, withSkills([{ name: 'Block', source: 'starting' as const }])],
       ]),
     );
 
@@ -82,28 +90,31 @@ describe('BblPlayerSkillsImportService', () => {
       new Map([
         [
           5,
-          [
+          withSkills([
             {
               name: 'Mighty Blow',
               attributeValue: '+1',
               source: 'advancement' as const,
               advancementOrder: 2,
             },
-          ],
+          ]),
         ],
       ]),
     );
 
     expect(playerSkills.syncPlayerSkills).toHaveBeenCalledWith(
-      [
-        {
-          playerId: 5,
-          skillId: 100,
-          source: 'advancement',
-          attributeValue: '+1',
-          advancementOrder: 2,
-        },
-      ],
+      {
+        entries: [
+          {
+            playerId: 5,
+            skillId: 100,
+            source: 'advancement',
+            attributeValue: '+1',
+            advancementOrder: 2,
+          },
+        ],
+        characteristicPlayerIds: [5],
+      },
       expect.anything(),
     );
     expect(result.imported).toBe(1);
@@ -114,18 +125,23 @@ describe('BblPlayerSkillsImportService', () => {
     skillsImport.upsert.mockResolvedValue(upserted(100, 'Block'));
 
     await service.syncPlayerSkills(
-      new Map([[5, [{ name: 'Block', source: 'starting' as const }]]]),
+      new Map([
+        [5, withSkills([{ name: 'Block', source: 'starting' as const }])],
+      ]),
     );
 
     expect(playerSkills.syncPlayerSkills).toHaveBeenCalledWith(
-      [
-        {
-          playerId: 5,
-          skillId: 100,
-          source: 'starting',
-          attributeValue: null,
-        },
-      ],
+      {
+        entries: [
+          {
+            playerId: 5,
+            skillId: 100,
+            source: 'starting',
+            attributeValue: null,
+          },
+        ],
+        characteristicPlayerIds: [5],
+      },
       expect.anything(),
     );
   });
@@ -135,14 +151,14 @@ describe('BblPlayerSkillsImportService', () => {
 
     const { result } = await service.syncPlayerSkills(
       new Map([
-        [1, [{ name: 'Block', source: 'starting' as const }]],
-        [2, [{ name: 'Block', source: 'starting' as const }]],
+        [1, withSkills([{ name: 'Block', source: 'starting' as const }])],
+        [2, withSkills([{ name: 'Block', source: 'starting' as const }])],
       ]),
     );
 
     expect(skillsImport.upsert).toHaveBeenCalledTimes(1);
     expect(playerSkills.syncPlayerSkills).toHaveBeenCalledWith(
-      [],
+      { entries: [], characteristicPlayerIds: [1, 2] },
       expect.anything(),
     );
     expect(result.errors).toEqual([]);
@@ -155,7 +171,9 @@ describe('BblPlayerSkillsImportService', () => {
     });
 
     const { result } = await service.syncPlayerSkills(
-      new Map([[1, [{ name: 'Block', source: 'starting' as const }]]]),
+      new Map([
+        [1, withSkills([{ name: 'Block', source: 'starting' as const }])],
+      ]),
     );
 
     expect(playerSkills.syncPlayerSkills).not.toHaveBeenCalled();
@@ -174,12 +192,12 @@ describe('BblPlayerSkillsImportService', () => {
       new Map([
         [
           1,
-          [
+          withSkills([
             { name: 'Block', source: 'starting' as const },
             { name: 'Dodge', source: 'advancement' as const },
-          ],
+          ]),
         ],
-        [2, [{ name: 'Dodge', source: 'advancement' as const }]],
+        [2, withSkills([{ name: 'Dodge', source: 'advancement' as const }])],
       ]),
     );
 
@@ -192,8 +210,8 @@ describe('BblPlayerSkillsImportService', () => {
 
     const { incompletePlayerIds } = await service.syncPlayerSkills(
       new Map([
-        [1, [{ name: 'Block', source: 'starting' as const }]],
-        [2, [{ name: 'Block', source: 'starting' as const }]],
+        [1, withSkills([{ name: 'Block', source: 'starting' as const }])],
+        [2, withSkills([{ name: 'Block', source: 'starting' as const }])],
       ]),
     );
 
@@ -208,8 +226,8 @@ describe('BblPlayerSkillsImportService', () => {
 
     const { incompletePlayerIds } = await service.syncPlayerSkills(
       new Map([
-        [1, [{ name: 'Block', source: 'starting' as const }]],
-        [2, [{ name: 'Block', source: 'starting' as const }]],
+        [1, withSkills([{ name: 'Block', source: 'starting' as const }])],
+        [2, withSkills([{ name: 'Block', source: 'starting' as const }])],
       ]),
     );
 
@@ -220,15 +238,15 @@ describe('BblPlayerSkillsImportService', () => {
     skillsImport.upsert.mockResolvedValue(upserted(100, 'Block'));
     // The shared sync records a failed chunk as an error and cannot say which
     // players were in it.
-    playerSkills.syncPlayerSkills.mockImplementation((_entries, errors) => {
+    playerSkills.syncPlayerSkills.mockImplementation((_batch, errors) => {
       errors.push({ item: { playerSkills: 1 }, message: 'chunk failed' });
       return Promise.resolve(0);
     });
 
     const { incompletePlayerIds } = await service.syncPlayerSkills(
       new Map([
-        [1, [{ name: 'Block', source: 'starting' as const }]],
-        [2, [{ name: 'Block', source: 'starting' as const }]],
+        [1, withSkills([{ name: 'Block', source: 'starting' as const }])],
+        [2, withSkills([{ name: 'Block', source: 'starting' as const }])],
       ]),
     );
 
@@ -241,5 +259,60 @@ describe('BblPlayerSkillsImportService', () => {
     expect(playerSkills.syncPlayerSkills).not.toHaveBeenCalled();
     expect(result.imported).toBe(0);
     expect(result.success).toBe(true);
+  });
+
+  it('sends characteristic increases after the skills, and lists the player', async () => {
+    skillsImport.upsert.mockResolvedValue(upserted(100, 'Dodge'));
+
+    await service.syncPlayerSkills(
+      new Map([
+        [
+          1,
+          {
+            skills: [
+              {
+                name: 'Dodge',
+                source: 'advancement' as const,
+                advancementOrder: 1,
+              },
+            ],
+            characteristicIncreases: [
+              { characteristic: 'AG' as const, advancementOrder: 2 },
+            ],
+          },
+        ],
+      ]),
+    );
+
+    expect(playerSkills.syncPlayerSkills).toHaveBeenCalledWith(
+      {
+        entries: [
+          {
+            playerId: 1,
+            skillId: 100,
+            source: 'advancement',
+            attributeValue: null,
+            advancementOrder: 1,
+          },
+          {
+            playerId: 1,
+            source: 'characteristic',
+            characteristic: 'AG',
+            advancementOrder: 2,
+          },
+        ],
+        characteristicPlayerIds: [1],
+      },
+      expect.anything(),
+    );
+  });
+
+  it('still lists a player with no skills and no increases', async () => {
+    await service.syncPlayerSkills(new Map([[4, withSkills([])]]));
+
+    expect(playerSkills.syncPlayerSkills).toHaveBeenCalledWith(
+      { entries: [], characteristicPlayerIds: [4] },
+      expect.anything(),
+    );
   });
 });

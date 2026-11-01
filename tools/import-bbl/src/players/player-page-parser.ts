@@ -1,5 +1,8 @@
 import type { PlayerLastingInjuries } from '@blood-bowl-tracker/api-contract';
-import type { PlayerStatus } from '@blood-bowl-tracker/domain-enums';
+import type {
+  PlayerCharacteristic,
+  PlayerStatus,
+} from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 import type { CheerioAPI } from 'cheerio';
 import type { AnyNode } from 'domhandler';
@@ -63,38 +66,30 @@ const TEMPORARILY_RETIRED_ICON_SRC =
   'https://bloodbowlleague.com/gfx/retire.png';
 
 /**
- * How many times each characteristic was increased by advancement, for one
- * player.
- */
-export interface BblPlayerCharacteristicIncreaseCounts {
-  move: number;
-  strength: number;
-  agility: number;
-  passing: number;
-  armour: number;
-}
-
-/**
  * BBL's Skills cell mixes real skill names with these five pseudo-entries,
- * always rendered in the same "gained" colour as a real advancement skill.
- * Each marks one characteristic-increase advancement rather than a skill, so
- * it is excluded from the returned skill list entirely: no `player_advancements`
- * row, and no consumed `advancementOrder` slot. The same marker can appear
- * more than once for one player (e.g. two Agility increases).
+ * rendered in the same "gained" colour as a real advancement skill. Each marks
+ * one characteristic increase: it is not a skill, but it is an advancement, so
+ * it takes its place in the same numbering as the gained skills.
  */
-const CHARACTERISTIC_INCREASE_MARKERS: Record<
-  string,
-  keyof BblPlayerCharacteristicIncreaseCounts
-> = {
-  '+MA': 'move',
-  '+ST': 'strength',
-  '+AG': 'agility',
-  '+PA': 'passing',
-  '+AV': 'armour',
+const CHARACTERISTIC_INCREASE_MARKERS: Record<string, PlayerCharacteristic> = {
+  '+MA': 'MA',
+  '+ST': 'ST',
+  '+AG': 'AG',
+  '+PA': 'PA',
+  '+AV': 'AV',
 };
 
-function zeroCharacteristicIncreaseCounts(): BblPlayerCharacteristicIncreaseCounts {
-  return { move: 0, strength: 0, agility: 0, passing: 0, armour: 0 };
+/** One characteristic increase from the Skills cell, at its place among the player's advancements. */
+export interface BblCharacteristicIncrease {
+  characteristic: PlayerCharacteristic;
+  /** 1-based, one numbering with the gained skills; page order, unconfirmed. */
+  advancementOrder: number;
+}
+
+/** What the Skills cell says a player has. */
+export interface BblPlayerAdvancements {
+  skills: BblPlayerSkillRef[];
+  characteristicIncreases: BblCharacteristicIncrease[];
 }
 
 /**
@@ -107,9 +102,11 @@ function zeroCharacteristicIncreaseCounts(): BblPlayerCharacteristicIncreaseCoun
  * sync later records a gained skill as `chosen` or `random` when the spend the
  * page reports allows only one.
  *
- * `advancementOrder` counts GAINED skills only, 1-based: starting skills
- * interleaved in the same cell do not consume a position in the sequence. It
- * is a presentation-order proxy, not a confirmed sequence.
+ * `advancementOrder` is 1-based and counts every paid advancement in the cell,
+ * gained skills and characteristic increases alike: starting skills
+ * interleaved in the same cell and a pending "?" slot do not consume a
+ * position in the sequence. It is a page-order proxy, not a confirmed
+ * sequence.
  */
 export interface BblPlayerSkillRef extends BblSkillRef {
   source: 'starting' | 'advancement';
@@ -165,13 +162,11 @@ export interface BblPlayer {
    */
   skills: BblPlayerSkillRef[];
   /**
-   * How many times each characteristic was increased by advancement, read
-   * directly from the `+MA`/`+ST`/`+AG`/`+PA`/`+AV` markers in the Skills
-   * cell. Always present with a 0 default per characteristic — a player who
-   * never increased a given characteristic is a genuine 0, not an absent
-   * value.
+   * The characteristic increases read from the `+MA`/`+ST`/`+AG`/`+PA`/`+AV`
+   * markers in the Skills cell, in page order, each numbered among the gained
+   * skills. Empty for a player with none.
    */
-  characteristicIncreaseCounts: BblPlayerCharacteristicIncreaseCounts;
+  characteristicIncreases: BblCharacteristicIncrease[];
   /**
    * The player's current status, from the icons in their header block:
    * `dead` for the cross, `retired` for the retired icon, `temporarily_retired`
@@ -240,7 +235,7 @@ export class PlayerPageParser {
     if (status === null) {
       return null;
     }
-    const { skills, characteristicIncreaseCounts } = this.extractSkills($);
+    const { skills, characteristicIncreases } = this.extractSkills($);
     return {
       pid,
       name,
@@ -250,7 +245,7 @@ export class PlayerPageParser {
       characteristics,
       lastingInjuries: this.extractLastingInjuries($),
       skills,
-      characteristicIncreaseCounts,
+      characteristicIncreases,
       status,
     };
   }
@@ -415,14 +410,11 @@ export class PlayerPageParser {
 
   /**
    * The Skills cell of the player's characteristics table: the sixth cell of
-   * the row after the MA/ST/AG/PA/AV header row. Returns an empty skill list
-   * and all-zero increase counts when there is no such table, no sixth cell,
+   * the row after the MA/ST/AG/PA/AV header row. Returns no skills and no
+   * increases when there is no such table, no sixth cell,
    * or the cell is blank.
    */
-  private extractSkills($: CheerioAPI): {
-    skills: BblPlayerSkillRef[];
-    characteristicIncreaseCounts: BblPlayerCharacteristicIncreaseCounts;
-  } {
+  private extractSkills($: CheerioAPI): BblPlayerAdvancements {
     for (const row of $('tr').toArray()) {
       const headers = $(row)
         .children('th, td')
@@ -434,17 +426,11 @@ export class PlayerPageParser {
       const cells = $(row).next('tr').children('td').toArray();
       const skillsCell = cells[SKILLS_CELL_INDEX];
       if (skillsCell === undefined) {
-        return {
-          skills: [],
-          characteristicIncreaseCounts: zeroCharacteristicIncreaseCounts(),
-        };
+        return { skills: [], characteristicIncreases: [] };
       }
       return this.readSkillsCell($, skillsCell);
     }
-    return {
-      skills: [],
-      characteristicIncreaseCounts: zeroCharacteristicIncreaseCounts(),
-    };
+    return { skills: [], characteristicIncreases: [] };
   }
 
   /**
@@ -462,21 +448,16 @@ export class PlayerPageParser {
    * skill to record yet -- so it contributes no text and its entry is dropped.
    *
    * A resolved ref whose name is exactly one of the five characteristic-
-   * increase markers (`+MA`/`+ST`/`+AG`/`+PA`/`+AV`) is not a skill at all: it
-   * is excluded from the returned list and does not consume an
-   * `advancementOrder` slot, and instead increments that characteristic's
-   * count. The same marker can appear more than once for one player.
+   * increase markers (`+MA`/`+ST`/`+AG`/`+PA`/`+AV`) is not a skill: it is
+   * returned as a characteristic increase instead, taking the next
+   * `advancementOrder` number alongside the gained skills. The same marker can
+   * appear more than once for one player. Starting skills and a pending "?"
+   * take no number.
    */
-  private readSkillsCell(
-    $: CheerioAPI,
-    cell: AnyNode,
-  ): {
-    skills: BblPlayerSkillRef[];
-    characteristicIncreaseCounts: BblPlayerCharacteristicIncreaseCounts;
-  } {
+  private readSkillsCell($: CheerioAPI, cell: AnyNode): BblPlayerAdvancements {
     const refs: BblPlayerSkillRef[] = [];
-    const characteristicIncreaseCounts = zeroCharacteristicIncreaseCounts();
-    let gainedCount = 0;
+    const characteristicIncreases: BblCharacteristicIncrease[] = [];
+    let advancementCount = 0;
     let text = '';
     let gained = false;
 
@@ -490,19 +471,22 @@ export class PlayerPageParser {
       }
       for (const ref of this.skillEntries.resolveSkillRefs(entry)) {
         if (Object.hasOwn(CHARACTERISTIC_INCREASE_MARKERS, ref.name)) {
-          const characteristic = CHARACTERISTIC_INCREASE_MARKERS[ref.name];
-          characteristicIncreaseCounts[characteristic] += 1;
+          advancementCount += 1;
+          characteristicIncreases.push({
+            characteristic: CHARACTERISTIC_INCREASE_MARKERS[ref.name],
+            advancementOrder: advancementCount,
+          });
           continue;
         }
         if (!wasGained) {
           refs.push({ ...ref, source: 'starting' });
           continue;
         }
-        gainedCount += 1;
+        advancementCount += 1;
         refs.push({
           ...ref,
           source: 'advancement',
-          advancementOrder: gainedCount,
+          advancementOrder: advancementCount,
         });
       }
     };
@@ -544,6 +528,6 @@ export class PlayerPageParser {
       }
     }
     flush();
-    return { skills: refs, characteristicIncreaseCounts };
+    return { skills: refs, characteristicIncreases };
   }
 }

@@ -30,14 +30,17 @@ describe('BblPlayersImportService skills', () => {
 
     const outcome = await service.importPlayers(importOptions);
 
-    expect(outcome.skillsByPlayerId).toEqual(
+    expect(outcome.advancementsByPlayerId).toEqual(
       new Map([
         [
           77,
-          [
-            { name: 'Block', source: 'starting' },
-            { name: 'Dodge', source: 'advancement', advancementOrder: 1 },
-          ],
+          {
+            skills: [
+              { name: 'Block', source: 'starting' },
+              { name: 'Dodge', source: 'advancement', advancementOrder: 1 },
+            ],
+            characteristicIncreases: [],
+          },
         ],
       ]),
     );
@@ -58,10 +61,10 @@ describe('BblPlayersImportService skills', () => {
 
     const outcome = await service.importPlayers(importOptions);
 
-    expect(outcome.skillsByPlayerId.size).toBe(0);
+    expect(outcome.advancementsByPlayerId.size).toBe(0);
   });
 
-  it('records no skills for a player whose page listed none', async () => {
+  it('records an empty entry for a player whose page listed no advancements', async () => {
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
     );
@@ -72,6 +75,8 @@ describe('BblPlayersImportService skills', () => {
 
     const outcome = await service.importPlayers(importOptions);
 
-    expect(outcome.skillsByPlayerId.size).toBe(0);
+    expect(outcome.advancementsByPlayerId).toEqual(
+      new Map([[77, { skills: [], characteristicIncreases: [] }]]),
+    );
   });
 });
