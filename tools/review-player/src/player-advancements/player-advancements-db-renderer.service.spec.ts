@@ -95,6 +95,27 @@ describe('PlayerAdvancementsDbRendererService', () => {
     expect(html).toContain('⚄ Guard');
   });
 
+  it('ignores a stored row that names no skill', async () => {
+    const { service } = await makeService(
+      mockDb(
+        [playerRow],
+        [rulesSetRow],
+        [
+          {
+            skillId: null,
+            skillName: 'Phantom',
+            source: 'characteristic',
+            attributeValue: null,
+            advancementOrder: 1,
+            isElite: false,
+          },
+        ],
+      ),
+    );
+
+    expect(await service.render(player)).not.toContain('Phantom');
+  });
+
   it('marks an elite gained skill, and both markers when it is also random', async () => {
     const { service } = await makeService(
       mockDb(

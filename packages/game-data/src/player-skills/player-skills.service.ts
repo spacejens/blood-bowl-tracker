@@ -103,7 +103,7 @@ interface SyncFacts {
 /** The natural key a row is matched on: player, skill and variant. */
 function naturalKey(
   playerId: number,
-  skillId: number,
+  skillId: number | null,
   attributeValue: string | null,
 ): string {
   return JSON.stringify([playerId, skillId, attributeValue]);
@@ -195,11 +195,14 @@ export class PlayerSkillsService {
       .from(playerAdvancements)
       .where(inArray(playerAdvancements.playerId, playerIds));
 
+    // Characteristic rows are not skills and are never touched by a skill sync.
     const existingByKey = new Map(
-      existingRows.map((row) => [
-        naturalKey(row.playerId, row.skillId, row.attributeValue),
-        row,
-      ]),
+      existingRows
+        .filter((row) => row.source !== 'characteristic')
+        .map((row) => [
+          naturalKey(row.playerId, row.skillId, row.attributeValue),
+          row,
+        ]),
     );
 
     // `resultIds` is sized and indexed to `resolved` so the returned ids line
@@ -298,7 +301,7 @@ export class PlayerSkillsService {
         toInsert.forEach((row, insertedIndex) => {
           const key = naturalKey(
             row.playerId,
-            row.skillId,
+            row.skillId ?? null,
             row.attributeValue ?? null,
           );
           const id = insertedIdByKey.get(key);

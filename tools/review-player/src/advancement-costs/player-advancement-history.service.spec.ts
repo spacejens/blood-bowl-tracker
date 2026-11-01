@@ -190,6 +190,36 @@ describe('PlayerAdvancementHistoryService', () => {
     expect(dbResult.chains).toHaveLength(6);
   });
 
+  it('ignores a stored row that names no skill', async () => {
+    const dbResult = mockDb(
+      ERA_RULES_SETS,
+      COSTS,
+      [playerRow()],
+      [
+        ...SKILLS,
+        {
+          playerId: 42,
+          skillId: null,
+          skillName: 'Unnamed',
+          source: 'characteristic',
+          advancementOrder: 3,
+          isFreeExtra: false,
+        },
+      ],
+      POSITION_CATEGORIES,
+      SKILL_CATEGORIES,
+    );
+    const service = await makeService(dbResult);
+
+    const history = (await service.forPlayers([42])).get(42);
+
+    expect(history?.skills.map((skill) => skill.skillName)).toEqual([
+      'Block',
+      'Dodge',
+      'Guard',
+    ]);
+  });
+
   it('gives an era with no rules set no rules set and no costs', async () => {
     const dbResult = mockDb(
       ERA_RULES_SETS,

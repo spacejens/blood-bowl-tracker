@@ -362,7 +362,7 @@ export class UnspentSppService {
         ),
       );
     const rulesSetIds = this.distinct(eraRows.map((row) => row.rulesSetId));
-    const skillRows = await this.db
+    const storedRows = await this.db
       .select({
         playerId: playerAdvancements.playerId,
         skillId: playerAdvancements.skillId,
@@ -371,6 +371,9 @@ export class UnspentSppService {
       })
       .from(playerAdvancements)
       .where(inArray(playerAdvancements.playerId, playerIds));
+    const skillRows = storedRows.flatMap((row) =>
+      row.skillId === null ? [] : [{ ...row, skillId: row.skillId }],
+    );
 
     return {
       rulesSetIdsByEra: this.group(

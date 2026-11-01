@@ -164,6 +164,30 @@ describe('PlayerSkillsService', () => {
       expect(extractAllFilterValues(firstCallArg(clear.where))).toContain(1);
     });
 
+    it('does not match a stored characteristic row, which names no skill', async () => {
+      const db = mockDb(
+        [playerRow],
+        [skillRow],
+        [
+          {
+            id: 60,
+            playerId: 1,
+            skillId: null,
+            source: 'characteristic',
+            attributeValue: null,
+            advancementOrder: null,
+          },
+        ],
+        [{ id: 51, playerId: 1, skillId: 7, attributeValue: null }],
+      );
+      const service = await makeService(db);
+
+      const result = await service.sync({ entries: [entry] });
+
+      expect(result).toEqual({ playerSkillIds: [51] });
+      expect(db.transaction).toHaveBeenCalled();
+    });
+
     it('inserts a gained skill with its variant and order', async () => {
       const db = mockDb(
         [playerRow],

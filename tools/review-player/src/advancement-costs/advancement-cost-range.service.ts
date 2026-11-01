@@ -29,6 +29,7 @@ const SKILL_KINDS: Readonly<
   ],
   chosen: ['chosen_primary_skill', 'chosen_secondary_skill'],
   random: ['random_primary_skill', 'random_secondary_skill'],
+  characteristic: [],
 };
 
 /** The skill kinds a skill of a primary or a secondary category can cost. */

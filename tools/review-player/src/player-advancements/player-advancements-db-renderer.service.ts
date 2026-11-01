@@ -329,7 +329,7 @@ export class PlayerAdvancementsDbRendererService {
     playerId: number,
     rulesSetId: number,
   ): Promise<StoredSkill[]> {
-    const rows = await this.db
+    const storedRows = await this.db
       .select({
         skillId: playerAdvancements.skillId,
         skillName: skills.name,
@@ -349,6 +349,10 @@ export class PlayerAdvancementsDbRendererService {
       )
       .where(eq(playerAdvancements.playerId, playerId))
       .orderBy(asc(skills.name));
-    return rows.map((row) => ({ ...row, isElite: row.isElite === true }));
+    return storedRows.flatMap((row) =>
+      row.skillId === null
+        ? []
+        : [{ ...row, skillId: row.skillId, isElite: row.isElite === true }],
+    );
   }
 }

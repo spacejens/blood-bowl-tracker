@@ -110,6 +110,32 @@ describe('UnspentSppService loading', () => {
     expect(db.chains).toHaveLength(3);
   });
 
+  it('ignores a stored row that names no skill', async () => {
+    const db = unspentSppDb({
+      players: [playerRow({ playerId: 1, sppTotal: 6 })],
+      eraRulesSets: CRP_ERA,
+      playerSkills: [
+        ...gainedSkills(1),
+        {
+          playerId: 1,
+          skillId: null,
+          source: 'characteristic',
+          isFreeExtra: false,
+        },
+      ],
+      costs: crpCosts(),
+    });
+    const service = await makeUnspentSppService(db);
+
+    expect(await service.forPlayer(1)).toMatchObject({
+      status: 'known',
+      unspentMin: 0,
+    });
+    expect(filterValues(db.chains[3].where)).toEqual(
+      expect.arrayContaining([101, CRP]),
+    );
+  });
+
   it('works each player out on their own', async () => {
     const db = unspentSppDb({
       players: [

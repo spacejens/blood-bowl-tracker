@@ -199,7 +199,7 @@ export class PlayerAdvancementHistoryService {
   private async loadSkills(
     ids: number[],
   ): Promise<Map<number, UncategorisedSkill[]>> {
-    const rows = await this.db
+    const storedRows = await this.db
       .select({
         playerId: playerAdvancements.playerId,
         skillId: playerAdvancements.skillId,
@@ -216,6 +216,9 @@ export class PlayerAdvancementHistoryService {
         asc(playerAdvancements.advancementOrder),
         asc(skills.name),
       );
+    const rows = storedRows.flatMap((row) =>
+      row.skillId === null ? [] : [{ ...row, skillId: row.skillId }],
+    );
     const byPlayer = new Map<number, UncategorisedSkill[]>();
     for (const { playerId, ...skill } of rows) {
       const list = byPlayer.get(playerId) ?? [];

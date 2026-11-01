@@ -174,7 +174,7 @@ describe('Changing a trophy award granted skill (real Postgres)', () => {
     const rows = await db.select().from(playerAdvancements);
     return rows
       .filter((row) => row.isFreeExtra)
-      .map((row) => row.skillId)
+      .flatMap((row) => (row.skillId === null ? [] : [row.skillId]))
       .sort((a, b) => a - b);
   }
 

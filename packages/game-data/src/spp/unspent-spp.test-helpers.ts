@@ -124,7 +124,7 @@ export function fanFavouriteCost(leagueId = LEAGUE): CostRowFixture {
 
 export interface PlayerSkillFixture {
   playerId: number;
-  skillId: number;
+  skillId: number | null;
   source: PlayerSkillSource;
   isFreeExtra: boolean;
 }

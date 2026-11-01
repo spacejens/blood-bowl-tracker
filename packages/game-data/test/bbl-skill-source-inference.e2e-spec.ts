@@ -308,11 +308,20 @@ describe('BBL skill source inference in the closing SPP sync (real Postgres)', (
 
     // The BBL import re-sends every gained skill as advancement.
     await playerSkillsService.sync({
-      entries: skillRows.map((row) => ({
-        playerId: row.playerId,
-        skillId: row.skillId,
-        source: row.source === 'starting' ? 'starting' : 'advancement',
-      })),
+      entries: skillRows.flatMap((row) =>
+        row.skillId === null
+          ? []
+          : [
+              {
+                playerId: row.playerId,
+                skillId: row.skillId,
+                source:
+                  row.source === 'starting'
+                    ? ('starting' as const)
+                    : ('advancement' as const),
+              },
+            ],
+      ),
     });
     await sync();
 
@@ -345,7 +354,11 @@ describe('BBL skill source inference in the closing SPP sync (real Postgres)', (
               inArray(playerAdvancements.source, ['chosen', 'random']),
             ),
           )
-      ).map((row) => ({ ...row, source: 'advancement' as const })),
+      ).flatMap((row) =>
+        row.skillId === null
+          ? []
+          : [{ ...row, skillId: row.skillId, source: 'advancement' as const }],
+      ),
     });
 
     expect(await db.select().from(playerAdvancementsHistory)).toEqual(

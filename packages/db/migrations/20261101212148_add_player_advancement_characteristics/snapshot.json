@@ -1,0 +1,592 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "6a1c2b1b-dd33-4f26-b30d-54409dc9d24e",
+  "prevIds": [
+    "7e058400-565c-4f58-926d-dceaf2da4c84"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_enum",
+      "statementTarget": [
+        "enum",
+        "game_data",
+        "player_characteristic"
+      ],
+      "writes": [
+        "s|enum|game_data.player_characteristic",
+        "n|enum|game_data.player_characteristic",
+        "e|enum|game_data.player_characteristic",
+        "n|type|game_data.player_characteristic"
+      ],
+      "reads": [
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "alter_enum",
+      "statementTarget": [
+        "enum",
+        "game_data",
+        "player_advancement_source"
+      ],
+      "writes": [
+        "s|enum|game_data.player_advancement_source"
+      ],
+      "reads": [
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "drop_unique",
+      "statementTarget": [
+        "table",
+        "game_data",
+        "player_advancements"
+      ],
+      "writes": [
+        "s|uq|game_data.player_advancements.player_advancements_player_id_skill_id_attribute_value_unique",
+        "n|uq|game_data.player_advancements.player_advancements_player_id_skill_id_attribute_value_unique",
+        "e|uq|game_data.player_advancements.player_advancements_player_id_skill_id_attribute_value_unique",
+        "n|con|game_data.player_advancements.player_advancements_player_id_skill_id_attribute_value_unique",
+        "n|rel|game_data.player_advancements_player_id_skill_id_attribute_value_unique"
+      ],
+      "reads": [
+        "n|tbl|game_data.player_advancements",
+        "n|sch|game_data",
+        "e|col|game_data.player_advancements.player_id",
+        "e|col|game_data.player_advancements.skill_id",
+        "e|col|game_data.player_advancements.attribute_value"
+      ],
+      "sharedWrites": [
+        "e|uniqueness|game_data.player_advancements.attribute_value.player_id.skill_id"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "player_advancements",
+        "characteristic"
+      ],
+      "writes": [
+        "s|col|game_data.player_advancements.characteristic",
+        "n|col|game_data.player_advancements.characteristic",
+        "e|col|game_data.player_advancements.characteristic"
+      ],
+      "reads": [
+        "n|tbl|game_data.player_advancements",
+        "n|sch|game_data",
+        "n|enum|game_data.player_characteristic"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "player_advancements",
+        "order_confirmed"
+      ],
+      "writes": [
+        "s|col|game_data.player_advancements.order_confirmed",
+        "n|col|game_data.player_advancements.order_confirmed",
+        "e|col|game_data.player_advancements.order_confirmed"
+      ],
+      "reads": [
+        "n|tbl|game_data.player_advancements",
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "player_advancements",
+        "removed"
+      ],
+      "writes": [
+        "s|col|game_data.player_advancements.removed",
+        "n|col|game_data.player_advancements.removed",
+        "e|col|game_data.player_advancements.removed"
+      ],
+      "reads": [
+        "n|tbl|game_data.player_advancements",
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "player_advancements_history",
+        "characteristic"
+      ],
+      "writes": [
+        "s|col|game_data.player_advancements_history.characteristic",
+        "n|col|game_data.player_advancements_history.characteristic",
+        "e|col|game_data.player_advancements_history.characteristic"
+      ],
+      "reads": [
+        "n|tbl|game_data.player_advancements_history",
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "player_advancements_history",
+        "order_confirmed"
+      ],
+      "writes": [
+        "s|col|game_data.player_advancements_history.order_confirmed",
+        "n|col|game_data.player_advancements_history.order_confirmed",
+        "e|col|game_data.player_advancements_history.order_confirmed"
+      ],
+      "reads": [
+        "n|tbl|game_data.player_advancements_history",
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "player_advancements_history",
+        "removed"
+      ],
+      "writes": [
+        "s|col|game_data.player_advancements_history.removed",
+        "n|col|game_data.player_advancements_history.removed",
+        "e|col|game_data.player_advancements_history.removed"
+      ],
+      "reads": [
+        "n|tbl|game_data.player_advancements_history",
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "alter_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "player_advancements",
+        "skill_id"
+      ],
+      "writes": [
+        "s|colprop|game_data.player_advancements.skill_id.notNull"
+      ],
+      "reads": [
+        "n|tbl|game_data.player_advancements",
+        "n|sch|game_data",
+        "n|col|game_data.player_advancements.skill_id"
+      ],
+      "sqlHash": "66b5a559d17f287b"
+    },
+    {
+      "statementType": "alter_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "player_advancements_history",
+        "skill_id"
+      ],
+      "writes": [
+        "s|colprop|game_data.player_advancements_history.skill_id.notNull"
+      ],
+      "reads": [
+        "n|tbl|game_data.player_advancements_history",
+        "n|sch|game_data",
+        "n|col|game_data.player_advancements_history.skill_id"
+      ],
+      "sqlHash": "d0a8a586d25c1517"
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "game_data",
+        "player_advancements",
+        "player_advancements_skill_with_attribute_unique"
+      ],
+      "writes": [
+        "s|idx|game_data.player_advancements_skill_with_attribute_unique",
+        "n|idx|game_data.player_advancements_skill_with_attribute_unique",
+        "e|idx|game_data.player_advancements_skill_with_attribute_unique",
+        "n|rel|game_data.player_advancements_skill_with_attribute_unique"
+      ],
+      "reads": [
+        "n|tbl|game_data.player_advancements",
+        "n|sch|game_data",
+        "n|col|game_data.player_advancements.player_id",
+        "n|col|game_data.player_advancements.skill_id",
+        "n|col|game_data.player_advancements.attribute_value"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "game_data",
+        "player_advancements",
+        "player_advancements_skill_without_attribute_unique"
+      ],
+      "writes": [
+        "s|idx|game_data.player_advancements_skill_without_attribute_unique",
+        "n|idx|game_data.player_advancements_skill_without_attribute_unique",
+        "e|idx|game_data.player_advancements_skill_without_attribute_unique",
+        "n|rel|game_data.player_advancements_skill_without_attribute_unique"
+      ],
+      "reads": [
+        "n|tbl|game_data.player_advancements",
+        "n|sch|game_data",
+        "n|col|game_data.player_advancements.player_id",
+        "n|col|game_data.player_advancements.skill_id"
+      ]
+    },
+    {
+      "statementType": "add_check",
+      "statementTarget": [
+        "table",
+        "game_data",
+        "player_advancements"
+      ],
+      "writes": [
+        "s|ck|game_data.player_advancements.player_advancements_skill_or_characteristic",
+        "n|ck|game_data.player_advancements.player_advancements_skill_or_characteristic",
+        "e|ck|game_data.player_advancements.player_advancements_skill_or_characteristic",
+        "n|con|game_data.player_advancements.player_advancements_skill_or_characteristic"
+      ],
+      "reads": [
+        "n|tbl|game_data.player_advancements",
+        "n|sch|game_data",
+        "n|col|game_data.player_advancements.source",
+        "n|col|game_data.player_advancements.characteristic",
+        "n|col|game_data.player_advancements.skill_id"
+      ]
+    },
+    {
+      "statementType": "add_check",
+      "statementTarget": [
+        "table",
+        "game_data",
+        "player_advancements"
+      ],
+      "writes": [
+        "s|ck|game_data.player_advancements.player_advancements_characteristic_has_no_skill_fields",
+        "n|ck|game_data.player_advancements.player_advancements_characteristic_has_no_skill_fields",
+        "e|ck|game_data.player_advancements.player_advancements_characteristic_has_no_skill_fields",
+        "n|con|game_data.player_advancements.player_advancements_characteristic_has_no_skill_fields"
+      ],
+      "reads": [
+        "n|tbl|game_data.player_advancements",
+        "n|sch|game_data",
+        "n|col|game_data.player_advancements.source",
+        "n|col|game_data.player_advancements.characteristic",
+        "n|col|game_data.player_advancements.attribute_value",
+        "n|col|game_data.player_advancements.is_free_extra"
+      ]
+    },
+    {
+      "statementType": "add_check",
+      "statementTarget": [
+        "table",
+        "game_data",
+        "player_advancements"
+      ],
+      "writes": [
+        "s|ck|game_data.player_advancements.player_advancements_confirmed_has_order",
+        "n|ck|game_data.player_advancements.player_advancements_confirmed_has_order",
+        "e|ck|game_data.player_advancements.player_advancements_confirmed_has_order",
+        "n|con|game_data.player_advancements.player_advancements_confirmed_has_order"
+      ],
+      "reads": [
+        "n|tbl|game_data.player_advancements",
+        "n|sch|game_data",
+        "n|col|game_data.player_advancements.order_confirmed",
+        "n|col|game_data.player_advancements.advancement_order"
+      ]
+    },
+    {
+      "statementType": "add_check",
+      "statementTarget": [
+        "table",
+        "game_data",
+        "player_advancements"
+      ],
+      "writes": [
+        "s|ck|game_data.player_advancements.player_advancements_only_characteristic_removed",
+        "n|ck|game_data.player_advancements.player_advancements_only_characteristic_removed",
+        "e|ck|game_data.player_advancements.player_advancements_only_characteristic_removed",
+        "n|con|game_data.player_advancements.player_advancements_only_characteristic_removed"
+      ],
+      "reads": [
+        "n|tbl|game_data.player_advancements",
+        "n|sch|game_data",
+        "n|col|game_data.player_advancements.removed",
+        "n|col|game_data.player_advancements.source",
+        "n|col|game_data.player_advancements.characteristic"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "name": "player_characteristic",
+        "values": [
+          "MA",
+          "ST",
+          "AG",
+          "PA",
+          "AV"
+        ],
+        "entityType": "enums"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "player_advancements",
+        "name": "characteristic",
+        "type": "player_characteristic",
+        "typeSchema": "game_data",
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "player_advancements",
+        "name": "order_confirmed",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "false",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "player_advancements",
+        "name": "removed",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "false",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "player_advancements_history",
+        "name": "characteristic",
+        "type": "\"game_data\".\"player_characteristic\"",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "player_advancements_history",
+        "name": "order_confirmed",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "player_advancements_history",
+        "name": "removed",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "player_advancements",
+        "name": "player_advancements_skill_with_attribute_unique",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "player_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "skill_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "attribute_value",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": true,
+        "where": "\"skill_id\" IS NOT NULL AND \"attribute_value\" IS NOT NULL",
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "player_advancements",
+        "name": "player_advancements_skill_without_attribute_unique",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "player_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "skill_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": true,
+        "where": "\"skill_id\" IS NOT NULL AND \"attribute_value\" IS NULL",
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "player_advancements",
+        "name": "player_advancements_skill_or_characteristic",
+        "value": "(\"source\" = 'characteristic' AND \"characteristic\" IS NOT NULL AND \"skill_id\" IS NULL) OR (\"source\" <> 'characteristic' AND \"characteristic\" IS NULL AND \"skill_id\" IS NOT NULL)",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "player_advancements",
+        "name": "player_advancements_characteristic_has_no_skill_fields",
+        "value": "\"source\" <> 'characteristic' OR (\"attribute_value\" IS NULL AND \"is_free_extra\" = false)",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "player_advancements",
+        "name": "player_advancements_confirmed_has_order",
+        "value": "\"order_confirmed\" = false OR \"advancement_order\" IS NOT NULL",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "player_advancements",
+        "name": "player_advancements_only_characteristic_removed",
+        "value": "\"removed\" = false OR \"source\" = 'characteristic'",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "drop",
+      "key": "uniques\u0000[\"game_data\",\"player_advancements\",\"player_advancements_player_id_skill_id_attribute_value_unique\"]"
+    },
+    {
+      "op": "alter",
+      "key": "enums\u0000[\"game_data\",\"player_advancement_source\"]",
+      "set": {
+        "values": [
+          "starting",
+          "advancement",
+          "chosen",
+          "random",
+          "characteristic"
+        ]
+      }
+    },
+    {
+      "op": "alter",
+      "key": "columns\u0000[\"game_data\",\"player_advancements\",\"skill_id\"]",
+      "set": {
+        "notNull": false
+      }
+    },
+    {
+      "op": "alter",
+      "key": "columns\u0000[\"game_data\",\"player_advancements_history\",\"skill_id\"]",
+      "set": {
+        "notNull": false
+      }
+    }
+  ]
+}

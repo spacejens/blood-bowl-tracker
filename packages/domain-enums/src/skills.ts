@@ -59,17 +59,20 @@ export type SkillCategory = (typeof SKILL_CATEGORIES)[number];
  *   roll outright.
  * - `chosen` — gained via advancement, freely picked by the coach.
  * - `random` — gained via advancement, randomly rolled.
+ * - `characteristic` — a characteristic increase rather than a skill: the row
+ *   names a characteristic and no skill. Declared last, after every skill
+ *   source.
  *
  * Declared with the ambiguous `advancement` bucket directly after `starting`
  * and before the two sources that DO know chosen vs. random, because the
  * declared order becomes the Postgres enum's sort order and
  * `PlayerSkillsService.listByPlayer` sorts on it.
  *
- * Recorded as a provenance column on one unified `player_advancements` table rather
- * than as separate starting/gained tables: insight toplists need "any skill a
- * player has", "only advancement-gained skills" and "only chosen advancement
- * skills", and a single table makes all three a plain `WHERE` instead of a
- * `UNION` across two query paths.
+ * Recorded as a provenance column on the one unified `player_advancements`
+ * table rather than as separate starting/gained tables: insight toplists need
+ * "any skill a player has", "only advancement-gained skills" and "only chosen
+ * advancement skills", and a single table makes all three a plain `WHERE`
+ * instead of a `UNION` across two query paths.
  *
  * The list is closed and small, so it is a `domain-enums` constant consumed
  * as a Postgres enum, exactly like SKILL_CATEGORIES above.
@@ -79,6 +82,7 @@ export const PLAYER_SKILL_SOURCES = [
   'advancement',
   'chosen',
   'random',
+  'characteristic',
 ] as const;
 
 export type PlayerSkillSource = (typeof PLAYER_SKILL_SOURCES)[number];
