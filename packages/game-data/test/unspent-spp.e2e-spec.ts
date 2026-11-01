@@ -9,8 +9,8 @@ import {
   eraRulesSets,
   eras,
   leagues,
+  playerAdvancements,
   players,
-  playerSkills,
   positionRulesSets,
   positionRulesSetSkillCategories,
   positions,
@@ -262,7 +262,7 @@ async function seed(db: Db): Promise<SeededPlayers> {
     source: PlayerSkillSource = 'advancement',
   ) =>
     db
-      .insert(playerSkills)
+      .insert(playerAdvancements)
       .values(
         names.map((name) => ({ playerId, skillId: skill[name], source })),
       );
@@ -309,7 +309,7 @@ async function seed(db: Db): Promise<SeededPlayers> {
     sppTotal: 6,
   });
   await gained(trophyGranted, ['Dodge']);
-  await db.insert(playerSkills).values({
+  await db.insert(playerAdvancements).values({
     playerId: trophyGranted,
     skillId: skill.Tentacles,
     source: 'advancement',

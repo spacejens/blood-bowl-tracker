@@ -15,7 +15,7 @@ export interface ApplicableCost {
   leagueId: number | null;
 }
 
-/** One stored `player_skills` row, as the cost check needs it. */
+/** One stored `player_advancements` row, as the cost check needs it. */
 export interface StoredPlayerSkill {
   skillId: number;
   skillName: string;
@@ -89,7 +89,7 @@ export interface ModelledAdvancement {
   /** The skill's name, or `+MA`/`+ST`/`+AG`/`+PA`/`+AV`. */
   label: string;
   kind: AdvancementRowKind;
-  /** The stored `player_skills.source`; null for a characteristic increase. */
+  /** The stored `player_advancements.source`; null for a characteristic increase. */
   storedSource: PlayerSkillSource | null;
   /** The number this row is priced at; null for a free row. */
   advancementNumber: number | null;

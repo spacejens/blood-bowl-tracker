@@ -1,6 +1,6 @@
 import type { UnspentSppSnapshot } from '@blood-bowl-tracker/api-contract';
 import type { Db } from '@blood-bowl-tracker/db';
-import { and, DB, eq, or, playerSkills } from '@blood-bowl-tracker/db';
+import { and, DB, eq, or, playerAdvancements } from '@blood-bowl-tracker/db';
 import type { PlayerSkillSource } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -181,16 +181,16 @@ export class BblSkillSourceInferenceService {
     await this.db.transaction(async (tx) => {
       for (const { source, keys } of groups) {
         await tx
-          .update(playerSkills)
+          .update(playerAdvancements)
           .set({ source })
           .where(
             and(
-              eq(playerSkills.source, 'advancement'),
+              eq(playerAdvancements.source, 'advancement'),
               or(
                 ...keys.map((key) =>
                   and(
-                    eq(playerSkills.playerId, key.playerId),
-                    eq(playerSkills.skillId, key.skillId),
+                    eq(playerAdvancements.playerId, key.playerId),
+                    eq(playerAdvancements.skillId, key.skillId),
                   ),
                 ),
               ),

@@ -8,8 +8,8 @@ import {
   eraRulesSets,
   externalSystems,
   inArray,
+  playerAdvancements,
   players,
-  playerSkills,
   rulesSets,
   skillExternalIds,
   skillRulesSets,
@@ -35,7 +35,7 @@ const RAW_ONLY = 'in the raw source only';
 /** Whether a skill was present from the start, or gained through advancement. */
 type SkillCategory = 'starting' | 'gained';
 
-/** One stored `player_skills` row, joined to its skill and rules-set flags. */
+/** One stored `player_advancements` row, joined to its skill and rules-set flags. */
 interface StoredSkill {
   skillId: number;
   skillName: string;
@@ -46,7 +46,7 @@ interface StoredSkill {
 }
 
 /**
- * What the importers stored for this player: every `player_skills` row and
+ * What the importers stored for this player: every `player_advancements` row and
  * the five `*IncreaseCount` columns, beside the raw source's own list.
  *
  * **Rules-set resolution.** `players` carries no rules-set id and
@@ -331,23 +331,23 @@ export class PlayerAdvancementsDbRendererService {
   ): Promise<StoredSkill[]> {
     const rows = await this.db
       .select({
-        skillId: playerSkills.skillId,
+        skillId: playerAdvancements.skillId,
         skillName: skills.name,
-        source: playerSkills.source,
-        attributeValue: playerSkills.attributeValue,
-        advancementOrder: playerSkills.advancementOrder,
+        source: playerAdvancements.source,
+        attributeValue: playerAdvancements.attributeValue,
+        advancementOrder: playerAdvancements.advancementOrder,
         isElite: skillRulesSets.isElite,
       })
-      .from(playerSkills)
-      .innerJoin(skills, eq(skills.id, playerSkills.skillId))
+      .from(playerAdvancements)
+      .innerJoin(skills, eq(skills.id, playerAdvancements.skillId))
       .leftJoin(
         skillRulesSets,
         and(
-          eq(skillRulesSets.skillId, playerSkills.skillId),
+          eq(skillRulesSets.skillId, playerAdvancements.skillId),
           eq(skillRulesSets.rulesSetId, rulesSetId),
         ),
       )
-      .where(eq(playerSkills.playerId, playerId))
+      .where(eq(playerAdvancements.playerId, playerId))
       .orderBy(asc(skills.name));
     return rows.map((row) => ({ ...row, isElite: row.isElite === true }));
   }

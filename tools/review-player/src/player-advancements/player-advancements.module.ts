@@ -12,7 +12,7 @@ import { TpPlayerAdvancementsRawRendererService } from './tp-player-advancements
 /**
  * The player-advancements data type: each source's own view of a player's
  * starting and gained skills and characteristic increases, the imported panel
- * from `player_skills` and the `players` increase-count columns, and the four
+ * from `player_advancements` and the `players` increase-count columns, and the four
  * strata that oversample differing starting skills, elite skills, randomly
  * rolled skills and freely chosen skills.
  */

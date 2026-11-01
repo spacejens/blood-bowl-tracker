@@ -8,8 +8,8 @@ import {
   eraRulesSets,
   eras,
   inArray,
+  playerAdvancements,
   players,
-  playerSkills,
   positionRulesSets,
   positionRulesSetSkillCategories,
   positions,
@@ -201,19 +201,19 @@ export class PlayerAdvancementHistoryService {
   ): Promise<Map<number, UncategorisedSkill[]>> {
     const rows = await this.db
       .select({
-        playerId: playerSkills.playerId,
-        skillId: playerSkills.skillId,
+        playerId: playerAdvancements.playerId,
+        skillId: playerAdvancements.skillId,
         skillName: skills.name,
-        source: playerSkills.source,
-        advancementOrder: playerSkills.advancementOrder,
-        isFreeExtra: playerSkills.isFreeExtra,
+        source: playerAdvancements.source,
+        advancementOrder: playerAdvancements.advancementOrder,
+        isFreeExtra: playerAdvancements.isFreeExtra,
       })
-      .from(playerSkills)
-      .innerJoin(skills, eq(skills.id, playerSkills.skillId))
-      .where(inArray(playerSkills.playerId, ids))
+      .from(playerAdvancements)
+      .innerJoin(skills, eq(skills.id, playerAdvancements.skillId))
+      .where(inArray(playerAdvancements.playerId, ids))
       .orderBy(
-        asc(playerSkills.playerId),
-        asc(playerSkills.advancementOrder),
+        asc(playerAdvancements.playerId),
+        asc(playerAdvancements.advancementOrder),
         asc(skills.name),
       );
     const byPlayer = new Map<number, UncategorisedSkill[]>();

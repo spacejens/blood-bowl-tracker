@@ -1,7 +1,7 @@
 import {
   DB,
+  playerAdvancements,
   players,
-  playerSkills,
   trophyAwards,
 } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
@@ -40,7 +40,7 @@ describe('PlayerSkillsService', () => {
 
       await service.markTrophyGranted(1, 7);
 
-      expect(db.db.update).toHaveBeenCalledWith(playerSkills);
+      expect(db.db.update).toHaveBeenCalledWith(playerAdvancements);
       expect(firstCallArg(db.chains[1].set)).toEqual({ isFreeExtra: true });
       expect(extractAllFilterValues(firstCallArg(db.chains[1].where))).toEqual([
         1,
@@ -75,7 +75,7 @@ describe('PlayerSkillsService', () => {
 
       await service.unmarkTrophyGranted(1, 7);
 
-      expect(db.db.update).toHaveBeenCalledWith(playerSkills);
+      expect(db.db.update).toHaveBeenCalledWith(playerAdvancements);
       expect(firstCallArg(db.chains[2].set)).toEqual({ isFreeExtra: false });
       expect(extractAllFilterValues(firstCallArg(db.chains[2].where))).toEqual([
         1,

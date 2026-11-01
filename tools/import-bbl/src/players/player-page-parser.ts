@@ -78,7 +78,7 @@ export interface BblPlayerCharacteristicIncreaseCounts {
  * BBL's Skills cell mixes real skill names with these five pseudo-entries,
  * always rendered in the same "gained" colour as a real advancement skill.
  * Each marks one characteristic-increase advancement rather than a skill, so
- * it is excluded from the returned skill list entirely: no `player_skills`
+ * it is excluded from the returned skill list entirely: no `player_advancements`
  * row, and no consumed `advancementOrder` slot. The same marker can appear
  * more than once for one player (e.g. two Agility increases).
  */

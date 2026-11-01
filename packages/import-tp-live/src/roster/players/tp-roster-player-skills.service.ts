@@ -87,7 +87,7 @@ export class TpRosterPlayerSkillsService {
 
   /**
    * Resolves every referenced skill once for the whole roster, then writes
-   * each imported player's skills in one `player_skills` sync per player, so
+   * each imported player's skills in one `player_advancements` sync per player, so
    * one player's failed write never loses another's. A skill that cannot be
    * resolved, or whose keyword-code target is uncurated, is left out with
    * one error; the player's other skills are still written. Returns how many
@@ -180,7 +180,7 @@ export class TpRosterPlayerSkillsService {
   }
 
   /**
-   * One reference as a `player_skills` entry, or none when its skill did not
+   * One reference as a `player_advancements` entry, or none when its skill did not
    * resolve (already reported) or its keyword-code target is uncurated.
    */
   private entry(
@@ -254,7 +254,7 @@ export class TpRosterPlayerSkillsService {
 
   /**
    * One player's entries, one per `(skillId, attributeValue)` -- the natural
-   * key `player_skills` is unique on, which `PlayerSkillsService.sync`
+   * key `player_advancements` is unique on, which `PlayerSkillsService.sync`
    * rejects a batch for repeating. A gained entry replaces a starting one
    * (the more specific provenance); otherwise the first entry wins, which
    * for two gained entries is the lower advancement order, since entries

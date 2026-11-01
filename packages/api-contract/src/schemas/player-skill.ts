@@ -87,7 +87,7 @@ export const PlayerSkillRefSchema = z.object({
  * The rules set scopes the skill categories and elite flags the service joins
  * in — which the output schema does not carry, for the same reason it does not
  * carry the skill's name: they describe `skill_rules_sets`, not the stored
- * `player_skills` row this procedure reads back.
+ * `player_advancements` row this procedure reads back.
  */
 export const ListPlayerSkillsSchema = z.object({
   playerId: z.number().int(),

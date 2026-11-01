@@ -65,7 +65,7 @@ export type SkillCategory = (typeof SKILL_CATEGORIES)[number];
  * declared order becomes the Postgres enum's sort order and
  * `PlayerSkillsService.listByPlayer` sorts on it.
  *
- * Recorded as a provenance column on one unified `player_skills` table rather
+ * Recorded as a provenance column on one unified `player_advancements` table rather
  * than as separate starting/gained tables: insight toplists need "any skill a
  * player has", "only advancement-gained skills" and "only chosen advancement
  * skills", and a single table makes all three a plain `WHERE` instead of a

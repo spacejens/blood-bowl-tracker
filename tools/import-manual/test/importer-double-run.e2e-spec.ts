@@ -42,7 +42,7 @@ import { curatedPicks, runSourceStandIn } from './source-stand-in.test-helpers';
  * `tpMatches`, `tpCompetitions` and `tpOfficialTeams` imports), because their
  * source dumps are not in the repository; flips that originate in the source
  * data itself; and tables derived from match events. The tables race_eras,
- * positions_race_eras, era_rules_sets, matches, match_events, player_skills,
+ * positions_race_eras, era_rules_sets, matches, match_events, player_advancements,
  * trophy_awards and competition_teams stay empty in the harness, so their
  * comparisons pass vacuously. Without BBL and TP,
  * batch 002 has entries that reference rows only they create; those fail with

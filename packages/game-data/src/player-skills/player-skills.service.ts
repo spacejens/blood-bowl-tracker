@@ -3,7 +3,7 @@ import type {
   SyncPlayerSkills,
   SyncPlayerSkillsResult,
 } from '@blood-bowl-tracker/api-contract';
-import type { Db, NewPlayerSkill } from '@blood-bowl-tracker/db';
+import type { Db, NewPlayerAdvancement } from '@blood-bowl-tracker/db';
 import {
   and,
   asc,
@@ -11,8 +11,8 @@ import {
   eq,
   inArray,
   isNotNull,
+  playerAdvancements,
   players,
-  playerSkills,
   skillRulesSets,
   skills,
   trophyAwards,
@@ -33,7 +33,7 @@ import { SkillValidationError } from '../shared/skill-validation-error';
 const HATRED_SKILL_NAME = 'Hatred';
 
 /**
- * One skill a player has, named for display. Not called `PlayerSkill`:
+ * One skill a player has, named for display. Not called `PlayerAdvancement`:
  * `@blood-bowl-tracker/db` already exports that name for the raw table row,
  * and a consumer importing both would collide.
  */
@@ -184,16 +184,16 @@ export class PlayerSkillsService {
 
     const existingRows = await this.db
       .select({
-        id: playerSkills.id,
-        playerId: playerSkills.playerId,
-        skillId: playerSkills.skillId,
-        source: playerSkills.source,
-        attributeValue: playerSkills.attributeValue,
-        advancementOrder: playerSkills.advancementOrder,
-        isFreeExtra: playerSkills.isFreeExtra,
+        id: playerAdvancements.id,
+        playerId: playerAdvancements.playerId,
+        skillId: playerAdvancements.skillId,
+        source: playerAdvancements.source,
+        attributeValue: playerAdvancements.attributeValue,
+        advancementOrder: playerAdvancements.advancementOrder,
+        isFreeExtra: playerAdvancements.isFreeExtra,
       })
-      .from(playerSkills)
-      .where(inArray(playerSkills.playerId, playerIds));
+      .from(playerAdvancements)
+      .where(inArray(playerAdvancements.playerId, playerIds));
 
     const existingByKey = new Map(
       existingRows.map((row) => [
@@ -206,7 +206,7 @@ export class PlayerSkillsService {
     // up positionally with `data.entries`, regardless of which entries were
     // pre-existing, updated, or newly inserted.
     const resultIds: number[] = new Array<number>(resolved.length);
-    const toInsert: NewPlayerSkill[] = [];
+    const toInsert: NewPlayerAdvancement[] = [];
     const toInsertIndexes: number[] = [];
     const toUpdate: PlayerSkillUpdate[] = [];
     const changedPlayerIds = new Set<number>();
@@ -271,20 +271,20 @@ export class PlayerSkillsService {
     return this.db.transaction(async (tx) => {
       for (const { id, values } of toUpdate) {
         await tx
-          .update(playerSkills)
+          .update(playerAdvancements)
           .set(values)
-          .where(eq(playerSkills.id, id));
+          .where(eq(playerAdvancements.id, id));
       }
 
       if (toInsert.length > 0) {
         const inserted = await tx
-          .insert(playerSkills)
+          .insert(playerAdvancements)
           .values(toInsert)
           .returning({
-            id: playerSkills.id,
-            playerId: playerSkills.playerId,
-            skillId: playerSkills.skillId,
-            attributeValue: playerSkills.attributeValue,
+            id: playerAdvancements.id,
+            playerId: playerAdvancements.playerId,
+            skillId: playerAdvancements.skillId,
+            attributeValue: playerAdvancements.attributeValue,
           });
         // Postgres does not guarantee INSERT ... RETURNING preserves the input
         // `values()` order, so the returned rows cannot be zipped back onto
@@ -307,7 +307,7 @@ export class PlayerSkillsService {
             // its key must be present in `inserted` — this can only mean the
             // insert silently dropped a row.
             throw new Error(
-              `Insert into player_skills did not return a row for key ${key}`,
+              `Insert into player_advancements did not return a row for key ${key}`,
             );
           }
           resultIds[toInsertIndexes[insertedIndex]] = id;
@@ -429,13 +429,13 @@ export class PlayerSkillsService {
       return;
     }
     await this.db
-      .update(playerSkills)
+      .update(playerAdvancements)
       .set({ isFreeExtra: true })
       .where(
         and(
-          eq(playerSkills.playerId, playerId),
-          eq(playerSkills.skillId, skillId),
-          eq(playerSkills.isFreeExtra, false),
+          eq(playerAdvancements.playerId, playerId),
+          eq(playerAdvancements.skillId, skillId),
+          eq(playerAdvancements.isFreeExtra, false),
         ),
       );
   }
@@ -471,13 +471,13 @@ export class PlayerSkillsService {
       return;
     }
     await this.db
-      .update(playerSkills)
+      .update(playerAdvancements)
       .set({ isFreeExtra: false })
       .where(
         and(
-          eq(playerSkills.playerId, playerId),
-          eq(playerSkills.skillId, skillId),
-          eq(playerSkills.isFreeExtra, true),
+          eq(playerAdvancements.playerId, playerId),
+          eq(playerAdvancements.skillId, skillId),
+          eq(playerAdvancements.isFreeExtra, true),
         ),
       );
   }
@@ -502,23 +502,23 @@ export class PlayerSkillsService {
       .select({
         skillId: skills.id,
         skillName: skills.name,
-        source: playerSkills.source,
-        attributeValue: playerSkills.attributeValue,
-        advancementOrder: playerSkills.advancementOrder,
+        source: playerAdvancements.source,
+        attributeValue: playerAdvancements.attributeValue,
+        advancementOrder: playerAdvancements.advancementOrder,
         category: skillRulesSets.category,
         isElite: skillRulesSets.isElite,
-        isFreeExtra: playerSkills.isFreeExtra,
+        isFreeExtra: playerAdvancements.isFreeExtra,
       })
-      .from(playerSkills)
-      .innerJoin(skills, eq(skills.id, playerSkills.skillId))
+      .from(playerAdvancements)
+      .innerJoin(skills, eq(skills.id, playerAdvancements.skillId))
       .leftJoin(
         skillRulesSets,
         and(
-          eq(skillRulesSets.skillId, playerSkills.skillId),
+          eq(skillRulesSets.skillId, playerAdvancements.skillId),
           eq(skillRulesSets.rulesSetId, rulesSetId),
         ),
       )
-      .where(eq(playerSkills.playerId, playerId))
+      .where(eq(playerAdvancements.playerId, playerId))
       .orderBy(
         // Sorts by the Postgres enum's declaration order, which relies on
         // `PLAYER_SKILL_SOURCES` (packages/domain-enums/src/skills.ts) being
@@ -526,8 +526,8 @@ export class PlayerSkillsService {
         // reordering that array would silently change this API's result
         // order, and so would a migration that appends a new enum value
         // rather than inserting it at its declared position.
-        asc(playerSkills.source),
-        asc(playerSkills.advancementOrder),
+        asc(playerAdvancements.source),
+        asc(playerAdvancements.advancementOrder),
         asc(skills.name),
       );
     // A missed left join yields a null `isElite`; collapse it to the column's

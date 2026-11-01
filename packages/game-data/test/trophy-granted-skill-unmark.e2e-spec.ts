@@ -7,8 +7,8 @@ import {
   eq,
   eras,
   leagues,
+  playerAdvancements,
   players,
-  playerSkills,
   positions,
   races,
   skills,
@@ -122,7 +122,7 @@ async function seed(db: Db): Promise<Fixtures> {
     .values({ name: 'Hatred' })
     .returning();
   for (const skill of [tentacles, twoHeads, hatred]) {
-    await db.insert(playerSkills).values({
+    await db.insert(playerAdvancements).values({
       playerId: player.id,
       skillId: skill.id,
       source: 'chosen',
@@ -171,7 +171,7 @@ describe('Changing a trophy award granted skill (real Postgres)', () => {
   });
 
   async function freeSkillIds(): Promise<number[]> {
-    const rows = await db.select().from(playerSkills);
+    const rows = await db.select().from(playerAdvancements);
     return rows
       .filter((row) => row.isFreeExtra)
       .map((row) => row.skillId)
@@ -226,9 +226,9 @@ describe('Changing a trophy award granted skill (real Postgres)', () => {
   it('never unmarks Hatred, which is free by its own rule', async () => {
     await service.upsert(award(0, fixtures.hatredId));
     await db
-      .update(playerSkills)
+      .update(playerAdvancements)
       .set({ isFreeExtra: true })
-      .where(eq(playerSkills.skillId, fixtures.hatredId));
+      .where(eq(playerAdvancements.skillId, fixtures.hatredId));
 
     await service.upsert(award(0, null));
 

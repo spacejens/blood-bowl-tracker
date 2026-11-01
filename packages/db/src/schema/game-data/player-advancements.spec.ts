@@ -1,14 +1,17 @@
 import { getTableConfig } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 
-import { playerSkills, playerSkillSourceEnum } from './player-skills';
+import {
+  playerAdvancements,
+  playerAdvancementSourceEnum,
+} from './player-advancements';
 
-describe('player_skills', () => {
-  const config = getTableConfig(playerSkills);
+describe('player_advancements', () => {
+  const config = getTableConfig(playerAdvancements);
 
   it('lives in the game_data schema under its own name', () => {
     expect(config.schema).toBe('game_data');
-    expect(config.name).toBe('player_skills');
+    expect(config.name).toBe('player_advancements');
   });
 
   it('carries the source enum and the two nullable advancement columns', () => {
@@ -31,7 +34,7 @@ describe('player_skills', () => {
   });
 
   it('uses the shared domain-enums source list', () => {
-    expect(playerSkillSourceEnum.enumValues).toEqual([
+    expect(playerAdvancementSourceEnum.enumValues).toEqual([
       'starting',
       'advancement',
       'chosen',
@@ -42,7 +45,8 @@ describe('player_skills', () => {
   it('is unique on (player, skill, attribute value) treating nulls as equal', () => {
     const constraint = config.uniqueConstraints.find(
       (c) =>
-        c.name === 'player_skills_player_id_skill_id_attribute_value_unique',
+        c.name ===
+        'player_advancements_player_id_skill_id_attribute_value_unique',
     );
     expect(constraint).toBeDefined();
     expect(constraint!.columns.map((c) => c.name)).toEqual([
@@ -57,7 +61,7 @@ describe('player_skills', () => {
 
   it('enforces that a starting row leaves advancementOrder unset', () => {
     const check = config.checks.find(
-      (c) => c.name === 'player_skills_starting_has_no_order',
+      (c) => c.name === 'player_advancements_starting_has_no_order',
     );
     expect(check).toBeDefined();
   });

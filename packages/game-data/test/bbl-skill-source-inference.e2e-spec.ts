@@ -9,9 +9,9 @@ import {
   eras,
   inArray,
   leagues,
+  playerAdvancements,
+  playerAdvancementsHistory,
   players,
-  playerSkills,
-  playerSkillsHistory,
   positionRulesSets,
   positionRulesSetSkillCategories,
   positions,
@@ -182,7 +182,7 @@ async function seed(db: Db): Promise<SeededPlayers> {
     source: PlayerSkillSource = 'advancement',
   ) =>
     db
-      .insert(playerSkills)
+      .insert(playerAdvancements)
       .values(
         names.map((name) => ({ playerId, skillId: skill[name], source })),
       );
@@ -251,10 +251,10 @@ describe('BBL skill source inference in the closing SPP sync (real Postgres)', (
     playerId: number,
   ): Promise<Record<string, PlayerSkillSource>> {
     const rows = await db
-      .select({ name: skills.name, source: playerSkills.source })
-      .from(playerSkills)
-      .innerJoin(skills, eq(skills.id, playerSkills.skillId))
-      .where(eq(playerSkills.playerId, playerId));
+      .select({ name: skills.name, source: playerAdvancements.source })
+      .from(playerAdvancements)
+      .innerJoin(skills, eq(skills.id, playerAdvancements.skillId))
+      .where(eq(playerAdvancements.playerId, playerId));
     return Object.fromEntries(rows.map((row) => [row.name, row.source]));
   }
 
@@ -296,15 +296,15 @@ describe('BBL skill source inference in the closing SPP sync (real Postgres)', (
 
   it('keeps the settled sources when a re-run re-sends them as advancement', async () => {
     await sync();
-    const historyBefore = await db.select().from(playerSkillsHistory);
+    const historyBefore = await db.select().from(playerAdvancementsHistory);
     const skillRows = await db
       .select({
-        playerId: playerSkills.playerId,
-        skillId: playerSkills.skillId,
-        source: playerSkills.source,
+        playerId: playerAdvancements.playerId,
+        skillId: playerAdvancements.skillId,
+        source: playerAdvancements.source,
       })
-      .from(playerSkills)
-      .where(eq(playerSkills.playerId, seeded.settled));
+      .from(playerAdvancements)
+      .where(eq(playerAdvancements.playerId, seeded.settled));
 
     // The BBL import re-sends every gained skill as advancement.
     await playerSkillsService.sync({
@@ -321,32 +321,36 @@ describe('BBL skill source inference in the closing SPP sync (real Postgres)', (
       Block: 'random',
       Sidestep: 'chosen',
     });
-    expect(await db.select().from(playerSkillsHistory)).toEqual(historyBefore);
+    expect(await db.select().from(playerAdvancementsHistory)).toEqual(
+      historyBefore,
+    );
     expect(await storedUnspent(seeded.settled)).toBe(3);
   });
 
   it('leaves the stored unspent SPP alone when a skill re-sync after inference changes nothing', async () => {
     await sync();
-    const historyBefore = await db.select().from(playerSkillsHistory);
+    const historyBefore = await db.select().from(playerAdvancementsHistory);
 
     await playerSkillsService.sync({
       entries: (
         await db
           .select({
-            playerId: playerSkills.playerId,
-            skillId: playerSkills.skillId,
+            playerId: playerAdvancements.playerId,
+            skillId: playerAdvancements.skillId,
           })
-          .from(playerSkills)
+          .from(playerAdvancements)
           .where(
             and(
-              eq(playerSkills.playerId, seeded.settled),
-              inArray(playerSkills.source, ['chosen', 'random']),
+              eq(playerAdvancements.playerId, seeded.settled),
+              inArray(playerAdvancements.source, ['chosen', 'random']),
             ),
           )
       ).map((row) => ({ ...row, source: 'advancement' as const })),
     });
 
-    expect(await db.select().from(playerSkillsHistory)).toEqual(historyBefore);
+    expect(await db.select().from(playerAdvancementsHistory)).toEqual(
+      historyBefore,
+    );
     expect(await storedUnspent(seeded.settled)).toBe(3);
   });
 });

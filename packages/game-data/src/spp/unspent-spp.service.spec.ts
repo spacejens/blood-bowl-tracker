@@ -83,7 +83,7 @@ describe('UnspentSppService loading', () => {
     expect(filterValues(db.chains[1].where)).toEqual([ERA, 21]);
     expect(filterValues(db.chains[2].where)).toEqual([1, 2]);
     expect(extractJoinColumns(firstCallArg(db.chains[2].where))).toEqual([
-      'player_skills.player_id',
+      'player_advancements.player_id',
     ]);
     expect(filterValues(db.chains[3].where)).toEqual(
       expect.arrayContaining([101, CRP]),

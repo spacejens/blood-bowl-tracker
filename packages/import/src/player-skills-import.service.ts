@@ -14,7 +14,7 @@ import type { ImportError } from './types';
  */
 export const PLAYER_SKILLS_SYNC_CHUNK_SIZE = 500;
 
-/** The natural key `player_skills` is unique on. */
+/** The natural key `player_advancements` is unique on. */
 function naturalKey(entry: PlayerSkillEntry): string {
   return JSON.stringify([
     entry.playerId,

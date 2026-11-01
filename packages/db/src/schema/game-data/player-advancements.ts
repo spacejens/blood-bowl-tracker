@@ -19,14 +19,14 @@ import { skills } from './skills';
  * each source means and why one unified table carries starting and gained
  * skills alike.
  */
-export const playerSkillSourceEnum = gameData.enum(
-  'player_skill_source',
+export const playerAdvancementSourceEnum = gameData.enum(
+  'player_advancement_source',
   PLAYER_SKILL_SOURCES,
 );
 
 /**
- * Every skill one player has — starting skills included — tagged with how
- * they came by it.
+ * Every advancement-relevant row one player has, starting skills included,
+ * tagged with how they came by it.
  *
  * Anchored directly to `players.id` rather than reached through the player's
  * position: a player's own skill set diverges from their position's the
@@ -67,9 +67,9 @@ export const playerSkillSourceEnum = gameData.enum(
  * clearing an award's granted skill unmarks that skill's rows for the winner,
  * unless it is Hatred or another award of the same player still grants it.
  */
-const playerSkillsTable = historyTrackedTable({
+const playerAdvancementsTable = historyTrackedTable({
   schema: gameData,
-  name: 'player_skills',
+  name: 'player_advancements',
   columns: {
     id: serial('id').primaryKey(),
     playerId: integer('player_id')
@@ -78,7 +78,7 @@ const playerSkillsTable = historyTrackedTable({
     skillId: integer('skill_id')
       .references(() => skills.id)
       .notNull(),
-    source: playerSkillSourceEnum('source').notNull(),
+    source: playerAdvancementSourceEnum('source').notNull(),
     attributeValue: text('attribute_value'),
     advancementOrder: integer('advancement_order'),
     isFreeExtra: boolean('is_free_extra').notNull().default(false),
@@ -89,7 +89,7 @@ const playerSkillsTable = historyTrackedTable({
     // identical no-variant duplicates of the same skill for one player. With
     // it, the constraint holds for variant and non-variant skills alike.
     uniquePlayerSkill: unique(
-      'player_skills_player_id_skill_id_attribute_value_unique',
+      'player_advancements_player_id_skill_id_attribute_value_unique',
     )
       .on(t.playerId, t.skillId, t.attributeValue)
       .nullsNotDistinct(),
@@ -97,14 +97,14 @@ const playerSkillsTable = historyTrackedTable({
     // starting row has no sequence at all, so it must always leave
     // `advancementOrder` unset, regardless of what application code writes.
     startingHasNoOrder: check(
-      'player_skills_starting_has_no_order',
+      'player_advancements_starting_has_no_order',
       sql`${t.source} != 'starting' OR ${t.advancementOrder} IS NULL`,
     ),
   }),
 });
 
-export const playerSkills = playerSkillsTable.table;
-export const playerSkillsHistory = playerSkillsTable.historyTable;
+export const playerAdvancements = playerAdvancementsTable.table;
+export const playerAdvancementsHistory = playerAdvancementsTable.historyTable;
 
-export type PlayerSkill = typeof playerSkills.$inferSelect;
-export type NewPlayerSkill = typeof playerSkills.$inferInsert;
+export type PlayerAdvancement = typeof playerAdvancements.$inferSelect;
+export type NewPlayerAdvancement = typeof playerAdvancements.$inferInsert;

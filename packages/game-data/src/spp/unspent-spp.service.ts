@@ -9,8 +9,8 @@ import {
   inArray,
   isNull,
   or,
+  playerAdvancements,
   players,
-  playerSkills,
   positionRulesSets,
   positionRulesSetSkillCategories,
   positions,
@@ -364,13 +364,13 @@ export class UnspentSppService {
     const rulesSetIds = this.distinct(eraRows.map((row) => row.rulesSetId));
     const skillRows = await this.db
       .select({
-        playerId: playerSkills.playerId,
-        skillId: playerSkills.skillId,
-        source: playerSkills.source,
-        isFreeExtra: playerSkills.isFreeExtra,
+        playerId: playerAdvancements.playerId,
+        skillId: playerAdvancements.skillId,
+        source: playerAdvancements.source,
+        isFreeExtra: playerAdvancements.isFreeExtra,
       })
-      .from(playerSkills)
-      .where(inArray(playerSkills.playerId, playerIds));
+      .from(playerAdvancements)
+      .where(inArray(playerAdvancements.playerId, playerIds));
 
     return {
       rulesSetIdsByEra: this.group(
