@@ -31,7 +31,7 @@ Takes no arguments.
    - **Run the TP import** — run `tools/import-tp/` to import data into a running instance.
    - **Run the manual import (remaining batches)** — run `tools/import-manual/`'s plain `apply` command to apply every batch not yet applied once the system-specific importers have run.
    - **Run the match-event review tool** — run `tools/review-match/` against the running database and the existing BBL/TP data directories, then open the report.
-   - **Run the full import** — scratch builds only (refused unless the manual-batch ledger is empty and no players exist): run every importer in order, `apply 001-initial-seed`, the BBL import, the TP import, plain `apply`, then the BBL and TP imports again.
+   - **Run the full import** — scratch builds only (refused unless the manual-batch ledger is empty and no players, teams, coaches or competitions exist): run every importer in order, `apply 001-initial-seed`, the BBL import, the TP import, plain `apply`, then the BBL and TP imports again.
 
    **Question 3 — `question`: "Which action(s) should I run? (continued)"** (`multiSelect: true`):
    - **Run the player review tool** — run `tools/review-player/` against the running database and the existing BBL/TP data directories, then open the report.
@@ -256,7 +256,7 @@ Run this section only if "Run the full import" was selected in step 0 above. Run
 
 This is the scratch-build sequence (see `docs/import-manual/batches.md`, "Operating procedure"): BBL and TP run twice because both read the advancement costs in batch 004, which can only be applied after their first run.
 
-1. **Guard: confirm the database is a scratch build.** A scratch build has an empty manual-batch ledger *and* holds no players — an empty ledger alone is not enough, because a restored backup that predates batch tracking has an empty ledger yet full data, and a plain `apply` there would re-import batches 001 and 002 over later curation. From the worktree root, check whether the manual-batch ledger table exists:
+1. **Guard: confirm the database is a scratch build.** A scratch build has an empty manual-batch ledger *and* holds no players, teams, coaches or competitions — an empty ledger alone is not enough, because a restored backup that predates batch tracking, or an ad hoc manual import (which records no ledger entry), leaves an empty ledger beside real data, and a plain `apply` there would re-import batches 001 and 002 over later curation. From the worktree root, check whether the manual-batch ledger table exists:
    ```bash
    docker compose exec -T postgres psql -U blood_bowl -d blood_bowl -tAc "select to_regclass('game_data.manual_import_batches')"
    ```
@@ -266,9 +266,9 @@ This is the scratch-build sequence (see `docs/import-manual/batches.md`, "Operat
    ```
    `0` means the ledger is empty. Then confirm the database holds no data:
    ```bash
-   docker compose exec -T postgres psql -U blood_bowl -d blood_bowl -tAc "select count(*) from game_data.players"
+   docker compose exec -T postgres psql -U blood_bowl -d blood_bowl -tAc "select (select count(*) from game_data.players) + (select count(*) from game_data.teams) + (select count(*) from game_data.coaches) + (select count(*) from game_data.competitions)"
    ```
-   Continue to step 2 only when the ledger is empty and this count is `0`. Any other ledger count or player count means this database is not a scratch build (for example a restored backup or an earlier import): stop this section, tell the developer the full import is for scratch builds only, and point them at the individual import options instead. If any of these commands fails (no `postgres` from this checkout running), report that and stop this section. A stopped full import also skips any individual importers chosen to follow it; say so.
+   Continue to step 2 only when the ledger is empty and this total is `0`. Any other ledger count or total means this database is not a scratch build (for example a restored backup or an earlier import): stop this section, tell the developer the full import is for scratch builds only, and point them at the individual import options instead. If any of these commands fails (no `postgres` from this checkout running), report that and stop this section. A stopped full import also skips any individual importers chosen to follow it; say so.
 2. **Run the six steps in order**, each exactly as its individual section describes, including that section's config check (step 1) before the tool's first run and its outcome report (step 3):
    1. `apply 001-initial-seed` — "Run the manual import (first batch)" steps 1–3.
    2. BBL import — "Run the BBL import" steps 1–3.

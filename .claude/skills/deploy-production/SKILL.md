@@ -65,7 +65,7 @@ Preconditions 1 and 3 are true blocking preconditions for every action below —
    **Question 3 — `question`: "Which action(s) should I run? (continued)"** (`multiSelect: true`):
    - **Run the TP import against production** — run `tools/import-tp/` over a `flyctl proxy` tunnel.
    - **Run the manual import (remaining batches) against production** — run `tools/import-manual/`'s plain `apply` command over a `flyctl proxy` tunnel; applies only batches production does not hold yet.
-   - **Run the full import against production** — brand-new, empty database only (refused unless the manual-batch ledger is empty and no players exist): run every importer in order over a `flyctl proxy` tunnel, `apply 001-initial-seed`, BBL, TP, plain `apply`, then BBL and TP again.
+   - **Run the full import against production** — brand-new, empty database only (refused unless the manual-batch ledger is empty and no players, teams, coaches or competitions exist): run every importer in order over a `flyctl proxy` tunnel, `apply 001-initial-seed`, BBL, TP, plain `apply`, then BBL and TP again.
    - **Run read-only queries against production** — open a read-only `psql` session against the production database to answer a question the developer describes.
 
    The **union** of the three answers determines which sections below run; the split is purely a presentation constraint and carries no meaning of its own. The developer may select any combination of the twelve options, including none. Sections run in the order they appear below, which is the order the options are listed above, except as the full-import question below decides. No option is gated on any other: each section runs standalone if it is the only one picked. If the union is empty (nothing selected in any of the three questions), report "No action taken" and stop — this is a valid outcome, not an error.
@@ -493,7 +493,7 @@ Run this section only if "Run the full import against production" was selected i
 
 This is the scratch-build sequence (see `docs/import-manual/batches.md`, "Operating procedure"): BBL and TP run twice because both read the advancement costs in batch 004, which can only be applied after their first run. Expect it to take many hours: it runs the BBL and TP imports, the longest against production, twice each.
 
-1. **Guard: confirm production is a scratch build.** A scratch build has an empty manual-batch ledger *and* holds no players — an empty ledger alone is not enough, because production imported before batch tracking existed has an empty ledger yet full data, and a plain `apply` there would re-import batches 001 and 002 over later curation. Make sure `apps/discord-bot/.env.production` is present in the worktree, exactly as "Run read-only queries against production" step 1 does. Write this query to a scratch file with the `Write` tool and pipe it in, as that section's step 3 describes:
+1. **Guard: confirm production is a scratch build.** A scratch build has an empty manual-batch ledger *and* holds no players, teams, coaches or competitions — an empty ledger alone is not enough, because production imported before batch tracking existed, or after an ad hoc manual import (which records no ledger entry), has an empty ledger beside real data, and a plain `apply` there would re-import batches 001 and 002 over later curation. Make sure `apps/discord-bot/.env.production` is present in the worktree, exactly as "Run read-only queries against production" step 1 does. Write this query to a scratch file with the `Write` tool and pipe it in, as that section's step 3 describes:
    ```sql
    select to_regclass('game_data.manual_import_batches') as ledger_table
    ```
@@ -506,9 +506,9 @@ This is the scratch-build sequence (see `docs/import-manual/batches.md`, "Operat
    ```
    A count of `0` means the ledger is empty. Then confirm production holds no data, the same way:
    ```sql
-   select count(*) as players from game_data.players
+   select (select count(*) from game_data.players) + (select count(*) from game_data.teams) + (select count(*) from game_data.coaches) + (select count(*) from game_data.competitions) as rows_total
    ```
-   Continue to step 2 only when the ledger is empty and `players` is `0`. Any other count, a non-zero `exitCode`, or an `{"error": ...}` from any of these queries means this is not a confirmed scratch build: stop this section, tell the developer the full import is for brand-new databases only (or report the query failure), and point them at the individual import options instead. A stopped full import also skips any individual importers chosen to follow it; say so. Close the tunnel as usual.
+   Continue to step 2 only when the ledger is empty and `rows_total` is `0`. Any other count, a non-zero `exitCode`, or an `{"error": ...}` from any of these queries means this is not a confirmed scratch build: stop this section, tell the developer the full import is for brand-new databases only (or report the query failure), and point them at the individual import options instead. A stopped full import also skips any individual importers chosen to follow it; say so. Close the tunnel as usual.
 2. **Run the six steps in order**, each exactly as its individual section describes, with `IMPORT_CONFIG_ENV=production` on the same command as the tool, including that section's outcome report and production failure interpretations:
    1. `( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js apply 001-initial-seed )` — "Run the manual import (first batch) against production" steps 1–4.
    2. `( cd tools/import-bbl && IMPORT_CONFIG_ENV=production node dist/main.js )` — "Run the BBL import against production" steps 1–3.

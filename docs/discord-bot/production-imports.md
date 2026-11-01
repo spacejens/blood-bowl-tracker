@@ -129,7 +129,7 @@ The `deploy-production` skill automates this flow: it opens the tunnel,
 runs the importers in the order above with `IMPORT_CONFIG_ENV=production`,
 and closes the tunnel afterwards, in any combination of the four import
 steps, or all six steps in order as its full import, which first checks that
-production's manual-batch ledger is empty and that it holds no players. It also checks first that nothing
+production's manual-batch ledger is empty and that it holds no players, teams, coaches or competitions. It also checks first that nothing
 else holds port 3001, since another
 production tunnel left running would stop this one from binding.
 
