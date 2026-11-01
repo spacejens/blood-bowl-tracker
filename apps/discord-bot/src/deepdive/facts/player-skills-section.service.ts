@@ -1,4 +1,8 @@
-import type { PlayerSkillRow } from '@blood-bowl-tracker/game-data';
+import { PLAYER_CHARACTERISTICS } from '@blood-bowl-tracker/domain-enums';
+import type {
+  PlayerCharacteristicAdvancementRow,
+  PlayerSkillRow,
+} from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
 
 import { UNIQUE_SKILL_MARKER } from './skill-markers';
@@ -49,16 +53,33 @@ export interface PlayerSkillLineOptions {
    * BB2025), where a gained skill of unknown source is worth flagging.
    */
   pricesByKind: boolean;
+  /**
+   * The player's characteristic increases, merged into the Advancements line
+   * among the gained skills. Absent means none.
+   */
+  characteristicAdvancements?: PlayerCharacteristicAdvancementRow[];
+}
+
+/** One entry of the Advancements line, before it is joined. */
+interface AdvancementItem {
+  order: number | null;
+  /** 0 for a skill, 1 for an increase: skills come first among equals. */
+  kind: 0 | 1;
+  /** The skill name, or the characteristic's stat-line index. */
+  tieBreak: string | number;
+  text: string;
 }
 
 /** No era knowledge: nothing is flagged as of unknown source. */
 const DEFAULT_OPTIONS: PlayerSkillLineOptions = { pricesByKind: false };
 
 /**
- * The two skill lines of the player deepdive: what the player started with and
- * what they have gained since, kept visibly apart because the distinction is
- * the interesting one — everybody in a position starts with the same skills,
- * and only the gained ones say anything about this player's career.
+ * The two skill lines of the player deepdive: the starting skills, then every
+ * advancement (gained skills and characteristic increases) in the order the
+ * player gained them; an increase reads `+AG`. They are kept visibly apart
+ * because the distinction is the interesting one — everybody in a position
+ * starts with the same skills, and only the advancements say anything about
+ * this player's career.
  *
  * A group with no skills contributes no line at all, matching how this embed
  * already handles an absent lasting injury: a "none" line on the many players
@@ -82,29 +103,39 @@ export class PlayerSkillsSectionService {
   ): string[] {
     const starting = rows.filter((row) => row.source === 'starting');
     const gained = rows.filter((row) => row.source !== 'starting');
+    const items: AdvancementItem[] = [
+      ...gained.map((row): AdvancementItem => ({
+        order: row.advancementOrder,
+        kind: 0,
+        tieBreak: row.skillName,
+        text: this.formatSkill(row, options),
+      })),
+      ...(options.characteristicAdvancements ?? []).map(
+        (row): AdvancementItem => ({
+          order: row.advancementOrder,
+          kind: 1,
+          tieBreak: PLAYER_CHARACTERISTICS.indexOf(row.characteristic),
+          text: `+${row.characteristic}`,
+        }),
+      ),
+    ];
     return [
       ...this.buildLine(
         'Starting skills',
-        this.sortStarting(starting),
-        options,
+        this.sortStarting(starting).map((row) =>
+          this.formatSkill(row, options),
+        ),
       ),
-      ...this.buildLine('Gained skills', this.sortGained(gained), options),
+      ...this.buildLine(
+        'Advancements',
+        this.sortAdvancements(items).map((item) => item.text),
+      ),
     ];
   }
 
   /** One labelled, comma-joined line, or nothing at all for an empty group. */
-  private buildLine(
-    label: string,
-    rows: PlayerSkillRow[],
-    options: PlayerSkillLineOptions,
-  ): string[] {
-    if (rows.length === 0) {
-      return [];
-    }
-    const formatted = rows
-      .map((row) => this.formatSkill(row, options))
-      .join(', ');
-    return [`${label}: ${formatted}`];
+  private buildLine(label: string, formatted: string[]): string[] {
+    return formatted.length === 0 ? [] : [`${label}: ${formatted.join(', ')}`];
   }
 
   /**
@@ -116,18 +147,23 @@ export class PlayerSkillsSectionService {
   }
 
   /**
-   * In the order the player gained them, which is the whole point of recording
-   * `advancementOrder`. A row whose source never reported an order sorts last
-   * rather than first — it is an unknown, not an earliest — and ties break
-   * alphabetically so the line is stable across calls.
+   * In the order the player gained them. An entry with no recorded order is an
+   * unknown, not an earliest, so it sorts last: skills alphabetically, then
+   * increases in stat-line order.
    */
-  private sortGained(rows: PlayerSkillRow[]): PlayerSkillRow[] {
-    return [...rows].sort((a, b) => {
-      const left = a.advancementOrder ?? Number.MAX_SAFE_INTEGER;
-      const right = b.advancementOrder ?? Number.MAX_SAFE_INTEGER;
-      return left === right
-        ? a.skillName.localeCompare(b.skillName)
-        : left - right;
+  private sortAdvancements(items: AdvancementItem[]): AdvancementItem[] {
+    return [...items].sort((a, b) => {
+      const left = a.order ?? Number.MAX_SAFE_INTEGER;
+      const right = b.order ?? Number.MAX_SAFE_INTEGER;
+      if (left !== right) {
+        return left - right;
+      }
+      if (a.kind !== b.kind) {
+        return a.kind - b.kind;
+      }
+      return typeof a.tieBreak === 'number' && typeof b.tieBreak === 'number'
+        ? a.tieBreak - b.tieBreak
+        : String(a.tieBreak).localeCompare(String(b.tieBreak));
     });
   }
 

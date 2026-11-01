@@ -1,5 +1,6 @@
 import type { PlayerStatus } from '@blood-bowl-tracker/domain-enums';
 import type {
+  PlayerCharacteristicAdvancementRow,
   PlayerDeepdiveCategoryCounts,
   PlayerDetail,
   PlayerHonor,
@@ -12,6 +13,7 @@ import type {
 } from '@blood-bowl-tracker/game-data';
 import {
   CharacteristicDisplayFormattingService,
+  PlayerAdvancementReadsService,
   PlayerDeathService,
   PlayerSkillsService,
   PlayersService,
@@ -228,6 +230,7 @@ export interface MakeServiceOptions {
   errorLog?: MockProxy<ErrorLogService>;
   unspentSpp?: MockProxy<UnspentSppService>;
   skillPricing?: MockProxy<PlayerSkillPricingService>;
+  advancementReads?: MockProxy<PlayerAdvancementReadsService>;
 }
 
 /**
@@ -267,6 +270,19 @@ export function makePlayerSkills(
 }
 
 /**
+ * A `PlayerAdvancementReadsService` mock. Defaults to a player with no
+ * characteristic increases, so specs about other parts of the embed never see
+ * an increase on the Advancements line.
+ */
+export function makeAdvancementReads(
+  rows: PlayerCharacteristicAdvancementRow[] = [],
+): MockProxy<PlayerAdvancementReadsService> {
+  const advancementReads = mock<PlayerAdvancementReadsService>();
+  advancementReads.listCharacteristicAdvancements.mockResolvedValue(rows);
+  return advancementReads;
+}
+
+/**
  * A `PositionRulesSetKeywordsService` mock. Defaults to a position with no
  * recorded keywords, so specs about other parts of the embed never see a
  * keywords line.
@@ -297,6 +313,7 @@ export async function makeService({
   errorLog = mock<ErrorLogService>(),
   unspentSpp = makeUnspentSpp(),
   skillPricing = makeSkillPricing(),
+  advancementReads = makeAdvancementReads(),
 }: MakeServiceOptions): Promise<{
   service: PlayerDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;
@@ -312,6 +329,7 @@ export async function makeService({
   errorLog: MockProxy<ErrorLogService>;
   unspentSpp: MockProxy<UnspentSppService>;
   skillPricing: MockProxy<PlayerSkillPricingService>;
+  advancementReads: MockProxy<PlayerAdvancementReadsService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -354,6 +372,7 @@ export async function makeService({
       { provide: ErrorLogService, useValue: errorLog },
       { provide: UnspentSppService, useValue: unspentSpp },
       { provide: PlayerSkillPricingService, useValue: skillPricing },
+      { provide: PlayerAdvancementReadsService, useValue: advancementReads },
     ],
   }).compile();
   return {
@@ -371,6 +390,7 @@ export async function makeService({
     errorLog,
     unspentSpp,
     skillPricing,
+    advancementReads,
   };
 }
 

@@ -95,7 +95,7 @@ describe('PlayerDeepdiveService skill lines', () => {
     const description = descriptionOf(await service.resolve(1));
 
     expect(description).toContain('Starting skills: Block, Dodge (4+)');
-    expect(description).toContain('Gained skills: ⚄ ♦ Mighty Blow');
+    expect(description).toContain('Advancements: ⚄ ♦ Mighty Blow');
     expect(description.indexOf('Position: Blitzer')).toBeLessThan(
       description.indexOf('Starting skills:'),
     );
@@ -142,7 +142,7 @@ describe('PlayerDeepdiveService skill lines', () => {
     const description = descriptionOf(await service.resolve(1));
 
     expect(description).not.toContain('Starting skills:');
-    expect(description).not.toContain('Gained skills:');
+    expect(description).not.toContain('Advancements:');
   });
 
   it('skips the skills query entirely when no rules set applies to the era', async () => {
@@ -200,7 +200,7 @@ describe('PlayerDeepdiveService skill lines', () => {
     const description = descriptionOf(await service.resolve(1));
 
     expect(description).toContain('Starting skills: Block');
-    expect(description).toContain('Gained skills: ⚄? Guard');
+    expect(description).toContain('Advancements: ⚄? Guard');
     expect(skillPricing.pricesByKind).toHaveBeenCalledWith(1, rows);
   });
 
@@ -220,7 +220,7 @@ describe('PlayerDeepdiveService skill lines', () => {
 
     const description = descriptionOf(await service.resolve(1));
 
-    expect(description).toContain('Gained skills: Guard');
+    expect(description).toContain('Advancements: Guard');
     expect(description).not.toContain('⚄?');
   });
 
