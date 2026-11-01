@@ -117,6 +117,76 @@ describe('PlayerSkillsSectionService', () => {
     ).toEqual(['Gained skills: ⚄ ♦ Mighty Blow']);
   });
 
+  it('marks a free extra gained skill with the cross', () => {
+    expect(
+      service.build([
+        skill({
+          skillName: 'Hatred',
+          source: 'chosen',
+          advancementOrder: 0,
+          attributeValue: 'Undead',
+          isFreeExtra: true,
+        }),
+      ]),
+    ).toEqual(['Gained skills: ✚ Hatred (Undead)']);
+  });
+
+  it('shows the dice, then the cross, then the gem', () => {
+    expect(
+      service.build([
+        skill({
+          skillName: 'Mighty Blow',
+          source: 'random',
+          advancementOrder: 0,
+          isFreeExtra: true,
+          isElite: true,
+        }),
+      ]),
+    ).toEqual(['Gained skills: ⚄ ✚ ♦ Mighty Blow']);
+  });
+
+  it('shows the cross before the star on a unique free extra skill', () => {
+    expect(
+      service.build([
+        skill({
+          skillName: 'Treacherous',
+          source: 'advancement',
+          advancementOrder: 0,
+          category: 'unique',
+          isFreeExtra: true,
+        }),
+      ]),
+    ).toEqual(['Gained skills: ✚ ★ Treacherous']);
+  });
+
+  it('never marks a starting skill as a free extra', () => {
+    // A free extra is a gained skill that cost no SPP. A starting skill was
+    // never gained, so the cross would misread as a claim about its origin.
+    expect(
+      service.build([skill({ skillName: 'Block', isFreeExtra: true })]),
+    ).toEqual(['Starting skills: Block']);
+  });
+
+  it('marks only the free extra among several Hatred skills', () => {
+    expect(
+      service.build([
+        skill({
+          skillName: 'Hatred',
+          source: 'chosen',
+          advancementOrder: 0,
+          attributeValue: 'Undead',
+          isFreeExtra: true,
+        }),
+        skill({
+          skillName: 'Hatred',
+          source: 'chosen',
+          advancementOrder: 1,
+          attributeValue: 'Troll',
+        }),
+      ]),
+    ).toEqual(['Gained skills: ✚ Hatred (Undead), Hatred (Troll)']);
+  });
+
   it('shows a marker and an attribute value together', () => {
     expect(
       service.build([
