@@ -60,8 +60,8 @@ It can also run, against the running instance:
 
 - the `tools/import-bbl` and `tools/import-tp` data imports
 - restoring a production database backup
-- the manual import
 - the full import of a scratch-built database (every importer in order, BBL and TP twice)
+- the manual import
 - the match/player/race/star player review tools
 - SchemaSpy diagram generation
 

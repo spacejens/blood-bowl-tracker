@@ -48,7 +48,7 @@ Preconditions 1 and 3 are true blocking preconditions for every action below —
 
 0. Ask the developer which action(s) to perform. There are twelve actions, and `AskUserQuestion` allows at most 4 options per question, so they are split across **three `multiSelect: true` questions sent in a single `AskUserQuestion` call** — the developer sees all three in sequence and answers once. Ask exactly these three questions, with exactly these options, in this order. Do not add, drop, reword, or reorder any option, and in particular do not add a "Both", "All", "None", or "Neither" option of your own invention — `multiSelect: true` already lets the developer pick any combination, including (by deselecting everything offered) none. See the `AskUserQuestion` option-ceiling and don't-invent-options rules in `CLAUDE.md`'s "Developer prompts" section for the rationale.
 
-   All three questions are one decision split in three, so phrase them that way. The strings below are the `question` text; each also needs a short `header` of its own (`header` is capped at 12 characters, so the question text will not fit there) — e.g. `Run what`, `Run what 2`, `Run what 3`.
+   All three questions are one decision split in three, so phrase them that way. `AskUserQuestion` rejects a call whose question texts are not unique, which is why the second and third carry "2 of 3" and "3 of 3" — use them exactly as written. The strings below are the `question` text; each also needs a short `header` of its own (`header` is capped at 12 characters, so the question text will not fit there) — e.g. `Run what`, `Run what 2`, `Run what 3`.
 
    **Question 1 — `question`: "Which action(s) should I run?"** (`multiSelect: true`):
    - **Check deployment status** — run `fly status` and a recent log tail, and summarize the machine's state.
@@ -56,16 +56,16 @@ Preconditions 1 and 3 are true blocking preconditions for every action below —
    - **Restart the machine** — main checkout only. Start a stopped machine, or restart a running one.
    - **Roll back to a previous release** — main checkout only. Pick from Fly's release history and redeploy that image.
 
-   **Question 2 — `question`: "Which action(s) should I run? (continued)"** (`multiSelect: true`):
+   **Question 2 — `question`: "Which action(s) should I run? (continued, 2 of 3)"** (`multiSelect: true`):
    - **Trigger a redeploy without a new merge** — main checkout only. Dispatch the GitHub Actions deploy workflow against the current `main`.
    - **Restore a backup into production** — main checkout only. DESTRUCTIVE but undoable: stop both machines, take a safety backup, and replace production's data with a chosen backup in one transaction.
+   - **Run the full import against production** — brand-new, empty database only (refused unless the manual-batch ledger is empty and no players, teams, coaches or competitions exist): run every importer in order over a `flyctl proxy` tunnel, `apply 001-initial-seed`, BBL, TP, plain `apply`, then BBL and TP again.
    - **Run the manual import (first batch) against production** — run `tools/import-manual/`'s `apply 001-initial-seed` command over a `flyctl proxy` tunnel (meant only for a brand-new, empty database).
-   - **Run the BBL import against production** — run `tools/import-bbl/` over a `flyctl proxy` tunnel.
 
-   **Question 3 — `question`: "Which action(s) should I run? (continued)"** (`multiSelect: true`):
+   **Question 3 — `question`: "Which action(s) should I run? (continued, 3 of 3)"** (`multiSelect: true`):
+   - **Run the BBL import against production** — run `tools/import-bbl/` over a `flyctl proxy` tunnel.
    - **Run the TP import against production** — run `tools/import-tp/` over a `flyctl proxy` tunnel.
    - **Run the manual import (remaining batches) against production** — run `tools/import-manual/`'s plain `apply` command over a `flyctl proxy` tunnel; applies only batches production does not hold yet.
-   - **Run the full import against production** — brand-new, empty database only (refused unless the manual-batch ledger is empty and no players, teams, coaches or competitions exist): run every importer in order over a `flyctl proxy` tunnel, `apply 001-initial-seed`, BBL, TP, plain `apply`, then BBL and TP again.
    - **Run read-only queries against production** — open a read-only `psql` session against the production database to answer a question the developer describes.
 
    The **union** of the three answers determines which sections below run; the split is purely a presentation constraint and carries no meaning of its own. The developer may select any combination of the twelve options, including none. Sections run in the order they appear below, which is the order the options are listed above, except as the full-import question below decides. No option is gated on any other: each section runs standalone if it is the only one picked. If the union is empty (nothing selected in any of the three questions), report "No action taken" and stop — this is a valid outcome, not an error.
@@ -436,60 +436,9 @@ Everything here automates the flow documented in `docs/discord-bot/production-im
    ```
    Any HTTP status at all (including `404` or `405`) means the tunnel is up — the RPC server answered. `curl` exiting with a connection error means it is not up yet. If it never comes up, report the tunnel command's own output, kill it (see "Production imports: closing the tunnel" below), and stop — running an importer against a dead tunnel just produces `ECONNREFUSED` for every record.
 
-### Run the manual import (first batch) against production
-
-Run this section only if "Run the manual import (first batch) against production" was selected in step 0. It runs after "Production imports: shared setup", which must have completed successfully. Runs standalone (no other import) if it is the only import picked — the shared setup and teardown still run around it. This batch is meant only for a brand-new, empty production database; on a database that already holds data it re-applies the initial seed over later curation, so a populated database takes the remaining-batches action instead.
-
-1. Apply the first batch, with the production config selected by the environment variable:
-   ```bash
-   ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js apply 001-initial-seed )
-   ```
-   `IMPORT_CONFIG_ENV` must be set on the same command as the tool — setting it in an earlier, separate shell call has no effect, and the tool would then silently use the local config and write to whatever `apiBaseUrl` that names.
-2. Report the outcome. Per `tools/import-manual/src/main.ts` the tool exits `0` printing `Imported <N> record(s) successfully.` on stdout; or exits `1`, either printing `Import completed with <N> errors:` followed by each error message on stderr, or `Import failed:` with the thrown error for an unexpected failure. Report the exit code and the captured output either way.
-3. Interpret common failures against production specifically, per `docs/discord-bot/production-imports.md`: `ECONNREFUSED` on `localhost:3001` means the tunnel died mid-run; `401` means the `apiToken` in the `.production.json5` file does not match the corresponding `API_TOKEN_IMPORT_*` secret pushed to Fly.
-4. These are real writes to the production database with no rollback, so a failure partway through leaves earlier records in place. Do not attempt to undo them. If the developer wants production back as it was before the import, that is the "Restore a backup into production" action, chosen deliberately.
-5. A failure here **does** stop the dependent imports: a first batch that failed is left unrecorded, so the BBL and TP imports would run without the records they match against, and a later plain `apply` would retry 001 before anything else. Skip the remaining selected BBL, TP and remaining-batches imports, report why, close the tunnel as usual, and tell the developer to rerun `apply 001-initial-seed` successfully before continuing.
-
-### Run the BBL import against production
-
-Run this section only if "Run the BBL import against production" was selected in step 0. Runs after "Production imports: shared setup" and after the manual first-batch import if that was also selected; runs standalone if it is the only import picked. On a brand-new database this import must run again after the remaining-batches import, because it reads the advancement costs batch 004 supplies; "Run the full import against production" does that automatically.
-
-1. Run the importer:
-   ```bash
-   ( cd tools/import-bbl && IMPORT_CONFIG_ENV=production node dist/main.js )
-   ```
-2. Report the outcome. Per `tools/import-bbl/src/main.ts` the tool exits `0` printing `Imported <N> coach(es) successfully.` on stdout; or exits `1`, either printing `Import completed with <N> errors:` followed by each error message on stderr, or `Import failed:` with the thrown error. Report the exit code and the captured output.
-3. This import is by far the longest of the four against production — each record is a separate call over the tunnel, so a full run takes considerably longer than it does locally. Do not treat a long-running import as a hang; only a stalled tunnel (repeated `ECONNREFUSED`) is a failure.
-4. The same production failure interpretations and no-rollback caveat as the manual first-batch section apply here. A failure here does not skip the remaining selected imports — report it and continue, unless the manual first-batch import failed (then this one was already skipped).
-
-### Run the TP import against production
-
-Run this section only if "Run the TP import against production" was selected in step 0. Runs after "Production imports: shared setup", the manual first-batch import, and the BBL import if those were also selected; runs standalone if it is the only import picked. On a brand-new database this import must run again after the remaining-batches import, because it reads the advancement costs batch 004 supplies; "Run the full import against production" does that automatically.
-
-1. Run the importer:
-   ```bash
-   ( cd tools/import-tp && IMPORT_CONFIG_ENV=production node dist/main.js )
-   ```
-2. Report the outcome. Per `tools/import-tp/src/main.ts` the tool exits `0` printing `Imported <N> record(s) successfully.` on stdout; or exits `1`, either printing `Import completed with <N> errors:` followed by each error message on stderr, or `Import failed:` with the thrown error. Report the exit code and the captured output.
-3. The same production failure interpretations and no-rollback caveat as the manual first-batch section apply here. A failure here does not skip the remaining selected imports — report it and continue, unless the manual first-batch import failed (then this one was already skipped).
-
-Unlike the BBL and manual imports, a team and its players are not imported by this local tool build at all: `tools/import-tp` only sends each roster file's raw content over the `tpRosters.import` RPC procedure, which `packages/import-tp-live` implements and which runs inside whatever `api-server` image is currently deployed to production — so a local-only change to team/player import logic has no effect on a production TP import until it is merged and deployed (see [docs/import-tp-live/index.md](../../../docs/import-tp-live/index.md)).
-
-### Run the manual import (remaining batches) against production
-
-Run this section only if "Run the manual import (remaining batches) against production" was selected in step 0. Runs last of the four individual imports, after every other selected individual import — its whole purpose is to clean up names and attach external IDs once the system-specific importers have run. Runs standalone if it is the only import picked.
-
-1. **Before running anything, check the production ledger is initialised** — skip this check only when this run follows the first-batch import or the full import in the same run (a brand-new, empty database). Production imported before batch tracking existed has an empty ledger, and a plain `apply` there would re-import batches 001 and 002 and could overwrite later curation. Ask the developer with `AskUserQuestion` (single-select, `header` `Ledger`) whether `mark-applied 001-initial-seed 002-initial-cleanup` has already been run on production, with the options **Already marked** and **Not yet marked**. Alternatively, if they have an open read-only session, `select name from game_data.manual_import_batches` answers it. On **Not yet marked**, tell the developer the one-time remedy `( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js mark-applied 001-initial-seed 002-initial-cleanup )` and run it only on their explicit confirmation. Ask them to confirm first that production's last manual import ran from the current content of both batches — `mark-applied` imports nothing, so anything merged since would never reach production; if they cannot confirm it, import `data/batches/001-initial-seed` and `data/batches/002-initial-cleanup` by directory first (idempotent upserts), then mark them applied. The ledger calls also need the api-server release with the `manualImportBatches` procedures deployed — an older release answers them with 404.
-2. Run plain `apply`, which applies every batch the production ledger does not record yet, in number order:
-   ```bash
-   ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js apply )
-   ```
-3. Report the outcome using the same success/error/`Import failed:` formats as the manual first-batch section, plus the same production failure interpretations and no-rollback caveat.
-4. On a brand-new database, the BBL and TP imports must run again after this one, because both read the advancement costs batch 004 supplies. If this run is building production from scratch and the BBL and TP imports are not run again after it, tell the developer so — "Run the full import against production" does this automatically.
-
 ### Run the full import against production
 
-Run this section only if "Run the full import against production" was selected in step 0. It runs after "Production imports: shared setup", which must have completed successfully, inside the same tunnel. When it was selected together with individual importers, step 0's follow-up question decided whether those run right after it or not at all. Meant only for a brand-new, empty production database — the last-resort recovery path when no usable backup exists (see `docs/discord-bot/production-imports.md`).
+Run this section only if "Run the full import against production" was selected in step 0. It runs after "Production imports: shared setup", which must have completed successfully, inside the same tunnel, and before every individual import section — it always executes before any individually selected importer. When it was selected together with individual importers, step 0's follow-up question decided whether those run right after it or not at all. Meant only for a brand-new, empty production database — the last-resort recovery path when no usable backup exists (see `docs/discord-bot/production-imports.md`).
 
 This is the scratch-build sequence (see `docs/import-manual/batches.md`, "Operating procedure"): BBL and TP run twice because both read the advancement costs in batch 004, which can only be applied after their first run. Expect it to take many hours: it runs the BBL and TP imports, the longest against production, twice each.
 
@@ -526,6 +475,57 @@ This is the scratch-build sequence (see `docs/import-manual/batches.md`, "Operat
    6. `( cd tools/import-tp && IMPORT_CONFIG_ENV=production node dist/main.js )` again, reported as in step 2.3.
 3. **Failure handling.** Every non-zero exit stops the sequence — the later steps do not run, because they depend on what the failed step would have written — with exactly one exception. That includes a step 2.1 (`apply 001-initial-seed`) or 2.4 (plain `apply`) failure, an `Import failed:` crash, an exit with no recognized output at all (a killed process, a Node startup failure) and a dead tunnel. The exception is a BBL or TP step that exits `1` and prints `Import completed with <N> errors:` (a collected-error result) without `Import failed:`: it is reported and the sequence continues, exactly like the individual BBL and TP sections: the first pass may leave out a record whose curation only a later batch supplies, and the second pass after the plain `apply` repairs that. Report which step failed with its output, and which steps did not run. These are real production writes with no rollback; do not try to undo them. If step 2.1 failed, 001 is left unrecorded, but it may have written some records before failing. Re-run the guard: retry the full import only if it still reports an empty ledger and zero players, teams, coaches and competitions; otherwise continue with the individual import options from step 2.1 onward, ending with the BBL and TP imports again. For a stop at step 2.2 or later the ledger holds batch 001, so the guard refuses a second full import: tell the developer to continue with the individual import options from the failed step on, ending with the BBL and TP imports again. Any individual importers chosen to follow the full import are skipped too; say so. Close the tunnel as usual.
 4. Report each step that ran with its exit code and summary line; "Production imports: closing the tunnel" step 3 includes them in its combined summary.
+
+### Run the manual import (first batch) against production
+
+Run this section only if "Run the manual import (first batch) against production" was selected in step 0. It runs after "Production imports: shared setup", which must have completed successfully, and after the full import if that was also selected. Runs standalone (no other import) if it is the only import picked — the shared setup and teardown still run around it. This batch is meant only for a brand-new, empty production database; on a database that already holds data it re-applies the initial seed over later curation, so a populated database takes the remaining-batches action instead.
+
+1. Apply the first batch, with the production config selected by the environment variable:
+   ```bash
+   ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js apply 001-initial-seed )
+   ```
+   `IMPORT_CONFIG_ENV` must be set on the same command as the tool — setting it in an earlier, separate shell call has no effect, and the tool would then silently use the local config and write to whatever `apiBaseUrl` that names.
+2. Report the outcome. Per `tools/import-manual/src/main.ts` the tool exits `0` printing `Imported <N> record(s) successfully.` on stdout; or exits `1`, either printing `Import completed with <N> errors:` followed by each error message on stderr, or `Import failed:` with the thrown error for an unexpected failure. Report the exit code and the captured output either way.
+3. Interpret common failures against production specifically, per `docs/discord-bot/production-imports.md`: `ECONNREFUSED` on `localhost:3001` means the tunnel died mid-run; `401` means the `apiToken` in the `.production.json5` file does not match the corresponding `API_TOKEN_IMPORT_*` secret pushed to Fly.
+4. These are real writes to the production database with no rollback, so a failure partway through leaves earlier records in place. Do not attempt to undo them. If the developer wants production back as it was before the import, that is the "Restore a backup into production" action, chosen deliberately.
+5. A failure here **does** stop the dependent imports: a first batch that failed is left unrecorded, so the BBL and TP imports would run without the records they match against, and a later plain `apply` would retry 001 before anything else. Skip the remaining selected BBL, TP and remaining-batches imports, report why, close the tunnel as usual, and tell the developer to rerun `apply 001-initial-seed` successfully before continuing.
+
+### Run the BBL import against production
+
+Run this section only if "Run the BBL import against production" was selected in step 0. Runs after "Production imports: shared setup", the full import and the manual first-batch import if those were also selected; runs standalone if it is the only import picked. On a brand-new database this import must run again after the remaining-batches import, because it reads the advancement costs batch 004 supplies; "Run the full import against production" does that automatically.
+
+1. Run the importer:
+   ```bash
+   ( cd tools/import-bbl && IMPORT_CONFIG_ENV=production node dist/main.js )
+   ```
+2. Report the outcome. Per `tools/import-bbl/src/main.ts` the tool exits `0` printing `Imported <N> coach(es) successfully.` on stdout; or exits `1`, either printing `Import completed with <N> errors:` followed by each error message on stderr, or `Import failed:` with the thrown error. Report the exit code and the captured output.
+3. This import is by far the longest of the four against production — each record is a separate call over the tunnel, so a full run takes considerably longer than it does locally. Do not treat a long-running import as a hang; only a stalled tunnel (repeated `ECONNREFUSED`) is a failure.
+4. The same production failure interpretations and no-rollback caveat as the manual first-batch section apply here. A failure here does not skip the remaining selected imports — report it and continue, unless the manual first-batch import failed (then this one was already skipped).
+
+### Run the TP import against production
+
+Run this section only if "Run the TP import against production" was selected in step 0. Runs after "Production imports: shared setup", the full import, the manual first-batch import, and the BBL import if those were also selected; runs standalone if it is the only import picked. On a brand-new database this import must run again after the remaining-batches import, because it reads the advancement costs batch 004 supplies; "Run the full import against production" does that automatically.
+
+1. Run the importer:
+   ```bash
+   ( cd tools/import-tp && IMPORT_CONFIG_ENV=production node dist/main.js )
+   ```
+2. Report the outcome. Per `tools/import-tp/src/main.ts` the tool exits `0` printing `Imported <N> record(s) successfully.` on stdout; or exits `1`, either printing `Import completed with <N> errors:` followed by each error message on stderr, or `Import failed:` with the thrown error. Report the exit code and the captured output.
+3. The same production failure interpretations and no-rollback caveat as the manual first-batch section apply here. A failure here does not skip the remaining selected imports — report it and continue, unless the manual first-batch import failed (then this one was already skipped).
+
+Unlike the BBL and manual imports, a team and its players are not imported by this local tool build at all: `tools/import-tp` only sends each roster file's raw content over the `tpRosters.import` RPC procedure, which `packages/import-tp-live` implements and which runs inside whatever `api-server` image is currently deployed to production — so a local-only change to team/player import logic has no effect on a production TP import until it is merged and deployed (see [docs/import-tp-live/index.md](../../../docs/import-tp-live/index.md)).
+
+### Run the manual import (remaining batches) against production
+
+Run this section only if "Run the manual import (remaining batches) against production" was selected in step 0. Runs last of the four individual imports, after every other selected individual import — its whole purpose is to clean up names and attach external IDs once the system-specific importers have run. Runs standalone if it is the only import picked.
+
+1. **Before running anything, check the production ledger is initialised** — skip this check only when this run follows the first-batch import or the full import in the same run (a brand-new, empty database). Production imported before batch tracking existed has an empty ledger, and a plain `apply` there would re-import batches 001 and 002 and could overwrite later curation. Ask the developer with `AskUserQuestion` (single-select, `header` `Ledger`) whether `mark-applied 001-initial-seed 002-initial-cleanup` has already been run on production, with the options **Already marked** and **Not yet marked**. Alternatively, if they have an open read-only session, `select name from game_data.manual_import_batches` answers it. On **Not yet marked**, tell the developer the one-time remedy `( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js mark-applied 001-initial-seed 002-initial-cleanup )` and run it only on their explicit confirmation. Ask them to confirm first that production's last manual import ran from the current content of both batches — `mark-applied` imports nothing, so anything merged since would never reach production; if they cannot confirm it, import `data/batches/001-initial-seed` and `data/batches/002-initial-cleanup` by directory first (idempotent upserts), then mark them applied. The ledger calls also need the api-server release with the `manualImportBatches` procedures deployed — an older release answers them with 404.
+2. Run plain `apply`, which applies every batch the production ledger does not record yet, in number order:
+   ```bash
+   ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js apply )
+   ```
+3. Report the outcome using the same success/error/`Import failed:` formats as the manual first-batch section, plus the same production failure interpretations and no-rollback caveat.
+4. On a brand-new database, the BBL and TP imports must run again after this one, because both read the advancement costs batch 004 supplies. If this run is building production from scratch and the BBL and TP imports are not run again after it, tell the developer so — "Run the full import against production" does this automatically.
 
 ### Production imports: closing the tunnel
 
