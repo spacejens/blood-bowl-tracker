@@ -26,15 +26,16 @@ export interface DeduceAdvancementOrderInput {
 }
 
 /**
- * Works out the order of several advancements a player gained at once from
- * the SPP the source says they spent. Every assignment of the numbers
+ * Works out the order of the advancements a player gained at once from the
+ * SPP the source says they spent. Every assignment of the numbers
  * `firstNumber`, `firstNumber + 1`, ... to the new rows is pinned in turn and
  * priced; an assignment fits when, under some rules set of the era, the
  * player's advancements can cost exactly the reported spend. One fitting
  * assignment is the answer. Several fitting assignments that give the same
  * spend ranges under every rules set mean the order does not change cost, and
  * the fallback order (`newRowIds` as listed) is the answer when it fits.
- * Anything else has no single answer.
+ * Anything else has no single answer. A lone new advancement has only one
+ * assignment, so this checks that the spend allows it at `firstNumber`.
  *
  * The numbers count paid advancements only (gained skills and characteristic
  * increases, never starting skills or free extras), the numbering the cost
@@ -52,7 +53,7 @@ export class AdvancementOrderDeductionService {
   /** Row id -> advancement number, or undefined when no single order is known. */
   deduce(input: DeduceAdvancementOrderInput): Map<number, number> | undefined {
     const { newRowIds, firstNumber } = input;
-    if (newRowIds.length < 2 || newRowIds.length > MAX_DEDUCED) {
+    if (newRowIds.length === 0 || newRowIds.length > MAX_DEDUCED) {
       return undefined;
     }
     const numbers = newRowIds.map((_id, at) => firstNumber + at);

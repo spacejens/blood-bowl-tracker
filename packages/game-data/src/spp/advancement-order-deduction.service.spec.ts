@@ -188,11 +188,27 @@ describe('AdvancementOrderDeductionService', () => {
     ).toBeUndefined();
   });
 
-  it('leaves a lone new advancement to the caller', () => {
+  it('returns a lone new advancement at the first number when it fits', () => {
     const rulesSets = [rulesSet([STORED, row(2)], COSTS)];
 
     expect(
       service.deduce({ rulesSets, newRowIds: [2], firstNumber: 2, spent: 7 }),
+    ).toEqual(new Map([[2, 2]]));
+  });
+
+  it('returns nothing for a lone new advancement the spend does not allow', () => {
+    const rulesSets = [rulesSet([STORED, row(2)], COSTS)];
+
+    expect(
+      service.deduce({ rulesSets, newRowIds: [2], firstNumber: 2, spent: 23 }),
+    ).toBeUndefined();
+  });
+
+  it('returns nothing without new advancements', () => {
+    const rulesSets = [rulesSet([STORED], COSTS)];
+
+    expect(
+      service.deduce({ rulesSets, newRowIds: [], firstNumber: 2, spent: 3 }),
     ).toBeUndefined();
   });
 

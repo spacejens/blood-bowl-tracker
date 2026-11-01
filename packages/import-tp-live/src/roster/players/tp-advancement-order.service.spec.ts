@@ -126,6 +126,38 @@ describe('TpAdvancementOrderService', () => {
       });
     });
 
+    it('leaves a lone new increase pending and unconfirmed when the spend can be checked', () => {
+      expect(
+        service.liveEntries({
+          playerId: 1,
+          skillEntries: [gained(7, 1)],
+          increases: counts({ ST: 1 }),
+          stored: [storedSkill({})],
+          checkSpend: true,
+        }),
+      ).toEqual({
+        entries: [gained(7, 1), increaseEntry('ST', 2)],
+        pendingIndexes: [1],
+        firstNumber: 2,
+      });
+    });
+
+    it('confirms a lone new increase when the spend cannot be checked', () => {
+      expect(
+        service.liveEntries({
+          playerId: 1,
+          skillEntries: [gained(7, 1)],
+          increases: counts({ ST: 1 }),
+          stored: [storedSkill({})],
+          checkSpend: false,
+        }),
+      ).toEqual({
+        entries: [gained(7, 1), increaseEntry('ST', 2, true)],
+        pendingIndexes: [],
+        firstNumber: 2,
+      });
+    });
+
     it('never counts a stored starting skill as a paid advancement', () => {
       expect(
         service.liveEntries({

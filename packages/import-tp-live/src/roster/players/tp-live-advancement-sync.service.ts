@@ -31,9 +31,9 @@ export interface LivePlayerSyncOptions {
 /**
  * Writes one player's advancements for the live TP import. Reads what is
  * stored, lets TpAdvancementOrderService decide each entry's order, and
- * writes the entries. When several new advancements are pending, it asks
- * AdvancementOrderDeductionService which order the SPP TP reports as spent
- * allows, reading the player's advancement inputs after the first write so
+ * writes the entries. When new advancements are pending (several, or a lone
+ * one while TP's spend is known), it asks AdvancementOrderDeductionService
+ * which order the SPP TP reports as spent allows, reading the player's advancement inputs after the first write so
  * the new rows (and their skill categories) are part of them, and writes the
  * deduced order confirmed. Without one answer the unconfirmed write stands.
  */
@@ -70,6 +70,7 @@ export class TpLiveAdvancementSyncService {
       skillEntries,
       increases,
       stored,
+      checkSpend: this.spent(options.snapshot) !== undefined,
     });
     const written = await this.write(options, plan.entries);
     if (written === undefined) {
@@ -90,13 +91,9 @@ export class TpLiveAdvancementSyncService {
     options: LivePlayerSyncOptions,
     { plan, rowIds }: { plan: LiveAdvancementPlan; rowIds: number[] },
   ): Promise<PlayerSkillEntry[] | undefined> {
-    const { snapshot, playerId, player, errors } = options;
-    if (
-      plan.pendingIndexes.length === 0 ||
-      snapshot === undefined ||
-      snapshot.unspentSpp < 0 ||
-      snapshot.unspentSpp > snapshot.snapshotSppTotal
-    ) {
+    const { playerId, player, errors } = options;
+    const spent = this.spent(options.snapshot);
+    if (plan.pendingIndexes.length === 0 || spent === undefined) {
       return undefined;
     }
     // A failed read leaves no rules set, so the deduction finds no fit.
@@ -111,7 +108,7 @@ export class TpLiveAdvancementSyncService {
       rulesSets: inputs?.get(playerId) ?? [],
       newRowIds: plan.pendingIndexes.map((index) => rowIds[index]),
       firstNumber: plan.firstNumber,
-      spent: snapshot.snapshotSppTotal - snapshot.unspentSpp,
+      spent,
     });
     if (numbers === undefined) {
       return undefined;
@@ -124,6 +121,18 @@ export class TpLiveAdvancementSyncService {
         ? entry
         : { ...entry, advancementOrder: number, orderConfirmed: true };
     });
+  }
+
+  /** The SPP TP reports as spent, or undefined without a consistent snapshot. */
+  private spent(snapshot: UnspentSppSnapshot | undefined): number | undefined {
+    if (
+      snapshot === undefined ||
+      snapshot.unspentSpp < 0 ||
+      snapshot.unspentSpp > snapshot.snapshotSppTotal
+    ) {
+      return undefined;
+    }
+    return snapshot.snapshotSppTotal - snapshot.unspentSpp;
   }
 
   private write(

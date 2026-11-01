@@ -16,6 +16,11 @@ export interface LiveAdvancementEntriesOptions {
   increases: PlayerCharacteristicCounts | undefined;
   /** Every active advancement row stored for the player before this import. */
   stored: StoredPlayerAdvancement[];
+  /**
+   * True when TP's reported spend can be checked. A lone new advancement is
+   * then left pending like several are, so the spend can confirm it.
+   */
+  checkSpend?: boolean;
 }
 
 /** The entries the live import sends for one player, and what is left to deduce. */
@@ -23,10 +28,11 @@ export interface LiveAdvancementPlan {
   entries: PlayerSkillEntry[];
   /**
    * Indexes into `entries` of the new advancements whose order must be
-   * deduced from SPP: empty unless at least two new advancements appeared for
-   * a player with stored rows. Listed in the fallback order (TP's skill list
-   * order, then increases in stat-line order); those entries are sent
-   * unconfirmed at `firstNumber`, `firstNumber + 1`, ... in that order.
+   * deduced from SPP: empty unless a player with stored rows gained at least
+   * two new advancements, or one when `checkSpend` is set. Listed in the
+   * fallback order (TP's skill list order, then increases in stat-line
+   * order); those entries are sent unconfirmed at `firstNumber`,
+   * `firstNumber + 1`, ... in that order.
    */
   pendingIndexes: number[];
   /** The advancement number after the player's stored paid advancements. */
@@ -48,9 +54,12 @@ interface IncreaseSplit {
  * after every stored one. Its confirmed order is its number among the
  * player's paid advancements (neither starting skills nor free extras), the
  * numbering the cost rows use. A lone new advancement is sent confirmed at
- * the next number. Several are sent unconfirmed at the next numbers, in TP's
- * skill order then stat-line order, and marked pending so their order can be
- * deduced from SPP. A player with nothing stored gets no confirmed order.
+ * the next number when TP's spend cannot be checked; when it can, it is sent
+ * unconfirmed at the next number and marked pending, so a stored history the
+ * spend does not allow leaves it unconfirmed instead of pinning it wrongly.
+ * Several are sent unconfirmed at the next numbers, in TP's skill order then
+ * stat-line order, and marked pending so their order can be deduced from
+ * SPP. A player with nothing stored gets no confirmed order.
  * Stored increases are resent as stored, best-ranked first, so the server
  * keeps them.
  *
@@ -83,12 +92,13 @@ export class TpAdvancementOrderService {
     const { kept, added } = this.increases(options);
     const hasBaseline = stored.length > 0;
     const newCount = newSkills.size + added.length;
-    const confirmation = newCount === 1 ? { orderConfirmed: true } : {};
+    const pending = newCount > 1 || options.checkSpend === true;
+    const confirmation = pending ? {} : { orderConfirmed: true };
     const entries: PlayerSkillEntry[] = [];
     const pendingIndexes: number[] = [];
     let next = firstNumber;
     const pushNew = (entry: PlayerSkillEntry): void => {
-      if (newCount > 1) {
+      if (pending) {
         pendingIndexes.push(entries.length);
       }
       entries.push({ ...entry, advancementOrder: next, ...confirmation });

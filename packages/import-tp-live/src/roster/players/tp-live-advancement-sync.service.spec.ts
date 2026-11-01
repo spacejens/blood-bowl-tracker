@@ -143,6 +143,7 @@ describe('TpLiveAdvancementSyncService', () => {
       skillEntries: SKILL_ENTRIES,
       increases: INCREASES,
       stored: STORED,
+      checkSpend: true,
     });
     expect(playerSkills.sync).toHaveBeenCalledTimes(1);
     expect(playerSkills.sync).toHaveBeenCalledWith({
@@ -225,9 +226,53 @@ describe('TpLiveAdvancementSyncService', () => {
   ])('deduces nothing with %s', async (_label, snapshot) => {
     await expect(syncPlayer({ snapshot })).resolves.toBe(true);
 
+    expect(order.liveEntries).toHaveBeenCalledWith(
+      expect.objectContaining({ checkSpend: false }),
+    );
     expect(unspentSpp.advancementInputsForPlayers).not.toHaveBeenCalled();
     expect(deduction.deduce).not.toHaveBeenCalled();
     expect(playerSkills.sync).toHaveBeenCalledTimes(1);
+  });
+
+  it('confirms a lone pending advancement the spent SPP allows', async () => {
+    order.liveEntries.mockReturnValue({
+      entries: [SKILL_ENTRIES[0], SKILL_8_PENDING],
+      pendingIndexes: [1],
+      firstNumber: 2,
+    });
+    playerSkills.sync.mockResolvedValue({ playerSkillIds: [40, 41] });
+    deduction.deduce.mockReturnValue(new Map([[41, 2]]));
+
+    await syncPlayer();
+
+    expect(deduction.deduce).toHaveBeenCalledWith({
+      rulesSets: RULES_SETS,
+      newRowIds: [41],
+      firstNumber: 2,
+      spent: 31,
+    });
+    expect(playerSkills.sync).toHaveBeenNthCalledWith(2, {
+      entries: [SKILL_ENTRIES[0], { ...SKILL_8_PENDING, orderConfirmed: true }],
+      characteristicPlayerIds: [PLAYER_ID],
+    });
+  });
+
+  it('leaves a lone pending advancement unconfirmed when the spend does not allow it', async () => {
+    order.liveEntries.mockReturnValue({
+      entries: [SKILL_ENTRIES[0], SKILL_8_PENDING],
+      pendingIndexes: [1],
+      firstNumber: 2,
+    });
+    playerSkills.sync.mockResolvedValue({ playerSkillIds: [40, 41] });
+    deduction.deduce.mockReturnValue(undefined);
+
+    await syncPlayer();
+
+    expect(playerSkills.sync).toHaveBeenCalledTimes(1);
+    expect(playerSkills.sync).toHaveBeenCalledWith({
+      entries: [SKILL_ENTRIES[0], SKILL_8_PENDING],
+      characteristicPlayerIds: [PLAYER_ID],
+    });
   });
 
   it('records a failed read of the stored rows and writes nothing', async () => {

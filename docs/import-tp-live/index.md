@@ -167,7 +167,9 @@ player's stored advancements before writing. An advancement not stored before
 is new, since the import runs after a match and it was taken since the last
 one; it comes after every stored one, and its number counts paid advancements
 only (neither starting skills nor free extras). A lone new advancement is
-appended at the next number and written confirmed. With several new ones, the
+appended at the next number and written confirmed, unless TP's SPP figures are
+known and the cost model finds the spend does not allow it there, when it is
+left unconfirmed. With several new ones, the
 import takes the spend as TP's total SPP less its unspent figure and prices
 every assignment of the next numbers to them with the cost model. One fitting
 order is written confirmed. When several fit and all cost the same, TP's skill
