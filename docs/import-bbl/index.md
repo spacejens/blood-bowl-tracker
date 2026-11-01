@@ -329,8 +329,9 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   `match_events.spp_value` already being populated. A player whose skills were
   not all written (a skill whose upsert failed, or every player when a skill
   sync failed) is sent without BBL's unspent figure, so the server does not
-  settle a skill's source from an incomplete history; the figure returns on the
-  next run that writes every skill.
+  settle a skill's source from an incomplete history. As for a page with no
+  figure, the server then stores none, replacing any figure stored earlier
+  until the next run that writes every skill.
 - **TrophyAwardsModule** — `BblTrophyAwardsImportService` records every team
   and player award from the competition results pages' trophy tables (read via
   the already-described `CompetitionTrophyPageParser` /

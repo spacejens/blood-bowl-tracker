@@ -33,8 +33,9 @@ export interface BblScrapedSpp {
  * bracketed total from the same row. It is left out for a player whose skills
  * were not all written (`incompletePlayerIds`): the server settles a skill's
  * source from that figure against the stored skills, and an incomplete history
- * could make a wrong source fit. The player's total still goes along, and the
- * figure returns on the next run that writes every skill.
+ * could make a wrong source fit. The player's total still goes along. As for
+ * a page with no figure, the server then stores none, replacing any figure
+ * stored earlier until the next run that writes every skill.
  */
 @Injectable()
 export class BblSppAdjustmentsImportService {

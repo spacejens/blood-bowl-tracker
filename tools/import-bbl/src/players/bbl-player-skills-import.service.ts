@@ -26,11 +26,12 @@ import type { BblPlayerSkillRef } from './player-page-parser';
  * shared piece is `PlayerSkillsImportService`, consumed unchanged and called
  * exactly once for the whole run.
  *
- * Also reports the players whose skills were not all written (`incompletePlayerIds`):
- * a player with a skill whose upsert failed, and every player when the Name
- * system could not be resolved or a sync chunk failed, since the shared sync
- * cannot say which players a failed chunk held. Their history is then
- * incomplete, which the closing SPP step must not reason from.
+ * Also reports the players whose skills were not all written
+ * (`incompletePlayerIds`): a player with a skill whose upsert failed, and
+ * every player when the Name system could not be resolved or a sync chunk
+ * failed, since the shared sync cannot say which players a failed chunk held.
+ * Their history is then incomplete, which the closing SPP step must not reason
+ * from.
  */
 @Injectable()
 export class BblPlayerSkillsImportService {
