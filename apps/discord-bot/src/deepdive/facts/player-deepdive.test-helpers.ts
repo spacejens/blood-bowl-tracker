@@ -107,11 +107,6 @@ export const griff = {
   agilityReductionCount: 0,
   passingReductionCount: 0,
   armourReductionCount: 0,
-  moveIncreaseCount: 0,
-  strengthIncreaseCount: 0,
-  agilityIncreaseCount: 0,
-  passingIncreaseCount: 0,
-  armourIncreaseCount: 0,
 };
 
 export const gougedEye = {

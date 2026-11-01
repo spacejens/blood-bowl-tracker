@@ -22,7 +22,7 @@ const PENDING_MARKER_TEXT = '?';
 const PARENTHETICAL_VALUE = /^(.+?) ?\(([^()]+)\)$/;
 
 /** How many times each characteristic was raised by advancement. */
-export interface RawIncreaseCounts {
+export interface RawCharacteristicIncreases {
   move: number;
   strength: number;
   agility: number;
@@ -36,7 +36,10 @@ export interface RawIncreaseCounts {
  */
 const INCREASE_MARKERS: Record<
   string,
-  { count: keyof RawIncreaseCounts; characteristic: PlayerCharacteristic }
+  {
+    count: keyof RawCharacteristicIncreases;
+    characteristic: PlayerCharacteristic;
+  }
 > = {
   '+MA': { count: 'move', characteristic: 'MA' },
   '+ST': { count: 'strength', characteristic: 'ST' },
@@ -72,10 +75,10 @@ export interface BblRawIncrease {
 export interface BblRawPlayerAdvancements {
   skills: BblRawPlayerSkill[];
   increases: BblRawIncrease[];
-  increaseCounts: RawIncreaseCounts;
+  increaseCounts: RawCharacteristicIncreases;
 }
 
-function zeroCounts(): RawIncreaseCounts {
+function zeroCounts(): RawCharacteristicIncreases {
   return { move: 0, strength: 0, agility: 0, passing: 0, armour: 0 };
 }
 
