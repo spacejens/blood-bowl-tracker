@@ -106,8 +106,12 @@ export class BblSkillSourceInferenceService {
     spent: number,
   ): Map<number, SettledSource> {
     const possible = new Map<number, Set<SettledSource>>();
-    for (const { candidatesInput, costs } of rulesSets) {
-      if (!this.fits(candidatesInput, costs, spent)) {
+    for (const { candidatesInput, costs, pricingModel } of rulesSets) {
+      // A rules set with no cost rows of its own (only a league's house
+      // rules) abstains, as it does when the era's pricing model is decided.
+      // A fixed-threshold set still counts: it fits both forced sources, so
+      // it keeps a skill open.
+      if (pricingModel === null || !this.fits(candidatesInput, costs, spent)) {
         continue;
       }
       candidatesInput.skills.forEach((skill, index) => {

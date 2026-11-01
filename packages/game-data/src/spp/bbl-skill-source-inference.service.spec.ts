@@ -316,6 +316,22 @@ describe('BblSkillSourceInferenceService', () => {
     ]);
   });
 
+  it('lets a rules set with no cost rows of its own abstain', async () => {
+    // A rules set holding only league rows has no pricing model. Its costs
+    // alone would settle Block as random (3), but it takes no part; the
+    // kind-priced input cannot fit two skills into a spend of 3.
+    const abstaining: RulesSetAdvancementInput = {
+      ...bb2020([gained(BLOCK)]),
+      pricingModel: null,
+    };
+    const h = await inferFor(
+      [bb2020([gained(BLOCK), gained(TACKLE)]), abstaining],
+      3,
+    );
+
+    expect(h.db.chains).toHaveLength(0);
+  });
+
   it('settles each player of a batch on their own spend', async () => {
     const h = await makeService(
       new Map([
