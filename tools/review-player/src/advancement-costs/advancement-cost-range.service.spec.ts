@@ -453,6 +453,66 @@ describe('AdvancementCostRangeService', () => {
     });
   });
 
+  it('pins a confirmed increase to its order and numbers the rest around it', () => {
+    const model = service.model(
+      history({
+        skills: [{ ...skill('Block', 'advancement'), advancementOrder: 1 }],
+        increases: [
+          increase('AG'),
+          { characteristic: 'ST', advancementOrder: 3, orderConfirmed: true },
+        ],
+      }),
+    );
+
+    expect(model.rows.map((row) => [row.label, row.advancementNumber])).toEqual(
+      [
+        ['Block', 1],
+        ['+ST', 3],
+        ['+AG', 2],
+      ],
+    );
+    expect(model.range).toEqual({
+      spentMin: 31,
+      spentMax: 31,
+      unspentMin: 9,
+      unspentMax: 9,
+    });
+  });
+
+  it('keeps a confirmed number even when fewer advancements fill the gap', () => {
+    const model = service.model(
+      history({
+        skills: [{ ...skill('Block', 'advancement'), advancementOrder: 1 }],
+        increases: [
+          { characteristic: 'ST', advancementOrder: 3, orderConfirmed: true },
+        ],
+      }),
+    );
+
+    expect(model.rows.map((row) => [row.label, row.advancementNumber])).toEqual(
+      [
+        ['Block', 1],
+        ['+ST', 3],
+      ],
+    );
+  });
+
+  it('does not pin an unconfirmed increase order', () => {
+    const model = service.model(
+      history({
+        skills: [{ ...skill('Block', 'advancement'), advancementOrder: 1 }],
+        increases: [increase('ST', 3)],
+      }),
+    );
+
+    expect(model.rows.map((row) => [row.label, row.advancementNumber])).toEqual(
+      [
+        ['Block', 1],
+        ['+ST', 2],
+      ],
+    );
+  });
+
   it('puts unknown-order entries last, skills before increases', () => {
     const model = service.model(
       history({

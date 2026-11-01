@@ -44,13 +44,6 @@ describe('BblPlayerAdvancementsRawRendererService', () => {
         },
       ],
       increases: [],
-      increaseCounts: {
-        move: 0,
-        strength: 0,
-        agility: 0,
-        passing: 0,
-        armour: 0,
-      },
     });
 
     const html = await service.render('1000');
@@ -70,13 +63,6 @@ describe('BblPlayerAdvancementsRawRendererService', () => {
         },
       ],
       increases: [],
-      increaseCounts: {
-        move: 0,
-        strength: 0,
-        agility: 0,
-        passing: 0,
-        armour: 0,
-      },
     });
 
     const html = await service.render('1000');
@@ -92,13 +78,6 @@ describe('BblPlayerAdvancementsRawRendererService', () => {
     reader.read.mockResolvedValue({
       skills: [],
       increases: [{ characteristic: 'MA', advancementOrder: 2 }],
-      increaseCounts: {
-        move: 1,
-        strength: 0,
-        agility: 0,
-        passing: 0,
-        armour: 0,
-      },
     });
 
     const html = await service.render('1000');
@@ -111,13 +90,6 @@ describe('BblPlayerAdvancementsRawRendererService', () => {
     reader.read.mockResolvedValue({
       skills: [],
       increases: [],
-      increaseCounts: {
-        move: 0,
-        strength: 0,
-        agility: 0,
-        passing: 0,
-        armour: 0,
-      },
     });
 
     expect(await service.render('1000')).toContain('<p class="note">None.</p>');

@@ -17,13 +17,6 @@ const ADVANCEMENTS = {
     },
   ],
   increases: [],
-  increaseCounts: {
-    move: 0,
-    strength: 0,
-    agility: 0,
-    passing: 0,
-    armour: 0,
-  },
 };
 
 describe('BblPlayerAdvancementsReaderService', () => {

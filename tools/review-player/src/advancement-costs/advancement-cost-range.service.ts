@@ -43,6 +43,8 @@ const ACCESS_KINDS: Readonly<Record<SkillAccess, readonly AdvancementKind[]>> =
 interface PricedRow {
   row: ModelledAdvancement;
   kinds: readonly AdvancementKind[];
+  /** The confirmed number this row must take; absent when not confirmed. */
+  pinned?: number;
 }
 
 /**
@@ -65,11 +67,12 @@ interface PricedRow {
  * Starting skills and a skill stored as a free extra (a gained Hatred, a skill
  * TP flags as extra, a skill a trophy award granted) cost nothing and take
  * no number. A skill a `granted_skill` row names (a league house rule) takes
- * that row's number and cost. Every other gained skill and every
- * characteristic increase takes the next free number, in their stored order
- * with skills and increases in one sequence (unknown orders last, skills
- * before increases); that number is illustrative unless the stored order is
- * confirmed.
+ * that row's number and cost, and a characteristic increase whose stored order
+ * is confirmed takes that order, as the server's cost model pins it. Every
+ * other gained skill and characteristic increase takes the next number not
+ * already taken, in their stored order with skills and increases in one
+ * sequence (unknown orders last, skills before increases); that number is
+ * illustrative only.
  */
 @Injectable()
 export class AdvancementCostRangeService {
@@ -145,22 +148,28 @@ export class AdvancementCostRangeService {
       )
       .map(({ entry }) => entry);
     const reserved = new Set(
-      entries.flatMap(({ row }) =>
-        row.kind === 'granted' && row.advancementNumber !== null
+      entries.flatMap(({ row, pinned }) => {
+        if (pinned !== undefined) {
+          return [pinned];
+        }
+        return row.kind === 'granted' && row.advancementNumber !== null
           ? [row.advancementNumber]
-          : [],
-      ),
+          : [];
+      }),
     );
     let next = 1;
+    const nextFree = (): number => {
+      while (reserved.has(next)) {
+        next += 1;
+      }
+      next += 1;
+      return next - 1;
+    };
     return entries.map((entry) => {
       if (entry.row.kind !== 'skill' && entry.row.kind !== 'characteristic') {
         return entry;
       }
-      while (reserved.has(next)) {
-        next += 1;
-      }
-      const advancementNumber = next;
-      next += 1;
+      const advancementNumber = entry.pinned ?? nextFree();
       return {
         ...entry,
         row: {
@@ -262,6 +271,9 @@ export class AdvancementCostRangeService {
         },
       },
       kinds: fixedThresholds ? ['table_roll'] : ['random_characteristic'],
+      ...(increase.orderConfirmed && increase.advancementOrder !== null
+        ? { pinned: increase.advancementOrder }
+        : {}),
     };
   }
 

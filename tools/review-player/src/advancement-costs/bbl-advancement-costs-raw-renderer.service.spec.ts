@@ -33,7 +33,6 @@ const ADVANCEMENTS = {
     { characteristic: 'AV' as const, advancementOrder: 4 },
     { characteristic: 'MA' as const, advancementOrder: 2 },
   ],
-  increaseCounts: { move: 1, strength: 0, agility: 0, passing: 0, armour: 1 },
 };
 
 describe('BblAdvancementCostsRawRendererService', () => {
@@ -96,13 +95,6 @@ describe('BblAdvancementCostsRawRendererService', () => {
         },
       ],
       increases: [],
-      increaseCounts: {
-        move: 0,
-        strength: 0,
-        agility: 0,
-        passing: 0,
-        armour: 0,
-      },
     });
 
     const html = await service.render('1020');

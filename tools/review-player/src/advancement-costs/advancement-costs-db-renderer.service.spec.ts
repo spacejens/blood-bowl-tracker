@@ -341,7 +341,9 @@ describe('AdvancementCostsDbRendererService', () => {
     expect(html).toContain('<td>BBL Unspent SPP</td><td>4</td>');
     expect(html).toContain('<td>BBL spent SPP</td><td>36</td>');
     expect(html).toContain('has no cost row');
-    expect(html).toContain('The numbers shown are one possible order.</p>');
+    expect(html).toContain(
+      'the other numbers shown are one possible order.</p>',
+    );
     expect(html).not.toContain('holds for any order');
     expect(html).not.toContain('class="mismatch');
   });

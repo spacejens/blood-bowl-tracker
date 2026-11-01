@@ -34,18 +34,12 @@ export interface RawCharacteristicIncreases {
  * BBL mixes five pseudo-entries into the Skills cell, in the same colour as a
  * gained skill. Each marks one characteristic increase, not a skill.
  */
-const INCREASE_MARKERS: Record<
-  string,
-  {
-    count: keyof RawCharacteristicIncreases;
-    characteristic: PlayerCharacteristic;
-  }
-> = {
-  '+MA': { count: 'move', characteristic: 'MA' },
-  '+ST': { count: 'strength', characteristic: 'ST' },
-  '+AG': { count: 'agility', characteristic: 'AG' },
-  '+PA': { count: 'passing', characteristic: 'PA' },
-  '+AV': { count: 'armour', characteristic: 'AV' },
+const INCREASE_MARKERS: Record<string, PlayerCharacteristic> = {
+  '+MA': 'MA',
+  '+ST': 'ST',
+  '+AG': 'AG',
+  '+PA': 'PA',
+  '+AV': 'AV',
 };
 
 /**
@@ -75,11 +69,6 @@ export interface BblRawIncrease {
 export interface BblRawPlayerAdvancements {
   skills: BblRawPlayerSkill[];
   increases: BblRawIncrease[];
-  increaseCounts: RawCharacteristicIncreases;
-}
-
-function zeroCounts(): RawCharacteristicIncreases {
-  return { move: 0, strength: 0, agility: 0, passing: 0, armour: 0 };
 }
 
 /**
@@ -131,7 +120,6 @@ export class BblPlayerSkillsCellService {
   ): BblRawPlayerAdvancements {
     const skills: BblRawPlayerSkill[] = [];
     const increases: BblRawIncrease[] = [];
-    const increaseCounts = zeroCounts();
     let advancementCount = 0;
     let text = '';
     let gained = false;
@@ -146,11 +134,9 @@ export class BblPlayerSkillsCellService {
       }
       const { name, attributeValue } = this.split(entry);
       if (Object.hasOwn(INCREASE_MARKERS, name)) {
-        const marker = INCREASE_MARKERS[name];
-        increaseCounts[marker.count] += 1;
         advancementCount += 1;
         increases.push({
-          characteristic: marker.characteristic,
+          characteristic: INCREASE_MARKERS[name],
           advancementOrder: advancementCount,
         });
         return;
@@ -191,7 +177,7 @@ export class BblPlayerSkillsCellService {
       }
     }
     flush();
-    return { skills, increases, increaseCounts };
+    return { skills, increases };
   }
 
   /**

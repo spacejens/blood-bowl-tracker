@@ -188,13 +188,6 @@ describe('PlayerAdvancementsDbRendererService', () => {
         },
       ],
       increases: [],
-      increaseCounts: {
-        move: 0,
-        strength: 0,
-        agility: 0,
-        passing: 0,
-        armour: 0,
-      },
     });
 
     const html = await service.render(player);
@@ -225,13 +218,6 @@ describe('PlayerAdvancementsDbRendererService', () => {
     bbl.read.mockResolvedValue({
       skills: [],
       increases: [],
-      increaseCounts: {
-        move: 0,
-        strength: 0,
-        agility: 0,
-        passing: 0,
-        armour: 0,
-      },
     });
 
     const html = await service.render(player);
@@ -277,13 +263,6 @@ describe('PlayerAdvancementsDbRendererService', () => {
         },
       ],
       increases: [],
-      increaseCounts: {
-        move: 0,
-        strength: 0,
-        agility: 0,
-        passing: 0,
-        armour: 0,
-      },
     });
 
     const html = await service.render(player);
@@ -306,13 +285,6 @@ describe('PlayerAdvancementsDbRendererService', () => {
         },
       ],
       increases: [],
-      increaseCounts: {
-        move: 0,
-        strength: 0,
-        agility: 0,
-        passing: 0,
-        armour: 0,
-      },
     });
 
     const html = await service.render(player);
@@ -348,13 +320,6 @@ describe('PlayerAdvancementsDbRendererService', () => {
         },
       ],
       increases: [],
-      increaseCounts: {
-        move: 0,
-        strength: 0,
-        agility: 0,
-        passing: 0,
-        armour: 0,
-      },
     });
 
     const html = await service.render(player);

@@ -30,7 +30,7 @@ const UNKNOWN_REASONS: Readonly<Record<UnknownRangeReason, string>> = {
 };
 
 const ORDER_NOTE =
-  'Gained skills and characteristic increases are listed in their stored order, which is unverified unless marked confirmed; an increase without a stored order is marked order unknown. The numbers shown are one possible order.';
+  'Gained skills and characteristic increases are listed in their stored order, which is unverified unless marked confirmed; an increase without a stored order is marked order unknown. A confirmed increase sits at its confirmed number; the other numbers shown are one possible order.';
 
 const ORDER_RANGE_NOTE =
   ' The modelled range in the next table holds for any order and any kind.';

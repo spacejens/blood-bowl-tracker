@@ -35,13 +35,6 @@ function rawWith(increases: BblRawIncrease[]) {
   return {
     skills: [],
     increases,
-    increaseCounts: {
-      move: 0,
-      strength: 0,
-      agility: 0,
-      passing: 0,
-      armour: 0,
-    },
   };
 }
 
@@ -97,9 +90,72 @@ describe('PlayerIncreasesDbRendererService', () => {
     expect(html).not.toContain('not in the raw source');
   });
 
-  it('highlights a stored row of unknown order and appends the raw marker', async () => {
+  it('matches a stored row of unknown order to a marker of the same characteristic', async () => {
     const { service } = await makeService(
       mockDb([storedRow('MA', null)]),
+      rawWith([{ characteristic: 'MA', advancementOrder: 2 }]),
+    );
+
+    const html = await service.render(player);
+
+    expect(html).toContain(
+      '<td>+MA</td><td>—</td><td>no</td><td>yes, order unknown</td>',
+    );
+    expect(html).not.toContain('class="mismatch"');
+  });
+
+  it('matches ordered rows first, then unknown-order rows of the same characteristic', async () => {
+    const { service } = await makeService(
+      mockDb([storedRow('AG', 3), storedRow('AG', null)]),
+      rawWith([
+        { characteristic: 'AG', advancementOrder: 1 },
+        { characteristic: 'AG', advancementOrder: 3 },
+      ]),
+    );
+
+    const html = await service.render(player);
+
+    expect(html).toContain('<td>+AG</td><td>3</td><td>no</td><td>yes</td>');
+    expect(html).toContain(
+      '<td>+AG</td><td>—</td><td>no</td><td>yes, order unknown</td>',
+    );
+    expect(html).not.toContain('class="mismatch"');
+  });
+
+  it('still highlights an extra unknown-order stored row', async () => {
+    const { service } = await makeService(
+      mockDb([storedRow('AG', null), storedRow('AG', null)]),
+      rawWith([{ characteristic: 'AG', advancementOrder: 2 }]),
+    );
+
+    const html = await service.render(player);
+
+    expect(html.match(/not in the raw source/g)).toHaveLength(1);
+    expect(html.match(/class="mismatch"/g)).toHaveLength(1);
+    expect(html).not.toContain('in the raw source only');
+  });
+
+  it('still highlights an extra raw marker beyond the unknown-order rows', async () => {
+    const { service } = await makeService(
+      mockDb([storedRow('ST', null)]),
+      rawWith([
+        { characteristic: 'ST', advancementOrder: 1 },
+        { characteristic: 'ST', advancementOrder: 4 },
+        { characteristic: 'MA', advancementOrder: 2 },
+      ]),
+    );
+
+    const html = await service.render(player);
+
+    expect(html.match(/in the raw source only/g)).toHaveLength(2);
+    expect(html).toContain('<td>+ST</td><td>4</td>');
+    expect(html).toContain('<td>+MA</td><td>2</td>');
+    expect(html).not.toContain('not in the raw source');
+  });
+
+  it('highlights an ordered stored row whose order differs from the marker', async () => {
+    const { service } = await makeService(
+      mockDb([storedRow('MA', 1)]),
       rawWith([{ characteristic: 'MA', advancementOrder: 2 }]),
     );
 
