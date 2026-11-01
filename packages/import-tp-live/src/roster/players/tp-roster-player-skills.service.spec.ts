@@ -1,7 +1,9 @@
 import type {
   ImportError,
+  PlayerSkillEntry,
   TpImportedPlayer,
 } from '@blood-bowl-tracker/api-contract';
+import type { PlayerCharacteristicCounts } from '@blood-bowl-tracker/domain-enums';
 import { PlayerSkillsService } from '@blood-bowl-tracker/game-data';
 import {
   ImportResultService,
@@ -21,22 +23,41 @@ import {
   TP_SYSTEM_ID,
   tpRoster,
 } from '../tp-roster.test-helpers';
+import { TpAdvancementOrderService } from './tp-advancement-order.service';
+import { TpLiveAdvancementSyncService } from './tp-live-advancement-sync.service';
 import { TpRosterPlayerSkillsService } from './tp-roster-player-skills.service';
 import { TpRosterSkillIdsService } from './tp-roster-skill-ids.service';
 
 const CONTENT = { raw: 'roster' };
+const INCREASES: PlayerCharacteristicCounts = {
+  MA: 0,
+  ST: 1,
+  AG: 0,
+  PA: 0,
+  AV: 0,
+};
+const ST_ENTRY: PlayerSkillEntry = {
+  playerId: 700,
+  source: 'characteristic',
+  characteristic: 'ST',
+  advancementOrder: null,
+};
 
 describe('TpRosterPlayerSkillsService', () => {
   let service: TpRosterPlayerSkillsService;
   let skillIds: MockProxy<TpRosterSkillIdsService>;
   let keywordCatalog: MockProxy<TpOfficialKeywordCatalogService>;
   let playerSkills: MockProxy<PlayerSkillsService>;
+  let order: MockProxy<TpAdvancementOrderService>;
+  let liveSync: MockProxy<TpLiveAdvancementSyncService>;
   let errors: ImportError[];
 
   beforeEach(async () => {
     skillIds = mock<TpRosterSkillIdsService>();
     keywordCatalog = mock<TpOfficialKeywordCatalogService>();
     playerSkills = mock<PlayerSkillsService>();
+    order = mock<TpAdvancementOrderService>();
+    liveSync = mock<TpLiveAdvancementSyncService>();
     skillIds.resolve.mockResolvedValue(
       new Map([
         [41, { skillId: 500, name: 'Block' }],
@@ -50,6 +71,7 @@ describe('TpRosterPlayerSkillsService', () => {
       byCode: new Map([[111, { keywordId: 5, name: 'Dwarf' }]]),
     });
     playerSkills.sync.mockResolvedValue({ playerSkillIds: [] });
+    order.characteristicEntries.mockReturnValue([]);
     errors = [];
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -57,6 +79,8 @@ describe('TpRosterPlayerSkillsService', () => {
         { provide: TpRosterSkillIdsService, useValue: skillIds },
         { provide: TpOfficialKeywordCatalogService, useValue: keywordCatalog },
         { provide: PlayerSkillsService, useValue: playerSkills },
+        { provide: TpAdvancementOrderService, useValue: order },
+        { provide: TpLiveAdvancementSyncService, useValue: liveSync },
         // Pure, dependency-free decision logic and error/exception helpers,
         // passed real so tests assert on the actual decode and errors.
         TpKeywordTargetDecoderService,
@@ -79,11 +103,17 @@ describe('TpRosterPlayerSkillsService', () => {
   const sync = (
     players: TpRosterPlayer[],
     importedPlayers: TpImportedPlayer[] = importedAll(players),
+    options: {
+      increasesByPlayerId?: ReadonlyMap<number, PlayerCharacteristicCounts>;
+      confirmNewAdvancements?: boolean;
+    } = {},
   ) =>
     service.syncPlayerSkills({
       roster: tpRoster({ players }),
       content: CONTENT,
       importedPlayers,
+      increasesByPlayerId: options.increasesByPlayerId ?? new Map(),
+      confirmNewAdvancements: options.confirmNewAdvancements,
       context: rosterContext(),
       errors,
     });
@@ -443,8 +473,114 @@ describe('TpRosterPlayerSkillsService', () => {
     expect(errors).toEqual([
       {
         item: { lineUpId: 5001, playerId: 700 },
-        message: 'Failed to write 1 skill(s) of player "Grim" (5001): db down',
+        message:
+          'Failed to write 1 advancement(s) of player "Grim" (5001): db down',
       },
     ]);
+  });
+  describe('characteristic increases', () => {
+    const withSkill = rosterPlayer({
+      skills: { starting: [{ skillMasterId: 41 }], gained: [] },
+    });
+    const BLOCK: PlayerSkillEntry = {
+      playerId: 700,
+      skillId: 500,
+      source: 'starting',
+      attributeValue: null,
+    };
+
+    it('sends the increases after the skills with an unknown order in the bulk import', async () => {
+      order.characteristicEntries.mockReturnValue([ST_ENTRY]);
+
+      const written = await sync([withSkill], undefined, {
+        increasesByPlayerId: new Map([[700, INCREASES]]),
+      });
+
+      expect(written).toBe(1);
+      expect(order.characteristicEntries).toHaveBeenCalledWith(700, INCREASES);
+      expect(playerSkills.sync).toHaveBeenCalledWith({
+        entries: [BLOCK, ST_ENTRY],
+        characteristicPlayerIds: [700],
+      });
+      expect(liveSync.syncPlayer).not.toHaveBeenCalled();
+    });
+
+    it('states no increases for a player whose increases are unknown', async () => {
+      await sync([withSkill]);
+
+      expect(playerSkills.sync).toHaveBeenCalledWith({ entries: [BLOCK] });
+    });
+
+    it('syncs a player with increases but no skills group', async () => {
+      order.characteristicEntries.mockReturnValue([ST_ENTRY]);
+
+      const written = await sync([rosterPlayer()], undefined, {
+        increasesByPlayerId: new Map([[700, INCREASES]]),
+      });
+
+      expect(written).toBe(0);
+      expect(skillIds.resolve).not.toHaveBeenCalled();
+      expect(playerSkills.sync).toHaveBeenCalledWith({
+        entries: [ST_ENTRY],
+        characteristicPlayerIds: [700],
+      });
+    });
+
+    it('skips a player with neither skills nor increases', async () => {
+      const noneResolved = rosterPlayer({
+        skills: { starting: [{ skillMasterId: 999 }], gained: [] },
+      });
+
+      await sync([noneResolved]);
+
+      expect(playerSkills.sync).not.toHaveBeenCalled();
+    });
+
+    it("hands each player to the live sync with TP's unspent figure in the live import", async () => {
+      liveSync.syncPlayer.mockResolvedValue(true);
+      const snapshot = { unspentSpp: 4, snapshotSppTotal: 35 };
+
+      const written = await sync(
+        [withSkill],
+        [
+          {
+            lineUpId: 5001,
+            playerId: 700,
+            created: false,
+            reportedSppTotal: 35,
+            unspentSppSnapshot: snapshot,
+          },
+        ],
+        {
+          increasesByPlayerId: new Map([[700, INCREASES]]),
+          confirmNewAdvancements: true,
+        },
+      );
+
+      expect(written).toBe(1);
+      expect(liveSync.syncPlayer).toHaveBeenCalledWith({
+        player: { id: 5001, name: 'Grim' },
+        playerId: 700,
+        skillEntries: [BLOCK],
+        increases: INCREASES,
+        snapshot,
+        errors,
+      });
+      expect(playerSkills.sync).not.toHaveBeenCalled();
+      expect(order.characteristicEntries).not.toHaveBeenCalled();
+    });
+
+    it('counts nothing as written when the live sync wrote nothing', async () => {
+      liveSync.syncPlayer.mockResolvedValue(false);
+
+      const written = await sync([withSkill], undefined, {
+        confirmNewAdvancements: true,
+      });
+
+      expect(written).toBe(0);
+      expect(liveSync.syncPlayer).toHaveBeenCalledWith(
+        expect.objectContaining({ increases: undefined, snapshot: undefined }),
+      );
+    });
   });
 });

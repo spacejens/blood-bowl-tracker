@@ -1,14 +1,6 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import type { Player } from '@blood-bowl-tracker/db';
-import { PlayersService } from '@blood-bowl-tracker/game-data';
-import {
-  ImportResultService,
-  UpsertRecorderService,
-} from '@blood-bowl-tracker/import-shared';
-import type { TpRosterPlayer } from '@blood-bowl-tracker/parse-tp';
-import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import {
@@ -16,114 +8,39 @@ import {
   rosterPlayer,
   RULES_SET,
   TP_SYSTEM_ID,
-  tpRoster,
 } from '../tp-roster.test-helpers';
-import { TpCharacteristicIncreasesService } from './tp-characteristic-increases.service';
-import { TpLastingInjuryBuilderService } from './tp-lasting-injury-builder.service';
 import type { MercenaryCurated } from './tp-mercenary-characteristics.service';
-import { TpMercenaryCharacteristicsService } from './tp-mercenary-characteristics.service';
-import { TpPlayerCharacteristicsBuilderService } from './tp-player-characteristics-builder.service';
-import { TpPlayerPositionService } from './tp-player-position.service';
-import { TpPlayerStatusService } from './tp-player-status.service';
-import { TpRosterPlayersImportService } from './tp-roster-players-import.service';
-
-const TEAM_ERA_ID = 31;
-
-interface Mocks {
-  positions: MockProxy<TpPlayerPositionService>;
-  players: MockProxy<PlayersService>;
-  mercenaryCharacteristics: MockProxy<TpMercenaryCharacteristicsService>;
-  lastingInjuries: MockProxy<TpLastingInjuryBuilderService>;
-  increases: MockProxy<TpCharacteristicIncreasesService>;
-  status: MockProxy<TpPlayerStatusService>;
-}
+import type { TpRosterPlayersImportService } from './tp-roster-players-import.service';
+import type {
+  PlayersImportMocks,
+  RunPlayersImportOptions,
+} from './tp-roster-players-import.test-helpers';
+import {
+  buildPlayersImport,
+  runPlayersImport,
+  TEAM_ERA_ID,
+} from './tp-roster-players-import.test-helpers';
 
 describe('TpRosterPlayersImportService', () => {
-  let mocks: Mocks;
+  let mocks: PlayersImportMocks;
   let errors: ImportError[];
 
   beforeEach(() => {
     errors = [];
   });
 
-  /**
-   * Builds the subject with every player resolving to position 11 and every
-   * upsert inserting player `700 + n`, unless a test overrides a mock first.
-   */
   async function makeService(
-    configure: (m: Mocks) => void = () => undefined,
+    configure?: (m: PlayersImportMocks) => void,
   ): Promise<TpRosterPlayersImportService> {
-    mocks = {
-      positions: mock<TpPlayerPositionService>(),
-      players: mock<PlayersService>(),
-      mercenaryCharacteristics: mock<TpMercenaryCharacteristicsService>(),
-      lastingInjuries: mock<TpLastingInjuryBuilderService>(),
-      increases: mock<TpCharacteristicIncreasesService>(),
-      status: mock<TpPlayerStatusService>(),
-    };
-    mocks.positions.resolveCatalogPositions.mockResolvedValue(
-      new Map([[77, 11]]),
-    );
-    mocks.positions.forPlayer.mockResolvedValue({
-      positionId: 11,
-      mercenary: undefined,
-    });
-    let nextId = 700;
-    mocks.players.upsert.mockImplementation(() =>
-      Promise.resolve({
-        player: mock<Player>({ id: nextId++ }),
-        created: true,
-      }),
-    );
-    mocks.increases.newCache.mockReturnValue({
-      baselinesByPositionId: new Map(),
-      reportedGaps: new Set(),
-    });
-    mocks.status.forPlayer.mockReturnValue(null);
-    configure(mocks);
-    const moduleRef = await Test.createTestingModule({
-      providers: [
-        TpRosterPlayersImportService,
-        TpPlayerCharacteristicsBuilderService,
-        ImportResultService,
-        UpsertRecorderService,
-        { provide: TpPlayerPositionService, useValue: mocks.positions },
-        { provide: PlayersService, useValue: mocks.players },
-        {
-          provide: TpMercenaryCharacteristicsService,
-          useValue: mocks.mercenaryCharacteristics,
-        },
-        {
-          provide: TpLastingInjuryBuilderService,
-          useValue: mocks.lastingInjuries,
-        },
-        {
-          provide: TpCharacteristicIncreasesService,
-          useValue: mocks.increases,
-        },
-        { provide: TpPlayerStatusService, useValue: mocks.status },
-      ],
-    }).compile();
-    return moduleRef.get(TpRosterPlayersImportService);
+    const built = await buildPlayersImport(configure);
+    mocks = built.mocks;
+    return built.service;
   }
 
   const run = (
     service: TpRosterPlayersImportService,
-    options: {
-      players?: TpRosterPlayer[];
-      embedded?: TpRosterPlayer[];
-      context?: ReturnType<typeof rosterContext>;
-      deferSppTotal?: boolean;
-    } = {},
-  ) =>
-    service.importPlayers({
-      roster: tpRoster({ players: options.players ?? [rosterPlayer()] }),
-      matchEmbeddedPlayers: options.embedded ?? [],
-      context: options.context ?? rosterContext(),
-      teamEraId: TEAM_ERA_ID,
-      deferSppTotal: options.deferSppTotal,
-      errors,
-    });
+    options: Omit<RunPlayersImportOptions, 'errors'> = {},
+  ) => runPlayersImport(service, { ...options, errors });
 
   it('imports a resolvable roster player and reports its lineUpId and DB id', async () => {
     const service = await makeService();
@@ -144,6 +61,7 @@ describe('TpRosterPlayersImportService', () => {
         { lineUpId: 5001, playerId: 700, created: true, reportedSppTotal: 12 },
       ],
       mercenaryPositionUsages: [],
+      increasesByPlayerId: new Map(),
     });
     expect(errors).toEqual([]);
   });
@@ -585,149 +503,6 @@ describe('TpRosterPlayersImportService', () => {
       expect(
         mocks.mercenaryCharacteristics.forRosterPlayer,
       ).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('characteristic-increase counts', () => {
-    const characteristics = {
-      move: 6,
-      strength: 3,
-      agility: 3,
-      passing: 4,
-      armour: 9,
-    };
-
-    it('sends the derived characteristic-increase counts', async () => {
-      const service = await makeService((m) => {
-        m.increases.forPlayer.mockResolvedValue({
-          moveIncreaseCount: 1,
-          strengthIncreaseCount: 0,
-          agilityIncreaseCount: 1,
-          passingIncreaseCount: 0,
-          armourIncreaseCount: 0,
-        });
-      });
-
-      await run(service, { players: [rosterPlayer({ characteristics })] });
-
-      expect(mocks.players.upsert.mock.calls[0][0]).toMatchObject({
-        moveIncreaseCount: 1,
-        agilityIncreaseCount: 1,
-      });
-    });
-
-    it("measures against the player's own resolved rules set", async () => {
-      const service = await makeService();
-
-      await run(service, { players: [rosterPlayer({ characteristics })] });
-
-      expect(mocks.increases.forPlayer).toHaveBeenCalledWith(
-        expect.objectContaining({ rulesSet: RULES_SET }),
-      );
-    });
-
-    it('passes the derived reduction counts through', async () => {
-      const reductions = {
-        missNextGame: false,
-        nigglingInjuryCount: 0,
-        moveReductionCount: 0,
-        strengthReductionCount: 0,
-        agilityReductionCount: 0,
-        passingReductionCount: 0,
-        armourReductionCount: 1,
-      };
-      const service = await makeService((m) => {
-        m.lastingInjuries.forRosterPlayer.mockReturnValue(reductions);
-      });
-
-      await run(service, { players: [rosterPlayer({ characteristics })] });
-
-      expect(mocks.increases.forPlayer).toHaveBeenCalledWith(
-        expect.objectContaining({ reductions }),
-      );
-    });
-
-    it('sends no increase group for a player with no characteristics', async () => {
-      const service = await makeService();
-
-      await run(service);
-
-      expect(mocks.increases.forPlayer).not.toHaveBeenCalled();
-    });
-
-    it('sends no increase group when there is no single rules set', async () => {
-      const service = await makeService();
-
-      await run(service, {
-        players: [rosterPlayer({ characteristics })],
-        context: rosterContext({ rulesSet: undefined }),
-      });
-
-      expect(mocks.increases.forPlayer).not.toHaveBeenCalled();
-    });
-
-    it('sends no increase group when no baseline could be resolved', async () => {
-      const service = await makeService((m) => {
-        m.increases.forPlayer.mockResolvedValue(undefined);
-      });
-
-      await run(service, { players: [rosterPlayer({ characteristics })] });
-
-      const payload = mocks.players.upsert.mock.calls[0][0];
-      expect(payload).not.toHaveProperty('moveIncreaseCount');
-    });
-
-    it('passes the embedded position template as the baseline', async () => {
-      const positionTemplate = {
-        move: 5,
-        strength: 4,
-        agility: 3,
-        passing: 6,
-        armour: 8,
-      };
-      const service = await makeService();
-
-      await run(service, {
-        players: [rosterPlayer({ characteristics, positionTemplate })],
-      });
-
-      expect(mocks.increases.forPlayer).toHaveBeenCalledWith(
-        expect.objectContaining({ baseline: positionTemplate }),
-      );
-    });
-
-    it('falls back to no baseline override when there is no template', async () => {
-      const service = await makeService();
-
-      await run(service, { players: [rosterPlayer({ characteristics })] });
-
-      expect(mocks.increases.forPlayer).toHaveBeenCalledWith(
-        expect.objectContaining({ baseline: undefined }),
-      );
-    });
-
-    it('converts the literal-0 passing to null when the rules set declares no Passing', async () => {
-      const positionTemplate = {
-        move: 5,
-        strength: 4,
-        agility: 3,
-        passing: 0,
-        armour: 8,
-      };
-      const service = await makeService();
-
-      await run(service, {
-        players: [rosterPlayer({ characteristics, positionTemplate })],
-        context: rosterContext({
-          rulesSet: { ...RULES_SET, passingFormat: 'absent' },
-        }),
-      });
-
-      expect(mocks.increases.forPlayer).toHaveBeenCalledWith(
-        expect.objectContaining({
-          baseline: { ...positionTemplate, passing: null },
-        }),
-      );
     });
   });
 

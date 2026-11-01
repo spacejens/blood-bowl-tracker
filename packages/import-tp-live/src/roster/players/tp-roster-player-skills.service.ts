@@ -2,8 +2,12 @@ import type {
   ImportError,
   PlayerSkillEntry,
   TpImportedPlayer,
+  UnspentSppSnapshot,
 } from '@blood-bowl-tracker/api-contract';
-import type { PlayerSkillSource } from '@blood-bowl-tracker/domain-enums';
+import type {
+  PlayerCharacteristicCounts,
+  PlayerSkillSource,
+} from '@blood-bowl-tracker/domain-enums';
 import { PlayerSkillsService } from '@blood-bowl-tracker/game-data';
 import {
   ImportResultService,
@@ -21,6 +25,8 @@ import { TpKeywordTargetDecoderService } from '../../official-teams/tp-keyword-t
 import type { TpOfficialKeywordCatalog } from '../../official-teams/tp-official-keyword-catalog.service';
 import { TpOfficialKeywordCatalogService } from '../../official-teams/tp-official-keyword-catalog.service';
 import type { TpRosterContext } from '../tp-roster-context.service';
+import { TpAdvancementOrderService } from './tp-advancement-order.service';
+import { TpLiveAdvancementSyncService } from './tp-live-advancement-sync.service';
 import type { TpResolvedSkill } from './tp-roster-skill-ids.service';
 import { TpRosterSkillIdsService } from './tp-roster-skill-ids.service';
 
@@ -34,15 +40,27 @@ export interface SyncRosterPlayerSkillsOptions {
   content: unknown;
   /** Each imported player's TP `lineUpId` and database player id. */
   importedPlayers: TpImportedPlayer[];
+  /** Each imported player's characteristic increases, by database player id. */
+  increasesByPlayerId: ReadonlyMap<number, PlayerCharacteristicCounts>;
+  /**
+   * When true (the live import only), each player's entries go through
+   * TpLiveAdvancementSyncService, which confirms the order of new
+   * advancements where it is known.
+   */
+  confirmNewAdvancements?: boolean;
   context: TpRosterContext;
   errors: ImportError[];
 }
 
-/** One imported roster player that carries a skills group. */
+/** One imported roster player that carries a skills group or increases. */
 interface PlayerWithSkills {
   player: TpRosterPlayer;
   playerId: number;
+  /** Empty for a player with increases but no skills group. */
   skills: TpPlayerSkills;
+  increases: PlayerCharacteristicCounts | undefined;
+  /** TP's unspent figure for the player, with the total reported beside it. */
+  snapshot: UnspentSppSnapshot | undefined;
 }
 
 /** What every entry of one call is built against. */
@@ -65,14 +83,18 @@ interface SkillRefEntry {
 }
 
 /**
- * Writes one imported roster's players' own skills, starting and gained
- * alike, for both the live import and the bulk `tpRosters.import` path. A
- * `starting` entry is the position template's; a gained one is `random` or
- * `chosen` from TP's own `isRandom`, with `advancementOrder` its 1-based index
- * in TP's gained list (TP's presentation order, the best proxy it exposes).
- * A gained skill TP flags `isExtra` is sent as a free extra (`isFreeExtra`).
- * Only a roster entry with a skills group contributes: a match-snapshot-only
- * player carries none.
+ * Writes one imported roster's players' own advancement rows, starting and
+ * gained skills alike plus characteristic increases, for both the live import
+ * and the bulk `tpRosters.import` path. A `starting` entry is the position
+ * template's; a gained one is `random` or `chosen` from TP's own `isRandom`,
+ * with `advancementOrder` its 1-based index in TP's gained list (TP's
+ * presentation order, the best proxy it exposes). A gained skill TP flags
+ * `isExtra` is sent as a free extra (`isFreeExtra`). Increases travel with
+ * the skills in the same sync, stating the player's increases in full: the
+ * bulk import sends them with an unknown order, while the live import hands
+ * each player to TpLiveAdvancementSyncService, which orders new advancements
+ * after the stored ones. Only a roster entry with a skills group or derived
+ * increases contributes: a match-snapshot-only player carries neither.
  */
 @Injectable()
 export class TpRosterPlayerSkillsService {
@@ -83,24 +105,32 @@ export class TpRosterPlayerSkillsService {
     private readonly playerSkills: PlayerSkillsService,
     private readonly importResults: ImportResultService,
     private readonly runner: UpsertRecorderService,
+    private readonly order: TpAdvancementOrderService,
+    private readonly liveSync: TpLiveAdvancementSyncService,
   ) {}
 
   /**
    * Resolves every referenced skill once for the whole roster, then writes
-   * each imported player's skills in one `player_advancements` sync per player, so
-   * one player's failed write never loses another's. A skill that cannot be
-   * resolved, or whose keyword-code target is uncurated, is left out with
-   * one error; the player's other skills are still written. Returns how many
-   * entries were written.
+   * each imported player's skills and increases in one `player_advancements`
+   * sync per player, so one player's failed write never loses another's. A
+   * skill that cannot be resolved, or whose keyword-code target is uncurated,
+   * is left out with one error; the player's other skills are still written.
+   * Returns how many skill entries were written.
    */
   async syncPlayerSkills({
     roster,
     content,
     importedPlayers,
+    increasesByPlayerId,
+    confirmNewAdvancements,
     context,
     errors,
   }: SyncRosterPlayerSkillsOptions): Promise<number> {
-    const withSkills = this.playersWithSkills(roster.players, importedPlayers);
+    const withSkills = this.playersWithSkills({
+      players: roster.players,
+      importedPlayers,
+      increasesByPlayerId,
+    });
     if (withSkills.length === 0) {
       return 0;
     }
@@ -109,13 +139,17 @@ export class TpRosterPlayerSkillsService {
       ...skills.gained,
     ]);
     const run: SkillsRun = {
-      skillsByMasterId: await this.skillIds.resolve({
-        masterIds: new Set(refs.map((ref) => ref.skillMasterId)),
-        content,
-        rosterId: roster.id,
-        context,
-        errors,
-      }),
+      // Nothing to resolve when every player carries only increases.
+      skillsByMasterId:
+        refs.length === 0
+          ? new Map<number, TpResolvedSkill>()
+          : await this.skillIds.resolve({
+              masterIds: new Set(refs.map((ref) => ref.skillMasterId)),
+              content,
+              rosterId: roster.id,
+              context,
+              errors,
+            }),
       // Read only when some reference needs it: most rosters have no
       // keyword-code target at all.
       catalog: refs.some(
@@ -131,8 +165,14 @@ export class TpRosterPlayerSkillsService {
     };
 
     let written = 0;
-    for (const { player, playerId, skills } of withSkills) {
-      const entries = this.deduplicate([
+    for (const {
+      player,
+      playerId,
+      skills,
+      increases,
+      snapshot,
+    } of withSkills) {
+      const skillEntries = this.deduplicate([
         ...skills.starting.flatMap((ref) =>
           this.entry(run, { playerId, ref, source: 'starting' }),
         ),
@@ -146,36 +186,81 @@ export class TpRosterPlayerSkillsService {
           }),
         ),
       ]);
-      if (entries.length === 0) {
+      if (skillEntries.length === 0 && increases === undefined) {
         continue;
       }
+      if (confirmNewAdvancements === true) {
+        const wrote = await this.liveSync.syncPlayer({
+          player: { id: player.id, name: player.name },
+          playerId,
+          skillEntries,
+          increases,
+          snapshot,
+          errors,
+        });
+        if (wrote) {
+          written += skillEntries.length;
+        }
+        continue;
+      }
+      const entries = [
+        ...skillEntries,
+        ...this.order.characteristicEntries(playerId, increases),
+      ];
       const synced = await this.runner.record({
-        run: () => this.playerSkills.sync({ entries }),
+        run: () =>
+          this.playerSkills.sync({
+            entries,
+            ...(increases === undefined
+              ? {}
+              : { characteristicPlayerIds: [playerId] }),
+          }),
         item: { lineUpId: player.id, playerId },
         errors,
         buildErrorMessage: (error) =>
-          `Failed to write ${entries.length} skill(s) of player "${player.name}" (${player.id}): ${this.runner.messageOf(error)}`,
+          `Failed to write ${entries.length} advancement(s) of player "${player.name}" (${player.id}): ${this.runner.messageOf(error)}`,
       });
       if (synced !== undefined) {
-        written += entries.length;
+        written += skillEntries.length;
       }
     }
     return written;
   }
 
-  /** Every roster player that was imported and carries a skills group. */
-  private playersWithSkills(
-    players: TpRosterPlayer[],
-    importedPlayers: TpImportedPlayer[],
-  ): PlayerWithSkills[] {
-    const playerIds = new Map(
-      importedPlayers.map((imported) => [imported.lineUpId, imported.playerId]),
+  /**
+   * Every roster player that was imported and carries a skills group or
+   * derived increases, with TP's unspent figure for them.
+   */
+  private playersWithSkills({
+    players,
+    importedPlayers,
+    increasesByPlayerId,
+  }: {
+    players: TpRosterPlayer[];
+    importedPlayers: TpImportedPlayer[];
+    increasesByPlayerId: ReadonlyMap<number, PlayerCharacteristicCounts>;
+  }): PlayerWithSkills[] {
+    const imported = new Map(
+      importedPlayers.map((entry) => [entry.lineUpId, entry]),
     );
     return players.flatMap((player) => {
-      const playerId = playerIds.get(player.id);
-      return playerId === undefined || player.skills === undefined
-        ? []
-        : [{ player, playerId, skills: player.skills }];
+      const entry = imported.get(player.id);
+      if (entry === undefined) {
+        return [];
+      }
+      const increases = increasesByPlayerId.get(entry.playerId);
+      if (player.skills === undefined && increases === undefined) {
+        return [];
+      }
+      return [
+        {
+          player,
+          playerId: entry.playerId,
+          skills: player.skills ?? { starting: [], gained: [] },
+          increases,
+          snapshot: entry.unspentSppSnapshot,
+        },
+      ];
     });
   }
 

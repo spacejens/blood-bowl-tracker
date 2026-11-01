@@ -155,6 +155,8 @@ export {
 } from './skills/skills.service';
 export { AdvancementCostsService } from './spp/advancement-costs.service';
 export { AdvancementKindCandidatesService } from './spp/advancement-kind-candidates.service';
+export type { DeduceAdvancementOrderInput } from './spp/advancement-order-deduction.service';
+export { AdvancementOrderDeductionService } from './spp/advancement-order-deduction.service';
 export type { PricedCostRow } from './spp/advancement-pricing-model.service';
 export { AdvancementPricingModelService } from './spp/advancement-pricing-model.service';
 export { AdvancementSpendRangeService } from './spp/advancement-spend-range.service';

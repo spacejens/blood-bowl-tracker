@@ -10,6 +10,7 @@ import {
   RacesModule,
   RulesSetsModule,
   SkillsModule,
+  SppModule,
   TeamsModule,
 } from '@blood-bowl-tracker/game-data';
 import { ImportSharedModule } from '@blood-bowl-tracker/import-shared';
@@ -19,8 +20,10 @@ import { Module } from '@nestjs/common';
 import { TpKeywordTargetDecoderService } from '../official-teams/tp-keyword-target-decoder.service';
 import { TpOfficialKeywordCatalogService } from '../official-teams/tp-official-keyword-catalog.service';
 import { TpSkillIdLookupService } from '../tp-skill-id-lookup.service';
+import { TpAdvancementOrderService } from './players/tp-advancement-order.service';
 import { TpCharacteristicIncreasesService } from './players/tp-characteristic-increases.service';
 import { TpLastingInjuryBuilderService } from './players/tp-lasting-injury-builder.service';
+import { TpLiveAdvancementSyncService } from './players/tp-live-advancement-sync.service';
 import { TpMercenaryCharacteristicsService } from './players/tp-mercenary-characteristics.service';
 import { TpPlayerCharacteristicsBuilderService } from './players/tp-player-characteristics-builder.service';
 import { TpPlayerPositionService } from './players/tp-player-position.service';
@@ -36,8 +39,9 @@ import { TpRosterImportService } from './tp-roster-import.service';
  * Imports one TP roster straight into the database through
  * packages/game-data. packages/api-server imports it to implement
  * `tpRosters.import`; ImportTpLiveModule imports it for the live import.
- * Both sync the roster players' skills (reading the curated keyword
- * catalogue for Hatred/Animosity targets). The importing app provides
+ * Both sync the roster players' skills and characteristic increases
+ * (reading the curated keyword catalogue for Hatred/Animosity targets); the
+ * live import also deduces the order of new advancements through SppModule. The importing app provides
  * packages/db's `DB`.
  */
 @Module({
@@ -55,6 +59,7 @@ import { TpRosterImportService } from './tp-roster-import.service';
     RacesModule,
     RulesSetsModule,
     SkillsModule,
+    SppModule,
     TeamsModule,
   ],
   providers: [
@@ -69,6 +74,8 @@ import { TpRosterImportService } from './tp-roster-import.service';
     TpLastingInjuryBuilderService,
     TpPlayerStatusService,
     TpRosterPlayerSkillsService,
+    TpAdvancementOrderService,
+    TpLiveAdvancementSyncService,
     TpRosterSkillIdsService,
     TpSkillIdLookupService,
     TpOfficialKeywordCatalogService,
