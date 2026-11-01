@@ -132,8 +132,8 @@ export class PlayerSkillsSectionService {
   }
 
   /**
-   * `Block`, `Loner (4+)`, `⚄ Guard`, `⚄? Guard`, `✚ Hatred (Undead)`, `★ Treacherous`, or
-   * `⚄ ♦ Mighty Blow`.
+   * `Block`, `Loner (4+)`, `⚄ Guard`, `⚄? Guard`, `✚ Hatred (Undead)`,
+   * `★ Treacherous`, or `⚄ ♦ Mighty Blow`.
    *
    * The star marks a skill's `unique` category under the rules set, mirroring
    * the position stat line, so it applies to starting and gained skills alike

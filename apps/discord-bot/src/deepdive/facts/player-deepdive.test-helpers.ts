@@ -72,8 +72,8 @@ import { UnspentSppLineService } from './unspent-spp-line.service';
  * (the game-data services, `DatabaseTimeoutService`,
  * `EntityComponentsService`, `ClockService` (stubbed at `TODAY`),
  * `PlayerStatusConflictReporterService`, `PlayerSkillPricingService` and
- * `ErrorLogService`) is a mock, built fresh per call. `DateRangeFormatterService` is stubbed with a canned
- * era label.
+ * `ErrorLogService`) is a mock, built fresh per call.
+ * `DateRangeFormatterService` is stubbed with a canned era label.
  */
 
 export const griff = {
