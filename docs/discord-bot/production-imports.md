@@ -80,7 +80,12 @@ To run an import against production:
    advancement costs in batch 004, which exist only once the remaining batches
    are applied (see
    [import-manual batches](../import-manual/batches.md#operating-procedure)).
-   Stop after any non-zero exit except a BBL or TP exit 1 that prints
+   Before the first command, confirm the database really is a scratch build:
+   the `game_data.manual_import_batches` ledger has no rows, and
+   `game_data.players`, `teams`, `coaches` and `competitions` have no rows
+   either (a read-only query against production answers it). An empty ledger
+   beside real data means a plain `apply` would re-import batches 001 and 002
+   over later curation. Stop after any non-zero exit except a BBL or TP exit 1 that prints
    `Import completed with <N> errors:` without `Import failed:`. Continue to
    the next command for that collected-error result:
 
