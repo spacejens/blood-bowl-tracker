@@ -316,18 +316,41 @@ describe('BblSkillSourceInferenceService', () => {
     ]);
   });
 
-  it('lets a rules set with no cost rows of its own abstain', async () => {
+  it('never settles a source on a rules set with no cost rows of its own alone', async () => {
     // A rules set holding only league rows has no pricing model. Its costs
-    // alone would settle Block as random (3), but it takes no part; the
-    // kind-priced input cannot fit two skills into a spend of 3.
-    const abstaining: RulesSetAdvancementInput = {
+    // alone would settle Block as random (3), but no kind-priced input fits:
+    // it cannot fit two skills into a spend of 3.
+    const leagueOnly: RulesSetAdvancementInput = {
       ...bb2020([gained(BLOCK)]),
       pricingModel: null,
     };
     const h = await inferFor(
-      [bb2020([gained(BLOCK), gained(TACKLE)]), abstaining],
+      [bb2020([gained(BLOCK), gained(TACKLE)]), leagueOnly],
       3,
     );
+
+    expect(h.db.chains).toHaveLength(0);
+  });
+
+  it('keeps a skill open when a league-only rules set fits it either way', async () => {
+    // Only a random Block (3) fits the kind-priced input. A league rule that
+    // grants Block as advancement 1 for 3 fits it as either source.
+    const leagueOnly: RulesSetAdvancementInput = {
+      ...inputFor(
+        BB2020,
+        [
+          {
+            advancementNumber: 1,
+            advancementKind: 'granted_skill',
+            skillId: BLOCK,
+            sppCost: 3,
+          },
+        ],
+        [gained(BLOCK)],
+      ),
+      pricingModel: null,
+    };
+    const h = await inferFor([bb2020([gained(BLOCK)]), leagueOnly], 3);
 
     expect(h.db.chains).toHaveLength(0);
   });

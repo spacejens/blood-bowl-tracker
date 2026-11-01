@@ -84,10 +84,18 @@ export class BblSkillSourceInferenceService {
     const settled = new Map<SettledSource, PlayerSkillKey[]>();
     for (const [playerId, snapshot] of usable) {
       const rulesSets = inputs.get(playerId) ?? [];
-      if (!rulesSets.some((input) => input.pricingModel === 'kind_priced')) {
+      const spent = snapshot.snapshotSppTotal - snapshot.unspentSpp;
+      // A source is only settled on the evidence of a kind-priced rules set
+      // that fits the spend. Every other fitting set, a fixed-threshold one or
+      // one holding only a league's house rules, can only keep a skill open.
+      const hasFittingKindPriced = rulesSets.some(
+        ({ candidatesInput, costs, pricingModel }) =>
+          pricingModel === 'kind_priced' &&
+          this.fits(candidatesInput, costs, spent),
+      );
+      if (!hasFittingKindPriced) {
         continue;
       }
-      const spent = snapshot.snapshotSppTotal - snapshot.unspentSpp;
       for (const [skillId, source] of this.settledSources(rulesSets, spent)) {
         let keys = settled.get(source);
         if (keys === undefined) {
@@ -106,12 +114,8 @@ export class BblSkillSourceInferenceService {
     spent: number,
   ): Map<number, SettledSource> {
     const possible = new Map<number, Set<SettledSource>>();
-    for (const { candidatesInput, costs, pricingModel } of rulesSets) {
-      // A rules set with no cost rows of its own (only a league's house
-      // rules) abstains, as it does when the era's pricing model is decided.
-      // A fixed-threshold set still counts: it fits both forced sources, so
-      // it keeps a skill open.
-      if (pricingModel === null || !this.fits(candidatesInput, costs, spent)) {
+    for (const { candidatesInput, costs } of rulesSets) {
+      if (!this.fits(candidatesInput, costs, spent)) {
         continue;
       }
       candidatesInput.skills.forEach((skill, index) => {
