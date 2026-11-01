@@ -31,7 +31,7 @@ Takes no arguments.
    - **Run the TP import** — run `tools/import-tp/` to import data into a running instance.
    - **Run the manual import (remaining batches)** — run `tools/import-manual/`'s plain `apply` command to apply every batch not yet applied once the system-specific importers have run.
    - **Run the match-event review tool** — run `tools/review-match/` against the running database and the existing BBL/TP data directories, then open the report.
-   - **Run the full import** — scratch builds only (refused unless the manual-batch ledger is empty): run every importer in order, `apply 001-initial-seed`, the BBL import, the TP import, plain `apply`, then the BBL and TP imports again.
+   - **Run the full import** — scratch builds only (refused unless the manual-batch ledger is empty and no players exist): run every importer in order, `apply 001-initial-seed`, the BBL import, the TP import, plain `apply`, then the BBL and TP imports again.
 
    **Question 3 — `question`: "Which action(s) should I run? (continued)"** (`multiSelect: true`):
    - **Run the player review tool** — run `tools/review-player/` against the running database and the existing BBL/TP data directories, then open the report.
