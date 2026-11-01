@@ -217,6 +217,31 @@ describe('AdvancementCostsDbRendererService', () => {
     }
   });
 
+  it('marks a confirmed gained skill and leaves an unconfirmed one plain', async () => {
+    range.model.mockReturnValue({
+      ...KIND_PRICED,
+      rows: KIND_PRICED.rows.map((row) =>
+        row.label === 'Guard' ? { ...row, orderConfirmed: true } : row,
+      ),
+    });
+    figures.figureFor.mockResolvedValue(figure(20));
+
+    expect(await service.render(player)).toContain(
+      '<td>Guard</td><td>random</td><td>#1 (confirmed)</td>',
+    );
+
+    range.model.mockReturnValue({
+      ...KIND_PRICED,
+      rows: KIND_PRICED.rows.map((row) =>
+        row.label === 'Guard' ? { ...row, orderConfirmed: false } : row,
+      ),
+    });
+
+    expect(await service.render(player)).toContain(
+      '<td>Guard</td><td>random</td><td>#1</td>',
+    );
+  });
+
   it.each([
     ['lower', 33, 7],
     ['upper', 2, 38],

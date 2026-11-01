@@ -22,6 +22,8 @@ export interface StoredPlayerSkill {
   skillName: string;
   source: PlayerSkillSource;
   advancementOrder: number | null;
+  /** True when the stored order is confirmed as the real sequence. */
+  orderConfirmed: boolean;
   /** The stored free-extra flag: costs no SPP and takes no advancement number. */
   isFreeExtra: boolean;
   /** The skill's category under the player's rules set; null when unlisted. */
@@ -100,6 +102,11 @@ export interface ModelledAdvancement {
    * whether that order is confirmed as the real sequence.
    */
   increaseOrder?: { known: boolean; confirmed: boolean };
+  /**
+   * Set on a gained skill row priced by number: true when its stored order
+   * is confirmed, so the row sits at that number.
+   */
+  orderConfirmed?: boolean;
 }
 
 /** Why no range could be modelled, in the order they are checked. */

@@ -67,9 +67,10 @@ interface PricedRow {
  * Starting skills and a skill stored as a free extra (a gained Hatred, a skill
  * TP flags as extra, a skill a trophy award granted) cost nothing and take
  * no number. A skill a `granted_skill` row names (a league house rule) takes
- * that row's number and cost, and a characteristic increase whose stored order
- * is confirmed takes that order, as the server's cost model pins it. Every
- * other gained skill and characteristic increase takes the next number not
+ * that row's number and cost, and a gained skill or characteristic increase
+ * whose stored order is confirmed takes that order, as the server's cost
+ * model pins every confirmed entry. Every other gained skill and
+ * characteristic increase takes the next number not
  * already taken, in their stored order with skills and increases in one
  * sequence (unknown orders last, skills before increases); that number is
  * illustrative only.
@@ -220,8 +221,9 @@ export class AdvancementCostRangeService {
       };
     }
     return {
-      row: { ...row, kind: 'skill' },
+      row: { ...row, kind: 'skill', orderConfirmed: skill.orderConfirmed },
       kinds: fixedThresholds ? ['table_roll'] : this.skillKinds(skill, history),
+      ...this.pin(skill),
     };
   }
 
@@ -271,10 +273,18 @@ export class AdvancementCostRangeService {
         },
       },
       kinds: fixedThresholds ? ['table_roll'] : ['random_characteristic'],
-      ...(increase.orderConfirmed && increase.advancementOrder !== null
-        ? { pinned: increase.advancementOrder }
-        : {}),
+      ...this.pin(increase),
     };
+  }
+
+  /** The confirmed number an entry must take, as a spreadable `pinned`. */
+  private pin(entry: {
+    advancementOrder: number | null;
+    orderConfirmed: boolean;
+  }): { pinned?: number } {
+    return entry.orderConfirmed && entry.advancementOrder !== null
+      ? { pinned: entry.advancementOrder }
+      : {};
   }
 
   private costsAt(

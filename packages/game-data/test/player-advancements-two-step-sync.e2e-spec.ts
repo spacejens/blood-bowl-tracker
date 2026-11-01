@@ -256,4 +256,32 @@ describe('PlayerSkillsService two-step live write (real Postgres)', () => {
     expect(rows.filter((row) => row.removed)).toEqual([]);
     expect(rows).toHaveLength(4);
   });
+
+  it('ends with the right increase orders even when a stored confirmed order lies past the new numbers', async () => {
+    await write([gainedSkill(blockId, 1, true), agility(6, true)]);
+
+    const plan = [
+      gainedSkill(blockId, 1, true),
+      gainedSkill(dodgeId, 3),
+      agility(6, true),
+      agility(4),
+    ];
+    const firstIds = await write(plan);
+    const numbers = new Map([
+      [firstIds[1], 4],
+      [firstIds[3], 3],
+    ]);
+    await write(confirmed({ entries: plan, firstIds, numbers }));
+
+    // The two AG rows may trade orders, since increases of one
+    // characteristic are interchangeable; what they hold must be right.
+    const agRows = (await storedRows())
+      .filter((row) => row.characteristic === 'AG')
+      .map((row) => [row.advancementOrder, row.orderConfirmed, row.removed])
+      .sort();
+    expect(agRows).toEqual([
+      [3, true, false],
+      [6, true, false],
+    ]);
+  });
 });

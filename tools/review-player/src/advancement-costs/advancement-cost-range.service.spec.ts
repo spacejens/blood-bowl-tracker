@@ -64,6 +64,7 @@ function skill(
     skillName,
     source,
     advancementOrder: source === 'starting' ? null : 1,
+    orderConfirmed: false,
     isFreeExtra: false,
     category: null,
   };
@@ -493,6 +494,62 @@ describe('AdvancementCostRangeService', () => {
       [
         ['Block', 1],
         ['+ST', 3],
+      ],
+    );
+  });
+
+  it('pins a confirmed skill to its order and numbers the rest around it', () => {
+    const model = service.model(
+      history({
+        skills: [
+          {
+            ...skill('Dodge', 'advancement'),
+            advancementOrder: 2,
+            orderConfirmed: true,
+          },
+          { ...skill('Block', 'advancement'), advancementOrder: 3 },
+        ],
+        increases: [increase('AG')],
+      }),
+    );
+
+    expect(
+      model.rows.map((row) => [
+        row.label,
+        row.advancementNumber,
+        row.orderConfirmed,
+      ]),
+    ).toEqual([
+      ['Dodge', 2, true],
+      ['Block', 1, false],
+      ['+AG', 3, undefined],
+    ]);
+  });
+
+  it('pins a confirmed skill and a confirmed increase together, filling the gaps', () => {
+    const model = service.model(
+      history({
+        skills: [
+          {
+            ...skill('Dodge', 'advancement'),
+            advancementOrder: 3,
+            orderConfirmed: true,
+          },
+          { ...skill('Block', 'advancement'), advancementOrder: null },
+        ],
+        increases: [
+          increase('MA'),
+          { characteristic: 'ST', advancementOrder: 1, orderConfirmed: true },
+        ],
+      }),
+    );
+
+    expect(model.rows.map((row) => [row.label, row.advancementNumber])).toEqual(
+      [
+        ['+ST', 1],
+        ['Dodge', 3],
+        ['Block', 2],
+        ['+MA', 4],
       ],
     );
   });

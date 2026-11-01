@@ -300,7 +300,9 @@ keywords, player status, and advancement costs with unspent SPP.
      confirmed. For a BBL-sourced player each is checked against the raw
      markers: it must match one of the same characteristic at the same place
      among the advancements, so both the count and the relative order are
-     verified; a stored increase with no marker, and a marker with no stored
+     verified. An increase stored without an order matches a leftover marker
+     of the same characteristic and is shown as matched with its order
+     unknown. A stored increase with no marker, and a marker with no stored
      increase, are highlighted and say so in words. TP publishes no markers
      (its raw panel already shows a derived template diff instead), so a TP
      player's increases are listed without a comparison.
@@ -371,7 +373,9 @@ keywords, player status, and advancement costs with unspent SPP.
      take no number; a skill a league house rule grants (tLoEG's Fan
      Favourite) shows as that rule's advancement with its cost. Gained skills and
      characteristic increases are listed together in their stored order,
-     which is unverified unless an increase is marked `(confirmed)`; an
+     which is unverified unless an entry is marked `(confirmed)`; a
+     confirmed skill or increase sits at its confirmed number, as the server
+     cost model pins it, and the other rows fill the numbers around it. An
      increase with no stored order is marked `(order unknown)` and listed
      last. A footer gives the stored total, the
      modelled spend and unspent ranges, and beside them the source's reported

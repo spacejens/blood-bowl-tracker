@@ -197,6 +197,7 @@ export class PlayerAdvancementHistoryService {
         skillName: skills.name,
         source: playerAdvancements.source,
         advancementOrder: playerAdvancements.advancementOrder,
+        orderConfirmed: playerAdvancements.orderConfirmed,
         isFreeExtra: playerAdvancements.isFreeExtra,
       })
       .from(playerAdvancements)
