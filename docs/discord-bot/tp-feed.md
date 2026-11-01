@@ -166,7 +166,7 @@ Both channel variables are optional and are documented in
   posted to. The player deepdive also posts a bug report here when a player
   killed in match events has a stored status that contradicts it, once per
   conflict per bot run (see
-  [deepdive embeds](slash-commands/deepdive-embeds.md#status)). Left unset,
+  [deepdive embeds](slash-commands/deepdive-embeds-player.md#status)). Left unset,
   notifications are still parsed and (while `TP_SCRAPING_ENABLED` is `true`)
   imported, and unrecognised shapes, failed imports and status conflicts are
   still logged, but nothing is posted. Because this is diagnostic output,

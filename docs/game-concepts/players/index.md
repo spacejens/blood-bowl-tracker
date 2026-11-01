@@ -113,6 +113,9 @@ error, and dead, retired and departed players are worked out like any other.
   and does not depend on it. A skill settled once stays settled: a later
   import re-sends it as gained by advancement, which keeps the recorded
   chosen or random, and only the skills still open are worked out again.
+  The [player deepdive](../../discord-bot/slash-commands/deepdive-embeds-player.md#skills)
+  flags a skill still recorded as gained by advancement when the era prices
+  by kind, so it does not read as chosen.
 - **What counts as an advancement.** Starting skills and [free extra](../skills/index.md#player-skills)
   skills (a gained Hatred, a skill TP flags as extra, a skill a trophy granted
   such as Gudarnas Förkämpe's mutation) cost nothing and are not
@@ -145,7 +148,7 @@ error, and dead, retired and departed players are worked out like any other.
   and counts as one that cannot fit; no rules set prices anywhere near that
   many. When several apply, the first in that list is reported.
 - **Where it is shown.** Of the Discord bot's views, only the
-  [player deepdive](../../discord-bot/slash-commands/deepdive-embeds.md#star-player-points)
+  [player deepdive](../../discord-bot/slash-commands/deepdive-embeds-player.md#star-player-points)
   shows it, under `Total SPP:`. The bot's toplists of players by SPP
   deliberately leave it out. When the stored figure lies outside the range, the
   deepdive shows both the stored figure and the calculated range.
