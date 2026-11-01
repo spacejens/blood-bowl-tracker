@@ -48,11 +48,12 @@ export const playerCharacteristicEnum = gameData.enum(
  * the same player, each time against a different target, which is why it
  * participates in the unique constraint below.
  *
- * `advancementOrder` is best-effort and unverified: neither BBL nor TP
- * records a confirmed sequence, only a presentation-order proxy (BBL's
- * ordered advancement list, TP's array position). It is only ever meaningful
- * for a gained row (`advancement`, `chosen` or `random`) — a `starting` row
- * always leaves it null, since a starting skill set has no sequence.
+ * `advancementOrder` is by default a presentation-order proxy (BBL's ordered
+ * advancement list, TP's array position), not a verified sequence; it is the
+ * real sequence only where `orderConfirmed` says so (see below). It is only
+ * ever meaningful for a gained row (`advancement`, `chosen` or `random`) or a
+ * characteristic row — a `starting` row always leaves it null, since a
+ * starting skill set has no sequence.
  *
  * No cross-table category validation happens here or in PlayerSkillsService:
  * a gained row (`advancement`, `chosen` or `random`) is deliberately NOT

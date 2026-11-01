@@ -302,9 +302,13 @@ with an attribute value and one for rows without).
 
 `advancement_order` is nullable and is one numbering shared by gained skills
 and increases over the player's _paid_ advancements; free extras and starting
-skills take no number. Null means the order is unknown. `order_confirmed`
-marks an order that is trusted rather than a presentation proxy (a check
-requires an order for it); the cost model pins only confirmed entries to
+skills take no number. Only confirmed orders are sure to follow that
+numbering: a proxy order taken from TP's skill list position counts free
+extras and leaves out increases. Null means the order is unknown.
+`order_confirmed` marks an order that is trusted rather than a presentation
+proxy (a check requires an order for it). That includes TP's own order when it
+is trusted only because every fitting order costs the same, so a confirmed
+order is not always proven. The cost model pins only confirmed entries to
 their advancement number, and every other entry is interchangeable with the
 rest. A sync never lets an unconfirmed incoming order overwrite a confirmed
 stored one. A row tracked by history cannot be deleted, so an increase a

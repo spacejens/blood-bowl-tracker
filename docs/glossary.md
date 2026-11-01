@@ -14,7 +14,7 @@ A permanent improvement a [player](#player) gains — a new [skill](#skill) or a
 
 ### Advancement order
 
-The position of an [advancement](#advancement) in the sequence a [player](#player) gained them, shared by gained skills and characteristic increases. It is unknown for some entries, and otherwise either a proxy taken from how a source lists them or confirmed as the real sequence; only a confirmed order affects what the advancements are priced at (see [skills](game-concepts/skills/index.md#player-skills)).
+The position of an [advancement](#advancement) in the sequence a [player](#player) gained them, shared by gained skills and characteristic increases. It is unknown for some entries, and otherwise either a proxy taken from how a source lists them or confirmed as the real sequence; only a confirmed order affects what the advancements are priced at (see [skills](game-concepts/skills/index.md#player-skills)). A confirmed order can also be a source's own order trusted because every order that fits costs the same, so it is not always the proven sequence.
 
 ### Apothecary
 

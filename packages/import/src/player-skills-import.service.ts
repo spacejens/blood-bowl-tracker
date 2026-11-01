@@ -12,9 +12,10 @@ import type { ImportError } from './types';
 /**
  * How many entries one `syncPlayerSkills` call carries, give or take: whole
  * players are never split, so a player with more entries goes alone. A
- * deliberate starting point, not a benchmarked value, chosen to match DEFAULT_BATCH_CHUNK_SIZE:
- * the server validates and writes a batch all-or-nothing, so a smaller chunk
- * bounds both the request payload and the blast radius of one failure.
+ * deliberate starting point, not a benchmarked value, chosen to match
+ * DEFAULT_BATCH_CHUNK_SIZE: the server validates and writes a batch
+ * all-or-nothing, so a smaller chunk bounds both the request payload and the
+ * blast radius of one failure.
  */
 export const PLAYER_SKILLS_SYNC_CHUNK_SIZE = 500;
 

@@ -151,9 +151,6 @@ export class PlayersService {
         agilityReductionCount: players.agilityReductionCount,
         passingReductionCount: players.passingReductionCount,
         armourReductionCount: players.armourReductionCount,
-        // The player's advancement-driven characteristic increases. No new
-        // join: like the reduction counts above they live on `players`
-        // itself.
       })
       .from(players)
       .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))

@@ -28,8 +28,8 @@ A [player](../../glossary.md#player) is an individual on a [team era](../team-er
   every reduction ever suffered. A reduction the rules absorbed, because the
   characteristic was already at its floor or at the rules' cap on reductions,
   moved nothing and counts zero.
-- A player's **characteristic increases** are recorded one by one, as
-  [advancements](../../glossary.md#characteristic-increase) beside their
+- A player's **[characteristic increases](../../glossary.md#characteristic-increase)**
+  are recorded one by one, as [advancements](../../glossary.md#advancement) beside their
   gained skills, each naming the characteristic it raised. An increase carries
   its place among the player's advancements where a source knows it and no
   place otherwise (see [advancement order](../skills/index.md#player-skills)).

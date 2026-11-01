@@ -41,8 +41,8 @@ import { TpRosterImportService } from './tp-roster-import.service';
  * `tpRosters.import`; ImportTpLiveModule imports it for the live import.
  * Both sync the roster players' skills and characteristic increases
  * (reading the curated keyword catalogue for Hatred/Animosity targets); the
- * live import also deduces the order of new advancements through SppModule. The importing app provides
- * packages/db's `DB`.
+ * live import also deduces the order of new advancements through SppModule.
+ * The importing app provides packages/db's `DB`.
  */
 @Module({
   imports: [
