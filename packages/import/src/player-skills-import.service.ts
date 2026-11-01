@@ -39,7 +39,8 @@ function naturalKey(entry: PlayerSkillEntry): string {
  * skill lists both name the same bare skill, or a TP player whose gained skill
  * is also on their position template. A gained entry wins over a `starting`
  * one (the more specific provenance), and between two gained entries the lower
- * `advancementOrder` wins (the earlier sighting).
+ * `advancementOrder` wins (the earlier sighting). The kept entry is a free
+ * extra when any of the merged ones was.
  */
 @Injectable()
 export class PlayerSkillsImportService {
@@ -89,9 +90,11 @@ export class PlayerSkillsImportService {
     for (const entry of entries) {
       const key = naturalKey(entry);
       const existing = byKey.get(key);
-      if (existing === undefined || this.wins(entry, existing)) {
-        byKey.set(key, entry);
-      }
+      const winner =
+        existing === undefined || this.wins(entry, existing) ? entry : existing;
+      // A merged entry is free when any of its duplicates was.
+      const free = entry.isFreeExtra === true || existing?.isFreeExtra === true;
+      byKey.set(key, free ? { ...winner, isFreeExtra: true } : winner);
     }
     return [...byKey.values()];
   }

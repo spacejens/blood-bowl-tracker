@@ -70,6 +70,7 @@ const SKILLS = [
     skillName: 'Dodge',
     source: 'random',
     advancementOrder: 1,
+    isFreeExtra: false,
   },
   {
     playerId: 42,
@@ -77,6 +78,7 @@ const SKILLS = [
     skillName: 'Guard',
     source: 'chosen',
     advancementOrder: 2,
+    isFreeExtra: true,
   },
   {
     playerId: 42,
@@ -84,11 +86,8 @@ const SKILLS = [
     skillName: 'Block',
     source: 'starting',
     advancementOrder: null,
+    isFreeExtra: false,
   },
-];
-const TROPHIES = [
-  { playerId: 42, skillId: 11 },
-  { playerId: null, skillId: 13 },
 ];
 /** Position 8's categories: BB2016's primary and secondary, CRP's primary. */
 const POSITION_CATEGORIES = [
@@ -117,13 +116,12 @@ async function makeService(
 }
 
 describe('PlayerAdvancementHistoryService', () => {
-  it("assembles one player's history from seven queries", async () => {
+  it("assembles one player's history from six queries", async () => {
     const dbResult = mockDb(
       ERA_RULES_SETS,
       COSTS,
       [playerRow()],
       SKILLS,
-      TROPHIES,
       POSITION_CATEGORIES,
       SKILL_CATEGORIES,
     );
@@ -143,6 +141,7 @@ describe('PlayerAdvancementHistoryService', () => {
           skillName: 'Block',
           source: 'starting',
           advancementOrder: null,
+          isFreeExtra: false,
           category: 'general',
         },
         {
@@ -150,6 +149,7 @@ describe('PlayerAdvancementHistoryService', () => {
           skillName: 'Dodge',
           source: 'random',
           advancementOrder: 1,
+          isFreeExtra: false,
           category: 'agility',
         },
         {
@@ -157,10 +157,10 @@ describe('PlayerAdvancementHistoryService', () => {
           skillName: 'Guard',
           source: 'chosen',
           advancementOrder: 2,
+          isFreeExtra: true,
           category: null,
         },
       ],
-      trophyGrantedSkillIds: new Set([11]),
       primaryCategories: new Set(['general', 'agility']),
       secondaryCategories: new Set(['strength']),
       increaseCounts: {
@@ -187,7 +187,7 @@ describe('PlayerAdvancementHistoryService', () => {
         },
       ],
     });
-    expect(dbResult.chains).toHaveLength(7);
+    expect(dbResult.chains).toHaveLength(6);
   });
 
   it('gives an era with no rules set no rules set and no costs', async () => {
@@ -196,7 +196,6 @@ describe('PlayerAdvancementHistoryService', () => {
       COSTS,
       [playerRow({ eraId: 4 })],
       SKILLS,
-      [],
       POSITION_CATEGORIES,
       SKILL_CATEGORIES,
     );
@@ -211,7 +210,6 @@ describe('PlayerAdvancementHistoryService', () => {
       null,
       null,
     ]);
-    expect(history?.trophyGrantedSkillIds).toEqual(new Set());
     expect(history?.primaryCategories).toEqual(new Set());
     expect(history?.secondaryCategories).toEqual(new Set());
   });
@@ -222,7 +220,6 @@ describe('PlayerAdvancementHistoryService', () => {
       COSTS,
       [playerRow()],
       SKILLS,
-      [],
       POSITION_CATEGORIES,
       SKILL_CATEGORIES,
     );
@@ -245,7 +242,6 @@ describe('PlayerAdvancementHistoryService', () => {
       COSTS,
       [playerRow()],
       [],
-      [],
       POSITION_CATEGORIES,
     );
     const service = await makeService(dbResult);
@@ -254,7 +250,7 @@ describe('PlayerAdvancementHistoryService', () => {
 
     expect(history?.skills).toEqual([]);
     expect(history?.primaryCategories).toEqual(new Set(['general', 'agility']));
-    expect(dbResult.chains).toHaveLength(6);
+    expect(dbResult.chains).toHaveLength(5);
   });
 
   it('issues no query for an empty batch', async () => {
@@ -265,7 +261,7 @@ describe('PlayerAdvancementHistoryService', () => {
     expect(dbResult.chains).toHaveLength(0);
   });
 
-  it('skips the skill and trophy queries when no player matched', async () => {
+  it('skips the skill queries when no player matched', async () => {
     const dbResult = mockDb(ERA_RULES_SETS, COSTS, []);
     const service = await makeService(dbResult);
 

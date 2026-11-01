@@ -1,4 +1,5 @@
 import type {
+  PlayerSkillEntry,
   SyncPlayerSkills,
   SyncPlayerSkillsResult,
 } from '@blood-bowl-tracker/api-contract';
@@ -23,6 +24,13 @@ import type {
 import { Inject, Injectable } from '@nestjs/common';
 
 import { SkillValidationError } from '../shared/skill-validation-error';
+
+/**
+ * The curated name of the one skill gained only as a free extra: BB2025
+ * grants Hatred on top of a player's advancements, never as one. The skill
+ * name alone is Hatred's identity: its variants live in `attribute_value`.
+ */
+const HATRED_SKILL_NAME = 'Hatred';
 
 /**
  * One skill a player has, named for display. Not called `PlayerSkill`:
@@ -50,15 +58,11 @@ export interface PlayerSkillRow {
    */
   isElite: boolean;
   /**
-   * Whether one of the player's own trophy awards names this skill as the
-   * skill it granted (Gudarnas Förkämpe's free mutation). Such a skill is not
-   * an advancement: it costs no SPP and is left out of the player's
-   * advancement count. Source-system independent, because it comes from the
-   * curated award rather than from how the importer recorded the skill. It is
-   * matched on the skill alone, so it applies to whichever of the player's rows
-   * carries that skill; a cost model reads it on the gained rows it counts.
+   * Whether the stored row is a free extra: gained without spending SPP and
+   * not one of the player's advancements, so a cost model prices it at 0 and
+   * leaves it out of the advancement count.
    */
-  isTrophyGranted: boolean;
+  isFreeExtra: boolean;
 }
 
 /**
@@ -73,12 +77,27 @@ interface ResolvedPlayerSkill {
   source: PlayerSkillSource;
   attributeValue: string | null;
   advancementOrder: number | null | undefined;
+  isFreeExtra: boolean;
 }
 
 /** The mutable half of a row, once its natural key has matched. */
 interface PlayerSkillUpdate {
   id: number;
-  values: { source?: PlayerSkillSource; advancementOrder?: number | null };
+  values: {
+    source?: PlayerSkillSource;
+    advancementOrder?: number | null;
+    isFreeExtra?: true;
+  };
+}
+
+/** What a batch's entries are validated and marked against. */
+interface SyncFacts {
+  knownPlayerIds: ReadonlySet<number>;
+  knownSkillIds: ReadonlySet<number>;
+  /** Ids of the batch's skills named Hatred. */
+  hatredSkillIds: ReadonlySet<number>;
+  /** Player id -> skills one of that player's own trophy awards grants. */
+  grantedSkillIdsByPlayer: ReadonlyMap<number, ReadonlySet<number>>;
 }
 
 /** The natural key a row is matched on: player, skill and variant. */
@@ -112,6 +131,8 @@ export class PlayerSkillsService {
    * mutable fields of one that is. Every validation runs over the whole batch
    * before any write, so one bad entry fails the call rather than
    * half-applying it. Returned ids are index-aligned with `data.entries`.
+   * A row is stored as a free extra by the rules in `isFreeExtra`; an
+   * existing row is only ever marked, never unmarked.
    */
   async sync(data: SyncPlayerSkills): Promise<SyncPlayerSkillsResult> {
     if (data.entries.length === 0) {
@@ -122,20 +143,44 @@ export class PlayerSkillsService {
     const skillIds = [...new Set(data.entries.map((e) => e.skillId))];
 
     // Over-fetch both preconditions in one query each and match in memory:
-    // two queries regardless of how many entries the batch carries.
+    // two queries regardless of how many entries the batch carries. The
+    // player query also brings each player's skill-granting trophy awards, so
+    // a player with several awards comes back once per award.
     const playerRows = await this.db
-      .select({ id: players.id })
+      .select({ id: players.id, grantedSkillId: trophyAwards.grantedSkillId })
       .from(players)
+      .leftJoin(
+        trophyAwards,
+        and(
+          eq(trophyAwards.playerId, players.id),
+          isNotNull(trophyAwards.grantedSkillId),
+        ),
+      )
       .where(inArray(players.id, playerIds));
     const skillRows = await this.db
-      .select({ id: skills.id })
+      .select({ id: skills.id, name: skills.name })
       .from(skills)
       .where(inArray(skills.id, skillIds));
 
-    const knownPlayerIds = new Set(playerRows.map((row) => row.id));
-    const knownSkillIds = new Set(skillRows.map((row) => row.id));
-
-    const resolved = this.resolveEntries(data, knownPlayerIds, knownSkillIds);
+    const grantedSkillIdsByPlayer = new Map<number, Set<number>>();
+    for (const row of playerRows) {
+      if (typeof row.grantedSkillId !== 'number') {
+        continue;
+      }
+      const granted = grantedSkillIdsByPlayer.get(row.id) ?? new Set<number>();
+      granted.add(row.grantedSkillId);
+      grantedSkillIdsByPlayer.set(row.id, granted);
+    }
+    const resolved = this.resolveEntries(data, {
+      knownPlayerIds: new Set(playerRows.map((row) => row.id)),
+      knownSkillIds: new Set(skillRows.map((row) => row.id)),
+      hatredSkillIds: new Set(
+        skillRows
+          .filter((row) => row.name === HATRED_SKILL_NAME)
+          .map((row) => row.id),
+      ),
+      grantedSkillIdsByPlayer,
+    });
 
     const existingRows = await this.db
       .select({
@@ -145,6 +190,7 @@ export class PlayerSkillsService {
         source: playerSkills.source,
         attributeValue: playerSkills.attributeValue,
         advancementOrder: playerSkills.advancementOrder,
+        isFreeExtra: playerSkills.isFreeExtra,
       })
       .from(playerSkills)
       .where(inArray(playerSkills.playerId, playerIds));
@@ -180,6 +226,9 @@ export class PlayerSkillsService {
           // here rather than relying on that alone.
           advancementOrder:
             row.source === 'starting' ? null : (row.advancementOrder ?? null),
+          // Only a free row names the column; every other row takes its
+          // `false` default.
+          ...(row.isFreeExtra ? { isFreeExtra: true } : {}),
         });
         toInsertIndexes.push(index);
         changedPlayerIds.add(row.playerId);
@@ -202,6 +251,10 @@ export class PlayerSkillsService {
         row.advancementOrder !== existing.advancementOrder
       ) {
         values.advancementOrder = row.advancementOrder;
+      }
+      // Set-only: a row once free stays free, whatever a later entry says.
+      if (row.isFreeExtra && !existing.isFreeExtra) {
+        values.isFreeExtra = true;
       }
       if (Object.keys(values).length > 0) {
         toUpdate.push({ id: existing.id, values });
@@ -286,18 +339,17 @@ export class PlayerSkillsService {
    */
   private resolveEntries(
     data: SyncPlayerSkills,
-    knownPlayerIds: ReadonlySet<number>,
-    knownSkillIds: ReadonlySet<number>,
+    facts: SyncFacts,
   ): ResolvedPlayerSkill[] {
     const resolved: ResolvedPlayerSkill[] = [];
     const seenKeys = new Set<string>();
     for (const entry of data.entries) {
-      if (!knownPlayerIds.has(entry.playerId)) {
+      if (!facts.knownPlayerIds.has(entry.playerId)) {
         throw new SkillValidationError(
           `Player ${entry.playerId} does not exist, so no skill can be recorded for them`,
         );
       }
-      if (!knownSkillIds.has(entry.skillId)) {
+      if (!facts.knownSkillIds.has(entry.skillId)) {
         throw new SkillValidationError(
           `Skill ${entry.skillId} does not exist, so player ${entry.playerId} cannot have it`,
         );
@@ -316,9 +368,97 @@ export class PlayerSkillsService {
         source: entry.source,
         attributeValue,
         advancementOrder: entry.advancementOrder,
+        isFreeExtra: this.isFreeExtra(entry, facts),
       });
     }
     return resolved;
+  }
+
+  /**
+   * Whether an entry is stored as a free extra: the source flags it, it is a
+   * non-`starting` Hatred, or (for any other skill) one of the player's own
+   * trophy awards grants it. The trophy rule never applies to Hatred.
+   */
+  private isFreeExtra(entry: PlayerSkillEntry, facts: SyncFacts): boolean {
+    if (entry.isFreeExtra === true) {
+      return true;
+    }
+    if (facts.hatredSkillIds.has(entry.skillId)) {
+      return entry.source !== 'starting';
+    }
+    return (
+      facts.grantedSkillIdsByPlayer.get(entry.playerId)?.has(entry.skillId) ===
+      true
+    );
+  }
+
+  /**
+   * Mark the player's rows of a skill one of their own trophy awards grants
+   * as free extras. Covers an award recorded after the skill; `sync` covers
+   * the opposite order. Never applied to Hatred, matching `sync`'s trophy
+   * rule. Clears nothing: `unmarkTrophyGranted` is the counterpart, and the
+   * caller re-prices the player's stored unspent SPP afterwards.
+   */
+  async markTrophyGranted(playerId: number, skillId: number): Promise<void> {
+    const [skill] = await this.db
+      .select({ name: skills.name })
+      .from(skills)
+      .where(eq(skills.id, skillId));
+    if (skill === undefined || skill.name === HATRED_SKILL_NAME) {
+      return;
+    }
+    await this.db
+      .update(playerSkills)
+      .set({ isFreeExtra: true })
+      .where(
+        and(
+          eq(playerSkills.playerId, playerId),
+          eq(playerSkills.skillId, skillId),
+          eq(playerSkills.isFreeExtra, false),
+        ),
+      );
+  }
+
+  /**
+   * Unmark the player's rows of a skill a trophy award used to grant, after
+   * that award's granted skill changed or was cleared. Skips Hatred (free by
+   * its own rule) and a skill another of the player's awards still grants;
+   * the caller has already stored the change, so the changed award no longer
+   * counts. A row TP also flagged as an extra is unmarked too: the next TP
+   * import marks it again. The caller re-prices the player's stored unspent
+   * SPP afterwards.
+   */
+  async unmarkTrophyGranted(playerId: number, skillId: number): Promise<void> {
+    const [skill] = await this.db
+      .select({ name: skills.name })
+      .from(skills)
+      .where(eq(skills.id, skillId));
+    if (skill === undefined || skill.name === HATRED_SKILL_NAME) {
+      return;
+    }
+    const [stillGranted] = await this.db
+      .select({ id: trophyAwards.id })
+      .from(trophyAwards)
+      .where(
+        and(
+          eq(trophyAwards.playerId, playerId),
+          eq(trophyAwards.grantedSkillId, skillId),
+        ),
+      )
+      .limit(1);
+    if (stillGranted !== undefined) {
+      return;
+    }
+    await this.db
+      .update(playerSkills)
+      .set({ isFreeExtra: false })
+      .where(
+        and(
+          eq(playerSkills.playerId, playerId),
+          eq(playerSkills.skillId, skillId),
+          eq(playerSkills.isFreeExtra, true),
+        ),
+      );
   }
 
   /**
@@ -331,8 +471,7 @@ export class PlayerSkillsService {
    * PositionRulesSetSkillsService: `sync` above deliberately accepts a player
    * skill with no curated row for the rules set, so a missed join is a normal
    * state to report rather than a reason to drop the skill from the list.
-   * Each row also says whether one of the player's trophy awards granted that
-   * skill.
+   * Each row carries the stored free-extra flag.
    */
   async listByPlayer(
     playerId: number,
@@ -347,6 +486,7 @@ export class PlayerSkillsService {
         advancementOrder: playerSkills.advancementOrder,
         category: skillRulesSets.category,
         isElite: skillRulesSets.isElite,
+        isFreeExtra: playerSkills.isFreeExtra,
       })
       .from(playerSkills)
       .innerJoin(skills, eq(skills.id, playerSkills.skillId))
@@ -369,25 +509,8 @@ export class PlayerSkillsService {
         asc(playerSkills.advancementOrder),
         asc(skills.name),
       );
-    // A second query rather than a join: a player holds at most a handful of
-    // awards, and joining them onto every skill row would duplicate a row if
-    // two awards ever named the same skill.
-    const grantedRows = await this.db
-      .select({ skillId: trophyAwards.grantedSkillId })
-      .from(trophyAwards)
-      .where(
-        and(
-          eq(trophyAwards.playerId, playerId),
-          isNotNull(trophyAwards.grantedSkillId),
-        ),
-      );
-    const grantedSkillIds = new Set(grantedRows.map((row) => row.skillId));
     // A missed left join yields a null `isElite`; collapse it to the column's
     // own default so every consumer sees one plain boolean.
-    return rows.map((row) => ({
-      ...row,
-      isElite: row.isElite ?? false,
-      isTrophyGranted: grantedSkillIds.has(row.skillId),
-    }));
+    return rows.map((row) => ({ ...row, isElite: row.isElite ?? false }));
   }
 }

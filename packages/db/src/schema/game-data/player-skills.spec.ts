@@ -22,6 +22,14 @@ describe('player_skills', () => {
     expect(byName.get('advancement_order')?.notNull).toBe(false);
   });
 
+  it('carries a not-null free-extra flag that defaults to false', () => {
+    const column = config.columns.find((c) => c.name === 'is_free_extra');
+    expect(column).toBeDefined();
+    expect(column!.notNull).toBe(true);
+    expect(column!.hasDefault).toBe(true);
+    expect(column!.default).toBe(false);
+  });
+
   it('uses the shared domain-enums source list', () => {
     expect(playerSkillSourceEnum.enumValues).toEqual([
       'starting',

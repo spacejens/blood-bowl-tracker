@@ -1,0 +1,81 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "a752ba2a-fafa-40b2-b632-03dfc21ffda8",
+  "prevIds": [
+    "ff54adfb-d238-4e14-a20a-85d32b8b5661"
+  ],
+  "footprints": [
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "player_skills",
+        "is_free_extra"
+      ],
+      "writes": [
+        "s|col|game_data.player_skills.is_free_extra",
+        "n|col|game_data.player_skills.is_free_extra",
+        "e|col|game_data.player_skills.is_free_extra"
+      ],
+      "reads": [
+        "n|tbl|game_data.player_skills",
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "player_skills_history",
+        "is_free_extra"
+      ],
+      "writes": [
+        "s|col|game_data.player_skills_history.is_free_extra",
+        "n|col|game_data.player_skills_history.is_free_extra",
+        "e|col|game_data.player_skills_history.is_free_extra"
+      ],
+      "reads": [
+        "n|tbl|game_data.player_skills_history",
+        "n|sch|game_data"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "player_skills",
+        "name": "is_free_extra",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "false",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "player_skills_history",
+        "name": "is_free_extra",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    }
+  ]
+}

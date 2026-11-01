@@ -125,6 +125,7 @@ export interface PlayerSkillFixture {
   playerId: number;
   skillId: number;
   source: PlayerSkillSource;
+  isFreeExtra: boolean;
 }
 
 /** `count` gained skills of one source, with skill ids from 101. */
@@ -137,15 +138,15 @@ export function gainedSkills(
     playerId,
     skillId: 101 + index,
     source,
+    isFreeExtra: false,
   }));
 }
 
-/** The rows each of UnspentSppService's seven queries returns. */
+/** The rows each of UnspentSppService's six queries returns. */
 export interface UnspentSppFixture {
   players: PlayerRowFixture[];
   eraRulesSets?: { eraId: number; rulesSetId: number }[];
   playerSkills?: PlayerSkillFixture[];
-  trophyAwards?: { playerId: number; skillId: number }[];
   skillCategories?: {
     skillId: number;
     rulesSetId: number;
@@ -162,7 +163,7 @@ export interface UnspentSppFixture {
 
 /**
  * A mock db answering UnspentSppService's queries in the order it issues them.
- * With no era rules set rows the service stops after query 4, so the last
+ * With no era rules set rows the service stops after query 3, so the last
  * three answers are only supplied when there are some.
  */
 export function unspentSppDb(fixture: UnspentSppFixture): MockDbResult {
@@ -179,7 +180,6 @@ export function unspentSppDb(fixture: UnspentSppFixture): MockDbResult {
     fixture.players,
     eraRulesSets,
     fixture.playerSkills ?? [],
-    fixture.trophyAwards ?? [],
     ...rulesSetAnswers,
   );
 }

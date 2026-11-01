@@ -795,9 +795,39 @@ describe('RosterParserService', () => {
     );
 
     expect(roster.players[0].skills?.gained).toEqual([
-      { skillMasterId: 103, isRandom: true },
-      { skillMasterId: 126, isRandom: false },
+      { skillMasterId: 103, isRandom: true, isExtra: false },
+      { skillMasterId: 126, isRandom: false, isExtra: false },
     ]);
+  });
+
+  it("carries TP's isExtra flag on a gained skill, absent meaning false", () => {
+    const roster = service.parse(
+      rosterBody({
+        lineUps: [
+          lineUp({
+            lineUpMaster: {
+              id: 952,
+              position: 'Dwarf Lineman',
+              ma: 6,
+              st: 3,
+              ag: 3,
+              pa: 4,
+              av: 9,
+              skills: [],
+            },
+            skills: [
+              { skillMasterId: 307, isRandom: false, isExtra: true },
+              { skillMasterId: 126, isRandom: false, isExtra: false },
+              { skillMasterId: 103, isRandom: true },
+            ],
+          }),
+        ],
+      }),
+    );
+
+    expect(
+      roster.players[0].skills?.gained.map((skill) => skill.isExtra),
+    ).toEqual([true, false, false]);
   });
 
   it("carries a gained skill's type-3 attribute through unresolved", () => {
@@ -831,6 +861,7 @@ describe('RosterParserService', () => {
       {
         skillMasterId: 307,
         isRandom: false,
+        isExtra: false,
         attributeValue: '113',
         attributeType: 3,
       },

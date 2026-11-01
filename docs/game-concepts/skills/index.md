@@ -101,13 +101,25 @@ Unique skill as gained looks impossible under the base rules, but house rules
 and competition-specific quirks can genuinely produce one, so what the source
 published is stored as-is.
 
-A skill a [trophy award](../trophies/index.md#trophy-award) granted is
-recorded like any other gained skill, with whatever source the source system
-gave it: neither BBL nor TP marks it as free. It is the award naming the skill
-that marks it, so when a player's skills are listed each one is flagged as
-**trophy-granted** when one of the player's own trophy awards names that skill.
-A trophy-granted skill is not an advancement: it costs no SPP and does not
-count towards the player's advancements.
+Some gained skills are **free extras**: the player has them without having
+spent SPP, and they are not among the player's advancements, so they cost
+nothing and do not raise the price of later advancements. Being a free extra
+is recorded beside the skill's source, not instead of it: the source still
+says chosen, random or advancement as the source system reported. Two kinds
+are known:
+
+- **Hatred** (BB2025) is only ever gained on top of a player's advancements,
+  so every gained Hatred is a free extra. A player can hate several keywords,
+  and each of those Hatred skills is free. TP also flags its extra skills
+  itself, and every skill it flags is recorded as a free extra.
+- **A skill a [trophy award](../trophies/index.md#trophy-award) grants**
+  (Gudarnas Förkämpe's mutation). Neither BBL nor TP marks it as free; the
+  award naming the skill is what marks it, whichever was recorded first.
+  Changing or clearing the award's skill unmarks it again, unless another
+  award of the same player still names it.
+
+A Journeyman's Loner is also granted without SPP, but no source marks it, so
+it is not recorded as a free extra.
 
 Syncing player skills only adds or updates rows for what's supplied. A player
 skill that a later sync no longer includes is not automatically removed —

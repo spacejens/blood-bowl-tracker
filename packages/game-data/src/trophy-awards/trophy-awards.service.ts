@@ -24,6 +24,7 @@ import {
 import type { TrophyRecipientKind } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
+import { PlayerSkillsService } from '../player-skills/player-skills.service';
 import { GameDataError } from '../shared/game-data-error';
 import { UnspentSppDecisionService } from '../spp/unspent-spp-decision.service';
 
@@ -201,6 +202,7 @@ export class TrophyAwardsService {
   constructor(
     @Inject(DB) private readonly db: Db,
     private readonly unspentSppDecision: UnspentSppDecisionService,
+    private readonly playerSkills: PlayerSkillsService,
   ) {}
 
   /**
@@ -482,7 +484,9 @@ export class TrophyAwardsService {
    * competition differ in `playerId` and each gets a row. No cutoff on tie
    * size is applied — real BBL data has ties of up to four.
    *
-   * Writing a granted skill re-prices the winner's stored unspent SPP
+   * Writing a granted skill marks the winner's rows of that skill as free
+   * extras (`PlayerSkillsService.markTrophyGranted`) and re-prices the
+   * winner's stored unspent SPP
    * (`UnspentSppDecisionService.refreshFixedThreshold`).
    *
    * Must not be called inside a caller-supplied transaction without a
@@ -523,9 +527,10 @@ export class TrophyAwardsService {
       // and it runs no SPP adjustment sync, so the stored unspent SPP is
       // worked out again here rather than cleared.
       if (inserted.playerId !== null && inserted.grantedSkillId !== null) {
-        await this.unspentSppDecision.refreshFixedThreshold([
+        await this.applyGrantedSkill(
           inserted.playerId,
-        ]);
+          inserted.grantedSkillId,
+        );
       }
       return { trophyAward: inserted, created: true };
     } catch (error) {
@@ -605,6 +610,10 @@ export class TrophyAwardsService {
    * returned untouched otherwise. This is what lets a curated granted skill
    * survive every later importer run, since importers never send one.
    *
+   * A changed or cleared granted skill first unmarks the winner's rows of the
+   * old skill (`PlayerSkillsService.unmarkTrophyGranted`), then marks the new
+   * one and re-prices.
+   *
    * A recorded award that grants a skill to a player is re-priced even when
    * nothing changes, so a refresh that failed after the original write is
    * repaired by the retry instead of leaving a stale fixed-threshold value.
@@ -618,9 +627,10 @@ export class TrophyAwardsService {
       grantedSkillId === existing.grantedSkillId
     ) {
       if (existing.playerId !== null && existing.grantedSkillId !== null) {
-        await this.unspentSppDecision.refreshFixedThreshold([
+        await this.applyGrantedSkill(
           existing.playerId,
-        ]);
+          existing.grantedSkillId,
+        );
       }
       return existing;
     }
@@ -635,11 +645,34 @@ export class TrophyAwardsService {
           'reported success but returned no row.',
       );
     }
-    // The stored skill changed (set or cleared): re-price, as on insert.
+    // The stored skill changed (set, changed or cleared): drop the old
+    // skill's free flag, then mark the new one and re-price, as on insert.
     if (updated.playerId !== null) {
-      await this.unspentSppDecision.refreshFixedThreshold([updated.playerId]);
+      if (existing.grantedSkillId !== null) {
+        await this.playerSkills.unmarkTrophyGranted(
+          updated.playerId,
+          existing.grantedSkillId,
+        );
+      }
+      await this.applyGrantedSkill(updated.playerId, updated.grantedSkillId);
     }
     return updated;
+  }
+
+  /**
+   * Mark the winner's rows of the granted skill as free extras, then re-price
+   * the winner's stored unspent SPP. Marking runs first so the re-pricing
+   * sees it. A cleared granted skill only re-prices; unmarking the previous
+   * skill is the caller's job and runs before this.
+   */
+  private async applyGrantedSkill(
+    playerId: number,
+    grantedSkillId: number | null,
+  ): Promise<void> {
+    if (grantedSkillId !== null) {
+      await this.playerSkills.markTrophyGranted(playerId, grantedSkillId);
+    }
+    await this.unspentSppDecision.refreshFixedThreshold([playerId]);
   }
 
   /**
