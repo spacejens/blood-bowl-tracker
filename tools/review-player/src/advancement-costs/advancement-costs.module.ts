@@ -5,46 +5,38 @@ import { PlayerAdvancementsModule } from '../player-advancements/player-advancem
 import { SharedModule } from '../shared/shared.module';
 import { SourceModule } from '../source/source.module';
 import { AdvancementCostRangeService } from './advancement-cost-range.service';
-import { AdvancementCostsDbRendererService } from './advancement-costs-db-renderer.service';
-import { AdvancementCostsReviewerService } from './advancement-costs-reviewer.service';
 import { AdvancementTableService } from './advancement-table.service';
 import { AdvancementsDbRendererService } from './advancements-db-renderer.service';
-import { BblAdvancementCostsRawRendererService } from './bbl-advancement-costs-raw-renderer.service';
 import { PlayerAdvancementHistoryService } from './player-advancement-history.service';
 import { SourceSpendComparisonService } from './source-spend-comparison.service';
 import { SourceUnspentSppFigureService } from './source-unspent-spp-figure.service';
 import { StoredUnspentSppCheckService } from './stored-unspent-spp-check.service';
-import { TpAdvancementCostsRawRendererService } from './tp-advancement-costs-raw-renderer.service';
 import { UnspentSppOutsideRangeStratificationService } from './unspent-spp-outside-range-stratification.service';
 import { UnspentSppTableService } from './unspent-spp-table.service';
 
 /**
- * The advancement-costs data type: each source's own SPP figures beside each
- * stored advancement's modelled cost, and the always-listed stratum of
- * players whose source-reported spend, or stored unspent SPP, disagrees with
- * the modelled range or the source.
+ * The imported advancement and unspent-SPP tables of the career history — each
+ * stored advancement with its modelled cost and raw-source check, then the
+ * modelled ranges beside the source's own figures — and the always-listed
+ * stratum of players whose source-reported spend, or stored unspent SPP,
+ * disagrees with the modelled range or the source.
  */
 @Module({
   imports: [SharedModule, SourceModule, PlayerAdvancementsModule],
   providers: [
+    AdvancementCostRangeService,
     AdvancementTableService,
     AdvancementsDbRendererService,
-    SkillFormatService,
-    UnspentSppTableService,
-    AdvancementCostRangeService,
-    AdvancementCostsDbRendererService,
-    AdvancementCostsReviewerService,
-    BblAdvancementCostsRawRendererService,
     PlayerAdvancementHistoryService,
+    SkillFormatService,
     SourceSpendComparisonService,
     SourceUnspentSppFigureService,
     StoredUnspentSppCheckService,
-    TpAdvancementCostsRawRendererService,
     UnspentSppOutsideRangeStratificationService,
+    UnspentSppTableService,
   ],
   exports: [
     AdvancementsDbRendererService,
-    AdvancementCostsReviewerService,
     UnspentSppOutsideRangeStratificationService,
   ],
 })

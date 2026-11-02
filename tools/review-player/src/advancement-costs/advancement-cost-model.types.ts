@@ -81,7 +81,7 @@ export interface AdvancementHistory {
 }
 
 /** Why a row costs what it does. */
-export type AdvancementRowKind =
+type AdvancementRowKind =
   'starting' | 'free_extra' | 'granted' | 'skill' | 'characteristic';
 
 /** One cost an advancement could have had at its number. */
