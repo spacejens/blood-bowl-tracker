@@ -321,8 +321,8 @@ number. A free extra may carry a recorded number, such as TP's list position
 or the place BBL's page lists it, but that number is not part of the paid
 numbering and can equal a paid advancement's: it is never confirmed, the cost
 model prices a free extra at 0 whatever its number, and the deepdive places
-it by that number without marking its order as unconfirmed. Only confirmed orders are sure to follow the
-paid numbering: a proxy order taken from TP's skill list position counts free
+it by that number without marking its order as unconfirmed. Only confirmed
+orders are sure to follow the paid numbering: a proxy order taken from TP's skill list position counts free
 extras and leaves out increases. Null means the order is unknown.
 `order_confirmed` marks an order that is trusted rather than a presentation
 proxy (a check requires an order for it). BBL's order is always trusted: its
@@ -334,7 +334,10 @@ paid advancement, so when a confirmed incoming entry resolves as a free
 extra, the sync stores it unconfirmed and moves each of the player's
 confirmed paid skills and increases numbered after it down one, closing its
 slot. The migration closed such slots the same way, and left unconfirmed a
-player with a free extra of unknown number. TP's order is trusted only where
+player with a free extra of unknown number. A trophy award recorded after the
+skill does the same when it marks a confirmed row free. Unmarking does not
+reopen the slot: the row stays unconfirmed at its recorded number and the paid
+rows keep their closed-up numbers until a later source sync. TP's order is trusted only where
 TP's reported spend decides it, including when every fitting order costs the
 same, so a confirmed order is not always proven. TP's data gives no other
 evidence of order: no timestamps, no per-skill history, and skill row ids

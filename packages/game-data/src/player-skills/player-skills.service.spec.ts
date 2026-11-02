@@ -5,6 +5,7 @@ import {
 } from '@blood-bowl-tracker/db';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { describe, expect, it } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
 import {
   extractAllFilterValues,
@@ -13,6 +14,7 @@ import {
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
 import { SkillValidationError } from '../shared/skill-validation-error';
+import { PaidAdvancementSlotsService } from './paid-advancement-slots.service';
 import { makeService } from './player-skills.test-helpers';
 
 /** Player 1 exists. */
@@ -24,19 +26,106 @@ const entry = { playerId: 1, skillId: 7, source: 'starting' as const };
 
 describe('PlayerSkillsService', () => {
   describe('markTrophyGranted', () => {
-    it("marks the player's rows of that skill that are not yet free", async () => {
+    it("looks for the player's rows of that skill that are not yet free", async () => {
       const db = mockDb([{ name: 'Tentacles' }], []);
       const service = await makeService(db);
 
       await service.markTrophyGranted(1, 7);
 
-      expect(db.db.update).toHaveBeenCalledWith(playerAdvancements);
-      expect(firstCallArg(db.chains[1].set)).toEqual({ isFreeExtra: true });
+      expect(db.chains[1].from).toHaveBeenCalledWith(playerAdvancements);
       expect(extractAllFilterValues(firstCallArg(db.chains[1].where))).toEqual([
         1,
         7,
         false,
       ]);
+    });
+
+    it('changes nothing when every row of the skill is already free', async () => {
+      const db = mockDb([{ name: 'Tentacles' }], []);
+      const paidSlots = mock<PaidAdvancementSlotsService>();
+      const service = await makeService(db, paidSlots);
+
+      await service.markTrophyGranted(1, 7);
+
+      expect(db.db.update).not.toHaveBeenCalled();
+      expect(paidSlots.close).not.toHaveBeenCalled();
+    });
+
+    it('marks the found rows free and unconfirms their order, in one transaction', async () => {
+      const db = mockDb(
+        [{ name: 'Tentacles' }],
+        [{ id: 31, advancementOrder: 2, orderConfirmed: false }],
+      );
+      const service = await makeService(db);
+
+      await service.markTrophyGranted(1, 7);
+
+      expect(db.transaction).toHaveBeenCalledTimes(1);
+      expect(db.db.update).toHaveBeenCalledWith(playerAdvancements);
+      expect(firstCallArg(db.chains[2].set)).toEqual({
+        isFreeExtra: true,
+        orderConfirmed: false,
+      });
+      expect(extractAllFilterValues(firstCallArg(db.chains[2].where))).toEqual([
+        31,
+      ]);
+    });
+
+    it('closes no slot when the marked row had no confirmed order', async () => {
+      const db = mockDb(
+        [{ name: 'Tentacles' }],
+        [{ id: 31, advancementOrder: 2, orderConfirmed: false }],
+      );
+      const paidSlots = mock<PaidAdvancementSlotsService>();
+      const service = await makeService(db, paidSlots);
+
+      await service.markTrophyGranted(1, 7);
+
+      expect(paidSlots.close).toHaveBeenCalledWith(db.db, {
+        playerId: 1,
+        slots: [],
+      });
+    });
+
+    it("closes a confirmed row's slot inside the marking transaction", async () => {
+      const db = mockDb(
+        [{ name: 'Tentacles' }],
+        [{ id: 31, advancementOrder: 2, orderConfirmed: true }],
+      );
+      const paidSlots = mock<PaidAdvancementSlotsService>();
+      const service = await makeService(db, paidSlots);
+
+      await service.markTrophyGranted(1, 7);
+
+      // mockDb hands its own db to the transaction callback as `tx`.
+      expect(paidSlots.close).toHaveBeenCalledWith(db.db, {
+        playerId: 1,
+        slots: [2],
+      });
+    });
+
+    it('closes the confirmed slot of every marked row in one call', async () => {
+      const db = mockDb(
+        [{ name: 'Tentacles' }],
+        [
+          { id: 31, advancementOrder: 4, orderConfirmed: true },
+          { id: 32, advancementOrder: 2, orderConfirmed: true },
+          { id: 33, advancementOrder: null, orderConfirmed: false },
+        ],
+      );
+      const paidSlots = mock<PaidAdvancementSlotsService>();
+      const service = await makeService(db, paidSlots);
+
+      await service.markTrophyGranted(1, 7);
+
+      expect(extractAllFilterValues(firstCallArg(db.chains[2].where))).toEqual([
+        31, 32, 33,
+      ]);
+      expect(paidSlots.close).toHaveBeenCalledTimes(1);
+      expect(paidSlots.close).toHaveBeenCalledWith(db.db, {
+        playerId: 1,
+        slots: [4, 2],
+      });
     });
 
     it('never marks Hatred', async () => {

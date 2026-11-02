@@ -24,6 +24,7 @@ import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { CharacteristicAdvancementPlannerService } from '../src/player-skills/characteristic-advancement-planner.service';
+import { PaidAdvancementSlotsService } from '../src/player-skills/paid-advancement-slots.service';
 import { PlayerAdvancementSyncPlannerService } from '../src/player-skills/player-advancement-sync-planner.service';
 import { PlayerSkillsService } from '../src/player-skills/player-skills.service';
 import { connectTestDb } from './e2e-database';
@@ -100,6 +101,7 @@ describe('PlayerSkillsService two-step live write (real Postgres)', () => {
         PlayerSkillsService,
         PlayerAdvancementSyncPlannerService,
         CharacteristicAdvancementPlannerService,
+        PaidAdvancementSlotsService,
         { provide: DB, useValue: db },
       ],
     }).compile();

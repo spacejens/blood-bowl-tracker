@@ -25,6 +25,7 @@ import type {
 import { Inject, Injectable } from '@nestjs/common';
 
 import { SkillValidationError } from '../shared/skill-validation-error';
+import { PaidAdvancementSlotsService } from './paid-advancement-slots.service';
 import type {
   CharacteristicInsert,
   ExistingRow,
@@ -113,6 +114,7 @@ export class PlayerSkillsService {
   constructor(
     @Inject(DB) private readonly db: Db,
     private readonly syncPlanner: PlayerAdvancementSyncPlannerService,
+    private readonly paidSlots: PaidAdvancementSlotsService,
   ) {}
 
   /**
@@ -509,6 +511,15 @@ export class PlayerSkillsService {
    * the opposite order. Never applied to Hatred, matching `sync`'s trophy
    * rule. Clears nothing: `unmarkTrophyGranted` is the counterpart, and the
    * caller re-prices the player's stored unspent SPP afterwards.
+   *
+   * A free extra's order is never stored confirmed, so a marked row keeps
+   * its recorded number unconfirmed. A row that was confirmed at number k
+   * held a slot in the player's paid numbering (skills and increases share
+   * one): every confirmed, non-removed paid row numbered after k moves down
+   * one (PaidAdvancementSlotsService), closing that slot as `sync`'s
+   * `closeFreeExtraSlots` does. All of it
+   * happens in one transaction; rows already free are left untouched, so a
+   * repeated call changes nothing.
    */
   async markTrophyGranted(playerId: number, skillId: number): Promise<void> {
     const [skill] = await this.db
@@ -518,16 +529,43 @@ export class PlayerSkillsService {
     if (skill === undefined || skill.name === HATRED_SKILL_NAME) {
       return;
     }
-    await this.db
-      .update(playerAdvancements)
-      .set({ isFreeExtra: true })
-      .where(
-        and(
-          eq(playerAdvancements.playerId, playerId),
-          eq(playerAdvancements.skillId, skillId),
-          eq(playerAdvancements.isFreeExtra, false),
+    await this.db.transaction(async (tx) => {
+      const marked = await tx
+        .select({
+          id: playerAdvancements.id,
+          advancementOrder: playerAdvancements.advancementOrder,
+          orderConfirmed: playerAdvancements.orderConfirmed,
+        })
+        .from(playerAdvancements)
+        .where(
+          and(
+            eq(playerAdvancements.playerId, playerId),
+            eq(playerAdvancements.skillId, skillId),
+            eq(playerAdvancements.isFreeExtra, false),
+          ),
+        )
+        .for('update');
+      if (marked.length === 0) {
+        return;
+      }
+      await tx
+        .update(playerAdvancements)
+        .set({ isFreeExtra: true, orderConfirmed: false })
+        .where(
+          inArray(
+            playerAdvancements.id,
+            marked.map((row) => row.id),
+          ),
+        );
+      await this.paidSlots.close(tx, {
+        playerId,
+        slots: marked.flatMap((row) =>
+          row.orderConfirmed && row.advancementOrder !== null
+            ? [row.advancementOrder]
+            : [],
         ),
-      );
+      });
+    });
   }
 
   /**
@@ -538,6 +576,10 @@ export class PlayerSkillsService {
    * counts. A row TP also flagged as an extra is unmarked too: the next TP
    * import marks it again. The caller re-prices the player's stored unspent
    * SPP afterwards.
+   *
+   * Unmarking does not reopen a slot `markTrophyGranted` closed: the row
+   * stays unconfirmed at its recorded number and the player's paid rows keep
+   * their closed-up numbers until a later source sync states the order again.
    */
   async unmarkTrophyGranted(playerId: number, skillId: number): Promise<void> {
     const [skill] = await this.db
