@@ -26,6 +26,8 @@ export interface LivePlayerSyncOptions {
   /** TP's unspent figure for the player, with the total reported beside it. */
   snapshot: UnspentSppSnapshot | undefined;
   errors: ImportError[];
+  /** True for the bulk import, which sends a player with stored rows as TP lists him. */
+  bulk?: boolean;
 }
 
 /**
@@ -71,6 +73,7 @@ export class TpLiveAdvancementSyncService {
       increases,
       stored,
       checkSpend: this.spent(options.snapshot) !== undefined,
+      bulk: options.bulk,
     });
     const written = await this.write(options, plan.entries);
     if (written === undefined) {

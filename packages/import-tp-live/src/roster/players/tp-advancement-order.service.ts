@@ -21,17 +21,24 @@ export interface LiveAdvancementEntriesOptions {
    * then left pending like several are, so the spend can confirm it.
    */
   checkSpend?: boolean;
+  /**
+   * True for the bulk import. A bulk snapshot may come long after the stored
+   * rows were written, so a player with stored rows is sent as TP lists him,
+   * with nothing numbered as new and nothing pending.
+   */
+  bulk?: boolean;
 }
 
 /** The entries the live import sends for one player, and what is left to deduce. */
 export interface LiveAdvancementPlan {
   entries: PlayerSkillEntry[];
   /**
-   * Indexes into `entries` of the new advancements whose order must be
-   * deduced from SPP: empty unless a player with stored rows gained at least
-   * two new advancements, or one when `checkSpend` is set. Listed in the
-   * fallback order (TP's skill list order, then increases in stat-line
-   * order); those entries are sent unconfirmed at `firstNumber`,
+   * Indexes into `entries` of the advancements whose order must be deduced
+   * from SPP: every paid one when the player has nothing stored and
+   * `checkSpend` is set; otherwise empty unless a player with stored rows
+   * gained at least two new advancements, or one when `checkSpend` is set.
+   * Listed in the fallback order (TP's skill list order, then increases in
+   * stat-line order); those entries are sent unconfirmed at `firstNumber`,
    * `firstNumber + 1`, ... in that order.
    */
   pendingIndexes: number[];
@@ -48,8 +55,7 @@ interface IncreaseSplit {
 /**
  * Decides the order the TP roster import sends with a player's advancements.
  *
- * The bulk import cannot tell when an increase was taken, so each one goes
- * with an unknown order. The live import runs right after a match, so an
+ * The live import runs right after a match, so an
  * advancement not stored before was taken since the last import and comes
  * after every stored one. Its confirmed order is its number among the
  * player's paid advancements (neither starting skills nor free extras), the
@@ -59,7 +65,13 @@ interface IncreaseSplit {
  * spend does not allow leaves it unconfirmed instead of pinning it wrongly.
  * Several are sent unconfirmed at the next numbers, in TP's skill order then
  * stat-line order, and marked pending so their order can be deduced from
- * SPP. A player with nothing stored gets no confirmed order.
+ * SPP. A player with nothing stored, in either import, has every paid
+ * advancement numbered from 1 in TP's skill order then stat-line order,
+ * unconfirmed and pending when the spend can be checked, so the spend can
+ * confirm the order; this numbering replaces TP's list position, which
+ * counts free extras and leaves out increases. A bulk import of a player
+ * with stored rows cannot tell when the rest was taken, so it sends the
+ * skills as TP lists them and each increase with an unknown order.
  * Stored increases are resent as stored, best-ranked first, so the server
  * keeps them.
  *
@@ -82,18 +94,32 @@ export class TpAdvancementOrderService {
     );
   }
 
-  /** The live import's entries for one player, ordered as described above. */
+  /** The entries for one player, ordered as described above. */
   liveEntries(options: LiveAdvancementEntriesOptions): LiveAdvancementPlan {
-    const { playerId, skillEntries, stored } = options;
+    const { playerId, skillEntries, increases, stored } = options;
     const firstNumber =
       stored.filter((row) => row.source !== 'starting' && !row.isFreeExtra)
         .length + 1;
+    const hasBaseline = stored.length > 0;
+    if (hasBaseline && options.bulk === true) {
+      return {
+        entries: [
+          ...skillEntries,
+          ...this.characteristicEntries(playerId, increases),
+        ],
+        pendingIndexes: [],
+        firstNumber,
+      };
+    }
     const newSkills = this.newSkills(skillEntries, stored);
     const { kept, added } = this.increases(options);
-    const hasBaseline = stored.length > 0;
     const newCount = newSkills.size + added.length;
-    const pending = newCount > 1 || options.checkSpend === true;
-    const confirmation = pending ? {} : { orderConfirmed: true };
+    // Without a baseline every paid advancement counts as new, and only the
+    // spend can confirm their order.
+    const pending =
+      options.checkSpend === true || (hasBaseline && newCount > 1);
+    const confirmation =
+      pending || !hasBaseline ? {} : { orderConfirmed: true };
     const entries: PlayerSkillEntry[] = [];
     const pendingIndexes: number[] = [];
     let next = firstNumber;
@@ -105,7 +131,7 @@ export class TpAdvancementOrderService {
       next += 1;
     };
     for (const entry of skillEntries) {
-      if (hasBaseline && newSkills.has(entry)) {
+      if (newSkills.has(entry)) {
         pushNew(entry);
       } else {
         entries.push(entry);
@@ -113,12 +139,7 @@ export class TpAdvancementOrderService {
     }
     entries.push(...kept);
     for (const characteristic of added) {
-      const entry = this.increaseEntry(playerId, characteristic, null);
-      if (hasBaseline) {
-        pushNew(entry);
-      } else {
-        entries.push(entry);
-      }
+      pushNew(this.increaseEntry(playerId, characteristic, null));
     }
     return { entries, pendingIndexes, firstNumber };
   }
