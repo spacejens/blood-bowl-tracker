@@ -8,6 +8,8 @@ import { PlayerAdvancementsDbRendererService } from './player-advancements-db-re
 import { PlayerAdvancementsReviewerService } from './player-advancements-reviewer.service';
 import { PlayerAdvancementsStratificationService } from './player-advancements-stratification.service';
 import { PlayerIncreasesDbRendererService } from './player-increases-db-renderer.service';
+import { StoredIncreaseRawMatchService } from './stored-increase-raw-match.service';
+import { StoredSkillRawMatchService } from './stored-skill-raw-match.service';
 import { TpPlayerAdvancementsRawRendererService } from './tp-player-advancements-raw-renderer.service';
 
 /**
@@ -26,11 +28,15 @@ import { TpPlayerAdvancementsRawRendererService } from './tp-player-advancements
     PlayerAdvancementsReviewerService,
     PlayerAdvancementsStratificationService,
     PlayerIncreasesDbRendererService,
+    StoredIncreaseRawMatchService,
+    StoredSkillRawMatchService,
     TpPlayerAdvancementsRawRendererService,
   ],
   exports: [
     PlayerAdvancementsReviewerService,
     PlayerAdvancementsStratificationService,
+    StoredIncreaseRawMatchService,
+    StoredSkillRawMatchService,
   ],
 })
 export class PlayerAdvancementsModule {}
