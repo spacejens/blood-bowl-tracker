@@ -15,8 +15,8 @@ import {
   eraRulesSets,
   eras,
   inArray,
+  playerAdvancements,
   players,
-  playerSkills,
   positions,
   skillExternalIds,
   skillRulesSets,
@@ -123,11 +123,11 @@ export class SkillsService {
    * all, which is why the "any" variant spans starting and gained skills alike.
    *
    * Grouped by `(skills.id, skills.name)` and NOT by
-   * `playerSkills.attributeValue`, so a variant-carrying skill (Hatred (Elf)
+   * `playerAdvancements.attributeValue`, so a variant-carrying skill (Hatred (Elf)
    * vs. Hatred (Dwarf)) counts toward its base skill. The count is
-   * `countDistinct(playerSkills.playerId)` rather than a row count for the same
+   * `countDistinct(playerAdvancements.playerId)` rather than a row count for the same
    * reason: one player holding two variants of the same base skill is two
-   * `player_skills` rows but must count once.
+   * `player_advancements` rows but must count once.
    *
    * Star players are excluded via the `positions` join: their skill sets are
    * fixed and often unique to them, and each hire of a star is its own
@@ -155,12 +155,12 @@ export class SkillsService {
     limit: number,
     sources: readonly PlayerSkillSource[] | undefined,
   ): Promise<SkillPlayerCount[]> {
-    const count = countDistinct(playerSkills.playerId);
+    const count = countDistinct(playerAdvancements.playerId);
     return this.db
       .select({ skillId: skills.id, name: skills.name, count })
-      .from(playerSkills)
-      .innerJoin(skills, eq(skills.id, playerSkills.skillId))
-      .innerJoin(players, eq(players.id, playerSkills.playerId))
+      .from(playerAdvancements)
+      .innerJoin(skills, eq(skills.id, playerAdvancements.skillId))
+      .innerJoin(players, eq(players.id, playerAdvancements.playerId))
       .innerJoin(positions, eq(positions.id, players.positionId))
       .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
       .innerJoin(eras, eq(eras.id, teamEras.eraId))
@@ -168,7 +168,7 @@ export class SkillsService {
         and(
           sources === undefined
             ? undefined
-            : inArray(playerSkills.source, [...sources]),
+            : inArray(playerAdvancements.source, [...sources]),
           eq(positions.isStarPlayer, false),
           scope.leagueId === undefined
             ? undefined

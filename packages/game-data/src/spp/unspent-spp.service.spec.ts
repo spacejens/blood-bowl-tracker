@@ -10,6 +10,7 @@ import {
   bb2020Costs,
   BB2025,
   bb2025Costs,
+  characteristicIncreases,
   CRP,
   crpCosts,
   ERA,
@@ -19,6 +20,7 @@ import {
   makeUnspentSppService,
   playerRow,
   POSITION,
+  skillRow,
   unspentSppDb,
   unspentSppFor,
 } from './unspent-spp.test-helpers';
@@ -81,9 +83,10 @@ describe('UnspentSppService loading', () => {
     expect(db.chains).toHaveLength(6);
     expect(filterValues(db.chains[0].where)).toEqual([1, 2]);
     expect(filterValues(db.chains[1].where)).toEqual([ERA, 21]);
-    expect(filterValues(db.chains[2].where)).toEqual([1, 2]);
+    expect(filterValues(db.chains[2].where)).toEqual([1, 2, false]);
     expect(extractJoinColumns(firstCallArg(db.chains[2].where))).toEqual([
-      'player_skills.player_id',
+      'player_advancements.player_id',
+      'player_advancements.removed',
     ]);
     expect(filterValues(db.chains[3].where)).toEqual(
       expect.arrayContaining([101, CRP]),
@@ -108,6 +111,38 @@ describe('UnspentSppService loading', () => {
       reason: 'no_rules_set',
     });
     expect(db.chains).toHaveLength(3);
+  });
+
+  it('counts a characteristic row as an advancement without asking for its category', async () => {
+    const db = unspentSppDb({
+      players: [playerRow({ playerId: 1, sppTotal: 16 })],
+      eraRulesSets: CRP_ERA,
+      playerSkills: [...gainedSkills(1), ...characteristicIncreases(1)],
+      costs: crpCosts(),
+    });
+    const service = await makeUnspentSppService(db);
+
+    expect(await service.forPlayer(1)).toMatchObject({
+      status: 'known',
+      advancementsGained: 2,
+      unspentMin: 0,
+    });
+    expect(filterValues(db.chains[3].where)).toEqual(
+      expect.arrayContaining([101, CRP]),
+    );
+    expect(filterValues(db.chains[3].where)).not.toContain(null);
+  });
+
+  it('leaves out advancement rows flagged removed', async () => {
+    const db = unspentSppDb({ players: [playerRow()] });
+    const service = await makeUnspentSppService(db);
+
+    await service.forPlayer(1);
+
+    expect(extractJoinColumns(firstCallArg(db.chains[2].where))).toEqual(
+      expect.arrayContaining(['player_advancements.removed']),
+    );
+    expect(filterValues(db.chains[2].where)).toContain(false);
   });
 
   it('works each player out on their own', async () => {
@@ -228,15 +263,9 @@ describe('UnspentSppService under fixed thresholds', () => {
 
   it('counts characteristic increases as advancements', async () => {
     const result = await unspentSppFor({
-      players: [
-        playerRow({
-          sppTotal: 31,
-          moveIncreaseCount: 1,
-          agilityIncreaseCount: 1,
-        }),
-      ],
+      players: [playerRow({ sppTotal: 31 })],
       eraRulesSets: CRP_ERA,
-      playerSkills: gainedSkills(1),
+      playerSkills: [...gainedSkills(1), ...characteristicIncreases(2)],
       costs: crpCosts(),
     });
 
@@ -288,9 +317,9 @@ describe('UnspentSppService under fixed thresholds', () => {
       players: [playerRow({ sppTotal: 6 })],
       eraRulesSets: CRP_ERA,
       playerSkills: [
-        { playerId: 1, skillId: 900, source: 'starting', isFreeExtra: false },
+        skillRow({ skillId: 900, source: 'starting' }),
         ...gainedSkills(1),
-        { playerId: 1, skillId: 102, source: 'advancement', isFreeExtra: true },
+        skillRow({ skillId: 102, isFreeExtra: true }),
       ],
       costs: crpCosts(),
     });
@@ -364,14 +393,9 @@ describe('UnspentSppService under type-priced rules sets', () => {
 
   it('prices characteristic increases as random characteristics', async () => {
     const result = await unspentSppFor({
-      players: [
-        playerRow({
-          sppTotal: 40,
-          strengthIncreaseCount: 1,
-          armourIncreaseCount: 1,
-        }),
-      ],
+      players: [playerRow({ sppTotal: 40 })],
       eraRulesSets: BB2020_ERA,
+      playerSkills: characteristicIncreases(2),
       costs: bb2020Costs(),
     });
 
@@ -444,15 +468,7 @@ describe("UnspentSppService with a league's granted skill", () => {
     const result = await unspentSppFor({
       players: [playerRow({ sppTotal: 320 })],
       eraRulesSets: CRP_ERA,
-      playerSkills: [
-        ...gainedSkills(6),
-        {
-          playerId: 1,
-          skillId: FAN_FAVOURITE,
-          source: 'advancement',
-          isFreeExtra: false,
-        },
-      ],
+      playerSkills: [...gainedSkills(6), skillRow({ skillId: FAN_FAVOURITE })],
       costs: [...crpCosts(), fanFavouriteCost()],
     });
 
@@ -489,15 +505,7 @@ describe("UnspentSppService with a league's granted skill", () => {
     const result = await unspentSppFor({
       players: [playerRow({ sppTotal: 320, leagueId: 31 })],
       eraRulesSets: CRP_ERA,
-      playerSkills: [
-        ...gainedSkills(6),
-        {
-          playerId: 1,
-          skillId: FAN_FAVOURITE,
-          source: 'advancement',
-          isFreeExtra: false,
-        },
-      ],
+      playerSkills: [...gainedSkills(6), skillRow({ skillId: FAN_FAVOURITE })],
       costs: [...crpCosts(), fanFavouriteCost()],
     });
 
@@ -512,8 +520,9 @@ describe('UnspentSppService with several rules sets in the era', () => {
   it('keeps the widest range and the cheapest next cost', async () => {
     // CRP: 6 spent, next 10. BB2020: 18 spent, next 4.
     const result = await unspentSppFor({
-      players: [playerRow({ sppTotal: 20, moveIncreaseCount: 1 })],
+      players: [playerRow({ sppTotal: 20 })],
       eraRulesSets: [...CRP_ERA, ...BB2020_ERA],
+      playerSkills: characteristicIncreases(1),
       costs: [...crpCosts(), ...bb2020Costs()],
     });
 

@@ -121,6 +121,7 @@ export class TpLiveTeamImportService {
           externalSystemName,
           matchEmbeddedPlayers,
           rawContent: content,
+          confirmNewAdvancements: true,
         });
       return {
         team,

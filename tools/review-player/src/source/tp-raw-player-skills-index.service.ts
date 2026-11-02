@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { Injectable } from '@nestjs/common';
 
 import { ReviewPlayerConfigService } from '../config/review-player-config.service';
-import type { RawIncreaseCounts } from './bbl-player-skills-cell.service';
+import type { RawCharacteristicIncreases } from './bbl-player-skills-cell.service';
 import { TpSkillMasterNamesService } from './tp-skill-master-names.service';
 
 /** `rosters_<id>.json` — TP's per-team roster file; captures the id. */
@@ -57,10 +57,10 @@ export interface TpRawPlayerAdvancements {
    * DERIVED, not reported. TP publishes no advancement counter at all, and a
    * reduction (injury) and an advancement on the same characteristic cancel
    * out here. It is shown for orientation, never compared against the stored
-   * `*IncreaseCount` columns, which the TP importer derives by its own,
+   * characteristic increase rows, which the TP importer derives by its own,
    * separate comparison against the position's baseline characteristics.
    */
-  characteristicDiffs: RawIncreaseCounts;
+  characteristicDiffs: RawCharacteristicIncreases;
   /** False when the roster entry carried no position template at all. */
   hasTemplate: boolean;
 }
@@ -280,7 +280,7 @@ export class TpRawPlayerSkillsIndexService {
     entry: unknown,
     template: unknown,
     hasTemplate: boolean,
-  ): RawIncreaseCounts {
+  ): RawCharacteristicIncreases {
     const zero = {
       move: 0,
       strength: 0,

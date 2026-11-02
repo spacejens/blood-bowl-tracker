@@ -95,13 +95,18 @@ the stat line is therefore absent.
 
 ## Skills
 
-Then up to two skill lines: the starting skills the player's
-[position](../../glossary.md#position) granted, alphabetically, and the skills
-the player has gained since, in the order they were gained (a skill with no
-recorded order goes last). A group with no skills has no line at all, and
-both are omitted when no rules set resolves for the player's era. A skill
-whose rules need a roll or a named target shows that value in brackets after
-its name.
+Then up to two lines: `Starting skills:`, the skills the player's
+[position](../../glossary.md#position) granted, alphabetically, and
+`Advancements:`, everything the player has gained since — skills and
+[characteristic increases](../../glossary.md#characteristic-increase) together,
+in the order they were gained. An entry with no recorded order goes last,
+skills alphabetically and then increases in MA/ST/AG/PA/AV order. An increase
+reads `+AG`, `+MA` and so on, with no markers. A group with nothing in it has
+no line at all. The starting skills and gained skills are omitted when no
+rules set resolves for the player's era, but increases need no rules set, so
+the Advancements line still shows them, even for a player with only increases.
+A skill whose rules need a roll or a named target shows that value in
+brackets after its name.
 
 A skill can carry markers before its name, always in this order:
 
@@ -127,7 +132,7 @@ The embed has no legend for the markers.
 ## Keywords
 
 Last of this group of condition lines — after the characteristics,
-characteristic advancements, lasting injuries and skill lines — one
+lasting injuries, skill and advancement lines — one
 unprefixed line naming the player's position's BB2025-style
 keywords under the one [rules set](../../glossary.md#rules-set) their era
 resolves to: `Keywords: Goblin, Undead`. A player has no keywords of their

@@ -84,11 +84,11 @@ describe('TpCharacteristicIncreasesService', () => {
     });
 
     expect(counts).toEqual({
-      moveIncreaseCount: 0,
-      strengthIncreaseCount: 0,
-      agilityIncreaseCount: 0,
-      passingIncreaseCount: 0,
-      armourIncreaseCount: 0,
+      MA: 0,
+      ST: 0,
+      AG: 0,
+      PA: 0,
+      AV: 0,
     });
     expect(errors).toEqual([]);
   });
@@ -106,8 +106,8 @@ describe('TpCharacteristicIncreasesService', () => {
       errors,
     });
 
-    expect(counts?.moveIncreaseCount).toBe(2);
-    expect(counts?.strengthIncreaseCount).toBe(1);
+    expect(counts?.MA).toBe(2);
+    expect(counts?.ST).toBe(1);
   });
 
   it('counts a roll-target characteristic that is LOWER than the baseline', async () => {
@@ -123,8 +123,8 @@ describe('TpCharacteristicIncreasesService', () => {
       errors,
     });
 
-    expect(counts?.agilityIncreaseCount).toBe(1);
-    expect(counts?.passingIncreaseCount).toBe(1);
+    expect(counts?.AG).toBe(1);
+    expect(counts?.PA).toBe(1);
   });
 
   it('counts armour upward even under a roll-target format', async () => {
@@ -140,7 +140,7 @@ describe('TpCharacteristicIncreasesService', () => {
       errors,
     });
 
-    expect(counts?.armourIncreaseCount).toBe(1);
+    expect(counts?.AV).toBe(1);
   });
 
   it('adds back an outstanding reduction that is masking an increase', async () => {
@@ -156,7 +156,7 @@ describe('TpCharacteristicIncreasesService', () => {
       errors,
     });
 
-    expect(counts?.moveIncreaseCount).toBe(2);
+    expect(counts?.MA).toBe(2);
   });
 
   it('clamps a below-baseline characteristic with no recorded reduction to 0', async () => {
@@ -172,7 +172,7 @@ describe('TpCharacteristicIncreasesService', () => {
       errors,
     });
 
-    expect(counts?.moveIncreaseCount).toBe(0);
+    expect(counts?.MA).toBe(0);
   });
 
   it('treats an absent reductions group as all zeroes', async () => {
@@ -188,7 +188,7 @@ describe('TpCharacteristicIncreasesService', () => {
       errors,
     });
 
-    expect(counts?.moveIncreaseCount).toBe(1);
+    expect(counts?.MA).toBe(1);
   });
 
   it('sends 0 for Passing when the rules set declares none', async () => {
@@ -206,7 +206,7 @@ describe('TpCharacteristicIncreasesService', () => {
       errors,
     });
 
-    expect(counts?.passingIncreaseCount).toBe(0);
+    expect(counts?.PA).toBe(0);
     expect(errors).toEqual([]);
   });
 
@@ -226,7 +226,7 @@ describe('TpCharacteristicIncreasesService', () => {
       errors,
     });
 
-    expect(counts?.moveIncreaseCount).toBe(1);
+    expect(counts?.MA).toBe(1);
   });
 
   it('records an error and sends no group when no baseline row covers the rules set', async () => {
@@ -307,7 +307,7 @@ describe('TpCharacteristicIncreasesService', () => {
       errors,
     });
 
-    expect(counts?.moveIncreaseCount).toBe(2);
+    expect(counts?.MA).toBe(2);
     expect(positionRulesSets.listByPosition).not.toHaveBeenCalled();
   });
 
@@ -324,7 +324,7 @@ describe('TpCharacteristicIncreasesService', () => {
       errors,
     });
 
-    expect(counts?.moveIncreaseCount).toBe(2);
+    expect(counts?.MA).toBe(2);
     expect(positionRulesSets.listByPosition).toHaveBeenCalledTimes(1);
   });
 

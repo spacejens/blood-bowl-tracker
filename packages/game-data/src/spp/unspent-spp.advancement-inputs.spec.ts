@@ -4,6 +4,7 @@ import {
   BB2020,
   bb2020Costs,
   BB2025,
+  characteristicIncreases,
   CRP,
   crpCosts,
   ERA,
@@ -36,12 +37,12 @@ describe('UnspentSppService.advancementInputsForPlayers', () => {
   it('gives each rules set of the era its costs, pricing model and the candidates input', async () => {
     const service = await makeUnspentSppService(
       unspentSppDb({
-        players: [playerRow({ strengthIncreaseCount: 1 })],
+        players: [playerRow()],
         eraRulesSets: [
           { eraId: ERA, rulesSetId: CRP },
           { eraId: ERA, rulesSetId: BB2020 },
         ],
-        playerSkills: gainedSkills(1),
+        playerSkills: [...gainedSkills(1), ...characteristicIncreases(1)],
         skillCategories: [
           { skillId: 101, rulesSetId: BB2020, category: 'general' },
         ],
@@ -61,7 +62,22 @@ describe('UnspentSppService.advancementInputsForPlayers', () => {
     const inputs = await service.advancementInputsForPlayers([1]);
 
     const skills = [
-      { skillId: 101, source: 'advancement', isFreeExtra: false },
+      {
+        id: 1101,
+        skillId: 101,
+        source: 'advancement',
+        isFreeExtra: false,
+        advancementOrder: null,
+        orderConfirmed: false,
+      },
+      {
+        id: 1901,
+        skillId: null,
+        source: 'characteristic',
+        isFreeExtra: false,
+        advancementOrder: null,
+        orderConfirmed: false,
+      },
     ];
     expect(inputs).toEqual(
       new Map([
@@ -74,7 +90,6 @@ describe('UnspentSppService.advancementInputsForPlayers', () => {
               costs: crpCosts(),
               candidatesInput: {
                 skills,
-                characteristicIncreases: 1,
                 skillCategories: new Map(),
                 positionAccess: new Map(),
                 costs: crpCosts(),
@@ -86,7 +101,6 @@ describe('UnspentSppService.advancementInputsForPlayers', () => {
               costs: bb2020Costs(),
               candidatesInput: {
                 skills,
-                characteristicIncreases: 1,
                 skillCategories: new Map([[101, 'general']]),
                 positionAccess: new Map([['general', 'primary']]),
                 costs: bb2020Costs(),

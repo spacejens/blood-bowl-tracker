@@ -112,7 +112,7 @@ describe('ImportManualCliService', () => {
         'Import completed with 1 errors:',
         '  - Cannot import race "R".',
         'Batch 004-y was not recorded as applied; later batches were not attempted.',
-        'On a fresh database apply the first batch, run the BBL and TP importers, then apply the rest.',
+        'On a fresh database apply the first batch, run the BBL and TP importers, apply the rest, then run the BBL and TP importers again.',
       ],
       exitCode: 1,
     });

@@ -2,7 +2,6 @@ import { PLAYER_STATUSES } from '@blood-bowl-tracker/domain-enums';
 import { describe, expect, it } from 'vitest';
 
 import {
-  PLAYER_CHARACTERISTIC_INCREASE_KEYS,
   PLAYER_LASTING_INJURY_KEYS,
   PlayerSchema,
   SPP_CAREER_COUNT_KEYS,
@@ -26,14 +25,6 @@ describe('player schemas', () => {
     armourReductionCount: 0,
   };
 
-  const noIncreases = {
-    moveIncreaseCount: 0,
-    strengthIncreaseCount: 0,
-    agilityIncreaseCount: 0,
-    passingIncreaseCount: 0,
-    armourIncreaseCount: 0,
-  };
-
   it('PlayerSchema parses a valid player', () => {
     const parsed = PlayerSchema.parse({
       id: 1,
@@ -46,7 +37,6 @@ describe('player schemas', () => {
       passing: 4,
       armour: 9,
       ...noLastingInjuries,
-      ...noIncreases,
       unspentSpp: null,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
@@ -66,7 +56,6 @@ describe('player schemas', () => {
       passing: 4,
       armour: 9,
       ...noLastingInjuries,
-      ...noIncreases,
       createdAt: '2026-01-01T00:00:00.000Z',
     };
     expect(PlayerSchema.parse({ ...valid, unspentSpp: 7 }).unspentSpp).toBe(7);
@@ -228,7 +217,6 @@ describe('player schemas', () => {
       passing: 4,
       armour: 9,
       ...noLastingInjuries,
-      ...noIncreases,
       unspentSpp: null,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
@@ -248,7 +236,6 @@ describe('player schemas', () => {
       passing: null,
       armour: 8,
       ...noLastingInjuries,
-      ...noIncreases,
       unspentSpp: null,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
@@ -348,110 +335,20 @@ describe('player schemas', () => {
     ).toThrow();
   });
 
-  it('PLAYER_CHARACTERISTIC_INCREASE_KEYS lists the five increase counts in characteristic order', () => {
-    expect(PLAYER_CHARACTERISTIC_INCREASE_KEYS).toEqual([
-      'moveIncreaseCount',
-      'strengthIncreaseCount',
-      'agilityIncreaseCount',
-      'passingIncreaseCount',
-      'armourIncreaseCount',
-    ]);
-  });
-
-  it('PlayerSchema requires every increase count', () => {
-    const parsed = PlayerSchema.parse({
-      id: 1,
-      name: 'Griff Oberwald',
-      teamEraId: 10,
-      positionId: 20,
-      move: 6,
-      strength: 3,
-      agility: 3,
-      passing: 4,
-      armour: 9,
-      ...noLastingInjuries,
-      ...noIncreases,
-      unspentSpp: null,
-      createdAt: '2026-01-01T00:00:00.000Z',
-    });
-    expect(parsed.moveIncreaseCount).toBe(0);
-
-    const missing = PlayerSchema.safeParse({
-      id: 1,
-      name: 'Griff Oberwald',
-      teamEraId: 10,
-      positionId: 20,
-      move: 6,
-      strength: 3,
-      agility: 3,
-      passing: 4,
-      armour: 9,
-      ...noLastingInjuries,
-      createdAt: '2026-01-01T00:00:00.000Z',
-    });
-    expect(missing.success).toBe(false);
-  });
-
-  it('UpsertPlayerSchema accepts the whole increase group', () => {
+  it('UpsertPlayerSchema drops a characteristic increase count', () => {
+    // Increases are advancement rows, synced separately; an unknown key on
+    // the upsert is stripped, not stored.
     const parsed = UpsertPlayerSchema.parse({
       name: 'Griff Oberwald',
       teamEraId: 10,
       positionId: 20,
-      ...noIncreases,
       moveIncreaseCount: 2,
       externalIds: [{ externalSystemId: 1, externalId: '1' }],
     });
-    expect(parsed.moveIncreaseCount).toBe(2);
+    expect(parsed).not.toHaveProperty('moveIncreaseCount');
   });
 
-  it('UpsertPlayerSchema accepts a payload with no increase counts at all', () => {
-    const parsed = UpsertPlayerSchema.safeParse({
-      name: 'Griff Oberwald',
-      teamEraId: 10,
-      positionId: 20,
-      externalIds: [{ externalSystemId: 1, externalId: '1' }],
-    });
-    expect(parsed.success).toBe(true);
-  });
-
-  it('UpsertPlayerSchema rejects a partial increase group', () => {
-    const parsed = UpsertPlayerSchema.safeParse({
-      name: 'Griff Oberwald',
-      teamEraId: 10,
-      positionId: 20,
-      moveIncreaseCount: 1,
-      externalIds: [{ externalSystemId: 1, externalId: '1' }],
-    });
-    expect(parsed.success).toBe(false);
-    expect(parsed.error?.issues[0].message).toContain(
-      'Characteristic increases are all-or-nothing',
-    );
-  });
-
-  it('UpsertPlayerSchema rejects a negative increase count', () => {
-    const parsed = UpsertPlayerSchema.safeParse({
-      name: 'Griff Oberwald',
-      teamEraId: 10,
-      positionId: 20,
-      ...noIncreases,
-      armourIncreaseCount: -1,
-      externalIds: [{ externalSystemId: 1, externalId: '1' }],
-    });
-    expect(parsed.success).toBe(false);
-  });
-
-  it('UpsertPlayerSchema treats increases and lasting injuries as independent groups', () => {
-    // A source could supply one group without the other, so a full increase
-    // group with no lasting injuries (and vice versa) must both parse.
-    expect(
-      UpsertPlayerSchema.safeParse({
-        name: 'Griff Oberwald',
-        teamEraId: 10,
-        positionId: 20,
-        ...noIncreases,
-        externalIds: [{ externalSystemId: 1, externalId: '1' }],
-      }).success,
-    ).toBe(true);
+  it('UpsertPlayerSchema accepts lasting injuries on their own', () => {
     expect(
       UpsertPlayerSchema.safeParse({
         name: 'Griff Oberwald',

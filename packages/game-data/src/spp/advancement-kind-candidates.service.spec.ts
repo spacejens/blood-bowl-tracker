@@ -7,7 +7,33 @@ import type {
   AdvancementCandidatesInput,
   AdvancementOption,
   ApplicableAdvancementCost,
+  PlayerSkillEntry,
 } from './unspent-spp.types';
+
+let nextId = 1;
+
+function gained(overrides: Partial<PlayerSkillEntry> = {}): PlayerSkillEntry {
+  return {
+    id: nextId++,
+    skillId: 101,
+    source: 'advancement',
+    isFreeExtra: false,
+    advancementOrder: null,
+    orderConfirmed: false,
+    ...overrides,
+  };
+}
+
+function increase(overrides: Partial<PlayerSkillEntry> = {}): PlayerSkillEntry {
+  return gained({ skillId: null, source: 'characteristic', ...overrides });
+}
+
+function cost(
+  advancementNumber: number,
+  advancementKind: AdvancementKind,
+): ApplicableAdvancementCost {
+  return { advancementNumber, advancementKind, skillId: null, sppCost: 10 };
+}
 
 function costs(
   advancementKind: AdvancementKind,
@@ -48,7 +74,6 @@ function input(
 ): AdvancementCandidatesInput {
   return {
     skills: [],
-    characteristicIncreases: 0,
     skillCategories: new Map(),
     positionAccess: new Map(),
     costs: BB2020,
@@ -70,8 +95,8 @@ describe('AdvancementKindCandidatesService', () => {
     const result = service.candidates(
       input({
         skills: [
-          { skillId: 1, source: 'starting', isFreeExtra: false },
-          { skillId: 2, source: 'chosen', isFreeExtra: true },
+          gained({ skillId: 1, source: 'starting', isFreeExtra: false }),
+          gained({ skillId: 2, source: 'chosen', isFreeExtra: true }),
         ],
       }),
     );
@@ -82,7 +107,9 @@ describe('AdvancementKindCandidatesService', () => {
   it('allows every skill kind for a skill of unknown roll and category', () => {
     const result = service.candidates(
       input({
-        skills: [{ skillId: 101, source: 'advancement', isFreeExtra: false }],
+        skills: [
+          gained({ skillId: 101, source: 'advancement', isFreeExtra: false }),
+        ],
       }),
     );
 
@@ -99,7 +126,9 @@ describe('AdvancementKindCandidatesService', () => {
   it('keeps a chosen skill in a primary category to chosen primary', () => {
     const result = service.candidates(
       input({
-        skills: [{ skillId: 101, source: 'chosen', isFreeExtra: false }],
+        skills: [
+          gained({ skillId: 101, source: 'chosen', isFreeExtra: false }),
+        ],
         skillCategories: new Map([[101, 'general']]),
         positionAccess: new Map([['general', 'primary']]),
       }),
@@ -111,7 +140,9 @@ describe('AdvancementKindCandidatesService', () => {
   it('keeps a random skill in a secondary category to random secondary', () => {
     const result = service.candidates(
       input({
-        skills: [{ skillId: 101, source: 'random', isFreeExtra: false }],
+        skills: [
+          gained({ skillId: 101, source: 'random', isFreeExtra: false }),
+        ],
         skillCategories: new Map([[101, 'agility']]),
         positionAccess: new Map([['agility', 'secondary']]),
       }),
@@ -123,7 +154,9 @@ describe('AdvancementKindCandidatesService', () => {
   it('allows primary and secondary when the position has no access to the category', () => {
     const result = service.candidates(
       input({
-        skills: [{ skillId: 101, source: 'chosen', isFreeExtra: false }],
+        skills: [
+          gained({ skillId: 101, source: 'chosen', isFreeExtra: false }),
+        ],
         skillCategories: new Map([[101, 'mutation']]),
         positionAccess: new Map([['general', 'primary']]),
       }),
@@ -137,7 +170,9 @@ describe('AdvancementKindCandidatesService', () => {
   it('leaves no option for a random secondary skill under BB2025', () => {
     const result = service.candidates(
       input({
-        skills: [{ skillId: 101, source: 'random', isFreeExtra: false }],
+        skills: [
+          gained({ skillId: 101, source: 'random', isFreeExtra: false }),
+        ],
         skillCategories: new Map([[101, 'agility']]),
         positionAccess: new Map([['agility', 'secondary']]),
         costs: BB2025,
@@ -150,7 +185,9 @@ describe('AdvancementKindCandidatesService', () => {
   it('narrows an unknown-roll secondary skill to chosen under BB2025', () => {
     const result = service.candidates(
       input({
-        skills: [{ skillId: 101, source: 'advancement', isFreeExtra: false }],
+        skills: [
+          gained({ skillId: 101, source: 'advancement', isFreeExtra: false }),
+        ],
         skillCategories: new Map([[101, 'agility']]),
         positionAccess: new Map([['agility', 'secondary']]),
         costs: BB2025,
@@ -163,8 +200,10 @@ describe('AdvancementKindCandidatesService', () => {
   it('prices every advancement as a table roll under fixed thresholds', () => {
     const result = service.candidates(
       input({
-        skills: [{ skillId: 101, source: 'chosen', isFreeExtra: false }],
-        characteristicIncreases: 1,
+        skills: [
+          gained({ skillId: 101, source: 'chosen', isFreeExtra: false }),
+          increase(),
+        ],
         costs: FIXED,
       }),
     );
@@ -172,13 +211,16 @@ describe('AdvancementKindCandidatesService', () => {
     expect(result).toEqual([anyNumber('table_roll'), anyNumber('table_roll')]);
   });
 
-  it('lists skills first, then one random characteristic per increase', () => {
+  it('lists one entry per row, in row order, with a random characteristic per increase', () => {
     const result = service.candidates(
       input({
-        skills: [{ skillId: 101, source: 'chosen', isFreeExtra: false }],
+        skills: [
+          gained({ skillId: 101, source: 'chosen', isFreeExtra: false }),
+          increase(),
+          increase(),
+        ],
         skillCategories: new Map([[101, 'general']]),
         positionAccess: new Map([['general', 'primary']]),
-        characteristicIncreases: 2,
       }),
     );
 
@@ -199,7 +241,9 @@ describe('AdvancementKindCandidatesService', () => {
 
     const result = service.candidates(
       input({
-        skills: [{ skillId: 500, source: 'advancement', isFreeExtra: false }],
+        skills: [
+          gained({ skillId: 500, source: 'advancement', isFreeExtra: false }),
+        ],
         costs: [...FIXED, fanFavourite],
       }),
     );
@@ -221,7 +265,9 @@ describe('AdvancementKindCandidatesService', () => {
 
     const result = service.candidates(
       input({
-        skills: [{ skillId: 500, source: 'advancement', isFreeExtra: false }],
+        skills: [
+          gained({ skillId: 500, source: 'advancement', isFreeExtra: false }),
+        ],
         costs: [...FIXED, grantedAt(7), grantedAt(8)],
       }),
     );
@@ -241,10 +287,131 @@ describe('AdvancementKindCandidatesService', () => {
     'drops table_roll for a characteristic increase under %s',
     (_name, rulesSetCosts) => {
       const result = service.candidates(
-        input({ characteristicIncreases: 1, costs: rulesSetCosts }),
+        input({ skills: [increase()], costs: rulesSetCosts }),
       );
 
       expect(result).toEqual([anyNumber('random_characteristic')]);
     },
   );
+
+  it('classifies a characteristic row as a characteristic advancement of any number', () => {
+    expect(
+      service.candidates(
+        input({
+          skills: [increase()],
+          costs: [cost(1, 'random_characteristic'), cost(1, 'table_roll')],
+        }),
+      ),
+    ).toEqual([
+      [
+        { advancementKind: 'random_characteristic', advancementNumber: null },
+        { advancementKind: 'table_roll', advancementNumber: null },
+      ],
+    ]);
+  });
+
+  it('pins a confirmed entry to its recorded order', () => {
+    expect(
+      service.candidates(
+        input({
+          skills: [increase({ advancementOrder: 2, orderConfirmed: true })],
+          costs: [
+            cost(1, 'random_characteristic'),
+            cost(2, 'random_characteristic'),
+          ],
+        }),
+      ),
+    ).toEqual([
+      [{ advancementKind: 'random_characteristic', advancementNumber: 2 }],
+    ]);
+  });
+
+  it('ignores the order of an unconfirmed entry', () => {
+    expect(
+      service.candidates(
+        input({
+          skills: [increase({ advancementOrder: 2 })],
+          costs: [cost(1, 'random_characteristic')],
+        }),
+      ),
+    ).toEqual([
+      [{ advancementKind: 'random_characteristic', advancementNumber: null }],
+    ]);
+  });
+
+  it('pins a confirmed skill to its recorded order', () => {
+    expect(
+      service.candidates(
+        input({
+          skills: [
+            gained({
+              source: 'chosen',
+              advancementOrder: 3,
+              orderConfirmed: true,
+            }),
+          ],
+          skillCategories: new Map([[101, 'general']]),
+          positionAccess: new Map([['general', 'primary']]),
+        }),
+      ),
+    ).toEqual([
+      [{ advancementKind: 'chosen_primary_skill', advancementNumber: 3 }],
+    ]);
+  });
+
+  it('keeps a granted-skill option whose number matches a confirmed order', () => {
+    expect(
+      service.candidates(
+        input({
+          skills: [
+            gained({ skillId: 9, advancementOrder: 7, orderConfirmed: true }),
+          ],
+          costs: [
+            {
+              advancementNumber: 7,
+              advancementKind: 'granted_skill',
+              skillId: 9,
+              sppCost: 125,
+            },
+          ],
+        }),
+      ),
+    ).toEqual([[{ advancementKind: 'granted_skill', advancementNumber: 7 }]]);
+  });
+
+  it('drops a granted-skill option whose number disagrees with a confirmed order', () => {
+    expect(
+      service.candidates(
+        input({
+          skills: [
+            gained({ skillId: 9, advancementOrder: 3, orderConfirmed: true }),
+          ],
+          costs: [
+            {
+              advancementNumber: 7,
+              advancementKind: 'granted_skill',
+              skillId: 9,
+              sppCost: 125,
+            },
+          ],
+        }),
+      ),
+    ).toEqual([[]]);
+  });
+
+  it('skips a free extra skill even when its order is confirmed', () => {
+    expect(
+      service.candidates(
+        input({
+          skills: [
+            gained({
+              isFreeExtra: true,
+              advancementOrder: 1,
+              orderConfirmed: true,
+            }),
+          ],
+        }),
+      ),
+    ).toEqual([]);
+  });
 });

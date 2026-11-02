@@ -26,10 +26,13 @@ const ADVANCEMENTS = {
       name: 'Hatred',
       attributeValue: 'Dwarf',
       source: 'gained' as const,
-      advancementOrder: 2,
+      advancementOrder: 3,
     },
   ],
-  increaseCounts: { move: 1, strength: 0, agility: 0, passing: 0, armour: 2 },
+  increases: [
+    { characteristic: 'AV' as const, advancementOrder: 4 },
+    { characteristic: 'MA' as const, advancementOrder: 2 },
+  ],
 };
 
 describe('BblAdvancementCostsRawRendererService', () => {
@@ -51,7 +54,7 @@ describe('BblAdvancementCostsRawRendererService', () => {
     service = moduleRef.get(BblAdvancementCostsRawRendererService);
   });
 
-  it('shows both Unspent SPP figures, gained skills in page order and the increase counts', async () => {
+  it('shows both Unspent SPP figures, gained skills and increases in one page order', async () => {
     unspent.read.mockResolvedValue({ unspent: -4, careerTotal: 34 });
     advancements.read.mockResolvedValue(ADVANCEMENTS);
 
@@ -60,12 +63,11 @@ describe('BblAdvancementCostsRawRendererService', () => {
     expect(unspent.read).toHaveBeenCalledWith('1020');
     expect(html).toContain('<td>Unspent SPP (reported)</td><td>-4</td>');
     expect(html).toContain('<td>Career SPP (in brackets)</td><td>34</td>');
-    expect(html).toContain('<td>1</td><td>Dodge</td>');
-    expect(html).toContain('<td>2</td><td>Hatred (Dwarf)</td>');
-    expect(html).not.toContain('<td>Block</td>');
+    expect(html).toContain('Advancements (page order)');
     expect(html).toContain(
-      '<td>1</td><td>0</td><td>0</td><td>0</td><td>2</td>',
+      '<td>1</td><td>Dodge</td></tr><tr><td>2</td><td>+MA</td></tr><tr><td>3</td><td>Hatred (Dwarf)</td></tr><tr><td>4</td><td>+AV</td>',
     );
+    expect(html).not.toContain('<td>Block</td>');
     expect(html).toContain(
       'cannot say whether a gained skill was randomly rolled or freely chosen',
     );
@@ -92,22 +94,13 @@ describe('BblAdvancementCostsRawRendererService', () => {
           advancementOrder: null,
         },
       ],
-      increaseCounts: {
-        move: 0,
-        strength: 0,
-        agility: 0,
-        passing: 0,
-        armour: 0,
-      },
+      increases: [],
     });
 
     const html = await service.render('1020');
 
     expect(html).toContain('<td>Unspent SPP (reported)</td><td>6</td>');
     expect(html).not.toContain('<td>Block</td>');
-    expect(html).toContain(
-      '<td>0</td><td>0</td><td>0</td><td>0</td><td>0</td>',
-    );
   });
 
   it('notes a page with no Skills cell', async () => {

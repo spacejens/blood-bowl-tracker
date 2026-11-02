@@ -529,8 +529,8 @@ describe('schema', () => {
   });
 
   describe('players characteristic increase counts', () => {
-    it('has a notNull, default-0 integer column for each of the five characteristics', () => {
-      const columns = getTableConfig(players).columns;
+    it('has no increase count columns: increases are player_advancements rows', () => {
+      const names = getTableConfig(players).columns.map((c) => c.name);
       for (const name of [
         'move_increase_count',
         'strength_increase_count',
@@ -538,10 +538,7 @@ describe('schema', () => {
         'passing_increase_count',
         'armour_increase_count',
       ]) {
-        const column = columns.find((c) => c.name === name);
-        expect(column, `players.${name} is missing`).toBeDefined();
-        expect(column!.notNull).toBe(true);
-        expect(column!.hasDefault).toBe(true);
+        expect(names, `players.${name} is still present`).not.toContain(name);
       }
     });
   });

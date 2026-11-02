@@ -175,6 +175,65 @@ describe('player skill schemas', () => {
     ).toBe(false);
   });
 
+  describe('characteristic entries', () => {
+    const base = {
+      playerId: 1,
+      source: 'characteristic' as const,
+      characteristic: 'AG' as const,
+    };
+
+    it('parses a characteristic entry with an order', () => {
+      expect(
+        PlayerSkillEntrySchema.parse({ ...base, advancementOrder: 3 }),
+      ).toEqual({ ...base, advancementOrder: 3 });
+    });
+
+    it('parses a confirmed order', () => {
+      expect(
+        PlayerSkillEntrySchema.parse({
+          ...base,
+          advancementOrder: 3,
+          orderConfirmed: true,
+        }).orderConfirmed,
+      ).toBe(true);
+    });
+
+    it.each([
+      [
+        'a characteristic with a skill source',
+        { playerId: 1, skillId: 7, source: 'chosen', characteristic: 'AG' },
+      ],
+      [
+        'the characteristic source without a characteristic',
+        { playerId: 1, source: 'characteristic' },
+      ],
+      ['the characteristic source with a skill', { ...base, skillId: 7 }],
+      ['a skill source without a skill', { playerId: 1, source: 'chosen' }],
+      [
+        'a characteristic entry with a variant',
+        { ...base, attributeValue: 'x' },
+      ],
+      ['a characteristic entry flagged free', { ...base, isFreeExtra: true }],
+      ['a confirmed entry without an order', { ...base, orderConfirmed: true }],
+      [
+        'a confirmed entry with a null order',
+        { ...base, advancementOrder: null, orderConfirmed: true },
+      ],
+      ['an unknown characteristic', { ...base, characteristic: 'XX' }],
+    ])('rejects %s', (_label, input) => {
+      expect(PlayerSkillEntrySchema.safeParse(input).success).toBe(false);
+    });
+  });
+
+  it('accepts the players whose characteristic increases a batch states in full', () => {
+    expect(
+      SyncPlayerSkillsSchema.parse({
+        entries: [],
+        characteristicPlayerIds: [1, 2],
+      }).characteristicPlayerIds,
+    ).toEqual([1, 2]);
+  });
+
   it('parses the list input', () => {
     expect(
       ListPlayerSkillsSchema.parse({ playerId: 1, rulesSetId: 3 }),

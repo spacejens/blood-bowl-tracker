@@ -8,6 +8,7 @@ import type {
   UpsertPlayerCharacteristics,
 } from '@blood-bowl-tracker/api-contract';
 import { UpsertPlayerSchema } from '@blood-bowl-tracker/api-contract';
+import type { PlayerCharacteristicCounts } from '@blood-bowl-tracker/domain-enums';
 import { PlayersService } from '@blood-bowl-tracker/game-data';
 import { UpsertRecorderService } from '@blood-bowl-tracker/import-shared';
 import type { TpRoster, TpRosterPlayer } from '@blood-bowl-tracker/parse-tp';
@@ -48,6 +49,12 @@ export interface TpRosterPlayersOutcome {
   imported: number;
   importedPlayers: TpImportedPlayer[];
   mercenaryPositionUsages: TpMercenaryPositionUsage[];
+  /**
+   * Each imported player's characteristic increases, by database player id,
+   * for the skills sync to send as advancement rows. A player whose counts
+   * could not be derived has no entry.
+   */
+  increasesByPlayerId: Map<number, PlayerCharacteristicCounts>;
 }
 
 /** An entry's unspent SPP and the career total reported beside it. */
@@ -110,6 +117,7 @@ export class TpRosterPlayersImportService {
       imported: 0,
       importedPlayers: [],
       mercenaryPositionUsages: [],
+      increasesByPlayerId: new Map(),
     };
 
     for (const player of merged) {
@@ -123,7 +131,7 @@ export class TpRosterPlayersImportService {
       if (position === undefined) {
         continue;
       }
-      const data = await this.buildPayload({
+      const { data, increases } = await this.buildPayload({
         player,
         position,
         context,
@@ -143,6 +151,9 @@ export class TpRosterPlayersImportService {
         continue;
       }
       outcome.imported += 1;
+      if (increases !== undefined) {
+        outcome.increasesByPlayerId.set(upserted.player.id, increases);
+      }
       const snapshot = this.unspentSnapshot(
         rosterEntries.get(player.id) ??
           this.unlistedMatchEntry(rosterEntries, matchEntries, player.id),
@@ -307,11 +318,12 @@ export class TpRosterPlayersImportService {
    * anywhere, so it falls back to the curated values — checked only after
    * its own, so a future TP payload that embeds real ones still wins.
    *
-   * The increase counts are measured against the player's embedded position
-   * template (the same reference the reduction counts use), with TP's
-   * literal 0 for a missing Passing turned into null when the rules set
-   * declares no Passing. A player with no characteristics, or an era with no
-   * single rules set, sends no increase group: it is all-or-nothing.
+   * The increase counts, returned beside the payload rather than in it, are
+   * measured against the player's embedded position template (the same
+   * reference the reduction counts use), with TP's literal 0 for a missing
+   * Passing turned into null when the rules set declares no Passing. A
+   * player with no characteristics, or an era with no single rules set, has
+   * none.
    */
   private async buildPayload(options: {
     player: TpRosterPlayer;
@@ -321,7 +333,10 @@ export class TpRosterPlayersImportService {
     deferSppTotal: boolean | undefined;
     baselineCache: IncreaseBaselineCache;
     errors: ImportError[];
-  }): Promise<UpsertPlayer> {
+  }): Promise<{
+    data: UpsertPlayer;
+    increases: PlayerCharacteristicCounts | undefined;
+  }> {
     const {
       player,
       position,
@@ -353,7 +368,7 @@ export class TpRosterPlayersImportService {
       player,
       rulesSet,
     });
-    const increaseCounts =
+    const increases =
       characteristics === undefined || rulesSet === undefined
         ? undefined
         : await this.characteristicIncreases.forPlayer({
@@ -384,7 +399,7 @@ export class TpRosterPlayersImportService {
             errors,
           });
 
-    return {
+    const data: UpsertPlayer = {
       name: player.name,
       teamEraId,
       positionId: position.positionId,
@@ -395,7 +410,6 @@ export class TpRosterPlayersImportService {
         : { sppTotal: player.totalStarPlayerPoints }),
       ...characteristics,
       ...lastingInjuries,
-      ...increaseCounts,
       // Sent on every import, null included, so a re-import clears a status
       // the player no longer has.
       status: this.status.forPlayer({
@@ -406,5 +420,6 @@ export class TpRosterPlayersImportService {
         { externalSystemId: context.tpSystemId, externalId: String(player.id) },
       ],
     };
+    return { data, increases };
   }
 }

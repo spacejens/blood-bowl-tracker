@@ -45,6 +45,6 @@ directory. It needs Docker (`pnpm run test:e2e`; `pnpm run test`
 runs it after the unit tests). The real BBL and TP pipelines are not part of
 it: their source data is not in the repository. The harness leaves
 `race_eras`, `positions_race_eras`, `era_rules_sets`, `matches`,
-`match_events`, `player_skills`, `trophy_awards` and `competition_teams`
+`match_events`, `player_advancements`, `trophy_awards` and `competition_teams`
 empty, so the comparison passes vacuously for them, and the position
 availability race-era syncs fail there and are never exercised.

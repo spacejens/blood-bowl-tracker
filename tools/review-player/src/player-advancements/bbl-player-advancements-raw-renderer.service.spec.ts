@@ -43,13 +43,7 @@ describe('BblPlayerAdvancementsRawRendererService', () => {
           advancementOrder: 1,
         },
       ],
-      increaseCounts: {
-        move: 0,
-        strength: 0,
-        agility: 0,
-        passing: 0,
-        armour: 0,
-      },
+      increases: [],
     });
 
     const html = await service.render('1000');
@@ -68,13 +62,7 @@ describe('BblPlayerAdvancementsRawRendererService', () => {
           advancementOrder: 1,
         },
       ],
-      increaseCounts: {
-        move: 0,
-        strength: 0,
-        agility: 0,
-        passing: 0,
-        armour: 0,
-      },
+      increases: [],
     });
 
     const html = await service.render('1000');
@@ -86,23 +74,25 @@ describe('BblPlayerAdvancementsRawRendererService', () => {
     );
   });
 
-  it('shows the characteristic-increase counts', async () => {
+  it('lists each characteristic increase with its order', async () => {
     reader.read.mockResolvedValue({
       skills: [],
-      increaseCounts: {
-        move: 1,
-        strength: 0,
-        agility: 2,
-        passing: 0,
-        armour: 0,
-      },
+      increases: [{ characteristic: 'MA', advancementOrder: 2 }],
     });
 
     const html = await service.render('1000');
 
-    expect(html).toContain(
-      '<td>1</td><td>0</td><td>2</td><td>0</td><td>0</td>',
-    );
+    expect(html).toContain('<th>Increase</th><th>Order</th>');
+    expect(html).toContain('<td>+MA</td><td>2</td>');
+  });
+
+  it('says so when the page has no increase markers', async () => {
+    reader.read.mockResolvedValue({
+      skills: [],
+      increases: [],
+    });
+
+    expect(await service.render('1000')).toContain('<p class="note">None.</p>');
   });
 
   it('renders a note when the mirror has no page for the player', async () => {

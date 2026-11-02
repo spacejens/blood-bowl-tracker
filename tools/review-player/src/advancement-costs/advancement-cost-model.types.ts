@@ -1,5 +1,6 @@
 import type {
   AdvancementKind,
+  PlayerCharacteristic,
   PlayerSkillSource,
   SkillCategory,
 } from '@blood-bowl-tracker/domain-enums';
@@ -15,25 +16,25 @@ export interface ApplicableCost {
   leagueId: number | null;
 }
 
-/** One stored `player_skills` row, as the cost check needs it. */
+/** One stored `player_advancements` row, as the cost check needs it. */
 export interface StoredPlayerSkill {
   skillId: number;
   skillName: string;
   source: PlayerSkillSource;
   advancementOrder: number | null;
+  /** True when the stored order is confirmed as the real sequence. */
+  orderConfirmed: boolean;
   /** The stored free-extra flag: costs no SPP and takes no advancement number. */
   isFreeExtra: boolean;
   /** The skill's category under the player's rules set; null when unlisted. */
   category: SkillCategory | null;
 }
 
-/** The stored `*_increase_count` columns. */
-export interface StoredIncreaseCounts {
-  move: number;
-  strength: number;
-  agility: number;
-  passing: number;
-  armour: number;
+/** One stored characteristic increase. */
+export interface StoredIncrease {
+  characteristic: PlayerCharacteristic;
+  advancementOrder: number | null;
+  orderConfirmed: boolean;
 }
 
 /** How a stored unspent SPP compares with the source's own unspent figure. */
@@ -69,7 +70,8 @@ export interface AdvancementHistory {
    */
   primaryCategories: ReadonlySet<SkillCategory>;
   secondaryCategories: ReadonlySet<SkillCategory>;
-  increaseCounts: StoredIncreaseCounts;
+  /** The stored characteristic increases, not removed ones. */
+  increases: StoredIncrease[];
   /** The rules set's own costs plus the player's league's house rules. */
   costs: ApplicableCost[];
 }
@@ -89,12 +91,28 @@ export interface ModelledAdvancement {
   /** The skill's name, or `+MA`/`+ST`/`+AG`/`+PA`/`+AV`. */
   label: string;
   kind: AdvancementRowKind;
-  /** The stored `player_skills.source`; null for a characteristic increase. */
+  /** The stored `player_advancements.source`; null for a characteristic increase. */
   storedSource: PlayerSkillSource | null;
   /** The number this row is priced at; null for a free row. */
   advancementNumber: number | null;
   /** Costs it could have had at that number; empty for a free row. */
   candidates: CandidateCost[];
+  /**
+   * Set on a characteristic row only: whether its stored order is known, and
+   * whether that order is confirmed as the real sequence.
+   */
+  increaseOrder?: { known: boolean; confirmed: boolean };
+  /**
+   * Set on a gained skill row priced by number: true when its stored order
+   * is confirmed, so the row sits at that number.
+   */
+  orderConfirmed?: boolean;
+  /**
+   * True when the row's confirmed number cannot hold: another row is pinned
+   * to the same number, it lies past the player's paid advancements, or a
+   * league house-rule skill is confirmed at a number other than its rule's.
+   */
+  orderClash?: boolean;
 }
 
 /** Why no range could be modelled, in the order they are checked. */
@@ -103,7 +121,8 @@ export type UnknownRangeReason =
   | 'no_total_spp'
   | 'no_rules_set'
   | 'no_costs'
-  | 'unpriced_advancement';
+  | 'unpriced_advancement'
+  | 'order_clash';
 
 export interface ModelledRange {
   spentMin: number;

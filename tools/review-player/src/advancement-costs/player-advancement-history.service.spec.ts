@@ -54,11 +54,6 @@ function playerRow(overrides: Record<string, unknown> = {}) {
     eraId: 3,
     leagueId: 5,
     positionId: 8,
-    move: 1,
-    strength: 0,
-    agility: 0,
-    passing: 0,
-    armour: 2,
     ...overrides,
   };
 }
@@ -70,6 +65,7 @@ const SKILLS = [
     skillName: 'Dodge',
     source: 'random',
     advancementOrder: 1,
+    orderConfirmed: false,
     isFreeExtra: false,
   },
   {
@@ -78,6 +74,7 @@ const SKILLS = [
     skillName: 'Guard',
     source: 'chosen',
     advancementOrder: 2,
+    orderConfirmed: false,
     isFreeExtra: true,
   },
   {
@@ -86,7 +83,22 @@ const SKILLS = [
     skillName: 'Block',
     source: 'starting',
     advancementOrder: null,
+    orderConfirmed: false,
     isFreeExtra: false,
+  },
+];
+const INCREASES = [
+  {
+    playerId: 42,
+    characteristic: 'AG',
+    advancementOrder: 3,
+    orderConfirmed: true,
+  },
+  {
+    playerId: 42,
+    characteristic: 'MA',
+    advancementOrder: null,
+    orderConfirmed: false,
   },
 ];
 /** Position 8's categories: BB2016's primary and secondary, CRP's primary. */
@@ -116,12 +128,13 @@ async function makeService(
 }
 
 describe('PlayerAdvancementHistoryService', () => {
-  it("assembles one player's history from six queries", async () => {
+  it("assembles one player's history from seven queries", async () => {
     const dbResult = mockDb(
       ERA_RULES_SETS,
       COSTS,
       [playerRow()],
       SKILLS,
+      INCREASES,
       POSITION_CATEGORIES,
       SKILL_CATEGORIES,
     );
@@ -141,6 +154,7 @@ describe('PlayerAdvancementHistoryService', () => {
           skillName: 'Block',
           source: 'starting',
           advancementOrder: null,
+          orderConfirmed: false,
           isFreeExtra: false,
           category: 'general',
         },
@@ -149,6 +163,7 @@ describe('PlayerAdvancementHistoryService', () => {
           skillName: 'Dodge',
           source: 'random',
           advancementOrder: 1,
+          orderConfirmed: false,
           isFreeExtra: false,
           category: 'agility',
         },
@@ -157,19 +172,17 @@ describe('PlayerAdvancementHistoryService', () => {
           skillName: 'Guard',
           source: 'chosen',
           advancementOrder: 2,
+          orderConfirmed: false,
           isFreeExtra: true,
           category: null,
         },
       ],
       primaryCategories: new Set(['general', 'agility']),
       secondaryCategories: new Set(['strength']),
-      increaseCounts: {
-        move: 1,
-        strength: 0,
-        agility: 0,
-        passing: 0,
-        armour: 2,
-      },
+      increases: [
+        { characteristic: 'AG', advancementOrder: 3, orderConfirmed: true },
+        { characteristic: 'MA', advancementOrder: null, orderConfirmed: false },
+      ],
       costs: [
         {
           advancementNumber: 1,
@@ -187,7 +200,39 @@ describe('PlayerAdvancementHistoryService', () => {
         },
       ],
     });
-    expect(dbResult.chains).toHaveLength(6);
+    expect(dbResult.chains).toHaveLength(7);
+  });
+
+  it('ignores a stored row that names no skill', async () => {
+    const dbResult = mockDb(
+      ERA_RULES_SETS,
+      COSTS,
+      [playerRow()],
+      [
+        ...SKILLS,
+        {
+          playerId: 42,
+          skillId: null,
+          skillName: 'Unnamed',
+          source: 'characteristic',
+          advancementOrder: 3,
+          orderConfirmed: false,
+          isFreeExtra: false,
+        },
+      ],
+      INCREASES,
+      POSITION_CATEGORIES,
+      SKILL_CATEGORIES,
+    );
+    const service = await makeService(dbResult);
+
+    const history = (await service.forPlayers([42])).get(42);
+
+    expect(history?.skills.map((skill) => skill.skillName)).toEqual([
+      'Block',
+      'Dodge',
+      'Guard',
+    ]);
   });
 
   it('gives an era with no rules set no rules set and no costs', async () => {
@@ -196,6 +241,7 @@ describe('PlayerAdvancementHistoryService', () => {
       COSTS,
       [playerRow({ eraId: 4 })],
       SKILLS,
+      INCREASES,
       POSITION_CATEGORIES,
       SKILL_CATEGORIES,
     );
@@ -220,6 +266,7 @@ describe('PlayerAdvancementHistoryService', () => {
       COSTS,
       [playerRow()],
       SKILLS,
+      INCREASES,
       POSITION_CATEGORIES,
       SKILL_CATEGORIES,
     );
@@ -242,6 +289,7 @@ describe('PlayerAdvancementHistoryService', () => {
       COSTS,
       [playerRow()],
       [],
+      [],
       POSITION_CATEGORIES,
     );
     const service = await makeService(dbResult);
@@ -250,7 +298,37 @@ describe('PlayerAdvancementHistoryService', () => {
 
     expect(history?.skills).toEqual([]);
     expect(history?.primaryCategories).toEqual(new Set(['general', 'agility']));
-    expect(dbResult.chains).toHaveLength(5);
+    expect(dbResult.chains).toHaveLength(6);
+  });
+
+  it('gives a player without increase rows no increases', async () => {
+    const service = await makeService(
+      mockDb(ERA_RULES_SETS, COSTS, [playerRow()], SKILLS, [], [], []),
+    );
+
+    const history = (await service.forPlayers([42])).get(42);
+
+    expect(history?.increases).toEqual([]);
+  });
+
+  it('keeps each increase row on its own player', async () => {
+    const service = await makeService(
+      mockDb(
+        ERA_RULES_SETS,
+        COSTS,
+        [playerRow(), playerRow({ playerId: 43 })],
+        [],
+        [{ ...INCREASES[0], playerId: 43 }],
+        [],
+      ),
+    );
+
+    const histories = await service.forPlayers([42, 43]);
+
+    expect(histories.get(42)?.increases).toEqual([]);
+    expect(histories.get(43)?.increases).toEqual([
+      { characteristic: 'AG', advancementOrder: 3, orderConfirmed: true },
+    ]);
   });
 
   it('issues no query for an empty batch', async () => {
@@ -270,7 +348,7 @@ describe('PlayerAdvancementHistoryService', () => {
   });
 
   it('loads the rules sets and costs once per process', async () => {
-    const dbResult = mockDb(ERA_RULES_SETS, COSTS, [], []);
+    const dbResult = mockDb(ERA_RULES_SETS, COSTS, [], [], []);
     const service = await makeService(dbResult);
 
     await service.forPlayers([42]);
@@ -280,7 +358,7 @@ describe('PlayerAdvancementHistoryService', () => {
   });
 
   it('queries players in chunks of 1000 ids', async () => {
-    const dbResult = mockDb(ERA_RULES_SETS, COSTS, [], []);
+    const dbResult = mockDb(ERA_RULES_SETS, COSTS, [], [], []);
     const service = await makeService(dbResult);
 
     await service.forPlayers(Array.from({ length: 1001 }, (_, i) => i + 1));
@@ -290,7 +368,15 @@ describe('PlayerAdvancementHistoryService', () => {
 
   it('keeps only the league rows of the player league', async () => {
     const service = await makeService(
-      mockDb(ERA_RULES_SETS, COSTS, [playerRow({ leagueId: 6 })], [], [], []),
+      mockDb(
+        ERA_RULES_SETS,
+        COSTS,
+        [playerRow({ leagueId: 6 })],
+        [],
+        [],
+        [],
+        [],
+      ),
     );
 
     const history = (await service.forPlayers([42])).get(42);
