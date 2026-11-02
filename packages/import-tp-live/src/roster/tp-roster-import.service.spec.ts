@@ -22,6 +22,7 @@ import { TpRosterImportService } from './tp-roster-import.service';
 
 const nothing = { success: true, imported: 0, errors: [] };
 const RAW = { raw: 'roster' };
+const INCREASES = new Map([[700, { MA: 1, ST: 0, AG: 0, PA: 0, AV: 0 }]]);
 
 describe('TpRosterImportService', () => {
   let service: TpRosterImportService;
@@ -49,6 +50,7 @@ describe('TpRosterImportService', () => {
         { lineUpId: 5001, playerId: 700, created: true, reportedSppTotal: 12 },
       ],
       mercenaryPositionUsages: [],
+      increasesByPlayerId: INCREASES,
     });
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -232,12 +234,28 @@ describe('TpRosterImportService', () => {
       importedPlayers: [
         { lineUpId: 5001, playerId: 700, created: true, reportedSppTotal: 12 },
       ],
+      increasesByPlayerId: INCREASES,
+      confirmNewAdvancements: undefined,
       context: rosterContext(),
       errors: [],
     });
     expect(
       playersImport.importPlayers.mock.invocationCallOrder[0],
     ).toBeLessThan(playerSkills.syncPlayerSkills.mock.invocationCallOrder[0]);
+  });
+
+  it('passes confirmNewAdvancements through to the skills sync', async () => {
+    await service.importRoster({
+      roster: tpRoster(),
+      era: 'Fourth era',
+      externalSystemName: 'TP',
+      rawContent: RAW,
+      confirmNewAdvancements: true,
+    });
+
+    expect(playerSkills.syncPlayerSkills).toHaveBeenCalledWith(
+      expect.objectContaining({ confirmNewAdvancements: true }),
+    );
   });
 
   it('reports a skill gap on the players result without failing the team or the players', async () => {

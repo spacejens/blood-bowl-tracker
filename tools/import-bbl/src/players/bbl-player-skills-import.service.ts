@@ -10,10 +10,12 @@ import {
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
-import type { BblPlayerSkillRef } from './player-page-parser';
+import type { BblPlayerAdvancements } from './player-page-parser';
 
 /**
- * Writes every scraped player's own skills, starting and gained alike.
+ * Writes every scraped player's own skills, starting and gained alike, and
+ * their characteristic increases. Every imported player's increases are
+ * stated in full on every run, so an increase BBL no longer shows is removed.
  *
  * BBL names a skill only by its display text, so each distinct name is
  * upserted under its synthetic "Name" external id -- the same mechanism that
@@ -44,16 +46,17 @@ export class BblPlayerSkillsImportService {
   ) {}
 
   async syncPlayerSkills(
-    skillsByPlayerId: Map<number, BblPlayerSkillRef[]>,
+    advancementsByPlayerId: Map<number, BblPlayerAdvancements>,
   ): Promise<{ result: ImportResult; incompletePlayerIds: Set<number> }> {
     const errors: ImportError[] = [];
-    if (skillsByPlayerId.size === 0) {
+    if (advancementsByPlayerId.size === 0) {
       return {
         result: this.importResults.result({ imported: 0, errors }),
         incompletePlayerIds: new Set(),
       };
     }
-    const everyPlayerId = (): Set<number> => new Set(skillsByPlayerId.keys());
+    const everyPlayerId = (): Set<number> =>
+      new Set(advancementsByPlayerId.keys());
 
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
       NAME_EXTERNAL_SYSTEM,
@@ -71,8 +74,11 @@ export class BblPlayerSkillsImportService {
     const skillIdsByName = new Map<string, number | undefined>();
     const entries: PlayerSkillEntry[] = [];
     const incompletePlayerIds = new Set<number>();
-    for (const [playerId, refs] of skillsByPlayerId) {
-      for (const ref of refs) {
+    for (const [
+      playerId,
+      { skills, characteristicIncreases },
+    ] of advancementsByPlayerId) {
+      for (const ref of skills) {
         const skillId = await this.resolveSkillId({
           name: ref.name,
           nameSystemId,
@@ -93,10 +99,21 @@ export class BblPlayerSkillsImportService {
             : { advancementOrder: ref.advancementOrder }),
         });
       }
+      for (const increase of characteristicIncreases) {
+        entries.push({
+          playerId,
+          source: 'characteristic',
+          characteristic: increase.characteristic,
+          advancementOrder: increase.advancementOrder,
+        });
+      }
     }
 
     const errorsBeforeSync = errors.length;
-    const imported = await this.playerSkills.syncPlayerSkills(entries, errors);
+    const imported = await this.playerSkills.syncPlayerSkills(
+      { entries, characteristicPlayerIds: [...advancementsByPlayerId.keys()] },
+      errors,
+    );
     return {
       result: this.importResults.result({ imported, errors }),
       incompletePlayerIds:

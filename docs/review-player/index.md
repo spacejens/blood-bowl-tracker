@@ -106,7 +106,7 @@ keywords, player status, and advancement costs with unspent SPP.
        predates the import, so this stratum is what makes that step
        observable.
    12. **Starting skills differ from position** — a player whose stored
-       `player_skills` rows tagged `starting` do not match, as a skill-id set,
+       `player_advancements` rows tagged `starting` do not match, as a skill-id set,
        the skills their position carries under the era's last-listed rules
        set. A starting skill set is copied from the position, so a difference
        is either a mis-parsed player page or a position whose own skills are
@@ -269,7 +269,9 @@ keywords, player status, and advancement costs with unspent SPP.
        row. The import infers random or chosen from the SPP the page reports
        as spent where only one answer fits, so the imported panel can show the
        dice marker for a BBL player; this raw panel cannot. It also shows
-       BBL's own `+MA`/`+ST`/`+AG`/`+PA`/`+AV` characteristic increase counts.
+       BBL's own `+MA`/`+ST`/`+AG`/`+PA`/`+AV` characteristic increase
+       markers, each with its place among the player's advancements (gained
+       skills and increases share one numbering).
      - TP's roster file gives the position template's skills as starting and
        the line-up entry's own skills as gained, each gained skill carrying
        `isRandom` and `isElite` where TP recorded them (a skill with no
@@ -282,7 +284,7 @@ keywords, player status, and advancement costs with unspent SPP.
        only and never compared against anything, since an injury and an
        advancement on the same characteristic cancel out in the same diff.
 
-     Right: every stored `player_skills` row for the player, resolved against
+     Right: every stored `player_advancements` row for the player, resolved against
      the era's last-listed rules set the same way the stratification service
      does. A starting row is always plain; a gained row takes the dice marker
      when its stored source is `random` and the diamond when the skill is
@@ -292,13 +294,18 @@ keywords, player status, and advancement costs with unspent SPP.
      skill missing from the raw source, or a raw skill nothing was stored for,
      is highlighted and says so in words. This comparison is presence-only: it
      does not check that a skill's source (starting vs. gained) or its order
-     among the source's own list agrees with what was stored. The five stored
-     increase-count columns are compared against BBL's own counts for a BBL-sourced player
-     only: TP publishes no comparable counts at all (its raw panel already
-     shows a derived template diff instead), and the TP importer derives these
-     columns itself from the same kind of comparison against the position's
-     baseline, so comparing them there would only check one derivation
-     against another, not against the source.
+     among the source's own list agrees with what was stored. The stored
+     characteristic increases (`player_advancements` rows, removed ones left
+     out) are listed in stored order with their order and whether it is
+     confirmed. For a BBL-sourced player each is checked against the raw
+     markers: it must match one of the same characteristic at the same place
+     among the advancements, so both the count and the relative order are
+     verified. An increase stored without an order matches a leftover marker
+     of the same characteristic and is shown as matched with its order
+     unknown. A stored increase with no marker, and a marker with no stored
+     increase, are highlighted and say so in words. TP publishes no markers
+     (its raw panel already shows a derived template diff instead), so a TP
+     player's increases are listed without a comparison.
 
    - **player-keywords** — a player carries no keywords of their own; they
      come from the player's _position_, so this panel pair differs in shape
@@ -335,8 +342,8 @@ keywords, player status, and advancement costs with unspent SPP.
    - **advancement-costs** — left: the figures the source itself reports
      about spending SPP. For BBL, both figures of the player page's
      "Unspent SPP" row — the reported unspent figure, which can be
-     negative, and the career total in brackets — with the gained skills in
-     page order and the `+MA`/`+ST`/`+AG`/`+PA`/`+AV` counts; the panel says
+     negative, and the career total in brackets — with the gained skills and the
+     `+MA`/`+ST`/`+AG`/`+PA`/`+AV` increases in one page-order list; the panel says
      in words that BBL cannot tell a rolled skill from a chosen one. For TP,
      the roster entry's `totalStarPlayerPoints`, `starPlayerPoints` (the SPP
      TP holds unspent, see
@@ -361,12 +368,19 @@ keywords, player status, and advancement costs with unspent SPP.
      pay the characteristic price; that is not modelled, so a skill is never
      priced as `random_characteristic`, and a player whose reported spend can
      only be explained that way is listed. Starting skills and a skill
-     stored as a free extra (`player_skills.is_free_extra`: a gained Hatred,
+     stored as a free extra (`player_advancements.is_free_extra`: a gained Hatred,
      a skill TP flags `isExtra`, or Gudarnas Förkämpe's mutation) cost 0 and
      take no number; a skill a league house rule grants (tLoEG's Fan
-     Favourite) shows as that rule's advancement with its cost. Gained skills come
-     first in their stored order, which is unverified, then the characteristic
-     increases, whose order is unknown. A footer gives the stored total, the
+     Favourite) shows as that rule's advancement with its cost. Gained skills and
+     characteristic increases are listed together in their stored order,
+     which is unverified unless an entry is marked `(confirmed)`; a
+     confirmed skill or increase sits at its confirmed number, as the server
+     cost model pins it, and the other rows fill the numbers around it.
+     Confirmed numbers that cannot all hold (two at one number, one past the
+     paid advancements, or one contradicting a house rule) are highlighted
+     as clashing and no range is modelled, since no order fits them. An
+     increase with no stored order is marked `(order unknown)` and listed
+     last. A footer gives the stored total, the
      modelled spend and unspent ranges, and beside them the source's reported
      total, its unspent figure and the spend derived from the two. A last row
      gives the stored unspent SPP, placed against the modelled unspent range
@@ -387,7 +401,7 @@ keywords, player status, and advancement costs with unspent SPP.
      the stored unspent SPP is checked instead. A note says that gaps in the
      recorded advancement history can explain a reported spend above the
      range. The cost check reads `advancement_costs`, `players`,
-     `player_skills`, the era, rules set and league chain
+     `player_advancements`, the era, rules set and league chain
      (`team_eras`, `eras`, `era_rules_sets`, `rules_sets`), `positions`,
      `skills`, `skill_rules_sets`, `position_rules_sets` and
      `position_rules_set_skill_categories`, all through `packages/db`.

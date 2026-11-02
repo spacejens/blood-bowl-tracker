@@ -137,8 +137,8 @@ roster still exists to be referenced by the match's events. Nor does it add
 star players hired through inducements: those appear only in match events,
 and a live match import adds them (see
 [match-import.md](match-import.md#star-player-hires)).
-It does send characteristics, lasting injuries and characteristic-increase
-counts, validated against the rules set the era declares, each roster
+It does send characteristics, lasting injuries and characteristic
+increases, validated against the rules set the era declares, each roster
 player's skills, and each player's status (active, dead, retired,
 temporarily retired or unknown), derived from TP's `state` and `isActive`
 exactly as the bulk import does (see
@@ -148,7 +148,7 @@ the same way as a roster player's. A team import also retires the team era's sto
 who are in neither the roster nor the snapshots, unless already dead, and does
 nothing of the kind when the roster lists no players (see the same section).
 
-Skills are written to `player_skills`: the position template's as
+Skills are written to `player_advancements`: the position template's as
 `starting`, the player's gained ones as `chosen` or `random` (TP's own
 `isRandom`), numbered in TP's gained-list order. A gained skill TP flags `isExtra` is written as a free extra. TP names a skill only by
 id, so the roster's own JSON is scanned for the skill names it embeds; a
@@ -160,6 +160,25 @@ A Hatred or Animosity target, which TP writes as an opaque keyword code, is
 named through the curated keyword catalogue
 (`data/batches/001-initial-seed/keywords.json5`; curate a missing one in a new batch, see [Batches](../import-manual/batches.md)). A player seen only in a
 match snapshot carries no skill data, so contributes none.
+
+**Order of advancements.** TP names no order for a player's characteristic
+increases, and only a list position for gained skills. The import reads the
+player's stored advancements before writing. An advancement not stored before
+is new, since the import runs after a match and it was taken since the last
+one; it comes after every stored one, and its number counts paid advancements
+only (neither starting skills nor free extras). A lone new advancement is
+appended at the next number and written confirmed, unless TP's SPP figures are
+known and the cost model finds the spend does not allow it there, when it is
+left unconfirmed. With several new ones, the
+import takes the spend as TP's total SPP less its unspent figure and prices
+every assignment of the next numbers to them with the cost model. One fitting
+order is written confirmed. When several fit and all cost the same, TP's skill
+order is trusted, new increases follow it, and the entries are written
+confirmed, since the choice cannot change a cost. When the fitting orders cost
+differently, or none fits or the SPP figures are missing, the new entries are
+appended after the stored ones unconfirmed. A player with nothing stored gets
+no confirmed order. Increases already stored are resent as stored, so a
+confirmed order is never replaced by a guess.
 
 ## Era resolution
 

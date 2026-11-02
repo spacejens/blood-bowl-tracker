@@ -107,7 +107,7 @@ async function run(): Promise<ImportResult> {
     // means most names are already resolved by the time players are written.
     const playerSkillsOutcome = await app
       .get(BblPlayerSkillsImportService)
-      .syncPlayerSkills(playerOutcome.skillsByPlayerId);
+      .syncPlayerSkills(playerOutcome.advancementsByPlayerId);
     const matchEventsOutcome = await app
       .get(BblMatchEventsImportService)
       .importMatchEvents({

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   BB2020,
   bb2020Costs,
+  characteristicIncreases,
   CRP,
   crpCosts,
   ERA,
@@ -62,10 +63,9 @@ describe('UnspentSppService with a stored unspent figure', () => {
     // CRP: 6 spent, next 10. BB2020: 18 spent, next 4. Stored 5: CRP says
     // no, BB2020 says yes.
     const result = await unspentSppFor({
-      players: [
-        playerRow({ sppTotal: 20, moveIncreaseCount: 1, unspentSpp: 5 }),
-      ],
+      players: [playerRow({ sppTotal: 20, unspentSpp: 5 })],
       eraRulesSets: [...CRP_ERA, ...BB2020_ERA],
+      playerSkills: characteristicIncreases(1),
       costs: [...crpCosts(), ...bb2020Costs()],
     });
     expect(result).toMatchObject({

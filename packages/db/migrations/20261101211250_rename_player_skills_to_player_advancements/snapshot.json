@@ -1,0 +1,182 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "7e058400-565c-4f58-926d-dceaf2da4c84",
+  "prevIds": [
+    "a752ba2a-fafa-40b2-b632-03dfc21ffda8"
+  ],
+  "footprints": [
+    {
+      "statementType": "rename_enum",
+      "statementTarget": [
+        "enum",
+        "game_data",
+        "player_skill_source"
+      ],
+      "writes": [
+        "s|enum|game_data.player_skill_source",
+        "n|enum|game_data.player_skill_source",
+        "n|type|game_data.player_skill_source",
+        "s|enum|game_data.player_advancement_source",
+        "n|enum|game_data.player_advancement_source",
+        "n|type|game_data.player_advancement_source"
+      ],
+      "reads": [
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "rename_table",
+      "statementTarget": [
+        "table",
+        "game_data",
+        "player_skills"
+      ],
+      "writes": [
+        "s|tbl|game_data.player_skills",
+        "n|tbl|game_data.player_skills",
+        "n|rel|game_data.player_skills",
+        "n|type|game_data.player_skills",
+        "s|tbl|game_data.player_advancements",
+        "n|tbl|game_data.player_advancements",
+        "n|rel|game_data.player_advancements",
+        "n|type|game_data.player_advancements"
+      ],
+      "reads": [
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "rename_table",
+      "statementTarget": [
+        "table",
+        "game_data",
+        "player_skills_history"
+      ],
+      "writes": [
+        "s|tbl|game_data.player_skills_history",
+        "n|tbl|game_data.player_skills_history",
+        "n|rel|game_data.player_skills_history",
+        "n|type|game_data.player_skills_history",
+        "s|tbl|game_data.player_advancements_history",
+        "n|tbl|game_data.player_advancements_history",
+        "n|rel|game_data.player_advancements_history",
+        "n|type|game_data.player_advancements_history"
+      ],
+      "reads": [
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "rename_constraint",
+      "statementTarget": [
+        "table",
+        "game_data",
+        "player_advancements"
+      ],
+      "writes": [
+        "s|ck|game_data.player_advancements.player_skills_starting_has_no_order",
+        "n|ck|game_data.player_advancements.player_skills_starting_has_no_order",
+        "n|con|game_data.player_advancements.player_skills_starting_has_no_order",
+        "s|ck|game_data.player_advancements.player_advancements_starting_has_no_order",
+        "n|ck|game_data.player_advancements.player_advancements_starting_has_no_order",
+        "n|con|game_data.player_advancements.player_advancements_starting_has_no_order"
+      ],
+      "reads": [
+        "n|tbl|game_data.player_advancements",
+        "n|sch|game_data",
+        "e|col|game_data.player_advancements.source",
+        "e|col|game_data.player_advancements.advancement_order"
+      ]
+    },
+    {
+      "statementType": "alter_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "player_advancements_history",
+        "source"
+      ],
+      "writes": [
+        "s|colprop|game_data.player_advancements_history.source.type",
+        "s|colprop|game_data.player_advancements_history.source.default"
+      ],
+      "reads": [
+        "n|tbl|game_data.player_advancements_history",
+        "n|sch|game_data",
+        "n|col|game_data.player_advancements_history.source"
+      ],
+      "sqlHash": "0bb3a0bbffa8200c"
+    },
+    {
+      "statementType": "rename_constraint",
+      "statementTarget": [
+        "table",
+        "game_data",
+        "player_advancements"
+      ],
+      "writes": [
+        "s|uq|game_data.player_advancements.player_skills_player_id_skill_id_attribute_value_unique",
+        "n|uq|game_data.player_advancements.player_skills_player_id_skill_id_attribute_value_unique",
+        "n|con|game_data.player_advancements.player_skills_player_id_skill_id_attribute_value_unique",
+        "n|rel|game_data.player_skills_player_id_skill_id_attribute_value_unique",
+        "s|uq|game_data.player_advancements.player_advancements_player_id_skill_id_attribute_value_unique",
+        "n|uq|game_data.player_advancements.player_advancements_player_id_skill_id_attribute_value_unique",
+        "n|con|game_data.player_advancements.player_advancements_player_id_skill_id_attribute_value_unique",
+        "n|rel|game_data.player_advancements_player_id_skill_id_attribute_value_unique"
+      ],
+      "reads": [
+        "n|tbl|game_data.player_advancements",
+        "n|sch|game_data",
+        "e|col|game_data.player_advancements.player_id",
+        "e|col|game_data.player_advancements.skill_id",
+        "e|col|game_data.player_advancements.attribute_value"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "rename",
+      "key": "enums\u0000[\"game_data\",\"player_skill_source\"]",
+      "set": {
+        "name": "player_advancement_source"
+      }
+    },
+    {
+      "op": "rename",
+      "key": "tables\u0000[\"game_data\",\"player_skills\"]",
+      "set": {
+        "name": "player_advancements"
+      }
+    },
+    {
+      "op": "rename",
+      "key": "tables\u0000[\"game_data\",\"player_skills_history\"]",
+      "set": {
+        "name": "player_advancements_history"
+      }
+    },
+    {
+      "op": "rename",
+      "key": "uniques\u0000[\"game_data\",\"player_advancements\",\"player_skills_player_id_skill_id_attribute_value_unique\"]",
+      "set": {
+        "name": "player_advancements_player_id_skill_id_attribute_value_unique"
+      }
+    },
+    {
+      "op": "rename",
+      "key": "checks\u0000[\"game_data\",\"player_advancements\",\"player_skills_starting_has_no_order\"]",
+      "set": {
+        "name": "player_advancements_starting_has_no_order"
+      }
+    },
+    {
+      "op": "alter",
+      "key": "columns\u0000[\"game_data\",\"player_advancements_history\",\"source\"]",
+      "set": {
+        "type": "\"game_data\".\"player_advancement_source\""
+      }
+    }
+  ]
+}

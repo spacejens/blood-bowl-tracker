@@ -8,7 +8,6 @@ import {
 } from '../trophy-awards/trophy-awards.service';
 import { AdvancementCostValidationError } from './advancement-cost-validation-error';
 import { CharacteristicFormatMismatchError } from './characteristic-format-mismatch-error';
-import { CharacteristicIncreaseValidationError } from './characteristic-increase-validation-error';
 import { GameDataError } from './game-data-error';
 import { KeywordValidationError } from './keyword-validation-error';
 import { LastingInjuryValidationError } from './lasting-injury-validation-error';
@@ -24,7 +23,6 @@ class ExampleError extends GameDataError {}
 
 const gameDataErrors: (new (message?: string) => GameDataError)[] = [
   MatchCategoryMismatchError,
-  CharacteristicIncreaseValidationError,
   UpsertConflictError,
   KeywordValidationError,
   PositionSkillCategoryValidationError,

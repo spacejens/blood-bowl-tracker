@@ -11,6 +11,9 @@ import type {
   PlayerSkillEntry,
 } from './unspent-spp.types';
 
+/** A row that names a skill. */
+type SkillAdvancement = PlayerSkillEntry & { skillId: number };
+
 /**
  * Turns a player's recorded advancements into the options each one could
  * have been under one rules set, for AdvancementSpendRangeService to price.
@@ -25,13 +28,16 @@ import type {
  *   access to the skill's category narrows primary against secondary; no
  *   access, or no recorded category, allows both. Under fixed thresholds it
  *   is a `table_roll`.
- * - Each characteristic increase is a `random_characteristic`, or a
- *   `table_roll` under fixed thresholds, of any number.
+ * - A characteristic increase arrives as a `characteristic` row and is a
+ *   `random_characteristic`, or a `table_roll` under fixed thresholds, of any
+ *   number.
  *
  * Kinds the cost rows do not price at all are dropped (BB2025 has no random
  * secondary skill; a fixed-threshold rules set prices only table rolls), so
- * an entry can end up empty. The recorded `advancementOrder` is not read: it
- * is an unverified proxy, so the order is treated as unknown.
+ * an entry can end up empty. An entry whose order is confirmed is pinned to
+ * the advancement number it records, and an option already tied to another
+ * number is dropped. An unconfirmed `advancementOrder` is an unverified
+ * proxy, so that entry's order is treated as unknown.
  */
 @Injectable()
 export class AdvancementKindCandidatesService {
@@ -42,25 +48,46 @@ export class AdvancementKindCandidatesService {
         .map((cost) => cost.advancementKind),
     );
     const result: AdvancementOption[][] = [];
-    for (const skill of input.skills) {
-      if (skill.source !== 'starting' && !skill.isFreeExtra) {
-        result.push(this.skillOptions(skill, input, offered));
+    for (const entry of input.skills) {
+      if (entry.source === 'starting' || entry.isFreeExtra) {
+        continue;
       }
-    }
-    for (
-      let increase = 0;
-      increase < input.characteristicIncreases;
-      increase++
-    ) {
-      result.push(
-        this.anyNumber(['random_characteristic', 'table_roll'], offered),
-      );
+      const options =
+        entry.source === 'characteristic' || entry.skillId === null
+          ? this.anyNumber(['random_characteristic', 'table_roll'], offered)
+          : this.skillOptions(
+              { ...entry, skillId: entry.skillId },
+              input,
+              offered,
+            );
+      result.push(this.pinned(options, entry));
     }
     return result;
   }
 
+  /**
+   * A confirmed entry can only be the advancement its recorded order names; an
+   * option already tied to another number (a granted skill) cannot fit it.
+   */
+  private pinned(
+    options: AdvancementOption[],
+    entry: PlayerSkillEntry,
+  ): AdvancementOption[] {
+    if (!entry.orderConfirmed || entry.advancementOrder === null) {
+      return options;
+    }
+    const advancementNumber = entry.advancementOrder;
+    return options
+      .filter(
+        (option) =>
+          option.advancementNumber === null ||
+          option.advancementNumber === advancementNumber,
+      )
+      .map((option) => ({ ...option, advancementNumber }));
+  }
+
   private skillOptions(
-    skill: PlayerSkillEntry,
+    skill: SkillAdvancement,
     input: AdvancementCandidatesInput,
     offered: ReadonlySet<AdvancementKind>,
   ): AdvancementOption[] {

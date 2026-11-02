@@ -113,6 +113,7 @@ describe('TpLiveTeamImportService', () => {
       era: 'Fourth era',
       externalSystemName: EXTERNAL_SYSTEM_NAME,
       rawContent: CONTENT,
+      confirmNewAdvancements: true,
     });
   });
 
@@ -124,13 +125,14 @@ describe('TpLiveTeamImportService', () => {
       externalSystemName: EXTERNAL_SYSTEM_NAME,
     });
 
-    // Exactly { roster, era, externalSystemName, rawContent }: a live team
-    // import needs no competition.
+    // Exactly { roster, era, externalSystemName, rawContent,
+    // confirmNewAdvancements }: a live team import needs no competition.
     expect(rosterImport.importRoster).toHaveBeenCalledWith({
       roster: ROSTER,
       era: 'Fourth era',
       externalSystemName: EXTERNAL_SYSTEM_NAME,
       rawContent: CONTENT,
+      confirmNewAdvancements: true,
     });
   });
 
@@ -261,6 +263,7 @@ describe('TpLiveTeamImportService', () => {
       externalSystemName: EXTERNAL_SYSTEM_NAME,
       matchEmbeddedPlayers: [departed],
       rawContent: CONTENT,
+      confirmNewAdvancements: true,
     });
   });
 

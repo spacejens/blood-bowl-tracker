@@ -8,8 +8,8 @@ import {
   eraRulesSets,
   externalSystems,
   inArray,
+  playerAdvancements,
   players,
-  playerSkills,
   rulesSets,
   skillExternalIds,
   skillRulesSets,
@@ -27,6 +27,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { SampledPlayer } from '../shared/review.types';
 import { BblPlayerAdvancementsReaderService } from '../source/bbl-player-advancements-reader.service';
 import { TpRawPlayerSkillsIndexService } from '../source/tp-raw-player-skills-index.service';
+import { PlayerIncreasesDbRendererService } from './player-increases-db-renderer.service';
 
 const NONE = '—';
 const NOT_IN_RAW = 'not in the raw source';
@@ -35,7 +36,7 @@ const RAW_ONLY = 'in the raw source only';
 /** Whether a skill was present from the start, or gained through advancement. */
 type SkillCategory = 'starting' | 'gained';
 
-/** One stored `player_skills` row, joined to its skill and rules-set flags. */
+/** One stored `player_advancements` row, joined to its skill and rules-set flags. */
 interface StoredSkill {
   skillId: number;
   skillName: string;
@@ -46,8 +47,9 @@ interface StoredSkill {
 }
 
 /**
- * What the importers stored for this player: every `player_skills` row and
- * the five `*IncreaseCount` columns, beside the raw source's own list.
+ * What the importers stored for this player: every `player_advancements` skill
+ * row, and the characteristic increases (rendered by
+ * `PlayerIncreasesDbRendererService`), beside the raw source's own list.
  *
  * **Rules-set resolution.** `players` carries no rules-set id and
  * `era_rules_sets` is many-to-many, so the era's LAST-LISTED rules set is
@@ -79,10 +81,9 @@ interface StoredSkill {
  * appended as its own highlighted row. Every highlighted row also says so in
  * words, so the report stays readable without colour.
  *
- * Increase counts are compared only for a BBL-sourced player: BBL publishes
- * real per-characteristic markers, TP publishes none at all (its raw panel
- * shows a derived template diff instead), and no importer writes these
- * columns from TP — flagging that would be noise, not a finding.
+ * Characteristic increases are stored as `player_advancements` rows too and are
+ * checked, for a BBL-sourced player only, by `PlayerIncreasesDbRendererService`
+ * against BBL's per-characteristic markers; TP publishes none.
  */
 @Injectable()
 export class PlayerAdvancementsDbRendererService {
@@ -92,6 +93,7 @@ export class PlayerAdvancementsDbRendererService {
     private readonly tp: TpRawPlayerSkillsIndexService,
     private readonly skillFormat: SkillFormatService,
     private readonly html: HtmlService,
+    private readonly increasesRenderer: PlayerIncreasesDbRendererService,
   ) {}
 
   async render(player: SampledPlayer): Promise<string> {
@@ -122,7 +124,7 @@ export class PlayerAdvancementsDbRendererService {
         this.skillRows(skillRows, rawCategories, rawSkillIdByName),
       ) +
       this.html.subheading('Characteristic increases') +
-      (await this.increases(player, stored))
+      (await this.increasesRenderer.render(player))
     );
   }
 
@@ -209,57 +211,6 @@ export class PlayerAdvancementsDbRendererService {
     });
   }
 
-  /** The five stored counts, compared against BBL's own where there are any. */
-  private async increases(
-    player: SampledPlayer,
-    stored: {
-      moveIncreaseCount: number;
-      strengthIncreaseCount: number;
-      agilityIncreaseCount: number;
-      passingIncreaseCount: number;
-      armourIncreaseCount: number;
-    },
-  ): Promise<string> {
-    const counts = [
-      stored.moveIncreaseCount,
-      stored.strengthIncreaseCount,
-      stored.agilityIncreaseCount,
-      stored.passingIncreaseCount,
-      stored.armourIncreaseCount,
-    ];
-    const headers = ['MA', 'ST', 'AG', 'PA', 'AV'];
-    if (player.source !== 'bbl') {
-      return (
-        this.html.table(headers, [counts.map((count) => String(count))]) +
-        this.html.note(
-          'TP publishes no advancement counts, so nothing is compared here; the raw panel shows a derived template difference instead.',
-        )
-      );
-    }
-    const raw = await this.bbl.read(player.externalId);
-    if (raw === null) {
-      return this.html.table(headers, [counts.map((count) => String(count))]);
-    }
-    const rawCounts = [
-      raw.increaseCounts.move,
-      raw.increaseCounts.strength,
-      raw.increaseCounts.agility,
-      raw.increaseCounts.passing,
-      raw.increaseCounts.armour,
-    ];
-    const differing = counts.flatMap((count, index) =>
-      count === rawCounts[index] ? [] : [index],
-    );
-    const cells = counts.map((count, index) =>
-      count === rawCounts[index]
-        ? String(count)
-        : `${count} (raw: ${rawCounts[index]})`,
-    );
-    return this.html.table(headers, [
-      differing.length === 0 ? cells : this.html.highlight(cells, differing),
-    ]);
-  }
-
   /**
    * The raw source's skill names, each with the starting-vs-gained category
    * the source itself recorded it under — or null when the source has no
@@ -297,11 +248,6 @@ export class PlayerAdvancementsDbRendererService {
       .select({
         positionId: players.positionId,
         eraId: teamEras.eraId,
-        moveIncreaseCount: players.moveIncreaseCount,
-        strengthIncreaseCount: players.strengthIncreaseCount,
-        agilityIncreaseCount: players.agilityIncreaseCount,
-        passingIncreaseCount: players.passingIncreaseCount,
-        armourIncreaseCount: players.armourIncreaseCount,
       })
       .from(players)
       .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
@@ -329,26 +275,30 @@ export class PlayerAdvancementsDbRendererService {
     playerId: number,
     rulesSetId: number,
   ): Promise<StoredSkill[]> {
-    const rows = await this.db
+    const storedRows = await this.db
       .select({
-        skillId: playerSkills.skillId,
+        skillId: playerAdvancements.skillId,
         skillName: skills.name,
-        source: playerSkills.source,
-        attributeValue: playerSkills.attributeValue,
-        advancementOrder: playerSkills.advancementOrder,
+        source: playerAdvancements.source,
+        attributeValue: playerAdvancements.attributeValue,
+        advancementOrder: playerAdvancements.advancementOrder,
         isElite: skillRulesSets.isElite,
       })
-      .from(playerSkills)
-      .innerJoin(skills, eq(skills.id, playerSkills.skillId))
+      .from(playerAdvancements)
+      .innerJoin(skills, eq(skills.id, playerAdvancements.skillId))
       .leftJoin(
         skillRulesSets,
         and(
-          eq(skillRulesSets.skillId, playerSkills.skillId),
+          eq(skillRulesSets.skillId, playerAdvancements.skillId),
           eq(skillRulesSets.rulesSetId, rulesSetId),
         ),
       )
-      .where(eq(playerSkills.playerId, playerId))
+      .where(eq(playerAdvancements.playerId, playerId))
       .orderBy(asc(skills.name));
-    return rows.map((row) => ({ ...row, isElite: row.isElite === true }));
+    return storedRows.flatMap((row) =>
+      row.skillId === null
+        ? []
+        : [{ ...row, skillId: row.skillId, isElite: row.isElite === true }],
+    );
   }
 }

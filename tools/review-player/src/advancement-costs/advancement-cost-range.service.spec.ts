@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type {
   AdvancementHistory,
   ApplicableCost,
+  StoredIncrease,
   StoredPlayerSkill,
   UnknownRangeReason,
 } from './advancement-cost-model.types';
@@ -63,9 +64,17 @@ function skill(
     skillName,
     source,
     advancementOrder: source === 'starting' ? null : 1,
+    orderConfirmed: false,
     isFreeExtra: false,
     category: null,
   };
+}
+
+function increase(
+  characteristic: StoredIncrease['characteristic'],
+  advancementOrder: number | null = null,
+): StoredIncrease {
+  return { characteristic, advancementOrder, orderConfirmed: false };
 }
 
 function inCategory(
@@ -85,7 +94,7 @@ function history(overrides: Partial<AdvancementHistory>): AdvancementHistory {
     skills: [],
     primaryCategories: new Set<SkillCategory>(),
     secondaryCategories: new Set<SkillCategory>(),
-    increaseCounts: { move: 0, strength: 0, agility: 0, passing: 0, armour: 0 },
+    increases: [],
     costs: CRP,
     ...overrides,
   };
@@ -105,13 +114,7 @@ describe('AdvancementCostRangeService', () => {
     const model = service.model(
       history({
         skills: [skill('Block', 'advancement'), skill('Dodge', 'advancement')],
-        increaseCounts: {
-          move: 1,
-          strength: 0,
-          agility: 0,
-          passing: 0,
-          armour: 0,
-        },
+        increases: [increase('MA')],
       }),
     );
 
@@ -396,13 +399,7 @@ describe('AdvancementCostRangeService', () => {
         rulesSet: { id: 2, name: 'BB2020' },
         costs: BB2020,
         skills: [skill('Guard', 'random')],
-        increaseCounts: {
-          move: 0,
-          strength: 1,
-          agility: 0,
-          passing: 0,
-          armour: 0,
-        },
+        increases: [increase('ST')],
       }),
     );
 
@@ -412,12 +409,318 @@ describe('AdvancementCostRangeService', () => {
       storedSource: null,
       advancementNumber: 2,
       candidates: [{ advancementKind: 'random_characteristic', sppCost: 20 }],
+      increaseOrder: { known: false, confirmed: false },
     });
     expect(model.range).toEqual({
       spentMin: 7,
       spentMax: 38,
       unspentMin: 2,
       unspentMax: 33,
+    });
+  });
+
+  it('numbers skills and increases in their stored sequence', () => {
+    const model = service.model(
+      history({
+        skills: [
+          { ...skill('Block', 'advancement'), advancementOrder: 3 },
+          { ...skill('Dodge', 'advancement'), advancementOrder: 1 },
+        ],
+        increases: [increase('AG', 2)],
+      }),
+    );
+
+    expect(model.rows.map((row) => [row.label, row.advancementNumber])).toEqual(
+      [
+        ['Dodge', 1],
+        ['+AG', 2],
+        ['Block', 3],
+      ],
+    );
+  });
+
+  it('carries a stored increase order and its confirmation onto the row', () => {
+    const model = service.model(
+      history({
+        increases: [
+          { characteristic: 'AG', advancementOrder: 1, orderConfirmed: true },
+        ],
+      }),
+    );
+
+    expect(model.rows[0].increaseOrder).toEqual({
+      known: true,
+      confirmed: true,
+    });
+  });
+
+  it('pins a confirmed increase to its order and numbers the rest around it', () => {
+    const model = service.model(
+      history({
+        skills: [{ ...skill('Block', 'advancement'), advancementOrder: 1 }],
+        increases: [
+          increase('AG'),
+          { characteristic: 'ST', advancementOrder: 3, orderConfirmed: true },
+        ],
+      }),
+    );
+
+    expect(model.rows.map((row) => [row.label, row.advancementNumber])).toEqual(
+      [
+        ['Block', 1],
+        ['+ST', 3],
+        ['+AG', 2],
+      ],
+    );
+    expect(model.range).toEqual({
+      spentMin: 31,
+      spentMax: 31,
+      unspentMin: 9,
+      unspentMax: 9,
+    });
+  });
+
+  const clashing = (model: ReturnType<AdvancementCostRangeService['model']>) =>
+    model.rows.flatMap((row) => (row.orderClash === true ? [row.label] : []));
+
+  it('models no range when a confirmed number lies past the paid advancements', () => {
+    const model = service.model(
+      history({
+        skills: [{ ...skill('Block', 'advancement'), advancementOrder: 1 }],
+        increases: [
+          { characteristic: 'ST', advancementOrder: 3, orderConfirmed: true },
+        ],
+      }),
+    );
+
+    expect(model.rows.map((row) => [row.label, row.advancementNumber])).toEqual(
+      [
+        ['Block', 1],
+        ['+ST', 3],
+      ],
+    );
+    expect(clashing(model)).toEqual(['+ST']);
+    expect(model.range).toBeNull();
+    expect(model.unknownReason).toBe('order_clash');
+  });
+
+  it('models no range when two entries are confirmed at the same number', () => {
+    const model = service.model(
+      history({
+        skills: [
+          {
+            ...skill('Block', 'advancement'),
+            advancementOrder: 1,
+            orderConfirmed: true,
+          },
+          {
+            ...skill('Dodge', 'advancement'),
+            advancementOrder: 2,
+            orderConfirmed: true,
+          },
+        ],
+        increases: [
+          { characteristic: 'AG', advancementOrder: 2, orderConfirmed: true },
+        ],
+      }),
+    );
+
+    expect(clashing(model)).toEqual(['Dodge', '+AG']);
+    expect(model.range).toBeNull();
+    expect(model.unknownReason).toBe('order_clash');
+  });
+
+  it('models no range when an entry is confirmed at a house-rule number', () => {
+    const model = service.model(
+      history({
+        costs: [...CRP, { ...FAN_FAVOURITE, advancementNumber: 2 }],
+        skills: [
+          { ...skill('Guard', 'advancement', FAN_FAVOURITE_ID) },
+          { ...skill('Block', 'advancement'), advancementOrder: 1 },
+        ],
+        increases: [
+          { characteristic: 'AG', advancementOrder: 2, orderConfirmed: true },
+        ],
+      }),
+    );
+
+    expect(clashing(model)).toEqual(['Guard', '+AG']);
+    expect(model.unknownReason).toBe('order_clash');
+  });
+
+  it('models no range when a house-rule skill is confirmed at another number', () => {
+    const model = service.model(
+      history({
+        costs: [...CRP, FAN_FAVOURITE],
+        skills: [
+          {
+            ...skill('Guard', 'advancement', FAN_FAVOURITE_ID),
+            advancementOrder: 1,
+            orderConfirmed: true,
+          },
+        ],
+      }),
+    );
+
+    expect(clashing(model)).toEqual(['Guard']);
+    expect(model.unknownReason).toBe('order_clash');
+  });
+
+  it('accepts a house-rule skill confirmed at its own number', () => {
+    const model = service.model(
+      history({
+        costs: [...CRP, FAN_FAVOURITE],
+        skills: [
+          {
+            ...skill('Guard', 'advancement', FAN_FAVOURITE_ID),
+            advancementOrder: 7,
+            orderConfirmed: true,
+          },
+        ],
+      }),
+    );
+
+    expect(clashing(model)).toEqual([]);
+    expect(model.unknownReason).toBeNull();
+  });
+
+  it('pins a confirmed skill to its order and numbers the rest around it', () => {
+    const model = service.model(
+      history({
+        skills: [
+          {
+            ...skill('Dodge', 'advancement'),
+            advancementOrder: 2,
+            orderConfirmed: true,
+          },
+          { ...skill('Block', 'advancement'), advancementOrder: 3 },
+        ],
+        increases: [increase('AG')],
+      }),
+    );
+
+    expect(
+      model.rows.map((row) => [
+        row.label,
+        row.advancementNumber,
+        row.orderConfirmed,
+      ]),
+    ).toEqual([
+      ['Dodge', 2, true],
+      ['Block', 1, false],
+      ['+AG', 3, undefined],
+    ]);
+  });
+
+  it('pins a confirmed skill and a confirmed increase together, filling the gaps', () => {
+    const model = service.model(
+      history({
+        skills: [
+          {
+            ...skill('Dodge', 'advancement'),
+            advancementOrder: 3,
+            orderConfirmed: true,
+          },
+          { ...skill('Block', 'advancement'), advancementOrder: null },
+        ],
+        increases: [
+          increase('MA'),
+          { characteristic: 'ST', advancementOrder: 1, orderConfirmed: true },
+        ],
+      }),
+    );
+
+    expect(model.rows.map((row) => [row.label, row.advancementNumber])).toEqual(
+      [
+        ['+ST', 1],
+        ['Dodge', 3],
+        ['Block', 2],
+        ['+MA', 4],
+      ],
+    );
+  });
+
+  it('does not pin an unconfirmed increase order', () => {
+    const model = service.model(
+      history({
+        skills: [{ ...skill('Block', 'advancement'), advancementOrder: 1 }],
+        increases: [increase('ST', 3)],
+      }),
+    );
+
+    expect(model.rows.map((row) => [row.label, row.advancementNumber])).toEqual(
+      [
+        ['Block', 1],
+        ['+ST', 2],
+      ],
+    );
+  });
+
+  it('puts unknown-order entries last, skills before increases', () => {
+    const model = service.model(
+      history({
+        skills: [
+          { ...skill('Block', 'advancement'), advancementOrder: null },
+          { ...skill('Dodge', 'advancement'), advancementOrder: 2 },
+        ],
+        increases: [increase('MA'), increase('ST', 1)],
+      }),
+    );
+
+    expect(model.rows.map((row) => row.label)).toEqual([
+      '+ST',
+      'Dodge',
+      'Block',
+      '+MA',
+    ]);
+  });
+
+  it('keeps starting skills first and a granted skill on its number', () => {
+    const model = service.model(
+      history({
+        costs: [...CRP, FAN_FAVOURITE],
+        skills: [
+          {
+            ...skill('Guard', 'advancement', FAN_FAVOURITE_ID),
+            advancementOrder: 1,
+          },
+          skill('Block', 'starting'),
+        ],
+        increases: [increase('PA', 2), increase('AV', 3)],
+      }),
+    );
+
+    expect(model.rows.map((row) => [row.label, row.advancementNumber])).toEqual(
+      [
+        ['Block', null],
+        ['Guard', 7],
+        ['+PA', 1],
+        ['+AV', 2],
+      ],
+    );
+  });
+
+  it('prices increases without an order like the old counts', () => {
+    const model = service.model(
+      history({
+        skills: [skill('Block', 'advancement')],
+        increases: [increase('MA'), increase('AV'), increase('AV')],
+      }),
+    );
+
+    expect(model.rows.map((row) => [row.label, row.advancementNumber])).toEqual(
+      [
+        ['Block', 1],
+        ['+MA', 2],
+        ['+AV', 3],
+        ['+AV', 4],
+      ],
+    );
+    expect(model.range).toEqual({
+      spentMin: 51,
+      spentMax: 51,
+      unspentMin: -11,
+      unspentMax: -11,
     });
   });
 

@@ -8,7 +8,10 @@ import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { ImportRunnerService } from './import-runner.service';
 import { recordUpsertResultOptions } from './import-runner.test-helpers';
-import { PlayerSkillsImportService } from './player-skills-import.service';
+import {
+  PLAYER_SKILLS_SYNC_CHUNK_SIZE,
+  PlayerSkillsImportService,
+} from './player-skills-import.service';
 import type { ImportError } from './types';
 
 function entry(overrides: Partial<PlayerSkillEntry> = {}): PlayerSkillEntry {
@@ -42,7 +45,7 @@ describe('PlayerSkillsImportService', () => {
   });
 
   it('sends nothing and reports nothing for an empty list', async () => {
-    const synced = await service.syncPlayerSkills([], errors);
+    const synced = await service.syncPlayerSkills({ entries: [] }, errors);
 
     expect(synced).toBe(0);
     expect(runner.recordUpsertResult).not.toHaveBeenCalled();
@@ -52,10 +55,12 @@ describe('PlayerSkillsImportService', () => {
     runner.recordUpsertResult.mockResolvedValue({ playerSkillIds: [51] });
 
     await service.syncPlayerSkills(
-      [
-        entry({ source: 'chosen', advancementOrder: 1 }),
-        entry({ source: 'chosen', advancementOrder: 3, isFreeExtra: true }),
-      ],
+      {
+        entries: [
+          entry({ source: 'chosen', advancementOrder: 1 }),
+          entry({ source: 'chosen', advancementOrder: 3, isFreeExtra: true }),
+        ],
+      },
       errors,
     );
 
@@ -73,7 +78,12 @@ describe('PlayerSkillsImportService', () => {
     });
 
     const synced = await service.syncPlayerSkills(
-      [entry(), entry({ skillId: 11, source: 'chosen', advancementOrder: 1 })],
+      {
+        entries: [
+          entry(),
+          entry({ skillId: 11, source: 'chosen', advancementOrder: 1 }),
+        ],
+      },
       errors,
     );
 
@@ -94,10 +104,12 @@ describe('PlayerSkillsImportService', () => {
     runner.recordUpsertResult.mockResolvedValue({ playerSkillIds: [51] });
 
     const synced = await service.syncPlayerSkills(
-      [
-        entry({ source: 'starting' }),
-        entry({ source: 'advancement', advancementOrder: 2 }),
-      ],
+      {
+        entries: [
+          entry({ source: 'starting' }),
+          entry({ source: 'advancement', advancementOrder: 2 }),
+        ],
+      },
       errors,
     );
 
@@ -112,10 +124,12 @@ describe('PlayerSkillsImportService', () => {
     runner.recordUpsertResult.mockResolvedValue({ playerSkillIds: [51] });
 
     await service.syncPlayerSkills(
-      [
-        entry({ source: 'chosen', advancementOrder: 3 }),
-        entry({ source: 'chosen', advancementOrder: 1 }),
-      ],
+      {
+        entries: [
+          entry({ source: 'chosen', advancementOrder: 3 }),
+          entry({ source: 'chosen', advancementOrder: 1 }),
+        ],
+      },
       errors,
     );
 
@@ -129,10 +143,12 @@ describe('PlayerSkillsImportService', () => {
     runner.recordUpsertResult.mockResolvedValue({ playerSkillIds: [51] });
 
     await service.syncPlayerSkills(
-      [
-        entry({ source: 'chosen', advancementOrder: 1 }),
-        entry({ source: 'starting' }),
-      ],
+      {
+        entries: [
+          entry({ source: 'chosen', advancementOrder: 1 }),
+          entry({ source: 'starting' }),
+        ],
+      },
       errors,
     );
 
@@ -146,10 +162,12 @@ describe('PlayerSkillsImportService', () => {
     runner.recordUpsertResult.mockResolvedValue({ playerSkillIds: [51] });
 
     await service.syncPlayerSkills(
-      [
-        entry({ source: 'chosen', advancementOrder: 1 }),
-        entry({ source: 'random' }),
-      ],
+      {
+        entries: [
+          entry({ source: 'chosen', advancementOrder: 1 }),
+          entry({ source: 'random' }),
+        ],
+      },
       errors,
     );
 
@@ -163,10 +181,12 @@ describe('PlayerSkillsImportService', () => {
     runner.recordUpsertResult.mockResolvedValue({ playerSkillIds: [51] });
 
     await service.syncPlayerSkills(
-      [
-        entry({ source: 'random' }),
-        entry({ source: 'chosen', advancementOrder: 5 }),
-      ],
+      {
+        entries: [
+          entry({ source: 'random' }),
+          entry({ source: 'chosen', advancementOrder: 5 }),
+        ],
+      },
       errors,
     );
 
@@ -180,10 +200,12 @@ describe('PlayerSkillsImportService', () => {
     runner.recordUpsertResult.mockResolvedValue({ playerSkillIds: [51] });
 
     await service.syncPlayerSkills(
-      [
-        entry({ source: 'chosen', advancementOrder: 1 }),
-        entry({ source: 'chosen', advancementOrder: 1 }),
-      ],
+      {
+        entries: [
+          entry({ source: 'chosen', advancementOrder: 1 }),
+          entry({ source: 'chosen', advancementOrder: 1 }),
+        ],
+      },
       errors,
     );
 
@@ -193,10 +215,12 @@ describe('PlayerSkillsImportService', () => {
     });
 
     await service.syncPlayerSkills(
-      [
-        entry({ source: 'chosen', advancementOrder: 1 }),
-        entry({ source: 'chosen', advancementOrder: 2 }),
-      ],
+      {
+        entries: [
+          entry({ source: 'chosen', advancementOrder: 1 }),
+          entry({ source: 'chosen', advancementOrder: 2 }),
+        ],
+      },
       errors,
     );
 
@@ -210,10 +234,12 @@ describe('PlayerSkillsImportService', () => {
     runner.recordUpsertResult.mockResolvedValue({ playerSkillIds: [51] });
 
     await service.syncPlayerSkills(
-      [
-        { playerId: 1, skillId: 10, source: 'starting' },
-        entry({ source: 'starting', attributeValue: null }),
-      ],
+      {
+        entries: [
+          { playerId: 1, skillId: 10, source: 'starting' },
+          entry({ source: 'starting', attributeValue: null }),
+        ],
+      },
       errors,
     );
 
@@ -229,18 +255,20 @@ describe('PlayerSkillsImportService', () => {
     });
 
     await service.syncPlayerSkills(
-      [
-        entry({
-          source: 'chosen',
-          attributeValue: 'Dwarf',
-          advancementOrder: 1,
-        }),
-        entry({
-          source: 'chosen',
-          attributeValue: 'Goblin',
-          advancementOrder: 2,
-        }),
-      ],
+      {
+        entries: [
+          entry({
+            source: 'chosen',
+            attributeValue: 'Dwarf',
+            advancementOrder: 1,
+          }),
+          entry({
+            source: 'chosen',
+            attributeValue: 'Goblin',
+            advancementOrder: 2,
+          }),
+        ],
+      },
       errors,
     );
 
@@ -252,10 +280,10 @@ describe('PlayerSkillsImportService', () => {
   it('sends entries in chunks of the configured size', async () => {
     runner.recordUpsertResult.mockResolvedValue({ playerSkillIds: [] });
     const many = Array.from({ length: 501 }, (_value, index) =>
-      entry({ skillId: index + 1 }),
+      entry({ playerId: index + 1 }),
     );
 
-    const synced = await service.syncPlayerSkills(many, errors);
+    const synced = await service.syncPlayerSkills({ entries: many }, errors);
 
     expect(runner.recordUpsertResult).toHaveBeenCalledTimes(2);
     expect(recordUpsertResultOptions(runner, 0).item).toEqual({
@@ -272,10 +300,10 @@ describe('PlayerSkillsImportService', () => {
       .mockResolvedValueOnce(undefined)
       .mockResolvedValueOnce({ playerSkillIds: [] });
     const many = Array.from({ length: 501 }, (_value, index) =>
-      entry({ skillId: index + 1 }),
+      entry({ playerId: index + 1 }),
     );
 
-    const synced = await service.syncPlayerSkills(many, errors);
+    const synced = await service.syncPlayerSkills({ entries: many }, errors);
 
     expect(synced).toBe(1);
   });
@@ -283,7 +311,10 @@ describe('PlayerSkillsImportService', () => {
   it('builds a failure message naming the chunk size', async () => {
     runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    const synced = await service.syncPlayerSkills([entry()], errors);
+    const synced = await service.syncPlayerSkills(
+      { entries: [entry()] },
+      errors,
+    );
 
     expect(synced).toBe(0);
     const { buildErrorMessage } = recordUpsertResultOptions(runner);
@@ -295,11 +326,123 @@ describe('PlayerSkillsImportService', () => {
   it('stringifies a non-Error rejection from the call', async () => {
     runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    await service.syncPlayerSkills([entry()], errors);
+    await service.syncPlayerSkills({ entries: [entry()] }, errors);
 
     const { buildErrorMessage } = recordUpsertResultOptions(runner);
     expect(buildErrorMessage('nope')).toBe(
       'Failed to sync 1 player skill(s): nope',
     );
+  });
+
+  describe('characteristic increases', () => {
+    function increase(
+      playerId: number,
+      overrides: Partial<PlayerSkillEntry> = {},
+    ): PlayerSkillEntry {
+      return {
+        playerId,
+        source: 'characteristic',
+        characteristic: 'AG',
+        advancementOrder: 1,
+        ...overrides,
+      };
+    }
+
+    it('leaves identical characteristic entries alone', async () => {
+      runner.recordUpsertResult.mockResolvedValue({ playerSkillIds: [] });
+      const first = increase(1, { advancementOrder: 1 });
+      const second = increase(1, { advancementOrder: 1 });
+
+      await service.syncPlayerSkills(
+        { entries: [first, second], characteristicPlayerIds: [1] },
+        errors,
+      );
+
+      await recordUpsertResultOptions(runner).upsert();
+      expect(client.playerSkills.sync).toHaveBeenNthCalledWith(1, {
+        entries: [first, second],
+        characteristicPlayerIds: [1],
+      });
+    });
+
+    it('lists in each chunk only the players that chunk holds', async () => {
+      runner.recordUpsertResult.mockResolvedValue({ playerSkillIds: [] });
+      const first = Array.from(
+        { length: PLAYER_SKILLS_SYNC_CHUNK_SIZE },
+        (_value, index) => increase(1, { advancementOrder: index + 1 }),
+      );
+      const second = increase(2);
+
+      await service.syncPlayerSkills(
+        { entries: [...first, second], characteristicPlayerIds: [1, 2] },
+        errors,
+      );
+
+      await recordUpsertResultOptions(runner, 0).upsert();
+      await recordUpsertResultOptions(runner, 1).upsert();
+      expect(client.playerSkills.sync).toHaveBeenNthCalledWith(1, {
+        entries: first,
+        characteristicPlayerIds: [1],
+      });
+      expect(client.playerSkills.sync).toHaveBeenNthCalledWith(2, {
+        entries: [second],
+        characteristicPlayerIds: [2],
+      });
+    });
+
+    it('never splits a player across chunks', async () => {
+      runner.recordUpsertResult.mockResolvedValue({ playerSkillIds: [] });
+      const first = Array.from(
+        { length: PLAYER_SKILLS_SYNC_CHUNK_SIZE - 1 },
+        (_value, index) => increase(1, { advancementOrder: index + 1 }),
+      );
+      const second = [
+        increase(2, { advancementOrder: 1 }),
+        increase(2, { advancementOrder: 2 }),
+      ];
+
+      await service.syncPlayerSkills(
+        { entries: [...first, ...second], characteristicPlayerIds: [1, 2] },
+        errors,
+      );
+
+      expect(runner.recordUpsertResult).toHaveBeenCalledTimes(2);
+      await recordUpsertResultOptions(runner, 0).upsert();
+      await recordUpsertResultOptions(runner, 1).upsert();
+      expect(client.playerSkills.sync).toHaveBeenNthCalledWith(1, {
+        entries: first,
+        characteristicPlayerIds: [1],
+      });
+      expect(client.playerSkills.sync).toHaveBeenNthCalledWith(2, {
+        entries: second,
+        characteristicPlayerIds: [2],
+      });
+    });
+
+    it('still sends a listed player who has no entries', async () => {
+      runner.recordUpsertResult.mockResolvedValue({ playerSkillIds: [] });
+
+      await service.syncPlayerSkills(
+        { entries: [], characteristicPlayerIds: [3] },
+        errors,
+      );
+
+      await recordUpsertResultOptions(runner).upsert();
+      expect(client.playerSkills.sync).toHaveBeenNthCalledWith(1, {
+        entries: [],
+        characteristicPlayerIds: [3],
+      });
+    });
+
+    it('sends no characteristicPlayerIds when the batch lists none', async () => {
+      runner.recordUpsertResult.mockResolvedValue({ playerSkillIds: [] });
+
+      await service.syncPlayerSkills({ entries: [entry()] }, errors);
+
+      await recordUpsertResultOptions(runner).upsert();
+      expect(client.playerSkills.sync).toHaveBeenNthCalledWith(1, {
+        entries: [entry()],
+      });
+    });
   });
 });

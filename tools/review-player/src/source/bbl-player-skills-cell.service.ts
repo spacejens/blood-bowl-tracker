@@ -1,3 +1,4 @@
+import type { PlayerCharacteristic } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 import * as cheerio from 'cheerio';
 import type { AnyNode } from 'domhandler';
@@ -21,7 +22,7 @@ const PENDING_MARKER_TEXT = '?';
 const PARENTHETICAL_VALUE = /^(.+?) ?\(([^()]+)\)$/;
 
 /** How many times each characteristic was raised by advancement. */
-export interface RawIncreaseCounts {
+export interface RawCharacteristicIncreases {
   move: number;
   strength: number;
   agility: number;
@@ -33,12 +34,12 @@ export interface RawIncreaseCounts {
  * BBL mixes five pseudo-entries into the Skills cell, in the same colour as a
  * gained skill. Each marks one characteristic increase, not a skill.
  */
-const INCREASE_MARKERS: Record<string, keyof RawIncreaseCounts> = {
-  '+MA': 'move',
-  '+ST': 'strength',
-  '+AG': 'agility',
-  '+PA': 'passing',
-  '+AV': 'armour',
+const INCREASE_MARKERS: Record<string, PlayerCharacteristic> = {
+  '+MA': 'MA',
+  '+ST': 'ST',
+  '+AG': 'AG',
+  '+PA': 'PA',
+  '+AV': 'AV',
 };
 
 /**
@@ -50,18 +51,24 @@ interface BblRawPlayerSkill {
   name: string;
   attributeValue: string | null;
   source: 'starting' | 'gained';
-  /** 1-based among gained skills only; null for a starting skill. */
+  /**
+   * 1-based among the player's advancements: gained skills and characteristic
+   * increases share one numbering. Null for a starting skill.
+   */
   advancementOrder: number | null;
+}
+
+/** One characteristic-increase marker from a player's Skills cell. */
+export interface BblRawIncrease {
+  characteristic: PlayerCharacteristic;
+  /** 1-based among the player's advancements, shared with gained skills. */
+  advancementOrder: number;
 }
 
 /** Everything the BBL page says about one player's advancements. */
 export interface BblRawPlayerAdvancements {
   skills: BblRawPlayerSkill[];
-  increaseCounts: RawIncreaseCounts;
-}
-
-function zeroCounts(): RawIncreaseCounts {
-  return { move: 0, strength: 0, agility: 0, passing: 0, armour: 0 };
+  increases: BblRawIncrease[];
 }
 
 /**
@@ -80,6 +87,10 @@ function zeroCounts(): RawIncreaseCounts {
  * reading of this cell is exactly what the report exists to check, so reusing
  * it would let a misreading agree with itself. Unlike the importer, no
  * garbled-entry repair table is applied — a garbled entry is a finding.
+ *
+ * Characteristic-increase markers share the gained skills' numbering: one
+ * counter advances for each gained skill and each marker, in page order. A
+ * pending "?" takes no number.
  *
  * Null means "no Skills cell on this page", which is different from an empty
  * cell (a player with no skills at all).
@@ -108,8 +119,8 @@ export class BblPlayerSkillsCellService {
     cell: AnyNode,
   ): BblRawPlayerAdvancements {
     const skills: BblRawPlayerSkill[] = [];
-    const increaseCounts = zeroCounts();
-    let gainedCount = 0;
+    const increases: BblRawIncrease[] = [];
+    let advancementCount = 0;
     let text = '';
     let gained = false;
 
@@ -123,7 +134,11 @@ export class BblPlayerSkillsCellService {
       }
       const { name, attributeValue } = this.split(entry);
       if (Object.hasOwn(INCREASE_MARKERS, name)) {
-        increaseCounts[INCREASE_MARKERS[name]] += 1;
+        advancementCount += 1;
+        increases.push({
+          characteristic: INCREASE_MARKERS[name],
+          advancementOrder: advancementCount,
+        });
         return;
       }
       if (!wasGained) {
@@ -135,12 +150,12 @@ export class BblPlayerSkillsCellService {
         });
         return;
       }
-      gainedCount += 1;
+      advancementCount += 1;
       skills.push({
         name,
         attributeValue,
         source: 'gained',
-        advancementOrder: gainedCount,
+        advancementOrder: advancementCount,
       });
     };
 
@@ -162,7 +177,7 @@ export class BblPlayerSkillsCellService {
       }
     }
     flush();
-    return { skills, increaseCounts };
+    return { skills, increases };
   }
 
   /**

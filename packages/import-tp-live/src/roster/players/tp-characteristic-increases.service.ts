@@ -1,10 +1,13 @@
 import type {
   ImportError,
-  PlayerCharacteristicIncreases,
   PlayerLastingInjuries,
   RulesSet,
 } from '@blood-bowl-tracker/api-contract';
-import type { CharacteristicFormat } from '@blood-bowl-tracker/domain-enums';
+import type {
+  CharacteristicFormat,
+  PlayerCharacteristic,
+  PlayerCharacteristicCounts,
+} from '@blood-bowl-tracker/domain-enums';
 import type { PositionCharacteristics } from '@blood-bowl-tracker/game-data';
 import { PositionRulesSetsService } from '@blood-bowl-tracker/game-data';
 import {
@@ -37,10 +40,10 @@ export interface IncreaseBaselineCache {
   reportedGaps: Set<string>;
 }
 
-/** One characteristic, paired with the two counters it maps to. */
+/** One characteristic, paired with its increase key and reduction counter. */
 interface Comparison {
   key: keyof PlayerCurrentCharacteristics;
-  increase: keyof PlayerCharacteristicIncreases;
+  increase: PlayerCharacteristic;
   reduction: keyof PlayerCharacteristicReductions;
   format: CharacteristicFormat;
   /**
@@ -89,10 +92,10 @@ const ZERO_REDUCTIONS: PlayerCharacteristicReductions = {
  * at 0 covers the opposite case -- a value on the worse side of the baseline
  * with no reduction recorded for it is a data gap, not a negative advancement.
  *
- * The whole group is all-or-nothing: `PlayerCharacteristicIncreaseValidationService`
- * rejects a partial line, so every path here either returns all five counts or
- * `undefined` (send none). A rules set with no Passing characteristic still
- * sends `passingIncreaseCount: 0` for that reason.
+ * A result is either complete or `undefined` (send nothing): the skills sync
+ * lists the player in `characteristicPlayerIds`, which replaces their stored
+ * increases as a whole, only when all five counts are known. A rules set with
+ * no Passing characteristic still reports `PA: 0` for that reason.
  */
 @Injectable()
 export class TpCharacteristicIncreasesService {
@@ -135,7 +138,7 @@ export class TpCharacteristicIncreasesService {
     baseline: PlayerCurrentCharacteristics | undefined;
     cache: IncreaseBaselineCache;
     errors: ImportError[];
-  }): Promise<PlayerCharacteristicIncreases | undefined> {
+  }): Promise<PlayerCharacteristicCounts | undefined> {
     const { player, rulesSet, current, reductions, cache, errors } = options;
     let baseline: PlayerCurrentCharacteristics;
     if (options.baseline !== undefined) {
@@ -171,12 +174,12 @@ export class TpCharacteristicIncreasesService {
     }
 
     const applied = reductions ?? ZERO_REDUCTIONS;
-    const counts: PlayerCharacteristicIncreases = {
-      moveIncreaseCount: 0,
-      strengthIncreaseCount: 0,
-      agilityIncreaseCount: 0,
-      passingIncreaseCount: 0,
-      armourIncreaseCount: 0,
+    const counts: PlayerCharacteristicCounts = {
+      MA: 0,
+      ST: 0,
+      AG: 0,
+      PA: 0,
+      AV: 0,
     };
     for (const comparison of this.comparisons(rulesSet)) {
       const currentValue = current[comparison.key];
@@ -187,7 +190,7 @@ export class TpCharacteristicIncreasesService {
         baselineValue === null
       ) {
         // A rules set with no such characteristic has nothing to advance, but
-        // the group is all-or-nothing, so the count is sent as an explicit 0.
+        // the result is all-or-nothing, so the count is reported as 0.
         continue;
       }
       const gap = comparison.lowerIsBetter
@@ -233,35 +236,35 @@ export class TpCharacteristicIncreasesService {
     return [
       {
         key: 'move',
-        increase: 'moveIncreaseCount',
+        increase: 'MA',
         reduction: 'moveReductionCount',
         format: rulesSet.moveFormat,
         lowerIsBetter: false,
       },
       {
         key: 'strength',
-        increase: 'strengthIncreaseCount',
+        increase: 'ST',
         reduction: 'strengthReductionCount',
         format: rulesSet.strengthFormat,
         lowerIsBetter: false,
       },
       {
         key: 'agility',
-        increase: 'agilityIncreaseCount',
+        increase: 'AG',
         reduction: 'agilityReductionCount',
         format: rulesSet.agilityFormat,
         lowerIsBetter: rollTarget(rulesSet.agilityFormat),
       },
       {
         key: 'passing',
-        increase: 'passingIncreaseCount',
+        increase: 'PA',
         reduction: 'passingReductionCount',
         format: rulesSet.passingFormat,
         lowerIsBetter: rollTarget(rulesSet.passingFormat),
       },
       {
         key: 'armour',
-        increase: 'armourIncreaseCount',
+        increase: 'AV',
         reduction: 'armourReductionCount',
         format: rulesSet.armourFormat,
         lowerIsBetter: false,

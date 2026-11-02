@@ -63,15 +63,15 @@ export class BblPlayerAdvancementsRawRendererService {
   }
 
   private increasesTable(advancements: BblRawPlayerAdvancements): string {
-    const { move, strength, agility, passing, armour } =
-      advancements.increaseCounts;
+    if (advancements.increases.length === 0) {
+      return this.html.note('None.');
+    }
     return this.html.table(
-      ['MA', 'ST', 'AG', 'PA', 'AV'],
-      [
-        [move, strength, agility, passing, armour].map((count) =>
-          String(count),
-        ),
-      ],
+      ['Increase', 'Order'],
+      advancements.increases.map((increase) => [
+        `+${increase.characteristic}`,
+        String(increase.advancementOrder),
+      ]),
     );
   }
 }

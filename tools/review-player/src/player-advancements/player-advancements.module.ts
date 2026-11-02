@@ -7,12 +7,13 @@ import { BblPlayerAdvancementsRawRendererService } from './bbl-player-advancemen
 import { PlayerAdvancementsDbRendererService } from './player-advancements-db-renderer.service';
 import { PlayerAdvancementsReviewerService } from './player-advancements-reviewer.service';
 import { PlayerAdvancementsStratificationService } from './player-advancements-stratification.service';
+import { PlayerIncreasesDbRendererService } from './player-increases-db-renderer.service';
 import { TpPlayerAdvancementsRawRendererService } from './tp-player-advancements-raw-renderer.service';
 
 /**
  * The player-advancements data type: each source's own view of a player's
  * starting and gained skills and characteristic increases, the imported panel
- * from `player_skills` and the `players` increase-count columns, and the four
+ * from `player_advancements`, characteristic increases included, and the four
  * strata that oversample differing starting skills, elite skills, randomly
  * rolled skills and freely chosen skills.
  */
@@ -24,6 +25,7 @@ import { TpPlayerAdvancementsRawRendererService } from './tp-player-advancements
     PlayerAdvancementsDbRendererService,
     PlayerAdvancementsReviewerService,
     PlayerAdvancementsStratificationService,
+    PlayerIncreasesDbRendererService,
     TpPlayerAdvancementsRawRendererService,
   ],
   exports: [

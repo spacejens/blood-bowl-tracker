@@ -64,6 +64,7 @@ const KIND_PRICED: UnspentSppModel = {
       storedSource: null,
       advancementNumber: 2,
       candidates: [{ advancementKind: 'random_characteristic', sppCost: 20 }],
+      increaseOrder: { known: true, confirmed: false },
     },
   ],
   totalSpp: 40,
@@ -162,7 +163,7 @@ describe('AdvancementCostsDbRendererService', () => {
       '<td>Guard</td><td>random</td><td>#1</td><td>random_primary_skill: 3<br>random_secondary_skill: 6</td>',
     );
     expect(html).toContain(
-      '<td>+ST</td><td>characteristic increase</td><td>#2 (order unknown)</td><td>random_characteristic: 20</td>',
+      '<td>+ST</td><td>characteristic increase</td><td>#2</td><td>random_characteristic: 20</td>',
     );
     expect(html).toContain('<td>Stored total SPP</td><td>40</td>');
     expect(html).toContain('<td>Modelled spend</td><td>7 to 38</td>');
@@ -174,9 +175,90 @@ describe('AdvancementCostsDbRendererService', () => {
     );
     expect(html).not.toContain('outside the modelled spend range (');
     expect(html).not.toContain('class="mismatch');
-    expect(html).toContain('stored order, which is unverified');
+    expect(html).toContain(
+      'characteristic increases are listed in their stored order, which is unverified unless marked confirmed',
+    );
     expect(html).toContain(
       'The modelled range in the next table holds for any order and any kind.',
+    );
+  });
+
+  it.each([
+    [
+      'an ordered, unconfirmed increase',
+      { known: true, confirmed: false },
+      '#2</td>',
+    ],
+    [
+      'an increase without a stored order',
+      { known: false, confirmed: false },
+      '#2 (order unknown)',
+    ],
+    [
+      'a confirmed increase',
+      { known: true, confirmed: true },
+      '#2 (confirmed)',
+    ],
+  ])('marks the order of %s', async (_name, increaseOrder, expected) => {
+    range.model.mockReturnValue({
+      ...KIND_PRICED,
+      rows: KIND_PRICED.rows.map((row) =>
+        row.kind === 'characteristic' ? { ...row, increaseOrder } : row,
+      ),
+    });
+    figures.figureFor.mockResolvedValue(figure(20));
+
+    const html = await service.render(player);
+
+    expect(html).toContain(`characteristic increase</td><td>${expected}`);
+    if (expected === '#2</td>') {
+      expect(html).not.toContain('(order unknown)');
+      expect(html).not.toContain('(confirmed)');
+    }
+  });
+
+  it('highlights a clashing confirmed number and explains the missing range', async () => {
+    range.model.mockReturnValue({
+      ...KIND_PRICED,
+      rows: KIND_PRICED.rows.map((row) =>
+        row.label === 'Guard'
+          ? { ...row, orderConfirmed: true, orderClash: true }
+          : row,
+      ),
+      range: null,
+      unknownReason: 'order_clash',
+    });
+    figures.figureFor.mockResolvedValue(figure(20));
+
+    const html = await service.render(player);
+
+    expect(html).toContain('#1 (confirmed), clashes');
+    expect(html.match(/class="mismatch"/g)).toHaveLength(1);
+    expect(html).toContain('Confirmed advancement numbers clash');
+  });
+
+  it('marks a confirmed gained skill and leaves an unconfirmed one plain', async () => {
+    range.model.mockReturnValue({
+      ...KIND_PRICED,
+      rows: KIND_PRICED.rows.map((row) =>
+        row.label === 'Guard' ? { ...row, orderConfirmed: true } : row,
+      ),
+    });
+    figures.figureFor.mockResolvedValue(figure(20));
+
+    expect(await service.render(player)).toContain(
+      '<td>Guard</td><td>random</td><td>#1 (confirmed)</td>',
+    );
+
+    range.model.mockReturnValue({
+      ...KIND_PRICED,
+      rows: KIND_PRICED.rows.map((row) =>
+        row.label === 'Guard' ? { ...row, orderConfirmed: false } : row,
+      ),
+    });
+
+    expect(await service.render(player)).toContain(
+      '<td>Guard</td><td>random</td><td>#1</td>',
     );
   });
 
@@ -304,7 +386,9 @@ describe('AdvancementCostsDbRendererService', () => {
     expect(html).toContain('<td>BBL Unspent SPP</td><td>4</td>');
     expect(html).toContain('<td>BBL spent SPP</td><td>36</td>');
     expect(html).toContain('has no cost row');
-    expect(html).toContain('The numbers shown are one possible order.</p>');
+    expect(html).toContain(
+      'the other numbers shown are one possible order.</p>',
+    );
     expect(html).not.toContain('holds for any order');
     expect(html).not.toContain('class="mismatch');
   });

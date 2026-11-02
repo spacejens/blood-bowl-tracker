@@ -1,4 +1,7 @@
-import type { PlayerSkillRow } from '@blood-bowl-tracker/game-data';
+import type {
+  PlayerCharacteristicAdvancementRow,
+  PlayerSkillRow,
+} from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -20,6 +23,15 @@ function skill(
   };
 }
 
+const increase = (
+  characteristic: PlayerCharacteristicAdvancementRow['characteristic'],
+  advancementOrder: number | null,
+): PlayerCharacteristicAdvancementRow => ({
+  characteristic,
+  advancementOrder,
+  orderConfirmed: false,
+});
+
 describe('PlayerSkillsSectionService', () => {
   let service: PlayerSkillsSectionService;
 
@@ -28,6 +40,64 @@ describe('PlayerSkillsSectionService', () => {
       providers: [PlayerSkillsSectionService],
     }).compile();
     service = moduleRef.get(PlayerSkillsSectionService);
+  });
+
+  it('places increases among gained skills by order', () => {
+    expect(
+      service.build(
+        [
+          skill({ skillName: 'Block', source: 'chosen', advancementOrder: 1 }),
+          skill({ skillName: 'Dodge', source: 'chosen', advancementOrder: 3 }),
+        ],
+        {
+          pricesByKind: false,
+          characteristicAdvancements: [increase('AG', 2)],
+        },
+      ),
+    ).toEqual(['Advancements: Block, +AG, Dodge']);
+  });
+
+  it('lists unknown-order skills, then unknown-order increases in stat-line order, last', () => {
+    expect(
+      service.build(
+        [
+          skill({
+            skillName: 'Guard',
+            source: 'chosen',
+            advancementOrder: null,
+          }),
+          skill({ skillName: 'Block', source: 'chosen', advancementOrder: 1 }),
+        ],
+        {
+          pricesByKind: false,
+          characteristicAdvancements: [
+            increase('AV', null),
+            increase('MA', null),
+          ],
+        },
+      ),
+    ).toEqual(['Advancements: Block, Guard, +MA, +AV']);
+  });
+
+  it('shows the line for a player with only increases', () => {
+    expect(
+      service.build([], {
+        pricesByKind: false,
+        characteristicAdvancements: [increase('ST', null)],
+      }),
+    ).toEqual(['Advancements: +ST']);
+  });
+
+  it('keeps the skill markers on the merged line', () => {
+    expect(
+      service.build(
+        [skill({ skillName: 'Guard', source: 'random', advancementOrder: 1 })],
+        {
+          pricesByKind: false,
+          characteristicAdvancements: [increase('AG', 2)],
+        },
+      ),
+    ).toEqual(['Advancements: ⚄ Guard, +AG']);
   });
 
   it('returns no lines at all for a player with no skills', () => {
@@ -45,7 +115,7 @@ describe('PlayerSkillsSectionService', () => {
       service.build([
         skill({ skillName: 'Guard', source: 'chosen', advancementOrder: 0 }),
       ]),
-    ).toEqual(['Gained skills: Guard']);
+    ).toEqual(['Advancements: Guard']);
   });
 
   it('renders both lines, starting first', () => {
@@ -54,7 +124,7 @@ describe('PlayerSkillsSectionService', () => {
         skill({ skillName: 'Block' }),
         skill({ skillName: 'Guard', source: 'chosen', advancementOrder: 0 }),
       ]),
-    ).toEqual(['Starting skills: Block', 'Gained skills: Guard']);
+    ).toEqual(['Starting skills: Block', 'Advancements: Guard']);
   });
 
   it('shows an attribute value in parentheses after the name', () => {
@@ -68,7 +138,7 @@ describe('PlayerSkillsSectionService', () => {
       service.build([
         skill({ skillName: 'Guard', source: 'random', advancementOrder: 0 }),
       ]),
-    ).toEqual(['Gained skills: ⚄ Guard']);
+    ).toEqual(['Advancements: ⚄ Guard']);
   });
 
   it('leaves an unspecified advancement unmarked by default', () => {
@@ -80,7 +150,7 @@ describe('PlayerSkillsSectionService', () => {
           advancementOrder: 0,
         }),
       ]),
-    ).toEqual(['Gained skills: Guard']);
+    ).toEqual(['Advancements: Guard']);
   });
 
   it('leaves an unspecified advancement unmarked in an era that does not price by kind', () => {
@@ -97,7 +167,7 @@ describe('PlayerSkillsSectionService', () => {
         ],
         { pricesByKind: false },
       ),
-    ).toEqual(['Gained skills: Guard']);
+    ).toEqual(['Advancements: Guard']);
   });
 
   it('leaves a freely chosen skill unmarked', () => {
@@ -105,7 +175,7 @@ describe('PlayerSkillsSectionService', () => {
       service.build([
         skill({ skillName: 'Guard', source: 'chosen', advancementOrder: 0 }),
       ]),
-    ).toEqual(['Gained skills: Guard']);
+    ).toEqual(['Advancements: Guard']);
   });
 
   it('marks an elite gained skill with the gem', () => {
@@ -118,7 +188,7 @@ describe('PlayerSkillsSectionService', () => {
           isElite: true,
         }),
       ]),
-    ).toEqual(['Gained skills: ♦ Mighty Blow']);
+    ).toEqual(['Advancements: ♦ Mighty Blow']);
   });
 
   it('shows the dice before the gem when a skill was both', () => {
@@ -131,7 +201,7 @@ describe('PlayerSkillsSectionService', () => {
           isElite: true,
         }),
       ]),
-    ).toEqual(['Gained skills: ⚄ ♦ Mighty Blow']);
+    ).toEqual(['Advancements: ⚄ ♦ Mighty Blow']);
   });
 
   it('marks a free extra gained skill with the cross', () => {
@@ -145,7 +215,7 @@ describe('PlayerSkillsSectionService', () => {
           isFreeExtra: true,
         }),
       ]),
-    ).toEqual(['Gained skills: ✚ Hatred (Undead)']);
+    ).toEqual(['Advancements: ✚ Hatred (Undead)']);
   });
 
   it('shows the dice, then the cross, then the gem', () => {
@@ -159,7 +229,7 @@ describe('PlayerSkillsSectionService', () => {
           isElite: true,
         }),
       ]),
-    ).toEqual(['Gained skills: ⚄ ✚ ♦ Mighty Blow']);
+    ).toEqual(['Advancements: ⚄ ✚ ♦ Mighty Blow']);
   });
 
   it('shows the cross before the star on a unique free extra skill', () => {
@@ -173,7 +243,7 @@ describe('PlayerSkillsSectionService', () => {
           isFreeExtra: true,
         }),
       ]),
-    ).toEqual(['Gained skills: ✚ ★ Treacherous']);
+    ).toEqual(['Advancements: ✚ ★ Treacherous']);
   });
 
   it('never marks a starting skill as a free extra', () => {
@@ -201,7 +271,7 @@ describe('PlayerSkillsSectionService', () => {
           attributeValue: 'Troll',
         }),
       ]),
-    ).toEqual(['Gained skills: ✚ Hatred (Undead), Hatred (Troll)']);
+    ).toEqual(['Advancements: ✚ Hatred (Undead), Hatred (Troll)']);
   });
 
   it('shows a marker and an attribute value together', () => {
@@ -214,7 +284,7 @@ describe('PlayerSkillsSectionService', () => {
           attributeValue: '4+',
         }),
       ]),
-    ).toEqual(['Gained skills: ⚄ Mighty Blow (4+)']);
+    ).toEqual(['Advancements: ⚄ Mighty Blow (4+)']);
   });
 
   it('never marks a starting skill as elite', () => {
@@ -242,7 +312,7 @@ describe('PlayerSkillsSectionService', () => {
           category: 'unique',
         }),
       ]),
-    ).toEqual(['Gained skills: ★ Treacherous']);
+    ).toEqual(['Advancements: ★ Treacherous']);
   });
 
   it('shows the dice before the star when a unique skill was rolled', () => {
@@ -255,7 +325,7 @@ describe('PlayerSkillsSectionService', () => {
           category: 'unique',
         }),
       ]),
-    ).toEqual(['Gained skills: ⚄ ★ Treacherous']);
+    ).toEqual(['Advancements: ⚄ ★ Treacherous']);
   });
 
   it('shows the star before the gem when a skill is both unique and elite', () => {
@@ -271,7 +341,7 @@ describe('PlayerSkillsSectionService', () => {
           isElite: true,
         }),
       ]),
-    ).toEqual(['Gained skills: ⚄ ★ ♦ Treacherous']);
+    ).toEqual(['Advancements: ⚄ ★ ♦ Treacherous']);
   });
 
   it('shows the star and an attribute value together', () => {
@@ -303,7 +373,7 @@ describe('PlayerSkillsSectionService', () => {
           category: 'strength',
         }),
       ]),
-    ).toEqual(['Starting skills: Block', 'Gained skills: Guard']);
+    ).toEqual(['Starting skills: Block', 'Advancements: Guard']);
   });
 
   it('sorts starting skills alphabetically', () => {
@@ -322,7 +392,7 @@ describe('PlayerSkillsSectionService', () => {
         skill({ skillName: 'Guard', source: 'chosen', advancementOrder: 2 }),
         skill({ skillName: 'Block', source: 'chosen', advancementOrder: 1 }),
       ]),
-    ).toEqual(['Gained skills: Block, Guard']);
+    ).toEqual(['Advancements: Block, Guard']);
   });
 
   it('puts a gained skill with no recorded order last, alphabetically', () => {
@@ -332,7 +402,7 @@ describe('PlayerSkillsSectionService', () => {
         skill({ skillName: 'Guard', source: 'advancement' }),
         skill({ skillName: 'Block', source: 'chosen', advancementOrder: 1 }),
       ]),
-    ).toEqual(['Gained skills: Block, Guard, Tackle']);
+    ).toEqual(['Advancements: Block, Guard, Tackle']);
   });
 
   describe('in an era that prices advancements by kind', () => {
@@ -350,7 +420,7 @@ describe('PlayerSkillsSectionService', () => {
           ],
           KIND_PRICED,
         ),
-      ).toEqual(['Gained skills: ⚄? Guard']);
+      ).toEqual(['Advancements: ⚄? Guard']);
     });
 
     it('keeps the plain dice on a rolled skill', () => {
@@ -365,7 +435,7 @@ describe('PlayerSkillsSectionService', () => {
           ],
           KIND_PRICED,
         ),
-      ).toEqual(['Gained skills: ⚄ Guard']);
+      ).toEqual(['Advancements: ⚄ Guard']);
     });
 
     it('leaves a chosen skill unmarked', () => {
@@ -380,7 +450,7 @@ describe('PlayerSkillsSectionService', () => {
           ],
           KIND_PRICED,
         ),
-      ).toEqual(['Gained skills: Guard']);
+      ).toEqual(['Advancements: Guard']);
     });
 
     it('never marks a starting skill', () => {
@@ -405,7 +475,7 @@ describe('PlayerSkillsSectionService', () => {
           ],
           KIND_PRICED,
         ),
-      ).toEqual(['Gained skills: ✚ Hatred (Undead)']);
+      ).toEqual(['Advancements: ✚ Hatred (Undead)']);
     });
 
     it('shows the questioned dice before the gem', () => {
@@ -421,7 +491,7 @@ describe('PlayerSkillsSectionService', () => {
           ],
           KIND_PRICED,
         ),
-      ).toEqual(['Gained skills: ⚄? ♦ Tackle']);
+      ).toEqual(['Advancements: ⚄? ♦ Tackle']);
     });
 
     it('shows the questioned dice before the star', () => {
@@ -437,7 +507,7 @@ describe('PlayerSkillsSectionService', () => {
           ],
           KIND_PRICED,
         ),
-      ).toEqual(['Gained skills: ⚄? ★ Treacherous']);
+      ).toEqual(['Advancements: ⚄? ★ Treacherous']);
     });
 
     it('marks only the advancements of unknown source on a mixed line', () => {
@@ -462,7 +532,7 @@ describe('PlayerSkillsSectionService', () => {
           ],
           KIND_PRICED,
         ),
-      ).toEqual(['Gained skills: Block, ⚄? Guard, ⚄ Dodge']);
+      ).toEqual(['Advancements: Block, ⚄? Guard, ⚄ Dodge']);
     });
   });
 });
