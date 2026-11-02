@@ -344,9 +344,11 @@ rows keep their closed-up numbers until a later source sync. TP's order is
 trusted only where TP's reported spend decides it, including when every
 fitting order costs the same, so a confirmed order is not always proven. TP's
 only other evidence of order is its per-skill row ids, a counter whose order
-fits the spend in every checked case, though not its list order. The import
-takes the gained skills in that order and lets the spend confirm only orders
-that keep it; the ids never confirm an order alone, and increases have none
+fits the spend in every checked case, though not its list order. When a player
+has at least two gained skills and each carries a row id no other one shares,
+the import takes them in that order and lets the spend confirm only orders
+that keep it; otherwise it keeps TP's list order and does not constrain the
+deduction. The ids never confirm an order alone, and increases have none
 (see [Order of advancements](import-tp-live/index.md#order-of-advancements)).
 The cost model pins only confirmed entries to their advancement number, and
 every other entry is interchangeable with the rest. A sync never lets an
