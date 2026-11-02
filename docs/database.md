@@ -320,7 +320,8 @@ source stops reporting is flagged `removed` instead (only characteristic rows
 may be); readers leave removed rows out. The migration that introduced
 characteristic rows backfilled one row of unknown order per unit of the five
 `*_increase_count` columns it then dropped from `players`, so the rows are the
-only record of increases.
+only current record of increases; `players_history` snapshots taken before the
+migration keep the old counts.
 
 The costs are curated by `tools/import-manual` in batch 004 (see
 [batches](import-manual/batches.md)): fixed thresholds of 6, 16, 31, 51, 76
