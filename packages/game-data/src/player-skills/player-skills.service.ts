@@ -478,17 +478,17 @@ export class PlayerSkillsService {
    * Mark the player's rows of a skill one of their own trophy awards grants
    * as free extras. Covers an award recorded after the skill; `sync` covers
    * the opposite order. Never applied to Hatred or to a `starting` row,
-   * matching `sync`'s trophy rule. Clears nothing: `unmarkTrophyGranted` is the counterpart, and the
-   * caller re-prices the player's stored unspent SPP afterwards.
+   * matching `sync`'s trophy rule. Clears nothing: `unmarkTrophyGranted` is
+   * the counterpart, and the caller re-prices the player's stored unspent
+   * SPP afterwards.
    *
    * A free extra's order is never stored confirmed, so a marked row keeps
    * its recorded number unconfirmed. A row that was confirmed at number k
    * held a slot in the player's paid numbering (skills and increases share
    * one): every confirmed, non-removed paid row numbered after k moves down
    * one (PaidAdvancementSlotsService), closing that slot as `sync`'s
-   * `closeFreeExtraSlots` does. All of it
-   * happens in one transaction; rows already free are left untouched, so a
-   * repeated call changes nothing.
+   * `closeFreeExtraSlots` does. All of it happens in one transaction; rows
+   * already free are left untouched, so a repeated call changes nothing.
    */
   async markTrophyGranted(playerId: number, skillId: number): Promise<void> {
     const [skill] = await this.db
