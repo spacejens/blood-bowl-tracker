@@ -59,7 +59,7 @@ describe('PlayerSkillsSectionService', () => {
     ).toEqual(['Advancements: Block, +AG, Dodge']);
   });
 
-  it('lists unknown-order skills, then unknown-order increases in stat-line order, last', () => {
+  it('marks unconfirmed advancements and lists them last: skills alphabetically, then increases in stat-line order', () => {
     expect(
       service.build(
         [
@@ -67,6 +67,7 @@ describe('PlayerSkillsSectionService', () => {
             skillName: 'Guard',
             source: 'chosen',
             advancementOrder: null,
+            orderConfirmed: false,
           }),
           skill({ skillName: 'Block', source: 'chosen', advancementOrder: 1 }),
         ],
@@ -78,14 +79,80 @@ describe('PlayerSkillsSectionService', () => {
           ],
         },
       ),
-    ).toEqual(['Advancements: Block, Guard, +MA, +AV']);
+    ).toEqual(['Advancements: Block, ⇅? Guard, ⇅? +MA, ⇅? +AV']);
+  });
+
+  it('sorts an unconfirmed advancement after confirmed ones whatever proxy number it holds', () => {
+    expect(
+      service.build(
+        [
+          skill({
+            skillName: 'Wrestle',
+            source: 'chosen',
+            advancementOrder: 1,
+            orderConfirmed: false,
+          }),
+          skill({
+            skillName: 'Dodge',
+            source: 'chosen',
+            advancementOrder: 2,
+            orderConfirmed: false,
+          }),
+          skill({ skillName: 'Block', source: 'chosen', advancementOrder: 3 }),
+        ],
+        {
+          pricesByKind: false,
+          characteristicAdvancements: [increase('AG', 4, false)],
+        },
+      ),
+    ).toEqual(['Advancements: Block, ⇅? Dodge, ⇅? Wrestle, ⇅? +AG']);
+  });
+
+  it('puts the order marker before every other marker', () => {
+    expect(
+      service.build(
+        [
+          skill({
+            skillName: 'Mighty Blow',
+            source: 'random',
+            advancementOrder: 1,
+            orderConfirmed: false,
+            isElite: true,
+          }),
+        ],
+        { pricesByKind: true },
+      ),
+    ).toEqual(['Advancements: ⇅? ⚄ ♦ Mighty Blow']);
+  });
+
+  it('never marks a starting skill or a free extra, and keeps a free extra in its place', () => {
+    expect(
+      service.build(
+        [
+          skill({ skillName: 'Block', orderConfirmed: false }),
+          skill({
+            skillName: 'Hatred',
+            source: 'chosen',
+            advancementOrder: 1,
+            orderConfirmed: false,
+            isFreeExtra: true,
+            attributeValue: 'Undead',
+          }),
+          skill({ skillName: 'Guard', source: 'chosen', advancementOrder: 2 }),
+        ],
+        { pricesByKind: false },
+      ),
+    ).toEqual([
+      'Starting skills: Block',
+      'Advancements: ✚ Hatred (Undead), Guard',
+    ]);
   });
 
   it('shows the line for a player with only increases', () => {
     expect(
       service.build([], {
         pricesByKind: false,
-        characteristicAdvancements: [increase('ST', null)],
+        characteristicAdvancements: [increase('ST', 1)],
       }),
     ).toEqual(['Advancements: +ST']);
   });

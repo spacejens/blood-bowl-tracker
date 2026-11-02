@@ -46,6 +46,17 @@ const FREE_EXTRA_SKILL_MARKER = '✚ ';
  */
 const ELITE_SKILL_MARKER = '♦ ';
 
+/**
+ * Prefixed to an advancement whose place in the sequence is not confirmed: a
+ * gained skill or increase whose recorded order is only a source's
+ * presentation order, or unknown. It sorts after every confirmed one, since
+ * its number says nothing. Never on a starting skill (no sequence) or a free
+ * extra (not one of the paid advancements). Comes before every other marker.
+ * A plain Unicode symbol rather than an emoji, matching every other marker in
+ * these embeds.
+ */
+const UNKNOWN_ORDER_MARKER = '⇅? ';
+
 /** What the caller knows about the player's era that changes how skills read. */
 export interface PlayerSkillLineOptions {
   /**
@@ -62,6 +73,7 @@ export interface PlayerSkillLineOptions {
 
 /** One entry of the Advancements line, before it is joined. */
 interface AdvancementItem {
+  /** The confirmed order; null when unknown or unconfirmed. */
   order: number | null;
   /** 0 for a skill, 1 for an increase: skills come first among equals. */
   kind: 0 | 1;
@@ -89,6 +101,9 @@ const DEFAULT_OPTIONS: PlayerSkillLineOptions = { pricesByKind: false };
  * caller says the era prices advancements by kind: only there does not
  * knowing whether it was rolled or chosen leave its cost open.
  *
+ * An advancement whose order is not confirmed is marked and listed after the
+ * confirmed ones.
+ *
  * Pure text assembly, with no I/O, no dependencies and no external state.
  */
 @Injectable()
@@ -104,18 +119,21 @@ export class PlayerSkillsSectionService {
     const starting = rows.filter((row) => row.source === 'starting');
     const gained = rows.filter((row) => row.source !== 'starting');
     const items: AdvancementItem[] = [
-      ...gained.map((row): AdvancementItem => ({
-        order: row.advancementOrder,
-        kind: 0,
-        tieBreak: row.skillName,
-        text: this.formatSkill(row, options),
-      })),
+      ...gained.map((row): AdvancementItem => {
+        const known = row.isFreeExtra || row.orderConfirmed;
+        return {
+          order: known ? row.advancementOrder : null,
+          kind: 0,
+          tieBreak: row.skillName,
+          text: this.formatSkill(row, options),
+        };
+      }),
       ...(options.characteristicAdvancements ?? []).map(
         (row): AdvancementItem => ({
-          order: row.advancementOrder,
+          order: row.orderConfirmed ? row.advancementOrder : null,
           kind: 1,
           tieBreak: PLAYER_CHARACTERISTICS.indexOf(row.characteristic),
-          text: `+${row.characteristic}`,
+          text: `${row.orderConfirmed ? '' : UNKNOWN_ORDER_MARKER}+${row.characteristic}`,
         }),
       ),
     ];
@@ -147,9 +165,9 @@ export class PlayerSkillsSectionService {
   }
 
   /**
-   * In the order the player gained them. An entry with no recorded order is an
-   * unknown, not an earliest, so it sorts last: skills alphabetically, then
-   * increases in stat-line order.
+   * In the order the player gained them. An entry whose order is unknown or
+   * unconfirmed is not an earliest, so it sorts last: skills alphabetically,
+   * then increases in stat-line order.
    */
   private sortAdvancements(items: AdvancementItem[]): AdvancementItem[] {
     return [...items].sort((a, b) => {
@@ -168,13 +186,14 @@ export class PlayerSkillsSectionService {
   }
 
   /**
-   * `Block`, `Loner (4+)`, `⚄ Guard`, `⚄? Guard`, `✚ Hatred (Undead)`,
-   * `★ Treacherous`, or `⚄ ♦ Mighty Blow`.
+   * `Block`, `Loner (4+)`, `⚄ Guard`, `⚄? Guard`, `⇅? Guard`,
+   * `✚ Hatred (Undead)`, `★ Treacherous`, `⚄ ♦ Mighty Blow`, or
+   * `⇅? ⚄ ♦ Mighty Blow`.
    *
    * The star marks a skill's `unique` category under the rules set, mirroring
    * the position stat line, so it applies to starting and gained skills alike
    * -- it says what the skill is, not how the player came by it. A skill with
-   * no curated category there gets no star. Markers read dice, cross, star,
+   * no curated category there gets no star. Markers read order, dice, cross, star,
    * gem; a unique skill is never elite in curated data, so that last pairing
    * is only a deterministic tie-break.
    */
@@ -183,13 +202,17 @@ export class PlayerSkillsSectionService {
     options: PlayerSkillLineOptions,
   ): string {
     const gained = row.source !== 'starting';
+    const orderMark =
+      gained && !row.isFreeExtra && !row.orderConfirmed
+        ? UNKNOWN_ORDER_MARKER
+        : '';
     const dice = this.diceMarker(row, options);
     const cross = gained && row.isFreeExtra ? FREE_EXTRA_SKILL_MARKER : '';
     const star = row.category === 'unique' ? UNIQUE_SKILL_MARKER : '';
     const gem = gained && row.isElite ? ELITE_SKILL_MARKER : '';
     const attribute =
       row.attributeValue === null ? '' : ` (${row.attributeValue})`;
-    return `${dice}${cross}${star}${gem}${row.skillName}${attribute}`;
+    return `${orderMark}${dice}${cross}${star}${gem}${row.skillName}${attribute}`;
   }
 
   /**
