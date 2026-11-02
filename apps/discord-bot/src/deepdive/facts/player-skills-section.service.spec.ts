@@ -148,6 +148,28 @@ describe('PlayerSkillsSectionService', () => {
     ]);
   });
 
+  it('puts a free extra before the paid advancement sharing its number', () => {
+    expect(
+      service.build(
+        [
+          skill({ skillName: 'Block', source: 'chosen', advancementOrder: 1 }),
+          skill({
+            skillName: 'Tentacles',
+            source: 'chosen',
+            advancementOrder: 2,
+            orderConfirmed: false,
+            isFreeExtra: true,
+          }),
+          skill({ skillName: 'Dodge', source: 'chosen', advancementOrder: 2 }),
+        ],
+        {
+          pricesByKind: false,
+          characteristicAdvancements: [increase('AG', 3)],
+        },
+      ),
+    ).toEqual(['Advancements: Block, ✚ Tentacles, Dodge, +AG']);
+  });
+
   it('shows the line for a player with only increases', () => {
     expect(
       service.build([], {

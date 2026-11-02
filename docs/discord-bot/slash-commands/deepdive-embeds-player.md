@@ -100,9 +100,10 @@ Then up to two lines: `Starting skills:`, the skills the player's
 `Advancements:`, everything the player has gained since — skills and
 [characteristic increases](../../glossary.md#characteristic-increase) together,
 in the order they were gained. A free extra is placed by the number its
-source recorded, which is outside the paid numbering. An entry whose order is
-unknown or not confirmed goes last, skills alphabetically and then increases
-in MA/ST/AG/PA/AV order. An increase reads `+AG`, `+MA` and so on; its only
+source recorded, which is outside the paid numbering, ahead of a paid entry
+sharing that number. An entry whose order is unknown or not confirmed goes
+last, skills alphabetically and then increases in MA/ST/AG/PA/AV order. An
+increase reads `+AG`, `+MA` and so on; its only
 possible marker is `⇅?`. A group with nothing in it has no line at all. The
 starting skills and gained skills are omitted when no rules set resolves for
 the player's era, but increases need no rules set, so the Advancements line

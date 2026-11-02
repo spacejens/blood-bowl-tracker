@@ -78,6 +78,11 @@ interface AdvancementItem {
    * number; null when unknown or unconfirmed.
    */
   order: number | null;
+  /**
+   * Whether it is a free extra: among entries sharing a known number, a free
+   * extra comes first, since the paid entry after it shares its number.
+   */
+  free: boolean;
   /** 0 for a skill, 1 for an increase: skills come first among equals. */
   kind: 0 | 1;
   /** The skill name, or the characteristic's stat-line index. */
@@ -128,6 +133,7 @@ export class PlayerSkillsSectionService {
         const orderKnown = row.isFreeExtra || row.orderConfirmed;
         return {
           order: orderKnown ? row.advancementOrder : null,
+          free: row.isFreeExtra,
           kind: 0,
           tieBreak: row.skillName,
           text: this.formatSkill(row, options),
@@ -136,6 +142,7 @@ export class PlayerSkillsSectionService {
       ...(options.characteristicAdvancements ?? []).map(
         (row): AdvancementItem => ({
           order: row.orderConfirmed ? row.advancementOrder : null,
+          free: false,
           kind: 1,
           tieBreak: PLAYER_CHARACTERISTICS.indexOf(row.characteristic),
           text: `${row.orderConfirmed ? '' : UNKNOWN_ORDER_MARKER}+${row.characteristic}`,
@@ -170,9 +177,10 @@ export class PlayerSkillsSectionService {
   }
 
   /**
-   * In the order the player gained them. An entry whose order is unknown or
-   * unconfirmed is not an earliest, so it sorts last: skills alphabetically,
-   * then increases in stat-line order.
+   * In the order the player gained them, a free extra first among entries
+   * sharing its number. An entry whose order is unknown or unconfirmed is not
+   * an earliest, so it sorts last: skills alphabetically, then increases in
+   * stat-line order.
    */
   private sortAdvancements(items: AdvancementItem[]): AdvancementItem[] {
     return [...items].sort((a, b) => {
@@ -180,6 +188,9 @@ export class PlayerSkillsSectionService {
       const right = b.order ?? Number.MAX_SAFE_INTEGER;
       if (left !== right) {
         return left - right;
+      }
+      if (a.order !== null && a.free !== b.free) {
+        return a.free ? -1 : 1;
       }
       if (a.kind !== b.kind) {
         return a.kind - b.kind;
