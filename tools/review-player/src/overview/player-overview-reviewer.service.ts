@@ -11,6 +11,7 @@ import { PlayerStatusDbRendererService } from '../player-status/player-status-db
 import { TpPlayerStatusRawRendererService } from '../player-status/tp-player-status-raw-renderer.service';
 import type { PlayerDataTypeReviewer } from '../shared/data-type-reviewer';
 import type { SampledPlayer } from '../shared/review.types';
+import { SectionRenderService } from '../shared/section-render.service';
 
 /**
  * The overview panel pair: who the player is. Each panel stacks identity,
@@ -33,35 +34,46 @@ export class PlayerOverviewReviewerService implements PlayerDataTypeReviewer {
     private readonly rawKeywords: PlayerKeywordsRawRendererService,
     private readonly dbKeywords: PlayerKeywordsDbRendererService,
     private readonly html: HtmlService,
+    private readonly sections: SectionRenderService,
   ) {}
 
   async getRawSource(player: SampledPlayer): Promise<string> {
     const id = player.externalId;
     const bbl = player.source === 'bbl';
-    const info = bbl
-      ? await this.bblInfo.render(id)
-      : await this.tpInfo.render(id);
-    const status = bbl
-      ? await this.bblStatus.render(id)
-      : await this.tpStatus.render(id);
+    const info = await this.sections.render(() =>
+      bbl ? this.bblInfo.render(id) : this.tpInfo.render(id),
+    );
+    const status = await this.sections.render(() =>
+      bbl ? this.bblStatus.render(id) : this.tpStatus.render(id),
+    );
+    const keywords = await this.sections.render(() =>
+      this.rawKeywords.render(player),
+    );
     return (
       this.html.subheading('Identity') +
       info +
       this.html.subheading('Status') +
       status +
       this.html.subheading('Keywords (TP template codes and manual curation)') +
-      (await this.rawKeywords.render(player))
+      keywords
     );
   }
 
   async getImportedView(player: SampledPlayer): Promise<string> {
+    const info = await this.sections.render(() => this.dbInfo.render(player));
+    const status = await this.sections.render(() =>
+      this.dbStatus.render(player),
+    );
+    const keywords = await this.sections.render(() =>
+      this.dbKeywords.render(player),
+    );
     return (
       this.html.subheading('Identity') +
-      (await this.dbInfo.render(player)) +
+      info +
       this.html.subheading('Status') +
-      (await this.dbStatus.render(player)) +
+      status +
       this.html.subheading('Position keywords') +
-      (await this.dbKeywords.render(player))
+      keywords
     );
   }
 }
