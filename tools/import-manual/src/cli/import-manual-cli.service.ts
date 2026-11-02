@@ -77,7 +77,7 @@ export class ImportManualCliService {
       stderr: [
         ...this.errorLines(outcome.failed.errors),
         `Batch ${outcome.failed.name} was not recorded as applied; later batches were not attempted.`,
-        'On a fresh database apply the first batch, run the BBL and TP importers, then apply the rest.',
+        'On a fresh database apply the first batch, run the BBL and TP importers, apply the rest, then run the BBL and TP importers again.',
       ],
       exitCode: 1,
     };
