@@ -246,6 +246,20 @@ under two competitions). The importer records every flagged skill as a free
 extra (see [skills](../game-concepts/skills/index.md#player-skills)); a
 missing flag means not extra.
 
+**Skill row ids on a `lineUps[]` entry.** Each gained skill also carries its
+own row `id` (for example 815435 or 1358380), which the parser reads as the
+skill's `rowId`. The ids are a counter shared by every player, not a
+per-player one, and TP's list order does not follow them. Their order does
+follow the SPP spent, though. Over every TP-only player whose reported spend
+rules some skill orders out, priced with each era's costs, ordering the
+skills by row id fits the spend for all 49 players whose order was already
+confirmed and all 34 whose order was not. TP's list order fits 27 of the 49
+and 1 of the 34. The ids are evidence of the order the skills were gained, not
+proof of it. A characteristic increase has no id, so its place among the
+skills still has to be worked out from the spend. No row id is read from a
+match-embedded snapshot: its skills carry no `isRandom`, so the whole skill
+group is absent there.
+
 A characteristic increase is not in the file at all. The importers derive
 increases from the gap between a player's characteristics and the position
 template, and send them as characteristic entries with no order.

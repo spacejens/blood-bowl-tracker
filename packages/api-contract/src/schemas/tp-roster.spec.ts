@@ -47,6 +47,27 @@ describe('ImportTpRosterSchema', () => {
     expect(parsed.roster).toEqual({ id: 163386, anything: ['raw'] });
   });
 
+  it("passes the roster's gained skill row ids through untouched", () => {
+    const roster = {
+      id: 163386,
+      lineUps: [
+        {
+          id: 5001,
+          skills: [
+            { id: 1358380, skillMasterId: 103, isRandom: true },
+            { id: 815435, skillMasterId: 126, isRandom: false },
+          ],
+        },
+      ],
+    };
+    const parsed = ImportTpRosterSchema.parse({
+      roster,
+      era: 'Fourth era',
+      externalSystemName: 'TP',
+    });
+    expect(parsed.roster).toStrictEqual(roster);
+  });
+
   it('keeps only the fields a match-embedded player carries', () => {
     const parsed = ImportTpRosterSchema.parse({
       roster: {},
