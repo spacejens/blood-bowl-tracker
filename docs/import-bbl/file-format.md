@@ -8,8 +8,11 @@ code** — the code is the source of truth at that point.
 
 - Files are named `default.asp?p=<type>&<params>` (e.g. `default.asp?p=tm&t=knu`).
   The `p` query param is the page type; remaining params identify the entity.
-- Encoding is ISO-8859-1 (Latin-1) with CRLF line endings. Some files contain
-  stray/extended-ASCII bytes — decode with Latin-1, which never throws.
+- Encoding is Windows-1252 with CRLF line endings, although the pages declare
+  `charset=iso-8859-1`. Bytes 0x80-0x9F carry curly quotes, dashes and the
+  ellipsis (0x92 is the apostrophe in "Doctor Sydow’s Mistakes"); an
+  ISO-8859-1 decode turns them into invisible C1 control characters. Decode
+  with Windows-1252, which never throws.
 - Non-page files (`index.html`, `wget-*.txt/log`) and asset subfolders
   (`badges/`, `gfx/`, `pics/`) are ignored by the reader (they have no `p=`).
 

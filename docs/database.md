@@ -37,6 +37,17 @@ kind of change has one route:
   describes (see [Re-running importers](#re-running-importers)), so it is never
   the way to correct existing rows.
 
+A migration that corrects an importer-sourced value which is also a Name
+external ID adds the corrected spelling as an extra Name external ID on the
+same row and keeps the old one, skipping it when another row already holds
+that spelling. Name IDs are matched by exact string, so this lets the
+importer, which now produces the corrected spelling, find the row again
+instead of creating a duplicate, without merging two rows. If the
+spelling was already held by another row, a later import that sends a source id
+belonging to the first row can then fail loudly with an upsert conflict rather
+than corrupt data, so check for such collisions with a read-only query before
+deploying. The `fix_bbl_windows_1252_text` migration is an example.
+
 Because tracked rows cannot be deleted (see [History tracking](#history-tracking)),
 a fix that retires a row flags it rather than removing it, as
 [Curated sets that shrink](#curated-sets-that-shrink) does.

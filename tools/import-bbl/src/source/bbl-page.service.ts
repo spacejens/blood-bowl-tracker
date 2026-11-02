@@ -8,7 +8,8 @@ import { Injectable } from '@nestjs/common';
  * Param values are normalized to NFC. Some filesystems (notably macOS APFS)
  * return directory-listing filenames with non-ASCII letters decomposed into
  * NFD (e.g. "a" + a combining ring above), while page *content* decoded from
- * the Latin-1 mirror is inherently NFC (Latin-1 only has precomposed forms).
+ * the Windows-1252 mirror is inherently NFC (Windows-1252 only has
+ * precomposed forms).
  * Without normalizing here, a value read from a filename (like a team code)
  * would fail strict-equality lookups against the same value read from HTML.
  */

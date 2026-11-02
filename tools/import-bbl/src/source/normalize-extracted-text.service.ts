@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
 
+/** Curly single quotes, including the low-9 and reversed forms. */
+const CURLY_SINGLE_QUOTES = /[‘’‚‛]/g;
+
+/** Curly double quotes, including the low-9 and reversed forms. */
+const CURLY_DOUBLE_QUOTES = /[“”„‟]/g;
+
 /**
  * Normalize a text value extracted from BBL's scraped HTML.
  *
@@ -14,10 +20,22 @@ import { Injectable } from '@nestjs/common';
  * codepoint is invisible everywhere it is displayed yet breaks byte-level
  * equality, so a "Name" external id built from a corrupted race name never
  * matches its plain-space twin from another source.
+ *
+ * It also folds curly single quotes to `'` and curly double quotes to `"`.
+ * BBL's Windows-1252 pages write apostrophes and quotes curly, while the
+ * curated data and most TP names use straight ones, and Name external ids are
+ * matched by exact string across sources. Dashes and ellipses are kept as
+ * decoded. The `fix_bbl_windows_1252_text` migration applies the same quote
+ * folding to stored values, so a change to the folding here needs a new data
+ * migration for the rows already stored.
  */
 @Injectable()
 export class NormalizeExtractedTextService {
   normalize(text: string): string {
-    return text.replace(/\s+/g, ' ').trim();
+    return text
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(CURLY_SINGLE_QUOTES, "'")
+      .replace(CURLY_DOUBLE_QUOTES, '"');
   }
 }

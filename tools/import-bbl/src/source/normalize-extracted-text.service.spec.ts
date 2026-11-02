@@ -37,4 +37,48 @@ describe('NormalizeExtractedTextService', () => {
   it('returns an empty string for an empty input', () => {
     expect(service.normalize('')).toBe('');
   });
+
+  it.each([
+    ['U+2018', '‘'],
+    ['U+2019', '’'],
+    ['U+201A', '‚'],
+    ['U+201B', '‛'],
+  ])('folds the curly single quote %s to an apostrophe', (_label, quote) => {
+    expect(service.normalize(`Ogre${quote}s Den`)).toBe("Ogre's Den");
+  });
+
+  it.each([
+    ['U+201C', '“'],
+    ['U+201D', '”'],
+    ['U+201E', '„'],
+    ['U+201F', '‟'],
+  ])('folds the curly double quote %s to a straight one', (_label, quote) => {
+    expect(service.normalize(`Bob ${quote}Nasty${quote} Nash`)).toBe(
+      'Bob "Nasty" Nash',
+    );
+  });
+
+  it('folds the apostrophe in a real BBL team name', () => {
+    expect(service.normalize('Doctor Sydow’s Mistakes')).toBe(
+      "Doctor Sydow's Mistakes",
+    );
+  });
+
+  it('folds quotes and collapses whitespace in the same value', () => {
+    expect(service.normalize(' ”Bomber”  Dick-Wick Jr ')).toBe(
+      '"Bomber" Dick-Wick Jr',
+    );
+  });
+
+  it('leaves en dashes, em dashes and ellipses as they are', () => {
+    const text = 'Ogretoberfest – Bash — Favoured of …';
+
+    expect(service.normalize(text)).toBe(text);
+  });
+
+  it('leaves straight quotes as they are', () => {
+    const text = `Bryce "The Slice" Cambuel's`;
+
+    expect(service.normalize(text)).toBe(text);
+  });
 });
