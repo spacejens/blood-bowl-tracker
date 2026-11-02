@@ -27,8 +27,8 @@ export interface LivePlayerSyncOptions {
   snapshot: UnspentSppSnapshot | undefined;
   errors: ImportError[];
   /**
-   * True for the bulk import, which sends a player with stored rows as TP
-   * lists him.
+   * True for the bulk import, which sends a player with stored paid
+   * advancements as TP lists him.
    */
   bulk?: boolean;
 }

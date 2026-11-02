@@ -23,8 +23,8 @@ export interface LiveAdvancementEntriesOptions {
   checkSpend?: boolean;
   /**
    * True for the bulk import. A bulk snapshot may come long after the stored
-   * rows were written, so a player with stored rows is sent as TP lists him,
-   * with nothing numbered as new and nothing pending.
+   * rows were written, so a player with stored paid advancements is sent as
+   * TP lists him, with nothing numbered as new and nothing pending.
    */
   bulk?: boolean;
 }
@@ -72,8 +72,10 @@ interface IncreaseSplit {
  * increases. A free extra keeps its TP list position, unconfirmed: that
  * number is outside the paid numbering and can equal a paid advancement's,
  * which the cost model and the deepdive allow for. A bulk import of a player
- * with stored rows cannot tell when the rest was taken, so it sends the
- * skills as TP lists them and each increase with an unknown order.
+ * with stored paid advancements cannot tell when the rest was taken, so it
+ * sends the skills as TP lists them and each increase with an unknown order;
+ * one with only starting skills or free extras stored is numbered from 1 as
+ * if nothing were stored.
  * Stored increases are resent as stored, best-ranked first, so the server
  * keeps them.
  *
@@ -99,11 +101,14 @@ export class TpAdvancementOrderService {
   /** The entries for one player, ordered as described above. */
   liveEntries(options: LiveAdvancementEntriesOptions): LiveAdvancementPlan {
     const { playerId, skillEntries, increases, stored } = options;
-    const firstNumber =
-      stored.filter((row) => row.source !== 'starting' && !row.isFreeExtra)
-        .length + 1;
+    const storedPaid = stored.filter(
+      (row) => row.source !== 'starting' && !row.isFreeExtra,
+    );
+    const firstNumber = storedPaid.length + 1;
     const hasBaseline = stored.length > 0;
-    if (hasBaseline && options.bulk === true) {
+    // Only stored paid rows are a history the bulk import must keep.
+    const hasPaidBaseline = storedPaid.length > 0;
+    if (hasPaidBaseline && options.bulk === true) {
       return {
         entries: [
           ...skillEntries,

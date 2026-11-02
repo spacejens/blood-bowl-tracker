@@ -165,7 +165,7 @@ describe('TpAdvancementOrderService', () => {
       });
     });
 
-    it('sends a player with stored rows as TP lists him in a bulk import', () => {
+    it('sends a player with stored paid advancements as TP lists him in a bulk import', () => {
       // A bulk snapshot cannot tell when the unstored advancements were taken.
       expect(
         service.liveEntries({
@@ -180,6 +180,53 @@ describe('TpAdvancementOrderService', () => {
         entries: [gained(7, 1), gained(8, 2), increaseEntry('AG', null)],
         pendingIndexes: [],
         firstNumber: 2,
+      });
+    });
+
+    it('numbers a bulk player with only starting skills stored from 1, pending', () => {
+      // A stored starting skill is no paid history to keep.
+      expect(
+        service.liveEntries({
+          playerId: 1,
+          skillEntries: [starting(5), gained(7, 1), gained(8, 2)],
+          increases: counts({ ST: 1 }),
+          stored: [
+            storedSkill({
+              skillId: 5,
+              source: 'starting',
+              advancementOrder: null,
+            }),
+          ],
+          checkSpend: true,
+          bulk: true,
+        }),
+      ).toEqual({
+        entries: [
+          starting(5),
+          gained(7, 1),
+          gained(8, 2),
+          increaseEntry('ST', 3),
+        ],
+        pendingIndexes: [1, 2, 3],
+        firstNumber: 1,
+      });
+    });
+
+    it('numbers a bulk player with only a free extra stored from 1, pending', () => {
+      // TP lists the free extra first; it keeps its list position.
+      expect(
+        service.liveEntries({
+          playerId: 1,
+          skillEntries: [{ ...gained(9, 1), isFreeExtra: true }, gained(7, 2)],
+          increases: counts(),
+          stored: [storedSkill({ skillId: 9, isFreeExtra: true })],
+          checkSpend: true,
+          bulk: true,
+        }),
+      ).toEqual({
+        entries: [{ ...gained(9, 1), isFreeExtra: true }, gained(7, 1)],
+        pendingIndexes: [1],
+        firstNumber: 1,
       });
     });
 
