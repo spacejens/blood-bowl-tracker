@@ -310,9 +310,13 @@ skills take no number. Only confirmed orders are sure to follow that
 numbering: a proxy order taken from TP's skill list position counts free
 extras and leaves out increases. Null means the order is unknown.
 `order_confirmed` marks an order that is trusted rather than a presentation
-proxy (a check requires an order for it). That includes TP's own order when it
-is trusted only because every fitting order costs the same, so a confirmed
-order is not always proven. The cost model pins only confirmed entries to
+proxy (a check requires an order for it). BBL's order is always trusted: its
+Skills cell lists a player's advancements in the order they were taken, so
+the BBL import sends every numbered one confirmed, and a migration confirmed
+the numbered paid rows already stored for players BBL alone describes (a BBL
+external id and no TP one). TP's order is trusted only where TP's reported
+spend decides it, including when every fitting order costs the same, so a
+confirmed order is not always proven. The cost model pins only confirmed entries to
 their advancement number, and every other entry is interchangeable with the
 rest. A sync never lets an unconfirmed incoming order overwrite a confirmed
 stored one. A row tracked by history cannot be deleted, so an increase a

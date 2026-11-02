@@ -94,11 +94,11 @@ can only be recorded once.
 Gained skills and characteristic increases share one **advancement order**:
 a numbering of the player's paid advancements, which free extras and starting
 skills do not take. An entry can have no order (unknown). An order is either a
-presentation-order proxy, as with BBL's page order and TP's list order, or
-**confirmed**, meaning it is trusted as the real sequence. A confirmed order
-is set only where a source can establish it: a live TP import that sees one
-new advancement, or works out the order of several from TP's reported spend.
-An import never replaces a confirmed order with a guess. The cost model pins
+presentation-order proxy, as with TP's list order, or **confirmed**, meaning
+it is trusted as the real sequence. BBL's page order is always confirmed. A
+TP order is confirmed only where TP's reported spend establishes it: a live
+import that sees one new advancement, or the order of several worked out
+from that spend. An import never replaces a confirmed order with a guess. The cost model pins
 only confirmed entries to their number. Starting skills have no order at all.
 
 A gained skill is not checked against its category. Recording a Trait or
