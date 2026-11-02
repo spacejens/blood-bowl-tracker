@@ -333,6 +333,25 @@ describe('AdvancementOrderDeductionService', () => {
       );
     });
 
+    it('ignores an ordered id that is not a new row', () => {
+      const rulesSets = [rulesSet(skillAndIncrease, COSTS)];
+
+      expect(
+        service.deduce({
+          rulesSets,
+          newRowIds: [2, 3],
+          orderedRowIds: [2, 99, 3],
+          firstNumber: 2,
+          spent: 31,
+        }),
+      ).toEqual(
+        new Map([
+          [2, 2],
+          [3, 3],
+        ]),
+      );
+    });
+
     it('changes nothing when it names a single row', () => {
       const rulesSets = [rulesSet([STORED, row(2), row(3)], FLAT)];
 
