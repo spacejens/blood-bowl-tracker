@@ -1,5 +1,4 @@
 import type {
-  PlayerSkillEntry,
   SyncPlayerSkills,
   SyncPlayerSkillsResult,
 } from '@blood-bowl-tracker/api-contract';
@@ -29,17 +28,14 @@ import { PaidAdvancementSlotsService } from './paid-advancement-slots.service';
 import type {
   CharacteristicInsert,
   ExistingRow,
+  FreeExtraFacts,
   ResolvedEntries,
   SkillInsert,
 } from './player-advancement-sync.types';
-import { PlayerAdvancementSyncPlannerService } from './player-advancement-sync-planner.service';
-
-/**
- * The curated name of the one skill gained only as a free extra: BB2025
- * grants Hatred on top of a player's advancements, never as one. The skill
- * name alone is Hatred's identity: its variants live in `attribute_value`.
- */
-const HATRED_SKILL_NAME = 'Hatred';
+import {
+  HATRED_SKILL_NAME,
+  PlayerAdvancementSyncPlannerService,
+} from './player-advancement-sync-planner.service';
 
 /**
  * One skill a player has, named for display. Not called `PlayerAdvancement`:
@@ -80,13 +76,9 @@ export interface PlayerSkillRow {
 }
 
 /** What a batch's entries are validated and marked against. */
-interface SyncFacts {
+interface SyncFacts extends FreeExtraFacts {
   knownPlayerIds: ReadonlySet<number>;
   knownSkillIds: ReadonlySet<number>;
-  /** Ids of the batch's skills named Hatred. */
-  hatredSkillIds: ReadonlySet<number>;
-  /** Player id -> skills one of that player's own trophy awards grants. */
-  grantedSkillIdsByPlayer: ReadonlyMap<number, ReadonlySet<number>>;
   /** The players whose characteristic increases the batch states in full. */
   characteristicPlayerIds: ReadonlySet<number>;
 }
@@ -131,7 +123,8 @@ export class PlayerSkillsService {
    * never overwrites a confirmed one. Every validation runs over the whole
    * batch before any write, so one bad entry fails the call rather than
    * half-applying it. Returned ids are index-aligned with `data.entries`.
-   * A skill row is stored as a free extra by the rules in `isFreeExtra`; an
+   * A skill row is stored as a free extra by the rules in
+   * PlayerAdvancementSyncPlannerService's `isFreeExtra`; an
    * existing row is only ever marked, never unmarked. A free extra's order is
    * never stored confirmed, and a confirmed free extra's number is closed up
    * in the player's paid numbering (see `closeFreeExtraSlots`).
@@ -180,15 +173,6 @@ export class PlayerSkillsService {
             .from(skills)
             .where(inArray(skills.id, skillIds));
 
-    const grantedSkillIdsByPlayer = new Map<number, Set<number>>();
-    for (const row of playerRows) {
-      if (typeof row.grantedSkillId !== 'number') {
-        continue;
-      }
-      const granted = grantedSkillIdsByPlayer.get(row.id) ?? new Set<number>();
-      granted.add(row.grantedSkillId);
-      grantedSkillIdsByPlayer.set(row.id, granted);
-    }
     const resolvedEntries = this.resolveEntries(data, {
       knownPlayerIds: new Set(playerRows.map((row) => row.id)),
       knownSkillIds: new Set(skillRows.map((row) => row.id)),
@@ -197,7 +181,12 @@ export class PlayerSkillsService {
           .filter((row) => row.name === HATRED_SKILL_NAME)
           .map((row) => row.id),
       ),
-      grantedSkillIdsByPlayer,
+      grantedSkillIdsByPlayer: this.syncPlanner.grantedSkillIdsByPlayer(
+        playerRows.map((row) => ({
+          playerId: row.id,
+          grantedSkillId: row.grantedSkillId,
+        })),
+      ),
       characteristicPlayerIds,
     });
 
@@ -478,31 +467,10 @@ export class PlayerSkillsService {
         attributeValue,
         advancementOrder: entry.advancementOrder,
         orderConfirmed: entry.orderConfirmed === true,
-        isFreeExtra: this.isFreeExtra(entry, skillId, facts),
+        isFreeExtra: this.syncPlanner.isFreeExtra(entry, skillId, facts),
       });
     }
     return resolved;
-  }
-
-  /**
-   * Whether a skill entry is stored as a free extra: the source flags it, it
-   * is a non-`starting` Hatred, or (for any other skill) one of the player's
-   * own trophy awards grants it. The trophy rule never applies to Hatred.
-   */
-  private isFreeExtra(
-    entry: PlayerSkillEntry,
-    skillId: number,
-    facts: SyncFacts,
-  ): boolean {
-    if (entry.isFreeExtra === true) {
-      return true;
-    }
-    if (facts.hatredSkillIds.has(skillId)) {
-      return entry.source !== 'starting';
-    }
-    return (
-      facts.grantedSkillIdsByPlayer.get(entry.playerId)?.has(skillId) === true
-    );
   }
 
   /**

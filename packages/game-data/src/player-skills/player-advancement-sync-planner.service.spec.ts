@@ -57,6 +57,25 @@ describe('PlayerAdvancementSyncPlannerService', () => {
     planner = moduleRef.get(PlayerAdvancementSyncPlannerService);
   });
 
+  describe('grantedSkillIdsByPlayer', () => {
+    it("groups each player's granted skills, skipping awards that grant nothing", () => {
+      expect(
+        planner.grantedSkillIdsByPlayer([
+          { playerId: 1, grantedSkillId: 7 },
+          { playerId: 1, grantedSkillId: 8 },
+          { playerId: 2, grantedSkillId: 7 },
+          { playerId: 3, grantedSkillId: null },
+          { playerId: null, grantedSkillId: 9 },
+        ]),
+      ).toEqual(
+        new Map([
+          [1, new Set([7, 8])],
+          [2, new Set([7])],
+        ]),
+      );
+    });
+  });
+
   describe('planSkills', () => {
     it('inserts an unmatched skill and matches a stored one by natural key', () => {
       const resultIds: number[] = [];

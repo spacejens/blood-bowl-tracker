@@ -95,6 +95,7 @@ describe('TpLiveAdvancementSyncService', () => {
     unspentSpp = mock<UnspentSppService>();
     deduction = mock<AdvancementOrderDeductionService>();
     reads.listStoredAdvancements.mockResolvedValue(STORED);
+    reads.resolveFreeExtras.mockResolvedValue(SKILL_ENTRIES);
     order.liveEntries.mockReturnValue(PENDING_PLAN);
     playerSkills.sync.mockResolvedValue({ playerSkillIds: [40, 41, 42] });
     unspentSpp.advancementInputsForPlayers.mockResolvedValue(
@@ -152,6 +153,48 @@ describe('TpLiveAdvancementSyncService', () => {
     });
     expect(unspentSpp.advancementInputsForPlayers).not.toHaveBeenCalled();
     expect(deduction.deduce).not.toHaveBeenCalled();
+  });
+
+  it('plans with the free extras the write will store, though TP did not flag them', async () => {
+    // TP omits isExtra on skill 8, which a trophy award of the player grants.
+    const resolved: PlayerSkillEntry[] = [
+      SKILL_ENTRIES[0],
+      { ...SKILL_ENTRIES[1], isFreeExtra: true },
+    ];
+    reads.resolveFreeExtras.mockResolvedValue(resolved);
+    order.liveEntries.mockReturnValue({
+      entries: resolved,
+      pendingIndexes: [],
+      firstNumber: 2,
+    });
+
+    await expect(syncPlayer()).resolves.toBe(true);
+
+    expect(reads.resolveFreeExtras).toHaveBeenCalledWith(SKILL_ENTRIES);
+    expect(order.liveEntries).toHaveBeenCalledWith(
+      expect.objectContaining({ skillEntries: resolved }),
+    );
+    expect(playerSkills.sync).toHaveBeenCalledWith({
+      entries: resolved,
+      characteristicPlayerIds: [PLAYER_ID],
+    });
+    expect(deduction.deduce).not.toHaveBeenCalled();
+  });
+
+  it('records a failed free-extra read and writes nothing', async () => {
+    reads.resolveFreeExtras.mockRejectedValue(new Error('db down'));
+
+    await expect(syncPlayer()).resolves.toBe(false);
+
+    expect(order.liveEntries).not.toHaveBeenCalled();
+    expect(playerSkills.sync).not.toHaveBeenCalled();
+    expect(errors).toEqual([
+      {
+        item: { lineUpId: 5001, playerId: PLAYER_ID },
+        message:
+          'Failed to read the free extras of player "Grim" (5001): db down',
+      },
+    ]);
   });
 
   it('tells the planner when the import is the bulk one', async () => {

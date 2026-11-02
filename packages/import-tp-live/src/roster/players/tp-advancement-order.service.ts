@@ -71,7 +71,10 @@ interface IncreaseSplit {
  * replaces TP's list position, which counts free extras and leaves out
  * increases. A free extra keeps its TP list position, unconfirmed: that
  * number is outside the paid numbering and can equal a paid advancement's,
- * which the cost model and the deepdive allow for. A bulk import of a player
+ * which the cost model and the deepdive allow for. An entry counts as a free
+ * extra by its `isFreeExtra` flag alone; the caller sets it beforehand on
+ * every skill the write stores free, not only on those TP flags `isExtra`
+ * (PlayerAdvancementReadsService.resolveFreeExtras). A bulk import of a player
  * with stored paid advancements cannot tell when the rest was taken, so it
  * sends the skills as TP lists them and each increase with an unknown order;
  * one with only starting skills or free extras stored is numbered from 1 as

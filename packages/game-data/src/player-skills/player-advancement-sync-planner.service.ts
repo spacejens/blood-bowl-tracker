@@ -6,6 +6,7 @@ import { CharacteristicAdvancementPlannerService } from './characteristic-advanc
 import type {
   CharacteristicWrites,
   ExistingRow,
+  FreeExtraFacts,
   PlayerSkillUpdate,
   ResolvedCharacteristic,
   ResolvedEntries,
@@ -15,11 +16,20 @@ import type {
 } from './player-advancement-sync.types';
 
 /**
+ * The curated name of the one skill gained only as a free extra: BB2025
+ * grants Hatred on top of a player's advancements, never as one. The skill
+ * name alone is Hatred's identity: its variants live in `attribute_value`.
+ */
+export const HATRED_SKILL_NAME = 'Hatred';
+
+/**
  * Decides which advancement rows a `PlayerSkillsService.sync` batch writes,
  * given the rows already stored for the batch's players: skill rows matched
  * on their natural key, characteristic rows reconciled per listed player
  * through CharacteristicAdvancementPlannerService. Ids of stored rows that
- * stand for an entry go straight into the caller's `resultIds`.
+ * stand for an entry go straight into the caller's `resultIds`. Also owns the
+ * rule for which skill entries are free extras (`isFreeExtra`), shared with
+ * PlayerAdvancementReadsService.resolveFreeExtras.
  *
  * Pure decision logic, with no I/O and no external state; its one
  * collaborator is pure too.
@@ -37,6 +47,47 @@ export class PlayerAdvancementSyncPlannerService {
     attributeValue: string | null,
   ): string {
     return JSON.stringify([playerId, skillId, attributeValue]);
+  }
+
+  /**
+   * Whether a skill entry is stored as a free extra: the source flags it, it
+   * is a non-`starting` Hatred, or (for any other skill) one of the player's
+   * own trophy awards grants it. The trophy rule never applies to Hatred.
+   */
+  isFreeExtra(
+    entry: PlayerSkillEntry,
+    skillId: number,
+    facts: FreeExtraFacts,
+  ): boolean {
+    if (entry.isFreeExtra === true) {
+      return true;
+    }
+    if (facts.hatredSkillIds.has(skillId)) {
+      return entry.source !== 'starting';
+    }
+    return (
+      facts.grantedSkillIdsByPlayer.get(entry.playerId)?.has(skillId) === true
+    );
+  }
+
+  /**
+   * Player id -> the skills that player's trophy awards grant. An award
+   * with no player or no granted skill grants nothing.
+   */
+  grantedSkillIdsByPlayer(
+    awards: { playerId: number | null; grantedSkillId: number | null }[],
+  ): Map<number, Set<number>> {
+    const granted = new Map<number, Set<number>>();
+    for (const { playerId, grantedSkillId } of awards) {
+      if (playerId === null || grantedSkillId === null) {
+        continue;
+      }
+      granted.set(
+        playerId,
+        (granted.get(playerId) ?? new Set<number>()).add(grantedSkillId),
+      );
+    }
+    return granted;
   }
 
   /**

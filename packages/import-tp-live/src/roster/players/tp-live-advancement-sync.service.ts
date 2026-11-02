@@ -35,8 +35,10 @@ export interface LivePlayerSyncOptions {
 
 /**
  * Writes one player's advancements for the TP roster import, live and bulk
- * alike. Reads what is stored, lets TpAdvancementOrderService decide each
- * entry's order, and writes the entries. When new advancements are pending
+ * alike. Reads what is stored, flags each skill the write will store as a
+ * free extra (PlayerAdvancementReadsService.resolveFreeExtras, the same rule
+ * PlayerSkillsService.sync applies), lets TpAdvancementOrderService decide
+ * each entry's order, and writes the entries. When new advancements are pending
  * (several, or a lone one while TP's spend is known), it asks
  * AdvancementOrderDeductionService which order the SPP TP reports as spent
  * allows, reading the player's advancement inputs after the first write so the
@@ -58,8 +60,8 @@ export class TpLiveAdvancementSyncService {
 
   /**
    * True when the player's entries were written, whether or not an order
-   * was deduced; false when the stored rows could not be read or the first
-   * write failed (both recorded as errors).
+   * was deduced; false when the stored rows or free extras could not be read
+   * or the first write failed (each recorded as an error).
    */
   async syncPlayer(options: LivePlayerSyncOptions): Promise<boolean> {
     const { player, playerId, skillEntries, increases, errors } = options;
@@ -73,9 +75,21 @@ export class TpLiveAdvancementSyncService {
     if (stored === undefined) {
       return false;
     }
+    // The write stores some skills TP does not flag as free extras (a gained
+    // Hatred, a trophy-granted skill); the plan must not number them as paid.
+    const resolvedEntries = await this.runner.record({
+      run: () => this.reads.resolveFreeExtras(skillEntries),
+      item: { lineUpId: player.id, playerId },
+      errors,
+      buildErrorMessage: (error) =>
+        `Failed to read the free extras of player "${player.name}" (${player.id}): ${this.runner.messageOf(error)}`,
+    });
+    if (resolvedEntries === undefined) {
+      return false;
+    }
     const plan = this.order.liveEntries({
       playerId,
-      skillEntries,
+      skillEntries: resolvedEntries,
       increases,
       stored,
       checkSpend: this.spent(options.snapshot) !== undefined,
