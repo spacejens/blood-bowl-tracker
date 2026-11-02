@@ -98,17 +98,17 @@ the stat line is therefore absent.
 Then up to two lines: `Starting skills:`, the skills the player's
 [position](../../glossary.md#position) granted, alphabetically, and
 `Advancements:`, everything the player has gained since — skills and
-[characteristic increases](../../glossary.md#characteristic-increase) together,
-in the order they were gained. A free extra is placed by the number its
-source recorded, which is outside the paid numbering, ahead of a paid entry
-sharing that number. An entry whose order is unknown or not confirmed goes
-last, skills alphabetically and then increases in MA/ST/AG/PA/AV order. An
-increase reads `+AG`, `+MA` and so on; its only
-possible marker is `⇅?`. A group with nothing in it has no line at all. The
-starting skills and gained skills are omitted when no rules set resolves for
-the player's era, but increases need no rules set, so the Advancements line
-still shows them, even for a player with only increases. A skill whose rules
-need a roll or a named target shows that value in brackets after its name.
+[characteristic increases](../../glossary.md#characteristic-increase)
+together, in the order they were gained. A free extra is placed by the number
+its source recorded, which is outside the paid numbering, ahead of a paid
+entry sharing that number. An entry whose order is unknown or not confirmed
+goes last, skills alphabetically and then increases in MA/ST/AG/PA/AV order.
+An increase reads `+AG`, `+MA` and so on; its only possible marker is `⇅?`. A
+group with nothing in it has no line at all. The starting skills and gained
+skills are omitted when no rules set resolves for the player's era, but
+increases need no rules set, so the Advancements line still shows them, even
+for a player with only increases. A skill whose rules need a roll or a named
+target shows that value in brackets after its name.
 
 An advancement can carry markers before its name, always in this order:
 

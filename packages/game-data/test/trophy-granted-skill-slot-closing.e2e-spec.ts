@@ -344,4 +344,24 @@ describe('Marking a trophy-granted skill free closes its slot (real Postgres)', 
     expect(await states()).toEqual(stateAfter);
     expect(await historyCount()).toBe(after);
   });
+
+  it('leaves the closed numbering as it is when the skill is unmarked again', async () => {
+    await insertRows([
+      { skill: 'Block', order: 1 },
+      { skill: 'Tentacles', order: 2 },
+      { skill: 'Dodge', order: 3 },
+    ]);
+    await mark('Tentacles');
+
+    await service.unmarkTrophyGranted(
+      fixtures.playerId,
+      fixtures.skillIds['Tentacles'],
+    );
+
+    expect(await states()).toEqual([
+      [1, true, false],
+      [2, false, false],
+      [2, true, false],
+    ]);
+  });
 });
