@@ -95,8 +95,8 @@ describe('StoredIncreaseRawMatchService', () => {
     const unknown = stored('ST', null);
     const ordered = stored('ST', 5);
     const { service } = await makeService([
-      { characteristic: 'ST', advancementOrder: 2 },
       { characteristic: 'ST', advancementOrder: 5 },
+      { characteristic: 'ST', advancementOrder: 2 },
     ]);
 
     const match = await service.match(player, [unknown, ordered]);

@@ -14,6 +14,9 @@ import { TpRawPlayerSkillsIndexService } from '../source/tp-raw-player-skills-in
 const NONE = '—';
 const NOT_RECORDED = 'not recorded';
 
+/** The skill name the Journeyman caveat keys on; the name comes from TP's data. */
+const LONER_SKILL_NAME = 'Loner';
+
 const EXTRA_CAVEAT =
   'Extra skills (isExtra, such as Hatred) are imported as free extras, so the modelled range prices them at 0.';
 const LONER_CAVEAT =
@@ -106,7 +109,9 @@ export class TpPlayerAdvancementsRawRendererService {
     const gained = advancements.gainedSkills;
     return [
       gained.some((skill) => skill.isExtra === true) ? EXTRA_CAVEAT : null,
-      gained.some((skill) => skill.name === 'Loner') ? LONER_CAVEAT : null,
+      gained.some((skill) => skill.name === LONER_SKILL_NAME)
+        ? LONER_CAVEAT
+        : null,
     ]
       .filter((text): text is string => text !== null)
       .map((text) => `<p>${this.html.escape(text)}</p>`)

@@ -15,10 +15,12 @@ const HEADERS = ['Row', 'MA', 'ST', 'AG', 'PA', 'AV'] as const;
  * from. TP reports nothing about a reduced characteristic and publishes no
  * advancement counter, so the gap between the two rows is left for the
  * reviewer to read: deciding which direction of a gap is a reduction is
- * exactly the judgement the importer makes. Only a null value renders as the report's none
- * marker; a zero (e.g. a Kroxigor/Ogre's Passing) is a real characteristic
- * value and prints like any other number, since this renderer shows raw TP
- * data with no `CharacteristicFormat` context to special-case it against.
+ * exactly the judgement the importer makes.
+ *
+ * Only a null value renders as the report's none marker; a zero (e.g. a
+ * Kroxigor/Ogre's Passing) is a real characteristic value and prints like any
+ * other number, since this renderer shows raw TP data with no
+ * `CharacteristicFormat` context to special-case it against.
  *
  * Two distinct gaps get two distinct notes, because they mean different
  * things: a line-up id in no match file at all is a player this tool cannot

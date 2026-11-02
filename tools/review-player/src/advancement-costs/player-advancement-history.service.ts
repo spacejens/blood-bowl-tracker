@@ -59,12 +59,18 @@ interface PositionCategories {
   secondary: Set<SkillCategory>;
 }
 
+/** A skill's category and elite flag under one rules set. */
+interface SkillRulesSetFlags {
+  category: SkillCategory;
+  isElite: boolean;
+}
+
 /** The per-chunk lookups, keyed by `pairKey`. */
 interface CategoryLookups {
   /** By position id and rules set id. */
   positions: Map<string, PositionCategories>;
   /** By skill id and rules set id: the skill's category and elite flag. */
-  skills: Map<string, { category: SkillCategory; isElite: boolean }>;
+  skills: Map<string, SkillRulesSetFlags>;
 }
 
 /**
@@ -77,8 +83,8 @@ interface CategoryLookups {
  * league's house rules: player -> team era -> era -> league), plus the
  * categories the player's position has as primary and as secondary under
  * that rules set (`position_rules_set_skill_categories`, ignoring removed
- * rows) and each stored skill's attribute value, and its category and elite flag
- * under it (`skill_rules_sets`).
+ * rows) and each stored skill's attribute value, plus each stored skill's category
+ * and elite flag under that rules set (`skill_rules_sets`).
  *
  * The era -> rules-set map and the cost table are small and loaded once per
  * process. Players are loaded in chunks, because the unspent-SPP stratum asks
@@ -309,7 +315,7 @@ export class PlayerAdvancementHistoryService {
   /** No query when the chunk's players have no skills at all. */
   private async loadSkillRulesSetFlags(
     skillIds: number[],
-  ): Promise<Map<string, { category: SkillCategory; isElite: boolean }>> {
+  ): Promise<Map<string, SkillRulesSetFlags>> {
     if (skillIds.length === 0) {
       return new Map();
     }

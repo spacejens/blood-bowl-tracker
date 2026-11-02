@@ -156,8 +156,12 @@ describe('TpPlayerCharacteristicsRawRendererService', () => {
   it('renders when only a template value is known', async () => {
     index.aggregateFor.mockResolvedValue(aggregate({ templateArmour: 9 }));
 
-    expect(await service.render('2477481')).toContain(
-      '<td>Position template</td>',
+    const html = await service.render('2477481');
+
+    const none = `<td>${NO_CHARACTERISTIC}</td>`;
+    expect(html).toContain(
+      `<tr><td>Position template</td>${none.repeat(4)}<td>9</td></tr>`,
     );
+    expect(html).toContain(`<tr><td>Player</td>${none.repeat(5)}</tr>`);
   });
 });

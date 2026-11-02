@@ -63,11 +63,11 @@ describe('ReportBuilderService', () => {
           item: player,
           panels: [
             {
-              dataTypeId: 'career-history',
+              dataTypeId: 'custom-panel',
               rawHtml: '<p>raw</p>',
               importedHtml: '<p>db</p>',
-              rawLabel: 'Computed from match events (database)',
-              importedLabel: 'Stored player totals (database)',
+              rawLabel: 'Custom raw label',
+              importedLabel: 'Custom imported label',
             },
           ],
         },
@@ -76,8 +76,8 @@ describe('ReportBuilderService', () => {
       generatedAt,
     });
 
-    expect(html).toContain('<h4>Computed from match events (database)</h4>');
-    expect(html).toContain('<h4>Stored player totals (database)</h4>');
+    expect(html).toContain('<h4>Custom raw label</h4>');
+    expect(html).toContain('<h4>Custom imported label</h4>');
   });
 
   it('titles the document for player review', () => {

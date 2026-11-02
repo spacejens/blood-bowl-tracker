@@ -31,6 +31,7 @@ import { TpPlayerAdvancementsRawRendererService } from './tp-player-advancements
     StoredIncreaseRawMatchService,
     StoredSkillRawMatchService,
     TpPlayerAdvancementsRawRendererService,
+    SkillFormatService,
   ],
 })
 export class PlayerAdvancementsModule {}

@@ -63,7 +63,14 @@ describe('PlayerSppTotalsRendererService', () => {
     expect(html).toContain(
       '<td>Stored adjustment (spp_adjustment)</td><td>—</td>',
     );
-    expect(html).toContain('<td class="mismatch-cell">MISMATCH</td>');
+    expect(html).toContain(
+      '<td>Computed total (sum of match events)</td><td>16</td>',
+    );
+    expect(html).toContain('<td>SPP-earning events</td><td>5</td>');
+    expect(html).toContain(
+      '<tr class="mismatch"><td>Agrees with computed total plus adjustment</td>' +
+        '<td class="mismatch-cell">MISMATCH</td></tr>',
+    );
   });
 
   it('renders no events table when every event has the standard award', () => {
@@ -75,6 +82,7 @@ describe('PlayerSppTotalsRendererService', () => {
       totals({
         nonStandardEvents: [
           { actionType: 'touchdown', recordedValue: 5, expectedValue: 3 },
+          { actionType: 'casualty', recordedValue: 1, expectedValue: 2 },
         ],
       }),
     );
@@ -85,6 +93,10 @@ describe('PlayerSppTotalsRendererService', () => {
     expect(html).toContain(
       '<td>touchdown</td><td class="mismatch-cell">5</td>' +
         '<td class="mismatch-cell">3</td>',
+    );
+    expect(html).toContain(
+      '<td>casualty</td><td class="mismatch-cell">1</td>' +
+        '<td class="mismatch-cell">2</td>',
     );
   });
 });

@@ -1,4 +1,3 @@
-import { SkillFormatService } from '@blood-bowl-tracker/review-harness';
 import { Module } from '@nestjs/common';
 
 import { PlayerAdvancementsModule } from '../player-advancements/player-advancements.module';
@@ -28,7 +27,6 @@ import { UnspentSppTableService } from './unspent-spp-table.service';
     AdvancementTableService,
     AdvancementsDbRendererService,
     PlayerAdvancementHistoryService,
-    SkillFormatService,
     SourceSpendComparisonService,
     SourceUnspentSppFigureService,
     StoredUnspentSppCheckService,

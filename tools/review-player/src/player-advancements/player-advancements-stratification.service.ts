@@ -42,7 +42,7 @@ const CHOSEN = 'freely-chosen-skill';
  * different importer path, and none of them is by itself a defect.
  *
  * The rules set is the era's LAST-LISTED one, the same insertion-order
- * heuristic `AdvancementsDbRendererService` and the characteristics
+ * heuristic `PlayerAdvancementHistoryService` and the characteristics
  * stratifier already use, and for the same reason: this tool must not read
  * the importers' configs.
  */
