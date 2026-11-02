@@ -46,7 +46,7 @@ describe('CoachPageParser', () => {
     expect(parser.extractCoach(page)).toEqual({ name: 'Mc Beef' });
   });
 
-  it('decodes and preserves Latin-1 characters in the name', () => {
+  it('preserves accented characters in the name', () => {
     const page = teamPage(
       '<table><tr><td>Coach:</td><td><b>Göran Åke</b></td></tr></table>',
     );
