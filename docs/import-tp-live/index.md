@@ -190,8 +190,9 @@ import of a player with stored rows cannot tell when the rest was taken, so
 it sends the gained skills at their TP list position and the increases with
 an unknown order, all unconfirmed. It rewrites a stored skill's unconfirmed
 order to TP's list position (and an unconfirmed increase's to unknown), while
-a confirmed stored order is never overwritten. A free extra keeps its TP list position, unconfirmed and outside
-the paid numbering, so it can share a number with a paid advancement.
+a confirmed stored order is never overwritten. A free extra keeps its TP list
+position, unconfirmed and outside the paid numbering, so it can share a number
+with a paid advancement.
 
 The spend is the only evidence of order TP gives. Its data has no timestamps
 and no per-skill history, and its skill row ids are not monotonic with list

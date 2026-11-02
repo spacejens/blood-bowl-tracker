@@ -281,6 +281,112 @@ describe('confirm_bbl_advancement_order migration (real Postgres)', () => {
     ]);
   });
 
+  it('closes the slots of two free extras of one player', async () => {
+    const [mutation, twoHeads, dodge, guard] = await db
+      .insert(skills)
+      .values([
+        { name: 'Tentacles' },
+        { name: 'Two Heads' },
+        { name: 'Dodge' },
+        { name: 'Guard' },
+      ])
+      .returning();
+    await db.insert(playerAdvancements).values([
+      {
+        playerId: ids.bblOnly,
+        skillId: ids.skillId,
+        source: 'advancement',
+        advancementOrder: 1,
+      },
+      {
+        playerId: ids.bblOnly,
+        skillId: mutation.id,
+        source: 'advancement',
+        advancementOrder: 2,
+        isFreeExtra: true,
+      },
+      {
+        playerId: ids.bblOnly,
+        skillId: dodge.id,
+        source: 'advancement',
+        advancementOrder: 3,
+      },
+      {
+        playerId: ids.bblOnly,
+        skillId: twoHeads.id,
+        source: 'advancement',
+        advancementOrder: 4,
+        isFreeExtra: true,
+      },
+      {
+        playerId: ids.bblOnly,
+        skillId: guard.id,
+        source: 'advancement',
+        advancementOrder: 5,
+      },
+      {
+        playerId: ids.bblOnly,
+        source: 'characteristic',
+        characteristic: 'AG',
+        advancementOrder: 6,
+      },
+    ]);
+
+    await runMigration(db);
+
+    expect(await ordersAndFlags(db)).toEqual([
+      [1, true],
+      [2, false],
+      [2, true],
+      [4, false],
+      [3, true],
+      [4, true],
+    ]);
+  });
+
+  it('shifts an increase but not a skill numbered before the free extra', async () => {
+    const [mutation, dodge] = await db
+      .insert(skills)
+      .values([{ name: 'Tentacles' }, { name: 'Dodge' }])
+      .returning();
+    await db.insert(playerAdvancements).values([
+      {
+        playerId: ids.bblOnly,
+        source: 'characteristic',
+        characteristic: 'ST',
+        advancementOrder: 4,
+      },
+      {
+        playerId: ids.bblOnly,
+        skillId: mutation.id,
+        source: 'advancement',
+        advancementOrder: 3,
+        isFreeExtra: true,
+      },
+      {
+        playerId: ids.bblOnly,
+        skillId: ids.skillId,
+        source: 'advancement',
+        advancementOrder: 1,
+      },
+      {
+        playerId: ids.bblOnly,
+        skillId: dodge.id,
+        source: 'advancement',
+        advancementOrder: 2,
+      },
+    ]);
+
+    await runMigration(db);
+
+    expect(await ordersAndFlags(db)).toEqual([
+      [3, true],
+      [3, false],
+      [1, true],
+      [2, true],
+    ]);
+  });
+
   it('leaves a player whose free extra has no number unconfirmed', async () => {
     await insertAroundFreeExtra(db, ids, null);
 

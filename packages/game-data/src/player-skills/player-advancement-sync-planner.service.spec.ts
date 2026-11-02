@@ -249,6 +249,34 @@ describe('PlayerAdvancementSyncPlannerService', () => {
       ]);
     });
 
+    it('closes the slots of two free extras of one player', () => {
+      const result = planner.closeFreeExtraSlots(
+        {
+          skills: [
+            paid(10, 1),
+            free(11, 2),
+            paid(12, 3),
+            free(14, 4),
+            paid(13, 5),
+          ],
+          characteristics: [
+            increase({ index: 5, advancementOrder: 6, orderConfirmed: true }),
+          ],
+        },
+        [],
+      );
+      expect(orders(result)).toEqual([
+        [10, 1, true],
+        [11, 2, false],
+        [12, 2, true],
+        [14, 4, false],
+        [13, 3, true],
+      ]);
+      expect(result.characteristics.map((row) => row.advancementOrder)).toEqual(
+        [4],
+      );
+    });
+
     it('leaves a batch without a free extra unchanged', () => {
       const resolved = {
         skills: [paid(10, 1), paid(12, 2)],
