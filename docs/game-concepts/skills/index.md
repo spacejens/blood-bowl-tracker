@@ -122,7 +122,8 @@ are known:
   itself, and every skill it flags is recorded as a free extra.
 - **A skill a [trophy award](../trophies/index.md#trophy-award) grants**
   (Gudarnas Förkämpe's mutation). Neither BBL nor TP marks it as free; the
-  award naming the skill is what marks it, whichever was recorded first.
+  award naming the skill is what marks it, whichever was recorded first. A
+  starting skill is never marked this way.
   Changing or clearing the award's skill unmarks it again, unless another
   award of the same player still names it.
 

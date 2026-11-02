@@ -52,7 +52,9 @@ export class PlayerAdvancementSyncPlannerService {
   /**
    * Whether a skill entry is stored as a free extra: the source flags it, it
    * is a non-`starting` Hatred, or (for any other skill) one of the player's
-   * own trophy awards grants it. The trophy rule never applies to Hatred.
+   * own trophy awards grants it. The trophy rule never applies to Hatred or
+   * to a `starting` entry: a starting skill is not gained, so it holds no
+   * slot a trophy could make free.
    */
   isFreeExtra(
     entry: PlayerSkillEntry,
@@ -66,6 +68,7 @@ export class PlayerAdvancementSyncPlannerService {
       return entry.source !== 'starting';
     }
     return (
+      entry.source !== 'starting' &&
       facts.grantedSkillIdsByPlayer.get(entry.playerId)?.has(skillId) === true
     );
   }

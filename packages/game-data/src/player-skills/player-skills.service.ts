@@ -10,6 +10,7 @@ import {
   eq,
   inArray,
   isNotNull,
+  ne,
   playerAdvancements,
   players,
   skillRulesSets,
@@ -476,8 +477,8 @@ export class PlayerSkillsService {
   /**
    * Mark the player's rows of a skill one of their own trophy awards grants
    * as free extras. Covers an award recorded after the skill; `sync` covers
-   * the opposite order. Never applied to Hatred, matching `sync`'s trophy
-   * rule. Clears nothing: `unmarkTrophyGranted` is the counterpart, and the
+   * the opposite order. Never applied to Hatred or to a `starting` row,
+   * matching `sync`'s trophy rule. Clears nothing: `unmarkTrophyGranted` is the counterpart, and the
    * caller re-prices the player's stored unspent SPP afterwards.
    *
    * A free extra's order is never stored confirmed, so a marked row keeps
@@ -510,6 +511,7 @@ export class PlayerSkillsService {
             eq(playerAdvancements.playerId, playerId),
             eq(playerAdvancements.skillId, skillId),
             eq(playerAdvancements.isFreeExtra, false),
+            ne(playerAdvancements.source, 'starting'),
           ),
         )
         .for('update');

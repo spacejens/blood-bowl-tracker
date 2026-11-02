@@ -37,7 +37,19 @@ describe('PlayerSkillsService', () => {
         1,
         7,
         false,
+        'starting',
       ]);
+    });
+
+    it('never selects a starting row', async () => {
+      const db = mockDb([{ name: 'Tentacles' }], []);
+      const service = await makeService(db);
+
+      await service.markTrophyGranted(1, 7);
+
+      expect(
+        extractAllFilterValues(firstCallArg(db.chains[1].where)),
+      ).toContain('starting');
     });
 
     it('changes nothing when every row of the skill is already free', async () => {

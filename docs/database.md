@@ -298,7 +298,7 @@ not one of the player's advancements (see
 it at 0 and leaves it out of the advancement count. `PlayerSkillsService`
 sets it when a sync entry flags it (TP's `isExtra`), when one of the
 player's own trophy awards names the skill as `granted_skill_id` (never for
-Hatred), and for every non-`starting` Hatred; writing an award that grants a
+Hatred or a `starting` row), and for every non-`starting` Hatred; writing an award that grants a
 skill marks the player's matching rows too. `sync` and a new trophy award only
 ever set the flag. Changing or clearing an existing award's granted skill
 unmarks that skill's rows for the winner, unless it is Hatred or another award

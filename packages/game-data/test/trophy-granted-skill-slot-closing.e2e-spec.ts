@@ -364,4 +364,38 @@ describe('Marking a trophy-granted skill free closes its slot (real Postgres)', 
       [2, true, false],
     ]);
   });
+
+  it('leaves a starting row of the skill non-free and renumbers nothing', async () => {
+    await insertRows([
+      { skill: 'Tentacles', order: null, confirmed: false, source: 'starting' },
+      { skill: 'Block', order: 1 },
+      { skill: 'Dodge', order: 2 },
+    ]);
+
+    await mark('Tentacles');
+
+    expect(await states()).toEqual([
+      [null, false, false],
+      [1, true, false],
+      [2, true, false],
+    ]);
+  });
+
+  it('marks only the gained row when the skill is also a starting skill', async () => {
+    await insertRows([
+      { skill: 'Tentacles', order: null, confirmed: false, source: 'starting' },
+      { skill: 'Block', order: 1 },
+      { skill: 'Tentacles', attributeValue: 'g', order: 2 },
+      { skill: 'Dodge', order: 3 },
+    ]);
+
+    await mark('Tentacles');
+
+    expect(await states()).toEqual([
+      [null, false, false],
+      [1, true, false],
+      [2, false, true],
+      [2, true, false],
+    ]);
+  });
 });

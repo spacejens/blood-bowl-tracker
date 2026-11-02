@@ -57,6 +57,43 @@ describe('PlayerAdvancementSyncPlannerService', () => {
     planner = moduleRef.get(PlayerAdvancementSyncPlannerService);
   });
 
+  describe('isFreeExtra', () => {
+    const facts = {
+      hatredSkillIds: new Set<number>(),
+      grantedSkillIdsByPlayer: new Map([[1, new Set([7])]]),
+    };
+
+    it('is free for a gained skill a trophy grants', () => {
+      expect(
+        planner.isFreeExtra(
+          { playerId: 1, skillId: 7, source: 'advancement' },
+          7,
+          facts,
+        ),
+      ).toBe(true);
+    });
+
+    it('is not free for a starting skill a trophy grants', () => {
+      expect(
+        planner.isFreeExtra(
+          { playerId: 1, skillId: 7, source: 'starting' },
+          7,
+          facts,
+        ),
+      ).toBe(false);
+    });
+
+    it('stays free for a starting skill the source flags', () => {
+      expect(
+        planner.isFreeExtra(
+          { playerId: 1, skillId: 7, source: 'starting', isFreeExtra: true },
+          7,
+          facts,
+        ),
+      ).toBe(true);
+    });
+  });
+
   describe('grantedSkillIdsByPlayer', () => {
     it("groups each player's granted skills, skipping awards that grant nothing", () => {
       expect(
