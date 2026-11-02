@@ -8,11 +8,7 @@ import type {
   PlayerCharacteristicCounts,
   PlayerSkillSource,
 } from '@blood-bowl-tracker/domain-enums';
-import { PlayerSkillsService } from '@blood-bowl-tracker/game-data';
-import {
-  ImportResultService,
-  UpsertRecorderService,
-} from '@blood-bowl-tracker/import-shared';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type {
   TpPlayerSkillRef,
   TpPlayerSkills,
@@ -25,7 +21,6 @@ import { TpKeywordTargetDecoderService } from '../../official-teams/tp-keyword-t
 import type { TpOfficialKeywordCatalog } from '../../official-teams/tp-official-keyword-catalog.service';
 import { TpOfficialKeywordCatalogService } from '../../official-teams/tp-official-keyword-catalog.service';
 import type { TpRosterContext } from '../tp-roster-context.service';
-import { TpAdvancementOrderService } from './tp-advancement-order.service';
 import { TpLiveAdvancementSyncService } from './tp-live-advancement-sync.service';
 import type { TpResolvedSkill } from './tp-roster-skill-ids.service';
 import { TpRosterSkillIdsService } from './tp-roster-skill-ids.service';
@@ -43,9 +38,10 @@ export interface SyncRosterPlayerSkillsOptions {
   /** Each imported player's characteristic increases, by database player id. */
   increasesByPlayerId: ReadonlyMap<number, PlayerCharacteristicCounts>;
   /**
-   * When true (the live import only), each player's entries go through
-   * TpLiveAdvancementSyncService, which confirms the order of new
-   * advancements where it is known.
+   * True for the live import, whose run right after a match makes every
+   * advancement not stored before a new one. Either way each player goes
+   * through TpLiveAdvancementSyncService, so a player with nothing stored has
+   * the order of his paid advancements deduced from TP's reported spend.
    */
   confirmNewAdvancements?: boolean;
   context: TpRosterContext;
@@ -87,13 +83,13 @@ interface SkillRefEntry {
  * gained skills alike plus characteristic increases, for both the live import
  * and the bulk `tpRosters.import` path. A `starting` entry is the position
  * template's; a gained one is `random` or `chosen` from TP's own `isRandom`,
- * with `advancementOrder` its 1-based index in TP's gained list (TP's
- * presentation order, the best proxy it exposes). A gained skill TP flags
- * `isExtra` is sent as a free extra (`isFreeExtra`). Increases travel with
- * the skills in the same sync, stating the player's increases in full: the
- * bulk import sends them with an unknown order, while the live import hands
- * each player to TpLiveAdvancementSyncService, which orders new advancements
- * after the stored ones. Only a roster entry with a skills group or derived
+ * with `advancementOrder` its 1-based index in TP's gained list as the
+ * starting proxy. A gained skill TP flags `isExtra` is sent as a free extra
+ * (`isFreeExtra`). Increases travel with the skills in the same sync, stating
+ * the player's increases in full: every player goes to
+ * TpLiveAdvancementSyncService, which numbers the paid advancements and
+ * confirms their order where TP's spend decides it. Only a roster entry with
+ * a skills group or derived
  * increases contributes: a match-snapshot-only player carries neither.
  */
 @Injectable()
@@ -102,10 +98,7 @@ export class TpRosterPlayerSkillsService {
     private readonly skillIds: TpRosterSkillIdsService,
     private readonly keywordCatalog: TpOfficialKeywordCatalogService,
     private readonly keywordTargets: TpKeywordTargetDecoderService,
-    private readonly playerSkills: PlayerSkillsService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
-    private readonly order: TpAdvancementOrderService,
     private readonly liveSync: TpLiveAdvancementSyncService,
   ) {}
 
@@ -189,38 +182,16 @@ export class TpRosterPlayerSkillsService {
       if (skillEntries.length === 0 && increases === undefined) {
         continue;
       }
-      if (confirmNewAdvancements === true) {
-        const wrote = await this.liveSync.syncPlayer({
-          player: { id: player.id, name: player.name },
-          playerId,
-          skillEntries,
-          increases,
-          snapshot,
-          errors,
-        });
-        if (wrote) {
-          written += skillEntries.length;
-        }
-        continue;
-      }
-      const entries = [
-        ...skillEntries,
-        ...this.order.characteristicEntries(playerId, increases),
-      ];
-      const synced = await this.runner.record({
-        run: () =>
-          this.playerSkills.sync({
-            entries,
-            ...(increases === undefined
-              ? {}
-              : { characteristicPlayerIds: [playerId] }),
-          }),
-        item: { lineUpId: player.id, playerId },
+      const wrote = await this.liveSync.syncPlayer({
+        player: { id: player.id, name: player.name },
+        playerId,
+        skillEntries,
+        increases,
+        snapshot,
+        ...(confirmNewAdvancements === true ? {} : { bulk: true }),
         errors,
-        buildErrorMessage: (error) =>
-          `Failed to write ${entries.length} advancement(s) of player "${player.name}" (${player.id}): ${this.runner.messageOf(error)}`,
       });
-      if (synced !== undefined) {
+      if (wrote) {
         written += skillEntries.length;
       }
     }

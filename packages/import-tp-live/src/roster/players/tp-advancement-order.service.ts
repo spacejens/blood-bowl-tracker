@@ -55,9 +55,8 @@ interface IncreaseSplit {
 /**
  * Decides the order the TP roster import sends with a player's advancements.
  *
- * The live import runs right after a match, so an
- * advancement not stored before was taken since the last import and comes
- * after every stored one. Its confirmed order is its number among the
+ * The live import runs right after a match, so an advancement not stored
+ * before was taken since the last import and comes after every stored one. Its confirmed order is its number among the
  * player's paid advancements (neither starting skills nor free extras), the
  * numbering the cost rows use. A lone new advancement is sent confirmed at
  * the next number when TP's spend cannot be checked; when it can, it is sent

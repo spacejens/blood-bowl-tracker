@@ -316,7 +316,11 @@ the BBL import sends every numbered one confirmed, and a migration confirmed
 the numbered paid rows already stored for players BBL alone describes (a BBL
 external id and no TP one). TP's order is trusted only where TP's reported
 spend decides it, including when every fitting order costs the same, so a
-confirmed order is not always proven. The cost model pins only confirmed entries to
+confirmed order is not always proven.
+TP's data gives no other evidence of order: no timestamps, no per-skill
+history, and skill row ids that do not follow list position (see
+[Order of advancements](import-tp-live/index.md#order-of-advancements)).
+The cost model pins only confirmed entries to
 their advancement number, and every other entry is interchangeable with the
 rest. A sync never lets an unconfirmed incoming order overwrite a confirmed
 stored one. A row tracked by history cannot be deleted, so an increase a

@@ -154,6 +154,37 @@ describe('TpLiveAdvancementSyncService', () => {
     expect(deduction.deduce).not.toHaveBeenCalled();
   });
 
+  it('tells the planner when the import is the bulk one', async () => {
+    order.liveEntries.mockReturnValue({
+      entries: SKILL_ENTRIES,
+      pendingIndexes: [],
+      firstNumber: 2,
+    });
+
+    await expect(syncPlayer({ bulk: true })).resolves.toBe(true);
+
+    expect(order.liveEntries).toHaveBeenCalledWith({
+      playerId: PLAYER_ID,
+      skillEntries: SKILL_ENTRIES,
+      increases: INCREASES,
+      stored: STORED,
+      checkSpend: true,
+      bulk: true,
+    });
+  });
+
+  it('leaves the bulk flag out of the planner call when not bulk', async () => {
+    order.liveEntries.mockReturnValue({
+      entries: SKILL_ENTRIES,
+      pendingIndexes: [],
+      firstNumber: 2,
+    });
+
+    await syncPlayer();
+
+    expect(order.liveEntries.mock.calls[0][0]).not.toHaveProperty('bulk');
+  });
+
   it('writes the one order the spent SPP allows, confirmed', async () => {
     deduction.deduce.mockReturnValue(
       new Map([

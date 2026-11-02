@@ -26,18 +26,24 @@ export interface LivePlayerSyncOptions {
   /** TP's unspent figure for the player, with the total reported beside it. */
   snapshot: UnspentSppSnapshot | undefined;
   errors: ImportError[];
-  /** True for the bulk import, which sends a player with stored rows as TP lists him. */
+  /**
+   * True for the bulk import, which sends a player with stored rows as TP
+   * lists him.
+   */
   bulk?: boolean;
 }
 
 /**
- * Writes one player's advancements for the live TP import. Reads what is
- * stored, lets TpAdvancementOrderService decide each entry's order, and
- * writes the entries. When new advancements are pending (several, or a lone
- * one while TP's spend is known), it asks AdvancementOrderDeductionService
- * which order the SPP TP reports as spent allows, reading the player's
- * advancement inputs after the first write so the new rows (and their skill
- * categories) are part of them, and writes the deduced order confirmed. Without one answer the unconfirmed write stands.
+ * Writes one player's advancements for the TP roster import, live and bulk
+ * alike. Reads what is stored, lets TpAdvancementOrderService decide each
+ * entry's order, and writes the entries. When new advancements are pending
+ * (several, or a lone one while TP's spend is known), it asks
+ * AdvancementOrderDeductionService which order the SPP TP reports as spent
+ * allows, reading the player's advancement inputs after the first write so the
+ * new rows (and their skill categories) are part of them, and writes the
+ * deduced order confirmed. Without one answer the unconfirmed write stands.
+ * A player with nothing stored has the order of every paid advancement
+ * deduced the same way.
  */
 @Injectable()
 export class TpLiveAdvancementSyncService {
@@ -73,7 +79,7 @@ export class TpLiveAdvancementSyncService {
       increases,
       stored,
       checkSpend: this.spent(options.snapshot) !== undefined,
-      bulk: options.bulk,
+      ...(options.bulk === true ? { bulk: true } : {}),
     });
     const written = await this.write(options, plan.entries);
     if (written === undefined) {

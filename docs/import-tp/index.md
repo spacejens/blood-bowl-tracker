@@ -308,9 +308,9 @@ A star player hired mid-season through an `inducements_roll` event has no `lineU
 #### Skills and characteristic increases
 
 - `TpRosterPlayerSkillsService` (in `packages/import-tp-live`) writes each roster player's own skills in the same `tpRosters.import` call, naming each skill from the skill masters the roster file itself embeds; an id the file does not name resolves through a skill already carrying it as a TP external id.
-- A roster player's `lineUpMaster.skills` are their starting skills; their own `skills` are the ones gained via advancement, mapped to `random`/`chosen` via TP's `isRandom` flag, with `advancementOrder` set to each skill's 1-based index in that array. A gained skill TP flags `isExtra` is recorded as a free extra.
+- A roster player's `lineUpMaster.skills` are their starting skills; their own `skills` are the ones gained via advancement, mapped to `random`/`chosen` via TP's `isRandom` flag and numbered as [import-tp-live's Order of advancements](../import-tp-live/index.md#order-of-advancements) describes: TP gives no timestamps or per-skill history and its skill row ids do not follow list position, so only the reported SPP spend can confirm an order. A gained skill TP flags `isExtra` is recorded as a free extra.
 - A match-embedded-only (departed) player gets no skills at all: their only surviving data is the flat bare-id list described above, with no starting/gained split, no `isRandom`, and no attribute values.
-- Characteristic increases are derived the same way BBL's are: diffing converted characteristics against the position's stored values under the era's rules set, adding back outstanding reductions. The bulk import sends them as characteristic entries with unknown order, one per increase.
+- Characteristic increases are derived the same way BBL's are: diffing converted characteristics against the position's stored values under the era's rules set, adding back outstanding reductions. They are sent as characteristic entries, one per increase, ordered together with the gained skills.
 
 ### Hired stars, player facts and mercenary availability
 
