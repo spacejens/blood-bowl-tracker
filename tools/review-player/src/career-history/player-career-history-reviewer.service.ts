@@ -12,6 +12,7 @@ import { PlayerCharacteristicsDbRendererService } from '../player-characteristic
 import { TpPlayerCharacteristicsRawRendererService } from '../player-characteristics/tp-player-characteristics-raw-renderer.service';
 import type { PlayerDataTypeReviewer } from '../shared/data-type-reviewer';
 import type { SampledPlayer } from '../shared/review.types';
+import { SectionRenderService } from '../shared/section-render.service';
 import { PlayerSppLookupService } from '../spp-totals/player-spp-lookup.service';
 import { PlayerSppTotalsRendererService } from '../spp-totals/player-spp-totals-renderer.service';
 
@@ -44,20 +45,23 @@ export class PlayerCareerHistoryReviewerService implements PlayerDataTypeReviewe
     private readonly characteristics: PlayerCharacteristicsDbRendererService,
     private readonly injuries: LastingInjuriesDbRendererService,
     private readonly html: HtmlService,
+    private readonly sections: SectionRenderService,
   ) {}
 
   async getRawSource(player: SampledPlayer): Promise<string> {
     const id = player.externalId;
     const bbl = player.source === 'bbl';
-    const advancements = bbl
-      ? await this.bblAdvancements.render(id)
-      : await this.tpAdvancements.render(id);
-    const characteristics = bbl
-      ? await this.bblCharacteristics.render(id)
-      : await this.tpCharacteristics.render(id);
-    const injuries = bbl
-      ? await this.bblInjuries.render(id)
-      : await this.tpInjuries.render(id);
+    const advancements = await this.sections.render(() =>
+      bbl ? this.bblAdvancements.render(id) : this.tpAdvancements.render(id),
+    );
+    const characteristics = await this.sections.render(() =>
+      bbl
+        ? this.bblCharacteristics.render(id)
+        : this.tpCharacteristics.render(id),
+    );
+    const injuries = await this.sections.render(() =>
+      bbl ? this.bblInjuries.render(id) : this.tpInjuries.render(id),
+    );
     return (
       advancements +
       this.html.subheading('Characteristics') +
@@ -68,17 +72,30 @@ export class PlayerCareerHistoryReviewerService implements PlayerDataTypeReviewe
   }
 
   async getImportedView(player: SampledPlayer): Promise<string> {
-    const totals = await this.sppLookup.load(player);
-    const advancements = await this.advancements.render(player);
+    const spp = await this.sections.render(async () =>
+      this.sppTotals.render(await this.sppLookup.load(player)),
+    );
+    const [advancements, unspentSpp] = await this.sections.renderPair(
+      async () => {
+        const rendered = await this.advancements.render(player);
+        return [rendered.advancements, rendered.unspentSpp] as const;
+      },
+    );
+    const characteristics = await this.sections.render(() =>
+      this.characteristics.render(player),
+    );
+    const injuries = await this.sections.render(() =>
+      this.injuries.render(player),
+    );
     return (
       this.html.subheading('SPP total') +
-      this.sppTotals.render(totals) +
-      advancements.advancements +
+      spp +
+      advancements +
       this.html.subheading('Characteristics (against position baseline)') +
-      (await this.characteristics.render(player)) +
+      characteristics +
       this.html.subheading('Lasting injuries') +
-      (await this.injuries.render(player)) +
-      advancements.unspentSpp
+      injuries +
+      unspentSpp
     );
   }
 }

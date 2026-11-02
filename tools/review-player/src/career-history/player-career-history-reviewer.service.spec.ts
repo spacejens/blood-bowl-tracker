@@ -15,6 +15,7 @@ import { PlayerCharacteristicsDbRendererService } from '../player-characteristic
 import { TpPlayerCharacteristicsRawRendererService } from '../player-characteristics/tp-player-characteristics-raw-renderer.service';
 import type { PlayerDataTypeReviewer } from '../shared/data-type-reviewer';
 import type { SampledPlayer } from '../shared/review.types';
+import { SectionRenderService } from '../shared/section-render.service';
 import type { PlayerSppTotals } from '../spp-totals/player-spp-lookup.service';
 import { PlayerSppLookupService } from '../spp-totals/player-spp-lookup.service';
 import { PlayerSppTotalsRendererService } from '../spp-totals/player-spp-totals-renderer.service';
@@ -105,7 +106,11 @@ describe('PlayerCareerHistoryReviewerService', () => {
           useValue: characteristics,
         },
         { provide: LastingInjuriesDbRendererService, useValue: injuries },
+        // HtmlService and SectionRenderService are passed real: a pure
+        // markup chain with no I/O, so the failure notes are asserted as
+        // rendered.
         HtmlService,
+        SectionRenderService,
       ],
     }).compile();
     service = moduleRef.get(PlayerCareerHistoryReviewerService);
@@ -162,5 +167,104 @@ describe('PlayerCareerHistoryReviewerService', () => {
     expect(advancements.render).toHaveBeenCalledWith(player);
     expect(characteristics.render).toHaveBeenCalledWith(player);
     expect(injuries.render).toHaveBeenCalledWith(player);
+  });
+
+  const NOTE = '<p class="note">Rendering failed: boom</p>';
+  const boom = new Error('boom');
+
+  it('shows a failure note for a failing BBL raw advancements section only', async () => {
+    bblAdvancements.render.mockRejectedValue(boom);
+
+    expect(await service.getRawSource(player)).toBe(
+      NOTE +
+        '<h5>Characteristics</h5>[bbl characteristics]' +
+        '<h5>Lasting injuries</h5>[bbl injuries]',
+    );
+  });
+
+  it('shows a failure note for a failing BBL raw characteristics section only', async () => {
+    bblCharacteristics.render.mockRejectedValue(boom);
+
+    expect(await service.getRawSource(player)).toBe(
+      '[bbl advancements]' +
+        '<h5>Characteristics</h5>' +
+        NOTE +
+        '<h5>Lasting injuries</h5>[bbl injuries]',
+    );
+  });
+
+  it('shows a failure note for a failing BBL raw injuries section only', async () => {
+    bblInjuries.render.mockRejectedValue(boom);
+
+    expect(await service.getRawSource(player)).toBe(
+      '[bbl advancements]' +
+        '<h5>Characteristics</h5>[bbl characteristics]' +
+        '<h5>Lasting injuries</h5>' +
+        NOTE,
+    );
+  });
+
+  it('contains a TP raw failure to its own section', async () => {
+    const tpPlayer: SampledPlayer = { ...player, source: 'tp' };
+    tpAdvancements.render.mockRejectedValue(boom);
+    tpInjuries.render.mockRejectedValue(boom);
+
+    expect(await service.getRawSource(tpPlayer)).toBe(
+      NOTE +
+        '<h5>Characteristics</h5>[tp characteristics]' +
+        '<h5>Lasting injuries</h5>' +
+        NOTE,
+    );
+  });
+
+  it('shows a failure note for a failing SPP lookup section only', async () => {
+    sppLookup.load.mockRejectedValue(boom);
+
+    expect(await service.getImportedView(player)).toBe(
+      '<h5>SPP total</h5>' +
+        NOTE +
+        '[advancements]' +
+        '<h5>Characteristics (against position baseline)</h5>[characteristics]' +
+        '<h5>Lasting injuries</h5>[injuries]' +
+        '[unspent]',
+    );
+  });
+
+  it('shows a failure note in both the advancements and unspent SPP slots when advancements fail', async () => {
+    advancements.render.mockRejectedValue(boom);
+
+    expect(await service.getImportedView(player)).toBe(
+      '<h5>SPP total</h5>[spp]' +
+        NOTE +
+        '<h5>Characteristics (against position baseline)</h5>[characteristics]' +
+        '<h5>Lasting injuries</h5>[injuries]' +
+        NOTE,
+    );
+  });
+
+  it('shows a failure note for a failing imported characteristics section only', async () => {
+    characteristics.render.mockRejectedValue(boom);
+
+    expect(await service.getImportedView(player)).toBe(
+      '<h5>SPP total</h5>[spp]' +
+        '[advancements]' +
+        '<h5>Characteristics (against position baseline)</h5>' +
+        NOTE +
+        '<h5>Lasting injuries</h5>[injuries]' +
+        '[unspent]',
+    );
+  });
+
+  it('shows a failure note for a failing imported injuries section only', async () => {
+    injuries.render.mockRejectedValue(boom);
+
+    expect(await service.getImportedView(player)).toBe(
+      '<h5>SPP total</h5>[spp]' +
+        '[advancements]' +
+        '<h5>Characteristics (against position baseline)</h5>[characteristics]' +
+        '<h5>Lasting injuries</h5>' +
+        NOTE +
+        '[unspent]',
+    );
   });
 });

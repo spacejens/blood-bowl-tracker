@@ -12,7 +12,9 @@ right:
    baseline, lasting injuries and unspent SPP. These sit together because
    advancements, injuries and SPP spend all feed the current characteristics.
 
-Each panel stacks its parts under small subheadings.
+Each panel stacks its parts under small subheadings. A part that fails to
+render shows a failure note in its own place only, and the rest of the panel
+still renders.
 
 ## How the panels explain themselves
 
