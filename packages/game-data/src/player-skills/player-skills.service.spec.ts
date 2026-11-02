@@ -542,6 +542,46 @@ describe('PlayerSkillsService', () => {
       ]);
     });
 
+    it("closes a trophy-granted skill's slot in the confirmed paid numbering", async () => {
+      const db = mockDb(
+        [{ id: 1, grantedSkillId: 8 }],
+        [skillRow, { id: 8, name: 'Tentacles' }],
+        [],
+        [
+          { id: 51, playerId: 1, skillId: 8, attributeValue: null },
+          { id: 52, playerId: 1, skillId: 7, attributeValue: null },
+        ],
+      );
+      const service = await makeService(db);
+
+      await service.sync({
+        entries: [
+          {
+            ...entry,
+            skillId: 8,
+            source: 'advancement',
+            advancementOrder: 1,
+            orderConfirmed: true,
+          },
+          {
+            ...entry,
+            source: 'advancement',
+            advancementOrder: 2,
+            orderConfirmed: true,
+          },
+        ],
+      });
+
+      expect(firstCallArg(db.chains[3].values)).toEqual([
+        expect.not.objectContaining({ orderConfirmed: true }),
+        expect.objectContaining({ advancementOrder: 1, orderConfirmed: true }),
+      ]);
+      expect(firstCallArg(db.chains[3].values)).toEqual([
+        expect.objectContaining({ advancementOrder: 1, isFreeExtra: true }),
+        expect.anything(),
+      ]);
+    });
+
     it('does not mark a skill the awards do not name', async () => {
       const db = mockDb(
         [

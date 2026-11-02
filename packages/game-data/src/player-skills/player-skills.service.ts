@@ -130,7 +130,9 @@ export class PlayerSkillsService {
    * batch before any write, so one bad entry fails the call rather than
    * half-applying it. Returned ids are index-aligned with `data.entries`.
    * A skill row is stored as a free extra by the rules in `isFreeExtra`; an
-   * existing row is only ever marked, never unmarked.
+   * existing row is only ever marked, never unmarked. A free extra's order is
+   * never stored confirmed, and a confirmed free extra's number is closed up
+   * in the player's paid numbering (see `closeFreeExtraSlots`).
    */
   async sync(data: SyncPlayerSkills): Promise<SyncPlayerSkillsResult> {
     const characteristicPlayerIds = new Set(data.characteristicPlayerIds ?? []);
@@ -185,7 +187,7 @@ export class PlayerSkillsService {
       granted.add(row.grantedSkillId);
       grantedSkillIdsByPlayer.set(row.id, granted);
     }
-    const resolved = this.resolveEntries(data, {
+    const resolvedEntries = this.resolveEntries(data, {
       knownPlayerIds: new Set(playerRows.map((row) => row.id)),
       knownSkillIds: new Set(skillRows.map((row) => row.id)),
       hatredSkillIds: new Set(
@@ -212,6 +214,10 @@ export class PlayerSkillsService {
       })
       .from(playerAdvancements)
       .where(inArray(playerAdvancements.playerId, playerIds));
+    const resolved = this.syncPlanner.closeFreeExtraSlots(
+      resolvedEntries,
+      existingRows,
+    );
 
     // `resultIds` is sized and indexed to `data.entries` so the returned ids
     // line up positionally with it, regardless of which entries were

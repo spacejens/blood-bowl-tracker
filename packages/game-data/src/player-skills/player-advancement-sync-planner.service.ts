@@ -8,6 +8,7 @@ import type {
   ExistingRow,
   PlayerSkillUpdate,
   ResolvedCharacteristic,
+  ResolvedEntries,
   ResolvedPlayerSkill,
   SkillInsert,
   SkillWrites,
@@ -80,6 +81,67 @@ export class PlayerAdvancementSyncPlannerService {
     return writes;
   }
 
+  /**
+   * Close the numbering slot of each confirmed free extra. A source that
+   * numbers every advancement it lists (BBL) can number one that resolves as
+   * a free extra, which is not one of the player's paid advancements. Each
+   * confirmed paid skill or increase of that player numbered after such a
+   * slot moves down one per slot, so skills and increases keep one paid
+   * numbering from 1. A free row is passed on unconfirmed, keeping its number
+   * as a record of where the source listed it. A skill counts as free when
+   * its entry resolves free or its stored row already is.
+   */
+  closeFreeExtraSlots(
+    resolved: ResolvedEntries,
+    existingRows: ExistingRow[],
+  ): ResolvedEntries {
+    const storedFreeKeys = new Set(
+      existingRows
+        .filter((row) => row.source !== 'characteristic' && row.isFreeExtra)
+        .map((row) =>
+          this.naturalKey(row.playerId, row.skillId, row.attributeValue),
+        ),
+    );
+    const isFree = (row: ResolvedPlayerSkill): boolean =>
+      row.source !== 'starting' &&
+      (row.isFreeExtra ||
+        storedFreeKeys.has(
+          this.naturalKey(row.playerId, row.skillId, row.attributeValue),
+        ));
+    const slotsByPlayer = new Map<number, number[]>();
+    for (const row of resolved.skills) {
+      if (
+        isFree(row) &&
+        row.orderConfirmed &&
+        typeof row.advancementOrder === 'number'
+      ) {
+        const slots = slotsByPlayer.get(row.playerId) ?? [];
+        slots.push(row.advancementOrder);
+        slotsByPlayer.set(row.playerId, slots);
+      }
+    }
+    const renumber = <T extends ResolvedPlayerSkill | ResolvedCharacteristic>(
+      row: T,
+    ): T => {
+      const order = row.advancementOrder;
+      const slots = slotsByPlayer.get(row.playerId);
+      if (!row.orderConfirmed || typeof order !== 'number' || !slots) {
+        return row;
+      }
+      const below = slots.filter((slot) => slot < order).length;
+      return below === 0 ? row : { ...row, advancementOrder: order - below };
+    };
+    return {
+      skills: resolved.skills.map((row) => {
+        if (!isFree(row)) {
+          return renumber(row);
+        }
+        return row.orderConfirmed ? { ...row, orderConfirmed: false } : row;
+      }),
+      characteristics: resolved.characteristics.map(renumber),
+    };
+  }
+
   /** Every listed player's characteristic rows, planned against what is stored. */
   planCharacteristics(
     batch: {
@@ -147,8 +209,11 @@ export class PlayerAdvancementSyncPlannerService {
         advancementOrder:
           row.source === 'starting' ? null : (row.advancementOrder ?? null),
         // Only a confirmed or free row names that column; every other row
-        // takes its `false` default.
-        ...(row.orderConfirmed ? { orderConfirmed: true } : {}),
+        // takes its `false` default. A free extra is not one of the paid
+        // advancements, so its order is never stored confirmed.
+        ...(row.orderConfirmed && !row.isFreeExtra
+          ? { orderConfirmed: true }
+          : {}),
         ...(row.isFreeExtra ? { isFreeExtra: true } : {}),
       },
     };
@@ -170,6 +235,19 @@ export class PlayerAdvancementSyncPlannerService {
       // confirmation, which cannot stand without an order.
       if (existing.advancementOrder !== null) {
         values.advancementOrder = null;
+      }
+      if (existing.orderConfirmed) {
+        values.orderConfirmed = false;
+      }
+    } else if (row.isFreeExtra || existing.isFreeExtra) {
+      // A free extra is not one of the paid advancements, so its order is
+      // never confirmed: the entry's order is kept as a record of where the
+      // source listed it, and a stored confirmation is cleared.
+      if (
+        row.advancementOrder !== undefined &&
+        row.advancementOrder !== existing.advancementOrder
+      ) {
+        values.advancementOrder = row.advancementOrder;
       }
       if (existing.orderConfirmed) {
         values.orderConfirmed = false;

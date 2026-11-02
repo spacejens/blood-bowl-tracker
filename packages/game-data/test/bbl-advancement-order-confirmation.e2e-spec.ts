@@ -116,6 +116,60 @@ async function confirmedFlags(db: Db): Promise<boolean[]> {
   return rows.map((row) => row.confirmed);
 }
 
+/** Each row's order and confirmation flag, in insertion order. */
+async function ordersAndFlags(db: Db): Promise<[number | null, boolean][]> {
+  const rows = await db
+    .select({
+      order: playerAdvancements.advancementOrder,
+      confirmed: playerAdvancements.orderConfirmed,
+    })
+    .from(playerAdvancements)
+    .orderBy(asc(playerAdvancements.id));
+  return rows.map((row) => [row.order, row.confirmed]);
+}
+
+/**
+ * A BBL-only player's paid Block at 1, a free extra at `freeOrder`, a paid
+ * skill at 3 and an increase at 4, numbered as BBL's page lists them.
+ */
+async function insertAroundFreeExtra(
+  db: Db,
+  ids: Seeded,
+  freeOrder: number | null,
+): Promise<void> {
+  const [mutation, dodge] = await db
+    .insert(skills)
+    .values([{ name: 'Tentacles' }, { name: 'Dodge' }])
+    .returning();
+  await db.insert(playerAdvancements).values([
+    {
+      playerId: ids.bblOnly,
+      skillId: ids.skillId,
+      source: 'advancement',
+      advancementOrder: 1,
+    },
+    {
+      playerId: ids.bblOnly,
+      skillId: mutation.id,
+      source: 'advancement',
+      advancementOrder: freeOrder,
+      isFreeExtra: true,
+    },
+    {
+      playerId: ids.bblOnly,
+      skillId: dodge.id,
+      source: 'advancement',
+      advancementOrder: 3,
+    },
+    {
+      playerId: ids.bblOnly,
+      source: 'characteristic',
+      characteristic: 'AG',
+      advancementOrder: 4,
+    },
+  ]);
+}
+
 async function historyCount(db: Db): Promise<number> {
   return (await db.select().from(playerAdvancementsHistory)).length;
 }
@@ -211,6 +265,50 @@ describe('confirm_bbl_advancement_order migration (real Postgres)', () => {
       false,
       false,
       true,
+    ]);
+  });
+
+  it("closes a numbered free extra's slot in the confirmed paid numbering", async () => {
+    await insertAroundFreeExtra(db, ids, 2);
+
+    await runMigration(db);
+
+    expect(await ordersAndFlags(db)).toEqual([
+      [1, true],
+      [2, false],
+      [2, true],
+      [3, true],
+    ]);
+  });
+
+  it('leaves a player whose free extra has no number unconfirmed', async () => {
+    await insertAroundFreeExtra(db, ids, null);
+
+    await runMigration(db);
+
+    expect(await ordersAndFlags(db)).toEqual([
+      [1, false],
+      [null, false],
+      [3, false],
+      [4, false],
+    ]);
+  });
+
+  it('renumbers around a free extra once, recording each change', async () => {
+    await insertAroundFreeExtra(db, ids, 2);
+    const before = await historyCount(db);
+
+    await runMigration(db);
+    const after = await historyCount(db);
+    await runMigration(db);
+
+    expect(after).toBe(before + 3);
+    expect(await historyCount(db)).toBe(after);
+    expect(await ordersAndFlags(db)).toEqual([
+      [1, true],
+      [2, false],
+      [2, true],
+      [3, true],
     ]);
   });
 

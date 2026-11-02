@@ -42,11 +42,11 @@ external ID adds the corrected spelling as an extra Name external ID on the
 same row and keeps the old one, skipping it when another row already holds
 that spelling. Name IDs are matched by exact string, so this lets the
 importer, which now produces the corrected spelling, find the row again
-instead of creating a duplicate, without merging two rows. If the
-spelling was already held by another row, a later import that sends a source id
-belonging to the first row can then fail loudly with an upsert conflict rather
-than corrupt data, so check for such collisions with a read-only query before
-deploying. The `fix_bbl_windows_1252_text` migration is an example.
+instead of creating a duplicate, without merging two rows. If the spelling
+was already held by another row, a later import that sends a source id
+belonging to the first row can then fail loudly with an upsert conflict
+rather than corrupt data, so check for such collisions with a read-only query
+before deploying. The `fix_bbl_windows_1252_text` migration is an example.
 
 Because tracked rows cannot be deleted (see [History tracking](#history-tracking)),
 a fix that retires a row flags it rather than removing it, as
@@ -316,30 +316,39 @@ player, skill and attribute value (two partial unique indexes, one for rows
 with an attribute value and one for rows without).
 
 `advancement_order` is nullable and is one numbering shared by gained skills
-and increases over the player's _paid_ advancements; free extras and starting
-skills take no number. Only confirmed orders are sure to follow that
-numbering: a proxy order taken from TP's skill list position counts free
+and increases over the player's _paid_ advancements. Starting skills take no
+number. A free extra may carry a recorded number, such as TP's list position
+or the place BBL's page lists it, but that number is not part of the paid
+numbering and can equal a paid advancement's: it is never confirmed, the cost
+model prices a free extra at 0 whatever its number, and the deepdive places
+it by that number without marking its order as unconfirmed. Only confirmed orders are sure to follow the
+paid numbering: a proxy order taken from TP's skill list position counts free
 extras and leaves out increases. Null means the order is unknown.
 `order_confirmed` marks an order that is trusted rather than a presentation
 proxy (a check requires an order for it). BBL's order is always trusted: its
 Skills cell lists a player's advancements in the order they were taken, so
 the BBL import sends every numbered one confirmed, and a migration confirmed
 the numbered paid rows already stored for players BBL alone describes (a BBL
-external id and no TP one). TP's order is trusted only where TP's reported
-spend decides it, including when every fitting order costs the same, so a
-confirmed order is not always proven. TP's data gives no other evidence
-of order: no timestamps, no per-skill history, and skill row ids that do
-not follow list position (see
+external id and no TP one). BBL numbers a trophy-granted free extra like a
+paid advancement, so when a confirmed incoming entry resolves as a free
+extra, the sync stores it unconfirmed and moves each of the player's
+confirmed paid skills and increases numbered after it down one, closing its
+slot. The migration closed such slots the same way, and left unconfirmed a
+player with a free extra of unknown number. TP's order is trusted only where
+TP's reported spend decides it, including when every fitting order costs the
+same, so a confirmed order is not always proven. TP's data gives no other
+evidence of order: no timestamps, no per-skill history, and skill row ids
+that do not follow list position (see
 [Order of advancements](import-tp-live/index.md#order-of-advancements)).
-The cost model pins only confirmed entries to their advancement number,
-and every other entry is interchangeable with the rest. A sync never lets an unconfirmed incoming order overwrite a confirmed
-stored one. A row tracked by history cannot be deleted, so an increase a
-source stops reporting is flagged `removed` instead (only characteristic rows
-may be); readers leave removed rows out. The migration that introduced
-characteristic rows backfilled one row of unknown order per unit of the five
-`*_increase_count` columns it then dropped from `players`, so the rows are the
-only current record of increases; `players_history` snapshots taken before the
-migration keep the old counts.
+The cost model pins only confirmed entries to their advancement number, and
+every other entry is interchangeable with the rest. A sync never lets an
+unconfirmed incoming order overwrite a confirmed stored one. A row tracked by
+history cannot be deleted, so an increase a source stops reporting is flagged
+`removed` instead (only characteristic rows may be); readers leave removed
+rows out. The migration that introduced characteristic rows backfilled one
+row of unknown order per unit of the five `*_increase_count` columns it then
+dropped from `players`, so the rows are the only current record of increases;
+`players_history` snapshots taken before the migration keep the old counts.
 
 The costs are curated by `tools/import-manual` in batch 004 (see
 [batches](import-manual/batches.md)): fixed thresholds of 6, 16, 31, 51, 76

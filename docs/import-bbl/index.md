@@ -236,7 +236,10 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   increase takes an `advancementOrder` slot like a skill, so a skill after an
   increase is numbered one higher. That order is the order the player took
   them, so every numbered skill and increase is sent with its order confirmed
-  (starting skills and a pending `?` take no number). Each increase is sent as
+  (starting skills and a pending `?` take no number). A trophy-granted skill
+  is numbered like the rest, but the server marks it a free extra, stores it
+  unconfirmed and closes its slot in the paid numbering (see
+  [database](../database.md)). Each increase is sent as
   a characteristic entry, and every player's increases are sent in full on
   every run, so the server can reconcile them against what it stores.
 

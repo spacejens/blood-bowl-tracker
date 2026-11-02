@@ -36,7 +36,9 @@ import type { BblPlayerAdvancements } from './player-page-parser';
  * from.
  *
  * Every numbered advancement is sent with its order confirmed: BBL's Skills
- * cell lists a player's advancements in the order they were taken.
+ * cell lists a player's advancements in the order they were taken. BBL also
+ * numbers a trophy-granted skill the server marks free; the server stores
+ * that one unconfirmed and closes its slot in the paid numbering.
  */
 @Injectable()
 export class BblPlayerSkillsImportService {
