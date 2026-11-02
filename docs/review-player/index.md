@@ -38,7 +38,8 @@ because it _is_ this tool's own composition.
 
 Scope today is player info, [Star Player Points](../glossary.md#star-player-points-spp)
 totals, characteristics, current lasting injuries, skill advancements, BB2025
-keywords, player status, and advancement costs with unspent SPP.
+keywords, player status, and advancement costs with unspent SPP, shown per player
+in two panel pairs (an overview and a career history).
 
 ## What it does
 
@@ -211,200 +212,16 @@ keywords, player status, and advancement costs with unspent SPP.
    player — is excluded from all three, needing no exclusion of its own to arrange.
 
 2. Adds every player id listed in `overrides`, whatever the strata picked.
-3. For each sampled player, renders eight panel pairs:
-   - **player-info** — left: BBL's own player page (`default.asp?p=pl&pid=<id>`) parsed
-     for name, position, team and its career achievement counters, including the career
-     SPP figure BBL publishes in the "Unspent SPP" row; or, for TP (which has no
-     per-player page), the player's line-up entry from the most recent match file they
-     appear in, next to totals aggregated independently across every match file — TP's
-     reported `totalStarPlayerPoints`, the sum of `starPoints` on their attributed
-     events, and a per-event-code breakdown. Right: the stored identity, team, position,
-     era and every external id.
-   - **spp-totals** — left: the SPP this tool computes by summing the per-event values
-     over the events where the player is the _acting_ participant. Right: the stored
-     total and the stored adjustment. Both panels are database-derived, so they carry
-     their own headings rather than the harness's raw/imported wording, and a
-     `MISMATCH` — highlighted row, explicit label in both panels — is shown when the
-     stored total disagrees with the computed sum _plus_ the stored adjustment (not
-     the raw computed sum), or has no stored total at all.
-   - **player-characteristics** — left: the player's own MA/ST/AG/PA/AV as their
-     source publishes them — BBL's player page stat row, or the TP roster file
-     entry for their line-up id (TP publishes a player's characteristics only in
-     `rosters_<id>.json`; the line-up snapshots inside a match file carry none, so a
-     player TP has no roster file for shows an explicit note). Right: the baseline
-     row for the player's position under their era's rules set, then the stored
-     `players` row, each cell formatted the way that rules set displays it and
-     marked with an increase or decrease arrow where it differs numerically from the
-     baseline directly above. Only a `null` characteristic renders as a dash, in both
-     panels; a stored zero prints as-is, matching the convention `tools/review-race`
-     already used — it may be the not-yet-curated placeholder still sitting in
-     Move/Strength/Agility/Armour, or a real "structurally cannot pass" value for a
-     `plus_zero_legal` Passing characteristic. A position with no baseline row for the
-     resolved rules set gets a highlighted `missing` row and no comparison.
+3. For each sampled player, renders two panel pairs, each with the source's
+   own raw view on the left and what was stored on the right:
+   - **overview** — identity, status and keywords;
+   - **career-history** — SPP total, starting skills and advancements (one
+     table on the imported side, with each advancement's modelled cost and
+     whether the raw source has it), characteristics against the position
+     baseline, lasting injuries and unspent SPP.
 
-     The rules set is resolved from the database alone — the last rules set listed
-     for the player's era (`era_rules_sets`, highest id first) — because this tool
-     must not read the importers' configs. That is an insertion-order heuristic
-     matching what the importers themselves mean by "last-listed", accepted here
-     to keep the single-player comparison simple.
+   [Report layout](report-layout.md) describes every part of both panels.
 
-   - **lasting-injuries** — left: what the source itself says is outstanding.
-     BBL's player page states it as free text ("Sustained Injuries"), rendered
-     verbatim; TP states `nigglingInjuries` and `canPlayNextGame` directly and
-     says nothing at all about a reduced characteristic, so its panel shows
-     the player's current stat line beside their position template and leaves
-     the gap for the reviewer to read. Right: the seven stored columns, with the
-     row highlighted when any of them is non-default. Every panel is
-     deliberately uninterpreted — deciding what the text or the gap means is
-     exactly the judgement the importer makes, and a panel that made the same
-     judgement could only ever agree with it.
-   - **player-advancements** — left: whichever source the player was sampled
-     through, showing starting skills alongside gained ones because a gained
-     skill only makes sense against the set the player started with.
-     - BBL's player page records only plain text (a starting skill) versus a
-       coloured span (a gained one); it cannot say whether a gained skill was
-       randomly rolled or freely chosen, and it has no elite concept at all,
-       so no skill in this panel ever carries the dice or diamond marker — the
-       panel says so in words rather than showing an "unverifiable" mark per
-       row. The import infers random or chosen from the SPP the page reports
-       as spent where only one answer fits, so the imported panel can show the
-       dice marker for a BBL player; this raw panel cannot. It also shows
-       BBL's own `+MA`/`+ST`/`+AG`/`+PA`/`+AV` characteristic increase
-       markers, each with its place among the player's advancements (gained
-       skills and increases share one numbering).
-     - TP's roster file gives the position template's skills as starting and
-       the line-up entry's own skills as gained, each gained skill carrying
-       `isRandom` and `isElite` where TP recorded them (a skill with no
-       `isRandom` flag at all shows no dice marker and is called out in a
-       note — absent is not the same as "chosen"). TP publishes no
-       advancement counter, so this panel also shows characteristic
-       improvements derived from the current stat line against the position
-       template, with Agility and Passing counted downwards because a lower
-       roll target is an improvement there; they are shown for orientation
-       only and never compared against anything, since an injury and an
-       advancement on the same characteristic cancel out in the same diff.
-
-     Right: every stored `player_advancements` row for the player, resolved against
-     the era's last-listed rules set the same way the stratification service
-     does. A starting row is always plain; a gained row takes the dice marker
-     when its stored source is `random` and the diamond when the skill is
-     elite under that rules set, either or both at once. Each stored row is
-     also checked by name against the source the player was sampled through —
-     read through the same services the raw panel above uses — and a stored
-     skill missing from the raw source, or a raw skill nothing was stored for,
-     is highlighted and says so in words. This comparison is presence-only: it
-     does not check that a skill's source (starting vs. gained) or its order
-     among the source's own list agrees with what was stored. The stored
-     characteristic increases (`player_advancements` rows, removed ones left
-     out) are listed in stored order with their order and whether it is
-     confirmed. For a BBL-sourced player each is checked against the raw
-     markers: it must match one of the same characteristic at the same place
-     among the advancements, so both the count and the relative order are
-     verified. An increase stored without an order matches a leftover marker
-     of the same characteristic and is shown as matched with its order
-     unknown. A stored increase with no marker, and a marker with no stored
-     increase, are highlighted and say so in words. TP publishes no markers
-     (its raw panel already shows a derived template diff instead), so a TP
-     player's increases are listed without a comparison.
-
-   - **player-keywords** — a player carries no keywords of their own; they
-     come from the player's _position_, so this panel pair differs in shape
-     from the others. Left: the BB2025 keyword codes TP publishes on the
-     position template this player was recruited from, merged from
-     `lineUps[].lineUpMaster.race`, `positionTypes` and `isBigGuy` (in the
-     same downloaded roster file the characteristics panel already reads),
-     alongside the raw `positionTypes` and `isBigGuy` values so a reviewer can
-     check the decode without reading the JSON by hand, next to the curated
-     catalogue that names them (pooled from every curated batch, a later
-     batch's restatement of a keyword replacing the earlier entry) — a code no
-     curated keyword carries is highlighted, and
-     a player no downloaded TP roster file carries gets a note instead of a
-     table. Only TP publishes keyword codes at all — BBL has no such concept
-     — so there is no BBL sub-section here. Right: what
-     `position_rules_set_keywords` recorded for the player's _position_, one
-     row per rules set that position has a characteristics row under, so a
-     reviewer can see the era's rules set alongside the others rather than
-     this panel deciding which one applies. This panel deliberately does not
-     diff itself against the raw panel — that would mean re-running the
-     importer's own code resolution, the thing under review.
-   - **player-status** — left: what the source itself shows. For BBL, every
-     icon in the player page's header block (the name under the portrait),
-     as its `alt` text and image file name, in page order with no precedence
-     applied; icons on links to other players elsewhere on the page and the
-     bounty icon are not listed, and a header with no icon says so rather than
-     calling the player active. For TP, the raw `state` bitmask and `isActive`
-     flag of the player's `lineUps[]` entry, verbatim with no bit decoded, from
-     the roster file and from the latest match snapshot carrying them, each
-     with the file it came from. Right: the stored `players.status`, with NULL
-     shown as "unknown (no source reported a status)", never as active; an
-     active player whose era has ended gets a note naming the era and its end
-     date.
-   - **advancement-costs** — left: the figures the source itself reports
-     about spending SPP. For BBL, both figures of the player page's
-     "Unspent SPP" row — the reported unspent figure, which can be
-     negative, and the career total in brackets — with the gained skills and the
-     `+MA`/`+ST`/`+AG`/`+PA`/`+AV` increases in one page-order list; the panel says
-     in words that BBL cannot tell a rolled skill from a chosen one. For TP,
-     the roster entry's `totalStarPlayerPoints`, `starPlayerPoints` (the SPP
-     TP holds unspent, see
-     [the roster file format](../import-tp/file-format-rosters.md)) and
-     `pendingImprovements`, with each gained skill's `isRandom`, `isElite`
-     and `isExtra`; the panel says that TP's download carries no
-     per-advancement cost, that extra skills such as Hatred are imported
-     as free extras and priced at 0, and that a Journeyman's Loner is also
-     granted without SPP being spent, which the modelled range does not
-     recognise, so such a player can legitimately be listed. Right: the
-     era's last-listed rules set, then one row per advancement with the cost
-     `advancement_costs` gives it at its number — a single number under fixed
-     thresholds, the candidate cost of each kind under a rules set that prices by kind, narrowed to random or
-     chosen kinds where the stored skill source says which. A gained skill
-     is also priced by whether the player's position has the skill's
-     category (`skill_rules_sets`, under the same rules set) as primary or
-     as secondary (`position_rules_set_skill_categories`): only the primary
-     kinds for a primary category (also when the category is recorded both
-     ways), only the secondary kinds for a secondary one, and both when the
-     position has the category neither way or no categories are recorded.
-     A coach who rolls a characteristic result may take a skill instead and
-     pay the characteristic price; that is not modelled, so a skill is never
-     priced as `random_characteristic`, and a player whose reported spend can
-     only be explained that way is listed. Starting skills and a skill
-     stored as a free extra (`player_advancements.is_free_extra`: a gained Hatred,
-     a skill TP flags `isExtra`, or Gudarnas Förkämpe's mutation) cost 0 and
-     take no number; a skill a league house rule grants (tLoEG's Fan
-     Favourite) shows as that rule's advancement with its cost. Gained skills and
-     characteristic increases are listed together in their stored order,
-     which is unverified unless an entry is marked `(confirmed)`; a
-     confirmed skill or increase sits at its confirmed number, as the server
-     cost model pins it, and the other rows fill the numbers around it.
-     Confirmed numbers that cannot all hold (two at one number, one past the
-     paid advancements, or one contradicting a house rule) are highlighted
-     as clashing and no range is modelled, since no order fits them. An
-     increase with no stored order is marked `(order unknown)` and listed
-     last. A footer gives the stored total, the
-     modelled spend and unspent ranges, and beside them the source's reported
-     total, its unspent figure and the spend derived from the two. A last row
-     gives the stored unspent SPP, placed against the modelled unspent range
-     and compared with the source's own unspent figure, highlighted when it
-     lies outside the range or differs, and a dash when nothing is stored. An outside-range
-     stored figure is annotated as a possible gap only (a gap in the recorded
-     history, a free skill, or an unrecorded order or chosen-or-random choice
-     may cause it). The range takes, per advancement number, the cheapest and
-     dearest cost of any kind the player's advancements could be, so it holds
-     for every order and kind assignment. The source's derived spend is placed
-     against the modelled spend range, the same comparison the stratum makes:
-     a spend outside it is a real disagreement and is the only source figure
-     highlighted, labelled in words; a spend inside it proves nothing, and the
-     source's own unspent figure is never highlighted. When either source
-     figure is missing the spend shows as a dash and nothing is compared. BBL
-     prices every player's spend at BB2020 costs, so under a fixed-threshold
-     rules set its figures are shown but never compared, with a note saying
-     the stored unspent SPP is checked instead. A note says that gaps in the
-     recorded advancement history can explain a reported spend above the
-     range. The cost check reads `advancement_costs`, `players`,
-     `player_advancements`, the era, rules set and league chain
-     (`team_eras`, `eras`, `era_rules_sets`, `rules_sets`), `positions`,
-     `skills`, `skill_rules_sets`, `position_rules_sets` and
-     `position_rules_set_skill_categories`, all through `packages/db`.
 4. Writes the report under `tools/review-player/output/` (gitignored) with a timestamp in
    the filename, and prints where it landed.
 
