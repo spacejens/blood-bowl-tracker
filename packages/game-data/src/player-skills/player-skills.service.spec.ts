@@ -717,6 +717,7 @@ describe('PlayerSkillsService', () => {
       source: 'random',
       attributeValue: null,
       advancementOrder: 1,
+      orderConfirmed: true,
       category: 'strength',
       isElite: true,
       isFreeExtra: false,
@@ -731,6 +732,16 @@ describe('PlayerSkillsService', () => {
       ]);
       expect(extractFilterValues(firstCallArg(db.chains[0].where))).toBe(1);
       expect(db.chains[0].orderBy).toHaveBeenCalled();
+    });
+
+    it('reports the stored order confirmation', async () => {
+      const db = mockDb([{ ...eliteRow, orderConfirmed: false }]);
+      const service = await makeService(db);
+
+      await expect(service.listByPlayer(1, 3)).resolves.toEqual([
+        { ...eliteRow, orderConfirmed: false },
+      ]);
+      expect(firstCallArg(db.db.select)).toHaveProperty('orderConfirmed');
     });
 
     it('keeps a non-elite curated skill non-elite', async () => {

@@ -35,7 +35,7 @@ const increase = (
 ): PlayerCharacteristicAdvancementRow => ({
   characteristic,
   advancementOrder,
-  orderConfirmed: false,
+  orderConfirmed: true,
 });
 
 const gainedSkill = (
@@ -50,6 +50,7 @@ const gainedSkill = (
   category: 'general',
   isElite: false,
   isFreeExtra: false,
+  orderConfirmed: true,
 });
 
 /**

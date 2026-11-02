@@ -49,6 +49,7 @@ describe('RpcRouterFactoryService playerSkills router', () => {
         source: 'starting',
         attributeValue: null,
         advancementOrder: null,
+        orderConfirmed: false,
         category: 'general',
         isElite: false,
         isFreeExtra: false,

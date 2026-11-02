@@ -52,6 +52,11 @@ export interface PlayerSkillRow {
   attributeValue: string | null;
   advancementOrder: number | null;
   /**
+   * Whether `advancementOrder` is the player's real sequence rather than a
+   * presentation proxy. Always false for a starting skill.
+   */
+  orderConfirmed: boolean;
+  /**
    * The skill's category under the rules set the caller asked about, or null
    * when no `skill_rules_sets` row curates it there. Unlike a position's
    * starting skills, a player's skills are not validated against that table,
@@ -571,7 +576,7 @@ export class PlayerSkillsService {
    * PositionRulesSetSkillsService: `sync` above deliberately accepts a player
    * skill with no curated row for the rules set, so a missed join is a normal
    * state to report rather than a reason to drop the skill from the list.
-   * Each row carries the stored free-extra flag.
+   * Each row carries the stored free-extra flag and order confirmation.
    */
   async listByPlayer(
     playerId: number,
@@ -584,6 +589,7 @@ export class PlayerSkillsService {
         source: playerAdvancements.source,
         attributeValue: playerAdvancements.attributeValue,
         advancementOrder: playerAdvancements.advancementOrder,
+        orderConfirmed: playerAdvancements.orderConfirmed,
         category: skillRulesSets.category,
         isElite: skillRulesSets.isElite,
         isFreeExtra: playerAdvancements.isFreeExtra,

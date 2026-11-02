@@ -19,6 +19,7 @@ function skill(
     category: 'general',
     isElite: false,
     isFreeExtra: false,
+    orderConfirmed: true,
     ...overrides,
   };
 }
@@ -26,10 +27,11 @@ function skill(
 const increase = (
   characteristic: PlayerCharacteristicAdvancementRow['characteristic'],
   advancementOrder: number | null,
+  orderConfirmed = advancementOrder !== null,
 ): PlayerCharacteristicAdvancementRow => ({
   characteristic,
   advancementOrder,
-  orderConfirmed: false,
+  orderConfirmed,
 });
 
 describe('PlayerSkillsSectionService', () => {
