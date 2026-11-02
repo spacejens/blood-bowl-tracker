@@ -38,7 +38,9 @@ mean by "last-listed", accepted to keep the single-player comparison simple.
 
 ## overview
 
-Left, from whichever source the player was sampled through:
+### Left: the source's own record
+
+From whichever source the player was sampled through:
 
 - **Identity** — BBL's own player page (`default.asp?p=pl&pid=<id>`) parsed
   for name, position, team and its career achievement counters, including the
@@ -65,7 +67,9 @@ Left, from whichever source the player was sampled through:
   later batch's restatement replacing the earlier entry). A code no curated
   keyword carries is highlighted.
 
-Right, from the database:
+### Right: what was stored
+
+From the database:
 
 - **Identity** — the stored identity, team, position, era, every external id
   and, for a star player, every other team era that hired the same star.
@@ -125,7 +129,8 @@ Right, from the database:
   with the computed sum _plus_ the stored adjustment, or nothing is stored.
   Events whose recorded SPP differs from the award table follow in their own
   highlighted table.
-- **Advancements (rules set, pricing)** — one table of every stored
+- **Advancements (rules set, pricing)** — when the era maps to no rules set
+  the panel says so instead of showing a table. Otherwise one table of every stored
   `player_advancements` row: starting skills, gained skills and live
   characteristic increases, in the order the cost model numbers them. Columns:
   - **Order** — `free` for a starting skill or free extra; otherwise the
@@ -133,7 +138,11 @@ Right, from the database:
     confirmed number (`(confirmed)`), a skill a league house rule grants
     shows that rule's number, an increase with no stored order says
     `(order unknown)` and is numbered last, and every other entry takes the
-    next free number in stored order. Confirmed numbers that cannot all hold
+    next free number in stored order. Where the stored
+    `advancement_order` differs from the number the row is priced at, the cell
+    adds it (`#3 (stored #4)`), and a skill stored without an order says
+    `#3 (stored order unknown)`, so a gap or duplicate in the stored orders is
+    not hidden by the renumbering. Confirmed numbers that cannot all hold
     (two at one number, one past the paid advancements, or one contradicting a
     house rule) are highlighted and say `clashes`, and no range is modelled.
   - **Advancement** — the skill with the dice marker when its stored source

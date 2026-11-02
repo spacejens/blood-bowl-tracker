@@ -47,6 +47,8 @@ export interface AdvancementTableInput {
  * Order is the model's number: a confirmed entry sits at its confirmed
  * number, a house-rule skill at its rule's, an increase with no stored order
  * says so, and every other entry takes the next free number in stored order.
+ * Where the stored order differs from that number, or is missing, the cell
+ * also shows the stored order, so a gap or duplicate in it stays visible.
  * A gained skill takes the dice marker when stored as random and the diamond
  * when elite under the rules set; a starting skill is always plain.
  *
@@ -63,7 +65,9 @@ export class AdvancementTableService {
   render(input: AdvancementTableInput): string {
     const { model } = input;
     if (model.rulesSetName === null) {
-      return '';
+      return this.html.note(
+        'The era maps to no rules set, so there is no advancement table.',
+      );
     }
     const pricing = model.fixedThresholds
       ? 'fixed thresholds'
@@ -144,25 +148,41 @@ export class AdvancementTableService {
     return row.orderClash === true ? `${label}, clashes` : label;
   }
 
+  /**
+   * The model's number, then in brackets what qualifies it: the order is
+   * confirmed, unknown, fixed by a house rule, or stored as something other
+   * than the number the row is priced at.
+   */
   private numberLabel(row: ModelledAdvancement): string {
     if (row.advancementNumber === null) {
       return 'free';
     }
+    const notes = this.numberNotes(row);
+    return notes.length === 0
+      ? `#${row.advancementNumber}`
+      : `#${row.advancementNumber} (${notes.join(', ')})`;
+  }
+
+  private numberNotes(row: ModelledAdvancement): string[] {
     if (row.increaseOrder !== undefined) {
-      const order = row.increaseOrder;
-      if (!order.known) {
-        return `#${row.advancementNumber} (order unknown)`;
+      if (!row.increaseOrder.known) {
+        return ['order unknown'];
       }
-      return order.confirmed
-        ? `#${row.advancementNumber} (confirmed)`
-        : `#${row.advancementNumber}`;
+      if (row.increaseOrder.confirmed) {
+        return ['confirmed'];
+      }
+    } else if (row.kind !== 'granted' && row.orderConfirmed === true) {
+      return ['confirmed'];
     }
-    if (row.kind === 'granted') {
-      return `#${row.advancementNumber} (fixed by league house rule)`;
+    const notes = row.kind === 'granted' ? ['fixed by league house rule'] : [];
+    const stored =
+      row.skill?.advancementOrder ?? row.increase?.advancementOrder;
+    if (stored === undefined || stored === null) {
+      return [...notes, 'stored order unknown'];
     }
-    return row.orderConfirmed === true
-      ? `#${row.advancementNumber} (confirmed)`
-      : `#${row.advancementNumber}`;
+    return stored === row.advancementNumber
+      ? notes
+      : [...notes, `stored #${stored}`];
   }
 
   private cost(row: ModelledAdvancement): TableCell {

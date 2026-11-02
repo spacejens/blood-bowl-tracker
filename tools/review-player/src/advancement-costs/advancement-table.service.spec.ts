@@ -343,7 +343,7 @@ describe('AdvancementTableService', () => {
             storedSource: 'advancement',
             advancementNumber: 7,
             candidates: [{ advancementKind: 'granted_skill', sppCost: 125 }],
-            skill: BLOCK,
+            skill: { ...BLOCK, advancementOrder: 7 },
           },
           {
             label: 'Tentacles',
@@ -371,25 +371,116 @@ describe('AdvancementTableService', () => {
     });
 
     expect(html).toContain('<h5>Advancements (CRP, fixed thresholds)</h5>');
-    expect(html).toContain('<td>6</td>');
+    expect(html).toContain(
+      '<td>#1</td><td>⚄ ◆ Guard</td><td>advancement</td><td>6</td>',
+    );
     expect(html).toContain('<td>#7 (fixed by league house rule)</td>');
     expect(html).toContain('<td>125 (league house rule)</td>');
     expect(html.match(/no cost row at this number/g)).toHaveLength(2);
   });
 
-  it('renders nothing for an era with no rules set', () => {
-    expect(
-      service.render({
-        model: {
-          ...MODEL,
-          rulesSetName: null,
-          rows: [],
-          range: null,
-          unknownReason: 'no_rules_set',
-        },
-        skills: skillsMatch([]),
-        increases: increasesMatch([]),
-      }),
-    ).toBe('');
+  it('says so, instead of a table, for an era with no rules set', () => {
+    const html = service.render({
+      model: {
+        ...MODEL,
+        rulesSetName: null,
+        rows: [],
+        range: null,
+        unknownReason: 'no_rules_set',
+      },
+      skills: skillsMatch([]),
+      increases: increasesMatch([]),
+    });
+
+    expect(html).toBe(
+      '<p class="note">The era maps to no rules set, so there is no advancement table.</p>',
+    );
+  });
+
+  it('reads not read for a row naming neither a skill nor an increase', () => {
+    const html = service.render({
+      model: {
+        ...MODEL,
+        rows: [
+          {
+            label: 'Unknown',
+            kind: 'skill',
+            storedSource: 'random',
+            advancementNumber: 1,
+            candidates: [],
+          },
+        ],
+      },
+      skills: skillsMatch([]),
+      increases: increasesMatch([]),
+    });
+
+    expect(html).toContain('<td>not read</td>');
+  });
+
+  it.each([
+    [
+      'a gained skill stored at another order than its number',
+      { ...GUARD, advancementOrder: 4 },
+      '<td>#3 (stored #4)</td>',
+    ],
+    [
+      'a gained skill with no stored order',
+      { ...GUARD, advancementOrder: null },
+      '<td>#3 (stored order unknown)</td>',
+    ],
+    [
+      'a gained skill stored at its number',
+      { ...GUARD, advancementOrder: 3 },
+      '<td>#3</td>',
+    ],
+  ])('shows the stored order of %s', (_name, stored, expected) => {
+    const html = service.render({
+      model: {
+        ...MODEL,
+        rows: [
+          {
+            label: 'Guard',
+            kind: 'skill',
+            storedSource: 'random',
+            advancementNumber: 3,
+            candidates: [],
+            orderConfirmed: false,
+            skill: stored,
+          },
+        ],
+      },
+      skills: skillsMatch([[stored, 'yes']]),
+      increases: increasesMatch([]),
+    });
+
+    expect(html).toContain(expected);
+    if (expected === '<td>#3</td>') {
+      expect(html).not.toContain('stored');
+    }
+  });
+
+  it('shows the stored order of an unconfirmed increase numbered otherwise', () => {
+    const stored = { ...ST, advancementOrder: 5 };
+    const html = service.render({
+      model: {
+        ...MODEL,
+        rows: [
+          {
+            label: '+ST',
+            kind: 'characteristic',
+            storedSource: null,
+            advancementNumber: 3,
+            candidates: [],
+            increaseOrder: { known: true, confirmed: false },
+            increase: stored,
+          },
+        ],
+      },
+      skills: skillsMatch([]),
+      increases: increasesMatch([[stored, 'yes']]),
+    });
+
+    expect(html).toContain('<td>#3 (stored #5)</td>');
   });
 });
