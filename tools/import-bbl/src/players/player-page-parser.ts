@@ -82,7 +82,7 @@ const CHARACTERISTIC_INCREASE_MARKERS: Record<string, PlayerCharacteristic> = {
 /** One characteristic increase from the Skills cell, at its place among the player's advancements. */
 export interface BblCharacteristicIncrease {
   characteristic: PlayerCharacteristic;
-  /** 1-based, one numbering with the gained skills; page order, unconfirmed. */
+  /** 1-based, one numbering with the gained skills, in page order: BBL's real sequence. */
   advancementOrder: number;
 }
 
@@ -105,8 +105,8 @@ export interface BblPlayerAdvancements {
  * `advancementOrder` is 1-based and counts every paid advancement in the cell,
  * gained skills and characteristic increases alike: starting skills
  * interleaved in the same cell and a pending "?" slot do not consume a
- * position in the sequence. It is a page-order proxy, not a confirmed
- * sequence.
+ * position in the sequence. Page order is the order the player took them, so
+ * the import sends it confirmed.
  */
 export interface BblPlayerSkillRef extends BblSkillRef {
   source: 'starting' | 'advancement';

@@ -34,6 +34,9 @@ import type { BblPlayerAdvancements } from './player-page-parser';
  * failed, since the shared sync cannot say which players a failed chunk held.
  * Their history is then incomplete, which the closing SPP step must not reason
  * from.
+ *
+ * Every numbered advancement is sent with its order confirmed: BBL's Skills
+ * cell lists a player's advancements in the order they were taken.
  */
 @Injectable()
 export class BblPlayerSkillsImportService {
@@ -94,9 +97,10 @@ export class BblPlayerSkillsImportService {
           skillId,
           source: ref.source,
           attributeValue: ref.attributeValue ?? null,
+          // BBL lists a player's advancements in the order they were taken.
           ...(ref.advancementOrder === undefined
             ? {}
-            : { advancementOrder: ref.advancementOrder }),
+            : { advancementOrder: ref.advancementOrder, orderConfirmed: true }),
         });
       }
       for (const increase of characteristicIncreases) {
@@ -105,6 +109,7 @@ export class BblPlayerSkillsImportService {
           source: 'characteristic',
           characteristic: increase.characteristic,
           advancementOrder: increase.advancementOrder,
+          orderConfirmed: true,
         });
       }
     }

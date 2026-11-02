@@ -38,8 +38,7 @@ export const PlayerCharacteristicSchema = z.enum(PLAYER_CHARACTERISTICS);
  * highest order, while a new skill stores `null`.
  *
  * `orderConfirmed` says `advancementOrder` is the player's real sequence
- * rather than a best-effort proxy (BBL's ordered advancement list, TP's array
- * position). It needs a numeric order. An unconfirmed order never overwrites
+ * rather than a best-effort proxy (TP's array position). It needs a numeric order. An unconfirmed order never overwrites
  * a confirmed one.
  *
  * `isFreeExtra` says the source system flags this gained skill as granted on

@@ -48,8 +48,8 @@ export const playerCharacteristicEnum = gameData.enum(
  * the same player, each time against a different target, which is why it
  * participates in the unique constraint below.
  *
- * `advancementOrder` is by default a presentation-order proxy (BBL's ordered
- * advancement list, TP's array position), not a verified sequence; it is the
+ * `advancementOrder` is a presentation-order proxy (TP's array position)
+ * unless confirmed, not a verified sequence; it is the
  * real sequence only where `orderConfirmed` says so (see below). It is only
  * ever meaningful for a gained row (`advancement`, `chosen` or `random`) or a
  * characteristic row — a `starting` row always leaves it null, since a
