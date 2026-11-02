@@ -197,6 +197,10 @@ every write path is safe to repeat:
   create still takes the source's name, so a scratch import ends in the same
   state as a long-lived database, where a merged row keeps the name it was
   created with (or the curated one) rather than the last source's spelling.
+  A scratch import runs the BBL and TP importers twice, before and after the
+  remaining manual batches, because they read the advancement costs those
+  batches supply (see
+  [batches](import-manual/batches.md#operating-procedure)).
 
 ## Star Player Points
 
@@ -297,7 +301,10 @@ advancement, costing 125 and so reached at 301 SPP, that grants Fan
 Favourite. It is the only league house rule curated. `granted_skill` fits a
 league threshold that grants one fixed skill; house rules whose cost depends
 on the type of advancement fit the per-kind rows, which sit beside these
-rather than replacing them.
+rather than replacing them. Batch 004 is applied after the BBL and TP
+importers, whose first run on a scratch import finds no costs and so leaves
+the chosen-or-random skill sources and the unspent SPP unset; the scratch
+import runs both importers again afterwards to fill them in.
 
 `rules_sets` also carries five `characteristic_format` columns
 (`move_format`, `strength_format`, `agility_format`, `passing_format`,

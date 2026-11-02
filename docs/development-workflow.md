@@ -60,6 +60,7 @@ It can also run, against the running instance:
 
 - the `tools/import-bbl` and `tools/import-tp` data imports
 - restoring a production database backup
+- the full import of a scratch-built database (every importer in order, BBL and TP twice)
 - the manual import
 - the match/player/race/star player review tools
 - SchemaSpy diagram generation
@@ -79,7 +80,7 @@ Operates the already-deployed production Discord bot on Fly.io and Neon (`/deplo
 - trigger a redeploy of current `main` without a new merge
 - restore a backup into production
 - run read-only queries against the production database
-- run the manual/BBL/TP importers against production
+- run the manual/BBL/TP importers against production, one by one or as the full import of a scratch-built database
 
 It does not perform normal deploys — those happen automatically in GitHub Actions on every merge to `main` (`.github/workflows/deploy.yml`); the closest thing offered here is dispatching that same workflow against the current `main`.
 

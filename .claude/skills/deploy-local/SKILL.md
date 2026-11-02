@@ -17,28 +17,31 @@ Takes no arguments.
 
 ## Steps
 
-0. Ask the developer which action(s) to perform. There are now **eleven** actions and `AskUserQuestion` allows at most 4 options per question, so they are split across **three `multiSelect: true` questions sent in a single `AskUserQuestion` call** — the developer sees all three in sequence and answers once. Ask exactly these three questions, with exactly these options, in this order. Do not add, drop, reword, or reorder any option, and in particular do not add a "Both", "All", "None", or "Neither" option of your own invention — `multiSelect: true` already lets the developer pick any combination, including (by deselecting everything offered) none. See the `AskUserQuestion` option-ceiling and don't-invent-options rules in `CLAUDE.md`'s "Developer prompts" section for the rationale.
+0. Ask the developer which action(s) to perform. There are now **twelve** actions and `AskUserQuestion` allows at most 4 options per question, so they are split across **three `multiSelect: true` questions sent in a single `AskUserQuestion` call** — the developer sees all three in sequence and answers once. Ask exactly these three questions, with exactly these options, in this order. Do not add, drop, reword, or reorder any option, and in particular do not add a "Both", "All", "None", or "Neither" option of your own invention — `multiSelect: true` already lets the developer pick any combination, including (by deselecting everything offered) none. See the `AskUserQuestion` option-ceiling and don't-invent-options rules in `CLAUDE.md`'s "Developer prompts" section for the rationale.
 
-   All three questions are one decision split across three, so phrase them that way. The strings below are the `question` text; each also needs a short `header` of its own (`header` is capped at 12 characters, so the question text will not fit there) — e.g. `Run what`, `Run what 2`, and `Run what 3`.
+   All three questions are one decision split across three, so phrase them that way. `AskUserQuestion` rejects a call whose question texts are not unique, which is why the second and third carry "2 of 3" and "3 of 3" — use them exactly as written. The strings below are the `question` text; each also needs a short `header` of its own (`header` is capped at 12 characters, so the question text will not fit there) — e.g. `Run what`, `Run what 2`, and `Run what 3`.
 
    **Question 1 — `question`: "Which action(s) should I run?"** (`multiSelect: true`):
    - **Deploy the stack** (recommended) — build and start the docker-compose stack.
    - **Restore a database backup** — replace the local database with a production backup from the R2 bucket, instead of importing from scratch.
+   - **Run the full import** — scratch builds only (refused unless the manual-batch ledger is empty and no other `game_data` table holds a row): run every importer in order, `apply 001-initial-seed`, the BBL import, the TP import, plain `apply`, then the BBL and TP imports again.
    - **Run the manual import (first batch)** — run `tools/import-manual/`'s `apply 001-initial-seed` command to apply the first batch of hand-authored data before the system-specific importers.
-   - **Run the BBL import** — run `tools/import-bbl/` to import data into a running instance.
 
-   **Question 2 — `question`: "Which action(s) should I run? (continued)"** (`multiSelect: true`):
+   **Question 2 — `question`: "Which action(s) should I run? (continued, 2 of 3)"** (`multiSelect: true`):
+   - **Run the BBL import** — run `tools/import-bbl/` to import data into a running instance.
    - **Run the TP import** — run `tools/import-tp/` to import data into a running instance.
    - **Run the manual import (remaining batches)** — run `tools/import-manual/`'s plain `apply` command to apply every batch not yet applied once the system-specific importers have run.
    - **Run the match-event review tool** — run `tools/review-match/` against the running database and the existing BBL/TP data directories, then open the report.
 
-   **Question 3 — `question`: "Which action(s) should I run? (continued)"** (`multiSelect: true`):
+   **Question 3 — `question`: "Which action(s) should I run? (continued, 3 of 3)"** (`multiSelect: true`):
    - **Run the player review tool** — run `tools/review-player/` against the running database and the existing BBL/TP data directories, then open the report.
    - **Run the race review tool** — run `tools/review-race/` against the running database and the existing BBL/TP/manual data directories, then open the report.
    - **Run the star player review tool** — run `tools/review-star-player/` against the running database and the existing BBL/TP/manual data directories, then open the report.
    - **Generate a SchemaSpy diagram** — run `pnpm run db:diagram` against a running `postgres` and open the result.
 
-   The **union** of the three answers determines which sections below run; the split is purely a presentation constraint and carries no meaning of its own. The developer may select any combination of the eleven options, including none. No option is gated: "Generate a SchemaSpy diagram" is always offered, regardless of branch contents or whether `postgres` is currently running — the script's own precondition check handles the not-running case (see that section). If the union is empty (nothing selected in any question), report "No action taken" and stop — this is a valid outcome, not an error. This question always runs, regardless of who invoked this skill (directly, or as a sub-skill of `develop-feature` or `handle-pr-reviews`) — do not skip it because a caller already asked something similar.
+   The **union** of the three answers determines which sections below run; the split is purely a presentation constraint and carries no meaning of its own. The developer may select any combination of the twelve options, including none. No option is gated: "Generate a SchemaSpy diagram" is always offered, regardless of branch contents or whether `postgres` is currently running — the script's own precondition check handles the not-running case (see that section). If the union is empty (nothing selected in any question), report "No action taken" and stop — this is a valid outcome, not an error. This question always runs, regardless of who invoked this skill (directly, or as a sub-skill of `develop-feature` or `handle-pr-reviews`) — do not skip it because a caller already asked something similar.
+
+   If the union holds "Run the full import" together with any of the four individual importers ("Run the manual import (first batch)", "Run the BBL import", "Run the TP import", "Run the manual import (remaining batches)"), stop and ask before running anything, with `AskUserQuestion` (single-select, `header` `Full import`), `question` "You selected Run the full import together with <the selected individual importers>. Should I run the full import only, or the full import followed by those importers?", with the options **Full import only** (skip the selected individual import sections) and **Full import, then the selected importers** (run the full import, then the selected individual import sections in their usual order, right after it). The other selected sections — deploy, backup restore, review tools, diagram — are unaffected by the answer and run in their usual places.
 
 ### Sync gitignored config into the worktree
 
@@ -163,9 +166,38 @@ Run this section only if "Restore a database backup" was selected in step 0 abov
    Poll `docker compose ps` until `discord-bot` is `Up`, as in "Deploy the stack" step 4. In the logs from the restart, expect `Running migrations...`, one `Applying: <name>` line per migration newer than the backup, `Migrations complete.`, then the same leader-lock and startup-message lines as "Deploy the stack" step 5. A failed migration means the branch's migrations do not apply cleanly to production-shaped data — report it prominently.
 8. Report the restored key, the backup's migration count, the key tables' row counts, which migrations the bot applied on top, and the bot's health. Do not tear down any containers — same non-goal as the "Deploy the stack" section.
 
+### Run the full import
+
+Run this section only if "Run the full import" was selected in step 0 above. Runs after the "Deploy the stack" and "Restore a database backup" sections if those were also selected, and before every individual import section, every review section and the diagram — it always executes before any individually selected importer. When it was selected together with individual importers, step 0's follow-up question decided whether those run right after it or not at all. Runs standalone (no docker steps at all) if only this was selected.
+
+This is the scratch-build sequence (see `docs/import-manual/batches.md`, "Operating procedure"): BBL and TP run twice because both read the advancement costs in batch 004, which can only be applied after their first run.
+
+1. **Guard: confirm the database is a scratch build.** A scratch build has an empty manual-batch ledger *and* holds no rows in any other `game_data` table — an empty ledger alone is not enough, because a restored backup that predates batch tracking, or an ad hoc manual import (which records no ledger entry), leaves an empty ledger beside real data, and a plain `apply` there would re-import batches 001 and 002 over later curation. From the worktree root, check whether the manual-batch ledger table exists:
+   ```bash
+   docker compose exec -T postgres psql -U blood_bowl -d blood_bowl -tAc "select to_regclass('game_data.manual_import_batches')"
+   ```
+   Empty output means the table does not exist yet, so the ledger is empty. Otherwise count its rows:
+   ```bash
+   docker compose exec -T postgres psql -U blood_bowl -d blood_bowl -tAc "select count(*) from game_data.manual_import_batches"
+   ```
+   `0` means the ledger is empty. Then confirm the database holds no data — this counts the rows of every `game_data` table except the ledger, so it covers players, teams, coaches and competitions as well as the leagues, eras, rules sets, races, positions, skills and other entities a manual import writes:
+   ```bash
+   docker compose exec -T postgres psql -U blood_bowl -d blood_bowl -tAc "select coalesce(sum(((xpath('/row/c/text()', query_to_xml(format('select count(*) as c from %I.%I', schemaname, tablename), false, true, '')))[1])::text::bigint), 0) from pg_tables where schemaname = 'game_data' and tablename <> 'manual_import_batches'"
+   ```
+   Continue to step 2 only when the ledger is empty and this total is `0`. Any other ledger count or total means this database is not a scratch build (for example a restored backup or an earlier import): stop this section, tell the developer the full import is for scratch builds only, and point them at the individual import options instead. If any of these commands fails (no `postgres` from this checkout running), report that and stop this section. A stopped full import also skips any individual importers chosen to follow it; say so.
+2. **Run the six steps in order**, each exactly as its individual section describes, including that section's config check (step 1) before the tool's first run and its outcome report (step 3). Before the first step runs, also confirm the importers write to the database the guard checked: the guard queried the docker-compose `postgres`, but each importer writes through its configured API. Read `connection.apiBaseUrl` in `tools/import-manual/import-manual-config.json5`, `tools/import-bbl/import-bbl-config.json5` and `tools/import-tp/import-tp-config.json5` (creating any missing file as its individual section's config check describes); each must be `http://localhost:3000` (or unset, which defaults to it), the API of this checkout's compose stack. If any points elsewhere, stop this section and tell the developer which file and URL, since the guard result would not describe the database the import writes to; do not edit the file yourself.
+   1. `apply 001-initial-seed` — "Run the manual import (first batch)" steps 1–3.
+   2. BBL import — "Run the BBL import" steps 1–3.
+   3. TP import — "Run the TP import" steps 1–3.
+   4. Plain `apply` — "Run the manual import (remaining batches)" steps 1–3.
+   5. BBL import again — `pnpm --filter @blood-bowl-tracker/import-bbl run start` (already built in step 2.2), reported as in "Run the BBL import" step 3.
+   6. TP import again — `( cd tools/import-tp && node dist/main.js )` (already built in step 2.3), reported as in "Run the TP import" step 3.
+3. **Failure handling.** Every non-zero exit stops the sequence — the later steps do not run, because they depend on what the failed step would have written — with exactly one exception. That includes a step 2.1 (`apply 001-initial-seed`) or 2.4 (plain `apply`) failure, an `Import failed:` crash, and an exit with no recognized output at all (a killed process, a Node startup failure). The exception is a BBL or TP step that exits `1` and prints `Import completed with <N> errors:` (a collected-error result) without `Import failed:`: it is reported and the sequence continues, exactly like the individual BBL and TP sections: the first pass may leave out a record whose curation only a later batch supplies, and the second pass after the plain `apply` repairs that. Report which step failed with its output, and which steps did not run. Every write is an idempotent upsert. If step 2.1 failed, 001 is left unrecorded, but it may have written some records before failing. Re-run the guard: retry the full import only if it still reports an empty ledger and a zero row total; otherwise continue with the individual import options from step 2.1 onward, ending with the BBL and TP imports again. For a stop at step 2.2 or later the ledger holds batch 001, so the guard refuses a second full import: tell the developer to continue with the individual import options from the failed step on, ending with the BBL and TP imports again. Any individual importers chosen to follow the full import are skipped too; say so. No automatic rollback; never tear down containers regardless of the outcome — same non-goal as the "Deploy the stack" section.
+4. Report each step that ran with its exit code and summary line.
+
 ### Run the manual import (first batch)
 
-Run this section only if "Run the manual import (first batch)" was selected in step 0 above. Runs after the "Deploy the stack" and "Restore a database backup" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to seed hand-authored data into an already-running instance before the system-specific importers.
+Run this section only if "Run the manual import (first batch)" was selected in step 0 above. Runs after the "Deploy the stack", "Restore a database backup" and "Run the full import" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to seed hand-authored data into an already-running instance before the system-specific importers.
 
 1. Check `tools/import-manual/import-manual-config.json5` is usable:
    ```bash
@@ -183,12 +215,12 @@ Run this section only if "Run the manual import (first batch)" was selected in s
    pnpm --filter @blood-bowl-tracker/import-manual run build
    ( cd tools/import-manual && node dist/main.js apply 001-initial-seed )
    ```
-3. Report the outcome to the developer. Per `tools/import-manual/src/main.ts`, the tool exits `0` and prints `Imported <N> record(s) successfully.` on stdout; or exits `1`, either printing per-error detail (`Import completed with <N> errors:` followed by each error message) on stderr for errors the import collected, or printing `Import failed:` with the thrown error for an unexpected failure (e.g. the API is unreachable, a malformed data file, or a missing directory). The tool also prints one `Skipped batch <name> (already applied).` or `Applied batch <name>.` line per batch; a failing batch is left unrecorded, with `Batch <name> was not recorded as applied; later batches were not attempted.` on stderr. `apply <batch>` refuses while a lower-numbered batch is unrecorded, and a failure prints a hint to apply the first batch, run the BBL and TP importers, then apply the rest. A restored production backup that predates batch tracking needs `node dist/main.js mark-applied 001-initial-seed 002-initial-cleanup` instead, which you offer to the developer rather than run unasked (only appropriate when the backup's last manual import ran from the current content of both batches, since `mark-applied` imports nothing; otherwise import those two batch directories by directory first). Report the exit code and the captured output either way. Because this import performs real database writes, a failure partway through may leave earlier steps' writes in place — there is no automatic rollback. Do not tear down any containers regardless of the import's outcome — same non-goal as the "Deploy the stack" section.
+3. Report the outcome to the developer. Per `tools/import-manual/src/main.ts`, the tool exits `0` and prints `Imported <N> record(s) successfully.` on stdout; or exits `1`, either printing per-error detail (`Import completed with <N> errors:` followed by each error message) on stderr for errors the import collected, or printing `Import failed:` with the thrown error for an unexpected failure (e.g. the API is unreachable, a malformed data file, or a missing directory). The tool also prints one `Skipped batch <name> (already applied).` or `Applied batch <name>.` line per batch; a failing batch is left unrecorded, with `Batch <name> was not recorded as applied; later batches were not attempted.` on stderr. `apply <batch>` refuses while a lower-numbered batch is unrecorded, and a failure prints a hint to apply the first batch, run the BBL and TP importers, apply the rest, then run the BBL and TP importers again. A restored production backup that predates batch tracking needs `node dist/main.js mark-applied 001-initial-seed 002-initial-cleanup` instead, which you offer to the developer rather than run unasked (only appropriate when the backup's last manual import ran from the current content of both batches, since `mark-applied` imports nothing; otherwise import those two batch directories by directory first). Report the exit code and the captured output either way. Because this import performs real database writes, a failure partway through may leave earlier steps' writes in place — there is no automatic rollback. Do not tear down any containers regardless of the import's outcome — same non-goal as the "Deploy the stack" section.
 4. A failure here **does** stop the dependent imports: a first batch that failed is left unrecorded, so the BBL and TP imports would run without the records they match against, and a later plain `apply` would retry 001 before anything else. Skip the remaining selected BBL, TP and "Run the manual import (remaining batches)" sections, report why, and tell the developer to rerun `apply 001-initial-seed` successfully before continuing.
 
 ### Run the BBL import
 
-Run this section only if "Run the BBL import" was selected in step 0 above. Runs after the "Deploy the stack", "Restore a database backup" and "Run the manual import (first batch)" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to import into an instance already deployed from a previous run.
+Run this section only if "Run the BBL import" was selected in step 0 above. Runs after the "Deploy the stack", "Restore a database backup", "Run the full import" and "Run the manual import (first batch)" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to import into an instance already deployed from a previous run. On a scratch build this import must run again after "Run the manual import (remaining batches)", because it reads the advancement costs batch 004 supplies; "Run the full import" does that automatically.
 
 1. Check `tools/import-bbl/import-bbl-config.json5` is usable:
    ```bash
@@ -212,7 +244,7 @@ Run this section only if "Run the BBL import" was selected in step 0 above. Runs
 
 ### Run the TP import
 
-Run this section only if "Run the TP import" was selected in step 0 above. Runs after the "Deploy the stack", "Restore a database backup" and "Run the BBL import" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected.
+Run this section only if "Run the TP import" was selected in step 0 above. Runs after the "Deploy the stack", "Restore a database backup", "Run the full import" and "Run the BBL import" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected. On a scratch build this import must run again after "Run the manual import (remaining batches)", because it reads the advancement costs batch 004 supplies; "Run the full import" does that automatically.
 
 1. Check `tools/import-tp/import-tp-config.json5` is usable:
    ```bash
@@ -236,7 +268,7 @@ Run this section only if "Run the TP import" was selected in step 0 above. Runs 
 
 ### Run the manual import (remaining batches)
 
-Run this section only if "Run the manual import (remaining batches)" was selected in step 0 above. Runs after the "Deploy the stack", "Restore a database backup", "Run the manual import (first batch)", "Run the BBL import", and "Run the TP import" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to clean up names or attach external IDs after the system-specific importers already ran.
+Run this section only if "Run the manual import (remaining batches)" was selected in step 0 above. Runs after the "Deploy the stack", "Restore a database backup", "Run the full import", "Run the manual import (first batch)", "Run the BBL import", and "Run the TP import" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to clean up names or attach external IDs after the system-specific importers already ran.
 
 1. Check `tools/import-manual/import-manual-config.json5` is usable, copying the template if absent (identical to the "Run the manual import (first batch)" section's step 1).
 2. Build and run the plain `apply` command, which applies every batch not yet applied, in number order:
@@ -245,6 +277,7 @@ Run this section only if "Run the manual import (remaining batches)" was selecte
    ( cd tools/import-manual && node dist/main.js apply )
    ```
 3. Report the outcome to the developer using the same success/error/`Import failed:` message formats as the "Run the manual import (first batch)" section's step 3. No automatic rollback; never tear down containers regardless of outcome.
+4. On a scratch build, the BBL and TP imports must run again after this one, because both read the advancement costs batch 004 supplies. If this run is building a database from scratch and the BBL and TP imports are not run again after it, tell the developer so — "Run the full import" does this automatically.
 
 ### Run the match-event review tool
 
@@ -356,7 +389,7 @@ Run this section only if "Run the star player review tool" was selected in step 
 
 ### Generate a SchemaSpy diagram
 
-Run this section only if "Generate a SchemaSpy diagram" was selected in step 0 above. It runs **last** — after the "Deploy the stack", "Restore a database backup", both "Run the manual import" sections, "Run the BBL import", "Run the TP import", "Run the match-event review tool", "Run the player review tool", and "Run the race review tool" sections if those were also selected — so the diagram reflects the schema after any deploy work (it does not interact with any import). It also runs standalone (no docker steps of its own) if only this was selected — e.g. the developer wants a diagram of a stack deployed in a previous session.
+Run this section only if "Generate a SchemaSpy diagram" was selected in step 0 above. It runs **last** — after the "Deploy the stack", "Restore a database backup", "Run the full import", both "Run the manual import" sections, "Run the BBL import", "Run the TP import", "Run the match-event review tool", "Run the player review tool", and "Run the race review tool" sections if those were also selected — so the diagram reflects the schema after any deploy work (it does not interact with any import). It also runs standalone (no docker steps of its own) if only this was selected — e.g. the developer wants a diagram of a stack deployed in a previous session.
 
 1. Generate the diagram from the repo root:
    ```bash

@@ -3,8 +3,9 @@
 `tools/import-manual`'s curated data lives in numbered batches under
 `tools/import-manual/data/batches/`. Each batch is applied to a database once
 and then kept unchanged as a historical record; the database records which
-batches it holds. A full import from scratch applies the first batch, then the BBL and TP importers, then the rest, in
-order.
+batches it holds. A full import from scratch applies the first batch, runs
+the BBL and TP importers, applies the rest in order, then runs the BBL and TP
+importers again (see [Operating procedure](#operating-procedure)).
 
 ## Layout
 
@@ -23,11 +24,14 @@ hyphenated slug.
   lower-numbered one. Batch 002 references rows only the BBL and TP importers
   create, so it can only be applied after them; a batch numbered above it
   therefore also lands after them on a scratch import. If such a batch
-  supplies curation a source importer needs (a TP keyword or skill, say), that
-  importer reports the missing curation and leaves the affected record out, so
-  rerun it after `apply`. The source importers are idempotent upserts, so the
-  rerun repairs the omission. To avoid the rerun, a curator can sequence the
-  scratch import so the prerequisite batch is applied before the sources:
+  supplies curation a source importer needs, that importer leaves the
+  affected result out on its first run: a TP keyword or skill it reports as
+  missing, or, without a report, BBL's chosen-or-random source of a gained
+  skill and the unspent SPP both importers store, which read batch 004's
+  advancement costs. A scratch import therefore runs the BBL and TP importers
+  again after `apply`. They are idempotent upserts, so the second run fills in
+  what the first left out. Batch 004 cannot be sequenced before the sources
+  instead, because it also references rows they and batch 002 create.
   `apply <batch>` applies exactly one batch, provided every lower-numbered
   batch is recorded or applied first.
 - Within a batch, every `.json5` file directly in the directory is read in
@@ -67,7 +71,9 @@ The batches:
   skill that batch 001 declares, but the skill categories reference positions
   and characteristics that the source importers and batch 002 create, and the
   trophy awards reference competitions and players the BBL and TP importers
-  create, so the batch applies after them, in a plain `apply`. The api-server
+  create, so the batch applies after them, in a plain `apply`. On a scratch
+  import the BBL and TP importers then run again, so the skill sources and
+  unspent SPP that read these costs are filled in. The api-server
   must already run a release whose `advancementCosts.sync` accepts league and
   skill ids, whose `trophyAwards.upsert` accepts `grantedSkillId` and that has
   the `positionRulesSetSkillCategories.sync` procedure before the batch is
@@ -129,7 +135,8 @@ run:
    batches may depend on it; fix the cause and run the command again — every
    write is an idempotent upsert, so re-importing the batch is safe. On such a
    failure stderr also prints the hint "On a fresh database apply the first
-   batch, run the BBL and TP importers, then apply the rest."
+   batch, run the BBL and TP importers, apply the rest, then run the BBL and
+   TP importers again."
 
 On success the last line is `Imported <N> record(s) successfully.`; collected
 errors are printed one per line under `Import completed with <N> errors:`,
@@ -151,7 +158,12 @@ Passing a directory instead imports that directory ad hoc and records nothing
 ## Operating procedure
 
 - **Scratch database:** `apply 001-initial-seed`, the BBL importer, the TP
-  importer, then a plain `apply`, which applies 002, 003, 004 and anything newer.
+  importer, a plain `apply`, which applies 002, 003, 004 and anything newer,
+  then the BBL importer and the TP importer again. The second BBL and TP run
+  is part of the normal sequence: BBL's chosen-or-random skill sources and
+  the unspent SPP both importers store read batch 004's advancement costs,
+  which exist only once the plain `apply` has run. The `deploy-local` and
+  `deploy-production` skills run this whole sequence as their full import.
   A plain `apply` on a fresh database before the source importers fails at
   002, which references rows only the sources create, and leaves it
   unrecorded; it is safe to rerun after the sources.
