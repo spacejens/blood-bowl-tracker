@@ -56,21 +56,22 @@ interface IncreaseSplit {
  * Decides the order the TP roster import sends with a player's advancements.
  *
  * The live import runs right after a match, so an advancement not stored
- * before was taken since the last import and comes after every stored one. Its confirmed order is its number among the
- * player's paid advancements (neither starting skills nor free extras), the
- * numbering the cost rows use. A lone new advancement is sent confirmed at
- * the next number when TP's spend cannot be checked; when it can, it is sent
- * unconfirmed at the next number and marked pending, so a stored history the
- * spend does not allow leaves it unconfirmed instead of pinning it wrongly.
- * Several are sent unconfirmed at the next numbers, in TP's skill order then
- * stat-line order, and marked pending so their order can be deduced from
- * SPP. A player with nothing stored, in either import, has every paid
- * advancement numbered from 1 in TP's skill order then stat-line order,
- * unconfirmed and pending when the spend can be checked, so the spend can
- * confirm the order; this numbering replaces TP's list position, which
- * counts free extras and leaves out increases. A bulk import of a player
- * with stored rows cannot tell when the rest was taken, so it sends the
- * skills as TP lists them and each increase with an unknown order.
+ * before was taken since the last import and comes after every stored one.
+ * Its confirmed order is its number among the player's paid advancements
+ * (neither starting skills nor free extras), the numbering the cost rows use.
+ * A lone new advancement is sent confirmed at the next number when TP's spend
+ * cannot be checked; when it can, it is sent unconfirmed at the next number
+ * and marked pending, so a stored history the spend does not allow leaves it
+ * unconfirmed instead of pinning it wrongly. Several are sent unconfirmed at
+ * the next numbers, in TP's skill order then stat-line order, and marked
+ * pending so their order can be deduced from SPP. A player with nothing
+ * stored, in either import, has every paid advancement numbered from 1 in
+ * TP's skill order then stat-line order, unconfirmed and pending when the
+ * spend can be checked, so the spend can confirm the order; this numbering
+ * replaces TP's list position, which counts free extras and leaves out
+ * increases. A bulk import of a player with stored rows cannot tell when the
+ * rest was taken, so it sends the skills as TP lists them and each increase
+ * with an unknown order.
  * Stored increases are resent as stored, best-ranked first, so the server
  * keeps them.
  *

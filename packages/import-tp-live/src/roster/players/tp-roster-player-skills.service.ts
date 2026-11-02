@@ -88,9 +88,9 @@ interface SkillRefEntry {
  * (`isFreeExtra`). Increases travel with the skills in the same sync, stating
  * the player's increases in full: every player goes to
  * TpLiveAdvancementSyncService, which numbers the paid advancements and
- * confirms their order where TP's spend decides it. Only a roster entry with
- * a skills group or derived
- * increases contributes: a match-snapshot-only player carries neither.
+ * confirms their order where TP's spend decides it. Only a roster entry
+ * with a skills group or derived increases contributes: a
+ * match-snapshot-only player carries neither.
  */
 @Injectable()
 export class TpRosterPlayerSkillsService {
