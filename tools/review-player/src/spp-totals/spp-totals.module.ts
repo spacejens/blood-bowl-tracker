@@ -4,6 +4,7 @@ import { SharedModule } from '../shared/shared.module';
 import { PlayerSppComputedRendererService } from './player-spp-computed-renderer.service';
 import { PlayerSppImportedRendererService } from './player-spp-imported-renderer.service';
 import { PlayerSppLookupService } from './player-spp-lookup.service';
+import { PlayerSppTotalsRendererService } from './player-spp-totals-renderer.service';
 import { PlayerSppTotalsReviewerService } from './player-spp-totals-reviewer.service';
 import { SppDiscrepancyStratificationService } from './spp-discrepancy-stratification.service';
 import { SppMagnitudeStratificationService } from './spp-magnitude-stratification.service';
@@ -22,12 +23,15 @@ import { SppNonStandardContributionStratificationService } from './spp-non-stand
     PlayerSppComputedRendererService,
     PlayerSppImportedRendererService,
     PlayerSppLookupService,
+    PlayerSppTotalsRendererService,
     PlayerSppTotalsReviewerService,
     SppDiscrepancyStratificationService,
     SppMagnitudeStratificationService,
     SppNonStandardContributionStratificationService,
   ],
   exports: [
+    PlayerSppLookupService,
+    PlayerSppTotalsRendererService,
     PlayerSppTotalsReviewerService,
     SppDiscrepancyStratificationService,
     SppMagnitudeStratificationService,
