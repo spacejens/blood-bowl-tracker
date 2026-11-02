@@ -33,7 +33,7 @@ describe('ReviewService', () => {
     const sampler = mock<PlayerSamplerService>();
     sampler.sample.mockResolvedValue({ items: [player], gaps: [] });
     const reviewer = mock<PlayerDataTypeReviewer>();
-    Object.assign(reviewer, { id: 'player-info' });
+    Object.assign(reviewer, { id: 'overview' });
     reviewer.getRawSource.mockResolvedValue('<p>raw</p>');
     reviewer.getImportedView.mockResolvedValue('<p>db</p>');
     builder = mock<ReportBuilderService>();

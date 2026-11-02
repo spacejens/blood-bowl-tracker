@@ -35,7 +35,7 @@ describe('ReportBuilderService', () => {
           item: player,
           panels: [
             {
-              dataTypeId: 'player-info',
+              dataTypeId: 'overview',
               rawHtml: '<p>raw</p>',
               importedHtml: '<p>db</p>',
             },
@@ -50,7 +50,7 @@ describe('ReportBuilderService', () => {
       'BBL player 1000 — Janhorgh (Bull Whip Whippersnappers, Hobgoblin Linemen, Third Era, db id 42)',
     );
     expect(html).toContain('Selected for: SPP totals disagree, override');
-    expect(html).toContain('<h3>player-info</h3>');
+    expect(html).toContain('<h3>overview</h3>');
     expect(html).toContain('<h4>Raw source (BBL)</h4>');
     expect(html).toContain('<h4>Imported (database)</h4>');
     expect(html).toContain('<p>raw</p>');
@@ -63,7 +63,7 @@ describe('ReportBuilderService', () => {
           item: player,
           panels: [
             {
-              dataTypeId: 'spp-totals',
+              dataTypeId: 'career-history',
               rawHtml: '<p>raw</p>',
               importedHtml: '<p>db</p>',
               rawLabel: 'Computed from match events (database)',

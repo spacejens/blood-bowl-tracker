@@ -13,6 +13,8 @@ import { CurrentInjuryStratificationService } from '../lasting-injuries/current-
 import { HealedInjuryStratificationService } from '../lasting-injuries/healed-injury-stratification.service';
 import { LastingInjuriesModule } from '../lasting-injuries/lasting-injuries.module';
 import { LastingInjuriesReviewerService } from '../lasting-injuries/lasting-injuries-reviewer.service';
+import { OverviewModule } from '../overview/overview.module';
+import { PlayerOverviewReviewerService } from '../overview/player-overview-reviewer.service';
 import { PlayerAdvancementsModule } from '../player-advancements/player-advancements.module';
 import { PlayerAdvancementsReviewerService } from '../player-advancements/player-advancements-reviewer.service';
 import { PlayerAdvancementsStratificationService } from '../player-advancements/player-advancements-stratification.service';
@@ -20,14 +22,11 @@ import { CharacteristicsChangeStratificationService } from '../player-characteri
 import { PlayerCharacteristicsModule } from '../player-characteristics/player-characteristics.module';
 import { PlayerCharacteristicsReviewerService } from '../player-characteristics/player-characteristics-reviewer.service';
 import { PlayerInfoModule } from '../player-info/player-info.module';
-import { PlayerInfoReviewerService } from '../player-info/player-info-reviewer.service';
 import { RandomPlayerStratificationService } from '../player-info/random-player-stratification.service';
 import { StarPlayerStratificationService } from '../player-info/star-player-stratification.service';
 import { PlayerKeywordsModule } from '../player-keywords/player-keywords.module';
-import { PlayerKeywordsReviewerService } from '../player-keywords/player-keywords-reviewer.service';
 import { PlayerKeywordsStratificationService } from '../player-keywords/player-keywords-stratification.service';
 import { PlayerStatusModule } from '../player-status/player-status.module';
-import { PlayerStatusReviewerService } from '../player-status/player-status-reviewer.service';
 import { PlayerStatusStratificationService } from '../player-status/player-status-stratification.service';
 import { PLAYER_DATA_TYPE_REVIEWERS } from '../shared/data-type-reviewer';
 import { PLAYER_STRATIFIERS } from '../shared/player-stratifier';
@@ -52,6 +51,7 @@ import { ReviewService } from './review.service';
 @Module({
   imports: [
     SharedModule,
+    OverviewModule,
     PlayerInfoModule,
     PlayerCharacteristicsModule,
     PlayerAdvancementsModule,
@@ -69,14 +69,12 @@ import { ReviewService } from './review.service';
     { provide: REPORT_OUTPUT_PATH, useExisting: ReviewPlayerConfigService },
     ReviewService,
     createRegistryProvider(PLAYER_DATA_TYPE_REVIEWERS, [
-      PlayerInfoReviewerService,
+      PlayerOverviewReviewerService,
       PlayerSppTotalsReviewerService,
       PlayerCharacteristicsReviewerService,
       PlayerAdvancementsReviewerService,
       AdvancementCostsReviewerService,
       LastingInjuriesReviewerService,
-      PlayerKeywordsReviewerService,
-      PlayerStatusReviewerService,
     ]),
     createRegistryProvider(PLAYER_STRATIFIERS, [
       SppDiscrepancyStratificationService,

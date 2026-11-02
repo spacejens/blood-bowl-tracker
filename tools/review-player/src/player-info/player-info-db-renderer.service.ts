@@ -23,8 +23,7 @@ import type { SampledPlayer } from '../shared/review.types';
  * Renders what the importers actually stored about a player: identity, the
  * team era they belong to, their position, every other team era that hired
  * the same star player, and every external id they carry. SPP totals are
- * deliberately absent — they are the spp-totals data type's panel pair, shown
- * directly under this one.
+ * deliberately absent — they open the career-history panel pair.
  */
 @Injectable()
 export class PlayerInfoDbRendererService {

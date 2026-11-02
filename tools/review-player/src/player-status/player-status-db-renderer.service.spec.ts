@@ -75,8 +75,9 @@ describe('PlayerStatusDbRendererService', () => {
 
     expect(html).toContain('<td>active</td>');
     expect(html).toContain(
-      '<p class="note">active until the end of the era: Third Era ended 2021-06-30.</p>',
+      '<p>active until the end of the era: Third Era ended 2021-06-30.</p>',
     );
+    expect(html).not.toContain('class="note"');
   });
 
   it('adds no era note for an active player in a running era with a future end date', async () => {
