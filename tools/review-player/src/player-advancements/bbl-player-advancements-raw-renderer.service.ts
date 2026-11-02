@@ -7,19 +7,23 @@ import { Injectable } from '@nestjs/common';
 
 import { BblPlayerAdvancementsReaderService } from '../source/bbl-player-advancements-reader.service';
 import type { BblRawPlayerAdvancements } from '../source/bbl-player-skills-cell.service';
+import { BblUnspentSppReaderService } from '../source/bbl-unspent-spp-reader.service';
 
 const NONE = '—';
 
 /**
- * What BBL's own player page says about a player's skills and characteristic
- * increases.
+ * What BBL's own player page says about a player's SPP and advancements:
+ * both figures of the page's "Unspent SPP" row (the career total in
+ * brackets, and the reported unspent figure, which can be negative), then one
+ * list of the Skills cell — starting skills first, then gained skills and
+ * `+MA`/`+ST`/`+AG`/`+PA`/`+AV` increases in the page's own advancement
+ * numbering. Everything is read through the same `source/` services the
+ * imported panel compares against.
  *
- * BBL records only plain-text (starting) versus coloured (gained); it cannot
- * distinguish a randomly rolled advancement from a freely chosen one, and it
- * has no elite concept at all. So no skill here ever carries the dice or
- * diamond marker, and the panel says so in words rather than showing an
- * "unverifiable" indicator per row — the imported panel's markers for a
- * BBL-sourced player are therefore not a disagreement with this one.
+ * BBL records only plain text (starting) versus a coloured span (gained); it
+ * cannot tell a rolled skill from a chosen one and has no elite concept, so no
+ * skill here carries the dice or diamond marker, and the imported panel's
+ * markers for a BBL player are not a disagreement with this list.
  *
  * `HtmlService` and `SkillFormatService` are injected real in this service's
  * spec: both are pure formatters with their own tests.
@@ -27,51 +31,66 @@ const NONE = '—';
 @Injectable()
 export class BblPlayerAdvancementsRawRendererService {
   constructor(
+    private readonly unspent: BblUnspentSppReaderService,
     private readonly reader: BblPlayerAdvancementsReaderService,
     private readonly skillFormat: SkillFormatService,
     private readonly html: HtmlService,
   ) {}
 
   async render(externalId: string): Promise<string> {
-    const advancements = await this.reader.read(externalId);
-    if (advancements === null) {
+    const figures = await this.unspent.read(externalId);
+    if (figures === null) {
       return this.html.note(
-        `No BBL player page, or no skills line on it, for pid ${externalId} in the downloaded mirror.`,
+        `No BBL player page for pid ${externalId} in the downloaded mirror.`,
       );
     }
+    const advancements = await this.reader.read(externalId);
     return (
-      this.html.subheading('Skills') +
-      this.skillsTable(advancements) +
-      this.html.note(
-        'BBL does not record how a skill was gained; the import infers random or chosen from the SPP the page reports as spent where only one fits, so no random or elite marker can be shown in this raw view.',
+      this.html.subheading('SPP figures') +
+      this.html.table(
+        ['Field', 'Value'],
+        [
+          ['Career SPP (in brackets)', this.value(figures.careerTotal)],
+          ['Unspent SPP (reported)', this.value(figures.unspent)],
+        ],
       ) +
-      this.html.subheading('Characteristic increases') +
-      this.increasesTable(advancements)
+      this.html.subheading('Skills and advancements') +
+      (advancements === null
+        ? this.html.note('The page has no Skills cell.')
+        : this.html.table(
+            ['Order', 'Advancement', 'Source'],
+            this.rows(advancements),
+          ))
     );
   }
 
-  private skillsTable(advancements: BblRawPlayerAdvancements): string {
-    const rows: TableCell[][] = advancements.skills.map((skill) => [
-      this.skillFormat.format({
-        name: skill.name,
-        attributeValue: skill.attributeValue,
-      }),
-      skill.source,
-      skill.advancementOrder === null ? NONE : String(skill.advancementOrder),
-    ]);
-    return this.html.table(['Skill', 'Source', 'Order'], rows);
+  /** Starting skills carry no order and lead; the rest follow page numbering. */
+  private rows(advancements: BblRawPlayerAdvancements): TableCell[][] {
+    const entries = [
+      ...advancements.skills.map((skill) => ({
+        order: skill.advancementOrder,
+        advancement: this.skillFormat.format({
+          name: skill.name,
+          attributeValue: skill.attributeValue,
+        }),
+        source: skill.source,
+      })),
+      ...advancements.increases.map((increase) => ({
+        order: increase.advancementOrder,
+        advancement: `+${increase.characteristic}`,
+        source: 'characteristic increase',
+      })),
+    ];
+    return entries
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map(({ order, advancement, source }) => [
+        order === null ? NONE : `#${order}`,
+        advancement,
+        source,
+      ]);
   }
 
-  private increasesTable(advancements: BblRawPlayerAdvancements): string {
-    if (advancements.increases.length === 0) {
-      return this.html.note('None.');
-    }
-    return this.html.table(
-      ['Increase', 'Order'],
-      advancements.increases.map((increase) => [
-        `+${increase.characteristic}`,
-        String(increase.advancementOrder),
-      ]),
-    );
+  private value(figure: number | null): string {
+    return figure === null ? NONE : String(figure);
   }
 }
