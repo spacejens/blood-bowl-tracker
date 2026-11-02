@@ -463,7 +463,7 @@ This is the scratch-build sequence (see `docs/import-manual/batches.md`, "Operat
    ```
    A count of `0` means the ledger is empty. Then confirm production holds no data, the same way — this counts the rows of every `game_data` table except the ledger, so it covers players, teams, coaches and competitions as well as the leagues, eras, rules sets, races, positions, skills and other entities a manual import writes:
    ```sql
-   select coalesce(sum(((xpath('/row/c/text()', query_to_xml(format('select count(*) as c from %I.%I', schemaname, tablename), false, true, '')))[1])::text::bigint), 0) from pg_tables where schemaname = 'game_data' and tablename <> 'manual_import_batches' as rows_total
+   select coalesce(sum(((xpath('/row/c/text()', query_to_xml(format('select count(*) as c from %I.%I', schemaname, tablename), false, true, '')))[1])::text::bigint), 0) as rows_total from pg_tables where schemaname = 'game_data' and tablename <> 'manual_import_batches'
    ```
    Continue to step 2 only when the ledger is empty and `rows_total` is `0`. Any other count, a non-zero `exitCode`, or an `{"error": ...}` from any of these queries means this is not a confirmed scratch build: stop this section, tell the developer the full import is for brand-new databases only (or report the query failure), and point them at the individual import options instead. A stopped full import also skips any individual importers chosen to follow it; say so. Close the tunnel as usual.
 2. **Run the six steps in order**, each exactly as its individual section describes, with `IMPORT_CONFIG_ENV=production` on the same command as the tool, including that section's outcome report and production failure interpretations:
