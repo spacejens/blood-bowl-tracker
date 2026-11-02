@@ -52,6 +52,7 @@ To run an import against production:
    `http://localhost:3001`. The shared template ships `http://localhost:3000`,
    which is correct for the local config but wrong for the production one —
    the tunnel listens on `3001`.
+
 2. Build the tools:
 
    ```bash
@@ -68,19 +69,42 @@ To run an import against production:
    `3001` is the local port the tunnel listens on; `3000` after the colon is
    the production machine's own listening port (see `fly.toml`), which is
    unrelated to this change and stays `3000`.
+
 4. In a second terminal, for a full import into an empty database — the
    last-resort recovery path when no usable backup exists (see
    [Restoring a backup into production](production-restore.md#when-to-use-it)),
    not a routine run — run the importers in the same order the `deploy-local`
-   skill uses locally —
-   manual batch 001, BBL, TP, remaining manual batches — each from its own tool
-   directory:
+   skill's full import uses locally — manual batch 001, BBL, TP, remaining
+   manual batches, then BBL and TP again — each from its own tool directory.
+   The second BBL and TP run is part of the sequence: both importers read the
+   advancement costs in batch 004, which exist only once the remaining batches
+   are applied (see
+   [import-manual batches](../import-manual/batches.md#operating-procedure)).
+   Before the first command, confirm the database really is a scratch build:
+   the `game_data.manual_import_batches` ledger has no rows, and every other
+   `game_data` table has no rows either (a read-only query against production
+   answers it; the `deploy-production` skill's full-import guard holds the
+   query that sums every table). The query reads
+   `DATABASE_URL` from `apps/discord-bot/.env.production`, but the importers
+   write through the deployed API, so run it from the main checkout's copy of
+   that file (the one pushed to Fly) and first confirm that copy has been
+   applied to Fly since its `DATABASE_URL` last changed. An empty ledger
+   beside real data means a plain `apply` would re-import batches 001 and 002
+   over later curation.
+   Run the commands one at a time and read each result before starting the
+   next — pasting the whole block as one input would carry on past a failure.
+   Stop after any non-zero exit of a manual `apply`. After a BBL or TP run,
+   stop on any non-zero exit except an exit 1 that prints
+   `Import completed with <N> errors:` without `Import failed:`; continue to
+   the next command for that collected-error result:
 
    ```bash
    ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js apply 001-initial-seed )
    ( cd tools/import-bbl    && IMPORT_CONFIG_ENV=production node dist/main.js )
    ( cd tools/import-tp     && IMPORT_CONFIG_ENV=production node dist/main.js )
    ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js apply )
+   ( cd tools/import-bbl    && IMPORT_CONFIG_ENV=production node dist/main.js )
+   ( cd tools/import-tp     && IMPORT_CONFIG_ENV=production node dist/main.js )
    ```
 
    To bring a long-lived production database up to date with new curated
@@ -118,7 +142,9 @@ Common failures:
 The `deploy-production` skill automates this flow: it opens the tunnel,
 runs the importers in the order above with `IMPORT_CONFIG_ENV=production`,
 and closes the tunnel afterwards, in any combination of the four import
-steps. It also checks first that nothing else holds port 3001, since another
+steps, or all six steps in order as its full import, which first checks that
+production's manual-batch ledger is empty and that it holds no rows in any other `game_data` table. It also checks first that nothing
+else holds port 3001, since another
 production tunnel left running would stop this one from binding.
 
 The manual steps above stay documented because they are what the skill does
