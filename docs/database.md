@@ -335,7 +335,10 @@ a free extra, the sync stores it unconfirmed and moves each of the player's
 confirmed paid skills and increases numbered after it down one, closing its
 slot. The migration closed such slots the same way, and left unconfirmed a
 player with a free extra of unknown number. A trophy award recorded after the
-skill does the same when it marks a confirmed row free. Unmarking does not
+skill does the same when it marks a confirmed row free. No other path closes
+a slot: an unconfirmed incoming entry that turns an already confirmed paid
+row into a free extra (no import is known to do this) clears that row's
+confirmation and leaves the later numbers as they are. Unmarking does not
 reopen the slot: the row stays unconfirmed at its recorded number and the paid
 rows keep their closed-up numbers until a later source sync. TP's order is
 trusted only where TP's reported spend decides it, including when every
