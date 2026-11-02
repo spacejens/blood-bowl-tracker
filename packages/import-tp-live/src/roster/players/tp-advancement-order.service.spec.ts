@@ -47,6 +47,12 @@ const gained = (skillId: number, order: number): PlayerSkillEntry => ({
   attributeValue: null,
   advancementOrder: order,
 });
+const starting = (skillId: number): PlayerSkillEntry => ({
+  playerId: 1,
+  skillId,
+  source: 'starting',
+  attributeValue: null,
+});
 const increaseEntry = (
   characteristic: PlayerSkillEntry['characteristic'],
   advancementOrder: number | null,
@@ -86,7 +92,7 @@ describe('TpAdvancementOrderService', () => {
   });
 
   describe('liveEntries', () => {
-    it('confirms nothing for a player with nothing stored', () => {
+    it('numbers every paid advancement from 1, unconfirmed, for a player with nothing stored', () => {
       expect(
         service.liveEntries({
           playerId: 1,
@@ -95,7 +101,231 @@ describe('TpAdvancementOrderService', () => {
           stored: [],
         }),
       ).toEqual({
-        entries: [gained(7, 1), increaseEntry('AG', null)],
+        entries: [gained(7, 1), increaseEntry('AG', 2)],
+        pendingIndexes: [],
+        firstNumber: 1,
+      });
+    });
+
+    it('leaves every paid advancement pending when nothing is stored and the spend can be checked', () => {
+      // TP lists the free extra first; it keeps its list position, outside
+      // the paid numbering, so skill 7 is 1.
+      expect(
+        service.liveEntries({
+          playerId: 1,
+          skillEntries: [
+            starting(5),
+            { ...gained(9, 1), isFreeExtra: true },
+            gained(7, 2),
+            gained(8, 3),
+          ],
+          increases: counts({ AG: 1 }),
+          stored: [],
+          checkSpend: true,
+        }),
+      ).toEqual({
+        entries: [
+          starting(5),
+          { ...gained(9, 1), isFreeExtra: true },
+          gained(7, 1),
+          gained(8, 2),
+          increaseEntry('AG', 3),
+        ],
+        pendingIndexes: [2, 3, 4],
+        firstNumber: 1,
+      });
+    });
+
+    it('leaves nothing pending when nothing is stored and nothing was paid for', () => {
+      expect(
+        service.liveEntries({
+          playerId: 1,
+          skillEntries: [starting(5)],
+          increases: counts(),
+          stored: [],
+          checkSpend: true,
+        }),
+      ).toEqual({ entries: [starting(5)], pendingIndexes: [], firstNumber: 1 });
+    });
+
+    it('treats a bulk import with nothing stored like a live one', () => {
+      expect(
+        service.liveEntries({
+          playerId: 1,
+          skillEntries: [gained(7, 1)],
+          increases: counts({ ST: 1 }),
+          stored: [],
+          checkSpend: true,
+          bulk: true,
+        }),
+      ).toEqual({
+        entries: [gained(7, 1), increaseEntry('ST', 2)],
+        pendingIndexes: [0, 1],
+        firstNumber: 1,
+      });
+    });
+
+    it('sends a player with a stored confirmed paid advancement as TP lists him in a bulk import', () => {
+      // A bulk snapshot cannot tell when the unstored advancements were taken.
+      expect(
+        service.liveEntries({
+          playerId: 1,
+          skillEntries: [gained(7, 1), gained(8, 2)],
+          increases: counts({ AG: 1 }),
+          stored: [storedSkill({ orderConfirmed: true })],
+          checkSpend: true,
+          bulk: true,
+        }),
+      ).toEqual({
+        entries: [gained(7, 1), gained(8, 2), increaseEntry('AG', null)],
+        pendingIndexes: [],
+        firstNumber: 2,
+      });
+    });
+
+    it('keeps the history of a bulk player with one confirmed among unconfirmed stored rows', () => {
+      expect(
+        service.liveEntries({
+          playerId: 1,
+          skillEntries: [gained(7, 1), gained(8, 2)],
+          increases: counts({ AG: 1 }),
+          stored: [
+            storedSkill({}),
+            storedSkill({ skillId: 8, advancementOrder: 2 }),
+            storedIncrease({ advancementOrder: 3, orderConfirmed: true }),
+          ],
+          checkSpend: true,
+          bulk: true,
+        }),
+      ).toEqual({
+        entries: [gained(7, 1), gained(8, 2), increaseEntry('AG', null)],
+        pendingIndexes: [],
+        firstNumber: 4,
+      });
+    });
+
+    it('numbers a bulk player with only unconfirmed paid rows stored from 1, pending', () => {
+      // An earlier pass that could not confirm the order is no history to
+      // keep: the player is planned as if nothing were stored. TP lists the
+      // free extra first; it keeps its list position.
+      expect(
+        service.liveEntries({
+          playerId: 1,
+          skillEntries: [
+            { ...gained(9, 1), isFreeExtra: true },
+            gained(7, 2),
+            gained(8, 3),
+          ],
+          increases: counts({ AG: 1 }),
+          stored: [
+            storedSkill({ skillId: 9, isFreeExtra: true }),
+            storedSkill({ advancementOrder: 2 }),
+            storedSkill({ skillId: 8, advancementOrder: 3 }),
+            storedIncrease({ advancementOrder: null }),
+          ],
+          checkSpend: true,
+          bulk: true,
+        }),
+      ).toEqual({
+        entries: [
+          { ...gained(9, 1), isFreeExtra: true },
+          gained(7, 1),
+          gained(8, 2),
+          increaseEntry('AG', 3),
+        ],
+        pendingIndexes: [1, 2, 3],
+        firstNumber: 1,
+      });
+    });
+
+    it('numbers a bulk player with only unconfirmed paid rows stored from 1, unconfirmed, when the spend cannot be checked', () => {
+      expect(
+        service.liveEntries({
+          playerId: 1,
+          skillEntries: [gained(7, 4), gained(8, 5)],
+          increases: counts({ ST: 1 }),
+          stored: [
+            storedSkill({ advancementOrder: 4 }),
+            storedSkill({ skillId: 8, advancementOrder: 5 }),
+            storedIncrease({ characteristic: 'ST', advancementOrder: 6 }),
+          ],
+          checkSpend: false,
+          bulk: true,
+        }),
+      ).toEqual({
+        entries: [gained(7, 1), gained(8, 2), increaseEntry('ST', 3)],
+        pendingIndexes: [],
+        firstNumber: 1,
+      });
+    });
+
+    it('numbers a bulk player with only starting skills stored from 1, pending', () => {
+      // A stored starting skill is no paid history to keep.
+      expect(
+        service.liveEntries({
+          playerId: 1,
+          skillEntries: [starting(5), gained(7, 1), gained(8, 2)],
+          increases: counts({ ST: 1 }),
+          stored: [
+            storedSkill({
+              skillId: 5,
+              source: 'starting',
+              advancementOrder: null,
+            }),
+          ],
+          checkSpend: true,
+          bulk: true,
+        }),
+      ).toEqual({
+        entries: [
+          starting(5),
+          gained(7, 1),
+          gained(8, 2),
+          increaseEntry('ST', 3),
+        ],
+        pendingIndexes: [1, 2, 3],
+        firstNumber: 1,
+      });
+    });
+
+    it('numbers a bulk player with only a free extra stored from 1, pending', () => {
+      // TP lists the free extra first; it keeps its list position.
+      expect(
+        service.liveEntries({
+          playerId: 1,
+          skillEntries: [{ ...gained(9, 1), isFreeExtra: true }, gained(7, 2)],
+          increases: counts(),
+          stored: [storedSkill({ skillId: 9, isFreeExtra: true })],
+          checkSpend: true,
+          bulk: true,
+        }),
+      ).toEqual({
+        entries: [{ ...gained(9, 1), isFreeExtra: true }, gained(7, 1)],
+        pendingIndexes: [1],
+        firstNumber: 1,
+      });
+    });
+
+    it('leaves a lone advancement unconfirmed in a bulk import with only starting skills stored', () => {
+      // A bulk snapshot cannot tell the lone skill is the player's only paid
+      // advancement, so it counts as a player with nothing stored.
+      expect(
+        service.liveEntries({
+          playerId: 1,
+          skillEntries: [starting(5), gained(7, 1)],
+          increases: undefined,
+          stored: [
+            storedSkill({
+              skillId: 5,
+              source: 'starting',
+              advancementOrder: null,
+            }),
+          ],
+          checkSpend: false,
+          bulk: true,
+        }),
+      ).toEqual({
+        entries: [starting(5), gained(7, 1)],
         pendingIndexes: [],
         firstNumber: 1,
       });
@@ -280,6 +510,92 @@ describe('TpAdvancementOrderService', () => {
           stored: [storedSkill({})],
         }).entries,
       ).toEqual([gained(7, 1)]);
+    });
+  });
+
+  describe('liveEntries with the gained order known', () => {
+    it('numbers the skills as listed and reports their known order', () => {
+      // Listed in row-id order: 8 before 7, the free extra between them.
+      expect(
+        service.liveEntries({
+          playerId: 1,
+          skillEntries: [
+            starting(5),
+            gained(8, 1),
+            { ...gained(9, 2), isFreeExtra: true },
+            gained(7, 3),
+          ],
+          increases: counts({ AG: 1 }),
+          stored: [],
+          checkSpend: true,
+          gainedOrderKnown: true,
+        }),
+      ).toEqual({
+        entries: [
+          starting(5),
+          gained(8, 1),
+          { ...gained(9, 2), isFreeExtra: true },
+          gained(7, 2),
+          increaseEntry('AG', 3),
+        ],
+        pendingIndexes: [1, 3, 4],
+        orderedIndexes: [1, 3],
+        firstNumber: 1,
+      });
+    });
+
+    it('reports the known order of new skills after a stored baseline', () => {
+      expect(
+        service.liveEntries({
+          playerId: 1,
+          skillEntries: [gained(7, 1), gained(9, 2), gained(8, 3)],
+          increases: counts({ ST: 1 }),
+          stored: [storedSkill({ orderConfirmed: true })],
+          gainedOrderKnown: true,
+        }),
+      ).toEqual({
+        entries: [
+          gained(7, 1),
+          gained(9, 2),
+          gained(8, 3),
+          increaseEntry('ST', 4),
+        ],
+        pendingIndexes: [1, 2, 3],
+        orderedIndexes: [1, 2],
+        firstNumber: 2,
+      });
+    });
+
+    it('reports no known order with fewer than two pending skills', () => {
+      const plan = service.liveEntries({
+        playerId: 1,
+        skillEntries: [gained(7, 1)],
+        increases: counts({ ST: 1 }),
+        stored: [],
+        checkSpend: true,
+        gainedOrderKnown: true,
+      });
+
+      expect(plan.pendingIndexes).toEqual([0, 1]);
+      expect(plan).not.toHaveProperty('orderedIndexes');
+    });
+
+    it('reports no known order for a bulk player sent as TP lists him', () => {
+      const plan = service.liveEntries({
+        playerId: 1,
+        skillEntries: [gained(7, 1), gained(8, 2)],
+        increases: undefined,
+        stored: [storedSkill({ orderConfirmed: true })],
+        checkSpend: true,
+        bulk: true,
+        gainedOrderKnown: true,
+      });
+
+      expect(plan).toEqual({
+        entries: [gained(7, 1), gained(8, 2)],
+        pendingIndexes: [],
+        firstNumber: 2,
+      });
     });
   });
 });

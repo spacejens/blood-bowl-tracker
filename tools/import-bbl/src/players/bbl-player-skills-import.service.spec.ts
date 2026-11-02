@@ -82,7 +82,7 @@ describe('BblPlayerSkillsImportService', () => {
     );
   });
 
-  it('sends one entry per player skill, carrying source, attribute and order', async () => {
+  it('sends one entry per player skill, carrying source, attribute and confirmed order', async () => {
     skillsImport.upsert.mockResolvedValue(upserted(100, 'Mighty Blow'));
     playerSkills.syncPlayerSkills.mockResolvedValue(1);
 
@@ -111,6 +111,7 @@ describe('BblPlayerSkillsImportService', () => {
             source: 'advancement',
             attributeValue: '+1',
             advancementOrder: 2,
+            orderConfirmed: true,
           },
         ],
         characteristicPlayerIds: [5],
@@ -261,7 +262,7 @@ describe('BblPlayerSkillsImportService', () => {
     expect(result.success).toBe(true);
   });
 
-  it('sends characteristic increases after the skills, and lists the player', async () => {
+  it('sends gained skills and increases confirmed at their page order', async () => {
     skillsImport.upsert.mockResolvedValue(upserted(100, 'Dodge'));
 
     await service.syncPlayerSkills(
@@ -293,12 +294,14 @@ describe('BblPlayerSkillsImportService', () => {
             source: 'advancement',
             attributeValue: null,
             advancementOrder: 1,
+            orderConfirmed: true,
           },
           {
             playerId: 1,
             source: 'characteristic',
             characteristic: 'AG',
             advancementOrder: 2,
+            orderConfirmed: true,
           },
         ],
         characteristicPlayerIds: [1],

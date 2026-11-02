@@ -830,6 +830,44 @@ describe('RosterParserService', () => {
     ).toEqual([true, false, false]);
   });
 
+  it("carries a gained skill's own row id, absent meaning undefined", () => {
+    const roster = service.parse(
+      rosterBody({
+        lineUps: [
+          lineUp({
+            lineUpMaster: {
+              id: 952,
+              position: 'Dwarf Lineman',
+              ma: 6,
+              st: 3,
+              ag: 3,
+              pa: 4,
+              av: 9,
+              skills: [],
+            },
+            skills: [
+              { id: 1358380, skillMasterId: 103, isRandom: true },
+              {
+                id: 815435,
+                skillMasterId: 307,
+                isRandom: false,
+                isExtra: true,
+              },
+              { skillMasterId: 126, isRandom: false },
+            ],
+          }),
+        ],
+      }),
+    );
+
+    expect(roster.players[0].skills?.gained).toEqual([
+      { rowId: 1358380, skillMasterId: 103, isRandom: true, isExtra: false },
+      { rowId: 815435, skillMasterId: 307, isRandom: false, isExtra: true },
+      { skillMasterId: 126, isRandom: false, isExtra: false },
+    ]);
+    expect(roster.players[0].skills?.gained[2]).not.toHaveProperty('rowId');
+  });
+
   it("carries a gained skill's type-3 attribute through unresolved", () => {
     const roster = service.parse(
       rosterBody({
@@ -871,7 +909,8 @@ describe('RosterParserService', () => {
   it('reports no skill group for an entry with no position template', () => {
     const roster = service.parse(
       rosterBody({
-        lineUps: [lineUp({ skills: [{ skillMasterId: 261 }] })],
+        // A match-embedded shape: bare ids, so a row id changes nothing.
+        lineUps: [lineUp({ skills: [{ id: 815435, skillMasterId: 261 }] })],
       }),
     );
 

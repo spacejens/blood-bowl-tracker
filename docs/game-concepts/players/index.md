@@ -62,9 +62,8 @@ error, and dead, retired and departed players are worked out like any other.
   random on BBL** below).
   Characteristic increases are advancements of their own kind, and an entry
   whose order is confirmed is pinned to its number while every other entry
-  stays interchangeable. The recorded skill order is unverified, so it is
-  ignored
-  ([#1234](https://github.com/spacejens/blood-bowl-tracker/issues/1234)).
+  stays interchangeable. BBL's order is always confirmed; TP's only where its
+  reported spend decides it.
   Whether a skill was primary or secondary comes from the position's
   [skill categories](../skills/index.md#primary-and-secondary-categories); a
   skill outside them could be either. Unspent SPP is therefore the least and

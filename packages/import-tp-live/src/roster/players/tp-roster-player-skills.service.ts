@@ -8,12 +8,9 @@ import type {
   PlayerCharacteristicCounts,
   PlayerSkillSource,
 } from '@blood-bowl-tracker/domain-enums';
-import { PlayerSkillsService } from '@blood-bowl-tracker/game-data';
-import {
-  ImportResultService,
-  UpsertRecorderService,
-} from '@blood-bowl-tracker/import-shared';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type {
+  TpGainedSkillRef,
   TpPlayerSkillRef,
   TpPlayerSkills,
   TpRoster,
@@ -25,7 +22,6 @@ import { TpKeywordTargetDecoderService } from '../../official-teams/tp-keyword-t
 import type { TpOfficialKeywordCatalog } from '../../official-teams/tp-official-keyword-catalog.service';
 import { TpOfficialKeywordCatalogService } from '../../official-teams/tp-official-keyword-catalog.service';
 import type { TpRosterContext } from '../tp-roster-context.service';
-import { TpAdvancementOrderService } from './tp-advancement-order.service';
 import { TpLiveAdvancementSyncService } from './tp-live-advancement-sync.service';
 import type { TpResolvedSkill } from './tp-roster-skill-ids.service';
 import { TpRosterSkillIdsService } from './tp-roster-skill-ids.service';
@@ -43,9 +39,10 @@ export interface SyncRosterPlayerSkillsOptions {
   /** Each imported player's characteristic increases, by database player id. */
   increasesByPlayerId: ReadonlyMap<number, PlayerCharacteristicCounts>;
   /**
-   * When true (the live import only), each player's entries go through
-   * TpLiveAdvancementSyncService, which confirms the order of new
-   * advancements where it is known.
+   * True for the live import, whose run right after a match makes every
+   * advancement not stored before a new one. Either way each player goes
+   * through TpLiveAdvancementSyncService, so a player with nothing stored has
+   * the order of his paid advancements deduced from TP's reported spend.
    */
   confirmNewAdvancements?: boolean;
   context: TpRosterContext;
@@ -87,14 +84,19 @@ interface SkillRefEntry {
  * gained skills alike plus characteristic increases, for both the live import
  * and the bulk `tpRosters.import` path. A `starting` entry is the position
  * template's; a gained one is `random` or `chosen` from TP's own `isRandom`,
- * with `advancementOrder` its 1-based index in TP's gained list (TP's
- * presentation order, the best proxy it exposes). A gained skill TP flags
- * `isExtra` is sent as a free extra (`isFreeExtra`). Increases travel with
- * the skills in the same sync, stating the player's increases in full: the
- * bulk import sends them with an unknown order, while the live import hands
- * each player to TpLiveAdvancementSyncService, which orders new advancements
- * after the stored ones. Only a roster entry with a skills group or derived
- * increases contributes: a match-snapshot-only player carries neither.
+ * with `advancementOrder` its 1-based position in the gained order as the
+ * starting proxy. The gained order is TP's per-skill row-id order when every
+ * gained skill carries a distinct row id, which the sync is told so the
+ * order constrains the deduction, and TP's list order otherwise. A gained
+ * skill TP flags `isExtra` is sent as a free extra (`isFreeExtra`) and keeps
+ * its own position in that order as its number, outside the paid numbering:
+ * TpAdvancementOrderService skips it when numbering paid advancements.
+ * Increases travel with the skills in the same sync, stating the player's
+ * increases in full: every player goes to
+ * TpLiveAdvancementSyncService, which numbers the paid advancements and
+ * confirms their order where TP's spend decides it. Only a roster entry
+ * with a skills group or derived increases contributes: a
+ * match-snapshot-only player carries neither.
  */
 @Injectable()
 export class TpRosterPlayerSkillsService {
@@ -102,10 +104,7 @@ export class TpRosterPlayerSkillsService {
     private readonly skillIds: TpRosterSkillIdsService,
     private readonly keywordCatalog: TpOfficialKeywordCatalogService,
     private readonly keywordTargets: TpKeywordTargetDecoderService,
-    private readonly playerSkills: PlayerSkillsService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
-    private readonly order: TpAdvancementOrderService,
     private readonly liveSync: TpLiveAdvancementSyncService,
   ) {}
 
@@ -172,11 +171,12 @@ export class TpRosterPlayerSkillsService {
       increases,
       snapshot,
     } of withSkills) {
+      const gained = this.gainedOrder(skills.gained);
       const skillEntries = this.deduplicate([
         ...skills.starting.flatMap((ref) =>
           this.entry(run, { playerId, ref, source: 'starting' }),
         ),
-        ...skills.gained.flatMap((ref, index) =>
+        ...gained.refs.flatMap((ref, index) =>
           this.entry(run, {
             playerId,
             ref,
@@ -189,42 +189,50 @@ export class TpRosterPlayerSkillsService {
       if (skillEntries.length === 0 && increases === undefined) {
         continue;
       }
-      if (confirmNewAdvancements === true) {
-        const wrote = await this.liveSync.syncPlayer({
-          player: { id: player.id, name: player.name },
-          playerId,
-          skillEntries,
-          increases,
-          snapshot,
-          errors,
-        });
-        if (wrote) {
-          written += skillEntries.length;
-        }
-        continue;
-      }
-      const entries = [
-        ...skillEntries,
-        ...this.order.characteristicEntries(playerId, increases),
-      ];
-      const synced = await this.runner.record({
-        run: () =>
-          this.playerSkills.sync({
-            entries,
-            ...(increases === undefined
-              ? {}
-              : { characteristicPlayerIds: [playerId] }),
-          }),
-        item: { lineUpId: player.id, playerId },
+      const wrote = await this.liveSync.syncPlayer({
+        player: { id: player.id, name: player.name },
+        playerId,
+        skillEntries,
+        increases,
+        snapshot,
+        ...(confirmNewAdvancements === true ? {} : { bulk: true }),
+        ...(gained.byRowId ? { gainedOrderKnown: true } : {}),
         errors,
-        buildErrorMessage: (error) =>
-          `Failed to write ${entries.length} advancement(s) of player "${player.name}" (${player.id}): ${this.runner.messageOf(error)}`,
       });
-      if (synced !== undefined) {
+      if (wrote) {
         written += skillEntries.length;
       }
     }
     return written;
+  }
+
+  /**
+   * The player's gained skills in the order they were gained, as far as TP
+   * shows it. TP's per-skill row ids are a counter whose order fits the SPP
+   * spent wherever that was checked, while TP's list order often does not,
+   * so the skills go in ascending row-id order when there are at least two
+   * and every one carries a row id no other one shares (`byRowId`). Without
+   * that, all-or-nothing like the skill group itself, they stay in TP's list
+   * order. A free extra is ordered by its row id like the rest.
+   */
+  private gainedOrder(gained: TpGainedSkillRef[]): {
+    refs: TpGainedSkillRef[];
+    byRowId: boolean;
+  } {
+    const rowIds = gained.flatMap((ref) =>
+      ref.rowId === undefined ? [] : [ref.rowId],
+    );
+    if (
+      gained.length < 2 ||
+      rowIds.length !== gained.length ||
+      new Set(rowIds).size !== rowIds.length
+    ) {
+      return { refs: gained, byRowId: false };
+    }
+    return {
+      refs: [...gained].sort((a, b) => (a.rowId ?? 0) - (b.rowId ?? 0)),
+      byRowId: true,
+    };
   }
 
   /**
@@ -341,10 +349,11 @@ export class TpRosterPlayerSkillsService {
    * One player's entries, one per `(skillId, attributeValue)` -- the natural
    * key `player_advancements` is unique on, which `PlayerSkillsService.sync`
    * rejects a batch for repeating. A gained entry replaces a starting one
-   * (the more specific provenance); otherwise the first entry wins, which
-   * for two gained entries is the lower advancement order, since entries
-   * arrive starting first, then gained in order. The kept entry is a free extra
-   * when any merged entry was.
+   * (the more specific provenance) and takes its place among the gained
+   * entries, so the result keeps the gained order; otherwise the first entry
+   * wins, which for two gained entries is the lower advancement order, since
+   * entries arrive starting first, then gained in order. The kept entry is a
+   * free extra when any merged entry was.
    */
   private deduplicate(entries: PlayerSkillEntry[]): PlayerSkillEntry[] {
     const byKey = new Map<string, PlayerSkillEntry>();
@@ -358,6 +367,11 @@ export class TpRosterPlayerSkillsService {
           : existing;
       // A merged row is free when any of its entries was.
       const free = entry.isFreeExtra === true || existing?.isFreeExtra === true;
+      if (winner === entry) {
+        // Re-inserted, so a gained entry replacing a starting one keeps its
+        // own place among the gained entries.
+        byKey.delete(key);
+      }
       byKey.set(key, free ? { ...winner, isFreeExtra: true } : winner);
     }
     return [...byKey.values()];

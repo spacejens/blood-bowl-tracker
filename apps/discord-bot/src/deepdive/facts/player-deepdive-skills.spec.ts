@@ -56,6 +56,7 @@ function skill(
     category: 'general',
     isElite: false,
     isFreeExtra: false,
+    orderConfirmed: true,
     ...overrides,
   };
 }

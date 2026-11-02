@@ -150,7 +150,7 @@ nothing of the kind when the roster lists no players (see the same section).
 
 Skills are written to `player_advancements`: the position template's as
 `starting`, the player's gained ones as `chosen` or `random` (TP's own
-`isRandom`), numbered in TP's gained-list order. A gained skill TP flags `isExtra` is written as a free extra. TP names a skill only by
+`isRandom`), numbered as described in [Order of advancements](#order-of-advancements). A gained skill TP flags `isExtra` is written as a free extra. TP names a skill only by
 id, so the roster's own JSON is scanned for the skill names it embeds; a
 named skill is upserted under the Name system and every TP id the roster
 gives it. An id the roster does not name resolves through a skill already
@@ -161,24 +161,70 @@ named through the curated keyword catalogue
 (`data/batches/001-initial-seed/keywords.json5`; curate a missing one in a new batch, see [Batches](../import-manual/batches.md)). A player seen only in a
 match snapshot carries no skill data, so contributes none.
 
-**Order of advancements.** TP names no order for a player's characteristic
-increases, and only a list position for gained skills. The import reads the
-player's stored advancements before writing. An advancement not stored before
-is new, since the import runs after a match and it was taken since the last
-one; it comes after every stored one, and its number counts paid advancements
-only (neither starting skills nor free extras). A lone new advancement is
-appended at the next number and written confirmed, unless TP's SPP figures are
-known and the cost model finds the spend does not allow it there, when it is
-left unconfirmed. With several new ones, the
-import takes the spend as TP's total SPP less its unspent figure and prices
-every assignment of the next numbers to them with the cost model. One fitting
-order is written confirmed. When several fit and all cost the same, TP's skill
-order is trusted, new increases follow it, and the entries are written
-confirmed, since the choice cannot change a cost. When the fitting orders cost
-differently, or none fits or the SPP figures are missing, the new entries are
-appended after the stored ones unconfirmed. A player with nothing stored gets
-no confirmed order. Increases already stored are resent as stored, so a
-confirmed order is never replaced by a guess.
+### Order of advancements
+
+TP names no order for a player's characteristic increases. Its gained skills
+come in a list, and each carries its own row id. Both the live import and the
+bulk `tpRosters.import` read the player's stored advancements before writing.
+
+The gained skills are taken in ascending row-id order when the player has at
+least two and each carries a row id no other one shares, and in TP's list
+order otherwise. The row ids are a counter shared by every player, and their
+order fits the SPP spent wherever that was checked (see [What the parser
+extracts](../import-tp/file-format-rosters.md#what-the-parser-extracts));
+TP's list order often does not. Below, "the gained order" is whichever of the two applies.
+
+A player with nothing stored has no baseline, so every paid advancement (not
+a starting skill or free extra) is numbered from 1: gained skills in the
+gained order, then increases in MA/ST/AG/PA/AV order. When TP's SPP figures
+are known, the import takes the spend as TP's total SPP less its unspent
+figure and prices every assignment of those numbers with the cost model. In
+the row-id order, only an assignment that keeps the new skills in that order
+counts; increases have no row id, so they can take any place. One fitting
+order is written confirmed. When several fit and all cost the same, the
+fallback order above is written confirmed, since the choice cannot change a
+cost. Otherwise (fitting orders that cost differently, none fitting, more than
+six advancements to order, or missing SPP figures) the numbers are written
+unconfirmed.
+
+In the live import, an advancement not stored before is new, since the import
+runs after a match and it was taken since the last one; it comes after every
+stored one, and its number counts paid advancements only. A lone new
+advancement is appended at the next number and written confirmed, unless TP's
+SPP figures are known and the cost model finds the spend does not allow it
+there, when it is left unconfirmed. Several new ones are ordered from the
+spend as above, numbered after the stored ones. Increases already stored are
+resent as stored, so a confirmed order is never replaced by a guess.
+
+In the bulk import, only a stored paid advancement with a confirmed order is
+history to keep. A bulk import of a player with one cannot tell when the rest
+was taken, so it sends the gained skills at their position in the gained
+order and the increases with an unknown order, all unconfirmed. It rewrites a
+stored skill's unconfirmed order to that position (and an unconfirmed
+increase's to unknown), while a confirmed stored order is never overwritten.
+A bulk import of a player without one (nothing stored, only starting skills
+or free extras, or only paid advancements of unconfirmed order) treats him as
+a player with nothing stored: every paid advancement is numbered from 1 and ordered from the
+spend as above, the stored unconfirmed rows rewritten with the new numbers.
+So a later bulk pass, for one run after the advancement costs exist, can
+deduce and confirm what an earlier pass left unconfirmed.
+
+A free extra keeps its position in the gained order, unconfirmed and outside
+the paid numbering, so it can share a number with a paid advancement. Free
+extras are found before numbering by the same rule the write applies: TP's
+`isExtra` flag, a gained Hatred, or a skill one of the player's own trophy
+awards grants, even when TP leaves the flag off.
+
+TP's data has no timestamps and no per-skill history. Its skill row ids are
+not monotonic with list position (one sampled player's gained skills carry
+ids 1597390, 1812869 and 1597388 in list order), but their order fits the
+spend in every checked case where the spend rules some orders out: 49 of 49
+players whose order was already confirmed and 34 of 34 whose order was not,
+against 27 of 49 and 1 of 34 for the list order. They are evidence of the
+order, not proof, so they only narrow what the spend can confirm and never
+confirm an order by themselves. A characteristic increase has no row id, so
+the spend is the only evidence of where it falls. A bulk snapshot has no
+stored baseline either.
 
 ## Era resolution
 

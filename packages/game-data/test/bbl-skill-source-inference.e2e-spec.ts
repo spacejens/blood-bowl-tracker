@@ -35,6 +35,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
 import { CharacteristicAdvancementPlannerService } from '../src/player-skills/characteristic-advancement-planner.service';
+import { PaidAdvancementSlotsService } from '../src/player-skills/paid-advancement-slots.service';
 import { PlayerAdvancementSyncPlannerService } from '../src/player-skills/player-advancement-sync-planner.service';
 import { PlayerSkillsService } from '../src/player-skills/player-skills.service';
 import { AdvancementKindCandidatesService } from '../src/spp/advancement-kind-candidates.service';
@@ -239,6 +240,7 @@ describe('BBL skill source inference in the closing SPP sync (real Postgres)', (
         PlayerSkillsService,
         PlayerAdvancementSyncPlannerService,
         CharacteristicAdvancementPlannerService,
+        PaidAdvancementSlotsService,
         BblSkillSourceInferenceService,
         UnspentSppDecisionService,
         UnspentSppService,

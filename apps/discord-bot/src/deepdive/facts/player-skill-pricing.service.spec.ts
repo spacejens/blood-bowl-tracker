@@ -28,6 +28,7 @@ function skill(overrides: Partial<PlayerSkillRow> = {}): PlayerSkillRow {
     category: 'general',
     isElite: false,
     isFreeExtra: false,
+    orderConfirmed: true,
     ...overrides,
   };
 }

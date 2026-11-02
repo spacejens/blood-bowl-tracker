@@ -24,6 +24,7 @@ import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { CharacteristicAdvancementPlannerService } from '../src/player-skills/characteristic-advancement-planner.service';
+import { PaidAdvancementSlotsService } from '../src/player-skills/paid-advancement-slots.service';
 import { PlayerAdvancementSyncPlannerService } from '../src/player-skills/player-advancement-sync-planner.service';
 import { PlayerSkillsService } from '../src/player-skills/player-skills.service';
 import { connectTestDb } from './e2e-database';
@@ -100,6 +101,7 @@ describe('PlayerSkillsService two-step live write (real Postgres)', () => {
         PlayerSkillsService,
         PlayerAdvancementSyncPlannerService,
         CharacteristicAdvancementPlannerService,
+        PaidAdvancementSlotsService,
         { provide: DB, useValue: db },
       ],
     }).compile();
@@ -212,6 +214,64 @@ describe('PlayerSkillsService two-step live write (real Postgres)', () => {
     // stored row and the kept one of unknown order got a row of its own.
     expect(firstIds[2]).toBe(storedAgId);
     expect(rows).toHaveLength(3);
+  });
+
+  it('renumbers and confirms the unconfirmed rows an earlier bulk pass left, on their own rows', async () => {
+    // An earlier bulk pass, run before any advancement cost existed, stored
+    // every paid advancement unconfirmed: the skills at TP's list position
+    // and the increase with an unknown order.
+    const earlierIds = await write([
+      gainedSkill(blockId, 2),
+      gainedSkill(dodgeId, 3),
+      agility(null),
+    ]);
+
+    // A later bulk pass plans the player as if nothing were stored: every
+    // paid advancement numbered from 1, unconfirmed, in TP's skill order
+    // then stat-line order.
+    const plan = [gainedSkill(blockId, 1), gainedSkill(dodgeId, 2), agility(3)];
+    const firstIds = await write(plan);
+    expect(firstIds).toEqual(earlierIds);
+    expect(
+      (await storedRows()).map((row) => [
+        row.advancementOrder,
+        row.orderConfirmed,
+      ]),
+    ).toEqual([
+      [1, false],
+      [2, false],
+      [3, false],
+    ]);
+
+    // The deduction found the increase was taken first.
+    const numbers = new Map([
+      [firstIds[0], 2],
+      [firstIds[1], 3],
+      [firstIds[2], 1],
+    ]);
+    const secondIds = await write(
+      confirmed({ entries: plan, firstIds, numbers }),
+    );
+
+    expect(secondIds).toEqual(earlierIds);
+    const rows = await storedRows();
+    expect(rows).toHaveLength(3);
+    expect(rows.filter((row) => row.removed)).toEqual([]);
+    expect(rowById(rows, earlierIds[0])).toMatchObject({
+      skillId: blockId,
+      advancementOrder: 2,
+      orderConfirmed: true,
+    });
+    expect(rowById(rows, earlierIds[1])).toMatchObject({
+      skillId: dodgeId,
+      advancementOrder: 3,
+      orderConfirmed: true,
+    });
+    expect(rowById(rows, earlierIds[2])).toMatchObject({
+      characteristic: 'AG',
+      advancementOrder: 1,
+      orderConfirmed: true,
+    });
   });
 
   it('keeps a stored confirmed increase on its row when a new one is confirmed at a different number', async () => {

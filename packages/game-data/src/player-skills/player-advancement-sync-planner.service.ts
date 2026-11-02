@@ -6,19 +6,30 @@ import { CharacteristicAdvancementPlannerService } from './characteristic-advanc
 import type {
   CharacteristicWrites,
   ExistingRow,
+  FreeExtraFacts,
   PlayerSkillUpdate,
   ResolvedCharacteristic,
+  ResolvedEntries,
   ResolvedPlayerSkill,
   SkillInsert,
   SkillWrites,
 } from './player-advancement-sync.types';
 
 /**
+ * The curated name of the one skill gained only as a free extra: BB2025
+ * grants Hatred on top of a player's advancements, never as one. The skill
+ * name alone is Hatred's identity: its variants live in `attribute_value`.
+ */
+export const HATRED_SKILL_NAME = 'Hatred';
+
+/**
  * Decides which advancement rows a `PlayerSkillsService.sync` batch writes,
  * given the rows already stored for the batch's players: skill rows matched
  * on their natural key, characteristic rows reconciled per listed player
  * through CharacteristicAdvancementPlannerService. Ids of stored rows that
- * stand for an entry go straight into the caller's `resultIds`.
+ * stand for an entry go straight into the caller's `resultIds`. Also owns the
+ * rule for which skill entries are free extras (`isFreeExtra`), shared with
+ * PlayerAdvancementReadsService.resolveFreeExtras.
  *
  * Pure decision logic, with no I/O and no external state; its one
  * collaborator is pure too.
@@ -36,6 +47,50 @@ export class PlayerAdvancementSyncPlannerService {
     attributeValue: string | null,
   ): string {
     return JSON.stringify([playerId, skillId, attributeValue]);
+  }
+
+  /**
+   * Whether a skill entry is stored as a free extra: the source flags it, it
+   * is a non-`starting` Hatred, or (for any other skill) one of the player's
+   * own trophy awards grants it. The trophy rule never applies to Hatred or
+   * to a `starting` entry: a starting skill is not gained, so it holds no
+   * slot a trophy could make free.
+   */
+  isFreeExtra(
+    entry: PlayerSkillEntry,
+    skillId: number,
+    facts: FreeExtraFacts,
+  ): boolean {
+    if (entry.isFreeExtra === true) {
+      return true;
+    }
+    if (facts.hatredSkillIds.has(skillId)) {
+      return entry.source !== 'starting';
+    }
+    return (
+      entry.source !== 'starting' &&
+      facts.grantedSkillIdsByPlayer.get(entry.playerId)?.has(skillId) === true
+    );
+  }
+
+  /**
+   * Player id -> the skills that player's trophy awards grant. An award
+   * with no player or no granted skill grants nothing.
+   */
+  grantedSkillIdsByPlayer(
+    awards: { playerId: number | null; grantedSkillId: number | null }[],
+  ): Map<number, Set<number>> {
+    const granted = new Map<number, Set<number>>();
+    for (const { playerId, grantedSkillId } of awards) {
+      if (playerId === null || grantedSkillId === null) {
+        continue;
+      }
+      granted.set(
+        playerId,
+        (granted.get(playerId) ?? new Set<number>()).add(grantedSkillId),
+      );
+    }
+    return granted;
   }
 
   /**
@@ -78,6 +133,67 @@ export class PlayerAdvancementSyncPlannerService {
       }
     }
     return writes;
+  }
+
+  /**
+   * Close the numbering slot of each confirmed free extra. A source that
+   * numbers every advancement it lists (BBL) can number one that resolves as
+   * a free extra, which is not one of the player's paid advancements. Each
+   * confirmed paid skill or increase of that player numbered after such a
+   * slot moves down one per slot, so skills and increases keep one paid
+   * numbering from 1. A free row is passed on unconfirmed, keeping its number
+   * as a record of where the source listed it. A skill counts as free when
+   * its entry resolves free or its stored row already is.
+   */
+  closeFreeExtraSlots(
+    resolved: ResolvedEntries,
+    existingRows: ExistingRow[],
+  ): ResolvedEntries {
+    const storedFreeKeys = new Set(
+      existingRows
+        .filter((row) => row.source !== 'characteristic' && row.isFreeExtra)
+        .map((row) =>
+          this.naturalKey(row.playerId, row.skillId, row.attributeValue),
+        ),
+    );
+    const isFree = (row: ResolvedPlayerSkill): boolean =>
+      row.source !== 'starting' &&
+      (row.isFreeExtra ||
+        storedFreeKeys.has(
+          this.naturalKey(row.playerId, row.skillId, row.attributeValue),
+        ));
+    const slotsByPlayer = new Map<number, number[]>();
+    for (const row of resolved.skills) {
+      if (
+        isFree(row) &&
+        row.orderConfirmed &&
+        typeof row.advancementOrder === 'number'
+      ) {
+        const slots = slotsByPlayer.get(row.playerId) ?? [];
+        slots.push(row.advancementOrder);
+        slotsByPlayer.set(row.playerId, slots);
+      }
+    }
+    const renumber = <T extends ResolvedPlayerSkill | ResolvedCharacteristic>(
+      row: T,
+    ): T => {
+      const order = row.advancementOrder;
+      const slots = slotsByPlayer.get(row.playerId);
+      if (!row.orderConfirmed || typeof order !== 'number' || !slots) {
+        return row;
+      }
+      const below = slots.filter((slot) => slot < order).length;
+      return below === 0 ? row : { ...row, advancementOrder: order - below };
+    };
+    return {
+      skills: resolved.skills.map((row) => {
+        if (!isFree(row)) {
+          return renumber(row);
+        }
+        return row.orderConfirmed ? { ...row, orderConfirmed: false } : row;
+      }),
+      characteristics: resolved.characteristics.map(renumber),
+    };
   }
 
   /** Every listed player's characteristic rows, planned against what is stored. */
@@ -147,8 +263,11 @@ export class PlayerAdvancementSyncPlannerService {
         advancementOrder:
           row.source === 'starting' ? null : (row.advancementOrder ?? null),
         // Only a confirmed or free row names that column; every other row
-        // takes its `false` default.
-        ...(row.orderConfirmed ? { orderConfirmed: true } : {}),
+        // takes its `false` default. A free extra is not one of the paid
+        // advancements, so its order is never stored confirmed.
+        ...(row.orderConfirmed && !row.isFreeExtra
+          ? { orderConfirmed: true }
+          : {}),
         ...(row.isFreeExtra ? { isFreeExtra: true } : {}),
       },
     };
@@ -170,6 +289,19 @@ export class PlayerAdvancementSyncPlannerService {
       // confirmation, which cannot stand without an order.
       if (existing.advancementOrder !== null) {
         values.advancementOrder = null;
+      }
+      if (existing.orderConfirmed) {
+        values.orderConfirmed = false;
+      }
+    } else if (row.isFreeExtra || existing.isFreeExtra) {
+      // A free extra is not one of the paid advancements, so its order is
+      // never confirmed: the entry's order is kept as a record of where the
+      // source listed it, and a stored confirmation is cleared.
+      if (
+        row.advancementOrder !== undefined &&
+        row.advancementOrder !== existing.advancementOrder
+      ) {
+        values.advancementOrder = row.advancementOrder;
       }
       if (existing.orderConfirmed) {
         values.orderConfirmed = false;

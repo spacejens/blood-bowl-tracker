@@ -26,16 +26,36 @@ export interface LivePlayerSyncOptions {
   /** TP's unspent figure for the player, with the total reported beside it. */
   snapshot: UnspentSppSnapshot | undefined;
   errors: ImportError[];
+  /**
+   * True for the bulk import, which sends a player with a stored confirmed
+   * paid advancement as TP lists him.
+   */
+  bulk?: boolean;
+  /**
+   * True when the gained skill entries are listed in the order of TP's
+   * per-skill row ids, taken as the order they were gained.
+   */
+  gainedOrderKnown?: boolean;
 }
 
 /**
- * Writes one player's advancements for the live TP import. Reads what is
- * stored, lets TpAdvancementOrderService decide each entry's order, and
- * writes the entries. When new advancements are pending (several, or a lone
- * one while TP's spend is known), it asks AdvancementOrderDeductionService
- * which order the SPP TP reports as spent allows, reading the player's
- * advancement inputs after the first write so the new rows (and their skill
- * categories) are part of them, and writes the deduced order confirmed. Without one answer the unconfirmed write stands.
+ * Writes one player's advancements for the TP roster import, live and bulk
+ * alike. Reads what is stored, flags each skill the write will store as a
+ * free extra (PlayerAdvancementReadsService.resolveFreeExtras, the same rule
+ * PlayerSkillsService.sync applies), lets TpAdvancementOrderService decide
+ * each entry's order, and writes the entries. When new advancements are pending
+ * (several, or a lone one while TP's spend is known), it asks
+ * AdvancementOrderDeductionService which order the SPP TP reports as spent
+ * allows, reading the player's advancement inputs after the first write so the
+ * new rows (and their skill categories) are part of them, and writes the
+ * deduced order confirmed. When the gained skills came in TP's row-id order,
+ * the deduction is told their relative order (the plan's `orderedIndexes`),
+ * so only orders keeping it count as fitting; increases stay placeable
+ * anywhere. Without one answer the unconfirmed write stands.
+ * A player with nothing stored has the order of every paid advancement
+ * deduced the same way, and so does a bulk player with no stored confirmed
+ * paid advancement: his stored unconfirmed rows are renumbered from 1 by the
+ * first write and confirmed by the second.
  */
 @Injectable()
 export class TpLiveAdvancementSyncService {
@@ -50,8 +70,8 @@ export class TpLiveAdvancementSyncService {
 
   /**
    * True when the player's entries were written, whether or not an order
-   * was deduced; false when the stored rows could not be read or the first
-   * write failed (both recorded as errors).
+   * was deduced; false when the stored rows or free extras could not be read
+   * or the first write failed (each recorded as an error).
    */
   async syncPlayer(options: LivePlayerSyncOptions): Promise<boolean> {
     const { player, playerId, skillEntries, increases, errors } = options;
@@ -65,12 +85,26 @@ export class TpLiveAdvancementSyncService {
     if (stored === undefined) {
       return false;
     }
+    // The write stores some skills TP does not flag as free extras (a gained
+    // Hatred, a trophy-granted skill); the plan must not number them as paid.
+    const resolvedEntries = await this.runner.record({
+      run: () => this.reads.resolveFreeExtras(skillEntries),
+      item: { lineUpId: player.id, playerId },
+      errors,
+      buildErrorMessage: (error) =>
+        `Failed to read the free extras of player "${player.name}" (${player.id}): ${this.runner.messageOf(error)}`,
+    });
+    if (resolvedEntries === undefined) {
+      return false;
+    }
     const plan = this.order.liveEntries({
       playerId,
-      skillEntries,
+      skillEntries: resolvedEntries,
       increases,
       stored,
       checkSpend: this.spent(options.snapshot) !== undefined,
+      ...(options.bulk === true ? { bulk: true } : {}),
+      ...(options.gainedOrderKnown === true ? { gainedOrderKnown: true } : {}),
     });
     const written = await this.write(options, plan.entries);
     if (written === undefined) {
@@ -107,6 +141,9 @@ export class TpLiveAdvancementSyncService {
     const numbers = this.deduction.deduce({
       rulesSets: inputs?.get(playerId) ?? [],
       newRowIds: plan.pendingIndexes.map((index) => rowIds[index]),
+      ...(plan.orderedIndexes === undefined
+        ? {}
+        : { orderedRowIds: plan.orderedIndexes.map((index) => rowIds[index]) }),
       firstNumber: plan.firstNumber,
       spent,
     });

@@ -29,6 +29,14 @@ export interface ResolvedPlayerSkill {
   isFreeExtra: boolean;
 }
 
+/** What decides whether a skill entry is a free extra. */
+export interface FreeExtraFacts {
+  /** Ids of the batch's skills named Hatred. */
+  hatredSkillIds: ReadonlySet<number>;
+  /** Player id -> skills one of that player's own trophy awards grants. */
+  grantedSkillIdsByPlayer: ReadonlyMap<number, ReadonlySet<number>>;
+}
+
 /** One characteristic entry, with the batch index it came from. */
 export interface ResolvedCharacteristic extends IncomingCharacteristicEntry {
   playerId: number;

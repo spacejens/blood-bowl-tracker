@@ -168,6 +168,13 @@ export interface TpPlayerSkillRef {
 export interface TpGainedSkillRef extends TpPlayerSkillRef {
   isRandom: boolean;
   isExtra: boolean;
+  /**
+   * TP's own row id for this skill entry (the entry's `id`), or `undefined`
+   * when the entry carries none. A global counter rather than a per-player
+   * one, and not in TP's list order: its order is evidence of the order the
+   * player gained the skills (see docs/import-tp/file-format-rosters.md).
+   */
+  rowId?: number;
 }
 
 /**
@@ -262,6 +269,7 @@ const TemplateSkillSchema = z.object({
  * the whole skill group absent rather than being guessed at.
  */
 const PlayerSkillSchema = z.object({
+  id: z.number().int().optional(),
   skillMasterId: z.number().int(),
   isRandom: z.boolean().optional(),
   isExtra: z.boolean().optional(),
@@ -564,6 +572,7 @@ export class RosterParserService {
         ...this.skillRef(skill),
         isRandom: skill.isRandom,
         isExtra: skill.isExtra === true,
+        ...(skill.id === undefined ? {} : { rowId: skill.id }),
       });
     }
     return {

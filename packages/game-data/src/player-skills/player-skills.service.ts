@@ -1,5 +1,4 @@
 import type {
-  PlayerSkillEntry,
   SyncPlayerSkills,
   SyncPlayerSkillsResult,
 } from '@blood-bowl-tracker/api-contract';
@@ -11,6 +10,7 @@ import {
   eq,
   inArray,
   isNotNull,
+  ne,
   playerAdvancements,
   players,
   skillRulesSets,
@@ -25,20 +25,18 @@ import type {
 import { Inject, Injectable } from '@nestjs/common';
 
 import { SkillValidationError } from '../shared/skill-validation-error';
+import { PaidAdvancementSlotsService } from './paid-advancement-slots.service';
 import type {
   CharacteristicInsert,
   ExistingRow,
+  FreeExtraFacts,
   ResolvedEntries,
   SkillInsert,
 } from './player-advancement-sync.types';
-import { PlayerAdvancementSyncPlannerService } from './player-advancement-sync-planner.service';
-
-/**
- * The curated name of the one skill gained only as a free extra: BB2025
- * grants Hatred on top of a player's advancements, never as one. The skill
- * name alone is Hatred's identity: its variants live in `attribute_value`.
- */
-const HATRED_SKILL_NAME = 'Hatred';
+import {
+  HATRED_SKILL_NAME,
+  PlayerAdvancementSyncPlannerService,
+} from './player-advancement-sync-planner.service';
 
 /**
  * One skill a player has, named for display. Not called `PlayerAdvancement`:
@@ -51,6 +49,11 @@ export interface PlayerSkillRow {
   source: PlayerSkillSource;
   attributeValue: string | null;
   advancementOrder: number | null;
+  /**
+   * Whether `advancementOrder` is the player's real sequence rather than a
+   * presentation proxy. Always false for a starting skill.
+   */
+  orderConfirmed: boolean;
   /**
    * The skill's category under the rules set the caller asked about, or null
    * when no `skill_rules_sets` row curates it there. Unlike a position's
@@ -74,13 +77,9 @@ export interface PlayerSkillRow {
 }
 
 /** What a batch's entries are validated and marked against. */
-interface SyncFacts {
+interface SyncFacts extends FreeExtraFacts {
   knownPlayerIds: ReadonlySet<number>;
   knownSkillIds: ReadonlySet<number>;
-  /** Ids of the batch's skills named Hatred. */
-  hatredSkillIds: ReadonlySet<number>;
-  /** Player id -> skills one of that player's own trophy awards grants. */
-  grantedSkillIdsByPlayer: ReadonlyMap<number, ReadonlySet<number>>;
   /** The players whose characteristic increases the batch states in full. */
   characteristicPlayerIds: ReadonlySet<number>;
 }
@@ -108,6 +107,7 @@ export class PlayerSkillsService {
   constructor(
     @Inject(DB) private readonly db: Db,
     private readonly syncPlanner: PlayerAdvancementSyncPlannerService,
+    private readonly paidSlots: PaidAdvancementSlotsService,
   ) {}
 
   /**
@@ -124,8 +124,11 @@ export class PlayerSkillsService {
    * never overwrites a confirmed one. Every validation runs over the whole
    * batch before any write, so one bad entry fails the call rather than
    * half-applying it. Returned ids are index-aligned with `data.entries`.
-   * A skill row is stored as a free extra by the rules in `isFreeExtra`; an
-   * existing row is only ever marked, never unmarked.
+   * A skill row is stored as a free extra by the rules in
+   * PlayerAdvancementSyncPlannerService's `isFreeExtra`; an
+   * existing row is only ever marked, never unmarked. A free extra's order is
+   * never stored confirmed, and a confirmed free extra's number is closed up
+   * in the player's paid numbering (see `closeFreeExtraSlots`).
    */
   async sync(data: SyncPlayerSkills): Promise<SyncPlayerSkillsResult> {
     const characteristicPlayerIds = new Set(data.characteristicPlayerIds ?? []);
@@ -171,16 +174,7 @@ export class PlayerSkillsService {
             .from(skills)
             .where(inArray(skills.id, skillIds));
 
-    const grantedSkillIdsByPlayer = new Map<number, Set<number>>();
-    for (const row of playerRows) {
-      if (typeof row.grantedSkillId !== 'number') {
-        continue;
-      }
-      const granted = grantedSkillIdsByPlayer.get(row.id) ?? new Set<number>();
-      granted.add(row.grantedSkillId);
-      grantedSkillIdsByPlayer.set(row.id, granted);
-    }
-    const resolved = this.resolveEntries(data, {
+    const resolvedEntries = this.resolveEntries(data, {
       knownPlayerIds: new Set(playerRows.map((row) => row.id)),
       knownSkillIds: new Set(skillRows.map((row) => row.id)),
       hatredSkillIds: new Set(
@@ -188,7 +182,12 @@ export class PlayerSkillsService {
           .filter((row) => row.name === HATRED_SKILL_NAME)
           .map((row) => row.id),
       ),
-      grantedSkillIdsByPlayer,
+      grantedSkillIdsByPlayer: this.syncPlanner.grantedSkillIdsByPlayer(
+        playerRows.map((row) => ({
+          playerId: row.id,
+          grantedSkillId: row.grantedSkillId,
+        })),
+      ),
       characteristicPlayerIds,
     });
 
@@ -207,6 +206,10 @@ export class PlayerSkillsService {
       })
       .from(playerAdvancements)
       .where(inArray(playerAdvancements.playerId, playerIds));
+    const resolved = this.syncPlanner.closeFreeExtraSlots(
+      resolvedEntries,
+      existingRows,
+    );
 
     // `resultIds` is sized and indexed to `data.entries` so the returned ids
     // line up positionally with it, regardless of which entries were
@@ -465,39 +468,27 @@ export class PlayerSkillsService {
         attributeValue,
         advancementOrder: entry.advancementOrder,
         orderConfirmed: entry.orderConfirmed === true,
-        isFreeExtra: this.isFreeExtra(entry, skillId, facts),
+        isFreeExtra: this.syncPlanner.isFreeExtra(entry, skillId, facts),
       });
     }
     return resolved;
   }
 
   /**
-   * Whether a skill entry is stored as a free extra: the source flags it, it
-   * is a non-`starting` Hatred, or (for any other skill) one of the player's
-   * own trophy awards grants it. The trophy rule never applies to Hatred.
-   */
-  private isFreeExtra(
-    entry: PlayerSkillEntry,
-    skillId: number,
-    facts: SyncFacts,
-  ): boolean {
-    if (entry.isFreeExtra === true) {
-      return true;
-    }
-    if (facts.hatredSkillIds.has(skillId)) {
-      return entry.source !== 'starting';
-    }
-    return (
-      facts.grantedSkillIdsByPlayer.get(entry.playerId)?.has(skillId) === true
-    );
-  }
-
-  /**
    * Mark the player's rows of a skill one of their own trophy awards grants
    * as free extras. Covers an award recorded after the skill; `sync` covers
-   * the opposite order. Never applied to Hatred, matching `sync`'s trophy
-   * rule. Clears nothing: `unmarkTrophyGranted` is the counterpart, and the
-   * caller re-prices the player's stored unspent SPP afterwards.
+   * the opposite order. Never applied to Hatred or to a `starting` row,
+   * matching `sync`'s trophy rule. Clears nothing: `unmarkTrophyGranted` is
+   * the counterpart, and the caller re-prices the player's stored unspent
+   * SPP afterwards.
+   *
+   * A free extra's order is never stored confirmed, so a marked row keeps
+   * its recorded number unconfirmed. A row that was confirmed at number k
+   * held a slot in the player's paid numbering (skills and increases share
+   * one): every confirmed, non-removed paid row numbered after k moves down
+   * one (PaidAdvancementSlotsService), closing that slot as `sync`'s
+   * `closeFreeExtraSlots` does. All of it happens in one transaction; rows
+   * already free are left untouched, so a repeated call changes nothing.
    */
   async markTrophyGranted(playerId: number, skillId: number): Promise<void> {
     const [skill] = await this.db
@@ -507,16 +498,44 @@ export class PlayerSkillsService {
     if (skill === undefined || skill.name === HATRED_SKILL_NAME) {
       return;
     }
-    await this.db
-      .update(playerAdvancements)
-      .set({ isFreeExtra: true })
-      .where(
-        and(
-          eq(playerAdvancements.playerId, playerId),
-          eq(playerAdvancements.skillId, skillId),
-          eq(playerAdvancements.isFreeExtra, false),
+    await this.db.transaction(async (tx) => {
+      const marked = await tx
+        .select({
+          id: playerAdvancements.id,
+          advancementOrder: playerAdvancements.advancementOrder,
+          orderConfirmed: playerAdvancements.orderConfirmed,
+        })
+        .from(playerAdvancements)
+        .where(
+          and(
+            eq(playerAdvancements.playerId, playerId),
+            eq(playerAdvancements.skillId, skillId),
+            eq(playerAdvancements.isFreeExtra, false),
+            ne(playerAdvancements.source, 'starting'),
+          ),
+        )
+        .for('update');
+      if (marked.length === 0) {
+        return;
+      }
+      await tx
+        .update(playerAdvancements)
+        .set({ isFreeExtra: true, orderConfirmed: false })
+        .where(
+          inArray(
+            playerAdvancements.id,
+            marked.map((row) => row.id),
+          ),
+        );
+      await this.paidSlots.close(tx, {
+        playerId,
+        slots: marked.flatMap((row) =>
+          row.orderConfirmed && row.advancementOrder !== null
+            ? [row.advancementOrder]
+            : [],
         ),
-      );
+      });
+    });
   }
 
   /**
@@ -527,6 +546,10 @@ export class PlayerSkillsService {
    * counts. A row TP also flagged as an extra is unmarked too: the next TP
    * import marks it again. The caller re-prices the player's stored unspent
    * SPP afterwards.
+   *
+   * Unmarking does not reopen a slot `markTrophyGranted` closed: the row
+   * stays unconfirmed at its recorded number and the player's paid rows keep
+   * their closed-up numbers until a later source sync states the order again.
    */
   async unmarkTrophyGranted(playerId: number, skillId: number): Promise<void> {
     const [skill] = await this.db
@@ -571,7 +594,7 @@ export class PlayerSkillsService {
    * PositionRulesSetSkillsService: `sync` above deliberately accepts a player
    * skill with no curated row for the rules set, so a missed join is a normal
    * state to report rather than a reason to drop the skill from the list.
-   * Each row carries the stored free-extra flag.
+   * Each row carries the stored free-extra flag and order confirmation.
    */
   async listByPlayer(
     playerId: number,
@@ -584,6 +607,7 @@ export class PlayerSkillsService {
         source: playerAdvancements.source,
         attributeValue: playerAdvancements.attributeValue,
         advancementOrder: playerAdvancements.advancementOrder,
+        orderConfirmed: playerAdvancements.orderConfirmed,
         category: skillRulesSets.category,
         isElite: skillRulesSets.isElite,
         isFreeExtra: playerAdvancements.isFreeExtra,
