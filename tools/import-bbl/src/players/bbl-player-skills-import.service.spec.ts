@@ -82,7 +82,7 @@ describe('BblPlayerSkillsImportService', () => {
     );
   });
 
-  it('sends one entry per player skill, carrying source, attribute and order', async () => {
+  it('sends one entry per player skill, carrying source, attribute and confirmed order', async () => {
     skillsImport.upsert.mockResolvedValue(upserted(100, 'Mighty Blow'));
     playerSkills.syncPlayerSkills.mockResolvedValue(1);
 

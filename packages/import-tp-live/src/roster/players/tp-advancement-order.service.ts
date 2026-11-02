@@ -69,7 +69,9 @@ interface IncreaseSplit {
  * TP's skill order then stat-line order, unconfirmed and pending when the
  * spend can be checked, so the spend can confirm the order; this numbering
  * replaces TP's list position, which counts free extras and leaves out
- * increases. A bulk import of a player with stored rows cannot tell when the
+ * increases. A free extra keeps its TP list position, unconfirmed: that
+ * number is outside the paid numbering and can equal a paid advancement's,
+ * which the cost model and the deepdive allow for. A bulk import of a player with stored rows cannot tell when the
  * rest was taken, so it sends the skills as TP lists them and each increase
  * with an unknown order.
  * Stored increases are resent as stored, best-ranked first, so the server

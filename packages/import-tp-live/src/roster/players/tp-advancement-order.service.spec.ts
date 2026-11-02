@@ -108,7 +108,8 @@ describe('TpAdvancementOrderService', () => {
     });
 
     it('leaves every paid advancement pending when nothing is stored and the spend can be checked', () => {
-      // TP lists the free extra first; it takes no number, so skill 7 is 1.
+      // TP lists the free extra first; it keeps its list position, outside
+      // the paid numbering, so skill 7 is 1.
       expect(
         service.liveEntries({
           playerId: 1,

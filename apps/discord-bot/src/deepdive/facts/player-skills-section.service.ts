@@ -73,7 +73,10 @@ export interface PlayerSkillLineOptions {
 
 /** One entry of the Advancements line, before it is joined. */
 interface AdvancementItem {
-  /** The confirmed order; null when unknown or unconfirmed. */
+  /**
+   * The order it sorts by: a confirmed order or a free extra's recorded
+   * number; null when unknown or unconfirmed.
+   */
   order: number | null;
   /** 0 for a skill, 1 for an increase: skills come first among equals. */
   kind: 0 | 1;
@@ -120,9 +123,11 @@ export class PlayerSkillsSectionService {
     const gained = rows.filter((row) => row.source !== 'starting');
     const items: AdvancementItem[] = [
       ...gained.map((row): AdvancementItem => {
-        const known = row.isFreeExtra || row.orderConfirmed;
+        // A free extra is never confirmed; it is placed by the number its
+        // source recorded, which is outside the paid numbering.
+        const orderKnown = row.isFreeExtra || row.orderConfirmed;
         return {
-          order: known ? row.advancementOrder : null,
+          order: orderKnown ? row.advancementOrder : null,
           kind: 0,
           tieBreak: row.skillName,
           text: this.formatSkill(row, options),
@@ -193,9 +198,9 @@ export class PlayerSkillsSectionService {
    * The star marks a skill's `unique` category under the rules set, mirroring
    * the position stat line, so it applies to starting and gained skills alike
    * -- it says what the skill is, not how the player came by it. A skill with
-   * no curated category there gets no star. Markers read order, dice, cross, star,
-   * gem; a unique skill is never elite in curated data, so that last pairing
-   * is only a deterministic tie-break.
+   * no curated category there gets no star. Markers read order, dice, cross,
+   * star, gem; a unique skill is never elite in curated data, so that last
+   * pairing is only a deterministic tie-break.
    */
   private formatSkill(
     row: PlayerSkillRow,
