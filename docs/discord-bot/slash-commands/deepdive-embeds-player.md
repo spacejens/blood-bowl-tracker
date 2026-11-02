@@ -103,7 +103,7 @@ together, in the order they were gained. A free extra is placed by the number
 its source recorded, which is outside the paid numbering, ahead of a paid
 entry sharing that number. An entry whose order is unknown or not confirmed
 goes last, skills alphabetically and then increases in MA/ST/AG/PA/AV order.
-An increase reads `+AG`, `+MA` and so on; its only possible marker is `⇅?`. A
+An increase reads `+AG`, `+MA` and so on; its only possible marker is `⇅`. A
 group with nothing in it has no line at all. The starting skills and gained
 skills are omitted when no rules set resolves for the player's era, but
 increases need no rules set, so the Advancements line still shows them, even
@@ -112,7 +112,7 @@ target shows that value in brackets after its name.
 
 An advancement can carry markers before its name, always in this order:
 
-- `⇅?`: a gained skill or increase whose place in the sequence is not
+- `⇅`: a gained skill or increase whose place in the sequence is not
   confirmed: BBL's page order always is, TP's only where its reported spend
   decides it (see
   [Order of advancements](../../import-tp-live/index.md#order-of-advancements)).

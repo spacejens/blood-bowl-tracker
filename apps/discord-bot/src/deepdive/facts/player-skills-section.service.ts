@@ -55,7 +55,7 @@ const ELITE_SKILL_MARKER = '♦ ';
  * A plain Unicode symbol rather than an emoji, matching every other marker in
  * these embeds.
  */
-const UNKNOWN_ORDER_MARKER = '⇅? ';
+const UNKNOWN_ORDER_MARKER = '⇅ ';
 
 /** What the caller knows about the player's era that changes how skills read. */
 export interface PlayerSkillLineOptions {
@@ -202,9 +202,9 @@ export class PlayerSkillsSectionService {
   }
 
   /**
-   * `Block`, `Loner (4+)`, `⚄ Guard`, `⚄? Guard`, `⇅? Guard`,
+   * `Block`, `Loner (4+)`, `⚄ Guard`, `⚄? Guard`, `⇅ Guard`,
    * `✚ Hatred (Undead)`, `★ Treacherous`, `⚄ ♦ Mighty Blow`, or
-   * `⇅? ⚄ ♦ Mighty Blow`.
+   * `⇅ ⚄ ♦ Mighty Blow`.
    *
    * The star marks a skill's `unique` category under the rules set, mirroring
    * the position stat line, so it applies to starting and gained skills alike

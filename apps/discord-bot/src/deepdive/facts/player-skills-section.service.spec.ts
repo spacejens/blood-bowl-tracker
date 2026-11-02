@@ -79,7 +79,7 @@ describe('PlayerSkillsSectionService', () => {
           ],
         },
       ),
-    ).toEqual(['Advancements: Block, ⇅? Guard, ⇅? +MA, ⇅? +AV']);
+    ).toEqual(['Advancements: Block, ⇅ Guard, ⇅ +MA, ⇅ +AV']);
   });
 
   it('sorts an unconfirmed advancement after confirmed ones whatever proxy number it holds', () => {
@@ -105,7 +105,7 @@ describe('PlayerSkillsSectionService', () => {
           characteristicAdvancements: [increase('AG', 4, false)],
         },
       ),
-    ).toEqual(['Advancements: Block, ⇅? Dodge, ⇅? Wrestle, ⇅? +AG']);
+    ).toEqual(['Advancements: Block, ⇅ Dodge, ⇅ Wrestle, ⇅ +AG']);
   });
 
   it('puts the order marker before every other marker', () => {
@@ -122,7 +122,7 @@ describe('PlayerSkillsSectionService', () => {
         ],
         { pricesByKind: true },
       ),
-    ).toEqual(['Advancements: ⇅? ⚄ ♦ Mighty Blow']);
+    ).toEqual(['Advancements: ⇅ ⚄ ♦ Mighty Blow']);
   });
 
   it('never marks a starting skill or a free extra, and keeps a free extra in its place', () => {
