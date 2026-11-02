@@ -188,11 +188,11 @@ spend as above, numbered after the stored ones. Increases already stored are
 resent as stored, so a confirmed order is never replaced by a guess. A bulk
 import of a player with stored paid advancements cannot tell when the rest
 was taken, so it sends the gained skills at their TP list position and the
-increases with an unknown order, all unconfirmed; a player with only starting
-skills or free extras stored is numbered as the live import numbers him. It
-rewrites a stored skill's unconfirmed
-order to TP's list position (and an unconfirmed increase's to unknown), while
-a confirmed stored order is never overwritten. A free extra keeps its TP list
+increases with an unknown order, all unconfirmed; a bulk import of a player
+with only starting skills or free extras stored treats him as a player with
+nothing stored. It rewrites a stored skill's unconfirmed order to TP's list
+position (and an unconfirmed increase's to unknown), while a confirmed stored
+order is never overwritten. A free extra keeps its TP list
 position, unconfirmed and outside the paid numbering, so it can share a number
 with a paid advancement. Free extras are found before numbering by the same
 rule the write applies: TP's `isExtra` flag, a gained Hatred, or a skill one

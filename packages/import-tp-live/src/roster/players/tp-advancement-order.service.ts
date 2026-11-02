@@ -108,9 +108,12 @@ export class TpAdvancementOrderService {
       (row) => row.source !== 'starting' && !row.isFreeExtra,
     );
     const firstNumber = storedPaid.length + 1;
-    const hasBaseline = stored.length > 0;
-    // Only stored paid rows are a history the bulk import must keep.
+    // Only stored paid rows are a history the bulk import must keep. A live
+    // import counts any stored row: it runs right after a match, so what is
+    // not stored yet is new.
     const hasPaidBaseline = storedPaid.length > 0;
+    const hasBaseline =
+      options.bulk === true ? hasPaidBaseline : stored.length > 0;
     if (hasPaidBaseline && options.bulk === true) {
       return {
         entries: [

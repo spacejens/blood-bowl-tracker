@@ -230,6 +230,31 @@ describe('TpAdvancementOrderService', () => {
       });
     });
 
+    it('leaves a lone advancement unconfirmed in a bulk import with only starting skills stored', () => {
+      // A bulk snapshot cannot tell the lone skill is the player's only paid
+      // advancement, so it counts as a player with nothing stored.
+      expect(
+        service.liveEntries({
+          playerId: 1,
+          skillEntries: [starting(5), gained(7, 1)],
+          increases: undefined,
+          stored: [
+            storedSkill({
+              skillId: 5,
+              source: 'starting',
+              advancementOrder: null,
+            }),
+          ],
+          checkSpend: false,
+          bulk: true,
+        }),
+      ).toEqual({
+        entries: [starting(5), gained(7, 1)],
+        pendingIndexes: [],
+        firstNumber: 1,
+      });
+    });
+
     it('confirms a lone new increase at the number after the stored paid advancements', () => {
       // stored: skill 7 (paid), a free extra (not counted), one AG of unknown order (paid)
       expect(
