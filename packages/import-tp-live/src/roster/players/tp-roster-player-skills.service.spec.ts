@@ -454,6 +454,98 @@ describe('TpRosterPlayerSkillsService', () => {
     expect(written).toBe(1);
     expect(liveSync.syncPlayer).toHaveBeenCalledTimes(2);
   });
+  describe("in TP's skill row-id order", () => {
+    /** A gained, paid skill with the given row id. */
+    const paid = (skillMasterId: number, rowId?: number) => ({
+      skillMasterId,
+      isRandom: false,
+      isExtra: false,
+      ...(rowId === undefined ? {} : { rowId }),
+    });
+    /** The gained entry handed on for one skill at one number. */
+    const handedGained = (
+      skillId: number,
+      advancementOrder: number,
+    ): PlayerSkillEntry => ({
+      playerId: 700,
+      skillId,
+      source: 'chosen',
+      attributeValue: null,
+      advancementOrder,
+    });
+
+    it('numbers the gained skills in row-id order and says the order is known', async () => {
+      const player = rosterPlayer({
+        skills: {
+          starting: [],
+          gained: [paid(70, 1812869), paid(80, 1597390), paid(41, 1597388)],
+        },
+      });
+
+      await sync([player]);
+
+      expect(handed()).toEqual([
+        [handedGained(500, 1), handedGained(503, 2), handedGained(502, 3)],
+      ]);
+      expect(liveSync.syncPlayer).toHaveBeenCalledWith(
+        expect.objectContaining({ gainedOrderKnown: true }),
+      );
+    });
+
+    it.each([
+      ['one gained skill has no row id', [paid(70, 300), paid(80)]],
+      ['two gained skills share a row id', [paid(70, 300), paid(80, 300)]],
+      ['only one gained skill is listed', [paid(70, 300)]],
+    ])('keeps the list order when %s', async (_label, gained) => {
+      await sync([rosterPlayer({ skills: { starting: [], gained } })]);
+
+      expect(handed()[0]).toEqual(
+        gained.map((ref, at) =>
+          handedGained(ref.skillMasterId === 70 ? 502 : 503, at + 1),
+        ),
+      );
+      expect(liveSync.syncPlayer.mock.calls[0][0]).not.toHaveProperty(
+        'gainedOrderKnown',
+      );
+    });
+
+    it('places a free extra by its own row id, outside the paid order', async () => {
+      const player = rosterPlayer({
+        skills: {
+          starting: [],
+          gained: [
+            paid(70, 300),
+            { ...paid(307, 100), isExtra: true },
+            paid(80, 200),
+          ],
+        },
+      });
+
+      await sync([player]);
+
+      expect(handed()).toEqual([
+        [
+          { ...handedGained(504, 1), isFreeExtra: true },
+          handedGained(503, 2),
+          handedGained(502, 3),
+        ],
+      ]);
+    });
+
+    it('keeps a gained copy of a starting skill in its place in the order', async () => {
+      const player = rosterPlayer({
+        skills: {
+          starting: [{ skillMasterId: 41 }],
+          gained: [paid(41, 200), paid(70, 100)],
+        },
+      });
+
+      await sync([player]);
+
+      expect(handed()).toEqual([[handedGained(502, 1), handedGained(500, 2)]]);
+    });
+  });
+
   describe('characteristic increases', () => {
     const withSkill = rosterPlayer({
       skills: { starting: [{ skillMasterId: 41 }], gained: [] },

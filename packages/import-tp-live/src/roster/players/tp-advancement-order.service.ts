@@ -10,8 +10,18 @@ import { Injectable } from '@nestjs/common';
 /** Options for {@link TpAdvancementOrderService.liveEntries}. */
 export interface LiveAdvancementEntriesOptions {
   playerId: number;
-  /** The player's deduplicated skill entries; gained ones carry TP's list position. */
+  /**
+   * The player's deduplicated skill entries, gained ones in the order the
+   * caller settled on (see `gainedOrderKnown`), each carrying its position in
+   * that order.
+   */
   skillEntries: PlayerSkillEntry[];
+  /**
+   * True when the gained skill entries are listed in the order of TP's
+   * per-skill row ids, which is taken as the order they were gained; false
+   * or omitted when they are in TP's list order.
+   */
+  gainedOrderKnown?: boolean;
   /** Undefined when this import could not derive the increases. */
   increases: PlayerCharacteristicCounts | undefined;
   /** Every active advancement row stored for the player before this import. */
@@ -43,6 +53,14 @@ export interface LiveAdvancementPlan {
    * `firstNumber + 1`, ... in that order.
    */
   pendingIndexes: number[];
+  /**
+   * Indexes into `entries` of the pending gained skills, in the order they
+   * were gained, when that order is known (`gainedOrderKnown`) and at least
+   * two skills are pending; absent otherwise. A subsequence of
+   * `pendingIndexes`, so the fallback order keeps it. Increases are never
+   * in it: TP gives them no row id.
+   */
+  orderedIndexes?: number[];
   /** The advancement number after the player's stored paid advancements. */
   firstNumber: number;
 }
@@ -64,10 +82,11 @@ interface IncreaseSplit {
  * cannot be checked; when it can, it is sent unconfirmed at the next number
  * and marked pending, so a stored history the spend does not allow leaves it
  * unconfirmed instead of pinning it wrongly. Several are sent unconfirmed at
- * the next numbers, in TP's skill order then stat-line order, and marked
- * pending so their order can be deduced from SPP. A player with nothing
+ * the next numbers, in the order of the skill entries then stat-line order,
+ * and marked pending so their order can be deduced from SPP. A player with nothing
  * stored, in either import, has every paid advancement numbered from 1 in
- * TP's skill order then stat-line order, unconfirmed and pending when the
+ * the order of the skill entries then stat-line order, unconfirmed and
+ * pending when the
  * spend can be checked, so the spend can confirm the order; this numbering
  * replaces TP's list position, which counts free extras and leaves out
  * increases. A free extra keeps its TP list position, unconfirmed: that
@@ -85,6 +104,13 @@ interface IncreaseSplit {
  * advancement costs exist, can confirm what an earlier pass left unconfirmed.
  * Stored increases are resent as stored, best-ranked first, so the server
  * keeps them.
+ *
+ * The skill entries come in TP's skill row-id order when every gained skill
+ * carries a distinct row id, and in TP's list order otherwise
+ * (TpRosterPlayerSkillsService decides). In the row-id order the pending
+ * gained skills' relative order is known, and the plan reports it so the
+ * deduction only considers orders that keep it; increases, which carry no
+ * row id, stay placeable anywhere.
  *
  * Pure decision logic, with no I/O, no dependencies and no external state.
  */
@@ -154,10 +180,20 @@ export class TpAdvancementOrderService {
       }
     }
     entries.push(...kept);
+    const orderedIndexes = pendingIndexes.filter(
+      (index) => entries[index].source !== 'characteristic',
+    );
     for (const characteristic of added) {
       pushNew(this.increaseEntry(playerId, characteristic, null));
     }
-    return { entries, pendingIndexes, firstNumber };
+    return {
+      entries,
+      pendingIndexes,
+      ...(options.gainedOrderKnown === true && orderedIndexes.length > 1
+        ? { orderedIndexes }
+        : {}),
+      firstNumber,
+    };
   }
 
   /**

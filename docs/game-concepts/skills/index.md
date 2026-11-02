@@ -95,8 +95,8 @@ Gained skills and characteristic increases share one **advancement order**:
 a numbering of the player's paid advancements. Starting skills have no order
 at all. A free extra may keep the number its source listed it at, but that
 number is outside the paid numbering and is never confirmed. An entry can
-have no order (unknown). An order is either a presentation-order proxy, as
-with TP's list order, or **confirmed**, meaning it is trusted as the real
+have no order (unknown). An order is either a proxy, as with the order of
+TP's gained skills, or **confirmed**, meaning it is trusted as the real
 sequence. BBL's page order is always confirmed, with the slot of a free extra
 BBL numbered closed up. A TP order is confirmed only where TP's reported
 spend establishes it: a live import that sees one new advancement, or the

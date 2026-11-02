@@ -31,6 +31,11 @@ export interface LivePlayerSyncOptions {
    * paid advancement as TP lists him.
    */
   bulk?: boolean;
+  /**
+   * True when the gained skill entries are listed in the order of TP's
+   * per-skill row ids, taken as the order they were gained.
+   */
+  gainedOrderKnown?: boolean;
 }
 
 /**
@@ -43,7 +48,10 @@ export interface LivePlayerSyncOptions {
  * AdvancementOrderDeductionService which order the SPP TP reports as spent
  * allows, reading the player's advancement inputs after the first write so the
  * new rows (and their skill categories) are part of them, and writes the
- * deduced order confirmed. Without one answer the unconfirmed write stands.
+ * deduced order confirmed. When the gained skills came in TP's row-id order,
+ * the deduction is told their relative order (the plan's `orderedIndexes`),
+ * so only orders keeping it count as fitting; increases stay placeable
+ * anywhere. Without one answer the unconfirmed write stands.
  * A player with nothing stored has the order of every paid advancement
  * deduced the same way, and so does a bulk player with no stored confirmed
  * paid advancement: his stored unconfirmed rows are renumbered from 1 by the
@@ -96,6 +104,7 @@ export class TpLiveAdvancementSyncService {
       stored,
       checkSpend: this.spent(options.snapshot) !== undefined,
       ...(options.bulk === true ? { bulk: true } : {}),
+      ...(options.gainedOrderKnown === true ? { gainedOrderKnown: true } : {}),
     });
     const written = await this.write(options, plan.entries);
     if (written === undefined) {
@@ -132,6 +141,9 @@ export class TpLiveAdvancementSyncService {
     const numbers = this.deduction.deduce({
       rulesSets: inputs?.get(playerId) ?? [],
       newRowIds: plan.pendingIndexes.map((index) => rowIds[index]),
+      ...(plan.orderedIndexes === undefined
+        ? {}
+        : { orderedRowIds: plan.orderedIndexes.map((index) => rowIds[index]) }),
       firstNumber: plan.firstNumber,
       spent,
     });

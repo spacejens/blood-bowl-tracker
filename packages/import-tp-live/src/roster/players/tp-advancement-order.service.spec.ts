@@ -512,4 +512,90 @@ describe('TpAdvancementOrderService', () => {
       ).toEqual([gained(7, 1)]);
     });
   });
+
+  describe('liveEntries with the gained order known', () => {
+    it('numbers the skills as listed and reports their known order', () => {
+      // Listed in row-id order: 8 before 7, the free extra between them.
+      expect(
+        service.liveEntries({
+          playerId: 1,
+          skillEntries: [
+            starting(5),
+            gained(8, 1),
+            { ...gained(9, 2), isFreeExtra: true },
+            gained(7, 3),
+          ],
+          increases: counts({ AG: 1 }),
+          stored: [],
+          checkSpend: true,
+          gainedOrderKnown: true,
+        }),
+      ).toEqual({
+        entries: [
+          starting(5),
+          gained(8, 1),
+          { ...gained(9, 2), isFreeExtra: true },
+          gained(7, 2),
+          increaseEntry('AG', 3),
+        ],
+        pendingIndexes: [1, 3, 4],
+        orderedIndexes: [1, 3],
+        firstNumber: 1,
+      });
+    });
+
+    it('reports the known order of new skills after a stored baseline', () => {
+      expect(
+        service.liveEntries({
+          playerId: 1,
+          skillEntries: [gained(7, 1), gained(9, 2), gained(8, 3)],
+          increases: counts({ ST: 1 }),
+          stored: [storedSkill({ orderConfirmed: true })],
+          gainedOrderKnown: true,
+        }),
+      ).toEqual({
+        entries: [
+          gained(7, 1),
+          gained(9, 2),
+          gained(8, 3),
+          increaseEntry('ST', 4),
+        ],
+        pendingIndexes: [1, 2, 3],
+        orderedIndexes: [1, 2],
+        firstNumber: 2,
+      });
+    });
+
+    it('reports no known order with fewer than two pending skills', () => {
+      const plan = service.liveEntries({
+        playerId: 1,
+        skillEntries: [gained(7, 1)],
+        increases: counts({ ST: 1 }),
+        stored: [],
+        checkSpend: true,
+        gainedOrderKnown: true,
+      });
+
+      expect(plan.pendingIndexes).toEqual([0, 1]);
+      expect(plan).not.toHaveProperty('orderedIndexes');
+    });
+
+    it('reports no known order for a bulk player sent as TP lists him', () => {
+      const plan = service.liveEntries({
+        playerId: 1,
+        skillEntries: [gained(7, 1), gained(8, 2)],
+        increases: undefined,
+        stored: [storedSkill({ orderConfirmed: true })],
+        checkSpend: true,
+        bulk: true,
+        gainedOrderKnown: true,
+      });
+
+      expect(plan).toEqual({
+        entries: [gained(7, 1), gained(8, 2)],
+        pendingIndexes: [],
+        firstNumber: 2,
+      });
+    });
+  });
 });

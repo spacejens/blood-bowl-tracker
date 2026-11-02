@@ -248,4 +248,108 @@ describe('AdvancementOrderDeductionService', () => {
       }),
     ).toBeUndefined();
   });
+
+  describe('with a required relative order', () => {
+    it('drops a fitting assignment that breaks the order', () => {
+      const rulesSets = [rulesSet(skillAndIncrease, COSTS)];
+
+      expect(
+        service.deduce({
+          rulesSets,
+          newRowIds: [2, 3],
+          orderedRowIds: [3, 2],
+          firstNumber: 2,
+          spent: 31,
+        }),
+      ).toBeUndefined();
+      expect(
+        service.deduce({
+          rulesSets,
+          newRowIds: [2, 3],
+          orderedRowIds: [3, 2],
+          firstNumber: 2,
+          spent: 29,
+        }),
+      ).toEqual(
+        new Map([
+          [3, 2],
+          [2, 3],
+        ]),
+      );
+    });
+
+    it('answers when it leaves one of several differently costed fits', () => {
+      const rulesSets = [
+        rulesSet(skillAndIncrease, COSTS),
+        rulesSet(skillAndIncrease, SWAPPED),
+      ];
+
+      expect(
+        service.deduce({
+          rulesSets,
+          newRowIds: [2, 3],
+          orderedRowIds: [2, 3],
+          firstNumber: 2,
+          spent: 31,
+        }),
+      ).toEqual(
+        new Map([
+          [2, 2],
+          [3, 3],
+        ]),
+      );
+    });
+
+    it('still places an increase outside the order anywhere', () => {
+      // Skills cost 4/6/8 at 2/3/4, an increase 20/24/30: on top of the
+      // stored 3, a spend of 39 puts the increase at 3 and the two skills at
+      // 2 and 4 either way round, and the fallback order does not fit.
+      const costs = [
+        costRow(1, 'random_primary_skill', 3),
+        costRow(2, 'random_primary_skill', 4),
+        costRow(3, 'random_primary_skill', 6),
+        costRow(4, 'random_primary_skill', 8),
+        costRow(2, 'random_characteristic', 20),
+        costRow(3, 'random_characteristic', 24),
+        costRow(4, 'random_characteristic', 30),
+      ];
+      const rulesSets = [
+        rulesSet([STORED, row(2), row(3), increaseRow(4)], costs),
+      ];
+      const input = {
+        rulesSets,
+        newRowIds: [3, 2, 4],
+        firstNumber: 2,
+        spent: 39,
+      };
+
+      expect(service.deduce(input)).toBeUndefined();
+      expect(service.deduce({ ...input, orderedRowIds: [3, 2] })).toEqual(
+        new Map([
+          [3, 2],
+          [4, 3],
+          [2, 4],
+        ]),
+      );
+    });
+
+    it('changes nothing when it names a single row', () => {
+      const rulesSets = [rulesSet([STORED, row(2), row(3)], FLAT)];
+
+      expect(
+        service.deduce({
+          rulesSets,
+          newRowIds: [2, 3],
+          orderedRowIds: [3],
+          firstNumber: 2,
+          spent: 30,
+        }),
+      ).toEqual(
+        new Map([
+          [2, 2],
+          [3, 3],
+        ]),
+      );
+    });
+  });
 });

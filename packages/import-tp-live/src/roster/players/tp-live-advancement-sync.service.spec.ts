@@ -262,6 +262,38 @@ describe('TpLiveAdvancementSyncService', () => {
     });
   });
 
+  it('passes the gained order on and the known order to the deduction', async () => {
+    const skill9: PlayerSkillEntry = { ...SKILL_8_PENDING, skillId: 9 };
+    order.liveEntries.mockReturnValue({
+      entries: [SKILL_ENTRIES[0], skill9, SKILL_8_PENDING, ST_PENDING],
+      pendingIndexes: [1, 2, 3],
+      orderedIndexes: [1, 2],
+      firstNumber: 2,
+    });
+    playerSkills.sync.mockResolvedValue({ playerSkillIds: [40, 43, 41, 42] });
+
+    await syncPlayer({ gainedOrderKnown: true });
+
+    expect(order.liveEntries).toHaveBeenCalledWith(
+      expect.objectContaining({ gainedOrderKnown: true }),
+    );
+    expect(deduction.deduce).toHaveBeenCalledWith({
+      rulesSets: RULES_SETS,
+      newRowIds: [43, 41, 42],
+      orderedRowIds: [43, 41],
+      firstNumber: 2,
+      spent: 31,
+    });
+  });
+
+  it('plans without the gained order unless it is known', async () => {
+    await syncPlayer();
+
+    expect(order.liveEntries.mock.calls[0][0]).not.toHaveProperty(
+      'gainedOrderKnown',
+    );
+  });
+
   it('confirms the fallback order when the deduction returns it', async () => {
     deduction.deduce.mockReturnValue(
       new Map([

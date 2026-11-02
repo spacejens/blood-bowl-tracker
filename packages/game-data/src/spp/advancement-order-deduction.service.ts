@@ -19,6 +19,14 @@ export interface DeduceAdvancementOrderInput {
   rulesSets: RulesSetAdvancementInput[];
   /** Ids of the new rows, in the order to fall back on when order does not change cost. */
   newRowIds: number[];
+  /**
+   * Ids of new rows known to have been gained in this order, earliest first:
+   * an assignment fits only when it gives them strictly increasing numbers.
+   * The other new rows can take any number. Ids not among `newRowIds` are
+   * ignored. Listed in the same order `newRowIds` lists them, so the fallback
+   * order keeps it. Omitted when no relative order is known.
+   */
+  orderedRowIds?: number[];
   /** The advancement number the first new row can take: the count of the player's other paid advancements plus one. */
   firstNumber: number;
   /** The SPP the source reports as spent: its total minus its unspent figure. */
@@ -29,7 +37,8 @@ export interface DeduceAdvancementOrderInput {
  * Works out the order of the advancements a player gained at once from the
  * SPP the source says they spent. Every assignment of the numbers
  * `firstNumber`, `firstNumber + 1`, ... to the new rows is pinned in turn and
- * priced; an assignment fits when, under some rules set of the era, the
+ * priced; an assignment fits when it keeps the required relative order
+ * (`orderedRowIds`, when given) and, under some rules set of the era, the
  * player's advancements can cost exactly the reported spend. One fitting
  * assignment is the answer. Several fitting assignments that give the same
  * spend ranges under every rules set mean the order does not change cost, and
@@ -62,7 +71,10 @@ export class AdvancementOrderDeductionService {
         (order): Assignment =>
           new Map(newRowIds.map((id, at) => [id, order[at]])),
       )
-      .filter((assignment) => this.fits(input, assignment));
+      .filter(
+        (assignment) =>
+          this.keepsOrder(input, assignment) && this.fits(input, assignment),
+      );
     if (fitting.length === 0) {
       return undefined;
     }
@@ -76,6 +88,18 @@ export class AdvancementOrderDeductionService {
       newRowIds.every((id, at) => assignment.get(id) === firstNumber + at),
     );
     return signatures.size === 1 ? fallback : undefined;
+  }
+
+  /** Whether the assignment numbers the ordered rows strictly increasing. */
+  private keepsOrder(
+    input: DeduceAdvancementOrderInput,
+    assignment: Assignment,
+  ): boolean {
+    const numbers = (input.orderedRowIds ?? []).flatMap((id) => {
+      const number = assignment.get(id);
+      return number === undefined ? [] : [number];
+    });
+    return numbers.every((number, at) => at === 0 || number > numbers[at - 1]);
   }
 
   /** Whether some rules set prices the pinned history at exactly the spend. */

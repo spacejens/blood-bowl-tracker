@@ -317,13 +317,13 @@ with an attribute value and one for rows without).
 
 `advancement_order` is nullable and is one numbering shared by gained skills
 and increases over the player's _paid_ advancements. Starting skills take no
-number. A free extra may carry a recorded number, such as TP's list position
-or the place BBL's page lists it, but that number is not part of the paid
+number. A free extra may carry a recorded number, such as its position among
+TP's gained skills or the place BBL's page lists it, but that number is not part of the paid
 numbering and can equal a paid advancement's: it is never confirmed, the cost
 model prices a free extra at 0 whatever its number, and the deepdive places it
 by that number without marking its order as unconfirmed. Only confirmed orders
-are sure to follow the paid numbering: a proxy order taken from TP's skill
-list position counts free extras and leaves out increases. Null means the
+are sure to follow the paid numbering: a proxy order taken from a skill's
+position among TP's gained skills counts free extras and leaves out increases. Null means the
 order is unknown. `order_confirmed` marks an order that is trusted rather than
 a presentation proxy (a check requires an order for it). BBL's order is always
 trusted: its Skills cell lists a player's advancements in the order they were
@@ -343,9 +343,11 @@ reopen the slot: the row stays unconfirmed at its recorded number and the paid
 rows keep their closed-up numbers until a later source sync. TP's order is
 trusted only where TP's reported spend decides it, including when every
 fitting order costs the same, so a confirmed order is not always proven. TP's
-data gives no other evidence of order: no timestamps, no per-skill history,
-and skill row ids that do not follow list position (see [Order of
-advancements](import-tp-live/index.md#order-of-advancements)).
+only other evidence of order is its per-skill row ids, a counter whose order
+fits the spend in every checked case, though not its list order. The import
+takes the gained skills in that order and lets the spend confirm only orders
+that keep it; the ids never confirm an order alone, and increases have none
+(see [Order of advancements](import-tp-live/index.md#order-of-advancements)).
 The cost model pins only confirmed entries to their advancement number, and
 every other entry is interchangeable with the rest. A sync never lets an
 unconfirmed incoming order overwrite a confirmed stored one. A row tracked by
