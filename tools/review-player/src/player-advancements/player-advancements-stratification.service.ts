@@ -2,8 +2,8 @@ import type { Db, SQL } from '@blood-bowl-tracker/db';
 import {
   DB,
   eraRulesSets,
+  playerAdvancements,
   players,
-  playerSkills,
   positionRulesSets,
   positionRulesSetSkills,
   skillRulesSets,
@@ -123,7 +123,7 @@ export class PlayerAdvancementsStratificationService implements PlayerStratifier
   private hasGainedSkill(extra: SQL): SQL {
     return sql`exists (
       select 1
-      from ${playerSkills} ps
+      from ${playerAdvancements} ps
       left join ${skillRulesSets}
         on ${skillRulesSets.skillId} = ps.skill_id
        and ${skillRulesSets.rulesSetId} = (
@@ -147,7 +147,7 @@ export class PlayerAdvancementsStratificationService implements PlayerStratifier
   private startingSkillsDiffer(): SQL {
     return sql`(
       select coalesce(array_agg(ps.skill_id order by ps.skill_id), '{}')
-      from ${playerSkills} ps
+      from ${playerAdvancements} ps
       where ps.player_id = ${players.id} and ps.source = 'starting'
     ) is distinct from (
       select coalesce(array_agg(prss.skill_id order by prss.skill_id), '{}')

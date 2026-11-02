@@ -11,8 +11,8 @@ import {
   eq,
   eras,
   leagues,
+  playerAdvancements,
   players,
-  playerSkills,
   positions,
   races,
   skills,
@@ -40,11 +40,20 @@ function backfillStatements(): string[] {
   if (folder === undefined) {
     throw new Error('No add_player_skill_free_extra migration was found.');
   }
-  return readFileSync(join(MIGRATIONS_DIR, folder, 'migration.sql'), 'utf-8')
-    .split('--> statement-breakpoint')
-    .filter((statement) =>
-      statement.includes('UPDATE "game_data"."player_skills"'),
-    );
+  return (
+    readFileSync(join(MIGRATIONS_DIR, folder, 'migration.sql'), 'utf-8')
+      .split('--> statement-breakpoint')
+      .filter((statement) =>
+        statement.includes('UPDATE "game_data"."player_skills"'),
+      )
+      // The table was renamed after this migration ran.
+      .map((statement) =>
+        statement.replaceAll(
+          '"game_data"."player_skills"',
+          '"game_data"."player_advancements"',
+        ),
+      )
+  );
 }
 
 async function runBackfill(db: Db): Promise<void> {
@@ -151,7 +160,7 @@ async function seed(db: Db): Promise<void> {
     playerId: mutant.id,
     grantedSkillId: hatred.id,
   });
-  await db.insert(playerSkills).values([
+  await db.insert(playerAdvancements).values([
     { playerId: mutant.id, skillId: tentacles.id, source: 'advancement' },
     { playerId: mutant.id, skillId: block.id, source: 'advancement' },
     {
@@ -188,13 +197,13 @@ async function flags(db: Db): Promise<FlagRow[]> {
     .select({
       player: players.name,
       skill: skills.name,
-      attr: playerSkills.attributeValue,
-      free: playerSkills.isFreeExtra,
+      attr: playerAdvancements.attributeValue,
+      free: playerAdvancements.isFreeExtra,
     })
-    .from(playerSkills)
-    .innerJoin(players, eq(players.id, playerSkills.playerId))
-    .innerJoin(skills, eq(skills.id, playerSkills.skillId))
-    .orderBy(asc(playerSkills.id));
+    .from(playerAdvancements)
+    .innerJoin(players, eq(players.id, playerAdvancements.playerId))
+    .innerJoin(skills, eq(skills.id, playerAdvancements.skillId))
+    .orderBy(asc(playerAdvancements.id));
 }
 
 const EXPECTED: FlagRow[] = [

@@ -91,10 +91,15 @@ makes the skill distinct for that player: BB2025 lets a player take Hatred
 more than once against different targets, while the same skill with no variant
 can only be recorded once.
 
-Gained skills also carry a best-effort **advancement order**. It is a
-presentation-order proxy, not a confirmed sequence: neither source records the
-real order in which a player's advancements were taken. Starting skills have
-no order at all.
+Gained skills and characteristic increases share one **advancement order**:
+a numbering of the player's paid advancements, which free extras and starting
+skills do not take. An entry can have no order (unknown). An order is either a
+presentation-order proxy, as with BBL's page order and TP's list order, or
+**confirmed**, meaning it is trusted as the real sequence. A confirmed order
+is set only where a source can establish it: a live TP import that sees one
+new advancement, or works out the order of several from TP's reported spend.
+An import never replaces a confirmed order with a guess. The cost model pins
+only confirmed entries to their number. Starting skills have no order at all.
 
 A gained skill is not checked against its category. Recording a Trait or
 Unique skill as gained looks impossible under the base rules, but house rules

@@ -99,7 +99,7 @@ export default tseslint.config(
           // rather than worked around, since the alternative — a tsconfig
           // project covering every `test/` directory — would be considerably
           // more configuration for the same result.
-          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 20,
+          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 25,
         },
         tsconfigRootDir: import.meta.dirname,
       },

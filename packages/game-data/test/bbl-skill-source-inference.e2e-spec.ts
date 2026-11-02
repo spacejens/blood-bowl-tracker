@@ -9,9 +9,9 @@ import {
   eras,
   inArray,
   leagues,
+  playerAdvancements,
+  playerAdvancementsHistory,
   players,
-  playerSkills,
-  playerSkillsHistory,
   positionRulesSets,
   positionRulesSetSkillCategories,
   positions,
@@ -34,6 +34,8 @@ import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
+import { CharacteristicAdvancementPlannerService } from '../src/player-skills/characteristic-advancement-planner.service';
+import { PlayerAdvancementSyncPlannerService } from '../src/player-skills/player-advancement-sync-planner.service';
 import { PlayerSkillsService } from '../src/player-skills/player-skills.service';
 import { AdvancementKindCandidatesService } from '../src/spp/advancement-kind-candidates.service';
 import { AdvancementPricingModelService } from '../src/spp/advancement-pricing-model.service';
@@ -56,6 +58,8 @@ interface SeededPlayers {
   ambiguous: number;
   /** A gained skill but no unspent figure on the page. */
   unreported: number;
+  /** A gained skill and a characteristic increase. */
+  raised: number;
 }
 
 async function insertOne<T>(rows: Promise<T[]>): Promise<T> {
@@ -182,7 +186,7 @@ async function seed(db: Db): Promise<SeededPlayers> {
     source: PlayerSkillSource = 'advancement',
   ) =>
     db
-      .insert(playerSkills)
+      .insert(playerAdvancements)
       .values(
         names.map((name) => ({ playerId, skillId: skill[name], source })),
       );
@@ -194,7 +198,14 @@ async function seed(db: Db): Promise<SeededPlayers> {
   await give(ambiguous, ['Block', 'Tackle']);
   const unreported = await player('Unreported');
   await give(unreported, ['Block']);
-  return { settled, ambiguous, unreported };
+  const raised = await player('Raised');
+  await give(raised, ['Tackle']);
+  await db.insert(playerAdvancements).values({
+    playerId: raised,
+    source: 'characteristic',
+    characteristic: 'ST',
+  });
+  return { settled, ambiguous, unreported, raised };
 }
 
 describe('BBL skill source inference in the closing SPP sync (real Postgres)', () => {
@@ -226,6 +237,8 @@ describe('BBL skill source inference in the closing SPP sync (real Postgres)', (
       providers: [
         SppAdjustmentsService,
         PlayerSkillsService,
+        PlayerAdvancementSyncPlannerService,
+        CharacteristicAdvancementPlannerService,
         BblSkillSourceInferenceService,
         UnspentSppDecisionService,
         UnspentSppService,
@@ -251,10 +264,10 @@ describe('BBL skill source inference in the closing SPP sync (real Postgres)', (
     playerId: number,
   ): Promise<Record<string, PlayerSkillSource>> {
     const rows = await db
-      .select({ name: skills.name, source: playerSkills.source })
-      .from(playerSkills)
-      .innerJoin(skills, eq(skills.id, playerSkills.skillId))
-      .where(eq(playerSkills.playerId, playerId));
+      .select({ name: skills.name, source: playerAdvancements.source })
+      .from(playerAdvancements)
+      .innerJoin(skills, eq(skills.id, playerAdvancements.skillId))
+      .where(eq(playerAdvancements.playerId, playerId));
     return Object.fromEntries(rows.map((row) => [row.name, row.source]));
   }
 
@@ -274,6 +287,8 @@ describe('BBL skill source inference in the closing SPP sync (real Postgres)', (
         // Spent 11: a random and a chosen primary, in either order.
         { playerId: seeded.ambiguous, scrapedTotal: 14, reportedUnspentSpp: 3 },
         { playerId: seeded.unreported, scrapedTotal: 3 },
+        // Spent 22: only a random characteristic then a random primary.
+        { playerId: seeded.raised, scrapedTotal: 25, reportedUnspentSpp: 3 },
       ],
     });
   }
@@ -294,25 +309,57 @@ describe('BBL skill source inference in the closing SPP sync (real Postgres)', (
     expect(await storedUnspent(seeded.settled)).toBe(3);
   });
 
+  it('counts a characteristic increase towards the spend and only rewrites the skill', async () => {
+    await sync();
+
+    expect(await sources(seeded.raised)).toEqual({ Tackle: 'random' });
+    expect(
+      await db
+        .select({
+          skillId: playerAdvancements.skillId,
+          characteristic: playerAdvancements.characteristic,
+          source: playerAdvancements.source,
+        })
+        .from(playerAdvancements)
+        .where(
+          and(
+            eq(playerAdvancements.playerId, seeded.raised),
+            eq(playerAdvancements.source, 'characteristic'),
+          ),
+        ),
+    ).toEqual([
+      { skillId: null, characteristic: 'ST', source: 'characteristic' },
+    ]);
+  });
+
   it('keeps the settled sources when a re-run re-sends them as advancement', async () => {
     await sync();
-    const historyBefore = await db.select().from(playerSkillsHistory);
+    const historyBefore = await db.select().from(playerAdvancementsHistory);
     const skillRows = await db
       .select({
-        playerId: playerSkills.playerId,
-        skillId: playerSkills.skillId,
-        source: playerSkills.source,
+        playerId: playerAdvancements.playerId,
+        skillId: playerAdvancements.skillId,
+        source: playerAdvancements.source,
       })
-      .from(playerSkills)
-      .where(eq(playerSkills.playerId, seeded.settled));
+      .from(playerAdvancements)
+      .where(eq(playerAdvancements.playerId, seeded.settled));
 
     // The BBL import re-sends every gained skill as advancement.
     await playerSkillsService.sync({
-      entries: skillRows.map((row) => ({
-        playerId: row.playerId,
-        skillId: row.skillId,
-        source: row.source === 'starting' ? 'starting' : 'advancement',
-      })),
+      entries: skillRows.flatMap((row) =>
+        row.skillId === null
+          ? []
+          : [
+              {
+                playerId: row.playerId,
+                skillId: row.skillId,
+                source:
+                  row.source === 'starting'
+                    ? ('starting' as const)
+                    : ('advancement' as const),
+              },
+            ],
+      ),
     });
     await sync();
 
@@ -321,32 +368,40 @@ describe('BBL skill source inference in the closing SPP sync (real Postgres)', (
       Block: 'random',
       Sidestep: 'chosen',
     });
-    expect(await db.select().from(playerSkillsHistory)).toEqual(historyBefore);
+    expect(await db.select().from(playerAdvancementsHistory)).toEqual(
+      historyBefore,
+    );
     expect(await storedUnspent(seeded.settled)).toBe(3);
   });
 
   it('leaves the stored unspent SPP alone when a skill re-sync after inference changes nothing', async () => {
     await sync();
-    const historyBefore = await db.select().from(playerSkillsHistory);
+    const historyBefore = await db.select().from(playerAdvancementsHistory);
 
     await playerSkillsService.sync({
       entries: (
         await db
           .select({
-            playerId: playerSkills.playerId,
-            skillId: playerSkills.skillId,
+            playerId: playerAdvancements.playerId,
+            skillId: playerAdvancements.skillId,
           })
-          .from(playerSkills)
+          .from(playerAdvancements)
           .where(
             and(
-              eq(playerSkills.playerId, seeded.settled),
-              inArray(playerSkills.source, ['chosen', 'random']),
+              eq(playerAdvancements.playerId, seeded.settled),
+              inArray(playerAdvancements.source, ['chosen', 'random']),
             ),
           )
-      ).map((row) => ({ ...row, source: 'advancement' as const })),
+      ).flatMap((row) =>
+        row.skillId === null
+          ? []
+          : [{ ...row, skillId: row.skillId, source: 'advancement' as const }],
+      ),
     });
 
-    expect(await db.select().from(playerSkillsHistory)).toEqual(historyBefore);
+    expect(await db.select().from(playerAdvancementsHistory)).toEqual(
+      historyBefore,
+    );
     expect(await storedUnspent(seeded.settled)).toBe(3);
   });
 });

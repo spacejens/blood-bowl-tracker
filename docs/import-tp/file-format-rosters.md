@@ -246,6 +246,10 @@ under two competitions). The importer records every flagged skill as a free
 extra (see [skills](../game-concepts/skills/index.md#player-skills)); a
 missing flag means not extra.
 
+A characteristic increase is not in the file at all. The importers derive
+increases from the gap between a player's characteristics and the position
+template, and send them as characteristic entries with no order.
+
 `starPlayerPoints` is imported: both importers send it with the
 `totalStarPlayerPoints` of the same entry, never with a higher total another
 entry reports, and the server stores it as the player's unspent SPP under

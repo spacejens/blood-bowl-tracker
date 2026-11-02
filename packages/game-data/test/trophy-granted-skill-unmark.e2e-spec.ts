@@ -7,8 +7,8 @@ import {
   eq,
   eras,
   leagues,
+  playerAdvancements,
   players,
-  playerSkills,
   positions,
   races,
   skills,
@@ -24,6 +24,8 @@ import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
+import { CharacteristicAdvancementPlannerService } from '../src/player-skills/characteristic-advancement-planner.service';
+import { PlayerAdvancementSyncPlannerService } from '../src/player-skills/player-advancement-sync-planner.service';
 import { PlayerSkillsService } from '../src/player-skills/player-skills.service';
 import { UnspentSppDecisionService } from '../src/spp/unspent-spp-decision.service';
 import { TrophyAwardsService } from '../src/trophy-awards/trophy-awards.service';
@@ -122,7 +124,7 @@ async function seed(db: Db): Promise<Fixtures> {
     .values({ name: 'Hatred' })
     .returning();
   for (const skill of [tentacles, twoHeads, hatred]) {
-    await db.insert(playerSkills).values({
+    await db.insert(playerAdvancements).values({
       playerId: player.id,
       skillId: skill.id,
       source: 'chosen',
@@ -160,6 +162,8 @@ describe('Changing a trophy award granted skill (real Postgres)', () => {
       providers: [
         TrophyAwardsService,
         PlayerSkillsService,
+        PlayerAdvancementSyncPlannerService,
+        CharacteristicAdvancementPlannerService,
         { provide: DB, useValue: db },
         {
           provide: UnspentSppDecisionService,
@@ -171,10 +175,10 @@ describe('Changing a trophy award granted skill (real Postgres)', () => {
   });
 
   async function freeSkillIds(): Promise<number[]> {
-    const rows = await db.select().from(playerSkills);
+    const rows = await db.select().from(playerAdvancements);
     return rows
       .filter((row) => row.isFreeExtra)
-      .map((row) => row.skillId)
+      .flatMap((row) => (row.skillId === null ? [] : [row.skillId]))
       .sort((a, b) => a - b);
   }
 
@@ -226,9 +230,9 @@ describe('Changing a trophy award granted skill (real Postgres)', () => {
   it('never unmarks Hatred, which is free by its own rule', async () => {
     await service.upsert(award(0, fixtures.hatredId));
     await db
-      .update(playerSkills)
+      .update(playerAdvancements)
       .set({ isFreeExtra: true })
-      .where(eq(playerSkills.skillId, fixtures.hatredId));
+      .where(eq(playerAdvancements.skillId, fixtures.hatredId));
 
     await service.upsert(award(0, null));
 

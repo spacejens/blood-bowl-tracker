@@ -57,6 +57,11 @@ export {
   MatchesService,
   MatchUpsertConflictError,
 } from './matches/matches.service';
+export type {
+  PlayerCharacteristicAdvancementRow,
+  StoredPlayerAdvancement,
+} from './player-skills/player-advancement-reads.service';
+export { PlayerAdvancementReadsService } from './player-skills/player-advancement-reads.service';
 export { PlayerSkillsModule } from './player-skills/player-skills.module';
 export type { PlayerSkillRow } from './player-skills/player-skills.service';
 export { PlayerSkillsService } from './player-skills/player-skills.service';
@@ -150,6 +155,8 @@ export {
 } from './skills/skills.service';
 export { AdvancementCostsService } from './spp/advancement-costs.service';
 export { AdvancementKindCandidatesService } from './spp/advancement-kind-candidates.service';
+export type { DeduceAdvancementOrderInput } from './spp/advancement-order-deduction.service';
+export { AdvancementOrderDeductionService } from './spp/advancement-order-deduction.service';
 export type { PricedCostRow } from './spp/advancement-pricing-model.service';
 export { AdvancementPricingModelService } from './spp/advancement-pricing-model.service';
 export { AdvancementSpendRangeService } from './spp/advancement-spend-range.service';

@@ -39,6 +39,13 @@ export interface ImportRosterOptions {
    * `reportedSppTotal` this import returns.
    */
   deferSppTotal?: boolean;
+  /**
+   * When true, a player's new advancements are sent with a confirmed order
+   * where one is known. Only the live import passes true: it runs right
+   * after a match, so an advancement not stored before is known to come
+   * after every stored one.
+   */
+  confirmNewAdvancements?: boolean;
 }
 
 /** Options for {@link TpRosterImportService.importRawRoster}. */
@@ -125,6 +132,7 @@ export class TpRosterImportService {
     matchEmbeddedPlayers = [],
     rawContent,
     deferSppTotal,
+    confirmNewAdvancements,
   }: ImportRosterOptions): Promise<TpRosterImportOutcome> {
     const teamErrors: ImportError[] = [];
     const context = await this.rosterContext.resolve({
@@ -181,6 +189,8 @@ export class TpRosterImportService {
         roster,
         content: rawContent,
         importedPlayers: players.importedPlayers,
+        increasesByPlayerId: players.increasesByPlayerId,
+        confirmNewAdvancements,
         context,
         errors: playerErrors,
       });

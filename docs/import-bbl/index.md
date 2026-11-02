@@ -225,12 +225,14 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   later import keeps that settled source rather than resetting it to
   `advancement`. A coloured entry holding only the red `?` marker is a
   pending, unresolved advancement roll, and is skipped silently.
-  `advancementOrder` counts gained skills only, and is a presentation-order
-  proxy, not a confirmed sequence. The same cell also carries five
-  characteristic-increase pseudo-entries (`+MA`/`+ST`/`+AG`/`+PA`/`+AV`),
-  rendered in the same gained colour as a real skill; each is excluded from
-  the skill list (no `advancementOrder` slot consumed) and instead counted
-  directly, one count per characteristic, sent with every player.
+  The same cell also carries five characteristic-increase pseudo-entries
+  (`+MA`/`+ST`/`+AG`/`+PA`/`+AV`), rendered in the same gained colour as a
+  real skill. Skills and increases form one ordered list in page order, and an
+  increase takes an `advancementOrder` slot like a skill, so a skill after an
+  increase is numbered one higher. That order is a presentation-order proxy,
+  not a confirmed sequence, and is sent unconfirmed. Each increase is sent as
+  a characteristic entry, and every player's increases are sent in full on
+  every run, so the server can reconcile them against what it stores.
 
   The player's status comes from the icons inside the `<b>` of the page's
   player header (the name block under the portrait): the cross icon is

@@ -233,53 +233,50 @@ describe('BblPlayersImportService characteristics', () => {
     );
   });
 
-  it('sends the characteristic-increase counts parsed off the player page', async () => {
-    const markedPlayer = {
-      ...goodPlayer,
-      characteristicIncreaseCounts: {
-        move: 1,
-        strength: 0,
-        agility: 0,
-        passing: 0,
-        armour: 2,
-      },
-    };
+  it('sends no increase counts, since increases travel as advancement entries', async () => {
     const { service, mocks } = await makeService(
-      mockBblSourceReaderByType({ pl: [plPage(markedPlayer)] }),
+      mockBblSourceReaderByType({
+        pl: [
+          plPage({
+            ...goodPlayer,
+            characteristicIncreases: [
+              { characteristic: 'MA', advancementOrder: 1 },
+            ],
+          }),
+        ],
+      }),
       eras,
     );
 
     await service.importPlayers(importOptions);
 
-    expect(mocks.playersImport.upsertPlayerResult).toHaveBeenCalledWith(
-      expect.objectContaining({
-        moveIncreaseCount: 1,
-        strengthIncreaseCount: 0,
-        agilityIncreaseCount: 0,
-        passingIncreaseCount: 0,
-        armourIncreaseCount: 2,
-      }),
-      expect.any(Array),
-    );
+    const [payload] = mocks.playersImport.upsertPlayerResult.mock.calls[0];
+    expect(
+      Object.keys(payload).filter((key) => key.endsWith('IncreaseCount')),
+    ).toEqual([]);
   });
 
-  it('sends an all-zero increase group for a player with no markers', async () => {
+  it('keeps the parsed increases for the advancement sync', async () => {
+    const increases = [
+      { characteristic: 'MA' as const, advancementOrder: 1 },
+      { characteristic: 'AV' as const, advancementOrder: 3 },
+    ];
     const { service, mocks } = await makeService(
-      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
+      mockBblSourceReaderByType({
+        pl: [plPage({ ...goodPlayer, characteristicIncreases: increases })],
+      }),
       eras,
     );
+    mocks.playersImport.upsertPlayerResult.mockResolvedValue({
+      id: 77,
+      created: true,
+    });
 
-    await service.importPlayers(importOptions);
+    const outcome = await service.importPlayers(importOptions);
 
-    expect(mocks.playersImport.upsertPlayerResult).toHaveBeenCalledWith(
-      expect.objectContaining({
-        moveIncreaseCount: 0,
-        strengthIncreaseCount: 0,
-        agilityIncreaseCount: 0,
-        passingIncreaseCount: 0,
-        armourIncreaseCount: 0,
-      }),
-      expect.any(Array),
-    );
+    expect(outcome.advancementsByPlayerId.get(77)).toEqual({
+      skills: [],
+      characteristicIncreases: increases,
+    });
   });
 });

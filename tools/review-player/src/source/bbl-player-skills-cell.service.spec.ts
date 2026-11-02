@@ -66,7 +66,7 @@ describe('BblPlayerSkillsCellService', () => {
     ]);
   });
 
-  it('counts the characteristic-increase markers instead of listing them as skills', () => {
+  it('lists the characteristic-increase markers as increases, not skills', () => {
     const cell =
       '<span style="color:#006020">+MA</span>, ' +
       '<span style="color:#006020">+AG</span>, ' +
@@ -74,20 +74,34 @@ describe('BblPlayerSkillsCellService', () => {
       '<span style="color:#006020">Guard</span>';
     const parsed = service.parse(page(cell));
 
-    expect(parsed?.increaseCounts).toEqual({
-      move: 1,
-      strength: 0,
-      agility: 2,
-      passing: 0,
-      armour: 0,
-    });
     expect(parsed?.skills).toEqual([
       {
         name: 'Guard',
         attributeValue: null,
         source: 'gained',
-        advancementOrder: 1,
+        advancementOrder: 4,
       },
+    ]);
+    expect(parsed?.increases).toEqual([
+      { characteristic: 'MA', advancementOrder: 1 },
+      { characteristic: 'AG', advancementOrder: 2 },
+      { characteristic: 'AG', advancementOrder: 3 },
+    ]);
+  });
+
+  it('numbers increases and gained skills together, and a pending marker takes no number', () => {
+    const cell =
+      '<span style="color:#006020">Dodge</span>, ' +
+      '<span style="color:#006020"> +MA</span>, ' +
+      '<span style="color:#006020"> Sprint</span>, ' +
+      '<span style="color:#006020"><span style="color:#f02020">?</span></span>';
+    const parsed = service.parse(page(cell));
+
+    expect(parsed?.skills.map((skill) => skill.advancementOrder)).toEqual([
+      1, 3,
+    ]);
+    expect(parsed?.increases).toEqual([
+      { characteristic: 'MA', advancementOrder: 2 },
     ]);
   });
 
@@ -109,13 +123,7 @@ describe('BblPlayerSkillsCellService', () => {
     const parsed = service.parse(page(''));
 
     expect(parsed?.skills).toEqual([]);
-    expect(parsed?.increaseCounts).toEqual({
-      move: 0,
-      strength: 0,
-      agility: 0,
-      passing: 0,
-      armour: 0,
-    });
+    expect(parsed?.increases).toEqual([]);
   });
 
   it('skips a decoy row that does not match the characteristics header', () => {

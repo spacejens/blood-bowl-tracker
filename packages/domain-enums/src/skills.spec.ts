@@ -89,6 +89,7 @@ describe('PLAYER_SKILL_SOURCES', () => {
       'advancement',
       'chosen',
       'random',
+      'characteristic',
     ]);
   });
 
@@ -100,7 +101,7 @@ describe('PLAYER_SKILL_SOURCES', () => {
 
   it('types PlayerSkillSource as exactly its listed values', () => {
     expectTypeOf<PlayerSkillSource>().toEqualTypeOf<
-      'starting' | 'advancement' | 'chosen' | 'random'
+      'starting' | 'advancement' | 'chosen' | 'random' | 'characteristic'
     >();
   });
 });

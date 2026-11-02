@@ -47,7 +47,27 @@ function gained(
   source: PlayerSkillSource = 'advancement',
   isFreeExtra = false,
 ): PlayerSkillEntry {
-  return { skillId, source, isFreeExtra };
+  return {
+    id: skillId,
+    skillId,
+    source,
+    isFreeExtra,
+    advancementOrder: null,
+    orderConfirmed: false,
+  };
+}
+
+/** A characteristic increase row, unordered unless overridden. */
+function increase(overrides: Partial<PlayerSkillEntry> = {}): PlayerSkillEntry {
+  return {
+    id: 900,
+    skillId: null,
+    source: 'characteristic',
+    isFreeExtra: false,
+    advancementOrder: null,
+    orderConfirmed: false,
+    ...overrides,
+  };
 }
 
 /** One rules set's input for a player of the test position. */
@@ -62,7 +82,6 @@ function inputFor(
     costs,
     candidatesInput: {
       skills,
-      characteristicIncreases: 0,
       skillCategories: new Map<number, SkillCategory>([
         [BLOCK, 'general'],
         [TACKLE, 'general'],
@@ -374,5 +393,30 @@ describe('BblSkillSourceInferenceService', () => {
       { set: { source: 'chosen' }, filter: ['advancement', 2, BLOCK] },
       { set: { source: 'random' }, filter: ['advancement', 1, BLOCK] },
     ]);
+  });
+
+  it('counts a characteristic row towards the spend and never writes it', async () => {
+    // Only a random characteristic (18) then a random Block (4) adds up to 22.
+    const h = await inferFor([bb2020([increase(), gained(BLOCK)])], 22);
+
+    expect(writes(h.db)).toEqual([
+      { set: { source: 'random' }, filter: ['advancement', 1, BLOCK] },
+    ]);
+  });
+
+  it('holds a confirmed increase to its number', async () => {
+    // With the increase confirmed as advancement 2, Block is advancement 1
+    // and the spend is 3 + 20 or 6 + 20: 22 no longer fits.
+    const h = await inferFor(
+      [
+        bb2020([
+          increase({ advancementOrder: 2, orderConfirmed: true }),
+          gained(BLOCK),
+        ]),
+      ],
+      22,
+    );
+
+    expect(h.db.chains).toHaveLength(0);
   });
 });

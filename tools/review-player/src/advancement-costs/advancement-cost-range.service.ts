@@ -11,7 +11,7 @@ import type {
   ApplicableCost,
   CandidateCost,
   ModelledAdvancement,
-  StoredIncreaseCounts,
+  StoredIncrease,
   StoredPlayerSkill,
   UnspentSppModel,
 } from './advancement-cost-model.types';
@@ -29,6 +29,7 @@ const SKILL_KINDS: Readonly<
   ],
   chosen: ['chosen_primary_skill', 'chosen_secondary_skill'],
   random: ['random_primary_skill', 'random_secondary_skill'],
+  characteristic: [],
 };
 
 /** The skill kinds a skill of a primary or a secondary category can cost. */
@@ -42,16 +43,9 @@ const ACCESS_KINDS: Readonly<Record<SkillAccess, readonly AdvancementKind[]>> =
 interface PricedRow {
   row: ModelledAdvancement;
   kinds: readonly AdvancementKind[];
+  /** The confirmed number this row must take; absent when not confirmed. */
+  pinned?: number;
 }
-
-/** Increase-count columns and the label BBL itself uses for each. */
-const INCREASES: readonly (readonly [keyof StoredIncreaseCounts, string])[] = [
-  ['move', '+MA'],
-  ['strength', '+ST'],
-  ['agility', '+AG'],
-  ['passing', '+PA'],
-  ['armour', '+AV'],
-];
 
 /**
  * Prices a player's stored advancements against `advancement_costs`, for the
@@ -73,10 +67,15 @@ const INCREASES: readonly (readonly [keyof StoredIncreaseCounts, string])[] = [
  * Starting skills and a skill stored as a free extra (a gained Hatred, a skill
  * TP flags as extra, a skill a trophy award granted) cost nothing and take
  * no number. A skill a `granted_skill` row names (a league house rule) takes
- * that row's number and cost. Every other gained skill and every
- * characteristic increase takes the next free number in display order; that
- * number is illustrative only, because the stored skill order is unverified
- * and increases have none.
+ * that row's number and cost, and a gained skill or characteristic increase
+ * whose stored order is confirmed takes that order, as the server's cost
+ * model pins every confirmed entry. Every other gained skill and
+ * characteristic increase takes the next number not
+ * already taken, in their stored order with skills and increases in one
+ * sequence (unknown orders last, skills before increases); that number is
+ * illustrative only. Confirmed numbers that cannot all hold (shared, past
+ * the paid advancements, or contradicting a house rule) flag their rows and
+ * model no range, as no order fits them on the server either.
  */
 @Injectable()
 export class AdvancementCostRangeService {
@@ -103,6 +102,9 @@ export class AdvancementCostRangeService {
     }
     if (history.costs.length === 0) {
       return { ...base, unknownReason: 'no_costs' };
+    }
+    if (rows.some((row) => row.orderClash === true)) {
+      return { ...base, unknownReason: 'order_clash' };
     }
     const spend = this.spend(history.costs, priced);
     if (spend === null) {
@@ -132,29 +134,48 @@ export class AdvancementCostRangeService {
     history: AdvancementHistory,
     fixedThresholds: boolean,
   ): PricedRow[] {
-    const entries = [
-      ...history.skills.map((skill) =>
-        this.skillEntry(skill, history, fixedThresholds),
-      ),
-      ...this.increaseEntries(history.increaseCounts, fixedThresholds),
+    const sequenced = [
+      ...history.skills.map((skill) => ({
+        order: skill.source === 'starting' ? -1 : skill.advancementOrder,
+        entry: this.skillEntry(skill, history, fixedThresholds),
+      })),
+      ...history.increases.map((increase) => ({
+        order: increase.advancementOrder,
+        entry: this.increaseEntry(increase, fixedThresholds),
+      })),
     ];
+    // A stable sort: starting skills first, then by order with unknown ones
+    // last; ties keep skills before increases because skills are listed first.
+    const entries = [...sequenced]
+      .sort(
+        (a, b) =>
+          (a.order ?? Number.MAX_SAFE_INTEGER) -
+          (b.order ?? Number.MAX_SAFE_INTEGER),
+      )
+      .map(({ entry }) => entry);
     const reserved = new Set(
-      entries.flatMap(({ row }) =>
-        row.kind === 'granted' && row.advancementNumber !== null
+      entries.flatMap(({ row, pinned }) => {
+        if (pinned !== undefined) {
+          return [pinned];
+        }
+        return row.kind === 'granted' && row.advancementNumber !== null
           ? [row.advancementNumber]
-          : [],
-      ),
+          : [];
+      }),
     );
     let next = 1;
-    return entries.map((entry) => {
-      if (entry.row.kind !== 'skill' && entry.row.kind !== 'characteristic') {
-        return entry;
-      }
+    const nextFree = (): number => {
       while (reserved.has(next)) {
         next += 1;
       }
-      const advancementNumber = next;
       next += 1;
+      return next - 1;
+    };
+    return this.markClashes(entries).map((entry) => {
+      if (entry.row.kind !== 'skill' && entry.row.kind !== 'characteristic') {
+        return entry;
+      }
+      const advancementNumber = entry.pinned ?? nextFree();
       return {
         ...entry,
         row: {
@@ -168,6 +189,56 @@ export class AdvancementCostRangeService {
         },
       };
     });
+  }
+
+  /**
+   * Flags rows whose confirmed numbers cannot all hold. N paid advancements
+   * take the distinct numbers 1 to N, so a confirmed number shared with
+   * another confirmed row or a house-rule row, or one above N, leaves no
+   * order that fits, and the server's cost model then prices nothing.
+   */
+  private markClashes(entries: PricedRow[]): PricedRow[] {
+    const paidCount = entries.filter(
+      ({ row }) =>
+        row.kind === 'skill' ||
+        row.kind === 'characteristic' ||
+        row.kind === 'granted',
+    ).length;
+    const pinnedCounts = new Map<number, number>();
+    for (const { pinned } of entries) {
+      if (pinned !== undefined) {
+        pinnedCounts.set(pinned, (pinnedCounts.get(pinned) ?? 0) + 1);
+      }
+    }
+    const grantedNumbers = new Set(
+      entries.flatMap(({ row }) =>
+        row.kind === 'granted' && row.advancementNumber !== null
+          ? [row.advancementNumber]
+          : [],
+      ),
+    );
+    const clashes = ({ row, pinned }: PricedRow): boolean => {
+      if (row.orderClash === true) {
+        return true;
+      }
+      if (pinned !== undefined) {
+        return (
+          pinned > paidCount ||
+          (pinnedCounts.get(pinned) ?? 0) > 1 ||
+          grantedNumbers.has(pinned)
+        );
+      }
+      return (
+        row.kind === 'granted' &&
+        row.advancementNumber !== null &&
+        pinnedCounts.has(row.advancementNumber)
+      );
+    };
+    return entries.map((entry) =>
+      clashes(entry)
+        ? { ...entry, row: { ...entry.row, orderClash: true } }
+        : entry,
+    );
   }
 
   private skillEntry(
@@ -200,13 +271,21 @@ export class AdvancementCostRangeService {
           candidates: [
             { advancementKind: 'granted_skill', sppCost: granting.sppCost },
           ],
+          // The house rule fixes the number; a confirmed order elsewhere
+          // contradicts it.
+          ...(skill.orderConfirmed &&
+          skill.advancementOrder !== null &&
+          skill.advancementOrder !== granting.advancementNumber
+            ? { orderClash: true }
+            : {}),
         },
         kinds: [],
       };
     }
     return {
-      row: { ...row, kind: 'skill' },
+      row: { ...row, kind: 'skill', orderConfirmed: skill.orderConfirmed },
       kinds: fixedThresholds ? ['table_roll'] : this.skillKinds(skill, history),
+      ...this.pin(skill),
     };
   }
 
@@ -239,25 +318,35 @@ export class AdvancementCostRangeService {
     return null;
   }
 
-  private increaseEntries(
-    counts: StoredIncreaseCounts,
+  private increaseEntry(
+    increase: StoredIncrease,
     fixedThresholds: boolean,
-  ): PricedRow[] {
-    const kinds: readonly AdvancementKind[] = fixedThresholds
-      ? ['table_roll']
-      : ['random_characteristic'];
-    return INCREASES.flatMap(([key, label]) =>
-      Array.from({ length: counts[key] }, (): PricedRow => ({
-        row: {
-          label,
-          kind: 'characteristic',
-          storedSource: null,
-          advancementNumber: null,
-          candidates: [],
+  ): PricedRow {
+    return {
+      row: {
+        label: `+${increase.characteristic}`,
+        kind: 'characteristic',
+        storedSource: null,
+        advancementNumber: null,
+        candidates: [],
+        increaseOrder: {
+          known: increase.advancementOrder !== null,
+          confirmed: increase.orderConfirmed,
         },
-        kinds,
-      })),
-    );
+      },
+      kinds: fixedThresholds ? ['table_roll'] : ['random_characteristic'],
+      ...this.pin(increase),
+    };
+  }
+
+  /** The confirmed number an entry must take, as a spreadable `pinned`. */
+  private pin(entry: {
+    advancementOrder: number | null;
+    orderConfirmed: boolean;
+  }): { pinned?: number } {
+    return entry.orderConfirmed && entry.advancementOrder !== null
+      ? { pinned: entry.advancementOrder }
+      : {};
   }
 
   private costsAt(

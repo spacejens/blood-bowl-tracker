@@ -3,7 +3,7 @@ import type {
   SyncPlayerSkills,
   SyncPlayerSkillsResult,
 } from '@blood-bowl-tracker/api-contract';
-import type { Db, NewPlayerSkill } from '@blood-bowl-tracker/db';
+import type { Db, DbOrTx } from '@blood-bowl-tracker/db';
 import {
   and,
   asc,
@@ -11,19 +11,27 @@ import {
   eq,
   inArray,
   isNotNull,
+  playerAdvancements,
   players,
-  playerSkills,
   skillRulesSets,
   skills,
   trophyAwards,
 } from '@blood-bowl-tracker/db';
 import type {
+  PlayerCharacteristic,
   PlayerSkillSource,
   SkillCategory,
 } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { SkillValidationError } from '../shared/skill-validation-error';
+import type {
+  CharacteristicInsert,
+  ExistingRow,
+  ResolvedEntries,
+  SkillInsert,
+} from './player-advancement-sync.types';
+import { PlayerAdvancementSyncPlannerService } from './player-advancement-sync-planner.service';
 
 /**
  * The curated name of the one skill gained only as a free extra: BB2025
@@ -33,7 +41,7 @@ import { SkillValidationError } from '../shared/skill-validation-error';
 const HATRED_SKILL_NAME = 'Hatred';
 
 /**
- * One skill a player has, named for display. Not called `PlayerSkill`:
+ * One skill a player has, named for display. Not called `PlayerAdvancement`:
  * `@blood-bowl-tracker/db` already exports that name for the raw table row,
  * and a consumer importing both would collide.
  */
@@ -65,31 +73,6 @@ export interface PlayerSkillRow {
   isFreeExtra: boolean;
 }
 
-/**
- * One entry with its identity fields normalised. `attributeValue` is part of
- * the row's natural key, so an omitted value collapses to `null` immediately
- * — unlike `advancementOrder`, which stays `undefined` when the entry said
- * nothing, the overlay convention every upsert-style write here follows.
- */
-interface ResolvedPlayerSkill {
-  playerId: number;
-  skillId: number;
-  source: PlayerSkillSource;
-  attributeValue: string | null;
-  advancementOrder: number | null | undefined;
-  isFreeExtra: boolean;
-}
-
-/** The mutable half of a row, once its natural key has matched. */
-interface PlayerSkillUpdate {
-  id: number;
-  values: {
-    source?: PlayerSkillSource;
-    advancementOrder?: number | null;
-    isFreeExtra?: true;
-  };
-}
-
 /** What a batch's entries are validated and marked against. */
 interface SyncFacts {
   knownPlayerIds: ReadonlySet<number>;
@@ -98,20 +81,19 @@ interface SyncFacts {
   hatredSkillIds: ReadonlySet<number>;
   /** Player id -> skills one of that player's own trophy awards grants. */
   grantedSkillIdsByPlayer: ReadonlyMap<number, ReadonlySet<number>>;
-}
-
-/** The natural key a row is matched on: player, skill and variant. */
-function naturalKey(
-  playerId: number,
-  skillId: number,
-  attributeValue: string | null,
-): string {
-  return JSON.stringify([playerId, skillId, attributeValue]);
+  /** The players whose characteristic increases the batch states in full. */
+  characteristicPlayerIds: ReadonlySet<number>;
 }
 
 /**
- * Owns every skill a player has — starting skills included — and how they
- * came by each one.
+ * Owns every advancement row a player has — starting skills, gained skills
+ * and characteristic increases — and how they came by each one.
+ *
+ * Skill rows are matched on their natural key. Characteristic rows have none
+ * (a player can raise one characteristic more than once), so each listed
+ * player's increases are reconciled as a whole through
+ * CharacteristicAdvancementPlannerService, via
+ * PlayerAdvancementSyncPlannerService.
  *
  * Deliberately permissive about categories: a `chosen`/`random` entry is not
  * checked against the skill's `skill_rules_sets` category, so a `trait` or
@@ -123,29 +105,53 @@ function naturalKey(
  */
 @Injectable()
 export class PlayerSkillsService {
-  constructor(@Inject(DB) private readonly db: Db) {}
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    private readonly syncPlanner: PlayerAdvancementSyncPlannerService,
+  ) {}
 
   /**
    * Insert any supplied player skill that is not already recorded, matched on
    * its natural key `(playerId, skillId, attributeValue)`, and update the
-   * mutable fields of one that is. Every validation runs over the whole batch
-   * before any write, so one bad entry fails the call rather than
+   * mutable fields of one that is. For every player in
+   * `characteristicPlayerIds`, reconcile their stored characteristic-increase
+   * rows to the batch's increases through
+   * CharacteristicAdvancementPlannerService: rows are kept, revived, inserted
+   * or flagged removed, never deleted. A player not listed keeps their
+   * increase rows untouched.
+   *
+   * Skills and increases alike keep a recorded order: an unconfirmed order
+   * never overwrites a confirmed one. Every validation runs over the whole
+   * batch before any write, so one bad entry fails the call rather than
    * half-applying it. Returned ids are index-aligned with `data.entries`.
-   * A row is stored as a free extra by the rules in `isFreeExtra`; an
+   * A skill row is stored as a free extra by the rules in `isFreeExtra`; an
    * existing row is only ever marked, never unmarked.
    */
   async sync(data: SyncPlayerSkills): Promise<SyncPlayerSkillsResult> {
-    if (data.entries.length === 0) {
+    const characteristicPlayerIds = new Set(data.characteristicPlayerIds ?? []);
+    if (data.entries.length === 0 && characteristicPlayerIds.size === 0) {
       return { playerSkillIds: [] };
     }
 
-    const playerIds = [...new Set(data.entries.map((e) => e.playerId))];
-    const skillIds = [...new Set(data.entries.map((e) => e.skillId))];
+    const playerIds = [
+      ...new Set([
+        ...data.entries.map((e) => e.playerId),
+        ...characteristicPlayerIds,
+      ]),
+    ];
+    const skillIds = [
+      ...new Set(
+        data.entries.flatMap((e) =>
+          e.skillId === undefined ? [] : [e.skillId],
+        ),
+      ),
+    ];
 
     // Over-fetch both preconditions in one query each and match in memory:
     // two queries regardless of how many entries the batch carries. The
     // player query also brings each player's skill-granting trophy awards, so
-    // a player with several awards comes back once per award.
+    // a player with several awards comes back once per award. A batch naming
+    // no skill skips the skills query.
     const playerRows = await this.db
       .select({ id: players.id, grantedSkillId: trophyAwards.grantedSkillId })
       .from(players)
@@ -157,10 +163,13 @@ export class PlayerSkillsService {
         ),
       )
       .where(inArray(players.id, playerIds));
-    const skillRows = await this.db
-      .select({ id: skills.id, name: skills.name })
-      .from(skills)
-      .where(inArray(skills.id, skillIds));
+    const skillRows =
+      skillIds.length === 0
+        ? []
+        : await this.db
+            .select({ id: skills.id, name: skills.name })
+            .from(skills)
+            .where(inArray(skills.id, skillIds));
 
     const grantedSkillIdsByPlayer = new Map<number, Set<number>>();
     for (const row of playerRows) {
@@ -180,143 +189,80 @@ export class PlayerSkillsService {
           .map((row) => row.id),
       ),
       grantedSkillIdsByPlayer,
+      characteristicPlayerIds,
     });
 
-    const existingRows = await this.db
+    const existingRows: ExistingRow[] = await this.db
       .select({
-        id: playerSkills.id,
-        playerId: playerSkills.playerId,
-        skillId: playerSkills.skillId,
-        source: playerSkills.source,
-        attributeValue: playerSkills.attributeValue,
-        advancementOrder: playerSkills.advancementOrder,
-        isFreeExtra: playerSkills.isFreeExtra,
+        id: playerAdvancements.id,
+        playerId: playerAdvancements.playerId,
+        skillId: playerAdvancements.skillId,
+        characteristic: playerAdvancements.characteristic,
+        source: playerAdvancements.source,
+        attributeValue: playerAdvancements.attributeValue,
+        advancementOrder: playerAdvancements.advancementOrder,
+        orderConfirmed: playerAdvancements.orderConfirmed,
+        isFreeExtra: playerAdvancements.isFreeExtra,
+        removed: playerAdvancements.removed,
       })
-      .from(playerSkills)
-      .where(inArray(playerSkills.playerId, playerIds));
+      .from(playerAdvancements)
+      .where(inArray(playerAdvancements.playerId, playerIds));
 
-    const existingByKey = new Map(
-      existingRows.map((row) => [
-        naturalKey(row.playerId, row.skillId, row.attributeValue),
-        row,
-      ]),
-    );
-
-    // `resultIds` is sized and indexed to `resolved` so the returned ids line
-    // up positionally with `data.entries`, regardless of which entries were
+    // `resultIds` is sized and indexed to `data.entries` so the returned ids
+    // line up positionally with it, regardless of which entries were
     // pre-existing, updated, or newly inserted.
-    const resultIds: number[] = new Array<number>(resolved.length);
-    const toInsert: NewPlayerSkill[] = [];
-    const toInsertIndexes: number[] = [];
-    const toUpdate: PlayerSkillUpdate[] = [];
-    const changedPlayerIds = new Set<number>();
-    for (const [index, row] of resolved.entries()) {
-      const existing = existingByKey.get(
-        naturalKey(row.playerId, row.skillId, row.attributeValue),
-      );
-      if (existing === undefined) {
-        toInsert.push({
-          playerId: row.playerId,
-          skillId: row.skillId,
-          source: row.source,
-          attributeValue: row.attributeValue,
-          // A starting row never carries a sequence, regardless of what the
-          // entry says: the schema already rejects a numeric order paired
-          // with `starting`, but this stays an explicit, unconditional `null`
-          // here rather than relying on that alone.
-          advancementOrder:
-            row.source === 'starting' ? null : (row.advancementOrder ?? null),
-          // Only a free row names the column; every other row takes its
-          // `false` default.
-          ...(row.isFreeExtra ? { isFreeExtra: true } : {}),
-        });
-        toInsertIndexes.push(index);
-        changedPlayerIds.add(row.playerId);
-        continue;
-      }
-      resultIds[index] = existing.id;
-      const values: PlayerSkillUpdate['values'] = {};
-      if (this.sourceChanges(existing.source, row.source)) {
-        values.source = row.source;
-      }
-      if (row.source === 'starting') {
-        // The resolved source is (or is becoming) `starting`, which has no
-        // sequence at all — clear any previously-stored order even though
-        // the entry itself did not mention `advancementOrder`.
-        if (existing.advancementOrder !== null) {
-          values.advancementOrder = null;
-        }
-      } else if (
-        row.advancementOrder !== undefined &&
-        row.advancementOrder !== existing.advancementOrder
-      ) {
-        values.advancementOrder = row.advancementOrder;
-      }
-      // Set-only: a row once free stays free, whatever a later entry says.
-      if (row.isFreeExtra && !existing.isFreeExtra) {
-        values.isFreeExtra = true;
-      }
-      if (Object.keys(values).length > 0) {
-        toUpdate.push({ id: existing.id, values });
-        changedPlayerIds.add(existing.playerId);
-      }
-    }
+    const resultIds: number[] = new Array<number>(data.entries.length);
+    const skillWrites = this.syncPlanner.planSkills(
+      resolved.skills,
+      existingRows,
+      resultIds,
+    );
+    const characteristicWrites = this.syncPlanner.planCharacteristics(
+      {
+        characteristics: resolved.characteristics,
+        playerIds: characteristicPlayerIds,
+        entries: data.entries,
+      },
+      existingRows,
+      resultIds,
+    );
+    const changedPlayerIds = new Set([
+      ...skillWrites.changedPlayerIds,
+      ...characteristicWrites.changedPlayerIds,
+    ]);
 
-    if (toInsert.length === 0 && toUpdate.length === 0) {
+    if (changedPlayerIds.size === 0) {
       return { playerSkillIds: resultIds };
     }
 
     // One transaction around every write: the caller treats this single call
     // as one batch that either wholly succeeds or wholly fails.
     return this.db.transaction(async (tx) => {
-      for (const { id, values } of toUpdate) {
+      for (const { id, values } of skillWrites.updates) {
         await tx
-          .update(playerSkills)
+          .update(playerAdvancements)
           .set(values)
-          .where(eq(playerSkills.id, id));
+          .where(eq(playerAdvancements.id, id));
       }
-
-      if (toInsert.length > 0) {
-        const inserted = await tx
-          .insert(playerSkills)
-          .values(toInsert)
-          .returning({
-            id: playerSkills.id,
-            playerId: playerSkills.playerId,
-            skillId: playerSkills.skillId,
-            attributeValue: playerSkills.attributeValue,
-          });
-        // Postgres does not guarantee INSERT ... RETURNING preserves the input
-        // `values()` order, so the returned rows cannot be zipped back onto
-        // `toInsert` by array position — match by natural key instead.
-        const insertedIdByKey = new Map(
-          inserted.map((row) => [
-            naturalKey(row.playerId, row.skillId, row.attributeValue),
-            row.id,
-          ]),
-        );
-        toInsert.forEach((row, insertedIndex) => {
-          const key = naturalKey(
-            row.playerId,
-            row.skillId,
-            row.attributeValue ?? null,
-          );
-          const id = insertedIdByKey.get(key);
-          if (id === undefined) {
-            // Every `toInsert` row was just inserted in this same statement, so
-            // its key must be present in `inserted` — this can only mean the
-            // insert silently dropped a row.
-            throw new Error(
-              `Insert into player_skills did not return a row for key ${key}`,
-            );
-          }
-          resultIds[toInsertIndexes[insertedIndex]] = id;
-        });
+      await this.insertSkills(tx, skillWrites.inserts, resultIds);
+      // Each update sets a row's order, confirmation and removal together, so
+      // no per-row check is ever violated in between. No index is unique on
+      // a player's order, so orders swapping between rows is safe too.
+      for (const { id, values } of characteristicWrites.updates) {
+        await tx
+          .update(playerAdvancements)
+          .set(values)
+          .where(eq(playerAdvancements.id, id));
       }
+      await this.insertCharacteristics(
+        tx,
+        characteristicWrites.inserts,
+        resultIds,
+      );
 
-      // A changed skill can change what the player's advancements cost, so
-      // the stored unspent SPP is cleared until the import's SPP adjustment
-      // sync writes it again. Rows already cleared are left alone.
+      // A changed advancement can change what the player's advancements
+      // cost, so the stored unspent SPP is cleared until the import's SPP
+      // adjustment sync writes it again. Rows already cleared are left alone.
       await tx
         .update(players)
         .set({ unspentSpp: null })
@@ -330,86 +276,219 @@ export class PlayerSkillsService {
     });
   }
 
-  /**
-   * Whether an entry's source replaces the stored one. A stored `chosen` or
-   * `random` is kept when the entry only says `advancement`: that is the
-   * generic source a system that cannot tell the two apart (BBL) sends every
-   * time, and the stored value is the more specific record of the same
-   * skill, settled by BblSkillSourceInferenceService or by the source itself.
-   * Overwriting it would make every unchanged re-run write a row.
-   */
-  private sourceChanges(
-    stored: PlayerSkillSource,
-    incoming: PlayerSkillSource,
-  ): boolean {
-    if (
-      incoming === 'advancement' &&
-      (stored === 'chosen' || stored === 'random')
-    ) {
-      return false;
+  /** Insert the new skill rows and record their ids in `resultIds`. */
+  private async insertSkills(
+    tx: DbOrTx,
+    toInsert: SkillInsert[],
+    resultIds: number[],
+  ): Promise<void> {
+    if (toInsert.length === 0) {
+      return;
     }
-    return incoming !== stored;
+    const inserted = await tx
+      .insert(playerAdvancements)
+      .values(toInsert.map((row) => row.values))
+      .returning({
+        id: playerAdvancements.id,
+        playerId: playerAdvancements.playerId,
+        skillId: playerAdvancements.skillId,
+        attributeValue: playerAdvancements.attributeValue,
+      });
+    // Postgres does not guarantee INSERT ... RETURNING preserves the input
+    // `values()` order, so the returned rows cannot be zipped back onto
+    // `toInsert` by array position — match by natural key instead.
+    const insertedIdByKey = new Map(
+      inserted.map((row) => [
+        this.syncPlanner.naturalKey(
+          row.playerId,
+          row.skillId,
+          row.attributeValue,
+        ),
+        row.id,
+      ]),
+    );
+    for (const { index, values } of toInsert) {
+      const key = this.syncPlanner.naturalKey(
+        values.playerId,
+        values.skillId ?? null,
+        values.attributeValue ?? null,
+      );
+      const id = insertedIdByKey.get(key);
+      if (id === undefined) {
+        // Every `toInsert` row was just inserted in this same statement, so
+        // its key must be present in `inserted` — this can only mean the
+        // insert silently dropped a row.
+        throw new Error(
+          `Insert into player_advancements did not return a row for key ${key}`,
+        );
+      }
+      resultIds[index] = id;
+    }
+  }
+
+  /** Insert the new characteristic rows and record their ids in `resultIds`. */
+  private async insertCharacteristics(
+    tx: DbOrTx,
+    toInsert: CharacteristicInsert[],
+    resultIds: number[],
+  ): Promise<void> {
+    if (toInsert.length === 0) {
+      return;
+    }
+    const inserted = await tx
+      .insert(playerAdvancements)
+      .values(
+        toInsert.map((row) => ({
+          playerId: row.playerId,
+          source: 'characteristic' as const,
+          characteristic: row.characteristic,
+          advancementOrder: row.advancementOrder,
+          ...(row.orderConfirmed ? { orderConfirmed: true } : {}),
+        })),
+      )
+      .returning({
+        id: playerAdvancements.id,
+        playerId: playerAdvancements.playerId,
+        characteristic: playerAdvancements.characteristic,
+        advancementOrder: playerAdvancements.advancementOrder,
+        orderConfirmed: playerAdvancements.orderConfirmed,
+      });
+    // Identical increases are interchangeable, so ids are handed out per key
+    // in whatever order Postgres returned them.
+    const idsByKey = new Map<string, number[]>();
+    for (const row of inserted) {
+      const key = this.characteristicKey(row);
+      idsByKey.set(key, [...(idsByKey.get(key) ?? []), row.id]);
+    }
+    for (const row of toInsert) {
+      const key = this.characteristicKey(row);
+      const id = idsByKey.get(key)?.shift();
+      if (id === undefined) {
+        throw new Error(
+          `Insert into player_advancements did not return a row for characteristic key ${key}`,
+        );
+      }
+      resultIds[row.index] = id;
+    }
   }
 
   /**
-   * Validate every entry against the two precondition sets and reject a batch
-   * that names the same natural key twice. Without the duplicate check those
-   * two entries would both take the insert path and collide on the table's
-   * unique constraint, raising a raw database error instead of this clearer
-   * one.
+   * The key identical characteristic rows share: interchangeable rows get the
+   * same one.
+   */
+  private characteristicKey(row: {
+    playerId: number;
+    characteristic: PlayerCharacteristic | null;
+    advancementOrder: number | null;
+    orderConfirmed: boolean;
+  }): string {
+    return JSON.stringify([
+      row.playerId,
+      row.characteristic,
+      row.advancementOrder,
+      row.orderConfirmed,
+    ]);
+  }
+
+  /**
+   * Validate every entry against the precondition sets, split the batch into
+   * skills and characteristic increases, and reject a batch that names the
+   * same skill natural key twice. Without the duplicate check those two
+   * entries would both take the insert path and collide on the table's
+   * unique index, raising a raw database error instead of this clearer one.
    */
   private resolveEntries(
     data: SyncPlayerSkills,
     facts: SyncFacts,
-  ): ResolvedPlayerSkill[] {
-    const resolved: ResolvedPlayerSkill[] = [];
+  ): ResolvedEntries {
+    for (const id of facts.characteristicPlayerIds) {
+      if (!facts.knownPlayerIds.has(id)) {
+        throw new SkillValidationError(
+          `Player ${id} does not exist, so no characteristic increase can be recorded for them`,
+        );
+      }
+    }
+    const resolved: ResolvedEntries = { skills: [], characteristics: [] };
     const seenKeys = new Set<string>();
-    for (const entry of data.entries) {
+    for (const [index, entry] of data.entries.entries()) {
       if (!facts.knownPlayerIds.has(entry.playerId)) {
         throw new SkillValidationError(
           `Player ${entry.playerId} does not exist, so no skill can be recorded for them`,
         );
       }
-      if (!facts.knownSkillIds.has(entry.skillId)) {
+      if (
+        entry.source === 'characteristic' &&
+        entry.characteristic !== undefined
+      ) {
+        if (!facts.characteristicPlayerIds.has(entry.playerId)) {
+          throw new SkillValidationError(
+            `Player ${entry.playerId} has characteristic increases in the batch but is not listed in characteristicPlayerIds`,
+          );
+        }
+        resolved.characteristics.push({
+          index,
+          playerId: entry.playerId,
+          characteristic: entry.characteristic,
+          advancementOrder: entry.advancementOrder,
+          orderConfirmed: entry.orderConfirmed === true,
+        });
+        continue;
+      }
+      const skillId = entry.skillId;
+      if (skillId === undefined) {
         throw new SkillValidationError(
-          `Skill ${entry.skillId} does not exist, so player ${entry.playerId} cannot have it`,
+          `An entry of player ${entry.playerId} names no skill`,
+        );
+      }
+      if (!facts.knownSkillIds.has(skillId)) {
+        throw new SkillValidationError(
+          `Skill ${skillId} does not exist, so player ${entry.playerId} cannot have it`,
         );
       }
       const attributeValue = entry.attributeValue ?? null;
-      const key = naturalKey(entry.playerId, entry.skillId, attributeValue);
+      const key = this.syncPlanner.naturalKey(
+        entry.playerId,
+        skillId,
+        attributeValue,
+      );
       if (seenKeys.has(key)) {
         throw new SkillValidationError(
-          `Player ${entry.playerId} lists skill ${entry.skillId} with the same attribute value more than once in the same batch`,
+          `Player ${entry.playerId} lists skill ${skillId} with the same attribute value more than once in the same batch`,
         );
       }
       seenKeys.add(key);
-      resolved.push({
+      resolved.skills.push({
+        index,
         playerId: entry.playerId,
-        skillId: entry.skillId,
+        skillId,
         source: entry.source,
         attributeValue,
         advancementOrder: entry.advancementOrder,
-        isFreeExtra: this.isFreeExtra(entry, facts),
+        orderConfirmed: entry.orderConfirmed === true,
+        isFreeExtra: this.isFreeExtra(entry, skillId, facts),
       });
     }
     return resolved;
   }
 
   /**
-   * Whether an entry is stored as a free extra: the source flags it, it is a
-   * non-`starting` Hatred, or (for any other skill) one of the player's own
-   * trophy awards grants it. The trophy rule never applies to Hatred.
+   * Whether a skill entry is stored as a free extra: the source flags it, it
+   * is a non-`starting` Hatred, or (for any other skill) one of the player's
+   * own trophy awards grants it. The trophy rule never applies to Hatred.
    */
-  private isFreeExtra(entry: PlayerSkillEntry, facts: SyncFacts): boolean {
+  private isFreeExtra(
+    entry: PlayerSkillEntry,
+    skillId: number,
+    facts: SyncFacts,
+  ): boolean {
     if (entry.isFreeExtra === true) {
       return true;
     }
-    if (facts.hatredSkillIds.has(entry.skillId)) {
+    if (facts.hatredSkillIds.has(skillId)) {
       return entry.source !== 'starting';
     }
     return (
-      facts.grantedSkillIdsByPlayer.get(entry.playerId)?.has(entry.skillId) ===
-      true
+      facts.grantedSkillIdsByPlayer.get(entry.playerId)?.has(skillId) === true
     );
   }
 
@@ -429,13 +508,13 @@ export class PlayerSkillsService {
       return;
     }
     await this.db
-      .update(playerSkills)
+      .update(playerAdvancements)
       .set({ isFreeExtra: true })
       .where(
         and(
-          eq(playerSkills.playerId, playerId),
-          eq(playerSkills.skillId, skillId),
-          eq(playerSkills.isFreeExtra, false),
+          eq(playerAdvancements.playerId, playerId),
+          eq(playerAdvancements.skillId, skillId),
+          eq(playerAdvancements.isFreeExtra, false),
         ),
       );
   }
@@ -471,13 +550,13 @@ export class PlayerSkillsService {
       return;
     }
     await this.db
-      .update(playerSkills)
+      .update(playerAdvancements)
       .set({ isFreeExtra: false })
       .where(
         and(
-          eq(playerSkills.playerId, playerId),
-          eq(playerSkills.skillId, skillId),
-          eq(playerSkills.isFreeExtra, true),
+          eq(playerAdvancements.playerId, playerId),
+          eq(playerAdvancements.skillId, skillId),
+          eq(playerAdvancements.isFreeExtra, true),
         ),
       );
   }
@@ -502,23 +581,23 @@ export class PlayerSkillsService {
       .select({
         skillId: skills.id,
         skillName: skills.name,
-        source: playerSkills.source,
-        attributeValue: playerSkills.attributeValue,
-        advancementOrder: playerSkills.advancementOrder,
+        source: playerAdvancements.source,
+        attributeValue: playerAdvancements.attributeValue,
+        advancementOrder: playerAdvancements.advancementOrder,
         category: skillRulesSets.category,
         isElite: skillRulesSets.isElite,
-        isFreeExtra: playerSkills.isFreeExtra,
+        isFreeExtra: playerAdvancements.isFreeExtra,
       })
-      .from(playerSkills)
-      .innerJoin(skills, eq(skills.id, playerSkills.skillId))
+      .from(playerAdvancements)
+      .innerJoin(skills, eq(skills.id, playerAdvancements.skillId))
       .leftJoin(
         skillRulesSets,
         and(
-          eq(skillRulesSets.skillId, playerSkills.skillId),
+          eq(skillRulesSets.skillId, playerAdvancements.skillId),
           eq(skillRulesSets.rulesSetId, rulesSetId),
         ),
       )
-      .where(eq(playerSkills.playerId, playerId))
+      .where(eq(playerAdvancements.playerId, playerId))
       .orderBy(
         // Sorts by the Postgres enum's declaration order, which relies on
         // `PLAYER_SKILL_SOURCES` (packages/domain-enums/src/skills.ts) being
@@ -526,8 +605,8 @@ export class PlayerSkillsService {
         // reordering that array would silently change this API's result
         // order, and so would a migration that appends a new enum value
         // rather than inserting it at its declared position.
-        asc(playerSkills.source),
-        asc(playerSkills.advancementOrder),
+        asc(playerAdvancements.source),
+        asc(playerAdvancements.advancementOrder),
         asc(skills.name),
       );
     // A missed left join yields a null `isElite`; collapse it to the column's

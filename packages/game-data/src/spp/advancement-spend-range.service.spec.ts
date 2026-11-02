@@ -256,4 +256,75 @@ describe('AdvancementSpendRangeService', () => {
       expect(service.canSpendExactly(rolls(17), table(17), 153)).toBe(false);
     });
   });
+
+  describe('pinned options', () => {
+    const costs: ApplicableAdvancementCost[] = [
+      {
+        advancementNumber: 1,
+        advancementKind: 'random_characteristic',
+        skillId: null,
+        sppCost: 18,
+      },
+      {
+        advancementNumber: 1,
+        advancementKind: 'random_primary_skill',
+        skillId: null,
+        sppCost: 3,
+      },
+      {
+        advancementNumber: 1,
+        advancementKind: 'chosen_primary_skill',
+        skillId: null,
+        sppCost: 6,
+      },
+      {
+        advancementNumber: 2,
+        advancementKind: 'random_characteristic',
+        skillId: null,
+        sppCost: 30,
+      },
+      {
+        advancementNumber: 2,
+        advancementKind: 'random_primary_skill',
+        skillId: null,
+        sppCost: 4,
+      },
+      {
+        advancementNumber: 2,
+        advancementKind: 'chosen_primary_skill',
+        skillId: null,
+        sppCost: 8,
+      },
+    ];
+    const skill: AdvancementOption[] = [
+      { advancementKind: 'random_primary_skill', advancementNumber: null },
+      { advancementKind: 'chosen_primary_skill', advancementNumber: null },
+    ];
+    const increaseAt = (
+      advancementNumber: number | null,
+    ): AdvancementOption[] => [
+      { advancementKind: 'random_characteristic', advancementNumber },
+    ];
+
+    it('tries every number for an unpinned increase', () => {
+      expect(service.range([increaseAt(null), skill], costs)).toEqual({
+        spentMin: 22,
+        spentMax: 36,
+      });
+    });
+
+    it('holds an increase pinned to number 1 there', () => {
+      expect(service.range([increaseAt(1), skill], costs)).toEqual({
+        spentMin: 22,
+        spentMax: 26,
+      });
+    });
+
+    it('holds an increase pinned to number 2 there', () => {
+      expect(service.range([increaseAt(2), skill], costs)).toEqual({
+        spentMin: 33,
+        spentMax: 36,
+      });
+    });
+  });
 });

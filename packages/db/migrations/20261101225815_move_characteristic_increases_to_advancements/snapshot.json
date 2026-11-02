@@ -1,0 +1,233 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "cadf0dc6-7ecd-4b9d-bd8f-a1951787882b",
+  "prevIds": [
+    "6a1c2b1b-dd33-4f26-b30d-54409dc9d24e"
+  ],
+  "footprints": [
+    {
+      "statementType": "drop_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "players",
+        "move_increase_count"
+      ],
+      "writes": [
+        "s|col|game_data.players.move_increase_count",
+        "n|col|game_data.players.move_increase_count",
+        "e|col|game_data.players.move_increase_count"
+      ],
+      "reads": [
+        "n|tbl|game_data.players",
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "drop_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "players",
+        "strength_increase_count"
+      ],
+      "writes": [
+        "s|col|game_data.players.strength_increase_count",
+        "n|col|game_data.players.strength_increase_count",
+        "e|col|game_data.players.strength_increase_count"
+      ],
+      "reads": [
+        "n|tbl|game_data.players",
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "drop_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "players",
+        "agility_increase_count"
+      ],
+      "writes": [
+        "s|col|game_data.players.agility_increase_count",
+        "n|col|game_data.players.agility_increase_count",
+        "e|col|game_data.players.agility_increase_count"
+      ],
+      "reads": [
+        "n|tbl|game_data.players",
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "drop_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "players",
+        "passing_increase_count"
+      ],
+      "writes": [
+        "s|col|game_data.players.passing_increase_count",
+        "n|col|game_data.players.passing_increase_count",
+        "e|col|game_data.players.passing_increase_count"
+      ],
+      "reads": [
+        "n|tbl|game_data.players",
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "drop_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "players",
+        "armour_increase_count"
+      ],
+      "writes": [
+        "s|col|game_data.players.armour_increase_count",
+        "n|col|game_data.players.armour_increase_count",
+        "e|col|game_data.players.armour_increase_count"
+      ],
+      "reads": [
+        "n|tbl|game_data.players",
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "drop_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "players_history",
+        "move_increase_count"
+      ],
+      "writes": [
+        "s|col|game_data.players_history.move_increase_count",
+        "n|col|game_data.players_history.move_increase_count",
+        "e|col|game_data.players_history.move_increase_count"
+      ],
+      "reads": [
+        "n|tbl|game_data.players_history",
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "drop_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "players_history",
+        "strength_increase_count"
+      ],
+      "writes": [
+        "s|col|game_data.players_history.strength_increase_count",
+        "n|col|game_data.players_history.strength_increase_count",
+        "e|col|game_data.players_history.strength_increase_count"
+      ],
+      "reads": [
+        "n|tbl|game_data.players_history",
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "drop_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "players_history",
+        "agility_increase_count"
+      ],
+      "writes": [
+        "s|col|game_data.players_history.agility_increase_count",
+        "n|col|game_data.players_history.agility_increase_count",
+        "e|col|game_data.players_history.agility_increase_count"
+      ],
+      "reads": [
+        "n|tbl|game_data.players_history",
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "drop_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "players_history",
+        "passing_increase_count"
+      ],
+      "writes": [
+        "s|col|game_data.players_history.passing_increase_count",
+        "n|col|game_data.players_history.passing_increase_count",
+        "e|col|game_data.players_history.passing_increase_count"
+      ],
+      "reads": [
+        "n|tbl|game_data.players_history",
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "drop_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "players_history",
+        "armour_increase_count"
+      ],
+      "writes": [
+        "s|col|game_data.players_history.armour_increase_count",
+        "n|col|game_data.players_history.armour_increase_count",
+        "e|col|game_data.players_history.armour_increase_count"
+      ],
+      "reads": [
+        "n|tbl|game_data.players_history",
+        "n|sch|game_data"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "drop",
+      "key": "columns\u0000[\"game_data\",\"players\",\"move_increase_count\"]"
+    },
+    {
+      "op": "drop",
+      "key": "columns\u0000[\"game_data\",\"players\",\"strength_increase_count\"]"
+    },
+    {
+      "op": "drop",
+      "key": "columns\u0000[\"game_data\",\"players\",\"agility_increase_count\"]"
+    },
+    {
+      "op": "drop",
+      "key": "columns\u0000[\"game_data\",\"players\",\"passing_increase_count\"]"
+    },
+    {
+      "op": "drop",
+      "key": "columns\u0000[\"game_data\",\"players\",\"armour_increase_count\"]"
+    },
+    {
+      "op": "drop",
+      "key": "columns\u0000[\"game_data\",\"players_history\",\"move_increase_count\"]"
+    },
+    {
+      "op": "drop",
+      "key": "columns\u0000[\"game_data\",\"players_history\",\"strength_increase_count\"]"
+    },
+    {
+      "op": "drop",
+      "key": "columns\u0000[\"game_data\",\"players_history\",\"agility_increase_count\"]"
+    },
+    {
+      "op": "drop",
+      "key": "columns\u0000[\"game_data\",\"players_history\",\"passing_increase_count\"]"
+    },
+    {
+      "op": "drop",
+      "key": "columns\u0000[\"game_data\",\"players_history\",\"armour_increase_count\"]"
+    }
+  ]
+}

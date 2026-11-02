@@ -150,7 +150,7 @@ describe('SkillsService', () => {
 
       await service.countPlayersBySkillAny(FACT_SCOPE_ALL_TIME, 21);
 
-      // Grouping deliberately omits playerSkills.attributeValue, and the count
+      // Grouping deliberately omits playerAdvancements.attributeValue, and the count
       // is distinct players, so one player holding Hatred (Elf) and Hatred
       // (Dwarf) contributes 1 to Hatred rather than 2.
       expect(chains[0].groupBy).toHaveBeenCalledWith(skills.id, skills.name);
@@ -163,10 +163,10 @@ describe('SkillsService', () => {
 
       expect(
         extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
-      ).toEqual(['skills.id', 'player_skills.skill_id']);
+      ).toEqual(['skills.id', 'player_advancements.skill_id']);
       expect(
         extractJoinColumns(firstCallArg(chains[0].innerJoin, 1, 1)),
-      ).toEqual(['players.id', 'player_skills.player_id']);
+      ).toEqual(['players.id', 'player_advancements.player_id']);
       expect(
         extractJoinColumns(firstCallArg(chains[0].innerJoin, 2, 1)),
       ).toEqual(['positions.id', 'players.position_id']);

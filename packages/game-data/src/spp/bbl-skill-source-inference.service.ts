@@ -1,6 +1,6 @@
 import type { UnspentSppSnapshot } from '@blood-bowl-tracker/api-contract';
 import type { Db } from '@blood-bowl-tracker/db';
-import { and, DB, eq, or, playerSkills } from '@blood-bowl-tracker/db';
+import { and, DB, eq, or, playerAdvancements } from '@blood-bowl-tracker/db';
 import type { PlayerSkillSource } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -43,7 +43,9 @@ interface PlayerSkillKey {
  *
  * BBL prices every advancement at BB2020 costs, so its spend is matched
  * against each rules set's own cost table: BBL's kind-priced eras (BB2020,
- * DB2021) use exactly those costs.
+ * DB2021) use exactly those costs. Characteristic increases count towards the
+ * spend through their own rows and are never rewritten; an increase whose
+ * order is confirmed is held to that advancement number.
  *
  * Only rows still recorded `advancement` are written, so a starting skill or
  * a source already recorded `chosen` or `random` is never changed. The BBL
@@ -119,17 +121,18 @@ export class BblSkillSourceInferenceService {
         continue;
       }
       candidatesInput.skills.forEach((skill, index) => {
-        if (skill.source !== 'advancement') {
+        if (skill.source !== 'advancement' || skill.skillId === null) {
           return;
         }
-        const sources = possible.get(skill.skillId) ?? new Set();
+        const skillId = skill.skillId;
+        const sources = possible.get(skillId) ?? new Set();
         for (const source of SETTLED_SOURCES) {
           const forced = this.withSource(candidatesInput, index, source);
           if (this.fits(forced, costs, spent)) {
             sources.add(source);
           }
         }
-        possible.set(skill.skillId, sources);
+        possible.set(skillId, sources);
       });
     }
     const settled = new Map<number, SettledSource>();
@@ -181,16 +184,16 @@ export class BblSkillSourceInferenceService {
     await this.db.transaction(async (tx) => {
       for (const { source, keys } of groups) {
         await tx
-          .update(playerSkills)
+          .update(playerAdvancements)
           .set({ source })
           .where(
             and(
-              eq(playerSkills.source, 'advancement'),
+              eq(playerAdvancements.source, 'advancement'),
               or(
                 ...keys.map((key) =>
                   and(
-                    eq(playerSkills.playerId, key.playerId),
-                    eq(playerSkills.skillId, key.skillId),
+                    eq(playerAdvancements.playerId, key.playerId),
+                    eq(playerAdvancements.skillId, key.skillId),
                   ),
                 ),
               ),
