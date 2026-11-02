@@ -1,10 +1,14 @@
+import { SkillFormatService } from '@blood-bowl-tracker/review-harness';
 import { Module } from '@nestjs/common';
 
+import { PlayerAdvancementsModule } from '../player-advancements/player-advancements.module';
 import { SharedModule } from '../shared/shared.module';
 import { SourceModule } from '../source/source.module';
 import { AdvancementCostRangeService } from './advancement-cost-range.service';
 import { AdvancementCostsDbRendererService } from './advancement-costs-db-renderer.service';
 import { AdvancementCostsReviewerService } from './advancement-costs-reviewer.service';
+import { AdvancementTableService } from './advancement-table.service';
+import { AdvancementsDbRendererService } from './advancements-db-renderer.service';
 import { BblAdvancementCostsRawRendererService } from './bbl-advancement-costs-raw-renderer.service';
 import { PlayerAdvancementHistoryService } from './player-advancement-history.service';
 import { SourceSpendComparisonService } from './source-spend-comparison.service';
@@ -12,6 +16,7 @@ import { SourceUnspentSppFigureService } from './source-unspent-spp-figure.servi
 import { StoredUnspentSppCheckService } from './stored-unspent-spp-check.service';
 import { TpAdvancementCostsRawRendererService } from './tp-advancement-costs-raw-renderer.service';
 import { UnspentSppOutsideRangeStratificationService } from './unspent-spp-outside-range-stratification.service';
+import { UnspentSppTableService } from './unspent-spp-table.service';
 
 /**
  * The advancement-costs data type: each source's own SPP figures beside each
@@ -20,8 +25,12 @@ import { UnspentSppOutsideRangeStratificationService } from './unspent-spp-outsi
  * the modelled range or the source.
  */
 @Module({
-  imports: [SharedModule, SourceModule],
+  imports: [SharedModule, SourceModule, PlayerAdvancementsModule],
   providers: [
+    AdvancementTableService,
+    AdvancementsDbRendererService,
+    SkillFormatService,
+    UnspentSppTableService,
     AdvancementCostRangeService,
     AdvancementCostsDbRendererService,
     AdvancementCostsReviewerService,
@@ -34,6 +43,7 @@ import { UnspentSppOutsideRangeStratificationService } from './unspent-spp-outsi
     UnspentSppOutsideRangeStratificationService,
   ],
   exports: [
+    AdvancementsDbRendererService,
     AdvancementCostsReviewerService,
     UnspentSppOutsideRangeStratificationService,
   ],
