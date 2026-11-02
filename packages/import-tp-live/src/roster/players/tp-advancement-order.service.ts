@@ -23,8 +23,9 @@ export interface LiveAdvancementEntriesOptions {
   checkSpend?: boolean;
   /**
    * True for the bulk import. A bulk snapshot may come long after the stored
-   * rows were written, so a player with stored paid advancements is sent as
-   * TP lists him, with nothing numbered as new and nothing pending.
+   * rows were written, so a player with a stored confirmed paid advancement
+   * is sent as TP lists him, with nothing numbered as new and nothing
+   * pending; one without is planned as if no paid advancement were stored.
    */
   bulk?: boolean;
 }
@@ -34,8 +35,8 @@ export interface LiveAdvancementPlan {
   entries: PlayerSkillEntry[];
   /**
    * Indexes into `entries` of the advancements whose order must be deduced
-   * from SPP: every paid one when the player has nothing stored and
-   * `checkSpend` is set; otherwise empty unless a player with stored rows
+   * from SPP: every paid one when the player is planned as having nothing
+   * stored and `checkSpend` is set; otherwise empty unless a player with stored rows
    * gained at least two new advancements, or one when `checkSpend` is set.
    * Listed in the fallback order (TP's skill list order, then increases in
    * stat-line order); those entries are sent unconfirmed at `firstNumber`,
@@ -74,11 +75,14 @@ interface IncreaseSplit {
  * which the cost model and the deepdive allow for. An entry counts as a free
  * extra by its `isFreeExtra` flag alone; the caller sets it beforehand on
  * every skill the write stores free, not only on those TP flags `isExtra`
- * (PlayerAdvancementReadsService.resolveFreeExtras). A bulk import of a player
- * with stored paid advancements cannot tell when the rest was taken, so it
- * sends the skills as TP lists them and each increase with an unknown order;
- * one with only starting skills or free extras stored is numbered from 1 as
- * if nothing were stored.
+ * (PlayerAdvancementReadsService.resolveFreeExtras). In a bulk import only a
+ * stored paid advancement with a confirmed order is history to keep: a bulk
+ * player with one cannot tell when the rest was taken, so it sends the skills
+ * as TP lists them and each increase with an unknown order. A bulk player
+ * with none (nothing stored, only starting skills or free extras, or only
+ * paid advancements of unconfirmed order) is numbered from 1 as if no paid
+ * advancement were stored, so a later bulk pass, for one after the
+ * advancement costs exist, can confirm what an earlier pass left unconfirmed.
  * Stored increases are resent as stored, best-ranked first, so the server
  * keeps them.
  *
@@ -103,14 +107,13 @@ export class TpAdvancementOrderService {
 
   /** The entries for one player, ordered as described above. */
   liveEntries(options: LiveAdvancementEntriesOptions): LiveAdvancementPlan {
-    const { playerId, skillEntries, increases, stored } = options;
-    const storedPaid = stored.filter(
-      (row) => row.source !== 'starting' && !row.isFreeExtra,
-    );
+    const { playerId, skillEntries, increases } = options;
+    const stored = this.plannedStored(options);
+    const storedPaid = stored.filter((row) => this.isPaid(row));
     const firstNumber = storedPaid.length + 1;
-    // Only stored paid rows are a history the bulk import must keep. A live
-    // import counts any stored row: it runs right after a match, so what is
-    // not stored yet is new.
+    // Only stored confirmed paid rows are a history the bulk import must
+    // keep. A live import counts any stored row: it runs right after a
+    // match, so what is not stored yet is new.
     const hasPaidBaseline = storedPaid.length > 0;
     const hasBaseline =
       options.bulk === true ? hasPaidBaseline : stored.length > 0;
@@ -125,7 +128,7 @@ export class TpAdvancementOrderService {
       };
     }
     const newSkills = this.newSkills(skillEntries, stored);
-    const { kept, added } = this.increases(options);
+    const { kept, added } = this.increases({ ...options, stored });
     const newCount = newSkills.size + added.length;
     // Without a baseline every paid advancement counts as new, and only the
     // spend can confirm their order.
@@ -155,6 +158,33 @@ export class TpAdvancementOrderService {
       pushNew(this.increaseEntry(playerId, characteristic, null));
     }
     return { entries, pendingIndexes, firstNumber };
+  }
+
+  /**
+   * The stored rows the plan works from. A bulk player with no confirmed
+   * paid row has no history to keep: his unconfirmed paid rows (left by an
+   * earlier pass that could not deduce their order, for one, before the
+   * advancement costs existed) are planned as if not stored, so they are
+   * numbered afresh and the spend can confirm them. The sync still matches
+   * and rewrites those rows. Starting skills and free extras stay, as they
+   * are never numbered as paid.
+   */
+  private plannedStored(
+    options: LiveAdvancementEntriesOptions,
+  ): StoredPlayerAdvancement[] {
+    const { stored } = options;
+    if (
+      options.bulk !== true ||
+      stored.some((row) => this.isPaid(row) && row.orderConfirmed)
+    ) {
+      return stored;
+    }
+    return stored.filter((row) => !this.isPaid(row));
+  }
+
+  /** Neither a starting skill nor a free extra. */
+  private isPaid(row: StoredPlayerAdvancement): boolean {
+    return row.source !== 'starting' && !row.isFreeExtra;
   }
 
   /** Gained, non-free skill entries whose skill and variant are not stored. */

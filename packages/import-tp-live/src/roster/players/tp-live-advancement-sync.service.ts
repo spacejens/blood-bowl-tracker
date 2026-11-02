@@ -27,8 +27,8 @@ export interface LivePlayerSyncOptions {
   snapshot: UnspentSppSnapshot | undefined;
   errors: ImportError[];
   /**
-   * True for the bulk import, which sends a player with stored paid
-   * advancements as TP lists him.
+   * True for the bulk import, which sends a player with a stored confirmed
+   * paid advancement as TP lists him.
    */
   bulk?: boolean;
 }
@@ -45,7 +45,9 @@ export interface LivePlayerSyncOptions {
  * new rows (and their skill categories) are part of them, and writes the
  * deduced order confirmed. Without one answer the unconfirmed write stands.
  * A player with nothing stored has the order of every paid advancement
- * deduced the same way.
+ * deduced the same way, and so does a bulk player with no stored confirmed
+ * paid advancement: his stored unconfirmed rows are renumbered from 1 by the
+ * first write and confirmed by the second.
  */
 @Injectable()
 export class TpLiveAdvancementSyncService {
