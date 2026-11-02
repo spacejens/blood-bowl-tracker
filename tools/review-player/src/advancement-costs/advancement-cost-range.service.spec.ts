@@ -67,6 +67,8 @@ function skill(
     orderConfirmed: false,
     isFreeExtra: false,
     category: null,
+    attributeValue: null,
+    isElite: false,
   };
 }
 
@@ -108,6 +110,27 @@ describe('AdvancementCostRangeService', () => {
       providers: [AdvancementCostRangeService],
     }).compile();
     service = moduleRef.get(AdvancementCostRangeService);
+  });
+
+  it('keeps the very stored skill or increase each row prices', () => {
+    const block = skill('Block', 'starting');
+    const guard = skill('Guard', 'advancement');
+    const ag = increase('AG');
+
+    const model = service.model(
+      history({ skills: [block, guard], increases: [ag] }),
+    );
+
+    expect(model.rows.map((row) => row.label)).toEqual([
+      'Block',
+      'Guard',
+      '+AG',
+    ]);
+    expect(model.rows[0].skill).toBe(block);
+    expect(model.rows[1].skill).toBe(guard);
+    expect(model.rows[2].increase).toBe(ag);
+    expect(model.rows[0].increase).toBeUndefined();
+    expect(model.rows[2].skill).toBeUndefined();
   });
 
   it('prices fixed-threshold advancements exactly, skills then increases', () => {
@@ -410,6 +433,11 @@ describe('AdvancementCostRangeService', () => {
       advancementNumber: 2,
       candidates: [{ advancementKind: 'random_characteristic', sppCost: 20 }],
       increaseOrder: { known: false, confirmed: false },
+      increase: {
+        characteristic: 'ST',
+        advancementOrder: null,
+        orderConfirmed: false,
+      },
     });
     expect(model.range).toEqual({
       spentMin: 7,
@@ -765,6 +793,7 @@ describe('AdvancementCostRangeService', () => {
       storedSource: 'advancement',
       advancementNumber: 7,
       candidates: [{ advancementKind: 'granted_skill', sppCost: 125 }],
+      skill: skill('Fan Favourite', 'advancement', FAN_FAVOURITE_ID),
     });
     expect(model.range).toEqual({
       spentMin: 301,

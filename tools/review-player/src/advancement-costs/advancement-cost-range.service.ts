@@ -251,6 +251,7 @@ export class AdvancementCostRangeService {
       storedSource: skill.source,
       advancementNumber: null,
       candidates: [],
+      skill,
     };
     if (skill.source === 'starting') {
       return { row: { ...row, kind: 'starting' }, kinds: [] };
@@ -333,6 +334,7 @@ export class AdvancementCostRangeService {
           known: increase.advancementOrder !== null,
           confirmed: increase.orderConfirmed,
         },
+        increase,
       },
       kinds: fixedThresholds ? ['table_roll'] : ['random_characteristic'],
       ...this.pin(increase),
