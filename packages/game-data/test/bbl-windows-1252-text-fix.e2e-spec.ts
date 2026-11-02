@@ -377,13 +377,13 @@ describe('fix_bbl_windows_1252_text migration (real Postgres)', () => {
     });
   });
 
-  it('never touches a curated curly name or a non-Name external id', async () => {
+  it('keeps a curated curly name but adds a folded Name id, and leaves a non-Name external id', async () => {
     await runFix(db);
 
     expect(await skillRow(db, seeded.curatedCurly)).toEqual({
       name: 'Blastin’ Solves Everything',
       version: 1,
-      ids: ['Blastin’ Solves Everything'],
+      ids: ["Blastin' Solves Everything", 'Blastin’ Solves Everything'],
     });
     expect(await coachRow(db, seeded.bblIdCoach)).toEqual({
       name: 'Plain Coach',

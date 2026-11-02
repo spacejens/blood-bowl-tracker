@@ -37,8 +37,11 @@ END $$;
 -- Name external ids are matched by exact string, so once the importer
 -- produces the corrected spelling it would no longer find a row registered
 -- under the old one. Every Name external id holding a C1 control character
--- therefore gains its corrected spelling as an additional external id on the
--- same row, and the old one stays. The id itself is corrected, not rebuilt
+-- or a literal curly quote (which an HTML entity can leave in a name the
+-- importer stored without folding) therefore gains its corrected spelling as
+-- an additional external id on the same row, and the old one stays. Unlike the
+-- name statement above, a curated row's curly Name id gains a folded alias
+-- too, since only the id is added and the curated name itself is not changed. The id itself is corrected, not rebuilt
 -- from the row's name, because some Name ids are not the bare name (a
 -- position's is "<race>: <position>"). The insert is skipped when any row
 -- already holds the corrected spelling, and when two old spellings fold to
@@ -51,7 +54,7 @@ DO $$
 DECLARE
   from_chars CONSTANT text := E'\u0080\u0082\u0083\u0084\u0085\u0086\u0087\u0088\u0089\u008A\u008B\u008C\u008E\u0091\u0092\u0093\u0094\u0095\u0096\u0097\u0098\u0099\u009A\u009B\u009C\u009E\u009F‘’‚‛“”„‟';
   to_chars CONSTANT text := E'€\'ƒ"…†‡ˆ‰Š‹ŒŽ\'\'""•–—˜™š›œžŸ\'\'\'\'""""';
-  c1 CONSTANT text := E'[\u0080-\u009F]';
+  c1 CONSTANT text := E'[\u0080-\u009F‘’‚‛“”„‟]';
   target record;
 BEGIN
   FOR target IN
