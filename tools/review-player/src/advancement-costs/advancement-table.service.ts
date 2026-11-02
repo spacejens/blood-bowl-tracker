@@ -175,9 +175,12 @@ export class AdvancementTableService {
       return ['confirmed'];
     }
     const notes = row.kind === 'granted' ? ['fixed by league house rule'] : [];
-    const stored =
-      row.skill?.advancementOrder ?? row.increase?.advancementOrder;
-    if (stored === undefined || stored === null) {
+    const present = row.skill ?? row.increase;
+    if (present === undefined) {
+      return notes;
+    }
+    const stored = present.advancementOrder;
+    if (stored === null) {
       return [...notes, 'stored order unknown'];
     }
     return stored === row.advancementNumber

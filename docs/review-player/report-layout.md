@@ -142,7 +142,9 @@ From the database:
     `advancement_order` differs from the number the row is priced at, the cell
     adds it (`#3 (stored #4)`), and a skill stored without an order says
     `#3 (stored order unknown)`, so a gap or duplicate in the stored orders is
-    not hidden by the renumbering. Confirmed numbers that cannot all hold
+    not hidden by the renumbering. A granted skill combines the notes, as in
+    `#7 (fixed by league house rule, stored #3)` or
+    `#7 (fixed by league house rule, stored order unknown)`. Confirmed numbers that cannot all hold
     (two at one number, one past the paid advancements, or one contradicting a
     house rule) are highlighted and say `clashes`, and no range is modelled.
   - **Advancement** — the skill with the dice marker when its stored source

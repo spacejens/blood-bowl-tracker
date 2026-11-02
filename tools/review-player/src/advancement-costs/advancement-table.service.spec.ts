@@ -416,6 +416,8 @@ describe('AdvancementTableService', () => {
     });
 
     expect(html).toContain('<td>not read</td>');
+    expect(html).toContain('<td>#1</td>');
+    expect(html).not.toContain('stored');
   });
 
   it.each([
