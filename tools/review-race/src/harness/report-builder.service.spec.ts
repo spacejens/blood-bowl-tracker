@@ -76,7 +76,7 @@ describe('ReportBuilderService', () => {
           item: race,
           panels: [
             {
-              dataTypeId: 'race-identity',
+              dataTypeId: 'race-and-availability',
               rawHtml: '<p>raw fragment</p>',
               importedHtml: '<p>imported fragment</p>',
             },
@@ -89,7 +89,7 @@ describe('ReportBuilderService', () => {
 
     expect(html).toContain('<p>raw fragment</p>');
     expect(html).toContain('<p>imported fragment</p>');
-    expect(html).toContain('<h3>race-identity</h3>');
+    expect(html).toContain('<h3>race-and-availability</h3>');
   });
 
   it('escapes a race name containing "<"', () => {

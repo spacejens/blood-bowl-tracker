@@ -81,7 +81,7 @@ label (`missing`), so the report stays readable without colour.
 ### Starting skills
 
 Left: raw BBL, TP and manual curation sub-tables, shown together exactly like
-the other race-scoped panels. BBL's sub-table reads its one rules-set-less
+the other race-scoped parts. BBL's sub-table reads its one rules-set-less
 Skills cell per position page. TP's sub-table is per rules set — TP names
 skills by a per-rules-set `skillMasterId`, resolved to a name from the
 downloaded roster files where possible, shown as `skill master #<id>` when no
@@ -96,15 +96,15 @@ against every rules set. A position with a characteristics row but no
 starting skills renders `none`; a position that IS reachable under that rules
 set but has no `position_rules_sets` row at all — so no row a starting skill
 could hang off — is rendered as a highlighted row labelled `missing (no
-characteristics row)`, mirroring how the characteristics panel highlights the
+characteristics row)`, mirroring how the characteristics part highlights the
 same absence.
 
-Unlike the other parts, the raw and imported starting-skills parts are never
-diffed against each other: BBL's skills carry no rules set, TP's carry
-per-rules-set ids, and the curated file carries `Name` external ids, so
-lining them up against the stored rows would mean re-running the importers'
-own resolution logic — the very thing under review. The two panels are shown
-side by side purely for a human reviewer to compare by eye.
+Unlike race identity, availability and characteristics, the raw and imported
+starting-skills parts are never diffed against each other: BBL's skills carry
+no rules set, TP's carry per-rules-set ids, and the curated file carries
+`Name` external ids, so lining them up against the stored rows would mean
+re-running the importers' own resolution logic — the very thing under review.
+The raw and imported sides are shown side by side purely for a human reviewer to compare by eye.
 
 ### Keywords
 
@@ -129,5 +129,5 @@ never cross-products every position against every rules set — with the same
 rules set but with no stored row at all. As with starting skills, the raw and
 imported parts are never diffed against each other — TP's codes are resolved
 through this tool's own independent catalogue reader, not the importer's, so
-the two panels are shown side by side purely for a human reviewer to compare
+the raw and imported sides are shown side by side purely for a human reviewer to compare
 by eye.

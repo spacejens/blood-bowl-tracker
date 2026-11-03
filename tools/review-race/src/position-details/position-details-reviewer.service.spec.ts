@@ -179,6 +179,28 @@ describe('PositionDetailsReviewerService', () => {
     expect(dbKeywords.render).not.toHaveBeenCalled();
   });
 
+  it('lets a rejecting positions guard propagate without rendering', async () => {
+    query.positionsFor.mockRejectedValue(new Error('positions down'));
+
+    await expect(service.getImportedView(race)).rejects.toThrow(
+      'positions down',
+    );
+    expect(dbCharacteristics.render).not.toHaveBeenCalled();
+    expect(dbSkills.render).not.toHaveBeenCalled();
+    expect(dbKeywords.render).not.toHaveBeenCalled();
+  });
+
+  it('lets a rejecting rules-sets guard propagate without rendering', async () => {
+    query.rulesSetsFor.mockRejectedValue(new Error('rules sets down'));
+
+    await expect(service.getImportedView(race)).rejects.toThrow(
+      'rules sets down',
+    );
+    expect(dbCharacteristics.render).not.toHaveBeenCalled();
+    expect(dbSkills.render).not.toHaveBeenCalled();
+    expect(dbKeywords.render).not.toHaveBeenCalled();
+  });
+
   it('shows a failure note for a failing raw characteristics part only', async () => {
     failRenderAt(0);
 
