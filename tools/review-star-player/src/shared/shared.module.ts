@@ -6,6 +6,7 @@ import { Module } from '@nestjs/common';
 
 import { SourceModule } from '../source/source.module';
 import { NameMatcherModule } from './name-matcher.module';
+import { SectionRenderService } from './section-render.service';
 import { StarPlayerExternalIdsService } from './star-player-external-ids.service';
 import { StarPlayerPositionsQueryService } from './star-player-positions-query.service';
 import { StarSourceLookupService } from './star-source-lookup.service';
@@ -24,10 +25,13 @@ import { StarSourceLookupService } from './star-source-lookup.service';
  * (provided there, not here — see `NameMatcherModule` for why). That
  * `SourceModule` import runs one way only: `SourceModule` does not import
  * `SharedModule` back, so no module-import cycle exists between the two.
+ * `SectionRenderService` is here so any reviewer that stacks several renderers
+ * can contain one failing section.
  */
 const SHARED = [
   ExternalSystemLookupService,
   HtmlService,
+  SectionRenderService,
   StarPlayerExternalIdsService,
   StarPlayerPositionsQueryService,
   StarSourceLookupService,
