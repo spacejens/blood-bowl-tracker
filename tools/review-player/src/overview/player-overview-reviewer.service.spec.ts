@@ -38,7 +38,6 @@ describe('PlayerOverviewReviewerService', () => {
   let dbStatus: MockProxy<PlayerStatusDbRendererService>;
   let rawKeywords: MockProxy<PlayerKeywordsRawRendererService>;
   let dbKeywords: MockProxy<PlayerKeywordsDbRendererService>;
-
   let sections: MockProxy<SectionRenderService>;
 
   beforeEach(async () => {
@@ -98,6 +97,7 @@ describe('PlayerOverviewReviewerService', () => {
     expect(rawKeywords.render).toHaveBeenCalledWith(player);
     expect(tpInfo.render).not.toHaveBeenCalled();
     expect(tpStatus.render).not.toHaveBeenCalled();
+    expect(sections.render).toHaveBeenCalledTimes(3);
   });
 
   it("reads a TP player's identity and status from TP", async () => {
@@ -115,6 +115,7 @@ describe('PlayerOverviewReviewerService', () => {
     expect(tpInfo.render).toHaveBeenCalledWith('2477481');
     expect(tpStatus.render).toHaveBeenCalledWith('2477481');
     expect(bblInfo.render).not.toHaveBeenCalled();
+    expect(sections.render).toHaveBeenCalledTimes(3);
   });
 
   it('stacks the stored identity, status and position keywords', async () => {
@@ -126,6 +127,7 @@ describe('PlayerOverviewReviewerService', () => {
     expect(dbInfo.render).toHaveBeenCalledWith(player);
     expect(dbStatus.render).toHaveBeenCalledWith(player);
     expect(dbKeywords.render).toHaveBeenCalledWith(player);
+    expect(sections.render).toHaveBeenCalledTimes(3);
   });
 
   const NOTE = '<p class="note">Rendering failed: boom</p>';

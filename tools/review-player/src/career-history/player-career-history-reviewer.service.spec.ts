@@ -47,7 +47,6 @@ describe('PlayerCareerHistoryReviewerService', () => {
   let advancements: MockProxy<AdvancementsDbRendererService>;
   let characteristics: MockProxy<PlayerCharacteristicsDbRendererService>;
   let injuries: MockProxy<LastingInjuriesDbRendererService>;
-
   let sections: MockProxy<SectionRenderService>;
 
   beforeEach(async () => {
@@ -137,6 +136,7 @@ describe('PlayerCareerHistoryReviewerService', () => {
     expect(bblCharacteristics.render).toHaveBeenCalledWith('1000');
     expect(bblInjuries.render).toHaveBeenCalledWith('1000');
     expect(tpAdvancements.render).not.toHaveBeenCalled();
+    expect(sections.render).toHaveBeenCalledTimes(3);
   });
 
   it("reads a TP player's record from TP", async () => {
@@ -155,6 +155,7 @@ describe('PlayerCareerHistoryReviewerService', () => {
     expect(tpCharacteristics.render).toHaveBeenCalledWith('2477481');
     expect(tpInjuries.render).toHaveBeenCalledWith('2477481');
     expect(bblAdvancements.render).not.toHaveBeenCalled();
+    expect(sections.render).toHaveBeenCalledTimes(3);
   });
 
   it('stacks the stored SPP, advancements, characteristics, injuries and unspent SPP in that order', async () => {
@@ -170,6 +171,8 @@ describe('PlayerCareerHistoryReviewerService', () => {
     expect(advancements.render).toHaveBeenCalledWith(player);
     expect(characteristics.render).toHaveBeenCalledWith(player);
     expect(injuries.render).toHaveBeenCalledWith(player);
+    expect(sections.render).toHaveBeenCalledTimes(3);
+    expect(sections.renderPair).toHaveBeenCalledTimes(1);
   });
 
   const NOTE = '<p class="note">Rendering failed: boom</p>';
