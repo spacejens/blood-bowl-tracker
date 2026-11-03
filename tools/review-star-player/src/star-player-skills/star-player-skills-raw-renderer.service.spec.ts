@@ -66,7 +66,7 @@ describe('StarPlayerSkillsRawRendererService', () => {
 
     const html = await service.render(star);
 
-    expect(html).toContain('<h5>BBL</h5>');
+    expect(html).toContain('<h5>Starting skills — BBL</h5>');
     expect(html).toContain('<td>Block, Loner (4+)</td>');
   });
 
@@ -86,7 +86,7 @@ describe('StarPlayerSkillsRawRendererService', () => {
 
     const html = await service.render(star);
 
-    expect(html).toContain('<h5>BBL</h5>');
+    expect(html).toContain('<h5>Starting skills — BBL</h5>');
     expect(html).toContain('<tr><td>none</td></tr>');
   });
 
@@ -123,7 +123,7 @@ describe('StarPlayerSkillsRawRendererService', () => {
 
     const html = await service.render(star);
 
-    expect(html).toContain('<h5>TP</h5>');
+    expect(html).toContain('<h5>Starting skills — TP</h5>');
     // Elite is advancement-only: a starting skill never carries the marker.
     expect(html).toContain('<td>BB2025</td><td>Block</td>');
   });
@@ -209,12 +209,13 @@ describe('StarPlayerSkillsRawRendererService', () => {
 
     const html = await service.render(star);
 
-    expect(html).toContain('<h5>TP</h5>');
+    expect(html).toContain('<h5>Starting skills — TP</h5>');
     expect(html).toContain('<tr><td>BB2025</td><td>none</td></tr>');
   });
 
   it('highlights the TP sub-panel when no entry was found', async () => {
     const html = await service.render(star);
+    expect(html).toContain('<h5>Starting skills — TP</h5>');
 
     expect(html).toContain('no TP entry found for spelling(s) Grombrindal');
   });

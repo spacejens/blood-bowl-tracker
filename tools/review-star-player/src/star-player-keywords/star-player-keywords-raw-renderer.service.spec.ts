@@ -68,7 +68,7 @@ describe('StarPlayerKeywordsRawRendererService', () => {
 
     const html = await service.render(star);
 
-    expect(html).toContain('<h5>TP</h5>');
+    expect(html).toContain('<h5>Keywords — TP</h5>');
     expect(html).toContain('Goblin (111)');
     expect(html).toContain('Undead (110)');
   });
@@ -135,6 +135,7 @@ describe('StarPlayerKeywordsRawRendererService', () => {
 
   it('notes that the star is not in the downloaded TP data', async () => {
     const html = await service.render(star);
+    expect(html).toContain('<h5>Keywords — TP</h5>');
 
     expect(html).toContain('class="mismatch"');
     expect(html).toContain('no TP entry found for spelling(s) Grombrindal');

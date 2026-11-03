@@ -69,7 +69,7 @@ export class StarPlayerCharacteristicsRawRendererService {
               found.star.characteristics.armour,
             ];
     return (
-      this.html.subheading('BBL — current page values') +
+      this.html.subheading('Characteristics — BBL (current page values)') +
       this.html.table(['MA', 'ST', 'AG', 'PA', 'AV'], [row])
     );
   }
@@ -78,7 +78,7 @@ export class StarPlayerCharacteristicsRawRendererService {
     const lookup = await this.lookup.tpStarsFor(star);
     if (lookup.stars.length === 0) {
       return (
-        this.html.subheading('TP') +
+        this.html.subheading('Characteristics — TP') +
         this.html.table(
           ['Rules set', 'MA', 'ST', 'AG', 'PA', 'AV'],
           [
@@ -111,7 +111,7 @@ export class StarPlayerCharacteristicsRawRendererService {
       ]),
     );
     return (
-      this.html.subheading('TP') +
+      this.html.subheading('Characteristics — TP') +
       this.html.table(['Rules set', 'MA', 'ST', 'AG', 'PA', 'AV'], rows)
     );
   }
@@ -135,7 +135,7 @@ export class StarPlayerCharacteristicsRawRendererService {
       ]),
     ]);
     return (
-      this.html.subheading('Manual curation') +
+      this.html.subheading('Characteristics — Manual curation') +
       this.html.table(['Rules set', 'MA', 'ST', 'AG', 'PA', 'AV'], rows)
     );
   }

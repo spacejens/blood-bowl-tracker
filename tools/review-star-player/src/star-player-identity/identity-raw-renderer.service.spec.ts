@@ -70,6 +70,16 @@ describe('StarPlayerIdentityRawRendererService', () => {
     expect(html).toContain('class="mismatch"');
   });
 
+  it('labels every source sub-section with the identity aspect', async () => {
+    const service = await makeService(deps());
+
+    const html = await service.render(STAR);
+
+    expect(html).toContain('<h5>Identity — BBL</h5>');
+    expect(html).toContain('<h5>Identity — TP</h5>');
+    expect(html).toContain('<h5>Identity — Manual curation</h5>');
+  });
+
   it("renders BBL's page found by typID", async () => {
     const d = deps();
     d.lookup.bblStarFor.mockResolvedValue({
@@ -119,6 +129,7 @@ describe('StarPlayerIdentityRawRendererService', () => {
     const service = await makeService(d);
 
     const html = await service.render(STAR);
+    expect(html).toContain('<h5>Identity — TP</h5>');
 
     expect(html).toContain('BB2025');
     expect(html).toContain('220000');
@@ -180,6 +191,7 @@ describe('StarPlayerIdentityRawRendererService', () => {
     const service = await makeService(d);
 
     const html = await service.render(STAR);
+    expect(html).toContain('<h5>BBL / TP name agreement</h5>');
 
     expect(html).toContain('<tr class="mismatch">');
     expect(html).toContain(

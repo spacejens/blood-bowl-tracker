@@ -49,7 +49,7 @@ export class StarPlayerKeywordsRawRendererService {
     const lookup = await this.lookup.tpStarsFor(star);
     if (lookup.stars.length === 0) {
       return (
-        this.html.subheading('TP') +
+        this.html.subheading('Keywords — TP') +
         this.html.table(HEADERS, [
           this.html.highlight([
             lookup.notFoundNote,
@@ -66,7 +66,9 @@ export class StarPlayerKeywordsRawRendererService {
         rows.push(this.tpRow(entry, catalogue));
       }
     }
-    return this.html.subheading('TP') + this.html.table(HEADERS, rows);
+    return (
+      this.html.subheading('Keywords — TP') + this.html.table(HEADERS, rows)
+    );
   }
 
   /**

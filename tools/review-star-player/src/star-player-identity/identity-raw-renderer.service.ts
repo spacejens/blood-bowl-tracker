@@ -61,14 +61,15 @@ export class StarPlayerIdentityRawRendererService {
             ['Skills', lookup.star.skills ?? '—'],
           ];
     return (
-      this.html.subheading('BBL') + this.html.table(['Field', 'Value'], rows)
+      this.html.subheading('Identity — BBL') +
+      this.html.table(['Field', 'Value'], rows)
     );
   }
 
   private tpSection(lookup: TpStarsLookup): string {
     if (lookup.stars.length === 0) {
       return (
-        this.html.subheading('TP') +
+        this.html.subheading('Identity — TP') +
         this.html.table(
           ['TP name', 'Rules set', 'Cost', 'Special rule', 'Eligible rosters'],
           [this.html.highlight([lookup.notFoundNote, '—', '—', '—', '—'])],
@@ -85,7 +86,7 @@ export class StarPlayerIdentityRawRendererService {
       ]),
     );
     return (
-      this.html.subheading('TP') +
+      this.html.subheading('Identity — TP') +
       this.html.table(
         ['TP name', 'Rules set', 'Cost', 'Special rule', 'Eligible rosters'],
         rows,
@@ -113,7 +114,7 @@ export class StarPlayerIdentityRawRendererService {
             entry.externalIds.map((ref) => `${ref.system}: ${ref.id}`),
           ]);
     return (
-      this.html.subheading('Manual curation') +
+      this.html.subheading('Identity — Manual curation') +
       this.html.table(['Curated name', 'Registered external ids'], rows)
     );
   }

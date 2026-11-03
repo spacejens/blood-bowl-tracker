@@ -61,7 +61,8 @@ export class StarPlayerSkillsRawRendererService {
             ),
           ];
     return (
-      this.html.subheading('BBL') + this.html.table(['Starting skills'], [row])
+      this.html.subheading('Starting skills — BBL') +
+      this.html.table(['Starting skills'], [row])
     );
   }
 
@@ -69,7 +70,7 @@ export class StarPlayerSkillsRawRendererService {
     const lookup = await this.lookup.tpStarsFor(star);
     if (lookup.stars.length === 0) {
       return (
-        this.html.subheading('TP') +
+        this.html.subheading('Starting skills — TP') +
         this.html.table(
           ['Rules set', 'Starting skills'],
           [this.html.highlight([lookup.notFoundNote, NO_SKILLS])],
@@ -83,7 +84,7 @@ export class StarPlayerSkillsRawRendererService {
       }
     }
     return (
-      this.html.subheading('TP') +
+      this.html.subheading('Starting skills — TP') +
       this.html.table(['Rules set', 'Starting skills'], rows)
     );
   }
