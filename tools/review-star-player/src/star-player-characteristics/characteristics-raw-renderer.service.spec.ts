@@ -70,6 +70,17 @@ describe('StarPlayerCharacteristicsRawRendererService', () => {
     expect(html).toContain('class="mismatch"');
   });
 
+  it('labels the BBL and TP sub-sections with the characteristics aspect', async () => {
+    const service = await makeService(deps());
+
+    const html = await service.render(STAR);
+
+    expect(html).toContain(
+      '<h5>Characteristics — BBL (current page values)</h5>',
+    );
+    expect(html).toContain('<h5>Characteristics — TP</h5>');
+  });
+
   it("renders BBL's stat line with its +-suffixed values verbatim", async () => {
     const d = deps();
     d.lookup.bblStarFor.mockResolvedValue({
@@ -204,6 +215,8 @@ describe('StarPlayerCharacteristicsRawRendererService', () => {
 
     const html = await service.render(STAR);
 
+    expect(html).toContain('<h5>Characteristics — TP</h5>');
+
     expect(html).toContain('BB2020');
     expect(html).toContain('BB2025');
   });
@@ -268,7 +281,7 @@ describe('StarPlayerCharacteristicsRawRendererService', () => {
 
     const html = await service.render(STAR);
 
-    expect(html).toContain('Manual curation');
+    expect(html).toContain('<h5>Characteristics — Manual curation</h5>');
     expect(html).toContain('BB2020');
     expect(html).not.toContain('Someone Else');
   });

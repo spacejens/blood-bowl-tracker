@@ -9,23 +9,21 @@ import { StarPlayerReviewConfigService } from '../config/review-star-player-conf
 import { STAR_PLAYER_DATA_TYPE_REVIEWERS } from '../shared/data-type-reviewer';
 import { SharedModule } from '../shared/shared.module';
 import { STAR_PLAYER_STRATIFIERS } from '../shared/star-player-stratifier';
+import { StarPlayerModule } from '../star-player/star-player.module';
+import { StarPlayerReviewerService } from '../star-player/star-player-reviewer.service';
 import { StarPlayerCharacteristicsModule } from '../star-player-characteristics/characteristics.module';
 import { CharacteristicsChangeStratificationService } from '../star-player-characteristics/characteristics-change-stratification.service';
-import { StarPlayerCharacteristicsReviewerService } from '../star-player-characteristics/characteristics-reviewer.service';
 import { MissingRulesSetStratificationService } from '../star-player-characteristics/missing-rules-set-stratification.service';
 import { EligibilityMismatchStratificationService } from '../star-player-hire-eligibility/eligibility-mismatch-stratification.service';
 import { StarPlayerHireEligibilityModule } from '../star-player-hire-eligibility/hire-eligibility.module';
 import { HireEligibilityReviewerService } from '../star-player-hire-eligibility/hire-eligibility-reviewer.service';
 import { MercenaryVsEmbeddedStratificationService } from '../star-player-hire-eligibility/mercenary-vs-embedded-stratification.service';
 import { StarPlayerIdentityModule } from '../star-player-identity/identity.module';
-import { StarPlayerIdentityReviewerService } from '../star-player-identity/identity-reviewer.service';
 import { RandomStarPlayerStratificationService } from '../star-player-identity/random-star-player-stratification.service';
 import { SourceCoverageStratificationService } from '../star-player-identity/source-coverage-stratification.service';
 import { StarPlayerKeywordsModule } from '../star-player-keywords/star-player-keywords.module';
-import { StarPlayerKeywordsReviewerService } from '../star-player-keywords/star-player-keywords-reviewer.service';
 import { StarPlayerKeywordsStratificationService } from '../star-player-keywords/star-player-keywords-stratification.service';
 import { StarPlayerSkillsModule } from '../star-player-skills/star-player-skills.module';
-import { StarPlayerSkillsReviewerService } from '../star-player-skills/star-player-skills-reviewer.service';
 import { StarPlayerSkillsStratificationService } from '../star-player-skills/star-player-skills-stratification.service';
 import { ReportBuilderService } from './report-builder.service';
 import { ReviewService } from './review.service';
@@ -39,9 +37,11 @@ import { StarPlayerSamplerService } from './star-player-sampler.service';
  * means importing its module and adding it here — no change to any harness
  * service.
  *
- * Reviewer order is report order: identity, then characteristics, then
- * skills, then keywords, then hire eligibility — narrowing from who the star
- * is to what its numbers are to what it starts with to who may field it.
+ * Reviewer order is report order: the star-player panel pair (identity,
+ * characteristics, starting skills and keywords, stacked), then hire
+ * eligibility — from who the star is and what it brings onto the pitch to
+ * who may field it. The four aspect modules are still imported for the
+ * stratifiers they export.
  */
 @Module({
   imports: [
@@ -50,6 +50,7 @@ import { StarPlayerSamplerService } from './star-player-sampler.service';
     StarPlayerCharacteristicsModule,
     StarPlayerSkillsModule,
     StarPlayerKeywordsModule,
+    StarPlayerModule,
     StarPlayerHireEligibilityModule,
   ],
   providers: [
@@ -60,10 +61,7 @@ import { StarPlayerSamplerService } from './star-player-sampler.service';
     { provide: REPORT_OUTPUT_PATH, useExisting: StarPlayerReviewConfigService },
     ReviewService,
     createRegistryProvider(STAR_PLAYER_DATA_TYPE_REVIEWERS, [
-      StarPlayerIdentityReviewerService,
-      StarPlayerCharacteristicsReviewerService,
-      StarPlayerSkillsReviewerService,
-      StarPlayerKeywordsReviewerService,
+      StarPlayerReviewerService,
       HireEligibilityReviewerService,
     ]),
     createRegistryProvider(STAR_PLAYER_STRATIFIERS, [

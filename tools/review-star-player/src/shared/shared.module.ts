@@ -6,6 +6,7 @@ import { Module } from '@nestjs/common';
 
 import { SourceModule } from '../source/source.module';
 import { NameMatcherModule } from './name-matcher.module';
+import { SectionRenderService } from './section-render.service';
 import { StarPlayerExternalIdsService } from './star-player-external-ids.service';
 import { StarPlayerPositionsQueryService } from './star-player-positions-query.service';
 import { StarSourceLookupService } from './star-source-lookup.service';
@@ -16,7 +17,8 @@ import { StarSourceLookupService } from './star-source-lookup.service';
  * import data-type modules without a cycle. `HtmlService` and
  * `ExternalSystemLookupService` come from `@blood-bowl-tracker/review-harness`;
  * they are still provided here so every data-type module injects them through
- * this one module.
+ * this one module. `SectionRenderService` is here so any reviewer that stacks
+ * several renderers can contain one failing section.
  *
  * Imports `SourceModule` for `StarSourceLookupService`'s own dependency on
  * BBL's and TP's raw source services, and `NameMatcherModule` for
@@ -28,6 +30,7 @@ import { StarSourceLookupService } from './star-source-lookup.service';
 const SHARED = [
   ExternalSystemLookupService,
   HtmlService,
+  SectionRenderService,
   StarPlayerExternalIdsService,
   StarPlayerPositionsQueryService,
   StarSourceLookupService,

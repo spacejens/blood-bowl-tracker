@@ -4,14 +4,13 @@ import { SharedModule } from '../shared/shared.module';
 import { SourceModule } from '../source/source.module';
 import { StarPlayerIdentityDbRendererService } from './identity-db-renderer.service';
 import { StarPlayerIdentityRawRendererService } from './identity-raw-renderer.service';
-import { StarPlayerIdentityReviewerService } from './identity-reviewer.service';
 import { RandomStarPlayerStratificationService } from './random-star-player-stratification.service';
 import { SourceCoverageStratificationService } from './source-coverage-stratification.service';
 
 /**
- * The star-identity data type: raw panels from each source's own view of the
- * star, an imported panel from the database, and the star-level sampling
- * strata every data type reuses.
+ * The star-identity aspect: the raw renderer for each source's own view of
+ * the star and the database renderer, both stacked by the star-player panel
+ * pair, plus the star-level sampling strata every data type reuses.
  */
 @Module({
   imports: [SharedModule, SourceModule],
@@ -20,12 +19,12 @@ import { SourceCoverageStratificationService } from './source-coverage-stratific
     SourceCoverageStratificationService,
     StarPlayerIdentityDbRendererService,
     StarPlayerIdentityRawRendererService,
-    StarPlayerIdentityReviewerService,
   ],
   exports: [
     RandomStarPlayerStratificationService,
     SourceCoverageStratificationService,
-    StarPlayerIdentityReviewerService,
+    StarPlayerIdentityDbRendererService,
+    StarPlayerIdentityRawRendererService,
   ],
 })
 export class StarPlayerIdentityModule {}

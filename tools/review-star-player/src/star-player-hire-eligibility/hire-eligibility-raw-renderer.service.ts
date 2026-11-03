@@ -23,8 +23,8 @@ const NONE = '—';
  * rows claim more races than TP's own masks support.
  *
  * BBL answers with a single "Can play for:" line phrased as a team special
- * rule, not a race list, so its sub-section is shown verbatim with a note
- * explaining that difference in kind rather than compared directly. TP
+ * rule, not a race list, so its sub-section shows that line verbatim under a
+ * "Can play for" column rather than comparing it directly. TP
  * answers per rules set with the `teamRace` codes its bitmasks resolve to.
  * The curated `position-availability.json5` answers with explicit
  * `(race, era)` pairs for whichever entries a reviewer has pinned by hand.
@@ -70,9 +70,6 @@ export class HireEligibilityRawRendererService {
     }
     return (
       this.html.subheading('BBL') +
-      this.html.note(
-        'BBL states eligibility as a team special rule, not as a race list.',
-      ) +
       this.html.table(['Can play for'], [[lookup.star.canPlayFor ?? NONE]])
     );
   }
