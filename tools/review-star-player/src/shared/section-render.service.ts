@@ -11,13 +11,17 @@ import { Injectable } from '@nestjs/common';
 export class SectionRenderService {
   constructor(private readonly html: HtmlService) {}
 
-  /** The section's output, or a failure note when it rejects. */
-  async render(section: () => Promise<string>): Promise<string> {
+  /**
+   * The section's output, or a failure note naming the section by `label`
+   * when it rejects, so a reader can tell which section failed even where no
+   * sub-heading precedes it.
+   */
+  async render(label: string, section: () => Promise<string>): Promise<string> {
     try {
       return await section();
     } catch (error) {
       return this.html.note(
-        `Rendering failed: ${error instanceof Error ? error.message : String(error)}`,
+        `Rendering failed (${label}): ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

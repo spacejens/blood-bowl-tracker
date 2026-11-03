@@ -45,30 +45,32 @@ export class StarPlayerReviewerService implements StarPlayerDataTypeReviewer {
   ) {}
 
   async getRawSource(star: SampledStarPlayer): Promise<string> {
-    const identity = await this.sections.render(() =>
+    const identity = await this.sections.render('Identity', () =>
       this.rawIdentity.render(star),
     );
-    const characteristics = await this.sections.render(() =>
+    const characteristics = await this.sections.render('Characteristics', () =>
       this.rawCharacteristics.render(star),
     );
-    const skills = await this.sections.render(() =>
+    const skills = await this.sections.render('Starting skills', () =>
       this.rawSkills.render(star),
     );
-    const keywords = await this.sections.render(() =>
+    const keywords = await this.sections.render('Keywords', () =>
       this.rawKeywords.render(star),
     );
     return identity + characteristics + skills + keywords;
   }
 
   async getImportedView(star: SampledStarPlayer): Promise<string> {
-    const identity = await this.sections.render(() =>
+    const identity = await this.sections.render('Identity', () =>
       this.dbIdentity.render(star),
     );
-    const characteristics = await this.sections.render(() =>
+    const characteristics = await this.sections.render('Characteristics', () =>
       this.dbCharacteristics.render(star),
     );
-    const skills = await this.sections.render(() => this.dbSkills.render(star));
-    const keywords = await this.sections.render(() =>
+    const skills = await this.sections.render('Starting skills', () =>
+      this.dbSkills.render(star),
+    );
+    const keywords = await this.sections.render('Keywords', () =>
       this.dbKeywords.render(star),
     );
     return (

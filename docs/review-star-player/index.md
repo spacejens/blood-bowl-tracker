@@ -104,8 +104,8 @@ order, parses them (JSON5) and pools each top-level array.
      `Keywords — TP`, and so on). The right panel ("Imported (database)")
      stacks the same four aspects under plain `Identity`, `Characteristics`,
      `Starting skills` and `Keywords` sub-headings. A part that fails to render
-     shows a failure note in its own place only, and the rest of that panel
-     still renders.
+     shows a failure note naming its aspect in its own place only, and the rest
+     of that panel still renders.
      - **Identity** — left: BBL's page (typID, page name, inducement price, the
        "Can play for" line, skills), TP's per-rules-set catalog entries (name,
        rules set, cost, special rule, eligible-roster count), the curated
@@ -145,8 +145,11 @@ order, parses them (JSON5) and pools each top-level array.
        (BBL has no keyword concept) and no separate catalogue listing (each
        row already names its curated keyword). Right: the stored
        `position_rules_set_keywords` rows, one row per rules set the star's
-       eligibility implies, with the same `none` / highlighted
-       `missing (no characteristics row)` rendering as starting skills. As with
+       eligibility implies. A rules set with a characteristics row but no
+       keywords shows `none`; a rules set with no characteristics row at all
+       shows a highlighted `missing (no characteristics row)`, whereas the
+       starting-skills view shows a highlighted plain `missing` for a rules set
+       with no stored skills. As with
        skills, the two sides are never diffed — TP's codes are resolved through
        this tool's own curated catalogue, not the database's.
    - **star-player-hire-eligibility** — kept as its own pair because it has its

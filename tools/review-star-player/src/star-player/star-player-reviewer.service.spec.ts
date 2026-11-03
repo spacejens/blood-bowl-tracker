@@ -38,7 +38,7 @@ describe('StarPlayerReviewerService', () => {
 
   beforeEach(async () => {
     sections = mock<SectionRenderService>();
-    sections.render.mockImplementation((section) => section());
+    sections.render.mockImplementation((_label, section) => section());
     rawIdentity = mock<StarPlayerIdentityRawRendererService>();
     dbIdentity = mock<StarPlayerIdentityDbRendererService>();
     rawCharacteristics = mock<StarPlayerCharacteristicsRawRendererService>();
@@ -89,7 +89,7 @@ describe('StarPlayerReviewerService', () => {
   /** The section at this call position yields the note; the others forward. */
   const failRenderAt = (position: number): void => {
     for (let i = 0; i < position; i++) {
-      sections.render.mockImplementationOnce((section) => section());
+      sections.render.mockImplementationOnce((_label, section) => section());
     }
     sections.render.mockResolvedValueOnce(NOTE);
   };
@@ -111,6 +111,17 @@ describe('StarPlayerReviewerService', () => {
     expect(rawSkills.render).toHaveBeenCalledWith(star);
     expect(rawKeywords.render).toHaveBeenCalledWith(star);
     expect(sections.render).toHaveBeenCalledTimes(4);
+  });
+
+  it('labels each raw section with its aspect for failure notes', async () => {
+    await service.getRawSource(star);
+
+    expect(sections.render.mock.calls.map(([label]) => label)).toEqual([
+      'Identity',
+      'Characteristics',
+      'Starting skills',
+      'Keywords',
+    ]);
   });
 
   it('stacks the stored aspects under plain aspect sub-headings', async () => {

@@ -17,22 +17,25 @@ describe('SectionRenderService', () => {
   });
 
   it('returns the section output unchanged on success', async () => {
-    expect(await service.render(() => Promise.resolve('<b>ok</b>'))).toBe(
-      '<b>ok</b>',
-    );
+    expect(
+      await service.render('Identity', () => Promise.resolve('<b>ok</b>')),
+    ).toBe('<b>ok</b>');
   });
 
-  it('turns a rejection into a failure note carrying the error message', async () => {
-    expect(await service.render(() => Promise.reject(new Error('boom')))).toBe(
-      '<p class="note">Rendering failed: boom</p>',
-    );
+  it('turns a rejection into a failure note naming the section and the error', async () => {
+    expect(
+      await service.render('Identity', () => Promise.reject(new Error('boom'))),
+    ).toBe('<p class="note">Rendering failed (Identity): boom</p>');
   });
 
   it('stringifies a non-Error rejection and escapes it', async () => {
     // A non-Error rejection is the case under test.
-    // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
-    expect(await service.render(() => Promise.reject('<bad>'))).toBe(
-      '<p class="note">Rendering failed: &lt;bad&gt;</p>',
+    const rejectWithString = (): Promise<string> =>
+      // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+      Promise.reject('<bad>');
+
+    expect(await service.render('Keywords', rejectWithString)).toBe(
+      '<p class="note">Rendering failed (Keywords): &lt;bad&gt;</p>',
     );
   });
 });
