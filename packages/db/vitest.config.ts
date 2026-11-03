@@ -15,7 +15,6 @@ export default defineConfig({
         'src/**/*.test-helpers.ts',
         'src/**/*.module.ts',
         'src/schema/**',
-        'src/db.ts',
         'src/lock-client.ts',
         'src/scripts/db-generate.ts',
       ],

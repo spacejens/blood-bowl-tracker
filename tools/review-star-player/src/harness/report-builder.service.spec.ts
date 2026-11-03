@@ -69,7 +69,7 @@ describe('ReportBuilderService', () => {
           item: star,
           panels: [
             {
-              dataTypeId: 'star-player-identity',
+              dataTypeId: 'star-player',
               rawHtml: '<p>raw fragment</p>',
               importedHtml: '<p>imported fragment</p>',
             },
@@ -82,7 +82,7 @@ describe('ReportBuilderService', () => {
 
     expect(html).toContain('<p>raw fragment</p>');
     expect(html).toContain('<p>imported fragment</p>');
-    expect(html).toContain('<h3>star-player-identity</h3>');
+    expect(html).toContain('<h3>star-player</h3>');
   });
 
   it('escapes a star name containing "<"', () => {

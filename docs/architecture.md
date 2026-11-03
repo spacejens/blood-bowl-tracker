@@ -155,8 +155,9 @@ tools/
                         review aid
   review-star-player/ — NestJS CLI application that renders raw BBL, TP and
                         hand-curated source data beside imported star player
-                        identity, per-rules-set characteristics and hire
-                        eligibility as a static HTML report; sibling of the
+                        identity, per-rules-set characteristics, starting
+                        skills, keywords and hire eligibility as a static
+                        HTML report; sibling of the
                         other review tools, likewise a developer review
                         aid
   db-diagram/         — shell script (db-diagram.sh, not an npm workspace

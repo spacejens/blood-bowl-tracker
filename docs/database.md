@@ -17,6 +17,15 @@ Always review the generated SQL before committing. Drizzle-kit may generate `DRO
 
 Migrations are applied automatically at application startup. `createDb` in `packages/db` calls `drizzle-orm`'s `migrate()` before returning the database instance, so every deployment applies any pending migrations before the app begins handling requests. Migrations are roll-forward only; there is no rollback mechanism.
 
+Production runs two machines that can start at the same moment (a deploy, an
+app restart), and drizzle's `migrate()` takes no lock of its own, so both could
+see the same migration as pending and apply and record it twice. `createDb` therefore runs
+the migrations under a Postgres advisory lock (key `4242`/`2`, distinct from the
+leader-election lock's `4242`/`1`) held on its own single connection. A second
+machine waits for the lock, then finds nothing left to apply. The lock is
+released when migrating finishes or fails, and Postgres frees it if the machine
+crashes or loses its connection.
+
 ### Changing data in a long-lived database
 
 The production database is never dropped. It is backed up daily and before
