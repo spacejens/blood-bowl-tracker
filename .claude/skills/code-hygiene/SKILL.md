@@ -53,20 +53,7 @@ Two of the three tools below read a config file, committed at the repo root: `kn
 
 ### `knip.jsonc`
 
-```jsonc
-{
-  // Full config reference: https://knip.dev/reference/configuration
-  "$schema": "https://unpkg.com/knip@6/schema.json",
-  "workspaces": {
-    "apps/*": {},
-    "packages/*": {},
-    "tools/*": {}
-  }
-  // Add "ignore" (file globs) or "ignoreDependencies" (package names) here
-  // to silence false positives, e.g.:
-  // "ignoreDependencies": ["some-package-only-used-via-a-cli-script"]
-}
-```
+Read the committed `knip.jsonc` itself for the current configuration; it is the source of truth and carries comments explaining each option. It reports unused exports from package entry files too (`includeEntryExports`), so an export that no other workspace imports is a finding even when it sits in a package's `src/index.ts`. Silence a false positive there with `ignore` (file globs), `ignoreDependencies` (package names) or `ignoreIssues`, with a comment saying why.
 
 ### `syncpack.config.js`
 
