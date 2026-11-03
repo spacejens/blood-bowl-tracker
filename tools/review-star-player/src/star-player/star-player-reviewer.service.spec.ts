@@ -38,7 +38,7 @@ describe('StarPlayerReviewerService', () => {
 
   beforeEach(async () => {
     sections = mock<SectionRenderService>();
-    sections.render.mockImplementation((_label, section) => section());
+    stubSections();
     rawIdentity = mock<StarPlayerIdentityRawRendererService>();
     dbIdentity = mock<StarPlayerIdentityDbRendererService>();
     rawCharacteristics = mock<StarPlayerCharacteristicsRawRendererService>();
@@ -86,13 +86,27 @@ describe('StarPlayerReviewerService', () => {
     service = moduleRef.get(StarPlayerReviewerService);
   });
 
-  /** The section at this call position yields the note; the others forward. */
-  const failRenderAt = (position: number): void => {
-    for (let i = 0; i < position; i++) {
-      sections.render.mockImplementationOnce((_label, section) => section());
-    }
-    sections.render.mockResolvedValueOnce(NOTE);
-  };
+  /**
+   * Every section yields a canned `[label]` result, except the one labelled
+   * `failing`, which yields the failure note.
+   */
+  function stubSections(failing?: string): void {
+    sections.render.mockImplementation((label) =>
+      Promise.resolve(label === failing ? NOTE : `[${label}]`),
+    );
+  }
+
+  /** What each section callback handed to `SectionRenderService` produces. */
+  async function runSectionCallbacks(): Promise<string[]> {
+    return Promise.all(sections.render.mock.calls.map(([, run]) => run()));
+  }
+
+  const ASPECTS = [
+    'Identity',
+    'Characteristics',
+    'Starting skills',
+    'Keywords',
+  ];
 
   it('identifies itself as the star-player panel pair with its labels', () => {
     expect(service.id).toBe('star-player');
@@ -104,117 +118,70 @@ describe('StarPlayerReviewerService', () => {
 
   it('stacks the raw identity, characteristics, skills and keywords in order', async () => {
     expect(await service.getRawSource(star)).toBe(
-      '[raw identity][raw characteristics][raw skills][raw keywords]',
+      '[Identity][Characteristics][Starting skills][Keywords]',
     );
+  });
+
+  it('renders each raw section through its own raw renderer, labelled by aspect', async () => {
+    await service.getRawSource(star);
+
+    expect(sections.render.mock.calls.map(([label]) => label)).toEqual(ASPECTS);
+    expect(await runSectionCallbacks()).toEqual([
+      '[raw identity]',
+      '[raw characteristics]',
+      '[raw skills]',
+      '[raw keywords]',
+    ]);
     expect(rawIdentity.render).toHaveBeenCalledWith(star);
     expect(rawCharacteristics.render).toHaveBeenCalledWith(star);
     expect(rawSkills.render).toHaveBeenCalledWith(star);
     expect(rawKeywords.render).toHaveBeenCalledWith(star);
-    expect(sections.render).toHaveBeenCalledTimes(4);
-  });
-
-  it('labels each raw section with its aspect for failure notes', async () => {
-    await service.getRawSource(star);
-
-    expect(sections.render.mock.calls.map(([label]) => label)).toEqual([
-      'Identity',
-      'Characteristics',
-      'Starting skills',
-      'Keywords',
-    ]);
   });
 
   it('stacks the stored aspects under plain aspect sub-headings', async () => {
     expect(await service.getImportedView(star)).toBe(
-      '<h5>Identity</h5>[db identity]' +
-        '<h5>Characteristics</h5>[db characteristics]' +
-        '<h5>Starting skills</h5>[db skills]' +
-        '<h5>Keywords</h5>[db keywords]',
+      '<h5>Identity</h5>[Identity]' +
+        '<h5>Characteristics</h5>[Characteristics]' +
+        '<h5>Starting skills</h5>[Starting skills]' +
+        '<h5>Keywords</h5>[Keywords]',
     );
+  });
+
+  it('renders each stored section through its own database renderer, labelled by aspect', async () => {
+    await service.getImportedView(star);
+
+    expect(sections.render.mock.calls.map(([label]) => label)).toEqual(ASPECTS);
+    expect(await runSectionCallbacks()).toEqual([
+      '[db identity]',
+      '[db characteristics]',
+      '[db skills]',
+      '[db keywords]',
+    ]);
     expect(dbIdentity.render).toHaveBeenCalledWith(star);
     expect(dbCharacteristics.render).toHaveBeenCalledWith(star);
     expect(dbSkills.render).toHaveBeenCalledWith(star);
     expect(dbKeywords.render).toHaveBeenCalledWith(star);
-    expect(sections.render).toHaveBeenCalledTimes(4);
   });
 
-  it('shows a failure note in place of a failing raw identity section only', async () => {
-    failRenderAt(0);
+  it.each(ASPECTS)(
+    'shows the failure note in place of the failing raw %s section only',
+    async (failing) => {
+      stubSections(failing);
 
-    expect(await service.getRawSource(star)).toBe(
-      NOTE + '[raw characteristics][raw skills][raw keywords]',
-    );
-  });
+      const expected = ASPECTS.map((a) => (a === failing ? NOTE : `[${a}]`));
+      expect(await service.getRawSource(star)).toBe(expected.join(''));
+    },
+  );
 
-  it('shows a failure note in place of failing raw characteristics only', async () => {
-    failRenderAt(1);
+  it.each(ASPECTS)(
+    'shows the failure note under the %s sub-heading only',
+    async (failing) => {
+      stubSections(failing);
 
-    expect(await service.getRawSource(star)).toBe(
-      '[raw identity]' + NOTE + '[raw skills][raw keywords]',
-    );
-  });
-
-  it('shows a failure note in place of failing raw skills only', async () => {
-    failRenderAt(2);
-
-    expect(await service.getRawSource(star)).toBe(
-      '[raw identity][raw characteristics]' + NOTE + '[raw keywords]',
-    );
-  });
-
-  it('shows a failure note in place of failing raw keywords only', async () => {
-    failRenderAt(3);
-
-    expect(await service.getRawSource(star)).toBe(
-      '[raw identity][raw characteristics][raw skills]' + NOTE,
-    );
-  });
-
-  it('shows a failure note under the identity sub-heading only', async () => {
-    failRenderAt(0);
-
-    expect(await service.getImportedView(star)).toBe(
-      '<h5>Identity</h5>' +
-        NOTE +
-        '<h5>Characteristics</h5>[db characteristics]' +
-        '<h5>Starting skills</h5>[db skills]' +
-        '<h5>Keywords</h5>[db keywords]',
-    );
-  });
-
-  it('shows a failure note under the characteristics sub-heading only', async () => {
-    failRenderAt(1);
-
-    expect(await service.getImportedView(star)).toBe(
-      '<h5>Identity</h5>[db identity]' +
-        '<h5>Characteristics</h5>' +
-        NOTE +
-        '<h5>Starting skills</h5>[db skills]' +
-        '<h5>Keywords</h5>[db keywords]',
-    );
-  });
-
-  it('shows a failure note under the starting skills sub-heading only', async () => {
-    failRenderAt(2);
-
-    expect(await service.getImportedView(star)).toBe(
-      '<h5>Identity</h5>[db identity]' +
-        '<h5>Characteristics</h5>[db characteristics]' +
-        '<h5>Starting skills</h5>' +
-        NOTE +
-        '<h5>Keywords</h5>[db keywords]',
-    );
-  });
-
-  it('shows a failure note under the keywords sub-heading only', async () => {
-    failRenderAt(3);
-
-    expect(await service.getImportedView(star)).toBe(
-      '<h5>Identity</h5>[db identity]' +
-        '<h5>Characteristics</h5>[db characteristics]' +
-        '<h5>Starting skills</h5>[db skills]' +
-        '<h5>Keywords</h5>' +
-        NOTE,
-    );
-  });
+      const expected = ASPECTS.map(
+        (a) => `<h5>${a}</h5>${a === failing ? NOTE : `[${a}]`}`,
+      );
+      expect(await service.getImportedView(star)).toBe(expected.join(''));
+    },
+  );
 });
