@@ -95,65 +95,75 @@ order, parses them (JSON5) and pools each top-level array.
 
 2. Adds every override entry listed in `overrides`, whatever the strata picked.
 
-3. For each sampled star player, renders five panel pairs:
-   - **star-player-identity** — left: BBL's page (typID, page name, inducement
-     price, the "Can play for" line, skills), TP's per-rules-set catalog entries
-     (name, rules set, cost, special rule, eligible-roster count), the curated
-     `star-players.json5` entry, and a BBL/TP name-agreement verdict that treats
-     apostrophe style, quote style, case and a duo star's parenthesised partner as
-     expected differences (anything else renders as a highlighted `MISMATCH` row).
-     Right: the stored `positions` row, `is_star_player`, an explicit
-     **"Cost — not stored"** row (the table has no cost column), and every
-     external id.
-   - **star-player-characteristics** — left: BBL's single undated page stat line,
-     TP's per-rules-set values, and the curated `position_rules_sets` entries
-     (from both `position-characteristics.json5` and
-     `position-characteristics-gap-fill.json5`, which reference a star by its
-     bare name). Right: the stored rows, one per rules set the star's eligibility
-     implies, each in that rules set's own display format, with a highlighted
-     `missing` row for a rules set with no stored row and a highlighted trailing
-     row for a stored row no era implies.
-   - **star-player-skills** — left: BBL's single, rules-set-less starting-skills
-     cell; TP's per-rules-set skill list, with `specialRuleName` merged in as the
-     star's own unique skill and any skill TP names by an id no downloaded roster
-     file explains shown as `skill master #<id>`. There is no third, curated
-     sub-section — the curated files carry no star starting skills. Right: one row
-     per rules set the star's eligibility implies, with a highlighted `missing`
-     row for a rules set with no stored skills and a highlighted trailing row for
-     a stored skill under a rules set no era implies. This panel is deliberately
-     not diffed against the raw panel: BBL's skills carry no rules set at all and
-     TP names skills by a per-rules-set id, so matching the two up would mean
-     re-running the importer's own resolution — the thing under review.
-   - **star-player-keywords** — left: a TP sub-table, one row per rules set TP
-     publishes an entry for this star under, showing its numeric keyword codes —
-     merged from the `race` array, the `positionTypes` bitmask and the `isBigGuy`
-     flag — resolved against the curated catalogue (`Goblin (111)`), alongside the
-     raw `positionTypes` and `isBigGuy` values so a reviewer can check the decode
-     without reading the JSON by hand, with a
-     code the catalogue does not name rendered as a highlighted row
-     (`777 — not curated`); plus a manual-curation sub-table listing the whole
-     curated catalogue once, so a reviewer can see the names codes are read
-     against without leaving the report. Unlike the other raw panels there is no
-     BBL sub-section — BBL has no keyword concept. Right: the stored
-     `position_rules_set_keywords` rows, one row per rules set the star's
-     eligibility implies, with the same `none` / highlighted
-     `missing (no characteristics row)` rendering as the skills panel. As with
-     skills, the raw and imported panels are never diffed against each other —
-     TP's codes are resolved through this tool's own curated catalogue, not the
-     database's, so lining the two up would mean re-running the importer's own
-     resolution.
-   - **star-player-hire-eligibility** — left: BBL's `Can play for:` line verbatim
-     (BBL states eligibility as a team special rule, not a race list), the
+3. For each sampled star player, renders two panel pairs. Each panel stacks its
+   parts under small sub-headings; a part that fails to render shows a failure
+   note in its own place only, and the rest of the panel still renders.
+   - **star-player** — who the star is and what it brings onto the pitch. The
+     left panel ("Raw sources (BBL / TP / manual curation)") stacks identity,
+     characteristics, starting skills and keywords, every sub-heading naming
+     both aspect and source (`Identity — BBL`,
+     `Characteristics — BBL (current page values)`, `Starting skills — TP`,
+     `Keywords — TP`, and so on). The right panel ("Imported (database)")
+     stacks the same four aspects under plain `Identity`, `Characteristics`,
+     `Starting skills` and `Keywords` sub-headings.
+     - **Identity** — left: BBL's page (typID, page name, inducement price, the
+       "Can play for" line, skills), TP's per-rules-set catalog entries (name,
+       rules set, cost, special rule, eligible-roster count), the curated
+       `star-players.json5` entry, and a `BBL / TP name agreement` verdict that
+       treats apostrophe style, quote style, case and a duo star's
+       parenthesised partner as expected differences (anything else renders as
+       a highlighted `MISMATCH` row). Right: the stored `positions` row,
+       `is_star_player`, an explicit **"Cost — not stored"** row (the table has
+       no cost column), and every external id.
+     - **Characteristics** — left: BBL's single undated page stat line, TP's
+       per-rules-set values, and the curated `position_rules_sets` entries
+       (from both `position-characteristics.json5` and
+       `position-characteristics-gap-fill.json5`, which reference a star by its
+       bare name). Right: the stored rows, one per rules set the star's
+       eligibility implies, each in that rules set's own display format, with
+       a highlighted `missing` row for a rules set with no stored row and a
+       highlighted trailing row for a stored row no era implies.
+     - **Starting skills** — left: BBL's single, rules-set-less
+       starting-skills cell; TP's per-rules-set skill list, with
+       `specialRuleName` merged in as the star's own unique skill and any skill
+       TP names by an id no downloaded roster file explains shown as
+       `skill master #<id>`. There is no curated sub-section — the curated
+       files carry no star starting skills. Right: one row per rules set the
+       star's eligibility implies, with a highlighted `missing` row for a rules
+       set with no stored skills and a highlighted trailing row for a stored
+       skill under a rules set no era implies. The two sides are deliberately
+       not diffed: BBL's skills carry no rules set at all and TP names skills
+       by a per-rules-set id, so matching them up would mean re-running the
+       importer's own resolution — the thing under review.
+     - **Keywords** — left: one TP row per rules set TP publishes an entry for
+       this star under, showing its numeric keyword codes — merged from the
+       `race` array, the `positionTypes` bitmask and the `isBigGuy` flag —
+       resolved against the curated catalogue (`Goblin (111)`), alongside the
+       raw `positionTypes` and `isBigGuy` values so a reviewer can check the
+       decode without reading the JSON by hand. A code the catalogue does not
+       name is highlighted (`777 — not curated`). There is no BBL sub-section
+       (BBL has no keyword concept) and no separate catalogue listing (each
+       row already names its curated keyword). Right: the stored
+       `position_rules_set_keywords` rows, one row per rules set the star's
+       eligibility implies, with the same `none` / highlighted
+       `missing (no characteristics row)` rendering as starting skills. As with
+       skills, the two sides are never diffed — TP's codes are resolved through
+       this tool's own curated catalogue, not the database's.
+   - **star-player-hire-eligibility** — kept as its own pair because it has its
+     own comparison and is the longest raw panel. Left: BBL's `Can play for:`
+     line verbatim in a column of that name (BBL phrases eligibility as a team
+     special rule, not a race list, so it is shown rather than compared), the
      `teamRace` codes TP's `availableLeagues`/`availableTeamSpecialRules` masks
      make the star hireable by (including `selectable*` halves, official and
-     legacy rosters only), the curated `raceEras` pairs, and a race-count verdict
-     comparing the database's distinct race count against TP's: a highlighted
-     `WIDER IN DB` when the database claims strictly more races than TP's masks
-     support, a highlighted `NARROWER IN DB` when it claims strictly fewer, and
-     a non-highlighted `counts match (race identity not compared)` when the
-     counts are equal — a count match does not confirm the two sides agree on
-     _which_ races those are. Right: one row per stored `(race, era)` pair,
-     headed by the distinct-race count.
+     legacy rosters only), the curated `raceEras` pairs, and a race-count
+     verdict comparing the database's distinct race count against TP's: a
+     highlighted `WIDER IN DB` when the database claims strictly more races
+     than TP's masks support, a highlighted `NARROWER IN DB` when it claims
+     strictly fewer, and a non-highlighted
+     `counts match (race identity not compared)` when the counts are equal — a
+     count match does not confirm the two sides agree on _which_ races those
+     are. Right: one row per stored `(race, era)` pair, headed by the
+     distinct-race count.
 
 4. Writes the report under `tools/review-star-player/output/` (gitignored) with a
    timestamp in the filename, and prints where it landed.
