@@ -86,7 +86,7 @@ describe('AppModule', () => {
     ).toBe(true);
   });
 
-  it('registers the five star player data type reviewers in report order', async () => {
+  it('registers the two star player data type reviewers in report order', async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule.register()],
     })
@@ -99,12 +99,8 @@ describe('AppModule', () => {
     const reviewers = moduleRef.get<StarPlayerDataTypeReviewer[]>(
       STAR_PLAYER_DATA_TYPE_REVIEWERS,
     );
-    expect(reviewers).toHaveLength(5);
     expect(reviewers.map((reviewer) => reviewer.id)).toEqual([
-      'star-player-identity',
-      'star-player-characteristics',
-      'star-player-skills',
-      'star-player-keywords',
+      'star-player',
       'star-player-hire-eligibility',
     ]);
   });
