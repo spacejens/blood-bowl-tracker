@@ -95,6 +95,8 @@ describe('HireEligibilityRawRendererService', () => {
 
     expect(html).toContain('BBL');
     expect(html).toContain('Any team with Elven Kingdoms League');
+    expect(html).toContain('<th>Can play for</th>');
+    expect(html).not.toContain('team special rule');
   });
 
   it('renders — for a BBL page with canPlayFor: null', async () => {
