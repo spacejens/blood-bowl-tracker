@@ -148,11 +148,13 @@ tools/
                         sibling of review-match, likewise a developer review
                         aid
   review-race/        — NestJS CLI application that renders raw BBL, TP and
-                        hand-curated source data beside imported races,
-                        position availability and per-rules-set position
-                        characteristics as a static HTML report; sibling of
-                        review-match and review-player, likewise a developer
-                        review aid
+                        hand-curated source data beside imported races and
+                        their positions as a static HTML report, two panel
+                        pairs per race: race and availability (identity,
+                        position availability) and position details
+                        (characteristics, starting skills, keywords);
+                        sibling of review-match and review-player, likewise
+                        a developer review aid
   review-star-player/ — NestJS CLI application that renders raw BBL, TP and
                         hand-curated source data beside imported star player
                         identity, per-rules-set characteristics, starting
@@ -288,7 +290,7 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
   - It interprets the raw sources itself and must never depend on `packages/game-data`, `packages/parse-tp`, `packages/import`, or either importer (the mechanical file access is shared via `packages/read-bbl-mirror`, which carries no interpretation) (see `docs/review-player/index.md`).
   - Walking the curated keyword batches is shared the same way, via `packages/review-harness`'s `ManualBatchReaderService`, which shapes no entry: every reading of what a curated keyword means stays in this tool.
   - That independence rule covers the domain-specific half only; the generic report scaffolding is shared on purpose via `packages/review-harness`, where its `ReviewService` and `ReportBuilderService` subclass `ReviewServiceBase`/`ReportBuilderBase` and add only the per-player section.
-- **`tools/review-race`** (consumer, review aid) — renders raw BBL, TP and hand-curated source data beside imported races, `positions_race_eras` and `position_rules_sets`, so a change to what any of the three importers stores for races or positions usually needs a matching renderer change here
+- **`tools/review-race`** (consumer, review aid) — renders raw BBL, TP and hand-curated source data beside imported races and their positions in two panel pairs per race — race and availability (identity, `positions_race_eras`) and position details (`position_rules_sets`, `position_rules_set_skills`, `position_rules_set_keywords`), so a change to what any of the three importers stores for races or positions usually needs a matching renderer change here
   - Sibling of `tools/review-match` and `tools/review-player`, structured the same way.
   - It interprets the raw sources itself and must never depend on `packages/game-data`, `packages/parse-tp`, `packages/import`, `tools/import-bbl`, `tools/import-tp` or `tools/import-manual` (the mechanical file access is shared via `packages/read-bbl-mirror`, which carries no interpretation and so needs no such callout) (see `docs/review-race/index.md`).
   - Walking the curated batches is shared the same way, via `packages/review-harness`'s `ManualBatchReaderService`, which shapes no entry: every reading of what a curated entry means stays in this tool.

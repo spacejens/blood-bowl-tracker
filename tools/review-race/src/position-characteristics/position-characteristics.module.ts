@@ -6,13 +6,13 @@ import { SourceModule } from '../source/source.module';
 import { CharacteristicsChangeStratificationService } from './characteristics-change-stratification.service';
 import { PositionCharacteristicsDbRendererService } from './position-characteristics-db-renderer.service';
 import { PositionCharacteristicsRawRendererService } from './position-characteristics-raw-renderer.service';
-import { PositionCharacteristicsReviewerService } from './position-characteristics-reviewer.service';
 
 /**
- * The position-characteristics data type: raw panels from each source's own
- * view of a race's positions' MA/ST/AG/PA/AV values, an imported panel from
- * the database's `position_rules_sets` rows, and the two strata for
- * characteristics that changed between rules sets or are missing entirely.
+ * The position-characteristics aspect: the raw renderer for each source's own
+ * view of a race's positions' MA/ST/AG/PA/AV values, the database renderer
+ * for `position_rules_sets`, and the strata for characteristics that changed
+ * between rules sets or are missing entirely. The position-details panel pair
+ * stacks the renderers.
  */
 @Module({
   imports: [SharedModule, SourceModule],
@@ -20,11 +20,11 @@ import { PositionCharacteristicsReviewerService } from './position-characteristi
     CharacteristicFormatService,
     PositionCharacteristicsDbRendererService,
     PositionCharacteristicsRawRendererService,
-    PositionCharacteristicsReviewerService,
     CharacteristicsChangeStratificationService,
   ],
   exports: [
-    PositionCharacteristicsReviewerService,
+    PositionCharacteristicsDbRendererService,
+    PositionCharacteristicsRawRendererService,
     CharacteristicsChangeStratificationService,
   ],
 })

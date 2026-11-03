@@ -87,19 +87,20 @@ tool's own composition.
       external system. A DB-only check — it does not look at the downloaded BBL mirror
       files.
    10. **Race has no TP data** — races with no `races_external_ids` row for the TP external
-      system. Same DB-only check as above, scoped to the TP external system.
+       system. Same DB-only check as above, scoped to the TP external system.
    11. **Race has no manual curation entry** — unlike strata 9 and 10, this reads the
-      curated `races-and-positions.json5` file itself (there is no external-id space for
-      manual curation to check in the database): every race is compared by name against
-      the file's entries. The three source-coverage strata are therefore not uniform in
-      what they check — a race can, for example, have a BBL external-id row in the
-      database with no corresponding page in the BBL mirror, or vice versa.
+       curated `races-and-positions.json5` file itself (there is no external-id space for
+       manual curation to check in the database): every race is compared by name against
+       the file's entries. The three source-coverage strata are therefore not uniform in
+       what they check — a race can, for example, have a BBL external-id row in the
+       database with no corresponding page in the BBL mirror, or vice versa.
    12. **BBL and TP names disagree** — races present in both sources but under different
-      names, beyond BBL's own `<Race> Team(s)` suffix convention. The race-identity
-      panel's own BBL/TP name-agreement sub-table (below) shows this same comparison for
-      every sampled race, not only the ones this stratum selects.
+       names, beyond BBL's own `<Race> Team(s)` suffix convention. The BBL/TP
+       name-agreement sub-table in the race identity part of the race-and-availability
+       panel ([report layout](report-layout.md#race-identity)) shows this same comparison
+       for every sampled race, not only the ones this stratum selects.
    13. **Random sample** — a plain random sample of races, with no selection criteria of
-      its own.
+       its own.
 
    Each stratum declares one or more `sources`, but the sampler
    (`race-sampler.service.ts`) samples every stratum exactly once, using only the first
@@ -114,91 +115,14 @@ tool's own composition.
 
 2. Adds every override entry listed in `overrides`, whatever the strata picked.
 
-3. For each sampled race, renders five panel pairs. Star players are excluded
-   throughout the position-availability, position-characteristics and
-   position-starting-skills panels, both raw and imported — they are shared across
-   races rather than owned by one, so a per-race report is the wrong place to review
-   them:
-   - **race-identity** — left: BBL, TP and manual curation are all attempted together in
-     one panel (unlike other review tools' raw panels, which pick a single source based
-     on the sampled entity's own source), each contributing its own sub-table when that
-     source has data for the race. BBL's sub-table shows its race id, race-list name,
-     team-page name, team-page count and team codes — it carries no cost or position
-     data. TP's sub-table shows its `teamRace` code, the official list's race name, the
-     rules sets whose official list carries the code, and how many positions it lists
-     (a **count**, not a position list). Manual curation's sub-table shows the
-     curated name and its registered external ids. A fourth sub-table, BBL/TP name
-     agreement, compares BBL's
-     and TP's own names for the race — accounting for BBL's `<Race> Team(s)` suffix
-     convention — and renders a highlighted `MISMATCH` row when they disagree beyond
-     that convention. Right: the stored race identity, its eras, and every external id
-     for that race.
-   - **position-availability** — left: raw BBL and TP source data showing which positions
-     are listed for this race in each source (a BBL position page that does not list the
-     race is rendered as a highlighted row with an explicit label `NOT LISTED`). TP's
-     rows are per rules set — the same position name under two rules sets is two rows —
-     because TP publishes one official team list per rules set. Plus a
-     manual curation sub-table sourced from `position-availability.json5` for the
-     rulebook rosters neither BBL nor TP can evidence. Right: the stored availability
-     data from `positions_race_eras` for each era this race covers.
-   - **position-characteristics** — left: raw BBL and TP source data for this race's
-     positions, showing move/strength/agility/passing/armour (MA/ST/AG/PA/AV) per rules
-     set — TP's rows carry their own rules-set column, so a position's per-rules-set
-     stat lines sit side by side — plus manual curation's own characteristics for rules
-     sets neither source
-     evidences the same way the database stores them. A BBL position page that cannot be
-     read, or that carries no characteristics table, is rendered as a highlighted row
-     naming the problem instead of being silently dropped from the table. Right: the
-     stored characteristics from `position_rules_sets` for the same positions and rules
-     sets, one sub-table per rules set the race's eras map to, scoped to only the
-     positions whose own era(s) actually reach that rules set — a race spanning several
-     eras never cross-products every position against every rules set. A (position,
-     rules set) pair with no stored row, for a position that IS reachable under that
-     rules set, is rendered as a highlighted row carrying an explicit textual label
-     (`missing`), so the report stays readable without colour.
-   - **position-starting-skills** — left: raw BBL, TP and manual curation sub-tables,
-     shown together exactly like the other race-scoped panels. BBL's sub-table reads its
-     one rules-set-less Skills cell per position page. TP's sub-table is per rules set
-     — TP names skills by a per-rules-set `skillMasterId`, resolved to a name from the
-     downloaded roster files where possible, shown as `skill master #<id>` when no
-     roster file explains it. Manual curation's sub-table is sourced from
-     `position-skills.json5`, for the rules sets neither source covers. None of the
-     three ever carries the random or elite marker — both are advancement-only concepts
-     a starting skill never has. Right: the stored `position_rules_set_skills` rows, one
-     sub-table per rules set the race's eras map to, scoped to only the positions whose
-     own era(s) actually reach that rules set — a race spanning several eras never
-     cross-products every position against every rules set. A position with a
-     characteristics row but no starting skills renders `none`; a position that IS
-     reachable under that rules set but has no `position_rules_sets` row at all — so no
-     row a starting skill could hang off — is rendered as a highlighted row labelled
-     `missing (no characteristics row)`, mirroring how the characteristics panel
-     highlights the same absence.
+3. For each sampled race, renders two panel pairs, each with every raw source
+   on the left and what was stored on the right:
+   - **race-and-availability** — race identity and position availability;
+   - **position-details** — position characteristics, starting skills and
+     BB2025 keywords.
 
-     Unlike the other three panels, the raw and imported starting-skills panels are
-     never diffed against each other: BBL's skills carry no rules set, TP's carry
-     per-rules-set ids, and the curated file carries `Name` external ids, so lining
-     them up against the stored rows would mean re-running the importers' own
-     resolution logic — the very thing under review. The two panels are shown side by
-     side purely for a human reviewer to compare by eye.
-   - **position-keywords** — left: a TP sub-table, one row per (position, rules set) TP
-     publishes, showing its numeric keyword codes — merged from the `race` array, the
-     `positionTypes` bitmask and the `isBigGuy` flag — resolved against the
-     curated catalogue (`Goblin (111)`), alongside the raw `positionTypes` and `isBigGuy`
-     values TP carries so a reviewer can check the decode without reading the JSON by
-     hand, with a code the catalogue does not name rendered
-     as a highlighted row (`777 — not curated`); plus a manual-curation sub-table listing
-     the whole curated catalogue once, not per position, so a reviewer can see the names
-     codes are read against without leaving the report. Unlike the other raw panels there
-     is no BBL sub-section — BBL has no keyword concept. Right: the stored
-     `position_rules_set_keywords` rows, one sub-table per rules set the race's eras map
-     to, scoped to only the positions whose own era(s) actually reach that rules set — a
-     race spanning several eras never cross-products every position against every rules
-     set — with the same `none` rendering as the starting-skills panel and a highlighted
-     `missing` row (not `missing (no characteristics row)`) for a position reachable
-     under the rules set but with no stored row at all. As with starting skills, the raw and imported panels
-     are never diffed against each other — TP's codes are resolved through this tool's
-     own independent catalogue reader, not the importer's, so the two panels are shown
-     side by side purely for a human reviewer to compare by eye.
+   Star players are excluded from every position part, raw and imported.
+   [Report layout](report-layout.md) describes every part of both panels.
 
 4. Writes the report under `tools/review-race/output/` (gitignored) with a timestamp in
    the filename, and prints where it landed.
@@ -217,14 +141,14 @@ so a stratum that finds nothing produces exactly one gap, never one per declared
 cp tools/review-race/review-race-config.example.json5 tools/review-race/review-race-config.json5
 ```
 
-| Key | Meaning |
-| --- | --- |
-| `database.url` | Connection string of the database holding the imported data (required) |
-| `racesPerStratum` | Races sampled per stratum (default 3) |
-| `bbl.dataDir` / `tp.dataDir` | The same downloaded data directories `tools/import-bbl` / `tools/import-tp` read |
-| `manual.dataDir` | `tools/import-manual`'s committed `data/` directory, holding `batches/` (every batch is read) |
+| Key                                                   | Meaning                                                                                                  |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `database.url`                                        | Connection string of the database holding the imported data (required)                                   |
+| `racesPerStratum`                                     | Races sampled per stratum (default 3)                                                                    |
+| `bbl.dataDir` / `tp.dataDir`                          | The same downloaded data directories `tools/import-bbl` / `tools/import-tp` read                         |
+| `manual.dataDir`                                      | `tools/import-manual`'s committed `data/` directory, holding `batches/` (every batch is read)            |
 | `overrides.bbl` / `overrides.tp` / `overrides.manual` | Races always included — BBL's numeric race id, TP's `teamRace` code, or (for manual) the race's own name |
-| `outputPath` | Base path each report is written next to, timestamped (default `output/report.html`) |
+| `outputPath`                                          | Base path each report is written next to, timestamped (default `output/report.html`)                     |
 
 The tool finds BBL and TP records by their shared external-system names
 (`tloeg.bbleague.se` and `tourplay.net`), so they are not configured.

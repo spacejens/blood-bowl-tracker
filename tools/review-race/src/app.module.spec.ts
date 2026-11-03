@@ -82,7 +82,7 @@ describe('AppModule', () => {
     ).toBe(true);
   });
 
-  it('registers the five race data type reviewers in report order', async () => {
+  it('registers the two race panel pairs in report order', async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule.register()],
     })
@@ -95,13 +95,9 @@ describe('AppModule', () => {
     const reviewers = moduleRef.get<RaceDataTypeReviewer[]>(
       RACE_DATA_TYPE_REVIEWERS,
     );
-    expect(reviewers).toHaveLength(5);
     expect(reviewers.map((reviewer) => reviewer.id)).toEqual([
-      'race-identity',
-      'position-availability',
-      'position-characteristics',
-      'position-starting-skills',
-      'position-keywords',
+      'race-and-availability',
+      'position-details',
     ]);
   });
 });
