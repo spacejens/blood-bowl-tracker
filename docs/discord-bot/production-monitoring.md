@@ -55,8 +55,9 @@ to Discord; exiting`** — a step after a successful gateway connection
   live gateway sessions instead of one. Fly restarts the machine and it
   rejoins the election. Check the logged error for the underlying cause
   (a Discord API error, a misconfigured channel id, and similar).
-- **One machine logs "Waiting for the migration lock" at startup while the other
-  migrates** —
+- **A machine shows no further output after "Waiting for the migration lock"
+  while the other migrates** — both machines log this line at every startup,
+  before they ask for the lock.
   `packages/db`'s migration step runs on both machines at boot, under a
   Postgres advisory lock (see [Migrations](../database.md#migrations)). The
   machine that does not get the lock waits until the other has finished
