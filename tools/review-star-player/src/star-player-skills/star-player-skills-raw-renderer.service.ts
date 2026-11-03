@@ -14,7 +14,7 @@ import { TpSkillMasterNamesService } from '../source/tp-skill-master-names.servi
 const NO_SKILLS = 'none';
 
 /**
- * The star-skills raw panel: each source's own view of this star's starting
+ * The raw starting-skills section: each source's own view of this star's starting
  * skills.
  *
  * BBL's page carries a single, rules-set-less Skills cell. TP publishes one

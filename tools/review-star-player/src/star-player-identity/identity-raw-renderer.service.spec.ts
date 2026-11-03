@@ -129,6 +129,7 @@ describe('StarPlayerIdentityRawRendererService', () => {
     const service = await makeService(d);
 
     const html = await service.render(STAR);
+
     expect(html).toContain('<h5>Identity — TP</h5>');
 
     expect(html).toContain('BB2025');
@@ -191,6 +192,7 @@ describe('StarPlayerIdentityRawRendererService', () => {
     const service = await makeService(d);
 
     const html = await service.render(STAR);
+
     expect(html).toContain('<h5>BBL / TP name agreement</h5>');
 
     expect(html).toContain('<tr class="mismatch">');

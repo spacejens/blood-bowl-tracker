@@ -17,7 +17,8 @@ import { StarSourceLookupService } from './star-source-lookup.service';
  * import data-type modules without a cycle. `HtmlService` and
  * `ExternalSystemLookupService` come from `@blood-bowl-tracker/review-harness`;
  * they are still provided here so every data-type module injects them through
- * this one module.
+ * this one module. `SectionRenderService` is here so any reviewer that stacks
+ * several renderers can contain one failing section.
  *
  * Imports `SourceModule` for `StarSourceLookupService`'s own dependency on
  * BBL's and TP's raw source services, and `NameMatcherModule` for
@@ -25,8 +26,6 @@ import { StarSourceLookupService } from './star-source-lookup.service';
  * (provided there, not here — see `NameMatcherModule` for why). That
  * `SourceModule` import runs one way only: `SourceModule` does not import
  * `SharedModule` back, so no module-import cycle exists between the two.
- * `SectionRenderService` is here so any reviewer that stacks several renderers
- * can contain one failing section.
  */
 const SHARED = [
   ExternalSystemLookupService,

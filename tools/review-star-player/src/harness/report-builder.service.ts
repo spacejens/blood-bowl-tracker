@@ -14,7 +14,7 @@ import type { SampledStarPlayer } from '../shared/review.types';
  * The star player report's own half of the document: the per-star section.
  * The shell, stylesheet, gaps table and panel-pair layout come from
  * `ReportBuilderBase`. No source is passed to `panelPair`: a star is not
- * sampled through one source, and all three reviewers name their own panels.
+ * sampled through one source, and both reviewers name their own panels.
  */
 @Injectable()
 export class ReportBuilderService extends ReportBuilderBase<SampledStarPlayer> {

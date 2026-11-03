@@ -95,17 +95,17 @@ order, parses them (JSON5) and pools each top-level array.
 
 2. Adds every override entry listed in `overrides`, whatever the strata picked.
 
-3. For each sampled star player, renders two panel pairs. Each panel stacks its
-   parts under small sub-headings; a part that fails to render shows a failure
-   note in its own place only, and the rest of the panel still renders.
+3. For each sampled star player, renders two panel pairs.
    - **star-player** — who the star is and what it brings onto the pitch. The
      left panel ("Raw sources (BBL / TP / manual curation)") stacks identity,
-     characteristics, starting skills and keywords, every sub-heading naming
-     both aspect and source (`Identity — BBL`,
+     characteristics, starting skills and keywords, every source sub-heading
+     naming both aspect and source (`Identity — BBL`,
      `Characteristics — BBL (current page values)`, `Starting skills — TP`,
      `Keywords — TP`, and so on). The right panel ("Imported (database)")
      stacks the same four aspects under plain `Identity`, `Characteristics`,
-     `Starting skills` and `Keywords` sub-headings.
+     `Starting skills` and `Keywords` sub-headings. A part that fails to render
+     shows a failure note in its own place only, and the rest of that panel
+     still renders.
      - **Identity** — left: BBL's page (typID, page name, inducement price, the
        "Can play for" line, skills), TP's per-rules-set catalog entries (name,
        rules set, cost, special rule, eligible-roster count), the curated

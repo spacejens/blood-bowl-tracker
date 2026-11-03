@@ -135,6 +135,7 @@ describe('StarPlayerKeywordsRawRendererService', () => {
 
   it('notes that the star is not in the downloaded TP data', async () => {
     const html = await service.render(star);
+
     expect(html).toContain('<h5>Keywords — TP</h5>');
 
     expect(html).toContain('class="mismatch"');

@@ -15,7 +15,7 @@ import { ManualRawDataService } from '../source/manual-raw-data.service';
 import type { TpRawStarPlayer } from '../source/tp-raw-star-player-index.service';
 
 /**
- * The star-identity raw panel: what each source, on its own, calls this star
+ * The raw identity section: what each source, on its own, calls this star
  * and what it charges for it — plus the one comparison a reviewer would
  * otherwise have to do by eye, whether BBL's and TP's spellings agree once
  * apostrophe style, case and a duo star's parenthesised partner are

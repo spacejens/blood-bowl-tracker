@@ -14,7 +14,7 @@ import { ManualRawDataService } from '../source/manual-raw-data.service';
 const NONE = '—';
 
 /**
- * The star-characteristics raw panel: each source's own view of this star's
+ * The raw characteristics section: each source's own view of this star's
  * MA/ST/AG/PA/AV, on its own terms.
  *
  * BBL's page carries a single, undated stat line (labelled "current page

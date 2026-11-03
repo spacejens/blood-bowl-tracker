@@ -215,6 +215,7 @@ describe('StarPlayerSkillsRawRendererService', () => {
 
   it('highlights the TP sub-panel when no entry was found', async () => {
     const html = await service.render(star);
+
     expect(html).toContain('<h5>Starting skills — TP</h5>');
 
     expect(html).toContain('no TP entry found for spelling(s) Grombrindal');

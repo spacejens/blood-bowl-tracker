@@ -17,11 +17,11 @@ const NO_POSITION_TYPES = 'none';
 const HEADERS = ['Rules set', 'TP keyword codes', 'positionTypes', 'isBigGuy'];
 
 /**
- * The star-keywords raw panel: TP's own numeric keyword codes for this star,
+ * The raw keywords section: TP's own numeric keyword codes for this star,
  * next to the curated catalogue that names them.
  *
  * Only TP publishes keywords -- BBL has no such concept, so unlike the other
- * raw panels there is no BBL sub-section here. Each row already names the
+ * raw sections there is no BBL sub-section here. Each row already names the
  * curated keyword alongside its numeric TP code, so the curated catalogue
  * itself is not rendered separately here.
  *
