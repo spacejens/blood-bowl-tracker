@@ -18,6 +18,10 @@ import { PositionAvailabilityReviewerService } from './position-availability-rev
     PositionAvailabilityRawRendererService,
     PositionAvailabilityReviewerService,
   ],
-  exports: [PositionAvailabilityReviewerService],
+  exports: [
+    PositionAvailabilityDbRendererService,
+    PositionAvailabilityRawRendererService,
+    PositionAvailabilityReviewerService,
+  ],
 })
 export class PositionAvailabilityModule {}

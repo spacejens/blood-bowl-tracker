@@ -29,6 +29,8 @@ import { SourceCoverageStratificationService } from './source-coverage-stratific
   exports: [
     EraAvailabilityStratificationService,
     NameMismatchStratificationService,
+    RaceIdentityDbRendererService,
+    RaceIdentityRawRendererService,
     RaceIdentityReviewerService,
     RandomRaceStratificationService,
     SourceCoverageStratificationService,
