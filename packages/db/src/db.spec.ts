@@ -50,6 +50,8 @@ const URL = 'postgres://user:pass@localhost:5432/bbt';
 const LOCK_QUERY = 'query: SELECT pg_advisory_lock(?, ?)';
 const UNLOCK_QUERY = 'query: SELECT pg_advisory_unlock(?, ?)';
 const MIGRATION_LOCK_KEY = [4242, 2];
+// Must name a real folder under packages/db/migrations: the folder listing is
+// not mocked.
 const KNOWN_MIGRATION = '20261102124542_confirm_bbl_advancement_order';
 
 function createStartupMocks(): StartupMocks {
@@ -181,6 +183,40 @@ describe('createDb', () => {
 
     await expect(createDb(URL)).rejects.toBe(failure);
     expect(mocks.lockEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the migration error when closing the lock client also fails', async () => {
+    const failure = new Error('migration failed');
+    mocks.migrate.mockRejectedValue(failure);
+    mocks.lockEnd.mockRejectedValue(new Error('end failed'));
+
+    await expect(createDb(URL)).rejects.toBe(failure);
+    expect(mocks.lockEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it('still succeeds when closing the lock client fails after migrating', async () => {
+    mocks.lockEnd.mockRejectedValue(new Error('end failed'));
+
+    await expect(createDb(URL)).resolves.toBe(mocks.db);
+  });
+
+  it('logs that it is waiting before querying for the lock', async () => {
+    const log = vi.fn((msg: string) => {
+      mocks.events.push(`log: ${msg}`);
+    });
+
+    await createDb(URL, log);
+
+    expect(mocks.events.slice(0, 2)).toEqual([
+      'log: Waiting for the migration lock',
+      LOCK_QUERY,
+    ]);
+  });
+
+  it('does not fail when no log callback is given', async () => {
+    await createDb(URL);
+
+    expect(mocks.events[0]).toBe(LOCK_QUERY);
   });
 
   it('logs pending migrations while holding the lock', async () => {

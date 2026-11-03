@@ -59,7 +59,9 @@ async function logPendingMigrations(
 async function withMigrationLock<T>(
   url: string,
   run: () => Promise<T>,
+  log?: (msg: string) => void,
 ): Promise<T> {
+  log?.('Waiting for the migration lock');
   const lockClient = postgres(url, { max: 1 });
   try {
     await lockClient`SELECT pg_advisory_lock(${MIGRATION_LOCK_CLASS_ID}, ${MIGRATION_LOCK_OBJECT_ID})`;
@@ -71,17 +73,21 @@ async function withMigrationLock<T>(
       );
     }
   } finally {
-    await lockClient.end();
+    await lockClient.end().catch(() => undefined);
   }
 }
 
 export async function createDb(url: string, log?: (msg: string) => void) {
   const client = postgres(url);
   const db = drizzle({ client });
-  await withMigrationLock(url, async () => {
-    if (log) await logPendingMigrations(db, log);
-    await migrate(db, { migrationsFolder });
-  });
+  await withMigrationLock(
+    url,
+    async () => {
+      if (log) await logPendingMigrations(db, log);
+      await migrate(db, { migrationsFolder });
+    },
+    log,
+  );
   return db;
 }
 
