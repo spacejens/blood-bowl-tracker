@@ -7,9 +7,14 @@ name: Check backup freshness
 
 on:
   schedule:
-    # 08:41 UTC daily: a few hours after the 03:17 backup, so a delayed
-    # backup run has finished, and off the top of the hour.
-    - cron: '41 8 * * *'
+    # 13:41 UTC daily, off the top of the hour. The backup is requested for
+    # 03:17 UTC, but GitHub's scheduler delays it: runs have started between
+    # about 08:00 and 11:30 UTC, drifting later. This time follows those
+    # starts with a margin, so the check normally sees the same day's backup.
+    # If that backup is very late, the previous one is at most about 30 hours
+    # old, still under the 36 hour limit; moving the check much later would
+    # eat that slack.
+    - cron: '41 13 * * *'
   workflow_dispatch:
 
 permissions:
