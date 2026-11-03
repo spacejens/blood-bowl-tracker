@@ -20,6 +20,8 @@ export interface ApplicableCost {
 export interface StoredPlayerSkill {
   skillId: number;
   skillName: string;
+  /** The stored attribute value (Loner's roll, Hatred's race); null when none. */
+  attributeValue: string | null;
   source: PlayerSkillSource;
   advancementOrder: number | null;
   /** True when the stored order is confirmed as the real sequence. */
@@ -28,6 +30,8 @@ export interface StoredPlayerSkill {
   isFreeExtra: boolean;
   /** The skill's category under the player's rules set; null when unlisted. */
   category: SkillCategory | null;
+  /** True when the skill is elite under the player's rules set. */
+  isElite: boolean;
 }
 
 /** One stored characteristic increase. */
@@ -77,7 +81,7 @@ export interface AdvancementHistory {
 }
 
 /** Why a row costs what it does. */
-export type AdvancementRowKind =
+type AdvancementRowKind =
   'starting' | 'free_extra' | 'granted' | 'skill' | 'characteristic';
 
 /** One cost an advancement could have had at its number. */
@@ -113,6 +117,16 @@ export interface ModelledAdvancement {
    * league house-rule skill is confirmed at a number other than its rule's.
    */
   orderClash?: boolean;
+  /**
+   * The stored skill this row prices — the same object as in the history —
+   * set on every row but a characteristic increase.
+   */
+  skill?: StoredPlayerSkill;
+  /**
+   * The stored increase this row prices — the same object as in the
+   * history — set on a characteristic row only.
+   */
+  increase?: StoredIncrease;
 }
 
 /** Why no range could be modelled, in the order they are checked. */

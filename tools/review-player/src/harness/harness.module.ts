@@ -6,33 +6,29 @@ import {
 import { Module } from '@nestjs/common';
 
 import { AdvancementCostsModule } from '../advancement-costs/advancement-costs.module';
-import { AdvancementCostsReviewerService } from '../advancement-costs/advancement-costs-reviewer.service';
 import { UnspentSppOutsideRangeStratificationService } from '../advancement-costs/unspent-spp-outside-range-stratification.service';
+import { CareerHistoryModule } from '../career-history/career-history.module';
+import { PlayerCareerHistoryReviewerService } from '../career-history/player-career-history-reviewer.service';
 import { ReviewPlayerConfigService } from '../config/review-player-config.service';
 import { CurrentInjuryStratificationService } from '../lasting-injuries/current-injury-stratification.service';
 import { HealedInjuryStratificationService } from '../lasting-injuries/healed-injury-stratification.service';
 import { LastingInjuriesModule } from '../lasting-injuries/lasting-injuries.module';
-import { LastingInjuriesReviewerService } from '../lasting-injuries/lasting-injuries-reviewer.service';
+import { OverviewModule } from '../overview/overview.module';
+import { PlayerOverviewReviewerService } from '../overview/player-overview-reviewer.service';
 import { PlayerAdvancementsModule } from '../player-advancements/player-advancements.module';
-import { PlayerAdvancementsReviewerService } from '../player-advancements/player-advancements-reviewer.service';
 import { PlayerAdvancementsStratificationService } from '../player-advancements/player-advancements-stratification.service';
 import { CharacteristicsChangeStratificationService } from '../player-characteristics/characteristics-change-stratification.service';
 import { PlayerCharacteristicsModule } from '../player-characteristics/player-characteristics.module';
-import { PlayerCharacteristicsReviewerService } from '../player-characteristics/player-characteristics-reviewer.service';
 import { PlayerInfoModule } from '../player-info/player-info.module';
-import { PlayerInfoReviewerService } from '../player-info/player-info-reviewer.service';
 import { RandomPlayerStratificationService } from '../player-info/random-player-stratification.service';
 import { StarPlayerStratificationService } from '../player-info/star-player-stratification.service';
 import { PlayerKeywordsModule } from '../player-keywords/player-keywords.module';
-import { PlayerKeywordsReviewerService } from '../player-keywords/player-keywords-reviewer.service';
 import { PlayerKeywordsStratificationService } from '../player-keywords/player-keywords-stratification.service';
 import { PlayerStatusModule } from '../player-status/player-status.module';
-import { PlayerStatusReviewerService } from '../player-status/player-status-reviewer.service';
 import { PlayerStatusStratificationService } from '../player-status/player-status-stratification.service';
 import { PLAYER_DATA_TYPE_REVIEWERS } from '../shared/data-type-reviewer';
 import { PLAYER_STRATIFIERS } from '../shared/player-stratifier';
 import { SharedModule } from '../shared/shared.module';
-import { PlayerSppTotalsReviewerService } from '../spp-totals/player-spp-totals-reviewer.service';
 import { SppDiscrepancyStratificationService } from '../spp-totals/spp-discrepancy-stratification.service';
 import { SppMagnitudeStratificationService } from '../spp-totals/spp-magnitude-stratification.service';
 import { SppNonStandardContributionStratificationService } from '../spp-totals/spp-non-standard-contribution-stratification.service';
@@ -43,15 +39,17 @@ import { ReportBuilderService } from './report-builder.service';
 import { ReviewService } from './review.service';
 
 /**
- * The data-type-agnostic half of the tool, plus the one place data types are
+ * The data-type-agnostic half of the tool, plus the one place its plug-ins are
  * registered. NestJS has no multi-provider mechanism, so the two arrays below
- * are the registry: adding a future data type (skills, injuries) means
- * importing its module and adding it to these two factories — no change to
- * any harness service.
+ * are the registry: the two panel pairs each player gets, and every sampling
+ * stratum. A new panel pair or stratum means importing its module and adding
+ * it here — no change to any harness service.
  */
 @Module({
   imports: [
     SharedModule,
+    OverviewModule,
+    CareerHistoryModule,
     PlayerInfoModule,
     PlayerCharacteristicsModule,
     PlayerAdvancementsModule,
@@ -69,14 +67,8 @@ import { ReviewService } from './review.service';
     { provide: REPORT_OUTPUT_PATH, useExisting: ReviewPlayerConfigService },
     ReviewService,
     createRegistryProvider(PLAYER_DATA_TYPE_REVIEWERS, [
-      PlayerInfoReviewerService,
-      PlayerSppTotalsReviewerService,
-      PlayerCharacteristicsReviewerService,
-      PlayerAdvancementsReviewerService,
-      AdvancementCostsReviewerService,
-      LastingInjuriesReviewerService,
-      PlayerKeywordsReviewerService,
-      PlayerStatusReviewerService,
+      PlayerOverviewReviewerService,
+      PlayerCareerHistoryReviewerService,
     ]),
     createRegistryProvider(PLAYER_STRATIFIERS, [
       SppDiscrepancyStratificationService,

@@ -12,8 +12,8 @@ const UNKNOWN = 'unknown (no source reported a status)';
  * The stored `players.status`, shown as stored. NULL means no source reported
  * a status and is shown as unknown, never as active.
  *
- * An active player whose era has ended gets a note naming the era and its end
- * date: such a player was active until the era closed, which a reviewer
+ * An active player whose era has ended gets a plain-text line naming the era and
+ * its end date: such a player was active until the era closed, which a reviewer
  * should read differently from one still playing. "Ended" is decided in SQL —
  * `end_date` non-null and before `current_date` — the same definition the
  * status strata use, so no clock is read here.
@@ -56,10 +56,10 @@ export class PlayerStatusDbRendererService {
     }
     return (
       table +
-      this.html.note(
+      `<p>${this.html.escape(
         `active until the end of the era: ${stored.eraName} ended ` +
           `${stored.eraEndDate ?? ''}.`,
-      )
+      )}</p>`
     );
   }
 }

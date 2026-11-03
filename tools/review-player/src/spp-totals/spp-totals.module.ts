@@ -1,34 +1,31 @@
 import { Module } from '@nestjs/common';
 
 import { SharedModule } from '../shared/shared.module';
-import { PlayerSppComputedRendererService } from './player-spp-computed-renderer.service';
-import { PlayerSppImportedRendererService } from './player-spp-imported-renderer.service';
 import { PlayerSppLookupService } from './player-spp-lookup.service';
-import { PlayerSppTotalsReviewerService } from './player-spp-totals-reviewer.service';
+import { PlayerSppTotalsRendererService } from './player-spp-totals-renderer.service';
 import { SppDiscrepancyStratificationService } from './spp-discrepancy-stratification.service';
 import { SppMagnitudeStratificationService } from './spp-magnitude-stratification.service';
 import { SppNonStandardContributionStratificationService } from './spp-non-standard-contribution-stratification.service';
 
 /**
- * The spp-totals data type: a reviewer comparing each player's event-derived
- * SPP sum against their stored total, plus the SPP-focused strata — the
- * always-on discrepancy stratum that pulls every disagreeing player into the
- * report regardless of sample size, and the bounded magnitude strata that
- * cover the range of stored totals.
+ * The SPP-total renderer the career history opens with — each player's stored
+ * total beside the sum of their match events — plus the SPP-focused strata:
+ * the always-on discrepancy stratum that pulls every disagreeing player into
+ * the report regardless of sample size, and the bounded magnitude and
+ * non-standard-award strata.
  */
 @Module({
   imports: [SharedModule],
   providers: [
-    PlayerSppComputedRendererService,
-    PlayerSppImportedRendererService,
     PlayerSppLookupService,
-    PlayerSppTotalsReviewerService,
+    PlayerSppTotalsRendererService,
     SppDiscrepancyStratificationService,
     SppMagnitudeStratificationService,
     SppNonStandardContributionStratificationService,
   ],
   exports: [
-    PlayerSppTotalsReviewerService,
+    PlayerSppLookupService,
+    PlayerSppTotalsRendererService,
     SppDiscrepancyStratificationService,
     SppMagnitudeStratificationService,
     SppNonStandardContributionStratificationService,

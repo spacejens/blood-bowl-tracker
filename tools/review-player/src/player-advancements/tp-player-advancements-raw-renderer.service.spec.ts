@@ -7,20 +7,42 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import type { TpRawPlayerAdvancements } from '../source/tp-raw-player-skills-index.service';
+import type {
+  TpRawGainedSkill,
+  TpRawPlayerAdvancements,
+} from '../source/tp-raw-player-skills-index.service';
 import { TpRawPlayerSkillsIndexService } from '../source/tp-raw-player-skills-index.service';
 import { TpPlayerAdvancementsRawRendererService } from './tp-player-advancements-raw-renderer.service';
+
+function gained(
+  name: string | null,
+  extra: Partial<TpRawGainedSkill> = {},
+): TpRawGainedSkill {
+  return {
+    skillMasterId: 261,
+    name,
+    attributeValue: null,
+    isElite: false,
+    isRandom: true,
+    ...extra,
+  };
+}
 
 function advancements(
   overrides: Partial<TpRawPlayerAdvancements> = {},
 ): TpRawPlayerAdvancements {
   return {
-    startingSkills: [],
-    gainedSkills: [],
+    startingSkills: [
+      { skillMasterId: 1, name: 'Block', attributeValue: null, isElite: false },
+    ],
+    gainedSkills: [
+      gained('Guard'),
+      gained(null, { skillMasterId: 262, isElite: true, isRandom: null }),
+    ],
     characteristicDiffs: {
-      move: 0,
+      move: 1,
       strength: 0,
-      agility: 0,
+      agility: 1,
       passing: 0,
       armour: 0,
     },
@@ -35,165 +57,145 @@ describe('TpPlayerAdvancementsRawRendererService', () => {
 
   beforeEach(async () => {
     index = mock<TpRawPlayerSkillsIndexService>();
+    index.sppFiguresFor.mockResolvedValue({
+      totalStarPlayerPoints: 51,
+      starPlayerPoints: 9,
+      pendingImprovements: null,
+    });
+    index.advancementsFor.mockResolvedValue(advancements());
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpPlayerAdvancementsRawRendererService,
         { provide: TpRawPlayerSkillsIndexService, useValue: index },
-        HtmlService,
         SkillFormatService,
+        HtmlService,
       ],
     }).compile();
     service = moduleRef.get(TpPlayerAdvancementsRawRendererService);
   });
 
-  it('renders starting skills plain, with no markers', async () => {
-    index.advancementsFor.mockResolvedValue(
-      advancements({
-        startingSkills: [
-          {
-            skillMasterId: 1,
-            name: 'Block',
-            attributeValue: null,
-            isElite: false,
-          },
-        ],
-      }),
-    );
+  it('shows the roster SPP fields, labelling the unspent one', async () => {
+    const html = await service.render('2477481');
 
-    const html = await service.render('2000');
-
-    expect(html).toContain('<td>Block</td><td>starting</td>');
-    expect(html).not.toContain('⚄');
-    expect(html).not.toContain('◆');
+    expect(html).toContain('<h5>SPP figures</h5>');
+    expect(html).toContain('<td>totalStarPlayerPoints</td><td>51</td>');
+    expect(html).toContain('<td>starPlayerPoints (unspent)</td><td>9</td>');
+    expect(html).toContain('<td>pendingImprovements</td><td>—</td>');
+    expect(html).not.toContain('is the SPP TP holds unspent');
   });
 
-  it('shows ⚄ for a randomly rolled gained skill, and ⚄ ◆ when also elite', async () => {
+  it('lists starting and gained skills in one table with the raw flags', async () => {
+    const html = await service.render('2477481');
+
+    expect(html).toContain('<h5>Skills and advancements</h5>');
+    expect(html).toContain(
+      '<th>Skill</th><th>Source</th><th>isRandom</th><th>isElite</th><th>isExtra</th>',
+    );
+    expect(html).toContain(
+      '<tr><td>Block</td><td>starting</td><td>—</td><td>—</td><td>—</td></tr>',
+    );
+    expect(html).toContain(
+      '<tr><td>Guard</td><td>gained</td><td>true</td><td>false</td><td>—</td></tr>',
+    );
+    expect(html).toContain(
+      '<tr><td>skill master #262</td><td>gained</td><td>not recorded</td>' +
+        '<td>true</td><td>—</td></tr>',
+    );
+  });
+
+  it('explains nothing the cells already say', async () => {
+    const html = await service.render('2477481');
+
+    expect(html).not.toContain('TP recorded no random/chosen flag');
+    expect(html).not.toContain("TP's download carries no per-advancement");
+    expect(html).not.toContain('Extra skills');
+    expect(html).not.toContain('Journeyman');
+    expect(html).not.toContain('class="note"');
+  });
+
+  it('explains pricing for a player with an extra skill', async () => {
     index.advancementsFor.mockResolvedValue(
       advancements({
         gainedSkills: [
-          {
-            skillMasterId: 2,
-            name: 'Guard',
-            attributeValue: null,
-            isElite: false,
-            isRandom: true,
-          },
-          {
-            skillMasterId: 3,
-            name: 'Mighty Blow',
-            attributeValue: null,
-            isElite: true,
-            isRandom: true,
-          },
+          gained('Hatred', { isExtra: true, attributeValue: 'Dwarf' }),
         ],
       }),
     );
 
-    const html = await service.render('2000');
+    const html = await service.render('2477481');
 
-    expect(html).toContain('<td>⚄ Guard</td><td>gained</td>');
-    expect(html).toContain('<td>⚄ ◆ Mighty Blow</td><td>gained</td>');
+    expect(html).toContain(
+      '<td>Hatred (Dwarf)</td><td>gained</td><td>true</td><td>false</td><td>true</td>',
+    );
+    expect(html).toContain(
+      '<p>Extra skills (isExtra, such as Hatred) are imported as free ' +
+        'extras, so the modelled range prices them at 0.</p>',
+    );
+    expect(html).not.toContain('Journeyman');
   });
 
-  it('shows no dice marker and a note when isRandom is null', async () => {
+  it('explains pricing for a player with a gained Loner', async () => {
     index.advancementsFor.mockResolvedValue(
       advancements({
-        gainedSkills: [
-          {
-            skillMasterId: 4,
-            name: 'Dodge',
-            attributeValue: null,
-            isElite: false,
-            isRandom: null,
-          },
-        ],
+        gainedSkills: [gained('Loner', { attributeValue: '4+' })],
       }),
     );
 
-    const html = await service.render('2000');
+    const html = await service.render('2477481');
 
-    expect(html).toContain('<td>Dodge</td><td>gained</td>');
-    expect(html).not.toContain('⚄');
-    expect(html).toContain('TP recorded no random/chosen flag for this skill');
+    expect(html).toContain(
+      '<p>A Journeyman&#39;s Loner is granted without SPP being spent; the ' +
+        'modelled range does not recognise it and prices it as an ' +
+        'advancement, so such a player can legitimately be listed.</p>',
+    );
+    expect(html).not.toContain('Extra skills');
   });
 
-  it('falls back to "skill master #<id>" when the skill has no embedded name', async () => {
-    index.advancementsFor.mockResolvedValue(
-      advancements({
-        startingSkills: [
-          {
-            skillMasterId: 42,
-            name: null,
-            attributeValue: null,
-            isElite: false,
-          },
-        ],
-      }),
+  it('shows the derived improvements under a heading that says so', async () => {
+    const html = await service.render('2477481');
+
+    expect(html).toContain(
+      '<h5>Characteristic improvements (derived from position template)</h5>',
     );
-
-    const html = await service.render('2000');
-
-    expect(html).toContain('<td>skill master #42</td><td>starting</td>');
-  });
-
-  it('renders the derived characteristic diffs table with the derivation note', async () => {
-    index.advancementsFor.mockResolvedValue(
-      advancements({
-        characteristicDiffs: {
-          move: 1,
-          strength: 0,
-          agility: 2,
-          passing: 0,
-          armour: 1,
-        },
-      }),
-    );
-
-    const html = await service.render('2000');
-
     expect(html).toContain(
       '<th>MA</th><th>ST</th><th>AG</th><th>PA</th><th>AV</th>',
     );
     expect(html).toContain(
-      '<td>1</td><td>0</td><td>2</td><td>0</td><td>1</td>',
+      '<tr><td>1</td><td>0</td><td>1</td><td>0</td><td>0</td></tr>',
     );
-    expect(html).toContain(
-      'Derived from the position template, not reported by TP',
-    );
-  });
-
-  it('renders a note and skips derived increases when hasTemplate is false', async () => {
-    index.advancementsFor.mockResolvedValue(
-      advancements({
-        hasTemplate: false,
-        gainedSkills: [
-          {
-            skillMasterId: 5,
-            name: 'Block',
-            attributeValue: null,
-            isElite: false,
-            isRandom: true,
-          },
-        ],
-      }),
-    );
-
-    const html = await service.render('2000');
-
-    expect(html).toContain(
-      'TP published no position template for this player, so starting skills and derived increases are unavailable.',
-    );
-    expect(html).toContain('<td>⚄ Block</td><td>gained</td>');
     expect(html).not.toContain(
-      'Derived from the position template, not reported by TP',
+      'Derived from the position template, not reported',
     );
   });
 
-  it('renders a note when advancementsFor resolves null', async () => {
+  it('notes a missing template and skips the derived improvements', async () => {
+    index.advancementsFor.mockResolvedValue(
+      advancements({ startingSkills: [], hasTemplate: false }),
+    );
+
+    const html = await service.render('2477481');
+
+    expect(html).toContain(
+      '<p class="note">TP published no position template for this player, ' +
+        'so starting skills and derived increases are unavailable.</p>',
+    );
+    expect(html).not.toContain('Characteristic improvements');
+    expect(html).toContain('<td>Guard</td>');
+  });
+
+  it('notes a line-up no roster file carries', async () => {
     index.advancementsFor.mockResolvedValue(null);
 
-    expect(await service.render('2000')).toBe(
-      '<p class="note">No TP roster entry for line-up id 2000 in the downloaded files.</p>',
+    expect(await service.render('2477481')).toBe(
+      '<p class="note">No downloaded TP roster file carries line-up 2477481.</p>',
+    );
+  });
+
+  it('notes a line-up with advancements but no SPP figures', async () => {
+    index.sppFiguresFor.mockResolvedValue(null);
+
+    expect(await service.render('2477481')).toContain(
+      'No downloaded TP roster file carries line-up 2477481.',
     );
   });
 });

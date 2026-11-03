@@ -67,46 +67,6 @@ describe('TpLastingInjuriesRawRendererService', () => {
     expect(html).toContain('<td>0</td><td>false</td>');
   });
 
-  it('renders the template and current stat rows', async () => {
-    index.aggregateFor.mockResolvedValue(
-      aggregate({
-        nigglingInjuries: 1,
-        canPlayNextGame: true,
-        move: 5,
-        strength: 3,
-        agility: 3,
-        passing: 4,
-        armour: 6,
-        templateMove: 5,
-        templateStrength: 3,
-        templateAgility: 3,
-        templatePassing: 4,
-        templateArmour: 7,
-      }),
-    );
-
-    const html = await service.render('1');
-
-    expect(html).toContain(
-      '<td>Template</td><td>5</td><td>3</td><td>3</td><td>4</td><td>7</td>',
-    );
-    expect(html).toContain(
-      '<td>Player</td><td>5</td><td>3</td><td>3</td><td>4</td><td>6</td>',
-    );
-  });
-
-  it('renders a null template cell as the none marker', async () => {
-    index.aggregateFor.mockResolvedValue(
-      aggregate({ nigglingInjuries: 0, canPlayNextGame: false }),
-    );
-
-    const html = await service.render('1');
-
-    expect(html).toContain(
-      '<td>Template</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>',
-    );
-  });
-
   it('notes a player who appears in no downloaded TP match file', async () => {
     index.aggregateFor.mockResolvedValue(null);
 
@@ -127,21 +87,22 @@ describe('TpLastingInjuriesRawRendererService', () => {
     );
   });
 
-  it('renders the comparison table when only a template field is non-null', async () => {
+  it('shows no stat line: the characteristics part carries it', async () => {
     index.aggregateFor.mockResolvedValue(
-      aggregate({
-        nigglingInjuries: null,
-        canPlayNextGame: null,
-        templateMove: 6,
-      }),
+      aggregate({ nigglingInjuries: 1, templateMove: 6 }),
     );
 
-    const html = await service.render('5');
+    const html = await service.render('2477481');
 
-    expect(html).not.toContain('No lasting-injury data');
-    expect(html).toContain('Current vs. position template');
-    expect(html).toContain(
-      '<td>Template</td><td>6</td><td>—</td><td>—</td><td>—</td><td>—</td>',
+    expect(html).not.toContain('Current vs. position template');
+    expect(html).not.toContain('<td>Template</td>');
+  });
+
+  it('notes no lasting-injury data even when the template is known', async () => {
+    index.aggregateFor.mockResolvedValue(aggregate({ templateMove: 6 }));
+
+    expect(await service.render('2477481')).toContain(
+      'No lasting-injury data for line-up id 2477481',
     );
   });
 });

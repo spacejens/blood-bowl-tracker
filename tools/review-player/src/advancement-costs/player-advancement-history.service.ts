@@ -47,8 +47,11 @@ interface ChunkContext {
   result: Map<number, AdvancementHistory>;
 }
 
-/** A stored skill before its category under the player's rules set is known. */
-type UncategorisedSkill = Omit<StoredPlayerSkill, 'category'>;
+/**
+ * A stored skill before its category and elite flag under the player's rules
+ * set are known.
+ */
+type UncategorisedSkill = Omit<StoredPlayerSkill, 'category' | 'isElite'>;
 
 /** One position's primary and secondary categories under one rules set. */
 interface PositionCategories {
@@ -56,12 +59,18 @@ interface PositionCategories {
   secondary: Set<SkillCategory>;
 }
 
+/** A skill's category and elite flag under one rules set. */
+interface SkillRulesSetFlags {
+  category: SkillCategory;
+  isElite: boolean;
+}
+
 /** The per-chunk lookups, keyed by `pairKey`. */
 interface CategoryLookups {
   /** By position id and rules set id. */
   positions: Map<string, PositionCategories>;
-  /** By skill id and rules set id. */
-  skills: Map<string, SkillCategory>;
+  /** By skill id and rules set id: the skill's category and elite flag. */
+  skills: Map<string, SkillRulesSetFlags>;
 }
 
 /**
@@ -74,7 +83,8 @@ interface CategoryLookups {
  * league's house rules: player -> team era -> era -> league), plus the
  * categories the player's position has as primary and as secondary under
  * that rules set (`position_rules_set_skill_categories`, ignoring removed
- * rows) and each stored skill's category under it (`skill_rules_sets`).
+ * rows) and each stored skill's attribute value, plus each stored skill's category
+ * and elite flag under that rules set (`skill_rules_sets`).
  *
  * The era -> rules-set map and the cost table are small and loaded once per
  * process. Players are loaded in chunks, because the unspent-SPP stratum asks
@@ -138,7 +148,7 @@ export class PlayerAdvancementHistoryService {
       positions: await this.loadPositionCategories([
         ...new Set(playerRows.map((row) => row.positionId)),
       ]),
-      skills: await this.loadSkillCategories([
+      skills: await this.loadSkillRulesSetFlags([
         ...new Set(
           [...skillsByPlayer.values()].flat().map((skill) => skill.skillId),
         ),
@@ -156,14 +166,17 @@ export class PlayerAdvancementHistoryService {
         storedUnspentSpp: row.unspentSpp,
         isStarPlayer: row.isStarPlayer,
         rulesSet,
-        skills: (skillsByPlayer.get(row.playerId) ?? []).map((skill) => ({
-          ...skill,
-          category:
+        skills: (skillsByPlayer.get(row.playerId) ?? []).map((skill) => {
+          const flags =
             rulesSet === null
-              ? null
-              : (lookups.skills.get(this.pairKey(skill.skillId, rulesSet.id)) ??
-                null),
-        })),
+              ? undefined
+              : lookups.skills.get(this.pairKey(skill.skillId, rulesSet.id));
+          return {
+            ...skill,
+            category: flags?.category ?? null,
+            isElite: flags?.isElite ?? false,
+          };
+        }),
         primaryCategories: positionCategories?.primary ?? new Set(),
         secondaryCategories: positionCategories?.secondary ?? new Set(),
         increases: increasesByPlayer.get(row.playerId) ?? [],
@@ -195,6 +208,7 @@ export class PlayerAdvancementHistoryService {
         playerId: playerAdvancements.playerId,
         skillId: playerAdvancements.skillId,
         skillName: skills.name,
+        attributeValue: playerAdvancements.attributeValue,
         source: playerAdvancements.source,
         advancementOrder: playerAdvancements.advancementOrder,
         orderConfirmed: playerAdvancements.orderConfirmed,
@@ -299,9 +313,9 @@ export class PlayerAdvancementHistoryService {
   }
 
   /** No query when the chunk's players have no skills at all. */
-  private async loadSkillCategories(
+  private async loadSkillRulesSetFlags(
     skillIds: number[],
-  ): Promise<Map<string, SkillCategory>> {
+  ): Promise<Map<string, SkillRulesSetFlags>> {
     if (skillIds.length === 0) {
       return new Map();
     }
@@ -310,13 +324,14 @@ export class PlayerAdvancementHistoryService {
         skillId: skillRulesSets.skillId,
         rulesSetId: skillRulesSets.rulesSetId,
         category: skillRulesSets.category,
+        isElite: skillRulesSets.isElite,
       })
       .from(skillRulesSets)
       .where(inArray(skillRulesSets.skillId, skillIds));
     return new Map(
       rows.map((row) => [
         this.pairKey(row.skillId, row.rulesSetId),
-        row.category,
+        { category: row.category, isElite: row.isElite },
       ]),
     );
   }

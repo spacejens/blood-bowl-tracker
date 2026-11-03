@@ -63,6 +63,7 @@ const SKILLS = [
     playerId: 42,
     skillId: 10,
     skillName: 'Dodge',
+    attributeValue: null,
     source: 'random',
     advancementOrder: 1,
     orderConfirmed: false,
@@ -72,6 +73,7 @@ const SKILLS = [
     playerId: 42,
     skillId: 11,
     skillName: 'Guard',
+    attributeValue: 'Dwarf',
     source: 'chosen',
     advancementOrder: 2,
     orderConfirmed: false,
@@ -81,6 +83,7 @@ const SKILLS = [
     playerId: 42,
     skillId: 12,
     skillName: 'Block',
+    attributeValue: null,
     source: 'starting',
     advancementOrder: null,
     orderConfirmed: false,
@@ -110,9 +113,9 @@ const POSITION_CATEGORIES = [
 ];
 /** Guard is unlisted under BB2016; Dodge has another category under CRP. */
 const SKILL_CATEGORIES = [
-  { skillId: 10, rulesSetId: 2, category: 'agility' },
-  { skillId: 10, rulesSetId: 1, category: 'general' },
-  { skillId: 12, rulesSetId: 2, category: 'general' },
+  { skillId: 10, rulesSetId: 2, category: 'agility', isElite: true },
+  { skillId: 10, rulesSetId: 1, category: 'general', isElite: false },
+  { skillId: 12, rulesSetId: 2, category: 'general', isElite: false },
 ];
 
 async function makeService(
@@ -152,29 +155,35 @@ describe('PlayerAdvancementHistoryService', () => {
         {
           skillId: 12,
           skillName: 'Block',
+          attributeValue: null,
           source: 'starting',
           advancementOrder: null,
           orderConfirmed: false,
           isFreeExtra: false,
           category: 'general',
+          isElite: false,
         },
         {
           skillId: 10,
           skillName: 'Dodge',
+          attributeValue: null,
           source: 'random',
           advancementOrder: 1,
           orderConfirmed: false,
           isFreeExtra: false,
           category: 'agility',
+          isElite: true,
         },
         {
           skillId: 11,
           skillName: 'Guard',
+          attributeValue: 'Dwarf',
           source: 'chosen',
           advancementOrder: 2,
           orderConfirmed: false,
           isFreeExtra: true,
           category: null,
+          isElite: false,
         },
       ],
       primaryCategories: new Set(['general', 'agility']),
@@ -214,6 +223,7 @@ describe('PlayerAdvancementHistoryService', () => {
           playerId: 42,
           skillId: null,
           skillName: 'Unnamed',
+          attributeValue: null,
           source: 'characteristic',
           advancementOrder: 3,
           orderConfirmed: false,
@@ -255,6 +265,11 @@ describe('PlayerAdvancementHistoryService', () => {
       null,
       null,
       null,
+    ]);
+    expect(history?.skills.map((skill) => skill.isElite)).toEqual([
+      false,
+      false,
+      false,
     ]);
     expect(history?.primaryCategories).toEqual(new Set());
     expect(history?.secondaryCategories).toEqual(new Set());

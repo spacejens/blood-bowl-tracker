@@ -5,6 +5,7 @@ import {
 import { Module } from '@nestjs/common';
 
 import { PlayerProjectionQueryService } from './player-projection-query.service';
+import { SectionRenderService } from './section-render.service';
 
 /**
  * Cross-cutting services both the harness and every data-type module use.
@@ -19,11 +20,13 @@ import { PlayerProjectionQueryService } from './player-projection-query.service'
     ExternalSystemLookupService,
     HtmlService,
     PlayerProjectionQueryService,
+    SectionRenderService,
   ],
   exports: [
     ExternalSystemLookupService,
     HtmlService,
     PlayerProjectionQueryService,
+    SectionRenderService,
   ],
 })
 export class SharedModule {}

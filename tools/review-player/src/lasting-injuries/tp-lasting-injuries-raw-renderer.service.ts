@@ -4,23 +4,14 @@ import {
 } from '@blood-bowl-tracker/review-harness';
 import { Injectable } from '@nestjs/common';
 
-import type { TpRawPlayerAggregate } from '../source/tp-raw-player-index.service';
 import { TpRawPlayerIndexService } from '../source/tp-raw-player-index.service';
 
-/** The current-vs-template comparison table's columns. */
-const HEADERS = ['Row', 'MA', 'ST', 'AG', 'PA', 'AV'] as const;
-
 /**
- * What TP's raw roster data says about a player's outstanding injuries.
- *
- * TP reports two of the three kinds outright — `nigglingInjuries` and
- * `canPlayNextGame` — and those are shown verbatim. It reports nothing at all
- * about a currently-reduced characteristic, so the panel instead shows the two
- * lines a reduction would show up between: the player's current
- * MA/ST/AG/PA/AV and their position template's. The gap is left for the
- * reviewer to read. That is deliberate: deciding which direction of a gap is a
- * reduction is exactly the judgement the importer makes, and a review panel
- * that made the same judgement could only ever agree with it.
+ * What TP's raw roster data says about a player's outstanding injuries:
+ * `nigglingInjuries` and `canPlayNextGame`, verbatim. TP reports nothing about
+ * a currently-reduced characteristic; the career history's characteristics
+ * part shows the current stat line under the position template, where such a
+ * reduction shows up.
  *
  * Two distinct gaps get two distinct notes, matching the characteristics
  * renderer: a line-up id in no match file at all is a player this tool cannot
@@ -45,60 +36,23 @@ export class TpLastingInjuriesRawRendererService {
         `Line-up id ${externalId} appears in no downloaded TP match file.`,
       );
     }
-    const hasLastingInjuryData = [
-      aggregate.nigglingInjuries,
-      aggregate.canPlayNextGame,
-      aggregate.templateMove,
-      aggregate.templateStrength,
-      aggregate.templateAgility,
-      aggregate.templatePassing,
-      aggregate.templateArmour,
-    ].some((value) => value !== null);
+    const hasLastingInjuryData =
+      aggregate.nigglingInjuries !== null || aggregate.canPlayNextGame !== null;
     if (!hasLastingInjuryData) {
       return this.html.note(
         `No lasting-injury data for line-up id ${externalId} in any ` +
           'downloaded TP roster file.',
       );
     }
-    return [
-      this.html.table(
-        ['nigglingInjuries', 'canPlayNextGame'],
+    return this.html.table(
+      ['nigglingInjuries', 'canPlayNextGame'],
+      [
         [
-          [
-            this.display(aggregate.nigglingInjuries),
-            this.display(aggregate.canPlayNextGame),
-          ],
+          this.display(aggregate.nigglingInjuries),
+          this.display(aggregate.canPlayNextGame),
         ],
-      ),
-      this.html.subheading('Current vs. position template'),
-      this.html.table(
-        [...HEADERS],
-        [
-          ['Template', ...this.templateValues(aggregate)],
-          ['Player', ...this.currentValues(aggregate)],
-        ],
-      ),
-    ].join('');
-  }
-
-  private templateValues(aggregate: TpRawPlayerAggregate): string[] {
-    return [
-      aggregate.templateMove,
-      aggregate.templateStrength,
-      aggregate.templateAgility,
-      aggregate.templatePassing,
-      aggregate.templateArmour,
-    ].map((value) => this.display(value));
-  }
-
-  private currentValues(aggregate: TpRawPlayerAggregate): string[] {
-    return [
-      aggregate.move,
-      aggregate.strength,
-      aggregate.agility,
-      aggregate.passing,
-      aggregate.armour,
-    ].map((value) => this.display(value));
+      ],
+    );
   }
 
   /**
