@@ -39,7 +39,11 @@ describe('PlayerOverviewReviewerService', () => {
   let rawKeywords: MockProxy<PlayerKeywordsRawRendererService>;
   let dbKeywords: MockProxy<PlayerKeywordsDbRendererService>;
 
+  let sections: MockProxy<SectionRenderService>;
+
   beforeEach(async () => {
+    sections = mock<SectionRenderService>();
+    sections.render.mockImplementation((section) => section());
     bblInfo = mock<BblPlayerInfoRawRendererService>();
     tpInfo = mock<TpPlayerInfoRawRendererService>();
     dbInfo = mock<PlayerInfoDbRendererService>();
@@ -67,11 +71,9 @@ describe('PlayerOverviewReviewerService', () => {
         { provide: PlayerStatusDbRendererService, useValue: dbStatus },
         { provide: PlayerKeywordsRawRendererService, useValue: rawKeywords },
         { provide: PlayerKeywordsDbRendererService, useValue: dbKeywords },
-        // HtmlService and SectionRenderService are passed real: a pure
-        // markup chain with no I/O, so the failure notes are asserted as
-        // rendered.
+        // HtmlService is a pure formatter and is passed real.
         HtmlService,
-        SectionRenderService,
+        { provide: SectionRenderService, useValue: sections },
       ],
     }).compile();
     service = moduleRef.get(PlayerOverviewReviewerService);
@@ -127,10 +129,17 @@ describe('PlayerOverviewReviewerService', () => {
   });
 
   const NOTE = '<p class="note">Rendering failed: boom</p>';
-  const boom = new Error('boom');
+
+  /** The section at this call position yields the note; the others forward. */
+  const failRenderAt = (position: number): void => {
+    for (let i = 0; i < position; i++) {
+      sections.render.mockImplementationOnce((section) => section());
+    }
+    sections.render.mockResolvedValueOnce(NOTE);
+  };
 
   it('shows a failure note for a failing BBL raw identity section only', async () => {
-    bblInfo.render.mockRejectedValue(boom);
+    failRenderAt(0);
 
     expect(await service.getRawSource(player)).toBe(
       '<h5>Identity</h5>' +
@@ -142,7 +151,7 @@ describe('PlayerOverviewReviewerService', () => {
 
   it('shows a failure note for a failing TP raw status section only', async () => {
     const tpPlayer: SampledPlayer = { ...player, source: 'tp' };
-    tpStatus.render.mockRejectedValue(boom);
+    failRenderAt(1);
 
     expect(await service.getRawSource(tpPlayer)).toBe(
       '<h5>Identity</h5>[tp info]' +
@@ -153,7 +162,7 @@ describe('PlayerOverviewReviewerService', () => {
   });
 
   it('shows a failure note for failing raw keywords only', async () => {
-    rawKeywords.render.mockRejectedValue(boom);
+    failRenderAt(2);
 
     expect(await service.getRawSource(player)).toBe(
       '<h5>Identity</h5>[bbl info]' +
@@ -164,7 +173,7 @@ describe('PlayerOverviewReviewerService', () => {
   });
 
   it('shows a failure note for a failing imported identity section only', async () => {
-    dbInfo.render.mockRejectedValue(boom);
+    failRenderAt(0);
 
     expect(await service.getImportedView(player)).toBe(
       '<h5>Identity</h5>' +
@@ -175,7 +184,7 @@ describe('PlayerOverviewReviewerService', () => {
   });
 
   it('shows a failure note for a failing imported status section only', async () => {
-    dbStatus.render.mockRejectedValue(boom);
+    failRenderAt(1);
 
     expect(await service.getImportedView(player)).toBe(
       '<h5>Identity</h5>[db info]' +
@@ -186,7 +195,7 @@ describe('PlayerOverviewReviewerService', () => {
   });
 
   it('shows a failure note for failing imported keywords only', async () => {
-    dbKeywords.render.mockRejectedValue(boom);
+    failRenderAt(2);
 
     expect(await service.getImportedView(player)).toBe(
       '<h5>Identity</h5>[db info]' +

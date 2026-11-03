@@ -48,7 +48,12 @@ describe('PlayerCareerHistoryReviewerService', () => {
   let characteristics: MockProxy<PlayerCharacteristicsDbRendererService>;
   let injuries: MockProxy<LastingInjuriesDbRendererService>;
 
+  let sections: MockProxy<SectionRenderService>;
+
   beforeEach(async () => {
+    sections = mock<SectionRenderService>();
+    sections.render.mockImplementation((section) => section());
+    sections.renderPair.mockImplementation((section) => section());
     bblAdvancements = mock<BblPlayerAdvancementsRawRendererService>();
     tpAdvancements = mock<TpPlayerAdvancementsRawRendererService>();
     bblCharacteristics = mock<BblPlayerCharacteristicsRawRendererService>();
@@ -106,11 +111,9 @@ describe('PlayerCareerHistoryReviewerService', () => {
           useValue: characteristics,
         },
         { provide: LastingInjuriesDbRendererService, useValue: injuries },
-        // HtmlService and SectionRenderService are passed real: a pure
-        // markup chain with no I/O, so the failure notes are asserted as
-        // rendered.
+        // HtmlService is a pure formatter and is passed real.
         HtmlService,
-        SectionRenderService,
+        { provide: SectionRenderService, useValue: sections },
       ],
     }).compile();
     service = moduleRef.get(PlayerCareerHistoryReviewerService);
@@ -170,10 +173,17 @@ describe('PlayerCareerHistoryReviewerService', () => {
   });
 
   const NOTE = '<p class="note">Rendering failed: boom</p>';
-  const boom = new Error('boom');
+
+  /** The section at this call position yields the note; the others forward. */
+  const failRenderAt = (position: number): void => {
+    for (let i = 0; i < position; i++) {
+      sections.render.mockImplementationOnce((section) => section());
+    }
+    sections.render.mockResolvedValueOnce(NOTE);
+  };
 
   it('shows a failure note for a failing BBL raw advancements section only', async () => {
-    bblAdvancements.render.mockRejectedValue(boom);
+    failRenderAt(0);
 
     expect(await service.getRawSource(player)).toBe(
       NOTE +
@@ -183,7 +193,7 @@ describe('PlayerCareerHistoryReviewerService', () => {
   });
 
   it('shows a failure note for a failing BBL raw characteristics section only', async () => {
-    bblCharacteristics.render.mockRejectedValue(boom);
+    failRenderAt(1);
 
     expect(await service.getRawSource(player)).toBe(
       '[bbl advancements]' +
@@ -194,7 +204,7 @@ describe('PlayerCareerHistoryReviewerService', () => {
   });
 
   it('shows a failure note for a failing BBL raw injuries section only', async () => {
-    bblInjuries.render.mockRejectedValue(boom);
+    failRenderAt(2);
 
     expect(await service.getRawSource(player)).toBe(
       '[bbl advancements]' +
@@ -206,8 +216,9 @@ describe('PlayerCareerHistoryReviewerService', () => {
 
   it('contains a TP raw failure to its own section', async () => {
     const tpPlayer: SampledPlayer = { ...player, source: 'tp' };
-    tpAdvancements.render.mockRejectedValue(boom);
-    tpInjuries.render.mockRejectedValue(boom);
+    sections.render.mockResolvedValueOnce(NOTE);
+    sections.render.mockImplementationOnce((section) => section());
+    sections.render.mockResolvedValueOnce(NOTE);
 
     expect(await service.getRawSource(tpPlayer)).toBe(
       NOTE +
@@ -218,7 +229,7 @@ describe('PlayerCareerHistoryReviewerService', () => {
   });
 
   it('shows a failure note for a failing SPP lookup section only', async () => {
-    sppLookup.load.mockRejectedValue(boom);
+    failRenderAt(0);
 
     expect(await service.getImportedView(player)).toBe(
       '<h5>SPP total</h5>' +
@@ -231,7 +242,7 @@ describe('PlayerCareerHistoryReviewerService', () => {
   });
 
   it('shows a failure note in both the advancements and unspent SPP slots when advancements fail', async () => {
-    advancements.render.mockRejectedValue(boom);
+    sections.renderPair.mockResolvedValueOnce([NOTE, NOTE]);
 
     expect(await service.getImportedView(player)).toBe(
       '<h5>SPP total</h5>[spp]' +
@@ -243,7 +254,7 @@ describe('PlayerCareerHistoryReviewerService', () => {
   });
 
   it('shows a failure note for a failing imported characteristics section only', async () => {
-    characteristics.render.mockRejectedValue(boom);
+    failRenderAt(1);
 
     expect(await service.getImportedView(player)).toBe(
       '<h5>SPP total</h5>[spp]' +
@@ -256,7 +267,7 @@ describe('PlayerCareerHistoryReviewerService', () => {
   });
 
   it('shows a failure note for a failing imported injuries section only', async () => {
-    injuries.render.mockRejectedValue(boom);
+    failRenderAt(2);
 
     expect(await service.getImportedView(player)).toBe(
       '<h5>SPP total</h5>[spp]' +
