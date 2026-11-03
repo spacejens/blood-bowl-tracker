@@ -24,8 +24,6 @@ export { DateToplistService } from './insights/date-toplist.service';
 export { OnThisDateModule } from './insights/on-this-date.module';
 export type {
   OnThisDateKilledPlayer,
-  OnThisDateOptions,
-  OnThisDateTopKilledOptions,
   OnThisDateVictim,
 } from './insights/on-this-date.service';
 export { OnThisDateService } from './insights/on-this-date.service';
@@ -127,25 +125,18 @@ export { AdvancementCostValidationError } from './shared/advancement-cost-valida
 export { CharacteristicDisplayFormattingModule } from './shared/characteristic-display-formatting.module';
 export { CharacteristicDisplayFormattingService } from './shared/characteristic-display-formatting.service';
 export { CharacteristicFormatMismatchError } from './shared/characteristic-format-mismatch-error';
-export { CharacteristicFormatValidationModule } from './shared/characteristic-format-validation.module';
-export { CharacteristicFormatValidationService } from './shared/characteristic-format-validation.service';
 export type { FactScope } from './shared/fact-scope';
 export { FACT_SCOPE_ALL_TIME } from './shared/fact-scope';
 export { KeywordValidationError } from './shared/keyword-validation-error';
 export { MissingRequiredFieldError } from './shared/missing-required-field-error';
-export type { PlayerContextNames } from './shared/player-context-names.service';
 export { PositionSkillCategoryValidationError } from './shared/position-skill-category-validation-error';
 export { PositionValidationError } from './shared/position-validation-error';
 export { SkillValidationError } from './shared/skill-validation-error';
 export { SppAwardValueValidationError } from './shared/spp-award-value-validation-error';
 export { SyncBatchValidationError } from './shared/sync-batch-validation-error';
-export type { TeamRaceAndCoachNames } from './shared/team-race-coach-names.service';
 export type { TeamTopPlayer } from './shared/team-top-player';
 export { SkillRulesSetsModule } from './skill-rules-sets/skill-rules-sets.module';
-export type {
-  RulesSetSkillCategory,
-  SkillCategoryByRulesSet,
-} from './skill-rules-sets/skill-rules-sets.service';
+export type { SkillCategoryByRulesSet } from './skill-rules-sets/skill-rules-sets.service';
 export { SkillRulesSetsService } from './skill-rules-sets/skill-rules-sets.service';
 export { SkillsModule } from './skills/skills.module';
 export type { SkillPlayerCount } from './skills/skills.service';
@@ -154,55 +145,22 @@ export {
   SkillUpsertConflictError,
 } from './skills/skills.service';
 export { AdvancementCostsService } from './spp/advancement-costs.service';
-export { AdvancementKindCandidatesService } from './spp/advancement-kind-candidates.service';
-export type { DeduceAdvancementOrderInput } from './spp/advancement-order-deduction.service';
 export { AdvancementOrderDeductionService } from './spp/advancement-order-deduction.service';
-export type { PricedCostRow } from './spp/advancement-pricing-model.service';
-export { AdvancementPricingModelService } from './spp/advancement-pricing-model.service';
-export { AdvancementSpendRangeService } from './spp/advancement-spend-range.service';
-export { BblSkillSourceInferenceService } from './spp/bbl-skill-source-inference.service';
 export { PlayerPricingModelService } from './spp/player-pricing-model.service';
 export { SppModule } from './spp/spp.module';
 export { SppAdjustmentsService } from './spp/spp-adjustments.service';
-export type { ResolveSppValueOptions } from './spp/spp-award-values.service';
 export { SppAwardValuesService } from './spp/spp-award-values.service';
-export { SppEventCountsService } from './spp/spp-event-counts.service';
-export {
-  MIGRATION_RULES_SET_NAME,
-  POST_MIGRATION_RULES_SET_NAMES,
-  SppForcedRateService,
-} from './spp/spp-forced-rate.service';
-export type { OngoingSppEntry } from './spp/spp-ongoing-estimate.service';
-export { SppOngoingEstimateService } from './spp/spp-ongoing-estimate.service';
-export { SppTotalsService } from './spp/spp-totals.service';
-export type { StoredFigure } from './spp/stored-unspent-spp-settlement.service';
-export { StoredUnspentSppSettlementService } from './spp/stored-unspent-spp-settlement.service';
 export { UnspentSppService } from './spp/unspent-spp.service';
 export type {
-  AdvancementCandidatesInput,
-  AdvancementOption,
-  ApplicableAdvancementCost,
   CoversAnother,
   KnownUnspentSpp,
-  ModelledUnspentSpp,
-  PlayerSkillEntry,
   PricingModel,
   RulesSetAdvancementInput,
-  SpendRange,
-  StoredUnspentVerdict,
-  UnknownUnspentSpp,
   UnspentSppResult,
   UnspentSppUnknownReason,
 } from './spp/unspent-spp.types';
-export { UnspentSppCombinationService } from './spp/unspent-spp-combination.service';
-export type { UnspentSppCandidate } from './spp/unspent-spp-decision.service';
-export { UnspentSppDecisionService } from './spp/unspent-spp-decision.service';
-export type {
-  TeamAverageDirection,
-  TeamAverageRow,
-} from './teams/team-average-statistics.service';
+export type { TeamAverageDirection } from './teams/team-average-statistics.service';
 export { TeamsModule } from './teams/teams.module';
-export type { TeamWithEras } from './teams/teams.service';
 export { TeamsService, TeamUpsertConflictError } from './teams/teams.service';
 export { TrophiesModule } from './trophies/trophies.module';
 export type { TrophyHeader } from './trophies/trophies.service';
@@ -210,7 +168,6 @@ export {
   TrophiesService,
   TrophyUpsertConflictError,
 } from './trophies/trophies.service';
-export type { TrophyAwardRuleDescriptionInput } from './trophies/trophy-award-rule-description.service';
 export { TrophyAwardRuleDescriptionService } from './trophies/trophy-award-rule-description.service';
 export { MissingTrophyAwardsService } from './trophy-awards/missing-trophy-awards.service';
 export { TrophyAwardsModule } from './trophy-awards/trophy-awards.module';

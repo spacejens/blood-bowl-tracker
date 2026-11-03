@@ -1,13 +1,6 @@
-export type {
-  DiscordClientModuleAsyncOptions,
-  DiscordClientModuleOptions,
-} from './discord-client.module';
 export { DiscordClientModule } from './discord-client.module';
 export type {
-  ButtonHandler,
   MessageHandler,
-  RestrictedRole,
-  SelectMenuHandler,
   SlashCommandDefinition,
 } from './discord-client.service';
 export {
@@ -18,7 +11,6 @@ export {
 } from './discord-client.service';
 export type {
   HandledInteraction,
-  HandledInteractionParameter,
   InteractionHandledListener,
 } from './handled-interaction';
 export { MemberRoleAccessService } from './member-role-access.service';
