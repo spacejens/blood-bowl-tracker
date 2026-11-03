@@ -55,14 +55,13 @@ to Discord; exiting`** — a step after a successful gateway connection
   live gateway sessions instead of one. Fly restarts the machine and it
   rejoins the election. Check the logged error for the underlying cause
   (a Discord API error, a misconfigured channel id, and similar).
-- **A migration error in `fly logs` from one of two simultaneously-starting
-  machines** — `packages/db`'s migration step runs unconditionally on both
-  machines at boot, and drizzle's migrator takes no lock of its own. A
-  rolling deploy staggers the two machines (the second isn't replaced until
-  the first passes its health check, which happens after migrations run), so
-  this is not a concern for the normal deploy path. It can happen if both
-  machines restart at the same moment with a pending migration — `fly scale
-count 2`, `fly apps restart`, or a coincidental simultaneous crash-restart
-  of both machines. The machine that lost the race crash-loops until Fly
-  restarts it into the now-migrated database; the other proceeds normally.
-  No manual fix is needed beyond letting Fly's restart machinery catch up.
+- **One machine sits silent at startup while the other migrates** —
+  `packages/db`'s migration step runs on both machines at boot, under a
+  Postgres advisory lock (see [Migrations](../database.md#migrations)). The
+  machine that does not get the lock waits until the other has finished
+  migrating, then finds nothing left to apply and starts normally. This is
+  expected whenever both machines start at the same moment with a pending
+  migration (a deploy, `fly apps restart`, or a simultaneous crash-restart),
+  and a long data migration makes the wait longer. No manual fix is needed; if
+  the wait never ends, look at the other machine's logs for a stuck or failed
+  migration.
