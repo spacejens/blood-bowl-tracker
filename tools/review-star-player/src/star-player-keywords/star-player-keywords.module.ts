@@ -22,6 +22,8 @@ import { StarPlayerKeywordsStratificationService } from './star-player-keywords-
     StarPlayerKeywordsStratificationService,
   ],
   exports: [
+    StarPlayerKeywordsDbRendererService,
+    StarPlayerKeywordsRawRendererService,
     StarPlayerKeywordsReviewerService,
     StarPlayerKeywordsStratificationService,
   ],

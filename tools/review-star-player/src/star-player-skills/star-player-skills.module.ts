@@ -24,6 +24,8 @@ import { StarPlayerSkillsStratificationService } from './star-player-skills-stra
     StarPlayerSkillsStratificationService,
   ],
   exports: [
+    StarPlayerSkillsDbRendererService,
+    StarPlayerSkillsRawRendererService,
     StarPlayerSkillsReviewerService,
     StarPlayerSkillsStratificationService,
   ],

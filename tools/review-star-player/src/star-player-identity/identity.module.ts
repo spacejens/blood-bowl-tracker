@@ -25,6 +25,8 @@ import { SourceCoverageStratificationService } from './source-coverage-stratific
   exports: [
     RandomStarPlayerStratificationService,
     SourceCoverageStratificationService,
+    StarPlayerIdentityDbRendererService,
+    StarPlayerIdentityRawRendererService,
     StarPlayerIdentityReviewerService,
   ],
 })

@@ -28,6 +28,8 @@ import { MissingRulesSetStratificationService } from './missing-rules-set-strati
   exports: [
     CharacteristicsChangeStratificationService,
     MissingRulesSetStratificationService,
+    StarPlayerCharacteristicsDbRendererService,
+    StarPlayerCharacteristicsRawRendererService,
     StarPlayerCharacteristicsReviewerService,
   ],
 })
