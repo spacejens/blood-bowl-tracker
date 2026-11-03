@@ -10,6 +10,7 @@ import { PositionExternalIdsService } from './position-external-ids.service';
 import { RaceExternalIdsService } from './race-external-ids.service';
 import { RaceNameComparisonService } from './race-name-comparison.service';
 import { RacePositionsQueryService } from './race-positions-query.service';
+import { SectionRenderService } from './section-render.service';
 
 /**
  * Cross-cutting services both the harness and every data-type module use.
@@ -28,6 +29,7 @@ const SHARED = [
   RaceExternalIdsService,
   RaceNameComparisonService,
   RacePositionsQueryService,
+  SectionRenderService,
 ];
 
 @Module({
