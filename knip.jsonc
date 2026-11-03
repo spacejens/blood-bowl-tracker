@@ -1,6 +1,16 @@
 {
   // Full config reference: https://knip.dev/reference/configuration
   "$schema": "https://unpkg.com/knip@6/schema.json",
+  // Report unused exports from package entry files (src/index.ts barrels)
+  // too; by default Knip treats everything an entry file exports as public
+  // API. Types used by an exported signature in the same file stay exported.
+  "includeEntryExports": true,
+  "ignoreExportsUsedInFile": true,
+  // markdownlint-cli2 loads this rule by file path from .markdownlint-cli2.jsonc,
+  // which Knip cannot follow, so its default export is public API.
+  "ignoreIssues": {
+    "tools/markdownlint-rules/src/index.ts": ["exports"]
+  },
   "workspaces": {
     "apps/*": {},
     "packages/*": {},
