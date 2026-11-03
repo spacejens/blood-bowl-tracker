@@ -5,9 +5,10 @@ import type { ReservedSql, Sql } from 'postgres';
 export const LOCK_SQL = Symbol('LOCK_SQL');
 
 /**
- * The two halves of the advisory lock key. Arbitrary but fixed: every machine
- * of this app must use the same pair, and nothing else in this database uses
- * advisory locks at all.
+ * The two halves of the leader-election advisory lock key. Arbitrary but
+ * fixed: every machine of this app must use the same pair. The startup
+ * migration lock in `db.ts` uses a different pair (4242/2), so the two never
+ * block each other.
  */
 export const LOCK_CLASS_ID = 4242;
 export const LOCK_OBJECT_ID = 1;
