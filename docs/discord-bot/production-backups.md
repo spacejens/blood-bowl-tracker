@@ -156,7 +156,9 @@ they fail, so a broken or missing backup is noticed before it is needed:
   verification (its backup run did not succeed): the backup's own alert
   covers that.
 - The freshness check, `.github/workflows/check-backup-freshness.yml`, runs
-  daily at 08:41 UTC and on manual dispatch. It runs
+  daily at 13:41 UTC and on manual dispatch. That is well after the backup's
+  nominal 03:17 UTC time, because GitHub delays the scheduled backup run by
+  several hours, so the check normally sees the same day's backup. It runs
   `backup-cli check-freshness` with the read-only token from the
   `production-backup-verify` environment, and fails when there is no backup
   or the newest is older than **36 hours** (the daily backup plus one missed
