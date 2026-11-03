@@ -24,6 +24,8 @@ import { StartingSkillsStratificationService } from './starting-skills-stratific
     StartingSkillsStratificationService,
   ],
   exports: [
+    PositionStartingSkillsDbRendererService,
+    PositionStartingSkillsRawRendererService,
     PositionStartingSkillsReviewerService,
     StartingSkillsStratificationService,
   ],

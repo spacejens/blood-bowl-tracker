@@ -22,6 +22,8 @@ import { PositionKeywordsReviewerService } from './position-keywords-reviewer.se
     KeywordCoverageStratificationService,
   ],
   exports: [
+    PositionKeywordsDbRendererService,
+    PositionKeywordsRawRendererService,
     PositionKeywordsReviewerService,
     KeywordCoverageStratificationService,
   ],

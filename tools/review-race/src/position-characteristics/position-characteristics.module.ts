@@ -24,6 +24,8 @@ import { PositionCharacteristicsReviewerService } from './position-characteristi
     CharacteristicsChangeStratificationService,
   ],
   exports: [
+    PositionCharacteristicsDbRendererService,
+    PositionCharacteristicsRawRendererService,
     PositionCharacteristicsReviewerService,
     CharacteristicsChangeStratificationService,
   ],
