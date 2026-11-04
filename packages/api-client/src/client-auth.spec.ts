@@ -1,27 +1,56 @@
-import { describe, expect, it, vi } from 'vitest';
-
-vi.mock('@orpc/client/fetch', () => ({
-  RPCLink: vi.fn().mockImplementation(function () {
-    return {};
-  }),
-}));
-
-import { RPCLink } from '@orpc/client/fetch';
+import type { Mock } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ApiClientFetch } from './client';
 import { createApiClient } from './client';
 
+interface LinkOptions {
+  url: string;
+  headers: () => Record<string, string>;
+  fetch: unknown;
+}
+
+type RpcLinkMock = Mock<(options: LinkOptions) => object>;
+
+// RPCLink is replaced by a wrapper delegating to the current test's mock,
+// installed fresh in beforeEach, so each test sees only its own calls.
+const link = vi.hoisted(() => {
+  const state: { current?: RpcLinkMock } = {};
+  return {
+    state,
+    get: (): RpcLinkMock => {
+      if (!state.current) {
+        throw new Error('RPCLink mock was not installed for this test');
+      }
+      return state.current;
+    },
+  };
+});
+
+vi.mock('@orpc/client/fetch', () => ({
+  // createApiClient calls `new RPCLink(options)`: a plain function (not an
+  // arrow) that returns an object can be called with `new`.
+  RPCLink: function RPCLink(options: LinkOptions): object {
+    return link.get()(options);
+  },
+}));
+
 describe('createApiClient authentication', () => {
-  const getLinkOptions = (): {
-    url: string;
-    headers: () => Record<string, string>;
-    fetch: unknown;
-  } =>
-    vi.mocked(RPCLink).mock.calls.at(-1)?.[0] as unknown as {
-      url: string;
-      headers: () => Record<string, string>;
-      fetch: unknown;
-    };
+  let rpcLink: RpcLinkMock;
+
+  beforeEach(() => {
+    rpcLink = vi.fn<(options: LinkOptions) => object>(() => ({}));
+    link.state.current = rpcLink;
+  });
+
+  afterEach(() => {
+    link.state.current = undefined;
+  });
+
+  const getLinkOptions = (): LinkOptions => {
+    expect(rpcLink).toHaveBeenCalledTimes(1);
+    return rpcLink.mock.calls[0][0];
+  };
 
   const stubFetch: ApiClientFetch = () => Promise.resolve(new Response('{}'));
 
