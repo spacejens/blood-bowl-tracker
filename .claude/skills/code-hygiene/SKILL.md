@@ -1,11 +1,11 @@
 ---
 name: code-hygiene
-description: Use for an on-demand code hygiene pass in the blood-bowl-tracker project — updates the pinned Node version (.nvmrc, Dockerfile base images, and @types/node in lock-step), removes unused dependencies and dead code, fixes dependencies that should be devDependencies, runs a security audit, fixes workspace version mismatches, checks for circular dependencies, and fixes lint/formatting, opening a single PR with the results. Ordinary dependency and Docker image updates are handled by Renovate, not this skill.
+description: Use for an on-demand code hygiene pass in the blood-bowl-tracker project — updates the pinned Node version (.nvmrc, Dockerfile base images, and @types/node in lock-step), removes unused dependencies and dead code, fixes dependencies that should be devDependencies, runs a security audit, fixes workspace version mismatches, removes obsolete or risky pnpm overrides and release-age exclusions, checks for circular dependencies, and fixes lint/formatting, opening a single PR with the results. Ordinary dependency and Docker image updates are handled by Renovate, not this skill.
 ---
 
 # code-hygiene
 
-Runs a fixed set of code hygiene checks — Node version updates, unused dependency/dead code removal, dependency placement (dependencies vs. devDependencies), a security audit, workspace version consistency, circular dependency detection, lint, and format — and opens a single pull request with the results. Unlike `develop-feature`, there is no specification or planning step: the checks and their order are fixed every run.
+Runs a fixed set of code hygiene checks — Node version updates, unused dependency/dead code removal, dependency placement (dependencies vs. devDependencies), a security audit, workspace version consistency, stale or risky `pnpm-workspace.yaml` overrides and release-age exclusions, circular dependency detection, lint, and format — and opens a single pull request with the results. Unlike `develop-feature`, there is no specification or planning step: the checks and their order are fixed every run.
 
 Ordinary npm dependency updates and Docker image tag bumps are **not** part of this skill — Renovate proposes those as its own PRs, configured by `renovate.json5` at the repo root. The one exception is the Node version, which this skill still owns (Task 1) because it has to move `.nvmrc`, every Dockerfile `FROM node:...` line, and every workspace's `@types/node` in lock-step; `renovate.json5` disables Renovate for `node` and `@types/node` so the two systems never conflict.
 
@@ -168,15 +168,31 @@ pnpm run hygiene:versions
 
 The first command fixes what syncpack can resolve automatically. The second re-reports what's left (syncpack can't always tell which of several divergent versions across workspaces is "correct"). Run `pnpm verify`. If the second command reports any remaining mismatch, stop and ask the developer which version should win, or how to configure a `versionGroups` entry in `syncpack.config.js` to allow the divergence intentionally.
 
-### Task 5: Circular dependencies
+### Task 5: pnpm-workspace.yaml overrides and release-age exclusions
+
+`overrides` and `minimumReleaseAgeExclude` in `pnpm-workspace.yaml` are workarounds that outlive their reason, and no other task looks at them. An override keeps forcing a version onto a dependency after the advisory it was added for is gone, and a bump of its range (Renovate proposes those) can move the dependency to a different major than the one its dependent declares and was built and tested against. That combination can pass `pnpm verify`, because unit tests that mock the dependency never exercise it, and still fail against the real service. An exclusion exempts specific versions from `minimumReleaseAge` and does nothing once the lockfile has moved past them. Run this after Tasks 2–4, so the lockfile has settled. If `pnpm-workspace.yaml` has neither key, or both are empty, this task makes no commit.
+
+**Overrides.** For each entry (`<selector>: <range>`, where the package being forced is the last name in the selector):
+
+1. Record who depends on it and what they declare: `pnpm why <package> -r` lists the dependents, and each dependent's own range is in its `package.json` under `node_modules/.pnpm/<dependent>@<version>/node_modules/<dependent>/`.
+2. Test whether it is still needed: save the current `pnpm audit` result, delete the entry, run `pnpm install`, then run `pnpm audit` and `pnpm why <package> -r` again.
+   - If no advisory is new after the removal (every new one is something the override was suppressing) and every dependent the selector covered now resolves a version inside its own declared range, the override is **obsolete**: leave it removed.
+   - Otherwise it is **still needed**: restore the entry.
+3. For an override that is still needed, check whether it is **problematic**: its range allows a version outside what the dependent declares (above all a different major), it is broader than the patched version requires, or its selector no longer matches any installed package. Do not decide this silently: stop and ask the developer whether to narrow it to the patched in-range version, resolve the advisory another way, or accept it as is.
+
+**Release-age exclusions.** For each `minimumReleaseAgeExclude` entry (`<package>@<version> || <version>`), delete the entry and run `pnpm install --frozen-lockfile`. pnpm checks the lockfile against `minimumReleaseAge` and prints "Lockfile passes supply-chain policies" when no exclusion is needed; if it fails naming a `<package>@<version>`, restore only that version. Looking the version up in the lockfile (`grep "^  <package>@<version>:" pnpm-lock.yaml`; scoped package names are quoted there) is a quick hint that an entry is obsolete, but the pnpm check is the verdict. If no entries remain, remove the `minimumReleaseAgeExclude` key and keep `minimumReleaseAge`.
+
+Run `pnpm verify`, then make one commit covering everything removed, e.g. "Remove obsolete pnpm overrides and release-age exclusions".
+
+### Task 6: Circular dependencies
 
 ```bash
 pnpm run hygiene:cycles
 ```
 
-Report-only — madge cannot fix a cycle automatically. If it reports any circular dependency, stop and ask the developer how to proceed. Unlike Tasks 2–4, this task never has a "fix" step — any finding here always pauses the run.
+Report-only — madge cannot fix a cycle automatically. If it reports any circular dependency, stop and ask the developer how to proceed. Unlike Tasks 2–5, this task never has a "fix" step — any finding here always pauses the run.
 
-### Task 6: Lint
+### Task 7: Lint
 
 ```bash
 pnpm lint:fix
@@ -184,7 +200,7 @@ pnpm lint:fix
 
 Run `pnpm verify`. Per this project's existing convention (`CLAUDE.md`), hand-edit only failures `pnpm lint:fix` can't auto-resolve — this is routine mechanical work, not a judgment call, so it is not a stop condition.
 
-### Task 7: Format
+### Task 8: Format
 
 ```bash
 pnpm format:fix
@@ -200,8 +216,9 @@ Any finding a task can't safely auto-fix pauses the run immediately for develope
 - Task 2: a security vulnerability with no available patched version.
 - Task 3: any dead-code/unused-dependency finding Knip couldn't auto-fix, or any dependency-placement candidate whose dev-only-vs-production-need status can't be confidently determined after investigation.
 - Task 4: any version mismatch syncpack couldn't auto-fix.
-- Task 5: any circular dependency at all (this check never auto-fixes).
+- Task 5: an override that is still needed but problematic (see Task 5), or a removal whose audit result can't be interpreted with confidence.
+- Task 6: any circular dependency at all (this check never auto-fixes).
 
-Tasks 6 and 7 have no stop condition — remaining lint/format issues after `--fix` are routine hand-edits per this project's existing convention, not judgment calls.
+Tasks 7 and 8 have no stop condition — remaining lint/format issues after `--fix` are routine hand-edits per this project's existing convention, not judgment calls.
 
 When paused, report what was found, what's already committed so far in the run, and wait for developer direction (fix manually, skip this item and continue, or abort the run) before resuming.
