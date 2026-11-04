@@ -60,9 +60,9 @@ type EntriesFn = (dir: string) => Promise<Dirent[]>;
  * exactly `order`, regardless of what the real `readdir` call returns. The
  * production code relies on `readdir` order to break roster-conflict ties
  * (see `absorbRoster`), and that order is filesystem-dependent — write order
- * does not reliably control it (that's what let the bug this guards against
- * slip past the original, non-discriminating tests). Pinning the scan order
- * directly is the only portable way to exercise both directions of the
+ * does not reliably control it, so a test that only writes files in a chosen
+ * order cannot discriminate between the two directions. Pinning the scan
+ * order directly is the only portable way to exercise both directions of the
  * guard.
  */
 function withOrderedEntries(
