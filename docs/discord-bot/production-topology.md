@@ -23,6 +23,15 @@ directory containing `fly.toml` as the Docker build context, and
 `apps/discord-bot/Dockerfile` builds from the monorepo root — the same
 context `docker-compose.yml` uses.
 
+The container runs the bot as the unprivileged `node` user (uid 1000) that the
+`node` Alpine base image provides, not as root. The application files are
+installed as root and are readable but not writable by the bot. The bot writes
+nothing to the filesystem at runtime: no volume is mounted. Its network
+traffic is outbound to Discord, Postgres and TP, and inbound on port 3000 for
+the TCP health check and the `flyctl proxy` RPC tunnel. A future feature that
+needs a writable path has to make one deliberately in
+`apps/discord-bot/Dockerfile`.
+
 The machines never scale to zero. `fly.toml` declares no `[[services]]` block
 (see below), and Fly's autostop/autostart machinery only acts on machines
 behind a declared service — with none declared, there is nothing for it to
