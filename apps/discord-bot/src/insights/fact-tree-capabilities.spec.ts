@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { buildFactTree } from './fact-tree';
 import { stubFactTreeDeps } from './fact-tree.test-helpers';
@@ -8,7 +8,7 @@ import { FactTreeNavigationService } from './fact-tree-navigation.service';
 
 let factTreeNavigation: FactTreeNavigationService;
 
-beforeAll(async () => {
+beforeEach(async () => {
   const moduleRef = await Test.createTestingModule({
     providers: [FactTreeNavigationService],
   }).compile();
