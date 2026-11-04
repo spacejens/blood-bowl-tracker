@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
 import { LikePatternService } from '../shared/like-pattern.service';
+import { CompetitionEnrollmentService } from './competition-enrollment.service';
 import { CompetitionsService } from './competitions.service';
 
 async function makeService(rows: unknown[]) {
@@ -14,6 +15,10 @@ async function makeService(rows: unknown[]) {
       CompetitionsService,
       { provide: DB, useValue: db },
       { provide: LikePatternService, useValue: mock<LikePatternService>() },
+      {
+        provide: CompetitionEnrollmentService,
+        useValue: mock<CompetitionEnrollmentService>(),
+      },
     ],
   }).compile();
   return { service: moduleRef.get(CompetitionsService), chains };
