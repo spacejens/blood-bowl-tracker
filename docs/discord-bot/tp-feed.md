@@ -1,6 +1,6 @@
 # TP notification feed
 
-Blood Bowl leagues that run on [tourplay.net](https://tourplay.net) ("TP")
+Blood Bowl leagues that run on [tourplay.net](https://tourplay.net) ("[TP](../glossary.md#tp)")
 post their own notifications into a Discord channel through TP's Discord
 integration. The bot can watch that channel, parse those notifications, and
 echo a one-line interpretation of each into a second channel, so a maintainer

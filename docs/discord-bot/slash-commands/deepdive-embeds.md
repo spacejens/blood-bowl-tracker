@@ -99,7 +99,7 @@ list.
 
 ### Keywords
 
-Right after the stat lines, one line per rules set that has BB2025-style
+Right after the stat lines, one line per rules set that has [BB2025](../../glossary.md#bb2025)-style
 keywords recorded for this star, naming the rules set and its keywords
 comma-separated: `BB2025 keywords: Goblin, Undead`. A rules set with none
 recorded contributes no line, and the whole group is left out entirely for a

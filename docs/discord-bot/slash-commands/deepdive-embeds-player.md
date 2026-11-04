@@ -113,7 +113,7 @@ target shows that value in brackets after its name.
 An advancement can carry markers before its name, always in this order:
 
 - `⇅`: a gained skill or increase whose place in the sequence is not
-  confirmed: BBL's page order always is, TP's only where its reported spend
+  confirmed: [BBL](../../glossary.md#bbl)'s page order always is, [TP](../../glossary.md#tp)'s only where its reported spend
   decides it (see
   [Order of advancements](../../import-tp-live/index.md#order-of-advancements)).
   Never on a starting skill or a free extra.
@@ -122,17 +122,17 @@ An advancement can carry markers before its name, always in this order:
   chosen. BBL does not say, and the import settles it only where the SPP BBL
   reports as spent allows (see
   [unspent SPP](../../game-concepts/players/index.md#unspent-spp)). Shown
-  only when the player's era prices advancements by kind (BB2020, DB2021,
-  BB2025), where a rolled skill costs less than a chosen one, so an unmarked
-  skill would read as chosen. Never shown in a fixed-threshold era (CRP,
-  CRP+, BB2016), where every advancement costs the same; never on a free
+  only when the player's era prices advancements by kind ([BB2020](../../glossary.md#bb2020), [DB2021](../../glossary.md#db2021),
+  [BB2025](../../glossary.md#bb2025)), where a rolled skill costs less than a chosen one, so an unmarked
+  skill would read as chosen. Never shown in a fixed-threshold era ([CRP](../../glossary.md#crp-and-crp),
+  [CRP+](../../glossary.md#crp-and-crp), [BB2016](../../glossary.md#bb2016)), where every advancement costs the same; never on a free
   extra or a starting skill; and not when the era's pricing model cannot be
   worked out or the lookup fails or times out.
 - `✚`: a [free extra](../../glossary.md#free-extra-skill), a gained skill that
   cost no SPP.
 - `★`: a star player's own exclusive skill, on starting and gained skills
   alike.
-- `♦`: an elite gained skill.
+- `♦`: an [elite](../../glossary.md#elite-skill) gained skill.
 
 The embed has no legend for the markers.
 
