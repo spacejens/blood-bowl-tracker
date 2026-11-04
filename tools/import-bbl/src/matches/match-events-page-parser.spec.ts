@@ -16,11 +16,6 @@ function matchPage(id: string, html: string): BblPage {
 async function makeParser(
   annotations: Record<string, CellAnnotation> = {},
 ): Promise<MatchEventsPageParser> {
-  const normalizeText: MockProxy<NormalizeExtractedTextService> =
-    mock<NormalizeExtractedTextService>();
-  normalizeText.normalize.mockImplementation((s: string) =>
-    s.replace(/\s+/g, ' ').trim(),
-  );
   // Canned per-text answers only — the real vocabulary is tested in
   // cell-annotation.service.spec.ts and must not be re-derived here. Anything
   // a test did not seed falls through to `unrecognised`.
@@ -32,10 +27,12 @@ async function makeParser(
   for (const [text, annotation] of Object.entries(annotations)) {
     cellAnnotation.classify.calledWith(text).mockReturnValue(annotation);
   }
+  // NormalizeExtractedTextService is pure and dependency-free, so it is
+  // passed real rather than mocked with a copy of its algorithm.
   const moduleRef = await Test.createTestingModule({
     providers: [
       MatchEventsPageParser,
-      { provide: NormalizeExtractedTextService, useValue: normalizeText },
+      NormalizeExtractedTextService,
       { provide: CellAnnotationService, useValue: cellAnnotation },
     ],
   }).compile();
