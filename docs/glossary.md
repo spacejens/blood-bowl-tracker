@@ -78,7 +78,7 @@ See [game-concepts/competitions](game-concepts/competitions/index.md).
 
 ### CRP and CRP+
 
-CRP is the Competition Rules Pack [rules set](#rules-set). CRP+ follows it in the era sequence CRP → CRP+ → [BB2016](#bb2016); its source is NTBB2015. Both price [advancements](#advancement) at fixed thresholds of 6, 16, 31, 51, 76 and 176 [SPP](#star-player-points-spp), each threshold reached earning a roll on the advancement table.
+CRP is the Competition Rules Pack [rules set](#rules-set). CRP+ follows it in [tLoEG](#tloeg)'s era sequence CRP → CRP+ → [BB2016](#bb2016). Both price [advancements](#advancement) at fixed thresholds of 6, 16, 31, 51, 76 and 176 [SPP](#star-player-points-spp), each threshold reached earning a roll on the advancement table.
 
 See [game-concepts/rules-sets](game-concepts/rules-sets/index.md).
 
@@ -126,7 +126,7 @@ See [game-concepts/external-systems](game-concepts/external-systems/index.md).
 
 ### Free extra skill
 
-A gained [skill](#skill) a [player](#player) has without having spent [SPP](#star-player-points-spp) on it, and that is not one of their [advancements](#advancement): it costs nothing and does not raise the price of later advancements. BB2025's Hatred, a skill TP flags as extra, and a skill a [trophy award](#trophy-award) grants are free extras.
+A gained [skill](#skill) a [player](#player) has without having spent [SPP](#star-player-points-spp) on it, and that is not one of their [advancements](#advancement): it costs nothing and does not raise the price of later advancements. [BB2025](#bb2025)'s Hatred, a skill [TP](#tp) flags as extra, and a skill a [trophy award](#trophy-award) grants are free extras.
 
 See [game-concepts/skills](game-concepts/skills/index.md#player-skills).
 
@@ -159,9 +159,9 @@ A temporary [player](#player) fielded by a [team](#team) that has too few availa
 A label attached to a [position](#position) — `Goblin`, `Undead`,
 `Big Guy` — that rules single out instead of naming a [race](#race). A
 position can carry several at once, recorded per [rules set](#rules-set).
-Species keywords (`Goblin`, `Undead`) are BB2025-only; positional keywords
-including `Big Guy` also appear under DB2021, and `Big Guy` alone also
-appears under BB2020.
+Species keywords (`Goblin`, `Undead`) are [BB2025](#bb2025)-only; positional
+keywords including `Big Guy` also appear under [DB2021](#db2021), and
+`Big Guy` alone also appears under [BB2020](#bb2020).
 
 See [game-concepts/keywords](game-concepts/keywords/index.md).
 
@@ -350,7 +350,7 @@ See [discord-bot/slash-commands/insights.md](discord-bot/slash-commands/insights
 
 ### Manual import batch
 
-A numbered directory of `tools/import-manual`'s hand-curated data, applied to a database once, in number order (the first before the BBL and TP importers, the rest after them), and then kept unchanged as a historical record. The database records which batches it holds, so a long-lived database receives only new batches.
+A numbered directory of `tools/import-manual`'s hand-curated data, applied to a database once, in number order (the first before the [BBL](#bbl) and [TP](#tp) importers, the rest after them), and then kept unchanged as a historical record. The database records which batches it holds, so a long-lived database receives only new batches.
 
 See [import-manual/batches.md](import-manual/batches.md).
 
