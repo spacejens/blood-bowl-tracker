@@ -149,8 +149,8 @@ export class HireEligibilityRawRendererService {
    * own doc comment names "a wrongly narrow eligibility row" as a real
    * concern, so a DB that under-claims must not read the same as one that
    * matches. Equal counts are labelled accordingly, not "consistent" — that
-   * word claims more than a count comparison can support. Full race-identity
-   * comparison is a deliberate follow-up, not implemented here.
+   * word claims more than a count comparison can support. Only the counts
+   * are compared, not which races they cover.
    */
   private async verdictSection(
     star: SampledStarPlayer,

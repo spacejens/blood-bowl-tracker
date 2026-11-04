@@ -401,8 +401,8 @@
     // rulebook covers but this PDF does not (Human, Orc, Dwarf, Skaven, Dark
     // Elf, Elven Union, High Elf, Wood Elf, Nurgle, Slann) -- every one of
     // those ten races' entries below is sourced from public knowledge of the
-    // published BB2016 rules rather than a page in this session's PDF, and
-    // carries its own `// TODO: verify` comment.
+    // published BB2016 rules rather than a page in that PDF, and carries its
+    // own `// TODO: verify` comment.
     // ================================================================
 
     // --- BB2016: Amazon (Teams of Legend p.1) ---
@@ -494,8 +494,8 @@
     // Teams of Legend is 9 pages total and does not cover the BB2016
     // boxed-set teams or BB2016 CRP-legacy races -- those ten races below
     // are sourced from public knowledge of the published BB2016 rules, not
-    // from a PDF this session may open, and every entry carries its own
-    // `// TODO: verify` comment.
+    // from that PDF, and every entry carries its own `// TODO: verify`
+    // comment.
 
     // --- BB2016: Human (public rules reference -- TODO: verify) ---
     // Human Lineman: no starting skills.

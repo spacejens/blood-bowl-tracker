@@ -133,8 +133,8 @@ export class DebugFilterUsageCommandService implements OnModuleInit {
    * verbatim duplication over a premature shared helper.
    *
    * Neither list is capped, so unlike that sibling this is a limit a busy
-   * install could genuinely reach. A hard truncation is still the answer, with
-   * pagination deliberately left for a later iteration.
+   * install could genuinely reach. The description is hard-truncated; there
+   * is no pagination.
    */
   private enforceDescriptionLimit(description: string): string {
     if (description.length <= MAX_DESCRIPTION_LENGTH) {
