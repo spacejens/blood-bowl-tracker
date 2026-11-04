@@ -11,12 +11,10 @@ export { ManualBatchReaderService } from './manual-batch-reader.service';
 export { createRegistryProvider } from './registry-provider';
 export type {
   ReportEntityNoun,
-  ReviewedItem,
   ReviewPanel,
   ReviewReport,
 } from './report-builder-base.service';
 export { ReportBuilderBase } from './report-builder-base.service';
-export type { ReportOutputPathProvider } from './report-writer.service';
 export {
   REPORT_OUTPUT_PATH,
   ReportWriterService,
@@ -28,26 +26,15 @@ export type {
   Sampled,
 } from './review.types';
 export { REVIEW_SOURCES } from './review.types';
-export type {
-  ReviewAppModuleOptions,
-  ReviewDatabaseUrlProvider,
-} from './review-app-module';
 export { createReviewAppModule } from './review-app-module';
 export type { ReviewOutcome, ReviewSampler } from './review-base.service';
 export { ReviewServiceBase } from './review-base.service';
-export type {
-  ReviewConfigService,
-  ReviewConfigServiceConfig,
-  ReviewConfigServiceConstructor,
-} from './review-config-base.service';
+// Needed by consumers' declaration emit: the classes their config services
+// extend are typed with it, so it must be nameable through the package entry.
+/** @public */
+export type { ReviewConfigServiceConstructor } from './review-config-base.service';
 export { createReviewConfigServiceBase } from './review-config-base.service';
-export type { SkillFormatInput } from './skill-format.service';
-export {
-  ELITE_SKILL_MARKER,
-  RANDOM_SKILL_MARKER,
-  SkillFormatService,
-  UNIQUE_SKILL_MARKER,
-} from './skill-format.service';
+export { SkillFormatService } from './skill-format.service';
 export type { Stratifier, StratumSampleRequest } from './stratifier';
 export { STRATIFIERS } from './stratifier';
 // Re-exported from @blood-bowl-tracker/domain-enums: the review tools depend on

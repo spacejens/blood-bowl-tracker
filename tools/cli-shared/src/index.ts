@@ -16,5 +16,4 @@ export {
   TIMED_OUT_EXIT_CODE,
 } from './process-runner.service';
 export { ProductionEnvFileService } from './production-env-file.service';
-export type { RunCliOptions } from './run-cli';
 export { runCli } from './run-cli';
