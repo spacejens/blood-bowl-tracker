@@ -12,8 +12,8 @@ export const REVIEW = {
   state: 'COMMENTED',
   /**
    * Non-empty on purpose: a review with a body short-circuits the
-   * inline-comment verification entirely, which is the common path every
-   * pre-existing test in this directory exercises.
+   * inline-comment verification entirely, which is the common path most
+   * tests in this directory exercise.
    */
   body: 'Actionable comments posted: 2',
   submittedAt: '2026-08-11T10:00:00Z',

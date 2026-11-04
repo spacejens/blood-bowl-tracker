@@ -57,7 +57,7 @@ function makeDb(opts: {
  * session wraps every query failure in a real `DrizzleQueryError` (imported
  * from `drizzle-orm` itself, not hand-rolled, so a future drizzle release
  * that changes where it stashes the driver error breaks this test rather
- * than silently keeping production's dead-code regression hidden), whose
+ * than silently leaving the classifier's unwrapping untested), whose
  * `cause` is the real `postgres` driver's `PostgresError` — the only place
  * `code`, `table_name` and `constraint_name` actually live. The classifier
  * under test must unwrap this `.cause` chain, so the mock has to reproduce it
