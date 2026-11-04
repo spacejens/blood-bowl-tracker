@@ -1,25 +1,75 @@
-import { existsSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 
 import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TempDirService } from './temp-dir.service';
 
+type RmSync = (
+  path: string,
+  options?: { recursive?: boolean; force?: boolean },
+) => void;
+
+// Only rmSync is swappable; it delegates to the current test's mock,
+// installed fresh in beforeEach and defaulting to the real rmSync. Every other
+// node:fs export is the real implementation.
+const fs = vi.hoisted(() => {
+  const state: { current?: Mock<RmSync> } = {};
+  return {
+    state,
+    get: (): Mock<RmSync> => {
+      if (!state.current) {
+        throw new Error('rmSync mock was not installed for this test');
+      }
+      return state.current;
+    },
+  };
+});
+
 vi.mock('node:fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:fs')>();
-  return { ...actual, rmSync: vi.fn(actual.rmSync) };
+  return {
+    ...actual,
+    rmSync: (
+      path: string,
+      options?: { recursive?: boolean; force?: boolean },
+    ): void => {
+      fs.get()(path, options);
+    },
+  };
 });
 
 describe('TempDirService', () => {
   let service: TempDirService;
+  let rmSync: Mock<RmSync>;
+  let realRmSync: RmSync;
+  // Directories a test's mocked rmSync failed to remove; cleaned up after it.
+  let leftovers: string[];
 
   beforeEach(async () => {
+    const actual = await vi.importActual<typeof import('node:fs')>('node:fs');
+    realRmSync = actual.rmSync;
+    rmSync = vi.fn<RmSync>((path, options) => {
+      actual.rmSync(path, options);
+    });
+    fs.state.current = rmSync;
+    leftovers = [];
     const moduleRef = await Test.createTestingModule({
       providers: [TempDirService],
     }).compile();
     service = moduleRef.get(TempDirService);
+  });
+
+  afterEach(() => {
+    fs.state.current = undefined;
+    // Only undoes the process.stderr.write spies (vi.spyOn on a real global).
+    vi.restoreAllMocks();
+    for (const dir of leftovers) {
+      realRmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it('runs the work in a new prefixed directory under the OS temp dir and returns its result', async () => {
@@ -52,49 +102,36 @@ describe('TempDirService', () => {
 
   it('warns, without masking the original error, when the directory cannot be removed', async () => {
     let seen = '';
-    vi.mocked(rmSync).mockImplementationOnce(() => {
+    rmSync.mockImplementationOnce(() => {
       throw new Error('EBUSY');
     });
     const stderr = vi
       .spyOn(process.stderr, 'write')
       .mockImplementation(() => true);
 
-    try {
-      await expect(
-        service.run('backup-cli-test-', (dir) => {
-          seen = dir;
-          return Promise.reject(new Error('pg_restore failed'));
-        }),
-      ).rejects.toThrow('pg_restore failed');
-      const written = stderr.mock.calls.map((call) => String(call[0])).join('');
-      expect(written).toBe(
-        `Warning: Could not remove temporary directory ${seen}; delete it manually.\n`,
-      );
-    } finally {
-      stderr.mockRestore();
-      // The mocked removal failed, so remove the leftover directory here.
-      rmSync(seen, { recursive: true, force: true });
-    }
+    await expect(
+      service.run('backup-cli-test-', (dir) => {
+        seen = dir;
+        leftovers.push(dir);
+        return Promise.reject(new Error('pg_restore failed'));
+      }),
+    ).rejects.toThrow('pg_restore failed');
+    const written = stderr.mock.calls.map((call) => String(call[0])).join('');
+    expect(written).toBe(
+      `Warning: Could not remove temporary directory ${seen}; delete it manually.\n`,
+    );
   });
 
   it('still returns the result when the directory cannot be removed after success', async () => {
-    let seen = '';
-    vi.mocked(rmSync).mockImplementationOnce(() => {
+    rmSync.mockImplementationOnce(() => {
       throw new Error('EBUSY');
     });
-    const stderr = vi
-      .spyOn(process.stderr, 'write')
-      .mockImplementation(() => true);
+    vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
 
-    try {
-      const result = await service.run('backup-cli-test-', (dir) => {
-        seen = dir;
-        return Promise.resolve('ok');
-      });
-      expect(result).toBe('ok');
-    } finally {
-      stderr.mockRestore();
-      rmSync(seen, { recursive: true, force: true });
-    }
+    const result = await service.run('backup-cli-test-', (dir) => {
+      leftovers.push(dir);
+      return Promise.resolve('ok');
+    });
+    expect(result).toBe('ok');
   });
 });
