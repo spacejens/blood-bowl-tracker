@@ -181,7 +181,7 @@ describe('competition enrollment rules (real Postgres)', () => {
 
     await expect(
       service.upsert(payload({ teamEraIds: [f.xSecondInA, f.yInA] })),
-    ).rejects.toThrow(CompetitionEnrollmentError);
+    ).rejects.toThrow('coach "Coach X" already has team era');
     expect(await enrolledIds()).toEqual([f.xFirstInA]);
   });
 

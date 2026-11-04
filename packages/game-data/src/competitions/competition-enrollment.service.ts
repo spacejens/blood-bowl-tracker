@@ -70,9 +70,10 @@ const ENROLLMENT_COLUMNS = {
  * own, so re-importing an unchanged competition succeeds even when its
  * stored enrollment predates these rules and breaks them.
  *
- * The checks run outside the upsert's transaction. Importers write a
- * competition's enrollment sequentially, so a concurrent enrollment slipping
- * in between the check and the write is not a case worth a lock.
+ * The checks are not transactional with the write: they run outside the
+ * upsert's transaction. In practice importers write a competition's
+ * enrollment sequentially, but a concurrent import could in principle
+ * interleave between the check and the write; that is not worth a lock.
  */
 @Injectable()
 export class CompetitionEnrollmentService {
@@ -95,7 +96,7 @@ export class CompetitionEnrollmentService {
     const enrolled =
       stored === undefined ? [] : await this.listEnrolled(stored.id);
     if (stored !== undefined && eraId !== stored.eraId) {
-      this.checkEraChange({ competitionName, eraId, enrolled, incoming: [] });
+      this.checkEraChange({ competitionName, eraId, enrolled });
     }
     const enrolledIds = new Set(enrolled.map((row) => row.teamEraId));
     const newIds = [...new Set(data.teamEraIds)].filter(
@@ -167,7 +168,7 @@ export class CompetitionEnrollmentService {
     competitionName,
     eraId,
     enrolled,
-  }: EnrollmentCheck): void {
+  }: Omit<EnrollmentCheck, 'incoming'>): void {
     const misfit = enrolled.find((row) => row.eraId !== eraId);
     if (misfit !== undefined) {
       throw new CompetitionEnrollmentError(

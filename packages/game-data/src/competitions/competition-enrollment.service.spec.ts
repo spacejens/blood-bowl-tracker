@@ -137,6 +137,12 @@ describe('CompetitionEnrollmentService', () => {
       ).rejects.toThrow('in competition "unnamed new competition"');
     });
 
+    it('leaves a requested team era id matching no row to the upsert', async () => {
+      const { service } = await makeService([], [teamEra(100)]);
+
+      await expect(service.validate(data)).resolves.toBeUndefined();
+    });
+
     it('checks nothing when no team eras are requested', async () => {
       const { service, chains } = await makeService([]);
 
