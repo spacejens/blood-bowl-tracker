@@ -1,4 +1,4 @@
-FROM node:24-alpine AS builder
+FROM node:26-alpine AS builder
 WORKDIR /build
 
 RUN npm install -g corepack && corepack enable && corepack prepare pnpm@11.9.0 --activate
@@ -28,7 +28,7 @@ COPY . .
 RUN pnpm build
 
 
-FROM node:24-alpine
+FROM node:26-alpine
 WORKDIR /app
 
 RUN npm install -g corepack && corepack enable && corepack prepare pnpm@11.9.0 --activate
