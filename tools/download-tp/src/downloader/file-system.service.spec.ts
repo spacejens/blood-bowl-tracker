@@ -4,10 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FileSystemService } from './file-system.service';
 
+type Fs = typeof import('node:fs');
+
 interface FsMocks {
-  existsSync: Mock<(path: string) => boolean>;
-  mkdirSync: Mock<(path: string, options: { recursive: boolean }) => void>;
-  writeFileSync: Mock<(path: string, data: string) => void>;
+  existsSync: Mock<Fs['existsSync']>;
+  mkdirSync: Mock<Fs['mkdirSync']>;
+  writeFileSync: Mock<Fs['writeFileSync']>;
 }
 
 // node:fs is replaced by thin wrappers delegating to the current test's set of
@@ -27,13 +29,12 @@ const fs = vi.hoisted(() => {
 });
 
 vi.mock('node:fs', () => ({
-  existsSync: (path: string): boolean => fs.get().existsSync(path),
-  mkdirSync: (path: string, options: { recursive: boolean }): void => {
-    fs.get().mkdirSync(path, options);
-  },
-  writeFileSync: (path: string, data: string): void => {
-    fs.get().writeFileSync(path, data);
-  },
+  existsSync: (...args: Parameters<Fs['existsSync']>) =>
+    fs.get().existsSync(...args),
+  mkdirSync: (...args: Parameters<Fs['mkdirSync']>) =>
+    fs.get().mkdirSync(...args),
+  writeFileSync: (...args: Parameters<Fs['writeFileSync']>) =>
+    fs.get().writeFileSync(...args),
 }));
 
 describe('FileSystemService', () => {

@@ -33,11 +33,8 @@ vi.mock('node:fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:fs')>();
   return {
     ...actual,
-    rmSync: (
-      path: string,
-      options?: { recursive?: boolean; force?: boolean },
-    ): void => {
-      fs.get()(path, options);
+    rmSync: (...args: Parameters<RmSync>): void => {
+      fs.get()(...args);
     },
   };
 });
