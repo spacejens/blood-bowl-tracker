@@ -53,7 +53,7 @@ Two of the three tools below read a config file, committed at the repo root: `kn
 
 ### `knip.jsonc`
 
-Read the committed `knip.jsonc` itself for the current configuration; it is the source of truth and carries comments explaining each option. It reports unused exports from package entry files too (`includeEntryExports`), so an export that no other workspace imports is a finding even when it sits in a package's `src/index.ts`. Silence a false positive there with `ignore` (file globs), `ignoreDependencies` (package names) or `ignoreIssues`, with a comment saying why.
+Read the committed `knip.jsonc` itself for the current configuration; it is the source of truth and carries comments explaining each option. It reports unused exports from package entry files too (`includeEntryExports`), so an export that no other workspace imports is a finding even when it sits in a package's `src/index.ts`. Silence a false positive with `ignore` for whole files or `ignoreIssues` with the relevant issue type, such as `exports`; use `ignoreDependencies` only for dependency findings. Add a comment saying why.
 
 ### `syncpack.config.js`
 
