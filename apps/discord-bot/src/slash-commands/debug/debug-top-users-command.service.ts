@@ -17,8 +17,7 @@ import { SlashCommandRegistryService } from '../slash-command-registry.service';
 /**
  * How many users one leaderboard lists. A fixed cap rather than an option,
  * matching `MAX_DEBUG_INTERACTIONS`: twenty short rows stay far inside
- * Discord's 4096-character embed description limit, and pagination is
- * deliberately left for a later iteration.
+ * Discord's 4096-character embed description limit. There is no pagination.
  */
 export const MAX_DEBUG_TOP_USERS = 20;
 

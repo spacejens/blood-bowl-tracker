@@ -13,7 +13,7 @@ import { TpRawCodeLabelsService } from './tp-raw-code-labels.service';
 import { TpRawWeatherLabelsService } from './tp-raw-weather-labels.service';
 
 /**
- * The only data-type module in v1. It exports exactly the contract
+ * Currently the only data-type module. It exports exactly the contract
  * implementations the harness consumes; everything else is internal.
  */
 @Module({

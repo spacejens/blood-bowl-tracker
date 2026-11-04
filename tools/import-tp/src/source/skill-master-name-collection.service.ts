@@ -30,8 +30,8 @@ const SKILL_MASTER_FILE_TYPES = ['rosters', 'match'] as const;
  * alone ~82%), and RosterCollectionService already makes its own full pass
  * over the same files for a different purpose, so this remains a genuine
  * second full read-and-parse of nearly the whole mirror. Folding this scan
- * into RosterCollectionService's existing pass would be the real fix for
- * that double-scan cost; left as a follow-up, out of scope here.
+ * into RosterCollectionService's existing pass would remove that
+ * double-scan cost.
  *
  * Mirrors RosterCollectionService.collect: one streaming pass, a per-file
  * failure recorded and skipped, a scan failure recorded with whatever was
