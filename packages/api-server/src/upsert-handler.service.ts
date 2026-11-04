@@ -153,21 +153,20 @@ export class UpsertHandlerService {
   }
 
   /**
-   * The batch counterpart of {@link run}: performs each item's upsert in
-   * turn and answers with one result per item, in input order. It classifies
-   * failures exactly as `run` does, but a known domain failure (this
-   * entity's conflict error, `MissingRequiredFieldError`,
-   * `MatchCategoryMismatchError`, a competition upsert breaking an
-   * enrollment rule (`CompetitionEnrollmentError`), a trophy award whose player id does not
+   * The batch counterpart of {@link run}: performs each item's upsert in turn
+   * and answers with one result per item, in input order. It classifies
+   * failures exactly as `run` does, but a known domain failure (this entity's
+   * conflict error, `MissingRequiredFieldError`, `MatchCategoryMismatchError`,
+   * a competition upsert breaking an enrollment rule
+   * (`CompetitionEnrollmentError`), a trophy award whose player id does not
    * fit its trophy's recipient kind (`TrophyAwardRecipientMismatchError`), a
    * trophy award whose competition is in a different competition group than
    * its trophy (`TrophyAwardCompetitionGroupMismatchError`)) becomes that
-   * item's `{success: false}` entry instead of a thrown
-   * contract error, so one bad item never costs its siblings their upserts.
-   * Anything else still propagates untouched and
-   * aborts the whole batch — an unexpected server error is not a per-item
-   * data problem, and swallowing it would report a partial import as a
-   * complete one.
+   * item's `{success: false}` entry instead of a thrown contract error, so one
+   * bad item never costs its siblings their upserts. Anything else still
+   * propagates untouched and aborts the whole batch — an unexpected server
+   * error is not a per-item data problem, and swallowing it would report a
+   * partial import as a complete one.
    *
    * `conflictErrorClass` is `undefined` for `externalSystems`, which matches
    * by name alone and so has no conflict class to catch (mirroring
@@ -198,7 +197,6 @@ export class UpsertHandlerService {
           err instanceof MissingRequiredFieldError ||
           err instanceof CharacteristicFormatMismatchError ||
           err instanceof MatchCategoryMismatchError ||
-          err instanceof CompetitionEnrollmentError ||
           err instanceof CompetitionEnrollmentError ||
           err instanceof TrophyAwardRecipientMismatchError ||
           err instanceof TrophyAwardCompetitionGroupMismatchError ||
