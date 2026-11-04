@@ -24,7 +24,7 @@ directory containing `fly.toml` as the Docker build context, and
 context `docker-compose.yml` uses.
 
 The container runs the bot as the unprivileged `node` user (uid 1000) that the
-`node:24-alpine` base image provides, not as root. The application files are
+`node` Alpine base image provides, not as root. The application files are
 installed as root and are readable but not writable by the bot. The bot writes
 nothing to the filesystem at runtime: no volume is mounted. Its network
 traffic is outbound to Discord, Postgres and TP, and inbound on port 3000 for
