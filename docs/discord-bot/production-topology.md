@@ -25,7 +25,7 @@ context `docker-compose.yml` uses.
 
 The container runs the bot as the unprivileged `node` user (uid 1000) that the
 `node:24-alpine` base image provides, not as root. The application files are
-installed as root and are only readable by the bot, and the bot writes nothing
+installed as root and are readable but not writable by the bot, and the bot writes nothing
 to the filesystem at runtime: no volume is mounted, and its only I/O is
 outbound network traffic (Discord, Postgres, TP) plus listening on port 3000.
 A future feature that needs a writable path has to make one deliberately in
