@@ -20,12 +20,12 @@
 // Some of BBL's *player* trophy labels are NOT self-disambiguating: BBL
 // hands the same "Deadliest Player" label out in several competition groups,
 // so the label alone identifies no single trophy. Every curated row for one
-// of these labels -- including its original Major Season row -- is keyed by
+// of these labels -- including its Major Season row -- is keyed by
 // the composite `${label}-${groupName}` BBL external id instead of the bare
 // label, the same hyphen-joined composite the tourplay.net ids below use, so
 // BblTrophyAwardsImportService's composite-key attempt always resolves them
 // regardless of group: there is no Major-Season-specific bare-label
-// exception left to be inconsistent about. A handful of other player
+// exception. A handful of other player
 // trophies (Bierhallenführer, Gudarnas Förkämpe) are already
 // self-disambiguating on their own and keep a bare-label id like team
 // trophies do; the importer's composite attempt is expected to miss for

@@ -107,8 +107,7 @@ export class BblPositionCharacteristicsImportService {
             // are no-ops today. They stay because it is the target rules
             // set's own declared notation — not this call site — that decides
             // notation. `?? 'plus'` mirrors the passingFormat check below: an
-            // unresolvable rules set converts nothing, which is the
-            // pre-existing behaviour.
+            // unresolvable rules set converts nothing.
             agility: this.notationConversion.convertAgility(
               characteristics.agility,
               rulesSet?.agilityFormat ?? 'plus',

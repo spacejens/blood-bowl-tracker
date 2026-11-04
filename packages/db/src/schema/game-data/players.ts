@@ -69,10 +69,10 @@ const playersTable = historyTrackedTable({
     // whichever caller needs one for validation supplies it explicitly.
     //
     // The DEFAULT 0 on the four NOT NULL columns below (move, strength,
-    // agility, armour) is temporary: it exists only so existing rows satisfy
-    // NOT NULL before the BBL and TP importers populate real values. 0 is not
-    // a legal value for any of those four under any rules set, so for them it
-    // is purely a placeholder. This does NOT extend to `passing`, which is
+    // agility, armour) is a temporary placeholder, still to be removed: it only
+    // lets a row exist before the BBL and TP importers populate real values.
+    // 0 is not a legal value for any of those four under any rules set. This
+    // does NOT extend to `passing`, which is
     // nullable, has no default, and for which 0 is a real value — see its own
     // comment below.
     move: integer('move').notNull().default(0),
@@ -98,8 +98,7 @@ const playersTable = historyTrackedTable({
     //
     // Unlike the characteristics columns above, the defaults here are NOT
     // temporary placeholders: false and 0 are permanently legitimate values
-    // meaning "no lasting injury of this kind", so there is no follow-up
-    // migration to drop them.
+    // meaning "no lasting injury of this kind".
     missNextGame: boolean('miss_next_game').notNull().default(false),
     nigglingInjuryCount: integer('niggling_injury_count').notNull().default(0),
     // The EFFECTIVE, capped magnitude of each characteristic's current

@@ -1111,7 +1111,7 @@
       // TP 'Troll Slayer' (id 1008, BB2025 roster) -- one roster slot renamed
       // between rules-set generations (same slot: 1 of them, 95k, MA5 ST3 AG4
       // AV9). BBL's Old World Alliance roster prefixes every position with
-      // "Old World " and is left unpaired here, as it already was.
+      // "Old World " and is left unpaired here.
       name: 'Troll Slayer',
       isStarPlayer: false,
       externalIds: [

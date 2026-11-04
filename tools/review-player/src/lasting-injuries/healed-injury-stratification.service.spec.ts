@@ -107,8 +107,8 @@ describe('HealedInjuryStratificationService', () => {
     // mentions these column names (on `players`, not `players_history`), so a
     // bare substring check would stay green even if the history-side
     // predicate referenced the wrong table or no table at all — which is
-    // exactly the shape of the camelCase-on-playersHistory regression this
-    // guards against (the broken columns rendered as bare, table-less
+    // exactly the shape of the camelCase-on-playersHistory mistake this
+    // guards against (broken columns would render as bare, table-less
     // comparisons like `( = $8)`).
     for (const column of LASTING_INJURY_COLUMNS) {
       expect(rendered).toContain(`"players_history"."${column}"`);
