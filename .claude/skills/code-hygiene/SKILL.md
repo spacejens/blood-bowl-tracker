@@ -175,8 +175,8 @@ The first command fixes what syncpack can resolve automatically. The second re-r
 **Overrides.** For each entry (`<selector>: <range>`, where the package being forced is the last name in the selector):
 
 1. Record who depends on it and what they declare: `pnpm why <package> -r` lists the dependents, and each dependent's own range is in its `package.json` under `node_modules/.pnpm/<dependent>@<version>/node_modules/<dependent>/`.
-2. Test whether it is still needed: save the current `pnpm audit` result, delete the entry, run `pnpm install`, then run `pnpm audit` and `pnpm why <package> -r` again.
-   - If no advisory is new after the removal (every new one is something the override was suppressing) and every dependent the selector covered now resolves a version inside its own declared range, the override is **obsolete**: leave it removed.
+2. Test whether it is still needed: save the current `pnpm audit` and `pnpm audit --prod` output, delete the entry, run `pnpm install`, then run both audits and `pnpm why <package> -r` again. Compare the advisories together with the dependency paths the audit prints, not the advisories alone: an advisory that already exists on a development dependency can reach a production dependency once the override is gone, without being a new advisory.
+   - If no advisory and path pair is new in either audit (every new one is something the override was suppressing) and every dependent the selector covered now resolves a version inside its own declared range, the override is **obsolete**: leave it removed.
    - Otherwise it is **still needed**: restore the entry.
 3. For an override that is still needed, check whether it is **problematic**: its range allows a version outside what the dependent declares (above all a different major), it is broader than the patched version requires, or its selector no longer matches any installed package. Do not decide this silently: stop and ask the developer whether to narrow it to the patched in-range version, resolve the advisory another way, or accept it as is.
 
