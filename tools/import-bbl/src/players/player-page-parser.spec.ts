@@ -1,7 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { load } from 'cheerio';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { SkillEntryService } from '../shared/skill-entry.service';
 import type { BblPage } from '../source/bbl-page.types';
@@ -34,19 +33,16 @@ const NO_INJURIES = {
 
 describe('PlayerPageParser', () => {
   let parser: PlayerPageParser;
-  let normalizeText: MockProxy<NormalizeExtractedTextService>;
 
   beforeEach(async () => {
-    normalizeText = mock<NormalizeExtractedTextService>();
-    normalizeText.normalize.mockImplementation((s: string) =>
-      s.replace(/\s+/g, ' ').trim(),
-    );
+    // NormalizeExtractedTextService is pure and dependency-free, so it is
+    // passed real rather than mocked with a copy of its algorithm.
     const moduleRef = await Test.createTestingModule({
       providers: [
         PlayerPageParser,
         SustainedInjuriesParser,
         SkillEntryService,
-        { provide: NormalizeExtractedTextService, useValue: normalizeText },
+        NormalizeExtractedTextService,
       ],
     }).compile();
     parser = moduleRef.get(PlayerPageParser);
@@ -548,16 +544,14 @@ describe('PlayerPageParser skills cell', () => {
   let parser: PlayerPageParser;
 
   beforeEach(async () => {
-    const normalizeText = mock<NormalizeExtractedTextService>();
-    normalizeText.normalize.mockImplementation((s: string) =>
-      s.replace(/\s+/g, ' ').trim(),
-    );
+    // NormalizeExtractedTextService is pure and dependency-free, so it is
+    // passed real rather than mocked with a copy of its algorithm.
     const moduleRef = await Test.createTestingModule({
       providers: [
         PlayerPageParser,
         SustainedInjuriesParser,
         SkillEntryService,
-        { provide: NormalizeExtractedTextService, useValue: normalizeText },
+        NormalizeExtractedTextService,
       ],
     }).compile();
     parser = moduleRef.get(PlayerPageParser);

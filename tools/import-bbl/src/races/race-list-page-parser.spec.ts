@@ -1,7 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { load } from 'cheerio';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import type { BblPage } from '../source/bbl-page.types';
 import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
@@ -13,18 +12,12 @@ function listPage(html: string): BblPage {
 
 describe('RaceListPageParser', () => {
   let parser: RaceListPageParser;
-  let normalizeText: MockProxy<NormalizeExtractedTextService>;
 
   beforeEach(async () => {
-    normalizeText = mock<NormalizeExtractedTextService>();
-    normalizeText.normalize.mockImplementation((s: string) =>
-      s.replace(/\s+/g, ' ').trim(),
-    );
+    // NormalizeExtractedTextService is pure and dependency-free, so it is
+    // passed real rather than mocked with a copy of its algorithm.
     const moduleRef = await Test.createTestingModule({
-      providers: [
-        RaceListPageParser,
-        { provide: NormalizeExtractedTextService, useValue: normalizeText },
-      ],
+      providers: [RaceListPageParser, NormalizeExtractedTextService],
     }).compile();
     parser = moduleRef.get(RaceListPageParser);
   });
