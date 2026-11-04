@@ -47,10 +47,13 @@ export const sectionCandidateSchema = z.object({
 
 /**
  * The completion half: a section candidate plus the author the synthesized
- * review is attributed to.
+ * review is attributed to, and the status block CodeRabbit puts its verdict
+ * in (`""` when the body has none). Like `section`, `status` is only read by
+ * the TypeScript phrase re-check and never reaches the caller.
  */
 export const completionCandidateSchema = sectionCandidateSchema.extend({
   author: z.object({ login: z.string() }),
+  status: z.string(),
 });
 
 /**
