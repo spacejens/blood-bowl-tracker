@@ -3,30 +3,54 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { isDefinedError, ORPCError } from '@orpc/server';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
-
-let handleMock = vi.hoisted(() => vi.fn());
-
-vi.mock('@orpc/server/node', () => ({
-  RPCHandler: vi.fn().mockImplementation(function () {
-    return { handle: handleMock };
-  }),
-}));
-
-import { RPCHandler } from '@orpc/server/node';
 
 import { ApiTokenAuthService } from './api-token-auth.service';
 import { RpcMiddleware } from './rpc.middleware';
 import { RPC_ROUTER } from './rpc-router.token';
 import type { RpcRouterFactoryService } from './rpc-router-factory.service';
 
+type RpcHandlerMock = Mock<
+  (router: unknown, options: unknown) => { handle: Mock }
+>;
+
+// RPCHandler is replaced by a wrapper delegating to the current test's
+// constructor mock, installed fresh in beforeEach, so mock.calls[0] is always
+// this test's own construction.
+const rpc = vi.hoisted(() => {
+  const state: { current?: RpcHandlerMock } = {};
+  return {
+    state,
+    get: (): RpcHandlerMock => {
+      if (!state.current) {
+        throw new Error('RPCHandler mock was not installed for this test');
+      }
+      return state.current;
+    },
+  };
+});
+
+vi.mock('@orpc/server/node', () => ({
+  // RpcMiddleware calls `new RPCHandler(...)`: a plain function (not an
+  // arrow) that returns an object can be called with `new`.
+  RPCHandler: function RPCHandler(
+    router: unknown,
+    options: unknown,
+  ): { handle: Mock } {
+    return rpc.get()(router, options);
+  },
+}));
+
 describe('RpcMiddleware', () => {
   let middleware: RpcMiddleware;
   let auth: MockProxy<ApiTokenAuthService>;
+  let rpcHandler: RpcHandlerMock;
   // Initialized here only so TypeScript infers the callable mock type;
   // reassigned fresh per test in beforeEach.
+  let handle = vi.fn();
   let next = vi.fn();
 
   type StandardHandleResult = { matched: boolean; response?: unknown };
@@ -42,7 +66,8 @@ describe('RpcMiddleware', () => {
   //   new RPCHandler(router, { interceptors: [fn] })
   // RPCHandler is mocked, so its recorded call args expose the array.
   const getInterceptor = (): RpcInterceptor => {
-    const options = vi.mocked(RPCHandler).mock.calls[0][1] as unknown as {
+    expect(rpcHandler).toHaveBeenCalledTimes(1);
+    const options = rpcHandler.mock.calls[0][1] as {
       interceptors: RpcInterceptor[];
     };
     return options.interceptors[0];
@@ -54,8 +79,9 @@ describe('RpcMiddleware', () => {
   });
 
   beforeEach(async () => {
-    vi.clearAllMocks();
-    handleMock = vi.fn();
+    handle = vi.fn();
+    rpcHandler = vi.fn(() => ({ handle }));
+    rpc.state.current = rpcHandler;
     next = vi.fn();
     auth = mock<ApiTokenAuthService>();
     auth.authenticate.mockReturnValue({
@@ -75,8 +101,15 @@ describe('RpcMiddleware', () => {
     middleware = moduleRef.get(RpcMiddleware);
   });
 
+  afterEach(() => {
+    rpc.state.current = undefined;
+    // Only undoes the Logger.prototype spies (vi.spyOn on a real prototype),
+    // so the next test's vi.spyOn creates fresh spies with no earlier calls.
+    vi.restoreAllMocks();
+  });
+
   it('delegates /rpc requests to the oRPC handler and does not call next() when matched', async () => {
-    handleMock.mockResolvedValue({ matched: true });
+    handle.mockResolvedValue({ matched: true });
     const req = {
       method: 'POST',
       url: '/rpc/coaches/upsert',
@@ -86,7 +119,7 @@ describe('RpcMiddleware', () => {
 
     await middleware.use(req, res, next);
 
-    expect(handleMock).toHaveBeenCalledWith(req, res, {
+    expect(handle).toHaveBeenCalledWith(req, res, {
       prefix: '/rpc',
       context: {},
     });
@@ -94,7 +127,7 @@ describe('RpcMiddleware', () => {
   });
 
   it('calls next() when the oRPC handler reports no match', async () => {
-    handleMock.mockResolvedValue({ matched: false });
+    handle.mockResolvedValue({ matched: false });
     const req = {
       method: 'POST',
       url: '/rpc/unknown',
@@ -117,12 +150,12 @@ describe('RpcMiddleware', () => {
 
     await middleware.use(req, res, next);
 
-    expect(handleMock).not.toHaveBeenCalled();
+    expect(handle).not.toHaveBeenCalled();
     expect(next).toHaveBeenCalledTimes(1);
   });
 
   it('falls back to req.originalUrl for the /rpc prefix check, since Express rewrites req.url to "/" for path-mounted wildcard middleware', async () => {
-    handleMock.mockResolvedValue({ matched: true });
+    handle.mockResolvedValue({ matched: true });
     const req = {
       method: 'POST',
       url: '/',
@@ -133,7 +166,7 @@ describe('RpcMiddleware', () => {
 
     await middleware.use(req, res, next);
 
-    expect(handleMock).toHaveBeenCalledWith(req, res, {
+    expect(handle).toHaveBeenCalledWith(req, res, {
       prefix: '/rpc',
       context: {},
     });
@@ -225,7 +258,7 @@ describe('RpcMiddleware', () => {
   });
 
   it('passes the Authorization header to ApiTokenAuthService and invokes the handler when it authenticates', async () => {
-    handleMock.mockResolvedValue({ matched: true });
+    handle.mockResolvedValue({ matched: true });
     const req = {
       method: 'POST',
       url: '/rpc/coaches/upsert',
@@ -236,7 +269,7 @@ describe('RpcMiddleware', () => {
     await middleware.use(req, res, next);
 
     expect(auth.authenticate).toHaveBeenCalledWith('Bearer bbl-secret');
-    expect(handleMock).toHaveBeenCalledTimes(1);
+    expect(handle).toHaveBeenCalledTimes(1);
   });
 
   it('responds 401 and never invokes the oRPC handler when authentication fails', async () => {
@@ -256,7 +289,7 @@ describe('RpcMiddleware', () => {
 
     await middleware.use(req, res, next);
 
-    expect(handleMock).not.toHaveBeenCalled();
+    expect(handle).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
     expect(res.statusCode).toBe(401);
     expect(res.setHeader).toHaveBeenCalledWith(

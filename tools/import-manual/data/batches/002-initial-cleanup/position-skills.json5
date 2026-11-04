@@ -27,9 +27,12 @@
 // builds -- "<raceName>: <positionName>" -- copied verbatim from
 // position-characteristics.json5, not from the rulebook's own spelling.
 //
-// Source, this file's current scope (the 21 CRP main-book races):
+// Sources, this file:
 //   CRP -- m750496a_BB_Competition_Rules_Pack.pdf, roster pages 23-25
-//          (PDF page numbers; printed page numbers 71-76), "Skills" column.
+//          (PDF page numbers; printed page numbers 71-76), "Skills" column,
+//          for the 21 CRP main-book races.
+//   The Stunty Leeg, CRP+ and BB2016 sections further down state their own
+//   sources in their section headers.
 {
   externalSystems: [
     { name: 'Name', category: 'bookkeeping' },
