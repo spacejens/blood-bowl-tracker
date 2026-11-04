@@ -112,6 +112,7 @@ Further jobs have no `pnpm verify` counterpart — they check things only CI is 
 - **`docker-build`** — builds the `apps/discord-bot` Docker image with `docker compose up -d --build discord-bot`, then starts it against a throwaway Postgres and waits for Nest's `Nest application successfully started` log line and for a TCP connect to port 3000 to succeed.
   - A broken Dockerfile surfaces on the PR rather than on the deploy that follows a merge.
   - So does a build that succeeds but whose container cannot start, such as a runtime-stage `COPY` list missing a workspace package.
+  - A final step fails the job if the container's main process (PID 1) runs as root (uid 0) instead of the unprivileged `node` user.
   - No Discord token is involved: the job copies `apps/discord-bot/.env.example` to `.env` as a placeholder.
   - The container's background Discord connection attempts are expected to fail and are not checked.
 - **`schemaspy-build`** — starts postgres, runs the `packages/db` migrations against it, and generates the diagram with `pnpm run db:diagram`. SchemaSpy has no Dockerfile of its own, so what this validates is that the prebuilt public image pulls and runs successfully against this repo's actual schema and config.
