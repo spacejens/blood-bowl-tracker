@@ -143,6 +143,10 @@ already-fetched, already-parsed input.
   is added to the competition (`competition_teams`). The sync only ever
   adds, so re-importing is harmless, and teams already linked by imported
   matches stay linked.
+  All resolved team eras go in one competition upsert, so a single
+  registered team the competition's
+  [enrollment rules](../game-concepts/competitions/index.md#enforcement)
+  reject fails the whole participants batch and, with it, the trophy awards.
 - **Trophy awards**: each award is recorded as a team award for its winning
   team, which must be one of the linked participants. The trophy is resolved
   by its TP external id `${disambiguator}-${groupName}` and never created.
@@ -191,7 +195,7 @@ as `TpBlockedError` and which stops it at once, mid-backfill included (see
 | Team import failure; live only                                                                                                      | that team's entry in `teams`, as for a team import    |
 | No era given, and the teams' eras disagree or none resolved one; live only                                                          | `competition`; no participation or awards imported    |
 | Registered team not imported, or with no team era in the competition's era                                                          | `participation`; the other teams are still linked     |
-| Team-link failure                                                                                                                   | `participation`; no award is recorded                 |
+| Team-link failure, including an enrollment-rule rejection                                                                           | `participation`; no award is recorded                 |
 | Awards request/parse failure; live only                                                                                             | `trophyAwards`; the competition imports with none     |
 | Competition group not in the curated catalog                                                                                        | `trophyAwards`                                        |
 | Award for a team that is not a linked participant                                                                                   | `trophyAwards`                                        |
