@@ -73,12 +73,11 @@ Link-list fields (`rulesSetIds`, `teamEraIds`, `eras`, `raceEras`) work the
 same way by being additive: they only ever insert missing links, so an omitted
 or empty list leaves existing links intact.
 
-A competition's newly listed `teamEraIds` must also satisfy the
-[enrollment rules](../game-concepts/competitions/index.md#enforcement): each
-team era belongs to the competition's era, and no coach gets a second team
-into the competition. Changing a competition's `eraId` must fit the team eras
-already enrolled. A payload breaking a rule is rejected whole with a
-`BAD_REQUEST` error naming the competition, team era and coach.
+A competition may enroll only team eras from its own era, and a coach may have
+only one team in it (the
+[enrollment rules](../game-concepts/competitions/index.md#enforcement)).
+Changing a competition's era must keep its enrolled team eras in that era. A
+violating import is rejected as a whole and reported as an import error.
 
 Coach, competition, skill, position, team and race names are curated in
 `tools/import-manual`, so for those six `name` is written when the upsert
