@@ -1,5 +1,6 @@
 import {
   CharacteristicFormatMismatchError,
+  CompetitionEnrollmentError,
   MatchCategoryMismatchError,
   MissingRequiredFieldError,
   SyncBatchValidationError,
@@ -55,6 +56,10 @@ export type BatchUpsertItemResult<TEntity extends object> =
  * competition belongs to a different competition group than its trophy is
  * curated for (`TrophyAwardCompetitionGroupMismatchError`), and one that names
  * a granted skill it cannot carry (`TrophyAwardGrantedSkillError`).
+ * A competition upsert that breaks an enrollment rule
+ * (`CompetitionEnrollmentError`: a team era from another era, a second team
+ * of one coach, or an era change its enrolled team eras do not fit) is
+ * payload feedback too, and also becomes BAD_REQUEST.
  * Anything else propagates untouched.
  * {@link runWithoutConflict} is the same body minus the CONFLICT branch, for
  * an entity whose natural key is enforced by a database constraint.
@@ -102,6 +107,7 @@ export class UpsertHandlerService {
         err instanceof MissingRequiredFieldError ||
         err instanceof CharacteristicFormatMismatchError ||
         err instanceof MatchCategoryMismatchError ||
+        err instanceof CompetitionEnrollmentError ||
         err instanceof TrophyAwardRecipientMismatchError ||
         err instanceof TrophyAwardCompetitionGroupMismatchError ||
         err instanceof TrophyAwardGrantedSkillError
@@ -151,7 +157,8 @@ export class UpsertHandlerService {
    * turn and answers with one result per item, in input order. It classifies
    * failures exactly as `run` does, but a known domain failure (this
    * entity's conflict error, `MissingRequiredFieldError`,
-   * `MatchCategoryMismatchError`, a trophy award whose player id does not
+   * `MatchCategoryMismatchError`, a competition upsert breaking an
+   * enrollment rule (`CompetitionEnrollmentError`), a trophy award whose player id does not
    * fit its trophy's recipient kind (`TrophyAwardRecipientMismatchError`), a
    * trophy award whose competition is in a different competition group than
    * its trophy (`TrophyAwardCompetitionGroupMismatchError`)) becomes that
@@ -191,6 +198,8 @@ export class UpsertHandlerService {
           err instanceof MissingRequiredFieldError ||
           err instanceof CharacteristicFormatMismatchError ||
           err instanceof MatchCategoryMismatchError ||
+          err instanceof CompetitionEnrollmentError ||
+          err instanceof CompetitionEnrollmentError ||
           err instanceof TrophyAwardRecipientMismatchError ||
           err instanceof TrophyAwardCompetitionGroupMismatchError ||
           err instanceof TrophyAwardGrantedSkillError
