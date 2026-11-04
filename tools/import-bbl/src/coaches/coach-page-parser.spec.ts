@@ -1,7 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { load } from 'cheerio';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import type { BblPage } from '../source/bbl-page.types';
 import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
@@ -13,18 +12,12 @@ function teamPage(html: string): BblPage {
 
 describe('CoachPageParser', () => {
   let parser: CoachPageParser;
-  let normalizeText: MockProxy<NormalizeExtractedTextService>;
 
   beforeEach(async () => {
-    normalizeText = mock<NormalizeExtractedTextService>();
-    normalizeText.normalize.mockImplementation((s: string) =>
-      s.replace(/\s+/g, ' ').trim(),
-    );
+    // NormalizeExtractedTextService is pure and dependency-free, so it is
+    // passed real rather than mocked with a copy of its algorithm.
     const moduleRef = await Test.createTestingModule({
-      providers: [
-        CoachPageParser,
-        { provide: NormalizeExtractedTextService, useValue: normalizeText },
-      ],
+      providers: [CoachPageParser, NormalizeExtractedTextService],
     }).compile();
     parser = moduleRef.get(CoachPageParser);
   });
@@ -51,6 +44,13 @@ describe('CoachPageParser', () => {
       '<table><tr><td>Coach:</td><td><b>Göran Åke</b></td></tr></table>',
     );
     expect(parser.extractCoach(page)).toEqual({ name: 'Göran Åke' });
+  });
+
+  it('folds a curly apostrophe in the name to a straight one', () => {
+    const page = teamPage(
+      '<table><tr><td>Coach:</td><td><b>Bob O’Hara</b></td></tr></table>',
+    );
+    expect(parser.extractCoach(page)).toEqual({ name: "Bob O'Hara" });
   });
 
   it('returns null when there is no Coach field', () => {
