@@ -128,8 +128,8 @@ async function seedLeague(db: Db): Promise<LeagueFixtures> {
       competitionGroupId: null,
       leagueId: league.id,
       awardRuleKind: 'career_threshold',
-      // Stated because the column carries a temporary non-null default for
-      // rolling deployments, which a computed kind must not pick up.
+      // A computed award rule kind carries no award procedure, so it is
+      // stated as null, the same way the real upsert path states it.
       awardProcedure: null,
       awardRuleRole: 'acting',
       awardRuleThreshold: SPP_THRESHOLD,

@@ -80,8 +80,8 @@
 //          typo for "Regeneration") already appears in the CRP core book's
 //          list, so this file adds no Stunty-Leeg-only `skills` entries.
 //
-// (CRP+ and BB2016 sources are out of scope for this file -- see a later
-// curation task/file for those rules sets' category rows.)
+// The CRP sources above cover this file's CRP groups. The CRP+ and BB2016
+// groups further down state their own sources in their group headers.
 //
 // The three "CRP-only" entries below (of the 76 total `skills` entries this
 // file curates) were identified by diffing the 76 skill spellings this file
