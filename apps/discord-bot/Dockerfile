@@ -93,4 +93,12 @@ ENV GIT_IS_MERGE_COMMIT=$GIT_IS_MERGE_COMMIT
 ENV NODE_ENV=production
 EXPOSE 3000
 
+# Run the bot as the unprivileged `node` user (uid 1000) that the base image
+# ships, not as root. Everything above was installed and copied as root and is
+# world-readable, so the bot can read what it needs but cannot modify its own
+# code, dependencies or migrations. The bot writes nothing to the filesystem at
+# runtime; a future feature that needs a writable path must create and chown
+# it deliberately above this line.
+USER node
+
 CMD ["node", "apps/discord-bot/dist/main"]
