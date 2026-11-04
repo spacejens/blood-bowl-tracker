@@ -21,10 +21,10 @@ const GATEWAY_BODY = { url: 'wss://gateway.example.test' };
 describe('discord.js REST transport', () => {
   const sockets = new Set<TLSSocket>();
   const requestedPaths: string[] = [];
-  let certDir: string;
-  let server: Http2SecureServer;
+  const previousTlsSetting = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+  let certDir: string | undefined;
+  let server: Http2SecureServer | undefined;
   let api: string;
-  let previousTlsSetting: string | undefined;
 
   beforeAll(async () => {
     certDir = mkdtempSync(join(tmpdir(), 'discord-rest-transport-'));
@@ -50,28 +50,28 @@ describe('discord.js REST transport', () => {
       { stdio: 'ignore' },
     );
 
-    server = createSecureServer({
+    const secureServer = createSecureServer({
       key: readFileSync(keyPath),
       cert: readFileSync(certPath),
       allowHTTP1: true,
     });
-    server.on('secureConnection', (socket: TLSSocket) => {
+    server = secureServer;
+    secureServer.on('secureConnection', (socket: TLSSocket) => {
       sockets.add(socket);
     });
-    server.on('request', (req, res) => {
+    secureServer.on('request', (req, res) => {
       requestedPaths.push(req.url);
       res.setHeader('content-type', 'application/json');
       res.end(JSON.stringify(GATEWAY_BODY));
     });
     await new Promise<void>((resolve) => {
-      server.listen(0, '127.0.0.1', resolve);
+      secureServer.listen(0, '127.0.0.1', resolve);
     });
-    const { port } = server.address() as AddressInfo;
+    const { port } = secureServer.address() as AddressInfo;
     api = `https://127.0.0.1:${port}`;
 
     // @discordjs/rest offers no way to pass a trusted certificate, so the
     // self-signed one is accepted by disabling verification for this test.
-    previousTlsSetting = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
   });
 
@@ -82,10 +82,13 @@ describe('discord.js REST transport', () => {
       process.env.NODE_TLS_REJECT_UNAUTHORIZED = previousTlsSetting;
     }
     for (const socket of sockets) socket.destroy();
-    await new Promise<void>((resolve) => {
-      server.close(() => resolve());
-    });
-    rmSync(certDir, { recursive: true, force: true });
+    const startedServer = server;
+    if (startedServer) {
+      await new Promise<void>((resolve) => {
+        startedServer.close(() => resolve());
+      });
+    }
+    if (certDir) rmSync(certDir, { recursive: true, force: true });
   });
 
   it('fetches the gateway and returns its JSON body', async () => {
