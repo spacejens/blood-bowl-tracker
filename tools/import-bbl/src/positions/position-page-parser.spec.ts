@@ -28,22 +28,19 @@ function characteristicsTable(skillsCell = '&nbsp;'): string {
 
 describe('PositionPageParser', () => {
   let parser: PositionPageParser;
-  let normalizeText: MockProxy<NormalizeExtractedTextService>;
   let skillEntries: MockProxy<SkillEntryService>;
 
   beforeEach(async () => {
-    normalizeText = mock<NormalizeExtractedTextService>();
-    normalizeText.normalize.mockImplementation((s: string) =>
-      s.replace(/\s+/g, ' ').trim(),
-    );
     skillEntries = mock<SkillEntryService>();
     skillEntries.resolveSkillRefs.mockImplementation((entry: string) => [
       { name: entry },
     ]);
+    // NormalizeExtractedTextService is pure and dependency-free, so it is
+    // passed real rather than mocked with a copy of its algorithm.
     const moduleRef = await Test.createTestingModule({
       providers: [
         PositionPageParser,
-        { provide: NormalizeExtractedTextService, useValue: normalizeText },
+        NormalizeExtractedTextService,
         { provide: SkillEntryService, useValue: skillEntries },
       ],
     }).compile();

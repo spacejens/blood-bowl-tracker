@@ -151,8 +151,8 @@ async function seed(db: Db, options: SeedOptions): Promise<Fixtures> {
       competitionGroupId: group.id,
       leagueId: null,
       awardRuleKind: 'max_spp_sum',
-      // Stated because the column carries a temporary non-null default for
-      // rolling deployments, which a computed kind must not pick up.
+      // A computed award rule kind carries no award procedure, so it is
+      // stated as null, the same way the real upsert path states it.
       awardProcedure: null,
       awardRuleRole: 'acting',
       awardRuleTieCutoff: 4,

@@ -42,9 +42,8 @@ describe('trophies_award_rule check constraint (real Postgres)', () => {
         recipientKind: 'team',
         leagueId,
         awardRuleKind: 'max_count',
-        // Stated because the column carries a temporary non-null default for
-        // rolling deployments, which a computed kind must not pick up — the
-        // real upsert path states it the same way.
+        // A computed award rule kind carries no award procedure, so it is
+        // stated as null — the real upsert path states it the same way.
         awardProcedure: null,
         awardRuleRole: 'acting',
         awardRuleTieCutoff: 1,
