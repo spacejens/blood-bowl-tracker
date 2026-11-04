@@ -101,8 +101,9 @@ const RECENT_REVIEW_STATUS_START_MARKER = '<!-- recent_review_status_start -->';
 const RECENT_REVIEW_STATUS_END_MARKER = '<!-- recent_review_status_end -->';
 /**
  * Same `[\s\S]`/non-greedy rationale as `RECENT_REVIEW_SECTION_PATTERN`. The
- * real block is the first thing in the body, so a quoted copy of these
- * markers further down cannot shadow it.
+ * real block sits near the top of the body, preceded only by CodeRabbit's own
+ * generated markers, so a quoted copy of these markers further down cannot
+ * shadow it.
  */
 const RECENT_REVIEW_STATUS_PATTERN = `${RECENT_REVIEW_STATUS_START_MARKER}(?<status>[\\s\\S]*?)${RECENT_REVIEW_STATUS_END_MARKER}`;
 /**
