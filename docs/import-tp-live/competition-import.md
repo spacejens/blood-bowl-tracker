@@ -143,10 +143,10 @@ already-fetched, already-parsed input.
   is added to the competition (`competition_teams`). The sync only ever
   adds, so re-importing is harmless, and teams already linked by imported
   matches stay linked.
-  All resolved team eras go in one competition upsert, so a single
-  registered team the competition's
+  All resolved team eras go in one competition upsert, so if the competition's
   [enrollment rules](../game-concepts/competitions/index.md#enforcement)
-  reject fails the whole participants batch and, with it, the trophy awards.
+  reject a single registered team, the whole participants batch fails and
+  the trophy awards are skipped.
 - **Trophy awards**: each award is recorded as a team award for its winning
   team, which must be one of the linked participants. The trophy is resolved
   by its TP external id `${disambiguator}-${groupName}` and never created.
