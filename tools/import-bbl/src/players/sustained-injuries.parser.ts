@@ -43,7 +43,7 @@ const NIGGLING = /(\d+)\s*niggl/;
  * fragment is not worth failing a player's whole import over: anything the
  * grammar below does not describe (a legacy named injury such as "Smashed
  * Hip", the DEATH! marker, stray punctuation) is simply not counted. Death in
- * particular is out of scope for this feature by design.
+ * particular is never counted as a sustained injury.
  *
  * A tag suffixed "(no effect)" is NOT counted: it means the stat was already
  * at its floor, or at the rules' cap on reductions, so the stored
