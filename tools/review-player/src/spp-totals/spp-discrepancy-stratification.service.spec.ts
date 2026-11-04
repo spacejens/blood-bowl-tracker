@@ -101,7 +101,7 @@ describe('SppDiscrepancyStratificationService', () => {
     // spacing/schema-qualification is fragile to assert on directly. What
     // matters, and is checked below:
     //  - the adjustment is added to the computed sum before comparing
-    //    (`coalesce(...spp_adjustment...)`), which is the bug fix;
+    //    (`coalesce(...spp_adjustment...)`);
     //  - the comparison uses `IS DISTINCT FROM`; and
     //  - the right-hand side is the bare `spp_total` column, not wrapped in
     //    its own `coalesce`. Since the left side is always a plain number
