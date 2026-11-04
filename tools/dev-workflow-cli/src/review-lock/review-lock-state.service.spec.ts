@@ -7,7 +7,6 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
-  statSync,
   utimesSync,
   writeFileSync,
 } from 'node:fs';
@@ -16,6 +15,7 @@ import { join } from 'node:path';
 
 import { GitRootsService } from '@blood-bowl-tracker/cli-shared';
 import { Test } from '@nestjs/testing';
+import type { Mock } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
@@ -25,18 +25,40 @@ import {
   ReviewLockStateService,
 } from './review-lock-state.service';
 
+type StatSync = typeof import('node:fs').statSync;
+
 // Only `statSync` needs to be swappable, to simulate the mutex file
-// vanishing between the failed create and the stat in the test below.
-// Every other export passes through to the real `node:fs` implementation
-// so the rest of this suite's real-filesystem tests are unaffected.
+// vanishing between the failed create and the stat in the tests below. It
+// delegates to the current test's mock, installed fresh in beforeEach and
+// defaulting to the real implementation. Every other export is the real
+// `node:fs`, so the rest of this suite's real-filesystem tests are unaffected.
+const fs = vi.hoisted(() => {
+  const state: { current?: Mock<StatSync> } = {};
+  return {
+    state,
+    get: (): Mock<StatSync> => {
+      if (!state.current) {
+        throw new Error('statSync mock was not installed for this test');
+      }
+      return state.current;
+    },
+  };
+});
+
 vi.mock('node:fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:fs')>();
-  return { ...actual, statSync: vi.fn(actual.statSync) };
+  return {
+    ...actual,
+    statSync: ((...args: Parameters<StatSync>) =>
+      fs.get()(...args)) as StatSync,
+  };
 });
 
 describe('ReviewLockStateService', () => {
   let service: ReviewLockStateService;
   let gitRoots: MockProxy<GitRootsService>;
+  let statSync: Mock<StatSync>;
+  let realStatSync: StatSync;
   let fixture: string;
   let mainRoot: string;
   let statePath: string;
@@ -60,6 +82,11 @@ describe('ReviewLockStateService', () => {
     JSON.parse(readFileSync(statePath, 'utf8')) as unknown;
 
   beforeEach(async () => {
+    const actual = await vi.importActual<typeof import('node:fs')>('node:fs');
+    realStatSync = actual.statSync;
+    statSync = vi.fn(actual.statSync);
+    fs.state.current = statSync;
+
     fixture = mkdtempSync(join(tmpdir(), 'review-lock-'));
     mainRoot = join(fixture, 'main');
     mkdirSync(mainRoot, { recursive: true });
@@ -84,7 +111,7 @@ describe('ReviewLockStateService', () => {
 
   afterEach(() => {
     vi.useRealTimers();
-    vi.mocked(statSync).mockClear();
+    fs.state.current = undefined;
     rmSync(fixture, { recursive: true, force: true });
   });
 
@@ -192,13 +219,6 @@ describe('ReviewLockStateService', () => {
     vi.useFakeTimers();
     mkdirSync(join(mainRoot, '.claude/review-lock'), { recursive: true });
     writeFileSync(mutexPath, '', 'utf8'); // mutex genuinely exists on disk
-    const statMock = vi.mocked(statSync);
-    const realStatSync = statMock.getMockImplementation();
-    if (realStatSync === undefined) {
-      throw new Error(
-        'expected the mocked statSync to default to the real implementation',
-      );
-    }
 
     // Simulate the mutex vanishing between the failed create and the stat,
     // repeatedly: the file genuinely exists on disk (so tryCreateMutex's
@@ -207,7 +227,7 @@ describe('ReviewLockStateService', () => {
     // `ageMs === undefined` branch over and over — the "rapid, repeated
     // create/remove race" the retry loop must pace against.
     let vanishedCallsRemaining = 5;
-    statMock.mockImplementation((...args) => {
+    statSync.mockImplementation((...args) => {
       if (vanishedCallsRemaining > 0) {
         vanishedCallsRemaining -= 1;
         return undefined;
@@ -215,37 +235,30 @@ describe('ReviewLockStateService', () => {
       return realStatSync(...args);
     });
 
-    try {
-      const pending = service.mutate(() => ({
-        state: HOLDER_STATE,
-        result: null,
-      }));
+    const pending = service.mutate(() => ({
+      state: HOLDER_STATE,
+      result: null,
+    }));
 
-      // Flush microtasks (but advance no real timer delay). A loop that
-      // re-entered synchronously on every `ageMs === undefined` hit — no
-      // `await` in that branch — would burn through all 5 mocked "vanished"
-      // responses in this single tick. Awaiting `sleep(MUTEX_RETRY_MS)` on
-      // the first hit suspends execution before a second `statSync` call
-      // can happen.
-      await vi.advanceTimersByTimeAsync(0);
-      expect(statMock).toHaveBeenCalledTimes(1);
+    // Flush microtasks (but advance no real timer delay). A loop that
+    // re-entered synchronously on every `ageMs === undefined` hit — no
+    // `await` in that branch — would burn through all 5 mocked "vanished"
+    // responses in this single tick. Awaiting `sleep(MUTEX_RETRY_MS)` on
+    // the first hit suspends execution before a second `statSync` call
+    // can happen.
+    await vi.advanceTimersByTimeAsync(0);
+    expect(statSync).toHaveBeenCalledTimes(1);
 
-      // Remove the real mutex file, then advance past the paced retry delay
-      // so the next tryCreateMutex succeeds. Only the first of the 5 mocked
-      // "vanished" responses is ever actually consumed — the point of this
-      // test is that the branch pauses after that first hit rather than
-      // spinning through all of them synchronously (asserted above); the
-      // remaining stubbed responses exist only so an unpaced loop
-      // would have something to spin through.
-      rmSync(mutexPath);
-      await vi.advanceTimersByTimeAsync(5 * 50 + 50);
-      await pending;
-    } finally {
-      // Always restore, even if an assertion above throws — an unrestored
-      // mock would return `undefined` from every later statSync call in
-      // this file, poisoning every other test that touches `mutexAgeMs`.
-      statMock.mockImplementation(realStatSync);
-    }
+    // Remove the real mutex file, then advance past the paced retry delay
+    // so the next tryCreateMutex succeeds. Only the first of the 5 mocked
+    // "vanished" responses is ever actually consumed — the point of this
+    // test is that the branch pauses after that first hit rather than
+    // spinning through all of them synchronously (asserted above); the
+    // remaining stubbed responses exist only so an unpaced loop
+    // would have something to spin through.
+    rmSync(mutexPath);
+    await vi.advanceTimersByTimeAsync(5 * 50 + 50);
+    await pending;
   });
 
   it('eventually throws when a vanished mutex never resolves (persistent race)', async () => {
@@ -259,34 +272,22 @@ describe('ReviewLockStateService', () => {
     // pacing forever without checking it would hang this test rather than
     // reach the forced-clear-then-throw failure path.
     writeFileSync(mutexPath, '', 'utf8');
-    const statMock = vi.mocked(statSync);
-    const realStatSync = statMock.getMockImplementation();
-    if (realStatSync === undefined) {
-      throw new Error(
-        'expected the mocked statSync to default to the real implementation',
-      );
-    }
-    statMock.mockImplementation(() => undefined);
+    statSync.mockImplementation(() => undefined);
 
-    try {
-      const pending = service.mutate(() => ({
-        state: HOLDER_STATE,
-        result: null,
-      }));
-      // Attach the rejection assertion before advancing timers, so the
-      // rejection (which happens mid-advance) is never briefly unhandled.
-      const expectation = expect(pending).rejects.toThrow(
-        'still held after a forced clear',
-      );
-      // Advance well past MUTEX_MAX_WAIT_MS (5000ms) twice over: once to
-      // trip the forced clear, once more for the still-vanished retry to
-      // hit the throw path.
-      await vi.advanceTimersByTimeAsync(11_000);
-      await expectation;
-    } finally {
-      statMock.mockImplementation(realStatSync);
-      rmSync(mutexPath, { force: true });
-    }
+    const pending = service.mutate(() => ({
+      state: HOLDER_STATE,
+      result: null,
+    }));
+    // Attach the rejection assertion before advancing timers, so the
+    // rejection (which happens mid-advance) is never briefly unhandled.
+    const expectation = expect(pending).rejects.toThrow(
+      'still held after a forced clear',
+    );
+    // Advance well past MUTEX_MAX_WAIT_MS (5000ms) twice over: once to
+    // trip the forced clear, once more for the still-vanished retry to
+    // hit the throw path.
+    await vi.advanceTimersByTimeAsync(11_000);
+    await expectation;
   });
 
   it('serializes concurrent mutations so neither overwrites the other', async () => {

@@ -1,16 +1,39 @@
 import { INestApplicationContext } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
+import type { Mock } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runCli } from './run-cli';
 
-vi.mock('@nestjs/core', () => ({
-  NestFactory: { createApplicationContext: vi.fn() },
-}));
+type CreateApplicationContext = (
+  module: unknown,
+  options: unknown,
+) => Promise<INestApplicationContext>;
 
-const createApplicationContext = vi.mocked(
-  NestFactory.createApplicationContext,
-);
+// NestFactory.createApplicationContext is replaced by a wrapper delegating to
+// the current test's mock, installed fresh in beforeEach.
+const nest = vi.hoisted(() => {
+  const state: { current?: Mock<CreateApplicationContext> } = {};
+  return {
+    state,
+    get: (): Mock<CreateApplicationContext> => {
+      if (!state.current) {
+        throw new Error(
+          'createApplicationContext mock was not installed for this test',
+        );
+      }
+      return state.current;
+    },
+  };
+});
+
+vi.mock('@nestjs/core', () => ({
+  NestFactory: {
+    createApplicationContext: (
+      module: unknown,
+      options: unknown,
+    ): Promise<INestApplicationContext> => nest.get()(module, options),
+  },
+}));
 
 const SUBCOMMANDS = ['alpha', 'beta'] as const;
 type Subcommand = (typeof SUBCOMMANDS)[number];
@@ -22,6 +45,7 @@ interface TestArgs {
 class TestModule {}
 
 describe('runCli', () => {
+  let createApplicationContext: Mock<CreateApplicationContext>;
   let close: ReturnType<typeof vi.fn>;
   let app: INestApplicationContext;
   let log: ReturnType<typeof vi.spyOn>;
@@ -31,7 +55,10 @@ describe('runCli', () => {
   beforeEach(() => {
     close = vi.fn().mockResolvedValue(undefined);
     app = { close } as unknown as INestApplicationContext;
-    createApplicationContext.mockResolvedValue(app);
+    createApplicationContext = vi
+      .fn<CreateApplicationContext>()
+      .mockResolvedValue(app);
+    nest.state.current = createApplicationContext;
     log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
     errorLog = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     exit = vi
@@ -40,8 +67,10 @@ describe('runCli', () => {
   });
 
   afterEach(() => {
+    nest.state.current = undefined;
+    // Only undoes the console/process spies (vi.spyOn on real globals), so
+    // the next test's vi.spyOn creates fresh spies instead of reusing these.
     vi.restoreAllMocks();
-    vi.clearAllMocks();
   });
 
   const argvFor = (...rest: string[]): string[] => [
