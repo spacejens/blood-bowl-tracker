@@ -165,6 +165,18 @@ jobs:
           echo "discord-bot did not accept a TCP connection on port 3000 in time" >&2
           docker compose logs discord-bot >&2
           exit 1
+      # The Dockerfile's runtime stage switches to the unprivileged `node`
+      # user; this fails the job if a change ever makes the bot's main process
+      # (PID 1) run as root again. It runs after the startup and TCP checks
+      # above, so together they prove the bot starts and serves as non-root.
+      - name: Check discord-bot does not run as root
+        run: |
+          uid="$(docker exec discord-bot stat -c %u /proc/1)"
+          echo "discord-bot PID 1 runs as uid $uid"
+          if [ "$uid" = "0" ]; then
+            echo "discord-bot container runs as root" >&2
+            exit 1
+          fi
       - name: Stop stack
         if: always()
         run: docker compose down
