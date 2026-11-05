@@ -7,4 +7,4 @@ A [team](../../glossary.md#team) is the core playing entity: a named group of pl
 - A team has exactly one [coach](../coaches/index.md).
 - A team may enter any number of eras over its lifetime, but at most once per era — see [team eras](../team-eras/index.md).
 - A team's [players](../players/index.md), roster, and competition/match participation are all scoped to a specific [team era](../team-eras/index.md), not to the team directly.
-- A team may be enrolled in any number of [competitions](../competitions/index.md) over its lifetime, but not more than one competition at a time within a [league](../leagues/index.md).
+- A team may be enrolled in any number of [competitions](../competitions/index.md) over its lifetime. As a guideline it plays in one competition at a time within a [league](../leagues/index.md), but this is not enforced: source data is trusted, and real leagues do overlap — a team can play a long season while also entering a short cup.

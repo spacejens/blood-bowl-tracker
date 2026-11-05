@@ -8,6 +8,12 @@ A [competition](../../glossary.md#competition) is an organized event in which te
 - A competition contains one or more [matches](../matches/index.md).
 - A [coach](../coaches/index.md) may not have two of their teams enrolled in the same competition.
 
+## Enforcement
+
+The era rule and the one-team-per-coach rule are enforced when a competition is upserted (see `packages/game-data/src/competitions/competition-enrollment.service.ts`). An upsert that would enroll a team era from another era, enroll a second team of a coach who already has one in the competition, or move the competition to an era its enrolled team eras do not belong to is rejected whole: nothing is written, and an importer reports it as an import error. The checks are not serialized with the write, so two concurrent upserts of the same competition can interleave and together break a rule that each passes alone.
+
+Only what an upsert changes is checked. Already-enrolled team eras are not re-validated, so re-importing an unchanged competition still succeeds even if its stored enrollment predates these checks and breaks a rule. Rejecting it would block every re-import of that data without fixing it; a correction belongs in a deliberate data change.
+
 ## Subtypes
 
 [Seasons](../../glossary.md#season) and [cups](../../glossary.md#cup) are the two subtypes of competition. They share the same structure; a competition's `type` (`season` or `cup`) records which it is.
@@ -19,5 +25,5 @@ A [competition group](../../glossary.md#competition-group) is the recurring trac
 Groups exist because a source system's label text isn't enough to tell instances of the same track apart from each other: a Major season's 1st place and a Minor season's 1st place can both be labelled `1st`, and only the group distinguishes which trophy applies.
 
 - The group catalog is curated by hand in `tools/import-manual` rather than inferred from either source system — see [docs/import-manual](../../import-manual/index.md#competition-groups).
-- BBL's numbered "Season N" and TP's Swedish "Säsong N" are the same recurring track under different names over time, and both fold into the single "Major Season" group.
+- [BBL](../../glossary.md#bbl)'s numbered "Season N" and [TP](../../glossary.md#tp)'s Swedish "Säsong N" are the same recurring track under different names over time, and both fold into the single "Major Season" group.
 - A group may also carry a name pattern: a brand-new TP competition whose raw name matches exactly one group's pattern is classified into it, named, and typed automatically (see [docs/import-tp-live](../../import-tp-live/competition-import.md)).

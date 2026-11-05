@@ -8,7 +8,7 @@ records every time an import is re-run.
 ## External systems
 
 An [external system](../glossary.md#external-system) names the upstream
-application or data source a piece of imported data came from (e.g. BBL). Any
+application or data source a piece of imported data came from (e.g. [BBL](../glossary.md#bbl)). Any
 record type that supports import can be linked to one or more external
 systems.
 
@@ -73,11 +73,19 @@ Link-list fields (`rulesSetIds`, `teamEraIds`, `eras`, `raceEras`) work the
 same way by being additive: they only ever insert missing links, so an omitted
 or empty list leaves existing links intact.
 
+A competition may enroll only team eras from its own era, and a coach may have
+only one team in it (the
+[enrollment rules](../game-concepts/competitions/index.md#enforcement)).
+Changing a competition's era must keep its enrolled team eras in that era. An
+import that introduces one of these violations is rejected as a whole and
+reported as an import error; unchanged pre-existing inconsistencies are not
+revalidated.
+
 Coach, competition, skill, position, team and race names are curated in
 `tools/import-manual`, so for those six `name` is written when the upsert
 creates the row and ignored when it updates one, unless the payload also
 carries `renameExisting: true`. The manual importer sends it on every such
-entry; the BBL, TP and live TP importers never do. A re-run of a source
+entry; the BBL, [TP](../glossary.md#tp) and live TP importers never do. A re-run of a source
 importer therefore cannot replace a curated name with the source's raw one,
 not even briefly, while a fresh database still gets the source's name on
 create.

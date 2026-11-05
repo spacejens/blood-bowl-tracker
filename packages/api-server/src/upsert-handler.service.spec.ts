@@ -1,6 +1,7 @@
 import {
   AdvancementCostValidationError,
   CharacteristicFormatMismatchError,
+  CompetitionEnrollmentError,
   KeywordValidationError,
   MatchCategoryMismatchError,
   MissingRequiredFieldError,
@@ -83,6 +84,17 @@ describe('UpsertHandlerService', () => {
     expect(errors.BAD_REQUEST).toHaveBeenCalledWith({
       message:
         'Match category cup_final is not valid for competition type season',
+    });
+  });
+
+  it('translates a competition enrollment error into a BAD_REQUEST reply', async () => {
+    await expect(
+      handler.run(errors, TestConflictError, () => {
+        throw new CompetitionEnrollmentError('coach already enrolled');
+      }),
+    ).rejects.toBeInstanceOf(BadRequestReply);
+    expect(errors.BAD_REQUEST).toHaveBeenCalledWith({
+      message: 'coach already enrolled',
     });
   });
 
@@ -279,6 +291,16 @@ describe('UpsertHandlerService', () => {
           'Match category cup_final is not valid for competition type season',
       },
     ]);
+  });
+
+  it('turns a competition enrollment error into a per-item failure', async () => {
+    await expect(
+      handler.runBatch(TestConflictError, [
+        () => {
+          throw new CompetitionEnrollmentError('coach already enrolled');
+        },
+      ]),
+    ).resolves.toEqual([{ success: false, error: 'coach already enrolled' }]);
   });
 
   it('turns a trophy award recipient mismatch error into a per-item failure', async () => {

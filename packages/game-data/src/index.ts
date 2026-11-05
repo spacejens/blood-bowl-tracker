@@ -8,6 +8,7 @@ export {
   CompetitionGroupsService,
   CompetitionGroupUpsertConflictError,
 } from './competition-groups/competition-groups.service';
+export { CompetitionEnrollmentError } from './competitions/competition-enrollment.service';
 export { CompetitionsModule } from './competitions/competitions.module';
 export type { CompetitionWithTeamEras } from './competitions/competitions.service';
 export {
