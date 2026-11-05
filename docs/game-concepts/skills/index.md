@@ -8,7 +8,7 @@ advancements.
 
 - A skill has a name, and nothing else. The name is the skill's identity
   across every [rules set](../rules-sets/index.md) that has it, so the same
-  `Block` is one row whether a BB2020 or a BB2025 position starts with it.
+  `Block` is one row whether a [BB2020](../../glossary.md#bb2020) or a [BB2025](../../glossary.md#bb2025) position starts with it.
 - A skill belongs to a **skill category** — but per rules set, not globally.
   Categories are what an advancing player rolls against, and a rules set can
   move a skill between them: BB2025 introduced the Devious category and moved
@@ -96,8 +96,8 @@ a numbering of the player's paid advancements. Starting skills have no order
 at all. A free extra may keep the number its source listed it at, but that
 number is outside the paid numbering and is never confirmed. An entry can
 have no order (unknown). An order is either a proxy, as with the order of
-TP's gained skills, or **confirmed**, meaning it is trusted as the real
-sequence. BBL's page order is always confirmed, with the slot of a free extra
+[TP](../../glossary.md#tp)'s gained skills, or **confirmed**, meaning it is trusted as the real
+sequence. [BBL](../../glossary.md#bbl)'s page order is always confirmed, with the slot of a free extra
 BBL numbered closed up. A TP order is confirmed only where TP's reported
 spend establishes it: a live import that sees one new advancement, or the
 order of several worked out from that spend. An import never replaces a

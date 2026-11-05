@@ -55,7 +55,7 @@ A poll also triggers on its own, with no `--trigger-after` needed, the first tim
 
 Prints one of four JSON outcomes:
 
-- `{"found": true, "review": {...}}` — a qualifying review was found. This shape is also used when CodeRabbit finishes a pass with nothing actionable and reports that only by editing its rolling walkthrough comment in place, rather than submitting a formal review — the service synthesizes a review-shaped result from that comment so callers need no separate case for it.
+- `{"found": true, "review": {...}}` — a qualifying review was found. This shape is also used when CodeRabbit finishes a pass with nothing actionable and reports that only by editing its rolling walkthrough comment in place, rather than submitting a formal review — the service synthesizes a review-shaped result from that comment so callers need no separate case for it. The "no actionable comments" verdict is accepted from either the status block at the top of that comment or its `recent_review` section, and the `recent_review` section must name the PR's current head commit.
 - `{"found": false, "timedOut": true}` — the timeout elapsed with nothing found.
 - `{"found": false, "rateLimited": true, "rateLimitComment": {...}, "availableAtEpochSeconds": <number>}` — a CodeRabbit rate-limit warning comment was found instead of a review, so the wait returned early rather than running out its remaining time.
   - `availableAtEpochSeconds` is a best-effort epoch parsed from the comment's own stated wait time, plus a fixed 60-second buffer.

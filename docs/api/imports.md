@@ -8,7 +8,7 @@ records every time an import is re-run.
 ## External systems
 
 An [external system](../glossary.md#external-system) names the upstream
-application or data source a piece of imported data came from (e.g. BBL). Any
+application or data source a piece of imported data came from (e.g. [BBL](../glossary.md#bbl)). Any
 record type that supports import can be linked to one or more external
 systems.
 
@@ -85,7 +85,7 @@ Coach, competition, skill, position, team and race names are curated in
 `tools/import-manual`, so for those six `name` is written when the upsert
 creates the row and ignored when it updates one, unless the payload also
 carries `renameExisting: true`. The manual importer sends it on every such
-entry; the BBL, TP and live TP importers never do. A re-run of a source
+entry; the BBL, [TP](../glossary.md#tp) and live TP importers never do. A re-run of a source
 importer therefore cannot replace a curated name with the source's raw one,
 not even briefly, while a fresh database still gets the source's name on
 create.

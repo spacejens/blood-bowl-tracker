@@ -10,12 +10,12 @@ and every position carrying that keyword is a target.
 
 ## Keyword kinds
 
-- A **species** keyword names a creature. It is a BB2025-only concept: no
+- A **species** keyword names a creature. It is a [BB2025](../../glossary.md#bb2025)-only concept: no
   earlier [rules set](../rules-sets/index.md) has them, and none of the
   tracker's earlier-era data records any.
 - A **positional** keyword is a role label. Positional keywords are not
-  BB2025-exclusive: DB2021 formally has the full positional set too, and
-  BB2020 formally has the `Big Guy` concept — a long-standing Blood Bowl
+  BB2025-exclusive: [DB2021](../../glossary.md#db2021) formally has the full positional set too, and
+  [BB2020](../../glossary.md#bb2020) formally has the `Big Guy` concept — a long-standing Blood Bowl
   rule, not new to BB2025.
 - The **special** kind is a sentinel meaning "no restriction", used by
   Animosity's "All" target. It is neither a creature nor a role.

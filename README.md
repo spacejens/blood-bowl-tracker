@@ -41,7 +41,7 @@ This is a pnpm monorepo with three top-level workspace folders:
 
 ### Tools
 
-- **`tools/import-bbl`** — NestJS CLI application for importing data from BBL (Blood Bowl Legend) exports into the tracker via the api-client
+- **`tools/import-bbl`** — NestJS CLI application for importing data from BBL (Blood Bowl League) exports into the tracker via the api-client
 - **`tools/import-tp`** — NestJS CLI application for importing TP data into the tracker (see [docs/import-tp/index.md](docs/import-tp/index.md))
 - **`tools/import-manual`** — NestJS CLI application for importing hand-authored supplementary data (leagues, eras, rules sets, races, positions, coaches, teams, and extra external IDs) into the tracker via the api-client, in once-applied batches run before and after the system-specific importers (see [docs/import-manual/index.md](docs/import-manual/index.md))
 - **`tools/review-match`** — NestJS CLI application that renders a side-by-side HTML report of each source's raw match data against what was imported into `game_data.match_events`, for spot-checking import correctness by hand (see [docs/review-match/index.md](docs/review-match/index.md))

@@ -20,8 +20,8 @@ A [player](../../glossary.md#player) is an individual on a [team era](../team-er
   [rules sets](../rules-sets/index.md) let these heal between
   [competitions](../competitions/index.md), so what a player has ever suffered
   (which the [match events](../match-events/index.md) record) and what is
-  still outstanding are two different facts. BBL publishes this live state
-  directly. TP publishes miss-next-game and niggling injuries directly, while
+  still outstanding are two different facts. [BBL](../../glossary.md#bbl) publishes this live state
+  directly. [TP](../../glossary.md#tp) publishes miss-next-game and niggling injuries directly, while
   the importer derives characteristic reductions from characteristic values.
 - A reduction count is the _effective_ magnitude — how far the stored
   characteristic actually sits below the player's baseline — not a tally of
@@ -54,9 +54,9 @@ whether it covers at least the cheapest advancement the player could take
 next. Holding SPP back is a normal state, so this is information, never a data
 error, and dead, retired and departed players are worked out like any other.
 
-- **It is a range.** CRP, CRP+ and BB2016 charge the same for every
-  advancement of a given number, so the spend is exact. BB2020, DB2021 and
-  BB2025 price an advancement by its number and its kind, and the recorded
+- **It is a range.** [CRP](../../glossary.md#crp-and-crp), [CRP+](../../glossary.md#crp-and-crp) and [BB2016](../../glossary.md#bb2016) charge the same for every
+  advancement of a given number, so the spend is exact. [BB2020](../../glossary.md#bb2020), [DB2021](../../glossary.md#db2021) and
+  [BB2025](../../glossary.md#bb2025) price an advancement by its number and its kind, and the recorded
   history rarely pins both down. BBL does not say whether a gained skill was
   rolled or chosen; the import works it out where it can (see **Chosen or
   random on BBL** below).
@@ -121,7 +121,7 @@ error, and dead, retired and departed players are worked out like any other.
   skills (a gained Hatred, a skill TP flags as extra, a skill a trophy granted
   such as Gudarnas Förkämpe's mutation) cost nothing and are not
   advancements; a Journeyman's Loner is not recognised as free. A skill a league's
-  house rule grants at a fixed advancement (tLoEG's Fan Favourite) counts only
+  house rule grants at a fixed advancement ([tLoEG](../../glossary.md#tloeg)'s Fan Favourite) counts only
   as that advancement.
 - **Several rules sets.** When the player's era lists several rules sets, each
   is tried and the widest range kept. A rules set whose costs the history

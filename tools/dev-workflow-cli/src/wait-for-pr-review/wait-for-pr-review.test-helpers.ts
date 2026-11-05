@@ -231,12 +231,19 @@ const COMPLETION_SECTION =
   '\n\nNo actionable comments were generated in the recent review. 🎉\n\n' +
   'Reviewing files that changed from the base of the PR and between ' +
   `\`e44832555c4036093c6dcb7c9ad9da576c8f6adc\` and \`${HEAD_REF_OID}\`.\n\n`;
-/** What the completion jq filter emits for a qualifying comment. */
+/**
+ * What the completion jq filter emits for a qualifying comment whose verdict
+ * sits inside the `recent_review` section. `status` is the text jq captured
+ * between `<!-- recent_review_status_start -->` and
+ * `<!-- recent_review_status_end -->` — empty here, as jq reports a body
+ * without that block.
+ */
 export const COMPLETION_CANDIDATE = {
   id: '5263781074@1786521319',
   submittedAt: '2026-08-12T07:55:19Z',
   author: { login: 'coderabbitai[bot]' },
   section: COMPLETION_SECTION,
+  status: '',
 };
 /**
  * The review-shaped object the service synthesizes from it. Note the absent

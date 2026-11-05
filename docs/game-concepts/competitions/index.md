@@ -25,5 +25,5 @@ A [competition group](../../glossary.md#competition-group) is the recurring trac
 Groups exist because a source system's label text isn't enough to tell instances of the same track apart from each other: a Major season's 1st place and a Minor season's 1st place can both be labelled `1st`, and only the group distinguishes which trophy applies.
 
 - The group catalog is curated by hand in `tools/import-manual` rather than inferred from either source system — see [docs/import-manual](../../import-manual/index.md#competition-groups).
-- BBL's numbered "Season N" and TP's Swedish "Säsong N" are the same recurring track under different names over time, and both fold into the single "Major Season" group.
+- [BBL](../../glossary.md#bbl)'s numbered "Season N" and [TP](../../glossary.md#tp)'s Swedish "Säsong N" are the same recurring track under different names over time, and both fold into the single "Major Season" group.
 - A group may also carry a name pattern: a brand-new TP competition whose raw name matches exactly one group's pattern is classified into it, named, and typed automatically (see [docs/import-tp-live](../../import-tp-live/competition-import.md)).

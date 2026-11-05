@@ -20,6 +20,30 @@ The position of an [advancement](#advancement) in the sequence a [player](#playe
 
 Team staff who can be called upon during a [match](#match) to attempt to heal or reduce the severity of an injury that would otherwise be a [casualty](#casualty). See also [regeneration](#regeneration), a similar effect rolled on the [player](#player)'s own skill rather than provided by team staff.
 
+### BB2016
+
+The 2016 Blood Bowl [rules set](#rules-set). Like [CRP and CRP+](#crp-and-crp), it prices [advancements](#advancement) at fixed thresholds of 6, 16, 31, 51, 76 and 176 [SPP](#star-player-points-spp), each threshold reached earning a roll on the advancement table.
+
+See [game-concepts/rules-sets](game-concepts/rules-sets/index.md).
+
+### BB2020
+
+The 2020 Blood Bowl [rules set](#rules-set). It prices each [advancement](#advancement) by what the [coach](#coach) takes: a random or chosen primary skill, a random or chosen secondary skill, or a random characteristic increase.
+
+See [game-concepts/rules-sets](game-concepts/rules-sets/index.md).
+
+### BB2025
+
+The 2025 Blood Bowl [rules set](#rules-set). It prices each [advancement](#advancement) by what the [coach](#coach) takes, as [BB2020](#bb2020) does, but has no random secondary skill option. It also marks some skills as [elite](#elite-skill).
+
+See [game-concepts/rules-sets](game-concepts/rules-sets/index.md).
+
+### BBL
+
+Shorthand for Blood Bowl League, the league-tracker site at [bbleague.net](https://www.bbleague.net/) (also reachable as [bloodbowlleague.com](https://bloodbowlleague.com/)), and one of the two [external systems](#external-system) the tracker imports data from, the other being [TP](#tp). [tLoEG](#tloeg) and [GBBL](#gbbl) both kept their records on BBL; their subdomain is now defunct.
+
+See [game-concepts/external-systems](game-concepts/external-systems/index.md).
+
 ### Coach
 
 The person who manages and controls a [team](#team), making decisions during [matches](#match) and between them (roster changes, treasury spending, etc.).
@@ -52,11 +76,23 @@ The recurring track a [competition](#competition) instance belongs to — e.g. M
 
 See [game-concepts/competitions](game-concepts/competitions/index.md).
 
+### CRP and CRP+
+
+CRP is the Competition Rules Pack [rules set](#rules-set). CRP+ follows it in [tLoEG](#tloeg)'s era sequence CRP → CRP+ → [BB2016](#bb2016). Both price [advancements](#advancement) at fixed thresholds of 6, 16, 31, 51, 76 and 176 [SPP](#star-player-points-spp), each threshold reached earning a roll on the advancement table.
+
+See [game-concepts/rules-sets](game-concepts/rules-sets/index.md).
+
 ### Cup
 
 A subtype of [competition](#competition) — a short competitive event typically played out over a weekend, in which [teams](#team) compete for a trophy.
 
 See [game-concepts/competitions](game-concepts/competitions/index.md).
+
+### DB2021
+
+The Dungeon Bowl 2021 [rules set](#rules-set). It prices each [advancement](#advancement) by what the [coach](#coach) takes, as [BB2020](#bb2020) does.
+
+See [game-concepts/rules-sets](game-concepts/rules-sets/index.md).
 
 ### Deepdive
 
@@ -68,6 +104,12 @@ See [the command spec](discord-bot/slash-commands/deepdive.md).
 
 A period of play that begins with a kick-off and ends when a [touchdown](#touchdown) is scored or the current [half](#half) ends. Each [half](#half) may contain multiple drives.
 
+### Elite skill
+
+[BB2025](#bb2025)'s marker on a handful of [skills](#skill) (Block, Dodge, Guard and Mighty Blow) that cost more player value to pick than other skills. It is not a restriction on which skills can be picked.
+
+See [database.md](database.md#star-player-points).
+
 ### Era
 
 A period of time during which a [league](#league) used one or more [rules sets](#rules-set), in sequence. A league may have multiple eras, and in some cases eras for different rules sets may overlap (e.g. when different groups within the league play under different rules simultaneously).
@@ -76,7 +118,7 @@ See [game-concepts/eras](game-concepts/eras/index.md).
 
 ### External System
 
-An upstream application or data source (e.g. BBL) that [league](#league) data
+An upstream application or data source (e.g. [BBL](#bbl)) that [league](#league) data
 can be imported from. An [era](#era) can be linked to any number of
 external systems through external ids.
 
@@ -84,9 +126,15 @@ See [game-concepts/external-systems](game-concepts/external-systems/index.md).
 
 ### Free extra skill
 
-A gained [skill](#skill) a [player](#player) has without having spent [SPP](#star-player-points-spp) on it, and that is not one of their [advancements](#advancement): it costs nothing and does not raise the price of later advancements. BB2025's Hatred, a skill TP flags as extra, and a skill a [trophy award](#trophy-award) grants are free extras.
+A gained [skill](#skill) a [player](#player) has without having spent [SPP](#star-player-points-spp) on it, and that is not one of their [advancements](#advancement): it costs nothing and does not raise the price of later advancements. [BB2025](#bb2025)'s Hatred, a skill [TP](#tp) flags as extra, and a skill a [trophy award](#trophy-award) grants are free extras.
 
 See [game-concepts/skills](game-concepts/skills/index.md#player-skills).
+
+### GBBL
+
+"Gothenburg Blood Bowl League", one of the two real [leagues](#league) the tracker records, the other being [tLoEG](#tloeg).
+
+See [game-concepts/leagues](game-concepts/leagues/index.md).
 
 ### Half
 
@@ -111,9 +159,9 @@ A temporary [player](#player) fielded by a [team](#team) that has too few availa
 A label attached to a [position](#position) — `Goblin`, `Undead`,
 `Big Guy` — that rules single out instead of naming a [race](#race). A
 position can carry several at once, recorded per [rules set](#rules-set).
-Species keywords (`Goblin`, `Undead`) are BB2025-only; positional keywords
-including `Big Guy` also appear under DB2021, and `Big Guy` alone also
-appears under BB2020.
+Species keywords (`Goblin`, `Undead`) are [BB2025](#bb2025)-only; positional
+keywords including `Big Guy` also appear under [DB2021](#db2021), and
+`Big Guy` alone also appears under [BB2020](#bb2020).
 
 See [game-concepts/keywords](game-concepts/keywords/index.md).
 
@@ -157,6 +205,12 @@ See [game-concepts/match-events](game-concepts/match-events/index.md).
 ### Mercenary
 
 A [player](#player) hired for a single [match](#match) only (e.g. a Big Guy), rather than a permanent member of a [team](#team)'s [roster](#roster). Unlike a [journeyman](#journeyman), a mercenary is an outside hire rather than drawn from the team's own [positions](#position).
+
+### NAF
+
+Nuffle Amorical Football ([thenaf.net](https://www.thenaf.net/)). A [coach](#coach)'s NAF number is stored as an [external ID](#external-id), under an [external system](#external-system) the tracker references but does not import data from.
+
+See [game-concepts/external-systems](game-concepts/external-systems/index.md).
 
 ### Player
 
@@ -236,9 +290,21 @@ A named group of [players](#player) belonging to a single [race](#race), managed
 
 See [game-concepts/teams](game-concepts/teams/index.md).
 
+### tLoEG
+
+"the League of Extraordinary Gentlenerds", one of the two real [leagues](#league) the tracker records, the other being [GBBL](#gbbl).
+
+See [game-concepts/leagues](game-concepts/leagues/index.md).
+
 ### Touchdown
 
 A score achieved by carrying the ball into the opponent's end zone. Ends the current [drive](#drive).
+
+### TP
+
+TourPlay ([tourplay.net](https://tourplay.net)), one of the two [external systems](#external-system) the tracker imports data from, the other being [BBL](#bbl).
+
+See [game-concepts/external-systems](game-concepts/external-systems/index.md).
 
 ### Trophy
 
@@ -260,6 +326,12 @@ A team's activation window within a [half](#half), during which each of their [p
 
 The premature end of a team's [turn](#turn), triggered by specific failed actions (e.g. a dropped ball, a failed block). Play passes immediately to the opposing team.
 
+### Unspent SPP
+
+A [player](#player)'s total [SPP](#star-player-points-spp) minus the cost of the [advancements](#advancement) they have gained.
+
+See [game-concepts/players](game-concepts/players/index.md#unspent-spp).
+
 ---
 
 ## Internal terms
@@ -278,7 +350,7 @@ See [discord-bot/slash-commands/insights.md](discord-bot/slash-commands/insights
 
 ### Manual import batch
 
-A numbered directory of `tools/import-manual`'s hand-curated data, applied to a database once, in number order (the first before the BBL and TP importers, the rest after them), and then kept unchanged as a historical record. The database records which batches it holds, so a long-lived database receives only new batches.
+A numbered directory of `tools/import-manual`'s hand-curated data, applied to a database once, in number order (the first before the [BBL](#bbl) and [TP](#tp) importers, the rest after them), and then kept unchanged as a historical record. The database records which batches it holds, so a long-lived database receives only new batches.
 
 See [import-manual/batches.md](import-manual/batches.md).
 

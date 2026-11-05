@@ -696,10 +696,10 @@ export class WaitForPrReviewService {
   }
 
   /**
-   * The completion half's candidate, kept only if its section really says
-   * "nothing to report" in prose and covers the PR's current head commit (see
-   * `coversHeadCommit`). Shaped like a formal review so it needs no new
-   * result field.
+   * The completion half's candidate, kept only if its status block or its
+   * `recent_review` section really says "nothing to report" in prose, and the
+   * section covers the PR's current head commit (see `coversHeadCommit`).
+   * Shaped like a formal review so it needs no new result field.
    */
   private completionReview(
     value: unknown,
@@ -708,9 +708,8 @@ export class WaitForPrReviewService {
     const candidate = this.parseCompletionCandidate(value);
     if (
       candidate === undefined ||
-      !this.hasProsePhrase(
-        candidate.section,
-        NO_ACTIONABLE_COMMENTS_PHRASE_REGEX,
+      ![candidate.status, candidate.section].some((text) =>
+        this.hasProsePhrase(text, NO_ACTIONABLE_COMMENTS_PHRASE_REGEX),
       ) ||
       !this.coversHeadCommit(candidate, headRefOid)
     ) {
