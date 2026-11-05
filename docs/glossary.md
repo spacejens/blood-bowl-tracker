@@ -119,8 +119,9 @@ See [game-concepts/eras](game-concepts/eras/index.md).
 ### External System
 
 An upstream application or data source (e.g. [BBL](#bbl)) that [league](#league) data
-can be imported from. An [era](#era) can be linked to any number of
-external systems through external ids.
+can be imported from. [Eras](#era), [coaches](#coach), [leagues](#league) and
+[keywords](#keyword) can be linked to any number of external systems through
+external ids.
 
 See [game-concepts/external-systems](game-concepts/external-systems/index.md).
 
@@ -186,7 +187,7 @@ See [game-concepts/leagues](game-concepts/leagues/index.md).
 
 ### Match
 
-A single game of Blood Bowl played between two [teams](#team). Consists of two [halves](#half).
+A single game of Blood Bowl played between two [teams](#team) — rarely more, as in a merged final. Consists of two [halves](#half).
 
 See [game-concepts/matches](game-concepts/matches/index.md).
 

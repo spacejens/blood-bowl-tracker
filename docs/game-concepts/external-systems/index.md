@@ -20,3 +20,9 @@ can be imported from (e.g. [BBL](../../glossary.md#bbl)).
 - A [coach](../coaches/index.md) may be linked to any number of external
   systems via external IDs, which import tools use to recognize the same
   coach across separate import runs and across different import sources.
+- A [league](../leagues/index.md) may be linked to any number of external
+  systems via external IDs, letting import tools recognize the same league
+  across separate import runs and across different import sources.
+- A [keyword](../keywords/index.md) may be linked to any number of external
+  systems via external IDs. Its TP code is recorded as an external ID
+  alongside the usual `Name` one.
