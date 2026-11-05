@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import {
+  DatabaseUrlRedactorService,
   ProcessRunnerService,
   TIMED_OUT_EXIT_CODE,
 } from '@blood-bowl-tracker/cli-shared';
@@ -10,7 +11,6 @@ import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
-import { DatabaseUrlRedactorService } from '../pg-client/database-url-redactor.service';
 import { PG_DUMP_TIMEOUT_MS, PgDumpService } from './pg-dump.service';
 
 const DATABASE_URL = 'postgresql://user:hunter2@ep-x.neon.tech/neondb';

@@ -1,12 +1,11 @@
 import { existsSync, statSync } from 'node:fs';
 
 import {
+  DatabaseUrlRedactorService,
   ProcessRunnerService,
   TIMED_OUT_EXIT_CODE,
 } from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
-
-import { DatabaseUrlRedactorService } from '../pg-client/database-url-redactor.service';
 
 /** A hard ceiling on one dump; far above what this database needs today. */
 export const PG_DUMP_TIMEOUT_MS = 30 * 60 * 1000;

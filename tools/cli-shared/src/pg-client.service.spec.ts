@@ -1,13 +1,13 @@
-import {
-  ProcessRunnerService,
-  TIMED_OUT_EXIT_CODE,
-} from '@blood-bowl-tracker/cli-shared';
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
 import { DatabaseUrlRedactorService } from './database-url-redactor.service';
 import { PgClientRequest, PgClientService } from './pg-client.service';
+import {
+  ProcessRunnerService,
+  TIMED_OUT_EXIT_CODE,
+} from './process-runner.service';
 
 const DATABASE_URL = 'postgresql://postgres:s3cret@localhost:5432/postgres';
 

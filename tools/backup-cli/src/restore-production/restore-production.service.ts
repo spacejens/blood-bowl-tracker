@@ -1,12 +1,14 @@
 import { join } from 'node:path';
 
-import { ProductionEnvFileService } from '@blood-bowl-tracker/cli-shared';
+import {
+  DatabaseUrlRedactorService,
+  ProductionEnvFileService,
+} from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
 
 import { PgArchiveService } from '../archive/pg-archive.service';
 import { DownloadBackupService } from '../download-backup/download-backup.service';
 import { LocalMigrationsService } from '../migrations/local-migrations.service';
-import { DatabaseUrlRedactorService } from '../pg-client/database-url-redactor.service';
 import { TempDirService } from '../temp-dir/temp-dir.service';
 import { TableRowCounts } from '../verify-backup/backup-checks.service';
 import { KEY_TABLES } from '../verify-backup/key-tables';

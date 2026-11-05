@@ -86,9 +86,13 @@ Behaviors worth knowing:
   the docker-compose database) and applies the same localhost-only rule as
   `verify`, with no override: a URL carrying a `host` or `hostaddr` query
   parameter is refused too. Unlike `verify`, the target need not be empty.
-- The libpq variables `PGHOSTADDR`, `PGHOST`, `PGSERVICE` and `PGSERVICEFILE`
-  are removed from the environment the `psql` and `pg_restore` programs run
-  in, so they cannot redirect a connection the guard judged local.
+- `psql` and `pg_restore` run through `tools/cli-shared`'s `PgClientService`,
+  which removes the libpq variables `PGHOSTADDR`, `PGHOST`, `PGSERVICE` and
+  `PGSERVICEFILE` from their environment, so they cannot redirect a
+  connection the guard judged local. It passes the URL as `--dbname=` and,
+  through `tools/cli-shared`'s `DatabaseUrlRedactorService`, masks the URL's
+  password in every error. `tools/production-ops-cli`'s
+  `run-production-query` uses the same runner.
 - `restore` downloads first, so a network or credential failure never
   touches existing data. It then drops every schema except `pg_*` and
   `information_schema` in one atomic statement and recreates an empty

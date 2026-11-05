@@ -1,6 +1,6 @@
+import { PgClientService } from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
 
-import { PgClientService } from '../pg-client/pg-client.service';
 import { TableRowCounts } from './backup-checks.service';
 import { KEY_TABLES } from './key-tables';
 

@@ -1,14 +1,15 @@
-import {
-  ProcessRunnerService,
-  TIMED_OUT_EXIT_CODE,
-} from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
 
 import { DatabaseUrlRedactorService } from './database-url-redactor.service';
+import {
+  ProcessRunnerService,
+  TIMED_OUT_EXIT_CODE,
+} from './process-runner.service';
 
 /**
  * libpq variables that can send a connection somewhere other than the
- * `--dbname` URL the local-database guard checked.
+ * `--dbname` URL the caller passed (and, in backup-cli, the local-database
+ * guard checked).
  */
 const REDIRECTING_ENV_VARS = [
   'PGHOSTADDR',

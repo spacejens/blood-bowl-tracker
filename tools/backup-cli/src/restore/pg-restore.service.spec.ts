@@ -1,8 +1,8 @@
+import { PgClientService } from '@blood-bowl-tracker/cli-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
-import { PgClientService } from '../pg-client/pg-client.service';
 import { PG_RESTORE_TIMEOUT_MS, PgRestoreService } from './pg-restore.service';
 
 const DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/postgres';

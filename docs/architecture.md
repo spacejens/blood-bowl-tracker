@@ -178,9 +178,11 @@ tools/
                         resolution, child-process running and spawning, the
                         canonical gitignored file/directory lists, the
                         dotenv-based reader for production's secrets in
-                        apps/discord-bot/.env.production, and the shared
-                        runCli subcommand-dispatcher driver every
-                        entrypoint runs on (workflow-lint uses only runCli);
+                        apps/discord-bot/.env.production, the guarded
+                        psql/pg_restore runner with connection-string
+                        redaction, and the shared runCli
+                        subcommand-dispatcher driver every entrypoint runs
+                        on (workflow-lint uses only runCli);
                         no CLI entry point of its own
   dev-workflow-cli/   — NestJS CLI application providing the developer/PR
                         workflow helpers the Claude Code skills in
