@@ -7,13 +7,16 @@ const WAIT_FOR_PR_REVIEW_USAGE =
   '<developer-login> <since-epoch-seconds> ' +
   '[--timeout-ms=1200000] [--interval-ms=30000] [--exclude-review-id=<id>] ' +
   '[--exclude-comment-id=<id>] [--exclude-comment-update-failure-id=<id>] ' +
-  '[--trigger-after=<epoch-seconds>]';
+  '[--trigger-after=<epoch-seconds>] [--trigger-merge-main]';
 
 /** Below this, `--interval-ms` would hammer `gh` in a tight loop. */
 const MIN_INTERVAL_MS = 1000;
 
 /** An epoch second is always positive, so 0 (what an empty value parses to) is a typo, not a request to trigger now. */
 const MIN_TRIGGER_AFTER_EPOCH_SECONDS = 1;
+
+/** A bare boolean flag; it takes no `=<value>`. */
+const TRIGGER_MERGE_MAIN_FLAG = '--trigger-merge-main';
 
 /**
  * Turns `wait-for-pr-review`'s argv into its options object. Kept separate from
@@ -50,6 +53,12 @@ export class WaitForPrReviewArgsService {
       'trigger-after',
       MIN_TRIGGER_AFTER_EPOCH_SECONDS,
     );
+    const triggerMergeMain = flags.includes(TRIGGER_MERGE_MAIN_FLAG);
+    if (triggerMergeMain && triggerAfterEpochSeconds === undefined) {
+      throw new Error(
+        `${WAIT_FOR_PR_REVIEW_USAGE} (--trigger-merge-main requires --trigger-after)`,
+      );
+    }
     return {
       prNumber,
       developerLogin,
@@ -64,6 +73,7 @@ export class WaitForPrReviewArgsService {
       ...(triggerAfterEpochSeconds === undefined
         ? {}
         : { triggerAfterEpochSeconds }),
+      ...(triggerMergeMain ? { triggerMergeMain } : {}),
     };
   }
 

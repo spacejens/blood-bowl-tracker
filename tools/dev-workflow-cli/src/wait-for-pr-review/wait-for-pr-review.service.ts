@@ -61,6 +61,14 @@ export interface WaitForPrReviewOptions {
    * own deadline for it.
    */
   readonly triggerAfterEpochSeconds?: number;
+  /**
+   * Makes the `triggerAfterEpochSeconds` trigger merge `origin/main` into the
+   * current branch and push, instead of posting the review comment — the push
+   * asks for the review by itself. Falls back to the comment when the merge
+   * brings in nothing new or a git step fails. Has no effect on the
+   * star-gate trigger, and none without `triggerAfterEpochSeconds`.
+   */
+  readonly triggerMergeMain?: boolean;
 }
 
 /**

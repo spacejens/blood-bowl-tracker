@@ -40,6 +40,7 @@ describe('WaitForPrReviewArgsService', () => {
         '--exclude-comment-id=IC_comment1',
         '--exclude-comment-update-failure-id=IC_update1',
         '--trigger-after=1760003600',
+        '--trigger-merge-main',
       ),
     );
 
@@ -53,6 +54,7 @@ describe('WaitForPrReviewArgsService', () => {
       excludeCommentId: 'IC_comment1',
       excludeCommentUpdateFailureId: 'IC_update1',
       triggerAfterEpochSeconds: 1_760_003_600,
+      triggerMergeMain: true,
     });
   });
 
@@ -63,6 +65,7 @@ describe('WaitForPrReviewArgsService', () => {
     expect(result).not.toHaveProperty('excludeCommentId');
     expect(result).not.toHaveProperty('excludeCommentUpdateFailureId');
     expect(result).not.toHaveProperty('triggerAfterEpochSeconds');
+    expect(result).not.toHaveProperty('triggerMergeMain');
   });
 
   it('keeps the two comment-id flags distinct', () => {
@@ -77,6 +80,25 @@ describe('WaitForPrReviewArgsService', () => {
       excludeCommentUpdateFailureId: 'IC_update1',
     });
     expect(result).not.toHaveProperty('excludeCommentId');
+  });
+
+  it('reads --trigger-merge-main alongside --trigger-after', () => {
+    const result = service.parse(
+      argv(...POSITIONAL, '--trigger-merge-main', '--trigger-after=1760003600'),
+    );
+
+    expect(result).toMatchObject({
+      triggerAfterEpochSeconds: 1_760_003_600,
+      triggerMergeMain: true,
+    });
+  });
+
+  it('rejects --trigger-merge-main without --trigger-after', () => {
+    // The flag only changes what happens at the trigger instant; with no
+    // instant it would silently do nothing.
+    expect(() =>
+      service.parse(argv(...POSITIONAL, '--trigger-merge-main')),
+    ).toThrow(/--trigger-merge-main requires --trigger-after/);
   });
 
   it.each([
