@@ -53,6 +53,8 @@ node tools/dev-workflow-cli/dist/main.js wait-for-pr-review <pr-number> <develop
 - `--trigger-merge-main` — only valid together with `--trigger-after` (rejected on its own). It changes what happens at the trigger instant: instead of posting the comment, the command runs `git fetch origin main` and `git merge origin/main --no-edit` in its working directory and, when the merge created a new commit, runs `git push`. The push is what asks CodeRabbit for a review, so no comment is posted, the branch stays current with `main`, and the PR conversation gets no extra noise.
   - **Nothing new to merge** (already up to date): falls back to the `@coderabbitai review` comment.
   - **A git step fails** (a merge conflict, a network error, a rejected push): runs `git merge --abort` so no half-merged tree is left behind, falls back to the comment, and reports the failure in the `retrigger` field (see below). A failed trigger never fails the wait.
+  - If only the push failed, the merge commit stays local (the abort has nothing left to undo) and goes out with the branch's next push.
+  - Only for a branch that may take a merge of `main`: `finish-renovate-pr` does not pass this flag, since `main` must not be merged into Renovate's branch.
   - It runs no `pnpm verify`: `main` is already verified, and the pushed merge is covered by CI and the next review.
   - The wait itself is unchanged either way: it keeps polling to its deadline, and if CodeRabbit answers with a fresh rate-limit comment the result is `rateLimited` as usual.
 
