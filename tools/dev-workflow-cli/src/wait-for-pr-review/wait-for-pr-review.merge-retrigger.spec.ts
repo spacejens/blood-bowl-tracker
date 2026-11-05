@@ -12,6 +12,7 @@ import {
   EMPTY,
   FOUND,
   OPTIONS,
+  RATE_LIMIT_COMMENT,
   RATE_LIMITED,
   REVIEW,
   rollingResult,
@@ -163,6 +164,39 @@ describe('WaitForPrReviewService merge-main retrigger', () => {
       rateLimited: true,
       retrigger: { method: 'merge-push' },
     });
+  });
+
+  it('reports a rate-limit comment first seen after the push', async () => {
+    mockPolls(EMPTY, RATE_LIMITED);
+    retriggerMerge.mergeMainAndPush.mockResolvedValue({ pushed: true });
+
+    const result = await runWait(options());
+
+    expect(retriggerMerge.mergeMainAndPush).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({
+      found: false,
+      rateLimited: true,
+      rateLimitComment: RATE_LIMIT_COMMENT,
+      retrigger: { method: 'merge-push' },
+    });
+  });
+
+  it('gives the fallback comment only the time the merge left', async () => {
+    mockPolls(EMPTY);
+    retriggerMerge.mergeMainAndPush.mockImplementation(() => {
+      // Moves the clock without running timers, so the wait's own sleeps
+      // stay put while the merge "takes" 100 seconds.
+      vi.setSystemTime(Date.now() + 100_000);
+      return Promise.resolve({ pushed: false });
+    });
+
+    await runWait(options());
+
+    expect(retriggerMerge.mergeMainAndPush).toHaveBeenCalledWith(120_000);
+    const commentCall = processRunner.run.mock.calls.find(
+      (call) => call[1][1] === 'comment',
+    );
+    expect(commentCall?.[2]).toBe(20_000);
   });
 
   it('comments and never merges without the flag', async () => {

@@ -402,7 +402,7 @@ export class WaitForPrReviewService {
         justTriggered = true;
         retrigger.report = await this.triggerReview(
           options,
-          this.budgetMs(deadline, intervalMs),
+          () => this.budgetMs(deadline, intervalMs),
           outcome?.starGateComment === undefined,
         );
       }
@@ -892,21 +892,24 @@ export class WaitForPrReviewService {
    * the poll found a star-gate comment, even if the caller's trigger instant
    * has also passed: the star-gate trigger is not a rate-limit wait and
    * always comments, as does a merge that brought in nothing new or failed.
+   *
+   * `budget` is read at each step, not once: a fallback comment after a slow
+   * merge gets only what the wait's deadline still allows.
    */
   private async triggerReview(
     options: WaitForPrReviewOptions,
-    timeoutMs: number,
+    budget: () => number,
     callerRequested: boolean,
   ): Promise<RetriggerReport | undefined> {
     if (options.triggerMergeMain !== true || !callerRequested) {
-      await this.postTriggerComment(options.prNumber, timeoutMs);
+      await this.postTriggerComment(options.prNumber, budget());
       return undefined;
     }
-    const merge = await this.retriggerMerge.mergeMainAndPush(timeoutMs);
+    const merge = await this.retriggerMerge.mergeMainAndPush(budget());
     if (merge.pushed) {
       return { method: 'merge-push' };
     }
-    await this.postTriggerComment(options.prNumber, timeoutMs);
+    await this.postTriggerComment(options.prNumber, budget());
     return merge.failure === undefined
       ? { method: 'comment' }
       : { method: 'comment', mergeFailure: merge.failure };
