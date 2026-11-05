@@ -403,6 +403,7 @@ export class WaitForPrReviewService {
         retrigger.report = await this.triggerReview(
           options,
           this.budgetMs(deadline, intervalMs),
+          outcome?.starGateComment === undefined,
         );
       }
       if (!justTriggered) {
@@ -886,16 +887,18 @@ export class WaitForPrReviewService {
 
   /**
    * Asks for a review, returning how — or `undefined` when no merge was
-   * requested for this trigger. Only the caller-requested trigger
-   * (`shouldTrigger`) with `triggerMergeMain` set tries the merge; the
-   * star-gate trigger is not a rate-limit wait and always comments, as does
-   * a merge that brought in nothing new or failed.
+   * requested for this trigger. Only the caller-requested trigger with
+   * `triggerMergeMain` set tries the merge. `callerRequested` is false when
+   * the poll found a star-gate comment, even if the caller's trigger instant
+   * has also passed: the star-gate trigger is not a rate-limit wait and
+   * always comments, as does a merge that brought in nothing new or failed.
    */
   private async triggerReview(
     options: WaitForPrReviewOptions,
     timeoutMs: number,
+    callerRequested: boolean,
   ): Promise<RetriggerReport | undefined> {
-    if (options.triggerMergeMain !== true || !this.shouldTrigger(options)) {
+    if (options.triggerMergeMain !== true || !callerRequested) {
       await this.postTriggerComment(options.prNumber, timeoutMs);
       return undefined;
     }

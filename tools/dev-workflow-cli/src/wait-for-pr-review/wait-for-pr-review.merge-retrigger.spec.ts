@@ -189,6 +189,18 @@ describe('WaitForPrReviewService merge-main retrigger', () => {
     expect(result).toEqual({ found: false, timedOut: true });
   });
 
+  it('comments for a star-gate trigger even when the trigger instant has passed', async () => {
+    mockPolls(STAR_GATED, EMPTY);
+
+    const result = await runWait(options());
+
+    expect(retriggerMerge.mergeMainAndPush).not.toHaveBeenCalled();
+    expect(commentPosts()).toEqual([
+      ['pr', 'comment', '392', '--body', '@coderabbitai review'],
+    ]);
+    expect(result).toEqual({ found: false, timedOut: true });
+  });
+
   it('reports no retrigger when the trigger instant is never reached', async () => {
     mockPolls(EMPTY);
 
