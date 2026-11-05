@@ -61,6 +61,7 @@ export class ReviewRetriggerMergeService {
     }
   }
 
+  /** The current commit's SHA, read to tell a merge that added a commit from a no-op. */
   private async head(timeoutMs: number): Promise<string> {
     const result = await this.git(['rev-parse', 'HEAD'], timeoutMs);
     return result.stdout.trim();
@@ -102,6 +103,7 @@ export class ReviewRetriggerMergeService {
     );
   }
 
+  /** The non-blank lines of `text`, each trimmed. */
   private lines(text: string): string[] {
     return text
       .split('\n')
@@ -109,6 +111,7 @@ export class ReviewRetriggerMergeService {
       .filter((line) => line !== '');
   }
 
+  /** A thrown value as a one-line message, whether or not it is an `Error`. */
   private describe(error: unknown): string {
     return error instanceof Error ? error.message : String(error);
   }
