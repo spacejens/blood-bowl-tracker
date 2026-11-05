@@ -256,8 +256,9 @@ select menus).
 ## `trophy`
 
 The
-trophy name as the title, then the competition group it is awarded for and,
-only when the trophy has one, its description, a blank line, then
+trophy name as the title, then what it is awarded for — the competition group
+the trophy is scoped to, or the league when it is scoped directly to a
+league — and, only when the trophy has one, its description, a blank line, then
 one heading per era, newest era first, each heading naming the era and its
 date range, with an ongoing era marked as still running, each followed by
 that era's awards, newest-first, one line per award naming the competition
