@@ -5,6 +5,7 @@ import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
 import { PullRequestReviewCommentsService } from './pull-request-review-comments.service';
+import { ReviewRetriggerMergeService } from './review-retrigger-merge.service';
 import {
   COMMENT_UPDATE_FAILED_PHRASES,
   NO_ACTIONABLE_COMMENTS_PHRASES,
@@ -53,8 +54,9 @@ export interface WaitForPrReviewOptions {
   readonly timeoutMs?: number;
   readonly intervalMs?: number;
   /**
-   * When set, one `@coderabbitai review` comment is posted on the first poll
-   * at or after this instant, and polling then continues to the deadline. The
+   * When set, one review is requested on the first poll at or after this
+   * instant — a `@coderabbitai review` comment, or a pushed merge of `main`
+   * with `triggerMergeMain` — and polling then continues to the deadline. The
    * caller is responsible for passing a `timeoutMs` large enough to cover both
    * the wait until this instant and a normal review window after it — this
    * service only acts once the clock crosses the epoch, it never extends its
@@ -93,6 +95,19 @@ export interface CodeRabbitComment {
   readonly submittedAt: string;
 }
 
+/** How a `triggerMergeMain` retrigger actually asked for the review. */
+export interface RetriggerReport {
+  /** `merge-push` when a pushed merge of `main` asked for it; `comment` when the fallback comment did. */
+  readonly method: 'merge-push' | 'comment';
+  /** One-line reason the merge could not be used; present only when a git step failed. */
+  readonly mergeFailure?: string;
+}
+
+/** Where `pollUntilDone` records the retrigger it fired, for `run` to attach. */
+interface RetriggerState {
+  report?: RetriggerReport;
+}
+
 export interface WaitForPrReviewResult {
   readonly found: boolean;
   /** The first qualifying review; present only when `found` is true. */
@@ -114,6 +129,11 @@ export interface WaitForPrReviewResult {
   readonly commentUpdateFailed?: boolean;
   /** Present only when `commentUpdateFailed` is true. */
   readonly commentUpdateFailedComment?: CodeRabbitComment;
+  /**
+   * Present only when `triggerMergeMain` was set and the caller-requested
+   * trigger fired — on any of the outcomes above.
+   */
+  readonly retrigger?: RetriggerReport;
 }
 
 /** What one poll saw; all comment/review fields absent means "nothing qualifying yet". */
@@ -290,9 +310,21 @@ export class WaitForPrReviewService {
     private readonly processRunner: ProcessRunnerService,
     private readonly filters: WaitForPrReviewFiltersService,
     private readonly reviewComments: PullRequestReviewCommentsService,
+    private readonly retriggerMerge: ReviewRetriggerMergeService,
   ) {}
 
   async run(options: WaitForPrReviewOptions): Promise<WaitForPrReviewResult> {
+    const retrigger: RetriggerState = {};
+    const result = await this.pollUntilDone(options, retrigger);
+    return retrigger.report === undefined
+      ? result
+      : { ...result, retrigger: retrigger.report };
+  }
+
+  private async pollUntilDone(
+    options: WaitForPrReviewOptions,
+    retrigger: RetriggerState,
+  ): Promise<WaitForPrReviewResult> {
     const intervalMs = options.intervalMs ?? DEFAULT_INTERVAL_MS;
     const deadline = Date.now() + (options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
     let triggered = false;
@@ -368,8 +400,8 @@ export class WaitForPrReviewService {
         // every interval for the rest of the wait.
         triggered = true;
         justTriggered = true;
-        await this.triggerReview(
-          options.prNumber,
+        retrigger.report = await this.triggerReview(
+          options,
           this.budgetMs(deadline, intervalMs),
         );
       }
@@ -853,11 +885,36 @@ export class WaitForPrReviewService {
   }
 
   /**
+   * Asks for a review, returning how — or `undefined` when no merge was
+   * requested for this trigger. Only the caller-requested trigger
+   * (`shouldTrigger`) with `triggerMergeMain` set tries the merge; the
+   * star-gate trigger is not a rate-limit wait and always comments, as does
+   * a merge that brought in nothing new or failed.
+   */
+  private async triggerReview(
+    options: WaitForPrReviewOptions,
+    timeoutMs: number,
+  ): Promise<RetriggerReport | undefined> {
+    if (options.triggerMergeMain !== true || !this.shouldTrigger(options)) {
+      await this.postTriggerComment(options.prNumber, timeoutMs);
+      return undefined;
+    }
+    const merge = await this.retriggerMerge.mergeMainAndPush(timeoutMs);
+    if (merge.pushed) {
+      return { method: 'merge-push' };
+    }
+    await this.postTriggerComment(options.prNumber, timeoutMs);
+    return merge.failure === undefined
+      ? { method: 'comment' }
+      : { method: 'comment', mergeFailure: merge.failure };
+  }
+
+  /**
    * Failure is deliberately swallowed: a trigger that could not be posted is
    * no reason to abort a wait that may still see a review, and the caller
    * learns the outcome from the wait's own result either way.
    */
-  private async triggerReview(
+  private async postTriggerComment(
     prNumber: string,
     timeoutMs: number,
   ): Promise<void> {

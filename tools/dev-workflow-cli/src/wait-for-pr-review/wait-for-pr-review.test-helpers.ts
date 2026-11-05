@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
 import { PullRequestReviewCommentsService } from './pull-request-review-comments.service';
+import { ReviewRetriggerMergeService } from './review-retrigger-merge.service';
 import { WaitForPrReviewService } from './wait-for-pr-review.service';
 import { WaitForPrReviewFiltersService } from './wait-for-pr-review-filters.service';
 
@@ -288,6 +289,7 @@ export interface WaitForPrReviewHarness {
   readonly service: WaitForPrReviewService;
   readonly processRunner: MockProxy<ProcessRunnerService>;
   readonly reviewComments: MockProxy<PullRequestReviewCommentsService>;
+  readonly retriggerMerge: MockProxy<ReviewRetriggerMergeService>;
 }
 
 /**
@@ -303,18 +305,21 @@ export interface WaitForPrReviewHarness {
 export async function createHarness(): Promise<WaitForPrReviewHarness> {
   const processRunner = mock<ProcessRunnerService>();
   const reviewComments = mock<PullRequestReviewCommentsService>();
+  const retriggerMerge = mock<ReviewRetriggerMergeService>();
   const moduleRef = await Test.createTestingModule({
     providers: [
       WaitForPrReviewService,
       WaitForPrReviewFiltersService,
       { provide: ProcessRunnerService, useValue: processRunner },
       { provide: PullRequestReviewCommentsService, useValue: reviewComments },
+      { provide: ReviewRetriggerMergeService, useValue: retriggerMerge },
     ],
   }).compile();
   return {
     service: moduleRef.get(WaitForPrReviewService),
     processRunner,
     reviewComments,
+    retriggerMerge,
   };
 }
 
