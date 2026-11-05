@@ -52,7 +52,7 @@ node tools/dev-workflow-cli/dist/main.js wait-for-pr-review <pr-number> <develop
 - `--trigger-after` — once the clock crosses this epoch, the first poll at or after it posts a `@coderabbitai review` comment on the PR, then polling continues to the deadline as normal. Used to nudge CodeRabbit into reviewing again once its rate limit is expected to have cleared.
 - `--trigger-merge-main` — only valid together with `--trigger-after` (rejected on its own). It changes what happens at the trigger instant: instead of posting the comment, the command runs `git fetch origin main` and `git merge origin/main --no-edit` in its working directory and, when the merge created a new commit, runs `git push`. The push is what asks CodeRabbit for a review, so no comment is posted, the branch stays current with `main`, and the PR conversation gets no extra noise.
   - **Nothing new to merge** (already up to date): falls back to the `@coderabbitai review` comment, unless the branch holds a local commit its upstream lacks (a merge whose push failed on an earlier attempt). That commit is pushed instead, and the push is the trigger.
-  - **A git step fails** (a merge conflict, a network error, a rejected push): runs `git merge --abort` so no half-merged tree is left behind, falls back to the comment, and reports the failure in the `retrigger` field (see below). A failed trigger never fails the wait.
+  - **A git step fails** (a merge conflict, a network error, a rejected push): once the merge has started, runs `git merge --abort` so no half-merged tree is left behind. A failure before that point, such as a failed fetch, runs no abort because there is nothing to undo. Either way it falls back to the comment and reports the failure in the `retrigger` field (see below). A failed trigger never fails the wait.
   - **A merge is already in progress** in the working directory: left untouched (no abort), reported as a failure, and the comment is posted.
   - The whole attempt shares the time budget the wait was given: each git step gets only the time left, and no step starts once it is spent.
   - If only the push failed, the merge commit stays local (the abort has nothing left to undo). The next attempt pushes it, as above, or it goes out with the branch's next push.
@@ -81,7 +81,7 @@ Prints one of four JSON outcomes:
 
 - `{"method": "merge-push"}` — the merge created a commit and it was pushed; no comment was posted.
 - `{"method": "comment"}` — the merge brought in nothing new, so the comment was posted instead.
-- `{"method": "comment", "mergeFailure": "<one-line reason>"}` — a git step failed, the merge was aborted, and the comment was posted instead.
+- `{"method": "comment", "mergeFailure": "<one-line reason>"}` — a git step failed (a started merge was aborted), and the comment was posted instead.
 
 The field is omitted when the flag was not passed, when the trigger instant was never reached, and when the star-gate comment caused the trigger.
 
