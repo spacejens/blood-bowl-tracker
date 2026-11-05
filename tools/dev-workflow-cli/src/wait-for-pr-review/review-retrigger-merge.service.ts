@@ -7,8 +7,9 @@ import { Injectable } from '@nestjs/common';
 /** What one merge-and-push retrigger attempt achieved. */
 export interface MergeRetriggerResult {
   /**
-   * True only when the merge created a new commit and `git push` succeeded —
-   * the push is itself what asks CodeRabbit for a review.
+   * True only when a push succeeded — the push is itself what asks CodeRabbit
+   * for a review. That is a push of the merge's new commit, or of a local
+   * merge commit an earlier failed push left behind.
    */
   readonly pushed: boolean;
   /**
@@ -20,6 +21,9 @@ export interface MergeRetriggerResult {
 
 /** A git diagnostic line worth reporting ahead of any other stderr line. */
 const GIT_ERROR_LINE = /^(fatal|error):/;
+
+/** The abort is cleanup that must still run once the attempt's budget is spent. */
+const ABORT_TIMEOUT_MS = 10_000;
 
 /**
  * Asks for a review by merging `origin/main` into the current branch and
@@ -36,55 +40,114 @@ export class ReviewRetriggerMergeService {
   constructor(private readonly processRunner: ProcessRunnerService) {}
 
   /**
-   * HEAD is read before and after the merge: an unchanged HEAD means the
-   * branch already contained `main`, so there is nothing to push and the
-   * caller should comment instead.
+   * `timeoutMs` is one budget for the whole attempt: a deadline is fixed when
+   * it starts and each git step gets only the time left, so fetch, merge and
+   * push together never outlast it. A step that would start after the
+   * deadline is not started.
    *
-   * On any failure `git merge --abort` is attempted, whichever step failed.
-   * Only a failed merge actually leaves one in progress; for the other steps
-   * the abort finds nothing to undo and fails harmlessly, which keeps this
-   * to one failure path rather than tracking which step started a merge.
+   * A merge already in progress in the worktree is not this service's to
+   * touch: it reports a failure and leaves that state alone.
+   *
+   * HEAD is read before and after the merge: an unchanged HEAD means the
+   * branch already contained `main`. The branch may still hold a local merge
+   * commit whose earlier push failed, so an unchanged HEAD pushes when the
+   * branch is ahead of its upstream, and otherwise leaves the caller to
+   * comment instead.
+   *
+   * Once this attempt has started its own merge, any failure attempts
+   * `git merge --abort`. Only a failed merge actually leaves one in
+   * progress; after a failed push the abort finds nothing to undo and fails
+   * harmlessly, which keeps this to one failure path.
    */
   async mergeMainAndPush(timeoutMs: number): Promise<MergeRetriggerResult> {
+    const deadline = Date.now() + timeoutMs;
+    let startedMerge = false;
     try {
-      const before = await this.head(timeoutMs);
-      await this.git(['fetch', 'origin', 'main'], timeoutMs);
-      await this.git(['merge', 'origin/main', '--no-edit'], timeoutMs);
-      if ((await this.head(timeoutMs)) === before) {
-        return { pushed: false };
+      if (await this.mergeInProgress(deadline)) {
+        return {
+          pushed: false,
+          failure:
+            'a merge is already in progress in this worktree; left untouched',
+        };
       }
-      await this.git(['push'], timeoutMs);
+      const before = await this.head(deadline);
+      await this.git(['fetch', 'origin', 'main'], deadline);
+      startedMerge = true;
+      await this.git(['merge', 'origin/main', '--no-edit'], deadline);
+      if ((await this.head(deadline)) === before) {
+        return { pushed: await this.pushWhenAhead(deadline) };
+      }
+      await this.git(['push'], deadline);
       return { pushed: true };
     } catch (error) {
-      await this.abortMerge(timeoutMs);
+      if (startedMerge) {
+        await this.abortMerge();
+      }
       return { pushed: false, failure: this.describe(error) };
     }
   }
 
+  /** Whether the worktree is mid-merge, which `MERGE_HEAD` existing tells. */
+  private async mergeInProgress(deadline: number): Promise<boolean> {
+    const args = ['rev-parse', '-q', '--verify', 'MERGE_HEAD'];
+    const result = await this.run(args, deadline);
+    if (result.exitCode === 0) {
+      return true;
+    }
+    if (result.exitCode === 1) {
+      return false;
+    }
+    throw new Error(`git ${args.join(' ')} failed: ${this.reason(result)}`);
+  }
+
+  /** Pushes commits the upstream lacks; true only when it pushed. */
+  private async pushWhenAhead(deadline: number): Promise<boolean> {
+    const ahead = await this.git(
+      ['rev-list', '--count', '@{upstream}..HEAD'],
+      deadline,
+    );
+    if (ahead.stdout.trim() === '0') {
+      return false;
+    }
+    await this.git(['push'], deadline);
+    return true;
+  }
+
   /** The current commit's SHA, read to tell a merge that added a commit from a no-op. */
-  private async head(timeoutMs: number): Promise<string> {
-    const result = await this.git(['rev-parse', 'HEAD'], timeoutMs);
+  private async head(deadline: number): Promise<string> {
+    const result = await this.git(['rev-parse', 'HEAD'], deadline);
     return result.stdout.trim();
   }
 
   /** One git step; throws an `Error` whose message is the one-line failure. */
   private async git(
     args: readonly string[],
-    timeoutMs: number,
+    deadline: number,
+  ): Promise<ProcessResult> {
+    const result = await this.run(args, deadline);
+    if (result.exitCode !== 0) {
+      throw new Error(`git ${args.join(' ')} failed: ${this.reason(result)}`);
+    }
+    return result;
+  }
+
+  /** Runs git with the time left before `deadline`; a spent budget or a spawn failure throws the one-line failure. */
+  private async run(
+    args: readonly string[],
+    deadline: number,
   ): Promise<ProcessResult> {
     const step = `git ${args.join(' ')}`;
-    let result: ProcessResult;
+    const left = deadline - Date.now();
+    if (left <= 0) {
+      throw new Error(`${step} not started: the time budget is spent`);
+    }
     try {
-      result = await this.processRunner.run('git', args, timeoutMs);
+      return await this.processRunner.run('git', args, left);
     } catch (error) {
       throw new Error(`${step} failed: ${this.describe(error)}`, {
         cause: error,
       });
     }
-    if (result.exitCode !== 0) {
-      throw new Error(`${step} failed: ${this.reason(result)}`);
-    }
-    return result;
   }
 
   /**
@@ -117,9 +180,13 @@ export class ReviewRetriggerMergeService {
   }
 
   /** Best effort: a failed abort must not mask the failure being reported. */
-  private async abortMerge(timeoutMs: number): Promise<void> {
+  private async abortMerge(): Promise<void> {
     try {
-      await this.processRunner.run('git', ['merge', '--abort'], timeoutMs);
+      await this.processRunner.run(
+        'git',
+        ['merge', '--abort'],
+        ABORT_TIMEOUT_MS,
+      );
     } catch {
       // Nothing to do — see above.
     }

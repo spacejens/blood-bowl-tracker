@@ -3,7 +3,7 @@ import {
   ProcessRunnerService,
 } from '@blood-bowl-tracker/cli-shared';
 import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
 import { ReviewRetriggerMergeService } from './review-retrigger-merge.service';
@@ -18,7 +18,25 @@ function ok(stdout = ''): ProcessResult {
 
 /** A canned answer for one git step: a process result, or a rejection. */
 type Answer = ProcessResult | { readonly reject: unknown };
-type Step = 'rev-parse' | 'fetch' | 'merge' | 'push' | 'abort';
+type Step =
+  | 'merge-head'
+  | 'rev-parse'
+  | 'rev-list'
+  | 'fetch'
+  | 'merge'
+  | 'push'
+  | 'abort';
+
+/** Which canned step a git call's arguments belong to. */
+function stepOf(args: readonly string[]): Step {
+  if (args[0] === 'merge' && args[1] === '--abort') {
+    return 'abort';
+  }
+  if (args[0] === 'rev-parse' && args.includes('MERGE_HEAD')) {
+    return 'merge-head';
+  }
+  return args[0] as Step;
+}
 
 describe('ReviewRetriggerMergeService', () => {
   let service: ReviewRetriggerMergeService;
@@ -38,7 +56,8 @@ describe('ReviewRetriggerMergeService', () => {
   /**
    * Answers each git call by its step. An overridden step always gets its
    * override; otherwise `rev-parse` answers from `heads` in call order (the
-   * last entry repeats) and every other step succeeds.
+   * last entry repeats), `merge-head` reports no merge in progress,
+   * `rev-list` reports nothing ahead, and every other step succeeds.
    */
   function mockGit(
     answers: Partial<Record<Step, Answer>>,
@@ -46,9 +65,7 @@ describe('ReviewRetriggerMergeService', () => {
   ) {
     let headIndex = 0;
     processRunner.run.mockImplementation((_command, args) => {
-      const step = (
-        args[0] === 'merge' && args[1] === '--abort' ? 'abort' : args[0]
-      ) as Step;
+      const step = stepOf(args);
       const answer = answers[step];
       if (answer !== undefined) {
         if ('reject' in answer) {
@@ -57,6 +74,12 @@ describe('ReviewRetriggerMergeService', () => {
           return Promise.reject(answer.reject);
         }
         return Promise.resolve(answer);
+      }
+      if (step === 'merge-head') {
+        return Promise.resolve({ exitCode: 1, stdout: '', stderr: '' });
+      }
+      if (step === 'rev-list') {
+        return Promise.resolve(ok('0\n'));
       }
       if (step === 'rev-parse') {
         const head = heads[Math.min(headIndex, heads.length - 1)];
@@ -79,6 +102,7 @@ describe('ReviewRetriggerMergeService', () => {
 
     expect(result).toEqual({ pushed: true });
     expect(gitCalls()).toEqual([
+      'rev-parse -q --verify MERGE_HEAD',
       'rev-parse HEAD',
       'fetch origin main',
       'merge origin/main --no-edit',
@@ -87,21 +111,120 @@ describe('ReviewRetriggerMergeService', () => {
     ]);
     for (const [command, , timeoutMs] of processRunner.run.mock.calls) {
       expect(command).toBe('git');
-      expect(timeoutMs).toBe(TIMEOUT_MS);
+      expect(timeoutMs).toBeGreaterThan(0);
+      expect(timeoutMs).toBeLessThanOrEqual(TIMEOUT_MS);
     }
   });
 
-  it('does not push when the merge left HEAD unchanged', async () => {
+  it('does not push when the merge left HEAD unchanged and nothing is ahead', async () => {
     mockGit({}, [BEFORE_SHA, BEFORE_SHA]);
 
     const result = await service.mergeMainAndPush(TIMEOUT_MS);
 
     expect(result).toEqual({ pushed: false });
+    expect(gitCalls()).toContain('rev-list --count @{upstream}..HEAD');
     expect(gitCalls()).not.toContain('push');
     expect(gitCalls()).not.toContain('merge --abort');
   });
 
-  it('reports a failed fetch by its fatal line and aborts', async () => {
+  it('pushes a local merge commit an earlier failed push left behind', async () => {
+    mockGit({ 'rev-list': ok('1\n') }, [BEFORE_SHA, BEFORE_SHA]);
+
+    const result = await service.mergeMainAndPush(TIMEOUT_MS);
+
+    expect(result).toEqual({ pushed: true });
+    expect(gitCalls().at(-1)).toBe('push');
+  });
+
+  it('reports a failed upstream check without pushing', async () => {
+    mockGit(
+      {
+        'rev-list': {
+          exitCode: 128,
+          stdout: '',
+          stderr: 'fatal: no upstream configured for branch\n',
+        },
+      },
+      [BEFORE_SHA, BEFORE_SHA],
+    );
+
+    const result = await service.mergeMainAndPush(TIMEOUT_MS);
+
+    expect(result.pushed).toBe(false);
+    expect(result.failure).toContain('fatal: no upstream configured');
+    expect(gitCalls()).not.toContain('push');
+  });
+
+  it('leaves a merge already in progress alone', async () => {
+    mockGit({ 'merge-head': ok('c'.repeat(40)) });
+
+    const result = await service.mergeMainAndPush(TIMEOUT_MS);
+
+    expect(result).toEqual({
+      pushed: false,
+      failure:
+        'a merge is already in progress in this worktree; left untouched',
+    });
+    expect(gitCalls()).toEqual(['rev-parse -q --verify MERGE_HEAD']);
+  });
+
+  it('reports a merge-state check that fails outright', async () => {
+    mockGit({
+      'merge-head': { exitCode: 128, stdout: '', stderr: 'fatal: not a repo' },
+    });
+
+    const result = await service.mergeMainAndPush(TIMEOUT_MS);
+
+    expect(result.failure).toBe(
+      'git rev-parse -q --verify MERGE_HEAD failed: fatal: not a repo',
+    );
+    expect(gitCalls()).not.toContain('merge --abort');
+  });
+
+  describe('time budget', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('gives each step only the time left of the one budget', async () => {
+      mockGit({});
+      const run = processRunner.run.getMockImplementation();
+      processRunner.run.mockImplementation(async (command, args, timeoutMs) => {
+        vi.advanceTimersByTime(1_000);
+        return (await run?.(command, args, timeoutMs)) as ProcessResult;
+      });
+
+      await service.mergeMainAndPush(TIMEOUT_MS);
+
+      const budgets = processRunner.run.mock.calls.map((call) => call[2]);
+      expect(budgets).toEqual([60_000, 59_000, 58_000, 57_000, 56_000, 55_000]);
+    });
+
+    it('starts no step once the budget is spent, and aborts the merge it started', async () => {
+      mockGit({});
+      const run = processRunner.run.getMockImplementation();
+      processRunner.run.mockImplementation(async (command, args, timeoutMs) => {
+        if (args[0] === 'merge' && args[1] !== '--abort') {
+          vi.advanceTimersByTime(TIMEOUT_MS);
+        }
+        return (await run?.(command, args, timeoutMs)) as ProcessResult;
+      });
+
+      const result = await service.mergeMainAndPush(TIMEOUT_MS);
+
+      expect(result.failure).toBe(
+        'git rev-parse HEAD not started: the time budget is spent',
+      );
+      expect(gitCalls().at(-1)).toBe('merge --abort');
+      expect(gitCalls()).not.toContain('push');
+    });
+  });
+
+  it('reports a failed fetch by its fatal line without aborting', async () => {
     mockGit({
       fetch: {
         exitCode: 128,
@@ -119,9 +242,9 @@ describe('ReviewRetriggerMergeService', () => {
         'git fetch origin main failed: fatal: unable to access the remote',
     });
     expect(gitCalls()).toEqual([
+      'rev-parse -q --verify MERGE_HEAD',
       'rev-parse HEAD',
       'fetch origin main',
-      'merge --abort',
     ]);
   });
 

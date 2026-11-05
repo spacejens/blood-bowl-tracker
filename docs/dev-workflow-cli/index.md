@@ -51,9 +51,11 @@ node tools/dev-workflow-cli/dist/main.js wait-for-pr-review <pr-number> <develop
 - `--exclude-comment-update-failure-id` — the same exclusion, but for a CodeRabbit comment-update-failure comment's `id` instead of a review's or rate-limit comment's, for the same reason.
 - `--trigger-after` — once the clock crosses this epoch, the first poll at or after it posts a `@coderabbitai review` comment on the PR, then polling continues to the deadline as normal. Used to nudge CodeRabbit into reviewing again once its rate limit is expected to have cleared.
 - `--trigger-merge-main` — only valid together with `--trigger-after` (rejected on its own). It changes what happens at the trigger instant: instead of posting the comment, the command runs `git fetch origin main` and `git merge origin/main --no-edit` in its working directory and, when the merge created a new commit, runs `git push`. The push is what asks CodeRabbit for a review, so no comment is posted, the branch stays current with `main`, and the PR conversation gets no extra noise.
-  - **Nothing new to merge** (already up to date): falls back to the `@coderabbitai review` comment.
+  - **Nothing new to merge** (already up to date): falls back to the `@coderabbitai review` comment, unless the branch holds a local commit its upstream lacks (a merge whose push failed on an earlier attempt). That commit is pushed instead, and the push is the trigger.
   - **A git step fails** (a merge conflict, a network error, a rejected push): runs `git merge --abort` so no half-merged tree is left behind, falls back to the comment, and reports the failure in the `retrigger` field (see below). A failed trigger never fails the wait.
-  - If only the push failed, the merge commit stays local (the abort has nothing left to undo) and goes out with the branch's next push.
+  - **A merge is already in progress** in the working directory: left untouched (no abort), reported as a failure, and the comment is posted.
+  - The whole attempt shares the time budget the wait was given: each git step gets only the time left, and no step starts once it is spent.
+  - If only the push failed, the merge commit stays local (the abort has nothing left to undo). The next attempt pushes it, as above, or it goes out with the branch's next push.
   - Only for a branch that may take a merge of `main`: `finish-renovate-pr` does not pass this flag, since `main` must not be merged into Renovate's branch.
   - It runs no `pnpm verify`: `main` is already verified, and the pushed merge is covered by CI and the next review.
   - The wait itself is unchanged either way: it keeps polling to its deadline, and if CodeRabbit answers with a fresh rate-limit comment the result is `rateLimited` as usual.
