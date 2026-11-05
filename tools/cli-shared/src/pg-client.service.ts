@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { DatabaseUrlRedactorService } from './database-url-redactor.service';
 import {
+  ProcessResult,
   ProcessRunnerService,
   TIMED_OUT_EXIT_CODE,
 } from './process-runner.service';
@@ -28,11 +29,18 @@ export interface PgClientRequest {
   readonly timeoutMs: number;
 }
 
+/** One finished run, with the connection string redacted from its output. */
+export interface PgClientResult extends ProcessResult {
+  /** True when `timeoutMs` killed the program; `exitCode` is then `TIMED_OUT_EXIT_CODE`. */
+  readonly timedOut: boolean;
+}
+
 /**
- * Runs a PostgreSQL client program against one database and returns its
- * stdout. A non-zero exit, a timeout, or a failure to run at all throws, and
- * the connection string (which these programs can echo, password included)
- * is redacted from every error.
+ * Runs a PostgreSQL client program against one database, with the libpq
+ * variables that could redirect the connection removed from its environment
+ * and the URL passed as `--dbname`. The connection string (which these
+ * programs can echo, password included) is redacted from all output and
+ * every error.
  */
 @Injectable()
 export class PgClientService {
@@ -41,8 +49,13 @@ export class PgClientService {
     private readonly redactor: DatabaseUrlRedactorService,
   ) {}
 
-  async run(request: PgClientRequest): Promise<string> {
-    let result;
+  /**
+   * Resolves for any exit, including a non-zero one or a kill by
+   * `timeoutMs`, so the caller decides what a failure means. Rejects only
+   * when the program could not be run at all.
+   */
+  async runToResult(request: PgClientRequest): Promise<PgClientResult> {
+    let result: ProcessResult;
     try {
       result = await this.processRunner.runWithOptions(
         request.program,
@@ -61,17 +74,25 @@ export class PgClientService {
         ),
       );
     }
-    if (result.exitCode === TIMED_OUT_EXIT_CODE) {
+    return {
+      exitCode: result.exitCode,
+      stdout: this.redactor.redact(result.stdout, request.databaseUrl),
+      stderr: this.redactor.redact(result.stderr, request.databaseUrl),
+      timedOut: result.exitCode === TIMED_OUT_EXIT_CODE,
+    };
+  }
+
+  /** Returns stdout; a timeout, a non-zero exit, or a failure to run throws. */
+  async run(request: PgClientRequest): Promise<string> {
+    const result = await this.runToResult(request);
+    if (result.timedOut) {
       throw new Error(
         `${request.program} timed out after ${request.timeoutMs / 60_000} minutes.`,
       );
     }
     if (result.exitCode !== 0) {
-      const stderr = this.redactor
-        .redact(result.stderr, request.databaseUrl)
-        .trim();
       throw new Error(
-        `${request.program} exited with code ${result.exitCode}: ${stderr}`,
+        `${request.program} exited with code ${result.exitCode}: ${result.stderr.trim()}`,
       );
     }
     return result.stdout;
