@@ -38,7 +38,7 @@ describe('RunProductionQueryService', () => {
     service = moduleRef.get(RunProductionQueryService);
   });
 
-  function lastArgs(): readonly string[] {
+  function firstCallArgs(): readonly string[] {
     return pgClient.runToResult.mock.calls[0][0].args;
   }
 
@@ -56,6 +56,7 @@ describe('RunProductionQueryService', () => {
     expect(pgClient.runToResult).toHaveBeenCalledWith({
       program: 'psql',
       args: [
+        '--no-psqlrc',
         '-v',
         'ON_ERROR_STOP=1',
         '-c',
@@ -83,7 +84,7 @@ describe('RunProductionQueryService', () => {
 
     await service.run('SELECT 1;');
 
-    expect(lastArgs()).not.toContain(DATABASE_URL);
+    expect(firstCallArgs()).not.toContain(DATABASE_URL);
   });
 
   it('passes the query as a single argv entry, so embedded quotes need no shell-level escaping', async () => {
@@ -93,7 +94,7 @@ describe('RunProductionQueryService', () => {
       "SET LOCAL statement_timeout = 0; SELECT 1 WHERE 'a''b' = 'a''b';",
     );
 
-    expect(lastArgs()).toContain(
+    expect(firstCallArgs()).toContain(
       "SET LOCAL statement_timeout = 0; SELECT 1 WHERE 'a''b' = 'a''b';",
     );
   });
@@ -109,7 +110,7 @@ describe('RunProductionQueryService', () => {
 
     await service.run(multilineQuery);
 
-    expect(lastArgs()).toContain(multilineQuery);
+    expect(firstCallArgs()).toContain(multilineQuery);
   });
 
   it('reports the client result for a non-zero exit as data, stderr included', async () => {
@@ -200,7 +201,7 @@ describe('RunProductionQueryService', () => {
 
     await service.run("SELECT 1; \\! printf 'not actually a meta-command';");
 
-    expect(lastArgs()).toContain(
+    expect(firstCallArgs()).toContain(
       "SELECT 1; \\! printf 'not actually a meta-command';",
     );
   });

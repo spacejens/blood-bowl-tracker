@@ -58,6 +58,7 @@ export class RunProductionQueryService {
     const result = await this.pgClient.runToResult({
       program: 'psql',
       args: [
+        '--no-psqlrc',
         '-v',
         'ON_ERROR_STOP=1',
         '-c',

@@ -179,7 +179,7 @@ tools/
                         canonical gitignored file/directory lists, the
                         dotenv-based reader for production's secrets in
                         apps/discord-bot/.env.production, the guarded
-                        psql/pg_restore runner with connection-string
+                        psql/pg_dump/pg_restore runner with connection-string
                         redaction, and the shared runCli
                         subcommand-dispatcher driver every entrypoint runs
                         on (workflow-lint uses only runCli);

@@ -86,7 +86,7 @@ Behaviors worth knowing:
   the docker-compose database) and applies the same localhost-only rule as
   `verify`, with no override: a URL carrying a `host` or `hostaddr` query
   parameter is refused too. Unlike `verify`, the target need not be empty.
-- `psql` and `pg_restore` run through `tools/cli-shared`'s `PgClientService`,
+- `psql`, `pg_dump` and `pg_restore` run through `tools/cli-shared`'s `PgClientService`,
   which removes the libpq variables `PGHOSTADDR`, `PGHOST`, `PGSERVICE` and
   `PGSERVICEFILE` from their environment, so they cannot redirect a
   connection the guard judged local. It passes the URL as `--dbname=` and,

@@ -9,8 +9,7 @@ import {
 
 /**
  * libpq variables that can send a connection somewhere other than the
- * `--dbname` URL the caller passed (and, in backup-cli, the local-database
- * guard checked).
+ * `--dbname` URL the caller passed.
  */
 const REDIRECTING_ENV_VARS = [
   'PGHOSTADDR',
@@ -19,7 +18,7 @@ const REDIRECTING_ENV_VARS = [
   'PGSERVICEFILE',
 ] as const;
 
-type PgClientProgram = 'pg_restore' | 'psql';
+type PgClientProgram = 'pg_dump' | 'pg_restore' | 'psql';
 
 export interface PgClientRequest {
   readonly program: PgClientProgram;
