@@ -39,7 +39,7 @@ Run from the repo root. On success, every subcommand prints JSON on stdout; fail
 ### `wait-for-pr-review` usage
 
 ```bash
-node tools/dev-workflow-cli/dist/main.js wait-for-pr-review <pr-number> <developer-login> <since-epoch-seconds> [--timeout-ms=1200000] [--interval-ms=30000] [--exclude-review-id=<id>] [--exclude-comment-id=<id>] [--exclude-comment-update-failure-id=<id>] [--trigger-after=<epoch-seconds>]
+node tools/dev-workflow-cli/dist/main.js wait-for-pr-review <pr-number> <developer-login> <since-epoch-seconds> [--timeout-ms=1200000] [--interval-ms=30000] [--exclude-review-id=<id>] [--exclude-comment-id=<id>] [--exclude-comment-update-failure-id=<id>] [--trigger-after=<epoch-seconds>] [--trigger-merge-main]
 ```
 
 - `<pr-number>` — the PR to poll.
@@ -50,8 +50,13 @@ node tools/dev-workflow-cli/dist/main.js wait-for-pr-review <pr-number> <develop
 - `--exclude-comment-id` — the same exclusion, but for a CodeRabbit rate-limit comment's `id` instead of a review's, for the same reason.
 - `--exclude-comment-update-failure-id` — the same exclusion, but for a CodeRabbit comment-update-failure comment's `id` instead of a review's or rate-limit comment's, for the same reason.
 - `--trigger-after` — once the clock crosses this epoch, the first poll at or after it posts a `@coderabbitai review` comment on the PR, then polling continues to the deadline as normal. Used to nudge CodeRabbit into reviewing again once its rate limit is expected to have cleared.
+- `--trigger-merge-main` — only valid together with `--trigger-after` (rejected on its own). It changes what happens at the trigger instant: instead of posting the comment, the command runs `git fetch origin main` and `git merge origin/main --no-edit` in its working directory and, when the merge created a new commit, runs `git push`. The push is what asks CodeRabbit for a review, so no comment is posted, the branch stays current with `main`, and the PR conversation gets no extra noise.
+  - **Nothing new to merge** (already up to date): falls back to the `@coderabbitai review` comment.
+  - **A git step fails** (a merge conflict, a network error, a rejected push): runs `git merge --abort` so no half-merged tree is left behind, falls back to the comment, and reports the failure in the `retrigger` field (see below). A failed trigger never fails the wait.
+  - It runs no `pnpm verify`: `main` is already verified, and the pushed merge is covered by CI and the next review.
+  - The wait itself is unchanged either way: it keeps polling to its deadline, and if CodeRabbit answers with a fresh rate-limit comment the result is `rateLimited` as usual.
 
-A poll also triggers on its own, with no `--trigger-after` needed, the first time it finds a CodeRabbit comment saying the repository does not receive automatic reviews (a low-star-count gate CodeRabbit applies repo-wide). That comment never surfaces as its own JSON outcome — it just posts the same `@coderabbitai review` trigger once and keeps polling for the review that follows.
+A poll also triggers on its own, with no `--trigger-after` needed, the first time it finds a CodeRabbit comment saying the repository does not receive automatic reviews (a low-star-count gate CodeRabbit applies repo-wide). That comment never surfaces as its own JSON outcome — it just posts the same `@coderabbitai review` trigger once and keeps polling for the review that follows. That trigger always posts the comment, even with `--trigger-merge-main`: the star gate is not a rate-limit wait, so the flag applies only to the `--trigger-after` retrigger.
 
 Prints one of four JSON outcomes:
 
@@ -67,6 +72,14 @@ Prints one of four JSON outcomes:
     ```
 
 - `{"found": false, "commentUpdateFailed": true, "commentUpdateFailedComment": {...}}` — a CodeRabbit "couldn't update its existing comment" failure notice was found instead of a review, so the wait returned early rather than running out its remaining time. Unlike the rate-limit outcome above, there is no `availableAtEpochSeconds` equivalent here — CodeRabbit's text for this failure states no wait duration, so the caller falls back to an immediate retry (see develop-feature's Phase 6 step b3).
+
+**Retrigger report.** When `--trigger-merge-main` was passed and the `--trigger-after` trigger fired, whichever outcome above is printed also carries a `retrigger` field saying how the review was requested:
+
+- `{"method": "merge-push"}` — the merge created a commit and it was pushed; no comment was posted.
+- `{"method": "comment"}` — the merge brought in nothing new, so the comment was posted instead.
+- `{"method": "comment", "mergeFailure": "<one-line reason>"}` — a git step failed, the merge was aborted, and the comment was posted instead.
+
+The field is omitted when the flag was not passed, when the trigger instant was never reached, and when the star-gate comment caused the trigger.
 
 **Detection precedence.** When more than one of the above could match at once, they are ranked like this:
 
