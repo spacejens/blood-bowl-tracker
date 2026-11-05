@@ -108,6 +108,20 @@ describe.skipIf(!JQ_AVAILABLE)(
       expect(completion).toBeNull();
     });
 
+    it('emits a candidate with an empty status when only the section carries the verdict', () => {
+      const body = walkthroughBody(undefined).replace(
+        'Reviewing files that changed',
+        `${CLEAN_VERDICT}\n\nReviewing files that changed`,
+      );
+
+      const { completion } = evaluate(body);
+
+      expect(completion).not.toBeNull();
+      expect(completion?.status).toBe('');
+      expect(completion?.section).toContain(CLEAN_VERDICT);
+      expect(completion?.section).toContain(HEAD_SHA);
+    });
+
     it('emits nothing when there is no status block and the section carries no verdict', () => {
       const { completion } = evaluate(walkthroughBody(undefined));
 
