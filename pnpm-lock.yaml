@@ -252,7 +252,7 @@ importers:
         version: 4.4.0
       discord.js:
         specifier: ^14.27.0
-        version: 14.28.0
+        version: 14.28.1
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -556,7 +556,7 @@ importers:
         version: 12.3.2(@nestjs/common@12.3.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/platform-express@12.3.2)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       discord.js:
         specifier: ^14.27.0
-        version: 14.28.0
+        version: 14.28.1
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -1456,7 +1456,7 @@ importers:
         version: 12.3.2(@nestjs/common@12.3.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/platform-express@12.3.2)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       discord.js:
         specifier: ^14.27.0
-        version: 14.28.0
+        version: 14.28.1
       json5:
         specifier: ^2.2.3
         version: 2.2.3
@@ -3584,8 +3584,8 @@ packages:
   discord-api-types@0.38.55:
     resolution: {integrity: sha512-ytuaRTzdnHUCXJ6KjL9MrItQX0xKncBKEeYI1Bst4+ud47eejH3cG6gaesYakjpPcUhh68XYS2YwGq3mmujFsA==}
 
-  discord.js@14.28.0:
-    resolution: {integrity: sha512-l/mIllvqvWQDWqa8NPw7b2AU2tM9oPWiWR6Jk54DTNlUdyArXbi+Y0m0sLIUtQ9O0x+tyVpDMCG6K6Kf0yeAWQ==}
+  discord.js@14.28.1:
+    resolution: {integrity: sha512-Je5OcqgurnIUQK4vR+gQnmzOf/lNQsD6d/UkV8ZOj+bFa5zJXPyiGXlbywp2EagwshVT18y7YNQNSRd3FjYkDw==}
     engines: {node: '>=18'}
 
   docker-compose@1.5.0:
@@ -7500,7 +7500,7 @@ snapshots:
 
   discord-api-types@0.38.55: {}
 
-  discord.js@14.28.0:
+  discord.js@14.28.1:
     dependencies:
       '@discordjs/builders': 1.15.0
       '@discordjs/collection': 1.5.3
