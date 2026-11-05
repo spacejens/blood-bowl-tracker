@@ -73,6 +73,14 @@ Link-list fields (`rulesSetIds`, `teamEraIds`, `eras`, `raceEras`) work the
 same way by being additive: they only ever insert missing links, so an omitted
 or empty list leaves existing links intact.
 
+A competition may enroll only team eras from its own era, and a coach may have
+only one team in it (the
+[enrollment rules](../game-concepts/competitions/index.md#enforcement)).
+Changing a competition's era must keep its enrolled team eras in that era. An
+import that introduces one of these violations is rejected as a whole and
+reported as an import error; unchanged pre-existing inconsistencies are not
+revalidated.
+
 Coach, competition, skill, position, team and race names are curated in
 `tools/import-manual`, so for those six `name` is written when the upsert
 creates the row and ignored when it updates one, unless the payload also

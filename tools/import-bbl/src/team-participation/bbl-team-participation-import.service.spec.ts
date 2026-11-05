@@ -563,6 +563,57 @@ describe('BblTeamParticipationImportService', () => {
     expect(mocks.competitionsImport.upsertCompetition).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps importing the other competitions when one enrollment is rejected', async () => {
+    const rejection: ImportError = {
+      item: { competition: '1' },
+      message:
+        'Failed to import competition "Major Season 1": Cannot enroll team era 1002 (team "Vorgash New Order") in competition "Major Season 1": coach "Bob" already has team era 1001 (team "Sewerton Scavengers") in it',
+    };
+    const cup: UpsertCompetition = {
+      ...competition,
+      name: 'Chaos Cup 1',
+      type: 'cup',
+      externalIds: [{ externalSystemId: 1, externalId: '2' }],
+    };
+    const { service, mocks } = await makeService({
+      matches: {
+        '1': [{ bblId: 'm1', date: new Date(Date.UTC(2021, 9, 1)) }],
+        '2': [{ bblId: 'm2', date: new Date(Date.UTC(2021, 10, 1)) }],
+      },
+      matchTeamsByBblId: {
+        m1: matchTeams('m1', 'sew', 'sew'),
+        m2: matchTeams('m2', 'sew', 'sew'),
+      },
+      competitionIdsByBblId: new Map([
+        ['1', 42],
+        ['2', 43],
+      ]),
+    });
+    mocks.teamsImport.upsert.mockResolvedValue(
+      makeTeamRecord({ id: 1, eras: [{ id: 1001, eraId: 200 }] }),
+    );
+    mocks.competitionsImport.upsertCompetition
+      .mockImplementationOnce((_data, errors) => {
+        errors.push(rejection);
+        return Promise.resolve(false);
+      })
+      .mockResolvedValueOnce(true);
+    mocks.racesImport.upsert.mockResolvedValue(makeRaceRecord(1));
+
+    await service.importTeamParticipation({
+      competitionsByBblId: new Map([
+        ['1', competition],
+        ['2', cup],
+      ]),
+      teamsByCode: new Map([['sew', home]]),
+      racesByRaceId,
+    });
+
+    expect(mocks.competitionsImport.upsertCompetition).toHaveBeenCalledTimes(2);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
+    expect(resultArgs(mocks.importResults).errors).toContainEqual(rejection);
+  });
+
   it('upserts match teams with both resolved team eras', async () => {
     const { service, mocks } = await makeService({
       matches: { '1': [{ bblId: 'm1', date: new Date(Date.UTC(2021, 9, 1)) }] },

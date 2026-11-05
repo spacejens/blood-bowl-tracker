@@ -1,6 +1,7 @@
 import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import type { CompetitionWithTeamEras } from '@blood-bowl-tracker/game-data';
 import {
+  CompetitionEnrollmentError,
   CompetitionsService,
   TeamsService,
 } from '@blood-bowl-tracker/game-data';
@@ -143,6 +144,24 @@ describe('TpCompetitionParticipantsService', () => {
       {
         item: { competition: COMPETITION_TP_ID, teamEraIds: [31] },
         message: `Failed to add the registered teams to competition ${COMPETITION_TP_ID}: db down`,
+      },
+    ]);
+  });
+
+  it('records a rejected enrollment as one import error', async () => {
+    const reason =
+      'Cannot enroll team era 31 (team "Orcland Raiders") in competition "Major Season 24": coach "Bob" already has team era 30 (team "Elfheim Eagles") in it';
+    teams.resolveBatch.mockResolvedValue([{ found: true, id: 501 }]);
+    teams.findTeamEraId.mockResolvedValue(31);
+    competitions.upsert.mockRejectedValue(
+      new CompetitionEnrollmentError(reason),
+    );
+
+    await expect(link([163386])).resolves.toBeUndefined();
+    expect(errors).toEqual([
+      {
+        item: { competition: COMPETITION_TP_ID, teamEraIds: [31] },
+        message: `Failed to add the registered teams to competition ${COMPETITION_TP_ID}: ${reason}`,
       },
     ]);
   });
