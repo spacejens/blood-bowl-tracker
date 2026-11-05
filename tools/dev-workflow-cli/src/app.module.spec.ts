@@ -21,6 +21,7 @@ import { ReviewLockService } from './review-lock/review-lock.service';
 import { ReviewLockArgsService } from './review-lock/review-lock-args.service';
 import { ReviewLockStateService } from './review-lock/review-lock-state.service';
 import { PullRequestReviewCommentsService } from './wait-for-pr-review/pull-request-review-comments.service';
+import { ReviewRetriggerMergeService } from './wait-for-pr-review/review-retrigger-merge.service';
 import { WaitForPrReviewService } from './wait-for-pr-review/wait-for-pr-review.service';
 import { WaitForPrReviewArgsService } from './wait-for-pr-review/wait-for-pr-review-args.service';
 import { WaitForPrReviewFiltersService } from './wait-for-pr-review/wait-for-pr-review-filters.service';
@@ -78,6 +79,9 @@ describe('AppModule', () => {
     );
     expect(moduleRef.get(PullRequestReviewCommentsService)).toBeInstanceOf(
       PullRequestReviewCommentsService,
+    );
+    expect(moduleRef.get(ReviewRetriggerMergeService)).toBeInstanceOf(
+      ReviewRetriggerMergeService,
     );
     expect(moduleRef.get(WaitForPrReviewArgsService)).toBeInstanceOf(
       WaitForPrReviewArgsService,
