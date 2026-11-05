@@ -29,6 +29,7 @@ import { LikePatternService } from '../shared/like-pattern.service';
 import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
+import { CompetitionEnrollmentService } from './competition-enrollment.service';
 
 export class CompetitionUpsertConflictError extends UpsertConflictError {}
 
@@ -41,11 +42,18 @@ export class CompetitionsService {
   constructor(
     @Inject(DB) private readonly db: Db,
     private readonly likePattern: LikePatternService,
+    private readonly enrollment: CompetitionEnrollmentService,
   ) {}
 
+  /**
+   * Create or update a competition and add its newly listed team eras. The
+   * enrollment rules are checked on the whole payload first, so a rejected
+   * upsert (`CompetitionEnrollmentError`) writes nothing at all.
+   */
   async upsert(
     data: UpsertCompetition,
   ): Promise<{ competition: CompetitionWithTeamEras; created: boolean }> {
+    await this.enrollment.validate(data);
     const { row: competition, created } = await upsertByExternalIds<
       typeof competitions,
       typeof competitionExternalIds

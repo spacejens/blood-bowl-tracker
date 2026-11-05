@@ -22,6 +22,10 @@ import {
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
 import {
+  CompetitionEnrollmentError,
+  CompetitionEnrollmentService,
+} from './competition-enrollment.service';
+import {
   CompetitionsService,
   CompetitionUpsertConflictError,
 } from './competitions.service';
@@ -37,6 +41,7 @@ const fakeCompetition = {
 describe('CompetitionsService', () => {
   let service: CompetitionsService;
   let likePattern: MockProxy<LikePatternService>;
+  let enrollment: MockProxy<CompetitionEnrollmentService>;
 
   async function build(...rowsPerQuery: unknown[][]): Promise<{
     db: Db;
@@ -47,6 +52,7 @@ describe('CompetitionsService', () => {
       providers: [
         CompetitionsService,
         { provide: LikePatternService, useValue: likePattern },
+        { provide: CompetitionEnrollmentService, useValue: enrollment },
         { provide: DB, useValue: db },
       ],
     }).compile();
@@ -56,6 +62,7 @@ describe('CompetitionsService', () => {
 
   beforeEach(() => {
     likePattern = mock<LikePatternService>();
+    enrollment = mock<CompetitionEnrollmentService>();
   });
 
   const baseData = {
@@ -78,6 +85,26 @@ describe('CompetitionsService', () => {
   const createData = { ...baseData, competitionGroupId: 3 };
 
   describe('upsert', () => {
+    it('validates the enrollment against the full payload', async () => {
+      await build([], [fakeCompetition]);
+
+      await service.upsert(createData);
+
+      expect(enrollment.validate).toHaveBeenCalledWith(createData);
+    });
+
+    it('writes nothing when the enrollment is rejected', async () => {
+      const { chains } = await build([], [fakeCompetition]);
+      enrollment.validate.mockRejectedValue(
+        new CompetitionEnrollmentError('coach already enrolled'),
+      );
+
+      await expect(service.upsert(createData)).rejects.toThrow(
+        CompetitionEnrollmentError,
+      );
+      expect(chains).toHaveLength(0);
+    });
+
     it('creates a new competition with its team-era links when no external IDs match', async () => {
       // query 0: external-id lookup finds nothing; query 1: the insert
       // returns the row; query 2: both external IDs are new and get

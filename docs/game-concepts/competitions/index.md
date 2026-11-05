@@ -8,6 +8,12 @@ A [competition](../../glossary.md#competition) is an organized event in which te
 - A competition contains one or more [matches](../matches/index.md).
 - A [coach](../coaches/index.md) may not have two of their teams enrolled in the same competition.
 
+## Enforcement
+
+The era rule and the one-team-per-coach rule are enforced when a competition is upserted (see `packages/game-data/src/competitions/competition-enrollment.service.ts`). An upsert that would enroll a team era from another era, enroll a second team of a coach who already has one in the competition, or move the competition to an era its enrolled team eras do not belong to is rejected whole: nothing is written, and an importer reports it as an import error. The checks are not serialized with the write, so two concurrent upserts of the same competition can interleave and together break a rule that each passes alone.
+
+Only what an upsert changes is checked. Already-enrolled team eras are not re-validated, so re-importing an unchanged competition still succeeds even if its stored enrollment predates these checks and breaks a rule. Rejecting it would block every re-import of that data without fixing it; a correction belongs in a deliberate data change.
+
 ## Subtypes
 
 [Seasons](../../glossary.md#season) and [cups](../../glossary.md#cup) are the two subtypes of competition. They share the same structure; a competition's `type` (`season` or `cup`) records which it is.

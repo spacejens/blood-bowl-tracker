@@ -31,6 +31,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
 import { CoachesService } from '../src/coaches/coaches.service';
+import { CompetitionEnrollmentService } from '../src/competitions/competition-enrollment.service';
 import { CompetitionsService } from '../src/competitions/competitions.service';
 import { ErasService } from '../src/eras/eras.service';
 import { LeaguesService } from '../src/leagues/leagues.service';
@@ -340,6 +341,7 @@ describe('importer re-runs (real Postgres)', () => {
         SkillsService,
         PositionsService,
         CompetitionsService,
+        CompetitionEnrollmentService,
         TeamsService,
         {
           provide: TeamAverageStatisticsService,

@@ -206,6 +206,11 @@ teams, classifies it, and upserts it:
 - **Participation**: both teams' eras are linked to the match (`match_teams`)
   and to the competition (`competition_teams`); both syncs only ever add, so
   re-importing a match is harmless.
+  A team link the competition's
+  [enrollment rules](../game-concepts/competitions/index.md#enforcement)
+  reject (for example a second team of a coach already enrolled) fails this
+  step: the match row and `match_teams` are already written, but the events
+  and outcome are not imported.
 - **Events**: every modeled event from the match's `matchEvents[]` is
   imported, resolving each player by TP `lineUpId`. TP embeds the
   acting/victim player and team directly on every event except casualties
@@ -264,7 +269,7 @@ as `TpBlockedError`, stopping at once, backfills included (see
 | Tournament or fixture-list request/parse failure; live only                                                                                                                       | `competition`                               |
 | Unknown era, no dated fixtures, or competition upsert failure (including a new competition matching no curated group, or several); live only                                      | `competition`                               |
 | Competition not imported, team era unresolvable, unclassifiable bracket, or match upsert failure                                                                                  | `match`                                     |
-| Team-link failure                                                                                                                                                                 | `participation`                             |
+| Team-link failure, including an enrollment-rule rejection                                                                                                                         | `participation`                             |
 | Event upsert failure, or an unresolved player (non-fatal)                                                                                                                         | `events`                                    |
 | Undecidable outcome                                                                                                                                                               | `outcome`                                   |
 | A backfilled team's import, the link or the awards fail, after creating the competition; live only                                                                                | `participantsBackfill`                      |
