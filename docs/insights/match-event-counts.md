@@ -45,7 +45,7 @@ acting side.
 - A foul that leaves a lasting injury does not count, as for casualties,
   serious injuries and deaths caused: Blood Bowl awards no casualty credit
   for a foul. Lasting injuries suffered still counts it for the victim.
-- A consequence-only row (a self-inflicted injury, or a BBL group whose
+- A consequence-only row (a self-inflicted injury, or a [BBL](../glossary.md#bbl) group whose
   action and consequences could not be paired) has no causer and counts for
   no team.
 - The causer is read from the row; the importers already pair an action with

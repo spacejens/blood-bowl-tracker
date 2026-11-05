@@ -9,6 +9,6 @@ A [league](../../glossary.md#league) is the top-level organizing entity for a gr
   via external IDs, letting import tools recognize the same league across
   different import sources without creating duplicates.
 - A league may add house-rule [advancements](../../glossary.md#advancement) on
-  top of those its rules set prices. tLoEG's is the curated example: Fan
-  Favourite at 301 [SPP](../../glossary.md#star-player-points-spp) under CRP,
-  CRP+ and BB2016.
+  top of those its rules set prices. [tLoEG](../../glossary.md#tloeg)'s is the curated example: Fan
+  Favourite at 301 [SPP](../../glossary.md#star-player-points-spp) under [CRP](../../glossary.md#crp-and-crp),
+  [CRP+](../../glossary.md#crp-and-crp) and [BB2016](../../glossary.md#bb2016).

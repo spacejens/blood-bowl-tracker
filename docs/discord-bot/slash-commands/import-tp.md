@@ -1,6 +1,6 @@
 # `/importtp`
 
-`/importtp` imports whatever TP (tourplay.net) page a URL points to, right
+`/importtp` imports whatever [TP](../../glossary.md#tp) (tourplay.net) page a URL points to, right
 away: a competition with its registered teams and trophy awards, one
 completed match with its teams and competition, one team roster, or TP's
 official team list. It lets a league administrator pull in TP data without

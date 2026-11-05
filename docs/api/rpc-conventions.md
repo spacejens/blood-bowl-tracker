@@ -149,7 +149,7 @@ id across files, phases or tools.
 Players resolve for one caller in particular:
 `tools/import-manual`'s curated `batches/002-initial-cleanup/trophy-awards.json5`
 names the winner of a `manual`-kind trophy by the player's external id,
-which the BBL/TP importers created in an earlier phase.
+which the [BBL](../glossary.md#bbl)/[TP](../glossary.md#tp) importers created in an earlier phase.
 
 Trophies carry a variant of this: `trophies.resolveByName` answers the same
 `{ found, id }` shape, but keyed by the trophy's curated `name` rather than

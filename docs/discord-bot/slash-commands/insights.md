@@ -70,7 +70,7 @@ schema rather than here — see `packages/db/src/schema/game-data/match-events.t
   distinct external systems linked directly to the era whose category is an
   imported data source — excluding bookkeeping systems such as the synthetic
   `Name` system, and excluding systems only referenced through a coach (e.g.
-  a coach's NAF number), since those describe the coach rather than the era
+  a coach's [NAF](../../glossary.md#naf) number), since those describe the coach rather than the era
   itself; Rules sets becomes the count of the era's own rules sets (not a
   name list); and Races, Positions,
   Coaches, Competitions, Teams, Players, Matches, and Match events are each
