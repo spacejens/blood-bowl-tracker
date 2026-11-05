@@ -1,6 +1,8 @@
 import {
   ChildProcessService,
+  DatabaseUrlRedactorService,
   GitRootsService,
+  PgClientService,
   ProcessRunnerService,
   ProductionEnvFileService,
 } from '@blood-bowl-tracker/cli-shared';
@@ -32,6 +34,10 @@ describe('AppModule', () => {
     expect(moduleRef.get(ProductionEnvFileService)).toBeInstanceOf(
       ProductionEnvFileService,
     );
+    expect(moduleRef.get(DatabaseUrlRedactorService)).toBeInstanceOf(
+      DatabaseUrlRedactorService,
+    );
+    expect(moduleRef.get(PgClientService)).toBeInstanceOf(PgClientService);
     expect(moduleRef.get(DiscordBotTokenService)).toBeInstanceOf(
       DiscordBotTokenService,
     );
