@@ -104,7 +104,7 @@ describe('ReviewRetriggerMergeService', () => {
     expect(gitCalls()).toEqual([
       'rev-parse -q --verify MERGE_HEAD',
       'rev-parse HEAD',
-      'fetch origin main',
+      'fetch origin',
       'merge origin/main --no-edit',
       'rev-parse HEAD',
       'push',
@@ -238,13 +238,12 @@ describe('ReviewRetriggerMergeService', () => {
 
     expect(result).toEqual({
       pushed: false,
-      failure:
-        'git fetch origin main failed: fatal: unable to access the remote',
+      failure: 'git fetch origin failed: fatal: unable to access the remote',
     });
     expect(gitCalls()).toEqual([
       'rev-parse -q --verify MERGE_HEAD',
       'rev-parse HEAD',
-      'fetch origin main',
+      'fetch origin',
     ]);
   });
 
@@ -300,9 +299,7 @@ describe('ReviewRetriggerMergeService', () => {
 
     const result = await service.mergeMainAndPush(TIMEOUT_MS);
 
-    expect(result.failure).toBe(
-      'git fetch origin main failed: warning: odd remote',
-    );
+    expect(result.failure).toBe('git fetch origin failed: warning: odd remote');
   });
 
   it('falls back to the exit code when the step printed nothing', async () => {
@@ -310,7 +307,7 @@ describe('ReviewRetriggerMergeService', () => {
 
     const result = await service.mergeMainAndPush(TIMEOUT_MS);
 
-    expect(result.failure).toBe('git fetch origin main failed: exit code -1');
+    expect(result.failure).toBe('git fetch origin failed: exit code -1');
   });
 
   it('reports a git process that could not be started', async () => {
@@ -320,7 +317,7 @@ describe('ReviewRetriggerMergeService', () => {
 
     expect(result).toEqual({
       pushed: false,
-      failure: 'git fetch origin main failed: spawn git ENOENT',
+      failure: 'git fetch origin failed: spawn git ENOENT',
     });
   });
 

@@ -71,7 +71,10 @@ export class ReviewRetriggerMergeService {
         };
       }
       const before = await this.head(deadline);
-      await this.git(['fetch', 'origin', 'main'], deadline);
+      // Not just `main`: the ahead-of-upstream check below needs the branch's
+      // own remote ref current, or a push that changes nothing would count as
+      // the review trigger.
+      await this.git(['fetch', 'origin'], deadline);
       startedMerge = true;
       await this.git(['merge', 'origin/main', '--no-edit'], deadline);
       if ((await this.head(deadline)) === before) {
