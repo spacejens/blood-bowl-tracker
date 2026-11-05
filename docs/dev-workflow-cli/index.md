@@ -81,7 +81,8 @@ Prints one of four JSON outcomes:
 
 - `{"method": "merge-push"}` — the merge created a commit and it was pushed; no comment was posted.
 - `{"method": "comment"}` — the merge brought in nothing new, so the comment was posted instead.
-- `{"method": "comment", "mergeFailure": "<one-line reason>"}` — a git step failed (aborting a started merge was attempted, best effort), and the comment was posted instead.
+- `{"method": "comment", "mergeFailure": "<one-line reason>"}` — a git step failed (aborting a started merge was attempted, best effort), or the wait's deadline had already passed so no merge was started, and the comment was posted instead.
+- `{"method": "none"}`, with a `mergeFailure` when one applies — the fallback comment itself could not be posted (`gh pr comment` exited nonzero or failed to run), so nothing asked for a review. The wait keeps polling regardless.
 
 The field is omitted when the flag was not passed, when the trigger instant was never reached, and when the star-gate comment caused the trigger.
 

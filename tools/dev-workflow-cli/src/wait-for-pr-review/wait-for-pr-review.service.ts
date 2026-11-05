@@ -15,6 +15,12 @@ import {
   WaitForPrReviewFiltersService,
 } from './wait-for-pr-review-filters.service';
 import {
+  MERGE_SKIPPED_PAST_DEADLINE,
+  RetriggerReport,
+  RetriggerState,
+  TriggerClock,
+} from './wait-for-pr-review-retrigger';
+import {
   codeRabbitCommentSchema,
   CompletionCandidate,
   completionCandidateSchema,
@@ -93,19 +99,6 @@ export interface CodeRabbitComment {
    * its computed wait to.
    */
   readonly submittedAt: string;
-}
-
-/** How a `triggerMergeMain` retrigger actually asked for the review. */
-export interface RetriggerReport {
-  /** `merge-push` when a pushed merge of `main` asked for it; `comment` when the fallback comment did. */
-  readonly method: 'merge-push' | 'comment';
-  /** One-line reason the merge could not be used; present only when a git step failed. */
-  readonly mergeFailure?: string;
-}
-
-/** Where `pollUntilDone` records the retrigger it fired, for `run` to attach. */
-interface RetriggerState {
-  report?: RetriggerReport;
 }
 
 export interface WaitForPrReviewResult {
@@ -402,7 +395,10 @@ export class WaitForPrReviewService {
         justTriggered = true;
         retrigger.report = await this.triggerReview(
           options,
-          () => this.budgetMs(deadline, intervalMs),
+          {
+            budgetMs: () => this.budgetMs(deadline, intervalMs),
+            spent: () => Date.now() >= deadline,
+          },
           outcome?.starGateComment === undefined,
         );
       }
@@ -893,45 +889,62 @@ export class WaitForPrReviewService {
    * has also passed: the star-gate trigger is not a rate-limit wait and
    * always comments, as does a merge that brought in nothing new or failed.
    *
-   * `budget` is read at each step, not once: a fallback comment after a slow
-   * merge gets only what the wait's deadline still allows.
+   * The clock is read at each step, not once: a fallback comment after a slow
+   * merge gets only what the wait's deadline still allows, and a merge is not
+   * started at all once the deadline has passed (the comment fallback keeps
+   * the plain trigger's behavior of always posting once due).
    */
   private async triggerReview(
     options: WaitForPrReviewOptions,
-    budget: () => number,
+    clock: TriggerClock,
     callerRequested: boolean,
   ): Promise<RetriggerReport | undefined> {
     if (options.triggerMergeMain !== true || !callerRequested) {
-      await this.postTriggerComment(options.prNumber, budget());
+      await this.postTriggerComment(options.prNumber, clock.budgetMs());
       return undefined;
     }
-    const merge = await this.retriggerMerge.mergeMainAndPush(budget());
+    const merge = clock.spent()
+      ? MERGE_SKIPPED_PAST_DEADLINE
+      : await this.retriggerMerge.mergeMainAndPush(clock.budgetMs());
     if (merge.pushed) {
       return { method: 'merge-push' };
     }
-    await this.postTriggerComment(options.prNumber, budget());
-    return merge.failure === undefined
-      ? { method: 'comment' }
-      : { method: 'comment', mergeFailure: merge.failure };
+    return this.commentFallback(options.prNumber, clock, merge.failure);
   }
 
   /**
-   * Failure is deliberately swallowed: a trigger that could not be posted is
-   * no reason to abort a wait that may still see a review, and the caller
-   * learns the outcome from the wait's own result either way.
+   * Posts the review comment in place of a merge and reports it. The report
+   * says `none` when the comment itself could not be posted, so a caller is
+   * never told a review was requested when nothing asked for one.
+   */
+  private async commentFallback(
+    prNumber: string,
+    clock: TriggerClock,
+    mergeFailure: string | undefined,
+  ): Promise<RetriggerReport> {
+    const posted = await this.postTriggerComment(prNumber, clock.budgetMs());
+    const method = posted ? 'comment' : 'none';
+    return mergeFailure === undefined ? { method } : { method, mergeFailure };
+  }
+
+  /**
+   * Returns whether the comment was posted. A failure never throws: a trigger
+   * that could not be posted is no reason to abort a wait that may still see
+   * a review, so the caller learns of it from the retrigger report instead.
    */
   private async postTriggerComment(
     prNumber: string,
     timeoutMs: number,
-  ): Promise<void> {
+  ): Promise<boolean> {
     try {
-      await this.processRunner.run(
+      const result = await this.processRunner.run(
         'gh',
         ['pr', 'comment', prNumber, '--body', TRIGGER_REVIEW_BODY],
         timeoutMs,
       );
+      return result.exitCode === 0;
     } catch {
-      // Nothing to do — see above.
+      return false;
     }
   }
 

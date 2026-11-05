@@ -199,6 +199,55 @@ describe('WaitForPrReviewService merge-main retrigger', () => {
     expect(commentCall?.[2]).toBe(20_000);
   });
 
+  it('starts no merge when the poll ran past the deadline', async () => {
+    mockPolls(EMPTY);
+    const poll = processRunner.run.getMockImplementation();
+    processRunner.run.mockImplementation((command, args, timeoutMs) => {
+      if (args[0] === 'pr' && args[1] === 'view') {
+        vi.setSystemTime(Date.now() + 130_000);
+      }
+      return poll?.(command, args, timeoutMs) as ReturnType<
+        ProcessRunnerService['run']
+      >;
+    });
+
+    const result = await runWait(options());
+
+    expect(retriggerMerge.mergeMainAndPush).not.toHaveBeenCalled();
+    expect(commentPosts()).toHaveLength(1);
+    expect(result).toEqual({
+      found: false,
+      timedOut: true,
+      retrigger: {
+        method: 'comment',
+        mergeFailure:
+          'the wait deadline had already passed; no merge was started',
+      },
+    });
+  });
+
+  it('reports no method when the fallback comment could not be posted', async () => {
+    mockPolls(EMPTY);
+    const poll = processRunner.run.getMockImplementation();
+    processRunner.run.mockImplementation((command, args, timeoutMs) => {
+      if (args[1] === 'comment') {
+        return Promise.resolve({ exitCode: 1, stdout: '', stderr: 'boom' });
+      }
+      return poll?.(command, args, timeoutMs) as ReturnType<
+        ProcessRunnerService['run']
+      >;
+    });
+    retriggerMerge.mergeMainAndPush.mockResolvedValue({ pushed: false });
+
+    const result = await runWait(options());
+
+    expect(result).toEqual({
+      found: false,
+      timedOut: true,
+      retrigger: { method: 'none' },
+    });
+  });
+
   it('comments and never merges without the flag', async () => {
     mockPolls(EMPTY);
 
