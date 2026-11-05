@@ -91,11 +91,28 @@ const RECENT_REVIEW_END_MARKER = '<!-- recent_review_end -->';
  */
 const RECENT_REVIEW_SECTION_PATTERN = `${RECENT_REVIEW_START_MARKER}(?<section>[\\s\\S]*?)${RECENT_REVIEW_END_MARKER}`;
 /**
+ * Opens the status block at the very top of CodeRabbit's rolling walkthrough
+ * comment. It carries the latest pass's verdict ("No actionable comments were
+ * generated in the recent review.") — the `recent_review` section itself holds
+ * only that pass's configuration, commit range and file list.
+ */
+const RECENT_REVIEW_STATUS_START_MARKER = '<!-- recent_review_status_start -->';
+/** Closes it. Unpaired markers capture nothing, so the block contributes no match. */
+const RECENT_REVIEW_STATUS_END_MARKER = '<!-- recent_review_status_end -->';
+/**
+ * Same `[\s\S]`/non-greedy rationale as `RECENT_REVIEW_SECTION_PATTERN`. The
+ * real block sits near the top of the body, preceded only by CodeRabbit's own
+ * generated markers, so a quoted copy of these markers further down cannot
+ * shadow it.
+ */
+const RECENT_REVIEW_STATUS_PATTERN = `${RECENT_REVIEW_STATUS_START_MARKER}(?<status>[\\s\\S]*?)${RECENT_REVIEW_STATUS_END_MARKER}`;
+/**
  * Tolerant, deliberately CodeRabbit-specific wording match for "this pass
  * finished with nothing to report" — same rationale as
  * `RATE_LIMIT_PHRASES`: the exact text is CodeRabbit's own and may drift, so
  * any one of these phrases (case-insensitive) qualifies. Tested against the
- * extracted section only, never the whole (very large) walkthrough body.
+ * extracted status block and `recent_review` section only, never the whole
+ * (very large) walkthrough body.
  */
 export const NO_ACTIONABLE_COMMENTS_PHRASES =
   'no actionable comments|no actionable issues|nothing to report|no comments were generated';
@@ -345,13 +362,17 @@ export class WaitForPrReviewFiltersService {
    * stated identically here and in `handle-pr-reviews/SKILL.md`'s Phase 1:
    * the author login matches `coderabbit` (case-insensitive) **and** the
    * body contains a `<!-- recent_review_start -->…<!-- recent_review_end -->`
-   * section whose contents match a "no actionable comments" style phrase.
+   * section **and** a "no actionable comments" style phrase matches inside
+   * either the `<!-- recent_review_status_start -->…<!-- recent_review_status_end -->`
+   * block or that `recent_review` section.
    *
-   * The phrase is tested against the *extracted section*, not the whole
+   * The phrase is tested against those two extracted spans, not the whole
    * body — the walkthrough is large and mentions plenty of unrelated text,
    * so a body-wide test would false-positive. A pass that did find
    * actionable comments will not match, and falls through to today's
-   * behaviour unchanged.
+   * behaviour unchanged. Both spans are emitted so the TypeScript re-check
+   * can repeat the phrase test with code formatting stripped, and confirm
+   * the head SHA in the section.
    *
    * Wrapped in `[...] | first` for the same reason as the filters above: it
    * must emit exactly one JSON value (the first match, or `null`).
@@ -361,6 +382,7 @@ export class WaitForPrReviewFiltersService {
       options.excludeReviewId === undefined
         ? ''
         : ` | select(.id != ${JSON.stringify(options.excludeReviewId)})`;
+    const phrase = JSON.stringify(NO_ACTIONABLE_COMMENTS_PHRASES);
     return (
       '[.[] | select(.updated_at != null) | ' +
       'select((.user.login // "") | test("coderabbit"; "i")) | ' +
@@ -368,8 +390,9 @@ export class WaitForPrReviewFiltersService {
       `select((.updated_at | fromdateiso8601) >= ${options.sinceEpochSeconds}) | ` +
       '{id: ((.id | tostring) + "@" + ((.updated_at | fromdateiso8601) | tostring)), ' +
       'submittedAt: .updated_at, author: {login: (.user.login // "")}, ' +
-      `section: (((.body // "") | capture(${JSON.stringify(RECENT_REVIEW_SECTION_PATTERN)})).section // "")}` +
-      ` | select(.section | test(${JSON.stringify(NO_ACTIONABLE_COMMENTS_PHRASES)}; "i"))` +
+      `section: (((.body // "") | capture(${JSON.stringify(RECENT_REVIEW_SECTION_PATTERN)})).section // ""), ` +
+      `status: (((.body // "") | capture(${JSON.stringify(RECENT_REVIEW_STATUS_PATTERN)})).status // "")}` +
+      ` | select((.status | test(${phrase}; "i")) or (.section | test(${phrase}; "i")))` +
       `${excludeClause}] | first`
     );
   }
