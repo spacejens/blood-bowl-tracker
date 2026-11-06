@@ -43,7 +43,9 @@ export class ReviewRetriggerMergeService {
    * `timeoutMs` is one budget for the whole attempt: a deadline is fixed when
    * it starts and each git step gets only the time left, so fetch, merge and
    * push together never outlast it. A step that would start after the
-   * deadline is not started.
+   * deadline is not started. The one exception is the cleanup
+   * `git merge --abort` after a failed merge, which gets its own
+   * `ABORT_TIMEOUT_MS` and can therefore run past the deadline.
    *
    * A merge already in progress in the worktree is not this service's to
    * touch: it reports a failure and leaves that state alone.
