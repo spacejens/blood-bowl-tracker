@@ -1,6 +1,6 @@
+import { PgClientService } from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
 
-import { PgClientService } from '../pg-client/pg-client.service';
 import { PG_RESTORE_TIMEOUT_MS } from '../restore/pg-restore.service';
 import { APPLICATION_SCHEMAS } from './application-schemas';
 

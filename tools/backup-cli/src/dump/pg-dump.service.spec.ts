@@ -2,35 +2,29 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import {
-  ProcessRunnerService,
-  TIMED_OUT_EXIT_CODE,
-} from '@blood-bowl-tracker/cli-shared';
+import { PgClientService } from '@blood-bowl-tracker/cli-shared';
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
-import { DatabaseUrlRedactorService } from '../pg-client/database-url-redactor.service';
 import { PG_DUMP_TIMEOUT_MS, PgDumpService } from './pg-dump.service';
 
 const DATABASE_URL = 'postgresql://user:hunter2@ep-x.neon.tech/neondb';
 
 describe('PgDumpService', () => {
   let service: PgDumpService;
-  let processRunner: MockProxy<ProcessRunnerService>;
+  let pgClient: MockProxy<PgClientService>;
   let dir: string;
   let outputPath: string;
 
   beforeEach(async () => {
     dir = mkdtempSync(join(tmpdir(), 'pg-dump-'));
     outputPath = join(dir, 'backup.dump');
-    processRunner = mock<ProcessRunnerService>();
+    pgClient = mock<PgClientService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
         PgDumpService,
-        // Pure, dependency-free formatting service: passed real.
-        DatabaseUrlRedactorService,
-        { provide: ProcessRunnerService, useValue: processRunner },
+        { provide: PgClientService, useValue: pgClient },
       ],
     }).compile();
     service = moduleRef.get(PgDumpService);
@@ -42,115 +36,35 @@ describe('PgDumpService', () => {
 
   it('runs a custom-format, owner-less pg_dump of the whole database into the file', async () => {
     writeFileSync(outputPath, 'PGDMP-bytes');
-    processRunner.run.mockResolvedValue({
-      exitCode: 0,
-      stdout: '',
-      stderr: '',
-    });
+    pgClient.run.mockResolvedValue('');
 
     await expect(
       service.dump({ databaseUrl: DATABASE_URL, outputPath }),
     ).resolves.toBe(11);
-    expect(processRunner.run).toHaveBeenCalledWith(
-      'pg_dump',
-      [
+    expect(pgClient.run).toHaveBeenCalledWith({
+      program: 'pg_dump',
+      args: [
         '--format=custom',
         '--no-owner',
         '--no-password',
         `--file=${outputPath}`,
-        `--dbname=${DATABASE_URL}`,
       ],
-      PG_DUMP_TIMEOUT_MS,
-    );
-  });
-
-  it('fails with pg_dump stderr, connection string redacted, on a non-zero exit', async () => {
-    processRunner.run.mockResolvedValue({
-      exitCode: 1,
-      stdout: '',
-      stderr: `pg_dump: error: connection to "${DATABASE_URL}" failed\n`,
+      databaseUrl: DATABASE_URL,
+      timeoutMs: PG_DUMP_TIMEOUT_MS,
     });
-
-    const error = await service
-      .dump({ databaseUrl: DATABASE_URL, outputPath })
-      .then(
-        () => undefined,
-        (e: unknown) => e as Error,
-      );
-
-    expect(error?.message).toBe(
-      'pg_dump exited with code 1: pg_dump: error: connection to "postgresql://user:<password>@ep-x.neon.tech/neondb" failed',
-    );
-    expect(error?.message).not.toContain('hunter2');
   });
 
-  it('redacts the connection string when the runner rejects, e.g. pg_dump killed by a signal', async () => {
-    processRunner.run.mockRejectedValue(
-      new Error(
-        `Command failed: pg_dump --format=custom --dbname=${DATABASE_URL}`,
-      ),
-    );
-
-    const error = await service
-      .dump({ databaseUrl: DATABASE_URL, outputPath })
-      .then(
-        () => undefined,
-        (e: unknown) => e as Error,
-      );
-
-    expect(error?.message).toBe(
-      'Command failed: pg_dump --format=custom --dbname=postgresql://user:<password>@ep-x.neon.tech/neondb',
-    );
-    expect(error?.cause).toBeUndefined();
-  });
-
-  it('stringifies a non-Error rejection', async () => {
-    processRunner.run.mockRejectedValue(`failed for ${DATABASE_URL}`);
-
-    const error = await service
-      .dump({ databaseUrl: DATABASE_URL, outputPath })
-      .then(
-        () => undefined,
-        (e: unknown) => e as Error,
-      );
-
-    expect(error?.message).toBe(
-      'failed for postgresql://user:<password>@ep-x.neon.tech/neondb',
-    );
-  });
-
-  it('redacts a connection string that is not a parseable URL', async () => {
-    processRunner.run.mockRejectedValue(new Error('failed for not-a-url'));
-
-    const error = await service
-      .dump({ databaseUrl: 'not-a-url', outputPath })
-      .then(
-        () => undefined,
-        (e: unknown) => e as Error,
-      );
-
-    expect(error?.message).toBe('failed for <database-url>');
-  });
-
-  it('fails when pg_dump times out', async () => {
-    processRunner.run.mockResolvedValue({
-      exitCode: TIMED_OUT_EXIT_CODE,
-      stdout: '',
-      stderr: '',
-    });
+  it('propagates a failure from the guarded client', async () => {
+    pgClient.run.mockRejectedValue(new Error('pg_dump exited with code 1: x'));
 
     await expect(
       service.dump({ databaseUrl: DATABASE_URL, outputPath }),
-    ).rejects.toThrow(/pg_dump timed out after 30 minutes/);
+    ).rejects.toThrow('pg_dump exited with code 1: x');
   });
 
   it('fails when pg_dump succeeded but wrote an empty file', async () => {
     writeFileSync(outputPath, '');
-    processRunner.run.mockResolvedValue({
-      exitCode: 0,
-      stdout: '',
-      stderr: '',
-    });
+    pgClient.run.mockResolvedValue('');
 
     await expect(
       service.dump({ databaseUrl: DATABASE_URL, outputPath }),
@@ -158,11 +72,7 @@ describe('PgDumpService', () => {
   });
 
   it('fails when pg_dump succeeded but wrote no file at all', async () => {
-    processRunner.run.mockResolvedValue({
-      exitCode: 0,
-      stdout: '',
-      stderr: '',
-    });
+    pgClient.run.mockResolvedValue('');
 
     await expect(
       service.dump({ databaseUrl: DATABASE_URL, outputPath }),
