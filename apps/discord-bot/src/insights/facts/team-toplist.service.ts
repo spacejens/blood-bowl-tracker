@@ -383,7 +383,7 @@ export class TeamToplistService {
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveAverageToplist({
-      measure: 'casualties caused',
+      measure: 'casualties inflicted',
       method: 'averageCasualtiesCausedByTeam',
       scope,
       direction: 'desc',
@@ -394,7 +394,7 @@ export class TeamToplistService {
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveAverageToplist({
-      measure: 'casualties caused',
+      measure: 'casualties inflicted',
       method: 'averageCasualtiesCausedByTeam',
       scope,
       direction: 'asc',
@@ -427,7 +427,7 @@ export class TeamToplistService {
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveAverageToplist({
-      measure: 'serious injuries caused',
+      measure: 'serious injuries inflicted',
       method: 'averageSeriousInjuriesCausedByTeam',
       scope,
       direction: 'desc',
@@ -438,7 +438,7 @@ export class TeamToplistService {
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveAverageToplist({
-      measure: 'serious injuries caused',
+      measure: 'serious injuries inflicted',
       method: 'averageSeriousInjuriesCausedByTeam',
       scope,
       direction: 'asc',
@@ -471,7 +471,7 @@ export class TeamToplistService {
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveAverageToplist({
-      measure: 'lasting injuries caused',
+      measure: 'lasting injuries inflicted',
       method: 'averageLastingInjuriesCausedByTeam',
       scope,
       direction: 'desc',
@@ -482,7 +482,7 @@ export class TeamToplistService {
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveAverageToplist({
-      measure: 'lasting injuries caused',
+      measure: 'lasting injuries inflicted',
       method: 'averageLastingInjuriesCausedByTeam',
       scope,
       direction: 'asc',
@@ -515,7 +515,7 @@ export class TeamToplistService {
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveAverageToplist({
-      measure: 'deaths caused',
+      measure: 'opponents killed',
       method: 'averageDeathsCausedByTeam',
       scope,
       direction: 'desc',
@@ -526,7 +526,7 @@ export class TeamToplistService {
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveAverageToplist({
-      measure: 'deaths caused',
+      measure: 'opponents killed',
       method: 'averageDeathsCausedByTeam',
       scope,
       direction: 'asc',

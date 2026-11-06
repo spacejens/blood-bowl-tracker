@@ -168,7 +168,7 @@ button, in the same order as the list, that opens that coach's
   niggling injury, a lasting characteristic reduction, or death — credited to
   the team the victim belongs to.
 - `team.toplist.casualties.average.caused.descending` — teams ranked by
-  average casualties caused per match, highest first. Counts the same
+  average casualties inflicted per match, highest first. Counts the same
   casualties as `team.toplist.casualties.caused`. Same 5-match floor and
   scopes.
 - `team.toplist.casualties.average.caused.ascending` — the same average,
@@ -188,7 +188,7 @@ button, in the same order as the list, that opens that coach's
   Plain knock-outs and deaths are counted by the casualty and death facts
   instead, not here.
 - `team.toplist.injuries.serious.average.caused.descending` — teams ranked
-  by average serious injuries caused per match, highest first. Counts the
+  by average serious injuries inflicted per match, highest first. Counts the
   same events as `team.toplist.injuries.serious.caused`. Same 5-match floor
   and scopes.
 - `team.toplist.injuries.serious.average.caused.ascending` — the same
@@ -207,7 +207,7 @@ button, in the same order as the list, that opens that coach's
   lasting injuries suffered (see
   [lasting injuries caused](../../insights/match-event-counts.md#lasting-injuries-caused)).
 - `team.toplist.injuries.lasting.average.caused.descending` — teams ranked by
-  average lasting injuries caused per match, highest first. Counts the same
+  average lasting injuries inflicted per match, highest first. Counts the same
   events as `team.toplist.injuries.lasting.caused`. Same 5-match floor and
   scopes.
 - `team.toplist.injuries.lasting.average.caused.ascending` — the same average,
@@ -226,7 +226,7 @@ button, in the same order as the list, that opens that coach's
 - `team.toplist.deaths.suffered` — teams ranked by players killed. Counts match
   events that killed a player, credited to the team the dead player belongs to.
 - `team.toplist.deaths.average.caused.descending` — teams ranked by average
-  deaths caused per match, highest first. Counts the same events as
+  opponents killed per match, highest first. Counts the same events as
   `team.toplist.deaths.caused`. Same 5-match floor and scopes.
 - `team.toplist.deaths.average.caused.ascending` — the same average, lowest
   first. Same 5-match floor and scopes.
