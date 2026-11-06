@@ -397,7 +397,7 @@ export class WaitForPrReviewService {
           options,
           {
             budgetMs: () => this.budgetMs(deadline, intervalMs),
-            spent: () => Date.now() >= deadline,
+            remainingMs: () => deadline - Date.now(),
           },
           outcome?.starGateComment === undefined,
         );
@@ -903,9 +903,13 @@ export class WaitForPrReviewService {
       await this.postTriggerComment(options.prNumber, clock.budgetMs());
       return undefined;
     }
-    const merge = clock.spent()
-      ? MERGE_SKIPPED_PAST_DEADLINE
-      : await this.retriggerMerge.mergeMainAndPush(clock.budgetMs());
+    // One read: the merge gets exactly the time this check saw, so the
+    // deadline cannot pass between the check and the budget.
+    const left = clock.remainingMs();
+    const merge =
+      left <= 0
+        ? MERGE_SKIPPED_PAST_DEADLINE
+        : await this.retriggerMerge.mergeMainAndPush(left);
     if (merge.pushed) {
       return { method: 'merge-push' };
     }

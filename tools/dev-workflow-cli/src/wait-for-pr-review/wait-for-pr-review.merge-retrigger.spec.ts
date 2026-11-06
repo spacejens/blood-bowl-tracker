@@ -226,6 +226,24 @@ describe('WaitForPrReviewService merge-main retrigger', () => {
     });
   });
 
+  it('gives the merge exactly the time the poll left of the wait', async () => {
+    mockPolls(EMPTY);
+    const poll = processRunner.run.getMockImplementation();
+    processRunner.run.mockImplementation((command, args, timeoutMs) => {
+      if (args[0] === 'pr' && args[1] === 'view') {
+        vi.setSystemTime(Date.now() + 100_000);
+      }
+      return poll?.(command, args, timeoutMs) as ReturnType<
+        ProcessRunnerService['run']
+      >;
+    });
+    retriggerMerge.mergeMainAndPush.mockResolvedValue({ pushed: true });
+
+    await runWait(options());
+
+    expect(retriggerMerge.mergeMainAndPush).toHaveBeenCalledWith(20_000);
+  });
+
   it('reports no method when the fallback comment could not be posted', async () => {
     mockPolls(EMPTY);
     const poll = processRunner.run.getMockImplementation();

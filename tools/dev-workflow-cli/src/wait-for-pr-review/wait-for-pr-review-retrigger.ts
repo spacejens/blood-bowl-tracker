@@ -14,8 +14,8 @@ export interface RetriggerReport {
 export interface TriggerClock {
   /** The time left for one step, or one interval once the deadline is spent. */
   readonly budgetMs: () => number;
-  /** Whether the deadline has already passed. */
-  readonly spent: () => boolean;
+  /** The time left before the deadline; zero or negative once it has passed. */
+  readonly remainingMs: () => number;
 }
 
 /** Stands in for the merge attempt when the deadline has passed before it could start. */
