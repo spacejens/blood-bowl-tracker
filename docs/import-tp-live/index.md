@@ -67,9 +67,11 @@ procedures use it:
   services — see [competition-import.md](competition-import.md).
 - **Official team list import**: `TpOfficialTeamsModule`, with
   `TpOfficialTeamsImportService` and its context, race, position,
-  characteristics, keyword and starting-skill services, plus
-  `TpLiveOfficialTeamsImportService` and `TpOfficialTeamsFetchService` — see
-  [official-teams-import.md](official-teams-import.md).
+  characteristics, keyword, starting-skill and skill-category
+  (`TpOfficialSkillCategoriesSyncService`) services, the
+  `TpOfficialBatchSyncService` those sync services share for batched writes,
+  plus `TpLiveOfficialTeamsImportService` and `TpOfficialTeamsFetchService` —
+  see [official-teams-import.md](official-teams-import.md).
 
 ## Importing a team live
 
