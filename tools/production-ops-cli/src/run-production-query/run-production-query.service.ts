@@ -1,7 +1,6 @@
 import {
-  ProcessRunnerService,
+  PgClientService,
   ProductionEnvFileService,
-  TIMED_OUT_EXIT_CODE,
 } from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
 
@@ -38,25 +37,28 @@ export interface RunProductionQueryResult {
 /**
  * Runs one developer-described, read-only query against production, for
  * `deploy-production`'s "Run read-only queries against production" action.
- * `ProcessRunnerService` spawns `psql` via `execFile`, not a shell, so the
- * query travels as a single argv entry — no shell quoting of embedded
- * quotes, heredocs, or delimiter-collision risk, unlike a hand-written shell
- * invocation of the same command.
+ * `psql` runs through `cli-shared`'s `PgClientService`: the libpq variables
+ * that could redirect the connection are removed from its environment, the
+ * URL is passed as `--dbname`, and the URL is redacted from `stdout` and
+ * `stderr`. It is spawned via `execFile`, not a shell, so the query travels
+ * as a single argv entry — no shell quoting of embedded quotes, heredocs, or
+ * delimiter-collision risk, unlike a hand-written shell invocation of the
+ * same command.
  */
 @Injectable()
 export class RunProductionQueryService {
   constructor(
     private readonly productionEnvFile: ProductionEnvFileService,
-    private readonly processRunner: ProcessRunnerService,
+    private readonly pgClient: PgClientService,
   ) {}
 
   async run(query: string): Promise<RunProductionQueryResult> {
     this.validateQuery(query);
     const databaseUrl = await this.productionEnvFile.readDatabaseUrl();
-    const result = await this.processRunner.run(
-      'psql',
-      [
-        databaseUrl,
+    const result = await this.pgClient.runToResult({
+      program: 'psql',
+      args: [
+        '--no-psqlrc',
         '-v',
         'ON_ERROR_STOP=1',
         '-c',
@@ -68,9 +70,15 @@ export class RunProductionQueryService {
         '-c',
         'COMMIT;',
       ],
-      PROCESS_TIMEOUT_MS,
-    );
-    return { ...result, timedOut: result.exitCode === TIMED_OUT_EXIT_CODE };
+      databaseUrl,
+      timeoutMs: PROCESS_TIMEOUT_MS,
+    });
+    return {
+      exitCode: result.exitCode,
+      stdout: result.stdout,
+      stderr: result.stderr,
+      timedOut: result.timedOut,
+    };
   }
 
   /**

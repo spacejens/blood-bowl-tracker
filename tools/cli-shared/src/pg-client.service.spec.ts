@@ -1,13 +1,13 @@
-import {
-  ProcessRunnerService,
-  TIMED_OUT_EXIT_CODE,
-} from '@blood-bowl-tracker/cli-shared';
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
 import { DatabaseUrlRedactorService } from './database-url-redactor.service';
 import { PgClientRequest, PgClientService } from './pg-client.service';
+import {
+  ProcessRunnerService,
+  TIMED_OUT_EXIT_CODE,
+} from './process-runner.service';
 
 const DATABASE_URL = 'postgresql://postgres:s3cret@localhost:5432/postgres';
 
@@ -132,6 +132,106 @@ describe('PgClientService', () => {
 
     expect(error?.message).toBe(
       'spawn failed for postgresql://postgres:<password>@localhost:5432/postgres',
+    );
+  });
+
+  describe('runToResult', () => {
+    it('resolves a successful run with --dbname first and timedOut false', async () => {
+      processRunner.runWithOptions.mockResolvedValue({
+        exitCode: 0,
+        stdout: '1\n',
+        stderr: '',
+      });
+
+      await expect(service.runToResult(REQUEST)).resolves.toEqual({
+        exitCode: 0,
+        stdout: '1\n',
+        stderr: '',
+        timedOut: false,
+      });
+      expect(processRunner.runWithOptions).toHaveBeenCalledWith(
+        'psql',
+        [`--dbname=${DATABASE_URL}`, '--no-psqlrc', '--command=SELECT 1;'],
+        { timeoutMs: REQUEST.timeoutMs, env: expect.any(Object) as unknown },
+      );
+    });
+
+    it('removes the redirecting libpq variables from the child env', async () => {
+      vi.stubEnv('PGHOST', 'db.example.com');
+      vi.stubEnv('PGSERVICE', 'prod');
+      vi.stubEnv('PGSSLMODE', 'require');
+      processRunner.runWithOptions.mockResolvedValue({
+        exitCode: 0,
+        stdout: '',
+        stderr: '',
+      });
+
+      await service.runToResult(REQUEST);
+
+      const env = processRunner.runWithOptions.mock.calls[0][2].env ?? {};
+      expect(env).not.toHaveProperty('PGHOST');
+      expect(env).not.toHaveProperty('PGSERVICE');
+      expect(env.PGSSLMODE).toBe('require');
+    });
+
+    it('resolves a non-zero exit with the URL redacted from stdout and stderr, untrimmed', async () => {
+      processRunner.runWithOptions.mockResolvedValue({
+        exitCode: 3,
+        stdout: `BEGIN\n${DATABASE_URL}\n`,
+        stderr: `psql: error: connection to "${DATABASE_URL}" failed\n`,
+      });
+
+      await expect(service.runToResult(REQUEST)).resolves.toEqual({
+        exitCode: 3,
+        stdout:
+          'BEGIN\npostgresql://postgres:<password>@localhost:5432/postgres\n',
+        stderr:
+          'psql: error: connection to "postgresql://postgres:<password>@localhost:5432/postgres" failed\n',
+        timedOut: false,
+      });
+    });
+
+    it('resolves a timeout with timedOut true and the partial output kept', async () => {
+      processRunner.runWithOptions.mockResolvedValue({
+        exitCode: TIMED_OUT_EXIT_CODE,
+        stdout: 'BEGIN\nSET\n',
+        stderr: '',
+      });
+
+      await expect(service.runToResult(REQUEST)).resolves.toEqual({
+        exitCode: TIMED_OUT_EXIT_CODE,
+        stdout: 'BEGIN\nSET\n',
+        stderr: '',
+        timedOut: true,
+      });
+    });
+
+    it('rejects with the URL redacted and no cause when the program cannot be run', async () => {
+      processRunner.runWithOptions.mockRejectedValue(
+        new Error(`spawn psql ENOENT --dbname=${DATABASE_URL}`),
+      );
+
+      const error = await service.runToResult(REQUEST).then(
+        () => undefined,
+        (e: unknown) => e as Error,
+      );
+
+      expect(error?.message).toBe(
+        'spawn psql ENOENT --dbname=postgresql://postgres:<password>@localhost:5432/postgres',
+      );
+      expect(error?.cause).toBeUndefined();
+    });
+  });
+
+  it('run returns stdout with the URL redacted', async () => {
+    processRunner.runWithOptions.mockResolvedValue({
+      exitCode: 0,
+      stdout: `connected to ${DATABASE_URL}\n`,
+      stderr: '',
+    });
+
+    await expect(service.run(REQUEST)).resolves.toBe(
+      'connected to postgresql://postgres:<password>@localhost:5432/postgres\n',
     );
   });
 });

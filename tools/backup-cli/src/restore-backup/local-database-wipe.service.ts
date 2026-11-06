@@ -1,6 +1,6 @@
+import { PgClientService } from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
 
-import { PgClientService } from '../pg-client/pg-client.service';
 import {
   PSQL_FLAGS,
   PSQL_TIMEOUT_MS,

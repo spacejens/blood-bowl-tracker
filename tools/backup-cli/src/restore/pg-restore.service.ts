@@ -1,6 +1,5 @@
+import { PgClientService } from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
-
-import { PgClientService } from '../pg-client/pg-client.service';
 
 /** A hard ceiling on one restore, matching the ceiling on one dump. */
 export const PG_RESTORE_TIMEOUT_MS = 30 * 60 * 1000;
