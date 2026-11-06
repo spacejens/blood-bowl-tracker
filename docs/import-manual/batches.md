@@ -73,11 +73,7 @@ The batches:
   trophy awards reference competitions and players the BBL and TP importers
   create, so the batch applies after them, in a plain `apply`. On a scratch
   import the BBL and TP importers then run again, so the skill sources and
-  unspent SPP that read these costs are filled in. The api-server
-  must already run a release whose `advancementCosts.sync` accepts league and
-  skill ids, whose `trophyAwards.upsert` accepts `grantedSkillId` and that has
-  the `positionRulesSetSkillCategories.sync` procedure before the batch is
-  applied.
+  unspent SPP that read these costs are filled in.
 
 ## Changing curated data
 
@@ -167,20 +163,7 @@ Passing a directory instead imports that directory ad hoc and records nothing
   A plain `apply` on a fresh database before the source importers fails at
   002, which references rows only the sources create, and leaves it
   unrecorded; it is safe to rerun after the sources.
-- **Once, on a database that already holds the initial batches** (production,
-  imported before batches existed), before its first `apply`: a plain `apply`
-  on a database with an empty ledger re-imports every batch, including 001 and
-  002, so record them first with `mark-applied 001-initial-seed
-002-initial-cleanup`, then `apply` to apply batch 003. Only do
-  this if the database's last manual import ran from the current content of
-  both batches; `mark-applied` records them as applied without importing, so
-  anything merged since would never reach the database. Otherwise first import
-  the two directories ad hoc (`node dist/main.js data/batches/001-initial-seed`,
-  then `data/batches/002-initial-cleanup`; both are idempotent upserts)
-  and mark them applied afterwards. The api-server must already run a release
-  with the `manualImportBatches` procedures (see
-  [production imports](../discord-bot/production-imports.md)).
-- **Long-lived database (production), afterwards:** a plain `apply`. It
+- **Long-lived database (production):** a plain `apply`. It
   applies just the batches not yet recorded.
 
 ## Tested
