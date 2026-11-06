@@ -60,7 +60,7 @@ node tools/dev-workflow-cli/dist/main.js wait-for-pr-review <pr-number> <develop
   - It runs no `pnpm verify`: `main` is already verified, and the pushed merge is covered by CI and the next review.
   - The wait itself is unchanged either way: it keeps polling to its deadline, and if CodeRabbit answers with a fresh rate-limit comment the result is `rateLimited` as usual.
 
-A poll also triggers on its own, with no `--trigger-after` needed, the first time it finds a CodeRabbit comment saying the repository does not receive automatic reviews (a low-star-count gate CodeRabbit applies repo-wide). That comment never surfaces as its own JSON outcome — it just posts the same `@coderabbitai review` trigger once and keeps polling for the review that follows. That trigger always posts the comment, even with `--trigger-merge-main`: the star gate is not a rate-limit wait, so the flag applies only to the `--trigger-after` retrigger.
+A poll also triggers on its own, with no `--trigger-after` needed, the first time it finds a CodeRabbit comment saying the repository does not receive automatic reviews (a low-star-count gate CodeRabbit applies repo-wide). That comment never surfaces as its own JSON outcome — it just posts the same `@coderabbitai review` trigger once and keeps polling for the review that follows. That trigger always posts the comment, even with `--trigger-merge-main`: the star gate is not a rate-limit wait, so the flag applies only to the `--trigger-after` retrigger. The flag therefore assumes the repository gets automatic reviews on push: a later wait starts after the star-gate comment, cannot see it, and does not know to comment, so callers working in a star-gated repository should omit `--trigger-merge-main`.
 
 Prints one of four JSON outcomes:
 
