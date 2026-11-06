@@ -79,7 +79,7 @@ Prints one of four JSON outcomes:
 
 **Retrigger report.** When `--trigger-merge-main` was passed and the `--trigger-after` trigger fired, whichever outcome above is printed also carries a `retrigger` field saying how the review was requested:
 
-- `{"method": "merge-push"}` — the merge created a commit and it was pushed; no comment was posted.
+- `{"method": "merge-push"}` — a push asked for the review and no comment was posted. Either the merge created a commit that was pushed, or the merge changed nothing but the branch held a local commit its upstream lacked (a merge whose push failed on an earlier attempt), and that commit was pushed. Only the first creates a new merge commit.
 - `{"method": "comment"}` — the merge brought in nothing new, so the comment was posted instead.
 - `{"method": "comment", "mergeFailure": "<one-line reason>"}` — a git step failed (aborting a started merge was attempted, best effort), or the wait's deadline had already passed so no merge was started, and the comment was posted instead.
 - `{"method": "none"}`, with a `mergeFailure` when one applies — the fallback comment itself could not be posted (`gh pr comment` exited nonzero or failed to run), so nothing asked for a review. The wait keeps polling regardless.
