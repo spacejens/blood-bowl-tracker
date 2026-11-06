@@ -109,23 +109,10 @@ To run an import against production:
 
    To bring a long-lived production database up to date with new curated
    data, run only a plain `apply` — it applies the batches not yet recorded
-   there. Once, before the first such run, record the batches production
-   already holds — but only if production's last manual import ran from the
-   current content of both batches (otherwise import
-   `data/batches/001-initial-seed` and
-   `data/batches/002-initial-cleanup` by directory first):
-   `( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js mark-applied 001-initial-seed 002-initial-cleanup )`.
-   Both need the api-server release with the `manualImportBatches` procedures
-   deployed first. See
+   there. See
    [import-manual batches](../import-manual/batches.md#operating-procedure).
 
 5. Stop the tunnel (Ctrl-C) when the imports are done.
-
-**If you already have `*-config.production.json5` files** from before the
-tunnel moved to `3001`, they still point at `http://localhost:3000` and will
-now write to your local stack (or fail to connect). Update `apiBaseUrl` to
-`http://localhost:3001` in each of them by hand — they are git-ignored, so
-no change to this repository can do it for you.
 
 Common failures:
 
