@@ -45,7 +45,7 @@ export class RaceToplistService {
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveRaceToplist({
-      title: 'Races by teams (descending)',
+      title: 'Races by teams (highest first)',
       fetchRows: (limit) => this.races.countTeamsByRaceDescending(scope, limit),
     });
   }
@@ -54,7 +54,7 @@ export class RaceToplistService {
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveRaceToplist({
-      title: 'Races by teams (ascending)',
+      title: 'Races by teams (lowest first)',
       fetchRows: (limit) => this.races.countTeamsByRaceAscending(scope, limit),
     });
   }

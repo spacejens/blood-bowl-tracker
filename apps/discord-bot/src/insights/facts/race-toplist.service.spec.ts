@@ -68,7 +68,7 @@ const cases: RaceCase[] = [
       { raceId: 3, name: 'Elf', count: 4 },
     ],
     eraRows: [{ raceId: 1, name: 'Orc', count: 3 }],
-    expectedTitle: 'Races by teams (descending)',
+    expectedTitle: 'Races by teams (highest first)',
   },
   {
     describeName: 'resolveTeamsAscending',
@@ -80,7 +80,7 @@ const cases: RaceCase[] = [
       { raceId: 1, name: 'Orc', count: 12 },
     ],
     eraRows: [{ raceId: 4, name: 'Halfling', count: 0 }],
-    expectedTitle: 'Races by teams (ascending)',
+    expectedTitle: 'Races by teams (lowest first)',
   },
   {
     describeName: 'resolveMatchesPlayed',

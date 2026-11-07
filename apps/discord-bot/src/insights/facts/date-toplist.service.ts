@@ -70,7 +70,7 @@ export class DateToplistFactsService {
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveDateToplist({
-      title: 'Dates by matches played (descending)',
+      title: 'Dates by matches played (highest first)',
       fetchRows: (limit) =>
         this.dates.getMatchCountsByDateDescending(scope, limit),
       scope,
@@ -81,7 +81,7 @@ export class DateToplistFactsService {
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveDateToplist({
-      title: 'Dates by matches played (ascending)',
+      title: 'Dates by matches played (lowest first)',
       fetchRows: (limit) =>
         this.dates.getMatchCountsByDateAscending(scope, limit),
       scope,

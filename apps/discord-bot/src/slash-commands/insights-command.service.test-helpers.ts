@@ -131,13 +131,13 @@ function makeFactTreeMocks(): FactTreeMocks {
   );
   coachToplist.resolveTimeBetweenMatchesDescending.mockResolvedValue(
     sampleEmbedReply(
-      'Coaches by longest time between matches (descending)',
+      'Coaches by longest time between matches (highest first)',
       '1. Roze Madder — 45 days',
     ),
   );
   coachToplist.resolveTimeBetweenMatchesAscending.mockResolvedValue(
     sampleEmbedReply(
-      'Coaches by longest time between matches (ascending)',
+      'Coaches by longest time between matches (lowest first)',
       '1. Roze Madder — 12 days',
     ),
   );
@@ -277,10 +277,10 @@ function makeFactTreeMocks(): FactTreeMocks {
 
   const raceToplist = mock<RaceToplistService>();
   raceToplist.resolveTeamsDescending.mockResolvedValue(
-    sampleEmbedReply('Races by teams (descending)', '1. Orc — 12'),
+    sampleEmbedReply('Races by teams (highest first)', '1. Orc — 12'),
   );
   raceToplist.resolveTeamsAscending.mockResolvedValue(
-    sampleEmbedReply('Races by teams (ascending)', '1. Halfling — 0'),
+    sampleEmbedReply('Races by teams (lowest first)', '1. Halfling — 0'),
   );
   raceToplist.resolveMatchesPlayed.mockResolvedValue(
     sampleEmbedReply('Races by matches played', '1. Orc — 40'),
@@ -369,13 +369,13 @@ function makeFactTreeMocks(): FactTreeMocks {
   const dateToplist = mock<DateToplistFactsService>();
   dateToplist.resolveMatchesDescending.mockResolvedValue(
     sampleEmbedReply(
-      'Dates by matches played (descending)',
+      'Dates by matches played (highest first)',
       '1. February 29 — 12',
     ),
   );
   dateToplist.resolveMatchesAscending.mockResolvedValue(
     sampleEmbedReply(
-      'Dates by matches played (ascending)',
+      'Dates by matches played (lowest first)',
       '1. February 29 — 1',
     ),
   );
