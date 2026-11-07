@@ -146,7 +146,10 @@ plus the Secret Bowl `Bretonnian_2020`. This matches what
   player's **species** (100 Dwarf, 101 Elf, 102 Orc, 106 Halfling, 112 Human,
   113 Ogre, 116 Treeman, …), not the team races the entry belongs to.
 - `positionTypes` — `1`. Bitmask, optional under BB2025 and absent throughout
-  BB2020. DB2021 carries it on all 96 positions, with a distinct bit scheme:
+  BB2020. One bit per positional keyword, and each bit's value is that
+  keyword's curated code (see
+  [Keyword target decoding](./keyword-target-decoding.md)). DB2021 carries it
+  on all 96 positions, with a distinct bit scheme:
   bits 1/2/4/8/16/32/64 mean the same curated positional role as under
   BB2025, but DB2021 also sets an additional bit 128 not used by BB2025 —
   understood as DB2021's own Big Guy signal (11 of its 12 `128` entries also
