@@ -125,7 +125,7 @@ up any existing record matching any of them:
 
 Matching only ever considers previously-stored external IDs — it never
 falls back to fuzzy-matching a record's own display fields (e.g. a coach's
-`name` column). A record with no external IDs yet (for example, one entered
+name). A record with no external IDs yet (for example, one entered
 manually rather than imported) will not be found by a later import until an
 external ID is explicitly attached to it.
 
