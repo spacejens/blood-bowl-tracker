@@ -325,7 +325,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    ```bash
    cd <worktree-path> && git fetch origin main
    ```
-   If the fetch fails, retry it once; if it still fails, do not run the merge — a failed fetch leaves the previous `origin/main` in place, so the merge would report "Already up to date" and the PR would open behind `main`. Print a one-line warning that the second sync was skipped and continue to PR creation (the review loop's later sync still covers it). Only after a successful fetch:
+   If the fetch fails, retry it once; if it still fails, do not run the merge — a failed fetch leaves the previous `origin/main` in place, so the merge would report "Already up to date" and the PR would open behind `main`. Print a one-line warning that the second sync was skipped and continue to PR creation (the review loop's later sync still covers it) — except that if a verification is pending (see the last bullet below), run `pnpm verify` first and create the PR only once it passes. Only after a successful fetch:
    ```bash
    cd <worktree-path> && git merge origin/main
    ```
