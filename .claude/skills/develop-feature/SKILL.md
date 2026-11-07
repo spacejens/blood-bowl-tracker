@@ -337,6 +337,12 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
      ```
      If this does not print `{"released": true}` (a non-zero exit, or unparseable output), retry it once after a couple of seconds; if it still cannot be confirmed, print a one-line warning that the lock may still be held and proceed anyway — never refuse to report over a lock-release failure; the worst case is bounded by the 100-minute staleness reclaim, as in step 5(b). Report the conflicting files (or the failing verification) and wait. Once the developer has resolved the problem and committed the resolution (so the next merge starts from a clean tree), re-acquire with this step's identical `acquire-review-lock <holder-id>` command, backgrounded the same way and with the same fail-outright handling (it rejoins the back of the queue; if the lock can't be taken, switch to the unlocked fallback and carry on), then run this sync again from the top, since `main` may have moved during the wait. The developer's resolution or fix commit has not been verified yet, and the repeated merge may report "Already up to date" — so treat a **verification as pending** from the moment you stop until a `pnpm verify` has passed on the final tree, carrying that state across the wait and the re-sync (run `pnpm install` first if `package.json` or `pnpm-lock.yaml` changed). Never create the PR while a verification is pending. In the unlocked fallback, skip both the release and the re-acquire.
 
+   **Confirm the lock is still held before creating the PR** (skip in the unlocked fallback). A long merge resolution or `pnpm verify` runs with no heartbeat, so the lock can go stale and be reclaimed by another session in the meantime — and creating the PR is what triggers a review:
+   ```bash
+   cd <worktree-path> && node tools/dev-workflow-cli/dist/main.js heartbeat-review-lock <holder-id>
+   ```
+   `{"ok": true}` means this session still holds it: continue. `{"ok": false, ...}` means it was lost: re-run this step's `acquire-review-lock <holder-id>` command (backgrounded the same way), then run the sync above again from the top, since `main` may have moved while waiting. A non-zero exit or unparseable output is a one-line warning, not a stop.
+
    Then create the PR using the appropriate command for the active mode:
 
    **Issue mode:**
