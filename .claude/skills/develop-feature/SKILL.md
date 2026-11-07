@@ -347,6 +347,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    ```bash
    cd <worktree-path> && git push -u origin <holder-id>
    ```
+   If the push fails, retry it once; if it still fails, PR creation cannot proceed, so do not leave the lock held across a wait. Report the error, and (skip in the unlocked fallback) release the lock first with `release-review-lock <holder-id>`, retrying it once if it does not print `{"released": true}`, exactly as in step 5(b). Then wait for the developer, or stop. If the developer fixes the cause and continues, re-acquire with this step's `acquire-review-lock <holder-id>` command (backgrounded the same way) and run the second sync with `main` again from the top before retrying the push.
 
    Then create the PR using the appropriate command for the active mode:
 
