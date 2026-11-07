@@ -104,7 +104,7 @@ keywords recorded for this star, naming the rules set and its keywords
 comma-separated: `BB2025 keywords: Goblin, Undead`. A rules set with none
 recorded contributes no line, and the whole group is left out entirely for a
 star with no keywords recorded under any rules set — there is no placeholder
-line for "none". A star is stored as a `positions` row, so this reads
+line for "none". A star player is a kind of position, so this reads
 identically to the position deepdive's own keywords section below.
 
 Then a blank line and one line per team that has ever hired them,
