@@ -297,7 +297,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
      - **Provenance unclear** (not found in the worktree) → **never auto-discard**. Surface the paths / commit summaries and ask the developer via `AskUserQuestion` how to proceed — the change may be their own unrelated work.
 3. **Acquire the review lock, then create the PR.** Creating the PR is itself what triggers CodeRabbit's first review, and CodeRabbit's review rate limit is shared across every PR in the repo. Several `develop-feature` sessions running in parallel worktrees on this machine would otherwise all consume that quota at once and all crawl. Take the machine-wide review lock here and hold it through the end of step 5's review loop, so exactly one session drives a review loop at a time and the rest wait their turn in the order they started waiting. See `docs/development-workflow.md`'s "Serializing review activity across parallel sessions".
 
-   Steps 1–2 above deliberately ran unlocked: neither syncing with `main` nor the stray-work check triggers a review, and step 1 can stop and wait for a developer to resolve a merge conflict by hand — holding a machine-wide lock across an unbounded human wait would stall every other session. Because waiting for the lock can take a long time while `main` keeps moving, a second, usually trivial sync runs right after the lock is taken (below); that one is what guarantees the PR opens up to date.
+   Steps 1–2 above deliberately ran unlocked: neither syncing with `main` nor the stray-work check triggers a review, and step 1 can stop and wait for a developer to resolve a merge conflict by hand — holding a machine-wide lock across an unbounded human wait would stall every other session. Because waiting for the lock can take a long time while `main` keeps moving, a second, usually trivial sync runs right after the lock is taken (see "Sync with `main` again" below); that one is what guarantees the PR opens up to date.
 
    First record this session's holder id — the current worktree's branch name:
    ```bash
@@ -329,12 +329,12 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    cd <worktree-path> && git merge origin/main
    ```
    - **Already up to date** (nothing new from `main`): continue directly to PR creation.
-   - **Clean merge that brings in changes:** run `pnpm verify` from the repo root, exactly as in step 1. If it fails, fix the regression the merge introduced, commit, and continue. Never create the PR on top of an unverified merge.
-   - **Conflict:** attempt an automated resolution exactly as in step 1, then run `pnpm verify`. If the correct resolution isn't clear, or `pnpm verify` doesn't come back clean (after a clean merge or a resolved conflict), **stop** and wait for the developer as step 1 does — but first, if this session holds the lock, release it so queued sessions are not stalled behind a human wait:
+   - **Clean merge that brings in changes:** run `pnpm verify` from the repo root, exactly as in step 1. If it fails, try to fix the regression the merge introduced and commit; if it still isn't green, treat it as unresolvable and stop as in the next bullet. Never create the PR on top of an unverified merge.
+   - **Conflict:** attempt an automated resolution exactly as in step 1, then run `pnpm verify`. If the correct resolution isn't clear, or `pnpm verify` still fails after your fix attempt (whether after a clean merge or a resolved conflict), **stop** and wait for the developer as step 1 does — but first, if this session holds the lock, release it so queued sessions are not stalled behind a human wait:
      ```bash
      cd <worktree-path> && node tools/dev-workflow-cli/dist/main.js release-review-lock <holder-id>
      ```
-     Report the conflicting files (or the failing verification) and wait. Once the developer has resolved the problem, re-acquire with this step's identical `acquire-review-lock <holder-id>` command, backgrounded the same way (it rejoins the back of the queue), then run this sync again from the top, since `main` may have moved during the wait. In the unlocked fallback, skip both the release and the re-acquire.
+     Report the conflicting files (or the failing verification) and wait. Once the developer has resolved the problem and committed the resolution (so the next merge starts from a clean tree), re-acquire with this step's identical `acquire-review-lock <holder-id>` command, backgrounded the same way and with the same fail-outright handling (it rejoins the back of the queue; if the lock can't be taken, switch to the unlocked fallback and carry on), then run this sync again from the top, since `main` may have moved during the wait. In the unlocked fallback, skip both the release and the re-acquire.
 
    Then create the PR using the appropriate command for the active mode:
 
