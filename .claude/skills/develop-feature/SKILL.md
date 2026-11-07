@@ -386,6 +386,8 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    - **Retry** — re-run the identical `gh pr create` command. If it fails again, repeat this same handling (report the error, then ask again).
    - **Stop** — halt the skill. The branch is already pushed, but no PR exists yet.
 
+   **Release the review lock before asking, and re-acquire on Retry** (skip in the unlocked fallback), so an unanswered prompt does not keep other sessions queued behind it: run `release-review-lock <holder-id>` immediately before presenting the question, retrying it once if it does not print `{"released": true}`, exactly as in step 5(b). On **Retry**, re-run this step's `acquire-review-lock <holder-id>` command (backgrounded the same way), then run the second sync with `main`, the lock-ownership check, and the push above again before re-running `gh pr create` — the wait may have been long enough for `main` to move. On **Stop**, leave the lock released.
+
    Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically. This handling is generic to `gh pr create`; an assignee failure is just one of the ways the command can fail, and all of them are handled the same way.
 
 4. **Post pending self-review questions, if any.** Phase 5 carries forward a pending-questions list — the questions it drafted for Minor findings where more than one reasonable fix existed. If that list is empty, **skip this step entirely and silently** — no status line, no PR activity; this is the common case.
