@@ -343,6 +343,11 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    ```
    `{"ok": true}` means this session still holds it: continue. `{"ok": false, ...}` means it was lost: re-run this step's `acquire-review-lock <holder-id>` command (backgrounded the same way), then run the sync above again from the top, since `main` may have moved while waiting. A non-zero exit or unparseable output is a one-line warning, not a stop.
 
+   **Push the final verified branch** so `gh pr create` has a remote branch to open the PR from — in a non-interactive session `gh pr create` aborts instead of offering to push, and an earlier push of this branch is out of date once the sync above added a merge commit or the developer's resolution commit. Create the PR only after the push succeeds:
+   ```bash
+   cd <worktree-path> && git push -u origin <holder-id>
+   ```
+
    Then create the PR using the appropriate command for the active mode:
 
    **Issue mode:**
