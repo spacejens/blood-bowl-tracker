@@ -330,7 +330,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    cd <worktree-path> && git merge origin/main
    ```
    - **Already up to date** (nothing new from `main`): continue directly to PR creation.
-   - **Clean merge that brings in changes:** run `pnpm verify` from the repo root, exactly as in step 1. If it fails, try to fix the regression the merge introduced and commit; if it still isn't green, treat it as unresolvable and stop as in the next bullet. Never create the PR on top of an unverified merge.
+   - **Clean merge that brings in changes:** if the merge changed any `package.json` or `pnpm-lock.yaml`, first run `pnpm install` so the worktree's dependencies match (otherwise `pnpm verify` can fail on missing packages or test against old versions), then run `pnpm verify` from the repo root, exactly as in step 1. If it fails, try to fix the regression the merge introduced and commit; if it still isn't green, treat it as unresolvable and stop as in the next bullet. Never create the PR on top of an unverified merge.
    - **Conflict:** attempt an automated resolution exactly as in step 1, then run `pnpm verify`. If the correct resolution isn't clear, or `pnpm verify` still fails after your fix attempt (whether after a clean merge or a resolved conflict), **stop** and wait for the developer as step 1 does — but first, if this session holds the lock, release it so queued sessions are not stalled behind a human wait:
      ```bash
      cd <worktree-path> && node tools/dev-workflow-cli/dist/main.js release-review-lock <holder-id>
