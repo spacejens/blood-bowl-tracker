@@ -379,7 +379,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
 
 4. **Post pending self-review questions, if any.** Phase 5 carries forward a pending-questions list — the questions it drafted for Minor findings where more than one reasonable fix existed. If that list is empty, **skip this step entirely and silently** — no status line, no PR activity; this is the common case.
 
-   Otherwise, build a JSON array from the list, one object per question: `file` (repo-relative path), `line` (integer), and `body` (the question text exactly as Phase 5 drafted it — **do not** prepend the `**Comment by Claude**` tag here; the subcommand applies it itself).
+   Otherwise, first re-check each question's file and line against the tree as it stands after the final sync with `main` above — a merge that brought in lines above a question shifts its recorded line, and the subcommand posts the recorded location without re-deriving it — and update any location that moved. Then build a JSON array from the list, one object per question: `file` (repo-relative path), `line` (integer), and `body` (the question text exactly as Phase 5 drafted it — **do not** prepend the `**Comment by Claude**` tag here; the subcommand applies it itself).
 
    Post them with a single command, in the same heredoc-stdin form this skill already uses for `write-file` in Phases 2 and 3 (see "Worktree isolation and shell commands" above for why this must be one command, and its two fallbacks: build `tools/dev-workflow-cli` first if `dist/main.js` is missing, and if the heredoc form is refused in a given session, write the JSON to a plain file first and feed that file into the same command instead):
    ```bash
