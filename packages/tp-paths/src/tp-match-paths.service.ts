@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
+import type { TpBaseUrls, TpRequest } from './tp-request';
+
 /** A match page path: `<slug>/match/<positive integer id>`, nothing else. */
 const MATCH_FRONTEND_PATH = /^([^/]+)\/match\/([1-9]\d*)$/;
 
@@ -18,6 +20,20 @@ export class TpMatchPathsService {
 
   frontendPath(slug: string, matchId: number | string): string {
     return `${slug}/match/${matchId}`;
+  }
+
+  /** A match's API request, sent from its page under its tournament. */
+  request(
+    baseUrls: TpBaseUrls,
+    slug: string,
+    matchId: number | string,
+  ): TpRequest {
+    const path = this.apiPath(matchId);
+    return {
+      path,
+      url: baseUrls.getBackendApiUrl() + path,
+      referer: baseUrls.getFrontendBaseUrl() + this.frontendPath(slug, matchId),
+    };
   }
 
   /**

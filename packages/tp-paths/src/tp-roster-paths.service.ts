@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
+import type { TpBaseUrls, TpRequest } from './tp-request';
+
 /** A roster page path: `roster/<positive integer id>`, nothing else. */
 const ROSTER_FRONTEND_PATH = /^roster\/([1-9]\d*)$/;
 
@@ -19,6 +21,16 @@ export class TpRosterPathsService {
 
   frontendPath(rosterId: number | string): string {
     return `roster/${rosterId}`;
+  }
+
+  /** A roster's API request, sent from its roster page. */
+  request(baseUrls: TpBaseUrls, rosterId: number | string): TpRequest {
+    const path = this.apiPath(rosterId);
+    return {
+      path,
+      url: baseUrls.getBackendApiUrl() + path,
+      referer: baseUrls.getFrontendBaseUrl() + this.frontendPath(rosterId),
+    };
   }
 
   /**

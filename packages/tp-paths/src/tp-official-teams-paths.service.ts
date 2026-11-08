@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
+import type { TpBaseUrls, TpRequest } from './tp-request';
+
 /**
  * TP's numeric `ruleSet` query value per rules set, by the rules set's
  * canonical name. TP's teams page selects a rules set with a tab whose label
@@ -32,6 +34,16 @@ export class TpOfficialTeamsPathsService {
 
   frontendPath(): string {
     return 'teams';
+  }
+
+  /** One rules set's official team list request, sent from the teams page. */
+  request(baseUrls: TpBaseUrls, ruleSetId: number): TpRequest {
+    const path = this.apiPath(ruleSetId);
+    return {
+      path,
+      url: baseUrls.getBackendApiUrl() + path,
+      referer: baseUrls.getFrontendBaseUrl() + this.frontendPath(),
+    };
   }
 
   /** The reverse of `frontendPath`: whether a page path is the teams page. */

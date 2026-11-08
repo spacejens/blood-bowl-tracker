@@ -1,15 +1,22 @@
 import { Injectable } from '@nestjs/common';
 
+import type { TpBaseUrls, TpRequest } from './tp-request';
+
 /** A tournament page path: a non-empty slug, optionally followed by more. */
 const TOURNAMENT_FRONTEND_PATH = /^([^/]+)(?:\/.*)?$/;
 
 /** The tournament page listing every phase's fixtures and results. */
 const SCORES_PAGE = 'scores';
 
+/** One round of one phase, as the frontend's round tabs request it. */
+export type TpPhaseRound = { phaseId: number; roundNumber: number };
+
 /**
  * TP's paths for one tournament, exactly as TP's own frontend requests them:
  * API paths relative to TP's backend API base URL, and page paths relative to
- * TP's frontend base URL (sent as a fetch's referer). `slug` is the
+ * TP's frontend base URL (sent as a fetch's referer). Each API path also
+ * comes as a `TpRequest`, paired with the page TP's frontend requests it on.
+ * `slug` is the
  * tournament's name as it appears in the frontend path. Shared by
  * tools/download-tp's bulk download and packages/import-tp-live's live match
  * and competition imports; the news, classifications, honours and statistics
@@ -108,5 +115,110 @@ export class TpTournamentPathsService {
     return slug !== '' && page === SCORES_PAGE && rest.length === 0
       ? slug
       : undefined;
+  }
+
+  /**
+   * The tournament itself, sent from the page the caller is on: the bulk
+   * download loads it from the news page, the live bracket fetch from the
+   * scores page.
+   */
+  request(baseUrls: TpBaseUrls, slug: string, page: string): TpRequest {
+    return this.toRequest(baseUrls, slug, { path: this.apiPath(slug), page });
+  }
+
+  phaseRequest(baseUrls: TpBaseUrls, slug: string, phaseId: number): TpRequest {
+    return this.toRequest(baseUrls, slug, {
+      path: this.phaseApiPath(slug, phaseId),
+      page: SCORES_PAGE,
+    });
+  }
+
+  phaseRoundRequest(
+    baseUrls: TpBaseUrls,
+    slug: string,
+    { phaseId, roundNumber }: TpPhaseRound,
+  ): TpRequest {
+    return this.toRequest(baseUrls, slug, {
+      path: this.phaseRoundApiPath(slug, phaseId, roundNumber),
+      page: SCORES_PAGE,
+    });
+  }
+
+  inscriptionsRequest(
+    baseUrls: TpBaseUrls,
+    slug: string,
+    categoryId: number,
+  ): TpRequest {
+    return this.toRequest(baseUrls, slug, {
+      path: this.inscriptionsApiPath(slug, categoryId),
+      page: 'players',
+    });
+  }
+
+  awardsRequest(baseUrls: TpBaseUrls, slug: string): TpRequest {
+    return this.toRequest(baseUrls, slug, {
+      path: this.awardsApiPath(slug),
+      page: 'awards',
+    });
+  }
+
+  newsRequest(baseUrls: TpBaseUrls, slug: string): TpRequest {
+    return this.toRequest(baseUrls, slug, {
+      path: this.newsApiPath(slug),
+      page: 'news',
+    });
+  }
+
+  classificationsRequest(
+    baseUrls: TpBaseUrls,
+    slug: string,
+    phaseId: number,
+  ): TpRequest {
+    return this.toRequest(baseUrls, slug, {
+      path: this.classificationsApiPath(slug, phaseId),
+      page: 'classifications',
+    });
+  }
+
+  teamStatsRequest(baseUrls: TpBaseUrls, slug: string): TpRequest {
+    return this.toRequest(baseUrls, slug, {
+      path: this.teamStatsApiPath(slug),
+      page: 'honours',
+    });
+  }
+
+  lineupStatsRequest(baseUrls: TpBaseUrls, slug: string): TpRequest {
+    return this.toRequest(baseUrls, slug, {
+      path: this.lineupStatsApiPath(slug),
+      page: 'honours',
+    });
+  }
+
+  coachStatsRequest(baseUrls: TpBaseUrls, slug: string): TpRequest {
+    return this.toRequest(baseUrls, slug, {
+      path: this.coachStatsApiPath(slug),
+      page: 'honours',
+    });
+  }
+
+  statisticsRequest(baseUrls: TpBaseUrls, slug: string): TpRequest {
+    return this.toRequest(baseUrls, slug, {
+      path: this.statisticsApiPath(slug),
+      page: 'statistics',
+    });
+  }
+
+  /** An API path paired with the tournament page it is sent from. */
+  private toRequest(
+    baseUrls: TpBaseUrls,
+    slug: string,
+    call: { path: string; page: string },
+  ): TpRequest {
+    return {
+      path: call.path,
+      url: baseUrls.getBackendApiUrl() + call.path,
+      referer:
+        baseUrls.getFrontendBaseUrl() + this.frontendPath(slug, call.page),
+    };
   }
 }
