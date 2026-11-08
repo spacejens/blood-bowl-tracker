@@ -8,6 +8,7 @@ import { Module } from '@nestjs/common';
 import { CoachDeepdiveService } from '../deepdive/facts/coach-deepdive.service';
 import { CompetitionDeepdiveService } from '../deepdive/facts/competition-deepdive.service';
 import { CompetitionGroupDeepdiveService } from '../deepdive/facts/competition-group-deepdive.service';
+import { CompetitionTypeLabelService } from '../deepdive/facts/competition-type-label.service';
 import { EraDeepdiveService } from '../deepdive/facts/era-deepdive.service';
 import { LeagueDeepdiveService } from '../deepdive/facts/league-deepdive.service';
 import { PlayerDeepdiveService } from '../deepdive/facts/player-deepdive.service';
@@ -89,6 +90,7 @@ import { SlashCommandRegistryModule } from './slash-command-registry.module';
     PlayerSkillsSectionService,
     PlayerKeywordsSectionService,
     PlayerStatusLineService,
+    CompetitionTypeLabelService,
     PlayerSppSectionService,
     UnspentSppLineService,
     PlayerStatusConflictReporterService,
