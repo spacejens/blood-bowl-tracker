@@ -168,7 +168,7 @@ export class CoachToplistService {
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveGapToplist({
-      title: 'Coaches by longest time between matches (descending)',
+      title: 'Coaches by longest time between matches (highest first)',
       fetchRows: (limit) =>
         this.coaches.getGapBetweenMatchesByCoachDescending(scope, limit),
     });
@@ -182,7 +182,7 @@ export class CoachToplistService {
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveGapToplist({
-      title: 'Coaches by longest time between matches (ascending)',
+      title: 'Coaches by longest time between matches (lowest first)',
       fetchRows: (limit) =>
         this.coaches.getGapBetweenMatchesByCoachAscending(scope, limit),
     });
