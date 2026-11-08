@@ -440,7 +440,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    **Each iteration:**
 
    a. **Wait for a review.** The threshold for "new" reviews is a watermark carried across iterations, not a freshly captured timestamp each time — see why below.
-      - **First iteration only:** immediately before waiting, use the PR's own creation time — as recorded by GitHub — as the watermark, not a freshly captured wall-clock timestamp. CodeRabbit reacts to the PR-created webhook almost instantly and can post its rate-limit comment before a `date +%s` captured after `gh pr create` returns; anchoring to `createdAt` closes that race because GitHub fixes it at PR-creation time, before any webhook response can occur. There is no previous review yet, so there is no id to exclude:
+      - **First iteration only:** immediately before waiting, use the PR's own creation time — as recorded by GitHub — as the watermark, not a freshly captured wall-clock timestamp. CodeRabbit reacts to the PR-created webhook almost instantly and can post its rate-limit comment before a `date +%s` captured after `gh pr create` returns; anchoring to `createdAt` closes that race because GitHub fixes it at PR-creation time, before any webhook response can occur. Exception: if the PR already existed when a `gh pr create` Retry found it and that Retry pushed new commits, use the pushed head's commit time instead (`git log -1 --format=%ct HEAD`, already epoch seconds, so skip the conversion below), because a review of the older head created before the push must not end the loop. There is no previous review yet, so there is no id to exclude:
         ```bash
         cd <worktree-path> && gh pr view <PR> --json createdAt --jq .createdAt
         ```
