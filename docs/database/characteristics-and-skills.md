@@ -34,18 +34,17 @@ row whose values disagree with the rules set's declared formats.
 Regeneration, ...), carrying only a name; `skills_external_ids` links each to
 the source systems that name it, exactly as every other imported entity.
 
-A
-skill's _category_ is not on the row, because a rules set can move a skill
+A skill's _category_ is not on the row, because a rules set can move a skill
 between categories (BB2025 introduced Devious and moved existing skills into
 it) — it lives on `skill_rules_sets`, the skill × rules-set association, keyed
 by `(skill_id, rules_set_id)` and carrying a `skill_category` enum column
 (`general`, `agility`, `passing`, `strength`, `mutation`, `devious`, `trait`,
 `unique`).
 
-`unique` is the category for the one skill a rules set makes
-exclusive to a given star player — used instead of a per-association flag, so
-an ordinary skill row stays shareable between positions and a star player's
-exclusive skill is identified purely by checking its category.
+`unique` is the category for the one skill a rules set makes exclusive to a
+given star player — used instead of a per-association flag, so an ordinary skill
+row stays shareable between positions and a star player's exclusive skill is
+identified purely by checking its category.
 
 This is deliberately not enforced as globally unique across star players: if
 two star players are published sharing the same "unique" skill, that is not
@@ -55,21 +54,20 @@ as characteristics living on `position_rules_sets` rather than on `positions`.
 
 ## Elite skills
 
-The same `skill_rules_sets` row also carries `is_elite`, BB2025's orthogonal "elite" marker on a
-handful of skills (Block, Dodge, Guard, Mighty Blow) that cost more player
-value to pick than a non-elite skill — not a restriction on which skills can
-be picked, and player value itself is not yet modeled, so this only records
-which skills the cost applies to.
+The same `skill_rules_sets` row also carries `is_elite`, BB2025's orthogonal
+"elite" marker on a handful of skills (Block, Dodge, Guard, Mighty Blow) that
+cost more player value to pick than a non-elite skill — not a restriction on
+which skills can be picked, and player value itself is not yet modeled, so this
+only records which skills the cost applies to.
 
-It is a plain boolean rather than another
-`skill_category` value because it cuts across categories, and it is `false`
-on every row for every rules set older than BB2025, none of which has the
-concept at all.
+It is a plain boolean rather than another `skill_category` value because it cuts
+across categories, and it is `false` on every row for every rules set older than
+BB2025, none of which has the concept at all.
 
-Like the category, it is curated
-in `tools/import-manual` (`data/batches/001-initial-seed/skills.json5`; a change goes into a new batch); the TP
-importer only reads it back, to cross-check the marker TP's own source data
-carries, while BBL has no such marker at all and always supplies `false`.
+Like the category, it is curated in `tools/import-manual`
+(`data/batches/001-initial-seed/skills.json5`; a change goes into a new batch);
+the TP importer only reads it back, to cross-check the marker TP's own source
+data carries, while BBL has no such marker at all and always supplies `false`.
 
 ## Starting skills
 

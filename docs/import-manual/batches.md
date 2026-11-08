@@ -61,6 +61,8 @@ The batches:
 
 ### Batch 004
 
+Detail for the 004-advancement-costs entry above.
+
 - **Advancement costs:** fixed thresholds for CRP, CRP+ and BB2016, and a
   cost per advancement kind for BB2020, DB2021 and BB2025, plus tLoEG's
   house-rule Fan Favourite advancement under CRP, CRP+ and BB2016 (see
@@ -72,7 +74,7 @@ The batches:
 - **Sources:** CRP+ primary comes from NTBB2015's Talent column and secondary
   from the CRP entry. BB2016 comes from the Teams of Legend PDF and the
   developer's physical BB2016 rulebook (see
-  [Batch 004](curated-files.md#batch-004)).
+  [curated files: Batch 004](curated-files.md#batch-004)).
 - **Trophy awards:** the free mutation of every Gudarnas Förkämpe award
   (`trophy-awards.json5`).
 - **Apply ordering:** the advancement costs reference only the rules sets,

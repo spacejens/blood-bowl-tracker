@@ -62,8 +62,8 @@ unique per `(rules_set_id, advancement_number, advancement_kind)`.
 
 ## Reading unspent SPP
 
-`UnspentSppService` in `packages/game-data` reads the table to work out how
-much of a player's SPP is unspent (see
+`UnspentSppService` in `packages/game-data` reads the `advancement_costs` table
+to work out how much of a player's SPP is unspent (see
 [players](../game-concepts/players/index.md#unspent-spp)). It tries each rules
 set the player's era lists, using that rules set's rows plus the player's
 league's rows, and reads the player's characteristic increases as advancement
@@ -76,8 +76,7 @@ adjustment sync, to record a gained skill's `player_advancements.source` as
 [players](../game-concepts/players/index.md#unspent-spp)). Only rows still
 recorded `advancement` are rewritten.
 
-The skill sync keeps a stored `chosen`
-or `random` when a source re-sends the generic `advancement`, so a settled
+The skill sync keeps a stored `chosen` or `random` when a source re-sends the generic `advancement`, so a settled
 source stays settled and an unchanged re-run writes nothing. A source settled
 wrongly, for example before a correction to the cost tables, is fixed by a
 data change (see [Changing data in a long-lived
@@ -97,8 +96,7 @@ it back), and a trophy award that grants a skill, which only the manual
 import writes, marks the skill as a free extra and works the fixed-threshold
 value out again.
 
-A stored fixed-threshold value is cleared or recomputed on the
-writes that change a player's history, but not when reference data (advancement
+A stored fixed-threshold value is cleared or recomputed on the writes that change a player's history, but not when reference data (advancement
 costs, era rules sets, skill categories, position access) or the model code
 changes; it refreshes the next time the player is imported. Rows that existed
 before the column was added stay NULL until the next import.
