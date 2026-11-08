@@ -16,7 +16,7 @@ Only what an upsert changes is checked. Already-enrolled team eras are not re-va
 
 ## Subtypes
 
-[Seasons](../../glossary.md#season) and [cups](../../glossary.md#cup) are the two subtypes of competition. They share the same structure; a competition's `type` (`season` or `cup`) records which it is.
+[Seasons](../../glossary.md#season) and [cups](../../glossary.md#cup) are the two subtypes of competition. They share the same structure; every competition is recorded as exactly one of the two.
 
 ## Competition groups
 

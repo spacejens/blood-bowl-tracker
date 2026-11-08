@@ -5,13 +5,13 @@ backing the `/insights` top lists.
 
 Every such count is the same query shaped by three inputs: the **role** the counted entity played in
 the event (the acting side or the consequence side), the **set of event types** that count, and the
-**grouping entity** (player, team, or coach). Role and join columns co-vary: an acting-role count
-joins through the acting columns, a consequence-role count through the consequence columns. An
-acting-role count may also narrow on the consequence recorded on the same row (see
-[lasting injuries caused](#lasting-injuries-caused)).
+**grouping entity** (player, team, or coach). The role decides who is credited: an acting-role
+count credits the side whose player performed the action, a consequence-role count the side whose
+player suffered the consequence. An acting-role count may also narrow on the consequence recorded
+together with the action (see [lasting injuries caused](#lasting-injuries-caused)).
 
-For the exact query shape behind all of these — which columns each role joins
-through, and how the grouping and filters are applied — see
+For the exact query shape behind all of these — how each role is resolved, and
+how the grouping and filters are applied — see
 `packages/game-data/src/shared/match-event-counts.service.ts`.
 
 ## The player/team grid is deliberately incomplete
@@ -56,11 +56,11 @@ This gives three accepted differences from the other caused counts:
 1. When BBL cannot pair a group, it stores the action and its consequences as
    separate rows. Serious injuries caused still counts the action; lasting
    injuries caused cannot classify it, so it skips it.
-2. A casualty an apothecary prevented is stored with the consequence
-   `casualty_avoided` (see [BBL file format](../import-bbl/file-format.md)).
-   A count that filters on the action alone sees the merged row by its
-   action severity; lasting injuries caused never counts it, since
-   `casualty_avoided` is not a lasting consequence.
+2. A casualty an apothecary prevented is recorded with a consequence marking
+   it as avoided (see [BBL file format](../import-bbl/file-format.md)).
+   A count that filters on the action alone sees the merged event by its
+   action severity; lasting injuries caused never counts it, since an
+   avoided casualty is not a lasting consequence.
 3. Summed over all teams, lasting injuries caused is usually lower than
    lasting injuries suffered, mainly because of the foul-caused and
    unattributable rows (and any lasting consequence recorded against a

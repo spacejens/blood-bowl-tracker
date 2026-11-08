@@ -66,8 +66,8 @@ names them, so each keyword carries the numeric code as a `tourplay.net`
 external id alongside the usual `Name` one. Which positions carry which
 keyword is imported from tourplay.net; the names are not.
 
-tourplay.net spreads those codes over three separate fields on each position
-and star player, and the importer merges all three into one list: the `race`
-array holds the species codes, the integer `positionTypes` bitmask holds the
-positional ones (one bit per keyword, and the bit value is the curated code),
-and the `isBigGuy` boolean contributes `Big Guy`.
+tourplay.net spreads those codes over several separate fields on each
+position and star player, and the importer merges them into one keyword list
+per position; see
+[Position keywords](../../import-tp/index.md#position-keywords) for the
+fields and how each is decoded.

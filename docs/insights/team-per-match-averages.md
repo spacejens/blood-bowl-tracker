@@ -13,19 +13,18 @@ the team's number of distinct matches in scope. For the exact query, see
 
 ## Per-side values
 
-- **Touchdowns scored** — the team's own final score for the match
-  (`match_teams.score`, the per-side touchdown count stored at import).
+- **Touchdowns scored** — the team's own final score for the match, the
+  per-side touchdown count recorded once at import (see
+  [matches](../game-concepts/matches/index.md)).
 - **Touchdowns conceded** — the summed final score of every _other_ side of
   the same match. A normal match has one opponent; a four-team merged final
   has three, and all of their touchdowns count as conceded.
 - **Casualties, injuries and deaths** — the number of this side's match events
-  of the right types. `match_events` is counted once per query into a
-  pre-aggregated table of per-side counts, which is left-joined onto each
-  side. Caused measures count events the team's players acted in
-  (`acting_match_team_id` and `action_type`); suffered measures count events
-  whose victim belongs to the team (`consequence_match_team_id` and
-  `consequence_type`). Lasting injuries caused also filters
-  `consequence_type` on the same row as the action (see
+  of the right types. Caused measures count events the team's players acted
+  in, selected by the kind of action; suffered measures count events whose
+  victim belongs to the team, selected by the consequence. Lasting injuries
+  caused also narrows on the consequence recorded together with the action
+  (see
   [lasting injuries caused](match-event-counts.md#lasting-injuries-caused)).
   The type sets are the ones the total-based team
   toplists use, so an average times the matches played matches the
@@ -50,9 +49,9 @@ the team's number of distinct matches in scope. For the exact query, see
 A match where the team recorded no such event counts as zero, so it still
 counts towards the matches played.
 
-A new average adds only its per-side value (and, for event counts, the
-per-side join that value reads from); the division, floor, rounding, ordering
-and scope stay shared.
+A new average adds only its per-side value (and, for event counts, which
+events feed it); the division, floor, rounding, ordering and scope stay
+shared.
 
 ## Minimum matches
 
