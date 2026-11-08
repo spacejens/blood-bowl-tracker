@@ -170,7 +170,9 @@ Each listed position is rendered as a drill-down button to that position's
 deepdive, after the top-teams and era buttons. Up to 25 links in all render as
 buttons. Past that, the whole list switches to select menus (25 options per
 menu), where positions are still linked, and only entries beyond the room the
-menus have are left without a link and reported in an overflow note.
+menus have are left without a link. They are reported in an overflow note at
+the end of the description, which the description-length cut can remove when
+the description is very long.
 
 ## `position`
 
