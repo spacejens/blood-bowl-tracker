@@ -249,12 +249,15 @@ export const COMPLETION_CANDIDATE = {
 /**
  * The review-shaped object the service synthesizes from it. Note the absent
  * `section`: the extracted walkthrough text is an implementation detail of
- * the phrase check and must never leak into the caller's result.
+ * the phrase check and must never leak into the caller's result. `commit.oid`
+ * is the head the section was validated against: `EMPTY`'s `headRefOid`,
+ * which `COMPLETION_SECTION` names.
  */
 export const COMPLETION_REVIEW = {
   id: '5263781074@1786521319',
   submittedAt: '2026-08-12T07:55:19Z',
   author: { login: 'coderabbitai[bot]' },
+  commit: { oid: HEAD_REF_OID },
 };
 
 /**
