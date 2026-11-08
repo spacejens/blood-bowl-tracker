@@ -49,6 +49,12 @@ import {
 } from '../button-custom-ids';
 import { PlayerRowButtonService } from '../player-row-button.service';
 import { CompetitionDeepdiveService } from './competition-deepdive.service';
+import { CompetitionTypeLabelService } from './competition-type-label.service';
+import {
+  makeCompetitionTypeLabel,
+  STUB_CUP_LABEL,
+  STUB_SEASON_LABEL,
+} from './competition-type-label-mock.test-helpers';
 import { makePlayerRowButton } from './team-deepdive.test-helpers';
 
 interface MakeServiceOptions {
@@ -60,6 +66,7 @@ interface MakeServiceOptions {
   playerContext?: MockProxy<PlayerContextService>;
   dateRangeFormatter?: MockProxy<DateRangeFormatterService>;
   playerRowButton?: MockProxy<PlayerRowButtonService>;
+  competitionTypeLabel?: MockProxy<CompetitionTypeLabelService>;
 }
 
 async function makeService({
@@ -71,6 +78,7 @@ async function makeService({
   playerContext = passthroughPlayerContext(),
   dateRangeFormatter = makeDateRangeFormatter(),
   playerRowButton = makePlayerRowButton(),
+  competitionTypeLabel = makeCompetitionTypeLabel(),
 }: MakeServiceOptions): Promise<{
   service: CompetitionDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;
@@ -78,6 +86,7 @@ async function makeService({
   playerContext: MockProxy<PlayerContextService>;
   dateRangeFormatter: MockProxy<DateRangeFormatterService>;
   playerRowButton: MockProxy<PlayerRowButtonService>;
+  competitionTypeLabel: MockProxy<CompetitionTypeLabelService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -90,6 +99,7 @@ async function makeService({
       { provide: PlayerContextService, useValue: playerContext },
       { provide: DateRangeFormatterService, useValue: dateRangeFormatter },
       { provide: PlayerRowButtonService, useValue: playerRowButton },
+      { provide: CompetitionTypeLabelService, useValue: competitionTypeLabel },
     ],
   }).compile();
   return {
@@ -99,6 +109,7 @@ async function makeService({
     playerContext,
     dateRangeFormatter,
     playerRowButton,
+    competitionTypeLabel,
   };
 }
 
@@ -262,7 +273,7 @@ describe('CompetitionDeepdiveService', () => {
         {
           title: `${stubEntityEmoji(COMPETITION_BUTTON_CUSTOM_ID_PREFIX)} Major Season 24`,
           description: [
-            'Type: season',
+            `Type: ${STUB_SEASON_LABEL}`,
             'Era: BB2020 (2020-01-01 – 2023-12-31)',
             'Group: The Major',
             'Dates: 2024-01-15 – 2024-06-30',
@@ -330,7 +341,7 @@ describe('CompetitionDeepdiveService', () => {
     };
     const lines = result.embeds[0].description.split('\n');
     expect(lines.slice(0, 6)).toEqual([
-      'Type: season',
+      `Type: ${STUB_SEASON_LABEL}`,
       'Era: BB2020 (2020-01-01 – 2023-12-31)',
       'Group: The Major',
       'Dates: 2024-01-15 – 2024-06-30',
@@ -346,6 +357,22 @@ describe('CompetitionDeepdiveService', () => {
       '2020-01-01',
       '2023-12-31',
     );
+  });
+
+  it('renders the Type line from the label service for the stored competition type', async () => {
+    const { service, competitionTypeLabel } = await makeService({
+      competitions: makeCompetitions({
+        competition: competitionHeader({ type: 'cup' }),
+        teams: [],
+      }),
+    });
+    const result = (await service.resolve(1)) as unknown as {
+      embeds: { description: string }[];
+    };
+    expect(result.embeds[0].description.split('\n')[0]).toBe(
+      `Type: ${STUB_CUP_LABEL}`,
+    );
+    expect(competitionTypeLabel.label).toHaveBeenCalledWith('cup');
   });
 
   it('renders the Dates line for an ongoing competition', async () => {
@@ -689,7 +716,7 @@ describe('CompetitionDeepdiveService', () => {
       embeds: { description: string }[];
     };
     expect(result.embeds[0].description.split('\n')).toEqual([
-      'Type: season',
+      `Type: ${STUB_SEASON_LABEL}`,
       'Era: BB2020 (2020-01-01 – 2023-12-31)',
       'Group: The Major',
       'Dates: 2020-01-01 – 2023-12-31',
