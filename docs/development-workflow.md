@@ -154,7 +154,7 @@ CodeRabbit enforces a per-developer review rate limit shared across every PR in 
 
 A machine-wide FIFO lock serializes that, so one session at a time drives a review loop against the shared rate limit.
 
-- **`develop-feature`** Phase 6 takes it just before `gh pr create` (PR creation is itself what triggers the first review) and holds it until its review loop ends, temporarily releasing it across any indefinite wait for the developer.
+- **`develop-feature`** Phase 6 takes it just before `gh pr create` (PR creation is itself what triggers the first review) and holds it until its review loop ends, temporarily releasing it across any indefinite wait for the developer. Right after taking it, Phase 6 merges the latest `main` into the branch again (verifying with `pnpm verify` if the merge brought anything in), because `main` often moves while a session waits its turn, and a PR opened behind `main` costs a later catch-up merge and extra review rounds.
 - **`handle-pr-reviews`** — a standalone run takes it only around its Phase 4 push, the one action in that skill that triggers a fresh review.
 - **Waiting sessions** that cannot get it wait quietly, in the order they started waiting, and take their turn automatically.
 - **Stale-holder reclaim** — a session that is killed without releasing the lock stops heartbeating, and the next waiting session reclaims it after 100 minutes. No manual intervention, which is what makes this safe to leave running overnight.
