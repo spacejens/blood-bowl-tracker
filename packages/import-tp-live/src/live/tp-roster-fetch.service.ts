@@ -3,15 +3,10 @@ import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type { TpRoster } from '@blood-bowl-tracker/parse-tp';
 import { RosterParserService } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
-import {
-  TpBlockedError,
-  TpFetcherService,
-} from '@blood-bowl-tracker/scrape-tp';
 import { TpRosterPathsService } from '@blood-bowl-tracker/tp-paths';
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
-import type { TpConnectionProvider } from '../tp-import-providers';
-import { TP_CONNECTION_PROVIDER } from '../tp-import-providers';
+import { TpRequestFetchService } from './tp-request-fetch.service';
 
 /** Options for {@link TpRosterFetchService.fetchRoster}. */
 export interface FetchRosterOptions {
@@ -39,9 +34,7 @@ export interface TpFetchedRoster {
 @Injectable()
 export class TpRosterFetchService {
   constructor(
-    @Inject(TP_CONNECTION_PROVIDER)
-    private readonly connection: TpConnectionProvider,
-    private readonly fetcher: TpFetcherService,
+    private readonly requestFetch: TpRequestFetchService,
     private readonly rosterPaths: TpRosterPathsService,
     private readonly rosterParser: RosterParserService,
     private readonly importResults: ImportResultService,
@@ -61,35 +54,28 @@ export class TpRosterFetchService {
     errors,
     session,
   }: FetchRosterOptions): Promise<TpFetchedRoster | undefined> {
-    let content: unknown;
-    try {
-      content = await (session ?? this.fetcher.createSession()).fetch(
-        this.connection.getBackendApiUrl() + this.rosterPaths.apiPath(rosterId),
-        {
-          referer:
-            this.connection.getFrontendBaseUrl() +
-            this.rosterPaths.frontendPath(rosterId),
-        },
-      );
-    } catch (error) {
-      if (error instanceof TpBlockedError) {
-        throw error;
-      }
-      errors.push(
-        this.importResults.error({
-          item: { rosterId },
-          message: `Could not fetch TP roster ${rosterId}: ${error instanceof Error ? error.message : String(error)}`,
-        }),
-      );
+    const what = `TP roster ${rosterId}`;
+    const item = { rosterId };
+    const fetched = await this.requestFetch.fetch({
+      request: this.rosterPaths.request(this.requestFetch.baseUrls(), rosterId),
+      what,
+      item,
+      errors,
+      session,
+    });
+    if (fetched === undefined) {
       return undefined;
     }
     try {
-      return { roster: this.rosterParser.parse(content), content };
+      return {
+        roster: this.rosterParser.parse(fetched.content),
+        content: fetched.content,
+      };
     } catch (error) {
       errors.push(
         this.importResults.error({
-          item: { rosterId },
-          message: `Could not parse TP roster ${rosterId}: ${error instanceof Error ? error.message : String(error)}`,
+          item,
+          message: `Could not parse ${what}: ${error instanceof Error ? error.message : String(error)}`,
         }),
       );
       return undefined;

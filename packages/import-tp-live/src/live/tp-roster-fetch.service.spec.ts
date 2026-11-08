@@ -3,22 +3,16 @@ import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type { TpRoster } from '@blood-bowl-tracker/parse-tp';
 import { RosterParserService } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
-import {
-  TpBlockedError,
-  TpFetcherService,
-} from '@blood-bowl-tracker/scrape-tp';
+import { TpBlockedError } from '@blood-bowl-tracker/scrape-tp';
+import type { TpBaseUrls } from '@blood-bowl-tracker/tp-paths';
 import { TpRosterPathsService } from '@blood-bowl-tracker/tp-paths';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import type { TpConnectionProvider } from '../tp-import-providers';
-import { TP_CONNECTION_PROVIDER } from '../tp-import-providers';
+import { TpRequestFetchService } from './tp-request-fetch.service';
 import { TpRosterFetchService } from './tp-roster-fetch.service';
-
-const BACKEND = 'https://tp.example/api/';
-const FRONTEND = 'https://tp.example/blood-bowl/';
 
 const ROSTER: TpRoster = {
   id: 163386,
@@ -34,25 +28,24 @@ const ROSTER: TpRoster = {
 
 describe('TpRosterFetchService', () => {
   let service: TpRosterFetchService;
-  let fetcher: MockProxy<TpFetcherService>;
-  let session: MockProxy<TpFetchSession>;
+  let requestFetch: MockProxy<TpRequestFetchService>;
   let parser: MockProxy<RosterParserService>;
   let errors: ImportError[];
 
   beforeEach(async () => {
-    const connection = mock<TpConnectionProvider>();
-    connection.getBackendApiUrl.mockReturnValue(BACKEND);
-    connection.getFrontendBaseUrl.mockReturnValue(FRONTEND);
-    fetcher = mock<TpFetcherService>();
-    session = mock<TpFetchSession>();
-    fetcher.createSession.mockReturnValue(session);
+    requestFetch = mock<TpRequestFetchService>();
+    const baseUrls = mock<TpBaseUrls>();
+    baseUrls.getBackendApiUrl.mockReturnValue('https://tp.example/api/');
+    baseUrls.getFrontendBaseUrl.mockReturnValue(
+      'https://tp.example/blood-bowl/',
+    );
+    requestFetch.baseUrls.mockReturnValue(baseUrls);
     parser = mock<RosterParserService>();
     errors = [];
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpRosterFetchService,
-        { provide: TP_CONNECTION_PROVIDER, useValue: connection },
-        { provide: TpFetcherService, useValue: fetcher },
+        { provide: TpRequestFetchService, useValue: requestFetch },
         // Pure, dependency-free path formatting, passed real so these tests
         // assert on the actual URLs requested.
         TpRosterPathsService,
@@ -65,9 +58,9 @@ describe('TpRosterFetchService', () => {
     service = moduleRef.get(TpRosterFetchService);
   });
 
-  it('fetches the roster from the API with its page as referer and returns it parsed alongside its raw JSON', async () => {
+  it('requests the roster with its page as referer and returns it parsed alongside its raw JSON', async () => {
     const body = { raw: true };
-    session.fetch.mockResolvedValue(body);
+    requestFetch.fetch.mockResolvedValue({ content: body });
     parser.parse.mockReturnValue(ROSTER);
 
     const fetched = await service.fetchRoster({ rosterId: 163386, errors });
@@ -75,50 +68,42 @@ describe('TpRosterFetchService', () => {
     expect(fetched).toEqual({ roster: ROSTER, content: body });
     expect(fetched?.roster).toBe(ROSTER);
     expect(fetched?.content).toBe(body);
-    expect(session.fetch).toHaveBeenCalledWith(
-      'https://tp.example/api/rosters/163386',
-      { referer: 'https://tp.example/blood-bowl/roster/163386' },
-    );
+    expect(requestFetch.fetch).toHaveBeenCalledWith({
+      request: {
+        path: 'rosters/163386',
+        url: 'https://tp.example/api/rosters/163386',
+        referer: 'https://tp.example/blood-bowl/roster/163386',
+      },
+      what: 'TP roster 163386',
+      item: { rosterId: 163386 },
+      errors,
+      session: undefined,
+    });
     expect(parser.parse).toHaveBeenCalledWith(body);
     expect(errors).toEqual([]);
   });
 
-  it('fetches through the given session instead of starting one', async () => {
+  it('passes the given session on', async () => {
     const given = mock<TpFetchSession>();
-    given.fetch.mockResolvedValue({});
+    requestFetch.fetch.mockResolvedValue({ content: {} });
     parser.parse.mockReturnValue(ROSTER);
 
     await service.fetchRoster({ rosterId: 163386, errors, session: given });
 
-    expect(given.fetch).toHaveBeenCalledTimes(1);
-    expect(fetcher.createSession).not.toHaveBeenCalled();
+    expect(requestFetch.fetch.mock.calls[0][0].session).toBe(given);
   });
 
-  it('records one error naming the roster and returns undefined when the fetch fails', async () => {
-    session.fetch.mockRejectedValue(new Error('status 403'));
+  it('yields undefined without parsing when the fetch fails', async () => {
+    requestFetch.fetch.mockResolvedValue(undefined);
 
-    const roster = await service.fetchRoster({ rosterId: 163386, errors });
-
-    expect(roster).toBeUndefined();
-    expect(errors).toEqual([
-      {
-        item: { rosterId: 163386 },
-        message: 'Could not fetch TP roster 163386: status 403',
-      },
-    ]);
+    await expect(
+      service.fetchRoster({ rosterId: 163386, errors }),
+    ).resolves.toBeUndefined();
     expect(parser.parse).not.toHaveBeenCalled();
   });
 
-  it('stringifies a non-Error fetch failure', async () => {
-    session.fetch.mockRejectedValue('boom');
-
-    await service.fetchRoster({ rosterId: 1, errors });
-
-    expect(errors[0].message).toBe('Could not fetch TP roster 1: boom');
-  });
-
   it('records one error and returns undefined when the response does not parse', async () => {
-    session.fetch.mockResolvedValue({});
+    requestFetch.fetch.mockResolvedValue({ content: {} });
     parser.parse.mockImplementation(() => {
       throw new Error('teamName: Required');
     });
@@ -135,7 +120,7 @@ describe('TpRosterFetchService', () => {
   });
 
   it('stringifies a non-Error parse failure', async () => {
-    session.fetch.mockResolvedValue({});
+    requestFetch.fetch.mockResolvedValue({ content: {} });
     parser.parse.mockImplementation(() => {
       // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw 'bad shape';
@@ -146,13 +131,13 @@ describe('TpRosterFetchService', () => {
     expect(errors[0].message).toBe('Could not parse TP roster 1: bad shape');
   });
 
-  it('lets a TP block stop the import instead of recording it', async () => {
+  it('lets a TP block stop the import', async () => {
     const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
-    session.fetch.mockRejectedValue(blocked);
+    requestFetch.fetch.mockRejectedValue(blocked);
 
     await expect(
       service.fetchRoster({ rosterId: 163386, errors }),
     ).rejects.toBe(blocked);
-    expect(errors).toEqual([]);
+    expect(parser.parse).not.toHaveBeenCalled();
   });
 });

@@ -8,15 +8,10 @@ import {
 } from '@blood-bowl-tracker/import-shared';
 import { OfficialTeamsParserService } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
-import {
-  TpBlockedError,
-  TpFetcherService,
-} from '@blood-bowl-tracker/scrape-tp';
 import { TpOfficialTeamsPathsService } from '@blood-bowl-tracker/tp-paths';
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
-import type { TpConnectionProvider } from '../tp-import-providers';
-import { TP_CONNECTION_PROVIDER } from '../tp-import-providers';
+import { TpRequestFetchService } from './tp-request-fetch.service';
 
 /** Options for {@link TpOfficialTeamsFetchService.fetchOfficialTeams}. */
 export interface FetchOfficialTeamsOptions {
@@ -31,9 +26,7 @@ export interface FetchOfficialTeamsOptions {
 @Injectable()
 export class TpOfficialTeamsFetchService {
   constructor(
-    @Inject(TP_CONNECTION_PROVIDER)
-    private readonly connection: TpConnectionProvider,
-    private readonly fetcher: TpFetcherService,
+    private readonly requestFetch: TpRequestFetchService,
     private readonly officialTeamsPaths: TpOfficialTeamsPathsService,
     private readonly parser: OfficialTeamsParserService,
     private readonly importResults: ImportResultService,
@@ -64,32 +57,23 @@ export class TpOfficialTeamsFetchService {
       );
       return undefined;
     }
-    const path = this.officialTeamsPaths.apiPath(ruleSetId);
-    const item = { rulesSet, path };
-    let content: unknown;
-    try {
-      content = await (session ?? this.fetcher.createSession()).fetch(
-        this.connection.getBackendApiUrl() + path,
-        {
-          referer:
-            this.connection.getFrontendBaseUrl() +
-            this.officialTeamsPaths.frontendPath(),
-        },
-      );
-    } catch (error) {
-      if (error instanceof TpBlockedError) {
-        throw error;
-      }
-      errors.push(
-        this.importResults.error({
-          item,
-          message: `Could not fetch ${what}: ${this.runner.messageOf(error)}`,
-        }),
-      );
+    const request = this.officialTeamsPaths.request(
+      this.requestFetch.baseUrls(),
+      ruleSetId,
+    );
+    const item = { rulesSet, path: request.path };
+    const fetched = await this.requestFetch.fetch({
+      request,
+      what,
+      item,
+      errors,
+      session,
+    });
+    if (fetched === undefined) {
       return undefined;
     }
     try {
-      return this.parser.parse(content);
+      return this.parser.parse(fetched.content);
     } catch (error) {
       errors.push(
         this.importResults.error({
