@@ -23,8 +23,9 @@ const TP_RULES_SET_IDS: readonly { name: string; ruleSetId: number }[] = [
  * sends them: one `TpRequest` per rules set, holding the API path, the full
  * API URL and the full teams page URL (sent as the fetch's referer), plus
  * the reverse matcher for the teams page path. The one place these paths and
- * the rules-set id map live: tools/download-tp's bulk download and packages/import-tp-live's
- * live fetch both build official-teams requests from it.
+ * the rules-set id map live: tools/download-tp's bulk download and
+ * packages/import-tp-live's live fetch both build official-teams requests
+ * from it.
  */
 @Injectable()
 export class TpOfficialTeamsPathsService {

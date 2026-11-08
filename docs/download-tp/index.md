@@ -141,8 +141,8 @@ Plain HTTP cannot click through pages or observe what a page requests, so
 
 The mapping was captured once from a real browser session. If TP's frontend
 changes which endpoints a page calls, update `packages/tp-paths` to match:
-every path, and the page each request is sent from as its referer, lives there, in `TpTournamentPathsService` (the tournament and all
-of its pages, including inscriptions, awards and the download-only news,
+every path, and the page each request is sent from as its referer, lives
+there, in `TpTournamentPathsService` (the tournament and all of its pages, including inscriptions, awards and the download-only news,
 classifications, honours and statistics paths), `TpRosterPathsService`,
 `TpMatchPathsService` and `TpOfficialTeamsPathsService`. Most are shared with
 the live team and match imports (see

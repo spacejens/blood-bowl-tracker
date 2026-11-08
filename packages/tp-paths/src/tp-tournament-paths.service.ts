@@ -15,20 +15,20 @@ export type TpPhaseRound = { phaseId: number; roundNumber: number };
  * TP's requests for one tournament, exactly as TP's own frontend sends them:
  * each request method returns a `TpRequest` holding the API path, the full
  * API URL and the full URL of the page TP's frontend sends it from, plus the
- * reverse matchers for tournament page paths. `slug` is the tournament's
- * name as it appears in the frontend path. Shared by
- * tools/download-tp's bulk download and packages/import-tp-live's live match
- * and competition imports; the news, classifications, honours and statistics
- * paths are requested by the bulk download only.
+ * reverse matchers for tournament page paths. `slug` is the tournament's name
+ * as it appears in the frontend path. Shared by tools/download-tp's bulk
+ * download and packages/import-tp-live's live match and competition imports;
+ * the news, classifications, honours and statistics paths are requested by
+ * the bulk download only.
  */
 @Injectable()
 export class TpTournamentPathsService {
   /**
-   * The reverse of a tournament page path, such as a tournament request's
-   * referer page: the tournament slug a page path starts with — the slug alone, or the slug followed by any page. Knows nothing of
-   * other page kinds that share this shape (a roster page, the teams page, a
-   * match page); a caller wanting those told apart checks them first. Never
-   * throws.
+   * The reverse of building a tournament request's referer page: the
+   * tournament slug a page path starts with — the slug alone, or the slug
+   * followed by any page. Knows nothing of other page kinds that share this
+   * shape (a roster page, the teams page, a match page); a caller wanting
+   * those told apart checks them first. Never throws.
    */
   matchFrontendPath(path: string): string | undefined {
     return TOURNAMENT_FRONTEND_PATH.exec(path)?.[1];
@@ -36,9 +36,9 @@ export class TpTournamentPathsService {
 
   /**
    * The reverse of the scores page path a phase request is sent from: the
-   * tournament slug of exactly a scores page path; undefined for any other path (the bare tournament,
-   * another of its pages, or anything deeper under the scores page). Never
-   * throws.
+   * tournament slug of exactly a scores page path; undefined for any other
+   * path (the bare tournament, another of its pages, or anything deeper under
+   * the scores page). Never throws.
    */
   matchScoresFrontendPath(path: string): string | undefined {
     const [slug, page, ...rest] = path.split('/');
