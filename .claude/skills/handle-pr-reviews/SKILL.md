@@ -289,6 +289,8 @@ node tools/dev-workflow-cli/dist/main.js release-review-lock $HEAD_REF
 
 Release it whether or not the push itself succeeded: the lock exists to serialize review-*triggering* pushes, and a push that failed triggered none. It prints `{"released": true}`. A non-zero exit, or `{"released": false}`, is a one-line warning and never a stop — everything after this point (the self-assign, the replies, the `deploy-local` offer) triggers no review, so there is nothing left in this run worth holding the lock for.
 
+**If the push failed**, stop after that release: report the failure and post no reply in Phase 5 for any item fixed by a commit that did not reach the remote, since a reply would claim a fix the PR does not contain. Replies for rejected and answered items depend on no commit and may still be posted. Leave the unpushed commits in place for the developer or the next run to push.
+
 After the push succeeds, self-assign the PR so it shows who pushed the fixes:
 ```bash
 gh pr edit "$PR" --add-assignee @me
