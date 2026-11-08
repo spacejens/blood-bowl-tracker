@@ -95,10 +95,11 @@ describe('WaitForPrReviewService validated head on completion reviews', () => {
     });
   });
 
-  it('rejects a section naming only a head pushed after the head was read', async () => {
-    // The reviews call read HEAD_REF_OID; by the rolling-comment call a newer
-    // head was pushed and reviewed. That section does not name the head this
-    // poll validated against, so it is not accepted.
+  it('rejects a section that does not name the head the poll read', async () => {
+    // The reviews call read HEAD_REF_OID; by the rolling-comment call the
+    // comment describes a range ending at a newer head (a later push, or the
+    // comment being edited). That section does not name the head this poll
+    // validated against, so it is not accepted.
     mockPolls(
       [prViewWithHead(HEAD_REF_OID)],
       completionWithSection(cleanSectionBetween(BASE_OID, NEWER_HEAD_OID)),
@@ -113,7 +114,11 @@ describe('WaitForPrReviewService validated head on completion reviews', () => {
     expect(result).toEqual({ found: false, timedOut: true });
   });
 
-  it('returns the head the poll read, never a later one the section also names', async () => {
+  it('returns the head the poll read as commit.oid, even if the section names another commit too', async () => {
+    // The section only has to contain the poll's head (here as the range
+    // start). The returned oid is that head, not the range end, so a caller
+    // comparing it with the PR's current head sees the mismatch and waits
+    // again.
     mockPolls(
       [prViewWithHead(HEAD_REF_OID)],
       completionWithSection(cleanSectionBetween(HEAD_REF_OID, NEWER_HEAD_OID)),
@@ -143,28 +148,6 @@ describe('WaitForPrReviewService validated head on completion reviews', () => {
     });
     // Two polls of two gh calls each.
     expect(processRunner.run).toHaveBeenCalledTimes(4);
-  });
-
-  it('returns nothing when the comment was edited so its section no longer names the head', async () => {
-    // The head was read as HEAD_REF_OID, but the rolling comment's section
-    // now describes a range ending at some other commit.
-    mockPolls(
-      [prViewWithHead(HEAD_REF_OID)],
-      completionWithSection(
-        cleanSectionBetween(
-          BASE_OID,
-          '0000000000000000000000000000000000000000',
-        ),
-      ),
-    );
-
-    const result = await runWait({
-      ...OPTIONS,
-      intervalMs: 30_000,
-      timeoutMs: 60_000,
-    });
-
-    expect(result).toEqual({ found: false, timedOut: true });
   });
 
   it('passes a formal review through unchanged, keeping its own commit.oid', async () => {
