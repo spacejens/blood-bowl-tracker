@@ -37,10 +37,14 @@ procedures use it:
 
 ## What it owns
 
-- **Live fetch**: `TpRosterFetchService` requests a roster through
-  `packages/scrape-tp`, building the request from `packages/tp-paths`'
-  `TpRosterPathsService`, and parses it with `packages/parse-tp`'s
-  `RosterParserService`.
+- **Live fetch**: every live fetch service (roster, match, official teams,
+  awards, inscriptions, bracket) builds its requests as `packages/tp-paths`
+  `TpRequest`s and makes them through `TpRequestFetchService`, which fetches
+  through `packages/scrape-tp`, rethrows a TP block (`TpBlockedError`) so the
+  whole import stops, and records any other failure as one ImportError
+  (`Could not fetch <what>: <reason>`). `TpRosterFetchService`, for example,
+  builds its request with `TpRosterPathsService` and parses the response with
+  `packages/parse-tp`'s `RosterParserService`.
 - **Era resolution**: `TpEraResolutionService` (see below).
 - **Roster import**: `TpRosterImportService`, in `TpRosterModule`. It
   resolves the TP and Name external systems, the era and the era's rules
