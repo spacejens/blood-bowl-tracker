@@ -82,20 +82,23 @@ The player embed has [its own page](deepdive-embeds-player.md).
 
 ## `star-player`
 
-The
-star's name as the title, then one stat line per rules set the star has
-recorded characteristics for, oldest rules set first — the same shape and
+The star's name as the title, then one stat line per rules set the star has
+recorded characteristics for, its keywords, and the teams that have hired
+them. A star with no characteristics recorded for any rules set shows a short
+message instead of a stat-line list.
+
+### Stat lines
+
+The stat lines run oldest rules set first — the same shape and
 formatting rules as the position deepdive's stat lines (each value in that
 rules set's own recorded format, the Passing characteristic omitted entirely
 for a rules set with no Passing characteristic, a stored zero rendering as a
 dash, then that rules set's starting skills comma-separated after the
 characteristics, with the skills left off entirely when none are recorded).
+
 The star's own
 exclusive skill under a rules set is marked with a star, which is what
 tells it apart from the skills any position can have.
-A star with no characteristics
-recorded for any rules set shows a short message instead of a stat-line
-list.
 
 ### Keywords
 
@@ -107,41 +110,72 @@ star with no keywords recorded under any rules set — there is no placeholder
 line for "none". A star player is a kind of position, so this reads
 identically to the position deepdive's own keywords section below.
 
+### Hiring teams
+
 Then a blank line and one line per team that has ever hired them,
 most-hires-first (ties broken by team name — the query itself supplies this
 order, so the description and the buttons can never disagree), with its race
-and coach and how many times it hired the star. Each hire is a
+and coach and how many times it hired the star.
+
+Each hire is a
 separate signing: a team that brings the same star back counts once per hire,
-and hires are never split by era. Each listed team is rendered as a
-drill-down button to that team. A star that resolves but has never been hired
+and hires are never split by era.
+
+A star that resolves but has never been hired
 by anyone is treated as not found — the same not-found reply as a star
-matching no name at all — because there is no hire history to show. The
+matching no name at all — because there is no hire history to show.
+
+The
 description is truncated if it would otherwise exceed
 Discord's embed description limit, mirroring the regular player deepdive's
 own safety net.
+
+### Buttons
+
+Each listed team is rendered as a
+drill-down button to that team.
 
 ## `race`
 
 The race
 name as the title, then the eras this race has appeared in, or a note when
-it is in none, then — only when
+it is in none, then its positions per era and its top teams.
+
+### Positions per era
+
+Only when
 the race has (non-star) positions recorded for at least one era, with the
 whole section omitted otherwise — a blank line and one
 heading per era, oldest era first, each heading naming the era and its date
-range, with an ongoing era marked as still running, each followed by that
+range, with an ongoing era marked as still running.
+
+Each heading is followed by that
 era's positions as one line per position, name-ascending — the same
 heading-then-rows shape the trophy and competition-group deepdives use for
 their own per-era lists. A position recurring across several eras appears
-once per era it belongs to. Star positions are never listed here: they are
+once per era it belongs to.
+
+Star positions are never listed here: they are
 shared across every race that can hire them rather than belonging to this
 one race, and are already reachable from their own star-player deepdive.
+
+### Top teams
+
 Then a blank line, then a ranked list of its top five teams by matches
-played. Ties at the
+played. The top-teams list is not
+era-scoped.
+
+Ties at the
 fifth-place cutoff are all shown, up to ten teams — the same convention
 `/insights` toplists use, though at most ten teams are fetched, so the
-toplists' truncation note never actually appears here. The top-teams list is not
-era-scoped. A race with no recorded team appearances shows a short "no teams
-yet" message in place of the list. Every listed position is rendered as a
+toplists' truncation note never actually appears here.
+
+A race with no recorded team appearances shows a short "no teams
+yet" message in place of the list.
+
+### Buttons
+
+Every listed position is rendered as a
 drill-down button to that position's deepdive, ahead of the top-teams
 buttons.
 
@@ -226,17 +260,33 @@ offers a drill-up button to the competition's recurring group, last of all.
 
 ## `competition-group`
 
-The group name as the title, then its league, then every trophy the group
+The group name as the title, then its league, then its trophies and its
+competition instances per era.
+
+### Trophies
+
+Every trophy the group
 awards, one line
 per trophy (or a themed message saying so when it
-awards none), a blank line, and one heading per era,
+awards none).
+
+### Competitions per era
+
+Then a blank line, and one heading per era,
 oldest era first, each heading naming the era and its date range, with an
-ongoing era marked as still running, each followed by that era's competition instances, oldest
-first, one line per competition with its date range (or a themed message
-saying so when the group has no instances at
-all, in which case no era heading is shown) — a blank line separates each
+ongoing era marked as still running.
+
+Each heading is followed by that era's competition instances, oldest
+first, one line per competition with its date range. When the group has no
+instances at all, a themed message says so, and no era heading is shown.
+
+A blank line separates each
 era section from the next, so a multi-era group doesn't read as one packed
-block. Competitions are rendered as
+block.
+
+### Buttons
+
+Competitions are rendered as
 drill-down buttons before trophies (competitions take priority over trophies
 when the combined list is too long for buttons and switches to select
 menus).
@@ -258,24 +308,40 @@ select menus).
 The
 trophy name as the title, then what it is awarded for — the competition group
 the trophy is scoped to, or the league when it is scoped directly to a
-league — and, only when the trophy has one, its description, a blank line, then
+league — and, only when the trophy has one, its description, then its awards
+per era.
+
+### Awards per era
+
+A blank line, then
 one heading per era, newest era first, each heading naming the era and its
-date range, with an ongoing era marked as still running, each followed by
+date range, with an ongoing era marked as still running.
+
+Each heading is followed by
 that era's awards, newest-first, one line per award naming the competition
 and the recipient — a team with its race and coach, or a player with their
-position, team, race and coach — the same race/coach and
+position, team, race and coach. This is the same race/coach and
 position/team/race/coach context the
-`team.toplist` and `player.toplist` insights append to their own rows (the
-era is left off the row, since the section heading already names it). A
+`team.toplist` and `player.toplist` insights append to their own rows. The
+era is left off the row, since the section heading already names it.
+
+A
 blank line separates each era section from the next, so a long-running
 trophy doesn't read as one packed block.
+
 The list is capped, and when it is truncated the embed says exactly how many
 awards are not shown, computed from the trophy's true award
 count. A trophy with no recorded awards shows a short "nobody has got their
-hands on this one yet" message instead of a list. Each shown recipient is
+hands on this one yet" message instead of a list.
+
+### Buttons
+
+Each shown recipient is
 rendered as a drill-down button to whoever actually received the trophy —
 the team for a team trophy, the player for a player trophy — with no button
-for the competition it was awarded at; the embed also offers a drill-up
+for the competition it was awarded at.
+
+The embed also offers a drill-up
 button, last of all, to the trophy's competition group when it has one, or
 to its league directly when it does not — a trophy is scoped to exactly one
 or the other, never both.
