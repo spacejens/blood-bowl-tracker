@@ -77,13 +77,15 @@ describe('DateToplistFactsService', () => {
       'rendered toplist',
     );
     expect(capturedOptions().title).toBe(
-      'Dates by matches played (descending)',
+      'Dates by matches played (highest first)',
     );
   });
 
   it('titles the ascending toplist', async () => {
     await service.resolveMatchesAscending({});
-    expect(capturedOptions().title).toBe('Dates by matches played (ascending)');
+    expect(capturedOptions().title).toBe(
+      'Dates by matches played (lowest first)',
+    );
   });
 
   it('passes the timeout and no-data messages through', async () => {

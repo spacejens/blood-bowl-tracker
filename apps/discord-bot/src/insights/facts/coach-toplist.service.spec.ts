@@ -185,7 +185,7 @@ const handWrittenCases: HandWrittenCase[] = [
       { coachId: 1, name: 'Roze Madder', count: 91 },
       { coachId: 2, name: 'Grashnak', count: 34 },
     ],
-    expectedTitle: 'Coaches by longest time between matches (descending)',
+    expectedTitle: 'Coaches by longest time between matches (highest first)',
   },
   {
     describeName: 'resolveTimeBetweenMatchesAscending',
@@ -193,7 +193,7 @@ const handWrittenCases: HandWrittenCase[] = [
     resolve: (service) =>
       service.resolveTimeBetweenMatchesAscending(FACT_SCOPE_ALL_TIME),
     rows: [{ coachId: 3, name: 'Skabsquik', count: 6 }],
-    expectedTitle: 'Coaches by longest time between matches (ascending)',
+    expectedTitle: 'Coaches by longest time between matches (lowest first)',
   },
   {
     describeName: 'resolveAverageTimeBetweenMatches',
