@@ -217,7 +217,7 @@ Skip this phase if no fix commits were made in Phase 2.
 
 ### Phase 4: Push
 
-Skip this phase if no commits were made in Phase 2.
+Skip this phase if no commits were made in Phase 2 **and** the branch has no unpushed commits (`git rev-list --count @{u}..HEAD` prints `0`). A commit left behind by an earlier failed push is part of this run's baseline, so without this second condition a retry that makes no new fix commits would skip the push and could reply about fixes the PR still lacks.
 
 **Sync with `main`.** Bring the branch up to date with `main` before pushing (merge, never rebase — see `CLAUDE.md` "Keeping a branch in sync with main"). This runs once here, right before the push — not per-item within Phase 2's loop, and not gated on first checking whether `main` moved (merging an up-to-date `main` is a harmless no-op).
 ```bash
