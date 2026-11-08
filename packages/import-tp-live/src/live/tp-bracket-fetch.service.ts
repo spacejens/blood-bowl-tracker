@@ -15,15 +15,12 @@ import {
   TournamentParserService,
 } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
-import {
-  TpBlockedError,
-  TpFetcherService,
-} from '@blood-bowl-tracker/scrape-tp';
+import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
+import type { TpRequest } from '@blood-bowl-tracker/tp-paths';
 import { TpTournamentPathsService } from '@blood-bowl-tracker/tp-paths';
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
-import type { TpConnectionProvider } from '../tp-import-providers';
-import { TP_CONNECTION_PROVIDER } from '../tp-import-providers';
+import { TpRequestFetchService } from './tp-request-fetch.service';
 
 /** A tournament and every match its phase fixture lists show. */
 export interface TpBracket {
@@ -55,8 +52,8 @@ interface FetchPhaseOptions {
 /** One request of a bracket fetch, and how to read its response. */
 interface FetchParsedOptions<T> {
   session: TpFetchSession;
-  path: string;
-  /** What the request is for, as named in an error message. */
+  request: TpRequest;
+  /** What the request is for, as named in an error message (e.g. `TP tournament s30`). */
   what: string;
   parse: (content: unknown) => T;
   tournamentSlug: string;
@@ -66,8 +63,7 @@ interface FetchParsedOptions<T> {
 @Injectable()
 export class TpBracketFetchService {
   constructor(
-    @Inject(TP_CONNECTION_PROVIDER)
-    private readonly connection: TpConnectionProvider,
+    private readonly requestFetch: TpRequestFetchService,
     private readonly fetcher: TpFetcherService,
     private readonly tournamentPaths: TpTournamentPathsService,
     private readonly tournamentParser: TournamentParserService,
@@ -94,8 +90,12 @@ export class TpBracketFetchService {
     const visit = session ?? this.fetcher.createSession();
     const tournament = await this.fetchParsed({
       session: visit,
-      path: this.tournamentPaths.apiPath(tournamentSlug),
-      what: `tournament ${tournamentSlug}`,
+      request: this.tournamentPaths.request(
+        this.requestFetch.baseUrls(),
+        tournamentSlug,
+        'scores',
+      ),
+      what: `TP tournament ${tournamentSlug}`,
       parse: (content) => this.tournamentParser.parse(content),
       tournamentSlug,
       errors,
@@ -143,11 +143,16 @@ export class TpBracketFetchService {
     tournamentSlug,
     errors,
   }: FetchPhaseOptions): Promise<TpPhaseFixtures[] | undefined> {
+    const baseUrls = this.requestFetch.baseUrls();
     const parse = (content: unknown) => this.phaseParser.parse(content);
     const first = await this.fetchParsed({
       session,
-      path: this.tournamentPaths.phaseApiPath(tournamentSlug, phaseId),
-      what: `phase ${phaseId} of tournament ${tournamentSlug}`,
+      request: this.tournamentPaths.phaseRequest(
+        baseUrls,
+        tournamentSlug,
+        phaseId,
+      ),
+      what: `TP phase ${phaseId} of tournament ${tournamentSlug}`,
       parse,
       tournamentSlug,
       errors,
@@ -162,12 +167,12 @@ export class TpBracketFetchService {
       }
       const page = await this.fetchParsed({
         session,
-        path: this.tournamentPaths.phaseRoundApiPath(
+        request: this.tournamentPaths.phaseRoundRequest(
+          baseUrls,
           tournamentSlug,
-          phaseId,
-          round,
+          { phaseId, roundNumber: round },
         ),
-        what: `round ${round} of phase ${phaseId} of tournament ${tournamentSlug}`,
+        what: `TP round ${round} of phase ${phaseId} of tournament ${tournamentSlug}`,
         parse,
         tournamentSlug,
         errors,
@@ -182,39 +187,30 @@ export class TpBracketFetchService {
 
   private async fetchParsed<T>({
     session,
-    path,
+    request,
     what,
     parse,
     tournamentSlug,
     errors,
   }: FetchParsedOptions<T>): Promise<T | undefined> {
-    const item = { tournamentSlug, path };
-    let content: unknown;
-    try {
-      content = await session.fetch(this.connection.getBackendApiUrl() + path, {
-        referer:
-          this.connection.getFrontendBaseUrl() +
-          this.tournamentPaths.scoresFrontendPath(tournamentSlug),
-      });
-    } catch (error) {
-      if (error instanceof TpBlockedError) {
-        throw error;
-      }
-      errors.push(
-        this.importResults.error({
-          item,
-          message: `Could not fetch TP ${what}: ${this.runner.messageOf(error)}`,
-        }),
-      );
+    const item = { tournamentSlug, path: request.path };
+    const fetched = await this.requestFetch.fetch({
+      request,
+      what,
+      item,
+      errors,
+      session,
+    });
+    if (fetched === undefined) {
       return undefined;
     }
     try {
-      return parse(content);
+      return parse(fetched.content);
     } catch (error) {
       errors.push(
         this.importResults.error({
           item,
-          message: `Could not parse TP ${what}: ${this.runner.messageOf(error)}`,
+          message: `Could not parse ${what}: ${this.runner.messageOf(error)}`,
         }),
       );
       return undefined;

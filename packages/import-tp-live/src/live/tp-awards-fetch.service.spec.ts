@@ -8,19 +8,16 @@ import {
 } from '@blood-bowl-tracker/import-shared';
 import { AwardsParserService } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
-import {
-  TpBlockedError,
-  TpFetcherService,
-} from '@blood-bowl-tracker/scrape-tp';
+import { TpBlockedError } from '@blood-bowl-tracker/scrape-tp';
+import type { TpBaseUrls } from '@blood-bowl-tracker/tp-paths';
 import { TpTournamentPathsService } from '@blood-bowl-tracker/tp-paths';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import type { TpConnectionProvider } from '../tp-import-providers';
-import { TP_CONNECTION_PROVIDER } from '../tp-import-providers';
 import { TpAwardsFetchService } from './tp-awards-fetch.service';
+import { TpRequestFetchService } from './tp-request-fetch.service';
 
 const API = 'https://tp.example/api/';
 const AWARDS_PAGE = 'https://tp.example/blood-bowl/s30/awards';
@@ -30,29 +27,26 @@ const AWARDS: TpCompetitionAward[] = [
 
 describe('TpAwardsFetchService', () => {
   let service: TpAwardsFetchService;
-  let fetcher: MockProxy<TpFetcherService>;
-  let session: MockProxy<TpFetchSession>;
+  let requestFetch: MockProxy<TpRequestFetchService>;
   let parser: MockProxy<AwardsParserService>;
   let errors: ImportError[];
 
   beforeEach(async () => {
-    const connection = mock<TpConnectionProvider>();
-    connection.getBackendApiUrl.mockReturnValue(API);
-    connection.getFrontendBaseUrl.mockReturnValue(
+    requestFetch = mock<TpRequestFetchService>();
+    const baseUrls = mock<TpBaseUrls>();
+    baseUrls.getBackendApiUrl.mockReturnValue(API);
+    baseUrls.getFrontendBaseUrl.mockReturnValue(
       'https://tp.example/blood-bowl/',
     );
-    fetcher = mock<TpFetcherService>();
-    session = mock<TpFetchSession>();
-    fetcher.createSession.mockReturnValue(session);
-    session.fetch.mockResolvedValue({ raw: true });
+    requestFetch.baseUrls.mockReturnValue(baseUrls);
+    requestFetch.fetch.mockResolvedValue({ content: { raw: true } });
     parser = mock<AwardsParserService>();
     parser.parse.mockReturnValue(AWARDS);
     errors = [];
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpAwardsFetchService,
-        { provide: TP_CONNECTION_PROVIDER, useValue: connection },
-        { provide: TpFetcherService, useValue: fetcher },
+        { provide: TpRequestFetchService, useValue: requestFetch },
         TpTournamentPathsService,
         { provide: AwardsParserService, useValue: parser },
         ImportResultService,
@@ -62,20 +56,27 @@ describe('TpAwardsFetchService', () => {
     service = moduleRef.get(TpAwardsFetchService);
   });
 
-  it('fetches and parses the awards with the awards page as referer', async () => {
+  it('requests and parses the awards with the awards page as referer', async () => {
     await expect(
       service.fetchAwards({ tournamentSlug: 's30', errors }),
     ).resolves.toEqual(AWARDS);
-    expect(session.fetch).toHaveBeenCalledWith(`${API}awards/s30/awards`, {
-      referer: AWARDS_PAGE,
+    expect(requestFetch.fetch).toHaveBeenCalledWith({
+      request: {
+        path: 'awards/s30/awards',
+        url: `${API}awards/s30/awards`,
+        referer: AWARDS_PAGE,
+      },
+      what: 'TP awards of tournament s30',
+      item: { tournamentSlug: 's30', path: 'awards/s30/awards' },
+      errors,
+      session: undefined,
     });
     expect(parser.parse).toHaveBeenCalledWith({ raw: true });
     expect(errors).toEqual([]);
   });
 
-  it('fetches through a given session', async () => {
+  it('passes the given session on', async () => {
     const given = mock<TpFetchSession>();
-    given.fetch.mockResolvedValue({});
 
     await service.fetchAwards({
       tournamentSlug: 's30',
@@ -83,22 +84,16 @@ describe('TpAwardsFetchService', () => {
       session: given,
     });
 
-    expect(fetcher.createSession).not.toHaveBeenCalled();
-    expect(given.fetch).toHaveBeenCalledTimes(1);
+    expect(requestFetch.fetch.mock.calls[0][0].session).toBe(given);
   });
 
-  it('records one error and yields undefined when the request fails', async () => {
-    session.fetch.mockRejectedValue(new Error('status 403'));
+  it('yields undefined without parsing when the request fails', async () => {
+    requestFetch.fetch.mockResolvedValue(undefined);
 
     await expect(
       service.fetchAwards({ tournamentSlug: 's30', errors }),
     ).resolves.toBeUndefined();
-    expect(errors).toEqual([
-      {
-        item: { tournamentSlug: 's30', path: 'awards/s30/awards' },
-        message: 'Could not fetch TP awards of tournament s30: status 403',
-      },
-    ]);
+    expect(parser.parse).not.toHaveBeenCalled();
   });
 
   it('records one error and yields undefined when the response does not parse', async () => {
@@ -118,13 +113,12 @@ describe('TpAwardsFetchService', () => {
     ]);
   });
 
-  it('lets a TP block stop the import instead of recording it', async () => {
+  it('lets a TP block stop the import', async () => {
     const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
-    session.fetch.mockRejectedValue(blocked);
+    requestFetch.fetch.mockRejectedValue(blocked);
 
     await expect(
       service.fetchAwards({ tournamentSlug: 's30', errors }),
     ).rejects.toBe(blocked);
-    expect(errors).toEqual([]);
   });
 });

@@ -16,15 +16,15 @@ import {
   TpBlockedError,
   TpFetcherService,
 } from '@blood-bowl-tracker/scrape-tp';
+import type { TpBaseUrls } from '@blood-bowl-tracker/tp-paths';
 import { TpTournamentPathsService } from '@blood-bowl-tracker/tp-paths';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import type { TpConnectionProvider } from '../tp-import-providers';
-import { TP_CONNECTION_PROVIDER } from '../tp-import-providers';
 import { TpBracketFetchService } from './tp-bracket-fetch.service';
+import { TpRequestFetchService } from './tp-request-fetch.service';
 
 const API = 'https://tp.example/api/';
 const SCORES = 'https://tp.example/blood-bowl/s30/scores';
@@ -55,9 +55,9 @@ function fixture(id: number, round: number, playedDate?: Date) {
 }
 
 /**
- * Canned parsed pages, keyed by the URL the raw body came from: the session
- * mock answers every request with its own URL, so the parser mock can look
- * the canned page up by it.
+ * Canned parsed pages, keyed by the URL the raw body came from: the request
+ * fetch mock answers every request with its own URL, so the parser mock can
+ * look the canned page up by it.
  */
 const PAGES = new Map<string, TpPhaseFixtures>([
   [
@@ -86,8 +86,40 @@ const PAGES = new Map<string, TpPhaseFixtures>([
   ],
 ]);
 
+const EXPECTED_BRACKET = {
+  tournament: TOURNAMENT,
+  matches: [
+    {
+      id: 2,
+      phaseOrder: 1,
+      round: 2,
+      homeTeamTpId: 20,
+      awayTeamTpId: 21,
+      winner: 'home',
+    },
+    {
+      id: 1,
+      phaseOrder: 1,
+      round: 1,
+      homeTeamTpId: 10,
+      awayTeamTpId: 11,
+      winner: 'home',
+    },
+    {
+      id: 3,
+      phaseOrder: 2,
+      round: 1,
+      homeTeamTpId: 30,
+      awayTeamTpId: 31,
+      winner: 'home',
+    },
+  ],
+  playedDates: [new Date('2026-02-01'), new Date('2026-01-10')],
+};
+
 describe('TpBracketFetchService', () => {
   let service: TpBracketFetchService;
+  let requestFetch: MockProxy<TpRequestFetchService>;
   let fetcher: MockProxy<TpFetcherService>;
   let session: MockProxy<TpFetchSession>;
   let tournamentParser: MockProxy<TournamentParserService>;
@@ -95,15 +127,19 @@ describe('TpBracketFetchService', () => {
   let errors: ImportError[];
 
   beforeEach(async () => {
-    const connection = mock<TpConnectionProvider>();
-    connection.getBackendApiUrl.mockReturnValue(API);
-    connection.getFrontendBaseUrl.mockReturnValue(
+    requestFetch = mock<TpRequestFetchService>();
+    const baseUrls = mock<TpBaseUrls>();
+    baseUrls.getBackendApiUrl.mockReturnValue(API);
+    baseUrls.getFrontendBaseUrl.mockReturnValue(
       'https://tp.example/blood-bowl/',
+    );
+    requestFetch.baseUrls.mockReturnValue(baseUrls);
+    requestFetch.fetch.mockImplementation(({ request }) =>
+      Promise.resolve({ content: request.url }),
     );
     fetcher = mock<TpFetcherService>();
     session = mock<TpFetchSession>();
     fetcher.createSession.mockReturnValue(session);
-    session.fetch.mockImplementation((url) => Promise.resolve(url));
     tournamentParser = mock<TournamentParserService>();
     tournamentParser.parse.mockReturnValue(TOURNAMENT);
     phaseParser = mock<PhaseFixturesParserService>();
@@ -118,7 +154,7 @@ describe('TpBracketFetchService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpBracketFetchService,
-        { provide: TP_CONNECTION_PROVIDER, useValue: connection },
+        { provide: TpRequestFetchService, useValue: requestFetch },
         { provide: TpFetcherService, useValue: fetcher },
         TpTournamentPathsService,
         { provide: TournamentParserService, useValue: tournamentParser },
@@ -130,55 +166,39 @@ describe('TpBracketFetchService', () => {
     service = moduleRef.get(TpBracketFetchService);
   });
 
-  it('fetches the tournament and every round of every phase, with the scores page as referer', async () => {
+  it('fetches the tournament and every round of every phase through one visit, with the scores page as referer', async () => {
     const bracket = await service.fetchBracket({
       tournamentSlug: 's30',
       errors,
     });
 
-    expect(session.fetch.mock.calls).toEqual([
-      [`${API}tournament/s30`, { referer: SCORES }],
-      [phaseUrl(31255), { referer: SCORES }],
-      [`${phaseUrl(31255)}&round=1`, { referer: SCORES }],
-      [phaseUrl(34100), { referer: SCORES }],
-      [`${phaseUrl(34100)}&round=1`, { referer: SCORES }],
+    const calls = requestFetch.fetch.mock.calls.map(([o]) => o);
+    expect(calls.map((o) => [o.request.url, o.request.referer])).toEqual([
+      [`${API}tournament/s30`, SCORES],
+      [phaseUrl(31255), SCORES],
+      [`${phaseUrl(31255)}&round=1`, SCORES],
+      [phaseUrl(34100), SCORES],
+      [`${phaseUrl(34100)}&round=1`, SCORES],
     ]);
-    expect(bracket).toEqual({
-      tournament: TOURNAMENT,
-      matches: [
-        {
-          id: 2,
-          phaseOrder: 1,
-          round: 2,
-          homeTeamTpId: 20,
-          awayTeamTpId: 21,
-          winner: 'home',
-        },
-        {
-          id: 1,
-          phaseOrder: 1,
-          round: 1,
-          homeTeamTpId: 10,
-          awayTeamTpId: 11,
-          winner: 'home',
-        },
-        {
-          id: 3,
-          phaseOrder: 2,
-          round: 1,
-          homeTeamTpId: 30,
-          awayTeamTpId: 31,
-          winner: 'home',
-        },
-      ],
-      playedDates: [new Date('2026-02-01'), new Date('2026-01-10')],
-    });
+    expect(calls.map((o) => o.what)).toEqual([
+      'TP tournament s30',
+      'TP phase 31255 of tournament s30',
+      'TP round 1 of phase 31255 of tournament s30',
+      'TP phase 34100 of tournament s30',
+      'TP round 1 of phase 34100 of tournament s30',
+    ]);
+    for (const o of calls) {
+      expect(o.session).toBe(session);
+      expect(o.item).toEqual({ tournamentSlug: 's30', path: o.request.path });
+      expect(o.errors).toBe(errors);
+    }
+    expect(fetcher.createSession).toHaveBeenCalledTimes(1);
+    expect(bracket).toEqual(EXPECTED_BRACKET);
     expect(errors).toEqual([]);
   });
 
   it('fetches through the given session instead of starting one', async () => {
     const given = mock<TpFetchSession>();
-    given.fetch.mockImplementation((url) => Promise.resolve(url));
 
     await service.fetchBracket({
       tournamentSlug: 's30',
@@ -186,26 +206,25 @@ describe('TpBracketFetchService', () => {
       session: given,
     });
 
-    expect(given.fetch).toHaveBeenCalled();
     expect(fetcher.createSession).not.toHaveBeenCalled();
+    for (const [o] of requestFetch.fetch.mock.calls) {
+      expect(o.session).toBe(given);
+    }
   });
 
-  it('records one error and yields nothing when a request fails', async () => {
-    session.fetch.mockImplementation((url) =>
-      url === phaseUrl(34100)
-        ? Promise.reject(new Error('status 429'))
-        : Promise.resolve(url),
+  it('yields nothing, fetching no further, when a request fails', async () => {
+    requestFetch.fetch.mockImplementation(({ request }) =>
+      Promise.resolve(
+        request.url === phaseUrl(34100) ? undefined : { content: request.url },
+      ),
     );
 
     await expect(
       service.fetchBracket({ tournamentSlug: 's30', errors }),
     ).resolves.toBeUndefined();
-    expect(errors).toEqual([
-      {
-        item: { tournamentSlug: 's30', path: phasePath(34100) },
-        message: 'Could not fetch TP phase 34100 of tournament s30: status 429',
-      },
-    ]);
+    expect(requestFetch.fetch.mock.calls.at(-1)?.[0].request.url).toBe(
+      phaseUrl(34100),
+    );
   });
 
   it('records one error and yields nothing when the tournament does not parse', async () => {
@@ -241,14 +260,13 @@ describe('TpBracketFetchService', () => {
     );
   });
 
-  it('lets a TP block stop the import at once instead of recording it', async () => {
+  it('lets a TP block stop the import at once', async () => {
     const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
-    session.fetch.mockRejectedValue(blocked);
+    requestFetch.fetch.mockRejectedValue(blocked);
 
     await expect(
       service.fetchBracket({ tournamentSlug: 's30', errors }),
     ).rejects.toBe(blocked);
-    expect(session.fetch).toHaveBeenCalledTimes(1);
-    expect(errors).toEqual([]);
+    expect(requestFetch.fetch).toHaveBeenCalledTimes(1);
   });
 });
