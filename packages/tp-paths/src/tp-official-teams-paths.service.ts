@@ -19,16 +19,16 @@ const TP_RULES_SET_IDS: readonly { name: string; ruleSetId: number }[] = [
 ];
 
 /**
- * TP's paths for its official team list, exactly as TP's own teams page
- * requests them: one API path per rules set, relative to TP's backend API
- * base URL, and the teams page path, relative to TP's frontend base URL
- * (sent as the fetch's referer). The one place these paths and the rules-set
- * id map live: tools/download-tp's bulk download and packages/import-tp-live's
+ * TP's requests for its official team list, exactly as TP's own teams page
+ * sends them: one `TpRequest` per rules set, holding the API path, the full
+ * API URL and the full teams page URL (sent as the fetch's referer), plus
+ * the reverse matcher for the teams page path. The one place these paths and
+ * the rules-set id map live: tools/download-tp's bulk download and packages/import-tp-live's
  * live fetch both build official-teams requests from it.
  */
 @Injectable()
 export class TpOfficialTeamsPathsService {
-  apiPath(ruleSetId: number): string {
+  private apiPath(ruleSetId: number): string {
     return `rosters/masters?ruleSet=${ruleSetId}`;
   }
 

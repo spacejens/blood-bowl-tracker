@@ -12,85 +12,20 @@ const SCORES_PAGE = 'scores';
 export type TpPhaseRound = { phaseId: number; roundNumber: number };
 
 /**
- * TP's paths for one tournament, exactly as TP's own frontend requests them:
- * API paths relative to TP's backend API base URL, and page paths relative to
- * TP's frontend base URL (sent as a fetch's referer). Each API path also
- * comes as a `TpRequest`, paired with the page TP's frontend requests it on.
- * `slug` is the
- * tournament's name as it appears in the frontend path. Shared by
+ * TP's requests for one tournament, exactly as TP's own frontend sends them:
+ * each request method returns a `TpRequest` holding the API path, the full
+ * API URL and the full URL of the page TP's frontend sends it from, plus the
+ * reverse matchers for tournament page paths. `slug` is the tournament's
+ * name as it appears in the frontend path. Shared by
  * tools/download-tp's bulk download and packages/import-tp-live's live match
  * and competition imports; the news, classifications, honours and statistics
  * paths are requested by the bulk download only.
  */
 @Injectable()
 export class TpTournamentPathsService {
-  /** The tournament itself: its categories and their phases. */
-  apiPath(slug: string): string {
-    return `tournament/${slug}`;
-  }
-
-  /** One phase's fixtures, as first loaded: only its current round's matches. */
-  phaseApiPath(slug: string, phaseId: number): string {
-    return `tournament/${slug}/phases?page=0&pageSize=50&phaseId=${phaseId}&type=COACH`;
-  }
-
-  /** One specific round of a phase, as the frontend's round tabs request it. */
-  phaseRoundApiPath(
-    slug: string,
-    phaseId: number,
-    roundNumber: number,
-  ): string {
-    return `${this.phaseApiPath(slug, phaseId)}&round=${roundNumber}`;
-  }
-
-  /** One category's registered participants, as the players page loads them. */
-  inscriptionsApiPath(slug: string, categoryId: number): string {
-    return `inscriptions/${slug}/category/${categoryId}/inscriptions?page=0&pageSize=75`;
-  }
-
-  /** The tournament's awards, as the awards page loads them. */
-  awardsApiPath(slug: string): string {
-    return `awards/${slug}/awards`;
-  }
-
-  /** The tournament's news, as the news page loads it. */
-  newsApiPath(slug: string): string {
-    return `tournament/${slug}/news`;
-  }
-
-  /** A phase's standings. "clasifications" is TP's own spelling. */
-  classificationsApiPath(slug: string, phaseId: number): string {
-    return `tournament/${slug}/clasifications?page=0&pageSize=75&phaseId=${phaseId}&type=COACH`;
-  }
-
-  /** The honours page's default Team view. */
-  teamStatsApiPath(slug: string): string {
-    return `tournament/${slug}/team-stats`;
-  }
-
-  /** The honours page's Player toggle. */
-  lineupStatsApiPath(slug: string): string {
-    return `tournament/${slug}/lineup-stats`;
-  }
-
-  /** The honours page's Coach toggle. */
-  coachStatsApiPath(slug: string): string {
-    return `tournament/${slug}/coach-stats`;
-  }
-
-  /** The tournament's statistics, as the statistics page loads them. */
-  statisticsApiPath(slug: string): string {
-    return `tournament/${slug}/statistics`;
-  }
-
-  /** One of the tournament's pages (e.g. `scores`, `news`). */
-  frontendPath(slug: string, page: string): string {
-    return `${slug}/${page}`;
-  }
-
   /**
-   * The reverse of `frontendPath`: the tournament slug a page path starts
-   * with — the slug alone, or the slug followed by any page. Knows nothing of
+   * The reverse of a tournament page path, such as a tournament request's
+   * referer page: the tournament slug a page path starts with — the slug alone, or the slug followed by any page. Knows nothing of
    * other page kinds that share this shape (a roster page, the teams page, a
    * match page); a caller wanting those told apart checks them first. Never
    * throws.
@@ -99,14 +34,9 @@ export class TpTournamentPathsService {
     return TOURNAMENT_FRONTEND_PATH.exec(path)?.[1];
   }
 
-  /** The tournament's scores page: every phase's fixtures and results. */
-  scoresFrontendPath(slug: string): string {
-    return this.frontendPath(slug, SCORES_PAGE);
-  }
-
   /**
-   * The reverse of `scoresFrontendPath`: the tournament slug of exactly a
-   * scores page path; undefined for any other path (the bare tournament,
+   * The reverse of the scores page path a phase request is sent from: the
+   * tournament slug of exactly a scores page path; undefined for any other path (the bare tournament,
    * another of its pages, or anything deeper under the scores page). Never
    * throws.
    */
@@ -206,6 +136,70 @@ export class TpTournamentPathsService {
       path: this.statisticsApiPath(slug),
       page: 'statistics',
     });
+  }
+
+  /** The tournament itself: its categories and their phases. */
+  private apiPath(slug: string): string {
+    return `tournament/${slug}`;
+  }
+
+  /** One phase's fixtures, as first loaded: only its current round's matches. */
+  private phaseApiPath(slug: string, phaseId: number): string {
+    return `tournament/${slug}/phases?page=0&pageSize=50&phaseId=${phaseId}&type=COACH`;
+  }
+
+  /** One specific round of a phase, as the frontend's round tabs request it. */
+  private phaseRoundApiPath(
+    slug: string,
+    phaseId: number,
+    roundNumber: number,
+  ): string {
+    return `${this.phaseApiPath(slug, phaseId)}&round=${roundNumber}`;
+  }
+
+  /** One category's registered participants, as the players page loads them. */
+  private inscriptionsApiPath(slug: string, categoryId: number): string {
+    return `inscriptions/${slug}/category/${categoryId}/inscriptions?page=0&pageSize=75`;
+  }
+
+  /** The tournament's awards, as the awards page loads them. */
+  private awardsApiPath(slug: string): string {
+    return `awards/${slug}/awards`;
+  }
+
+  /** The tournament's news, as the news page loads it. */
+  private newsApiPath(slug: string): string {
+    return `tournament/${slug}/news`;
+  }
+
+  /** A phase's standings. "clasifications" is TP's own spelling. */
+  private classificationsApiPath(slug: string, phaseId: number): string {
+    return `tournament/${slug}/clasifications?page=0&pageSize=75&phaseId=${phaseId}&type=COACH`;
+  }
+
+  /** The honours page's default Team view. */
+  private teamStatsApiPath(slug: string): string {
+    return `tournament/${slug}/team-stats`;
+  }
+
+  /** The honours page's Player toggle. */
+  private lineupStatsApiPath(slug: string): string {
+    return `tournament/${slug}/lineup-stats`;
+  }
+
+  /** The honours page's Coach toggle. */
+  private coachStatsApiPath(slug: string): string {
+    return `tournament/${slug}/coach-stats`;
+  }
+
+  /** The tournament's statistics, as the statistics page loads them. */
+  private statisticsApiPath(slug: string): string {
+    return `tournament/${slug}/statistics`;
+  }
+
+  /** One of the tournament's pages (e.g. `scores`, `news`). */
+  private frontendPath(slug: string, page: string): string {
+    return `${slug}/${page}`;
   }
 
   /** An API path paired with the tournament page it is sent from. */

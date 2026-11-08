@@ -14,10 +14,6 @@ describe('TpOfficialTeamsPathsService', () => {
     paths = moduleRef.get(TpOfficialTeamsPathsService);
   });
 
-  it("builds one rules set's official team list API path", () => {
-    expect(paths.apiPath(25)).toBe('rosters/masters?ruleSet=25');
-  });
-
   it('builds the teams page path', () => {
     expect(paths.frontendPath()).toBe('teams');
   });
