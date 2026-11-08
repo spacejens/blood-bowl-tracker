@@ -121,9 +121,9 @@ race and coach and how many times it hired the star.
 Each hire is a separate signing: a team that brings the same star back counts
 once per hire, and hires are never split by era.
 
-A star that resolves but has never been hired by anyone is treated as not
-found — the same not-found reply as a star matching no name at all — because
-there is no hire history to show.
+A star that resolves but has never been hired by anyone still gets an embed:
+its stat lines and a no-hires message, in place of the hire list and its team
+buttons. The not-found reply is only for a star that matches no name at all.
 
 ### Buttons
 
@@ -164,8 +164,9 @@ place of the list.
 
 ### Buttons
 
-Every listed position is rendered as a drill-down button to that position's
-deepdive, ahead of the top-teams buttons.
+Each listed position is rendered as a drill-down button to that position's
+deepdive, after the top-teams and era buttons. The components share Discord's
+limit, so when it is reached the last positions have no button.
 
 ## `position`
 

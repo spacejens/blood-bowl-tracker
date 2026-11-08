@@ -8,8 +8,11 @@ history tracking and the other entity-storage pages.
 
 [Star Player Points](../glossary.md#star-player-points-spp) are denormalized
 onto `match_events.spp_value` at import time, in the same spirit as
-`match_teams.score` — a player's total is a plain `SUM` over their events
+`match_teams.score` — a player's event total is a plain `SUM` over their events
 rather than a live re-derivation of rules-set-and-race-specific award rules.
+The stored `players.spp_total` is that event sum plus any adjustment
+`SppAdjustmentsService` records for SPP the events cannot explain (see
+[Unspent SPP](#reading-unspent-spp)).
 
 `spp_award_values` holds the standardised award table, keyed
 `(rules_set_id, race_id, action_type)`: a row with `race_id IS NULL` is that
@@ -40,8 +43,9 @@ own (those without a league), a roll on its advancement table whose outcome
 is not modelled; a league's rows are described under
 [League house rules](#league-house-rules). A rules set that
 prices advancements by what the coach takes has one row per kind for each
-advancement number: a random or chosen primary skill, a random or chosen
-secondary skill, or a random characteristic increase. `granted_skill` is one
+advancement number, for the kinds that rules set offers: a random or chosen
+primary skill, a random or chosen secondary skill, or a random characteristic
+increase. BB2025 has no random secondary skill kind, so it has no such row. `granted_skill` is one
 fixed skill named by `skill_id`; a check keeps `skill_id` set on exactly the
 `granted_skill` rows.
 
@@ -91,8 +95,9 @@ means not known exactly. It is written by `SppAdjustmentsService` together
 with `spp_total`, in the SPP adjustment sync, the last step of a BBL or TP
 import that writes the column, so the two always describe the same total.
 
-A player upsert or a skill sync clears it (the import's closing sync writes
-it back), and a trophy award that grants a skill, which only the manual
+A player upsert or a skill sync clears it. The closing SPP adjustment sync of
+an import that runs one writes it back; a plain TP live team import does not
+run that sync, so it can leave the value NULL until a later sync. And a trophy award that grants a skill, which only the manual
 import writes, marks the skill as a free extra and works the fixed-threshold
 value out again.
 
@@ -174,8 +179,10 @@ reopen the slot: the row stays unconfirmed at its recorded number and the paid
 rows keep their closed-up numbers until a later source sync.
 
 TP's order is
-trusted only where TP's reported spend decides it, including when every
-fitting order costs the same, so a confirmed order is not always proven. TP's
+trusted where TP's reported spend decides it, including when every fitting
+order costs the same, so a confirmed order is not always proven, and also in a
+live import with a stored baseline and exactly one new advancement, which that
+import confirms even when TP's spend is unavailable. TP's
 only other evidence of order is its per-skill row ids, a counter whose order
 fits the spend in every checked case, though not its list order.
 
