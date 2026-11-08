@@ -10,7 +10,7 @@ Entries are split into two sections: terms a [coach](#coach) directly encounters
 
 ### Advancement
 
-A permanent improvement a [player](#player) gains — a new [skill](#skill) or a characteristic increase — paid for with [SPP](#star-player-points-spp). Each [rules set](#rules-set) prices advancements in its own way; the tracker records the SPP cost of each successive advancement per rules set, and per kind of advancement where the rules set prices them by type, plus any extra advancements a league's house rules add for its players (see [database.md](database.md#star-player-points)).
+A permanent improvement a [player](#player) gains — a new [skill](#skill) or a characteristic increase — paid for with [SPP](#star-player-points-spp). Each [rules set](#rules-set) prices advancements in its own way; the tracker records the SPP cost of each successive advancement per rules set, and per kind of advancement where the rules set prices them by type, plus any extra advancements a league's house rules add for its players (see [Star Player Points storage](database/star-player-points.md#advancement-costs)).
 
 ### Advancement order
 
@@ -108,7 +108,7 @@ A period of play that begins with a kick-off and ends when a [touchdown](#touchd
 
 [BB2025](#bb2025)'s marker on a handful of [skills](#skill) (Block, Dodge, Guard and Mighty Blow) that cost more player value to pick than other skills. It is not a restriction on which skills can be picked.
 
-See [database.md](database.md#star-player-points).
+See [Characteristics and skills storage](database/characteristics-and-skills.md#elite-skills).
 
 ### Era
 
@@ -277,7 +277,7 @@ See [game-concepts/star-players](game-concepts/star-players/index.md).
 
 ### Star Player Points (SPP)
 
-Experience points earned by individual [players](#player) during [matches](#match) for scoring [touchdowns](#touchdown), completing passes, causing [casualties](#casualty), and similar achievements. Accumulated SPP allow a player to level up and gain new skills. The tracker stores each award on the [match event](game-concepts/match-events/index.md) that earned it, so a player's total is a running sum rather than a live re-derivation; see [database.md](database.md#star-player-points) for how the standardised award values and each source's own reported figures are reconciled.
+Experience points earned by individual [players](#player) during [matches](#match) for scoring [touchdowns](#touchdown), completing passes, causing [casualties](#casualty), and similar achievements. Accumulated SPP allow a player to level up and gain new skills. The tracker stores each award on the [match event](game-concepts/match-events/index.md) that earned it, so a player's total is a running sum rather than a live re-derivation; see [Star Player Points storage](database/star-player-points.md#award-values-and-precedence) for how the standardised award values and each source's own reported figures are reconciled.
 
 ### Team Era
 
