@@ -22,31 +22,26 @@ authenticated caller can invoke every procedure. Tokens are compared in
 constant time, and rejections are logged at warn level (the caller is unknown
 by definition, so only the method and path are logged).
 
-Callers send the header through `packages/api-client`:
-`createApiClient(baseUrl, apiToken, fetchImpl)` attaches
-`Authorization: Bearer <apiToken>` to every request, and
-`ApiClientModule.forRootAsync`'s factory supplies both values from the tool's
-own config (`connection.apiBaseUrl` and `connection.apiToken`).
+Callers send the header through `packages/api-client`, which attaches it to
+every request, taking the API base URL and token from the calling tool's own
+configuration.
 
 ## Client transport resilience
 
-`RPCLink` uses the fetch function it is given rather than the global `fetch`.
-`ApiClientModule` injects `ResilientFetchService` into its `API_CLIENT`
-factory and passes its `fetch` through `createApiClient` to `RPCLink`. That
-method wraps the global `fetch`, calling it once per attempt: it bounds every
-individual attempt at 180 seconds and retries a failed attempt up to five
-times — six attempts in all — waiting 1s, 2s, 4s, 8s and then 16s in between.
-The timeout, retry count, and backoff base are all fixed constants in the
-client; there is deliberately no configuration surface for them. The timeout is generous
-rather than tight because `matches`/`matchEvents` upserts arrive
+The API client sends every request through a resilient fetch wrapper (see
+`packages/api-client/src/resilient-fetch.service.ts`) rather than the global
+`fetch`. It bounds every individual attempt with a timeout and retries a
+failed attempt a fixed number of times with exponential backoff in between.
+The timeout, retry count, and backoff are fixed constants in the client;
+there is deliberately no configuration surface for them. The timeout is
+generous rather than tight because `matches`/`matchEvents` upserts arrive
 in chunks of up to 500 items and the server processes a batch's items
 sequentially, so a healthy chunk can legitimately take well over a minute —
 the timeout only needs to catch a connection that has actually stalled, not
 shave time off a slow-but-working one. It bounds the whole request/response
-exchange, including the caller reading the response body after
-`ResilientFetchService.fetch` returns — a response still being read 180
-seconds after the request started aborts mid-stream, outside the retry loop,
-and reaches the caller unretried.
+exchange, including the caller reading the response body after the wrapper
+returns — a response still being read when the timeout expires aborts
+mid-stream, outside the retry loop, and reaches the caller unretried.
 
 An attempt is retried when `fetch` itself throws (a network failure, a
 connection reset, or the timeout aborting a stalled request) or when the
@@ -60,8 +55,8 @@ server-side fault into a multi-hour stall across an entire import instead of
 a fast, loud failure. A `4xx` is likewise never retried, since it means the
 API rejected the record as bad or incomplete and would reject it identically
 on every retry; every other non-retried response (2xx, 3xx, `500`) is
-returned to the caller immediately and unchanged. When all six attempts
-fail, the last error or the last retryable response reaches the caller
+returned to the caller immediately and unchanged. When every attempt
+fails, the last error or the last retryable response reaches the caller
 exactly as an unretried failure would.
 
 This matters because every import here works by upserting, which makes a
@@ -190,7 +185,7 @@ names one natural key twice, or an entry that references a row that does not
 exist, fails the whole call with `BAD_REQUEST` naming the offending entry,
 instead of a raw database error or an entry silently left out; the import
 tools record it as one `ImportError`. `advancementCosts.sync` also rejects a
-cost whose kind and skill disagree: a `granted_skill` cost must name a skill
+cost whose kind and skill disagree: a granted-skill cost must name a skill
 and no other kind may. `positions.syncRaceEras` only ever adds
 availability links, so a pair repeated within its batch is not an error: it
 lands as one link. `positionRulesSetSkillCategories.sync` replaces each named

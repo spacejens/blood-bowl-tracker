@@ -1,8 +1,8 @@
 # `/debugtopusers`
 
 `/debugtopusers` lists the Discord users who have triggered the most bot
-interactions the `discord_bot_usage` schema has recorded, most active
-first. It exists so effort spent on the bot's features and reliability can
+interactions recorded in the bot's usage data, most active first. It
+exists so effort spent on the bot's features and reliability can
 be weighed against real usage, and so the most active users are known when
 planning a change that might affect them.
 

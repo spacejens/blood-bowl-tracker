@@ -1,8 +1,8 @@
 # `/debuginteractions`
 
-`/debuginteractions` lists the most recent bot interactions the
-`discord_bot_usage` schema has recorded — what was triggered, when, with
-which parameters, and whether the handler succeeded. It exists for
+`/debuginteractions` lists the most recent bot interactions recorded in the
+bot's usage data — what was triggered, when, with which parameters, and
+whether the handler succeeded. It exists for
 answering "it failed for me" without direct database access.
 
 The `debug` prefix on both the name and the description marks this as
@@ -21,7 +21,8 @@ Both arguments are optional, and they combine — a user plus an outcome
 narrows to that user's successes or failures alone.
 
 - `user` — Discord's own user picker. Narrows to interactions by that
-  Discord user, matched on the recorded `discord_id`.
+  Discord user, matched against the Discord user recorded for each
+  interaction.
 - `outcome` — a choice of `Success` or `Failure`, matching the recorded
   outcome.
 
