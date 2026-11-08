@@ -55,25 +55,35 @@ The batches:
   nothing. `curated-data-batch-003.spec.ts` keeps it in step with batches 001
   and 002.
 - **004-advancement-costs** — the SPP cost of each advancement for every
-  rules set: fixed thresholds for CRP, CRP+ and BB2016, and a cost per
-  advancement kind for BB2020, DB2021 and BB2025, plus tLoEG's house-rule Fan
-  Favourite advancement under CRP, CRP+ and BB2016 (see
+  rules set, the primary and secondary skill categories of every CRP, CRP+
+  and BB2016 position, and the free mutation of every Gudarnas Förkämpe
+  award. It applies after the source importers; see [Batch 004](#batch-004).
+
+### Batch 004
+
+- **Advancement costs:** fixed thresholds for CRP, CRP+ and BB2016, and a
+  cost per advancement kind for BB2020, DB2021 and BB2025, plus tLoEG's
+  house-rule Fan Favourite advancement under CRP, CRP+ and BB2016 (see
   [Star Player Points sections](star-player-points.md#advancement-costs)).
-  It also holds the primary and secondary skill categories of every CRP, CRP+
-  and BB2016 position. Gap-fill entries for BB2020, DB2021 and BB2025
-  positions TP's official team list does not supply are allowed, but there
-  are currently none. CRP+ primary comes from NTBB2015's
-  Talent column and secondary from the CRP entry. BB2016 comes from the
-  Teams of Legend PDF and the developer's physical BB2016 rulebook (see
-  [Batch 004](curated-files.md#batch-004)). It also names the free mutation of
-  every Gudarnas Förkämpe award (`trophy-awards.json5`). The advancement
-  costs reference only the rules sets, the tLoEG league and the Fan Favourite
-  skill that batch 001 declares, but the skill categories reference positions
-  and characteristics that the source importers and batch 002 create, and the
-  trophy awards reference competitions and players the BBL and TP importers
-  create, so the batch applies after them, in a plain `apply`. On a scratch
-  import the BBL and TP importers then run again, so the skill sources and
-  unspent SPP that read these costs are filled in.
+- **Skill categories:** the primary and secondary skill categories of every
+  CRP, CRP+ and BB2016 position. Gap-fill entries for BB2020, DB2021 and
+  BB2025 positions TP's official team list does not supply are allowed, but
+  there are currently none.
+- **Sources:** CRP+ primary comes from NTBB2015's Talent column and secondary
+  from the CRP entry. BB2016 comes from the Teams of Legend PDF and the
+  developer's physical BB2016 rulebook (see
+  [Batch 004](curated-files.md#batch-004)).
+- **Trophy awards:** the free mutation of every Gudarnas Förkämpe award
+  (`trophy-awards.json5`).
+- **Apply ordering:** the advancement costs reference only the rules sets,
+  the tLoEG league and the Fan Favourite skill that batch 001 declares, but
+  the skill categories reference positions and characteristics that the
+  source importers and batch 002 create, and the trophy awards reference
+  competitions and players the BBL and TP importers create, so the batch
+  applies after them, in a plain `apply`.
+- **Scratch re-run:** on a scratch import the BBL and TP importers then run
+  again, so the skill sources and unspent SPP that read these costs are
+  filled in.
 
 ## Changing curated data
 
