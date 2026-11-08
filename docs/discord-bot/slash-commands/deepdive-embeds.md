@@ -123,7 +123,9 @@ once per hire, and hires are never split by era.
 
 A star that resolves but has never been hired by anyone still gets an embed:
 its stat lines and a no-hires message, in place of the hire list and its team
-buttons. The not-found reply is only for a star that matches no name at all.
+buttons. The not-found reply is for an id that matches no star, which includes
+a name typed without picking one of the autocomplete suggestions, because the
+command takes the star's id and rejects anything that is not a whole number.
 
 ### Buttons
 
@@ -165,8 +167,10 @@ place of the list.
 ### Buttons
 
 Each listed position is rendered as a drill-down button to that position's
-deepdive, after the top-teams and era buttons. The components share Discord's
-limit, so when it is reached the last positions have no button.
+deepdive, after the top-teams and era buttons. Up to 25 links in all render as
+buttons. Past that, the whole list switches to select menus (25 options per
+menu), where positions are still linked, and only entries beyond the room the
+menus have are left without a link and reported in an overflow note.
 
 ## `position`
 
