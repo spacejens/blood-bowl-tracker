@@ -104,7 +104,7 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       selectLeaf: (t) => t.race.toplist.teams.descending,
       selectMock: (deps) => deps.raceToplist.resolveTeamsDescending,
       expectedTitle:
-        'Races by teams (descending) — BB2020 (2020-01-01 – 2023-12-31)',
+        'Races by teams (highest first) — BB2020 (2020-01-01 – 2023-12-31)',
       expectedDescription: '1. Orc — 12',
     },
     {
@@ -112,7 +112,7 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       selectLeaf: (t) => t.race.toplist.teams.ascending,
       selectMock: (deps) => deps.raceToplist.resolveTeamsAscending,
       expectedTitle:
-        'Races by teams (ascending) — BB2020 (2020-01-01 – 2023-12-31)',
+        'Races by teams (lowest first) — BB2020 (2020-01-01 – 2023-12-31)',
       expectedDescription: '1. Halfling — 0',
     },
     {
