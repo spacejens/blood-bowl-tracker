@@ -24,6 +24,7 @@ import {
   codeRabbitCommentSchema,
   CompletionCandidate,
   completionCandidateSchema,
+  CompletionReview,
   emptyBodyReviewCandidateSchema,
   headRefOidSchema,
   jsonObjectSchema,
@@ -187,21 +188,6 @@ interface RollingCommentPollContext {
 interface RollingCommentOutcome {
   readonly review?: CompletionReview;
   readonly rateLimitComment?: CodeRabbitComment;
-}
-
-/**
- * A completed CodeRabbit pass, shaped like a formal review so it can be
- * returned through `WaitForPrReviewResult.review` with no new result field
- * and no caller change. `id` is the composite
- * `"<commentId>@<updatedAtEpochSeconds>"` — opaque to every caller, and
- * round-tripped back as `--exclude-review-id` on the next wait, where an
- * unchanged comment stays excluded while an edited one (advanced
- * `updated_at`, hence a different composite id) reads as a new pass.
- */
-interface CompletionReview {
-  readonly id: string;
-  readonly submittedAt: string;
-  readonly author: { readonly login: string };
 }
 
 /**
@@ -736,7 +722,8 @@ export class WaitForPrReviewService {
    * The completion half's candidate, kept only if its status block or its
    * `recent_review` section really says "nothing to report" in prose, and the
    * section covers the PR's current head commit (see `coversHeadCommit`).
-   * Shaped like a formal review so it needs no new result field.
+   * Shaped like a formal review so it needs no new result field; its
+   * `commit.oid` is the head `coversHeadCommit` accepted.
    */
   private completionReview(
     value: unknown,
@@ -756,6 +743,7 @@ export class WaitForPrReviewService {
       id: candidate.id,
       submittedAt: candidate.submittedAt,
       author: { login: candidate.author.login },
+      commit: { oid: headRefOid },
     };
   }
 
@@ -792,11 +780,13 @@ export class WaitForPrReviewService {
    * section is a much more robust freshness signal than parsing that
    * sentence's structure. An unknown `headRefOid` (the reviews call could
    * not report it) fails closed rather than trust an unverifiable candidate.
+   * A type predicate, so a caller that passed the check holds the validated
+   * head as a `string`.
    */
   private coversHeadCommit(
     candidate: CompletionCandidate,
     headRefOid: string | undefined,
-  ): boolean {
+  ): headRefOid is string {
     return headRefOid !== undefined && candidate.section.includes(headRefOid);
   }
 

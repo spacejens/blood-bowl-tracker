@@ -1022,6 +1022,7 @@ describe('WaitForPrReviewService', () => {
         id: '5263781074@1786524000',
         submittedAt: '2026-08-12T08:40:00Z',
         author: { login: 'coderabbitai[bot]' },
+        commit: { oid: HEAD_REF_OID },
       },
     });
   });

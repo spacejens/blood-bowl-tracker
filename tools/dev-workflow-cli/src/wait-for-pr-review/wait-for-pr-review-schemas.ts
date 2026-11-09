@@ -77,3 +77,24 @@ export const headRefOidSchema = z.string();
 
 export type SectionCandidate = z.infer<typeof sectionCandidateSchema>;
 export type CompletionCandidate = z.infer<typeof completionCandidateSchema>;
+
+/**
+ * A completed CodeRabbit pass, shaped like a formal review so it can be
+ * returned through `WaitForPrReviewResult.review` with no new result field
+ * and no caller change. `id` is the composite
+ * `"<commentId>@<updatedAtEpochSeconds>"` — opaque to every caller, and
+ * round-tripped back as `--exclude-review-id` on the next wait, where an
+ * unchanged comment stays excluded while an edited one (advanced
+ * `updated_at`, hence a different composite id) reads as a new pass.
+ *
+ * `commit.oid` is the PR head commit the comment's `recent_review` section
+ * was validated against: the `headRefOid` read in the same poll, which the
+ * section must name. It mirrors the `commit.oid` a formal review carries, so
+ * a caller compares either kind with the PR's current head the same way.
+ */
+export interface CompletionReview {
+  readonly id: string;
+  readonly submittedAt: string;
+  readonly author: { readonly login: string };
+  readonly commit: { readonly oid: string };
+}
