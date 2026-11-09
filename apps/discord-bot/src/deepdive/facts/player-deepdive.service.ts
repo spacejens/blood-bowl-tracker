@@ -1,29 +1,34 @@
 import type { CharacteristicFormat } from '@blood-bowl-tracker/domain-enums';
 import type {
   PlayerCharacteristicAdvancementRow,
-  PlayerDeepdiveCategoryCounts,
   PlayerDetail,
   PlayerHonor,
-  PlayerKillEntry,
-  PlayerKillerInfo,
   PlayerSkillRow,
   PositionCharacteristicsContext,
   PositionKeyword,
-  StarPlayerIdentity,
   UnspentSppResult,
 } from '@blood-bowl-tracker/game-data';
 import {
-  CharacteristicDisplayFormattingService,
   PlayerAdvancementReadsService,
-  PlayerDeathService,
   PlayerSkillsService,
   PlayersService,
   PositionRulesSetKeywordsService,
   PositionRulesSetsService,
-  StarPlayersService,
   TrophyAwardsService,
   UnspentSppService,
 } from '@blood-bowl-tracker/game-data';
+import type {
+  PlayerDeepdiveCategoryCounts,
+  PlayerKillEntry,
+  PlayerKillerInfo,
+  StarPlayerIdentity,
+} from '@blood-bowl-tracker/game-data-queries';
+import {
+  CharacteristicDisplayFormattingService,
+  PlayerDeathService,
+  PlayerDeepdiveCountsService,
+  StarPlayersService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Injectable, Logger } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -133,6 +138,7 @@ export class PlayerDeepdiveService {
     private readonly entityComponents: EntityComponentsService,
     private readonly trophyAwards: TrophyAwardsService,
     private readonly playerDeath: PlayerDeathService,
+    private readonly deepdiveCounts: PlayerDeepdiveCountsService,
     private readonly playerKills: PlayerKillsSectionService,
     private readonly stars: StarPlayersService,
     private readonly killerInfo: PlayerKillerInfoFormatterService,
@@ -193,7 +199,7 @@ export class PlayerDeepdiveService {
 
     const counts: PlayerDeepdiveCategoryCounts | null =
       await this.databaseTimeout.run(
-        this.players.getDeepdiveCategoryCounts(playerId),
+        this.deepdiveCounts.getDeepdiveCategoryCounts(playerId),
         null,
       );
     if (counts === null) {

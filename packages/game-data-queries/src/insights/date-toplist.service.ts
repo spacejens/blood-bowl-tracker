@@ -12,11 +12,11 @@ import {
   sql,
   teamEras,
 } from '@blood-bowl-tracker/db';
+import type { FactScope } from '@blood-bowl-tracker/game-data';
+import { MatchScopeFilterService } from '@blood-bowl-tracker/game-data';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { CalendarDatesService } from '../shared/calendar-dates.service';
-import type { FactScope } from '../shared/fact-scope';
-import { MatchScopeFilterService } from '../shared/match-scope-filter.service';
 
 /** One calendar date (month and day, across every recorded year) and how many matches were played on it. */
 export interface DateMatchCount {

@@ -1,11 +1,11 @@
+import { MatchScopeFilterModule } from '@blood-bowl-tracker/game-data';
 import { Module } from '@nestjs/common';
 
-import { PlayersModule } from '../players/players.module';
-import { MatchScopeFilterModule } from '../shared/match-scope-filter.module';
+import { PlayersQueriesModule } from '../players/players-queries.module';
 import { OnThisDateService } from './on-this-date.service';
 
 @Module({
-  imports: [MatchScopeFilterModule, PlayersModule],
+  imports: [MatchScopeFilterModule, PlayersQueriesModule],
   providers: [OnThisDateService],
   exports: [OnThisDateService],
 })

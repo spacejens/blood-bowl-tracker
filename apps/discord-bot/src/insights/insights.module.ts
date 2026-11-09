@@ -1,15 +1,12 @@
 import {
-  CharacteristicDisplayFormattingModule,
   CoachesModule,
   CompetitionGroupsModule,
   CompetitionsModule,
-  DateToplistModule,
   ErasModule,
   ExternalSystemsModule,
   KeywordsModule,
   LeaguesModule,
   MatchesModule,
-  OnThisDateModule,
   PlayerSkillsModule,
   PlayersModule,
   PositionRulesSetKeywordsModule,
@@ -22,6 +19,12 @@ import {
   TeamsModule,
   TrophiesModule,
 } from '@blood-bowl-tracker/game-data';
+import {
+  CharacteristicDisplayFormattingModule,
+  DateToplistModule,
+  OnThisDateModule,
+  PlayersQueriesModule,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Module } from '@nestjs/common';
 
 import { DatabaseTimeoutService } from '../database-timeout.service';
@@ -74,6 +77,7 @@ const GAME_DATA_MODULES = [
   DateToplistModule,
   OnThisDateModule,
   PlayersModule,
+  PlayersQueriesModule,
   PlayerSkillsModule,
   PositionsModule,
   PositionRulesSetsModule,

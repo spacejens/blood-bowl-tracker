@@ -8,12 +8,12 @@ import {
   mockDb,
   sqlText,
 } from '@blood-bowl-tracker/db/test-helpers';
+import { MatchScopeFilterService } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { PlayerDeathService } from '../players/player-death.service';
-import { MatchScopeFilterService } from '../shared/match-scope-filter.service';
 import { OnThisDateService } from './on-this-date.service';
 
 describe('OnThisDateService', () => {

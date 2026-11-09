@@ -2,8 +2,8 @@ import type {
   OnThisDateKilledPlayer,
   OnThisDateVictim,
   PlayerDeepdiveCategoryCounts,
-} from '@blood-bowl-tracker/game-data';
-import { OnThisDateService } from '@blood-bowl-tracker/game-data';
+} from '@blood-bowl-tracker/game-data-queries';
+import { OnThisDateService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import type { InteractionReplyOptions } from 'discord.js';
 import { beforeEach, describe, expect, it } from 'vitest';

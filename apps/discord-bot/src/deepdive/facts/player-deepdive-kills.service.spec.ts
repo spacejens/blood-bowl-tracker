@@ -1,7 +1,5 @@
-import type {
-  PlayerHonor,
-  PlayerKillEntry,
-} from '@blood-bowl-tracker/game-data';
+import type { PlayerHonor } from '@blood-bowl-tracker/game-data';
+import type { PlayerKillEntry } from '@blood-bowl-tracker/game-data-queries';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -15,6 +13,7 @@ import {
   championsOfDeath,
   gougedEye,
   griff,
+  makeDeepdiveCounts,
   makePlayerDeath,
   makePlayers,
   makeService,
@@ -45,9 +44,9 @@ describe('PlayerDeepdiveService kills section', () => {
     killsTotal = kills.length,
   ): Promise<string> {
     const { service } = await makeService({
-      players: makePlayers({
-        player: griff,
-        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+      players: makePlayers({ player: griff }),
+      deepdiveCounts: makeDeepdiveCounts({
+        simple: [{ label: 'Touchdowns scored', count: 3 }],
       }),
       playerDeath: makePlayerDeath(undefined, kills, killsTotal),
     });
@@ -63,9 +62,9 @@ describe('PlayerDeepdiveService kills section', () => {
 
   it('lists the kills after the SPP totals', async () => {
     const { service } = await makeService({
-      players: makePlayers({
-        player: { ...griff, sppTotal: 42 },
-        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+      players: makePlayers({ player: { ...griff, sppTotal: 42 } }),
+      deepdiveCounts: makeDeepdiveCounts({
+        simple: [{ label: 'Touchdowns scored', count: 3 }],
       }),
       playerDeath: makePlayerDeath(undefined, [victim]),
     });
@@ -182,7 +181,9 @@ describe('PlayerDeepdiveService kills section', () => {
     const { service } = await makeService({
       players: makePlayers({
         player: griff,
-        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+      }),
+      deepdiveCounts: makeDeepdiveCounts({
+        simple: [{ label: 'Touchdowns scored', count: 3 }],
       }),
       trophyAwards: makeTrophyAwards(longHonors, 30),
       playerDeath: makePlayerDeath(undefined, longKills, longKills.length),

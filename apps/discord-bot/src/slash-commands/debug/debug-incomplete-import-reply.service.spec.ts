@@ -1,5 +1,5 @@
-import type { IncompleteImportTeamRow } from '@blood-bowl-tracker/game-data';
-import { IncompleteImportPlayersService } from '@blood-bowl-tracker/game-data';
+import type { IncompleteImportTeamRow } from '@blood-bowl-tracker/game-data-queries';
+import { IncompleteImportPlayersService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import type { InteractionReplyOptions } from 'discord.js';
 import { ButtonStyle, ComponentType, MessageFlags } from 'discord.js';

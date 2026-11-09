@@ -1,8 +1,8 @@
 import type {
   StarPlayerDistinctTeamsHiredCount,
   StarPlayerHireCount,
-} from '@blood-bowl-tracker/game-data';
-import { StarPlayersService } from '@blood-bowl-tracker/game-data';
+} from '@blood-bowl-tracker/game-data-queries';
+import { StarPlayersService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';

@@ -19,15 +19,6 @@ export { ErasModule } from './eras/eras.module';
 export { ErasService, EraUpsertConflictError } from './eras/eras.service';
 export { ExternalSystemsModule } from './external-systems/external-systems.module';
 export { ExternalSystemsService } from './external-systems/external-systems.service';
-export { DateToplistModule } from './insights/date-toplist.module';
-export type { DateMatchCount } from './insights/date-toplist.service';
-export { DateToplistService } from './insights/date-toplist.service';
-export { OnThisDateModule } from './insights/on-this-date.module';
-export type {
-  OnThisDateKilledPlayer,
-  OnThisDateVictim,
-} from './insights/on-this-date.service';
-export { OnThisDateService } from './insights/on-this-date.service';
 export { KeywordsModule } from './keywords/keywords.module';
 export {
   KeywordsService,
@@ -64,18 +55,6 @@ export { PlayerAdvancementReadsService } from './player-skills/player-advancemen
 export { PlayerSkillsModule } from './player-skills/player-skills.module';
 export type { PlayerSkillRow } from './player-skills/player-skills.service';
 export { PlayerSkillsService } from './player-skills/player-skills.service';
-export type { IncompleteImportTeamRow } from './players/incomplete-import-players.service';
-export { IncompleteImportPlayersService } from './players/incomplete-import-players.service';
-export type {
-  PlayerKillEntry,
-  PlayerKillerInfo,
-  PlayerKillerTeam,
-} from './players/player-death.service';
-export { PlayerDeathService } from './players/player-death.service';
-export type {
-  PlayerDeepdiveCategoryCounts,
-  PlayerDeepdiveEventGroup,
-} from './players/player-deepdive-counts.service';
 export { PlayerLastingInjuryBackfillService } from './players/player-lasting-injury-backfill.service';
 export { PlayersModule } from './players/players.module';
 export type { PlayerDetail } from './players/players.service';
@@ -83,13 +62,6 @@ export {
   PlayersService,
   PlayerUpsertConflictError,
 } from './players/players.service';
-export type {
-  StarPlayerDistinctTeamsHiredCount,
-  StarPlayerHire,
-  StarPlayerHireCount,
-  StarPlayerIdentity,
-} from './players/star-players.service';
-export { StarPlayersService } from './players/star-players.service';
 export { PositionRulesSetKeywordsModule } from './position-rules-set-keywords/position-rules-set-keywords.module';
 export type { PositionKeyword } from './position-rules-set-keywords/position-rules-set-keywords.service';
 export { PositionRulesSetKeywordsService } from './position-rules-set-keywords/position-rules-set-keywords.service';
@@ -123,12 +95,31 @@ export {
   RulesSetUpsertConflictError,
 } from './rules-sets/rules-sets.service';
 export { AdvancementCostValidationError } from './shared/advancement-cost-validation-error';
-export { CharacteristicDisplayFormattingModule } from './shared/characteristic-display-formatting.module';
-export { CharacteristicDisplayFormattingService } from './shared/characteristic-display-formatting.service';
 export { CharacteristicFormatMismatchError } from './shared/characteristic-format-mismatch-error';
 export type { FactScope } from './shared/fact-scope';
 export { FACT_SCOPE_ALL_TIME } from './shared/fact-scope';
 export { KeywordValidationError } from './shared/keyword-validation-error';
+export {
+  CASUALTY_CAUSED_TYPES,
+  CASUALTY_SUFFERED_TYPES,
+  CATCH_TYPES,
+  COMPLETION_TYPES,
+  DEATH_CAUSED_TYPES,
+  DEATH_SUFFERED_TYPES,
+  DEFLECTION_TYPES,
+  EXPENSIVE_MISTAKE_TYPES,
+  FOUL_TYPES,
+  INTERCEPTION_TYPES,
+  LASTING_INJURY_SUFFERED_TYPES,
+  MVP_AWARD_TYPES,
+  SENT_OFF_TYPES,
+  SERIOUS_INJURY_CAUSED_TYPES,
+  SERIOUS_INJURY_SUFFERED_TYPES,
+  THROW_TEAM_MATE_TYPES,
+  TOUCHDOWN_TYPES,
+} from './shared/match-event-types';
+export { MatchScopeFilterModule } from './shared/match-scope-filter.module';
+export { MatchScopeFilterService } from './shared/match-scope-filter.service';
 export { MissingRequiredFieldError } from './shared/missing-required-field-error';
 export { PositionSkillCategoryValidationError } from './shared/position-skill-category-validation-error';
 export { PositionValidationError } from './shared/position-validation-error';
@@ -151,6 +142,7 @@ export { PlayerPricingModelService } from './spp/player-pricing-model.service';
 export { SppModule } from './spp/spp.module';
 export { SppAdjustmentsService } from './spp/spp-adjustments.service';
 export { SppAwardValuesService } from './spp/spp-award-values.service';
+export { SppTotalsService } from './spp/spp-totals.service';
 export { UnspentSppService } from './spp/unspent-spp.service';
 export type {
   CoversAnother,

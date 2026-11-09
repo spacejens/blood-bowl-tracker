@@ -1,28 +1,33 @@
 import type { PlayerStatus } from '@blood-bowl-tracker/domain-enums';
 import type {
   PlayerCharacteristicAdvancementRow,
-  PlayerDeepdiveCategoryCounts,
   PlayerDetail,
   PlayerHonor,
-  PlayerKillEntry,
-  PlayerKillerInfo,
   PlayerSkillRow,
   PositionCharacteristicsContext,
   PositionKeyword,
   UnspentSppResult,
 } from '@blood-bowl-tracker/game-data';
 import {
-  CharacteristicDisplayFormattingService,
   PlayerAdvancementReadsService,
-  PlayerDeathService,
   PlayerSkillsService,
   PlayersService,
   PositionRulesSetKeywordsService,
   PositionRulesSetsService,
-  StarPlayersService,
   TrophyAwardsService,
   UnspentSppService,
 } from '@blood-bowl-tracker/game-data';
+import type {
+  PlayerDeepdiveCategoryCounts,
+  PlayerKillEntry,
+  PlayerKillerInfo,
+} from '@blood-bowl-tracker/game-data-queries';
+import {
+  CharacteristicDisplayFormattingService,
+  PlayerDeathService,
+  PlayerDeepdiveCountsService,
+  StarPlayersService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
@@ -215,6 +220,7 @@ export interface MakeServiceOptions {
   entityComponents?: MockProxy<EntityComponentsService>;
   trophyAwards?: MockProxy<TrophyAwardsService>;
   playerDeath?: MockProxy<PlayerDeathService>;
+  deepdiveCounts?: MockProxy<PlayerDeepdiveCountsService>;
   stars?: MockProxy<StarPlayersService>;
   positionRulesSets?: MockProxy<PositionRulesSetsService>;
   dateRangeFormatter?: MockProxy<DateRangeFormatterService>;
@@ -296,6 +302,7 @@ export async function makeService({
   entityComponents = nullEntityComponents(),
   trophyAwards = makeTrophyAwards(),
   playerDeath = makePlayerDeath(),
+  deepdiveCounts = makeDeepdiveCounts(),
   stars = makeStars(),
   positionRulesSets = makePositionRulesSets(),
   dateRangeFormatter = makeDateRangeFormatter(
@@ -314,6 +321,7 @@ export async function makeService({
   entityComponents: MockProxy<EntityComponentsService>;
   trophyAwards: MockProxy<TrophyAwardsService>;
   playerDeath: MockProxy<PlayerDeathService>;
+  deepdiveCounts: MockProxy<PlayerDeepdiveCountsService>;
   stars: MockProxy<StarPlayersService>;
   positionRulesSets: MockProxy<PositionRulesSetsService>;
   dateRangeFormatter: MockProxy<DateRangeFormatterService>;
@@ -351,6 +359,7 @@ export async function makeService({
       { provide: EntityComponentsService, useValue: entityComponents },
       { provide: TrophyAwardsService, useValue: trophyAwards },
       { provide: PlayerDeathService, useValue: playerDeath },
+      { provide: PlayerDeepdiveCountsService, useValue: deepdiveCounts },
       { provide: StarPlayersService, useValue: stars },
       { provide: PositionRulesSetsService, useValue: positionRulesSets },
       { provide: DateRangeFormatterService, useValue: dateRangeFormatter },
@@ -375,6 +384,7 @@ export async function makeService({
     entityComponents,
     trophyAwards,
     playerDeath,
+    deepdiveCounts,
     stars,
     positionRulesSets,
     dateRangeFormatter,
@@ -391,15 +401,25 @@ export async function makeService({
 
 export function makePlayers(options: {
   player?: PlayerDetail;
-  counts?: Partial<PlayerDeepdiveCategoryCounts>;
 }): PlayersService {
   const players = mock<PlayersService>();
   players.findById.mockResolvedValue(options.player);
-  players.getDeepdiveCategoryCounts.mockResolvedValue({
+  return players;
+}
+
+/**
+ * A `PlayerDeepdiveCountsService` mock. Defaults to all-zero counters;
+ * `counts` overrides individual fields.
+ */
+export function makeDeepdiveCounts(
+  counts?: Partial<PlayerDeepdiveCategoryCounts>,
+): MockProxy<PlayerDeepdiveCountsService> {
+  const deepdiveCounts = mock<PlayerDeepdiveCountsService>();
+  deepdiveCounts.getDeepdiveCategoryCounts.mockResolvedValue({
     simple: [],
     casualties: { total: 0, seriousInjuries: 0, killed: 0 },
     fouls: { total: 0, seriousInjuries: 0, killed: 0 },
-    ...options.counts,
+    ...counts,
   });
-  return players;
+  return deepdiveCounts;
 }

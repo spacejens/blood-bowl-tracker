@@ -6,12 +6,6 @@ import {
   firstCallArg,
   mockDb,
 } from '@blood-bowl-tracker/db/test-helpers';
-import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
-import type { MockProxy } from 'vitest-mock-extended';
-import { mock } from 'vitest-mock-extended';
-
-import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import {
   CASUALTY_CAUSED_TYPES,
   CATCH_TYPES,
@@ -24,7 +18,13 @@ import {
   SERIOUS_INJURY_SUFFERED_TYPES,
   THROW_TEAM_MATE_TYPES,
   TOUCHDOWN_TYPES,
-} from '../shared/match-event-types';
+} from '@blood-bowl-tracker/game-data';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
+
+import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
 
 describe('PlayerDeepdiveCountsService', () => {

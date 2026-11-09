@@ -1,4 +1,4 @@
-import { StarPlayersService } from '@blood-bowl-tracker/game-data';
+import { StarPlayersService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { ComponentType } from 'discord.js';
 import { beforeEach, describe, expect, it } from 'vitest';

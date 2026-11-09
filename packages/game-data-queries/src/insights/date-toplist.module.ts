@@ -1,7 +1,7 @@
+import { MatchScopeFilterModule } from '@blood-bowl-tracker/game-data';
 import { Module } from '@nestjs/common';
 
 import { CalendarDatesModule } from '../shared/calendar-dates.module';
-import { MatchScopeFilterModule } from '../shared/match-scope-filter.module';
 import { DateToplistService } from './date-toplist.service';
 
 @Module({

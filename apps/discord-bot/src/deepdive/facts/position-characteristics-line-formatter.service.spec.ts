@@ -1,5 +1,5 @@
 import type { PositionCharacteristics } from '@blood-bowl-tracker/game-data';
-import { CharacteristicDisplayFormattingService } from '@blood-bowl-tracker/game-data';
+import { CharacteristicDisplayFormattingService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 

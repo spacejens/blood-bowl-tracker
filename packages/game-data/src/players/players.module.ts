@@ -5,14 +5,10 @@ import { LikePatternModule } from '../shared/like-pattern.module';
 import { MatchEventCountsModule } from '../shared/match-event-counts.module';
 import { PlayerContextNamesModule } from '../shared/player-context-names.module';
 import { SppModule } from '../spp/spp.module';
-import { IncompleteImportPlayersService } from './incomplete-import-players.service';
 import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
-import { PlayerDeathService } from './player-death.service';
-import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
 import { PlayerLastingInjuryBackfillService } from './player-lasting-injury-backfill.service';
 import { PlayerLastingInjuryValidationService } from './player-lasting-injury-validation.service';
 import { PlayersService } from './players.service';
-import { StarPlayersService } from './star-players.service';
 
 @Module({
   imports: [
@@ -23,21 +19,11 @@ import { StarPlayersService } from './star-players.service';
     SppModule,
   ],
   providers: [
-    IncompleteImportPlayersService,
     PlayersService,
     PlayerCharacteristicsValidationService,
-    PlayerDeathService,
-    PlayerDeepdiveCountsService,
     PlayerLastingInjuryBackfillService,
     PlayerLastingInjuryValidationService,
-    StarPlayersService,
   ],
-  exports: [
-    IncompleteImportPlayersService,
-    PlayersService,
-    PlayerDeathService,
-    PlayerLastingInjuryBackfillService,
-    StarPlayersService,
-  ],
+  exports: [PlayersService, PlayerLastingInjuryBackfillService],
 })
 export class PlayersModule {}

@@ -10,6 +10,7 @@ import { mock } from 'vitest-mock-extended';
 import { mockDatabaseTimeout } from '../../database-timeout-mock.test-helpers';
 import {
   griff,
+  makeDeepdiveCounts,
   makePlayers,
   makeService,
   makeUnspentSpp,
@@ -50,9 +51,9 @@ function descriptionOf(reply: string | InteractionReplyOptions): string {
 describe('PlayerDeepdiveService unspent SPP line', () => {
   it('shows the unspent line directly under the total', async () => {
     const { service, unspentSpp } = await makeService({
-      players: makePlayers({
-        player: withTotal,
-        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+      players: makePlayers({ player: withTotal }),
+      deepdiveCounts: makeDeepdiveCounts({
+        simple: [{ label: 'Touchdowns scored', count: 3 }],
       }),
       unspentSpp: makeUnspentSpp(covers),
     });

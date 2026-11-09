@@ -1,7 +1,7 @@
 import type {
   PlayerDeepdiveCategoryCounts,
   PlayerDeepdiveEventGroup,
-} from '@blood-bowl-tracker/game-data';
+} from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 
 import { NumberFormatterService } from './number-formatter.service';

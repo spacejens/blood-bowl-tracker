@@ -1,7 +1,7 @@
 import type {
   PlayerKillerInfo,
   PlayerKillerTeam,
-} from '@blood-bowl-tracker/game-data';
+} from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 
 import type { EntityComponentEntry } from '../../entity-components.service';

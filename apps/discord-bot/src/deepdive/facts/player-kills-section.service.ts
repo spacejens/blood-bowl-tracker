@@ -1,4 +1,4 @@
-import type { PlayerKillEntry } from '@blood-bowl-tracker/game-data';
+import type { PlayerKillEntry } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 
 import {

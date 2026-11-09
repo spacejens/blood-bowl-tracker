@@ -2,14 +2,14 @@ import type {
   PositionCharacteristics,
   PositionKeyword,
   PositionStartingSkill,
-  StarPlayerHire,
 } from '@blood-bowl-tracker/game-data';
 import {
   PositionRulesSetKeywordsService,
   PositionRulesSetSkillsService,
   PositionRulesSetsService,
-  StarPlayersService,
 } from '@blood-bowl-tracker/game-data';
+import type { StarPlayerHire } from '@blood-bowl-tracker/game-data-queries';
+import { StarPlayersService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
