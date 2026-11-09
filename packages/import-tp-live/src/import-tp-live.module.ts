@@ -34,6 +34,7 @@ import { TpMatchEventsImportedService } from './live/tp-match-events-imported.se
 import { TpMatchFetchService } from './live/tp-match-fetch.service';
 import { TpOfficialTeamsFetchService } from './live/tp-official-teams-fetch.service';
 import { TpPlayerSppFactsService } from './live/tp-player-spp-facts.service';
+import { TpRequestFetchService } from './live/tp-request-fetch.service';
 import { TpRosterFetchService } from './live/tp-roster-fetch.service';
 import { TpMatchModule } from './match/tp-match.module';
 import { TpOfficialTeamsModule } from './official-teams/tp-official-teams.module';
@@ -70,6 +71,7 @@ import { TpRosterModule } from './roster/tp-roster.module';
     TpOfficialTeamsModule,
   ],
   providers: [
+    TpRequestFetchService,
     TpRosterFetchService,
     TpEraResolutionService,
     TpLiveTeamImportService,

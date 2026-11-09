@@ -5,15 +5,11 @@ import {
 } from '@blood-bowl-tracker/import-shared';
 import { InscriptionsParserService } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
-import {
-  TpBlockedError,
-  TpFetcherService,
-} from '@blood-bowl-tracker/scrape-tp';
+import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
 import { TpTournamentPathsService } from '@blood-bowl-tracker/tp-paths';
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
-import type { TpConnectionProvider } from '../tp-import-providers';
-import { TP_CONNECTION_PROVIDER } from '../tp-import-providers';
+import { TpRequestFetchService } from './tp-request-fetch.service';
 
 /** Options for {@link TpInscriptionsFetchService.fetchParticipantRosterIds}. */
 export interface FetchParticipantsOptions {
@@ -30,8 +26,7 @@ export interface FetchParticipantsOptions {
 @Injectable()
 export class TpInscriptionsFetchService {
   constructor(
-    @Inject(TP_CONNECTION_PROVIDER)
-    private readonly connection: TpConnectionProvider,
+    private readonly requestFetch: TpRequestFetchService,
     private readonly fetcher: TpFetcherService,
     private readonly tournamentPaths: TpTournamentPathsService,
     private readonly inscriptionsParser: InscriptionsParserService,
@@ -55,37 +50,29 @@ export class TpInscriptionsFetchService {
     session,
   }: FetchParticipantsOptions): Promise<number[] | undefined> {
     const visit = session ?? this.fetcher.createSession();
-    const referer =
-      this.connection.getFrontendBaseUrl() +
-      this.tournamentPaths.frontendPath(tournamentSlug, 'players');
+    const baseUrls = this.requestFetch.baseUrls();
     const rosterIds = new Set<number>();
     for (const categoryId of categoryIds) {
-      const path = this.tournamentPaths.inscriptionsApiPath(
+      const request = this.tournamentPaths.inscriptionsRequest(
+        baseUrls,
         tournamentSlug,
         categoryId,
       );
-      const item = { tournamentSlug, path };
-      const what = `inscriptions of category ${categoryId} of tournament ${tournamentSlug}`;
-      let content: unknown;
-      try {
-        content = await visit.fetch(this.connection.getBackendApiUrl() + path, {
-          referer,
-        });
-      } catch (error) {
-        if (error instanceof TpBlockedError) {
-          throw error;
-        }
-        errors.push(
-          this.importResults.error({
-            item,
-            message: `Could not fetch TP ${what}: ${this.runner.messageOf(error)}`,
-          }),
-        );
+      const item = { tournamentSlug, path: request.path };
+      const what = `TP inscriptions of category ${categoryId} of tournament ${tournamentSlug}`;
+      const fetched = await this.requestFetch.fetch({
+        request,
+        what,
+        item,
+        errors,
+        session: visit,
+      });
+      if (fetched === undefined) {
         return undefined;
       }
       try {
         for (const rosterId of this.inscriptionsParser.parseRosterIds(
-          content,
+          fetched.content,
         )) {
           rosterIds.add(rosterId);
         }
@@ -93,7 +80,7 @@ export class TpInscriptionsFetchService {
         errors.push(
           this.importResults.error({
             item,
-            message: `Could not parse TP ${what}: ${this.runner.messageOf(error)}`,
+            message: `Could not parse ${what}: ${this.runner.messageOf(error)}`,
           }),
         );
         return undefined;

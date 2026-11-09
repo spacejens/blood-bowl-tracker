@@ -13,8 +13,8 @@ export const TP_CONNECTION_PROVIDER = Symbol('TP_CONNECTION_PROVIDER');
  * values from its config file.
  */
 export interface TpConnectionProvider {
-  /** Base URL of TP's API; roster API paths are appended to it. */
+  /** Base URL of TP's API; TP API paths are appended to it. */
   getBackendApiUrl(): string;
-  /** Base URL of TP's frontend; roster page paths are appended to it. */
+  /** Base URL of TP's frontend; TP page paths are appended to it. */
   getFrontendBaseUrl(): string;
 }

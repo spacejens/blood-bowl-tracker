@@ -22,7 +22,8 @@ heavy to bundle into the discord-bot's server environment.
 Fetching only. The package knows how to make a request TP accepts and nothing
 about TP's URLs: it reads no config file, holds no frontend or API base URL,
 and has no mapping from frontend pages to API endpoints. Callers pass full
-absolute URLs, and the referer that belongs to each request. It depends on no
+absolute URLs, and the referer that belongs to each request; both consumers
+build these as a `TpRequest` from `packages/tp-paths`. It depends on no
 other workspace package.
 
 ## Using it

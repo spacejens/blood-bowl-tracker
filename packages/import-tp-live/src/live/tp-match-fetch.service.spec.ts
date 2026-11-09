@@ -2,10 +2,8 @@ import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import { MatchParserService } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
-import {
-  TpBlockedError,
-  TpFetcherService,
-} from '@blood-bowl-tracker/scrape-tp';
+import { TpBlockedError } from '@blood-bowl-tracker/scrape-tp';
+import type { TpBaseUrls } from '@blood-bowl-tracker/tp-paths';
 import { TpMatchPathsService } from '@blood-bowl-tracker/tp-paths';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -13,33 +11,29 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { tpMatch } from '../match/tp-match.test-helpers';
-import type { TpConnectionProvider } from '../tp-import-providers';
-import { TP_CONNECTION_PROVIDER } from '../tp-import-providers';
 import { TpMatchFetchService } from './tp-match-fetch.service';
+import { TpRequestFetchService } from './tp-request-fetch.service';
 
 describe('TpMatchFetchService', () => {
   let service: TpMatchFetchService;
-  let fetcher: MockProxy<TpFetcherService>;
-  let session: MockProxy<TpFetchSession>;
+  let requestFetch: MockProxy<TpRequestFetchService>;
   let parser: MockProxy<MatchParserService>;
   let errors: ImportError[];
 
   beforeEach(async () => {
-    const connection = mock<TpConnectionProvider>();
-    connection.getBackendApiUrl.mockReturnValue('https://tp.example/api/');
-    connection.getFrontendBaseUrl.mockReturnValue(
+    requestFetch = mock<TpRequestFetchService>();
+    const baseUrls = mock<TpBaseUrls>();
+    baseUrls.getBackendApiUrl.mockReturnValue('https://tp.example/api/');
+    baseUrls.getFrontendBaseUrl.mockReturnValue(
       'https://tp.example/blood-bowl/',
     );
-    fetcher = mock<TpFetcherService>();
-    session = mock<TpFetchSession>();
-    fetcher.createSession.mockReturnValue(session);
+    requestFetch.baseUrls.mockReturnValue(baseUrls);
     parser = mock<MatchParserService>();
     errors = [];
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpMatchFetchService,
-        { provide: TP_CONNECTION_PROVIDER, useValue: connection },
-        { provide: TpFetcherService, useValue: fetcher },
+        { provide: TpRequestFetchService, useValue: requestFetch },
         // Pure, dependency-free path formatting, passed real so these tests
         // assert on the actual URLs requested.
         TpMatchPathsService,
@@ -50,9 +44,9 @@ describe('TpMatchFetchService', () => {
     service = moduleRef.get(TpMatchFetchService);
   });
 
-  it('fetches the match from the API with its page as referer and returns it parsed', async () => {
+  it('requests the match with its page as referer and returns it parsed', async () => {
     const body = { raw: true };
-    session.fetch.mockResolvedValue(body);
+    requestFetch.fetch.mockResolvedValue({ content: body });
     parser.parse.mockReturnValue(tpMatch());
 
     const match = await service.fetchMatch({
@@ -62,17 +56,24 @@ describe('TpMatchFetchService', () => {
     });
 
     expect(match).toEqual(tpMatch());
-    expect(session.fetch).toHaveBeenCalledWith(
-      'https://tp.example/api/match/662796',
-      { referer: 'https://tp.example/blood-bowl/s30/match/662796' },
-    );
+    expect(requestFetch.fetch).toHaveBeenCalledWith({
+      request: {
+        path: 'match/662796',
+        url: 'https://tp.example/api/match/662796',
+        referer: 'https://tp.example/blood-bowl/s30/match/662796',
+      },
+      what: 'TP match 662796',
+      item: { matchId: 662796 },
+      errors,
+      session: undefined,
+    });
     expect(parser.parse).toHaveBeenCalledWith(body);
     expect(errors).toEqual([]);
   });
 
-  it('fetches through the given session instead of starting one', async () => {
+  it('passes the given session on', async () => {
     const given = mock<TpFetchSession>();
-    given.fetch.mockResolvedValue({});
+    requestFetch.fetch.mockResolvedValue({ content: {} });
     parser.parse.mockReturnValue(tpMatch());
 
     await service.fetchMatch({
@@ -82,35 +83,20 @@ describe('TpMatchFetchService', () => {
       session: given,
     });
 
-    expect(given.fetch).toHaveBeenCalledTimes(1);
-    expect(fetcher.createSession).not.toHaveBeenCalled();
+    expect(requestFetch.fetch.mock.calls[0][0].session).toBe(given);
   });
 
-  it('records one error naming the match and returns undefined when the fetch fails', async () => {
-    session.fetch.mockRejectedValue(new Error('status 403'));
+  it('yields undefined without parsing when the fetch fails', async () => {
+    requestFetch.fetch.mockResolvedValue(undefined);
 
     await expect(
       service.fetchMatch({ matchId: 662796, tournamentSlug: 's30', errors }),
     ).resolves.toBeUndefined();
-    expect(errors).toEqual([
-      {
-        item: { matchId: 662796 },
-        message: 'Could not fetch TP match 662796: status 403',
-      },
-    ]);
     expect(parser.parse).not.toHaveBeenCalled();
   });
 
-  it('stringifies a non-Error fetch failure', async () => {
-    session.fetch.mockRejectedValue('boom');
-
-    await service.fetchMatch({ matchId: 1, tournamentSlug: 's30', errors });
-
-    expect(errors[0].message).toBe('Could not fetch TP match 1: boom');
-  });
-
   it('records one error and returns undefined when the response does not parse', async () => {
-    session.fetch.mockResolvedValue({});
+    requestFetch.fetch.mockResolvedValue({ content: {} });
     parser.parse.mockImplementation(() => {
       throw new Error('matchId: Required');
     });
@@ -127,7 +113,7 @@ describe('TpMatchFetchService', () => {
   });
 
   it('stringifies a non-Error parse failure', async () => {
-    session.fetch.mockResolvedValue({});
+    requestFetch.fetch.mockResolvedValue({ content: {} });
     parser.parse.mockImplementation(() => {
       // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw 'bad shape';
@@ -138,13 +124,13 @@ describe('TpMatchFetchService', () => {
     expect(errors[0].message).toBe('Could not parse TP match 1: bad shape');
   });
 
-  it('lets a TP block stop the import instead of recording it', async () => {
+  it('lets a TP block stop the import', async () => {
     const blocked = new TpBlockedError(new Date('2026-09-29T12:05:00Z'));
-    session.fetch.mockRejectedValue(blocked);
+    requestFetch.fetch.mockRejectedValue(blocked);
 
     await expect(
       service.fetchMatch({ matchId: 662796, tournamentSlug: 's30', errors }),
     ).rejects.toBe(blocked);
-    expect(errors).toEqual([]);
+    expect(parser.parse).not.toHaveBeenCalled();
   });
 });

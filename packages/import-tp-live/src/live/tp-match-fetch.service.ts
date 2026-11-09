@@ -3,15 +3,10 @@ import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
 import { MatchParserService } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
-import {
-  TpBlockedError,
-  TpFetcherService,
-} from '@blood-bowl-tracker/scrape-tp';
 import { TpMatchPathsService } from '@blood-bowl-tracker/tp-paths';
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
-import type { TpConnectionProvider } from '../tp-import-providers';
-import { TP_CONNECTION_PROVIDER } from '../tp-import-providers';
+import { TpRequestFetchService } from './tp-request-fetch.service';
 
 /** Options for {@link TpMatchFetchService.fetchMatch}. */
 export interface FetchMatchOptions {
@@ -28,9 +23,7 @@ export interface FetchMatchOptions {
 @Injectable()
 export class TpMatchFetchService {
   constructor(
-    @Inject(TP_CONNECTION_PROVIDER)
-    private readonly connection: TpConnectionProvider,
-    private readonly fetcher: TpFetcherService,
+    private readonly requestFetch: TpRequestFetchService,
     private readonly matchPaths: TpMatchPathsService,
     private readonly matchParser: MatchParserService,
     private readonly importResults: ImportResultService,
@@ -50,35 +43,29 @@ export class TpMatchFetchService {
     errors,
     session,
   }: FetchMatchOptions): Promise<TpMatch | undefined> {
-    let content: unknown;
-    try {
-      content = await (session ?? this.fetcher.createSession()).fetch(
-        this.connection.getBackendApiUrl() + this.matchPaths.apiPath(matchId),
-        {
-          referer:
-            this.connection.getFrontendBaseUrl() +
-            this.matchPaths.frontendPath(tournamentSlug, matchId),
-        },
-      );
-    } catch (error) {
-      if (error instanceof TpBlockedError) {
-        throw error;
-      }
-      errors.push(
-        this.importResults.error({
-          item: { matchId },
-          message: `Could not fetch TP match ${matchId}: ${error instanceof Error ? error.message : String(error)}`,
-        }),
-      );
+    const what = `TP match ${matchId}`;
+    const item = { matchId };
+    const fetched = await this.requestFetch.fetch({
+      request: this.matchPaths.request(
+        this.requestFetch.baseUrls(),
+        tournamentSlug,
+        matchId,
+      ),
+      what,
+      item,
+      errors,
+      session,
+    });
+    if (fetched === undefined) {
       return undefined;
     }
     try {
-      return this.matchParser.parse(content);
+      return this.matchParser.parse(fetched.content);
     } catch (error) {
       errors.push(
         this.importResults.error({
-          item: { matchId },
-          message: `Could not parse TP match ${matchId}: ${error instanceof Error ? error.message : String(error)}`,
+          item,
+          message: `Could not parse ${what}: ${error instanceof Error ? error.message : String(error)}`,
         }),
       );
       return undefined;

@@ -120,9 +120,11 @@ packages/
   tp-paths/           — every TP path this repo requests (roster,
                         tournament and all its pages, match, official teams,
                         plus the official-teams rules-set id map) as TP's
-                        frontend requests them, and the reverse: which kind
-                        of TP page a URL points to; pure, no I/O, shared by
-                        tools/download-tp and import-tp-live
+                        frontend requests them, each paired with the page it
+                        is sent from into a ready-to-fetch request (full API
+                        URL plus referer page URL), and the reverse: which
+                        kind of TP page a URL points to; pure, no I/O,
+                        shared by tools/download-tp and import-tp-live
 
 tools/
   download-tp/        — NestJS CLI application that fetches TP's API over
@@ -221,7 +223,7 @@ Which side of the API each kind of workspace sits on. Unlike "Data flow" above, 
 
 - `apps/` are server-side (currently only `apps/discord-bot`); they call server-side packages like `packages/game-data` in-process and must never be forced to call themselves through the API
 - `tools/` are client-side; a tool that needs server-side logic goes through `packages/api-client` over the network rather than importing a server-side package (`packages/game-data`, `packages/db`, `packages/api-server`) directly. The `tools/review-*` family (`review-match`, `review-player`, `review-race`, `review-star-player`) is a deliberate exception: they read `packages/db` directly as local-only developer report aids outside the import pipeline, never touching the API. `tools/import-manual` is a second, test-only exception: it lists `packages/api-server` and `packages/db` as devDependencies so its e2e harness can start the real `ApiServerModule` in-process and query the game-data tables directly (see [import-manual batches](import-manual/batches.md#tested)); its production code under `src/` stays client-side and reaches the server only through `packages/api-client` and `packages/import`
-- `packages/` are usually one-sided (client-only or server-only). Deliberate exceptions exist for shared-shape/enum packages designed to serve both sides: `packages/api-contract` (the RPC contract, built on `packages/domain-enums` and external libraries), `packages/domain-enums` (the enum source of truth, with no dependencies of its own), `packages/tp-paths` (TP file-path computation shared between `packages/import-tp-live` and `tools/download-tp`, also with no dependencies of its own), `packages/scrape-tp` (the TP request fetching shared between the client-side `tools/download-tp` and the server-side `packages/import-tp-live`, with no workspace dependencies), `packages/parse-tp` (TP JSON parsing shared between the client-side `tools/import-tp` and the server-side `packages/import-tp-live`, whose only workspace dependencies are `packages/domain-enums` and `packages/api-contract`, which owns the TP wire shapes its output is typed with), and `packages/import-shared` (the import rules the client-side `packages/import` and the server-side `packages/import-tp-live` must apply identically, whose only workspace dependencies are `packages/api-contract`'s types and `packages/domain-enums`)
+- `packages/` are usually one-sided (client-only or server-only). Deliberate exceptions exist for shared-shape/enum packages designed to serve both sides: `packages/api-contract` (the RPC contract, built on `packages/domain-enums` and external libraries), `packages/domain-enums` (the enum source of truth, with no dependencies of its own), `packages/tp-paths` (TP request and path computation shared between `packages/import-tp-live` and `tools/download-tp`, also with no dependencies of its own), `packages/scrape-tp` (the TP request fetching shared between the client-side `tools/download-tp` and the server-side `packages/import-tp-live`, with no workspace dependencies), `packages/parse-tp` (TP JSON parsing shared between the client-side `tools/import-tp` and the server-side `packages/import-tp-live`, whose only workspace dependencies are `packages/domain-enums` and `packages/api-contract`, which owns the TP wire shapes its output is typed with), and `packages/import-shared` (the import rules the client-side `packages/import` and the server-side `packages/import-tp-live` must apply identically, whose only workspace dependencies are `packages/api-contract`'s types and `packages/domain-enums`)
 
 ## Tool/app relationships
 
@@ -232,14 +234,14 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
 `tools/db-diagram`, `tools/eslint-rules`, `tools/markdownlint-rules`) are omitted.
 
 - **`tools/download-tp`** (downloader) — fetches TP's API via `packages/scrape-tp` into local JSON files; what it records is exactly what `tools/import-tp` can later import, so widening or narrowing the download changes what is importable at all
-- **`packages/scrape-tp`** (shared fetching) — the one implementation of how this repo makes HTTP requests TP accepts: the browser-like header set, per-visit sessions with a cookie jar, and randomized pacing between a session's requests. Consumed by `tools/download-tp` and `packages/import-tp-live` (and through it `apps/discord-bot`'s on-demand `/importtp`), so a change to how requests look reaches both. It deliberately knows no TP URLs or page-to-endpoint mapping — those stay with each consumer — and depends on no other workspace package
+- **`packages/scrape-tp`** (shared fetching) — the one implementation of how this repo makes HTTP requests TP accepts: the browser-like header set, per-visit sessions with a cookie jar, and randomized pacing between a session's requests. Consumed by `tools/download-tp` and `packages/import-tp-live` (and through it `apps/discord-bot`'s on-demand `/importtp`), so a change to how requests look reaches both. It deliberately knows no TP URLs or page-to-endpoint mapping — those live in `packages/tp-paths`, whose `TpRequest` hands each consumer the full API URL and referer to pass in — and depends on no other workspace package
 - **`packages/parse-tp`** (shared parsing) — decodes `tools/download-tp`'s JSON; consumed by `tools/import-tp` and `packages/import-tp-live`. It also owns the TP keys and rules both import paths must apply identically, such as `TpStarHireKeyService`'s hired-star external id and `TpOfficialListingPrecedenceService`'s official-over-legacy listing precedence. Its output that crosses the API (awards, official team list races, match-embedded players) is typed with `packages/api-contract`'s TP wire shapes rather than declared again here, so a change to one of those shapes is a contract change that reaches the parser, `packages/import-tp-live` and `tools/import-tp` together. It has no BBL counterpart: BBL _interpretation_ (page-type parsing, HTML extraction) stays inside each tool that does it, deliberately, so the review tools can check the importer's reading of a page against their own. Only the mechanical file access is shared, via `packages/read-bbl-mirror`
 - **`packages/import-tp-live`** (TP roster and match import, server-side) — imports one TP roster's team and players, one completed TP match with its teams and competition, one competition with its registered teams and trophy awards (a finished competition import also awards the extra trophies TP does not record), or one rules set's official team list, directly through `packages/game-data`.
   - It contains the live imports (fetch via `packages/scrape-tp`, parse via `packages/parse-tp`, era auto-resolution; a live match import creates the competition it needs).
   - It also contains the implementations behind `tpRosters.import`, `tpMatches.import`, `tpCompetitions.import` and `tpOfficialTeams.import`, which `tools/import-tp`'s bulk run calls once per roster file, match file and competition, and several times per rules set (chunks of whole races) — so a change to how a TP team, player (including the player's own skills), match, competition or official team list is imported reaches bulk and live imports together.
   - `apps/discord-bot` calls the same `TpLive*ImportService` entry points directly, in-process, for its `/importtp` slash command and its TP notification feed (which also imports both teams of a starting match through `TpLiveMatchTeamsImportService`).
   - Deliberately depends on neither `packages/import` nor `packages/api-client` (see `docs/import-tp-live/index.md`); the import rules it must share with the bulk importers come from `packages/import-shared`.
-- **`packages/tp-paths`** (shared TP paths) — every TP path the repo requests: roster, tournament (including the news, classifications, honours and statistics pages only `tools/download-tp` fetches), match and official-teams paths (plus the official-teams rules-set id map), and the reverse direction.
+- **`packages/tp-paths`** (shared TP paths) — every TP path the repo requests: roster, tournament (including the news, classifications, honours and statistics pages only `tools/download-tp` fetches), match and official-teams paths (plus the official-teams rules-set id map), and the reverse direction. Each path service builds a `TpRequest` (the API path, the full API URL and the full referer page URL) from the caller's `TpBaseUrls`, so no consumer pairs an API path with its page or prefixes a base URL itself.
   - `TpPageClassifierService` classifies a TP frontend URL as a competition, competition scores, match, roster or official-teams page (or unknown) with the ids the matching `packages/import-tp-live` entry point needs, so every on-demand consumer makes the same determination.
   - Pure and I/O-free — the frontend base URL is a parameter, not config — so the client-only `tools/download-tp` and the server-side `packages/import-tp-live` can both depend on it without either gaining the other's dependencies.
   - `apps/discord-bot` depends on it directly too, to classify a pasted TP URL for `/importtp` and a notification's link for the TP feed.
@@ -357,8 +359,9 @@ crosses no dependency-direction rule.
 
 ## Database
 
-Migrations, history tracking and the Star Player Points model are
-documented in [database.md](database.md).
+Migrations, history tracking and re-running importers are documented in
+[database.md](database.md), which links to the pages on how Star Player
+Points, characteristics and skills are stored.
 
 ## Discord bot user-facing messages
 

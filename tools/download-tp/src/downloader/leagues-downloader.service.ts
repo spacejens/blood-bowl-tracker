@@ -1,5 +1,6 @@
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
+import type { TpRequest } from '@blood-bowl-tracker/tp-paths';
 import {
   TpMatchPathsService,
   TpRosterPathsService,
@@ -70,42 +71,30 @@ export class LeaguesDownloaderService {
    */
   private async downloadLeague(crawl: LeagueCrawl): Promise<void> {
     const paths = this.tpTournamentPathsService;
+    const urls = this.downloadTpConfigService;
     const { slug } = crawl;
-    const newsPage = this.tournamentPage(crawl, 'news');
     const tournament = (await this.fetch(
       crawl,
-      this.tpTournamentPathsService.apiPath(slug),
-      newsPage,
+      paths.request(urls, slug, 'news'),
     )) as TpTournament;
-    await this.fetch(crawl, paths.newsApiPath(slug), newsPage);
+    await this.fetch(crawl, paths.newsRequest(urls, slug));
     const phaseIds = this.phaseIds(tournament, slug);
     await this.downloadFixtures(crawl, phaseIds);
-    const classificationsPage = this.tournamentPage(crawl, 'classifications');
     for (const phaseId of phaseIds) {
       await this.fetch(
         crawl,
-        paths.classificationsApiPath(slug, phaseId),
-        classificationsPage,
+        paths.classificationsRequest(urls, slug, phaseId),
       );
     }
-    const honoursPage = this.tournamentPage(crawl, 'honours');
-    await this.fetch(crawl, paths.teamStatsApiPath(slug), honoursPage);
-    await this.fetch(crawl, paths.lineupStatsApiPath(slug), honoursPage);
-    await this.fetch(crawl, paths.coachStatsApiPath(slug), honoursPage);
-    await this.fetch(
-      crawl,
-      paths.statisticsApiPath(slug),
-      this.tournamentPage(crawl, 'statistics'),
-    );
+    await this.fetch(crawl, paths.teamStatsRequest(urls, slug));
+    await this.fetch(crawl, paths.lineupStatsRequest(urls, slug));
+    await this.fetch(crawl, paths.coachStatsRequest(urls, slug));
+    await this.fetch(crawl, paths.statisticsRequest(urls, slug));
     await this.downloadParticipants(
       crawl,
       (tournament.categories ?? []).map((category) => category.id),
     );
-    await this.fetch(
-      crawl,
-      this.tpTournamentPathsService.awardsApiPath(slug),
-      this.tournamentPage(crawl, 'awards'),
-    );
+    await this.fetch(crawl, paths.awardsRequest(urls, slug));
   }
 
   /**
@@ -119,13 +108,13 @@ export class LeaguesDownloaderService {
     crawl: LeagueCrawl,
     phaseIds: number[],
   ): Promise<void> {
-    const scoresPage = this.tournamentPage(crawl, 'scores');
+    const paths = this.tpTournamentPathsService;
+    const urls = this.downloadTpConfigService;
     const phases: TpPhase[] = [];
     for (const phaseId of phaseIds) {
       const phase = (await this.fetch(
         crawl,
-        this.tpTournamentPathsService.phaseApiPath(crawl.slug, phaseId),
-        scoresPage,
+        paths.phaseRequest(urls, crawl.slug, phaseId),
       )) as TpPhase;
       phases.push(phase);
       for (const round of phase.rounds ?? []) {
@@ -133,12 +122,10 @@ export class LeaguesDownloaderService {
           phases.push(
             (await this.fetch(
               crawl,
-              this.tpTournamentPathsService.phaseRoundApiPath(
-                crawl.slug,
+              paths.phaseRoundRequest(urls, crawl.slug, {
                 phaseId,
-                round.roundNumber,
-              ),
-              scoresPage,
+                roundNumber: round.roundNumber,
+              }),
             )) as TpPhase,
           );
         }
@@ -148,8 +135,7 @@ export class LeaguesDownloaderService {
       for (const match of phase.matches ?? []) {
         await this.fetch(
           crawl,
-          this.tpMatchPathsService.apiPath(match.matchId),
-          `${this.downloadTpConfigService.getFrontendBaseUrl()}${this.tpMatchPathsService.frontendPath(crawl.slug, match.matchId)}`,
+          this.tpMatchPathsService.request(urls, crawl.slug, match.matchId),
         );
       }
     }
@@ -164,28 +150,26 @@ export class LeaguesDownloaderService {
     crawl: LeagueCrawl,
     categoryIds: number[],
   ): Promise<void> {
-    const playersPage = this.tournamentPage(crawl, 'players');
+    const urls = this.downloadTpConfigService;
     const responses: Record<string, TpInscription[]>[] = [];
     for (const categoryId of categoryIds) {
       responses.push(
         (await this.fetch(
           crawl,
-          this.tpTournamentPathsService.inscriptionsApiPath(
+          this.tpTournamentPathsService.inscriptionsRequest(
+            urls,
             crawl.slug,
             categoryId,
           ),
-          playersPage,
         )) as Record<string, TpInscription[]>,
       );
     }
-    const frontendBaseUrl = this.downloadTpConfigService.getFrontendBaseUrl();
     for (const response of responses) {
       for (const inscriptions of Object.values(response)) {
         for (const inscription of inscriptions) {
           await this.fetch(
             crawl,
-            this.tpRosterPathsService.apiPath(inscription.roster.id),
-            `${frontendBaseUrl}${this.tpRosterPathsService.frontendPath(inscription.roster.id)}`,
+            this.tpRosterPathsService.request(urls, inscription.roster.id),
           );
         }
       }
@@ -203,20 +187,11 @@ export class LeaguesDownloaderService {
     return phaseIds;
   }
 
-  /** A page under the tournament's frontend URL, used as a referer. */
-  private tournamentPage(crawl: LeagueCrawl, page: string): string {
-    return `${this.downloadTpConfigService.getFrontendBaseUrl()}${this.tpTournamentPathsService.frontendPath(crawl.slug, page)}`;
-  }
-
-  private fetch(
-    crawl: LeagueCrawl,
-    path: string,
-    referer: string,
-  ): Promise<unknown> {
-    return this.apiResponseStoringService.fetchAndStore(crawl.session, {
-      path,
-      referer,
-      dirName: crawl.dirName,
-    });
+  private fetch(crawl: LeagueCrawl, request: TpRequest): Promise<unknown> {
+    return this.apiResponseStoringService.fetchAndStore(
+      crawl.session,
+      request,
+      crawl.dirName,
+    );
   }
 }
