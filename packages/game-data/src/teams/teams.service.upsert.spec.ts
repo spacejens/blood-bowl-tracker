@@ -1,18 +1,18 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB, teamEras, teams } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import {
+  extractFilterValues,
+  extractJoinColumns,
+  firstCallArg,
+  mockDb,
+} from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { LikePatternService } from '../shared/like-pattern.service';
-import {
-  extractFilterValues,
-  extractJoinColumns,
-  firstCallArg,
-} from '../shared/query-assertions.test-helpers';
 import { TeamRaceCoachNamesService } from '../shared/team-race-coach-names.service';
 import { TeamAverageStatisticsService } from './team-average-statistics.service';
 import { TeamsService, TeamUpsertConflictError } from './teams.service';

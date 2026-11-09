@@ -1,19 +1,20 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB, trophyAwards } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
-import { DrizzleQueryError, mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import {
+  DrizzleQueryError,
+  extractAllFilterValues,
+  extractFilterValues,
+  extractJoinColumns,
+  firstCallArg,
+  mockDb,
+  sqlText,
+} from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
 import { PlayerSkillsService } from '../player-skills/player-skills.service';
-import {
-  extractAllFilterValues,
-  extractFilterValues,
-  extractJoinColumns,
-  firstCallArg,
-  sqlText,
-} from '../shared/query-assertions.test-helpers';
 import { UnspentSppDecisionService } from '../spp/unspent-spp-decision.service';
 import {
   TrophyAwardCompetitionGroupMismatchError,

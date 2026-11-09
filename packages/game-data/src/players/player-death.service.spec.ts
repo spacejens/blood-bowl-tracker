@@ -1,16 +1,16 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB, desc, matches, matchEvents } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
-import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
-
 import {
   extractAllFilterValues,
   extractJoinColumns,
   firstCallArg,
+  mockDb,
   sqlText,
-} from '../shared/query-assertions.test-helpers';
+} from '@blood-bowl-tracker/db/test-helpers';
+import { Test } from '@nestjs/testing';
+import { describe, expect, it } from 'vitest';
+
 import { PlayerDeathService } from './player-death.service';
 
 /** The reavers' `match_teams` row (the victim's own side). */

@@ -4,15 +4,15 @@ import {
   trophyAwardRuleExcludedMatchEventTypes,
   trophyAwardRuleMatchEventTypes,
 } from '@blood-bowl-tracker/db';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
-import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
-
 import {
   extractAllFilterValues,
   extractFilterValues,
   firstCallArg,
-} from '../shared/query-assertions.test-helpers';
+  mockDb,
+} from '@blood-bowl-tracker/db/test-helpers';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+
 import { TrophyRuleCurationSyncService } from './trophy-rule-curation-sync.service';
 
 const computed: UpsertTrophy = {

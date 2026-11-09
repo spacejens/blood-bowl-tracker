@@ -1,19 +1,19 @@
 import { DB } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import {
+  extractAllFilterValues,
+  extractFilterValues,
+  extractJoinColumns,
+  firstCallArg,
+  mockDb,
+  sqlText,
+} from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 import { CharacteristicFormatMismatchError } from '../shared/characteristic-format-mismatch-error';
 import { CharacteristicFormatValidationService } from '../shared/characteristic-format-validation.service';
 import { PositionValidationError } from '../shared/position-validation-error';
-import {
-  extractAllFilterValues,
-  extractFilterValues,
-  extractJoinColumns,
-  firstCallArg,
-  sqlText,
-} from '../shared/query-assertions.test-helpers';
 import { PositionRulesSetsService } from './position-rules-sets.service';
 
 async function makeService(

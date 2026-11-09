@@ -1,20 +1,20 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import {
+  extractAllFilterValues,
+  extractFilterValues,
+  extractJoinColumns,
+  firstCallArg,
+  mockDb,
+  sqlText,
+} from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { LikePatternService } from '../shared/like-pattern.service';
-import {
-  extractAllFilterValues,
-  extractFilterValues,
-  extractJoinColumns,
-  firstCallArg,
-  sqlText,
-} from '../shared/query-assertions.test-helpers';
 import { TeamRaceCoachNamesService } from '../shared/team-race-coach-names.service';
 import { TeamAverageStatisticsService } from './team-average-statistics.service';
 import { TeamsService } from './teams.service';

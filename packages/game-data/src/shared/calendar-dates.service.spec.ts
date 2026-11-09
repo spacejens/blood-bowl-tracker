@@ -1,12 +1,15 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import {
+  firstCallArg,
+  mockDb,
+  sqlText,
+} from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { CalendarDatesService } from './calendar-dates.service';
-import { firstCallArg, sqlText } from './query-assertions.test-helpers';
 
 describe('CalendarDatesService', () => {
   let service: CalendarDatesService;

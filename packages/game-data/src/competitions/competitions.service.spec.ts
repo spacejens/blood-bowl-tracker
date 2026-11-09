@@ -7,7 +7,15 @@ import {
   getTableName,
 } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
-import { Column, is, mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import {
+  Column,
+  extractAllFilterValues,
+  extractFilterValues,
+  extractJoinColumns,
+  firstCallArg,
+  is,
+  mockDb,
+} from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -15,12 +23,6 @@ import { mock } from 'vitest-mock-extended';
 
 import { LikePatternService } from '../shared/like-pattern.service';
 import { MissingRequiredFieldError } from '../shared/missing-required-field-error';
-import {
-  extractAllFilterValues,
-  extractFilterValues,
-  extractJoinColumns,
-  firstCallArg,
-} from '../shared/query-assertions.test-helpers';
 import {
   CompetitionEnrollmentError,
   CompetitionEnrollmentService,

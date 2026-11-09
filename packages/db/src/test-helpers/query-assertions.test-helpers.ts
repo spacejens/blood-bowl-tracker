@@ -1,14 +1,8 @@
-import { getColumnTable, getTableName } from '@blood-bowl-tracker/db';
-import {
-  Column,
-  is,
-  Param,
-  SQL,
-  StringChunk,
-} from '@blood-bowl-tracker/db/test-helpers';
+import { getColumnTable, getTableName } from '../index.js';
+import { Column, is, Param, SQL, StringChunk } from './drizzle.test-helpers.js';
 
 /**
- * Shared introspection helpers for game-data service specs. The service methods
+ * Shared introspection helpers for specs of services that query through drizzle. The service methods
  * build real drizzle-orm condition objects (eq/and/inArray) and pass them to a
  * mocked `.where()` / `.innerJoin()`. These helpers reach into those captured
  * objects so tests assert the exact filter values and join columns, not merely

@@ -1,15 +1,15 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB, rulesSets } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
-import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
-
 import {
   extractAllFilterValues,
   extractJoinColumns,
   firstCallArg,
-} from '../shared/query-assertions.test-helpers';
+  mockDb,
+} from '@blood-bowl-tracker/db/test-helpers';
+import { Test } from '@nestjs/testing';
+import { describe, expect, it } from 'vitest';
+
 import {
   RulesSetsService,
   RulesSetUpsertConflictError,

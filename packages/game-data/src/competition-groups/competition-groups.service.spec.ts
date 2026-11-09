@@ -1,15 +1,15 @@
 import { competitionGroups, DB } from '@blood-bowl-tracker/db';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import {
+  extractFilterValues,
+  extractJoinColumns,
+  firstCallArg,
+  mockDb,
+} from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
 import { LikePatternService } from '../shared/like-pattern.service';
-import {
-  extractFilterValues,
-  extractJoinColumns,
-  firstCallArg,
-} from '../shared/query-assertions.test-helpers';
 import {
   CompetitionGroupsService,
   CompetitionGroupUpsertConflictError,

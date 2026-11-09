@@ -1,17 +1,18 @@
 import { DB } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
-import { is, SQL } from '@blood-bowl-tracker/db/test-helpers';
-import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
-
-import { MatchScopeFilterService } from '../shared/match-scope-filter.service';
 import {
   extractAllFilterValues,
   extractJoinColumns,
   firstCallArg,
+  is,
+  mockDb,
+  SQL,
   sqlText,
-} from '../shared/query-assertions.test-helpers';
+} from '@blood-bowl-tracker/db/test-helpers';
+import { Test } from '@nestjs/testing';
+import { describe, expect, it } from 'vitest';
+
+import { MatchScopeFilterService } from '../shared/match-scope-filter.service';
 import { SppTotalsService } from './spp-totals.service';
 
 async function makeService(db: MockDbResult): Promise<SppTotalsService> {

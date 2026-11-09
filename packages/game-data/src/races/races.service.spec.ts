@@ -1,7 +1,14 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB, matches, raceEras, races, teams } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import {
+  extractAllFilterValues,
+  extractFilterValues,
+  extractJoinColumns,
+  firstCallArg,
+  mockDb,
+  sqlText,
+} from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -10,13 +17,6 @@ import { mock } from 'vitest-mock-extended';
 import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
 import { MatchOutcomeCountsService } from '../shared/match-outcome-counts.service';
-import {
-  extractAllFilterValues,
-  extractFilterValues,
-  extractJoinColumns,
-  firstCallArg,
-  sqlText,
-} from '../shared/query-assertions.test-helpers';
 import { RacesService, RaceUpsertConflictError } from './races.service';
 
 const fakeRace = {

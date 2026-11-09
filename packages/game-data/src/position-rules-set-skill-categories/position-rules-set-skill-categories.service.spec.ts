@@ -1,15 +1,15 @@
 import type { PositionRulesSetSkillCategoriesEntry } from '@blood-bowl-tracker/api-contract';
 import { DB } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import {
+  extractAllFilterValues,
+  firstCallArg,
+  mockDb,
+} from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 import { PositionSkillCategoryValidationError } from '../shared/position-skill-category-validation-error';
-import {
-  extractAllFilterValues,
-  firstCallArg,
-} from '../shared/query-assertions.test-helpers';
 import { PositionRulesSetSkillCategoriesService } from './position-rules-set-skill-categories.service';
 
 async function makeService(

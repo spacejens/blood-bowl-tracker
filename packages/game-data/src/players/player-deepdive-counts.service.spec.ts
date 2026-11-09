@@ -1,7 +1,11 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import {
+  extractAllFilterValues,
+  firstCallArg,
+  mockDb,
+} from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -21,10 +25,6 @@ import {
   THROW_TEAM_MATE_TYPES,
   TOUCHDOWN_TYPES,
 } from '../shared/match-event-types';
-import {
-  extractAllFilterValues,
-  firstCallArg,
-} from '../shared/query-assertions.test-helpers';
 import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
 
 describe('PlayerDeepdiveCountsService', () => {

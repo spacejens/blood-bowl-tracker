@@ -2,9 +2,14 @@ import type { Db } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
 import {
+  extractAllFilterValues,
+  extractFilterValues,
+  extractJoinColumns,
+  firstCallArg,
   is,
   mockDb,
   SQL,
+  sqlText,
   StringChunk,
 } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
@@ -17,13 +22,6 @@ import { LikePatternService } from '../shared/like-pattern.service';
 import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import { FOUL_TYPES } from '../shared/match-event-types';
 import { MatchOutcomeCountsService } from '../shared/match-outcome-counts.service';
-import {
-  extractAllFilterValues,
-  extractFilterValues,
-  extractJoinColumns,
-  firstCallArg,
-  sqlText,
-} from '../shared/query-assertions.test-helpers';
 import { TrophyAwardCountsService } from '../shared/trophy-award-counts.service';
 import { CoachesService, CoachUpsertConflictError } from './coaches.service';
 

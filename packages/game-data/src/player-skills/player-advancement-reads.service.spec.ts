@@ -6,14 +6,14 @@ import {
   trophyAwards,
 } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
-import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
-
 import {
   extractAllFilterValues,
   firstCallArg,
-} from '../shared/query-assertions.test-helpers';
+  mockDb,
+} from '@blood-bowl-tracker/db/test-helpers';
+import { Test } from '@nestjs/testing';
+import { describe, expect, it } from 'vitest';
+
 import { CharacteristicAdvancementPlannerService } from './characteristic-advancement-planner.service';
 import { PlayerAdvancementReadsService } from './player-advancement-reads.service';
 import { PlayerAdvancementSyncPlannerService } from './player-advancement-sync-planner.service';

@@ -2,9 +2,13 @@ import type { Db } from '@blood-bowl-tracker/db';
 import { DB, positions } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
 import {
+  extractFilterValues,
+  extractJoinColumns,
+  firstCallArg,
   is,
   mockDb,
   SQL,
+  sqlText,
   StringChunk,
 } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
@@ -15,12 +19,6 @@ import { mock } from 'vitest-mock-extended';
 import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
 import { PositionValidationError } from '../shared/position-validation-error';
-import {
-  extractFilterValues,
-  extractJoinColumns,
-  firstCallArg,
-  sqlText,
-} from '../shared/query-assertions.test-helpers';
 import {
   PositionsService,
   PositionUpsertConflictError,

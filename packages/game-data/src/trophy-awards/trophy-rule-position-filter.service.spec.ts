@@ -1,10 +1,10 @@
-import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
-
 import {
   extractAllFilterValues,
   sqlText,
-} from '../shared/query-assertions.test-helpers';
+} from '@blood-bowl-tracker/db/test-helpers';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+
 import { TrophyRulePositionFilterService } from './trophy-rule-position-filter.service';
 
 describe('TrophyRulePositionFilterService', () => {

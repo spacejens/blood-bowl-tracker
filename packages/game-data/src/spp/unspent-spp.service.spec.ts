@@ -1,10 +1,10 @@
-import { describe, expect, it } from 'vitest';
-
 import {
   extractAllFilterValues,
   extractJoinColumns,
   firstCallArg,
-} from '../shared/query-assertions.test-helpers';
+} from '@blood-bowl-tracker/db/test-helpers';
+import { describe, expect, it } from 'vitest';
+
 import {
   BB2020,
   bb2020Costs,

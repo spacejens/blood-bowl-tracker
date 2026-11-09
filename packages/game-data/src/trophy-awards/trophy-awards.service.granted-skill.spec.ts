@@ -1,16 +1,16 @@
 import { DB, trophyAwards } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import {
+  extractFilterValues,
+  firstCallArg,
+  mockDb,
+} from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { PlayerSkillsService } from '../player-skills/player-skills.service';
-import {
-  extractFilterValues,
-  firstCallArg,
-} from '../shared/query-assertions.test-helpers';
 import { UnspentSppDecisionService } from '../spp/unspent-spp-decision.service';
 import {
   TrophyAwardGrantedSkillError,
