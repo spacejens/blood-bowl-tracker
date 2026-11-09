@@ -359,7 +359,7 @@ describe('WaitForPrReviewService', () => {
     processRunner.run
       .mockResolvedValueOnce(
         rateLimitedWithBody(
-          'Currently processing new changes in this PR. This may take a ' +
+          '> [!NOTE]\n> Currently processing new changes in this PR. This may take a ' +
             'few minutes, please wait...\n\n' +
             'Commit unit tests in branch `issue-397-review-wait-coderabbit-rate-limit`',
         ),
@@ -564,7 +564,8 @@ describe('WaitForPrReviewService', () => {
     processRunner.run
       .mockResolvedValueOnce(
         commentUpdateFailedWithBody(
-          'Currently processing new changes in this PR.\n\n' +
+          '> [!NOTE]\n> Currently processing new changes in this PR. This may take a ' +
+            'few minutes, please wait...\n\n' +
             "Commit unit tests in branch `issue-410-couldn't-update-its-existing-comment`",
         ),
       )
