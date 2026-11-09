@@ -7,6 +7,8 @@ import { INestApplicationContext } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
+import { CaptureCoderabbitCommentService } from './capture-coderabbit-comment/capture-coderabbit-comment.service';
+import { CaptureCoderabbitCommentArgsService } from './capture-coderabbit-comment/capture-coderabbit-comment-args.service';
 import { CheckCoderabbitActivityService } from './check-coderabbit-activity/check-coderabbit-activity.service';
 import {
   CHECK_DEPENDENCY_DASHBOARD_USAGE,
@@ -31,6 +33,7 @@ const SUBCOMMANDS = [
   'check-drift',
   'check-dependency-dashboard',
   'check-coderabbit-activity',
+  'capture-coderabbit-comment',
   'wait-for-pr-review',
   'post-review-questions',
   'acquire-review-lock',
@@ -78,6 +81,12 @@ function dispatch(
       // argv[3] is the PR number; the service validates it, so a missing or
       // malformed value surfaces as this CLI's standard JSON error + exit 1.
       return app.get(CheckCoderabbitActivityService).run(process.argv[3]);
+    case 'capture-coderabbit-comment': {
+      const captureOptions = app
+        .get(CaptureCoderabbitCommentArgsService)
+        .parse(process.argv);
+      return app.get(CaptureCoderabbitCommentService).run(captureOptions);
+    }
     case 'wait-for-pr-review': {
       const waitOptions = app
         .get(WaitForPrReviewArgsService)

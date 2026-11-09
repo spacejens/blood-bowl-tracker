@@ -21,6 +21,7 @@ needs it.
 | `check-drift` | Find gitignored config that differs between a worktree and the main checkout |
 | `check-dependency-dashboard` | Answer whether gh-shaped issue JSON on stdin is Renovate's standing Dependency Dashboard issue, so skills refuse to treat it as work |
 | `check-coderabbit-activity` | Answer whether CodeRabbit has ever posted any comment or review on a PR, so a skill can tell a silently-ignored PR from one it has already engaged with |
+| `capture-coderabbit-comment` | Record every distinct body CodeRabbit's comments on a PR go through while a review pass runs, with a layout report per body, so skill rules about its rolling comment can be checked against real data |
 | `wait-for-pr-review` | Poll `gh` internally for a submitted PR review until one appears or a timeout elapses, printing one JSON result — one command a worktree-isolated session can run, rather than a multi-line shell poll loop inline |
 | `post-review-questions` | Post drafted review questions as PR comments (inline or top-level) from JSON on stdin |
 | `acquire-review-lock` | Take the machine-wide review lock, waiting in a FIFO queue until it is free — serializes review-triggering activity across parallel sessions in different worktrees |
@@ -178,6 +179,29 @@ Its caller is `finish-renovate-pr`, which runs it once before its review loop.
 Skills operating on developer-authored PRs deliberately do **not** use this — nudging unconditionally there would pre-empt CodeRabbit's normal automatic review and spend rate-limit budget for nothing.
 
 A failing `gh` lookup, or output that is neither `true` nor `false`, is an error (exit 1) rather than a `false` — callers decide how to handle it (see `finish-renovate-pr`'s Phase 4 Integration step 5, which warns and continues with no trigger).
+
+### `capture-coderabbit-comment` usage
+
+```bash
+node tools/dev-workflow-cli/dist/main.js capture-coderabbit-comment <pr-number> [--timeout-ms=1800000] [--interval-ms=10000]
+```
+
+A diagnostic tool, not part of any skill's normal flow. It polls the PR's top-level comments every `--interval-ms` (default 10 seconds, minimum 1000) and keeps each distinct body of every CodeRabbit-authored comment once, in the order first seen. The login match is the same case-insensitive `coderabbit` test the other subcommands use. It stops when a poll finds no CodeRabbit comment showing the "currently processing new changes" banner after an earlier poll did, or when `--timeout-ms` (default 30 minutes) elapses. A failed `gh` call is counted in `failedPolls` and skipped.
+
+The result has `sawInProgress`, `leftInProgress`, `timedOut`, `failedPolls` and `observations`. Each observation holds `commentId`, `updatedAt`, `observedAt`, the full `body`, and a `layout`:
+
+- `statusBlock` / `recentReviewSection`: whether the paired `recent_review_status` and `recent_review` markers are present.
+- `processingBanner`: whether the banner phrase appears in prose, with code blocks and spans masked out, the way `handle-pr-reviews` reads it. `processingBannerUnmasked` reports the phrase anywhere, code included.
+- `order`: the landmarks present, by position in the body.
+- `bannerInsideStatusBlock`, `statusBlockVerdict`, `sectionVerdict`: whether the banner sits inside the status block, and whether a "no actionable comments" verdict sits in each span.
+
+Start it right after a push that triggers a review, and send its output into gitignored `docs/plans/`, never into a committed path:
+
+```bash
+node tools/dev-workflow-cli/dist/main.js capture-coderabbit-comment <pr-number> | node tools/fs-utils-cli/dist/main.js write-file docs/plans/<name>.json
+```
+
+The JSON prints only when the capture ends. Polling can miss a body that lasts less than one interval.
 
 ## Development
 
