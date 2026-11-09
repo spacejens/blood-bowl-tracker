@@ -71,7 +71,7 @@ describe('BackupConfigService', () => {
         BACKUP_STORAGE_BUCKET: 'env-bucket',
         BACKUP_STORAGE_ACCESS_KEY_ID: 'ENV_KEY',
         BACKUP_STORAGE_SECRET_ACCESS_KEY: 'ENV_SECRET',
-        BACKUP_DATABASE_URL: 'postgres://env:pw@host/db',
+        DATABASE_URL: 'postgres://env:pw@host/db',
         BACKUP_RETENTION_DAYS: '7',
       },
     });
@@ -124,17 +124,29 @@ describe('BackupConfigService', () => {
 
   it('rejects a database url that is not a postgres connection string, without echoing it', async () => {
     const service = await makeService({
-      env: { BACKUP_DATABASE_URL: 'mysql://secret-value' },
+      env: { DATABASE_URL: 'mysql://secret-value' },
     });
 
     expect(() => service.getDatabaseUrl()).toThrow(/not a postgres:\/\//);
     expect(() => service.getDatabaseUrl()).not.toThrow(/secret-value/);
   });
 
+  it('names DATABASE_URL when the database url is not a postgres connection string', async () => {
+    const service = await makeService({
+      env: { DATABASE_URL: 'mysql://secret-value' },
+    });
+
+    expect(() => service.getDatabaseUrl()).toThrow(
+      'database.url (DATABASE_URL) is not a postgres:// or postgresql:// connection string.',
+    );
+  });
+
   it('names the database setting when it is missing', async () => {
     const service = await makeService({ file: '{}' });
 
-    expect(() => service.getDatabaseUrl()).toThrow(/BACKUP_DATABASE_URL/);
+    expect(() => service.getDatabaseUrl()).toThrow(
+      'database.url is not set: set DATABASE_URL or database.url in backup-cli-config.json5.',
+    );
   });
 
   it('defaults the retention window to 30 days', async () => {
@@ -189,10 +201,10 @@ describe('BackupConfigService', () => {
     );
   });
 
-  it('lets BACKUP_LOCAL_DATABASE_URL override the file', async () => {
+  it('lets LOCAL_DATABASE_URL override the file', async () => {
     const service = await makeService({
       file: "{ localDatabase: { url: 'postgres://me@localhost:5432/scratch' } }",
-      env: { BACKUP_LOCAL_DATABASE_URL: 'postgres://ci@127.0.0.1:5432/ci' },
+      env: { LOCAL_DATABASE_URL: 'postgres://ci@127.0.0.1:5432/ci' },
     });
 
     expect(service.getLocalDatabaseUrl()).toBe(
@@ -200,9 +212,17 @@ describe('BackupConfigService', () => {
     );
   });
 
-  it('falls back to the default when BACKUP_LOCAL_DATABASE_URL is empty', async () => {
+  it('does not take the restore target from DATABASE_URL', async () => {
     const service = await makeService({
-      env: { BACKUP_LOCAL_DATABASE_URL: '' },
+      env: { DATABASE_URL: 'postgres://prod@remote.example/db' },
+    });
+
+    expect(service.getLocalDatabaseUrl()).toBe(DEFAULT_LOCAL_DATABASE_URL);
+  });
+
+  it('falls back to the default when LOCAL_DATABASE_URL is empty', async () => {
+    const service = await makeService({
+      env: { LOCAL_DATABASE_URL: '' },
     });
 
     expect(service.getLocalDatabaseUrl()).toBe(DEFAULT_LOCAL_DATABASE_URL);
@@ -216,7 +236,7 @@ describe('BackupConfigService', () => {
       });
 
       expect(() => service.getLocalDatabaseUrl()).toThrow(
-        'localDatabase.url in backup-cli-config.json5 (or BACKUP_LOCAL_DATABASE_URL) must be a non-empty string.',
+        'localDatabase.url in backup-cli-config.json5 (or LOCAL_DATABASE_URL) must be a non-empty string.',
       );
     },
   );
