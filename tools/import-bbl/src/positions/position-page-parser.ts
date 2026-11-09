@@ -1,3 +1,5 @@
+import type { CharacteristicLine } from '@blood-bowl-tracker/api-contract';
+import { PLAYER_CHARACTERISTICS } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 import type { CheerioAPI } from 'cheerio';
 
@@ -16,18 +18,11 @@ interface BblPositionRace {
  * One position's raw characteristics line, exactly as the page shows it. This
  * is deliberately format-agnostic: a `-` in the Passing cell becomes `null`
  * here, and the decision between `null` and `0` is made later, per target
- * rules set, by BblPositionCharacteristicsImportService.
+ * rules set, by BblPositionCharacteristicsImportService. An alias of the
+ * shared `CharacteristicLine`, kept under this name because position-side
+ * consumers already import it.
  */
-export interface BblPositionCharacteristics {
-  move: number;
-  strength: number;
-  agility: number;
-  passing: number | null;
-  armour: number;
-}
-
-/** The characteristics table's header cells, in column order. */
-const CHARACTERISTIC_HEADERS = ['MA', 'ST', 'AG', 'PA', 'AV'];
+export type BblPositionCharacteristics = CharacteristicLine;
 
 /**
  * One skill reference parsed out of a position's Skills cell. An alias of
@@ -139,15 +134,15 @@ export class PositionPageParser {
         .children('th, td')
         .toArray()
         .map((cell) => this.normalizeText.normalize($(cell).text()));
-      if (CHARACTERISTIC_HEADERS.some((header, i) => headers[i] !== header)) {
+      if (PLAYER_CHARACTERISTICS.some((header, i) => headers[i] !== header)) {
         continue;
       }
       const cells = $(row).next('tr').children('td').toArray();
-      if (cells.length < CHARACTERISTIC_HEADERS.length) {
+      if (cells.length < PLAYER_CHARACTERISTICS.length) {
         return null;
       }
       const texts = cells
-        .slice(0, CHARACTERISTIC_HEADERS.length)
+        .slice(0, PLAYER_CHARACTERISTICS.length)
         .map((cell) => this.normalizeText.normalize($(cell).text()));
       const [moveText, strengthText, agilityText, passingText, armourText] =
         texts;
@@ -189,11 +184,11 @@ export class PositionPageParser {
         .children('th, td')
         .toArray()
         .map((cell) => this.normalizeText.normalize($(cell).text()));
-      if (CHARACTERISTIC_HEADERS.some((header, i) => headers[i] !== header)) {
+      if (PLAYER_CHARACTERISTICS.some((header, i) => headers[i] !== header)) {
         continue;
       }
       const cells = $(row).next('tr').children('td').toArray();
-      const skillsCell = cells[CHARACTERISTIC_HEADERS.length];
+      const skillsCell = cells[PLAYER_CHARACTERISTICS.length];
       if (skillsCell === undefined) {
         return [];
       }

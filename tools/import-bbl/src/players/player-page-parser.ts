@@ -1,8 +1,12 @@
-import type { PlayerLastingInjuries } from '@blood-bowl-tracker/api-contract';
+import type {
+  CharacteristicLine,
+  PlayerLastingInjuries,
+} from '@blood-bowl-tracker/api-contract';
 import type {
   PlayerCharacteristic,
   PlayerStatus,
 } from '@blood-bowl-tracker/domain-enums';
+import { PLAYER_CHARACTERISTICS } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 import type { CheerioAPI } from 'cheerio';
 import type { AnyNode } from 'domhandler';
@@ -13,31 +17,11 @@ import type { BblPage } from '../source/bbl-page.types';
 import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
 import { SustainedInjuriesParser } from './sustained-injuries.parser';
 
-/**
- * One player's raw characteristics line, exactly as their page shows it. This
- * is deliberately format-agnostic: a `-` in the Passing cell becomes `null`
- * here, and the decision between `null` and `0` is made later, against the
- * rules set of the player's era, by BblPlayersImportService.
- *
- * Parsed independently of BblPositionCharacteristics rather than sharing a
- * helper, matching this package's existing per-entity parser boundaries.
- */
-export interface BblPlayerCharacteristics {
-  move: number;
-  strength: number;
-  agility: number;
-  passing: number | null;
-  armour: number;
-}
-
-/** The characteristics table's header cells, in column order. */
-const CHARACTERISTIC_HEADERS = ['MA', 'ST', 'AG', 'PA', 'AV'];
-
 /** The label cell that identifies the sustained-injuries row. */
 const SUSTAINED_INJURIES_LABEL = 'Sustained Injuries:';
 
 /** How many cells precede the Skills cell in the characteristics row. */
-const SKILLS_CELL_INDEX = CHARACTERISTIC_HEADERS.length;
+const SKILLS_CELL_INDEX = PLAYER_CHARACTERISTICS.length;
 
 /** The inline colour BBL renders a skill GAINED via advancement in. */
 const GAINED_SKILL_COLOUR = '#006020';
@@ -142,11 +126,17 @@ export interface BblPlayer {
    */
   reportedUnspentSpp: number | null;
   /**
-   * The MA/ST/AG/PA/AV line from the player's own characteristics table.
-   * Non-nullable: a page whose line cannot be read fails player extraction
-   * entirely, the same way a missing name/position/team link does.
+   * The MA/ST/AG/PA/AV line from the player's own characteristics table,
+   * exactly as the page shows it. Non-nullable: a page whose line cannot be
+   * read fails player extraction entirely, the same way a missing
+   * name/position/team link does. Format-agnostic: a `-` in the Passing cell
+   * becomes `null` here, and the decision between `null` and `0` is made
+   * later, against the rules set of the player's era, by
+   * BblPlayersImportService. Parsed independently of the position page's
+   * line rather than sharing a helper, matching this package's per-entity
+   * parser boundaries.
    */
-  characteristics: BblPlayerCharacteristics;
+  characteristics: CharacteristicLine;
   /**
    * The player's currently outstanding lasting injuries, from the page's
    * free-text "Sustained Injuries" row. Non-nullable, and a missing row is
@@ -351,23 +341,21 @@ export class PlayerPageParser {
    * such table is found, a required (non-Passing) value is unreadable, or the
    * Passing cell holds something other than a genuine `-` or a readable number.
    */
-  private extractCharacteristics(
-    $: CheerioAPI,
-  ): BblPlayerCharacteristics | null {
+  private extractCharacteristics($: CheerioAPI): CharacteristicLine | null {
     for (const row of $('tr').toArray()) {
       const headers = $(row)
         .children('th, td')
         .toArray()
         .map((cell) => this.normalizeText.normalize($(cell).text()));
-      if (CHARACTERISTIC_HEADERS.some((header, i) => headers[i] !== header)) {
+      if (PLAYER_CHARACTERISTICS.some((header, i) => headers[i] !== header)) {
         continue;
       }
       const cells = $(row).next('tr').children('td').toArray();
-      if (cells.length < CHARACTERISTIC_HEADERS.length) {
+      if (cells.length < PLAYER_CHARACTERISTICS.length) {
         return null;
       }
       const texts = cells
-        .slice(0, CHARACTERISTIC_HEADERS.length)
+        .slice(0, PLAYER_CHARACTERISTICS.length)
         .map((cell) => this.normalizeText.normalize($(cell).text()));
       const [moveText, strengthText, agilityText, passingText, armourText] =
         texts;
@@ -420,7 +408,7 @@ export class PlayerPageParser {
         .children('th, td')
         .toArray()
         .map((cell) => this.normalizeText.normalize($(cell).text()));
-      if (CHARACTERISTIC_HEADERS.some((header, i) => headers[i] !== header)) {
+      if (PLAYER_CHARACTERISTICS.some((header, i) => headers[i] !== header)) {
         continue;
       }
       const cells = $(row).next('tr').children('td').toArray();
