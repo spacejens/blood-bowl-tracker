@@ -9,8 +9,7 @@ import { asBaseTable } from '@blood-bowl-tracker/db';
  * the caller supplies both by closing over the owner id in `buildRow` — so the
  * helper never needs to know what the column is called.
  *
- * Kept internal to this package (not re-exported from index.ts), like
- * shared/count-all.ts.
+ * Kept internal to this package (not re-exported from index.ts).
  */
 export interface InsertMissingExternalIdsOptions<T extends PgTable> {
   db: DbOrTx;

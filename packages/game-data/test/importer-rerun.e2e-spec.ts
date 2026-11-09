@@ -28,7 +28,6 @@ import {
 } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { mock } from 'vitest-mock-extended';
 
 import { CoachesService } from '../src/coaches/coaches.service';
 import { CompetitionEnrollmentService } from '../src/competitions/competition-enrollment.service';
@@ -37,11 +36,6 @@ import { ErasService } from '../src/eras/eras.service';
 import { LeaguesService } from '../src/leagues/leagues.service';
 import { PositionsService } from '../src/positions/positions.service';
 import { RacesService } from '../src/races/races.service';
-import { LikePatternService } from '../src/shared/like-pattern.service';
-import { MatchEventCountsService } from '../src/shared/match-event-counts.service';
-import { MatchOutcomeCountsService } from '../src/shared/match-outcome-counts.service';
-import { TeamRaceCoachNamesService } from '../src/shared/team-race-coach-names.service';
-import { TrophyAwardCountsService } from '../src/shared/trophy-award-counts.service';
 import { SkillsService } from '../src/skills/skills.service';
 import { TeamsService } from '../src/teams/teams.service';
 import { connectTestDb } from './e2e-database';
@@ -341,23 +335,6 @@ describe('importer re-runs (real Postgres)', () => {
         CompetitionsService,
         CompetitionEnrollmentService,
         TeamsService,
-        {
-          provide: TeamRaceCoachNamesService,
-          useValue: mock<TeamRaceCoachNamesService>(),
-        },
-        { provide: LikePatternService, useValue: mock<LikePatternService>() },
-        {
-          provide: MatchEventCountsService,
-          useValue: mock<MatchEventCountsService>(),
-        },
-        {
-          provide: MatchOutcomeCountsService,
-          useValue: mock<MatchOutcomeCountsService>(),
-        },
-        {
-          provide: TrophyAwardCountsService,
-          useValue: mock<TrophyAwardCountsService>(),
-        },
         { provide: DB, useValue: db },
       ],
     }).compile();

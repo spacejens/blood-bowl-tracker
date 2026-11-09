@@ -19,14 +19,12 @@ import {
 } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { mock } from 'vitest-mock-extended';
 
 import {
   CompetitionEnrollmentError,
   CompetitionEnrollmentService,
 } from '../src/competitions/competition-enrollment.service';
 import { CompetitionsService } from '../src/competitions/competitions.service';
-import { LikePatternService } from '../src/shared/like-pattern.service';
 import { connectTestDb } from './e2e-database';
 
 /**
@@ -144,7 +142,6 @@ describe('competition enrollment rules (real Postgres)', () => {
       providers: [
         CompetitionsService,
         CompetitionEnrollmentService,
-        { provide: LikePatternService, useValue: mock<LikePatternService>() },
         { provide: DB, useValue: db },
       ],
     }).compile();
