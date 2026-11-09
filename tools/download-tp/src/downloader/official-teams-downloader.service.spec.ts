@@ -11,6 +11,7 @@ import { FileSystemService } from './file-system.service';
 import { OfficialTeamsDownloaderService } from './official-teams-downloader.service';
 
 const FRONTEND = 'https://tp.example/blood-bowl/';
+const BACKEND = 'https://tp.example/api/';
 
 describe('OfficialTeamsDownloaderService', () => {
   let service: OfficialTeamsDownloaderService;
@@ -23,6 +24,7 @@ describe('OfficialTeamsDownloaderService', () => {
   beforeEach(async () => {
     configService = mock<DownloadTpConfigService>();
     configService.getFrontendBaseUrl.mockReturnValue(FRONTEND);
+    configService.getBackendApiUrl.mockReturnValue(BACKEND);
     configService.getRulesSets.mockReturnValue(['BB2020', 'BB2025']);
     sessions = [];
     tpFetcherService = mock<TpFetcherService>();
@@ -63,18 +65,24 @@ describe('OfficialTeamsDownloaderService', () => {
     await service.downloadOfficialTeams();
 
     expect(
-      storingService.fetchAndStore.mock.calls.map((call) => call[1]),
+      storingService.fetchAndStore.mock.calls.map((call) => [call[1], call[2]]),
     ).toEqual([
-      {
-        path: 'rosters/masters?ruleSet=20',
-        referer: `${FRONTEND}teams`,
-        dirName: 'teams/BB2020',
-      },
-      {
-        path: 'rosters/masters?ruleSet=25',
-        referer: `${FRONTEND}teams`,
-        dirName: 'teams/BB2025',
-      },
+      [
+        {
+          path: 'rosters/masters?ruleSet=20',
+          url: `${BACKEND}rosters/masters?ruleSet=20`,
+          referer: `${FRONTEND}teams`,
+        },
+        'teams/BB2020',
+      ],
+      [
+        {
+          path: 'rosters/masters?ruleSet=25',
+          url: `${BACKEND}rosters/masters?ruleSet=25`,
+          referer: `${FRONTEND}teams`,
+        },
+        'teams/BB2025',
+      ],
     ]);
   });
 
@@ -92,10 +100,9 @@ describe('OfficialTeamsDownloaderService', () => {
 
     await service.downloadOfficialTeams();
 
-    expect(storingService.fetchAndStore.mock.calls[0][1]).toMatchObject({
-      path: 'rosters/masters?ruleSet=21',
-      dirName: 'teams/db2021',
-    });
+    const [, request, dirName] = storingService.fetchAndStore.mock.calls[0];
+    expect(request.path).toBe('rosters/masters?ruleSet=21');
+    expect(dirName).toBe('teams/db2021');
   });
 
   it('fails with a helpful message for a rules set TP has no id for', async () => {

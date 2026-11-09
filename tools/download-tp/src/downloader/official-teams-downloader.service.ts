@@ -32,19 +32,19 @@ export class OfficialTeamsDownloaderService {
     if (rulesSets.length === 0) {
       return;
     }
-    const referer =
-      this.downloadTpConfigService.getFrontendBaseUrl() +
-      this.officialTeamsPaths.frontendPath();
     const session = this.tpFetcherService.createSession();
     for (const rulesSet of rulesSets) {
-      const path = this.officialTeamsPaths.apiPath(this.ruleSetId(rulesSet));
+      const request = this.officialTeamsPaths.request(
+        this.downloadTpConfigService,
+        this.ruleSetId(rulesSet),
+      );
       const dirName = `teams/${rulesSet}`;
       this.fileSystemService.mkdir(dirName);
-      await this.apiResponseStoringService.fetchAndStore(session, {
-        path,
-        referer,
+      await this.apiResponseStoringService.fetchAndStore(
+        session,
+        request,
         dirName,
-      });
+      );
     }
   }
 

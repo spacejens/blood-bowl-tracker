@@ -1,5 +1,6 @@
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
+import type { TpRequest } from '@blood-bowl-tracker/tp-paths';
 import {
   TpMatchPathsService,
   TpRosterPathsService,
@@ -10,12 +11,12 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { DownloadTpConfigService } from '../config/download-tp-config.service';
-import type { StoredApiRequest } from './api-response-storing.service';
 import { ApiResponseStoringService } from './api-response-storing.service';
 import { FileSystemService } from './file-system.service';
 import { LeaguesDownloaderService } from './leagues-downloader.service';
 
 const FRONTEND = 'https://tp.example/blood-bowl/';
+const BACKEND = 'https://tp.example/api/';
 
 function phasePath(slug: string, phaseId: number): string {
   return `tournament/${slug}/phases?page=0&pageSize=50&phaseId=${phaseId}&type=COACH`;
@@ -62,8 +63,12 @@ describe('LeaguesDownloaderService', () => {
     );
   }
 
-  function requests(): StoredApiRequest[] {
+  function requests(): TpRequest[] {
     return storingService.fetchAndStore.mock.calls.map((call) => call[1]);
+  }
+
+  function dirNames(): string[] {
+    return storingService.fetchAndStore.mock.calls.map((call) => call[2]);
   }
 
   function requestedPaths(): string[] {
@@ -73,6 +78,7 @@ describe('LeaguesDownloaderService', () => {
   beforeEach(async () => {
     configService = mock<DownloadTpConfigService>();
     configService.getFrontendBaseUrl.mockReturnValue(FRONTEND);
+    configService.getBackendApiUrl.mockReturnValue(BACKEND);
     configService.getTournaments.mockReturnValue(['season-30']);
     sessions = [];
     tpFetcherService = mock<TpFetcherService>();
@@ -121,15 +127,19 @@ describe('LeaguesDownloaderService', () => {
       ['rosters/22', `${FRONTEND}roster/22`],
       ['awards/season-30/awards', `${page}/awards`],
     ]);
+    for (const request of requests()) {
+      expect(request.url).toBe(`${BACKEND}${request.path}`);
+    }
   });
 
   it('stores every response of a tournament into its dir, through one shared session', async () => {
     await service.downloadAllLeagues();
 
     expect(tpFetcherService.createSession).toHaveBeenCalledTimes(1);
-    for (const [session, request] of storingService.fetchAndStore.mock.calls) {
+    for (const [session, , dirName] of storingService.fetchAndStore.mock
+      .calls) {
       expect(session).toBe(sessions[0]);
-      expect(request.dirName).toBe('season-30');
+      expect(dirName).toBe('season-30');
     }
   });
 
@@ -147,14 +157,11 @@ describe('LeaguesDownloaderService', () => {
       ['season-30'],
     ]);
     expect(sessions).toHaveLength(2);
-    for (const [session, request] of storingService.fetchAndStore.mock.calls) {
-      expect(session).toBe(
-        request.dirName === 'season-29' ? sessions[0] : sessions[1],
-      );
+    for (const [session, , dirName] of storingService.fetchAndStore.mock
+      .calls) {
+      expect(session).toBe(dirName === 'season-29' ? sessions[0] : sessions[1]);
     }
-    expect(new Set(requests().map((r) => r.dirName))).toEqual(
-      new Set(['season-29', 'season-30']),
-    );
+    expect(new Set(dirNames())).toEqual(new Set(['season-29', 'season-30']));
   });
 
   it('requests every phase of every category, with its classifications and matches', async () => {

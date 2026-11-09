@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { TpOfficialTeamsPathsService } from './tp-official-teams-paths.service';
+import type { TpBaseUrls } from './tp-request';
 
 describe('TpOfficialTeamsPathsService', () => {
   let paths: TpOfficialTeamsPathsService;
@@ -11,10 +12,6 @@ describe('TpOfficialTeamsPathsService', () => {
       providers: [TpOfficialTeamsPathsService],
     }).compile();
     paths = moduleRef.get(TpOfficialTeamsPathsService);
-  });
-
-  it("builds one rules set's official team list API path", () => {
-    expect(paths.apiPath(25)).toBe('rosters/masters?ruleSet=25');
   });
 
   it('builds the teams page path', () => {
@@ -51,6 +48,19 @@ describe('TpOfficialTeamsPathsService', () => {
       ['an empty path', ''],
     ])('does not match %s', (_label, path) => {
       expect(paths.matchFrontendPath(path)).toBe(false);
+    });
+  });
+
+  it("builds one rules set's official team list request, sent from the teams page", () => {
+    const baseUrls: TpBaseUrls = {
+      getBackendApiUrl: () => 'https://tp.example/api/',
+      getFrontendBaseUrl: () => 'https://tp.example/blood-bowl/',
+    };
+
+    expect(paths.request(baseUrls, 25)).toEqual({
+      path: 'rosters/masters?ruleSet=25',
+      url: 'https://tp.example/api/rosters/masters?ruleSet=25',
+      referer: 'https://tp.example/blood-bowl/teams',
     });
   });
 });

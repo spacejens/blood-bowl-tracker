@@ -1,45 +1,29 @@
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
+import type { TpRequest } from '@blood-bowl-tracker/tp-paths';
 import { Injectable } from '@nestjs/common';
 
-import { DownloadTpConfigService } from '../config/download-tp-config.service';
 import { FileSystemService } from './file-system.service';
-
-/** One API response to download and keep. */
-export type StoredApiRequest = {
-  /**
-   * API path relative to `connection.backendApiUrl`, query string included.
-   * Also names the output file (slashes become underscores), which is the
-   * layout tools/import-tp reads.
-   */
-  path: string;
-  /** The TP frontend page URL this request belongs to. */
-  referer: string;
-  /** Output folder under `data/`. */
-  dirName: string;
-};
 
 @Injectable()
 export class ApiResponseStoringService {
-  constructor(
-    private readonly downloadTpConfigService: DownloadTpConfigService,
-    private readonly fileSystemService: FileSystemService,
-  ) {}
+  constructor(private readonly fileSystemService: FileSystemService) {}
 
   /**
-   * Requests one API path through the given session and writes the response
-   * to its JSON file. Returns the response so the caller can find further
-   * paths to request in it. A failed request writes nothing.
+   * Makes one TP request through the given session and writes the response
+   * to `dirName` (under `data/`), in the file named after the request's API
+   * path (slashes become underscores, the layout tools/import-tp reads).
+   * Returns the response so the caller can find further requests to make in
+   * it. A failed request writes nothing.
    */
   async fetchAndStore(
     session: TpFetchSession,
-    request: StoredApiRequest,
+    request: TpRequest,
+    dirName: string,
   ): Promise<unknown> {
-    const { path, referer, dirName } = request;
-    const body = await session.fetch(
-      this.downloadTpConfigService.getBackendApiUrl() + path,
-      { referer },
-    );
-    this.fileSystemService.writeJsonFile(dirName, path, body);
+    const body = await session.fetch(request.url, {
+      referer: request.referer,
+    });
+    this.fileSystemService.writeJsonFile(dirName, request.path, body);
     return body;
   }
 }

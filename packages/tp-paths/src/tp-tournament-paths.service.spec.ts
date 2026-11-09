@@ -1,37 +1,25 @@
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import type { TpBaseUrls, TpRequest } from './tp-request';
 import { TpTournamentPathsService } from './tp-tournament-paths.service';
+
+const BACKEND = 'https://tp.example/api/';
+const FRONTEND = 'https://tp.example/blood-bowl/';
 
 describe('TpTournamentPathsService', () => {
   let paths: TpTournamentPathsService;
+  let baseUrls: TpBaseUrls;
 
   beforeEach(async () => {
+    baseUrls = {
+      getBackendApiUrl: () => BACKEND,
+      getFrontendBaseUrl: () => FRONTEND,
+    };
     const moduleRef = await Test.createTestingModule({
       providers: [TpTournamentPathsService],
     }).compile();
     paths = moduleRef.get(TpTournamentPathsService);
-  });
-
-  it("builds a tournament's API path", () => {
-    expect(paths.apiPath('s30')).toBe('tournament/s30');
-  });
-
-  it("builds a phase's fixtures path, and one round of it", () => {
-    expect(paths.phaseApiPath('s30', 31255)).toBe(
-      'tournament/s30/phases?page=0&pageSize=50&phaseId=31255&type=COACH',
-    );
-    expect(paths.phaseRoundApiPath('s30', 31255, 3)).toBe(
-      'tournament/s30/phases?page=0&pageSize=50&phaseId=31255&type=COACH&round=3',
-    );
-  });
-
-  it('builds a tournament page path', () => {
-    expect(paths.frontendPath('s30', 'scores')).toBe('s30/scores');
-  });
-
-  it("builds a tournament's scores page path", () => {
-    expect(paths.scoresFrontendPath('s30')).toBe('s30/scores');
   });
 
   describe('matchScoresFrontendPath', () => {
@@ -48,21 +36,13 @@ describe('TpTournamentPathsService', () => {
       expect(paths.matchScoresFrontendPath(path)).toBeUndefined();
     });
 
-    it('round-trips its own scoresFrontendPath', () => {
-      expect(
-        paths.matchScoresFrontendPath(paths.scoresFrontendPath('s30')),
-      ).toBe('s30');
+    it("round-trips a request's scores page referer", () => {
+      const page = paths
+        .phaseRequest(baseUrls, 's30', 31255)
+        .referer.slice(FRONTEND.length);
+
+      expect(paths.matchScoresFrontendPath(page)).toBe('s30');
     });
-  });
-
-  it("builds a category's inscriptions path", () => {
-    expect(paths.inscriptionsApiPath('s30', 22308)).toBe(
-      'inscriptions/s30/category/22308/inscriptions?page=0&pageSize=75',
-    );
-  });
-
-  it("builds a tournament's awards path", () => {
-    expect(paths.awardsApiPath('s30')).toBe('awards/s30/awards');
   });
 
   describe('matchFrontendPath', () => {
@@ -78,10 +58,12 @@ describe('TpTournamentPathsService', () => {
       expect(paths.matchFrontendPath('s30/a/b')).toBe('s30');
     });
 
-    it('round-trips its own frontendPath', () => {
-      expect(paths.matchFrontendPath(paths.frontendPath('s30', 'scores'))).toBe(
-        's30',
-      );
+    it("round-trips a request's tournament page referer", () => {
+      const page = paths
+        .newsRequest(baseUrls, 's30')
+        .referer.slice(FRONTEND.length);
+
+      expect(paths.matchFrontendPath(page)).toBe('s30');
     });
 
     it.each([
@@ -92,17 +74,94 @@ describe('TpTournamentPathsService', () => {
     });
   });
 
-  it('builds the download-only tournament page paths', () => {
-    expect(paths.newsApiPath('s30')).toBe('tournament/s30/news');
-    expect(paths.teamStatsApiPath('s30')).toBe('tournament/s30/team-stats');
-    expect(paths.lineupStatsApiPath('s30')).toBe('tournament/s30/lineup-stats');
-    expect(paths.coachStatsApiPath('s30')).toBe('tournament/s30/coach-stats');
-    expect(paths.statisticsApiPath('s30')).toBe('tournament/s30/statistics');
-  });
-
-  it("builds a phase's classifications path, in TP's own spelling", () => {
-    expect(paths.classificationsApiPath('s30', 34100)).toBe(
-      'tournament/s30/clasifications?page=0&pageSize=75&phaseId=34100&type=COACH',
-    );
+  describe('requests', () => {
+    it.each<
+      [
+        string,
+        (p: TpTournamentPathsService, b: TpBaseUrls) => TpRequest,
+        string,
+        string,
+      ]
+    >([
+      [
+        'the tournament, sent from the page it is given',
+        (p, b) => p.request(b, 's30', 'news'),
+        'tournament/s30',
+        's30/news',
+      ],
+      [
+        'the tournament, sent from the scores page',
+        (p, b) => p.request(b, 's30', 'scores'),
+        'tournament/s30',
+        's30/scores',
+      ],
+      [
+        "a phase's fixtures",
+        (p, b) => p.phaseRequest(b, 's30', 31255),
+        'tournament/s30/phases?page=0&pageSize=50&phaseId=31255&type=COACH',
+        's30/scores',
+      ],
+      [
+        'one round of a phase',
+        (p, b) =>
+          p.phaseRoundRequest(b, 's30', { phaseId: 31255, roundNumber: 3 }),
+        'tournament/s30/phases?page=0&pageSize=50&phaseId=31255&type=COACH&round=3',
+        's30/scores',
+      ],
+      [
+        "a category's inscriptions",
+        (p, b) => p.inscriptionsRequest(b, 's30', 22308),
+        'inscriptions/s30/category/22308/inscriptions?page=0&pageSize=75',
+        's30/players',
+      ],
+      [
+        'the awards',
+        (p, b) => p.awardsRequest(b, 's30'),
+        'awards/s30/awards',
+        's30/awards',
+      ],
+      [
+        'the news',
+        (p, b) => p.newsRequest(b, 's30'),
+        'tournament/s30/news',
+        's30/news',
+      ],
+      [
+        "a phase's classifications, in TP's own spelling",
+        (p, b) => p.classificationsRequest(b, 's30', 34100),
+        'tournament/s30/clasifications?page=0&pageSize=75&phaseId=34100&type=COACH',
+        's30/classifications',
+      ],
+      [
+        'the team stats',
+        (p, b) => p.teamStatsRequest(b, 's30'),
+        'tournament/s30/team-stats',
+        's30/honours',
+      ],
+      [
+        'the lineup stats',
+        (p, b) => p.lineupStatsRequest(b, 's30'),
+        'tournament/s30/lineup-stats',
+        's30/honours',
+      ],
+      [
+        'the coach stats',
+        (p, b) => p.coachStatsRequest(b, 's30'),
+        'tournament/s30/coach-stats',
+        's30/honours',
+      ],
+      [
+        'the statistics',
+        (p, b) => p.statisticsRequest(b, 's30'),
+        'tournament/s30/statistics',
+        's30/statistics',
+      ],
+    ])('builds %s', (...[, build, path, page]) => {
+      expect(build(paths, baseUrls)).toEqual({
+        path,
+        url: `${BACKEND}${path}`,
+        referer: `${FRONTEND}${page}`,
+      });
+    });
   });
 });

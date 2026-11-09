@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { TpMatchPathsService } from './tp-match-paths.service';
+import type { TpBaseUrls } from './tp-request';
 
 describe('TpMatchPathsService', () => {
   let paths: TpMatchPathsService;
@@ -11,11 +12,6 @@ describe('TpMatchPathsService', () => {
       providers: [TpMatchPathsService],
     }).compile();
     paths = moduleRef.get(TpMatchPathsService);
-  });
-
-  it("builds a match's API path", () => {
-    expect(paths.apiPath(576264)).toBe('match/576264');
-    expect(paths.apiPath('576264')).toBe('match/576264');
   });
 
   it("builds a match's page path under its tournament", () => {
@@ -51,6 +47,19 @@ describe('TpMatchPathsService', () => {
       ['an empty path', ''],
     ])('does not match %s', (_label, path) => {
       expect(paths.matchFrontendPath(path)).toBeUndefined();
+    });
+  });
+
+  it("builds a match's request, sent from its page under its tournament", () => {
+    const baseUrls: TpBaseUrls = {
+      getBackendApiUrl: () => 'https://tp.example/api/',
+      getFrontendBaseUrl: () => 'https://tp.example/blood-bowl/',
+    };
+
+    expect(paths.request(baseUrls, 's30', 576264)).toEqual({
+      path: 'match/576264',
+      url: 'https://tp.example/api/match/576264',
+      referer: 'https://tp.example/blood-bowl/s30/match/576264',
     });
   });
 });

@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import type { TpBaseUrls } from './tp-request';
 import { TpRosterPathsService } from './tp-roster-paths.service';
 
 describe('TpRosterPathsService', () => {
@@ -11,11 +12,6 @@ describe('TpRosterPathsService', () => {
       providers: [TpRosterPathsService],
     }).compile();
     paths = moduleRef.get(TpRosterPathsService);
-  });
-
-  it("builds a roster's API path", () => {
-    expect(paths.apiPath(163386)).toBe('rosters/163386');
-    expect(paths.apiPath('r7')).toBe('rosters/r7');
   });
 
   it("builds a roster's frontend page path", () => {
@@ -45,6 +41,19 @@ describe('TpRosterPathsService', () => {
       ['an empty path', ''],
     ])('does not match %s', (_label, path) => {
       expect(paths.matchFrontendPath(path)).toBeUndefined();
+    });
+  });
+
+  it("builds a roster's request, sent from its roster page", () => {
+    const baseUrls: TpBaseUrls = {
+      getBackendApiUrl: () => 'https://tp.example/api/',
+      getFrontendBaseUrl: () => 'https://tp.example/blood-bowl/',
+    };
+
+    expect(paths.request(baseUrls, 163386)).toEqual({
+      path: 'rosters/163386',
+      url: 'https://tp.example/api/rosters/163386',
+      referer: 'https://tp.example/blood-bowl/roster/163386',
     });
   });
 });
