@@ -11,6 +11,7 @@ import {
   TeamsModule,
   TrophiesModule,
 } from '@blood-bowl-tracker/game-data';
+import { PlayersQueriesModule } from '@blood-bowl-tracker/game-data-queries';
 import { Module } from '@nestjs/common';
 
 import { SlashCommandRegistryModule } from '../slash-command-registry.module';
@@ -43,10 +44,10 @@ import { OptionValueResolverService } from './option-value-resolver.service';
  * directly here or in `SlashCommandsModule`.
  *
  * The game-data modules OptionValueResolverService resolves recorded
- * option ids through. PlayersModule supplies PlayersService and
- * StarPlayersService, plus IncompleteImportPlayersService for
- * /debugincompleteimport; CompetitionGroupsModule's only by-id lookup is
- * findByIdWithLeague.
+ * option ids through. PlayersModule supplies PlayersService;
+ * PlayersQueriesModule supplies StarPlayersService and
+ * IncompleteImportPlayersService (for /debugincompleteimport);
+ * CompetitionGroupsModule's only by-id lookup is findByIdWithLeague.
  */
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { OptionValueResolverService } from './option-value-resolver.service';
     CoachesModule,
     TeamsModule,
     PlayersModule,
+    PlayersQueriesModule,
     PositionsModule,
     TrophiesModule,
   ],

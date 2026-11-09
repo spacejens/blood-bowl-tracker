@@ -55,8 +55,6 @@ export { PlayerAdvancementReadsService } from './player-skills/player-advancemen
 export { PlayerSkillsModule } from './player-skills/player-skills.module';
 export type { PlayerSkillRow } from './player-skills/player-skills.service';
 export { PlayerSkillsService } from './player-skills/player-skills.service';
-export type { IncompleteImportTeamRow } from './players/incomplete-import-players.service';
-export { IncompleteImportPlayersService } from './players/incomplete-import-players.service';
 export { PlayerLastingInjuryBackfillService } from './players/player-lasting-injury-backfill.service';
 export { PlayersModule } from './players/players.module';
 export type { PlayerDetail } from './players/players.service';
@@ -64,13 +62,6 @@ export {
   PlayersService,
   PlayerUpsertConflictError,
 } from './players/players.service';
-export type {
-  StarPlayerDistinctTeamsHiredCount,
-  StarPlayerHire,
-  StarPlayerHireCount,
-  StarPlayerIdentity,
-} from './players/star-players.service';
-export { StarPlayersService } from './players/star-players.service';
 export { PositionRulesSetKeywordsModule } from './position-rules-set-keywords/position-rules-set-keywords.module';
 export type { PositionKeyword } from './position-rules-set-keywords/position-rules-set-keywords.service';
 export { PositionRulesSetKeywordsService } from './position-rules-set-keywords/position-rules-set-keywords.service';

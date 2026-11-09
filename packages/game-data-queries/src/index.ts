@@ -7,6 +7,8 @@ export type {
   OnThisDateVictim,
 } from './insights/on-this-date.service';
 export { OnThisDateService } from './insights/on-this-date.service';
+export type { IncompleteImportTeamRow } from './players/incomplete-import-players.service';
+export { IncompleteImportPlayersService } from './players/incomplete-import-players.service';
 export type {
   PlayerKillEntry,
   PlayerKillerInfo,
@@ -19,6 +21,13 @@ export type {
 } from './players/player-deepdive-counts.service';
 export { PlayerDeepdiveCountsService } from './players/player-deepdive-counts.service';
 export { PlayersQueriesModule } from './players/players-queries.module';
+export type {
+  StarPlayerDistinctTeamsHiredCount,
+  StarPlayerHire,
+  StarPlayerHireCount,
+  StarPlayerIdentity,
+} from './players/star-players.service';
+export { StarPlayersService } from './players/star-players.service';
 export { CharacteristicDisplayFormattingModule } from './shared/characteristic-display-formatting.module';
 export { CharacteristicDisplayFormattingService } from './shared/characteristic-display-formatting.service';
 export { PlayerContextNamesModule } from './shared/player-context-names.module';

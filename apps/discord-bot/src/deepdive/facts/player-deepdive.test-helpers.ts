@@ -14,7 +14,6 @@ import {
   PlayersService,
   PositionRulesSetKeywordsService,
   PositionRulesSetsService,
-  StarPlayersService,
   TrophyAwardsService,
   UnspentSppService,
 } from '@blood-bowl-tracker/game-data';
@@ -24,10 +23,11 @@ import type {
   PlayerKillerInfo,
 } from '@blood-bowl-tracker/game-data-queries';
 import {
+  CharacteristicDisplayFormattingService,
   PlayerDeathService,
   PlayerDeepdiveCountsService,
+  StarPlayersService,
 } from '@blood-bowl-tracker/game-data-queries';
-import { CharacteristicDisplayFormattingService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';

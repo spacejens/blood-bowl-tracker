@@ -6,7 +6,6 @@ import type {
   PlayerSkillRow,
   PositionCharacteristicsContext,
   PositionKeyword,
-  StarPlayerIdentity,
   UnspentSppResult,
 } from '@blood-bowl-tracker/game-data';
 import {
@@ -15,7 +14,6 @@ import {
   PlayersService,
   PositionRulesSetKeywordsService,
   PositionRulesSetsService,
-  StarPlayersService,
   TrophyAwardsService,
   UnspentSppService,
 } from '@blood-bowl-tracker/game-data';
@@ -23,12 +21,14 @@ import type {
   PlayerDeepdiveCategoryCounts,
   PlayerKillEntry,
   PlayerKillerInfo,
+  StarPlayerIdentity,
 } from '@blood-bowl-tracker/game-data-queries';
 import {
+  CharacteristicDisplayFormattingService,
   PlayerDeathService,
   PlayerDeepdiveCountsService,
+  StarPlayersService,
 } from '@blood-bowl-tracker/game-data-queries';
-import { CharacteristicDisplayFormattingService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable, Logger } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 

@@ -7,10 +7,10 @@ import {
   PlayersService,
   PositionsService,
   RacesService,
-  StarPlayersService,
   TeamsService,
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
+import { StarPlayersService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { AutocompleteInteraction } from 'discord.js';
 

@@ -1,4 +1,4 @@
-import { IncompleteImportPlayersService } from '@blood-bowl-tracker/game-data';
+import { IncompleteImportPlayersService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 import { ButtonStyle, ComponentType, MessageFlags } from 'discord.js';

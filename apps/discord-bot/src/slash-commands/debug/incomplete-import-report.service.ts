@@ -1,4 +1,4 @@
-import type { IncompleteImportTeamRow } from '@blood-bowl-tracker/game-data';
+import type { IncompleteImportTeamRow } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 
 import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
