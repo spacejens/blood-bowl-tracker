@@ -30,7 +30,7 @@ Takes no arguments; always runs the full fixed criteria list below against the w
 
 - **No worktree, no branch, no code changes** — the same non-goals as `write-issue`. This skill does **not** follow `develop-feature`'s Setup / Development / Self-review / Integration phases the way `code-hygiene` does, because it produces no commits and no PR. It runs against the current checkout.
 - **Phase 3 reuses `write-issue`'s Phase 3 (Draft and create) by reference**, in its new-parent-with-sub-issues mode — read `.claude/skills/write-issue/SKILL.md` and follow that phase, rather than duplicating its steps here, so the two skills can't drift out of sync. This is the same cross-reference pattern `code-hygiene` uses for `develop-feature`'s Setup phase.
-- **`write-issue`'s Phase 1 (Enumerate candidates) and Phase 2 (Refine each candidate) are not used.** This skill's own Phase 1 below already produces evidence-backed candidates, so there is nothing to enumerate from a free-form prompt; and `write-issue`'s Phase 2 purpose/scope dialogue and cross-tool impact review don't apply to findings that already carry their own evidence and scope. This skill's own Phase 2 confirmation stands in for `write-issue`'s Phase 1 confirmation — the same way `code-hygiene` skips the `develop-feature` steps that don't apply to fixed, non-conversational work.
+- **`write-issue`'s Phase 1 (Enumerate candidates) and Phase 2 (Refine each candidate) are not used.** This skill's own Phase 1 below already produces evidence-backed findings, which its Phase 2 groups into candidates, so there is nothing to enumerate from a free-form prompt; and `write-issue`'s Phase 2 purpose/scope dialogue and cross-tool impact review don't apply to findings that already carry their own evidence and scope. This skill's own Phase 2 confirmation stands in for `write-issue`'s Phase 1 confirmation — the same way `code-hygiene` skips the `develop-feature` steps that don't apply to fixed, non-conversational work.
 - **Kind labels come from the "Issue labels" section of [docs/development-workflow.md](../../../docs/development-workflow.md)**, reached through `write-issue`'s Phase 3 step 4, which already applies it. Do not duplicate that logic in this file either.
 
 ## Phase 1: Review — fan out one subagent per criterion
@@ -57,7 +57,7 @@ A single criterion may yield **more than one** finding when the occurrences diff
 
 Each agent returns a list of distinct **problem-type findings**, each with:
 
-- **Title** — a short phrase naming the problem type; becomes the basis of a sub-issue title.
+- **Title** — a short phrase naming the problem type; feeds into the title of its issue group in Phase 2.
 - **Description** — plain text: what the problem is, and why it matters. No implementation prescription.
 - **Evidence** — a representative sample of `file:line` locations, plus a **total occurrence count**. For a widespread finding the sample is capped (roughly 5–10 locations) and the count carries the rest; an exhaustive list of hundreds of locations is not wanted.
 
@@ -103,7 +103,7 @@ An agent that finds nothing for its criterion reports an empty finding list. Tha
    - **If every criterion returned an empty finding list, there is nothing to file.** Report a clean pass and **stop** here, before presenting anything — do not construct or offer a lone parent candidate with nothing under it.
 2. **Sort the findings into issue groups.** Each **issue group** becomes exactly one sub-issue and contains one or more problem-type findings ("kinds"). Decide the grouping yourself; do not ask the developer how to group. The rule: findings merge when the person fixing them stays in one mindset and does the same kind of edit throughout.
    - Merge all comment problems into one group, even across criteria: narrated history, "previously X, now Y" references, issue-number references, stale claims, and comments that only make sense from inside the session that wrote them.
-   - Merge consistency drift of one flavour when the theme is the same — for example null/undefined drift with null/undefined drift, date/time with date/time, error handling with error handling, naming with naming.
+   - Merge consistency drift of one flavour when the theme is the same — for example several null/undefined drift findings from different packages, several date/time findings, several error-handling findings, or several naming findings.
    - Do not merge findings just because they share files or a package; that can make context switching worse.
    - Keep very different kinds of work apart — for example a service/loose-function refactor, a documentation rewrite, and Discord output formatting each stay in their own group.
    - **Title self-check.** Give each group a reasonably short, descriptive title: roughly under 70 characters, and not an "and" chain of unrelated nouns. If a group cannot be titled that way, the merge is too broad — split it back into smaller groups and title each.
