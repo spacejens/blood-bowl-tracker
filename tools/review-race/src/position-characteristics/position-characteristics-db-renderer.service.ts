@@ -1,5 +1,6 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB, inArray, positionRulesSets } from '@blood-bowl-tracker/db';
+import { PLAYER_CHARACTERISTICS } from '@blood-bowl-tracker/domain-enums';
 import type { TableCell, TableRow } from '@blood-bowl-tracker/review-harness';
 import {
   CharacteristicFormatService,
@@ -126,7 +127,7 @@ export class PositionCharacteristicsDbRendererService {
       });
     return (
       this.html.subheading(rulesSet.rulesSetName) +
-      this.html.table(['Position', 'MA', 'ST', 'AG', 'PA', 'AV'], rows)
+      this.html.table(['Position', ...PLAYER_CHARACTERISTICS], rows)
     );
   }
 

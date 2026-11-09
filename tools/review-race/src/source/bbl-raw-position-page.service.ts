@@ -1,3 +1,4 @@
+import { PLAYER_CHARACTERISTICS } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 import * as cheerio from 'cheerio';
 
@@ -7,9 +8,6 @@ import { BblSkillEntryService } from './bbl-skill-entry.service';
 
 /** BBL's own position ids are always plain numbers (the `typID` param). */
 const NUMERIC_TYP_ID = /^\d+$/;
-
-/** The characteristics table's header cells, in column order. */
-const CHARACTERISTIC_HEADERS = ['MA', 'ST', 'AG', 'PA', 'AV'] as const;
 
 /** One position's raw characteristics line, exactly as the page shows it. */
 export interface BblRawCharacteristics {
@@ -115,16 +113,16 @@ export class BblRawPositionPageService {
         .children('th, td')
         .toArray()
         .map((cell) => this.text($(cell).text()));
-      if (CHARACTERISTIC_HEADERS.some((header, i) => headers[i] !== header)) {
+      if (PLAYER_CHARACTERISTICS.some((header, i) => headers[i] !== header)) {
         continue;
       }
       const cells = $(row).next('tr').children('td').toArray();
-      if (cells.length < CHARACTERISTIC_HEADERS.length) {
+      if (cells.length < PLAYER_CHARACTERISTICS.length) {
         return null;
       }
       return this.characteristicsFrom(
         cells
-          .slice(0, CHARACTERISTIC_HEADERS.length)
+          .slice(0, PLAYER_CHARACTERISTICS.length)
           .map((cell) => this.text($(cell).text())),
       );
     }
@@ -163,11 +161,11 @@ export class BblRawPositionPageService {
         .children('th, td')
         .toArray()
         .map((cell) => this.text($(cell).text()));
-      if (CHARACTERISTIC_HEADERS.some((header, i) => headers[i] !== header)) {
+      if (PLAYER_CHARACTERISTICS.some((header, i) => headers[i] !== header)) {
         continue;
       }
       const cells = $(row).next('tr').children('td').toArray();
-      const skillsCell = cells[CHARACTERISTIC_HEADERS.length];
+      const skillsCell = cells[PLAYER_CHARACTERISTICS.length];
       return skillsCell === undefined
         ? []
         : this.skillEntries.parseCell($(skillsCell).text());
