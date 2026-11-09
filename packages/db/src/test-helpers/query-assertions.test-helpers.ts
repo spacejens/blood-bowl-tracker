@@ -128,7 +128,6 @@ export function extractJoinColumns(condition: unknown): string[] {
  * (`lag(`, `over (partition by`, `max(`, `avg(`, `round(`, ` asc` / ` desc`).
  * Interpolated values are omitted — under mockDb they are mock objects, not
  * real columns. Accepts a bare `SQL` or an aliased one (`sql`...`.as('x')`).
- * Hoisted from `coaches.service.spec.ts` once a second spec needed it.
  */
 export function sqlText(expr: unknown): string {
   const node = is(expr, SQL) ? expr : (expr as { sql?: unknown } | null)?.sql;

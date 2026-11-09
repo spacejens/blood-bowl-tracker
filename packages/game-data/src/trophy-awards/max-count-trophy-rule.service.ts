@@ -60,12 +60,10 @@ export class MaxCountTrophyRuleService {
    * or none at all when the maximum is zero or more players tie than the
    * trophy's cutoff allows.
    *
-   * The join graph mirrors `MatchEventCountsService.countMatchEventsByPlayer`:
-   * through `match_teams` to `matches` (for the competition scope) and on to
-   * `team_eras`/`eras` (which `MatchScopeFilterService` needs for its other
-   * scopes). Star players are excluded for the reason that service documents —
-   * each hire is its own `players` row, so no single row carries a star's real
-   * record. The award's team era is the player's own, which is what a
+   * The join graph runs through `match_teams` to `matches` (for the competition
+   * scope) and on to `team_eras`/`eras` (which `MatchScopeFilterService` needs
+   * for its other scopes). Star players are excluded because each hire is its
+   * own `players` row, so no single row carries a star's real record. The award's team era is the player's own, which is what a
    * `trophy_awards` row for a player must name.
    *
    * `limit` fetches one row beyond the cutoff: that extra row is exactly what

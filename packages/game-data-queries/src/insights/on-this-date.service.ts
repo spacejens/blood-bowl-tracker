@@ -31,12 +31,12 @@ import {
   DEFLECTION_TYPES,
   FOUL_TYPES,
   INTERCEPTION_TYPES,
+  MatchScopeFilterService,
   SERIOUS_INJURY_CAUSED_TYPES,
   SERIOUS_INJURY_SUFFERED_TYPES,
   THROW_TEAM_MATE_TYPES,
   TOUCHDOWN_TYPES,
 } from '@blood-bowl-tracker/game-data';
-import { MatchScopeFilterService } from '@blood-bowl-tracker/game-data';
 import { Inject, Injectable } from '@nestjs/common';
 
 import type { PlayerKillerInfo } from '../players/player-death.service';

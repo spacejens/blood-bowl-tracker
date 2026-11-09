@@ -55,7 +55,7 @@ export class CoachesQueriesService {
   /**
    * Every era any of this coach's teams belongs to, oldest first. Joins through
    * `teams` rather than filtering `teamEras.teamId` directly (as the team-side
-   * sibling `TeamsService.listEras` does) because a coach can own several
+   * sibling `TeamsQueriesService.listEras` does) because a coach can own several
    * teams; `groupBy` then collapses an era that two of those teams share, which
    * would otherwise be listed twice.
    */
