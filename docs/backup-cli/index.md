@@ -216,8 +216,8 @@ environment to fix (see
 | `storage.bucket`                                           | `BACKUP_STORAGE_BUCKET`            | storage commands  |
 | `storage.accessKeyId`                                      | `BACKUP_STORAGE_ACCESS_KEY_ID`     | storage commands  |
 | `storage.secretAccessKey`                                  | `BACKUP_STORAGE_SECRET_ACCESS_KEY` | storage commands  |
-| `database.url`                                             | `DATABASE_URL`              | `create`          |
-| `localDatabase.url` (default: the docker-compose database) | `LOCAL_DATABASE_URL`        | `restore`         |
+| `database.url`                                             | `DATABASE_URL`                     | `create`          |
+| `localDatabase.url` (default: the docker-compose database) | `LOCAL_DATABASE_URL`               | `restore`         |
 | `retentionDays` (default 30)                               | `BACKUP_RETENTION_DAYS`            | `prune`           |
 | `maxAgeHours` (default 36)                                 | `BACKUP_MAX_AGE_HOURS`             | `check-freshness` |
 
