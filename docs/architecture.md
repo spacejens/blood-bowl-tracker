@@ -372,6 +372,22 @@ Migrations, history tracking and re-running importers are documented in
 [database.md](database.md), which links to the pages on how Star Player
 Points, characteristics and skills are stored.
 
+## Environment variable naming
+
+- `DATABASE_URL` is the only name any app or tool reads for its main
+  Postgres connection string. No tool reads a prefixed alias of it, so one
+  exported value works everywhere.
+- A tool that needs a second database, a different target from its main
+  one, gives that one its own explicit name rather than a prefix on
+  `DATABASE_URL`: backup-cli's restore target is `LOCAL_DATABASE_URL`.
+- GitHub secrets are named for their environment, such as
+  `PRODUCTION_DATABASE_URL`. A workflow step maps the secret into
+  `DATABASE_URL` in its `env` (see `backup-production.yml`); a calling
+  workflow such as `deploy.yml` forwards the secret under its own name.
+- Settings that are not a Postgres connection string may carry a tool
+  prefix, which keeps them from colliding across tools: backup-cli's
+  `BACKUP_STORAGE_*`, `BACKUP_RETENTION_DAYS` and `BACKUP_MAX_AGE_HOURS`.
+
 ## Discord bot user-facing messages
 
 Every error or status message the Discord bot can send to a user lives in
