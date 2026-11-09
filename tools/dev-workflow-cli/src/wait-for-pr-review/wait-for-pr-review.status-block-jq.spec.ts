@@ -33,6 +33,37 @@ function walkthroughBody(statusText: string | undefined): string {
   );
 }
 
+/**
+ * A real in-progress rolling comment body as CodeRabbit wrote it while a pass
+ * was running, abridged: every generated HTML-comment marker and the `[!NOTE]`
+ * banner block are verbatim, everything else is shortened to a line. It holds
+ * neither a `recent_review_status` block nor a `recent_review` section.
+ */
+const REAL_IN_PROGRESS_BODY = [
+  '<!-- coderabbit-ai-generated:v1 -->',
+  '',
+  '<!-- This is an auto-generated comment: summarize by coderabbit.ai -->',
+  '<!-- review_stack_entry_start -->',
+  '',
+  'Change stack button',
+  '',
+  '<!-- review_stack_entry_end -->',
+  '<!-- This is an auto-generated comment: review in progress by coderabbit.ai -->',
+  '',
+  '> [!NOTE]',
+  '> <picture><source media="(prefers-color-scheme: dark)" srcset="https://storage.googleapis.com/coderabbit_public_assets/review-in-progress-v2/loading-dark.gif"><source media="(prefers-color-scheme: light)" srcset="https://storage.googleapis.com/coderabbit_public_assets/review-in-progress-v2/loading-light.gif"><img width="491" alt="CodeRabbit ASCII loading animation" src="https://storage.googleapis.com/coderabbit_public_assets/review-in-progress-v2/loading-light.gif"></picture>',
+  '> ',
+  '> Currently processing new changes in this PR. This may take a few minutes, please wait...',
+  '',
+  '<details>',
+  '<summary><strong>Review info</strong></summary>',
+  'Run configuration, commit range and the selected files.',
+  '</details>',
+  '',
+  '<!-- end of auto-generated comment: review in progress by coderabbit.ai -->',
+  '',
+].join('\n');
+
 interface RollingResult {
   readonly completion: {
     readonly id: string;
@@ -120,6 +151,12 @@ describe.skipIf(!JQ_AVAILABLE)(
       expect(completion?.status).toBe('');
       expect(completion?.section).toContain(CLEAN_VERDICT);
       expect(completion?.section).toContain(HEAD_SHA);
+    });
+
+    it('emits no completion for a real in-progress banner body', () => {
+      const { completion } = evaluate(REAL_IN_PROGRESS_BODY);
+
+      expect(completion).toBeNull();
     });
 
     it('emits nothing when there is no status block and the section carries no verdict', () => {

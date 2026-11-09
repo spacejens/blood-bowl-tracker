@@ -1,5 +1,6 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB, eq, players } from '@blood-bowl-tracker/db';
+import { PLAYER_CHARACTERISTICS } from '@blood-bowl-tracker/domain-enums';
 import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -8,11 +9,7 @@ import type { SampledPlayer } from '../shared/review.types';
 const HEADERS = [
   'Miss next game',
   'Niggling',
-  'MA',
-  'ST',
-  'AG',
-  'PA',
-  'AV',
+  ...PLAYER_CHARACTERISTICS,
 ] as const;
 
 /**

@@ -1,4 +1,7 @@
-import type { PlayerLastingInjuries } from '@blood-bowl-tracker/api-contract';
+import type {
+  CharacteristicLine,
+  PlayerLastingInjuries,
+} from '@blood-bowl-tracker/api-contract';
 import type { Db } from '@blood-bowl-tracker/db';
 import {
   and,
@@ -46,7 +49,8 @@ import type { TeamTopPlayer } from '../shared/team-top-player';
  * One player with the names and ids of their team, race, position and era —
  * what `PlayersQueriesService.findById` returns for a player deepdive.
  */
-export interface PlayerDetail extends PlayerLastingInjuries {
+export interface PlayerDetail
+  extends PlayerLastingInjuries, CharacteristicLine {
   id: number;
   name: string;
   teamName: string;
@@ -69,11 +73,6 @@ export interface PlayerDetail extends PlayerLastingInjuries {
    * source has reported one (unknown), never "active".
    */
   status: PlayerStatus | null;
-  move: number;
-  strength: number;
-  agility: number;
-  passing: number | null;
-  armour: number;
 }
 
 /**

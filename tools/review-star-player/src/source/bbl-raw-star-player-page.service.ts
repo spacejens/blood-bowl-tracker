@@ -1,3 +1,4 @@
+import { PLAYER_CHARACTERISTICS } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 import * as cheerio from 'cheerio';
 
@@ -11,9 +12,6 @@ const NUMERIC_TYP_ID = /^\d+$/;
 
 /** The marker cell every star player's page carries. */
 const STAR_MARKER = 'None (star player)';
-
-/** The characteristics table's header cells, in column order. */
-const CHARACTERISTIC_HEADERS = ['MA', 'ST', 'AG', 'PA', 'AV'] as const;
 
 /** `inducement price: 230 000 gp`, as the page writes a star's cost. */
 const INDUCEMENT_PRICE = /inducement price:\s*([\d\s.,]+gp)/i;
@@ -183,7 +181,7 @@ export class BblRawStarPlayerPageService {
     row: NonNullable<ReturnType<typeof this.characteristicsRow>>,
   ): string | null {
     const cells = row.children('td').toArray();
-    const skills = cells[CHARACTERISTIC_HEADERS.length];
+    const skills = cells[PLAYER_CHARACTERISTICS.length];
     const text = skills === undefined ? '' : this.text($(skills).text());
     return text === '' ? null : text;
   }
@@ -193,11 +191,11 @@ export class BblRawStarPlayerPageService {
     row: NonNullable<ReturnType<typeof this.characteristicsRow>>,
   ): BblRawCharacteristics | null {
     const cells = row.children('td').toArray();
-    if (cells.length < CHARACTERISTIC_HEADERS.length) {
+    if (cells.length < PLAYER_CHARACTERISTICS.length) {
       return null;
     }
     const texts = cells
-      .slice(0, CHARACTERISTIC_HEADERS.length)
+      .slice(0, PLAYER_CHARACTERISTICS.length)
       .map((cell) => this.text($(cell).text()));
     return this.characteristicsFrom(texts);
   }
@@ -209,7 +207,7 @@ export class BblRawStarPlayerPageService {
         .children('th, td')
         .toArray()
         .map((cell) => this.text($(cell).text()));
-      if (CHARACTERISTIC_HEADERS.every((header, i) => headers[i] === header)) {
+      if (PLAYER_CHARACTERISTICS.every((header, i) => headers[i] === header)) {
         const next = $(row).next('tr');
         return next.length > 0 ? next : null;
       }
