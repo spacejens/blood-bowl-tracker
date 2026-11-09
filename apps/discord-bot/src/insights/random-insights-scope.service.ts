@@ -1,5 +1,7 @@
-import { ErasService } from '@blood-bowl-tracker/game-data';
-import { CompetitionsQueriesService } from '@blood-bowl-tracker/game-data-queries';
+import {
+  CompetitionsQueriesService,
+  ErasQueriesService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 
 import { DiscordBotConfigService } from '../discord-bot-config.service';
@@ -26,7 +28,7 @@ export class RandomInsightsScopeService {
   constructor(
     private readonly config: DiscordBotConfigService,
     private readonly random: RandomSourceService,
-    private readonly eras: ErasService,
+    private readonly erasQueries: ErasQueriesService,
     private readonly competitionsQueries: CompetitionsQueriesService,
   ) {}
 
@@ -78,7 +80,7 @@ export class RandomInsightsScopeService {
   private async pickCandidateEras(): Promise<
     { id: number; name: string; startDate: string; endDate: string | null }[]
   > {
-    const all = await this.eras.listErasWithLeague({});
+    const all = await this.erasQueries.listErasWithLeague({});
     const preferCurrent = this.random.rollPercent(
       this.config.getRandomInsightsFilterCurrentEraProbability(),
     );

@@ -1,10 +1,8 @@
 import type { FactScope } from '@blood-bowl-tracker/game-data';
 import {
   CompetitionsService,
-  ErasService,
   ExternalSystemsService,
   KeywordsService,
-  LeaguesService,
   MatchesService,
   RulesSetsService,
   TrophiesService,
@@ -13,6 +11,8 @@ import {
   CoachesQueriesService,
   CompetitionGroupsQueriesService,
   CompetitionsQueriesService,
+  ErasQueriesService,
+  LeaguesQueriesService,
   PlayersQueriesService,
   PositionsQueriesService,
   RacesQueriesService,
@@ -137,7 +137,7 @@ type LeagueCounts = [
 @Injectable()
 export class StatsSummaryFactsService {
   constructor(
-    private readonly leagues: LeaguesService,
+    private readonly leaguesQueries: LeaguesQueriesService,
     private readonly externalSystems: ExternalSystemsService,
     private readonly rulesSets: RulesSetsService,
     private readonly racesQueries: RacesQueriesService,
@@ -145,7 +145,7 @@ export class StatsSummaryFactsService {
     private readonly skillsQueries: SkillsQueriesService,
     private readonly keywords: KeywordsService,
     private readonly coachesQueries: CoachesQueriesService,
-    private readonly eras: ErasService,
+    private readonly erasQueries: ErasQueriesService,
     private readonly competitions: CompetitionsService,
     private readonly competitionsQueries: CompetitionsQueriesService,
     private readonly competitionGroupsQueries: CompetitionGroupsQueriesService,
@@ -208,7 +208,7 @@ export class StatsSummaryFactsService {
   > {
     const counts = await this.databaseTimeout.run<number[] | null>(
       Promise.all([
-        this.leagues.countAll(),
+        this.leaguesQueries.countAll(),
         this.externalSystems.countAll(),
         this.rulesSets.countAll(),
         this.racesQueries.countAll(),
@@ -216,7 +216,7 @@ export class StatsSummaryFactsService {
         this.skillsQueries.countAll(),
         this.keywords.countAll(),
         this.coachesQueries.countAll(),
-        this.eras.countAll(),
+        this.erasQueries.countAll(),
         this.competitionsQueries.countAll(),
         this.competitionsQueries.countByType('season'),
         this.competitionsQueries.countByType('cup'),
@@ -293,7 +293,7 @@ export class StatsSummaryFactsService {
         this.playersQueries.countByEra(eraId),
         this.matches.countByEra(eraId),
         this.matches.countMatchEventsByEra(eraId),
-        this.eras.getRulesSetNames(eraId),
+        this.erasQueries.getRulesSetNames(eraId),
       ]),
       null,
     );
@@ -359,7 +359,7 @@ export class StatsSummaryFactsService {
         this.playersQueries.countByCompetition(competitionId),
         this.matches.countByCompetition(competitionId),
         this.matches.countMatchEventsByCompetition(competitionId),
-        this.eras.getRulesSetNames(competition.eraId),
+        this.erasQueries.getRulesSetNames(competition.eraId),
       ]),
       null,
     );
@@ -411,7 +411,7 @@ export class StatsSummaryFactsService {
   ): Promise<string | InteractionReplyOptions> {
     const counts = await this.databaseTimeout.run<LeagueCounts | null>(
       Promise.all([
-        this.eras.countByLeague(leagueId),
+        this.erasQueries.countByLeague(leagueId),
         this.externalSystems.countByLeague(leagueId),
         this.racesQueries.countByLeague(leagueId),
         this.positionsQueries.countByLeague(leagueId),
@@ -427,7 +427,7 @@ export class StatsSummaryFactsService {
         this.playersQueries.countByLeague(leagueId),
         this.matches.countByLeague(leagueId),
         this.matches.countMatchEventsByLeague(leagueId),
-        this.eras.getRulesSetNamesByLeague(leagueId),
+        this.erasQueries.getRulesSetNamesByLeague(leagueId),
       ]),
       null,
     );

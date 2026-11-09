@@ -70,7 +70,7 @@ export class CompetitionGroupsQueriesService {
    * competitions so a group with zero competitions still appears with a
    * `competitionCount` of `0` rather than being dropped. Optionally narrowed
    * to one league, mirroring `TrophiesService.listAllWithLeague` and
-   * `ErasService.listErasWithLeague`.
+   * `ErasQueriesService.listErasWithLeague`.
    */
   listAllWithLeagueAndCount(scope: FactScope): Promise<
     {
@@ -103,7 +103,7 @@ export class CompetitionGroupsQueriesService {
 
   /**
    * Case-insensitive prefix search for the `/deepdive competition-group:`
-   * autocomplete. Mirrors `ErasService.searchByNamePrefix`: the caller's raw
+   * autocomplete. Mirrors `ErasQueriesService.searchByNamePrefix`: the caller's raw
    * text is escaped before it becomes an ILIKE pattern, so `%`/`_` match
    * literally.
    */

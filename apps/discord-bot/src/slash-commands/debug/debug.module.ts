@@ -1,13 +1,13 @@
 import { DiscordBotUsageModule } from '@blood-bowl-tracker/discord-bot-usage';
 import {
   CompetitionsModule,
-  ErasModule,
-  LeaguesModule,
   TrophiesModule,
 } from '@blood-bowl-tracker/game-data';
 import {
   CoachesQueriesModule,
   CompetitionGroupsQueriesModule,
+  ErasQueriesModule,
+  LeaguesQueriesModule,
   PlayersQueriesModule,
   PositionsQueriesModule,
   RacesQueriesModule,
@@ -55,8 +55,8 @@ import { OptionValueResolverService } from './option-value-resolver.service';
     DiscordBotUsageModule,
     SlashCommandRegistryModule,
     RacesQueriesModule,
-    ErasModule,
-    LeaguesModule,
+    ErasQueriesModule,
+    LeaguesQueriesModule,
     CompetitionsModule,
     CompetitionGroupsQueriesModule,
     CoachesQueriesModule,

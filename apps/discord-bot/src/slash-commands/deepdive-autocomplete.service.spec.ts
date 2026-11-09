@@ -1,12 +1,10 @@
-import {
-  ErasService,
-  LeaguesService,
-  TrophiesService,
-} from '@blood-bowl-tracker/game-data';
+import { TrophiesService } from '@blood-bowl-tracker/game-data';
 import {
   CoachesQueriesService,
   CompetitionGroupsQueriesService,
   CompetitionsQueriesService,
+  ErasQueriesService,
+  LeaguesQueriesService,
   PlayersQueriesService,
   PositionsQueriesService,
   RacesQueriesService,
@@ -47,7 +45,7 @@ function autocompleteInteraction(
 
 describe('DeepdiveAutocompleteService', () => {
   let service: DeepdiveAutocompleteService;
-  let eras: MockProxy<ErasService>;
+  let eras: MockProxy<ErasQueriesService>;
   let competitions: MockProxy<CompetitionsQueriesService>;
   let competitionGroups: MockProxy<CompetitionGroupsQueriesService>;
   let coaches: MockProxy<CoachesQueriesService>;
@@ -57,10 +55,10 @@ describe('DeepdiveAutocompleteService', () => {
   let races: MockProxy<RacesQueriesService>;
   let stars: MockProxy<StarPlayersService>;
   let trophies: MockProxy<TrophiesService>;
-  let leagues: MockProxy<LeaguesService>;
+  let leagues: MockProxy<LeaguesQueriesService>;
 
   beforeEach(async () => {
-    eras = mock<ErasService>();
+    eras = mock<ErasQueriesService>();
     competitions = mock<CompetitionsQueriesService>();
     competitionGroups = mock<CompetitionGroupsQueriesService>();
     coaches = mock<CoachesQueriesService>();
@@ -70,12 +68,12 @@ describe('DeepdiveAutocompleteService', () => {
     races = mock<RacesQueriesService>();
     stars = mock<StarPlayersService>();
     trophies = mock<TrophiesService>();
-    leagues = mock<LeaguesService>();
+    leagues = mock<LeaguesQueriesService>();
 
     const moduleRef = await Test.createTestingModule({
       providers: [
         DeepdiveAutocompleteService,
-        { provide: ErasService, useValue: eras },
+        { provide: ErasQueriesService, useValue: eras },
         { provide: CompetitionsQueriesService, useValue: competitions },
         {
           provide: CompetitionGroupsQueriesService,
@@ -88,7 +86,7 @@ describe('DeepdiveAutocompleteService', () => {
         { provide: RacesQueriesService, useValue: races },
         { provide: StarPlayersService, useValue: stars },
         { provide: TrophiesService, useValue: trophies },
-        { provide: LeaguesService, useValue: leagues },
+        { provide: LeaguesQueriesService, useValue: leagues },
       ],
     }).compile();
     service = moduleRef.get(DeepdiveAutocompleteService);

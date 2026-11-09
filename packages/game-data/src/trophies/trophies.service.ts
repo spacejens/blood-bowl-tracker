@@ -74,7 +74,7 @@ export class TrophiesService {
 
   /**
    * Case-insensitive prefix search for the `/deepdive trophy:` autocomplete.
-   * Mirrors `ErasService.searchByNamePrefix`: the caller's raw text is escaped
+   * Mirrors `ErasQueriesService.searchByNamePrefix`: the caller's raw text is escaped
    * before it becomes an ILIKE pattern, so `%`/`_` match literally.
    */
   searchByNamePrefix(

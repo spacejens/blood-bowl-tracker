@@ -1,9 +1,9 @@
 import type { CompetitionType } from '@blood-bowl-tracker/domain-enums';
+import { ExternalSystemsService } from '@blood-bowl-tracker/game-data';
 import {
-  ErasService,
-  ExternalSystemsService,
-} from '@blood-bowl-tracker/game-data';
-import { CompetitionsQueriesService } from '@blood-bowl-tracker/game-data-queries';
+  CompetitionsQueriesService,
+  ErasQueriesService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { ButtonStyle, ComponentType } from 'discord.js';
 import { describe, expect, it } from 'vitest';
@@ -53,7 +53,7 @@ type EraHeader = {
 };
 
 interface MakeServiceOptions {
-  eras: ErasService;
+  eras: ErasQueriesService;
   competitions: CompetitionsQueriesService;
   externalSystems: ExternalSystemsService;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
@@ -79,7 +79,7 @@ async function makeService({
   const moduleRef = await Test.createTestingModule({
     providers: [
       EraDeepdiveService,
-      { provide: ErasService, useValue: eras },
+      { provide: ErasQueriesService, useValue: eras },
       { provide: CompetitionsQueriesService, useValue: competitions },
       { provide: ExternalSystemsService, useValue: externalSystems },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
@@ -110,11 +110,11 @@ function makeServices(options: {
   competitions?: CompetitionRow[];
   externalSystemNames?: string[];
 }): {
-  eras: MockProxy<ErasService>;
+  eras: MockProxy<ErasQueriesService>;
   competitions: MockProxy<CompetitionsQueriesService>;
   externalSystems: MockProxy<ExternalSystemsService>;
 } {
-  const eras = mock<ErasService>();
+  const eras = mock<ErasQueriesService>();
   eras.findByIdWithLeague.mockResolvedValue(options.era);
   eras.getRulesSetNames.mockResolvedValue(options.rulesSetNames ?? []);
   const competitions = mock<CompetitionsQueriesService>();

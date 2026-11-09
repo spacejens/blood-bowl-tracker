@@ -1,9 +1,9 @@
 import type { CompetitionType } from '@blood-bowl-tracker/domain-enums';
+import { ExternalSystemsService } from '@blood-bowl-tracker/game-data';
 import {
-  ErasService,
-  ExternalSystemsService,
-} from '@blood-bowl-tracker/game-data';
-import { CompetitionsQueriesService } from '@blood-bowl-tracker/game-data-queries';
+  CompetitionsQueriesService,
+  ErasQueriesService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -50,7 +50,7 @@ type Competition = {
 @Injectable()
 export class EraDeepdiveService {
   constructor(
-    private readonly eras: ErasService,
+    private readonly erasQueries: ErasQueriesService,
     private readonly competitionsQueries: CompetitionsQueriesService,
     private readonly externalSystems: ExternalSystemsService,
     private readonly databaseTimeout: DatabaseTimeoutService,
@@ -61,7 +61,7 @@ export class EraDeepdiveService {
 
   async resolve(eraId: number): Promise<string | InteractionReplyOptions> {
     const era: EraHeader | undefined | null = await this.databaseTimeout.run(
-      this.eras.findByIdWithLeague(eraId),
+      this.erasQueries.findByIdWithLeague(eraId),
       null,
     );
     if (era === null) {
@@ -72,7 +72,7 @@ export class EraDeepdiveService {
     }
 
     const rulesSetNames: string[] | null = await this.databaseTimeout.run(
-      this.eras.getRulesSetNames(eraId),
+      this.erasQueries.getRulesSetNames(eraId),
       null,
     );
     if (rulesSetNames === null) {

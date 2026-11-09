@@ -1,9 +1,9 @@
+import { CompetitionsService } from '@blood-bowl-tracker/game-data';
 import {
-  CompetitionsService,
-  ErasService,
-  LeaguesService,
-} from '@blood-bowl-tracker/game-data';
-import { CompetitionsQueriesService } from '@blood-bowl-tracker/game-data-queries';
+  CompetitionsQueriesService,
+  ErasQueriesService,
+  LeaguesQueriesService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import type {
   AutocompleteInteraction,
@@ -402,8 +402,8 @@ function makeFactTreeMocks(): FactTreeMocks {
 
 export interface MakeServiceResult {
   service: InsightsCommandService;
-  leagues: MockProxy<LeaguesService>;
-  eras: MockProxy<ErasService>;
+  leagues: MockProxy<LeaguesQueriesService>;
+  eras: MockProxy<ErasQueriesService>;
   competitions: MockProxy<CompetitionsService>;
   competitionsQueries: MockProxy<CompetitionsQueriesService>;
   registry: MockProxy<SlashCommandRegistryService>;
@@ -416,11 +416,11 @@ export interface MakeServiceResult {
 }
 
 export async function makeService(): Promise<MakeServiceResult> {
-  const leagues = mock<LeaguesService>();
+  const leagues = mock<LeaguesQueriesService>();
   leagues.findById.mockResolvedValue(undefined);
   leagues.searchByNamePrefix.mockResolvedValue([]);
 
-  const eras = mock<ErasService>();
+  const eras = mock<ErasQueriesService>();
   eras.findById.mockResolvedValue(undefined);
   eras.searchByNamePrefix.mockResolvedValue([]);
 
@@ -444,8 +444,8 @@ export async function makeService(): Promise<MakeServiceResult> {
   const moduleRef = await Test.createTestingModule({
     providers: [
       InsightsCommandService,
-      { provide: LeaguesService, useValue: leagues },
-      { provide: ErasService, useValue: eras },
+      { provide: LeaguesQueriesService, useValue: leagues },
+      { provide: ErasQueriesService, useValue: eras },
       { provide: CompetitionsService, useValue: competitions },
       { provide: CompetitionsQueriesService, useValue: competitionsQueries },
       { provide: FACT_TREE, useValue: factTree },

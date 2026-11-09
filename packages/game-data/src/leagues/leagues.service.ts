@@ -4,17 +4,9 @@ import type {
   UpsertLeague,
 } from '@blood-bowl-tracker/api-contract';
 import type { Db, League } from '@blood-bowl-tracker/db';
-import {
-  DB,
-  eq,
-  ilike,
-  leagueExternalIds,
-  leagues,
-} from '@blood-bowl-tracker/db';
+import { DB, leagueExternalIds, leagues } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 
-import { countRows } from '../shared/count-all';
-import { LikePatternService } from '../shared/like-pattern.service';
 import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
@@ -23,10 +15,7 @@ export class LeagueUpsertConflictError extends UpsertConflictError {}
 
 @Injectable()
 export class LeaguesService {
-  constructor(
-    @Inject(DB) private readonly db: Db,
-    private readonly likePattern: LikePatternService,
-  ) {}
+  constructor(@Inject(DB) private readonly db: Db) {}
 
   async upsert(
     data: UpsertLeague,
@@ -74,30 +63,5 @@ export class LeaguesService {
       externalIdColumn: leagueExternalIds.externalId,
       externalIds,
     });
-  }
-
-  async findById(
-    id: number,
-  ): Promise<{ id: number; name: string } | undefined> {
-    const rows = await this.db
-      .select({ id: leagues.id, name: leagues.name })
-      .from(leagues)
-      .where(eq(leagues.id, id));
-    return rows[0];
-  }
-
-  searchByNamePrefix(
-    prefix: string,
-    limit: number,
-  ): Promise<{ id: number; name: string }[]> {
-    return this.db
-      .select({ id: leagues.id, name: leagues.name })
-      .from(leagues)
-      .where(ilike(leagues.name, `${this.likePattern.escape(prefix)}%`))
-      .limit(limit);
-  }
-
-  countAll(): Promise<number> {
-    return countRows(this.db, leagues);
   }
 }
