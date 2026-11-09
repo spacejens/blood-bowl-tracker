@@ -22,6 +22,7 @@ import {
   COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
+import { CompetitionTypeLabelService } from './competition-type-label.service';
 
 type EraHeader = {
   id: number;
@@ -55,6 +56,7 @@ export class EraDeepdiveService {
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
     private readonly dateRangeFormatter: DateRangeFormatterService,
+    private readonly competitionTypeLabel: CompetitionTypeLabelService,
   ) {}
 
   async resolve(eraId: number): Promise<string | InteractionReplyOptions> {
@@ -104,7 +106,7 @@ export class EraDeepdiveService {
       comps.length > 0
         ? comps.map(
             (comp) =>
-              `${comp.name} (${comp.type}): ${this.dateRangeFormatter.format(comp.startDate, comp.endDate)}`,
+              `${comp.name} (${this.competitionTypeLabel.label(comp.type)}): ${this.dateRangeFormatter.format(comp.startDate, comp.endDate)}`,
           )
         : [DEEPDIVE_NO_COMPETITIONS_MESSAGE];
 

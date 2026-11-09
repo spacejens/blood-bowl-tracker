@@ -359,8 +359,9 @@ crosses no dependency-direction rule.
 
 ## Database
 
-Migrations, history tracking and the Star Player Points model are
-documented in [database.md](database.md).
+Migrations, history tracking and re-running importers are documented in
+[database.md](database.md), which links to the pages on how Star Player
+Points, characteristics and skills are stored.
 
 ## Discord bot user-facing messages
 

@@ -30,6 +30,7 @@ import {
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
 import { PlayerRowButtonService } from '../player-row-button.service';
+import { CompetitionTypeLabelService } from './competition-type-label.service';
 
 type CompetitionHeader = {
   id: number;
@@ -90,6 +91,7 @@ export class CompetitionDeepdiveService {
     private readonly playerContext: PlayerContextService,
     private readonly dateRangeFormatter: DateRangeFormatterService,
     private readonly playerRowButton: PlayerRowButtonService,
+    private readonly competitionTypeLabel: CompetitionTypeLabelService,
   ) {}
 
   async resolve(
@@ -175,7 +177,7 @@ export class CompetitionDeepdiveService {
         : [];
 
     const descriptionLines = [
-      `Type: ${competition.type}`,
+      `Type: ${this.competitionTypeLabel.label(competition.type)}`,
       `Era: ${this.dateRangeFormatter.formatNamed(competition.eraName, competition.eraStartDate, competition.eraEndDate)}`,
       `Group: ${competition.competitionGroupName}`,
       `Dates: ${this.dateRangeFormatter.format(competition.startDate, competition.endDate)}`,

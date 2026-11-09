@@ -58,8 +58,8 @@ error, and dead, retired and departed players are worked out like any other.
   advancement of a given number, so the spend is exact. [BB2020](../../glossary.md#bb2020), [DB2021](../../glossary.md#db2021) and
   [BB2025](../../glossary.md#bb2025) price an advancement by its number and its kind, and the recorded
   history rarely pins both down. BBL does not say whether a gained skill was
-  rolled or chosen; the import works it out where it can (see **Chosen or
-  random on BBL** below).
+  rolled or chosen; the import works it out where it can (see
+  [Chosen or random on BBL](#chosen-or-random-on-bbl) below).
   Characteristic increases are advancements of their own kind, and an entry
   whose order is confirmed is pinned to its number while every other entry
   stays interchangeable. BBL's order is always confirmed; TP's only where its
@@ -70,53 +70,6 @@ error, and dead, retired and departed players are worked out like any other.
   the most it could be over every order and kind the history allows.
   A stored figure inside the range settles it to that one value; one outside
   it leaves the range and is flagged.
-- **The stored figure.** The player record holds unspent SPP only when it is
-  known exactly; an empty value means not known exactly, never an estimate.
-  How it is known depends on how the rules sets of the player's era price
-  advancements, and they must agree, or nothing is stored. Under fixed
-  thresholds (CRP, CRP+, BB2016) the cost depends only on how many
-  advancements there are, so it is the total less that cost, kept only when
-  the history makes it exact. A source's own figure is ignored there: BBL
-  prices every player at BB2020 costs. Under rules sets that price by kind
-  (BB2020, DB2021, BB2025) it is the figure the source reports (for a TP
-  player no roster file lists, the freshest match-embedded entry's), kept unless
-  it makes no sense on its own terms: negative, larger than the total
-  reported beside it, or reported beside a total other than the stored one.
-  It is never worked out from the range, and a figure outside the range is
-  still kept: the model pins only advancements whose order is confirmed and
-  treats every other order as unknown
-  ([#1234](https://github.com/spacejens/blood-bowl-tracker/issues/1234)),
-  or whether a BBL skill the reported spend leaves open was rolled or chosen,
-  and the stored figure is what shows the gap. A BBL figure on a rules set
-  that prices by kind can still be too low when BBL priced a rolled skill as
-  a chosen advancement; it is stored as reported unless it fails the checks
-  above. Being outside the range only points to a possible gap
-  in the history: free skills, an unrecorded order of advancements and
-  uncertainty over chosen or random can also cause it. Both sources'
-  figures are as of the download or import that read them.
-- **Chosen or random on BBL.** BBL's player page does not say how a gained
-  skill was gained, so the BBL import records it as gained by advancement.
-  Under rules sets that price by kind (BB2020, DB2021, BB2025) the SPP BBL
-  counts as spent, its career total less its unspent figure, is matched
-  against the cost table. When every order and kind of the player's
-  advancements that costs exactly that much, under every rules set of the
-  era that fits, agrees that a skill was rolled, or that it was chosen, the
-  skill is recorded so. The recorded source is therefore how BBL priced the
-  skill, which can differ from how it was gained when BBL priced a rolled
-  skill as a chosen advancement (see **The stored figure** above). It
-  stays recorded as gained by advancement when no order fits (an
-  inconsistent history), when the fits disagree (including over which of two
-  skills that could swap places was the rolled one), when the page gives no
-  usable unspent figure, and whenever the era only prices by fixed
-  thresholds, where every advancement costs the same.
-  `BblSkillSourceInferenceService` does this in the import's closing SPP
-  sync, before the unspent figure is stored; the stored figure is BBL's own
-  and does not depend on it. A skill settled once stays settled: a later
-  import re-sends it as gained by advancement, which keeps the recorded
-  chosen or random, and only the skills still open are worked out again.
-  The [player deepdive](../../discord-bot/slash-commands/deepdive-embeds-player.md#skills)
-  flags a skill still recorded as gained by advancement when the era prices
-  by kind, so it does not read as chosen.
 - **What counts as an advancement.** Starting skills and [free extra](../skills/index.md#player-skills)
   skills (a gained Hatred, a skill TP flags as extra, a skill a trophy granted
   such as Gudarnas Förkämpe's mutation) cost nothing and are not
@@ -162,3 +115,67 @@ error, and dead, retired and departed players are worked out like any other.
   figure against the range and against the source's own unspent figure. BBL's
   figures are never compared under the fixed-threshold rules sets; the stored
   figure, worked out from the history, covers those players.
+
+### The stored figure
+
+The player record holds unspent SPP only when it is known exactly; an empty
+value means not known exactly, never an estimate. How it is known depends on
+how the rules sets of the player's era price advancements, and they must
+agree, or nothing is stored.
+
+Under fixed thresholds (CRP, CRP+, BB2016) the cost depends only on how many
+advancements there are, so it is the total less that cost, kept only when the
+history makes it exact. A source's own figure is ignored there: BBL prices
+every player at BB2020 costs.
+
+Under rules sets that price by kind (BB2020, DB2021, BB2025) it is the figure
+the source reports (for a TP player no roster file lists, the freshest
+match-embedded entry's), kept unless it makes no sense on its own terms:
+negative, larger than the total reported beside it, or reported beside a total
+other than the stored one.
+
+It is never worked out from the range, and a figure outside the range is
+still kept: the model pins only advancements whose order is confirmed and
+treats every other order as unknown
+([#1234](https://github.com/spacejens/blood-bowl-tracker/issues/1234)),
+or whether a BBL skill the reported spend leaves open was rolled or chosen,
+and the stored figure is what shows the gap.
+
+A BBL figure on a rules set that prices by kind can still be too low when BBL
+priced a rolled skill as a chosen advancement; it is stored as reported unless
+it fails the checks above.
+
+Being outside the range only points to a possible gap in the history: free
+skills, an unrecorded order of advancements and uncertainty over chosen or
+random can also cause it. Both sources' figures are as of the download or
+import that read them.
+
+### Chosen or random on BBL
+
+BBL's player page does not say how a gained skill was gained, so the BBL
+import records it as gained by advancement. Under rules sets that price by
+kind (BB2020, DB2021, BB2025) the SPP BBL counts as spent, its career total
+less its unspent figure, is matched against the cost table.
+
+When every order and kind of the player's advancements that costs exactly that
+much, under every rules set of the era that fits, agrees that a skill was
+rolled, or that it was chosen, the skill is recorded so. The recorded source is
+therefore how BBL priced the skill, which can differ from how it was gained
+when BBL priced a rolled skill as a chosen advancement (see
+[The stored figure](#the-stored-figure) above).
+
+It stays recorded as gained by advancement when no order fits (an inconsistent
+history), when the fits disagree (including over which of two skills that could
+swap places was the rolled one), when the page gives no usable unspent figure,
+and whenever the era only prices by fixed thresholds, where every advancement
+costs the same.
+
+`BblSkillSourceInferenceService` does this in the import's closing SPP sync,
+before the unspent figure is stored; the stored figure is BBL's own and does
+not depend on it. A skill settled once stays settled: a later import re-sends
+it as gained by advancement, which keeps the recorded chosen or random, and
+only the skills still open are worked out again.
+
+The [player deepdive](../../discord-bot/slash-commands/deepdive-embeds-player.md#skills)
+flags a skill still recorded as gained by advancement when the era prices by
+kind, so it does not read as chosen.

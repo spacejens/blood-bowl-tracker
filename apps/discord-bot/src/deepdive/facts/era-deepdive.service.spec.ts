@@ -36,6 +36,12 @@ import {
   COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
+import { CompetitionTypeLabelService } from './competition-type-label.service';
+import {
+  makeCompetitionTypeLabel,
+  STUB_CUP_LABEL,
+  STUB_SEASON_LABEL,
+} from './competition-type-label-mock.test-helpers';
 import { EraDeepdiveService } from './era-deepdive.service';
 
 type EraHeader = {
@@ -53,6 +59,7 @@ interface MakeServiceOptions {
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   entityComponents?: MockProxy<EntityComponentsService>;
   dateRangeFormatter?: MockProxy<DateRangeFormatterService>;
+  competitionTypeLabel?: MockProxy<CompetitionTypeLabelService>;
 }
 
 async function makeService({
@@ -62,10 +69,12 @@ async function makeService({
   databaseTimeout = mockDatabaseTimeout(),
   entityComponents = nullEntityComponents(),
   dateRangeFormatter = mock<DateRangeFormatterService>(),
+  competitionTypeLabel = makeCompetitionTypeLabel(),
 }: MakeServiceOptions): Promise<{
   service: EraDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;
   dateRangeFormatter: MockProxy<DateRangeFormatterService>;
+  competitionTypeLabel: MockProxy<CompetitionTypeLabelService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -76,12 +85,14 @@ async function makeService({
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
       { provide: DateRangeFormatterService, useValue: dateRangeFormatter },
+      { provide: CompetitionTypeLabelService, useValue: competitionTypeLabel },
     ],
   }).compile();
   return {
     service: moduleRef.get(EraDeepdiveService),
     entityComponents,
     dateRangeFormatter,
+    competitionTypeLabel,
   };
 }
 
@@ -164,7 +175,7 @@ describe('EraDeepdiveService', () => {
       .mockReturnValueOnce('2021-09-01 – 2023-06-10')
       .mockReturnValueOnce('2021-09-05 – 2021-12-20')
       .mockReturnValueOnce('2022-01-10');
-    const { service } = await makeService({
+    const { service, competitionTypeLabel } = await makeService({
       eras,
       competitions,
       externalSystems,
@@ -181,8 +192,8 @@ describe('EraDeepdiveService', () => {
             'Rules sets: BB2016, BB2020',
             'External systems: BBL, NAF',
             '',
-            'Season 1 (season): 2021-09-05 – 2021-12-20',
-            'Winter Cup (cup): 2022-01-10',
+            `Season 1 (${STUB_SEASON_LABEL}): 2021-09-05 – 2021-12-20`,
+            `Winter Cup (${STUB_CUP_LABEL}): 2022-01-10`,
           ].join('\n'),
         },
       ],
@@ -192,6 +203,11 @@ describe('EraDeepdiveService', () => {
       ['2021-09-01', '2023-06-10'],
       ['2021-09-05', '2021-12-20'],
       ['2022-01-10', '2022-01-10'],
+    ]);
+    // one label per competition, from its own stored type, in listing order
+    expect(competitionTypeLabel.label.mock.calls).toEqual([
+      ['season'],
+      ['cup'],
     ]);
   });
 
@@ -236,7 +252,7 @@ describe('EraDeepdiveService', () => {
             'Rules sets: None recorded',
             'External systems: None recorded',
             '',
-            'Season 1 (season): 2021-09-05 – present',
+            `Season 1 (${STUB_SEASON_LABEL}): 2021-09-05 – present`,
           ].join('\n'),
         },
       ],
@@ -297,9 +313,9 @@ describe('EraDeepdiveService', () => {
       .embeds[0].description;
     const lines = description.split('\n');
     expect(lines.slice(-3)).toEqual([
-      'Early Season (season): 2021-09-05 – 2021-12-20',
-      'Later Cup (cup): 2022-01-10',
-      'Unplayed Cup (cup): 2022-06-01 – present',
+      `Early Season (${STUB_SEASON_LABEL}): 2021-09-05 – 2021-12-20`,
+      `Later Cup (${STUB_CUP_LABEL}): 2022-01-10`,
+      `Unplayed Cup (${STUB_CUP_LABEL}): 2022-06-01 – present`,
     ]);
   });
 
