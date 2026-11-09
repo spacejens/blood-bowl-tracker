@@ -152,10 +152,11 @@ in two panel pairs (an overview and a career history).
        shows each status, including the rare ones (TP and especially BBL have
        few temporarily retired players, so that stratum is often a gap). The
        two active strata do not overlap; an era has ended when
-       `eras.end_date` is set and before today's date in UTC. All six exclude star players,
-       like the random-sample stratum: a star hired through an
-       `inducements_roll` event has no TP status, so they would crowd the
-       unknown sample, and the star player review covers them separately.
+       `eras.end_date` is set and before today's date in UTC. All six
+       exclude star players, like the random-sample stratum: a star hired
+       through an `inducements_roll` event has no TP status, so they would
+       crowd the unknown sample, and the star player review covers them
+       separately.
 
    23. **Unspent SPP disagreeing with the modelled range or the source** —
        every player whose spend as the source reports it lies outside the
