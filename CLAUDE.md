@@ -105,8 +105,8 @@ five cases applies:
    class needs to operate on whichever entity table the caller has in mind right
    now." Forcing these into services means either losing the generic's
    compile-time type safety or multiplying into one boilerplate subclass per
-   entity, for no runtime benefit. Reference: `packages/game-data/src/shared/count-all.ts`
-   and the other `packages/game-data/src/shared/*.ts` helpers, plus the shared
+   entity, for no runtime benefit. Reference: `packages/game-data-queries/src/shared/count-all.ts`
+   and the `packages/game-data/src/shared/*.ts` helpers, plus the shared
    building blocks those helpers use from `packages/db`: `isUniqueViolationOn`
    (`packages/db/src/unique-violation.ts`, the pure 23505 classifier for their
    race recovery) and `asBaseTable` (`packages/db/src/as-base-table.ts`).
