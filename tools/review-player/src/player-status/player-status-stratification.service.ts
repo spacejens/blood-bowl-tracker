@@ -21,6 +21,7 @@ import type {
   StratumSampleRequest,
 } from '../shared/player-stratifier';
 import type { ReviewPlayer, ReviewStratum } from '../shared/review.types';
+import { UTC_TODAY } from './utc-today';
 
 const ACTIVE_RUNNING = 'status-active-running-era';
 const DEAD = 'status-dead';
@@ -28,8 +29,6 @@ const RETIRED = 'status-retired';
 const TEMPORARILY_RETIRED = 'status-temporarily-retired';
 const UNKNOWN = 'status-unknown';
 const ACTIVE_ENDED = 'status-active-ended-era';
-
-const TODAY = sql`current_date`;
 
 /**
  * Bounded random samples of players by stored status, so a run always
@@ -39,9 +38,9 @@ const TODAY = sql`current_date`;
  * report one leaves behind.
  *
  * Active players are split by whether their era has ended (`end_date`
- * non-null and before today, decided in SQL): an active player in a closed
- * era is a different reading than one still playing. The two active strata
- * do not overlap.
+ * non-null and before today's date in UTC, decided in SQL to match the bot's
+ * player status line): an active player in a closed era is a different
+ * reading than one still playing. The two active strata do not overlap.
  *
  * Excludes star players from every stratum: an induced star gets one
  * `players` row per hire and TP records no status for one, so they would
@@ -108,7 +107,7 @@ export class PlayerStatusStratificationService implements PlayerStratifier {
       case ACTIVE_RUNNING:
         return and(
           eq(players.status, 'active'),
-          or(isNull(eras.endDate), gte(eras.endDate, TODAY)),
+          or(isNull(eras.endDate), gte(eras.endDate, UTC_TODAY)),
         ) as SQL;
       case DEAD:
         return eq(players.status, 'dead');
@@ -122,7 +121,7 @@ export class PlayerStatusStratificationService implements PlayerStratifier {
         return and(
           eq(players.status, 'active'),
           isNotNull(eras.endDate),
-          lt(eras.endDate, TODAY),
+          lt(eras.endDate, UTC_TODAY),
         ) as SQL;
       default:
         throw new Error(

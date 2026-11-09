@@ -145,13 +145,14 @@ in two panel pairs (an overview and a career history).
    21. **Unknown status** — `playersPerStratum` players with no stored status
        (NULL: no source reported one).
    22. **Active, ended era** — `playersPerStratum` players whose stored status
-       is `active` and whose era's end date is set and earlier than today.
+       is `active` and whose era's end date is set and earlier than today's
+       date in UTC, matching the bot's player status line.
 
        None of these six is a finding on its own: they exist so a run always
        shows each status, including the rare ones (TP and especially BBL have
        few temporarily retired players, so that stratum is often a gap). The
        two active strata do not overlap; an era has ended when
-       `eras.end_date` is set and before today. All six exclude star players,
+       `eras.end_date` is set and before today's date in UTC. All six exclude star players,
        like the random-sample stratum: a star hired through an
        `inducements_roll` event has no TP status, so they would crowd the
        unknown sample, and the star player review covers them separately.

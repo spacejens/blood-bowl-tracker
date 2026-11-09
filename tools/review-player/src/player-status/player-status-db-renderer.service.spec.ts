@@ -122,7 +122,7 @@ describe('PlayerStatusDbRendererService', () => {
     expect(dbResult.chains[0].where).toHaveBeenCalled();
   });
 
-  it('computes eraEnded as an end date that is set and already past', async () => {
+  it('computes eraEnded as an end date that is set and before today in UTC', async () => {
     const dbResult = mockDb([storedRow()]);
     const service = await makeService(dbResult);
 
@@ -132,6 +132,9 @@ describe('PlayerStatusDbRendererService', () => {
     const fields = select.mock.calls[0][0] as { eraEnded: SQL };
     const query = new PgDialect().sqlToQuery(fields.eraEnded);
     expect(query.sql).toContain('"eras"."end_date" is not null');
-    expect(query.sql).toContain('"eras"."end_date" < current_date');
+    expect(query.sql).toContain(
+      `"eras"."end_date" < (now() at time zone 'UTC')::date`,
+    );
+    expect(query.sql).not.toContain('current_date');
   });
 });

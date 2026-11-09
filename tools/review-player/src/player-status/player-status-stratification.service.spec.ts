@@ -110,20 +110,26 @@ describe('PlayerStatusStratificationService', () => {
     expect(query.params).toEqual([false]);
   });
 
-  it('keeps active players whose era has no end date or one not yet passed', async () => {
+  it('keeps active players whose era has no end date or one not yet passed in UTC', async () => {
     const query = await whereFor('status-active-running-era');
 
     expect(query.params).toEqual([false, 'active']);
     expect(query.sql).toContain('"eras"."end_date" is null');
-    expect(query.sql).toContain('"eras"."end_date" >= current_date');
+    expect(query.sql).toContain(
+      `"eras"."end_date" >= (now() at time zone 'UTC')::date`,
+    );
+    expect(query.sql).not.toContain('current_date');
   });
 
-  it('keeps active players whose era end date has passed', async () => {
+  it('keeps active players whose era end date has passed in UTC', async () => {
     const query = await whereFor('status-active-ended-era');
 
     expect(query.params).toEqual([false, 'active']);
     expect(query.sql).toContain('"eras"."end_date" is not null');
-    expect(query.sql).toContain('"eras"."end_date" < current_date');
+    expect(query.sql).toContain(
+      `"eras"."end_date" < (now() at time zone 'UTC')::date`,
+    );
+    expect(query.sql).not.toContain('current_date');
   });
 
   it('samples randomly, bounded by the requested limit', async () => {
