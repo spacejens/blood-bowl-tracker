@@ -312,6 +312,30 @@ describe('CaptureCoderabbitCommentService', () => {
     });
   });
 
+  it('does not complete the settle window on a failed poll', async () => {
+    processRunner.run
+      .mockResolvedValueOnce(ghLines([IN_PROGRESS]))
+      .mockResolvedValueOnce(ghLines([DONE]))
+      .mockResolvedValueOnce(GH_FAILED)
+      .mockRejectedValueOnce(new Error('spawn failed'))
+      .mockResolvedValue(ghLines([LATE]));
+
+    const result = await runCapture({
+      prNumber: '1350',
+      intervalMs: 1000,
+      settleMs: 1000,
+    });
+
+    // IN at 0, DONE at 1s starts the window, 2s and 3s fail, LATE at 4s completes it.
+    expect(processRunner.run).toHaveBeenCalledTimes(5);
+    expect(result).toMatchObject({
+      leftInProgress: true,
+      timedOut: false,
+      failedPolls: 2,
+    });
+    expect(result.observations.map((o) => o.body)).toContain(LATE.body);
+  });
+
   it('times out during the settle window, still reporting the banner as gone', async () => {
     processRunner.run
       .mockResolvedValueOnce(ghLines([IN_PROGRESS]))

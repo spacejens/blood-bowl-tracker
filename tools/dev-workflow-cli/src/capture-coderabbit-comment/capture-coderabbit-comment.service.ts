@@ -117,7 +117,11 @@ export class CaptureCoderabbitCommentService {
     }
   }
 
-  /** True once the banner has stayed away for `settleMs` after being seen. */
+  /**
+   * True once the banner has stayed away for `settleMs` after being seen and
+   * the current poll succeeded and found it still gone; a failed poll never
+   * completes the window.
+   */
   private hasSettled(
     inProgressNow: boolean | undefined,
     state: CaptureState,
@@ -129,6 +133,7 @@ export class CaptureCoderabbitCommentService {
       state.settleStartedAt ??= Date.now();
     }
     return (
+      inProgressNow === false &&
       state.settleStartedAt !== undefined &&
       Date.now() - state.settleStartedAt >= settleMs
     );
