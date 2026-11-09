@@ -72,3 +72,7 @@ export { TeamAverageStatisticsService } from './teams/team-average-statistics.se
 export { TeamsQueriesModule } from './teams/teams-queries.module';
 export { TeamsQueriesService } from './teams/teams-queries.service';
 export { TeamsStatisticsService } from './teams/teams-statistics.service';
+export { TrophiesQueriesModule } from './trophies/trophies-queries.module';
+export type { TrophyHeader } from './trophies/trophies-queries.service';
+export { TrophiesQueriesService } from './trophies/trophies-queries.service';
+export { TrophyAwardRuleDescriptionService } from './trophies/trophy-award-rule-description.service';

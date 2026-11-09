@@ -54,7 +54,7 @@ export class CompetitionGroupsQueriesService {
    * Every competition group belonging to one league, ordered by name. The
    * league deepdive lists these and offers a drill-down button each; it needs
    * no more than the id and label, mirroring
-   * `TrophiesService.listByCompetitionGroup`.
+   * `TrophiesQueriesService.listByCompetitionGroup`.
    */
   listByLeague(leagueId: number): Promise<{ id: number; name: string }[]> {
     return this.db
@@ -69,7 +69,7 @@ export class CompetitionGroupsQueriesService {
    * belong to it, for the `/insights competitionGroups.list` fact. Left-joins
    * competitions so a group with zero competitions still appears with a
    * `competitionCount` of `0` rather than being dropped. Optionally narrowed
-   * to one league, mirroring `TrophiesService.listAllWithLeague` and
+   * to one league, mirroring `TrophiesQueriesService.listAllWithLeague` and
    * `ErasQueriesService.listErasWithLeague`.
    */
   listAllWithLeagueAndCount(scope: FactScope): Promise<

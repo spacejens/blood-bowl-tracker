@@ -1,12 +1,10 @@
-import type {
-  TrophyHeader,
-  TrophyRecipient,
-} from '@blood-bowl-tracker/game-data';
+import type { TrophyRecipient } from '@blood-bowl-tracker/game-data';
+import { TrophyAwardsService } from '@blood-bowl-tracker/game-data';
+import type { TrophyHeader } from '@blood-bowl-tracker/game-data-queries';
 import {
-  TrophiesService,
+  TrophiesQueriesService,
   TrophyAwardRuleDescriptionService,
-  TrophyAwardsService,
-} from '@blood-bowl-tracker/game-data';
+} from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -66,7 +64,7 @@ type RecipientContext = {
 @Injectable()
 export class TrophyDeepdiveService {
   constructor(
-    private readonly trophies: TrophiesService,
+    private readonly trophiesQueries: TrophiesQueriesService,
     private readonly trophyAwards: TrophyAwardsService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
@@ -80,7 +78,10 @@ export class TrophyDeepdiveService {
 
   async resolve(trophyId: number): Promise<string | InteractionReplyOptions> {
     const trophy: TrophyHeader | undefined | null =
-      await this.databaseTimeout.run(this.trophies.findById(trophyId), null);
+      await this.databaseTimeout.run(
+        this.trophiesQueries.findById(trophyId),
+        null,
+      );
     if (trophy === null) {
       return DEEPDIVE_TROPHY_TIMEOUT_MESSAGE;
     }
@@ -111,7 +112,7 @@ export class TrophyDeepdiveService {
             eligiblePositions: [],
           }
         : await this.databaseTimeout.run(
-            this.trophies.findAwardRuleCuration(trophy.id),
+            this.trophiesQueries.findAwardRuleCuration(trophy.id),
             null,
           );
     if (ruleCuration === null) {

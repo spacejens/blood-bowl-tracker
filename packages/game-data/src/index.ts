@@ -146,12 +146,10 @@ export type {
 export { TeamsModule } from './teams/teams.module';
 export { TeamsService, TeamUpsertConflictError } from './teams/teams.service';
 export { TrophiesModule } from './trophies/trophies.module';
-export type { TrophyHeader } from './trophies/trophies.service';
 export {
   TrophiesService,
   TrophyUpsertConflictError,
 } from './trophies/trophies.service';
-export { TrophyAwardRuleDescriptionService } from './trophies/trophy-award-rule-description.service';
 export { MissingTrophyAwardsService } from './trophy-awards/missing-trophy-awards.service';
 export { TrophyAwardsModule } from './trophy-awards/trophy-awards.module';
 export type {

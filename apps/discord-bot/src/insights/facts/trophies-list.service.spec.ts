@@ -1,8 +1,6 @@
 import type { FactScope } from '@blood-bowl-tracker/game-data';
-import {
-  FACT_SCOPE_ALL_TIME,
-  TrophiesService,
-} from '@blood-bowl-tracker/game-data';
+import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
+import { TrophiesQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { ComponentType } from 'discord.js';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -54,13 +52,13 @@ async function realListDescription(): Promise<ListDescriptionService> {
 }
 
 async function makeServiceFromTrophies(
-  trophies: TrophiesService,
+  trophies: TrophiesQueriesService,
   entityComponents: MockProxy<EntityComponentsService> = passthroughEntityComponents(),
 ): Promise<TrophiesListService> {
   const moduleRef = await Test.createTestingModule({
     providers: [
       TrophiesListService,
-      { provide: TrophiesService, useValue: trophies },
+      { provide: TrophiesQueriesService, useValue: trophies },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
       {
@@ -78,7 +76,7 @@ async function makeService(
   rows: TrophyRow[],
   entityComponents?: MockProxy<EntityComponentsService>,
 ): Promise<TrophiesListService> {
-  const trophies = mock<TrophiesService>();
+  const trophies = mock<TrophiesQueriesService>();
 
   trophies.listAllWithLeague.mockResolvedValue(rows);
   return makeServiceFromTrophies(trophies, entityComponents);
@@ -251,10 +249,10 @@ describe('TrophiesListService.resolve', () => {
     // real timer.
     stubDatabaseTimeoutOnce(databaseTimeout);
     await expectTimeoutFallback(
-      async (trophies: TrophiesService) =>
+      async (trophies: TrophiesQueriesService) =>
         (await makeServiceFromTrophies(trophies)).resolve(FACT_SCOPE_ALL_TIME),
       () => {
-        const trophies = mock<TrophiesService>();
+        const trophies = mock<TrophiesQueriesService>();
 
         trophies.listAllWithLeague.mockReturnValue(new Promise(() => {}));
         return trophies;
@@ -338,7 +336,7 @@ describe('TrophiesListService.resolve', () => {
   });
 
   it('passes the league scope through to the query', async () => {
-    const trophies = mock<TrophiesService>();
+    const trophies = mock<TrophiesQueriesService>();
 
     trophies.listAllWithLeague.mockResolvedValue([]);
     const service = await makeServiceFromTrophies(trophies);
@@ -397,7 +395,7 @@ describe('TrophiesListService.resolve', () => {
   });
 
   it('labels a league-scoped trophy with its league and sorts on that name', async () => {
-    const trophies = mock<TrophiesService>();
+    const trophies = mock<TrophiesQueriesService>();
     trophies.listAllWithLeague.mockResolvedValue([
       {
         id: 1,

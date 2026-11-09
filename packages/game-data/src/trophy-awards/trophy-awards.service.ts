@@ -227,7 +227,8 @@ export class TrophyAwardsService {
    * between them as a tiebreaker: `startDate` carries no uniqueness
    * constraint, so two distinct eras sharing a start date would otherwise
    * sort arbitrarily relative to each other and could interleave. Mirrors
-   * the same fix in `CompetitionsQueriesService.listByCompetitionGroupChronological`.
+   * the same tiebreak used when listing a competition group's competitions
+   * chronologically.
    */
   listRecipients(trophyId: number, limit: number): Promise<TrophyRecipient[]> {
     return (

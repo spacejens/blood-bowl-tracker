@@ -1,12 +1,10 @@
-import type {
-  TrophyHeader,
-  TrophyRecipient,
-} from '@blood-bowl-tracker/game-data';
+import type { TrophyRecipient } from '@blood-bowl-tracker/game-data';
+import { TrophyAwardsService } from '@blood-bowl-tracker/game-data';
+import type { TrophyHeader } from '@blood-bowl-tracker/game-data-queries';
 import {
-  TrophiesService,
+  TrophiesQueriesService,
   TrophyAwardRuleDescriptionService,
-  TrophyAwardsService,
-} from '@blood-bowl-tracker/game-data';
+} from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -54,7 +52,7 @@ import { makePlayerRowButton } from './team-deepdive.test-helpers';
 import { TrophyDeepdiveService } from './trophy-deepdive.service';
 
 interface MakeServiceOptions {
-  trophies: MockProxy<TrophiesService>;
+  trophies: MockProxy<TrophiesQueriesService>;
   trophyAwards: MockProxy<TrophyAwardsService>;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   entityComponents?: MockProxy<EntityComponentsService>;
@@ -89,7 +87,7 @@ async function makeService({
     providers: [
       TrophyDeepdiveService,
       NumberFormatterService,
-      { provide: TrophiesService, useValue: trophies },
+      { provide: TrophiesQueriesService, useValue: trophies },
       { provide: TrophyAwardsService, useValue: trophyAwards },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
@@ -180,8 +178,8 @@ function starRecipient(
 
 function makeTrophies(
   header: TrophyHeader | undefined,
-): MockProxy<TrophiesService> {
-  const trophies = mock<TrophiesService>();
+): MockProxy<TrophiesQueriesService> {
+  const trophies = mock<TrophiesQueriesService>();
   trophies.findById.mockResolvedValue(header);
   trophies.findAwardRuleCuration.mockResolvedValue({
     includedActionTypes: [],
@@ -664,7 +662,7 @@ describe('TrophyDeepdiveService', () => {
   });
 
   it('offers a drill-up button to the competition group after the recipients', async () => {
-    const trophies = mock<TrophiesService>();
+    const trophies = mock<TrophiesQueriesService>();
     trophies.findById.mockResolvedValue(trophyHeader());
     trophies.findAwardRuleCuration.mockResolvedValue({
       includedActionTypes: [],
@@ -699,7 +697,7 @@ describe('TrophyDeepdiveService', () => {
   });
 
   it('names the league and drills up to it for a league-scoped trophy', async () => {
-    const trophies = mock<TrophiesService>();
+    const trophies = mock<TrophiesQueriesService>();
     trophies.findById.mockResolvedValue({
       id: 3,
       name: 'Legendary Player',
@@ -827,7 +825,7 @@ describe('TrophyDeepdiveService', () => {
     // proves the actual generated wording reaches the embed, not a mock's
     // canned string. The expected sentence matches the "single-type count
     // rule" case in trophy-award-rule-description.service.spec.ts.
-    const trophies = mock<TrophiesService>();
+    const trophies = mock<TrophiesQueriesService>();
     const trophyAwards = mock<TrophyAwardsService>();
     trophies.findById.mockResolvedValue(
       trophyHeader({
@@ -863,7 +861,7 @@ describe('TrophyDeepdiveService', () => {
     // proves the embed shows the corrected AND wording, not a flat list of
     // unrelated event types. Matches the "compound count rule" case in
     // trophy-award-rule-description.service.spec.ts.
-    const trophies = mock<TrophiesService>();
+    const trophies = mock<TrophiesQueriesService>();
     const trophyAwards = mock<TrophyAwardsService>();
     trophies.findById.mockResolvedValue(
       trophyHeader({
@@ -898,7 +896,7 @@ describe('TrophyDeepdiveService', () => {
     // The restriction is the whole point of this trophy's rule: without it
     // the embed would promise the competition's top scorer of Star Player
     // Points, while the rule only ever considers the Ogre positions.
-    const trophies = mock<TrophiesService>();
+    const trophies = mock<TrophiesQueriesService>();
     const trophyAwards = mock<TrophyAwardsService>();
     trophies.findById.mockResolvedValue(
       trophyHeader({

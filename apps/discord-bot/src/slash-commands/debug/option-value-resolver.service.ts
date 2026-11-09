@@ -1,8 +1,5 @@
 import type { InteractionEventParameterRow } from '@blood-bowl-tracker/discord-bot-usage';
-import {
-  CompetitionsService,
-  TrophiesService,
-} from '@blood-bowl-tracker/game-data';
+import { CompetitionsService } from '@blood-bowl-tracker/game-data';
 import {
   CoachesQueriesService,
   CompetitionGroupsQueriesService,
@@ -13,6 +10,7 @@ import {
   RacesQueriesService,
   StarPlayersService,
   TeamsQueriesService,
+  TrophiesQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 
@@ -74,7 +72,7 @@ export class OptionValueResolverService {
     private readonly playersQueries: PlayersQueriesService,
     private readonly starPlayers: StarPlayersService,
     private readonly positionsQueries: PositionsQueriesService,
-    private readonly trophies: TrophiesService,
+    private readonly trophiesQueries: TrophiesQueriesService,
   ) {
     const raceLookup: NameLookup = async (id) =>
       (await this.racesQueries.findById(id))?.name;
@@ -97,7 +95,7 @@ export class OptionValueResolverService {
     const positionLookup: NameLookup = async (id) =>
       (await this.positionsQueries.findById(id))?.name;
     const trophyLookup: NameLookup = async (id) =>
-      (await this.trophies.findById(id))?.name;
+      (await this.trophiesQueries.findById(id))?.name;
 
     this.lookups = new Map<string, NameLookup>([
       ['race', raceLookup],

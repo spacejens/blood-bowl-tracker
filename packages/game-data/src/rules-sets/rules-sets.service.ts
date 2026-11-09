@@ -85,8 +85,7 @@ export class RulesSetsService {
   }
 
   /**
-   * The rules sets an era declares, oldest first (by id, the same order
-   * `ErasQueriesService.getRulesSetNames` uses). Several are legitimate — an era can
+   * The rules sets an era declares, oldest first (by id). Several are legitimate — an era can
    * span rules sets in sequence — so a caller needing exactly one decides
    * what several mean for it.
    */

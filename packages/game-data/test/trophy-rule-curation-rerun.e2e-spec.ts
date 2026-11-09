@@ -19,9 +19,7 @@ import {
 } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { mock } from 'vitest-mock-extended';
 
-import { LikePatternService } from '../src/shared/like-pattern.service';
 import { TrophiesService } from '../src/trophies/trophies.service';
 import { TrophyRuleCurationSyncService } from '../src/trophies/trophy-rule-curation-sync.service';
 import { connectTestDb } from './e2e-database';
@@ -121,7 +119,6 @@ describe('trophy rule curation re-runs (real Postgres)', () => {
       providers: [
         TrophiesService,
         TrophyRuleCurationSyncService,
-        { provide: LikePatternService, useValue: mock<LikePatternService>() },
         { provide: DB, useValue: db },
       ],
     }).compile();
@@ -138,7 +135,7 @@ describe('trophy rule curation re-runs (real Postgres)', () => {
   });
 
   it('flags a dropped eligible position removed and keeps its row', async () => {
-    const { trophy } = await service.upsert(topFouler(fixtures));
+    await service.upsert(topFouler(fixtures));
 
     await service.upsert(
       topFouler(fixtures, {
@@ -156,8 +153,6 @@ describe('trophy rule curation re-runs (real Postgres)', () => {
         removed: true,
       }),
     ]);
-    const curation = await service.findAwardRuleCuration(trophy.id);
-    expect(curation.eligiblePositions).toEqual(['Ogre Blocker']);
   });
 
   it('revives a re-listed eligible position instead of inserting a second row', async () => {

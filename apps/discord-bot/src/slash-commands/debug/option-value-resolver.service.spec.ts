@@ -1,7 +1,4 @@
-import {
-  CompetitionsService,
-  TrophiesService,
-} from '@blood-bowl-tracker/game-data';
+import { CompetitionsService } from '@blood-bowl-tracker/game-data';
 import {
   CoachesQueriesService,
   CompetitionGroupsQueriesService,
@@ -12,6 +9,7 @@ import {
   RacesQueriesService,
   StarPlayersService,
   TeamsQueriesService,
+  TrophiesQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -36,7 +34,7 @@ describe('OptionValueResolverService', () => {
   let players: DeepMockProxy<PlayersQueriesService>;
   let starPlayers: DeepMockProxy<StarPlayersService>;
   let positions: DeepMockProxy<PositionsQueriesService>;
-  let trophies: DeepMockProxy<TrophiesService>;
+  let trophies: DeepMockProxy<TrophiesQueriesService>;
 
   beforeEach(async () => {
     races = mockDeep<RacesQueriesService>();
@@ -49,7 +47,7 @@ describe('OptionValueResolverService', () => {
     players = mockDeep<PlayersQueriesService>();
     starPlayers = mockDeep<StarPlayersService>();
     positions = mockDeep<PositionsQueriesService>();
-    trophies = mockDeep<TrophiesService>();
+    trophies = mockDeep<TrophiesQueriesService>();
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -67,7 +65,7 @@ describe('OptionValueResolverService', () => {
         { provide: PlayersQueriesService, useValue: players },
         { provide: StarPlayersService, useValue: starPlayers },
         { provide: PositionsQueriesService, useValue: positions },
-        { provide: TrophiesService, useValue: trophies },
+        { provide: TrophiesQueriesService, useValue: trophies },
       ],
     }).compile();
     service = moduleRef.get(OptionValueResolverService);

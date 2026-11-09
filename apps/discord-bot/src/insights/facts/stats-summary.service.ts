@@ -5,7 +5,6 @@ import {
   KeywordsService,
   MatchesService,
   RulesSetsService,
-  TrophiesService,
 } from '@blood-bowl-tracker/game-data';
 import {
   CoachesQueriesService,
@@ -18,6 +17,7 @@ import {
   RacesQueriesService,
   SkillsQueriesService,
   TeamsQueriesService,
+  TrophiesQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
@@ -149,7 +149,7 @@ export class StatsSummaryFactsService {
     private readonly competitions: CompetitionsService,
     private readonly competitionsQueries: CompetitionsQueriesService,
     private readonly competitionGroupsQueries: CompetitionGroupsQueriesService,
-    private readonly trophies: TrophiesService,
+    private readonly trophiesQueries: TrophiesQueriesService,
     private readonly teamsQueries: TeamsQueriesService,
     private readonly playersQueries: PlayersQueriesService,
     private readonly matches: MatchesService,
@@ -221,7 +221,7 @@ export class StatsSummaryFactsService {
         this.competitionsQueries.countByType('season'),
         this.competitionsQueries.countByType('cup'),
         this.competitionGroupsQueries.countAll(),
-        this.trophies.countAll(),
+        this.trophiesQueries.countAll(),
         this.teamsQueries.countAll(),
         this.playersQueries.countAll(),
         this.matches.countAll(),
@@ -288,7 +288,7 @@ export class StatsSummaryFactsService {
         this.competitionsQueries.countByType('season', eraId),
         this.competitionsQueries.countByType('cup', eraId),
         this.competitionGroupsQueries.countByEra(eraId),
-        this.trophies.countByEra(eraId),
+        this.trophiesQueries.countByEra(eraId),
         this.teamsQueries.countByEra(eraId),
         this.playersQueries.countByEra(eraId),
         this.matches.countByEra(eraId),
@@ -354,7 +354,7 @@ export class StatsSummaryFactsService {
         this.skillsQueries.countByCompetition(competitionId),
         this.keywords.countByCompetition(competitionId),
         this.coachesQueries.countByCompetition(competitionId),
-        this.trophies.countByCompetition(competitionId),
+        this.trophiesQueries.countByCompetition(competitionId),
         this.teamsQueries.countByCompetition(competitionId),
         this.playersQueries.countByCompetition(competitionId),
         this.matches.countByCompetition(competitionId),
@@ -422,7 +422,7 @@ export class StatsSummaryFactsService {
         this.competitionsQueries.countByType('season', undefined, leagueId),
         this.competitionsQueries.countByType('cup', undefined, leagueId),
         this.competitionGroupsQueries.countByLeague(leagueId),
-        this.trophies.countByLeague(leagueId),
+        this.trophiesQueries.countByLeague(leagueId),
         this.teamsQueries.countByLeague(leagueId),
         this.playersQueries.countByLeague(leagueId),
         this.matches.countByLeague(leagueId),

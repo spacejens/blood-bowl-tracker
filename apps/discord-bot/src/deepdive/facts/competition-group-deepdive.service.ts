@@ -1,7 +1,7 @@
-import { TrophiesService } from '@blood-bowl-tracker/game-data';
 import {
   CompetitionGroupsQueriesService,
   CompetitionsQueriesService,
+  TrophiesQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
@@ -64,7 +64,7 @@ type GroupCompetition = {
 export class CompetitionGroupDeepdiveService {
   constructor(
     private readonly competitionGroupsQueries: CompetitionGroupsQueriesService,
-    private readonly trophies: TrophiesService,
+    private readonly trophiesQueries: TrophiesQueriesService,
     private readonly competitionsQueries: CompetitionsQueriesService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
@@ -89,10 +89,10 @@ export class CompetitionGroupDeepdiveService {
 
     const groupTrophies: GroupTrophy[] | null = await this.databaseTimeout.run(
       Promise.all([
-        this.trophies.listByCompetitionGroup(competitionGroupId),
+        this.trophiesQueries.listByCompetitionGroup(competitionGroupId),
         // A league-scoped trophy can be awarded in any competition in the
         // league, so it belongs on every one of that league's groups too.
-        this.trophies.listByLeague(group.leagueId),
+        this.trophiesQueries.listByLeague(group.leagueId),
       ]).then(([own, leagueWide]) =>
         [...own, ...leagueWide].sort((a, b) => a.name.localeCompare(b.name)),
       ),

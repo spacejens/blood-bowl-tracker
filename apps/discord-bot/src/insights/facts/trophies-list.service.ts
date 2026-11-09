@@ -1,5 +1,5 @@
 import type { FactScope } from '@blood-bowl-tracker/game-data';
-import { TrophiesService } from '@blood-bowl-tracker/game-data';
+import { TrophiesQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -24,7 +24,7 @@ interface TrophyEntry {
 @Injectable()
 export class TrophiesListService {
   constructor(
-    private readonly trophies: TrophiesService,
+    private readonly trophiesQueries: TrophiesQueriesService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
     private readonly listDescription: ListDescriptionService,
@@ -32,7 +32,7 @@ export class TrophiesListService {
 
   async resolve(scope: FactScope): Promise<string | InteractionReplyOptions> {
     const rows = await this.databaseTimeout.run(
-      this.trophies.listAllWithLeague(scope),
+      this.trophiesQueries.listAllWithLeague(scope),
       null,
     );
     if (rows === null) {

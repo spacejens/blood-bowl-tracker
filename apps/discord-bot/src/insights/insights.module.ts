@@ -8,7 +8,6 @@ import {
   PositionRulesSetSkillsModule,
   PositionRulesSetsModule,
   RulesSetsModule,
-  TrophiesModule,
 } from '@blood-bowl-tracker/game-data';
 import {
   CharacteristicDisplayFormattingModule,
@@ -26,6 +25,7 @@ import {
   SkillsQueriesModule,
   TeamRaceCoachNamesModule,
   TeamsQueriesModule,
+  TrophiesQueriesModule,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Module } from '@nestjs/common';
 
@@ -93,7 +93,7 @@ const GAME_DATA_MODULES = [
   SkillsQueriesModule,
   KeywordsModule,
   ExternalSystemsModule,
-  TrophiesModule,
+  TrophiesQueriesModule,
 ];
 
 @Module({

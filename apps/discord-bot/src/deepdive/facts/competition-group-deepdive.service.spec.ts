@@ -1,7 +1,7 @@
-import { TrophiesService } from '@blood-bowl-tracker/game-data';
 import {
   CompetitionGroupsQueriesService,
   CompetitionsQueriesService,
+  TrophiesQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
@@ -62,7 +62,7 @@ type GroupCompetition = {
 
 interface MakeServiceOptions {
   competitionGroups: MockProxy<CompetitionGroupsQueriesService>;
-  trophies?: MockProxy<TrophiesService>;
+  trophies?: MockProxy<TrophiesQueriesService>;
   competitions?: MockProxy<CompetitionsQueriesService>;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   entityComponents?: MockProxy<EntityComponentsService>;
@@ -89,7 +89,7 @@ async function makeService({
     providers: [
       CompetitionGroupDeepdiveService,
       { provide: CompetitionGroupsQueriesService, useValue: competitionGroups },
-      { provide: TrophiesService, useValue: trophies },
+      { provide: TrophiesQueriesService, useValue: trophies },
       { provide: CompetitionsQueriesService, useValue: competitions },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
@@ -116,8 +116,8 @@ function makeGroups(
 
 function makeTrophies(
   rows: { id: number; name: string }[],
-): MockProxy<TrophiesService> {
-  const trophies = mock<TrophiesService>();
+): MockProxy<TrophiesQueriesService> {
+  const trophies = mock<TrophiesQueriesService>();
   trophies.listByCompetitionGroup.mockResolvedValue(rows);
   trophies.listByLeague.mockResolvedValue([]);
   return trophies;
@@ -423,7 +423,7 @@ describe('CompetitionGroupDeepdiveService', () => {
       leagueId: 7,
       leagueName: 'tLoEG',
     });
-    const trophies = mock<TrophiesService>();
+    const trophies = mock<TrophiesQueriesService>();
     trophies.listByCompetitionGroup.mockResolvedValue([
       { id: 1, name: 'Major Gold' },
     ]);

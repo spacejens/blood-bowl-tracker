@@ -1,4 +1,3 @@
-import { TrophiesService } from '@blood-bowl-tracker/game-data';
 import {
   CoachesQueriesService,
   CompetitionGroupsQueriesService,
@@ -10,6 +9,7 @@ import {
   RacesQueriesService,
   StarPlayersService,
   TeamsQueriesService,
+  TrophiesQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { AutocompleteInteraction } from 'discord.js';
@@ -38,7 +38,7 @@ export class DeepdiveAutocompleteService {
     private readonly positionsQueries: PositionsQueriesService,
     private readonly racesQueries: RacesQueriesService,
     private readonly stars: StarPlayersService,
-    private readonly trophies: TrophiesService,
+    private readonly trophiesQueries: TrophiesQueriesService,
     private readonly leaguesQueries: LeaguesQueriesService,
   ) {}
 
@@ -148,7 +148,7 @@ export class DeepdiveAutocompleteService {
       }));
     }
     if (focused.name === 'trophy') {
-      const trophies = await this.trophies.searchByNamePrefix(
+      const trophies = await this.trophiesQueries.searchByNamePrefix(
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );

@@ -148,8 +148,7 @@ export class KeywordsService {
   /**
    * A competition has no narrower rules-set scope than the era it runs in, so
    * this is the era count reached through the competition's own `eraId`.
-   * Unlike `RacesQueriesService.countByCompetition` /
-   * `PositionsQueriesService.countByCompetition`, which count what actually took part
+   * Unlike the race and position counts, which count what actually took part
    * (competition_teams -> team_eras), this stays a catalogue count: every
    * keyword the era's rules set(s) define, not only ones held by a
    * participant.

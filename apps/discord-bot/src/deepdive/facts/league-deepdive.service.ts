@@ -1,7 +1,7 @@
-import { TrophiesService } from '@blood-bowl-tracker/game-data';
 import {
   CompetitionGroupsQueriesService,
   LeaguesQueriesService,
+  TrophiesQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
@@ -48,7 +48,7 @@ export class LeagueDeepdiveService {
   constructor(
     private readonly leaguesQueries: LeaguesQueriesService,
     private readonly competitionGroupsQueries: CompetitionGroupsQueriesService,
-    private readonly trophies: TrophiesService,
+    private readonly trophiesQueries: TrophiesQueriesService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
   ) {}
@@ -67,7 +67,7 @@ export class LeagueDeepdiveService {
     }
 
     const leagueTrophies: NamedEntity[] | null = await this.databaseTimeout.run(
-      this.trophies.listByLeague(leagueId),
+      this.trophiesQueries.listByLeague(leagueId),
       null,
     );
     if (leagueTrophies === null) {
