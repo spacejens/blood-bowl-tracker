@@ -4,13 +4,15 @@ import {
   CompetitionsService,
   ErasService,
   LeaguesService,
-  PlayersService,
   PositionsService,
   RacesService,
   TeamsService,
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
-import { StarPlayersService } from '@blood-bowl-tracker/game-data-queries';
+import {
+  PlayersQueriesService,
+  StarPlayersService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import type { AutocompleteInteraction } from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -50,7 +52,7 @@ describe('DeepdiveAutocompleteService', () => {
   let competitionGroups: MockProxy<CompetitionGroupsService>;
   let coaches: MockProxy<CoachesService>;
   let teams: MockProxy<TeamsService>;
-  let players: MockProxy<PlayersService>;
+  let players: MockProxy<PlayersQueriesService>;
   let positions: MockProxy<PositionsService>;
   let races: MockProxy<RacesService>;
   let stars: MockProxy<StarPlayersService>;
@@ -63,7 +65,7 @@ describe('DeepdiveAutocompleteService', () => {
     competitionGroups = mock<CompetitionGroupsService>();
     coaches = mock<CoachesService>();
     teams = mock<TeamsService>();
-    players = mock<PlayersService>();
+    players = mock<PlayersQueriesService>();
     positions = mock<PositionsService>();
     races = mock<RacesService>();
     stars = mock<StarPlayersService>();
@@ -78,7 +80,7 @@ describe('DeepdiveAutocompleteService', () => {
         { provide: CompetitionGroupsService, useValue: competitionGroups },
         { provide: CoachesService, useValue: coaches },
         { provide: TeamsService, useValue: teams },
-        { provide: PlayersService, useValue: players },
+        { provide: PlayersQueriesService, useValue: players },
         { provide: PositionsService, useValue: positions },
         { provide: RacesService, useValue: races },
         { provide: StarPlayersService, useValue: stars },

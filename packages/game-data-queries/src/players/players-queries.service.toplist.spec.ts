@@ -8,20 +8,13 @@ import {
   mockDb,
   sqlText,
 } from '@blood-bowl-tracker/db/test-helpers';
-import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
-import type { MockProxy } from 'vitest-mock-extended';
-import { mock } from 'vitest-mock-extended';
-
-import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
-import { LikePatternService } from '../shared/like-pattern.service';
-import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import {
   CASUALTY_CAUSED_TYPES,
   CASUALTY_SUFFERED_TYPES,
   COMPLETION_TYPES,
   DEATH_CAUSED_TYPES,
   DEFLECTION_TYPES,
+  FACT_SCOPE_ALL_TIME,
   FOUL_TYPES,
   INTERCEPTION_TYPES,
   LASTING_INJURY_SUFFERED_TYPES,
@@ -29,20 +22,23 @@ import {
   SENT_OFF_TYPES,
   SERIOUS_INJURY_CAUSED_TYPES,
   SERIOUS_INJURY_SUFFERED_TYPES,
+  SppTotalsService,
   TOUCHDOWN_TYPES,
-} from '../shared/match-event-types';
-import { PlayerContextNamesService } from '../shared/player-context-names.service';
-import { SppTotalsService } from '../spp/spp-totals.service';
-import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
-import { PlayerLastingInjuryValidationService } from './player-lasting-injury-validation.service';
-import { PlayersService } from './players.service';
+} from '@blood-bowl-tracker/game-data';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
-describe('PlayersService toplist queries', () => {
-  let service: PlayersService;
+import { LikePatternService } from '../shared/like-pattern.service';
+import { MatchEventCountsService } from '../shared/match-event-counts.service';
+import { PlayersQueriesService } from './players-queries.service';
+
+describe('PlayersQueriesService toplist queries', () => {
+  let service: PlayersQueriesService;
   let likePattern: MockProxy<LikePatternService>;
   let sppTotals: MockProxy<SppTotalsService>;
   let matchEventCounts: MockProxy<MatchEventCountsService>;
-  let playerContextNames: MockProxy<PlayerContextNamesService>;
 
   async function build(...rowsPerQuery: unknown[][]): Promise<{
     db: Db;
@@ -51,23 +47,14 @@ describe('PlayersService toplist queries', () => {
     const { db, chains } = mockDb(...rowsPerQuery);
     const moduleRef = await Test.createTestingModule({
       providers: [
-        PlayersService,
+        PlayersQueriesService,
         { provide: LikePatternService, useValue: likePattern },
         { provide: SppTotalsService, useValue: sppTotals },
         { provide: MatchEventCountsService, useValue: matchEventCounts },
-        { provide: PlayerContextNamesService, useValue: playerContextNames },
-        {
-          provide: PlayerCharacteristicsValidationService,
-          useValue: mock<PlayerCharacteristicsValidationService>(),
-        },
-        {
-          provide: PlayerLastingInjuryValidationService,
-          useValue: mock<PlayerLastingInjuryValidationService>(),
-        },
         { provide: DB, useValue: db },
       ],
     }).compile();
-    service = moduleRef.get(PlayersService);
+    service = moduleRef.get(PlayersQueriesService);
     return { db, chains };
   }
 
@@ -75,7 +62,6 @@ describe('PlayersService toplist queries', () => {
     likePattern = mock<LikePatternService>();
     sppTotals = mock<SppTotalsService>();
     matchEventCounts = mock<MatchEventCountsService>();
-    playerContextNames = mock<PlayerContextNamesService>();
   });
 
   it.each([

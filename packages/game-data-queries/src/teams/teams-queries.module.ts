@@ -1,6 +1,6 @@
-import { PlayersModule } from '@blood-bowl-tracker/game-data';
 import { Module } from '@nestjs/common';
 
+import { PlayersQueriesModule } from '../players/players-queries.module';
 import { MatchEventCountsModule } from '../shared/match-event-counts.module';
 import { MatchOutcomeCountsModule } from '../shared/match-outcome-counts.module';
 import { TrophyAwardCountsModule } from '../shared/trophy-award-counts.module';
@@ -11,7 +11,7 @@ import { TeamsStatisticsService } from './teams-statistics.service';
   imports: [
     MatchEventCountsModule,
     MatchOutcomeCountsModule,
-    PlayersModule,
+    PlayersQueriesModule,
     TrophyAwardCountsModule,
   ],
   providers: [TeamsStatisticsService, TeamAverageStatisticsService],

@@ -1,7 +1,6 @@
 import type { PlayerStatus } from '@blood-bowl-tracker/domain-enums';
 import type {
   PlayerCharacteristicAdvancementRow,
-  PlayerDetail,
   PlayerHonor,
   PlayerSkillRow,
   PositionCharacteristicsContext,
@@ -11,7 +10,6 @@ import type {
 import {
   PlayerAdvancementReadsService,
   PlayerSkillsService,
-  PlayersService,
   PositionRulesSetKeywordsService,
   PositionRulesSetsService,
   TrophyAwardsService,
@@ -19,6 +17,7 @@ import {
 } from '@blood-bowl-tracker/game-data';
 import type {
   PlayerDeepdiveCategoryCounts,
+  PlayerDetail,
   PlayerKillEntry,
   PlayerKillerInfo,
 } from '@blood-bowl-tracker/game-data-queries';
@@ -26,6 +25,7 @@ import {
   CharacteristicDisplayFormattingService,
   PlayerDeathService,
   PlayerDeepdiveCountsService,
+  PlayersQueriesService,
   StarPlayersService,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
@@ -215,7 +215,7 @@ export function makeStatusConflicts(): MockProxy<PlayerStatusConflictReporterSer
 }
 
 export interface MakeServiceOptions {
-  players: PlayersService;
+  players: PlayersQueriesService;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   entityComponents?: MockProxy<EntityComponentsService>;
   trophyAwards?: MockProxy<TrophyAwardsService>;
@@ -354,7 +354,7 @@ export async function makeService({
       // both over NumberFormatterService.
       PlayerSppSectionService,
       UnspentSppLineService,
-      { provide: PlayersService, useValue: players },
+      { provide: PlayersQueriesService, useValue: players },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
       { provide: TrophyAwardsService, useValue: trophyAwards },
@@ -401,8 +401,8 @@ export async function makeService({
 
 export function makePlayers(options: {
   player?: PlayerDetail;
-}): PlayersService {
-  const players = mock<PlayersService>();
+}): PlayersQueriesService {
+  const players = mock<PlayersQueriesService>();
   players.findById.mockResolvedValue(options.player);
   return players;
 }

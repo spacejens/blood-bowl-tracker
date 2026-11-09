@@ -8,7 +8,6 @@ import {
   KeywordsService,
   LeaguesService,
   MatchesService,
-  PlayersService,
   PositionsService,
   RacesService,
   RulesSetsService,
@@ -16,6 +15,7 @@ import {
   TeamsService,
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
+import { PlayersQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -147,7 +147,7 @@ export class StatsSummaryFactsService {
     private readonly competitionGroups: CompetitionGroupsService,
     private readonly trophies: TrophiesService,
     private readonly teams: TeamsService,
-    private readonly players: PlayersService,
+    private readonly playersQueries: PlayersQueriesService,
     private readonly matches: MatchesService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly numbers: NumberFormatterService,
@@ -219,7 +219,7 @@ export class StatsSummaryFactsService {
         this.competitionGroups.countAll(),
         this.trophies.countAll(),
         this.teams.countAll(),
-        this.players.countAll(),
+        this.playersQueries.countAll(),
         this.matches.countAll(),
         this.matches.countMatchEvents(),
       ]),
@@ -286,7 +286,7 @@ export class StatsSummaryFactsService {
         this.competitionGroups.countByEra(eraId),
         this.trophies.countByEra(eraId),
         this.teams.countByEra(eraId),
-        this.players.countByEra(eraId),
+        this.playersQueries.countByEra(eraId),
         this.matches.countByEra(eraId),
         this.matches.countMatchEventsByEra(eraId),
         this.eras.getRulesSetNames(eraId),
@@ -352,7 +352,7 @@ export class StatsSummaryFactsService {
         this.coaches.countByCompetition(competitionId),
         this.trophies.countByCompetition(competitionId),
         this.teams.countByCompetition(competitionId),
-        this.players.countByCompetition(competitionId),
+        this.playersQueries.countByCompetition(competitionId),
         this.matches.countByCompetition(competitionId),
         this.matches.countMatchEventsByCompetition(competitionId),
         this.eras.getRulesSetNames(competition.eraId),
@@ -420,7 +420,7 @@ export class StatsSummaryFactsService {
         this.competitionGroups.countByLeague(leagueId),
         this.trophies.countByLeague(leagueId),
         this.teams.countByLeague(leagueId),
-        this.players.countByLeague(leagueId),
+        this.playersQueries.countByLeague(leagueId),
         this.matches.countByLeague(leagueId),
         this.matches.countMatchEventsByLeague(leagueId),
         this.eras.getRulesSetNamesByLeague(leagueId),

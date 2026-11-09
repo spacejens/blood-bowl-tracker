@@ -57,7 +57,6 @@ export type { PlayerSkillRow } from './player-skills/player-skills.service';
 export { PlayerSkillsService } from './player-skills/player-skills.service';
 export { PlayerLastingInjuryBackfillService } from './players/player-lasting-injury-backfill.service';
 export { PlayersModule } from './players/players.module';
-export type { PlayerDetail } from './players/players.service';
 export {
   PlayersService,
   PlayerUpsertConflictError,

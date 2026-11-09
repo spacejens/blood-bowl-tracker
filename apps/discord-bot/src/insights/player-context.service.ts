@@ -1,4 +1,4 @@
-import { PlayersService } from '@blood-bowl-tracker/game-data';
+import { PlayerContextNamesService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 
 /** Which pieces of player context a list wants appended to each player name. */
@@ -23,7 +23,7 @@ export interface PlayerContextOptions {
  */
 @Injectable()
 export class PlayerContextService {
-  constructor(private readonly players: PlayersService) {}
+  constructor(private readonly playerContextNames: PlayerContextNamesService) {}
 
   async attachSuffixes<T>(
     rows: T[],
@@ -33,7 +33,9 @@ export class PlayerContextService {
     if (rows.length === 0) {
       return [];
     }
-    const names = await this.players.getContextNamesByIds(rows.map(playerIdOf));
+    const names = await this.playerContextNames.getPlayerContextNamesByIds(
+      rows.map(playerIdOf),
+    );
     return rows.map((row) => {
       const entry = names.get(playerIdOf(row));
       const parts =

@@ -4,10 +4,6 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
-import { LikePatternService } from '../shared/like-pattern.service';
-import { MatchEventCountsService } from '../shared/match-event-counts.service';
-import { PlayerContextNamesService } from '../shared/player-context-names.service';
-import { SppTotalsService } from '../spp/spp-totals.service';
 import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
 import { PlayerLastingInjuryValidationService } from './player-lasting-injury-validation.service';
 import { PlayersService } from './players.service';
@@ -17,16 +13,6 @@ async function makeService(rows: unknown[]) {
   const moduleRef = await Test.createTestingModule({
     providers: [
       PlayersService,
-      { provide: LikePatternService, useValue: mock<LikePatternService>() },
-      { provide: SppTotalsService, useValue: mock<SppTotalsService>() },
-      {
-        provide: MatchEventCountsService,
-        useValue: mock<MatchEventCountsService>(),
-      },
-      {
-        provide: PlayerContextNamesService,
-        useValue: mock<PlayerContextNamesService>(),
-      },
       {
         provide: PlayerCharacteristicsValidationService,
         useValue: mock<PlayerCharacteristicsValidationService>(),

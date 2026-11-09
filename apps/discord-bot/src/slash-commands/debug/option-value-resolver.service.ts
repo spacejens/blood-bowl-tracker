@@ -5,13 +5,15 @@ import {
   CompetitionsService,
   ErasService,
   LeaguesService,
-  PlayersService,
   PositionsService,
   RacesService,
   TeamsService,
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
-import { StarPlayersService } from '@blood-bowl-tracker/game-data-queries';
+import {
+  PlayersQueriesService,
+  StarPlayersService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 
 import {
@@ -69,7 +71,7 @@ export class OptionValueResolverService {
     private readonly competitionGroups: CompetitionGroupsService,
     private readonly coaches: CoachesService,
     private readonly teams: TeamsService,
-    private readonly players: PlayersService,
+    private readonly playersQueries: PlayersQueriesService,
     private readonly starPlayers: StarPlayersService,
     private readonly positions: PositionsService,
     private readonly trophies: TrophiesService,
@@ -89,7 +91,7 @@ export class OptionValueResolverService {
     const teamLookup: NameLookup = async (id) =>
       (await this.teams.findById(id))?.name;
     const playerLookup: NameLookup = async (id) =>
-      (await this.players.findById(id))?.name;
+      (await this.playersQueries.findById(id))?.name;
     const starPlayerLookup: NameLookup = async (id) =>
       (await this.starPlayers.findById(id))?.name;
     const positionLookup: NameLookup = async (id) =>

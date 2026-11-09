@@ -1,10 +1,9 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
-import { PlayersService } from '@blood-bowl-tracker/game-data';
-import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
 import {
   CASUALTY_SUFFERED_TYPES,
   DEATH_SUFFERED_TYPES,
+  FACT_SCOPE_ALL_TIME,
   LASTING_INJURY_SUFFERED_TYPES,
   SERIOUS_INJURY_SUFFERED_TYPES,
 } from '@blood-bowl-tracker/game-data';
@@ -13,6 +12,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
+import { PlayersQueriesService } from '../players/players-queries.service';
 import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import { MatchOutcomeCountsService } from '../shared/match-outcome-counts.service';
 import { TrophyAwardCountsService } from '../shared/trophy-award-counts.service';
@@ -22,20 +22,20 @@ describe('TeamsStatisticsService (suffered consequences & expensive mistakes)', 
   let service: TeamsStatisticsService;
   let matchEventCounts: MockProxy<MatchEventCountsService>;
   let matchOutcomeCounts: MockProxy<MatchOutcomeCountsService>;
-  let players: MockProxy<PlayersService>;
+  let players: MockProxy<PlayersQueriesService>;
   let trophyAwardCounts: MockProxy<TrophyAwardCountsService>;
 
   beforeEach(async () => {
     matchEventCounts = mock<MatchEventCountsService>();
     matchOutcomeCounts = mock<MatchOutcomeCountsService>();
-    players = mock<PlayersService>();
+    players = mock<PlayersQueriesService>();
     trophyAwardCounts = mock<TrophyAwardCountsService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
         TeamsStatisticsService,
         { provide: MatchEventCountsService, useValue: matchEventCounts },
         { provide: MatchOutcomeCountsService, useValue: matchOutcomeCounts },
-        { provide: PlayersService, useValue: players },
+        { provide: PlayersQueriesService, useValue: players },
         { provide: TrophyAwardCountsService, useValue: trophyAwardCounts },
         { provide: DB, useValue: mock<Db>() },
       ],

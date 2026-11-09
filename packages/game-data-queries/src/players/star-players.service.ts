@@ -74,7 +74,7 @@ export interface StarPlayerDistinctTeamsHiredCount {
 
 /**
  * Read-only queries about star player identities, as opposed to
- * `PlayersService`'s queries about individual `players` rows. Its own service
+ * `PlayersQueriesService`'s queries about individual `players` rows. Its own service
  * both because that is the honest boundary and because `players.service.ts`
  * sits at the repo's 500-line ceiling.
  *
@@ -141,7 +141,7 @@ export class StarPlayersService {
 
   /**
    * Name-prefix search backing `/deepdive`'s star-player autocomplete. It
-   * cannot reuse `PlayersService.searchByNamePrefix`, which deliberately
+   * cannot reuse `PlayersQueriesService.searchByNamePrefix`, which deliberately
    * excludes stars (a popular star would otherwise appear once per hiring
    * team). Searching `positions` directly gives exactly one choice per star
    * identity with no grouping needed.
@@ -171,7 +171,7 @@ export class StarPlayersService {
   /**
    * The star identity behind one individual hire, or `undefined` when that
    * player is a regular player. Lets the regular player deepdive offer a
-   * cross-link to the star deepdive without `PlayersService.findById` having
+   * cross-link to the star deepdive without `PlayersQueriesService.findById` having
    * to grow two more columns — that file is at the line ceiling.
    */
   async findByPlayerId(

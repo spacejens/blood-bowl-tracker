@@ -4,13 +4,15 @@ import {
   CompetitionsService,
   ErasService,
   LeaguesService,
-  PlayersService,
   PositionsService,
   RacesService,
   TeamsService,
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
-import { StarPlayersService } from '@blood-bowl-tracker/game-data-queries';
+import {
+  PlayersQueriesService,
+  StarPlayersService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { AutocompleteInteraction } from 'discord.js';
 
@@ -34,7 +36,7 @@ export class DeepdiveAutocompleteService {
     private readonly competitionGroups: CompetitionGroupsService,
     private readonly coaches: CoachesService,
     private readonly teams: TeamsService,
-    private readonly players: PlayersService,
+    private readonly playersQueries: PlayersQueriesService,
     private readonly positions: PositionsService,
     private readonly races: RacesService,
     private readonly stars: StarPlayersService,
@@ -77,7 +79,7 @@ export class DeepdiveAutocompleteService {
       }));
     }
     if (focused.name === 'player') {
-      const players = await this.players.searchByNamePrefix(
+      const players = await this.playersQueries.searchByNamePrefix(
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );
@@ -87,7 +89,7 @@ export class DeepdiveAutocompleteService {
       }));
     }
     if (focused.name === 'star-player') {
-      // Cannot reuse the `player` branch: `PlayersService.searchByNamePrefix`
+      // Cannot reuse the `player` branch: `PlayersQueriesService.searchByNamePrefix`
       // deliberately excludes stars, and a star's autocomplete value is its
       // `positions.id`, not a `players.id`. No team name in the label — a star
       // has no single team, which is the whole point of this target.

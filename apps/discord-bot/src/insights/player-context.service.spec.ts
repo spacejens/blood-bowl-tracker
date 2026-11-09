@@ -1,4 +1,4 @@
-import { PlayersService } from '@blood-bowl-tracker/game-data';
+import { PlayerContextNamesService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -24,21 +24,21 @@ const ALL = {
 
 describe('PlayerContextService', () => {
   let service: PlayerContextService;
-  let players: MockProxy<PlayersService>;
+  let playerContextNames: MockProxy<PlayerContextNamesService>;
 
   beforeEach(async () => {
-    players = mock<PlayersService>();
+    playerContextNames = mock<PlayerContextNamesService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
         PlayerContextService,
-        { provide: PlayersService, useValue: players },
+        { provide: PlayerContextNamesService, useValue: playerContextNames },
       ],
     }).compile();
     service = moduleRef.get(PlayerContextService);
   });
 
   it('appends position, team, race, era and coach in that order when all are requested', async () => {
-    players.getContextNamesByIds.mockResolvedValue(
+    playerContextNames.getPlayerContextNamesByIds.mockResolvedValue(
       new Map([[7, griffContext]]),
     );
     const decorated = await service.attachSuffixes(
@@ -52,7 +52,7 @@ describe('PlayerContextService', () => {
   });
 
   it('leaves the era out when it is not requested', async () => {
-    players.getContextNamesByIds.mockResolvedValue(
+    playerContextNames.getPlayerContextNamesByIds.mockResolvedValue(
       new Map([[7, griffContext]]),
     );
     const decorated = await service.attachSuffixes(
@@ -66,7 +66,7 @@ describe('PlayerContextService', () => {
   });
 
   it('appends only the position and era when only those are requested', async () => {
-    players.getContextNamesByIds.mockResolvedValue(
+    playerContextNames.getPlayerContextNamesByIds.mockResolvedValue(
       new Map([[7, griffContext]]),
     );
     const decorated = await service.attachSuffixes(
@@ -84,7 +84,7 @@ describe('PlayerContextService', () => {
   });
 
   it('produces an empty suffix when nothing is requested', async () => {
-    players.getContextNamesByIds.mockResolvedValue(
+    playerContextNames.getPlayerContextNamesByIds.mockResolvedValue(
       new Map([[7, griffContext]]),
     );
     const decorated = await service.attachSuffixes(
@@ -102,7 +102,7 @@ describe('PlayerContextService', () => {
   });
 
   it('preserves every original row property and its order', async () => {
-    players.getContextNamesByIds.mockResolvedValue(
+    playerContextNames.getPlayerContextNamesByIds.mockResolvedValue(
       new Map([
         [7, griffContext],
         [
@@ -144,7 +144,7 @@ describe('PlayerContextService', () => {
   });
 
   it('looks the ids up in one batched call, using the supplied accessor', async () => {
-    players.getContextNamesByIds.mockResolvedValue(new Map());
+    playerContextNames.getPlayerContextNamesByIds.mockResolvedValue(new Map());
     await service.attachSuffixes(
       [
         { id: 3, name: 'A', count: 1 },
@@ -153,8 +153,12 @@ describe('PlayerContextService', () => {
       (row) => row.id,
       ALL,
     );
-    expect(players.getContextNamesByIds).toHaveBeenCalledTimes(1);
-    expect(players.getContextNamesByIds).toHaveBeenCalledWith([3, 4]);
+    expect(playerContextNames.getPlayerContextNamesByIds).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(playerContextNames.getPlayerContextNamesByIds).toHaveBeenCalledWith([
+      3, 4,
+    ]);
   });
 
   it('returns an empty array without querying when there are no rows', async () => {
@@ -164,11 +168,13 @@ describe('PlayerContextService', () => {
       ALL,
     );
     expect(decorated).toEqual([]);
-    expect(players.getContextNamesByIds).not.toHaveBeenCalled();
+    expect(
+      playerContextNames.getPlayerContextNamesByIds,
+    ).not.toHaveBeenCalled();
   });
 
   it('falls back to an empty suffix for a player the lookup did not return', async () => {
-    players.getContextNamesByIds.mockResolvedValue(new Map());
+    playerContextNames.getPlayerContextNamesByIds.mockResolvedValue(new Map());
     const decorated = await service.attachSuffixes(
       [{ playerId: 7, name: 'Griff Oberwald', count: 12 }],
       (row) => row.playerId,

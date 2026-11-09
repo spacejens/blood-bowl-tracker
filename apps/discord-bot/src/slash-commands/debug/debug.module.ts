@@ -5,7 +5,6 @@ import {
   CompetitionsModule,
   ErasModule,
   LeaguesModule,
-  PlayersModule,
   PositionsModule,
   RacesModule,
   TeamsModule,
@@ -44,9 +43,9 @@ import { OptionValueResolverService } from './option-value-resolver.service';
  * directly here or in `SlashCommandsModule`.
  *
  * The game-data modules OptionValueResolverService resolves recorded
- * option ids through. PlayersModule supplies PlayersService;
- * PlayersQueriesModule supplies StarPlayersService and
- * IncompleteImportPlayersService (for /debugincompleteimport);
+ * option ids through. PlayersQueriesModule supplies PlayersQueriesService,
+ * StarPlayersService and IncompleteImportPlayersService (for
+ * /debugincompleteimport);
  * CompetitionGroupsModule's only by-id lookup is findByIdWithLeague.
  */
 @Module({
@@ -60,7 +59,6 @@ import { OptionValueResolverService } from './option-value-resolver.service';
     CompetitionGroupsModule,
     CoachesModule,
     TeamsModule,
-    PlayersModule,
     PlayersQueriesModule,
     PositionsModule,
     TrophiesModule,

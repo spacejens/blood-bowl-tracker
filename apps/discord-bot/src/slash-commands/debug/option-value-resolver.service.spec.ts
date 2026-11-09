@@ -4,13 +4,15 @@ import {
   CompetitionsService,
   ErasService,
   LeaguesService,
-  PlayersService,
   PositionsService,
   RacesService,
   TeamsService,
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
-import { StarPlayersService } from '@blood-bowl-tracker/game-data-queries';
+import {
+  PlayersQueriesService,
+  StarPlayersService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { DeepMockProxy } from 'vitest-mock-extended';
@@ -31,7 +33,7 @@ describe('OptionValueResolverService', () => {
   let competitionGroups: DeepMockProxy<CompetitionGroupsService>;
   let coaches: DeepMockProxy<CoachesService>;
   let teams: DeepMockProxy<TeamsService>;
-  let players: DeepMockProxy<PlayersService>;
+  let players: DeepMockProxy<PlayersQueriesService>;
   let starPlayers: DeepMockProxy<StarPlayersService>;
   let positions: DeepMockProxy<PositionsService>;
   let trophies: DeepMockProxy<TrophiesService>;
@@ -44,7 +46,7 @@ describe('OptionValueResolverService', () => {
     competitionGroups = mockDeep<CompetitionGroupsService>();
     coaches = mockDeep<CoachesService>();
     teams = mockDeep<TeamsService>();
-    players = mockDeep<PlayersService>();
+    players = mockDeep<PlayersQueriesService>();
     starPlayers = mockDeep<StarPlayersService>();
     positions = mockDeep<PositionsService>();
     trophies = mockDeep<TrophiesService>();
@@ -59,7 +61,7 @@ describe('OptionValueResolverService', () => {
         { provide: CompetitionGroupsService, useValue: competitionGroups },
         { provide: CoachesService, useValue: coaches },
         { provide: TeamsService, useValue: teams },
-        { provide: PlayersService, useValue: players },
+        { provide: PlayersQueriesService, useValue: players },
         { provide: StarPlayersService, useValue: starPlayers },
         { provide: PositionsService, useValue: positions },
         { provide: TrophiesService, useValue: trophies },

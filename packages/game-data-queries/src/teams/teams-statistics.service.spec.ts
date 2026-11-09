@@ -8,13 +8,12 @@ import {
   firstCallArg,
   mockDb,
 } from '@blood-bowl-tracker/db/test-helpers';
-import { PlayersService } from '@blood-bowl-tracker/game-data';
-import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
 import {
   CASUALTY_CAUSED_TYPES,
   COMPLETION_TYPES,
   DEATH_CAUSED_TYPES,
   DEFLECTION_TYPES,
+  FACT_SCOPE_ALL_TIME,
   FOUL_TYPES,
   INTERCEPTION_TYPES,
   LASTING_INJURY_SUFFERED_TYPES,
@@ -27,6 +26,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
+import { PlayersQueriesService } from '../players/players-queries.service';
 import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import { MatchOutcomeCountsService } from '../shared/match-outcome-counts.service';
 import { TrophyAwardCountsService } from '../shared/trophy-award-counts.service';
@@ -36,7 +36,7 @@ describe('TeamsStatisticsService', () => {
   let service: TeamsStatisticsService;
   let matchEventCounts: MockProxy<MatchEventCountsService>;
   let matchOutcomeCounts: MockProxy<MatchOutcomeCountsService>;
-  let players: MockProxy<PlayersService>;
+  let players: MockProxy<PlayersQueriesService>;
   let trophyAwardCounts: MockProxy<TrophyAwardCountsService>;
 
   async function build(...rowsPerQuery: unknown[][]): Promise<{
@@ -49,7 +49,7 @@ describe('TeamsStatisticsService', () => {
         TeamsStatisticsService,
         { provide: MatchEventCountsService, useValue: matchEventCounts },
         { provide: MatchOutcomeCountsService, useValue: matchOutcomeCounts },
-        { provide: PlayersService, useValue: players },
+        { provide: PlayersQueriesService, useValue: players },
         { provide: TrophyAwardCountsService, useValue: trophyAwardCounts },
         { provide: DB, useValue: db },
       ],
@@ -61,12 +61,12 @@ describe('TeamsStatisticsService', () => {
   beforeEach(() => {
     matchEventCounts = mock<MatchEventCountsService>();
     matchOutcomeCounts = mock<MatchOutcomeCountsService>();
-    players = mock<PlayersService>();
+    players = mock<PlayersQueriesService>();
     trophyAwardCounts = mock<TrophyAwardCountsService>();
   });
 
   describe('getTopPlayersByTotalSpp', () => {
-    it('asks PlayersService for the team, capped to the limit, and returns its rows', async () => {
+    it('asks PlayersQueriesService for the team, capped to the limit, and returns its rows', async () => {
       const rows = [
         {
           playerId: 1,

@@ -21,6 +21,8 @@ export type {
 } from './players/player-deepdive-counts.service';
 export { PlayerDeepdiveCountsService } from './players/player-deepdive-counts.service';
 export { PlayersQueriesModule } from './players/players-queries.module';
+export type { PlayerDetail } from './players/players-queries.service';
+export { PlayersQueriesService } from './players/players-queries.service';
 export type {
   StarPlayerDistinctTeamsHiredCount,
   StarPlayerHire,
