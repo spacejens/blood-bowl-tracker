@@ -53,6 +53,9 @@ export { PlayerContextNamesService } from './shared/player-context-names.service
 export { TeamRaceCoachNamesModule } from './shared/team-race-coach-names.module';
 export { TeamRaceCoachNamesService } from './shared/team-race-coach-names.service';
 export type { TeamTopPlayer } from './shared/team-top-player';
+export { SkillsQueriesModule } from './skills/skills-queries.module';
+export type { SkillPlayerCount } from './skills/skills-queries.service';
+export { SkillsQueriesService } from './skills/skills-queries.service';
 export type {
   TeamAverageDirection,
   TeamAverageRow,

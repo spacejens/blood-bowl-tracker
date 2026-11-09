@@ -9,7 +9,6 @@ import {
   LeaguesService,
   MatchesService,
   RulesSetsService,
-  SkillsService,
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
 import {
@@ -17,6 +16,7 @@ import {
   PlayersQueriesService,
   PositionsQueriesService,
   RacesQueriesService,
+  SkillsQueriesService,
   TeamsQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
@@ -92,7 +92,7 @@ async function makeService(
         useValue: overrides.positions ?? {},
       },
       {
-        provide: SkillsService,
+        provide: SkillsQueriesService,
         useValue: overrides.skills ?? {},
       },
       {

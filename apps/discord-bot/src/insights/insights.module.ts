@@ -11,7 +11,6 @@ import {
   PositionRulesSetSkillsModule,
   PositionRulesSetsModule,
   RulesSetsModule,
-  SkillsModule,
   TrophiesModule,
 } from '@blood-bowl-tracker/game-data';
 import {
@@ -23,6 +22,7 @@ import {
   PlayersQueriesModule,
   PositionsQueriesModule,
   RacesQueriesModule,
+  SkillsQueriesModule,
   TeamRaceCoachNamesModule,
   TeamsQueriesModule,
 } from '@blood-bowl-tracker/game-data-queries';
@@ -88,7 +88,7 @@ const GAME_DATA_MODULES = [
   PositionRulesSetKeywordsModule,
   CharacteristicDisplayFormattingModule,
   RacesQueriesModule,
-  SkillsModule,
+  SkillsQueriesModule,
   KeywordsModule,
   ExternalSystemsModule,
   TrophiesModule,

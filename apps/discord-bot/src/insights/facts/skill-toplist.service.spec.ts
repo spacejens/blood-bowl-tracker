@@ -1,11 +1,7 @@
-import type {
-  FactScope,
-  SkillPlayerCount,
-} from '@blood-bowl-tracker/game-data';
-import {
-  FACT_SCOPE_ALL_TIME,
-  SkillsService,
-} from '@blood-bowl-tracker/game-data';
+import type { FactScope } from '@blood-bowl-tracker/game-data';
+import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
+import type { SkillPlayerCount } from '@blood-bowl-tracker/game-data-queries';
+import { SkillsQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -31,16 +27,16 @@ describe('SkillToplistService', () => {
   // SkillToplistService owns: the titles, the messages, the absence of a
   // deepdive link and row format, and which query each resolver runs.
   let service: SkillToplistService;
-  let skills: MockProxy<SkillsService>;
+  let skills: MockProxy<SkillsQueriesService>;
   let leaderboard: MockProxy<LeaderboardService>;
 
   beforeEach(async () => {
-    skills = mock<SkillsService>();
+    skills = mock<SkillsQueriesService>();
     leaderboard = mock<LeaderboardService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
         SkillToplistService,
-        { provide: SkillsService, useValue: skills },
+        { provide: SkillsQueriesService, useValue: skills },
         { provide: LeaderboardService, useValue: leaderboard },
       ],
     }).compile();
@@ -82,7 +78,7 @@ describe('SkillToplistService', () => {
     ['resolveAdvancementChosen', 'countPlayersBySkillChosen'],
     ['resolveAdvancementRandom', 'countPlayersBySkillRandom'],
   ] as const)(
-    '%s passes the scope and the leaderboard-requested limit to SkillsService.%s',
+    '%s passes the scope and the leaderboard-requested limit to SkillsQueriesService.%s',
     async (method, query) => {
       const sentinelLimit = 3;
       skills[query].mockResolvedValue(rows);

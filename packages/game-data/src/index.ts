@@ -123,7 +123,6 @@ export { SkillRulesSetsModule } from './skill-rules-sets/skill-rules-sets.module
 export type { SkillCategoryByRulesSet } from './skill-rules-sets/skill-rules-sets.service';
 export { SkillRulesSetsService } from './skill-rules-sets/skill-rules-sets.service';
 export { SkillsModule } from './skills/skills.module';
-export type { SkillPlayerCount } from './skills/skills.service';
 export {
   SkillsService,
   SkillUpsertConflictError,
