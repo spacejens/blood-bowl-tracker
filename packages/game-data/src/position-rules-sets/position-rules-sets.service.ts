@@ -23,7 +23,6 @@ import {
 import type { CharacteristicFormat } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
-import type { CharacteristicValues } from '../shared/characteristic-format-validation.service';
 import { CharacteristicFormatValidationService } from '../shared/characteristic-format-validation.service';
 import { PositionValidationError } from '../shared/position-validation-error';
 
@@ -302,7 +301,7 @@ export class PositionRulesSetsService {
     );
 
     const toInsert: NewPositionRulesSet[] = [];
-    const toUpdate: { id: number; values: CharacteristicValues }[] = [];
+    const toUpdate: { id: number; values: CharacteristicLine }[] = [];
     const untouchedIds: number[] = [];
     for (const entry of data.entries) {
       const existingId = existingIdByKey.get(this.naturalKey(entry));
@@ -387,7 +386,7 @@ export class PositionRulesSetsService {
    */
   private characteristicValues(
     entry: PositionRulesSetEntry,
-  ): CharacteristicValues {
+  ): CharacteristicLine {
     return {
       move: entry.move,
       strength: entry.strength,

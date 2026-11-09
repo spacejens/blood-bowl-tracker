@@ -17,6 +17,8 @@ export const CharacteristicLineSchema = z.object({
   armour: z.number().int(),
 });
 
+export type CharacteristicLine = z.infer<typeof CharacteristicLineSchema>;
+
 /**
  * The five characteristic keys, in stat-line order. Exported so consumers
  * iterate the group rather than restating (and drifting from) the list.
@@ -28,5 +30,3 @@ export const PLAYER_CHARACTERISTIC_KEYS = [
   'passing',
   'armour',
 ] as const satisfies readonly (keyof CharacteristicLine)[];
-
-export type CharacteristicLine = z.infer<typeof CharacteristicLineSchema>;
