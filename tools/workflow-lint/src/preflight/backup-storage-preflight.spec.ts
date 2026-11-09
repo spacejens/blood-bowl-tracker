@@ -49,7 +49,7 @@ const CASES: readonly WorkflowCase[] = [
     jobId: 'backup',
     ownName: 'Backup production database',
     githubNames: {
-      BACKUP_DATABASE_URL: 'secrets.PRODUCTION_DATABASE_URL',
+      DATABASE_URL: 'secrets.PRODUCTION_DATABASE_URL',
       BACKUP_STORAGE_ENDPOINT: 'vars.BACKUP_STORAGE_ENDPOINT',
       BACKUP_STORAGE_BUCKET: 'vars.BACKUP_STORAGE_BUCKET',
       BACKUP_STORAGE_ACCESS_KEY_ID:
