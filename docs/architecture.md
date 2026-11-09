@@ -365,9 +365,9 @@ Points, characteristics and skills are stored.
 
 ## Environment variable naming
 
-- `DATABASE_URL` is the only name any app or tool reads for its Postgres
-  connection string. No tool reads a prefixed alias of it, so one exported
-  value works everywhere.
+- `DATABASE_URL` is the only name any app or tool reads for its main
+  Postgres connection string. No tool reads a prefixed alias of it, so one
+  exported value works everywhere.
 - A tool that needs a second database, a different target from its main
   one, gives that one its own explicit name rather than a prefix on
   `DATABASE_URL`: backup-cli's restore target is `LOCAL_DATABASE_URL`.

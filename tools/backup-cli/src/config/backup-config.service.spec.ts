@@ -127,18 +127,10 @@ describe('BackupConfigService', () => {
       env: { DATABASE_URL: 'mysql://secret-value' },
     });
 
-    expect(() => service.getDatabaseUrl()).toThrow(/not a postgres:\/\//);
-    expect(() => service.getDatabaseUrl()).not.toThrow(/secret-value/);
-  });
-
-  it('names DATABASE_URL when the database url is not a postgres connection string', async () => {
-    const service = await makeService({
-      env: { DATABASE_URL: 'mysql://secret-value' },
-    });
-
     expect(() => service.getDatabaseUrl()).toThrow(
       'database.url (DATABASE_URL) is not a postgres:// or postgresql:// connection string.',
     );
+    expect(() => service.getDatabaseUrl()).not.toThrow(/secret-value/);
   });
 
   it('names the database setting when it is missing', async () => {
