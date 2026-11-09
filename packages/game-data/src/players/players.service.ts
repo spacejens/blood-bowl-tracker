@@ -1,4 +1,5 @@
 import type {
+  CharacteristicLine,
   ExternalId,
   PlayerLastingInjuries,
   ResolveResult,
@@ -65,7 +66,8 @@ import { PlayerLastingInjuryValidationService } from './player-lasting-injury-va
  * One player with the names and ids of their team, race, position and era —
  * what `PlayersService.findById` returns for a player deepdive.
  */
-export interface PlayerDetail extends PlayerLastingInjuries {
+export interface PlayerDetail
+  extends PlayerLastingInjuries, CharacteristicLine {
   id: number;
   name: string;
   teamName: string;
@@ -88,11 +90,6 @@ export interface PlayerDetail extends PlayerLastingInjuries {
    * source has reported one (unknown), never "active".
    */
   status: PlayerStatus | null;
-  move: number;
-  strength: number;
-  agility: number;
-  passing: number | null;
-  armour: number;
 }
 
 export class PlayerUpsertConflictError extends UpsertConflictError {}

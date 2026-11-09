@@ -1,3 +1,4 @@
+import type { CharacteristicLine } from '@blood-bowl-tracker/api-contract';
 import type { CharacteristicFormat } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 
@@ -12,14 +13,12 @@ export interface RulesSetFormats {
   armourFormat: CharacteristicFormat;
 }
 
-/** One complete characteristic line, whoever it belongs to. */
-export interface CharacteristicValues {
-  move: number;
-  strength: number;
-  agility: number;
-  passing: number | null;
-  armour: number;
-}
+/**
+ * One complete characteristic line, whoever it belongs to. An alias of the
+ * shared `CharacteristicLine`, kept under this name because this package's
+ * validation callers already import it.
+ */
+export type CharacteristicValues = CharacteristicLine;
 
 /**
  * The five characteristics, each paired with the rules-set column declaring
