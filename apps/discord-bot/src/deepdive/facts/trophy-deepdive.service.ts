@@ -1,9 +1,11 @@
-import type { TrophyRecipient } from '@blood-bowl-tracker/game-data';
-import { TrophyAwardsService } from '@blood-bowl-tracker/game-data';
-import type { TrophyHeader } from '@blood-bowl-tracker/game-data-queries';
+import type {
+  TrophyHeader,
+  TrophyRecipient,
+} from '@blood-bowl-tracker/game-data-queries';
 import {
   TrophiesQueriesService,
   TrophyAwardRuleDescriptionService,
+  TrophyAwardsQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
@@ -65,7 +67,7 @@ type RecipientContext = {
 export class TrophyDeepdiveService {
   constructor(
     private readonly trophiesQueries: TrophiesQueriesService,
-    private readonly trophyAwards: TrophyAwardsService,
+    private readonly trophyAwardsQueries: TrophyAwardsQueriesService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
     private readonly teamContext: TeamContextService,
@@ -135,7 +137,7 @@ export class TrophyDeepdiveService {
     // of the same "who has won this?" answer, and telling the reader which of
     // them was slow would not help them.
     const total: number | null = await this.databaseTimeout.run(
-      this.trophyAwards.countRecipients(trophyId),
+      this.trophyAwardsQueries.countRecipients(trophyId),
       null,
     );
     if (total === null) {
@@ -148,7 +150,10 @@ export class TrophyDeepdiveService {
     let shown: TrophyRecipient[] = [];
     if (total > 0) {
       const rows: TrophyRecipient[] | null = await this.databaseTimeout.run(
-        this.trophyAwards.listRecipients(trophyId, MAX_TROPHY_RECIPIENTS),
+        this.trophyAwardsQueries.listRecipients(
+          trophyId,
+          MAX_TROPHY_RECIPIENTS,
+        ),
         null,
       );
       if (rows === null) {

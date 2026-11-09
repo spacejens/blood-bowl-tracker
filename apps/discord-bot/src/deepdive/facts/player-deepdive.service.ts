@@ -1,7 +1,6 @@
 import type { CharacteristicFormat } from '@blood-bowl-tracker/domain-enums';
 import type {
   PlayerCharacteristicAdvancementRow,
-  PlayerHonor,
   PlayerSkillRow,
   PositionCharacteristicsContext,
   PositionKeyword,
@@ -12,12 +11,12 @@ import {
   PlayerSkillsService,
   PositionRulesSetKeywordsService,
   PositionRulesSetsService,
-  TrophyAwardsService,
   UnspentSppService,
 } from '@blood-bowl-tracker/game-data';
 import type {
   PlayerDeepdiveCategoryCounts,
   PlayerDetail,
+  PlayerHonor,
   PlayerKillEntry,
   PlayerKillerInfo,
   StarPlayerIdentity,
@@ -28,6 +27,7 @@ import {
   PlayerDeepdiveCountsService,
   PlayersQueriesService,
   StarPlayersService,
+  TrophyAwardsQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable, Logger } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
@@ -136,7 +136,7 @@ export class PlayerDeepdiveService {
     private readonly playersQueries: PlayersQueriesService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
-    private readonly trophyAwards: TrophyAwardsService,
+    private readonly trophyAwardsQueries: TrophyAwardsQueriesService,
     private readonly playerDeath: PlayerDeathService,
     private readonly deepdiveCounts: PlayerDeepdiveCountsService,
     private readonly playerKills: PlayerKillsSectionService,
@@ -178,7 +178,7 @@ export class PlayerDeepdiveService {
     // the same "what has this player won?" answer, and telling the reader
     // which of them was slow would not help them.
     const honorsTotal: number | null = await this.databaseTimeout.run(
-      this.trophyAwards.countByPlayer(playerId),
+      this.trophyAwardsQueries.countByPlayer(playerId),
       null,
     );
     if (honorsTotal === null) {
@@ -191,7 +191,7 @@ export class PlayerDeepdiveService {
     let honors: PlayerHonor[] = [];
     if (honorsTotal > 0) {
       const rows: PlayerHonor[] | null = await this.databaseTimeout.run(
-        this.trophyAwards.listByPlayer(playerId, MAX_PLAYER_HONORS),
+        this.trophyAwardsQueries.listByPlayer(playerId, MAX_PLAYER_HONORS),
         null,
       );
       if (rows === null) {

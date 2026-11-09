@@ -9,8 +9,8 @@ import {
 /**
  * One listed player row, with everything needed to decide where its
  * drill-down button should point. Every producing query
- * (`PlayersQueriesService.topPlayersByTotalSppForTeam`, `TrophyAwardsService.listByTeam`,
- * `TrophyAwardsService.listRecipients`, `TrophyAwardsService.listForCompetition`,
+ * (`PlayersQueriesService.topPlayersByTotalSppForTeam`, `TrophyAwardsQueriesService.listByTeam`,
+ * `TrophyAwardsQueriesService.listRecipients`, `TrophyAwardsQueriesService.listForCompetition`,
  * `PlayerDeathService.findPlayerSummary`) selects these columns, so no caller
  * needs a per-row star lookup.
  */

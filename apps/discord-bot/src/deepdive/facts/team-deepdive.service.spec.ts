@@ -1,4 +1,4 @@
-import type { TeamHonor } from '@blood-bowl-tracker/game-data';
+import type { TeamHonor } from '@blood-bowl-tracker/game-data-queries';
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 

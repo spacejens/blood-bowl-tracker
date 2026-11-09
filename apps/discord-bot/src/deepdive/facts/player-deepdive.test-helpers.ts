@@ -1,7 +1,6 @@
 import type { PlayerStatus } from '@blood-bowl-tracker/domain-enums';
 import type {
   PlayerCharacteristicAdvancementRow,
-  PlayerHonor,
   PlayerSkillRow,
   PositionCharacteristicsContext,
   PositionKeyword,
@@ -12,12 +11,12 @@ import {
   PlayerSkillsService,
   PositionRulesSetKeywordsService,
   PositionRulesSetsService,
-  TrophyAwardsService,
   UnspentSppService,
 } from '@blood-bowl-tracker/game-data';
 import type {
   PlayerDeepdiveCategoryCounts,
   PlayerDetail,
+  PlayerHonor,
   PlayerKillEntry,
   PlayerKillerInfo,
 } from '@blood-bowl-tracker/game-data-queries';
@@ -27,6 +26,7 @@ import {
   PlayerDeepdiveCountsService,
   PlayersQueriesService,
   StarPlayersService,
+  TrophyAwardsQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -133,7 +133,7 @@ export const championsOfDeath = {
 };
 
 /**
- * A `TrophyAwardsService` mock. Defaults to a player with no honors, so tests
+ * A `TrophyAwardsQueriesService` mock. Defaults to a player with no honors, so tests
  * about other parts of the embed are unaffected by the Honors section, which
  * is omitted entirely in that case. `count` defaults to the row count, so a
  * test only supplies it when exercising the overflow remainder.
@@ -141,8 +141,8 @@ export const championsOfDeath = {
 export function makeTrophyAwards(
   honors: PlayerHonor[] = [],
   count = honors.length,
-): MockProxy<TrophyAwardsService> {
-  const trophyAwards = mock<TrophyAwardsService>();
+): MockProxy<TrophyAwardsQueriesService> {
+  const trophyAwards = mock<TrophyAwardsQueriesService>();
   trophyAwards.countByPlayer.mockResolvedValue(count);
   trophyAwards.listByPlayer.mockResolvedValue(honors);
   return trophyAwards;
@@ -218,7 +218,7 @@ export interface MakeServiceOptions {
   players: PlayersQueriesService;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   entityComponents?: MockProxy<EntityComponentsService>;
-  trophyAwards?: MockProxy<TrophyAwardsService>;
+  trophyAwards?: MockProxy<TrophyAwardsQueriesService>;
   playerDeath?: MockProxy<PlayerDeathService>;
   deepdiveCounts?: MockProxy<PlayerDeepdiveCountsService>;
   stars?: MockProxy<StarPlayersService>;
@@ -319,7 +319,7 @@ export async function makeService({
 }: MakeServiceOptions): Promise<{
   service: PlayerDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;
-  trophyAwards: MockProxy<TrophyAwardsService>;
+  trophyAwards: MockProxy<TrophyAwardsQueriesService>;
   playerDeath: MockProxy<PlayerDeathService>;
   deepdiveCounts: MockProxy<PlayerDeepdiveCountsService>;
   stars: MockProxy<StarPlayersService>;
@@ -357,7 +357,7 @@ export async function makeService({
       { provide: PlayersQueriesService, useValue: players },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
-      { provide: TrophyAwardsService, useValue: trophyAwards },
+      { provide: TrophyAwardsQueriesService, useValue: trophyAwards },
       { provide: PlayerDeathService, useValue: playerDeath },
       { provide: PlayerDeepdiveCountsService, useValue: deepdiveCounts },
       { provide: StarPlayersService, useValue: stars },

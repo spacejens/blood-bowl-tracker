@@ -1,9 +1,11 @@
-import type { TeamHonor } from '@blood-bowl-tracker/game-data';
-import { TrophyAwardsService } from '@blood-bowl-tracker/game-data';
-import type { TeamTopPlayer } from '@blood-bowl-tracker/game-data-queries';
+import type {
+  TeamHonor,
+  TeamTopPlayer,
+} from '@blood-bowl-tracker/game-data-queries';
 import {
   TeamsQueriesService,
   TeamsStatisticsService,
+  TrophyAwardsQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
@@ -81,7 +83,7 @@ export class TeamDeepdiveService {
     private readonly leaderboard: LeaderboardService,
     private readonly entityComponents: EntityComponentsService,
     private readonly playerContext: PlayerContextService,
-    private readonly trophyAwards: TrophyAwardsService,
+    private readonly trophyAwardsQueries: TrophyAwardsQueriesService,
     private readonly eraSectionGrouper: EraSectionGrouperService,
     private readonly playerRowButton: PlayerRowButtonService,
     private readonly numbers: NumberFormatterService,
@@ -193,7 +195,7 @@ export class TeamDeepdiveService {
     // the same "what has this team won?" answer, and telling the reader which
     // of them was slow would not help them.
     const honorsTotal: number | null = await this.databaseTimeout.run(
-      this.trophyAwards.countByTeam(teamId),
+      this.trophyAwardsQueries.countByTeam(teamId),
       null,
     );
     if (honorsTotal === null) {
@@ -206,7 +208,7 @@ export class TeamDeepdiveService {
     let honors: TeamHonor[] = [];
     if (honorsTotal > 0) {
       const rows: TeamHonor[] | null = await this.databaseTimeout.run(
-        this.trophyAwards.listByTeam(teamId, MAX_TEAM_HONORS),
+        this.trophyAwardsQueries.listByTeam(teamId, MAX_TEAM_HONORS),
         null,
       );
       if (rows === null) {

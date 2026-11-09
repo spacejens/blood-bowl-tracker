@@ -1,5 +1,8 @@
-import { SppModule, TrophyAwardsModule } from '@blood-bowl-tracker/game-data';
-import { TrophiesQueriesModule } from '@blood-bowl-tracker/game-data-queries';
+import { SppModule } from '@blood-bowl-tracker/game-data';
+import {
+  TrophiesQueriesModule,
+  TrophyAwardsQueriesModule,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Module } from '@nestjs/common';
 
 import { CoachDeepdiveService } from '../deepdive/facts/coach-deepdive.service';
@@ -38,7 +41,7 @@ import { SlashCommandRegistryModule } from './slash-command-registry.module';
 
 @Module({
   // InsightsModule re-exports the game-data modules the other deepdives need;
-  // trophies (TrophiesQueriesModule), trophy awards and SPP (the player deepdive's unspent SPP and
+  // trophies (TrophiesQueriesModule), trophy awards (TrophyAwardsQueriesModule) and SPP (the player deepdive's unspent SPP and
   // its era's advancement pricing model) are used only here, so they are
   // imported directly rather than widening the insights surface. Competition groups
   // arrive transitively through InsightsModule (it needs
@@ -61,7 +64,7 @@ import { SlashCommandRegistryModule } from './slash-command-registry.module';
   imports: [
     InsightsModule,
     TrophiesQueriesModule,
-    TrophyAwardsModule,
+    TrophyAwardsQueriesModule,
     SppModule,
     DebugModule,
     AdminModule,

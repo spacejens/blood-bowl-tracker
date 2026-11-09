@@ -76,3 +76,11 @@ export { TrophiesQueriesModule } from './trophies/trophies-queries.module';
 export type { TrophyHeader } from './trophies/trophies-queries.service';
 export { TrophiesQueriesService } from './trophies/trophies-queries.service';
 export { TrophyAwardRuleDescriptionService } from './trophies/trophy-award-rule-description.service';
+export { TrophyAwardsQueriesModule } from './trophy-awards/trophy-awards-queries.module';
+export type {
+  CompetitionTrophyAward,
+  PlayerHonor,
+  TeamHonor,
+  TrophyRecipient,
+} from './trophy-awards/trophy-awards-queries.service';
+export { TrophyAwardsQueriesService } from './trophy-awards/trophy-awards-queries.service';

@@ -1,7 +1,9 @@
 import type { CompetitionType } from '@blood-bowl-tracker/domain-enums';
-import type { CompetitionTrophyAward } from '@blood-bowl-tracker/game-data';
-import { TrophyAwardsService } from '@blood-bowl-tracker/game-data';
-import { CompetitionsQueriesService } from '@blood-bowl-tracker/game-data-queries';
+import type { CompetitionTrophyAward } from '@blood-bowl-tracker/game-data-queries';
+import {
+  CompetitionsQueriesService,
+  TrophyAwardsQueriesService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -57,7 +59,7 @@ import { makePlayerRowButton } from './team-deepdive.test-helpers';
 
 interface MakeServiceOptions {
   competitions: CompetitionsQueriesService;
-  trophyAwards?: MockProxy<TrophyAwardsService>;
+  trophyAwards?: MockProxy<TrophyAwardsQueriesService>;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   entityComponents?: MockProxy<EntityComponentsService>;
   teamContext?: MockProxy<TeamContextService>;
@@ -90,7 +92,7 @@ async function makeService({
     providers: [
       CompetitionDeepdiveService,
       { provide: CompetitionsQueriesService, useValue: competitions },
-      { provide: TrophyAwardsService, useValue: trophyAwards },
+      { provide: TrophyAwardsQueriesService, useValue: trophyAwards },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
       { provide: TeamContextService, useValue: teamContext },
@@ -156,8 +158,8 @@ function competitionHeader(
 
 function makeTrophyAwards(
   awards: CompetitionTrophyAward[],
-): MockProxy<TrophyAwardsService> {
-  const trophyAwards = mock<TrophyAwardsService>();
+): MockProxy<TrophyAwardsQueriesService> {
+  const trophyAwards = mock<TrophyAwardsQueriesService>();
   trophyAwards.listForCompetition.mockResolvedValue(awards);
   return trophyAwards;
 }

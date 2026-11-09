@@ -152,12 +152,6 @@ export {
 } from './trophies/trophies.service';
 export { MissingTrophyAwardsService } from './trophy-awards/missing-trophy-awards.service';
 export { TrophyAwardsModule } from './trophy-awards/trophy-awards.module';
-export type {
-  CompetitionTrophyAward,
-  PlayerHonor,
-  TeamHonor,
-  TrophyRecipient,
-} from './trophy-awards/trophy-awards.service';
 export {
   TrophyAwardCompetitionGroupMismatchError,
   TrophyAwardGrantedSkillError,

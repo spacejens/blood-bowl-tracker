@@ -1,9 +1,11 @@
-import type { TeamHonor } from '@blood-bowl-tracker/game-data';
-import { TrophyAwardsService } from '@blood-bowl-tracker/game-data';
-import type { TeamTopPlayer } from '@blood-bowl-tracker/game-data-queries';
+import type {
+  TeamHonor,
+  TeamTopPlayer,
+} from '@blood-bowl-tracker/game-data-queries';
 import {
   TeamsQueriesService,
   TeamsStatisticsService,
+  TrophyAwardsQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -77,7 +79,7 @@ export const mvp: TeamHonor = {
 };
 
 /**
- * A `TrophyAwardsService` mock. Defaults to a team with no honors, so tests
+ * A `TrophyAwardsQueriesService` mock. Defaults to a team with no honors, so tests
  * about other parts of the embed are unaffected by the trophies section,
  * which is omitted entirely in that case. `count` defaults to the row count,
  * so a test only supplies it when exercising the overflow remainder.
@@ -85,8 +87,8 @@ export const mvp: TeamHonor = {
 export function makeTrophyAwards(
   honors: TeamHonor[] = [],
   count = honors.length,
-): MockProxy<TrophyAwardsService> {
-  const trophyAwards = mock<TrophyAwardsService>();
+): MockProxy<TrophyAwardsQueriesService> {
+  const trophyAwards = mock<TrophyAwardsQueriesService>();
   trophyAwards.countByTeam.mockResolvedValue(count);
   trophyAwards.listByTeam.mockResolvedValue(honors);
   return trophyAwards;
@@ -119,7 +121,7 @@ export interface MakeServiceOptions {
   leaderboard?: MockProxy<LeaderboardService>;
   entityComponents?: MockProxy<EntityComponentsService>;
   playerContext?: MockProxy<PlayerContextService>;
-  trophyAwards?: MockProxy<TrophyAwardsService>;
+  trophyAwards?: MockProxy<TrophyAwardsQueriesService>;
   eraSectionGrouper?: MockProxy<EraSectionGrouperService>;
   playerRowButton?: MockProxy<PlayerRowButtonService>;
 }
@@ -138,7 +140,7 @@ export async function makeService({
   service: TeamDeepdiveService;
   leaderboard: MockProxy<LeaderboardService>;
   entityComponents: MockProxy<EntityComponentsService>;
-  trophyAwards: MockProxy<TrophyAwardsService>;
+  trophyAwards: MockProxy<TrophyAwardsQueriesService>;
   playerRowButton: MockProxy<PlayerRowButtonService>;
 }> {
   const moduleRef = await Test.createTestingModule({
@@ -152,7 +154,7 @@ export async function makeService({
       { provide: LeaderboardService, useValue: leaderboard },
       { provide: EntityComponentsService, useValue: entityComponents },
       { provide: PlayerContextService, useValue: playerContext },
-      { provide: TrophyAwardsService, useValue: trophyAwards },
+      { provide: TrophyAwardsQueriesService, useValue: trophyAwards },
       { provide: EraSectionGrouperService, useValue: eraSectionGrouper },
       { provide: PlayerRowButtonService, useValue: playerRowButton },
     ],
