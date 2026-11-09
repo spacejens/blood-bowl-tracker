@@ -231,7 +231,8 @@ in the process list of that ephemeral runner only.
    Add these secrets:
    - `PRODUCTION_DATABASE_URL`: Neon's **direct** connection string, the same
      value as `DATABASE_URL` in
-     [Configuration and secrets](production-configuration.md)
+     [Configuration and secrets](production-configuration.md). The backup
+     workflow passes it to backup-cli as `DATABASE_URL`.
    - `BACKUP_STORAGE_WRITE_ACCESS_KEY_ID`
    - `BACKUP_STORAGE_WRITE_SECRET_ACCESS_KEY`
 
