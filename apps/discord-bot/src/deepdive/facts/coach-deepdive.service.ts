@@ -1,4 +1,4 @@
-import { CoachesService } from '@blood-bowl-tracker/game-data';
+import { CoachesQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -45,7 +45,7 @@ const TOP_TEAMS_TOP_ENTRIES = 5;
 @Injectable()
 export class CoachDeepdiveService {
   constructor(
-    private readonly coaches: CoachesService,
+    private readonly coachesQueries: CoachesQueriesService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly leaderboard: LeaderboardService,
     private readonly entityComponents: EntityComponentsService,
@@ -56,7 +56,7 @@ export class CoachDeepdiveService {
 
   async resolve(coachId: number): Promise<string | InteractionReplyOptions> {
     const coach: Coach | undefined | null = await this.databaseTimeout.run(
-      this.coaches.findById(coachId),
+      this.coachesQueries.findById(coachId),
       null,
     );
     if (coach === null) {
@@ -67,7 +67,7 @@ export class CoachDeepdiveService {
     }
 
     const eraRows: Era[] | null = await this.databaseTimeout.run(
-      this.coaches.listEras(coachId),
+      this.coachesQueries.listEras(coachId),
       null,
     );
     if (eraRows === null) {
@@ -84,7 +84,7 @@ export class CoachDeepdiveService {
     }));
 
     const span: CareerSpan | undefined | null = await this.databaseTimeout.run(
-      this.coaches.getCareerSpan(coachId),
+      this.coachesQueries.getCareerSpan(coachId),
       null,
     );
     if (span === null) {
@@ -109,7 +109,10 @@ export class CoachDeepdiveService {
     }
 
     const topTeams: TopTeam[] | null = await this.databaseTimeout.run(
-      this.coaches.getTopTeamsByMatchesPlayed(coachId, MAX_LEADERBOARD_ENTRIES),
+      this.coachesQueries.getTopTeamsByMatchesPlayed(
+        coachId,
+        MAX_LEADERBOARD_ENTRIES,
+      ),
       null,
     );
     if (topTeams === null) {

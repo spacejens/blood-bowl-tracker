@@ -1,5 +1,4 @@
 import {
-  CoachesModule,
   CompetitionGroupsModule,
   CompetitionsModule,
   ErasModule,
@@ -19,6 +18,7 @@ import {
 } from '@blood-bowl-tracker/game-data';
 import {
   CharacteristicDisplayFormattingModule,
+  CoachesQueriesModule,
   DateToplistModule,
   OnThisDateModule,
   PlayerContextNamesModule,
@@ -67,7 +67,7 @@ import { RandomSourceService } from './random-source.service';
 import { TeamContextService } from './team-context.service';
 
 const GAME_DATA_MODULES = [
-  CoachesModule,
+  CoachesQueriesModule,
   CompetitionGroupsModule,
   MatchesModule,
   CompetitionsModule,

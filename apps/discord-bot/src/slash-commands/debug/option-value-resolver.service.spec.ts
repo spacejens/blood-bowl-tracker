@@ -1,5 +1,4 @@
 import {
-  CoachesService,
   CompetitionGroupsService,
   CompetitionsService,
   ErasService,
@@ -9,6 +8,7 @@ import {
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
 import {
+  CoachesQueriesService,
   PlayersQueriesService,
   StarPlayersService,
   TeamsQueriesService,
@@ -31,7 +31,7 @@ describe('OptionValueResolverService', () => {
   let leagues: DeepMockProxy<LeaguesService>;
   let competitions: DeepMockProxy<CompetitionsService>;
   let competitionGroups: DeepMockProxy<CompetitionGroupsService>;
-  let coaches: DeepMockProxy<CoachesService>;
+  let coaches: DeepMockProxy<CoachesQueriesService>;
   let teams: DeepMockProxy<TeamsQueriesService>;
   let players: DeepMockProxy<PlayersQueriesService>;
   let starPlayers: DeepMockProxy<StarPlayersService>;
@@ -44,7 +44,7 @@ describe('OptionValueResolverService', () => {
     leagues = mockDeep<LeaguesService>();
     competitions = mockDeep<CompetitionsService>();
     competitionGroups = mockDeep<CompetitionGroupsService>();
-    coaches = mockDeep<CoachesService>();
+    coaches = mockDeep<CoachesQueriesService>();
     teams = mockDeep<TeamsQueriesService>();
     players = mockDeep<PlayersQueriesService>();
     starPlayers = mockDeep<StarPlayersService>();
@@ -59,7 +59,7 @@ describe('OptionValueResolverService', () => {
         { provide: LeaguesService, useValue: leagues },
         { provide: CompetitionsService, useValue: competitions },
         { provide: CompetitionGroupsService, useValue: competitionGroups },
-        { provide: CoachesService, useValue: coaches },
+        { provide: CoachesQueriesService, useValue: coaches },
         { provide: TeamsQueriesService, useValue: teams },
         { provide: PlayersQueriesService, useValue: players },
         { provide: StarPlayersService, useValue: starPlayers },

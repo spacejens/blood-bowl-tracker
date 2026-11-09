@@ -2,34 +2,13 @@ import { DB } from '@blood-bowl-tracker/db';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
-import { mock } from 'vitest-mock-extended';
 
-import { LikePatternService } from '../shared/like-pattern.service';
-import { MatchEventCountsService } from '../shared/match-event-counts.service';
-import { MatchOutcomeCountsService } from '../shared/match-outcome-counts.service';
-import { TrophyAwardCountsService } from '../shared/trophy-award-counts.service';
 import { CoachesService } from './coaches.service';
 
 async function makeService(rows: unknown[]) {
   const { db, chains } = mockDb(rows);
   const moduleRef = await Test.createTestingModule({
-    providers: [
-      CoachesService,
-      { provide: DB, useValue: db },
-      { provide: LikePatternService, useValue: mock<LikePatternService>() },
-      {
-        provide: MatchEventCountsService,
-        useValue: mock<MatchEventCountsService>(),
-      },
-      {
-        provide: MatchOutcomeCountsService,
-        useValue: mock<MatchOutcomeCountsService>(),
-      },
-      {
-        provide: TrophyAwardCountsService,
-        useValue: mock<TrophyAwardCountsService>(),
-      },
-    ],
+    providers: [CoachesService, { provide: DB, useValue: db }],
   }).compile();
   return { service: moduleRef.get(CoachesService), chains };
 }

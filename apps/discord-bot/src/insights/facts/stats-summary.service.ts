@@ -1,6 +1,5 @@
 import type { FactScope } from '@blood-bowl-tracker/game-data';
 import {
-  CoachesService,
   CompetitionGroupsService,
   CompetitionsService,
   ErasService,
@@ -15,6 +14,7 @@ import {
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
 import {
+  CoachesQueriesService,
   PlayersQueriesService,
   TeamsQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
@@ -143,7 +143,7 @@ export class StatsSummaryFactsService {
     private readonly positions: PositionsService,
     private readonly skills: SkillsService,
     private readonly keywords: KeywordsService,
-    private readonly coaches: CoachesService,
+    private readonly coachesQueries: CoachesQueriesService,
     private readonly eras: ErasService,
     private readonly competitions: CompetitionsService,
     private readonly competitionGroups: CompetitionGroupsService,
@@ -213,7 +213,7 @@ export class StatsSummaryFactsService {
         this.positions.countAll(),
         this.skills.countAll(),
         this.keywords.countAll(),
-        this.coaches.countAll(),
+        this.coachesQueries.countAll(),
         this.eras.countAll(),
         this.competitions.countAll(),
         this.competitions.countByType('season'),
@@ -281,7 +281,7 @@ export class StatsSummaryFactsService {
         this.positions.countByEra(eraId),
         this.skills.countByEra(eraId),
         this.keywords.countByEra(eraId),
-        this.coaches.countByEra(eraId),
+        this.coachesQueries.countByEra(eraId),
         this.competitions.countByEra(eraId),
         this.competitions.countByType('season', eraId),
         this.competitions.countByType('cup', eraId),
@@ -351,7 +351,7 @@ export class StatsSummaryFactsService {
         this.positions.countByCompetition(competitionId),
         this.skills.countByCompetition(competitionId),
         this.keywords.countByCompetition(competitionId),
-        this.coaches.countByCompetition(competitionId),
+        this.coachesQueries.countByCompetition(competitionId),
         this.trophies.countByCompetition(competitionId),
         this.teamsQueries.countByCompetition(competitionId),
         this.playersQueries.countByCompetition(competitionId),
@@ -415,7 +415,7 @@ export class StatsSummaryFactsService {
         this.positions.countByLeague(leagueId),
         this.skills.countByLeague(leagueId),
         this.keywords.countByLeague(leagueId),
-        this.coaches.countByLeague(leagueId),
+        this.coachesQueries.countByLeague(leagueId),
         this.competitions.countByLeague(leagueId),
         this.competitions.countByType('season', undefined, leagueId),
         this.competitions.countByType('cup', undefined, leagueId),

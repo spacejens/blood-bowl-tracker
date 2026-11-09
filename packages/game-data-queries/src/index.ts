@@ -1,3 +1,5 @@
+export { CoachesQueriesModule } from './coaches/coaches-queries.module';
+export { CoachesQueriesService } from './coaches/coaches-queries.service';
 export { DateToplistModule } from './insights/date-toplist.module';
 export type { DateMatchCount } from './insights/date-toplist.service';
 export { DateToplistService } from './insights/date-toplist.service';

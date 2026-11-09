@@ -1,6 +1,5 @@
 import type { FactScope } from '@blood-bowl-tracker/game-data';
 import {
-  CoachesService,
   CompetitionGroupsService,
   CompetitionsService,
   ErasService,
@@ -16,6 +15,7 @@ import {
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
 import {
+  CoachesQueriesService,
   PlayersQueriesService,
   TeamsQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
@@ -100,7 +100,7 @@ async function makeService(
         useValue: overrides.keywords ?? {},
       },
       {
-        provide: CoachesService,
+        provide: CoachesQueriesService,
         useValue: overrides.coaches ?? {},
       },
       {
