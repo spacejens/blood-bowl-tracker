@@ -31,7 +31,10 @@ export interface CaptureCoderabbitCommentResult {
   readonly prNumber: string;
   /** Some poll found a CodeRabbit comment showing the processing banner. */
   readonly sawInProgress: boolean;
-  /** A later successful poll found no CodeRabbit comment showing it. */
+  /**
+   * The banner was seen and the most recent successful poll found it gone;
+   * false if it was never seen or had returned by the end.
+   */
   readonly leftInProgress: boolean;
   readonly timedOut: boolean;
   readonly failedPolls: number;
