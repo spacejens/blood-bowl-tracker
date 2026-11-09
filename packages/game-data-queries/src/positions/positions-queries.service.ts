@@ -1,0 +1,335 @@
+import type { Db } from '@blood-bowl-tracker/db';
+import {
+  and,
+  asc,
+  competitionTeams,
+  countDistinct,
+  DB,
+  desc,
+  eq,
+  eras,
+  ilike,
+  isNotNull,
+  players,
+  positions,
+  positionsRaceEras,
+  raceEras,
+  races,
+  sql,
+  teamEras,
+  teams,
+} from '@blood-bowl-tracker/db';
+import type { FactScope } from '@blood-bowl-tracker/game-data';
+import { Inject, Injectable } from '@nestjs/common';
+
+import { countRows } from '../shared/count-all';
+import { LikePatternService } from '../shared/like-pattern.service';
+
+/**
+ * A position's header for its deep dive: its name plus every race that has it
+ * available in some era. More than one race is genuinely possible — a
+ * position reaches races through `positions_race_eras -> race_eras` — and the
+ * same race repeats once per era there, so the list is deduplicated.
+ */
+export interface PositionHeader {
+  name: string;
+  races: { id: number; name: string }[];
+}
+
+/**
+ * One player who has held a position, with their career SPP total. Only
+ * players whose `spp_total` has been populated by a source appear, which is
+ * what makes `sppTotal` non-nullable here.
+ */
+export interface PositionTopPlayer {
+  id: number;
+  name: string;
+  sppTotal: number;
+}
+
+/**
+ * One row of the positions-by-players toplist: the position, the race whose
+ * roster it belongs to (for the `"<name> (<race>)"` display label), and how
+ * many players have held it.
+ */
+export interface PositionPlayerCount {
+  positionId: number;
+  name: string;
+  raceName: string;
+  count: number;
+}
+/**
+ * Read-only position lookups, scoped counts and toplists for the Discord
+ * bot. Position ingestion is `PositionsService` in packages/game-data.
+ */
+@Injectable()
+export class PositionsQueriesService {
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    private readonly likePattern: LikePatternService,
+  ) {}
+
+  /**
+   * A position's name and races, or `undefined` when no such position exists.
+   *
+   * Left joins throughout so a position with no `positions_race_eras` rows
+   * still resolves — with an empty race list — rather than reading as
+   * missing. The join fans out one row per race era, so races are
+   * deduplicated in memory by id; a single query is cheaper here than a
+   * second round trip for what is at most a handful of rows.
+   */
+  async findById(id: number): Promise<PositionHeader | undefined> {
+    const rows = await this.db
+      .select({
+        name: positions.name,
+        raceId: races.id,
+        raceName: races.name,
+      })
+      .from(positions)
+      .leftJoin(
+        positionsRaceEras,
+        eq(positionsRaceEras.positionId, positions.id),
+      )
+      .leftJoin(raceEras, eq(raceEras.id, positionsRaceEras.raceEraId))
+      .leftJoin(races, eq(races.id, raceEras.raceId))
+      .where(eq(positions.id, id))
+      .orderBy(asc(races.name));
+
+    const first = rows[0];
+    if (first === undefined) {
+      return undefined;
+    }
+    const racesById = new Map<number, { id: number; name: string }>();
+    for (const row of rows) {
+      if (row.raceId !== null && row.raceName !== null) {
+        racesById.set(row.raceId, { id: row.raceId, name: row.raceName });
+      }
+    }
+    return { name: first.name, races: [...racesById.values()] };
+  }
+
+  /**
+   * How many players have ever held this position. Every hire of a star, and
+   * every player of a regular position, is its own `players` row, so this is
+   * a row count — `countDistinct` rather than plain `count` costs nothing
+   * here (there is no join that could duplicate a row) and reads as honest
+   * about what the id being counted actually is.
+   */
+  async countPlayers(positionId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(players.id) })
+      .from(players)
+      .where(eq(players.positionId, positionId));
+    return row.count;
+  }
+
+  /**
+   * Positions ranked by how many players have held them, most first.
+   *
+   * Star positions are excluded: a star's `positions_race_eras` rows can span
+   * every race that ever fielded them, so there is no single race to put in
+   * the `"<name> (<race>)"` label the toplist uses to tell same-named regular
+   * positions (every race's "Lineman") apart. A regular position is keyed
+   * one-per-race by both importers, so all of its race-era rows name the same
+   * race and picking it up through the join is unambiguous — but that join
+   * still fans one position out to a row per era, which is why the aggregate
+   * is `countDistinct`.
+   *
+   * League and era scoping goes through the *player's own* team era
+   * (`players.team_era_id`), the way `PlayersQueriesService` scopes its other player
+   * counts — not through `positions_race_eras`, whose era says when the rules
+   * made the position available rather than when anyone actually played it.
+   *
+   * A position with players but no `positions_race_eras` row at all is
+   * excluded: the inner joins to `positions_race_eras -> race_eras -> races`
+   * mean there is no race to put in the row's `"<name> (<race>)"` label, so
+   * there is nothing sensible to render for it.
+   *
+   * The row is grouped by the position alone (not by race): a regular
+   * position is expected to resolve to exactly one race across all of its
+   * race-era rows, but that is a data invariant `positions_race_eras` does
+   * not enforce, not something the schema guarantees. Grouping by
+   * `races.name` too would, if that invariant were ever violated by
+   * hand-curated data, split one position's players into two inflated
+   * duplicate rows instead of one correct one. `min(races.name)` keeps the
+   * query correct (one row per position) even then, since a real world with
+   * only one distinct race name per position makes `min` a no-op.
+   */
+  countPlayersByPosition(
+    scope: FactScope,
+    limit: number,
+  ): Promise<PositionPlayerCount[]> {
+    const base = this.db
+      .select({
+        positionId: positions.id,
+        name: positions.name,
+        raceName: sql<string>`min(${races.name})`,
+        count: countDistinct(players.id),
+      })
+      .from(positions)
+      .innerJoin(
+        positionsRaceEras,
+        eq(positionsRaceEras.positionId, positions.id),
+      )
+      .innerJoin(raceEras, eq(raceEras.id, positionsRaceEras.raceEraId))
+      .innerJoin(races, eq(races.id, raceEras.raceId))
+      .innerJoin(players, eq(players.positionId, positions.id));
+    if (scope.leagueId !== undefined) {
+      return base
+        .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
+        .innerJoin(
+          eras,
+          and(eq(eras.id, teamEras.eraId), eq(eras.leagueId, scope.leagueId)),
+        )
+        .where(eq(positions.isStarPlayer, false))
+        .groupBy(positions.id, positions.name)
+        .orderBy(desc(countDistinct(players.id)))
+        .limit(limit);
+    }
+    if (scope.eraId !== undefined) {
+      return base
+        .innerJoin(
+          teamEras,
+          and(
+            eq(teamEras.id, players.teamEraId),
+            eq(teamEras.eraId, scope.eraId),
+          ),
+        )
+        .where(eq(positions.isStarPlayer, false))
+        .groupBy(positions.id, positions.name)
+        .orderBy(desc(countDistinct(players.id)))
+        .limit(limit);
+    }
+    return base
+      .where(eq(positions.isStarPlayer, false))
+      .groupBy(positions.id, positions.name)
+      .orderBy(desc(countDistinct(players.id)))
+      .limit(limit);
+  }
+
+  /**
+   * The players who have held this position with the most career SPP, ties
+   * broken by name so the order is stable across calls.
+   *
+   * `spp_total` is nullable (NULL means no source has populated it), and a
+   * player with no total is not "zero SPP" — it is unknown — so those rows
+   * are excluded rather than sorted to the bottom. That filter is also what
+   * makes the non-nullable `sppTotal` in the cast below true.
+   */
+  listTopPlayersBySpp(
+    positionId: number,
+    limit: number,
+  ): Promise<PositionTopPlayer[]> {
+    return this.db
+      .select({
+        id: players.id,
+        name: players.name,
+        sppTotal: players.sppTotal,
+      })
+      .from(players)
+      .where(
+        and(eq(players.positionId, positionId), isNotNull(players.sppTotal)),
+      )
+      .orderBy(desc(players.sppTotal), asc(players.name))
+      .limit(limit) as Promise<PositionTopPlayer[]>;
+  }
+
+  /**
+   * Name-prefix search backing `/deepdive`'s position autocomplete, with each
+   * suggestion's race so same-named positions can be told apart before the
+   * reader commits to one — nearly every race has a "Lineman".
+   *
+   * A position reaches its races through `positions_race_eras -> race_eras`,
+   * where the same race repeats once per era it is available in, so the
+   * select is `selectDistinct` over exactly the three returned columns: that
+   * collapses the per-era duplicates to one row per distinct (position, race)
+   * pair, the same deduplication `findById` does in TypeScript. Doing it in
+   * SQL is what lets the `LIMIT` apply *after* the fan-out, so the caller
+   * never receives more rows than it asked for — a multi-race position simply
+   * consumes one slot per race.
+   *
+   * The joins are inner: a position with no `positions_race_eras` row at all
+   * has no race to put in the `"<name> (<race>)"` label, so there is nothing
+   * sensible to suggest for it, and excluding those rows is what makes the
+   * non-nullable `raceName` below true.
+   *
+   * Star positions are excluded, matching `countPlayersByPosition`: a star
+   * player is looked up through the separate `star-player` autocomplete
+   * instead, so it has no reason to also appear here. A non-star position
+   * available to several races (rare, but the schema allows it) still yields
+   * one suggestion per race, all pointing at the same position id.
+   *
+   * Ordering by position name then race name keeps the truncation the `LIMIT`
+   * performs deterministic across calls.
+   */
+  searchByNamePrefixWithRace(
+    prefix: string,
+    limit: number,
+  ): Promise<{ id: number; name: string; raceName: string }[]> {
+    return this.db
+      .selectDistinct({
+        id: positions.id,
+        name: positions.name,
+        raceName: races.name,
+      })
+      .from(positions)
+      .innerJoin(
+        positionsRaceEras,
+        eq(positionsRaceEras.positionId, positions.id),
+      )
+      .innerJoin(raceEras, eq(raceEras.id, positionsRaceEras.raceEraId))
+      .innerJoin(races, eq(races.id, raceEras.raceId))
+      .where(
+        and(
+          ilike(positions.name, `${this.likePattern.escape(prefix)}%`),
+          eq(positions.isStarPlayer, false),
+        ),
+      )
+      .orderBy(asc(positions.name), asc(races.name))
+      .limit(limit);
+  }
+
+  countAll(): Promise<number> {
+    return countRows(this.db, positions);
+  }
+
+  async countByEra(eraId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(positionsRaceEras.positionId) })
+      .from(positionsRaceEras)
+      .innerJoin(raceEras, eq(raceEras.id, positionsRaceEras.raceEraId))
+      .where(eq(raceEras.eraId, eraId));
+    return row.count;
+  }
+
+  async countByLeague(leagueId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(positionsRaceEras.positionId) })
+      .from(positionsRaceEras)
+      .innerJoin(raceEras, eq(raceEras.id, positionsRaceEras.raceEraId))
+      .innerJoin(eras, eq(eras.id, raceEras.eraId))
+      .where(eq(eras.leagueId, leagueId));
+    return row.count;
+  }
+
+  async countByCompetition(competitionId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(positionsRaceEras.positionId) })
+      .from(competitionTeams)
+      .innerJoin(teamEras, eq(teamEras.id, competitionTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .innerJoin(
+        raceEras,
+        and(
+          eq(raceEras.raceId, teams.raceId),
+          eq(raceEras.eraId, teamEras.eraId),
+        ),
+      )
+      .innerJoin(
+        positionsRaceEras,
+        eq(positionsRaceEras.raceEraId, raceEras.id),
+      )
+      .where(eq(competitionTeams.competitionId, competitionId));
+    return row.count;
+  }
+}

@@ -3,12 +3,12 @@ import {
   CompetitionsService,
   ErasService,
   LeaguesService,
-  PositionsService,
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
 import {
   CoachesQueriesService,
   PlayersQueriesService,
+  PositionsQueriesService,
   RacesQueriesService,
   StarPlayersService,
   TeamsQueriesService,
@@ -35,7 +35,7 @@ describe('OptionValueResolverService', () => {
   let teams: DeepMockProxy<TeamsQueriesService>;
   let players: DeepMockProxy<PlayersQueriesService>;
   let starPlayers: DeepMockProxy<StarPlayersService>;
-  let positions: DeepMockProxy<PositionsService>;
+  let positions: DeepMockProxy<PositionsQueriesService>;
   let trophies: DeepMockProxy<TrophiesService>;
 
   beforeEach(async () => {
@@ -48,7 +48,7 @@ describe('OptionValueResolverService', () => {
     teams = mockDeep<TeamsQueriesService>();
     players = mockDeep<PlayersQueriesService>();
     starPlayers = mockDeep<StarPlayersService>();
-    positions = mockDeep<PositionsService>();
+    positions = mockDeep<PositionsQueriesService>();
     trophies = mockDeep<TrophiesService>();
 
     const moduleRef = await Test.createTestingModule({
@@ -63,7 +63,7 @@ describe('OptionValueResolverService', () => {
         { provide: TeamsQueriesService, useValue: teams },
         { provide: PlayersQueriesService, useValue: players },
         { provide: StarPlayersService, useValue: starPlayers },
-        { provide: PositionsService, useValue: positions },
+        { provide: PositionsQueriesService, useValue: positions },
         { provide: TrophiesService, useValue: trophies },
       ],
     }).compile();

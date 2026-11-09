@@ -133,7 +133,7 @@ export class SkillsService {
    * fixed and often unique to them, and each hire of a star is its own
    * `players` row, so including them would both skew the ranking and count one
    * star's skills once per hiring team. Same exclusion, same reason, as
-   * `PositionsService.countPlayersByPosition` and
+   * `PositionsQueriesService.countPlayersByPosition` and
    * `PlayersService.topPlayersByTotalSpp`.
    *
    * League and era scope reach the player through their own team era - no
@@ -142,7 +142,7 @@ export class SkillsService {
    * match-category branch here.
    *
    * The `teamEras`/`eras` joins are unconditional, unlike
-   * `PositionsService.countPlayersByPosition`'s scope-dependent join: both
+   * `PositionsQueriesService.countPlayersByPosition`'s scope-dependent join: both
    * `players.teamEraId` and `players.positionId` are NOT NULL foreign keys, so
    * joining unconditionally never drops a row, and it keeps this query's shape
    * the same whether or not a scope is supplied.
@@ -250,8 +250,8 @@ export class SkillsService {
   /**
    * A competition has no narrower rules-set scope than the era it runs in, so
    * this is the era count reached through the competition's own `eraId`.
-   * Unlike `RacesService.countByCompetition` / `PositionsService.
-   * countByCompetition`, which count what actually took part
+   * Unlike `RacesQueriesService.countByCompetition` /
+   * `PositionsQueriesService.countByCompetition`, which count what actually took part
    * (competition_teams -> team_eras), this stays a catalogue count: every
    * skill the era's rules set(s) define, not only ones held by a participant.
    */

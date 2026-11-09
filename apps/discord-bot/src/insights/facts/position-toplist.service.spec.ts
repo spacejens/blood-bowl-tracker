@@ -1,11 +1,7 @@
-import type {
-  FactScope,
-  PositionPlayerCount,
-} from '@blood-bowl-tracker/game-data';
-import {
-  FACT_SCOPE_ALL_TIME,
-  PositionsService,
-} from '@blood-bowl-tracker/game-data';
+import type { FactScope } from '@blood-bowl-tracker/game-data';
+import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
+import type { PositionPlayerCount } from '@blood-bowl-tracker/game-data-queries';
+import { PositionsQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -35,18 +31,18 @@ interface MadeService {
 }
 
 // A per-test factory rather than a beforeEach subject: each test seeds the
-// PositionsService mock with the rows it cares about before the service is
+// PositionsQueriesService mock with the rows it cares about before the service is
 // built, which is the case CLAUDE.md's testing guidance calls the factory
 // idiom out for.
 async function makeService(
-  positions: MockProxy<PositionsService> = mock<PositionsService>(),
+  positions: MockProxy<PositionsQueriesService> = mock<PositionsQueriesService>(),
 ): Promise<MadeService> {
   const leaderboard = mock<LeaderboardService>();
   const moduleRef = await Test.createTestingModule({
     providers: [
       PositionToplistService,
       NumberFormatterService,
-      { provide: PositionsService, useValue: positions },
+      { provide: PositionsQueriesService, useValue: positions },
       { provide: LeaderboardService, useValue: leaderboard },
     ],
   }).compile();
@@ -69,7 +65,7 @@ describe('PositionToplistService.resolvePlayers', () => {
   // PositionToplistService owns: the title, the messages, the deepdive link
   // and the row format.
   it('wires the embed title and per-row deepdive button id', async () => {
-    const positions = mock<PositionsService>();
+    const positions = mock<PositionsQueriesService>();
     positions.countPlayersByPosition.mockResolvedValue(rows);
     const { service, leaderboard } = await makeService(positions);
     const canned = { embeds: [{ title: 'canned', description: 'canned' }] };
@@ -87,7 +83,7 @@ describe('PositionToplistService.resolvePlayers', () => {
   });
 
   it('labels the drill-down button/select entry with the race, so same-named positions stay distinguishable', async () => {
-    const positions = mock<PositionsService>();
+    const positions = mock<PositionsQueriesService>();
     positions.countPlayersByPosition.mockResolvedValue(rows);
     const { service, leaderboard } = await makeService(positions);
     leaderboard.resolveToplist.mockResolvedValueOnce('canned');
@@ -104,7 +100,7 @@ describe('PositionToplistService.resolvePlayers', () => {
   });
 
   it('renders each row as "<rank>. <name> (<race>) — <count>"', async () => {
-    const positions = mock<PositionsService>();
+    const positions = mock<PositionsQueriesService>();
     positions.countPlayersByPosition.mockResolvedValue(rows);
     const { service, leaderboard } = await makeService(positions);
     leaderboard.resolveToplist.mockResolvedValueOnce('canned');
@@ -124,7 +120,7 @@ describe('PositionToplistService.resolvePlayers', () => {
   });
 
   it('passes the scope and the fetch limit through to the query', async () => {
-    const positions = mock<PositionsService>();
+    const positions = mock<PositionsQueriesService>();
     positions.countPlayersByPosition.mockResolvedValue([]);
     const { service, leaderboard } = await makeService(positions);
     leaderboard.resolveToplist.mockImplementation(async (options) => {
@@ -142,7 +138,7 @@ describe('PositionToplistService.resolvePlayers', () => {
   });
 
   it('configures the toplist-specific messages and returns the timeout one verbatim', async () => {
-    const positions = mock<PositionsService>();
+    const positions = mock<PositionsQueriesService>();
     positions.countPlayersByPosition.mockResolvedValue(rows);
     const { service, leaderboard } = await makeService(positions);
     leaderboard.resolveToplist.mockResolvedValueOnce(

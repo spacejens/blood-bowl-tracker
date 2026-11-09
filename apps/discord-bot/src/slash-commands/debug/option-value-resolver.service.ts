@@ -4,12 +4,12 @@ import {
   CompetitionsService,
   ErasService,
   LeaguesService,
-  PositionsService,
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
 import {
   CoachesQueriesService,
   PlayersQueriesService,
+  PositionsQueriesService,
   RacesQueriesService,
   StarPlayersService,
   TeamsQueriesService,
@@ -73,7 +73,7 @@ export class OptionValueResolverService {
     private readonly teamsQueries: TeamsQueriesService,
     private readonly playersQueries: PlayersQueriesService,
     private readonly starPlayers: StarPlayersService,
-    private readonly positions: PositionsService,
+    private readonly positionsQueries: PositionsQueriesService,
     private readonly trophies: TrophiesService,
   ) {
     const raceLookup: NameLookup = async (id) =>
@@ -95,7 +95,7 @@ export class OptionValueResolverService {
     const starPlayerLookup: NameLookup = async (id) =>
       (await this.starPlayers.findById(id))?.name;
     const positionLookup: NameLookup = async (id) =>
-      (await this.positions.findById(id))?.name;
+      (await this.positionsQueries.findById(id))?.name;
     const trophyLookup: NameLookup = async (id) =>
       (await this.trophies.findById(id))?.name;
 

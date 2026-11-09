@@ -3,12 +3,12 @@ import {
   CompetitionsService,
   ErasService,
   LeaguesService,
-  PositionsService,
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
 import {
   CoachesQueriesService,
   PlayersQueriesService,
+  PositionsQueriesService,
   RacesQueriesService,
   StarPlayersService,
   TeamsQueriesService,
@@ -37,7 +37,7 @@ export class DeepdiveAutocompleteService {
     private readonly coachesQueries: CoachesQueriesService,
     private readonly teamsQueries: TeamsQueriesService,
     private readonly playersQueries: PlayersQueriesService,
-    private readonly positions: PositionsService,
+    private readonly positionsQueries: PositionsQueriesService,
     private readonly racesQueries: RacesQueriesService,
     private readonly stars: StarPlayersService,
     private readonly trophies: TrophiesService,
@@ -109,7 +109,7 @@ export class DeepdiveAutocompleteService {
       // races yields one suggestion per race, all carrying the same position
       // id as their value: the position deepdive shows every race the
       // position belongs to, so which of them was picked does not matter.
-      const positions = await this.positions.searchByNamePrefixWithRace(
+      const positions = await this.positionsQueries.searchByNamePrefixWithRace(
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );

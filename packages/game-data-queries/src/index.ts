@@ -32,6 +32,13 @@ export type {
   StarPlayerIdentity,
 } from './players/star-players.service';
 export { StarPlayersService } from './players/star-players.service';
+export { PositionsQueriesModule } from './positions/positions-queries.module';
+export type {
+  PositionHeader,
+  PositionPlayerCount,
+  PositionTopPlayer,
+} from './positions/positions-queries.service';
+export { PositionsQueriesService } from './positions/positions-queries.service';
 export { RacesQueriesModule } from './races/races-queries.module';
 export type {
   RacePosition,

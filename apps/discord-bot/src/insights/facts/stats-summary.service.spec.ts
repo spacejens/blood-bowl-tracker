@@ -8,7 +8,6 @@ import {
   KeywordsService,
   LeaguesService,
   MatchesService,
-  PositionsService,
   RulesSetsService,
   SkillsService,
   TrophiesService,
@@ -16,6 +15,7 @@ import {
 import {
   CoachesQueriesService,
   PlayersQueriesService,
+  PositionsQueriesService,
   RacesQueriesService,
   TeamsQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
@@ -88,7 +88,7 @@ async function makeService(
         useValue: overrides.races ?? {},
       },
       {
-        provide: PositionsService,
+        provide: PositionsQueriesService,
         useValue: overrides.positions ?? {},
       },
       {

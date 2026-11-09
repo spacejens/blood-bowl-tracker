@@ -76,11 +76,6 @@ export type {
 } from './position-rules-sets/position-rules-sets.service';
 export { PositionRulesSetsService } from './position-rules-sets/position-rules-sets.service';
 export { PositionsModule } from './positions/positions.module';
-export type {
-  PositionHeader,
-  PositionPlayerCount,
-  PositionTopPlayer,
-} from './positions/positions.service';
 export {
   PositionsService,
   PositionUpsertConflictError,

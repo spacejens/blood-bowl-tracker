@@ -4,12 +4,12 @@ import {
   CompetitionsModule,
   ErasModule,
   LeaguesModule,
-  PositionsModule,
   TrophiesModule,
 } from '@blood-bowl-tracker/game-data';
 import {
   CoachesQueriesModule,
   PlayersQueriesModule,
+  PositionsQueriesModule,
   RacesQueriesModule,
   TeamsQueriesModule,
 } from '@blood-bowl-tracker/game-data-queries';
@@ -62,7 +62,7 @@ import { OptionValueResolverService } from './option-value-resolver.service';
     CoachesQueriesModule,
     TeamsQueriesModule,
     PlayersQueriesModule,
-    PositionsModule,
+    PositionsQueriesModule,
     TrophiesModule,
   ],
   providers: [
