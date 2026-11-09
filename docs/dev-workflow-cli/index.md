@@ -193,7 +193,7 @@ CodeRabbit may remove the "currently processing new changes" banner in one edit 
 The result has `sawInProgress`, `leftInProgress`, `timedOut`, `failedPolls` and `observations`. Each observation holds `commentId`, `updatedAt`, `observedAt`, the full `body`, and a `layout`:
 
 - `statusBlock` / `recentReviewSection`: whether the paired `recent_review_status` and `recent_review` markers are present.
-- `processingBanner`: whether the banner phrase appears in prose, with code blocks and spans masked out, the way `handle-pr-reviews` reads it. `processingBannerUnmasked` reports the phrase anywhere, code included.
+- `processingBanner`: whether the banner phrase appears in prose after code blocks and spans are masked out, which matches the code masking in `handle-pr-reviews`. It does not include that skill's stale-section guard (a `recent_review` section present without a completion verdict); evaluate the guard from `recentReviewSection` together with `statusBlockVerdict` and `sectionVerdict`. `processingBannerUnmasked` reports the phrase anywhere, code included.
 - `order`: the landmarks present, by position in the body.
 - `bannerInsideStatusBlock`, `statusBlockVerdict`, `sectionVerdict`: whether the banner sits inside the status block, and whether a "no actionable comments" verdict sits in each span.
 
