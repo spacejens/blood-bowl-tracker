@@ -1,5 +1,4 @@
 import {
-  CharacteristicDisplayFormattingModule,
   CoachesModule,
   CompetitionGroupsModule,
   CompetitionsModule,
@@ -22,6 +21,7 @@ import {
   TeamsModule,
   TrophiesModule,
 } from '@blood-bowl-tracker/game-data';
+import { CharacteristicDisplayFormattingModule } from '@blood-bowl-tracker/game-data-queries';
 import { Module } from '@nestjs/common';
 
 import { DatabaseTimeoutService } from '../database-timeout.service';

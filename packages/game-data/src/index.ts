@@ -123,8 +123,6 @@ export {
   RulesSetUpsertConflictError,
 } from './rules-sets/rules-sets.service';
 export { AdvancementCostValidationError } from './shared/advancement-cost-validation-error';
-export { CharacteristicDisplayFormattingModule } from './shared/characteristic-display-formatting.module';
-export { CharacteristicDisplayFormattingService } from './shared/characteristic-display-formatting.service';
 export { CharacteristicFormatMismatchError } from './shared/characteristic-format-mismatch-error';
 export type { FactScope } from './shared/fact-scope';
 export { FACT_SCOPE_ALL_TIME } from './shared/fact-scope';

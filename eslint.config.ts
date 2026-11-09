@@ -45,6 +45,8 @@ export default tseslint.config(
             'packages/domain-enums/vitest.config.ts',
             'packages/game-data/test/*.ts',
             'packages/game-data/vitest.config.ts',
+            'packages/game-data-queries/test/*.ts',
+            'packages/game-data-queries/vitest.config.ts',
             'packages/import/test/*.ts',
             'packages/import/vitest.config.ts',
             'packages/import-tp-live/test/*.ts',

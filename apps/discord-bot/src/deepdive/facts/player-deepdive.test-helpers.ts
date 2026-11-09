@@ -12,7 +12,6 @@ import type {
   UnspentSppResult,
 } from '@blood-bowl-tracker/game-data';
 import {
-  CharacteristicDisplayFormattingService,
   PlayerAdvancementReadsService,
   PlayerDeathService,
   PlayerSkillsService,
@@ -23,6 +22,7 @@ import {
   TrophyAwardsService,
   UnspentSppService,
 } from '@blood-bowl-tracker/game-data';
+import { CharacteristicDisplayFormattingService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
