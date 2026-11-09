@@ -1,4 +1,5 @@
 import type {
+  CharacteristicLine,
   PositionRulesSetEntry,
   SyncPositionRulesSets,
   SyncPositionRulesSetsResult,
@@ -75,15 +76,7 @@ export interface PositionCharacteristicsContext {
   agilityFormat: CharacteristicFormat;
   passingFormat: CharacteristicFormat;
   armourFormat: CharacteristicFormat;
-  baseline:
-    | {
-        move: number;
-        strength: number;
-        agility: number;
-        passing: number | null;
-        armour: number;
-      }
-    | undefined;
+  baseline: CharacteristicLine | undefined;
 }
 
 /**
