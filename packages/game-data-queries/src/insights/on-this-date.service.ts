@@ -23,12 +23,7 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import type { ConsequenceType } from '@blood-bowl-tracker/domain-enums';
-import { Inject, Injectable } from '@nestjs/common';
-
-import type { PlayerKillerInfo } from '../players/player-death.service';
-import { PlayerDeathService } from '../players/player-death.service';
-import type { PlayerDeepdiveCategoryCounts } from '../players/player-deepdive-counts.service';
-import type { FactScope } from '../shared/fact-scope';
+import type { FactScope } from '@blood-bowl-tracker/game-data';
 import {
   CASUALTY_CAUSED_TYPES,
   CATCH_TYPES,
@@ -40,8 +35,13 @@ import {
   SERIOUS_INJURY_SUFFERED_TYPES,
   THROW_TEAM_MATE_TYPES,
   TOUCHDOWN_TYPES,
-} from '../shared/match-event-types';
-import { MatchScopeFilterService } from '../shared/match-scope-filter.service';
+} from '@blood-bowl-tracker/game-data';
+import { MatchScopeFilterService } from '@blood-bowl-tracker/game-data';
+import { Inject, Injectable } from '@nestjs/common';
+
+import type { PlayerKillerInfo } from '../players/player-death.service';
+import { PlayerDeathService } from '../players/player-death.service';
+import type { PlayerDeepdiveCategoryCounts } from '../players/player-deepdive-counts.service';
 
 export interface OnThisDateOptions {
   /**

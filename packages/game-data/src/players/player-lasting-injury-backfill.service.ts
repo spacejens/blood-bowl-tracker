@@ -86,8 +86,7 @@ type TransactionClient = Parameters<Parameters<Db['transaction']>[0]>[0];
  * manufactured versions differ only in the fields this backfill is about.
  *
  * Its own service rather than another method on `PlayersService`, which is at
- * the repo's 500-line source ceiling — the same reason `PlayerDeathService`
- * is separate.
+ * the repo's 500-line source ceiling.
  */
 @Injectable()
 export class PlayerLastingInjuryBackfillService {

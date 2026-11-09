@@ -1,10 +1,10 @@
+import type { FactScope } from '@blood-bowl-tracker/game-data';
 import type {
-  FactScope,
   OnThisDateKilledPlayer,
   OnThisDateVictim,
   PlayerKillerInfo,
-} from '@blood-bowl-tracker/game-data';
-import { OnThisDateService } from '@blood-bowl-tracker/game-data';
+} from '@blood-bowl-tracker/game-data-queries';
+import { OnThisDateService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 

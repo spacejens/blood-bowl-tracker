@@ -21,8 +21,6 @@ import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import { PlayerContextNamesService } from '../shared/player-context-names.service';
 import { SppTotalsService } from '../spp/spp-totals.service';
 import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
-import type { PlayerDeepdiveCategoryCounts } from './player-deepdive-counts.service';
-import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
 import { PlayerLastingInjuryValidationService } from './player-lasting-injury-validation.service';
 import { PlayersService, PlayerUpsertConflictError } from './players.service';
 
@@ -49,7 +47,6 @@ const fakePlayer = {
 describe('PlayersService', () => {
   let service: PlayersService;
   let likePattern: MockProxy<LikePatternService>;
-  let deepdiveCounts: MockProxy<PlayerDeepdiveCountsService>;
   let matchEventCounts: MockProxy<MatchEventCountsService>;
   let playerContextNames: MockProxy<PlayerContextNamesService>;
   let characteristicsValidation: MockProxy<PlayerCharacteristicsValidationService>;
@@ -61,7 +58,6 @@ describe('PlayersService', () => {
         PlayersService,
         { provide: LikePatternService, useValue: likePattern },
         { provide: SppTotalsService, useValue: mock<SppTotalsService>() },
-        { provide: PlayerDeepdiveCountsService, useValue: deepdiveCounts },
         { provide: MatchEventCountsService, useValue: matchEventCounts },
         { provide: PlayerContextNamesService, useValue: playerContextNames },
         // PlayerCharacteristicsValidationService has a real @Inject(DB) and
@@ -84,7 +80,6 @@ describe('PlayersService', () => {
 
   beforeEach(() => {
     likePattern = mock<LikePatternService>();
-    deepdiveCounts = mock<PlayerDeepdiveCountsService>();
     matchEventCounts = mock<MatchEventCountsService>();
     playerContextNames = mock<PlayerContextNamesService>();
     characteristicsValidation = mock<PlayerCharacteristicsValidationService>();
@@ -778,25 +773,6 @@ describe('PlayersService', () => {
         firstCallArg(chains[0].where),
       );
       expect(filterValues).toContain(false);
-    });
-  });
-
-  describe('getDeepdiveCategoryCounts', () => {
-    // The actual query shapes and counting logic live in
-    // PlayerDeepdiveCountsService's own spec
-    // (player-deepdive-counts.service.spec.ts); this only proves the
-    // delegation wiring.
-    it('delegates to PlayerDeepdiveCountsService', async () => {
-      const counts: PlayerDeepdiveCategoryCounts = {
-        simple: [{ label: 'MVP awards', count: 2 }],
-        casualties: { total: 1, seriousInjuries: 0, killed: 0 },
-        fouls: { total: 0, seriousInjuries: 0, killed: 0 },
-      };
-      deepdiveCounts.getDeepdiveCategoryCounts.mockResolvedValue(counts);
-      await build();
-
-      await expect(service.getDeepdiveCategoryCounts(1)).resolves.toBe(counts);
-      expect(deepdiveCounts.getDeepdiveCategoryCounts).toHaveBeenCalledWith(1);
     });
   });
 

@@ -19,15 +19,6 @@ export { ErasModule } from './eras/eras.module';
 export { ErasService, EraUpsertConflictError } from './eras/eras.service';
 export { ExternalSystemsModule } from './external-systems/external-systems.module';
 export { ExternalSystemsService } from './external-systems/external-systems.service';
-export { DateToplistModule } from './insights/date-toplist.module';
-export type { DateMatchCount } from './insights/date-toplist.service';
-export { DateToplistService } from './insights/date-toplist.service';
-export { OnThisDateModule } from './insights/on-this-date.module';
-export type {
-  OnThisDateKilledPlayer,
-  OnThisDateVictim,
-} from './insights/on-this-date.service';
-export { OnThisDateService } from './insights/on-this-date.service';
 export { KeywordsModule } from './keywords/keywords.module';
 export {
   KeywordsService,
@@ -66,16 +57,6 @@ export type { PlayerSkillRow } from './player-skills/player-skills.service';
 export { PlayerSkillsService } from './player-skills/player-skills.service';
 export type { IncompleteImportTeamRow } from './players/incomplete-import-players.service';
 export { IncompleteImportPlayersService } from './players/incomplete-import-players.service';
-export type {
-  PlayerKillEntry,
-  PlayerKillerInfo,
-  PlayerKillerTeam,
-} from './players/player-death.service';
-export { PlayerDeathService } from './players/player-death.service';
-export type {
-  PlayerDeepdiveCategoryCounts,
-  PlayerDeepdiveEventGroup,
-} from './players/player-deepdive-counts.service';
 export { PlayerLastingInjuryBackfillService } from './players/player-lasting-injury-backfill.service';
 export { PlayersModule } from './players/players.module';
 export type { PlayerDetail } from './players/players.service';

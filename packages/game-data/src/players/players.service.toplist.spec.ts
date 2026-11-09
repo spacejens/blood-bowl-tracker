@@ -34,7 +34,6 @@ import {
 import { PlayerContextNamesService } from '../shared/player-context-names.service';
 import { SppTotalsService } from '../spp/spp-totals.service';
 import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
-import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
 import { PlayerLastingInjuryValidationService } from './player-lasting-injury-validation.service';
 import { PlayersService } from './players.service';
 
@@ -42,7 +41,6 @@ describe('PlayersService toplist queries', () => {
   let service: PlayersService;
   let likePattern: MockProxy<LikePatternService>;
   let sppTotals: MockProxy<SppTotalsService>;
-  let deepdiveCounts: MockProxy<PlayerDeepdiveCountsService>;
   let matchEventCounts: MockProxy<MatchEventCountsService>;
   let playerContextNames: MockProxy<PlayerContextNamesService>;
 
@@ -56,7 +54,6 @@ describe('PlayersService toplist queries', () => {
         PlayersService,
         { provide: LikePatternService, useValue: likePattern },
         { provide: SppTotalsService, useValue: sppTotals },
-        { provide: PlayerDeepdiveCountsService, useValue: deepdiveCounts },
         { provide: MatchEventCountsService, useValue: matchEventCounts },
         { provide: PlayerContextNamesService, useValue: playerContextNames },
         {
@@ -77,7 +74,6 @@ describe('PlayersService toplist queries', () => {
   beforeEach(() => {
     likePattern = mock<LikePatternService>();
     sppTotals = mock<SppTotalsService>();
-    deepdiveCounts = mock<PlayerDeepdiveCountsService>();
     matchEventCounts = mock<MatchEventCountsService>();
     playerContextNames = mock<PlayerContextNamesService>();
   });

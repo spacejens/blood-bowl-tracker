@@ -1,13 +1,12 @@
-import type {
-  PlayerDetail,
-  PlayerKillerInfo,
-} from '@blood-bowl-tracker/game-data';
+import type { PlayerDetail } from '@blood-bowl-tracker/game-data';
+import type { PlayerKillerInfo } from '@blood-bowl-tracker/game-data-queries';
 import { describe, expect, it } from 'vitest';
 
 import {
   gougedEye,
   griff,
   makeClock,
+  makeDeepdiveCounts,
   makePlayerDeath,
   makePlayers,
   makeService,
@@ -31,9 +30,9 @@ async function resolveStatus(options: {
 }) {
   const player: PlayerDetail = { ...griff, ...options.player };
   const { service, statusConflicts, errorLog } = await makeService({
-    players: makePlayers({
-      player,
-      counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+    players: makePlayers({ player: player }),
+    deepdiveCounts: makeDeepdiveCounts({
+      simple: [{ label: 'Touchdowns scored', count: 3 }],
     }),
     playerDeath: makePlayerDeath(options.killer),
     clock: makeClock(options.now),

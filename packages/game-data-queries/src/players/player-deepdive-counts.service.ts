@@ -13,10 +13,6 @@ import type {
   ActionType,
   ConsequenceType,
 } from '@blood-bowl-tracker/domain-enums';
-import { Inject, Injectable } from '@nestjs/common';
-
-import type { MatchEventSelector } from '../shared/match-event-counts.service';
-import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import {
   CASUALTY_CAUSED_TYPES,
   CATCH_TYPES,
@@ -29,7 +25,11 @@ import {
   SERIOUS_INJURY_SUFFERED_TYPES,
   THROW_TEAM_MATE_TYPES,
   TOUCHDOWN_TYPES,
-} from '../shared/match-event-types';
+} from '@blood-bowl-tracker/game-data';
+import { Inject, Injectable } from '@nestjs/common';
+
+import type { MatchEventSelector } from '../shared/match-event-counts.service';
+import { MatchEventCountsService } from '../shared/match-event-counts.service';
 
 /**
  * One counter that carries its own severity breakdown: a total plus the

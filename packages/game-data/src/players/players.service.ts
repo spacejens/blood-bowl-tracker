@@ -57,8 +57,6 @@ import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 import { SppTotalsService } from '../spp/spp-totals.service';
 import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
-import type { PlayerDeepdiveCategoryCounts } from './player-deepdive-counts.service';
-import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
 import { PlayerLastingInjuryValidationService } from './player-lasting-injury-validation.service';
 
 /**
@@ -106,7 +104,6 @@ export class PlayersService {
     @Inject(DB) private readonly db: Db,
     private readonly likePattern: LikePatternService,
     private readonly sppTotals: SppTotalsService,
-    private readonly deepdiveCounts: PlayerDeepdiveCountsService,
     private readonly matchEventCounts: MatchEventCountsService,
     private readonly playerContextNames: PlayerContextNamesService,
     private readonly characteristicsValidation: PlayerCharacteristicsValidationService,
@@ -188,18 +185,6 @@ export class PlayersService {
         ),
       )
       .limit(limit);
-  }
-
-  /**
-   * Every counter the player deepdive shows, in one round trip. Delegates to
-   * `PlayerDeepdiveCountsService`, which owns the query shapes; see that
-   * service's `PlayerDeepdiveCategoryCounts` doc comment for the semantics of
-   * each counter.
-   */
-  getDeepdiveCategoryCounts(
-    playerId: number,
-  ): Promise<PlayerDeepdiveCategoryCounts> {
-    return this.deepdiveCounts.getDeepdiveCategoryCounts(playerId);
   }
 
   /**

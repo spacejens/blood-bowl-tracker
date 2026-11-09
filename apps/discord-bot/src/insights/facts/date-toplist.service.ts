@@ -1,5 +1,6 @@
-import type { DateMatchCount, FactScope } from '@blood-bowl-tracker/game-data';
-import { DateToplistService } from '@blood-bowl-tracker/game-data';
+import type { FactScope } from '@blood-bowl-tracker/game-data';
+import type { DateMatchCount } from '@blood-bowl-tracker/game-data-queries';
+import { DateToplistService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 

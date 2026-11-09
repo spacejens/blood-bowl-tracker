@@ -9,7 +9,6 @@ import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import { PlayerContextNamesService } from '../shared/player-context-names.service';
 import { SppTotalsService } from '../spp/spp-totals.service';
 import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
-import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
 import { PlayerLastingInjuryValidationService } from './player-lasting-injury-validation.service';
 import { PlayersService } from './players.service';
 
@@ -20,10 +19,6 @@ async function makeService(rows: unknown[]) {
       PlayersService,
       { provide: LikePatternService, useValue: mock<LikePatternService>() },
       { provide: SppTotalsService, useValue: mock<SppTotalsService>() },
-      {
-        provide: PlayerDeepdiveCountsService,
-        useValue: mock<PlayerDeepdiveCountsService>(),
-      },
       {
         provide: MatchEventCountsService,
         useValue: mock<MatchEventCountsService>(),

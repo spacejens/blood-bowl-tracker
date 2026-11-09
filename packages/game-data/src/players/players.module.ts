@@ -7,8 +7,6 @@ import { PlayerContextNamesModule } from '../shared/player-context-names.module'
 import { SppModule } from '../spp/spp.module';
 import { IncompleteImportPlayersService } from './incomplete-import-players.service';
 import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
-import { PlayerDeathService } from './player-death.service';
-import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
 import { PlayerLastingInjuryBackfillService } from './player-lasting-injury-backfill.service';
 import { PlayerLastingInjuryValidationService } from './player-lasting-injury-validation.service';
 import { PlayersService } from './players.service';
@@ -26,8 +24,6 @@ import { StarPlayersService } from './star-players.service';
     IncompleteImportPlayersService,
     PlayersService,
     PlayerCharacteristicsValidationService,
-    PlayerDeathService,
-    PlayerDeepdiveCountsService,
     PlayerLastingInjuryBackfillService,
     PlayerLastingInjuryValidationService,
     StarPlayersService,
@@ -35,7 +31,6 @@ import { StarPlayersService } from './star-players.service';
   exports: [
     IncompleteImportPlayersService,
     PlayersService,
-    PlayerDeathService,
     PlayerLastingInjuryBackfillService,
     StarPlayersService,
   ],

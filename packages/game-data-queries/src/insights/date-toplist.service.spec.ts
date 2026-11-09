@@ -8,6 +8,8 @@ import {
   mockDb,
   sqlText,
 } from '@blood-bowl-tracker/db/test-helpers';
+import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
+import { MatchScopeFilterService } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -15,8 +17,6 @@ import { mock } from 'vitest-mock-extended';
 
 import type { CalendarDates } from '../shared/calendar-dates.service';
 import { CalendarDatesService } from '../shared/calendar-dates.service';
-import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
-import { MatchScopeFilterService } from '../shared/match-scope-filter.service';
 import { DateToplistService } from './date-toplist.service';
 
 describe('DateToplistService', () => {

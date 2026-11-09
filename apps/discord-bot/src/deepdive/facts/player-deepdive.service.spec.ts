@@ -1,8 +1,8 @@
+import type { PlayerHonor } from '@blood-bowl-tracker/game-data';
 import type {
   PlayerDeepdiveCategoryCounts,
-  PlayerHonor,
   PlayerKillerInfo,
-} from '@blood-bowl-tracker/game-data';
+} from '@blood-bowl-tracker/game-data-queries';
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
@@ -39,6 +39,7 @@ import {
   championsOfDeath,
   gougedEye,
   griff,
+  makeDeepdiveCounts,
   makePlayerDeath,
   makePlayers,
   makeService,
@@ -75,9 +76,9 @@ const chaosAllStars = {
  */
 async function describeKilledBy(killer: PlayerKillerInfo): Promise<string> {
   const { service } = await makeService({
-    players: makePlayers({
-      player: griff,
-      counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+    players: makePlayers({ player: griff }),
+    deepdiveCounts: makeDeepdiveCounts({
+      simple: [{ label: 'Touchdowns scored', count: 3 }],
     }),
     playerDeath: makePlayerDeath(killer),
   });
@@ -92,9 +93,9 @@ async function describeFor(spp: {
   sppAdjustment: number | null;
 }): Promise<string> {
   const { service } = await makeService({
-    players: makePlayers({
-      player: { ...griff, ...spp },
-      counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+    players: makePlayers({ player: { ...griff, ...spp } }),
+    deepdiveCounts: makeDeepdiveCounts({
+      simple: [{ label: 'Touchdowns scored', count: 3 }],
     }),
   });
   const result = (await service.resolve(1)) as {
@@ -117,7 +118,8 @@ describe('PlayerDeepdiveService', () => {
     counts: Partial<PlayerDeepdiveCategoryCounts>,
   ): Promise<string> {
     const { service } = await makeService({
-      players: makePlayers({ player: griff, counts }),
+      players: makePlayers({ player: griff }),
+      deepdiveCounts: makeDeepdiveCounts(counts),
     });
     const result = (await service.resolve(1)) as {
       embeds: { description: string }[];
@@ -229,9 +231,9 @@ describe('PlayerDeepdiveService', () => {
       overflowNote: null,
     });
     const { service } = await makeService({
-      players: makePlayers({
-        player: griff,
-        counts: { simple: [{ label: 'Touchdowns', count: 3 }] },
+      players: makePlayers({ player: griff }),
+      deepdiveCounts: makeDeepdiveCounts({
+        simple: [{ label: 'Touchdowns', count: 3 }],
       }),
       entityComponents,
     });
@@ -270,9 +272,9 @@ describe('PlayerDeepdiveService', () => {
       'Season 5 (2020-01-01 – 2023-12-31)',
     );
     const { service, trophyAwards } = await makeService({
-      players: makePlayers({
-        player: griff,
-        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+      players: makePlayers({ player: griff }),
+      deepdiveCounts: makeDeepdiveCounts({
+        simple: [{ label: 'Touchdowns scored', count: 3 }],
       }),
       trophyAwards: makeTrophyAwards([mvp, mostViolent]),
       dateRangeFormatter,
@@ -306,9 +308,9 @@ describe('PlayerDeepdiveService', () => {
 
   it('omits the honors section entirely when the player has won nothing', async () => {
     const { service, trophyAwards } = await makeService({
-      players: makePlayers({
-        player: griff,
-        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+      players: makePlayers({ player: griff }),
+      deepdiveCounts: makeDeepdiveCounts({
+        simple: [{ label: 'Touchdowns scored', count: 3 }],
       }),
       trophyAwards: makeTrophyAwards([]),
     });
@@ -334,9 +336,9 @@ describe('PlayerDeepdiveService', () => {
 
   it('omits the section and the overflow note when the list comes back empty against a stale nonzero count', async () => {
     const { service } = await makeService({
-      players: makePlayers({
-        player: griff,
-        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+      players: makePlayers({ player: griff }),
+      deepdiveCounts: makeDeepdiveCounts({
+        simple: [{ label: 'Touchdowns scored', count: 3 }],
       }),
       trophyAwards: makeTrophyAwards([], 4),
     });
@@ -350,9 +352,9 @@ describe('PlayerDeepdiveService', () => {
 
   it('appends an exact remainder note when there are more honors than shown', async () => {
     const { service } = await makeService({
-      players: makePlayers({
-        player: griff,
-        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+      players: makePlayers({ player: griff }),
+      deepdiveCounts: makeDeepdiveCounts({
+        simple: [{ label: 'Touchdowns scored', count: 3 }],
       }),
       trophyAwards: makeTrophyAwards([mvp], 34),
     });
@@ -366,9 +368,9 @@ describe('PlayerDeepdiveService', () => {
 
   it('groups a honors remainder of a thousand or more', async () => {
     const { service } = await makeService({
-      players: makePlayers({
-        player: griff,
-        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+      players: makePlayers({ player: griff }),
+      deepdiveCounts: makeDeepdiveCounts({
+        simple: [{ label: 'Touchdowns scored', count: 3 }],
       }),
       trophyAwards: makeTrophyAwards([mvp], 1235),
     });
@@ -392,9 +394,9 @@ describe('PlayerDeepdiveService', () => {
       }),
     );
     const { service } = await makeService({
-      players: makePlayers({
-        player: griff,
-        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+      players: makePlayers({ player: griff }),
+      deepdiveCounts: makeDeepdiveCounts({
+        simple: [{ label: 'Touchdowns scored', count: 3 }],
       }),
       trophyAwards: makeTrophyAwards(longHonors, 30),
     });
@@ -426,9 +428,9 @@ describe('PlayerDeepdiveService', () => {
       competitionStartDate: '2024-01-15',
     };
     const { service } = await makeService({
-      players: makePlayers({
-        player: griff,
-        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+      players: makePlayers({ player: griff }),
+      deepdiveCounts: makeDeepdiveCounts({
+        simple: [{ label: 'Touchdowns scored', count: 3 }],
       }),
       trophyAwards: makeTrophyAwards([hugeHonor], 5),
     });
@@ -443,9 +445,9 @@ describe('PlayerDeepdiveService', () => {
 
   it('never exceeds the description limit even when the non-honor content alone is already near it', async () => {
     const { service } = await makeService({
-      players: makePlayers({
-        player: griff,
-        counts: { simple: [{ label: 'Z'.repeat(4090), count: 1 }] },
+      players: makePlayers({ player: griff }),
+      deepdiveCounts: makeDeepdiveCounts({
+        simple: [{ label: 'Z'.repeat(4090), count: 1 }],
       }),
       trophyAwards: makeTrophyAwards([mvp], 5),
     });
@@ -457,9 +459,9 @@ describe('PlayerDeepdiveService', () => {
 
   it('offers one trophy button per honor, before the header buttons', async () => {
     const { service } = await makeService({
-      players: makePlayers({
-        player: griff,
-        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+      players: makePlayers({ player: griff }),
+      deepdiveCounts: makeDeepdiveCounts({
+        simple: [{ label: 'Touchdowns scored', count: 3 }],
       }),
       entityComponents: passthroughEntityComponents(),
       trophyAwards: makeTrophyAwards([mvp, mostViolent]),
@@ -488,9 +490,9 @@ describe('PlayerDeepdiveService', () => {
 
   it('shows who killed the player and offers a drill-down to them', async () => {
     const { service } = await makeService({
-      players: makePlayers({
-        player: griff,
-        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+      players: makePlayers({ player: griff }),
+      deepdiveCounts: makeDeepdiveCounts({
+        simple: [{ label: 'Touchdowns scored', count: 3 }],
       }),
       playerDeath: makePlayerDeath({
         kind: 'player',
@@ -725,7 +727,9 @@ describe('PlayerDeepdiveService', () => {
     const { service } = await makeService({
       players: makePlayers({
         player: { ...griff, sppTotal: 4, sppAdjustment: null },
-        counts: { simple: [{ label: 'Touchdowns scored', count: 0 }] },
+      }),
+      deepdiveCounts: makeDeepdiveCounts({
+        simple: [{ label: 'Touchdowns scored', count: 0 }],
       }),
     });
     const result = (await service.resolve(1)) as {
@@ -748,9 +752,9 @@ describe('PlayerDeepdiveService', () => {
 
   it('shows Status: Unknown for a living player with no stored status', async () => {
     const { service } = await makeService({
-      players: makePlayers({
-        player: griff,
-        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+      players: makePlayers({ player: griff }),
+      deepdiveCounts: makeDeepdiveCounts({
+        simple: [{ label: 'Touchdowns scored', count: 3 }],
       }),
     });
 
@@ -927,7 +931,9 @@ describe('PlayerDeepdiveService', () => {
     const { service, stars } = await makeService({
       players: makePlayers({
         player: griff,
-        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+      }),
+      deepdiveCounts: makeDeepdiveCounts({
+        simple: [{ label: 'Touchdowns scored', count: 3 }],
       }),
       entityComponents: passthroughEntityComponents(),
     });
@@ -951,9 +957,9 @@ describe('PlayerDeepdiveService', () => {
 
   it('adds no star player button for a regular player', async () => {
     const { service } = await makeService({
-      players: makePlayers({
-        player: griff,
-        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+      players: makePlayers({ player: griff }),
+      deepdiveCounts: makeDeepdiveCounts({
+        simple: [{ label: 'Touchdowns scored', count: 3 }],
       }),
       entityComponents: passthroughEntityComponents(),
     });
@@ -974,9 +980,9 @@ describe('PlayerDeepdiveService', () => {
 
   it('offers a position button alongside the team, era and race buttons', async () => {
     const { service, entityComponents } = await makeService({
-      players: makePlayers({
-        player: griff,
-        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+      players: makePlayers({ player: griff }),
+      deepdiveCounts: makeDeepdiveCounts({
+        simple: [{ label: 'Touchdowns scored', count: 3 }],
       }),
     });
 
@@ -996,9 +1002,9 @@ describe('PlayerDeepdiveService', () => {
   it('returns the star timeout message when the star lookup times out', async () => {
     const databaseTimeout = mockDatabaseTimeout();
     const { service } = await makeService({
-      players: makePlayers({
-        player: griff,
-        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+      players: makePlayers({ player: griff }),
+      deepdiveCounts: makeDeepdiveCounts({
+        simple: [{ label: 'Touchdowns scored', count: 3 }],
       }),
       databaseTimeout,
     });

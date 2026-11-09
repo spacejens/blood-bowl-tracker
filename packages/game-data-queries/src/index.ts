@@ -1,3 +1,24 @@
+export { DateToplistModule } from './insights/date-toplist.module';
+export type { DateMatchCount } from './insights/date-toplist.service';
+export { DateToplistService } from './insights/date-toplist.service';
+export { OnThisDateModule } from './insights/on-this-date.module';
+export type {
+  OnThisDateKilledPlayer,
+  OnThisDateVictim,
+} from './insights/on-this-date.service';
+export { OnThisDateService } from './insights/on-this-date.service';
+export type {
+  PlayerKillEntry,
+  PlayerKillerInfo,
+  PlayerKillerTeam,
+} from './players/player-death.service';
+export { PlayerDeathService } from './players/player-death.service';
+export type {
+  PlayerDeepdiveCategoryCounts,
+  PlayerDeepdiveEventGroup,
+} from './players/player-deepdive-counts.service';
+export { PlayerDeepdiveCountsService } from './players/player-deepdive-counts.service';
+export { PlayersQueriesModule } from './players/players-queries.module';
 export { CharacteristicDisplayFormattingModule } from './shared/characteristic-display-formatting.module';
 export { CharacteristicDisplayFormattingService } from './shared/characteristic-display-formatting.service';
 export { PlayerContextNamesModule } from './shared/player-context-names.module';
