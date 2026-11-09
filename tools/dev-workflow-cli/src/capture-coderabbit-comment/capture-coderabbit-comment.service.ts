@@ -1,4 +1,7 @@
-import { ProcessRunnerService } from '@blood-bowl-tracker/cli-shared';
+import {
+  type ProcessResult,
+  ProcessRunnerService,
+} from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -157,7 +160,7 @@ export class CaptureCoderabbitCommentService {
   private async fetch(
     prNumber: string,
   ): Promise<CoderabbitComment[] | undefined> {
-    let result: Awaited<ReturnType<ProcessRunnerService['run']>>;
+    let result: ProcessResult;
     try {
       result = await this.processRunner.run(
         'gh',
