@@ -105,10 +105,31 @@ describe('CoderabbitCommentLayoutService', () => {
     expect(layout.statusBlock).toBe(false);
     expect(layout.recentReviewSection).toBe(false);
     expect(layout.processingBanner).toBe(false);
+    expect(layout.processingBannerUnmasked).toBe(true);
+    expect(layout.order).toEqual([]);
+    expect(layout.bannerInsideStatusBlock).toBe(false);
   });
 
   it('treats an unpaired start marker as no block', () => {
     const layout = service.describe(`${STATUS_START}\n${BANNER}\n`);
+
+    expect(layout.statusBlock).toBe(false);
+    expect(layout.bannerInsideStatusBlock).toBe(false);
+    expect(layout.order).toEqual(['processingBanner']);
+  });
+
+  it('treats a lone end marker as no block', () => {
+    const layout = service.describe(`${BANNER}\n${STATUS_END}\n`);
+
+    expect(layout.statusBlock).toBe(false);
+    expect(layout.bannerInsideStatusBlock).toBe(false);
+    expect(layout.order).toEqual(['processingBanner']);
+  });
+
+  it('treats an end marker before the start marker as no block', () => {
+    const layout = service.describe(
+      `${STATUS_END}\n${STATUS_START}\n${BANNER}\n`,
+    );
 
     expect(layout.statusBlock).toBe(false);
     expect(layout.bannerInsideStatusBlock).toBe(false);

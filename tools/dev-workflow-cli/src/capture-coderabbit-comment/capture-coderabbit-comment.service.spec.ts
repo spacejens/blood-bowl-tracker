@@ -43,6 +43,14 @@ function ghLines(comments: readonly Comment[]) {
   };
 }
 
+const LATE: Comment = {
+  id: 101,
+  updatedAt: '2026-11-09T10:09:00Z',
+  body:
+    DONE.body +
+    '<!-- recent_review_start -->\nlate verdict\n<!-- recent_review_end -->\n',
+};
+
 const GH_FAILED = { exitCode: 1, stdout: '', stderr: 'HTTP 502' };
 
 describe('CaptureCoderabbitCommentService', () => {
@@ -100,9 +108,13 @@ describe('CaptureCoderabbitCommentService', () => {
       .mockResolvedValueOnce(ghLines([DONE]))
       .mockResolvedValue(ghLines([DONE]));
 
-    const result = await runCapture({ prNumber: '1350', intervalMs: 5000 });
+    const result = await runCapture({
+      prNumber: '1350',
+      intervalMs: 5000,
+      settleMs: 5000,
+    });
 
-    expect(processRunner.run).toHaveBeenCalledTimes(3);
+    expect(processRunner.run).toHaveBeenCalledTimes(4);
     expect(result).toMatchObject({
       prNumber: '1350',
       sawInProgress: true,
@@ -172,25 +184,145 @@ describe('CaptureCoderabbitCommentService', () => {
     processRunner.run
       .mockResolvedValueOnce(ghLines([IN_PROGRESS]))
       .mockResolvedValueOnce(GH_FAILED)
-      .mockResolvedValueOnce(ghLines([DONE]));
+      .mockResolvedValueOnce(ghLines([DONE]))
+      .mockResolvedValue(ghLines([DONE]));
 
-    const result = await runCapture({ prNumber: '1350', intervalMs: 1000 });
+    const result = await runCapture({
+      prNumber: '1350',
+      intervalMs: 1000,
+      settleMs: 1000,
+    });
 
-    expect(processRunner.run).toHaveBeenCalledTimes(3);
+    expect(processRunner.run).toHaveBeenCalledTimes(4);
     expect(result).toMatchObject({ failedPolls: 1, leftInProgress: true });
     expect(result.observations).toHaveLength(2);
   });
 
-  it('fails on a line that is not a CodeRabbit comment object', async () => {
-    processRunner.run.mockResolvedValue({
-      exitCode: 0,
-      stdout: '{"id":"not-a-number"}\n',
-      stderr: '',
+  it('counts a line that is not a CodeRabbit comment object as a failed poll and keeps going', async () => {
+    processRunner.run
+      .mockResolvedValueOnce(ghLines([IN_PROGRESS]))
+      .mockResolvedValueOnce({
+        exitCode: 0,
+        stdout: '{"id":"not-a-number"}\n',
+        stderr: '',
+      })
+      .mockResolvedValueOnce({ exitCode: 0, stdout: 'not json\n', stderr: '' })
+      .mockResolvedValue(ghLines([DONE]));
+
+    const result = await runCapture({
+      prNumber: '1350',
+      intervalMs: 1000,
+      settleMs: 1000,
     });
 
-    await expect(
-      service.run({ prNumber: '1350', timeoutMs: 1000, intervalMs: 1000 }),
-    ).rejects.toThrow();
+    expect(result).toMatchObject({ failedPolls: 2, leftInProgress: true });
+    expect(result.observations.map((o) => o.body)).toEqual([
+      IN_PROGRESS.body,
+      DONE.body,
+    ]);
+  });
+
+  it('captures a body written after the banner was removed, within the settle window', async () => {
+    processRunner.run
+      .mockResolvedValueOnce(ghLines([IN_PROGRESS]))
+      .mockResolvedValueOnce(ghLines([DONE]))
+      .mockResolvedValueOnce(ghLines([LATE]))
+      .mockResolvedValue(ghLines([LATE]));
+
+    const result = await runCapture({
+      prNumber: '1350',
+      intervalMs: 1000,
+      settleMs: 2000,
+    });
+
+    expect(result).toMatchObject({ leftInProgress: true, timedOut: false });
+    expect(result.observations.map((o) => o.body)).toEqual([
+      IN_PROGRESS.body,
+      DONE.body,
+      LATE.body,
+    ]);
+    expect(processRunner.run).toHaveBeenCalledTimes(4);
+  });
+
+  it('restarts the settle window when the banner reappears', async () => {
+    processRunner.run
+      .mockResolvedValueOnce(ghLines([IN_PROGRESS]))
+      .mockResolvedValueOnce(ghLines([DONE]))
+      .mockResolvedValueOnce(ghLines([IN_PROGRESS]))
+      .mockResolvedValue(ghLines([DONE]));
+
+    const result = await runCapture({
+      prNumber: '1350',
+      intervalMs: 1000,
+      settleMs: 2000,
+    });
+
+    // IN, DONE (settle starts), IN (reset), DONE (settle restarts), DONE, DONE (2s elapsed)
+    expect(processRunner.run).toHaveBeenCalledTimes(6);
+    expect(result.leftInProgress).toBe(true);
+  });
+
+  it('settles for 30 seconds by default', async () => {
+    processRunner.run
+      .mockResolvedValueOnce(ghLines([IN_PROGRESS]))
+      .mockResolvedValue(ghLines([DONE]));
+
+    await runCapture({ prNumber: '1350', intervalMs: 10_000 });
+
+    // IN at 0, DONE at 10s starts settling, done at 40s: 5 polls.
+    expect(processRunner.run).toHaveBeenCalledTimes(5);
+  });
+
+  it('keeps polling after the banner is gone until the settle window elapses', async () => {
+    processRunner.run
+      .mockResolvedValueOnce(ghLines([IN_PROGRESS]))
+      .mockResolvedValue(ghLines([DONE]));
+
+    const pending = service.run({
+      prNumber: '1350',
+      intervalMs: 1000,
+      settleMs: 3000,
+    });
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(processRunner.run).toHaveBeenCalledTimes(4);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(processRunner.run).toHaveBeenCalledTimes(5);
+    await expect(pending).resolves.toMatchObject({
+      leftInProgress: true,
+      timedOut: false,
+    });
+  });
+
+  it('times out during the settle window, still reporting the banner as gone', async () => {
+    processRunner.run
+      .mockResolvedValueOnce(ghLines([IN_PROGRESS]))
+      .mockResolvedValue(ghLines([DONE]));
+
+    const result = await runCapture({
+      prNumber: '1350',
+      timeoutMs: 3000,
+      intervalMs: 1000,
+      settleMs: 60_000,
+    });
+
+    expect(result).toMatchObject({ leftInProgress: true, timedOut: true });
+  });
+
+  it('polls every ten seconds by default', async () => {
+    processRunner.run.mockResolvedValue(ghLines([DONE]));
+
+    const pending = service.run({ prNumber: '1350', timeoutMs: 25_000 });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(processRunner.run).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(9999);
+    expect(processRunner.run).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(processRunner.run).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(processRunner.run).toHaveBeenCalledTimes(3);
+    await vi.advanceTimersByTimeAsync(10_000);
+    await pending;
+    expect(processRunner.run).toHaveBeenCalledTimes(4);
   });
 });
 

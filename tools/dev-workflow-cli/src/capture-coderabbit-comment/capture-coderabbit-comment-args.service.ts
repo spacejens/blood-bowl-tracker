@@ -4,12 +4,12 @@ import { CaptureCoderabbitCommentOptions } from './capture-coderabbit-comment.se
 
 export const CAPTURE_CODERABBIT_COMMENT_USAGE =
   'Usage: node dist/main.js capture-coderabbit-comment <pr-number> ' +
-  '[--timeout-ms=1800000] [--interval-ms=10000]';
+  '[--timeout-ms=1800000] [--interval-ms=10000] [--settle-ms=30000]';
 
 /** Below this, `--interval-ms` would hammer `gh` in a tight loop. */
 const MIN_INTERVAL_MS = 1000;
 
-const FLAG_PATTERN = /^--(timeout-ms|interval-ms)=([1-9]\d*)$/;
+const FLAG_PATTERN = /^--(timeout-ms|interval-ms|settle-ms)=([1-9]\d*)$/;
 
 /**
  * Turns `capture-coderabbit-comment`'s argv into its options object, kept
@@ -37,10 +37,12 @@ export class CaptureCoderabbitCommentArgsService {
       throw new Error(`--interval-ms must be at least ${MIN_INTERVAL_MS}`);
     }
     const timeoutMs = flags.get('timeout-ms');
+    const settleMs = flags.get('settle-ms');
     return {
       prNumber,
       ...(timeoutMs === undefined ? {} : { timeoutMs }),
       ...(intervalMs === undefined ? {} : { intervalMs }),
+      ...(settleMs === undefined ? {} : { settleMs }),
     };
   }
 }

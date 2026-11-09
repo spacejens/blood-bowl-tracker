@@ -11,9 +11,14 @@ export interface CaptureCoderabbitCommentOptions {
   readonly prNumber: string;
   readonly timeoutMs?: number;
   readonly intervalMs?: number;
+  /** How long to keep polling after the banner disappears. */
+  readonly settleMs?: number;
 }
 
-/** One distinct body of one CodeRabbit comment, as first seen. */
+/**
+ * One distinct body of one CodeRabbit comment, as first seen. A body that
+ * returns later after the comment changed in between is not recorded again.
+ */
 export interface CapturedCoderabbitBody {
   readonly commentId: number;
   readonly updatedAt: string;
@@ -35,6 +40,7 @@ export interface CaptureCoderabbitCommentResult {
 
 const DEFAULT_TIMEOUT_MS = 30 * 60 * 1000;
 const DEFAULT_INTERVAL_MS = 10_000;
+const DEFAULT_SETTLE_MS = 30_000;
 const GH_CALL_TIMEOUT_MS = 60_000;
 
 /**
@@ -60,15 +66,18 @@ interface CaptureState {
   readonly observations: CapturedCoderabbitBody[];
   failedPolls: number;
   sawInProgress: boolean;
+  /** When the first banner-free poll after an in-progress one happened. */
+  settleStartedAt: number | undefined;
 }
 
 /**
  * Records every distinct body CodeRabbit's comments on a pull request go
  * through, so the in-progress layout of its rolling walkthrough comment can
  * be inspected from real data rather than assumed. Polls until a pass that
- * was seen in progress has finished, or until the timeout. A failed `gh`
- * call is counted and skipped, so one transient error does not lose the
- * bodies already captured.
+ * was seen in progress has been banner-free for the settle window (the
+ * banner may go before the verdict is written), or until the timeout. A
+ * failed `gh` call or unparseable output is counted and skipped, so one
+ * transient error does not lose the bodies already captured.
  */
 @Injectable()
 export class CaptureCoderabbitCommentService {
@@ -82,15 +91,17 @@ export class CaptureCoderabbitCommentService {
   ): Promise<CaptureCoderabbitCommentResult> {
     const deadline = Date.now() + (options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
     const intervalMs = options.intervalMs ?? DEFAULT_INTERVAL_MS;
+    const settleMs = options.settleMs ?? DEFAULT_SETTLE_MS;
     const state: CaptureState = {
       seen: new Set(),
       observations: [],
       failedPolls: 0,
       sawInProgress: false,
+      settleStartedAt: undefined,
     };
     for (;;) {
       const inProgressNow = await this.poll(options.prNumber, state);
-      if (inProgressNow === false && state.sawInProgress) {
+      if (this.hasSettled(inProgressNow, state, settleMs)) {
         return this.result(options.prNumber, state, false);
       }
       if (Date.now() >= deadline) {
@@ -98,6 +109,23 @@ export class CaptureCoderabbitCommentService {
       }
       await this.sleep(intervalMs);
     }
+  }
+
+  /** True once the banner has stayed away for `settleMs` after being seen. */
+  private hasSettled(
+    inProgressNow: boolean | undefined,
+    state: CaptureState,
+    settleMs: number,
+  ): boolean {
+    if (inProgressNow === true) {
+      state.settleStartedAt = undefined;
+    } else if (inProgressNow === false && state.sawInProgress) {
+      state.settleStartedAt ??= Date.now();
+    }
+    return (
+      state.settleStartedAt !== undefined &&
+      Date.now() - state.settleStartedAt >= settleMs
+    );
   }
 
   /** Whether any CodeRabbit comment shows the banner; `undefined` if `gh` failed. */
@@ -139,10 +167,14 @@ export class CaptureCoderabbitCommentService {
     if (result.exitCode !== 0) {
       return undefined;
     }
-    return result.stdout
-      .split('\n')
-      .filter((line) => line.trim() !== '')
-      .map((line) => coderabbitCommentSchema.parse(JSON.parse(line)));
+    try {
+      return result.stdout
+        .split('\n')
+        .filter((line) => line.trim() !== '')
+        .map((line) => coderabbitCommentSchema.parse(JSON.parse(line)));
+    } catch {
+      return undefined;
+    }
   }
 
   private record(
@@ -172,7 +204,7 @@ export class CaptureCoderabbitCommentService {
     return {
       prNumber,
       sawInProgress: state.sawInProgress,
-      leftInProgress: !timedOut,
+      leftInProgress: state.settleStartedAt !== undefined,
       timedOut,
       failedPolls: state.failedPolls,
       observations: state.observations,

@@ -33,6 +33,28 @@ describe('CaptureCoderabbitCommentArgsService', () => {
     ).toEqual({ prNumber: '1350', timeoutMs: 600_000, intervalMs: 5000 });
   });
 
+  it.each([
+    ['--timeout-ms=600000', { timeoutMs: 600_000 }],
+    ['--interval-ms=5000', { intervalMs: 5000 }],
+    ['--settle-ms=45000', { settleMs: 45_000 }],
+  ])('parses the lone flag %s', (arg, expected) => {
+    expect(service.parse([...PREFIX, '1350', arg])).toEqual({
+      prNumber: '1350',
+      ...expected,
+    });
+  });
+
+  it('takes the last value of a repeated flag', () => {
+    expect(
+      service.parse([
+        ...PREFIX,
+        '1350',
+        '--timeout-ms=1000',
+        '--timeout-ms=2000',
+      ]),
+    ).toEqual({ prNumber: '1350', timeoutMs: 2000 });
+  });
+
   it.each([[[]], [['abc']], [['0']], [['-3']]])(
     'rejects a missing or malformed PR number %j',
     (rest) => {
@@ -46,6 +68,8 @@ describe('CaptureCoderabbitCommentArgsService', () => {
     '--timeout-ms=0',
     '--timeout-ms=',
     '--interval-ms=abc',
+    '--settle-ms=0',
+    '--settle-ms=x',
     '--nope=1',
     'extra',
   ])('rejects the argument %s', (arg) => {
