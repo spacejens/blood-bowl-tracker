@@ -107,10 +107,11 @@ export class CaptureCoderabbitCommentService {
     };
     for (;;) {
       const inProgressNow = await this.poll(options.prNumber, state);
+      const timedOut = Date.now() >= deadline;
       if (this.hasSettled(inProgressNow, state, settleMs)) {
-        return this.result(options.prNumber, state, false);
+        return this.result(options.prNumber, state, timedOut);
       }
-      if (Date.now() >= deadline) {
+      if (timedOut) {
         return this.result(options.prNumber, state, true);
       }
       await this.sleep(intervalMs);

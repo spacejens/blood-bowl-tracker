@@ -336,6 +336,38 @@ describe('CaptureCoderabbitCommentService', () => {
     expect(result.observations.map((o) => o.body)).toContain(LATE.body);
   });
 
+  it('reports a timeout when the deadline passes on the poll that completes the settle window', async () => {
+    processRunner.run
+      .mockResolvedValueOnce(ghLines([IN_PROGRESS]))
+      .mockResolvedValue(ghLines([DONE]));
+
+    const result = await runCapture({
+      prNumber: '1350',
+      timeoutMs: 3000,
+      intervalMs: 1000,
+      settleMs: 2000,
+    });
+
+    // IN at 0, DONE at 1s starts the window, DONE at 3s completes it at the deadline.
+    expect(processRunner.run).toHaveBeenCalledTimes(4);
+    expect(result).toMatchObject({ leftInProgress: true, timedOut: true });
+  });
+
+  it('does not report a timeout when the settle window completes before the deadline', async () => {
+    processRunner.run
+      .mockResolvedValueOnce(ghLines([IN_PROGRESS]))
+      .mockResolvedValue(ghLines([DONE]));
+
+    const result = await runCapture({
+      prNumber: '1350',
+      timeoutMs: 10_000,
+      intervalMs: 1000,
+      settleMs: 2000,
+    });
+
+    expect(result).toMatchObject({ leftInProgress: true, timedOut: false });
+  });
+
   it('times out during the settle window, still reporting the banner as gone', async () => {
     processRunner.run
       .mockResolvedValueOnce(ghLines([IN_PROGRESS]))
