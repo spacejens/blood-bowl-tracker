@@ -239,7 +239,7 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   (starting skills and a pending `?` take no number). A trophy-granted skill
   is numbered like the rest, but the server marks it a free extra, stores it
   unconfirmed and closes its slot in the paid numbering (see
-  [database](../database.md)). Each increase is sent as
+  [Order of advancements](../database/star-player-points.md#order-of-advancements)). Each increase is sent as
   a characteristic entry, and every player's increases are sent in full on
   every run, so the server can reconcile them against what it stores.
 
