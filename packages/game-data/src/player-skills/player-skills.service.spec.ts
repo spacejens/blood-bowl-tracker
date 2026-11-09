@@ -3,16 +3,16 @@ import {
   players,
   trophyAwards,
 } from '@blood-bowl-tracker/db';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
-import { describe, expect, it } from 'vitest';
-import { mock } from 'vitest-mock-extended';
-
 import {
   extractAllFilterValues,
   extractFilterValues,
   extractJoinColumns,
   firstCallArg,
-} from '../shared/query-assertions.test-helpers';
+  mockDb,
+} from '@blood-bowl-tracker/db/test-helpers';
+import { describe, expect, it } from 'vitest';
+import { mock } from 'vitest-mock-extended';
+
 import { SkillValidationError } from '../shared/skill-validation-error';
 import { PaidAdvancementSlotsService } from './paid-advancement-slots.service';
 import { makeService } from './player-skills.test-helpers';

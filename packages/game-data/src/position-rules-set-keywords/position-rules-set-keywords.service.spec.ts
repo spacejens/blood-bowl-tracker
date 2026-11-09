@@ -1,17 +1,17 @@
 import { DB } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
-import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
-
-import { KeywordValidationError } from '../shared/keyword-validation-error';
 import {
   extractAllFilterValues,
   extractFilterValues,
   extractJoinColumns,
   firstCallArg,
+  mockDb,
   sqlText,
-} from '../shared/query-assertions.test-helpers';
+} from '@blood-bowl-tracker/db/test-helpers';
+import { Test } from '@nestjs/testing';
+import { describe, expect, it } from 'vitest';
+
+import { KeywordValidationError } from '../shared/keyword-validation-error';
 import { PositionRulesSetKeywordsService } from './position-rules-set-keywords.service';
 
 async function makeService(

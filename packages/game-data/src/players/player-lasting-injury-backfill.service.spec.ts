@@ -1,14 +1,14 @@
 import { DB, matchEvents, players } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import {
+  extractAllFilterValues,
+  firstCallArg,
+  mockDb,
+} from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 import { LASTING_INJURY_SUFFERED_TYPES } from '../shared/match-event-types';
-import {
-  extractAllFilterValues,
-  firstCallArg,
-} from '../shared/query-assertions.test-helpers';
 import {
   COUNTER_BY_CONSEQUENCE_TYPE,
   PlayerLastingInjuryBackfillService,

@@ -1,14 +1,14 @@
 import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
 import { DB } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
-import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
-
 import {
   extractFilterValues,
   firstCallArg,
-} from '../shared/query-assertions.test-helpers';
+  mockDb,
+} from '@blood-bowl-tracker/db/test-helpers';
+import { Test } from '@nestjs/testing';
+import { describe, expect, it } from 'vitest';
+
 import {
   CompetitionEnrollmentError,
   CompetitionEnrollmentService,

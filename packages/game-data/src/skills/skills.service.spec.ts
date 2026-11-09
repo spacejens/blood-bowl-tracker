@@ -1,18 +1,18 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB, skills } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
-import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
-
-import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
 import {
   extractAllFilterValues,
   extractFilterValues,
   extractJoinColumns,
   firstCallArg,
+  mockDb,
   sqlText,
-} from '../shared/query-assertions.test-helpers';
+} from '@blood-bowl-tracker/db/test-helpers';
+import { Test } from '@nestjs/testing';
+import { describe, expect, it } from 'vitest';
+
+import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
 import { SkillsService, SkillUpsertConflictError } from './skills.service';
 
 const fakeSkill = {

@@ -1,15 +1,15 @@
 import { DB, players } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import {
+  extractAllFilterValues,
+  firstCallArg,
+  mockDb,
+} from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import {
-  extractAllFilterValues,
-  firstCallArg,
-} from '../shared/query-assertions.test-helpers';
 import { UnspentSppService } from './unspent-spp.service';
 import type {
   KnownUnspentSpp,

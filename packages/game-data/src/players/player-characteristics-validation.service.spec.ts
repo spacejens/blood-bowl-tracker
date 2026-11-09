@@ -1,14 +1,14 @@
 import { DB, rulesSets } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import {
+  extractFilterValues,
+  firstCallArg,
+  mockDb,
+} from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { CharacteristicFormatValidationService } from '../shared/characteristic-format-validation.service';
-import {
-  extractFilterValues,
-  firstCallArg,
-} from '../shared/query-assertions.test-helpers';
 import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
 
 const externalIds = [{ externalSystemId: 1, externalId: 'pid-7' }];

@@ -120,3 +120,4 @@ export function mockDb(...rowsPerQuery: QueryOutcome[]): MockDbResult {
 
 export * from './drizzle.test-helpers.js';
 export * from './pg-integration-db.test-helpers.js';
+export * from './query-assertions.test-helpers.js';

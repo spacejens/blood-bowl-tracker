@@ -1,17 +1,17 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import {
+  extractAllFilterValues,
+  extractJoinColumns,
+  firstCallArg,
+  mockDb,
+} from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 import { FACT_SCOPE_ALL_TIME } from './fact-scope';
 import { MatchOutcomeCountsService } from './match-outcome-counts.service';
-import {
-  extractAllFilterValues,
-  extractJoinColumns,
-  firstCallArg,
-} from './query-assertions.test-helpers';
 
 describe('MatchOutcomeCountsService', () => {
   let service: MatchOutcomeCountsService;

@@ -9,15 +9,16 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import type { QueryChain, SQL } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb, PgDialect } from '@blood-bowl-tracker/db/test-helpers';
-import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
-
 import {
   extractAllFilterValues,
   extractJoinColumns,
   firstCallArg,
-} from '../shared/query-assertions.test-helpers';
+  mockDb,
+  PgDialect,
+} from '@blood-bowl-tracker/db/test-helpers';
+import { Test } from '@nestjs/testing';
+import { describe, expect, it } from 'vitest';
+
 import type { IncompleteImportTeamRow } from './incomplete-import-players.service';
 import { IncompleteImportPlayersService } from './incomplete-import-players.service';
 

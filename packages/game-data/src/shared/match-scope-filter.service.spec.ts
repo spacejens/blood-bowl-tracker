@@ -1,12 +1,12 @@
+import {
+  extractAllFilterValues,
+  extractJoinColumns,
+} from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { FACT_SCOPE_ALL_TIME } from './fact-scope';
 import { MatchScopeFilterService } from './match-scope-filter.service';
-import {
-  extractAllFilterValues,
-  extractJoinColumns,
-} from './query-assertions.test-helpers';
 
 describe('MatchScopeFilterService', () => {
   let service: MatchScopeFilterService;

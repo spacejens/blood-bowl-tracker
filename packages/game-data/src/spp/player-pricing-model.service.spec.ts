@@ -1,15 +1,15 @@
 import { DB } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
-import type { AdvancementKind } from '@blood-bowl-tracker/domain-enums';
-import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
-
 import {
   extractAllFilterValues,
   extractFilterValues,
   firstCallArg,
-} from '../shared/query-assertions.test-helpers';
+  mockDb,
+} from '@blood-bowl-tracker/db/test-helpers';
+import type { AdvancementKind } from '@blood-bowl-tracker/domain-enums';
+import { Test } from '@nestjs/testing';
+import { describe, expect, it } from 'vitest';
+
 import { AdvancementPricingModelService } from './advancement-pricing-model.service';
 import { PlayerPricingModelService } from './player-pricing-model.service';
 

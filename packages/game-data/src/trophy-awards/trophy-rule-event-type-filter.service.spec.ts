@@ -1,7 +1,7 @@
+import { extractAllFilterValues } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { extractAllFilterValues } from '../shared/query-assertions.test-helpers';
 import { TrophyRuleEventTypeFilterService } from './trophy-rule-event-type-filter.service';
 
 describe('TrophyRuleEventTypeFilterService', () => {

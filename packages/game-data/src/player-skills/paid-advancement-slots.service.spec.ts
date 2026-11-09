@@ -1,12 +1,12 @@
 import { playerAdvancements } from '@blood-bowl-tracker/db';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
-import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
-
 import {
   extractAllFilterValues,
   firstCallArg,
-} from '../shared/query-assertions.test-helpers';
+  mockDb,
+} from '@blood-bowl-tracker/db/test-helpers';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+
 import { PaidAdvancementSlotsService } from './paid-advancement-slots.service';
 
 describe('PaidAdvancementSlotsService', () => {
