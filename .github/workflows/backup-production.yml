@@ -105,7 +105,7 @@ jobs:
       # secret is empty, it adds that the caller must pass the secrets by name.
       - name: Check required settings
         env:
-          BACKUP_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
           BACKUP_STORAGE_ENDPOINT: ${{ vars.BACKUP_STORAGE_ENDPOINT }}
           BACKUP_STORAGE_BUCKET: ${{ vars.BACKUP_STORAGE_BUCKET }}
           BACKUP_STORAGE_ACCESS_KEY_ID: ${{ secrets.BACKUP_STORAGE_WRITE_ACCESS_KEY_ID }}
@@ -114,7 +114,7 @@ jobs:
         run: |
           environment=production-backup
           missing=()
-          [ -n "$BACKUP_DATABASE_URL" ] || missing+=(secrets.PRODUCTION_DATABASE_URL)
+          [ -n "$DATABASE_URL" ] || missing+=(secrets.PRODUCTION_DATABASE_URL)
           [ -n "$BACKUP_STORAGE_ENDPOINT" ] || missing+=(vars.BACKUP_STORAGE_ENDPOINT)
           [ -n "$BACKUP_STORAGE_BUCKET" ] || missing+=(vars.BACKUP_STORAGE_BUCKET)
           [ -n "$BACKUP_STORAGE_ACCESS_KEY_ID" ] || missing+=(secrets.BACKUP_STORAGE_WRITE_ACCESS_KEY_ID)
@@ -136,7 +136,7 @@ jobs:
       - name: Create backup
         id: create
         env:
-          BACKUP_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
           BACKUP_STORAGE_ENDPOINT: ${{ vars.BACKUP_STORAGE_ENDPOINT }}
           BACKUP_STORAGE_BUCKET: ${{ vars.BACKUP_STORAGE_BUCKET }}
           BACKUP_STORAGE_ACCESS_KEY_ID: ${{ secrets.BACKUP_STORAGE_WRITE_ACCESS_KEY_ID }}
