@@ -31,11 +31,17 @@ packages/
                         workspace package so packages/db and
                         packages/api-contract can each build from it while
                         staying mutually independent
-  game-data/          — DB-backed business logic for core game entities;
-                        depends on packages/db, on packages/api-contract for
+  game-data/          — DB-backed business logic for core game entities:
+                        ingestion and the reads importers, the API and the bot
+                        share; depends on packages/db, on packages/api-contract for
                         shared contract shapes (Upsert* types) and on
                         packages/domain-enums for enum value types; no
                         network dependency; usable directly by any app
+  game-data-queries/  — read-only statistics, toplists, deepdive counts and
+                        lookups only apps/discord-bot uses; depends one-way
+                        on packages/game-data (never the reverse) plus
+                        packages/db, packages/domain-enums and
+                        packages/api-contract
   api-contract/       — oRPC contract plus the Zod schemas and inferred
                         Upsert* types for all game entities; the single source
                         of truth for those shapes, consumed by api-server,
@@ -210,19 +216,20 @@ tools/
 
 ## Data flow
 
-- `apps/discord-bot` imports `packages/api-server` (to host the `/rpc` endpoint) and can import `packages/game-data` directly for any in-process feature that needs coach/external-system data, without a network hop
+- `apps/discord-bot` imports `packages/api-server` (to host the `/rpc` endpoint) and can import `packages/game-data` directly for shared reads and `packages/game-data-queries` for its bot-only statistics and lookups, in-process and without a network hop
 - `apps/discord-bot` also imports `packages/import-tp-live` and `packages/tp-paths` directly, for the `/importtp` on-demand TP import and the TP notification feed's automatic imports: both classify a TP URL with `TpPageClassifierService` and call the matching live entry point in-process through one shared dispatch
 - `tools/import-*` import `packages/import`, which internally calls `packages/api-client` to reach a deployed `api-server` over the network
 - `packages/api-server` also imports `packages/import-tp-live` to implement `tpRosters.import`, `tpMatches.import`, `tpCompetitions.import` and `tpOfficialTeams.import`; `packages/import-tp-live` calls `packages/game-data` in-process and never reaches the api-server over RPC, so `apps/discord-bot` can call it directly while `tools/import-tp` reaches it only through those procedures
 - `packages/api-server` imports `packages/game-data` (for persistence) and `packages/api-contract` (for the RPC contract it implements) — it has no dependency on `packages/db` directly
 - `packages/game-data` has no dependency on any network-facing package — it is pure business logic over `packages/db`
+- `packages/game-data-queries` imports `packages/game-data` one-way; `packages/game-data` never imports it, and only `apps/discord-bot` depends on it
 
 ## Client/server boundary
 
 Which side of the API each kind of workspace sits on. Unlike "Data flow" above, which describes today's actual import graph, this is the rule new code must keep to.
 
-- `apps/` are server-side (currently only `apps/discord-bot`); they call server-side packages like `packages/game-data` in-process and must never be forced to call themselves through the API
-- `tools/` are client-side; a tool that needs server-side logic goes through `packages/api-client` over the network rather than importing a server-side package (`packages/game-data`, `packages/db`, `packages/api-server`) directly. The `tools/review-*` family (`review-match`, `review-player`, `review-race`, `review-star-player`) is a deliberate exception: they read `packages/db` directly as local-only developer report aids outside the import pipeline, never touching the API. `tools/import-manual` is a second, test-only exception: it lists `packages/api-server` and `packages/db` as devDependencies so its e2e harness can start the real `ApiServerModule` in-process and query the game-data tables directly (see [import-manual batches](import-manual/batches.md#tested)); its production code under `src/` stays client-side and reaches the server only through `packages/api-client` and `packages/import`
+- `apps/` are server-side (currently only `apps/discord-bot`); they call server-side packages like `packages/game-data` and `packages/game-data-queries` in-process and must never be forced to call themselves through the API
+- `tools/` are client-side; a tool that needs server-side logic goes through `packages/api-client` over the network rather than importing a server-side package (`packages/game-data`, `packages/game-data-queries`, `packages/db`, `packages/api-server`) directly. The `tools/review-*` family (`review-match`, `review-player`, `review-race`, `review-star-player`) is a deliberate exception: they read `packages/db` directly as local-only developer report aids outside the import pipeline, never touching the API. `tools/import-manual` is a second, test-only exception: it lists `packages/api-server` and `packages/db` as devDependencies so its e2e harness can start the real `ApiServerModule` in-process and query the game-data tables directly (see [import-manual batches](import-manual/batches.md#tested)); its production code under `src/` stays client-side and reaches the server only through `packages/api-client` and `packages/import`
 - `packages/` are usually one-sided (client-only or server-only). Deliberate exceptions exist for shared-shape/enum packages designed to serve both sides: `packages/api-contract` (the RPC contract, built on `packages/domain-enums` and external libraries), `packages/domain-enums` (the enum source of truth, with no dependencies of its own), `packages/tp-paths` (TP request and path computation shared between `packages/import-tp-live` and `tools/download-tp`, also with no dependencies of its own), `packages/scrape-tp` (the TP request fetching shared between the client-side `tools/download-tp` and the server-side `packages/import-tp-live`, with no workspace dependencies), `packages/parse-tp` (TP JSON parsing shared between the client-side `tools/import-tp` and the server-side `packages/import-tp-live`, whose only workspace dependencies are `packages/domain-enums` and `packages/api-contract`, which owns the TP wire shapes its output is typed with), and `packages/import-shared` (the import rules the client-side `packages/import` and the server-side `packages/import-tp-live` must apply identically, whose only workspace dependencies are `packages/api-contract`'s types and `packages/domain-enums`)
 
 ## Tool/app relationships
@@ -285,7 +292,7 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
   - Each tool's `ReviewService`/`ReportBuilderService` is a thin subclass supplying only what differs, and each tool provides the leaf helpers it uses by plain import.
   - It deliberately carries no BBL/TP parsing or interpretation logic — raw-source parsing, comparison predicates and label tables stay duplicated per tool, see the review-tool entries below.
 - **`packages/api-contract`** (shared shapes) — newly imported data must exist in the contract before an importer can send it or a consumer can read it; a change here reaches api-server, api-client, game-data, import, import-shared and, for the TP wire shapes, parse-tp and import-tp-live together
-- **`apps/discord-bot`** (consumer) — reads imported data via `packages/game-data`; data newly landed by any importer is a candidate for a new command, fact, or insight. It is also a direct importer in its own right: the `/importtp` slash command, and the TP notification feed for every recognised notification, classify a TP URL with `packages/tp-paths`' `TpPageClassifierService` and call the matching `packages/import-tp-live` entry point in-process
+- **`apps/discord-bot`** (consumer) — reads imported data via `packages/game-data` and `packages/game-data-queries`; data newly landed by any importer is a candidate for a new command, fact, or insight. It is also a direct importer in its own right: the `/importtp` slash command, and the TP notification feed for every recognised notification, classify a TP URL with `packages/tp-paths`' `TpPageClassifierService` and call the matching `packages/import-tp-live` entry point in-process
 - **`tools/review-match`** (consumer, review aid) — renders raw BBL and TP source data beside imported match events, so a change to what either importer stores for match events usually needs a matching renderer change here
   - It deliberately interprets the raw sources itself and must never depend on `packages/parse-tp` or importer logic (the mechanical file access is shared via `packages/read-bbl-mirror`, which carries no interpretation and so does not weaken that rule) (see `docs/review-match/index.md`). Depending on `packages/domain-enums` for match categories is likewise allowed, since it holds constants and types only, no interpretation.
   - That independence rule covers the domain-specific half only; the generic report scaffolding is shared on purpose via `packages/review-harness`, where its `ReviewService` and `ReportBuilderService` subclass `ReviewServiceBase`/`ReportBuilderBase` and add only the match-result lookup and the per-match section.
@@ -322,6 +329,8 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
 **RPC transport over REST/OpenAPI.** oRPC supports both; REST/OpenAPI modeling (HTTP verbs, per-route status codes, path design) was evaluated first and found to add real friction for zero benefit, since every consumer of this API is TypeScript within this monorepo and there's no plan for external or non-TypeScript consumers. Plain RPC dispatch removes that overhead entirely.
 
 **game-data as its own package, separate from api-server.** Business logic needs to be usable by any app directly (in-process, no network hop) without pulling in the network-transport layer. Splitting them also made it easy to delete the 14 API resources that had zero callers anywhere (HTTP or direct injection) without touching business logic for the 2 resources that are actually used.
+
+**Bot-only reads in game-data-queries, separate from game-data.** The importers load `packages/game-data` to persist data, and carrying the bot's reporting queries in the same entity services would ship code they never call and mix Discord insight changes with ingestion logic. Reads only `apps/discord-bot` uses live in `packages/game-data-queries`, which depends on `game-data` one-way; a read an importer or the API also needs stays in `game-data`.
 
 **api-server as a package, not an app.** The Discord bot is the only deployment target, so the RPC dispatch layer lives in a package it hosts in-process via NestJS module composition, rather than a separately deployed service.
 

@@ -44,7 +44,7 @@ whose position is a star player position is left out, so a team is only
 listed for its regular players.
 
 The criteria are kept as one named list in
-`packages/game-data/src/players/incomplete-import-players.service.ts`, so a
+`packages/game-data-queries/src/players/incomplete-import-players.service.ts`, so a
 newly discovered kind of gap is a one-line addition.
 
 ## The reply
