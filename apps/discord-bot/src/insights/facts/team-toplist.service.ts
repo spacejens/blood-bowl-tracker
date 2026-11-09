@@ -1,8 +1,9 @@
-import type {
-  FactScope,
-  TeamAverageDirection,
-} from '@blood-bowl-tracker/game-data';
-import { TeamsService } from '@blood-bowl-tracker/game-data';
+import type { FactScope } from '@blood-bowl-tracker/game-data';
+import type { TeamAverageDirection } from '@blood-bowl-tracker/game-data-queries';
+import {
+  TeamAverageStatisticsService,
+  TeamsStatisticsService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -25,7 +26,7 @@ import { ToplistFactoryService } from './toplist-factory.service';
  * `countMatchesPlayedByTeam`, `countCompetitionsByTeam`, and `countErasByTeam`
  * take fewer parameters than the (eraId?, competitionId?) shape the factory
  * binds to, but a function accepting fewer optional parameters is still
- * assignable to one expecting more, so `ScopedCountMethods<TeamsService>`
+ * assignable to one expecting more, so `ScopedCountMethods<TeamsStatisticsService>`
  * would otherwise include them too. Naming the 15 uniform methods explicitly
  * keeps those three out and still gets checked against `ScopedCountMethods`
  * via `satisfies` below, so a genuinely mismatched entry still fails to
@@ -47,12 +48,12 @@ const _teamToplistMethods = [
   'countLastingInjuriesSufferedByTeam',
   'countDeathsSufferedByTeam',
   'countTrophiesByTeam',
-] as const satisfies readonly ScopedCountMethods<TeamsService>[];
+] as const satisfies readonly ScopedCountMethods<TeamsStatisticsService>[];
 type TeamToplistMethod = (typeof _teamToplistMethods)[number];
 
 /**
  * The row shape every team toplist renders. `contextSuffix` is optional so the
- * undecorated rows a `TeamsService` count method returns are still assignable
+ * undecorated rows a `TeamsStatisticsService` count method returns are still assignable
  * here; `decorateTeamRows` fills it in before the rows reach the embed.
  */
 type TeamToplistRow = {
@@ -62,7 +63,7 @@ type TeamToplistRow = {
   contextSuffix?: string;
 };
 
-/** The `TeamsService` per-match average queries; they share one signature. */
+/** The `TeamAverageStatisticsService` per-match average queries; they share one signature. */
 type TeamAverageMethod =
   | 'averageTouchdownsScoredByTeam'
   | 'averageTouchdownsConcededByTeam'
@@ -79,7 +80,7 @@ type TeamAverageMethod =
 export class TeamToplistService {
   private readonly resolvers: Record<
     TeamToplistMethod,
-    ToplistResolver<TeamsService>
+    ToplistResolver<TeamsStatisticsService>
   >;
 
   private readonly teamLink: EntityLink<{ teamId: number }> = {
@@ -88,7 +89,8 @@ export class TeamToplistService {
   };
 
   constructor(
-    private readonly teams: TeamsService,
+    private readonly statistics: TeamsStatisticsService,
+    private readonly averages: TeamAverageStatisticsService,
     private readonly leaderboard: LeaderboardService,
     private readonly teamContext: TeamContextService,
     private readonly toplistFactory: ToplistFactoryService,
@@ -96,7 +98,7 @@ export class TeamToplistService {
   ) {
     this.resolvers = this.toplistFactory.makeResolvers<
       TeamToplistMethod,
-      TeamsService,
+      TeamsStatisticsService,
       TeamToplistRow
     >({
       titles: {
@@ -144,63 +146,75 @@ export class TeamToplistService {
   }
 
   resolveTouchdownsScored(scope: FactScope) {
-    return this.resolvers.countTouchdownsScoredByTeam(this.teams, scope);
+    return this.resolvers.countTouchdownsScoredByTeam(this.statistics, scope);
   }
 
   resolveCompletions(scope: FactScope) {
-    return this.resolvers.countCompletionsByTeam(this.teams, scope);
+    return this.resolvers.countCompletionsByTeam(this.statistics, scope);
   }
 
   resolveInterceptions(scope: FactScope) {
-    return this.resolvers.countInterceptionsByTeam(this.teams, scope);
+    return this.resolvers.countInterceptionsByTeam(this.statistics, scope);
   }
 
   resolveDeflections(scope: FactScope) {
-    return this.resolvers.countDeflectionsByTeam(this.teams, scope);
+    return this.resolvers.countDeflectionsByTeam(this.statistics, scope);
   }
 
   resolveCasualtiesCaused(scope: FactScope) {
-    return this.resolvers.countCasualtiesCausedByTeam(this.teams, scope);
+    return this.resolvers.countCasualtiesCausedByTeam(this.statistics, scope);
   }
 
   resolveSeriousInjuriesCaused(scope: FactScope) {
-    return this.resolvers.countSeriousInjuriesCausedByTeam(this.teams, scope);
+    return this.resolvers.countSeriousInjuriesCausedByTeam(
+      this.statistics,
+      scope,
+    );
   }
 
   resolveLastingInjuriesCaused(scope: FactScope) {
-    return this.resolvers.countLastingInjuriesCausedByTeam(this.teams, scope);
+    return this.resolvers.countLastingInjuriesCausedByTeam(
+      this.statistics,
+      scope,
+    );
   }
 
   resolveDeathsCaused(scope: FactScope) {
-    return this.resolvers.countDeathsCausedByTeam(this.teams, scope);
+    return this.resolvers.countDeathsCausedByTeam(this.statistics, scope);
   }
 
   resolveFoulsCommitted(scope: FactScope) {
-    return this.resolvers.countFoulsCommittedByTeam(this.teams, scope);
+    return this.resolvers.countFoulsCommittedByTeam(this.statistics, scope);
   }
 
   resolveTimesSentOff(scope: FactScope) {
-    return this.resolvers.countTimesSentOffByTeam(this.teams, scope);
+    return this.resolvers.countTimesSentOffByTeam(this.statistics, scope);
   }
 
   resolveCasualtiesSuffered(scope: FactScope) {
-    return this.resolvers.countCasualtiesSufferedByTeam(this.teams, scope);
+    return this.resolvers.countCasualtiesSufferedByTeam(this.statistics, scope);
   }
 
   resolveSeriousInjuriesSuffered(scope: FactScope) {
-    return this.resolvers.countSeriousInjuriesSufferedByTeam(this.teams, scope);
+    return this.resolvers.countSeriousInjuriesSufferedByTeam(
+      this.statistics,
+      scope,
+    );
   }
 
   resolveLastingInjuriesSuffered(scope: FactScope) {
-    return this.resolvers.countLastingInjuriesSufferedByTeam(this.teams, scope);
+    return this.resolvers.countLastingInjuriesSufferedByTeam(
+      this.statistics,
+      scope,
+    );
   }
 
   resolveDeathsSuffered(scope: FactScope) {
-    return this.resolvers.countDeathsSufferedByTeam(this.teams, scope);
+    return this.resolvers.countDeathsSufferedByTeam(this.statistics, scope);
   }
 
   resolveTrophiesWon(scope: FactScope) {
-    return this.resolvers.countTrophiesByTeam(this.teams, scope);
+    return this.resolvers.countTrophiesByTeam(this.statistics, scope);
   }
 
   /**
@@ -216,7 +230,7 @@ export class TeamToplistService {
       title: 'Teams by matches played',
       fetchRows: async (limit) =>
         this.decorateTeamRows(
-          await this.teams.countMatchesPlayedByTeam(scope, limit),
+          await this.statistics.countMatchesPlayedByTeam(scope, limit),
         ),
       timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
@@ -253,7 +267,7 @@ export class TeamToplistService {
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveMatchOutcomeToplist({
       title: 'Teams by matches won',
-      fetchRows: (limit) => this.teams.countMatchesWonByTeam(scope, limit),
+      fetchRows: (limit) => this.statistics.countMatchesWonByTeam(scope, limit),
     });
   }
 
@@ -262,7 +276,8 @@ export class TeamToplistService {
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveMatchOutcomeToplist({
       title: 'Teams by matches lost',
-      fetchRows: (limit) => this.teams.countMatchesLostByTeam(scope, limit),
+      fetchRows: (limit) =>
+        this.statistics.countMatchesLostByTeam(scope, limit),
     });
   }
 
@@ -271,7 +286,8 @@ export class TeamToplistService {
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveMatchOutcomeToplist({
       title: 'Teams by matches drawn',
-      fetchRows: (limit) => this.teams.countMatchesDrawnByTeam(scope, limit),
+      fetchRows: (limit) =>
+        this.statistics.countMatchesDrawnByTeam(scope, limit),
     });
   }
 
@@ -282,7 +298,7 @@ export class TeamToplistService {
       title: 'Teams by competitions played',
       fetchRows: async (limit) =>
         this.decorateTeamRows(
-          await this.teams.countCompetitionsByTeam(scope, limit),
+          await this.statistics.countCompetitionsByTeam(scope, limit),
         ),
       timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
@@ -295,7 +311,7 @@ export class TeamToplistService {
     return this.leaderboard.resolveToplist<TeamToplistRow>({
       title: 'Teams by eras active',
       fetchRows: async (limit) =>
-        this.decorateTeamRows(await this.teams.countErasByTeam(limit)),
+        this.decorateTeamRows(await this.statistics.countErasByTeam(limit)),
       timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
       entityLink: this.teamLink,
@@ -305,7 +321,7 @@ export class TeamToplistService {
 
   /**
    * Every per-match average toplist shares this builder; each differs only
-   * in its measure, its backing `TeamsService` query and its direction. The
+   * in its measure, its backing `TeamAverageStatisticsService` query and its direction. The
    * average is carried as the row's `count` because the leaderboard ranks
    * ties on `count`; the game-data query has already rounded it to two
    * decimals and applied the minimum-matches floor. Hand-written rather than
@@ -323,7 +339,7 @@ export class TeamToplistService {
       title: `Teams by average ${measure} per match (${direction === 'desc' ? 'highest' : 'lowest'} first)`,
       fetchRows: async (limit) =>
         this.decorateTeamRows(
-          (await this.teams[method](scope, direction, limit)).map(
+          (await this.averages[method](scope, direction, limit)).map(
             ({ average, ...row }) => ({ ...row, count: average }),
           ),
         ),

@@ -1,8 +1,10 @@
-import type { TeamHonor, TeamTopPlayer } from '@blood-bowl-tracker/game-data';
+import type { TeamHonor } from '@blood-bowl-tracker/game-data';
 import {
   TeamsService,
   TrophyAwardsService,
 } from '@blood-bowl-tracker/game-data';
+import type { TeamTopPlayer } from '@blood-bowl-tracker/game-data-queries';
+import { TeamsStatisticsService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -74,6 +76,7 @@ const MAX_TEAM_HONORS = 30;
 export class TeamDeepdiveService {
   constructor(
     private readonly teams: TeamsService,
+    private readonly teamStatistics: TeamsStatisticsService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly leaderboard: LeaderboardService,
     private readonly entityComponents: EntityComponentsService,
@@ -158,7 +161,10 @@ export class TeamDeepdiveService {
     }
 
     const topPlayers: TopPlayer[] | null = await this.databaseTimeout.run(
-      this.teams.getTopPlayersByTotalSpp(teamId, MAX_LEADERBOARD_ENTRIES),
+      this.teamStatistics.getTopPlayersByTotalSpp(
+        teamId,
+        MAX_LEADERBOARD_ENTRIES,
+      ),
       null,
     );
     if (topPlayers === null) {

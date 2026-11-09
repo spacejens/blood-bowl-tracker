@@ -90,7 +90,7 @@ pnpm run test         # unit tests
 pnpm run test:e2e     # e2e tests
 ```
 
-> **Note:** `packages/game-data`'s and `tools/import-manual`'s `pnpm run test`
+> **Note:** `packages/game-data`'s, `packages/game-data-queries`' and `tools/import-manual`'s `pnpm run test`
 > run their unit tests and then a
 > real-Postgres integration suite (`pnpm run test:e2e`), so a running Docker
 > daemon is required — `testcontainers` starts a throwaway `postgres:18-alpine`

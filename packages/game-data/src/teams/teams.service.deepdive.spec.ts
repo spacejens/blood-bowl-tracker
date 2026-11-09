@@ -16,14 +16,11 @@ import { mock } from 'vitest-mock-extended';
 
 import { LikePatternService } from '../shared/like-pattern.service';
 import { TeamRaceCoachNamesService } from '../shared/team-race-coach-names.service';
-import { TeamAverageStatisticsService } from './team-average-statistics.service';
 import { TeamsService } from './teams.service';
-import { TeamsStatisticsService } from './teams-statistics.service';
 
 describe('TeamsService lookups', () => {
   let service: TeamsService;
   let likePattern: MockProxy<LikePatternService>;
-  let statistics: MockProxy<TeamsStatisticsService>;
   let teamRaceCoachNames: MockProxy<TeamRaceCoachNamesService>;
 
   async function build(...rowsPerQuery: unknown[][]): Promise<{
@@ -35,11 +32,6 @@ describe('TeamsService lookups', () => {
       providers: [
         TeamsService,
         { provide: LikePatternService, useValue: likePattern },
-        { provide: TeamsStatisticsService, useValue: statistics },
-        {
-          provide: TeamAverageStatisticsService,
-          useValue: mock<TeamAverageStatisticsService>(),
-        },
         { provide: TeamRaceCoachNamesService, useValue: teamRaceCoachNames },
         { provide: DB, useValue: db },
       ],
@@ -50,7 +42,6 @@ describe('TeamsService lookups', () => {
 
   beforeEach(() => {
     likePattern = mock<LikePatternService>();
-    statistics = mock<TeamsStatisticsService>();
     teamRaceCoachNames = mock<TeamRaceCoachNamesService>();
   });
 
@@ -190,29 +181,6 @@ describe('TeamsService lookups', () => {
       expect(sqlText(fields.start)).toContain(") at time zone 'UTC')::date");
       expect(sqlText(fields.end)).toContain('(max(');
       expect(sqlText(fields.end)).toContain(") at time zone 'UTC')::date");
-    });
-  });
-
-  describe('getTopPlayersByTotalSpp', () => {
-    it('delegates to TeamsStatisticsService and returns its result', async () => {
-      const rows = [
-        {
-          playerId: 1,
-          name: 'Griff',
-          count: 42,
-          positionId: 30,
-          positionName: 'Blitzer',
-          isStarPlayer: false,
-        },
-      ];
-      statistics.getTopPlayersByTotalSpp.mockResolvedValue(rows);
-      await build();
-
-      await expect(service.getTopPlayersByTotalSpp(7, 10)).resolves.toEqual(
-        rows,
-      );
-
-      expect(statistics.getTopPlayersByTotalSpp).toHaveBeenCalledWith(7, 10);
     });
   });
 

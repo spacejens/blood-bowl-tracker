@@ -36,3 +36,10 @@ export { PlayerContextNamesService } from './shared/player-context-names.service
 export { TeamRaceCoachNamesModule } from './shared/team-race-coach-names.module';
 export { TeamRaceCoachNamesService } from './shared/team-race-coach-names.service';
 export type { TeamTopPlayer } from './shared/team-top-player';
+export type {
+  TeamAverageDirection,
+  TeamAverageRow,
+} from './teams/team-average-statistics.service';
+export { TeamAverageStatisticsService } from './teams/team-average-statistics.service';
+export { TeamsQueriesModule } from './teams/teams-queries.module';
+export { TeamsStatisticsService } from './teams/teams-statistics.service';

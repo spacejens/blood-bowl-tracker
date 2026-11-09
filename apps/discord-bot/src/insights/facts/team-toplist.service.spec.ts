@@ -1,8 +1,9 @@
 import type { FactScope } from '@blood-bowl-tracker/game-data';
+import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
 import {
-  FACT_SCOPE_ALL_TIME,
-  TeamsService,
-} from '@blood-bowl-tracker/game-data';
+  TeamAverageStatisticsService,
+  TeamsStatisticsService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -64,7 +65,7 @@ interface MadeService {
 }
 
 async function makeService(
-  teams: TeamsService,
+  statistics: TeamsStatisticsService,
   teamContext: MockProxy<TeamContextService> = mock<TeamContextService>(),
 ): Promise<MadeService> {
   const leaderboard = mock<LeaderboardService>();
@@ -73,7 +74,11 @@ async function makeService(
     providers: [
       TeamToplistService,
       NumberFormatterService,
-      { provide: TeamsService, useValue: teams },
+      { provide: TeamsStatisticsService, useValue: statistics },
+      {
+        provide: TeamAverageStatisticsService,
+        useValue: mock<TeamAverageStatisticsService>(),
+      },
       { provide: LeaderboardService, useValue: leaderboard },
       { provide: TeamContextService, useValue: teamContext },
       { provide: ToplistFactoryService, useValue: toplist.factory },
@@ -333,8 +338,8 @@ describe.each(factoryCases)(
     // mock handing back inert resolvers, so these tests assert only what
     // TeamToplistService itself owns.
     it('wires the embed title and per-row deepdive button id', async () => {
-      const teams = mock<TeamsService>();
-      const { service, toplist } = await makeService(teams);
+      const statistics = mock<TeamsStatisticsService>();
+      const { service, toplist } = await makeService(statistics);
       const canned = {
         embeds: [{ title: 'canned', description: 'canned' }],
       };
@@ -350,28 +355,28 @@ describe.each(factoryCases)(
     });
 
     it('passes the era scope through to the factory resolver', async () => {
-      const teams = mock<TeamsService>();
-      const { service, toplist } = await makeService(teams);
+      const statistics = mock<TeamsStatisticsService>();
+      const { service, toplist } = await makeService(statistics);
       await resolve(service, { eraId: 20 });
-      expect(toplist.resolver(method)).toHaveBeenCalledWith(teams, {
+      expect(toplist.resolver(method)).toHaveBeenCalledWith(statistics, {
         eraId: 20,
       });
     });
 
     if (competitionRows) {
       it('passes the competition scope through to the factory resolver', async () => {
-        const teams = mock<TeamsService>();
-        const { service, toplist } = await makeService(teams);
+        const statistics = mock<TeamsStatisticsService>();
+        const { service, toplist } = await makeService(statistics);
         await resolve(service, { competitionId: 30 });
-        expect(toplist.resolver(method)).toHaveBeenCalledWith(teams, {
+        expect(toplist.resolver(method)).toHaveBeenCalledWith(statistics, {
           competitionId: 30,
         });
       });
     }
 
     it('configures the toplist-specific timeout message and returns the resolver reply verbatim', async () => {
-      const teams = mock<TeamsService>();
-      const { service, toplist } = await makeService(teams);
+      const statistics = mock<TeamsStatisticsService>();
+      const { service, toplist } = await makeService(statistics);
       toplist
         .resolver(method)
         .mockResolvedValueOnce(TEAM_TOPLIST_TIMEOUT_MESSAGE);
@@ -383,12 +388,12 @@ describe.each(factoryCases)(
     });
 
     it('decorates every fetched row with both race and coach context', async () => {
-      const teams = mock<TeamsService>();
+      const statistics = mock<TeamsStatisticsService>();
       const teamContext = mock<TeamContextService>();
       teamContext.attachSuffixes.mockResolvedValue(
         rows.map((row) => ({ ...row, contextSuffix: ' (Orc, Skarsnik)' })),
       );
-      const { toplist } = await makeService(teams, teamContext);
+      const { toplist } = await makeService(statistics, teamContext);
       const decorated = await toplist
         .options()
         .decorateRows?.(rows, FACT_SCOPE_ALL_TIME);
@@ -404,8 +409,8 @@ describe.each(factoryCases)(
     });
 
     it('renders each row with its context suffix between the name and the count', async () => {
-      const teams = mock<TeamsService>();
-      const { toplist } = await makeService(teams);
+      const statistics = mock<TeamsStatisticsService>();
+      const { toplist } = await makeService(statistics);
       expect(
         toplist.options().formatRow?.({
           ...rows[0],
@@ -416,8 +421,8 @@ describe.each(factoryCases)(
     });
 
     it('renders a row with no known context without stray parentheses', async () => {
-      const teams = mock<TeamsService>();
-      const { toplist } = await makeService(teams);
+      const statistics = mock<TeamsStatisticsService>();
+      const { toplist } = await makeService(statistics);
       expect(
         toplist
           .options()
@@ -429,7 +434,7 @@ describe.each(factoryCases)(
 
 describe('TeamToplistService row formatting', () => {
   it('groups the count with thousands separators', async () => {
-    const { toplist } = await makeService(mock<TeamsService>());
+    const { toplist } = await makeService(mock<TeamsStatisticsService>());
     expect(
       toplist.options().formatRow?.({
         ...factoryCases[0].rows[0],
@@ -448,9 +453,9 @@ describe.each(handWrittenCases)(
     // allows, so TeamToplistService still writes them by hand against the
     // mocked LeaderboardService.
     it('wires the embed title and per-row deepdive button id', async () => {
-      const teams = mock<TeamsService>();
-      teams[method].mockResolvedValue(rows);
-      const { service, leaderboard } = await makeService(teams);
+      const statistics = mock<TeamsStatisticsService>();
+      statistics[method].mockResolvedValue(rows);
+      const { service, leaderboard } = await makeService(statistics);
       const canned = {
         embeds: [{ title: 'canned', description: 'canned' }],
       };
@@ -468,14 +473,17 @@ describe.each(handWrittenCases)(
 
     if (eraRows) {
       it('passes the era id through to the query', async () => {
-        const teams = mock<TeamsService>();
-        const queryFn = teams[method];
+        const statistics = mock<TeamsStatisticsService>();
+        const queryFn = statistics[method];
         queryFn.mockResolvedValue(eraRows);
         const teamContext = mock<TeamContextService>();
         teamContext.attachSuffixes.mockResolvedValue(
           eraRows.map((row) => ({ ...row, contextSuffix: '' })),
         );
-        const { service, leaderboard } = await makeService(teams, teamContext);
+        const { service, leaderboard } = await makeService(
+          statistics,
+          teamContext,
+        );
         leaderboard.resolveToplist.mockImplementation(async (options) => {
           await options.fetchRows(TOPLIST_FETCH_LIMIT);
           return 'canned';
@@ -490,14 +498,17 @@ describe.each(handWrittenCases)(
 
     if (competitionRows) {
       it('passes the competition id through to the query', async () => {
-        const teams = mock<TeamsService>();
-        const queryFn = teams[method];
+        const statistics = mock<TeamsStatisticsService>();
+        const queryFn = statistics[method];
         queryFn.mockResolvedValue(competitionRows);
         const teamContext = mock<TeamContextService>();
         teamContext.attachSuffixes.mockResolvedValue(
           competitionRows.map((row) => ({ ...row, contextSuffix: '' })),
         );
-        const { service, leaderboard } = await makeService(teams, teamContext);
+        const { service, leaderboard } = await makeService(
+          statistics,
+          teamContext,
+        );
         leaderboard.resolveToplist.mockImplementation(async (options) => {
           await options.fetchRows(TOPLIST_FETCH_LIMIT);
           return 'canned';
@@ -511,9 +522,9 @@ describe.each(handWrittenCases)(
     }
 
     it('configures the toplist-specific timeout message and returns it verbatim on timeout', async () => {
-      const teams = mock<TeamsService>();
-      teams[method].mockResolvedValue(rows);
-      const { service, leaderboard } = await makeService(teams);
+      const statistics = mock<TeamsStatisticsService>();
+      statistics[method].mockResolvedValue(rows);
+      const { service, leaderboard } = await makeService(statistics);
       leaderboard.resolveToplist.mockResolvedValueOnce(
         TEAM_TOPLIST_TIMEOUT_MESSAGE,
       );
@@ -527,13 +538,16 @@ describe.each(handWrittenCases)(
     });
 
     it('decorates every fetched row with both race and coach context', async () => {
-      const teams = mock<TeamsService>();
-      teams[method].mockResolvedValue(rows);
+      const statistics = mock<TeamsStatisticsService>();
+      statistics[method].mockResolvedValue(rows);
       const teamContext = mock<TeamContextService>();
       teamContext.attachSuffixes.mockResolvedValue(
         rows.map((row) => ({ ...row, contextSuffix: ' (Orc, Skarsnik)' })),
       );
-      const { service, leaderboard } = await makeService(teams, teamContext);
+      const { service, leaderboard } = await makeService(
+        statistics,
+        teamContext,
+      );
       let fetched: unknown;
       leaderboard.resolveToplist.mockImplementation(async (options) => {
         fetched = await options.fetchRows(TOPLIST_FETCH_LIMIT);
@@ -552,9 +566,9 @@ describe.each(handWrittenCases)(
     });
 
     it('renders each row with its context suffix between the name and the count', async () => {
-      const teams = mock<TeamsService>();
-      teams[method].mockResolvedValue(rows);
-      const { service, leaderboard } = await makeService(teams);
+      const statistics = mock<TeamsStatisticsService>();
+      statistics[method].mockResolvedValue(rows);
+      const { service, leaderboard } = await makeService(statistics);
       leaderboard.resolveToplist.mockResolvedValueOnce('canned');
       await resolve(service, FACT_SCOPE_ALL_TIME);
       const options = leaderboard.resolveToplist.mock
@@ -569,9 +583,9 @@ describe.each(handWrittenCases)(
     });
 
     it('renders a row with no known context without stray parentheses', async () => {
-      const teams = mock<TeamsService>();
-      teams[method].mockResolvedValue(rows);
-      const { service, leaderboard } = await makeService(teams);
+      const statistics = mock<TeamsStatisticsService>();
+      statistics[method].mockResolvedValue(rows);
+      const { service, leaderboard } = await makeService(statistics);
       leaderboard.resolveToplist.mockResolvedValueOnce('canned');
       await resolve(service, FACT_SCOPE_ALL_TIME);
       const options = leaderboard.resolveToplist.mock
@@ -585,12 +599,12 @@ describe.each(handWrittenCases)(
 
 describe('TeamToplistService.resolveErasActive', () => {
   it('passes the fetch limit through to the query', async () => {
-    const teams = mock<TeamsService>();
-    const queryFn = teams.countErasByTeam;
+    const statistics = mock<TeamsStatisticsService>();
+    const queryFn = statistics.countErasByTeam;
     queryFn.mockResolvedValue([]);
     const teamContext = mock<TeamContextService>();
     teamContext.attachSuffixes.mockResolvedValue([]);
-    const { service, leaderboard } = await makeService(teams, teamContext);
+    const { service, leaderboard } = await makeService(statistics, teamContext);
     leaderboard.resolveToplist.mockImplementation(async (options) => {
       await options.fetchRows(TOPLIST_FETCH_LIMIT);
       return 'canned';

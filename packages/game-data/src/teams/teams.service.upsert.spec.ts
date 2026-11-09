@@ -14,15 +14,12 @@ import { mock } from 'vitest-mock-extended';
 
 import { LikePatternService } from '../shared/like-pattern.service';
 import { TeamRaceCoachNamesService } from '../shared/team-race-coach-names.service';
-import { TeamAverageStatisticsService } from './team-average-statistics.service';
 import { TeamsService, TeamUpsertConflictError } from './teams.service';
 import { fakeTeam } from './teams.service.test-helpers';
-import { TeamsStatisticsService } from './teams-statistics.service';
 
 describe('TeamsService', () => {
   let service: TeamsService;
   let likePattern: MockProxy<LikePatternService>;
-  let statistics: MockProxy<TeamsStatisticsService>;
   let teamRaceCoachNames: MockProxy<TeamRaceCoachNamesService>;
 
   async function build(...rowsPerQuery: unknown[][]): Promise<{
@@ -34,11 +31,6 @@ describe('TeamsService', () => {
       providers: [
         TeamsService,
         { provide: LikePatternService, useValue: likePattern },
-        { provide: TeamsStatisticsService, useValue: statistics },
-        {
-          provide: TeamAverageStatisticsService,
-          useValue: mock<TeamAverageStatisticsService>(),
-        },
         { provide: TeamRaceCoachNamesService, useValue: teamRaceCoachNames },
         { provide: DB, useValue: db },
       ],
@@ -49,7 +41,6 @@ describe('TeamsService', () => {
 
   beforeEach(() => {
     likePattern = mock<LikePatternService>();
-    statistics = mock<TeamsStatisticsService>();
     teamRaceCoachNames = mock<TeamRaceCoachNamesService>();
   });
 

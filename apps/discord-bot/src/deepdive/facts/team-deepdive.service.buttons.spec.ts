@@ -21,6 +21,7 @@ import {
   makePlayerRowButton,
   makeService,
   makeTeams,
+  makeTeamStatistics,
   makeTrophyAwards,
   mvp,
   spikeCup,
@@ -49,6 +50,8 @@ describe('TeamDeepdiveService buttons', () => {
       teams: makeTeams({
         team: grinders,
         span: { start: '2021-09-01', end: '2023-06-10' },
+      }),
+      teamStatistics: makeTeamStatistics({
         topPlayers: [
           {
             playerId: 5,
@@ -101,6 +104,8 @@ describe('TeamDeepdiveService buttons', () => {
           teams: makeTeams({
             team: grinders,
             span: { start: '2021-09-01', end: '2023-06-10' },
+          }),
+          teamStatistics: makeTeamStatistics({
             topPlayers: [
               {
                 playerId: 5,
@@ -139,6 +144,8 @@ describe('TeamDeepdiveService buttons', () => {
           teams: makeTeams({
             team: grinders,
             span: { start: '2021-09-01', end: '2023-06-10' },
+          }),
+          teamStatistics: makeTeamStatistics({
             topPlayers: [
               {
                 playerId: 5,
@@ -178,6 +185,8 @@ describe('TeamDeepdiveService buttons', () => {
           teams: makeTeams({
             team: grinders,
             span: { start: '2021-09-01', end: '2023-06-10' },
+          }),
+          teamStatistics: makeTeamStatistics({
             topPlayers: [
               {
                 playerId: 5,
@@ -221,6 +230,8 @@ describe('TeamDeepdiveService buttons', () => {
       teams: makeTeams({
         team: grinders,
         span: { start: '2020', end: '2021' },
+      }),
+      teamStatistics: makeTeamStatistics({
         topPlayers: [
           {
             playerId: 7,
@@ -257,6 +268,8 @@ describe('TeamDeepdiveService buttons', () => {
       teams: makeTeams({
         team: grinders,
         span: { start: '2020', end: '2021' },
+      }),
+      teamStatistics: makeTeamStatistics({
         topPlayers: [
           {
             playerId: 7,

@@ -1,8 +1,9 @@
-import type {
-  FactScope,
-  TeamAverageDirection,
-} from '@blood-bowl-tracker/game-data';
-import { TeamsService } from '@blood-bowl-tracker/game-data';
+import type { FactScope } from '@blood-bowl-tracker/game-data';
+import type { TeamAverageDirection } from '@blood-bowl-tracker/game-data-queries';
+import {
+  TeamAverageStatisticsService,
+  TeamsStatisticsService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -233,19 +234,22 @@ describe.each(cases)(
   'TeamToplistService.$resolverName',
   ({ method, direction, resolve, expectedTitle }) => {
     let service: TeamToplistService;
-    let teams: MockProxy<TeamsService>;
+    let statistics: MockProxy<TeamsStatisticsService>;
+    let averages: MockProxy<TeamAverageStatisticsService>;
     let leaderboard: MockProxy<LeaderboardService>;
     let teamContext: MockProxy<TeamContextService>;
 
     beforeEach(async () => {
-      teams = mock<TeamsService>();
+      statistics = mock<TeamsStatisticsService>();
+      averages = mock<TeamAverageStatisticsService>();
       leaderboard = mock<LeaderboardService>();
       teamContext = mock<TeamContextService>();
       const moduleRef = await Test.createTestingModule({
         providers: [
           TeamToplistService,
           NumberFormatterService,
-          { provide: TeamsService, useValue: teams },
+          { provide: TeamsStatisticsService, useValue: statistics },
+          { provide: TeamAverageStatisticsService, useValue: averages },
           { provide: LeaderboardService, useValue: leaderboard },
           { provide: TeamContextService, useValue: teamContext },
           {
@@ -280,7 +284,7 @@ describe.each(cases)(
     });
 
     it('fetches with the scope and direction, ranks on the average and adds race and coach context', async () => {
-      teams[method].mockResolvedValue([
+      averages[method].mockResolvedValue([
         { teamId: 1, name: '40 grinders', average: 3.42 },
       ]);
       const contextRows: TeamRow[] = [
@@ -296,7 +300,7 @@ describe.each(cases)(
       await resolve(service, { eraId: 20 });
 
       const fetched = await capturedOptions().fetchRows(TOPLIST_FETCH_LIMIT);
-      expect(teams[method]).toHaveBeenCalledWith(
+      expect(averages[method]).toHaveBeenCalledWith(
         { eraId: 20 },
         direction,
         TOPLIST_FETCH_LIMIT,

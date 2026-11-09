@@ -14,11 +14,8 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import type { MatchCategory } from '@blood-bowl-tracker/domain-enums';
-import { Inject, Injectable } from '@nestjs/common';
-
-import { PlayersService } from '../players/players.service';
-import type { FactScope } from '../shared/fact-scope';
-import { MatchEventCountsService } from '../shared/match-event-counts.service';
+import type { FactScope } from '@blood-bowl-tracker/game-data';
+import { PlayersService } from '@blood-bowl-tracker/game-data';
 import {
   CASUALTY_CAUSED_TYPES,
   CASUALTY_SUFFERED_TYPES,
@@ -33,7 +30,10 @@ import {
   SERIOUS_INJURY_CAUSED_TYPES,
   SERIOUS_INJURY_SUFFERED_TYPES,
   TOUCHDOWN_TYPES,
-} from '../shared/match-event-types';
+} from '@blood-bowl-tracker/game-data';
+import { Inject, Injectable } from '@nestjs/common';
+
+import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import { MatchOutcomeCountsService } from '../shared/match-outcome-counts.service';
 import type { TeamTopPlayer } from '../shared/team-top-player';
 import { TrophyAwardCountsService } from '../shared/trophy-award-counts.service';

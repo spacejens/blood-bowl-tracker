@@ -1,29 +1,12 @@
 import { Module } from '@nestjs/common';
 
-import { PlayersModule } from '../players/players.module';
 import { LikePatternModule } from '../shared/like-pattern.module';
-import { MatchEventCountsModule } from '../shared/match-event-counts.module';
-import { MatchOutcomeCountsModule } from '../shared/match-outcome-counts.module';
 import { TeamRaceCoachNamesModule } from '../shared/team-race-coach-names.module';
-import { TrophyAwardCountsModule } from '../shared/trophy-award-counts.module';
-import { TeamAverageStatisticsService } from './team-average-statistics.service';
 import { TeamsService } from './teams.service';
-import { TeamsStatisticsService } from './teams-statistics.service';
 
 @Module({
-  imports: [
-    LikePatternModule,
-    MatchEventCountsModule,
-    MatchOutcomeCountsModule,
-    PlayersModule,
-    TeamRaceCoachNamesModule,
-    TrophyAwardCountsModule,
-  ],
-  providers: [
-    TeamsService,
-    TeamsStatisticsService,
-    TeamAverageStatisticsService,
-  ],
+  imports: [LikePatternModule, TeamRaceCoachNamesModule],
+  providers: [TeamsService],
   exports: [TeamsService],
 })
 export class TeamsModule {}

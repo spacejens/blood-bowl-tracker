@@ -126,7 +126,6 @@ export { PositionValidationError } from './shared/position-validation-error';
 export { SkillValidationError } from './shared/skill-validation-error';
 export { SppAwardValueValidationError } from './shared/spp-award-value-validation-error';
 export { SyncBatchValidationError } from './shared/sync-batch-validation-error';
-export type { TeamTopPlayer } from './shared/team-top-player';
 export { SkillRulesSetsModule } from './skill-rules-sets/skill-rules-sets.module';
 export type { SkillCategoryByRulesSet } from './skill-rules-sets/skill-rules-sets.service';
 export { SkillRulesSetsService } from './skill-rules-sets/skill-rules-sets.service';
@@ -152,7 +151,6 @@ export type {
   UnspentSppResult,
   UnspentSppUnknownReason,
 } from './spp/unspent-spp.types';
-export type { TeamAverageDirection } from './teams/team-average-statistics.service';
 export { TeamsModule } from './teams/teams.module';
 export { TeamsService, TeamUpsertConflictError } from './teams/teams.service';
 export { TrophiesModule } from './trophies/trophies.module';

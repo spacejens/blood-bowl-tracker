@@ -24,6 +24,7 @@ import {
   DateToplistModule,
   OnThisDateModule,
   PlayersQueriesModule,
+  TeamsQueriesModule,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Module } from '@nestjs/common';
 
@@ -78,6 +79,7 @@ const GAME_DATA_MODULES = [
   OnThisDateModule,
   PlayersModule,
   PlayersQueriesModule,
+  TeamsQueriesModule,
   PlayerSkillsModule,
   PositionsModule,
   PositionRulesSetsModule,

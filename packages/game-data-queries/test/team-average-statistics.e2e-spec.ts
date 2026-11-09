@@ -24,11 +24,11 @@ import type {
   ConsequenceType,
   MatchCategory,
 } from '@blood-bowl-tracker/domain-enums';
+import type { FactScope } from '@blood-bowl-tracker/game-data';
+import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import type { FactScope } from '../src/shared/fact-scope';
-import { FACT_SCOPE_ALL_TIME } from '../src/shared/fact-scope';
 import type { TeamAverageRow } from '../src/teams/team-average-statistics.service';
 import { TeamAverageStatisticsService } from '../src/teams/team-average-statistics.service';
 import { connectTestDb } from './e2e-database';

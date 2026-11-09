@@ -8,14 +8,8 @@ import {
   firstCallArg,
   mockDb,
 } from '@blood-bowl-tracker/db/test-helpers';
-import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
-import type { MockProxy } from 'vitest-mock-extended';
-import { mock } from 'vitest-mock-extended';
-
-import { PlayersService } from '../players/players.service';
-import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
-import { MatchEventCountsService } from '../shared/match-event-counts.service';
+import { PlayersService } from '@blood-bowl-tracker/game-data';
+import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
 import {
   CASUALTY_CAUSED_TYPES,
   COMPLETION_TYPES,
@@ -27,7 +21,13 @@ import {
   SENT_OFF_TYPES,
   SERIOUS_INJURY_CAUSED_TYPES,
   TOUCHDOWN_TYPES,
-} from '../shared/match-event-types';
+} from '@blood-bowl-tracker/game-data';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
+
+import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import { MatchOutcomeCountsService } from '../shared/match-outcome-counts.service';
 import { TrophyAwardCountsService } from '../shared/trophy-award-counts.service';
 import { TeamsStatisticsService } from './teams-statistics.service';

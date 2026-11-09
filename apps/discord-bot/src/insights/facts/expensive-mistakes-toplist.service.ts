@@ -1,6 +1,6 @@
 import type { MatchCategory } from '@blood-bowl-tracker/domain-enums';
 import type { FactScope } from '@blood-bowl-tracker/game-data';
-import { TeamsService } from '@blood-bowl-tracker/game-data';
+import { TeamsStatisticsService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -37,7 +37,7 @@ export class ExpensiveMistakesToplistService {
   };
 
   constructor(
-    private readonly teams: TeamsService,
+    private readonly teamStatistics: TeamsStatisticsService,
     private readonly leaderboard: LeaderboardService,
     private readonly categoryLabel: MatchCategoryLabelService,
     private readonly teamContext: TeamContextService,
@@ -69,7 +69,7 @@ export class ExpensiveMistakesToplistService {
       title: 'Teams by money lost to expensive mistakes',
       fetchRows: async (limit) =>
         this.decorateTeamRows(
-          await this.teams.sumExpensiveMistakesByTeam(scope, limit),
+          await this.teamStatistics.sumExpensiveMistakesByTeam(scope, limit),
         ),
       timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
@@ -86,7 +86,7 @@ export class ExpensiveMistakesToplistService {
       title: 'Biggest expensive mistakes',
       fetchRows: async (limit) =>
         this.decorateTeamRows(
-          await this.teams.listBiggestExpensiveMistakes(scope, limit),
+          await this.teamStatistics.listBiggestExpensiveMistakes(scope, limit),
         ),
       timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
