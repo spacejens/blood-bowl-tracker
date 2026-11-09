@@ -6,12 +6,12 @@ import {
   LeaguesService,
   PositionsService,
   RacesService,
-  TeamsService,
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
 import {
   PlayersQueriesService,
   StarPlayersService,
+  TeamsQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -32,7 +32,7 @@ describe('OptionValueResolverService', () => {
   let competitions: DeepMockProxy<CompetitionsService>;
   let competitionGroups: DeepMockProxy<CompetitionGroupsService>;
   let coaches: DeepMockProxy<CoachesService>;
-  let teams: DeepMockProxy<TeamsService>;
+  let teams: DeepMockProxy<TeamsQueriesService>;
   let players: DeepMockProxy<PlayersQueriesService>;
   let starPlayers: DeepMockProxy<StarPlayersService>;
   let positions: DeepMockProxy<PositionsService>;
@@ -45,7 +45,7 @@ describe('OptionValueResolverService', () => {
     competitions = mockDeep<CompetitionsService>();
     competitionGroups = mockDeep<CompetitionGroupsService>();
     coaches = mockDeep<CoachesService>();
-    teams = mockDeep<TeamsService>();
+    teams = mockDeep<TeamsQueriesService>();
     players = mockDeep<PlayersQueriesService>();
     starPlayers = mockDeep<StarPlayersService>();
     positions = mockDeep<PositionsService>();
@@ -60,7 +60,7 @@ describe('OptionValueResolverService', () => {
         { provide: CompetitionsService, useValue: competitions },
         { provide: CompetitionGroupsService, useValue: competitionGroups },
         { provide: CoachesService, useValue: coaches },
-        { provide: TeamsService, useValue: teams },
+        { provide: TeamsQueriesService, useValue: teams },
         { provide: PlayersQueriesService, useValue: players },
         { provide: StarPlayersService, useValue: starPlayers },
         { provide: PositionsService, useValue: positions },

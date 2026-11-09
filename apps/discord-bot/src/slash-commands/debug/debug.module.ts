@@ -7,10 +7,12 @@ import {
   LeaguesModule,
   PositionsModule,
   RacesModule,
-  TeamsModule,
   TrophiesModule,
 } from '@blood-bowl-tracker/game-data';
-import { PlayersQueriesModule } from '@blood-bowl-tracker/game-data-queries';
+import {
+  PlayersQueriesModule,
+  TeamsQueriesModule,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Module } from '@nestjs/common';
 
 import { SlashCommandRegistryModule } from '../slash-command-registry.module';
@@ -58,7 +60,7 @@ import { OptionValueResolverService } from './option-value-resolver.service';
     CompetitionsModule,
     CompetitionGroupsModule,
     CoachesModule,
-    TeamsModule,
+    TeamsQueriesModule,
     PlayersQueriesModule,
     PositionsModule,
     TrophiesModule,

@@ -1,4 +1,4 @@
-import { TeamsService } from '@blood-bowl-tracker/game-data';
+import { TeamRaceCoachNamesService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 
 /** Which pieces of team context a list wants appended to each team name. */
@@ -20,7 +20,7 @@ export interface TeamContextOptions {
  */
 @Injectable()
 export class TeamContextService {
-  constructor(private readonly teams: TeamsService) {}
+  constructor(private readonly teamRaceCoachNames: TeamRaceCoachNamesService) {}
 
   async attachSuffixes<T>(
     rows: T[],
@@ -30,7 +30,7 @@ export class TeamContextService {
     if (rows.length === 0) {
       return [];
     }
-    const names = await this.teams.getRaceAndCoachNamesByIds(
+    const names = await this.teamRaceCoachNames.getRaceAndCoachNamesByIds(
       rows.map(teamIdOf),
     );
     return rows.map((row) => {

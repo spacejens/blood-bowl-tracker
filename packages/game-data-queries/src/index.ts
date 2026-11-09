@@ -44,4 +44,5 @@ export type {
 } from './teams/team-average-statistics.service';
 export { TeamAverageStatisticsService } from './teams/team-average-statistics.service';
 export { TeamsQueriesModule } from './teams/teams-queries.module';
+export { TeamsQueriesService } from './teams/teams-queries.service';
 export { TeamsStatisticsService } from './teams/teams-statistics.service';

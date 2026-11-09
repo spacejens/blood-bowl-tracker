@@ -15,7 +15,6 @@ import {
   RacesModule,
   RulesSetsModule,
   SkillsModule,
-  TeamsModule,
   TrophiesModule,
 } from '@blood-bowl-tracker/game-data';
 import {
@@ -24,6 +23,7 @@ import {
   OnThisDateModule,
   PlayerContextNamesModule,
   PlayersQueriesModule,
+  TeamRaceCoachNamesModule,
   TeamsQueriesModule,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Module } from '@nestjs/common';
@@ -69,7 +69,6 @@ import { TeamContextService } from './team-context.service';
 const GAME_DATA_MODULES = [
   CoachesModule,
   CompetitionGroupsModule,
-  TeamsModule,
   MatchesModule,
   CompetitionsModule,
   LeaguesModule,
@@ -79,6 +78,7 @@ const GAME_DATA_MODULES = [
   OnThisDateModule,
   PlayerContextNamesModule,
   PlayersQueriesModule,
+  TeamRaceCoachNamesModule,
   TeamsQueriesModule,
   PlayerSkillsModule,
   PositionsModule,

@@ -1,4 +1,4 @@
-import { TeamsService } from '@blood-bowl-tracker/game-data';
+import { TeamRaceCoachNamesService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -8,21 +8,21 @@ import { TeamContextService } from './team-context.service';
 
 describe('TeamContextService', () => {
   let service: TeamContextService;
-  let teams: MockProxy<TeamsService>;
+  let teamRaceCoachNames: MockProxy<TeamRaceCoachNamesService>;
 
   beforeEach(async () => {
-    teams = mock<TeamsService>();
+    teamRaceCoachNames = mock<TeamRaceCoachNamesService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
         TeamContextService,
-        { provide: TeamsService, useValue: teams },
+        { provide: TeamRaceCoachNamesService, useValue: teamRaceCoachNames },
       ],
     }).compile();
     service = moduleRef.get(TeamContextService);
   });
 
   it('appends race and coach when both are requested', async () => {
-    teams.getRaceAndCoachNamesByIds.mockResolvedValue(
+    teamRaceCoachNames.getRaceAndCoachNamesByIds.mockResolvedValue(
       new Map([[7, { raceName: 'Orc', coachName: 'Skarsnik' }]]),
     );
     const decorated = await service.attachSuffixes(
@@ -34,7 +34,7 @@ describe('TeamContextService', () => {
   });
 
   it('appends only the race when the coach is not requested', async () => {
-    teams.getRaceAndCoachNamesByIds.mockResolvedValue(
+    teamRaceCoachNames.getRaceAndCoachNamesByIds.mockResolvedValue(
       new Map([[7, { raceName: 'Orc', coachName: 'Skarsnik' }]]),
     );
     const decorated = await service.attachSuffixes(
@@ -46,7 +46,7 @@ describe('TeamContextService', () => {
   });
 
   it('appends only the coach when the race is not requested', async () => {
-    teams.getRaceAndCoachNamesByIds.mockResolvedValue(
+    teamRaceCoachNames.getRaceAndCoachNamesByIds.mockResolvedValue(
       new Map([[7, { raceName: 'Orc', coachName: 'Skarsnik' }]]),
     );
     const decorated = await service.attachSuffixes(
@@ -58,7 +58,7 @@ describe('TeamContextService', () => {
   });
 
   it('preserves every original row property and its order', async () => {
-    teams.getRaceAndCoachNamesByIds.mockResolvedValue(
+    teamRaceCoachNames.getRaceAndCoachNamesByIds.mockResolvedValue(
       new Map([
         [7, { raceName: 'Orc', coachName: 'Skarsnik' }],
         [8, { raceName: 'Dwarf', coachName: 'Roze Madder' }],
@@ -89,7 +89,7 @@ describe('TeamContextService', () => {
   });
 
   it('looks the ids up in one batched call, using the supplied accessor', async () => {
-    teams.getRaceAndCoachNamesByIds.mockResolvedValue(new Map());
+    teamRaceCoachNames.getRaceAndCoachNamesByIds.mockResolvedValue(new Map());
     await service.attachSuffixes(
       [
         { id: 3, name: 'A', count: 1 },
@@ -98,8 +98,12 @@ describe('TeamContextService', () => {
       (row) => row.id,
       { includeRace: true, includeCoach: false },
     );
-    expect(teams.getRaceAndCoachNamesByIds).toHaveBeenCalledTimes(1);
-    expect(teams.getRaceAndCoachNamesByIds).toHaveBeenCalledWith([3, 4]);
+    expect(teamRaceCoachNames.getRaceAndCoachNamesByIds).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(teamRaceCoachNames.getRaceAndCoachNamesByIds).toHaveBeenCalledWith([
+      3, 4,
+    ]);
   });
 
   it('returns an empty array without querying when there are no rows', async () => {
@@ -109,11 +113,11 @@ describe('TeamContextService', () => {
       { includeRace: true, includeCoach: true },
     );
     expect(decorated).toEqual([]);
-    expect(teams.getRaceAndCoachNamesByIds).not.toHaveBeenCalled();
+    expect(teamRaceCoachNames.getRaceAndCoachNamesByIds).not.toHaveBeenCalled();
   });
 
   it('falls back to an empty suffix for a team the lookup did not return', async () => {
-    teams.getRaceAndCoachNamesByIds.mockResolvedValue(new Map());
+    teamRaceCoachNames.getRaceAndCoachNamesByIds.mockResolvedValue(new Map());
     const decorated = await service.attachSuffixes(
       [{ teamId: 7, name: 'Da Green Machine', count: 12 }],
       (row) => row.teamId,

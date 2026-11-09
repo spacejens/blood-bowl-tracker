@@ -13,10 +13,12 @@ import {
   RacesService,
   RulesSetsService,
   SkillsService,
-  TeamsService,
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
-import { PlayersQueriesService } from '@blood-bowl-tracker/game-data-queries';
+import {
+  PlayersQueriesService,
+  TeamsQueriesService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -118,7 +120,7 @@ async function makeService(
         useValue: overrides.trophies ?? {},
       },
       {
-        provide: TeamsService,
+        provide: TeamsQueriesService,
         useValue: overrides.teams ?? {},
       },
       {

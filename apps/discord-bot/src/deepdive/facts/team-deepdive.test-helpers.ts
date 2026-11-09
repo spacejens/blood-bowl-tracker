@@ -1,10 +1,10 @@
 import type { TeamHonor } from '@blood-bowl-tracker/game-data';
-import {
-  TeamsService,
-  TrophyAwardsService,
-} from '@blood-bowl-tracker/game-data';
+import { TrophyAwardsService } from '@blood-bowl-tracker/game-data';
 import type { TeamTopPlayer } from '@blood-bowl-tracker/game-data-queries';
-import { TeamsStatisticsService } from '@blood-bowl-tracker/game-data-queries';
+import {
+  TeamsQueriesService,
+  TeamsStatisticsService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
@@ -113,7 +113,7 @@ export function makePlayerRowButton(): MockProxy<PlayerRowButtonService> {
 }
 
 export interface MakeServiceOptions {
-  teams: TeamsService;
+  teams: TeamsQueriesService;
   teamStatistics?: MockProxy<TeamsStatisticsService>;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   leaderboard?: MockProxy<LeaderboardService>;
@@ -146,7 +146,7 @@ export async function makeService({
       TeamDeepdiveService,
       NumberFormatterService,
       DateRangeFormatterService,
-      { provide: TeamsService, useValue: teams },
+      { provide: TeamsQueriesService, useValue: teams },
       { provide: TeamsStatisticsService, useValue: teamStatistics },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: LeaderboardService, useValue: leaderboard },
@@ -177,8 +177,8 @@ export function makeTeams(options: {
   };
   eras?: { id: number; name: string }[];
   span?: { start: string; end: string };
-}): TeamsService {
-  const teams = mock<TeamsService>();
+}): TeamsQueriesService {
+  const teams = mock<TeamsQueriesService>();
   teams.findById.mockResolvedValue(options.team);
   teams.listEras.mockResolvedValue(options.eras ?? []);
   teams.getCareerSpan.mockResolvedValue(options.span);
