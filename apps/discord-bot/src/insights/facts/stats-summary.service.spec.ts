@@ -1,21 +1,21 @@
 import type { FactScope } from '@blood-bowl-tracker/game-data';
 import {
   CompetitionsService,
-  ExternalSystemsService,
   FACT_SCOPE_ALL_TIME,
-  KeywordsService,
-  MatchesService,
-  RulesSetsService,
 } from '@blood-bowl-tracker/game-data';
 import {
   CoachesQueriesService,
   CompetitionGroupsQueriesService,
   CompetitionsQueriesService,
   ErasQueriesService,
+  ExternalSystemsQueriesService,
+  KeywordsQueriesService,
   LeaguesQueriesService,
+  MatchesQueriesService,
   PlayersQueriesService,
   PositionsQueriesService,
   RacesQueriesService,
+  RulesSetsQueriesService,
   SkillsQueriesService,
   TeamsQueriesService,
   TrophiesQueriesService,
@@ -78,11 +78,11 @@ async function makeService(
         useValue: overrides.leagues ?? {},
       },
       {
-        provide: ExternalSystemsService,
+        provide: ExternalSystemsQueriesService,
         useValue: overrides.externalSystems ?? {},
       },
       {
-        provide: RulesSetsService,
+        provide: RulesSetsQueriesService,
         useValue: overrides.rulesSets ?? {},
       },
       {
@@ -98,7 +98,7 @@ async function makeService(
         useValue: overrides.skills ?? {},
       },
       {
-        provide: KeywordsService,
+        provide: KeywordsQueriesService,
         useValue: overrides.keywords ?? {},
       },
       {
@@ -134,7 +134,7 @@ async function makeService(
         useValue: overrides.players ?? {},
       },
       {
-        provide: MatchesService,
+        provide: MatchesQueriesService,
         useValue: overrides.matches ?? {},
       },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },

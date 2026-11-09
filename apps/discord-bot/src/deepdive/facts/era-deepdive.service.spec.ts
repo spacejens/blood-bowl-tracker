@@ -1,8 +1,8 @@
 import type { CompetitionType } from '@blood-bowl-tracker/domain-enums';
-import { ExternalSystemsService } from '@blood-bowl-tracker/game-data';
 import {
   CompetitionsQueriesService,
   ErasQueriesService,
+  ExternalSystemsQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { ButtonStyle, ComponentType } from 'discord.js';
@@ -55,7 +55,7 @@ type EraHeader = {
 interface MakeServiceOptions {
   eras: ErasQueriesService;
   competitions: CompetitionsQueriesService;
-  externalSystems: ExternalSystemsService;
+  externalSystems: ExternalSystemsQueriesService;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   entityComponents?: MockProxy<EntityComponentsService>;
   dateRangeFormatter?: MockProxy<DateRangeFormatterService>;
@@ -81,7 +81,7 @@ async function makeService({
       EraDeepdiveService,
       { provide: ErasQueriesService, useValue: eras },
       { provide: CompetitionsQueriesService, useValue: competitions },
-      { provide: ExternalSystemsService, useValue: externalSystems },
+      { provide: ExternalSystemsQueriesService, useValue: externalSystems },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
       { provide: DateRangeFormatterService, useValue: dateRangeFormatter },
@@ -112,7 +112,7 @@ function makeServices(options: {
 }): {
   eras: MockProxy<ErasQueriesService>;
   competitions: MockProxy<CompetitionsQueriesService>;
-  externalSystems: MockProxy<ExternalSystemsService>;
+  externalSystems: MockProxy<ExternalSystemsQueriesService>;
 } {
   const eras = mock<ErasQueriesService>();
   eras.findByIdWithLeague.mockResolvedValue(options.era);
@@ -121,7 +121,7 @@ function makeServices(options: {
   competitions.listByEraChronological.mockResolvedValue(
     options.competitions ?? [],
   );
-  const externalSystems = mock<ExternalSystemsService>();
+  const externalSystems = mock<ExternalSystemsQueriesService>();
   externalSystems.listNamesByEra.mockResolvedValue(
     options.externalSystemNames ?? [],
   );

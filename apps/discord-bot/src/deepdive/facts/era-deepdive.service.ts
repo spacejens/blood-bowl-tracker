@@ -1,8 +1,8 @@
 import type { CompetitionType } from '@blood-bowl-tracker/domain-enums';
-import { ExternalSystemsService } from '@blood-bowl-tracker/game-data';
 import {
   CompetitionsQueriesService,
   ErasQueriesService,
+  ExternalSystemsQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
@@ -52,7 +52,7 @@ export class EraDeepdiveService {
   constructor(
     private readonly erasQueries: ErasQueriesService,
     private readonly competitionsQueries: CompetitionsQueriesService,
-    private readonly externalSystems: ExternalSystemsService,
+    private readonly externalSystemsQueries: ExternalSystemsQueriesService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
     private readonly dateRangeFormatter: DateRangeFormatterService,
@@ -88,7 +88,7 @@ export class EraDeepdiveService {
     }
 
     const externalSystemNames: string[] | null = await this.databaseTimeout.run(
-      this.externalSystems.listNamesByEra(eraId),
+      this.externalSystemsQueries.listNamesByEra(eraId),
       null,
     );
     if (externalSystemNames === null) {

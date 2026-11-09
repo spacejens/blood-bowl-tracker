@@ -1,0 +1,111 @@
+import type { Db } from '@blood-bowl-tracker/db';
+import {
+  and,
+  asc,
+  competitionExternalIds,
+  count,
+  countDistinct,
+  DB,
+  eq,
+  eraExternalIds,
+  eras,
+  externalSystems,
+} from '@blood-bowl-tracker/db';
+import { Inject, Injectable } from '@nestjs/common';
+
+/**
+ * Only systems in this category are counted or listed anywhere in stats and
+ * deepdive views. Bookkeeping systems (e.g. the synthetic "Name" fallback)
+ * are never real data; referenced-but-not-imported systems (e.g. a coach's
+ * NAF number) describe the coach as a person, not the era/competition/league
+ * being viewed — a coach who also played elsewhere would otherwise drag that
+ * other scope's systems into this one's count.
+ */
+const COUNTED_CATEGORY = 'imported_data_source';
+
+/**
+ * Read-only external-system counts and per-era names for the Discord bot.
+ * External-system ingestion is `ExternalSystemsService` in packages/game-data.
+ */
+@Injectable()
+export class ExternalSystemsQueriesService {
+  constructor(@Inject(DB) private readonly db: Db) {}
+
+  async countAll(): Promise<number> {
+    const [row] = await this.db
+      .select({ count: count() })
+      .from(externalSystems)
+      .where(eq(externalSystems.category, COUNTED_CATEGORY));
+    return row.count;
+  }
+
+  async countByEra(eraId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(externalSystems.id) })
+      .from(eraExternalIds)
+      .innerJoin(
+        externalSystems,
+        eq(externalSystems.id, eraExternalIds.externalSystemId),
+      )
+      .where(
+        and(
+          eq(eraExternalIds.eraId, eraId),
+          eq(externalSystems.category, COUNTED_CATEGORY),
+        ),
+      );
+    return row.count;
+  }
+
+  async countByCompetition(competitionId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(externalSystems.id) })
+      .from(competitionExternalIds)
+      .innerJoin(
+        externalSystems,
+        eq(externalSystems.id, competitionExternalIds.externalSystemId),
+      )
+      .where(
+        and(
+          eq(competitionExternalIds.competitionId, competitionId),
+          eq(externalSystems.category, COUNTED_CATEGORY),
+        ),
+      );
+    return row.count;
+  }
+
+  async countByLeague(leagueId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(externalSystems.id) })
+      .from(eraExternalIds)
+      .innerJoin(
+        externalSystems,
+        eq(externalSystems.id, eraExternalIds.externalSystemId),
+      )
+      .innerJoin(eras, eq(eras.id, eraExternalIds.eraId))
+      .where(
+        and(
+          eq(eras.leagueId, leagueId),
+          eq(externalSystems.category, COUNTED_CATEGORY),
+        ),
+      );
+    return row.count;
+  }
+
+  async listNamesByEra(eraId: number): Promise<string[]> {
+    const rows = await this.db
+      .selectDistinct({ name: externalSystems.name })
+      .from(eraExternalIds)
+      .innerJoin(
+        externalSystems,
+        eq(externalSystems.id, eraExternalIds.externalSystemId),
+      )
+      .where(
+        and(
+          eq(eraExternalIds.eraId, eraId),
+          eq(externalSystems.category, COUNTED_CATEGORY),
+        ),
+      )
+      .orderBy(asc(externalSystems.name));
+    return rows.map((row) => row.name);
+  }
+}

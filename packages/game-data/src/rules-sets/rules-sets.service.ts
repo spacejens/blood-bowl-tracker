@@ -13,7 +13,6 @@ import {
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 
-import { countRows } from '../shared/count-all';
 import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
@@ -78,10 +77,6 @@ export class RulesSetsService {
       externalIdColumn: rulesSetExternalIds.externalId,
       externalIds,
     });
-  }
-
-  countAll(): Promise<number> {
-    return countRows(this.db, rulesSets);
   }
 
   /**
