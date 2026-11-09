@@ -127,6 +127,27 @@ export { CharacteristicFormatMismatchError } from './shared/characteristic-forma
 export type { FactScope } from './shared/fact-scope';
 export { FACT_SCOPE_ALL_TIME } from './shared/fact-scope';
 export { KeywordValidationError } from './shared/keyword-validation-error';
+export {
+  CASUALTY_CAUSED_TYPES,
+  CASUALTY_SUFFERED_TYPES,
+  CATCH_TYPES,
+  COMPLETION_TYPES,
+  DEATH_CAUSED_TYPES,
+  DEATH_SUFFERED_TYPES,
+  DEFLECTION_TYPES,
+  EXPENSIVE_MISTAKE_TYPES,
+  FOUL_TYPES,
+  INTERCEPTION_TYPES,
+  LASTING_INJURY_SUFFERED_TYPES,
+  MVP_AWARD_TYPES,
+  SENT_OFF_TYPES,
+  SERIOUS_INJURY_CAUSED_TYPES,
+  SERIOUS_INJURY_SUFFERED_TYPES,
+  THROW_TEAM_MATE_TYPES,
+  TOUCHDOWN_TYPES,
+} from './shared/match-event-types';
+export { MatchScopeFilterModule } from './shared/match-scope-filter.module';
+export { MatchScopeFilterService } from './shared/match-scope-filter.service';
 export { MissingRequiredFieldError } from './shared/missing-required-field-error';
 export { PositionSkillCategoryValidationError } from './shared/position-skill-category-validation-error';
 export { PositionValidationError } from './shared/position-validation-error';
@@ -149,6 +170,7 @@ export { PlayerPricingModelService } from './spp/player-pricing-model.service';
 export { SppModule } from './spp/spp.module';
 export { SppAdjustmentsService } from './spp/spp-adjustments.service';
 export { SppAwardValuesService } from './spp/spp-award-values.service';
+export { SppTotalsService } from './spp/spp-totals.service';
 export { UnspentSppService } from './spp/unspent-spp.service';
 export type {
   CoversAnother,
