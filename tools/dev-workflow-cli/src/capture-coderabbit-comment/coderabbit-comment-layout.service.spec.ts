@@ -11,6 +11,37 @@ const BANNER =
   'Currently processing new changes in this PR. This may take a few minutes, please wait...';
 const VERDICT = 'No actionable comments were generated in the recent review.';
 
+/**
+ * A real in-progress rolling comment body as CodeRabbit wrote it while a pass
+ * was running, abridged: every generated HTML-comment marker and the `[!NOTE]`
+ * banner block are verbatim, everything else is shortened to a line. It holds
+ * neither a `recent_review_status` block nor a `recent_review` section.
+ */
+const REAL_IN_PROGRESS_BODY = [
+  '<!-- coderabbit-ai-generated:v1 -->',
+  '',
+  '<!-- This is an auto-generated comment: summarize by coderabbit.ai -->',
+  '<!-- review_stack_entry_start -->',
+  '',
+  'Change stack button',
+  '',
+  '<!-- review_stack_entry_end -->',
+  '<!-- This is an auto-generated comment: review in progress by coderabbit.ai -->',
+  '',
+  '> [!NOTE]',
+  '> <picture><source media="(prefers-color-scheme: dark)" srcset="https://storage.googleapis.com/coderabbit_public_assets/review-in-progress-v2/loading-dark.gif"><source media="(prefers-color-scheme: light)" srcset="https://storage.googleapis.com/coderabbit_public_assets/review-in-progress-v2/loading-light.gif"><img width="491" alt="CodeRabbit ASCII loading animation" src="https://storage.googleapis.com/coderabbit_public_assets/review-in-progress-v2/loading-light.gif"></picture>',
+  '> ',
+  '> Currently processing new changes in this PR. This may take a few minutes, please wait...',
+  '',
+  '<details>',
+  '<summary><strong>Review info</strong></summary>',
+  'Run configuration, commit range and the selected files.',
+  '</details>',
+  '',
+  '<!-- end of auto-generated comment: review in progress by coderabbit.ai -->',
+  '',
+].join('\n');
+
 function status(text: string): string {
   return `${STATUS_START}\n\n${text}\n\n${STATUS_END}\n`;
 }
@@ -72,6 +103,16 @@ describe('CoderabbitCommentLayoutService', () => {
     expect(layout.bannerInsideStatusBlock).toBe(false);
     expect(layout.statusBlockVerdict).toBe(true);
     expect(layout.sectionVerdict).toBe(false);
+  });
+
+  it('describes a real in-progress body as banner only', () => {
+    const layout = service.describe(REAL_IN_PROGRESS_BODY);
+
+    expect(layout.processingBanner).toBe(true);
+    expect(layout.processingBannerUnmasked).toBe(true);
+    expect(layout.statusBlock).toBe(false);
+    expect(layout.recentReviewSection).toBe(false);
+    expect(layout.order).toEqual(['processingBanner']);
   });
 
   it('finds a verdict held only in the recent_review section', () => {
