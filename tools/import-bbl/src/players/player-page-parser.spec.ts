@@ -444,6 +444,20 @@ describe('PlayerPageParser', () => {
     expect(parser.extractPlayer(page)).toBeNull();
   });
 
+  it('does not read a table whose headers are out of MA/ST/AG/PA/AV order', () => {
+    const page = playerPage(
+      '<h1>Griff Oberwald</h1>' +
+        PLAYER_LINKS +
+        '<table class="tblist">' +
+        '<tr class="trlisthead">' +
+        '<th>ST</th><th>MA</th><th>AG</th><th>PA</th><th>AV</th><th>Skills</th>' +
+        '</tr>' +
+        '<tr><td>3</td><td>5</td><td>3+</td><td>4+</td><td>8+</td><td>Sure Hands</td></tr>' +
+        '</table>',
+    );
+    expect(parser.extractPlayer(page)).toBeNull();
+  });
+
   /** The real markup of a player page's Sustained Injuries row. */
   function sustainedInjuriesRow(value: string): string {
     return `

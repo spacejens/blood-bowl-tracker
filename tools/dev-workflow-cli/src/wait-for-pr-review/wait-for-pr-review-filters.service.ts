@@ -117,6 +117,12 @@ const RECENT_REVIEW_STATUS_PATTERN = `${RECENT_REVIEW_STATUS_START_MARKER}(?<sta
 export const NO_ACTIONABLE_COMMENTS_PHRASES =
   'no actionable comments|no actionable issues|nothing to report|no comments were generated';
 /**
+ * Core of CodeRabbit's "a pass is running" banner on its rolling walkthrough
+ * comment. Only the stable core is matched; the trailing text of the
+ * sentence varies between revisions.
+ */
+export const PROCESSING_BANNER_PHRASES = 'currently processing new changes';
+/**
  * Opens the block CodeRabbit edits into its *existing* rolling walkthrough
  * comment when it rate-limits a re-review — no new comment is posted, and the
  * comment's `createdAt` never moves, which is exactly why `rateLimitFilter`

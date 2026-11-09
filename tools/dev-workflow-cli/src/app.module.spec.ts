@@ -7,6 +7,9 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 import { AppModule } from './app.module';
+import { CaptureCoderabbitCommentService } from './capture-coderabbit-comment/capture-coderabbit-comment.service';
+import { CaptureCoderabbitCommentArgsService } from './capture-coderabbit-comment/capture-coderabbit-comment-args.service';
+import { CoderabbitCommentLayoutService } from './capture-coderabbit-comment/coderabbit-comment-layout.service';
 import { CheckCoderabbitActivityService } from './check-coderabbit-activity/check-coderabbit-activity.service';
 import { CheckDependencyDashboardService } from './check-dependency-dashboard/check-dependency-dashboard.service';
 import { CheckDriftService } from './check-drift/check-drift.service';
@@ -41,6 +44,15 @@ describe('AppModule', () => {
     );
     expect(moduleRef.get(CheckCoderabbitActivityService)).toBeInstanceOf(
       CheckCoderabbitActivityService,
+    );
+    expect(moduleRef.get(CaptureCoderabbitCommentService)).toBeInstanceOf(
+      CaptureCoderabbitCommentService,
+    );
+    expect(moduleRef.get(CaptureCoderabbitCommentArgsService)).toBeInstanceOf(
+      CaptureCoderabbitCommentArgsService,
+    );
+    expect(moduleRef.get(CoderabbitCommentLayoutService)).toBeInstanceOf(
+      CoderabbitCommentLayoutService,
     );
     expect(moduleRef.get(CheckDependencyDashboardService)).toBeInstanceOf(
       CheckDependencyDashboardService,

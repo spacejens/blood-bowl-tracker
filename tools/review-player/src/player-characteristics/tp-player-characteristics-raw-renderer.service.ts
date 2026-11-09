@@ -1,3 +1,4 @@
+import { PLAYER_CHARACTERISTICS } from '@blood-bowl-tracker/domain-enums';
 import {
   HtmlService,
   NO_CHARACTERISTIC,
@@ -7,7 +8,7 @@ import { Injectable } from '@nestjs/common';
 import { TpRawPlayerIndexService } from '../source/tp-raw-player-index.service';
 
 /** The characteristics table's header cells, in column order. */
-const HEADERS = ['Row', 'MA', 'ST', 'AG', 'PA', 'AV'] as const;
+const HEADERS = ['Row', ...PLAYER_CHARACTERISTICS] as const;
 
 /**
  * What the TP raw index says a player's MA/ST/AG/PA/AV are, read from the

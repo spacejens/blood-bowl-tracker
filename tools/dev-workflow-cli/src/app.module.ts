@@ -1,6 +1,9 @@
 import { CliSharedModule } from '@blood-bowl-tracker/cli-shared';
 import { Module } from '@nestjs/common';
 
+import { CaptureCoderabbitCommentService } from './capture-coderabbit-comment/capture-coderabbit-comment.service';
+import { CaptureCoderabbitCommentArgsService } from './capture-coderabbit-comment/capture-coderabbit-comment-args.service';
+import { CoderabbitCommentLayoutService } from './capture-coderabbit-comment/coderabbit-comment-layout.service';
 import { CheckCoderabbitActivityService } from './check-coderabbit-activity/check-coderabbit-activity.service';
 import { CheckDependencyDashboardService } from './check-dependency-dashboard/check-dependency-dashboard.service';
 import { CheckDriftService } from './check-drift/check-drift.service';
@@ -25,6 +28,9 @@ import { WaitForPrReviewFiltersService } from './wait-for-pr-review/wait-for-pr-
   providers: [
     CheckMainStrayService,
     CheckCoderabbitActivityService,
+    CaptureCoderabbitCommentService,
+    CaptureCoderabbitCommentArgsService,
+    CoderabbitCommentLayoutService,
     CheckDependencyDashboardService,
     CheckDriftService,
     DriftDiffRedactionService,

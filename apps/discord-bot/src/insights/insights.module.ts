@@ -87,7 +87,6 @@ const GAME_DATA_MODULES = [
   PositionRulesSetSkillsModule,
   PositionRulesSetKeywordsModule,
   CharacteristicDisplayFormattingModule,
-  RacesQueriesModule,
   SkillsQueriesModule,
   KeywordsQueriesModule,
   ExternalSystemsQueriesModule,

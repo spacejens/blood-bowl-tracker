@@ -135,9 +135,9 @@ Run this section only if "Restore a database backup" was selected in step 0 abov
    docker compose ps --status running --services
    ```
    Run from this worktree's root, which scopes the listing to this checkout's own compose project. If it does not list `postgres` and `discord-bot`, tell the developer that no stack from this checkout is running (any stack on port `5433` belongs to another checkout, and restoring into it would replace that database), suggest selecting "Deploy the stack" too, and stop this section; the other selected sections still run.
-3. Resolve the effective restore target. The restore replaces the database `localDatabase.url` names, and a non-empty `BACKUP_LOCAL_DATABASE_URL` overrides that setting, so the stack check in step 2 only covers the default (this checkout's compose database, `postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl`). Check both overrides without printing the URLs, which can embed a password:
+3. Resolve the effective restore target. The restore replaces the database `localDatabase.url` names, and a non-empty `LOCAL_DATABASE_URL` overrides that setting, so the stack check in step 2 only covers the default (this checkout's compose database, `postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl`). Check both overrides without printing the URLs, which can embed a password:
    ```bash
-   env | grep -c '^BACKUP_LOCAL_DATABASE_URL=.'
+   env | grep -c '^LOCAL_DATABASE_URL=.'
    ```
    ```bash
    grep -c 'localDatabase' tools/backup-cli/backup-cli-config.json5

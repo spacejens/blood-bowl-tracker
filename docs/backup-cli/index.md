@@ -216,10 +216,16 @@ environment to fix (see
 | `storage.bucket`                                           | `BACKUP_STORAGE_BUCKET`            | storage commands  |
 | `storage.accessKeyId`                                      | `BACKUP_STORAGE_ACCESS_KEY_ID`     | storage commands  |
 | `storage.secretAccessKey`                                  | `BACKUP_STORAGE_SECRET_ACCESS_KEY` | storage commands  |
-| `database.url`                                             | `BACKUP_DATABASE_URL`              | `create`          |
-| `localDatabase.url` (default: the docker-compose database) | `BACKUP_LOCAL_DATABASE_URL`        | `restore`         |
+| `database.url`                                             | `DATABASE_URL`                     | `create`          |
+| `localDatabase.url` (default: the docker-compose database) | `LOCAL_DATABASE_URL`               | `restore`         |
 | `retentionDays` (default 30)                               | `BACKUP_RETENTION_DAYS`            | `prune`           |
 | `maxAgeHours` (default 36)                                 | `BACKUP_MAX_AGE_HOURS`             | `check-freshness` |
+
+`DATABASE_URL` is the repo-wide name for a Postgres connection string, so a
+`DATABASE_URL` already exported in your shell is what `create` dumps. The
+restore target is a separate setting, `LOCAL_DATABASE_URL`, so `restore`
+never picks up `DATABASE_URL` (see
+[Environment variable naming](../architecture.md#environment-variable-naming)).
 
 The storage commands are every subcommand except `raise-alert` and
 `resolve-alert`, which read none of these settings.
@@ -242,7 +248,7 @@ To run code against production-shaped data, point it at an existing local
 database with the environment variable (the database is wiped first):
 
 ```bash
-BACKUP_LOCAL_DATABASE_URL=postgres://postgres:postgres@localhost:5432/scratch \
+LOCAL_DATABASE_URL=postgres://postgres:postgres@localhost:5432/scratch \
   node tools/backup-cli/dist/main.js restore
 ```
 

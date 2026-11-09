@@ -62,7 +62,7 @@ interface StoredCost extends ApplicableAdvancementCost {
 }
 
 /** Everything loaded for a batch of players, indexed for per-player lookup. */
-interface UnspentSppData {
+interface UnspentSppLookups {
   rulesSetIdsByEra: Map<number, number[]>;
   skillsByPlayer: Map<number, PlayerSkillEntry[]>;
   /** Rules set id -> skill id -> the skill's category under that rules set. */
@@ -162,15 +162,15 @@ export class UnspentSppService {
     if (facts.length === 0) {
       return inputs;
     }
-    const data = await this.loadData(facts);
+    const lookups = await this.loadLookups(facts);
     for (const player of facts) {
       if (player.isStarPlayer) {
         continue;
       }
       inputs.set(
         player.playerId,
-        (data.rulesSetIdsByEra.get(player.eraId) ?? [])
-          .map((rulesSetId) => this.rulesSetInput(player, rulesSetId, data))
+        (lookups.rulesSetIdsByEra.get(player.eraId) ?? [])
+          .map((rulesSetId) => this.rulesSetInput(player, rulesSetId, lookups))
           .filter((input) => input.costs.length > 0),
       );
     }
@@ -196,14 +196,14 @@ export class UnspentSppService {
       sppTotal: sppTotals?.get(fact.playerId) ?? fact.sppTotal,
       storedUnspentSpp: settle ? fact.storedUnspentSpp : null,
     }));
-    const data = await this.loadData(facts);
+    const lookups = await this.loadLookups(facts);
     for (const player of facts) {
       results.set(player.playerId, {
         pricingModel: this.pricingModel.modelFor(
-          data.rulesSetIdsByEra.get(player.eraId) ?? [],
-          data.costs,
+          lookups.rulesSetIdsByEra.get(player.eraId) ?? [],
+          lookups.costs,
         ),
-        result: this.resultFor(player, data),
+        result: this.resultFor(player, lookups),
       });
     }
     return results;
@@ -211,7 +211,7 @@ export class UnspentSppService {
 
   private resultFor(
     player: PlayerFacts,
-    data: UnspentSppData,
+    lookups: UnspentSppLookups,
   ): UnspentSppResult {
     if (player.isStarPlayer) {
       return this.unknown('star_player');
@@ -219,13 +219,13 @@ export class UnspentSppService {
     if (player.sppTotal === null) {
       return this.unknown('no_total_spp');
     }
-    const rulesSetIds = data.rulesSetIdsByEra.get(player.eraId) ?? [];
+    const rulesSetIds = lookups.rulesSetIdsByEra.get(player.eraId) ?? [];
     if (rulesSetIds.length === 0) {
       return this.unknown('no_rules_set');
     }
     const priced: PricedPlayer = { ...player, sppTotal: player.sppTotal };
     const outcomes = rulesSetIds.map((rulesSetId) =>
-      this.outcomeFor(priced, rulesSetId, data),
+      this.outcomeFor(priced, rulesSetId, lookups),
     );
     const result = this.combination.combine(player.sppTotal, outcomes);
     if (result.status === 'unknown') {
@@ -242,9 +242,9 @@ export class UnspentSppService {
   private rulesSetInput(
     player: PlayerFacts,
     rulesSetId: number,
-    data: UnspentSppData,
+    lookups: UnspentSppLookups,
   ): RulesSetAdvancementInput {
-    const costs = data.costs.filter(
+    const costs = lookups.costs.filter(
       (cost) =>
         cost.rulesSetId === rulesSetId &&
         (cost.leagueId === null || cost.leagueId === player.leagueId),
@@ -254,12 +254,12 @@ export class UnspentSppService {
       pricingModel: this.pricingModel.modelFor([rulesSetId], costs),
       costs,
       candidatesInput: {
-        skills: data.skillsByPlayer.get(player.playerId) ?? [],
+        skills: lookups.skillsByPlayer.get(player.playerId) ?? [],
         skillCategories:
-          data.categoriesByRulesSet.get(rulesSetId) ??
+          lookups.categoriesByRulesSet.get(rulesSetId) ??
           new Map<number, SkillCategory>(),
         positionAccess:
-          data.accessByPositionRulesSet.get(
+          lookups.accessByPositionRulesSet.get(
             `${player.positionId}|${rulesSetId}`,
           ) ?? new Map<SkillCategory, SkillAccess>(),
         costs,
@@ -270,12 +270,12 @@ export class UnspentSppService {
   private outcomeFor(
     player: PricedPlayer,
     rulesSetId: number,
-    data: UnspentSppData,
+    lookups: UnspentSppLookups,
   ): RulesSetOutcome {
     const { costs, candidatesInput } = this.rulesSetInput(
       player,
       rulesSetId,
-      data,
+      lookups,
     );
     if (costs.length === 0) {
       return { kind: 'no_costs' };
@@ -334,7 +334,7 @@ export class UnspentSppService {
   }
 
   /** Queries 2-6, in a fixed order, each covering the whole batch. */
-  private async loadData(facts: PlayerFacts[]): Promise<UnspentSppData> {
+  private async loadLookups(facts: PlayerFacts[]): Promise<UnspentSppLookups> {
     const playerIds = facts.map((fact) => fact.playerId);
     const eraRows = await this.db
       .select({
@@ -407,7 +407,7 @@ export class UnspentSppService {
     rulesSetIds: number[],
   ): Promise<
     Pick<
-      UnspentSppData,
+      UnspentSppLookups,
       'categoriesByRulesSet' | 'accessByPositionRulesSet' | 'costs'
     >
   > {
