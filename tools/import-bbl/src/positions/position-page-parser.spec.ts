@@ -236,6 +236,22 @@ describe('PositionPageParser', () => {
     expect(parser.extractPosition(page)?.characteristics).toBeNull();
   });
 
+  it('does not read a table whose headers are out of MA/ST/AG/PA/AV order', () => {
+    const page = positionPage(
+      '<h1>Orc Lineman</h1>' +
+        '<table>' +
+        '<tr class="trlisthead">' +
+        '<th>ST</th><th>MA</th><th>AG</th><th>PA</th><th>AV</th><th>Skills</th>' +
+        '</tr>' +
+        '<tr class="trborder">' +
+        '<td>4</td><td>6</td><td>4+</td><td>6+</td><td>10+</td><td>&nbsp;</td>' +
+        '</tr>' +
+        '</table>',
+      '10',
+    );
+    expect(parser.extractPosition(page)?.characteristics).toBeNull();
+  });
+
   it('ignores other trlisthead tables and reads the MA/ST/AG/PA/AV one', () => {
     const page = positionPage(
       '<h1>Orc Lineman</h1>' +

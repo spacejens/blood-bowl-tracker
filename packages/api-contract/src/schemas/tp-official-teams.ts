@@ -1,19 +1,17 @@
 import { z } from 'zod';
 
+import { CharacteristicLineSchema } from './characteristic-line';
 import { ImportResultSchema } from './import-result';
 import { PositionSkillCategoriesSchema } from './position-rules-set-skill-category';
 
 /**
  * One position's five characteristics, as TP publishes them per lineUp/star
- * master. `passing` is a plain number, never null: TP writes a literal 0 for
- * a position with no passing ability.
+ * master. The TP variant of `CharacteristicLineSchema`, differing only in
+ * that `passing` is a plain number, never null: TP writes a literal 0 for a
+ * position with no passing ability.
  */
-export const TpOfficialCharacteristicsSchema = z.object({
-  move: z.number().int(),
-  strength: z.number().int(),
-  agility: z.number().int(),
+export const TpOfficialCharacteristicsSchema = CharacteristicLineSchema.extend({
   passing: z.number().int(),
-  armour: z.number().int(),
 });
 
 /**

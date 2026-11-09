@@ -1,3 +1,4 @@
+import { PLAYER_CHARACTERISTICS } from '@blood-bowl-tracker/domain-enums';
 import {
   HtmlService,
   NO_CHARACTERISTIC,
@@ -6,9 +7,6 @@ import { Injectable } from '@nestjs/common';
 import * as cheerio from 'cheerio';
 
 import { BblRawPlayerPageLoaderService } from '../source/bbl-raw-player-page-loader.service';
-
-/** The characteristics table's header cells, in column order. */
-const HEADERS = ['MA', 'ST', 'AG', 'PA', 'AV'] as const;
 
 /** BBL's own "this characteristic does not exist" cell. */
 const BBL_ABSENT = '-';
@@ -49,10 +47,9 @@ export class BblPlayerCharacteristicsRawRendererService {
         `No characteristics line on the BBL player page for pid ${externalId}.`,
       );
     }
-    return this.html.table(
-      [...HEADERS],
-      [cells.map((cell) => this.display(cell))],
-    );
+    return this.html.table(PLAYER_CHARACTERISTICS, [
+      cells.map((cell) => this.display(cell)),
+    ]);
   }
 
   /**
@@ -77,7 +74,11 @@ export class BblPlayerCharacteristicsRawRendererService {
         .children('th, td')
         .toArray()
         .map((cell) => page(cell).text().trim());
-      if (HEADERS.some((header, index) => headers[index] !== header)) {
+      if (
+        PLAYER_CHARACTERISTICS.some(
+          (header, index) => headers[index] !== header,
+        )
+      ) {
         continue;
       }
       const cells = page(row)
@@ -85,9 +86,9 @@ export class BblPlayerCharacteristicsRawRendererService {
         .children('td')
         .toArray()
         .map((cell) => page(cell).text().trim());
-      return cells.length < HEADERS.length
+      return cells.length < PLAYER_CHARACTERISTICS.length
         ? null
-        : cells.slice(0, HEADERS.length);
+        : cells.slice(0, PLAYER_CHARACTERISTICS.length);
     }
     return null;
   }

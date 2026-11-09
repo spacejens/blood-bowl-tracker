@@ -1,4 +1,7 @@
-import { NAME_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/domain-enums';
+import {
+  NAME_EXTERNAL_SYSTEM_NAME,
+  PLAYER_CHARACTERISTICS,
+} from '@blood-bowl-tracker/domain-enums';
 import type { TableCell, TableRow } from '@blood-bowl-tracker/review-harness';
 import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Injectable } from '@nestjs/common';
@@ -112,7 +115,7 @@ export class PositionCharacteristicsRawRendererService {
     return (
       this.html.subheading('BBL') +
       this.html.table(
-        ['Position', 'BBL typID', 'MA', 'ST', 'AG', 'PA', 'AV'],
+        ['Position', 'BBL typID', ...PLAYER_CHARACTERISTICS],
         rows,
       )
     );
@@ -171,7 +174,7 @@ export class PositionCharacteristicsRawRendererService {
     return (
       this.html.subheading('TP') +
       this.html.table(
-        ['Position', 'Rules set', 'MA', 'ST', 'AG', 'PA', 'AV'],
+        ['Position', 'Rules set', ...PLAYER_CHARACTERISTICS],
         rows,
       )
     );
@@ -215,7 +218,7 @@ export class PositionCharacteristicsRawRendererService {
     return (
       this.html.subheading('Manual curation') +
       this.html.table(
-        ['Position', 'Rules set', 'MA', 'ST', 'AG', 'PA', 'AV'],
+        ['Position', 'Rules set', ...PLAYER_CHARACTERISTICS],
         rows,
       )
     );

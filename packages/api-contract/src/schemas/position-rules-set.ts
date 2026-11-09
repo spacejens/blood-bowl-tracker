@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { CharacteristicLineSchema } from './characteristic-line';
+
 /**
  * One position's characteristics under one rules set.
  *
@@ -13,11 +15,7 @@ import { z } from 'zod';
 export const PositionRulesSetEntrySchema = z.object({
   positionId: z.number().int(),
   rulesSetId: z.number().int(),
-  move: z.number().int(),
-  strength: z.number().int(),
-  agility: z.number().int(),
-  passing: z.number().int().nullable(),
-  armour: z.number().int(),
+  ...CharacteristicLineSchema.shape,
 });
 
 /**

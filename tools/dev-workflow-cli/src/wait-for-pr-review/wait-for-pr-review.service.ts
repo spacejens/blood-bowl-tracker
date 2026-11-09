@@ -205,9 +205,9 @@ const COMMENT_UPDATE_FAILED_PHRASE_REGEX = new RegExp(
 /** Mirrors `STAR_GATE_PHRASES` for the stricter TypeScript re-check. */
 const STAR_GATE_PHRASE_REGEX = new RegExp(STAR_GATE_PHRASES, 'i');
 /** A fenced code block: three backticks, any content, three backticks. */
-const FENCED_CODE_BLOCK = /```[\s\S]*?```/g;
+export const FENCED_CODE_BLOCK = /```[\s\S]*?```/g;
 /** An inline code span: a backtick, no-backtick content, a backtick. */
-const INLINE_CODE_SPAN = /`[^`]*`/g;
+export const INLINE_CODE_SPAN = /`[^`]*`/g;
 
 /** Mirrors `NO_ACTIONABLE_COMMENTS_PHRASES` for the stricter TypeScript re-check. */
 const NO_ACTIONABLE_COMMENTS_PHRASE_REGEX = new RegExp(

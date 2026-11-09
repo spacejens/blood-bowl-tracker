@@ -91,11 +91,11 @@ export class BackupConfigService extends createConfigLoaderServiceBase({
     const url = this.requiredString({
       group: 'database',
       key: 'url',
-      envVar: 'BACKUP_DATABASE_URL',
+      envVar: 'DATABASE_URL',
     });
     if (!/^postgres(ql)?:\/\//.test(url)) {
       throw new Error(
-        'database.url (BACKUP_DATABASE_URL) is not a postgres:// or ' +
+        'database.url (DATABASE_URL) is not a postgres:// or ' +
           'postgresql:// connection string.',
       );
     }
@@ -108,7 +108,7 @@ export class BackupConfigService extends createConfigLoaderServiceBase({
    * `LocalDatabaseGuardService`'s check, not this getter's.
    */
   getLocalDatabaseUrl(): string {
-    const fromEnv = this.envValue('BACKUP_LOCAL_DATABASE_URL');
+    const fromEnv = this.envValue('LOCAL_DATABASE_URL');
     if (fromEnv !== undefined) {
       return fromEnv;
     }
@@ -119,7 +119,7 @@ export class BackupConfigService extends createConfigLoaderServiceBase({
     const parsed = nonEmptyStringSchema.safeParse(raw);
     if (!parsed.success) {
       throw new Error(
-        `localDatabase.url in ${CONFIG_FILE_NAME} (or BACKUP_LOCAL_DATABASE_URL) ` +
+        `localDatabase.url in ${CONFIG_FILE_NAME} (or LOCAL_DATABASE_URL) ` +
           'must be a non-empty string.',
       );
     }

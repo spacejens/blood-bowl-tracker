@@ -11,6 +11,7 @@ import {
   teamEras,
 } from '@blood-bowl-tracker/db';
 import type { CharacteristicFormat } from '@blood-bowl-tracker/domain-enums';
+import { PLAYER_CHARACTERISTICS } from '@blood-bowl-tracker/domain-enums';
 import type { TableCell, TableRow } from '@blood-bowl-tracker/review-harness';
 import {
   CharacteristicFormatService,
@@ -38,7 +39,7 @@ type Formats = [
   CharacteristicFormat,
 ];
 
-const HEADERS = ['Row', 'MA', 'ST', 'AG', 'PA', 'AV'];
+const HEADERS = ['Row', ...PLAYER_CHARACTERISTICS];
 const INCREASED = '▲';
 const DECREASED = '▼';
 
