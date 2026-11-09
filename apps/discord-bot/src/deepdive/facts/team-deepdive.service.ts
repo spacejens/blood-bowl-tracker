@@ -1,8 +1,10 @@
-import type { TeamHonor, TeamTopPlayer } from '@blood-bowl-tracker/game-data';
+import type { TeamHonor } from '@blood-bowl-tracker/game-data';
+import { TrophyAwardsService } from '@blood-bowl-tracker/game-data';
+import type { TeamTopPlayer } from '@blood-bowl-tracker/game-data-queries';
 import {
-  TeamsService,
-  TrophyAwardsService,
-} from '@blood-bowl-tracker/game-data';
+  TeamsQueriesService,
+  TeamsStatisticsService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -73,7 +75,8 @@ const MAX_TEAM_HONORS = 30;
 @Injectable()
 export class TeamDeepdiveService {
   constructor(
-    private readonly teams: TeamsService,
+    private readonly teamsQueries: TeamsQueriesService,
+    private readonly teamStatistics: TeamsStatisticsService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly leaderboard: LeaderboardService,
     private readonly entityComponents: EntityComponentsService,
@@ -87,7 +90,7 @@ export class TeamDeepdiveService {
 
   async resolve(teamId: number): Promise<string | InteractionReplyOptions> {
     const team: Team | undefined | null = await this.databaseTimeout.run(
-      this.teams.findById(teamId),
+      this.teamsQueries.findById(teamId),
       null,
     );
     if (team === null) {
@@ -98,7 +101,7 @@ export class TeamDeepdiveService {
     }
 
     const eraRows: Era[] | null = await this.databaseTimeout.run(
-      this.teams.listEras(teamId),
+      this.teamsQueries.listEras(teamId),
       null,
     );
     if (eraRows === null) {
@@ -133,7 +136,7 @@ export class TeamDeepdiveService {
     ];
 
     const span: CareerSpan | undefined | null = await this.databaseTimeout.run(
-      this.teams.getCareerSpan(teamId),
+      this.teamsQueries.getCareerSpan(teamId),
       null,
     );
     if (span === null) {
@@ -158,7 +161,10 @@ export class TeamDeepdiveService {
     }
 
     const topPlayers: TopPlayer[] | null = await this.databaseTimeout.run(
-      this.teams.getTopPlayersByTotalSpp(teamId, MAX_LEADERBOARD_ENTRIES),
+      this.teamStatistics.getTopPlayersByTotalSpp(
+        teamId,
+        MAX_LEADERBOARD_ENTRIES,
+      ),
       null,
     );
     if (topPlayers === null) {

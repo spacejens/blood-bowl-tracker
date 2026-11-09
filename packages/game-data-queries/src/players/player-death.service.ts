@@ -108,7 +108,7 @@ type MatchSide = PlayerKillerTeam & { matchTeamId: number };
 
 /**
  * Answers "who killed this player?" for the player deepdive. Its own service
- * rather than another method on `PlayersService`, which is already close to the
+ * rather than another method on `PlayersQueriesService`, which is already close to the
  * repo's 500-line source ceiling.
  */
 @Injectable()

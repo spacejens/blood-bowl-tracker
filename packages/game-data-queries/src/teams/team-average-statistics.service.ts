@@ -14,10 +14,7 @@ import {
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
-import { Inject, Injectable } from '@nestjs/common';
-
-import type { FactScope } from '../shared/fact-scope';
-import type { MatchEventSelector } from '../shared/match-event-counts.service';
+import type { FactScope } from '@blood-bowl-tracker/game-data';
 import {
   CASUALTY_CAUSED_TYPES,
   CASUALTY_SUFFERED_TYPES,
@@ -26,7 +23,10 @@ import {
   LASTING_INJURY_SUFFERED_TYPES,
   SERIOUS_INJURY_CAUSED_TYPES,
   SERIOUS_INJURY_SUFFERED_TYPES,
-} from '../shared/match-event-types';
+} from '@blood-bowl-tracker/game-data';
+import { Inject, Injectable } from '@nestjs/common';
+
+import type { MatchEventSelector } from '../shared/match-event-counts.service';
 
 /**
  * The fewest matches in scope a team needs before a per-match average ranks

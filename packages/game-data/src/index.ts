@@ -57,7 +57,6 @@ export type { PlayerSkillRow } from './player-skills/player-skills.service';
 export { PlayerSkillsService } from './player-skills/player-skills.service';
 export { PlayerLastingInjuryBackfillService } from './players/player-lasting-injury-backfill.service';
 export { PlayersModule } from './players/players.module';
-export type { PlayerDetail } from './players/players.service';
 export {
   PlayersService,
   PlayerUpsertConflictError,
@@ -77,17 +76,11 @@ export type {
 } from './position-rules-sets/position-rules-sets.service';
 export { PositionRulesSetsService } from './position-rules-sets/position-rules-sets.service';
 export { PositionsModule } from './positions/positions.module';
-export type {
-  PositionHeader,
-  PositionPlayerCount,
-  PositionTopPlayer,
-} from './positions/positions.service';
 export {
   PositionsService,
   PositionUpsertConflictError,
 } from './positions/positions.service';
 export { RacesModule } from './races/races.module';
-export type { RacePosition, RaceTeamCount } from './races/races.service';
 export { RacesService, RaceUpsertConflictError } from './races/races.service';
 export { RulesSetsModule } from './rules-sets/rules-sets.module';
 export {
@@ -126,12 +119,10 @@ export { PositionValidationError } from './shared/position-validation-error';
 export { SkillValidationError } from './shared/skill-validation-error';
 export { SppAwardValueValidationError } from './shared/spp-award-value-validation-error';
 export { SyncBatchValidationError } from './shared/sync-batch-validation-error';
-export type { TeamTopPlayer } from './shared/team-top-player';
 export { SkillRulesSetsModule } from './skill-rules-sets/skill-rules-sets.module';
 export type { SkillCategoryByRulesSet } from './skill-rules-sets/skill-rules-sets.service';
 export { SkillRulesSetsService } from './skill-rules-sets/skill-rules-sets.service';
 export { SkillsModule } from './skills/skills.module';
-export type { SkillPlayerCount } from './skills/skills.service';
 export {
   SkillsService,
   SkillUpsertConflictError,
@@ -152,7 +143,6 @@ export type {
   UnspentSppResult,
   UnspentSppUnknownReason,
 } from './spp/unspent-spp.types';
-export type { TeamAverageDirection } from './teams/team-average-statistics.service';
 export { TeamsModule } from './teams/teams.module';
 export { TeamsService, TeamUpsertConflictError } from './teams/teams.service';
 export { TrophiesModule } from './trophies/trophies.module';

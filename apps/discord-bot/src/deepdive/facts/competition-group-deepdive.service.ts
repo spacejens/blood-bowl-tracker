@@ -1,8 +1,8 @@
+import { TrophiesService } from '@blood-bowl-tracker/game-data';
 import {
-  CompetitionGroupsService,
-  CompetitionsService,
-  TrophiesService,
-} from '@blood-bowl-tracker/game-data';
+  CompetitionGroupsQueriesService,
+  CompetitionsQueriesService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -63,9 +63,9 @@ type GroupCompetition = {
 @Injectable()
 export class CompetitionGroupDeepdiveService {
   constructor(
-    private readonly competitionGroups: CompetitionGroupsService,
+    private readonly competitionGroupsQueries: CompetitionGroupsQueriesService,
     private readonly trophies: TrophiesService,
-    private readonly competitions: CompetitionsService,
+    private readonly competitionsQueries: CompetitionsQueriesService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
     private readonly dateRangeFormatter: DateRangeFormatterService,
@@ -77,7 +77,7 @@ export class CompetitionGroupDeepdiveService {
   ): Promise<string | InteractionReplyOptions> {
     const group: CompetitionGroupHeader | undefined | null =
       await this.databaseTimeout.run(
-        this.competitionGroups.findByIdWithLeague(competitionGroupId),
+        this.competitionGroupsQueries.findByIdWithLeague(competitionGroupId),
         null,
       );
     if (group === null) {
@@ -103,7 +103,9 @@ export class CompetitionGroupDeepdiveService {
     }
 
     const comps: GroupCompetition[] | null = await this.databaseTimeout.run(
-      this.competitions.listByCompetitionGroupChronological(competitionGroupId),
+      this.competitionsQueries.listByCompetitionGroupChronological(
+        competitionGroupId,
+      ),
       null,
     );
     if (comps === null) {

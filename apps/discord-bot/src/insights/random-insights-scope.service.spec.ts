@@ -1,7 +1,5 @@
-import {
-  CompetitionsService,
-  ErasService,
-} from '@blood-bowl-tracker/game-data';
+import { ErasService } from '@blood-bowl-tracker/game-data';
+import { CompetitionsQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
@@ -29,7 +27,7 @@ describe('RandomInsightsScopeService', () => {
   let config: MockProxy<DiscordBotConfigService>;
   let random: MockProxy<RandomSourceService>;
   let eras: MockProxy<ErasService>;
-  let competitions: MockProxy<CompetitionsService>;
+  let competitions: MockProxy<CompetitionsQueriesService>;
   let service: RandomInsightsScopeService;
 
   beforeEach(async () => {
@@ -39,7 +37,7 @@ describe('RandomInsightsScopeService', () => {
     random = mock<RandomSourceService>();
     eras = mock<ErasService>();
     eras.listErasWithLeague.mockResolvedValue([ONGOING_ERA, FINISHED_ERA]);
-    competitions = mock<CompetitionsService>();
+    competitions = mock<CompetitionsQueriesService>();
     competitions.listAllWithEraId.mockResolvedValue([
       {
         id: 10,
@@ -63,7 +61,7 @@ describe('RandomInsightsScopeService', () => {
         { provide: DiscordBotConfigService, useValue: config },
         { provide: RandomSourceService, useValue: random },
         { provide: ErasService, useValue: eras },
-        { provide: CompetitionsService, useValue: competitions },
+        { provide: CompetitionsQueriesService, useValue: competitions },
       ],
     }).compile();
     service = moduleRef.get(RandomInsightsScopeService);

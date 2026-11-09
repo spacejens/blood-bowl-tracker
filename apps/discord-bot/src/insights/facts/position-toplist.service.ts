@@ -1,8 +1,6 @@
-import type {
-  FactScope,
-  PositionPlayerCount,
-} from '@blood-bowl-tracker/game-data';
-import { PositionsService } from '@blood-bowl-tracker/game-data';
+import type { FactScope } from '@blood-bowl-tracker/game-data';
+import type { PositionPlayerCount } from '@blood-bowl-tracker/game-data-queries';
+import { PositionsQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -32,7 +30,7 @@ export class PositionToplistService {
   };
 
   constructor(
-    private readonly positions: PositionsService,
+    private readonly positionsQueries: PositionsQueriesService,
     private readonly leaderboard: LeaderboardService,
     private readonly numbers: NumberFormatterService,
   ) {}
@@ -45,7 +43,8 @@ export class PositionToplistService {
   resolvePlayers(scope: FactScope): Promise<string | InteractionReplyOptions> {
     return this.leaderboard.resolveToplist<PositionPlayerCount>({
       title: 'Positions by players',
-      fetchRows: (limit) => this.positions.countPlayersByPosition(scope, limit),
+      fetchRows: (limit) =>
+        this.positionsQueries.countPlayersByPosition(scope, limit),
       timeoutMessage: POSITION_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: POSITION_TOPLIST_NO_DATA_MESSAGE,
       entityLink: this.positionLink,

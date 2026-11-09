@@ -1,5 +1,5 @@
 import type { FactScope } from '@blood-bowl-tracker/game-data';
-import { PlayersService } from '@blood-bowl-tracker/game-data';
+import { PlayersQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 
 import { PLAYER_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
@@ -16,11 +16,11 @@ import type {
 } from './toplist-factory.service';
 import { ToplistFactoryService } from './toplist-factory.service';
 
-type PlayerToplistMethod = ScopedCountMethods<PlayersService>;
+type PlayerToplistMethod = ScopedCountMethods<PlayersQueriesService>;
 
 /**
  * The row shape every player toplist renders. `contextSuffix` is optional so the
- * undecorated rows a `PlayersService` count method returns are still assignable
+ * undecorated rows a `PlayersQueriesService` count method returns are still assignable
  * here; `decoratePlayerRows` fills it in before the rows reach the embed.
  */
 type PlayerToplistRow = {
@@ -38,7 +38,7 @@ type PlayerToplistRow = {
 export class PlayerToplistService {
   private readonly resolvers: Record<
     PlayerToplistMethod,
-    ToplistResolver<PlayersService>
+    ToplistResolver<PlayersQueriesService>
   >;
 
   private readonly playerLink: EntityLink<{ playerId: number }> = {
@@ -47,14 +47,14 @@ export class PlayerToplistService {
   };
 
   constructor(
-    private readonly players: PlayersService,
+    private readonly playersQueries: PlayersQueriesService,
     private readonly playerContext: PlayerContextService,
     private readonly toplistFactory: ToplistFactoryService,
     private readonly numbers: NumberFormatterService,
   ) {
     this.resolvers = this.toplistFactory.makeResolvers<
       PlayerToplistMethod,
-      PlayersService,
+      PlayersQueriesService,
       PlayerToplistRow
     >({
       titles: {
@@ -107,67 +107,82 @@ export class PlayerToplistService {
   }
 
   resolveMvps(scope: FactScope) {
-    return this.resolvers.countMvpAwardsByPlayer(this.players, scope);
+    return this.resolvers.countMvpAwardsByPlayer(this.playersQueries, scope);
   }
 
   resolveTouchdownsScored(scope: FactScope) {
-    return this.resolvers.countTouchdownsScoredByPlayer(this.players, scope);
+    return this.resolvers.countTouchdownsScoredByPlayer(
+      this.playersQueries,
+      scope,
+    );
   }
 
   resolveCompletions(scope: FactScope) {
-    return this.resolvers.countCompletionsByPlayer(this.players, scope);
+    return this.resolvers.countCompletionsByPlayer(this.playersQueries, scope);
   }
 
   resolveInterceptions(scope: FactScope) {
-    return this.resolvers.countInterceptionsByPlayer(this.players, scope);
+    return this.resolvers.countInterceptionsByPlayer(
+      this.playersQueries,
+      scope,
+    );
   }
 
   resolveDeflections(scope: FactScope) {
-    return this.resolvers.countDeflectionsByPlayer(this.players, scope);
+    return this.resolvers.countDeflectionsByPlayer(this.playersQueries, scope);
   }
 
   resolveCasualtiesCaused(scope: FactScope) {
-    return this.resolvers.countCasualtiesCausedByPlayer(this.players, scope);
+    return this.resolvers.countCasualtiesCausedByPlayer(
+      this.playersQueries,
+      scope,
+    );
   }
 
   resolveSeriousInjuriesCaused(scope: FactScope) {
     return this.resolvers.countSeriousInjuriesCausedByPlayer(
-      this.players,
+      this.playersQueries,
       scope,
     );
   }
 
   resolveDeathsCaused(scope: FactScope) {
-    return this.resolvers.countDeathsCausedByPlayer(this.players, scope);
+    return this.resolvers.countDeathsCausedByPlayer(this.playersQueries, scope);
   }
 
   resolveFoulsCommitted(scope: FactScope) {
-    return this.resolvers.countFoulsCommittedByPlayer(this.players, scope);
+    return this.resolvers.countFoulsCommittedByPlayer(
+      this.playersQueries,
+      scope,
+    );
   }
 
   resolveTimesSentOff(scope: FactScope) {
-    return this.resolvers.countTimesSentOffByPlayer(this.players, scope);
+    return this.resolvers.countTimesSentOffByPlayer(this.playersQueries, scope);
   }
 
   resolveCasualtiesSuffered(scope: FactScope) {
-    return this.resolvers.countCasualtiesSufferedByPlayer(this.players, scope);
+    return this.resolvers.countCasualtiesSufferedByPlayer(
+      this.playersQueries,
+      scope,
+    );
   }
 
   resolveSeriousInjuriesSuffered(scope: FactScope) {
     return this.resolvers.countSeriousInjuriesSufferedByPlayer(
-      this.players,
+      this.playersQueries,
       scope,
     );
   }
 
   resolveLastingInjuriesSuffered(scope: FactScope) {
     return this.resolvers.countLastingInjuriesSufferedByPlayer(
-      this.players,
+      this.playersQueries,
       scope,
     );
   }
 
   resolveTotalSpp(scope: FactScope) {
-    return this.resolvers.topPlayersByTotalSpp(this.players, scope);
+    return this.resolvers.topPlayersByTotalSpp(this.playersQueries, scope);
   }
 }

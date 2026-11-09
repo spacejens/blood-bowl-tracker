@@ -1,9 +1,9 @@
 import type { CompetitionType } from '@blood-bowl-tracker/domain-enums';
 import {
-  CompetitionsService,
   ErasService,
   ExternalSystemsService,
 } from '@blood-bowl-tracker/game-data';
+import { CompetitionsQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { ButtonStyle, ComponentType } from 'discord.js';
 import { describe, expect, it } from 'vitest';
@@ -54,7 +54,7 @@ type EraHeader = {
 
 interface MakeServiceOptions {
   eras: ErasService;
-  competitions: CompetitionsService;
+  competitions: CompetitionsQueriesService;
   externalSystems: ExternalSystemsService;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   entityComponents?: MockProxy<EntityComponentsService>;
@@ -80,7 +80,7 @@ async function makeService({
     providers: [
       EraDeepdiveService,
       { provide: ErasService, useValue: eras },
-      { provide: CompetitionsService, useValue: competitions },
+      { provide: CompetitionsQueriesService, useValue: competitions },
       { provide: ExternalSystemsService, useValue: externalSystems },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
@@ -111,13 +111,13 @@ function makeServices(options: {
   externalSystemNames?: string[];
 }): {
   eras: MockProxy<ErasService>;
-  competitions: MockProxy<CompetitionsService>;
+  competitions: MockProxy<CompetitionsQueriesService>;
   externalSystems: MockProxy<ExternalSystemsService>;
 } {
   const eras = mock<ErasService>();
   eras.findByIdWithLeague.mockResolvedValue(options.era);
   eras.getRulesSetNames.mockResolvedValue(options.rulesSetNames ?? []);
-  const competitions = mock<CompetitionsService>();
+  const competitions = mock<CompetitionsQueriesService>();
   competitions.listByEraChronological.mockResolvedValue(
     options.competitions ?? [],
   );

@@ -1,7 +1,5 @@
-import {
-  CompetitionsService,
-  ErasService,
-} from '@blood-bowl-tracker/game-data';
+import { ErasService } from '@blood-bowl-tracker/game-data';
+import { CompetitionsQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 
 import { DiscordBotConfigService } from '../discord-bot-config.service';
@@ -29,7 +27,7 @@ export class RandomInsightsScopeService {
     private readonly config: DiscordBotConfigService,
     private readonly random: RandomSourceService,
     private readonly eras: ErasService,
-    private readonly competitions: CompetitionsService,
+    private readonly competitionsQueries: CompetitionsQueriesService,
   ) {}
 
   /**
@@ -94,9 +92,9 @@ export class RandomInsightsScopeService {
    */
   private async pickCompetitionScope(eraIds: number[]): Promise<ResolvedScope> {
     const ids = new Set(eraIds);
-    const candidates = (await this.competitions.listAllWithEraId()).filter(
-      (competition) => ids.has(competition.eraId),
-    );
+    const candidates = (
+      await this.competitionsQueries.listAllWithEraId()
+    ).filter((competition) => ids.has(competition.eraId));
     if (candidates.length === 0) {
       return {};
     }

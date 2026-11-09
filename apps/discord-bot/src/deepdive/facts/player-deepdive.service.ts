@@ -1,7 +1,6 @@
 import type { CharacteristicFormat } from '@blood-bowl-tracker/domain-enums';
 import type {
   PlayerCharacteristicAdvancementRow,
-  PlayerDetail,
   PlayerHonor,
   PlayerSkillRow,
   PositionCharacteristicsContext,
@@ -11,7 +10,6 @@ import type {
 import {
   PlayerAdvancementReadsService,
   PlayerSkillsService,
-  PlayersService,
   PositionRulesSetKeywordsService,
   PositionRulesSetsService,
   TrophyAwardsService,
@@ -19,6 +17,7 @@ import {
 } from '@blood-bowl-tracker/game-data';
 import type {
   PlayerDeepdiveCategoryCounts,
+  PlayerDetail,
   PlayerKillEntry,
   PlayerKillerInfo,
   StarPlayerIdentity,
@@ -27,6 +26,7 @@ import {
   CharacteristicDisplayFormattingService,
   PlayerDeathService,
   PlayerDeepdiveCountsService,
+  PlayersQueriesService,
   StarPlayersService,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable, Logger } from '@nestjs/common';
@@ -133,7 +133,7 @@ export class PlayerDeepdiveService {
   private readonly logger = new Logger(PlayerDeepdiveService.name);
 
   constructor(
-    private readonly players: PlayersService,
+    private readonly playersQueries: PlayersQueriesService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
     private readonly trophyAwards: TrophyAwardsService,
@@ -163,7 +163,10 @@ export class PlayerDeepdiveService {
 
   async resolve(playerId: number): Promise<string | InteractionReplyOptions> {
     const player: PlayerDetail | undefined | null =
-      await this.databaseTimeout.run(this.players.findById(playerId), null);
+      await this.databaseTimeout.run(
+        this.playersQueries.findById(playerId),
+        null,
+      );
     if (player === null) {
       return DEEPDIVE_PLAYER_TIMEOUT_MESSAGE;
     }

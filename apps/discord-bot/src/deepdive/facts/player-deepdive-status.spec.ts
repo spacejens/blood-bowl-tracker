@@ -1,5 +1,7 @@
-import type { PlayerDetail } from '@blood-bowl-tracker/game-data';
-import type { PlayerKillerInfo } from '@blood-bowl-tracker/game-data-queries';
+import type {
+  PlayerDetail,
+  PlayerKillerInfo,
+} from '@blood-bowl-tracker/game-data-queries';
 import { describe, expect, it } from 'vitest';
 
 import {

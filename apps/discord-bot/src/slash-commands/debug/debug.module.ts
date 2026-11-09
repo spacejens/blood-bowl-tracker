@@ -1,17 +1,18 @@
 import { DiscordBotUsageModule } from '@blood-bowl-tracker/discord-bot-usage';
 import {
-  CoachesModule,
-  CompetitionGroupsModule,
   CompetitionsModule,
   ErasModule,
   LeaguesModule,
-  PlayersModule,
-  PositionsModule,
-  RacesModule,
-  TeamsModule,
   TrophiesModule,
 } from '@blood-bowl-tracker/game-data';
-import { PlayersQueriesModule } from '@blood-bowl-tracker/game-data-queries';
+import {
+  CoachesQueriesModule,
+  CompetitionGroupsQueriesModule,
+  PlayersQueriesModule,
+  PositionsQueriesModule,
+  RacesQueriesModule,
+  TeamsQueriesModule,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Module } from '@nestjs/common';
 
 import { SlashCommandRegistryModule } from '../slash-command-registry.module';
@@ -44,25 +45,24 @@ import { OptionValueResolverService } from './option-value-resolver.service';
  * directly here or in `SlashCommandsModule`.
  *
  * The game-data modules OptionValueResolverService resolves recorded
- * option ids through. PlayersModule supplies PlayersService;
- * PlayersQueriesModule supplies StarPlayersService and
- * IncompleteImportPlayersService (for /debugincompleteimport);
- * CompetitionGroupsModule's only by-id lookup is findByIdWithLeague.
+ * option ids through. PlayersQueriesModule supplies PlayersQueriesService,
+ * StarPlayersService and IncompleteImportPlayersService (for
+ * /debugincompleteimport);
+ * CompetitionGroupsQueriesModule's only by-id lookup is findByIdWithLeague.
  */
 @Module({
   imports: [
     DiscordBotUsageModule,
     SlashCommandRegistryModule,
-    RacesModule,
+    RacesQueriesModule,
     ErasModule,
     LeaguesModule,
     CompetitionsModule,
-    CompetitionGroupsModule,
-    CoachesModule,
-    TeamsModule,
-    PlayersModule,
+    CompetitionGroupsQueriesModule,
+    CoachesQueriesModule,
+    TeamsQueriesModule,
     PlayersQueriesModule,
-    PositionsModule,
+    PositionsQueriesModule,
     TrophiesModule,
   ],
   providers: [

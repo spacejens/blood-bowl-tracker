@@ -1,8 +1,6 @@
-import type {
-  FactScope,
-  SkillPlayerCount,
-} from '@blood-bowl-tracker/game-data';
-import { SkillsService } from '@blood-bowl-tracker/game-data';
+import type { FactScope } from '@blood-bowl-tracker/game-data';
+import type { SkillPlayerCount } from '@blood-bowl-tracker/game-data-queries';
+import { SkillsQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -29,7 +27,7 @@ import { LeaderboardService } from '../leaderboard.service';
 @Injectable()
 export class SkillToplistService {
   constructor(
-    private readonly skills: SkillsService,
+    private readonly skillsQueries: SkillsQueriesService,
     private readonly leaderboard: LeaderboardService,
   ) {}
 
@@ -49,7 +47,8 @@ export class SkillToplistService {
   resolveAny(scope: FactScope): Promise<string | InteractionReplyOptions> {
     return this.resolveSkillToplist({
       title: 'Skills by players who have them',
-      fetchRows: (limit) => this.skills.countPlayersBySkillAny(scope, limit),
+      fetchRows: (limit) =>
+        this.skillsQueries.countPlayersBySkillAny(scope, limit),
     });
   }
 
@@ -63,7 +62,7 @@ export class SkillToplistService {
     return this.resolveSkillToplist({
       title: 'Skills by players who gained them as an advancement',
       fetchRows: (limit) =>
-        this.skills.countPlayersBySkillAdvancement(scope, limit),
+        this.skillsQueries.countPlayersBySkillAdvancement(scope, limit),
     });
   }
 
@@ -73,7 +72,8 @@ export class SkillToplistService {
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveSkillToplist({
       title: 'Skills by players who chose them as an advancement',
-      fetchRows: (limit) => this.skills.countPlayersBySkillChosen(scope, limit),
+      fetchRows: (limit) =>
+        this.skillsQueries.countPlayersBySkillChosen(scope, limit),
     });
   }
 
@@ -83,7 +83,8 @@ export class SkillToplistService {
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveSkillToplist({
       title: 'Skills by players who had them randomly rolled as an advancement',
-      fetchRows: (limit) => this.skills.countPlayersBySkillRandom(scope, limit),
+      fetchRows: (limit) =>
+        this.skillsQueries.countPlayersBySkillRandom(scope, limit),
     });
   }
 }

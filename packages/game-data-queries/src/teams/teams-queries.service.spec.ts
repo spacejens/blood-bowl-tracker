@@ -2,7 +2,6 @@ import type { Db } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
 import {
-  extractAllFilterValues,
   extractFilterValues,
   extractJoinColumns,
   firstCallArg,
@@ -15,16 +14,11 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { LikePatternService } from '../shared/like-pattern.service';
-import { TeamRaceCoachNamesService } from '../shared/team-race-coach-names.service';
-import { TeamAverageStatisticsService } from './team-average-statistics.service';
-import { TeamsService } from './teams.service';
-import { TeamsStatisticsService } from './teams-statistics.service';
+import { TeamsQueriesService } from './teams-queries.service';
 
-describe('TeamsService lookups', () => {
-  let service: TeamsService;
+describe('TeamsQueriesService', () => {
+  let service: TeamsQueriesService;
   let likePattern: MockProxy<LikePatternService>;
-  let statistics: MockProxy<TeamsStatisticsService>;
-  let teamRaceCoachNames: MockProxy<TeamRaceCoachNamesService>;
 
   async function build(...rowsPerQuery: unknown[][]): Promise<{
     db: Db;
@@ -33,25 +27,17 @@ describe('TeamsService lookups', () => {
     const { db, chains } = mockDb(...rowsPerQuery);
     const moduleRef = await Test.createTestingModule({
       providers: [
-        TeamsService,
+        TeamsQueriesService,
         { provide: LikePatternService, useValue: likePattern },
-        { provide: TeamsStatisticsService, useValue: statistics },
-        {
-          provide: TeamAverageStatisticsService,
-          useValue: mock<TeamAverageStatisticsService>(),
-        },
-        { provide: TeamRaceCoachNamesService, useValue: teamRaceCoachNames },
         { provide: DB, useValue: db },
       ],
     }).compile();
-    service = moduleRef.get(TeamsService);
+    service = moduleRef.get(TeamsQueriesService);
     return { db, chains };
   }
 
   beforeEach(() => {
     likePattern = mock<LikePatternService>();
-    statistics = mock<TeamsStatisticsService>();
-    teamRaceCoachNames = mock<TeamRaceCoachNamesService>();
   });
 
   describe('searchByNamePrefix', () => {
@@ -140,28 +126,6 @@ describe('TeamsService lookups', () => {
     });
   });
 
-  describe('findTeamEraId', () => {
-    it('returns the team era id the query resolves to', async () => {
-      await build([{ id: 31 }]);
-      await expect(service.findTeamEraId(7, 40)).resolves.toBe(31);
-    });
-
-    it('returns undefined when the team is not linked to the era', async () => {
-      await build([]);
-      await expect(service.findTeamEraId(7, 40)).resolves.toBeUndefined();
-    });
-
-    it('filters by both the team and the era', async () => {
-      const { chains } = await build([]);
-
-      await service.findTeamEraId(7, 40);
-
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-        7, 40,
-      ]);
-    });
-  });
-
   describe('getCareerSpan', () => {
     it('returns the min/max match dates for the team', async () => {
       const { chains } = await build([
@@ -193,57 +157,44 @@ describe('TeamsService lookups', () => {
     });
   });
 
-  describe('getTopPlayersByTotalSpp', () => {
-    it('delegates to TeamsStatisticsService and returns its result', async () => {
-      const rows = [
-        {
-          playerId: 1,
-          name: 'Griff',
-          count: 42,
-          positionId: 30,
-          positionName: 'Blitzer',
-          isStarPlayer: false,
-        },
-      ];
-      statistics.getTopPlayersByTotalSpp.mockResolvedValue(rows);
-      await build();
-
-      await expect(service.getTopPlayersByTotalSpp(7, 10)).resolves.toEqual(
-        rows,
-      );
-
-      expect(statistics.getTopPlayersByTotalSpp).toHaveBeenCalledWith(7, 10);
+  describe('countAll', () => {
+    it('returns the total row count', async () => {
+      const { db } = await build([{ count: 5 }]);
+      await expect(service.countAll()).resolves.toBe(5);
+      expect(db.select).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe('getRaceAndCoachNamesByIds', () => {
-    it('delegates to TeamRaceCoachNamesService and returns its map', async () => {
-      const expected = new Map([
-        [1, { raceName: 'Orc', coachName: 'Skarsnik' }],
-      ]);
-      teamRaceCoachNames.getRaceAndCoachNamesByIds.mockResolvedValue(expected);
-      await build();
-
-      await expect(service.getRaceAndCoachNamesByIds([1])).resolves.toBe(
-        expected,
-      );
-
-      expect(teamRaceCoachNames.getRaceAndCoachNamesByIds).toHaveBeenCalledWith(
-        [1],
-      );
+  describe('countByEra', () => {
+    it('returns the distinct team count for the era', async () => {
+      const { db, chains } = await build([{ count: 12 }]);
+      await expect(service.countByEra(5)).resolves.toBe(12);
+      expect(db.select).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(5);
     });
+  });
 
-    it('forwards an empty id list unchanged', async () => {
-      teamRaceCoachNames.getRaceAndCoachNamesByIds.mockResolvedValue(new Map());
-      await build();
+  describe('countByLeague', () => {
+    it('returns the distinct team count for the league', async () => {
+      const { db, chains } = await build([{ count: 20 }]);
+      await expect(service.countByLeague(9)).resolves.toBe(20);
+      expect(db.select).toHaveBeenCalledTimes(1);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
+      ).toEqual(['eras.id', 'team_eras.era_id']);
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(9);
+    });
+  });
 
-      await expect(service.getRaceAndCoachNamesByIds([])).resolves.toEqual(
-        new Map(),
-      );
-
-      expect(teamRaceCoachNames.getRaceAndCoachNamesByIds).toHaveBeenCalledWith(
-        [],
-      );
+  describe('countByCompetition', () => {
+    it('returns the distinct team count for the competition', async () => {
+      const { db, chains } = await build([{ count: 9 }]);
+      await expect(service.countByCompetition(7)).resolves.toBe(9);
+      expect(db.select).toHaveBeenCalledTimes(1);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
+      ).toEqual(['team_eras.id', 'competition_teams.team_era_id']);
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(7);
     });
   });
 });

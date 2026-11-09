@@ -1,16 +1,18 @@
 import {
-  CoachesService,
-  CompetitionGroupsService,
-  CompetitionsService,
   ErasService,
   LeaguesService,
-  PlayersService,
-  PositionsService,
-  RacesService,
-  TeamsService,
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
-import { StarPlayersService } from '@blood-bowl-tracker/game-data-queries';
+import {
+  CoachesQueriesService,
+  CompetitionGroupsQueriesService,
+  CompetitionsQueriesService,
+  PlayersQueriesService,
+  PositionsQueriesService,
+  RacesQueriesService,
+  StarPlayersService,
+  TeamsQueriesService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { AutocompleteInteraction } from 'discord.js';
 
@@ -30,13 +32,13 @@ const MAX_AUTOCOMPLETE_CHOICES = 25;
 export class DeepdiveAutocompleteService {
   constructor(
     private readonly eras: ErasService,
-    private readonly competitions: CompetitionsService,
-    private readonly competitionGroups: CompetitionGroupsService,
-    private readonly coaches: CoachesService,
-    private readonly teams: TeamsService,
-    private readonly players: PlayersService,
-    private readonly positions: PositionsService,
-    private readonly races: RacesService,
+    private readonly competitionsQueries: CompetitionsQueriesService,
+    private readonly competitionGroupsQueries: CompetitionGroupsQueriesService,
+    private readonly coachesQueries: CoachesQueriesService,
+    private readonly teamsQueries: TeamsQueriesService,
+    private readonly playersQueries: PlayersQueriesService,
+    private readonly positionsQueries: PositionsQueriesService,
+    private readonly racesQueries: RacesQueriesService,
     private readonly stars: StarPlayersService,
     private readonly trophies: TrophiesService,
     private readonly leagues: LeaguesService,
@@ -57,7 +59,7 @@ export class DeepdiveAutocompleteService {
       }));
     }
     if (focused.name === 'coach') {
-      const coaches = await this.coaches.searchByNamePrefix(
+      const coaches = await this.coachesQueries.searchByNamePrefix(
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );
@@ -67,7 +69,7 @@ export class DeepdiveAutocompleteService {
       }));
     }
     if (focused.name === 'team') {
-      const teams = await this.teams.searchByNamePrefix(
+      const teams = await this.teamsQueries.searchByNamePrefix(
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );
@@ -77,7 +79,7 @@ export class DeepdiveAutocompleteService {
       }));
     }
     if (focused.name === 'player') {
-      const players = await this.players.searchByNamePrefix(
+      const players = await this.playersQueries.searchByNamePrefix(
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );
@@ -87,7 +89,7 @@ export class DeepdiveAutocompleteService {
       }));
     }
     if (focused.name === 'star-player') {
-      // Cannot reuse the `player` branch: `PlayersService.searchByNamePrefix`
+      // Cannot reuse the `player` branch: `PlayersQueriesService.searchByNamePrefix`
       // deliberately excludes stars, and a star's autocomplete value is its
       // `positions.id`, not a `players.id`. No team name in the label — a star
       // has no single team, which is the whole point of this target.
@@ -107,7 +109,7 @@ export class DeepdiveAutocompleteService {
       // races yields one suggestion per race, all carrying the same position
       // id as their value: the position deepdive shows every race the
       // position belongs to, so which of them was picked does not matter.
-      const positions = await this.positions.searchByNamePrefixWithRace(
+      const positions = await this.positionsQueries.searchByNamePrefixWithRace(
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );
@@ -117,7 +119,7 @@ export class DeepdiveAutocompleteService {
       }));
     }
     if (focused.name === 'race') {
-      const races = await this.races.searchByNamePrefix(
+      const races = await this.racesQueries.searchByNamePrefix(
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );
@@ -127,7 +129,7 @@ export class DeepdiveAutocompleteService {
       }));
     }
     if (focused.name === 'competition') {
-      const competitions = await this.competitions.searchByNamePrefix(
+      const competitions = await this.competitionsQueries.searchByNamePrefix(
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );
@@ -137,10 +139,11 @@ export class DeepdiveAutocompleteService {
       }));
     }
     if (focused.name === 'competition-group') {
-      const competitionGroups = await this.competitionGroups.searchByNamePrefix(
-        focused.value,
-        MAX_AUTOCOMPLETE_CHOICES,
-      );
+      const competitionGroups =
+        await this.competitionGroupsQueries.searchByNamePrefix(
+          focused.value,
+          MAX_AUTOCOMPLETE_CHOICES,
+        );
       return competitionGroups.map((row) => ({
         name: `${row.name} (${row.leagueName})`,
         value: String(row.id),

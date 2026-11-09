@@ -1,16 +1,18 @@
 import {
-  CoachesService,
-  CompetitionGroupsService,
-  CompetitionsService,
   ErasService,
   LeaguesService,
-  PlayersService,
-  PositionsService,
-  RacesService,
-  TeamsService,
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
-import { StarPlayersService } from '@blood-bowl-tracker/game-data-queries';
+import {
+  CoachesQueriesService,
+  CompetitionGroupsQueriesService,
+  CompetitionsQueriesService,
+  PlayersQueriesService,
+  PositionsQueriesService,
+  RacesQueriesService,
+  StarPlayersService,
+  TeamsQueriesService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import type { AutocompleteInteraction } from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -46,26 +48,26 @@ function autocompleteInteraction(
 describe('DeepdiveAutocompleteService', () => {
   let service: DeepdiveAutocompleteService;
   let eras: MockProxy<ErasService>;
-  let competitions: MockProxy<CompetitionsService>;
-  let competitionGroups: MockProxy<CompetitionGroupsService>;
-  let coaches: MockProxy<CoachesService>;
-  let teams: MockProxy<TeamsService>;
-  let players: MockProxy<PlayersService>;
-  let positions: MockProxy<PositionsService>;
-  let races: MockProxy<RacesService>;
+  let competitions: MockProxy<CompetitionsQueriesService>;
+  let competitionGroups: MockProxy<CompetitionGroupsQueriesService>;
+  let coaches: MockProxy<CoachesQueriesService>;
+  let teams: MockProxy<TeamsQueriesService>;
+  let players: MockProxy<PlayersQueriesService>;
+  let positions: MockProxy<PositionsQueriesService>;
+  let races: MockProxy<RacesQueriesService>;
   let stars: MockProxy<StarPlayersService>;
   let trophies: MockProxy<TrophiesService>;
   let leagues: MockProxy<LeaguesService>;
 
   beforeEach(async () => {
     eras = mock<ErasService>();
-    competitions = mock<CompetitionsService>();
-    competitionGroups = mock<CompetitionGroupsService>();
-    coaches = mock<CoachesService>();
-    teams = mock<TeamsService>();
-    players = mock<PlayersService>();
-    positions = mock<PositionsService>();
-    races = mock<RacesService>();
+    competitions = mock<CompetitionsQueriesService>();
+    competitionGroups = mock<CompetitionGroupsQueriesService>();
+    coaches = mock<CoachesQueriesService>();
+    teams = mock<TeamsQueriesService>();
+    players = mock<PlayersQueriesService>();
+    positions = mock<PositionsQueriesService>();
+    races = mock<RacesQueriesService>();
     stars = mock<StarPlayersService>();
     trophies = mock<TrophiesService>();
     leagues = mock<LeaguesService>();
@@ -74,13 +76,16 @@ describe('DeepdiveAutocompleteService', () => {
       providers: [
         DeepdiveAutocompleteService,
         { provide: ErasService, useValue: eras },
-        { provide: CompetitionsService, useValue: competitions },
-        { provide: CompetitionGroupsService, useValue: competitionGroups },
-        { provide: CoachesService, useValue: coaches },
-        { provide: TeamsService, useValue: teams },
-        { provide: PlayersService, useValue: players },
-        { provide: PositionsService, useValue: positions },
-        { provide: RacesService, useValue: races },
+        { provide: CompetitionsQueriesService, useValue: competitions },
+        {
+          provide: CompetitionGroupsQueriesService,
+          useValue: competitionGroups,
+        },
+        { provide: CoachesQueriesService, useValue: coaches },
+        { provide: TeamsQueriesService, useValue: teams },
+        { provide: PlayersQueriesService, useValue: players },
+        { provide: PositionsQueriesService, useValue: positions },
+        { provide: RacesQueriesService, useValue: races },
         { provide: StarPlayersService, useValue: stars },
         { provide: TrophiesService, useValue: trophies },
         { provide: LeaguesService, useValue: leagues },

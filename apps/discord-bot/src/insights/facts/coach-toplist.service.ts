@@ -1,5 +1,5 @@
 import type { FactScope } from '@blood-bowl-tracker/game-data';
-import { CoachesService } from '@blood-bowl-tracker/game-data';
+import { CoachesQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -34,7 +34,7 @@ interface CoachCountRow {
 export class CoachToplistService {
   private readonly resolvers: Record<
     CoachToplistMethod,
-    ToplistResolver<CoachesService>
+    ToplistResolver<CoachesQueriesService>
   >;
 
   private readonly coachLink: EntityLink<{ coachId: number }> = {
@@ -43,14 +43,14 @@ export class CoachToplistService {
   };
 
   constructor(
-    private readonly coaches: CoachesService,
+    private readonly coachesQueries: CoachesQueriesService,
     private readonly leaderboard: LeaderboardService,
     private readonly numbers: NumberFormatterService,
     private readonly toplistFactory: ToplistFactoryService,
   ) {
     this.resolvers = this.toplistFactory.makeResolvers<
       CoachToplistMethod,
-      CoachesService,
+      CoachesQueriesService,
       { coachId: number; name: string; count: number }
     >({
       titles: {
@@ -72,45 +72,48 @@ export class CoachToplistService {
   resolveFoulsCommitted(
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
-    return this.resolvers.countFoulsCommittedByCoach(this.coaches, scope);
+    return this.resolvers.countFoulsCommittedByCoach(
+      this.coachesQueries,
+      scope,
+    );
   }
 
   resolveMatchesPlayed(
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
-    return this.resolvers.countMatchesPlayedByCoach(this.coaches, scope);
+    return this.resolvers.countMatchesPlayedByCoach(this.coachesQueries, scope);
   }
 
   resolveMatchesWon(
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
-    return this.resolvers.countMatchesWonByCoach(this.coaches, scope);
+    return this.resolvers.countMatchesWonByCoach(this.coachesQueries, scope);
   }
 
   resolveMatchesLost(
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
-    return this.resolvers.countMatchesLostByCoach(this.coaches, scope);
+    return this.resolvers.countMatchesLostByCoach(this.coachesQueries, scope);
   }
 
   resolveMatchesDrawn(
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
-    return this.resolvers.countMatchesDrawnByCoach(this.coaches, scope);
+    return this.resolvers.countMatchesDrawnByCoach(this.coachesQueries, scope);
   }
 
   resolveTeams(scope: FactScope): Promise<string | InteractionReplyOptions> {
-    return this.resolvers.countTeamsByCoach(this.coaches, scope);
+    return this.resolvers.countTeamsByCoach(this.coachesQueries, scope);
   }
 
   resolveCompetitionsPlayed(
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
-    return this.resolvers.countCompetitionsByCoach(this.coaches, scope);
+    return this.resolvers.countCompetitionsByCoach(this.coachesQueries, scope);
   }
 
   /**
-   * The only competition-scopable coach toplist: `CoachesService.countTrophiesByCoach`
+   * The only competition-scopable coach toplist: `CoachesQueriesService.countTrophiesByCoach`
    * forwards the competition, unlike the match-event-backed coach counts.
    * Rows need no decoration — bare coachId/name/count, like every other
    * factory-built coach toplist.
@@ -118,7 +121,7 @@ export class CoachToplistService {
   resolveTrophiesWon(
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
-    return this.resolvers.countTrophiesByCoach(this.coaches, scope);
+    return this.resolvers.countTrophiesByCoach(this.coachesQueries, scope);
   }
 
   /**
@@ -134,7 +137,7 @@ export class CoachToplistService {
       count: number;
     }>({
       title: 'Coaches by eras active',
-      fetchRows: (limit) => this.coaches.countErasByCoach(limit),
+      fetchRows: (limit) => this.coachesQueries.countErasByCoach(limit),
       timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
       entityLink: this.coachLink,
@@ -170,7 +173,7 @@ export class CoachToplistService {
     return this.resolveGapToplist({
       title: 'Coaches by longest time between matches (highest first)',
       fetchRows: (limit) =>
-        this.coaches.getGapBetweenMatchesByCoachDescending(scope, limit),
+        this.coachesQueries.getGapBetweenMatchesByCoachDescending(scope, limit),
     });
   }
 
@@ -184,7 +187,7 @@ export class CoachToplistService {
     return this.resolveGapToplist({
       title: 'Coaches by longest time between matches (lowest first)',
       fetchRows: (limit) =>
-        this.coaches.getGapBetweenMatchesByCoachAscending(scope, limit),
+        this.coachesQueries.getGapBetweenMatchesByCoachAscending(scope, limit),
     });
   }
 
@@ -194,7 +197,7 @@ export class CoachToplistService {
     return this.resolveGapToplist({
       title: 'Coaches by average time between matches',
       fetchRows: (limit) =>
-        this.coaches.getAverageGapBetweenMatchesByCoach(scope, limit),
+        this.coachesQueries.getAverageGapBetweenMatchesByCoach(scope, limit),
     });
   }
 }

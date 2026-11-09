@@ -1,8 +1,6 @@
 import type { FactScope } from '@blood-bowl-tracker/game-data';
-import {
-  CompetitionGroupsService,
-  FACT_SCOPE_ALL_TIME,
-} from '@blood-bowl-tracker/game-data';
+import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
+import { CompetitionGroupsQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { ComponentType } from 'discord.js';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -53,14 +51,14 @@ async function realListDescription(): Promise<ListDescriptionService> {
 }
 
 async function makeServiceFromCompetitionGroups(
-  competitionGroups: CompetitionGroupsService,
+  competitionGroups: CompetitionGroupsQueriesService,
   entityComponents: MockProxy<EntityComponentsService> = passthroughEntityComponents(),
 ): Promise<CompetitionGroupsListService> {
   const moduleRef = await Test.createTestingModule({
     providers: [
       CompetitionGroupsListService,
       NumberFormatterService,
-      { provide: CompetitionGroupsService, useValue: competitionGroups },
+      { provide: CompetitionGroupsQueriesService, useValue: competitionGroups },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
       {
@@ -78,7 +76,7 @@ async function makeService(
   rows: CompetitionGroupRow[],
   entityComponents?: MockProxy<EntityComponentsService>,
 ): Promise<CompetitionGroupsListService> {
-  const competitionGroups = mock<CompetitionGroupsService>();
+  const competitionGroups = mock<CompetitionGroupsQueriesService>();
   competitionGroups.listAllWithLeagueAndCount.mockResolvedValue(rows);
   return makeServiceFromCompetitionGroups(competitionGroups, entityComponents);
 }
@@ -197,12 +195,12 @@ describe('CompetitionGroupsListService.resolve', () => {
     // real timer.
     stubDatabaseTimeoutOnce(databaseTimeout);
     await expectTimeoutFallback(
-      async (competitionGroups: CompetitionGroupsService) =>
+      async (competitionGroups: CompetitionGroupsQueriesService) =>
         (await makeServiceFromCompetitionGroups(competitionGroups)).resolve(
           FACT_SCOPE_ALL_TIME,
         ),
       () => {
-        const competitionGroups = mock<CompetitionGroupsService>();
+        const competitionGroups = mock<CompetitionGroupsQueriesService>();
         competitionGroups.listAllWithLeagueAndCount.mockReturnValue(
           new Promise(() => {}),
         );
@@ -270,7 +268,7 @@ describe('CompetitionGroupsListService.resolve', () => {
   });
 
   it('passes the league scope through to the query', async () => {
-    const competitionGroups = mock<CompetitionGroupsService>();
+    const competitionGroups = mock<CompetitionGroupsQueriesService>();
     competitionGroups.listAllWithLeagueAndCount.mockResolvedValue([]);
     const service = await makeServiceFromCompetitionGroups(competitionGroups);
     const scope: FactScope = { leagueId: 7 };

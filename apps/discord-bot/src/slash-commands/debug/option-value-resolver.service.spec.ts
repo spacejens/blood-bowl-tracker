@@ -1,16 +1,18 @@
 import {
-  CoachesService,
-  CompetitionGroupsService,
   CompetitionsService,
   ErasService,
   LeaguesService,
-  PlayersService,
-  PositionsService,
-  RacesService,
-  TeamsService,
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
-import { StarPlayersService } from '@blood-bowl-tracker/game-data-queries';
+import {
+  CoachesQueriesService,
+  CompetitionGroupsQueriesService,
+  PlayersQueriesService,
+  PositionsQueriesService,
+  RacesQueriesService,
+  StarPlayersService,
+  TeamsQueriesService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { DeepMockProxy } from 'vitest-mock-extended';
@@ -24,44 +26,47 @@ import { OptionValueResolverService } from './option-value-resolver.service';
 
 describe('OptionValueResolverService', () => {
   let service: OptionValueResolverService;
-  let races: DeepMockProxy<RacesService>;
+  let races: DeepMockProxy<RacesQueriesService>;
   let eras: DeepMockProxy<ErasService>;
   let leagues: DeepMockProxy<LeaguesService>;
   let competitions: DeepMockProxy<CompetitionsService>;
-  let competitionGroups: DeepMockProxy<CompetitionGroupsService>;
-  let coaches: DeepMockProxy<CoachesService>;
-  let teams: DeepMockProxy<TeamsService>;
-  let players: DeepMockProxy<PlayersService>;
+  let competitionGroups: DeepMockProxy<CompetitionGroupsQueriesService>;
+  let coaches: DeepMockProxy<CoachesQueriesService>;
+  let teams: DeepMockProxy<TeamsQueriesService>;
+  let players: DeepMockProxy<PlayersQueriesService>;
   let starPlayers: DeepMockProxy<StarPlayersService>;
-  let positions: DeepMockProxy<PositionsService>;
+  let positions: DeepMockProxy<PositionsQueriesService>;
   let trophies: DeepMockProxy<TrophiesService>;
 
   beforeEach(async () => {
-    races = mockDeep<RacesService>();
+    races = mockDeep<RacesQueriesService>();
     eras = mockDeep<ErasService>();
     leagues = mockDeep<LeaguesService>();
     competitions = mockDeep<CompetitionsService>();
-    competitionGroups = mockDeep<CompetitionGroupsService>();
-    coaches = mockDeep<CoachesService>();
-    teams = mockDeep<TeamsService>();
-    players = mockDeep<PlayersService>();
+    competitionGroups = mockDeep<CompetitionGroupsQueriesService>();
+    coaches = mockDeep<CoachesQueriesService>();
+    teams = mockDeep<TeamsQueriesService>();
+    players = mockDeep<PlayersQueriesService>();
     starPlayers = mockDeep<StarPlayersService>();
-    positions = mockDeep<PositionsService>();
+    positions = mockDeep<PositionsQueriesService>();
     trophies = mockDeep<TrophiesService>();
 
     const moduleRef = await Test.createTestingModule({
       providers: [
         OptionValueResolverService,
-        { provide: RacesService, useValue: races },
+        { provide: RacesQueriesService, useValue: races },
         { provide: ErasService, useValue: eras },
         { provide: LeaguesService, useValue: leagues },
         { provide: CompetitionsService, useValue: competitions },
-        { provide: CompetitionGroupsService, useValue: competitionGroups },
-        { provide: CoachesService, useValue: coaches },
-        { provide: TeamsService, useValue: teams },
-        { provide: PlayersService, useValue: players },
+        {
+          provide: CompetitionGroupsQueriesService,
+          useValue: competitionGroups,
+        },
+        { provide: CoachesQueriesService, useValue: coaches },
+        { provide: TeamsQueriesService, useValue: teams },
+        { provide: PlayersQueriesService, useValue: players },
         { provide: StarPlayersService, useValue: starPlayers },
-        { provide: PositionsService, useValue: positions },
+        { provide: PositionsQueriesService, useValue: positions },
         { provide: TrophiesService, useValue: trophies },
       ],
     }).compile();

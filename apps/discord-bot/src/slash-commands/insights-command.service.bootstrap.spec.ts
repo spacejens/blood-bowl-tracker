@@ -142,8 +142,8 @@ describe('InsightsCommandService — bootstrap and autocomplete', () => {
   });
 
   it('returns competition autocomplete choices labelled "<name> (<league>)" with id values', async () => {
-    const { service, competitions } = harness;
-    competitions.searchByNamePrefix.mockResolvedValue([
+    const { service, competitionsQueries } = harness;
+    competitionsQueries.searchByNamePrefix.mockResolvedValue([
       { id: 30, name: 'Major Season 24', leagueName: 'The Major' },
     ]);
     const choices = await service.autocomplete(

@@ -1,16 +1,18 @@
 import type {
   PositionCharacteristics,
-  PositionHeader,
   PositionKeyword,
   PositionStartingSkill,
-  PositionTopPlayer,
 } from '@blood-bowl-tracker/game-data';
 import {
   PositionRulesSetKeywordsService,
   PositionRulesSetSkillsService,
   PositionRulesSetsService,
-  PositionsService,
 } from '@blood-bowl-tracker/game-data';
+import type {
+  PositionHeader,
+  PositionTopPlayer,
+} from '@blood-bowl-tracker/game-data-queries';
+import { PositionsQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -69,7 +71,7 @@ const TOP_PLAYERS_TOP_ENTRIES = 5;
 @Injectable()
 export class PositionDeepdiveService {
   constructor(
-    private readonly positions: PositionsService,
+    private readonly positionsQueries: PositionsQueriesService,
     private readonly positionRulesSets: PositionRulesSetsService,
     private readonly positionRulesSetSkills: PositionRulesSetSkillsService,
     private readonly positionRulesSetKeywords: PositionRulesSetKeywordsService,
@@ -84,7 +86,10 @@ export class PositionDeepdiveService {
 
   async resolve(positionId: number): Promise<string | InteractionReplyOptions> {
     const position: PositionHeader | undefined | null =
-      await this.databaseTimeout.run(this.positions.findById(positionId), null);
+      await this.databaseTimeout.run(
+        this.positionsQueries.findById(positionId),
+        null,
+      );
     if (position === null) {
       return DEEPDIVE_POSITION_TIMEOUT_MESSAGE;
     }
@@ -128,7 +133,7 @@ export class PositionDeepdiveService {
     }
 
     const playerCount: number | null = await this.databaseTimeout.run(
-      this.positions.countPlayers(positionId),
+      this.positionsQueries.countPlayers(positionId),
       null,
     );
     if (playerCount === null) {
@@ -137,7 +142,10 @@ export class PositionDeepdiveService {
 
     const topPlayers: PositionTopPlayer[] | null =
       await this.databaseTimeout.run(
-        this.positions.listTopPlayersBySpp(positionId, MAX_LEADERBOARD_ENTRIES),
+        this.positionsQueries.listTopPlayersBySpp(
+          positionId,
+          MAX_LEADERBOARD_ENTRIES,
+        ),
         null,
       );
     if (topPlayers === null) {

@@ -1,7 +1,5 @@
 import type { FactScope } from '@blood-bowl-tracker/game-data';
 import {
-  CoachesService,
-  CompetitionGroupsService,
   CompetitionsService,
   ErasService,
   ExternalSystemsService,
@@ -9,14 +7,19 @@ import {
   KeywordsService,
   LeaguesService,
   MatchesService,
-  PlayersService,
-  PositionsService,
-  RacesService,
   RulesSetsService,
-  SkillsService,
-  TeamsService,
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
+import {
+  CoachesQueriesService,
+  CompetitionGroupsQueriesService,
+  CompetitionsQueriesService,
+  PlayersQueriesService,
+  PositionsQueriesService,
+  RacesQueriesService,
+  SkillsQueriesService,
+  TeamsQueriesService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -48,7 +51,8 @@ interface ServiceOverrides {
   coaches?: Partial<Record<string, unknown>>;
   eras?: Partial<Record<string, unknown>>;
   competitions?: Partial<Record<string, unknown>>;
-  competitionGroups?: Partial<Record<string, unknown>>;
+  competitionsQueries?: Partial<Record<string, unknown>>;
+  competitionGroupsQueries?: Partial<Record<string, unknown>>;
   trophies?: Partial<Record<string, unknown>>;
   teams?: Partial<Record<string, unknown>>;
   players?: Partial<Record<string, unknown>>;
@@ -82,15 +86,15 @@ async function makeService(
         useValue: overrides.rulesSets ?? {},
       },
       {
-        provide: RacesService,
+        provide: RacesQueriesService,
         useValue: overrides.races ?? {},
       },
       {
-        provide: PositionsService,
+        provide: PositionsQueriesService,
         useValue: overrides.positions ?? {},
       },
       {
-        provide: SkillsService,
+        provide: SkillsQueriesService,
         useValue: overrides.skills ?? {},
       },
       {
@@ -98,7 +102,7 @@ async function makeService(
         useValue: overrides.keywords ?? {},
       },
       {
-        provide: CoachesService,
+        provide: CoachesQueriesService,
         useValue: overrides.coaches ?? {},
       },
       {
@@ -110,19 +114,23 @@ async function makeService(
         useValue: overrides.competitions ?? {},
       },
       {
-        provide: CompetitionGroupsService,
-        useValue: overrides.competitionGroups ?? {},
+        provide: CompetitionsQueriesService,
+        useValue: overrides.competitionsQueries ?? {},
+      },
+      {
+        provide: CompetitionGroupsQueriesService,
+        useValue: overrides.competitionGroupsQueries ?? {},
       },
       {
         provide: TrophiesService,
         useValue: overrides.trophies ?? {},
       },
       {
-        provide: TeamsService,
+        provide: TeamsQueriesService,
         useValue: overrides.teams ?? {},
       },
       {
-        provide: PlayersService,
+        provide: PlayersQueriesService,
         useValue: overrides.players ?? {},
       },
       {
@@ -148,13 +156,13 @@ function makeAllTimeService(
     keywords: { countAll: vi.fn().mockResolvedValue(48) },
     coaches: { countAll: vi.fn().mockResolvedValue(42) },
     eras: { countAll: vi.fn().mockResolvedValue(15) },
-    competitions: {
+    competitionsQueries: {
       countAll: vi.fn().mockResolvedValue(12),
       countByType: vi.fn((t: string) =>
         Promise.resolve(t === 'season' ? 8 : 4),
       ),
     },
-    competitionGroups: { countAll: vi.fn().mockResolvedValue(14) },
+    competitionGroupsQueries: { countAll: vi.fn().mockResolvedValue(14) },
     trophies: { countAll: vi.fn().mockResolvedValue(58) },
     teams: { countAll: vi.fn().mockResolvedValue(87) },
     players: { countAll: vi.fn().mockResolvedValue(640) },
@@ -199,7 +207,7 @@ describe('StatsSummaryFactsService.resolve', () => {
 
   it('uses singular nouns when there is exactly one season and one cup', async () => {
     const service = await makeAllTimeService({
-      competitions: {
+      competitionsQueries: {
         countAll: vi.fn().mockResolvedValue(2),
         countByType: vi.fn().mockResolvedValue(1),
       },
@@ -244,13 +252,13 @@ function makeEraService(
     keywords: { countByEra: vi.fn().mockResolvedValue(31) },
     coaches: { countByEra: vi.fn().mockResolvedValue(6) },
     eras: { getRulesSetNames: vi.fn().mockResolvedValue(['BB2020', 'BB2016']) },
-    competitions: {
+    competitionsQueries: {
       countByEra: vi.fn().mockResolvedValue(5),
       countByType: vi.fn((t: string) =>
         Promise.resolve(t === 'season' ? 3 : 2),
       ),
     },
-    competitionGroups: { countByEra: vi.fn().mockResolvedValue(3) },
+    competitionGroupsQueries: { countByEra: vi.fn().mockResolvedValue(3) },
     trophies: { countByEra: vi.fn().mockResolvedValue(12) },
     teams: { countByEra: vi.fn().mockResolvedValue(12) },
     players: { countByEra: vi.fn().mockResolvedValue(140) },
@@ -322,7 +330,7 @@ describe('StatsSummaryFactsService.resolve era-filtered', () => {
     const service = await makeEraService({
       skills: { countByEra: skillsCount },
       keywords: { countByEra: keywordsCount },
-      competitionGroups: { countByEra: groupsCount },
+      competitionGroupsQueries: { countByEra: groupsCount },
       trophies: { countByEra: trophiesCount },
     });
 
@@ -373,7 +381,7 @@ function makeCompetitionService(
         eraId: 5,
       }),
     },
-    competitionGroups: {},
+    competitionGroupsQueries: {},
     trophies: { countByCompetition: vi.fn().mockResolvedValue(4) },
     teams: { countByCompetition: vi.fn().mockResolvedValue(8) },
     players: { countByCompetition: vi.fn().mockResolvedValue(90) },
@@ -509,13 +517,13 @@ function makeLeagueService(
       countByLeague: vi.fn().mockResolvedValue(4),
       getRulesSetNamesByLeague: vi.fn().mockResolvedValue(['BB2016', 'BB2020']),
     },
-    competitions: {
+    competitionsQueries: {
       countByLeague: vi.fn().mockResolvedValue(9),
       countByType: vi.fn((t: string) =>
         Promise.resolve(t === 'season' ? 6 : 3),
       ),
     },
-    competitionGroups: { countByLeague: vi.fn().mockResolvedValue(5) },
+    competitionGroupsQueries: { countByLeague: vi.fn().mockResolvedValue(5) },
     trophies: { countByLeague: vi.fn().mockResolvedValue(21) },
     teams: { countByLeague: vi.fn().mockResolvedValue(22) },
     players: { countByLeague: vi.fn().mockResolvedValue(260) },
@@ -592,7 +600,7 @@ describe('StatsSummaryFactsService.resolve league-filtered', () => {
     const service = await makeLeagueService({
       skills: { countByLeague: skillsCount },
       keywords: { countByLeague: keywordsCount },
-      competitionGroups: { countByLeague: groupsCount },
+      competitionGroupsQueries: { countByLeague: groupsCount },
       trophies: { countByLeague: trophiesCount },
     });
 

@@ -1,5 +1,5 @@
 import type { MatchCategory } from '@blood-bowl-tracker/domain-enums';
-import { TeamsService } from '@blood-bowl-tracker/game-data';
+import { TeamsStatisticsService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -25,7 +25,7 @@ interface MadeService {
 }
 
 async function makeService(
-  teams: TeamsService,
+  statistics: TeamsStatisticsService,
   teamContext: MockProxy<TeamContextService> = mock<TeamContextService>(),
 ): Promise<MadeService> {
   const leaderboard = mock<LeaderboardService>();
@@ -34,7 +34,7 @@ async function makeService(
     providers: [
       ExpensiveMistakesToplistService,
       NumberFormatterService,
-      { provide: TeamsService, useValue: teams },
+      { provide: TeamsStatisticsService, useValue: statistics },
       { provide: LeaderboardService, useValue: leaderboard },
       { provide: MatchCategoryLabelService, useValue: categoryLabel },
       { provide: TeamContextService, useValue: teamContext },
@@ -77,9 +77,9 @@ describe('ExpensiveMistakesToplistService.resolveTotal', () => {
   // ExpensiveMistakesToplistService itself owns: the embed title, its
   // gp-suffixed formatRow closure, and its per-row deepdive button id.
   it('wires the embed title, gp-suffixed formatRow, and per-row deepdive button id', async () => {
-    const teams = mock<TeamsService>();
-    teams.sumExpensiveMistakesByTeam.mockResolvedValue([]);
-    const { service, leaderboard } = await makeService(teams);
+    const statistics = mock<TeamsStatisticsService>();
+    statistics.sumExpensiveMistakesByTeam.mockResolvedValue([]);
+    const { service, leaderboard } = await makeService(statistics);
     const canned = { embeds: [{ title: 'canned', description: 'canned' }] };
     leaderboard.resolveToplist.mockResolvedValueOnce(canned);
     const result = await service.resolveTotal({});
@@ -108,9 +108,9 @@ describe('ExpensiveMistakesToplistService.resolveTotal', () => {
   });
 
   it('passes era and competition ids through to the query', async () => {
-    const teams = mock<TeamsService>();
-    teams.sumExpensiveMistakesByTeam.mockResolvedValue([]);
-    const { service, leaderboard } = await makeService(teams);
+    const statistics = mock<TeamsStatisticsService>();
+    statistics.sumExpensiveMistakesByTeam.mockResolvedValue([]);
+    const { service, leaderboard } = await makeService(statistics);
     leaderboard.resolveToplist.mockImplementation(async (options) => {
       await options.fetchRows(TOPLIST_FETCH_LIMIT);
       return 'canned';
@@ -119,16 +119,16 @@ describe('ExpensiveMistakesToplistService.resolveTotal', () => {
       eraId: 20,
       competitionId: 30,
     });
-    expect(teams.sumExpensiveMistakesByTeam).toHaveBeenCalledWith(
+    expect(statistics.sumExpensiveMistakesByTeam).toHaveBeenCalledWith(
       { eraId: 20, competitionId: 30 },
       TOPLIST_FETCH_LIMIT,
     );
   });
 
   it('configures the toplist-specific timeout message and returns it verbatim on timeout', async () => {
-    const teams = mock<TeamsService>();
-    teams.sumExpensiveMistakesByTeam.mockResolvedValue([]);
-    const { service, leaderboard } = await makeService(teams);
+    const statistics = mock<TeamsStatisticsService>();
+    statistics.sumExpensiveMistakesByTeam.mockResolvedValue([]);
+    const { service, leaderboard } = await makeService(statistics);
     leaderboard.resolveToplist.mockResolvedValueOnce(
       TEAM_TOPLIST_TIMEOUT_MESSAGE,
     );
@@ -141,13 +141,13 @@ describe('ExpensiveMistakesToplistService.resolveTotal', () => {
 
   it('decorates every fetched row with both race and coach context', async () => {
     const rawRows = [{ teamId: 1, name: '40 grinders', count: 150000 }];
-    const teams = mock<TeamsService>();
-    teams.sumExpensiveMistakesByTeam.mockResolvedValue(rawRows);
+    const statistics = mock<TeamsStatisticsService>();
+    statistics.sumExpensiveMistakesByTeam.mockResolvedValue(rawRows);
     const teamContext = mock<TeamContextService>();
     teamContext.attachSuffixes.mockResolvedValue(
       rawRows.map((row) => ({ ...row, contextSuffix: ' (Orc, Skarsnik)' })),
     );
-    const { service, leaderboard } = await makeService(teams, teamContext);
+    const { service, leaderboard } = await makeService(statistics, teamContext);
     let fetched: unknown;
     leaderboard.resolveToplist.mockImplementation(async (options) => {
       fetched = await options.fetchRows(TOPLIST_FETCH_LIMIT);
@@ -166,9 +166,9 @@ describe('ExpensiveMistakesToplistService.resolveTotal', () => {
   });
 
   it('renders the context suffix between the name and the gp amount', async () => {
-    const teams = mock<TeamsService>();
-    teams.sumExpensiveMistakesByTeam.mockResolvedValue([]);
-    const { service, leaderboard } = await makeService(teams);
+    const statistics = mock<TeamsStatisticsService>();
+    statistics.sumExpensiveMistakesByTeam.mockResolvedValue([]);
+    const { service, leaderboard } = await makeService(statistics);
     leaderboard.resolveToplist.mockResolvedValueOnce('canned');
     await service.resolveTotal({});
     const options = leaderboard.resolveToplist.mock
@@ -193,9 +193,9 @@ describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
   // ExpensiveMistakesToplistService itself owns: the embed title, its
   // gp-and-date formatRow closure, and its per-row deepdive button id.
   it('wires the embed title, gp-and-date formatRow, and per-row deepdive button id', async () => {
-    const teams = mock<TeamsService>();
-    teams.listBiggestExpensiveMistakes.mockResolvedValue([]);
-    const { service, leaderboard } = await makeService(teams);
+    const statistics = mock<TeamsStatisticsService>();
+    statistics.listBiggestExpensiveMistakes.mockResolvedValue([]);
+    const { service, leaderboard } = await makeService(statistics);
     const canned = { embeds: [{ title: 'canned', description: 'canned' }] };
     leaderboard.resolveToplist.mockResolvedValueOnce(canned);
     const result = await service.resolveBiggest({});
@@ -228,9 +228,9 @@ describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
   });
 
   it('passes era and competition ids through to the query', async () => {
-    const teams = mock<TeamsService>();
-    teams.listBiggestExpensiveMistakes.mockResolvedValue([]);
-    const { service, leaderboard } = await makeService(teams);
+    const statistics = mock<TeamsStatisticsService>();
+    statistics.listBiggestExpensiveMistakes.mockResolvedValue([]);
+    const { service, leaderboard } = await makeService(statistics);
     leaderboard.resolveToplist.mockImplementation(async (options) => {
       await options.fetchRows(TOPLIST_FETCH_LIMIT);
       return 'canned';
@@ -239,16 +239,16 @@ describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
       eraId: 20,
       competitionId: 30,
     });
-    expect(teams.listBiggestExpensiveMistakes).toHaveBeenCalledWith(
+    expect(statistics.listBiggestExpensiveMistakes).toHaveBeenCalledWith(
       { eraId: 20, competitionId: 30 },
       TOPLIST_FETCH_LIMIT,
     );
   });
 
   it('configures the toplist-specific timeout message and returns it verbatim on timeout', async () => {
-    const teams = mock<TeamsService>();
-    teams.listBiggestExpensiveMistakes.mockResolvedValue([]);
-    const { service, leaderboard } = await makeService(teams);
+    const statistics = mock<TeamsStatisticsService>();
+    statistics.listBiggestExpensiveMistakes.mockResolvedValue([]);
+    const { service, leaderboard } = await makeService(statistics);
     leaderboard.resolveToplist.mockResolvedValueOnce(
       TEAM_TOPLIST_TIMEOUT_MESSAGE,
     );
@@ -260,9 +260,10 @@ describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
   });
 
   it('appends the category to the date suffix when it is not normal', async () => {
-    const teams = mock<TeamsService>();
-    teams.listBiggestExpensiveMistakes.mockResolvedValue([]);
-    const { service, leaderboard, categoryLabel } = await makeService(teams);
+    const statistics = mock<TeamsStatisticsService>();
+    statistics.listBiggestExpensiveMistakes.mockResolvedValue([]);
+    const { service, leaderboard, categoryLabel } =
+      await makeService(statistics);
     leaderboard.resolveToplist.mockResolvedValueOnce('canned');
     categoryLabel.label.mockReturnValue('Season Final');
     await service.resolveBiggest({});
@@ -280,9 +281,9 @@ describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
   });
 
   it('leaves the category out of the suffix when it is normal', async () => {
-    const teams = mock<TeamsService>();
-    teams.listBiggestExpensiveMistakes.mockResolvedValue([]);
-    const { service, leaderboard } = await makeService(teams);
+    const statistics = mock<TeamsStatisticsService>();
+    statistics.listBiggestExpensiveMistakes.mockResolvedValue([]);
+    const { service, leaderboard } = await makeService(statistics);
     leaderboard.resolveToplist.mockResolvedValueOnce('canned');
     await service.resolveBiggest({});
     const formatRow = capturedFormatRow(leaderboard);
@@ -308,13 +309,13 @@ describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
         category: 'normal' as const,
       },
     ];
-    const teams = mock<TeamsService>();
-    teams.listBiggestExpensiveMistakes.mockResolvedValue(rawRows);
+    const statistics = mock<TeamsStatisticsService>();
+    statistics.listBiggestExpensiveMistakes.mockResolvedValue(rawRows);
     const teamContext = mock<TeamContextService>();
     teamContext.attachSuffixes.mockResolvedValue(
       rawRows.map((row) => ({ ...row, contextSuffix: ' (Orc, Skarsnik)' })),
     );
-    const { service, leaderboard } = await makeService(teams, teamContext);
+    const { service, leaderboard } = await makeService(statistics, teamContext);
     let fetched: unknown;
     leaderboard.resolveToplist.mockImplementation(async (options) => {
       fetched = await options.fetchRows(TOPLIST_FETCH_LIMIT);
@@ -333,9 +334,9 @@ describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
   });
 
   it('renders the context suffix between the name and the gp amount, before the date parenthetical', async () => {
-    const teams = mock<TeamsService>();
-    teams.listBiggestExpensiveMistakes.mockResolvedValue([]);
-    const { service, leaderboard } = await makeService(teams);
+    const statistics = mock<TeamsStatisticsService>();
+    statistics.listBiggestExpensiveMistakes.mockResolvedValue([]);
+    const { service, leaderboard } = await makeService(statistics);
     leaderboard.resolveToplist.mockResolvedValueOnce('canned');
     await service.resolveBiggest({});
     const formatRow = capturedFormatRow(leaderboard);

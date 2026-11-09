@@ -1,8 +1,6 @@
 import type { FactScope } from '@blood-bowl-tracker/game-data';
-import {
-  FACT_SCOPE_ALL_TIME,
-  PlayersService,
-} from '@blood-bowl-tracker/game-data';
+import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
+import { PlayersQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -31,7 +29,7 @@ interface MadeService {
 }
 
 async function makeService(
-  players: PlayersService,
+  players: PlayersQueriesService,
   playerContext: MockProxy<PlayerContextService> = passthroughPlayerContext(),
 ): Promise<MadeService> {
   const toplist = mockToplistFactory<PlayerCountMethod, PlayerRow>();
@@ -39,7 +37,7 @@ async function makeService(
     providers: [
       PlayerToplistService,
       NumberFormatterService,
-      { provide: PlayersService, useValue: players },
+      { provide: PlayersQueriesService, useValue: players },
       { provide: PlayerContextService, useValue: playerContext },
       { provide: ToplistFactoryService, useValue: toplist.factory },
     ],
@@ -235,7 +233,7 @@ describe.each(cases)(
     // entityLink, messages, decorateRows, formatRow) and the resolver it
     // delegates each public method to.
     it('wires the embed title and per-row deepdive button id', async () => {
-      const players = mock<PlayersService>();
+      const players = mock<PlayersQueriesService>();
       const { service, toplist } = await makeService(players);
       const canned = {
         embeds: [{ title: 'canned', description: 'canned' }],
@@ -252,7 +250,7 @@ describe.each(cases)(
     });
 
     it('passes the era scope through to the factory resolver', async () => {
-      const players = mock<PlayersService>();
+      const players = mock<PlayersQueriesService>();
       const { service, toplist } = await makeService(players);
       await resolve(service, { eraId: 20 });
       expect(toplist.resolver(method)).toHaveBeenCalledWith(players, {
@@ -262,7 +260,7 @@ describe.each(cases)(
 
     if (competitionRows) {
       it('passes the competition scope through to the factory resolver', async () => {
-        const players = mock<PlayersService>();
+        const players = mock<PlayersQueriesService>();
         const { service, toplist } = await makeService(players);
         await resolve(service, { competitionId: 30 });
         expect(toplist.resolver(method)).toHaveBeenCalledWith(players, {
@@ -272,7 +270,7 @@ describe.each(cases)(
     }
 
     it('configures the toplist-specific timeout message and returns the resolver reply verbatim', async () => {
-      const players = mock<PlayersService>();
+      const players = mock<PlayersQueriesService>();
       const { service, toplist } = await makeService(players);
       toplist
         .resolver(method)
@@ -285,7 +283,7 @@ describe.each(cases)(
     });
 
     it('decorates every fetched row with position, team, race, era and coach when the toplist is not era-scoped', async () => {
-      const players = mock<PlayersService>();
+      const players = mock<PlayersQueriesService>();
       const playerContext = mock<PlayerContextService>();
       playerContext.attachSuffixes.mockResolvedValue(
         rows.map((row) => ({ ...row, contextSuffix: ' (decorated)' })),
@@ -312,7 +310,7 @@ describe.each(cases)(
     });
 
     it('leaves the era out of the row context when the toplist is era-scoped', async () => {
-      const players = mock<PlayersService>();
+      const players = mock<PlayersQueriesService>();
       const playerContext = mock<PlayerContextService>();
       playerContext.attachSuffixes.mockResolvedValue(
         eraRows.map((row) => ({ ...row, contextSuffix: '' })),
@@ -330,7 +328,7 @@ describe.each(cases)(
     });
 
     it('renders each row with its context suffix between the name and the count', async () => {
-      const players = mock<PlayersService>();
+      const players = mock<PlayersQueriesService>();
       const { toplist } = await makeService(players);
       expect(
         toplist.options().formatRow?.({
@@ -344,7 +342,7 @@ describe.each(cases)(
     });
 
     it('renders a row with no known context without stray parentheses', async () => {
-      const players = mock<PlayersService>();
+      const players = mock<PlayersQueriesService>();
       const { toplist } = await makeService(players);
       expect(
         toplist
@@ -357,7 +355,7 @@ describe.each(cases)(
 
 describe('PlayerToplistService row formatting', () => {
   it('groups the count with thousands separators', async () => {
-    const { toplist } = await makeService(mock<PlayersService>());
+    const { toplist } = await makeService(mock<PlayersQueriesService>());
     expect(
       toplist.options().formatRow?.({
         ...cases[0].rows[0],

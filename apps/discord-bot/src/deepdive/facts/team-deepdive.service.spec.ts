@@ -38,6 +38,7 @@ import {
   makePlayerRowButton,
   makeService,
   makeTeams,
+  makeTeamStatistics,
   makeTrophyAwards,
   mvp,
   spikeCup,
@@ -82,6 +83,8 @@ describe('TeamDeepdiveService', () => {
       teams: makeTeams({
         team: grinders,
         span: { start: '2021-09-01', end: '2023-06-10' },
+      }),
+      teamStatistics: makeTeamStatistics({
         topPlayers: [
           {
             playerId: 5,
@@ -164,8 +167,8 @@ describe('TeamDeepdiveService', () => {
       teams: makeTeams({
         team: grinders,
         span: { start: '2024-03-16', end: '2024-03-16' },
-        topPlayers: [],
       }),
+      teamStatistics: makeTeamStatistics({ topPlayers: [] }),
       leaderboard: passthroughLeaderboard(),
     });
     const result = (await service.resolve(1)) as {
@@ -194,6 +197,8 @@ describe('TeamDeepdiveService', () => {
           { id: 4, name: 'BB2020' },
         ],
         span: { start: '2021-09-01', end: '2023-06-10' },
+      }),
+      teamStatistics: makeTeamStatistics({
         topPlayers: [
           {
             playerId: 5,
@@ -275,6 +280,8 @@ describe('TeamDeepdiveService', () => {
         team: grinders,
         eras: [],
         span: { start: '2021-09-01', end: '2023-06-10' },
+      }),
+      teamStatistics: makeTeamStatistics({
         topPlayers: [
           {
             playerId: 5,
@@ -361,6 +368,8 @@ describe('TeamDeepdiveService', () => {
       teams: makeTeams({
         team: grinders,
         span: { start: '2021-09-01', end: '2023-06-10' },
+      }),
+      teamStatistics: makeTeamStatistics({
         topPlayers: [
           {
             playerId: 1,
@@ -392,6 +401,8 @@ describe('TeamDeepdiveService', () => {
       teams: makeTeams({
         team: grinders,
         span: { start: '2021-09-01', end: '2023-06-10' },
+      }),
+      teamStatistics: makeTeamStatistics({
         topPlayers: [
           {
             playerId: 1,
@@ -414,9 +425,10 @@ describe('TeamDeepdiveService', () => {
   });
 
   it('shows race, coach and the no-matches message, skipping the top-players section, but still renders race/coach components', async () => {
-    const teams = makeTeams({ team: grinders, span: undefined });
+    const teamStatistics = makeTeamStatistics({});
     const { service } = await makeService({
-      teams,
+      teams: makeTeams({ team: grinders, span: undefined }),
+      teamStatistics,
       leaderboard: passthroughLeaderboard(),
     });
     const result = await service.resolve(1);
@@ -454,7 +466,7 @@ describe('TeamDeepdiveService', () => {
         },
       ],
     });
-    expect(teams.getTopPlayersByTotalSpp).not.toHaveBeenCalled();
+    expect(teamStatistics.getTopPlayersByTotalSpp).not.toHaveBeenCalled();
   });
 
   // The no-matches early return builds its own components (header-only, since
@@ -616,6 +628,8 @@ describe('TeamDeepdiveService', () => {
       teams: makeTeams({
         team: grinders,
         span: { start: '2021-09-01', end: '2023-06-10' },
+      }),
+      teamStatistics: makeTeamStatistics({
         topPlayers: [
           {
             playerId: 5,
@@ -674,6 +688,8 @@ describe('TeamDeepdiveService', () => {
           teams: makeTeams({
             team: grinders,
             span: { start: '2021-09-01', end: '2023-06-10' },
+          }),
+          teamStatistics: makeTeamStatistics({
             topPlayers: [
               {
                 playerId: 5,
@@ -700,6 +716,8 @@ describe('TeamDeepdiveService', () => {
       teams: makeTeams({
         team: grinders,
         span: { start: '2021-09-01', end: '2023-06-10' },
+      }),
+      teamStatistics: makeTeamStatistics({
         topPlayers: [
           {
             playerId: 5,

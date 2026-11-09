@@ -1,19 +1,19 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
+import {
+  CASUALTY_SUFFERED_TYPES,
+  DEATH_SUFFERED_TYPES,
+  FACT_SCOPE_ALL_TIME,
+  LASTING_INJURY_SUFFERED_TYPES,
+  SERIOUS_INJURY_SUFFERED_TYPES,
+} from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { PlayersService } from '../players/players.service';
-import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
+import { PlayersQueriesService } from '../players/players-queries.service';
 import { MatchEventCountsService } from '../shared/match-event-counts.service';
-import {
-  CASUALTY_SUFFERED_TYPES,
-  DEATH_SUFFERED_TYPES,
-  LASTING_INJURY_SUFFERED_TYPES,
-  SERIOUS_INJURY_SUFFERED_TYPES,
-} from '../shared/match-event-types';
 import { MatchOutcomeCountsService } from '../shared/match-outcome-counts.service';
 import { TrophyAwardCountsService } from '../shared/trophy-award-counts.service';
 import { TeamsStatisticsService } from './teams-statistics.service';
@@ -22,20 +22,20 @@ describe('TeamsStatisticsService (suffered consequences & expensive mistakes)', 
   let service: TeamsStatisticsService;
   let matchEventCounts: MockProxy<MatchEventCountsService>;
   let matchOutcomeCounts: MockProxy<MatchOutcomeCountsService>;
-  let players: MockProxy<PlayersService>;
+  let players: MockProxy<PlayersQueriesService>;
   let trophyAwardCounts: MockProxy<TrophyAwardCountsService>;
 
   beforeEach(async () => {
     matchEventCounts = mock<MatchEventCountsService>();
     matchOutcomeCounts = mock<MatchOutcomeCountsService>();
-    players = mock<PlayersService>();
+    players = mock<PlayersQueriesService>();
     trophyAwardCounts = mock<TrophyAwardCountsService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
         TeamsStatisticsService,
         { provide: MatchEventCountsService, useValue: matchEventCounts },
         { provide: MatchOutcomeCountsService, useValue: matchOutcomeCounts },
-        { provide: PlayersService, useValue: players },
+        { provide: PlayersQueriesService, useValue: players },
         { provide: TrophyAwardCountsService, useValue: trophyAwardCounts },
         { provide: DB, useValue: mock<Db>() },
       ],

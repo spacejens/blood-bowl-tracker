@@ -1,8 +1,5 @@
-import {
-  CompetitionGroupsService,
-  LeaguesService,
-  TrophiesService,
-} from '@blood-bowl-tracker/game-data';
+import { LeaguesService, TrophiesService } from '@blood-bowl-tracker/game-data';
+import { CompetitionGroupsQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { ButtonStyle, ComponentType } from 'discord.js';
 import { describe, expect, it } from 'vitest';
@@ -49,8 +46,8 @@ function makeTrophies(rows: Trophy[]): MockProxy<TrophiesService> {
   return trophies;
 }
 
-function makeGroups(rows: Group[]): MockProxy<CompetitionGroupsService> {
-  const competitionGroups = mock<CompetitionGroupsService>();
+function makeGroups(rows: Group[]): MockProxy<CompetitionGroupsQueriesService> {
+  const competitionGroups = mock<CompetitionGroupsQueriesService>();
 
   competitionGroups.listByLeague.mockResolvedValue(rows);
   return competitionGroups;
@@ -59,7 +56,7 @@ function makeGroups(rows: Group[]): MockProxy<CompetitionGroupsService> {
 async function makeService(options: {
   leagues: MockProxy<LeaguesService>;
   trophies?: MockProxy<TrophiesService>;
-  competitionGroups?: MockProxy<CompetitionGroupsService>;
+  competitionGroups?: MockProxy<CompetitionGroupsQueriesService>;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   entityComponents?: MockProxy<EntityComponentsService>;
 }): Promise<{
@@ -85,7 +82,7 @@ async function makeService(options: {
     providers: [
       LeagueDeepdiveService,
       { provide: LeaguesService, useValue: leagues },
-      { provide: CompetitionGroupsService, useValue: competitionGroups },
+      { provide: CompetitionGroupsQueriesService, useValue: competitionGroups },
       { provide: TrophiesService, useValue: trophies },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },

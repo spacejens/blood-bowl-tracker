@@ -1,7 +1,5 @@
-import {
-  CoachesService,
-  FACT_SCOPE_ALL_TIME,
-} from '@blood-bowl-tracker/game-data';
+import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
+import { CoachesQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -47,14 +45,16 @@ interface MadeService {
   toplist: ToplistFactoryMock<CoachFactoryMethod, CoachRow>;
 }
 
-async function makeService(coaches: CoachesService): Promise<MadeService> {
+async function makeService(
+  coaches: CoachesQueriesService,
+): Promise<MadeService> {
   const leaderboard = mock<LeaderboardService>();
   const numbers = mock<NumberFormatterService>();
   const toplist = mockToplistFactory<CoachFactoryMethod, CoachRow>();
   const moduleRef = await Test.createTestingModule({
     providers: [
       CoachToplistService,
-      { provide: CoachesService, useValue: coaches },
+      { provide: CoachesQueriesService, useValue: coaches },
       { provide: LeaderboardService, useValue: leaderboard },
       { provide: NumberFormatterService, useValue: numbers },
       { provide: ToplistFactoryService, useValue: toplist.factory },
@@ -217,7 +217,7 @@ describe.each(factoryCases)(
     // CoachToplistService itself owns: the options it configures and the
     // resolver it delegates each public method to.
     it('wires the embed title and per-row deepdive button id', async () => {
-      const coaches = mock<CoachesService>();
+      const coaches = mock<CoachesQueriesService>();
       const { service, toplist } = await makeService(coaches);
       const canned = {
         embeds: [{ title: 'canned', description: 'canned' }],
@@ -234,7 +234,7 @@ describe.each(factoryCases)(
     });
 
     it('delegates to the factory resolver for its own count method, with the coaches service and scope', async () => {
-      const coaches = mock<CoachesService>();
+      const coaches = mock<CoachesQueriesService>();
       const { service, toplist } = await makeService(coaches);
       await resolve(service);
       expect(toplist.resolver(method)).toHaveBeenCalledWith(
@@ -244,7 +244,7 @@ describe.each(factoryCases)(
     });
 
     it('configures the toplist-specific timeout and no-data messages and returns the resolver reply verbatim', async () => {
-      const coaches = mock<CoachesService>();
+      const coaches = mock<CoachesQueriesService>();
       const { service, toplist } = await makeService(coaches);
       toplist
         .resolver(method)
@@ -268,7 +268,7 @@ describe.each(handWrittenCases)(
     // the factory's (scope, limit) shape), so they still call the mocked
     // LeaderboardService directly.
     it('wires the embed title and per-row deepdive button id', async () => {
-      const coaches = mock<CoachesService>();
+      const coaches = mock<CoachesQueriesService>();
       coaches[method].mockResolvedValue(rows);
       const { service, leaderboard } = await makeService(coaches);
       const canned = {
@@ -287,7 +287,7 @@ describe.each(handWrittenCases)(
     });
 
     it('binds fetchRows to a call passing the fetch limit', async () => {
-      const coaches = mock<CoachesService>();
+      const coaches = mock<CoachesQueriesService>();
       const queryFn = coaches[method];
       queryFn.mockResolvedValue(rows);
       const { service, leaderboard } = await makeService(coaches);
@@ -300,7 +300,7 @@ describe.each(handWrittenCases)(
     });
 
     it('configures the toplist-specific timeout message and returns it verbatim on timeout', async () => {
-      const coaches = mock<CoachesService>();
+      const coaches = mock<CoachesQueriesService>();
       coaches[method].mockResolvedValue(rows);
       const { service, leaderboard } = await makeService(coaches);
       leaderboard.resolveToplist.mockResolvedValueOnce(
@@ -319,7 +319,7 @@ describe.each(handWrittenCases)(
 
 describe('CoachToplistService.resolveCompetitionsPlayed', () => {
   it('passes the era scope through to the factory resolver', async () => {
-    const coaches = mock<CoachesService>();
+    const coaches = mock<CoachesQueriesService>();
     const { service, toplist } = await makeService(coaches);
     await service.resolveCompetitionsPlayed({ eraId: 20 });
     expect(toplist.resolver('countCompetitionsByCoach')).toHaveBeenCalledWith(
@@ -331,7 +331,7 @@ describe('CoachToplistService.resolveCompetitionsPlayed', () => {
 
 describe('CoachToplistService.resolveErasActive', () => {
   it('passes the fetch limit through to the query', async () => {
-    const coaches = mock<CoachesService>();
+    const coaches = mock<CoachesQueriesService>();
     coaches.countErasByCoach.mockResolvedValue([]);
     const { service, leaderboard } = await makeService(coaches);
     leaderboard.resolveToplist.mockImplementation(async (options) => {
@@ -346,9 +346,9 @@ describe('CoachToplistService.resolveErasActive', () => {
 describe('CoachToplistService.resolveFoulsCommitted', () => {
   it('passes the whole scope through to the factory resolver', async () => {
     // The competitionId is forwarded verbatim here on purpose: dropping it is
-    // CoachesService.countFoulsCommittedByCoach's responsibility, covered in
+    // CoachesQueriesService.countFoulsCommittedByCoach's responsibility, covered in
     // its own spec.
-    const coaches = mock<CoachesService>();
+    const coaches = mock<CoachesQueriesService>();
     const { service, toplist } = await makeService(coaches);
     await service.resolveFoulsCommitted({ leagueId: 9, eraId: 20 });
     expect(toplist.resolver('countFoulsCommittedByCoach')).toHaveBeenCalledWith(
@@ -360,7 +360,7 @@ describe('CoachToplistService.resolveFoulsCommitted', () => {
 
 describe('CoachToplistService time-between-matches rendering', () => {
   it('renders each row through the number formatter', async () => {
-    const coaches = mock<CoachesService>();
+    const coaches = mock<CoachesQueriesService>();
     coaches.getGapBetweenMatchesByCoachDescending.mockResolvedValue([]);
     const { service, leaderboard, numbers } = await makeService(coaches);
     numbers.counted.mockReturnValue('91 days');
@@ -380,7 +380,7 @@ describe('CoachToplistService time-between-matches rendering', () => {
   });
 
   it('renders the average toplist rows through the same formatter', async () => {
-    const coaches = mock<CoachesService>();
+    const coaches = mock<CoachesQueriesService>();
     coaches.getAverageGapBetweenMatchesByCoach.mockResolvedValue([]);
     const { service, leaderboard, numbers } = await makeService(coaches);
     numbers.counted.mockReturnValue('1 day');
@@ -399,7 +399,7 @@ describe('CoachToplistService time-between-matches rendering', () => {
   });
 
   it('passes the league and era scope through to the ascending-gap query', async () => {
-    const coaches = mock<CoachesService>();
+    const coaches = mock<CoachesQueriesService>();
     coaches.getGapBetweenMatchesByCoachAscending.mockResolvedValue([]);
     const { service, leaderboard } = await makeService(coaches);
     leaderboard.resolveToplist.mockImplementation(async (options) => {
@@ -417,7 +417,7 @@ describe('CoachToplistService time-between-matches rendering', () => {
   });
 
   it('uses the shared coach no-data message for an empty toplist', async () => {
-    const coaches = mock<CoachesService>();
+    const coaches = mock<CoachesQueriesService>();
     coaches.getAverageGapBetweenMatchesByCoach.mockResolvedValue([]);
     const { service, leaderboard } = await makeService(coaches);
     leaderboard.resolveToplist.mockResolvedValueOnce('canned');
@@ -434,7 +434,7 @@ describe('CoachToplistService.resolveTrophiesWon', () => {
   it('passes the competition scope through to the factory resolver', async () => {
     // Unlike the other coach toplists, this fact is competition-scopable:
     // a trophy award belongs to a competition.
-    const coaches = mock<CoachesService>();
+    const coaches = mock<CoachesQueriesService>();
     const { service, toplist } = await makeService(coaches);
     await service.resolveTrophiesWon({ leagueId: 9, competitionId: 30 });
     expect(toplist.resolver('countTrophiesByCoach')).toHaveBeenCalledWith(

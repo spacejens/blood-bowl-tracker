@@ -1,16 +1,18 @@
 import type {
   PositionCharacteristics,
-  PositionHeader,
   PositionKeyword,
   PositionStartingSkill,
-  PositionTopPlayer,
 } from '@blood-bowl-tracker/game-data';
 import {
   PositionRulesSetKeywordsService,
   PositionRulesSetSkillsService,
   PositionRulesSetsService,
-  PositionsService,
 } from '@blood-bowl-tracker/game-data';
+import type {
+  PositionHeader,
+  PositionTopPlayer,
+} from '@blood-bowl-tracker/game-data-queries';
+import { PositionsQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -98,7 +100,7 @@ function mockStatLine(): MockProxy<PositionStatLineService> {
 }
 
 interface MakeServiceOptions {
-  positions: PositionsService;
+  positions: PositionsQueriesService;
   positionRulesSets: PositionRulesSetsService;
   positionRulesSetSkills?: MockProxy<PositionRulesSetSkillsService>;
   positionRulesSetKeywords?: MockProxy<PositionRulesSetKeywordsService>;
@@ -142,7 +144,7 @@ async function makeService({
         provide: PositionRulesSetKeywordsService,
         useValue: positionRulesSetKeywords,
       },
-      { provide: PositionsService, useValue: positions },
+      { provide: PositionsQueriesService, useValue: positions },
       { provide: PositionRulesSetsService, useValue: positionRulesSets },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: LeaderboardService, useValue: leaderboard },
@@ -165,8 +167,8 @@ function makePositions(options: {
   position?: PositionHeader;
   playerCount?: number;
   topPlayers?: PositionTopPlayer[];
-}): MockProxy<PositionsService> {
-  const positions = mock<PositionsService>();
+}): MockProxy<PositionsQueriesService> {
+  const positions = mock<PositionsQueriesService>();
   positions.findById.mockResolvedValue(options.position);
   positions.countPlayers.mockResolvedValue(options.playerCount ?? 0);
   positions.listTopPlayersBySpp.mockResolvedValue(options.topPlayers ?? []);

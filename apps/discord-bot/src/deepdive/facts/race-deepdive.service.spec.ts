@@ -1,5 +1,5 @@
-import type { RacePosition } from '@blood-bowl-tracker/game-data';
-import { RacesService } from '@blood-bowl-tracker/game-data';
+import type { RacePosition } from '@blood-bowl-tracker/game-data-queries';
+import { RacesQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -45,7 +45,7 @@ import {
 import { RaceDeepdiveService } from './race-deepdive.service';
 
 interface MakeServiceOptions {
-  races: RacesService;
+  races: RacesQueriesService;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   leaderboard?: MockProxy<LeaderboardService>;
   entityComponents?: MockProxy<EntityComponentsService>;
@@ -69,7 +69,7 @@ async function makeService({
     providers: [
       RaceDeepdiveService,
       NumberFormatterService,
-      { provide: RacesService, useValue: races },
+      { provide: RacesQueriesService, useValue: races },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: LeaderboardService, useValue: leaderboard },
       { provide: EntityComponentsService, useValue: entityComponents },
@@ -89,8 +89,8 @@ function makeRaces(options: {
   eras?: { id: number; name: string }[];
   topTeams?: { id: number; name: string; count: number }[];
   positions?: RacePosition[];
-}): MockProxy<RacesService> {
-  const races = mock<RacesService>();
+}): MockProxy<RacesQueriesService> {
+  const races = mock<RacesQueriesService>();
   races.findById.mockResolvedValue(options.race);
   races.listEras.mockResolvedValue(options.eras ?? []);
   races.getTopTeamsByMatchesPlayed.mockResolvedValue(options.topTeams ?? []);

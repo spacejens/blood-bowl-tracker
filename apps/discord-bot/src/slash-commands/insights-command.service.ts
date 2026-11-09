@@ -7,6 +7,7 @@ import {
   ErasService,
   LeaguesService,
 } from '@blood-bowl-tracker/game-data';
+import { CompetitionsQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import type {
   ApplicationCommandOptionData,
@@ -62,6 +63,7 @@ export class InsightsCommandService implements OnModuleInit {
     private readonly leagues: LeaguesService,
     private readonly eras: ErasService,
     private readonly competitions: CompetitionsService,
+    private readonly competitionsQueries: CompetitionsQueriesService,
     @Inject(FACT_TREE) private readonly factTree: FactNode,
     private readonly registry: SlashCommandRegistryService,
     private readonly factTreeNavigation: FactTreeNavigationService,
@@ -491,7 +493,7 @@ export class InsightsCommandService implements OnModuleInit {
       return this.toScopeChoices(eras);
     }
     if (focused.name === 'competition') {
-      const competitions = await this.competitions.searchByNamePrefix(
+      const competitions = await this.competitionsQueries.searchByNamePrefix(
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );

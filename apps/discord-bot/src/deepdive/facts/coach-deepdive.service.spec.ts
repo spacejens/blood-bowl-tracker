@@ -1,4 +1,4 @@
-import { CoachesService } from '@blood-bowl-tracker/game-data';
+import { CoachesQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { ButtonStyle, ComponentType } from 'discord.js';
 import { describe, expect, it } from 'vitest';
@@ -41,7 +41,7 @@ import {
 import { CoachDeepdiveService } from './coach-deepdive.service';
 
 interface MakeServiceOptions {
-  coaches: CoachesService;
+  coaches: CoachesQueriesService;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   leaderboard?: MockProxy<LeaderboardService>;
   entityComponents?: MockProxy<EntityComponentsService>;
@@ -65,7 +65,7 @@ async function makeService({
       CoachDeepdiveService,
       NumberFormatterService,
       DateRangeFormatterService,
-      { provide: CoachesService, useValue: coaches },
+      { provide: CoachesQueriesService, useValue: coaches },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: LeaderboardService, useValue: leaderboard },
       { provide: EntityComponentsService, useValue: entityComponents },
@@ -85,8 +85,8 @@ function makeCoaches(options: {
   eras?: { id: number; name: string }[];
   span?: { start: string; end: string };
   topTeams?: { id: number; name: string; count: number }[];
-}): CoachesService {
-  const coaches = mock<CoachesService>();
+}): CoachesQueriesService {
+  const coaches = mock<CoachesQueriesService>();
   coaches.findById.mockResolvedValue(options.coach);
   coaches.listEras.mockResolvedValue(options.eras ?? []);
   coaches.getCareerSpan.mockResolvedValue(options.span);
