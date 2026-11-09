@@ -1,19 +1,11 @@
 import { PLAYER_STATUSES } from '@blood-bowl-tracker/domain-enums';
 import { z } from 'zod';
 
+import {
+  CharacteristicLineSchema,
+  PLAYER_CHARACTERISTIC_KEYS,
+} from './characteristic-line';
 import { ExternalIdSchema } from './external-id';
-
-/**
- * The five characteristics, in a fixed order. Exported so consumers iterate
- * the group rather than restating (and drifting from) the list.
- */
-export const PLAYER_CHARACTERISTIC_KEYS = [
-  'move',
-  'strength',
-  'agility',
-  'passing',
-  'armour',
-] as const;
 
 /**
  * The seven lasting-injury fields, in a fixed order. Exported so consumers
@@ -61,11 +53,7 @@ export const PlayerSchema = z.object({
   // columns until the BBL and TP imports populate real ones). `passing` is
   // nullable because null asserts that the player's rules set has no Passing
   // characteristic at all.
-  move: z.number().int(),
-  strength: z.number().int(),
-  agility: z.number().int(),
-  passing: z.number().int().nullable(),
-  armour: z.number().int(),
+  ...CharacteristicLineSchema.shape,
   // The player's currently outstanding lasting injuries. Plain required
   // fields rather than the characteristics precedent's superRefine: there is
   // no NULL/absent ambiguity to model here (false and 0 are permanently
@@ -107,11 +95,7 @@ export const UpsertPlayerSchema = z
     // caller supplies all of them (with `passing` possibly null) or none.
     // A partial line cannot be meaningfully validated or stored, and an
     // omitted group leaves whatever is stored untouched.
-    move: z.number().int().optional(),
-    strength: z.number().int().optional(),
-    agility: z.number().int().optional(),
-    passing: z.number().int().nullable().optional(),
-    armour: z.number().int().optional(),
+    ...CharacteristicLineSchema.partial().shape,
     // Validation input only, never persisted: the server checks the supplied
     // characteristics against this rules set's declared formats. Nothing
     // stores a rules set on a player row — an era can list several rules sets
