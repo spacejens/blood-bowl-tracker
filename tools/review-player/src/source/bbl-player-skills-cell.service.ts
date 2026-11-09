@@ -1,13 +1,11 @@
 import type { PlayerCharacteristic } from '@blood-bowl-tracker/domain-enums';
+import { PLAYER_CHARACTERISTICS } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 import * as cheerio from 'cheerio';
 import type { AnyNode } from 'domhandler';
 
-/** The characteristics table's header cells, in column order. */
-const CHARACTERISTIC_HEADERS = ['MA', 'ST', 'AG', 'PA', 'AV'] as const;
-
 /** How many cells precede the Skills cell in the characteristics row. */
-const SKILLS_CELL_INDEX = CHARACTERISTIC_HEADERS.length;
+const SKILLS_CELL_INDEX = PLAYER_CHARACTERISTICS.length;
 
 /** The inline colour BBL renders a skill GAINED via advancement in. */
 const GAINED_SKILL_COLOUR = '#006020';
@@ -104,7 +102,7 @@ export class BblPlayerSkillsCellService {
         .children('th, td')
         .toArray()
         .map((cell) => this.normalize($(cell).text()));
-      if (CHARACTERISTIC_HEADERS.some((header, i) => headers[i] !== header)) {
+      if (PLAYER_CHARACTERISTICS.some((header, i) => headers[i] !== header)) {
         continue;
       }
       const cells = $(row).next('tr').children('td').toArray();

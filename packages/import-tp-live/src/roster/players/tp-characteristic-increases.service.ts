@@ -1,4 +1,5 @@
 import type {
+  CharacteristicLine,
   ImportError,
   PlayerLastingInjuries,
   RulesSet,
@@ -15,15 +16,6 @@ import {
   UpsertRecorderService,
 } from '@blood-bowl-tracker/import-shared';
 import { Injectable } from '@nestjs/common';
-
-/** One player's own current characteristics, as the importer computed them. */
-export interface PlayerCurrentCharacteristics {
-  move: number;
-  strength: number;
-  agility: number;
-  passing: number | null;
-  armour: number;
-}
 
 /** The five reduction counters the same importer already derived. */
 type PlayerCharacteristicReductions = Omit<
@@ -42,7 +34,7 @@ export interface IncreaseBaselineCache {
 
 /** One characteristic, paired with its increase key and reduction counter. */
 interface Comparison {
-  key: keyof PlayerCurrentCharacteristics;
+  key: keyof CharacteristicLine;
   increase: PlayerCharacteristic;
   reduction: keyof PlayerCharacteristicReductions;
   format: CharacteristicFormat;
@@ -133,14 +125,14 @@ export class TpCharacteristicIncreasesService {
   async forPlayer(options: {
     player: { label: string; positionId: number };
     rulesSet: RulesSet;
-    current: PlayerCurrentCharacteristics;
+    current: CharacteristicLine;
     reductions: PlayerCharacteristicReductions | undefined;
-    baseline: PlayerCurrentCharacteristics | undefined;
+    baseline: CharacteristicLine | undefined;
     cache: IncreaseBaselineCache;
     errors: ImportError[];
   }): Promise<PlayerCharacteristicCounts | undefined> {
     const { player, rulesSet, current, reductions, cache, errors } = options;
-    let baseline: PlayerCurrentCharacteristics;
+    let baseline: CharacteristicLine;
     if (options.baseline !== undefined) {
       baseline = options.baseline;
     } else {

@@ -1,4 +1,7 @@
-import { NAME_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/domain-enums';
+import {
+  NAME_EXTERNAL_SYSTEM_NAME,
+  PLAYER_CHARACTERISTICS,
+} from '@blood-bowl-tracker/domain-enums';
 import type { TableCell, TableRow } from '@blood-bowl-tracker/review-harness';
 import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Injectable } from '@nestjs/common';
@@ -70,7 +73,7 @@ export class StarPlayerCharacteristicsRawRendererService {
             ];
     return (
       this.html.subheading('Characteristics — BBL (current page values)') +
-      this.html.table(['MA', 'ST', 'AG', 'PA', 'AV'], [row])
+      this.html.table(PLAYER_CHARACTERISTICS, [row])
     );
   }
 
@@ -80,7 +83,7 @@ export class StarPlayerCharacteristicsRawRendererService {
       return (
         this.html.subheading('Characteristics — TP') +
         this.html.table(
-          ['Rules set', 'MA', 'ST', 'AG', 'PA', 'AV'],
+          ['Rules set', ...PLAYER_CHARACTERISTICS],
           [
             this.html.highlight([
               lookup.notFoundNote,
@@ -112,7 +115,7 @@ export class StarPlayerCharacteristicsRawRendererService {
     );
     return (
       this.html.subheading('Characteristics — TP') +
-      this.html.table(['Rules set', 'MA', 'ST', 'AG', 'PA', 'AV'], rows)
+      this.html.table(['Rules set', ...PLAYER_CHARACTERISTICS], rows)
     );
   }
 
@@ -136,7 +139,7 @@ export class StarPlayerCharacteristicsRawRendererService {
     ]);
     return (
       this.html.subheading('Characteristics — Manual curation') +
-      this.html.table(['Rules set', 'MA', 'ST', 'AG', 'PA', 'AV'], rows)
+      this.html.table(['Rules set', ...PLAYER_CHARACTERISTICS], rows)
     );
   }
 

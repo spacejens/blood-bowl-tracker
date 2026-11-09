@@ -1,3 +1,4 @@
+import { PLAYER_CHARACTERISTICS } from '@blood-bowl-tracker/domain-enums';
 import type { TableCell } from '@blood-bowl-tracker/review-harness';
 import {
   HtmlService,
@@ -128,14 +129,11 @@ export class TpPlayerAdvancementsRawRendererService {
       this.html.subheading(
         'Characteristic improvements (derived from position template)',
       ) +
-      this.html.table(
-        ['MA', 'ST', 'AG', 'PA', 'AV'],
-        [
-          [move, strength, agility, passing, armour].map((value) =>
-            String(value),
-          ),
-        ],
-      )
+      this.html.table(PLAYER_CHARACTERISTICS, [
+        [move, strength, agility, passing, armour].map((value) =>
+          String(value),
+        ),
+      ])
     );
   }
 

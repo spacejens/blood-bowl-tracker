@@ -1,3 +1,4 @@
+import { PLAYER_CHARACTERISTICS } from '@blood-bowl-tracker/domain-enums';
 import type { TableCell, TableRow } from '@blood-bowl-tracker/review-harness';
 import {
   CharacteristicFormatService,
@@ -53,7 +54,7 @@ export class StarPlayerCharacteristicsDbRendererService {
       }
     }
     const table = this.html.table(
-      ['Rules set', 'MA', 'ST', 'AG', 'PA', 'AV'],
+      ['Rules set', ...PLAYER_CHARACTERISTICS],
       rows,
     );
     return rulesSets.length === 0

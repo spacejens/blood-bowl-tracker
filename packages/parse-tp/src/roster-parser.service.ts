@@ -3,22 +3,14 @@ import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
 /**
- * One player's OWN current characteristics, from a `lineUps[]` entry --
- * distinct from `TpOfficialCharacteristics` (packages/api-contract; the
- * position template they were recruited from) even though the shape is
- * identical: a player's values drift from the template as they level up.
- * `passing` is a plain number, never null, for the same reason
- * `TpOfficialCharacteristics.passing` is: TP writes a literal 0 for a player
- * with no passing ability, and every rules set TP covers declares a Passing
- * characteristic.
+ * One player's OWN current characteristics, from a `lineUps[]` entry. Same
+ * shape as the position template they were recruited from
+ * (`TpRosterPlayer.positionTemplate`), but a distinct fact: a player's values
+ * drift from the template as they level up. `passing` is a plain number,
+ * never null: TP writes a literal 0 for a player with no passing ability, and
+ * every rules set TP covers declares a Passing characteristic.
  */
-export interface TpPlayerCharacteristics {
-  move: number;
-  strength: number;
-  agility: number;
-  passing: number;
-  armour: number;
-}
+export type TpPlayerCharacteristics = TpOfficialCharacteristics;
 
 /**
  * One player's CURRENTLY OUTSTANDING lasting injuries, as TP reports them
