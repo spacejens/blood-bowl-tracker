@@ -4,12 +4,12 @@ import {
   ErasService,
   LeaguesService,
   PositionsService,
-  RacesService,
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
 import {
   CoachesQueriesService,
   PlayersQueriesService,
+  RacesQueriesService,
   StarPlayersService,
   TeamsQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
@@ -38,7 +38,7 @@ export class DeepdiveAutocompleteService {
     private readonly teamsQueries: TeamsQueriesService,
     private readonly playersQueries: PlayersQueriesService,
     private readonly positions: PositionsService,
-    private readonly races: RacesService,
+    private readonly racesQueries: RacesQueriesService,
     private readonly stars: StarPlayersService,
     private readonly trophies: TrophiesService,
     private readonly leagues: LeaguesService,
@@ -119,7 +119,7 @@ export class DeepdiveAutocompleteService {
       }));
     }
     if (focused.name === 'race') {
-      const races = await this.races.searchByNamePrefix(
+      const races = await this.racesQueries.searchByNamePrefix(
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );

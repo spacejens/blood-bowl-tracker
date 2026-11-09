@@ -5,12 +5,12 @@ import {
   ErasService,
   LeaguesService,
   PositionsService,
-  RacesService,
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
 import {
   CoachesQueriesService,
   PlayersQueriesService,
+  RacesQueriesService,
   StarPlayersService,
   TeamsQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
@@ -64,7 +64,7 @@ export class OptionValueResolverService {
   private readonly componentLookups: Map<string, NameLookup>;
 
   constructor(
-    private readonly races: RacesService,
+    private readonly racesQueries: RacesQueriesService,
     private readonly eras: ErasService,
     private readonly leagues: LeaguesService,
     private readonly competitions: CompetitionsService,
@@ -77,7 +77,7 @@ export class OptionValueResolverService {
     private readonly trophies: TrophiesService,
   ) {
     const raceLookup: NameLookup = async (id) =>
-      (await this.races.findById(id))?.name;
+      (await this.racesQueries.findById(id))?.name;
     const eraLookup: NameLookup = async (id) =>
       (await this.eras.findById(id))?.name;
     const leagueLookup: NameLookup = async (id) =>

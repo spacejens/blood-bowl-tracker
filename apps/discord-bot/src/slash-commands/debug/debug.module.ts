@@ -5,12 +5,12 @@ import {
   ErasModule,
   LeaguesModule,
   PositionsModule,
-  RacesModule,
   TrophiesModule,
 } from '@blood-bowl-tracker/game-data';
 import {
   CoachesQueriesModule,
   PlayersQueriesModule,
+  RacesQueriesModule,
   TeamsQueriesModule,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Module } from '@nestjs/common';
@@ -54,7 +54,7 @@ import { OptionValueResolverService } from './option-value-resolver.service';
   imports: [
     DiscordBotUsageModule,
     SlashCommandRegistryModule,
-    RacesModule,
+    RacesQueriesModule,
     ErasModule,
     LeaguesModule,
     CompetitionsModule,

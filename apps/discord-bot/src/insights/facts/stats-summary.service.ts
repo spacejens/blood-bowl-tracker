@@ -8,7 +8,6 @@ import {
   LeaguesService,
   MatchesService,
   PositionsService,
-  RacesService,
   RulesSetsService,
   SkillsService,
   TrophiesService,
@@ -16,6 +15,7 @@ import {
 import {
   CoachesQueriesService,
   PlayersQueriesService,
+  RacesQueriesService,
   TeamsQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
@@ -139,7 +139,7 @@ export class StatsSummaryFactsService {
     private readonly leagues: LeaguesService,
     private readonly externalSystems: ExternalSystemsService,
     private readonly rulesSets: RulesSetsService,
-    private readonly races: RacesService,
+    private readonly racesQueries: RacesQueriesService,
     private readonly positions: PositionsService,
     private readonly skills: SkillsService,
     private readonly keywords: KeywordsService,
@@ -209,7 +209,7 @@ export class StatsSummaryFactsService {
         this.leagues.countAll(),
         this.externalSystems.countAll(),
         this.rulesSets.countAll(),
-        this.races.countAll(),
+        this.racesQueries.countAll(),
         this.positions.countAll(),
         this.skills.countAll(),
         this.keywords.countAll(),
@@ -277,7 +277,7 @@ export class StatsSummaryFactsService {
     const counts = await this.databaseTimeout.run<EraCounts | null>(
       Promise.all([
         this.externalSystems.countByEra(eraId),
-        this.races.countByEra(eraId),
+        this.racesQueries.countByEra(eraId),
         this.positions.countByEra(eraId),
         this.skills.countByEra(eraId),
         this.keywords.countByEra(eraId),
@@ -347,7 +347,7 @@ export class StatsSummaryFactsService {
     const counts = await this.databaseTimeout.run<CompetitionCounts | null>(
       Promise.all([
         this.externalSystems.countByCompetition(competitionId),
-        this.races.countByCompetition(competitionId),
+        this.racesQueries.countByCompetition(competitionId),
         this.positions.countByCompetition(competitionId),
         this.skills.countByCompetition(competitionId),
         this.keywords.countByCompetition(competitionId),
@@ -411,7 +411,7 @@ export class StatsSummaryFactsService {
       Promise.all([
         this.eras.countByLeague(leagueId),
         this.externalSystems.countByLeague(leagueId),
-        this.races.countByLeague(leagueId),
+        this.racesQueries.countByLeague(leagueId),
         this.positions.countByLeague(leagueId),
         this.skills.countByLeague(leagueId),
         this.keywords.countByLeague(leagueId),

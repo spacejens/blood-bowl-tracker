@@ -1,8 +1,6 @@
 import type { FactScope } from '@blood-bowl-tracker/game-data';
-import {
-  FACT_SCOPE_ALL_TIME,
-  RacesService,
-} from '@blood-bowl-tracker/game-data';
+import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
+import { RacesQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -22,12 +20,12 @@ interface MadeService {
   leaderboard: MockProxy<LeaderboardService>;
 }
 
-async function makeService(races: RacesService): Promise<MadeService> {
+async function makeService(races: RacesQueriesService): Promise<MadeService> {
   const leaderboard = mock<LeaderboardService>();
   const moduleRef = await Test.createTestingModule({
     providers: [
       RaceToplistService,
-      { provide: RacesService, useValue: races },
+      { provide: RacesQueriesService, useValue: races },
       { provide: LeaderboardService, useValue: leaderboard },
     ],
   }).compile();
@@ -134,7 +132,7 @@ describe.each(cases)(
     // RaceToplistService itself owns: the embed title it configures, and the
     // per-row deepdive entityLink it configures.
     it('wires the embed title and per-row deepdive button id', async () => {
-      const races = mock<RacesService>();
+      const races = mock<RacesQueriesService>();
       races[method].mockResolvedValue(rows);
       const { service, leaderboard } = await makeService(races);
       const canned = {
@@ -153,7 +151,7 @@ describe.each(cases)(
     });
 
     it('passes the era id through to the query', async () => {
-      const races = mock<RacesService>();
+      const races = mock<RacesQueriesService>();
       const queryFn = races[method];
       queryFn.mockResolvedValue(eraRows);
       const { service, leaderboard } = await makeService(races);
@@ -166,7 +164,7 @@ describe.each(cases)(
     });
 
     it('configures the toplist-specific timeout message and returns it verbatim on timeout', async () => {
-      const races = mock<RacesService>();
+      const races = mock<RacesQueriesService>();
       races[method].mockResolvedValue(rows);
       const { service, leaderboard } = await makeService(races);
       leaderboard.resolveToplist.mockResolvedValueOnce(

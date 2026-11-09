@@ -32,6 +32,12 @@ export type {
   StarPlayerIdentity,
 } from './players/star-players.service';
 export { StarPlayersService } from './players/star-players.service';
+export { RacesQueriesModule } from './races/races-queries.module';
+export type {
+  RacePosition,
+  RaceTeamCount,
+} from './races/races-queries.service';
+export { RacesQueriesService } from './races/races-queries.service';
 export { CharacteristicDisplayFormattingModule } from './shared/characteristic-display-formatting.module';
 export { CharacteristicDisplayFormattingService } from './shared/characteristic-display-formatting.service';
 export { PlayerContextNamesModule } from './shared/player-context-names.module';

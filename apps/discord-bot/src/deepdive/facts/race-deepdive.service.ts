@@ -1,5 +1,5 @@
-import type { RacePosition } from '@blood-bowl-tracker/game-data';
-import { RacesService } from '@blood-bowl-tracker/game-data';
+import type { RacePosition } from '@blood-bowl-tracker/game-data-queries';
+import { RacesQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -48,7 +48,7 @@ const TOP_TEAMS_TOP_ENTRIES = 5;
 @Injectable()
 export class RaceDeepdiveService {
   constructor(
-    private readonly races: RacesService,
+    private readonly racesQueries: RacesQueriesService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly leaderboard: LeaderboardService,
     private readonly entityComponents: EntityComponentsService,
@@ -59,7 +59,7 @@ export class RaceDeepdiveService {
 
   async resolve(raceId: number): Promise<string | InteractionReplyOptions> {
     const race: Race | undefined | null = await this.databaseTimeout.run(
-      this.races.findById(raceId),
+      this.racesQueries.findById(raceId),
       null,
     );
     if (race === null) {
@@ -70,7 +70,7 @@ export class RaceDeepdiveService {
     }
 
     const eraRows: Era[] | null = await this.databaseTimeout.run(
-      this.races.listEras(raceId),
+      this.racesQueries.listEras(raceId),
       null,
     );
     if (eraRows === null) {
@@ -78,7 +78,10 @@ export class RaceDeepdiveService {
     }
 
     const topTeams: TopTeam[] | null = await this.databaseTimeout.run(
-      this.races.getTopTeamsByMatchesPlayed(raceId, MAX_LEADERBOARD_ENTRIES),
+      this.racesQueries.getTopTeamsByMatchesPlayed(
+        raceId,
+        MAX_LEADERBOARD_ENTRIES,
+      ),
       null,
     );
     if (topTeams === null) {
@@ -86,7 +89,7 @@ export class RaceDeepdiveService {
     }
 
     const positions: RacePosition[] | null = await this.databaseTimeout.run(
-      this.races.listPositionsByEra(raceId),
+      this.racesQueries.listPositionsByEra(raceId),
       null,
     );
     if (positions === null) {

@@ -4,12 +4,12 @@ import {
   ErasService,
   LeaguesService,
   PositionsService,
-  RacesService,
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
 import {
   CoachesQueriesService,
   PlayersQueriesService,
+  RacesQueriesService,
   StarPlayersService,
   TeamsQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
@@ -54,7 +54,7 @@ describe('DeepdiveAutocompleteService', () => {
   let teams: MockProxy<TeamsQueriesService>;
   let players: MockProxy<PlayersQueriesService>;
   let positions: MockProxy<PositionsService>;
-  let races: MockProxy<RacesService>;
+  let races: MockProxy<RacesQueriesService>;
   let stars: MockProxy<StarPlayersService>;
   let trophies: MockProxy<TrophiesService>;
   let leagues: MockProxy<LeaguesService>;
@@ -67,7 +67,7 @@ describe('DeepdiveAutocompleteService', () => {
     teams = mock<TeamsQueriesService>();
     players = mock<PlayersQueriesService>();
     positions = mock<PositionsService>();
-    races = mock<RacesService>();
+    races = mock<RacesQueriesService>();
     stars = mock<StarPlayersService>();
     trophies = mock<TrophiesService>();
     leagues = mock<LeaguesService>();
@@ -82,7 +82,7 @@ describe('DeepdiveAutocompleteService', () => {
         { provide: TeamsQueriesService, useValue: teams },
         { provide: PlayersQueriesService, useValue: players },
         { provide: PositionsService, useValue: positions },
-        { provide: RacesService, useValue: races },
+        { provide: RacesQueriesService, useValue: races },
         { provide: StarPlayersService, useValue: stars },
         { provide: TrophiesService, useValue: trophies },
         { provide: LeaguesService, useValue: leagues },

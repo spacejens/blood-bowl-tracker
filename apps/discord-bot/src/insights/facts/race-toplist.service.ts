@@ -1,5 +1,6 @@
-import type { FactScope, RaceTeamCount } from '@blood-bowl-tracker/game-data';
-import { RacesService } from '@blood-bowl-tracker/game-data';
+import type { FactScope } from '@blood-bowl-tracker/game-data';
+import type { RaceTeamCount } from '@blood-bowl-tracker/game-data-queries';
+import { RacesQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -19,7 +20,7 @@ export class RaceToplistService {
   };
 
   constructor(
-    private readonly races: RacesService,
+    private readonly racesQueries: RacesQueriesService,
     private readonly leaderboard: LeaderboardService,
   ) {}
 
@@ -46,7 +47,8 @@ export class RaceToplistService {
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveRaceToplist({
       title: 'Races by teams (highest first)',
-      fetchRows: (limit) => this.races.countTeamsByRaceDescending(scope, limit),
+      fetchRows: (limit) =>
+        this.racesQueries.countTeamsByRaceDescending(scope, limit),
     });
   }
 
@@ -55,7 +57,8 @@ export class RaceToplistService {
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveRaceToplist({
       title: 'Races by teams (lowest first)',
-      fetchRows: (limit) => this.races.countTeamsByRaceAscending(scope, limit),
+      fetchRows: (limit) =>
+        this.racesQueries.countTeamsByRaceAscending(scope, limit),
     });
   }
 
@@ -64,7 +67,8 @@ export class RaceToplistService {
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveRaceToplist({
       title: 'Races by matches played',
-      fetchRows: (limit) => this.races.countMatchesPlayedByRace(scope, limit),
+      fetchRows: (limit) =>
+        this.racesQueries.countMatchesPlayedByRace(scope, limit),
     });
   }
 
@@ -73,7 +77,8 @@ export class RaceToplistService {
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveRaceToplist({
       title: 'Races by matches won',
-      fetchRows: (limit) => this.races.countMatchesWonByRace(scope, limit),
+      fetchRows: (limit) =>
+        this.racesQueries.countMatchesWonByRace(scope, limit),
     });
   }
 
@@ -82,7 +87,8 @@ export class RaceToplistService {
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveRaceToplist({
       title: 'Races by matches lost',
-      fetchRows: (limit) => this.races.countMatchesLostByRace(scope, limit),
+      fetchRows: (limit) =>
+        this.racesQueries.countMatchesLostByRace(scope, limit),
     });
   }
 
@@ -91,7 +97,8 @@ export class RaceToplistService {
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveRaceToplist({
       title: 'Races by matches drawn',
-      fetchRows: (limit) => this.races.countMatchesDrawnByRace(scope, limit),
+      fetchRows: (limit) =>
+        this.racesQueries.countMatchesDrawnByRace(scope, limit),
     });
   }
 }
