@@ -153,20 +153,26 @@ export class CaptureCoderabbitCommentService {
     return inProgressNow;
   }
 
+  /** Comments from one `gh` call; `undefined` if the call failed, was rejected or could not be parsed. */
   private async fetch(
     prNumber: string,
   ): Promise<CoderabbitComment[] | undefined> {
-    const result = await this.processRunner.run(
-      'gh',
-      [
-        'api',
-        `repos/{owner}/{repo}/issues/${prNumber}/comments`,
-        '--paginate',
-        '--jq',
-        CODERABBIT_COMMENTS_JQ,
-      ],
-      GH_CALL_TIMEOUT_MS,
-    );
+    let result: Awaited<ReturnType<ProcessRunnerService['run']>>;
+    try {
+      result = await this.processRunner.run(
+        'gh',
+        [
+          'api',
+          `repos/{owner}/{repo}/issues/${prNumber}/comments`,
+          '--paginate',
+          '--jq',
+          CODERABBIT_COMMENTS_JQ,
+        ],
+        GH_CALL_TIMEOUT_MS,
+      );
+    } catch {
+      return undefined;
+    }
     if (result.exitCode !== 0) {
       return undefined;
     }

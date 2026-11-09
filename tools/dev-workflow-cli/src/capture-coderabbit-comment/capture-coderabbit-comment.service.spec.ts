@@ -198,6 +198,25 @@ describe('CaptureCoderabbitCommentService', () => {
     expect(result.observations).toHaveLength(2);
   });
 
+  it('counts a rejected process runner call as a failed poll and keeps earlier observations', async () => {
+    processRunner.run
+      .mockResolvedValueOnce(ghLines([IN_PROGRESS]))
+      .mockRejectedValueOnce(new Error('spawn EAGAIN'))
+      .mockResolvedValue(ghLines([DONE]));
+
+    const result = await runCapture({
+      prNumber: '1350',
+      intervalMs: 1000,
+      settleMs: 1000,
+    });
+
+    expect(result).toMatchObject({ failedPolls: 1, leftInProgress: true });
+    expect(result.observations.map((o) => o.body)).toEqual([
+      IN_PROGRESS.body,
+      DONE.body,
+    ]);
+  });
+
   it('counts a line that is not a CodeRabbit comment object as a failed poll and keeps going', async () => {
     processRunner.run
       .mockResolvedValueOnce(ghLines([IN_PROGRESS]))
