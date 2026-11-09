@@ -1,5 +1,9 @@
 export { CoachesQueriesModule } from './coaches/coaches-queries.module';
 export { CoachesQueriesService } from './coaches/coaches-queries.service';
+export { CompetitionGroupsQueriesModule } from './competition-groups/competition-groups-queries.module';
+export { CompetitionGroupsQueriesService } from './competition-groups/competition-groups-queries.service';
+export { CompetitionsQueriesModule } from './competitions/competitions-queries.module';
+export { CompetitionsQueriesService } from './competitions/competitions-queries.service';
 export { DateToplistModule } from './insights/date-toplist.module';
 export type { DateMatchCount } from './insights/date-toplist.service';
 export { DateToplistService } from './insights/date-toplist.service';

@@ -1,9 +1,7 @@
 import type { CompetitionType } from '@blood-bowl-tracker/domain-enums';
 import type { CompetitionTrophyAward } from '@blood-bowl-tracker/game-data';
-import {
-  CompetitionsService,
-  TrophyAwardsService,
-} from '@blood-bowl-tracker/game-data';
+import { TrophyAwardsService } from '@blood-bowl-tracker/game-data';
+import { CompetitionsQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -83,7 +81,7 @@ type AwardContext = {
 @Injectable()
 export class CompetitionDeepdiveService {
   constructor(
-    private readonly competitions: CompetitionsService,
+    private readonly competitionsQueries: CompetitionsQueriesService,
     private readonly trophyAwards: TrophyAwardsService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
@@ -99,7 +97,7 @@ export class CompetitionDeepdiveService {
   ): Promise<string | InteractionReplyOptions> {
     const competition: CompetitionHeader | undefined | null =
       await this.databaseTimeout.run(
-        this.competitions.findByIdWithEra(competitionId),
+        this.competitionsQueries.findByIdWithEra(competitionId),
         null,
       );
     if (competition === null) {
@@ -110,7 +108,7 @@ export class CompetitionDeepdiveService {
     }
 
     const teams: ParticipatingTeam[] | null = await this.databaseTimeout.run(
-      this.competitions.listTeams(competitionId),
+      this.competitionsQueries.listTeams(competitionId),
       null,
     );
     if (teams === null) {

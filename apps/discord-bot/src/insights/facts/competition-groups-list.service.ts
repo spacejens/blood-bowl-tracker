@@ -1,5 +1,5 @@
 import type { FactScope } from '@blood-bowl-tracker/game-data';
-import { CompetitionGroupsService } from '@blood-bowl-tracker/game-data';
+import { CompetitionGroupsQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -23,7 +23,7 @@ interface CompetitionGroupEntry {
 @Injectable()
 export class CompetitionGroupsListService {
   constructor(
-    private readonly competitionGroups: CompetitionGroupsService,
+    private readonly competitionGroupsQueries: CompetitionGroupsQueriesService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
     private readonly listDescription: ListDescriptionService,
@@ -32,7 +32,7 @@ export class CompetitionGroupsListService {
 
   async resolve(scope: FactScope): Promise<string | InteractionReplyOptions> {
     const rows = await this.databaseTimeout.run(
-      this.competitionGroups.listAllWithLeagueAndCount(scope),
+      this.competitionGroupsQueries.listAllWithLeagueAndCount(scope),
       null,
     );
     if (rows === null) {

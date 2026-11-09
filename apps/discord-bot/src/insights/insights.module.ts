@@ -1,5 +1,4 @@
 import {
-  CompetitionGroupsModule,
   CompetitionsModule,
   ErasModule,
   ExternalSystemsModule,
@@ -16,6 +15,8 @@ import {
 import {
   CharacteristicDisplayFormattingModule,
   CoachesQueriesModule,
+  CompetitionGroupsQueriesModule,
+  CompetitionsQueriesModule,
   DateToplistModule,
   OnThisDateModule,
   PlayerContextNamesModule,
@@ -68,9 +69,10 @@ import { TeamContextService } from './team-context.service';
 
 const GAME_DATA_MODULES = [
   CoachesQueriesModule,
-  CompetitionGroupsModule,
+  CompetitionGroupsQueriesModule,
   MatchesModule,
   CompetitionsModule,
+  CompetitionsQueriesModule,
   LeaguesModule,
   RulesSetsModule,
   ErasModule,

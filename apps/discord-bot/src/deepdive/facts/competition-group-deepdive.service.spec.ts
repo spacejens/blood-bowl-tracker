@@ -1,8 +1,8 @@
+import { TrophiesService } from '@blood-bowl-tracker/game-data';
 import {
-  CompetitionGroupsService,
-  CompetitionsService,
-  TrophiesService,
-} from '@blood-bowl-tracker/game-data';
+  CompetitionGroupsQueriesService,
+  CompetitionsQueriesService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -61,9 +61,9 @@ type GroupCompetition = {
 };
 
 interface MakeServiceOptions {
-  competitionGroups: MockProxy<CompetitionGroupsService>;
+  competitionGroups: MockProxy<CompetitionGroupsQueriesService>;
   trophies?: MockProxy<TrophiesService>;
-  competitions?: MockProxy<CompetitionsService>;
+  competitions?: MockProxy<CompetitionsQueriesService>;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   entityComponents?: MockProxy<EntityComponentsService>;
   dateRangeFormatter?: MockProxy<DateRangeFormatterService>;
@@ -88,9 +88,9 @@ async function makeService({
   const moduleRef = await Test.createTestingModule({
     providers: [
       CompetitionGroupDeepdiveService,
-      { provide: CompetitionGroupsService, useValue: competitionGroups },
+      { provide: CompetitionGroupsQueriesService, useValue: competitionGroups },
       { provide: TrophiesService, useValue: trophies },
-      { provide: CompetitionsService, useValue: competitions },
+      { provide: CompetitionsQueriesService, useValue: competitions },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
       { provide: DateRangeFormatterService, useValue: dateRangeFormatter },
@@ -108,8 +108,8 @@ async function makeService({
 
 function makeGroups(
   group: GroupHeader | undefined,
-): MockProxy<CompetitionGroupsService> {
-  const competitionGroups = mock<CompetitionGroupsService>();
+): MockProxy<CompetitionGroupsQueriesService> {
+  const competitionGroups = mock<CompetitionGroupsQueriesService>();
   competitionGroups.findByIdWithLeague.mockResolvedValue(group);
   return competitionGroups;
 }
@@ -125,8 +125,8 @@ function makeTrophies(
 
 function makeCompetitions(
   rows: GroupCompetition[],
-): MockProxy<CompetitionsService> {
-  const competitions = mock<CompetitionsService>();
+): MockProxy<CompetitionsQueriesService> {
+  const competitions = mock<CompetitionsQueriesService>();
   competitions.listByCompetitionGroupChronological.mockResolvedValue(rows);
   return competitions;
 }

@@ -1,9 +1,9 @@
 import type { CompetitionType } from '@blood-bowl-tracker/domain-enums';
 import {
-  CompetitionsService,
   ErasService,
   ExternalSystemsService,
 } from '@blood-bowl-tracker/game-data';
+import { CompetitionsQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -51,7 +51,7 @@ type Competition = {
 export class EraDeepdiveService {
   constructor(
     private readonly eras: ErasService,
-    private readonly competitions: CompetitionsService,
+    private readonly competitionsQueries: CompetitionsQueriesService,
     private readonly externalSystems: ExternalSystemsService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
@@ -80,7 +80,7 @@ export class EraDeepdiveService {
     }
 
     const comps: Competition[] | null = await this.databaseTimeout.run(
-      this.competitions.listByEraChronological(eraId),
+      this.competitionsQueries.listByEraChronological(eraId),
       null,
     );
     if (comps === null) {

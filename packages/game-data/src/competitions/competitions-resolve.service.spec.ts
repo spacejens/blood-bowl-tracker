@@ -4,7 +4,6 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
-import { LikePatternService } from '../shared/like-pattern.service';
 import { CompetitionEnrollmentService } from './competition-enrollment.service';
 import { CompetitionsService } from './competitions.service';
 
@@ -14,7 +13,6 @@ async function makeService(rows: unknown[]) {
     providers: [
       CompetitionsService,
       { provide: DB, useValue: db },
-      { provide: LikePatternService, useValue: mock<LikePatternService>() },
       {
         provide: CompetitionEnrollmentService,
         useValue: mock<CompetitionEnrollmentService>(),

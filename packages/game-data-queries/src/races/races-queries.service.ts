@@ -30,7 +30,7 @@ import { MatchOutcomeCountsService } from '../shared/match-outcome-counts.servic
 
 /**
  * One position available to a race in one era. Flat, already ordered by era
- * then position name — the same shape `CompetitionsService.listByCompetitionGroupChronological`
+ * then position name — the same shape `CompetitionsQueriesService.listByCompetitionGroupChronological`
  * returns, so a consumer groups it into per-era sections with the shared
  * `EraSectionGrouperService` rather than this service doing that grouping
  * itself.
@@ -107,7 +107,7 @@ export class RacesQueriesService {
    * than belonging to this one race, and are already reachable from their
    * own star-player deep dive.
    *
-   * Flat and already ordered, matching how `CompetitionsService.listByCompetitionGroupChronological`
+   * Flat and already ordered, matching how `CompetitionsQueriesService.listByCompetitionGroupChronological`
    * shapes its own rows — the caller groups this into per-era sections with
    * `EraSectionGrouperService`, the same way that competitions list does.
    */

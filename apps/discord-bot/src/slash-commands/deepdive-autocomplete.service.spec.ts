@@ -1,12 +1,12 @@
 import {
-  CompetitionGroupsService,
-  CompetitionsService,
   ErasService,
   LeaguesService,
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
 import {
   CoachesQueriesService,
+  CompetitionGroupsQueriesService,
+  CompetitionsQueriesService,
   PlayersQueriesService,
   PositionsQueriesService,
   RacesQueriesService,
@@ -48,8 +48,8 @@ function autocompleteInteraction(
 describe('DeepdiveAutocompleteService', () => {
   let service: DeepdiveAutocompleteService;
   let eras: MockProxy<ErasService>;
-  let competitions: MockProxy<CompetitionsService>;
-  let competitionGroups: MockProxy<CompetitionGroupsService>;
+  let competitions: MockProxy<CompetitionsQueriesService>;
+  let competitionGroups: MockProxy<CompetitionGroupsQueriesService>;
   let coaches: MockProxy<CoachesQueriesService>;
   let teams: MockProxy<TeamsQueriesService>;
   let players: MockProxy<PlayersQueriesService>;
@@ -61,8 +61,8 @@ describe('DeepdiveAutocompleteService', () => {
 
   beforeEach(async () => {
     eras = mock<ErasService>();
-    competitions = mock<CompetitionsService>();
-    competitionGroups = mock<CompetitionGroupsService>();
+    competitions = mock<CompetitionsQueriesService>();
+    competitionGroups = mock<CompetitionGroupsQueriesService>();
     coaches = mock<CoachesQueriesService>();
     teams = mock<TeamsQueriesService>();
     players = mock<PlayersQueriesService>();
@@ -76,8 +76,11 @@ describe('DeepdiveAutocompleteService', () => {
       providers: [
         DeepdiveAutocompleteService,
         { provide: ErasService, useValue: eras },
-        { provide: CompetitionsService, useValue: competitions },
-        { provide: CompetitionGroupsService, useValue: competitionGroups },
+        { provide: CompetitionsQueriesService, useValue: competitions },
+        {
+          provide: CompetitionGroupsQueriesService,
+          useValue: competitionGroups,
+        },
         { provide: CoachesQueriesService, useValue: coaches },
         { provide: TeamsQueriesService, useValue: teams },
         { provide: PlayersQueriesService, useValue: players },

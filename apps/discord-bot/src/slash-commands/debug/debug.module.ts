@@ -1,6 +1,5 @@
 import { DiscordBotUsageModule } from '@blood-bowl-tracker/discord-bot-usage';
 import {
-  CompetitionGroupsModule,
   CompetitionsModule,
   ErasModule,
   LeaguesModule,
@@ -8,6 +7,7 @@ import {
 } from '@blood-bowl-tracker/game-data';
 import {
   CoachesQueriesModule,
+  CompetitionGroupsQueriesModule,
   PlayersQueriesModule,
   PositionsQueriesModule,
   RacesQueriesModule,
@@ -48,7 +48,7 @@ import { OptionValueResolverService } from './option-value-resolver.service';
  * option ids through. PlayersQueriesModule supplies PlayersQueriesService,
  * StarPlayersService and IncompleteImportPlayersService (for
  * /debugincompleteimport);
- * CompetitionGroupsModule's only by-id lookup is findByIdWithLeague.
+ * CompetitionGroupsQueriesModule's only by-id lookup is findByIdWithLeague.
  */
 @Module({
   imports: [
@@ -58,7 +58,7 @@ import { OptionValueResolverService } from './option-value-resolver.service';
     ErasModule,
     LeaguesModule,
     CompetitionsModule,
-    CompetitionGroupsModule,
+    CompetitionGroupsQueriesModule,
     CoachesQueriesModule,
     TeamsQueriesModule,
     PlayersQueriesModule,

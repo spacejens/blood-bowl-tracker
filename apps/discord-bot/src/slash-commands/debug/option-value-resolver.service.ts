@@ -1,6 +1,5 @@
 import type { InteractionEventParameterRow } from '@blood-bowl-tracker/discord-bot-usage';
 import {
-  CompetitionGroupsService,
   CompetitionsService,
   ErasService,
   LeaguesService,
@@ -8,6 +7,7 @@ import {
 } from '@blood-bowl-tracker/game-data';
 import {
   CoachesQueriesService,
+  CompetitionGroupsQueriesService,
   PlayersQueriesService,
   PositionsQueriesService,
   RacesQueriesService,
@@ -68,7 +68,7 @@ export class OptionValueResolverService {
     private readonly eras: ErasService,
     private readonly leagues: LeaguesService,
     private readonly competitions: CompetitionsService,
-    private readonly competitionGroups: CompetitionGroupsService,
+    private readonly competitionGroupsQueries: CompetitionGroupsQueriesService,
     private readonly coachesQueries: CoachesQueriesService,
     private readonly teamsQueries: TeamsQueriesService,
     private readonly playersQueries: PlayersQueriesService,
@@ -85,7 +85,7 @@ export class OptionValueResolverService {
     const competitionLookup: NameLookup = async (id) =>
       (await this.competitions.findById(id))?.name;
     const competitionGroupLookup: NameLookup = async (id) =>
-      (await this.competitionGroups.findByIdWithLeague(id))?.name;
+      (await this.competitionGroupsQueries.findByIdWithLeague(id))?.name;
     const coachLookup: NameLookup = async (id) =>
       (await this.coachesQueries.findById(id))?.name;
     const teamLookup: NameLookup = async (id) =>

@@ -1,12 +1,12 @@
 import {
-  CompetitionGroupsService,
-  CompetitionsService,
   ErasService,
   LeaguesService,
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
 import {
   CoachesQueriesService,
+  CompetitionGroupsQueriesService,
+  CompetitionsQueriesService,
   PlayersQueriesService,
   PositionsQueriesService,
   RacesQueriesService,
@@ -32,8 +32,8 @@ const MAX_AUTOCOMPLETE_CHOICES = 25;
 export class DeepdiveAutocompleteService {
   constructor(
     private readonly eras: ErasService,
-    private readonly competitions: CompetitionsService,
-    private readonly competitionGroups: CompetitionGroupsService,
+    private readonly competitionsQueries: CompetitionsQueriesService,
+    private readonly competitionGroupsQueries: CompetitionGroupsQueriesService,
     private readonly coachesQueries: CoachesQueriesService,
     private readonly teamsQueries: TeamsQueriesService,
     private readonly playersQueries: PlayersQueriesService,
@@ -129,7 +129,7 @@ export class DeepdiveAutocompleteService {
       }));
     }
     if (focused.name === 'competition') {
-      const competitions = await this.competitions.searchByNamePrefix(
+      const competitions = await this.competitionsQueries.searchByNamePrefix(
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );
@@ -139,10 +139,11 @@ export class DeepdiveAutocompleteService {
       }));
     }
     if (focused.name === 'competition-group') {
-      const competitionGroups = await this.competitionGroups.searchByNamePrefix(
-        focused.value,
-        MAX_AUTOCOMPLETE_CHOICES,
-      );
+      const competitionGroups =
+        await this.competitionGroupsQueries.searchByNamePrefix(
+          focused.value,
+          MAX_AUTOCOMPLETE_CHOICES,
+        );
       return competitionGroups.map((row) => ({
         name: `${row.name} (${row.leagueName})`,
         value: String(row.id),

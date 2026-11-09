@@ -3,6 +3,7 @@ import {
   ErasService,
   LeaguesService,
 } from '@blood-bowl-tracker/game-data';
+import { CompetitionsQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import type {
   AutocompleteInteraction,
@@ -404,6 +405,7 @@ export interface MakeServiceResult {
   leagues: MockProxy<LeaguesService>;
   eras: MockProxy<ErasService>;
   competitions: MockProxy<CompetitionsService>;
+  competitionsQueries: MockProxy<CompetitionsQueriesService>;
   registry: MockProxy<SlashCommandRegistryService>;
   factTreeNavigation: MockProxy<FactTreeNavigationService>;
   categoryLabel: MockProxy<MatchCategoryLabelService>;
@@ -424,7 +426,9 @@ export async function makeService(): Promise<MakeServiceResult> {
 
   const competitions = mock<CompetitionsService>();
   competitions.findById.mockResolvedValue(undefined);
-  competitions.searchByNamePrefix.mockResolvedValue([]);
+
+  const competitionsQueries = mock<CompetitionsQueriesService>();
+  competitionsQueries.searchByNamePrefix.mockResolvedValue([]);
 
   const registry = mock<SlashCommandRegistryService>();
   const factTreeNavigation = mock<FactTreeNavigationService>();
@@ -443,6 +447,7 @@ export async function makeService(): Promise<MakeServiceResult> {
       { provide: LeaguesService, useValue: leagues },
       { provide: ErasService, useValue: eras },
       { provide: CompetitionsService, useValue: competitions },
+      { provide: CompetitionsQueriesService, useValue: competitionsQueries },
       { provide: FACT_TREE, useValue: factTree },
       { provide: SlashCommandRegistryService, useValue: registry },
       { provide: FactTreeNavigationService, useValue: factTreeNavigation },
@@ -456,6 +461,7 @@ export async function makeService(): Promise<MakeServiceResult> {
     leagues,
     eras,
     competitions,
+    competitionsQueries,
     registry,
     factTreeNavigation,
     categoryLabel,

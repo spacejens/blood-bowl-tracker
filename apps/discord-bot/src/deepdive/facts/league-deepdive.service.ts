@@ -1,8 +1,5 @@
-import {
-  CompetitionGroupsService,
-  LeaguesService,
-  TrophiesService,
-} from '@blood-bowl-tracker/game-data';
+import { LeaguesService, TrophiesService } from '@blood-bowl-tracker/game-data';
+import { CompetitionGroupsQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -47,7 +44,7 @@ type NamedEntity = { id: number; name: string };
 export class LeagueDeepdiveService {
   constructor(
     private readonly leagues: LeaguesService,
-    private readonly competitionGroups: CompetitionGroupsService,
+    private readonly competitionGroupsQueries: CompetitionGroupsQueriesService,
     private readonly trophies: TrophiesService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
@@ -72,7 +69,7 @@ export class LeagueDeepdiveService {
     }
 
     const groups: NamedEntity[] | null = await this.databaseTimeout.run(
-      this.competitionGroups.listByLeague(leagueId),
+      this.competitionGroupsQueries.listByLeague(leagueId),
       null,
     );
     if (groups === null) {
