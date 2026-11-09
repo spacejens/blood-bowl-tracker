@@ -4,6 +4,7 @@ import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Inject, Injectable } from '@nestjs/common';
 
 import type { SampledPlayer } from '../shared/review.types';
+import { UTC_TODAY } from './utc-today';
 
 /** How a NULL `players.status` reads: not reported, which is not "active". */
 const UNKNOWN = 'unknown (no source reported a status)';
@@ -15,8 +16,8 @@ const UNKNOWN = 'unknown (no source reported a status)';
  * An active player whose era has ended gets a plain-text line naming the era and
  * its end date: such a player was active until the era closed, which a reviewer
  * should read differently from one still playing. "Ended" is decided in SQL —
- * `end_date` non-null and before `current_date` — the same definition the
- * status strata use, so no clock is read here.
+ * `end_date` non-null and before today's date in UTC (`UTC_TODAY`) — the same
+ * definition the status strata use, so no clock is read here.
  *
  * `HtmlService` is injected real in this service's spec — it is a pure
  * formatter with its own tests, and mocking it would leave the markup
@@ -35,7 +36,7 @@ export class PlayerStatusDbRendererService {
         status: players.status,
         eraName: eras.name,
         eraEndDate: eras.endDate,
-        eraEnded: sql<boolean>`(${eras.endDate} is not null and ${eras.endDate} < current_date)`,
+        eraEnded: sql<boolean>`(${eras.endDate} is not null and ${eras.endDate} < ${UTC_TODAY})`,
       })
       .from(players)
       .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))

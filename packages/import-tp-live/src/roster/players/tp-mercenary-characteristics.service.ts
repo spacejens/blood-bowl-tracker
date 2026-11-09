@@ -1,5 +1,6 @@
 import type {
   ImportError,
+  TpOfficialCharacteristics,
   UpsertPlayerCharacteristics,
 } from '@blood-bowl-tracker/api-contract';
 import { PositionRulesSetsService } from '@blood-bowl-tracker/game-data';
@@ -8,15 +9,6 @@ import {
   UpsertRecorderService,
 } from '@blood-bowl-tracker/import-shared';
 import { Injectable } from '@nestjs/common';
-
-/** One mercenary position's characteristics under one rules set. */
-interface MercenaryCharacteristics {
-  move: number;
-  strength: number;
-  agility: number;
-  passing: number;
-  armour: number;
-}
 
 /**
  * One mercenary position's curated rows, as read for one import. `loaded:
@@ -28,7 +20,7 @@ export type MercenaryCurated =
   | { loaded: false }
   | {
       loaded: true;
-      byRulesSetId: Map<number, MercenaryCharacteristics>;
+      byRulesSetId: Map<number, TpOfficialCharacteristics>;
       rejectedRulesSetIds: Set<number>;
     };
 
@@ -91,7 +83,7 @@ export class TpMercenaryCharacteristicsService {
       return { loaded: false };
     }
 
-    const byRulesSetId = new Map<number, MercenaryCharacteristics>();
+    const byRulesSetId = new Map<number, TpOfficialCharacteristics>();
     const rejectedRulesSetIds = new Set<number>();
     for (const row of rows) {
       if (row.passing === null) {
