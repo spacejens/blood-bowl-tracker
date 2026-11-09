@@ -4,7 +4,7 @@ Two data-file sections curate Star Player Points rules rather than entities:
 `sppAwardValues`, the standardised award table, and `advancementCosts`, what
 each advancement costs. Each is sent to the API as one sync call per run,
 after the rows it references exist. See [Data files](index.md) for how
-sections are pooled, and [database.md](../database.md#star-player-points) for
+sections are pooled, and [Star Player Points storage](../database/star-player-points.md) for
 how SPP is stored.
 
 ## SPP award values
