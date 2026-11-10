@@ -200,6 +200,8 @@ export class TpMatchDataImportService {
         awayTeam,
         match: matchFetch,
         participation: this.nothing(),
+        starPlayerHires: this.nothing(),
+        hiredStarPlayers: [],
         events: this.nothing(),
         outcome: this.nothing(),
       };

@@ -31,8 +31,10 @@ const IMPORTED: TpMatchDataImportResult = {
   awayTeam: teamImported,
   match: one,
   participation: one,
+  starPlayerHires: one,
   events: one,
   outcome: one,
+  hiredStarPlayers: [],
 };
 const BRACKET: TpBracket = {
   tournament: {
@@ -305,6 +307,8 @@ describe('TpCompetitionMatchesBackfillService', () => {
           errors: [{ item: 1, message: 'status 403' }],
         },
         participation: nothing,
+        starPlayerHires: nothing,
+        hiredStarPlayers: [],
         events: nothing,
         outcome: nothing,
       })
@@ -330,6 +334,18 @@ describe('TpCompetitionMatchesBackfillService', () => {
       sppPlayers: [],
       eventFailedPlayerIds: [],
     });
+  });
+
+  it("reports a backfilled match's star player hire errors", async () => {
+    const hireError = { item: 1, message: 'no catalog characteristics' };
+    matchData.importMatchData.mockResolvedValue({
+      ...IMPORTED,
+      starPlayerHires: { success: false, imported: 0, errors: [hireError] },
+    });
+
+    const { result } = await backfill();
+
+    expect(result.errors).toContainEqual(hireError);
   });
 
   it('reports a match that throws and carries on with the rest', async () => {

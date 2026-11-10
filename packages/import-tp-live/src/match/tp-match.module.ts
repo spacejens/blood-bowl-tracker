@@ -4,6 +4,8 @@ import {
   MatchesModule,
   MatchEventsModule,
   PlayersModule,
+  PositionRulesSetsModule,
+  PositionsModule,
   TeamsModule,
 } from '@blood-bowl-tracker/game-data';
 import { ImportSharedModule } from '@blood-bowl-tracker/import-shared';
@@ -21,10 +23,11 @@ import { TpMatchContextService } from './tp-match-context.service';
 import { TpMatchImportService } from './tp-match-import.service';
 import { TpMatchOutcomeService } from './tp-match-outcome.service';
 import { TpMatchUpsertService } from './tp-match-upsert.service';
+import { TpStarPlayerHiresService } from './tp-star-player-hires.service';
 
 /**
- * Imports one TP match straight into the database through
- * packages/game-data. packages/api-server imports it to implement
+ * Imports one TP match, with the star players its teams hired, straight
+ * into the database through packages/game-data. packages/api-server imports it to implement
  * `tpMatches.import`; ImportTpLiveModule imports it for the live import. The
  * importing app provides packages/db's `DB`.
  */
@@ -37,6 +40,8 @@ import { TpMatchUpsertService } from './tp-match-upsert.service';
     MatchesModule,
     MatchEventsModule,
     PlayersModule,
+    PositionRulesSetsModule,
+    PositionsModule,
     TeamsModule,
   ],
   providers: [
@@ -51,6 +56,7 @@ import { TpMatchUpsertService } from './tp-match-upsert.service';
     TpMatchEventFieldsService,
     TpMatchEventsCorrelationService,
     TpMatchOutcomeService,
+    TpStarPlayerHiresService,
   ],
   exports: [TpMatchImportService],
 })

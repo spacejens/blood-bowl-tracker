@@ -1,9 +1,6 @@
 import {
   ErasModule,
   ExternalSystemsModule,
-  PlayersModule,
-  PositionRulesSetsModule,
-  PositionsModule,
   RacesModule,
   SppModule,
   TrophyAwardsModule,
@@ -27,7 +24,6 @@ import { TpLiveMatchImportService } from './live/tp-live-match-import.service';
 import { TpLiveMatchTeamsImportService } from './live/tp-live-match-teams-import.service';
 import { TpLiveOfficialTeamsImportService } from './live/tp-live-official-teams-import.service';
 import { TpLiveSppAdjustmentsService } from './live/tp-live-spp-adjustments.service';
-import { TpLiveStarPlayerHiresService } from './live/tp-live-star-player-hires.service';
 import { TpLiveTeamImportService } from './live/tp-live-team-import.service';
 import { TpMatchDataImportService } from './live/tp-match-data-import.service';
 import { TpMatchEventsImportedService } from './live/tp-match-events-imported.service';
@@ -62,9 +58,6 @@ import { TpRosterModule } from './roster/tp-roster.module';
     ErasModule,
     ExternalSystemsModule,
     RacesModule,
-    PlayersModule,
-    PositionRulesSetsModule,
-    PositionsModule,
     SppModule,
     TrophyAwardsModule,
     TpCompetitionModule,
@@ -84,7 +77,6 @@ import { TpRosterModule } from './roster/tp-roster.module';
     TpBracketFetchService,
     TpLiveMatchImportService,
     TpLiveMatchTeamsImportService,
-    TpLiveStarPlayerHiresService,
     TpAwardsFetchService,
     TpInscriptionsFetchService,
     TpCompetitionParticipantsBackfillService,

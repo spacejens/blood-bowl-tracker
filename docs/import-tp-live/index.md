@@ -60,10 +60,9 @@ procedures use it:
   game-data's `SppAdjustmentsService` at the end of a live match or
   competition import (never of a team import alone).
 - **Match import**: `TpMatchModule`, with `TpMatchImportService` and its
-  match-context, upsert, events and outcome services, plus
-  `TpLiveMatchImportService`, `TpLiveMatchTeamsImportService`, their
-  match/bracket fetch services and `TpLiveStarPlayerHiresService` — see
-  [match-import.md](match-import.md).
+  match-context, star-player-hire, upsert, events and outcome services, plus
+  `TpLiveMatchImportService`, `TpLiveMatchTeamsImportService` and their
+  match/bracket fetch services — see [match-import.md](match-import.md).
 - **Competition import**: `TpCompetitionModule`, with
   `TpCompetitionImportService` and its upsert, participant and trophy-award
   services (the upsert is shared with the live match import), plus

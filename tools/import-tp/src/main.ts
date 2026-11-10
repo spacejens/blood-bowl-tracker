@@ -373,6 +373,7 @@ async function run(): Promise<ImportResult> {
       competitionIdResolutionResult,
       matchFilesOutcome.matchResult,
       matchFilesOutcome.participationResult,
+      matchFilesOutcome.starPlayerHiresResult,
       matchFilesOutcome.eventsResult,
       matchFilesOutcome.outcomeResult,
       sppAdjustmentsOutcome.result,

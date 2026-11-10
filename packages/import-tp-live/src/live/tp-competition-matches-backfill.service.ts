@@ -134,6 +134,7 @@ export class TpCompetitionMatchesBackfillService {
       result.awayTeam.players,
       result.match,
       result.participation,
+      result.starPlayerHires,
       result.events,
       result.outcome,
     ].flatMap((stage) => stage.errors);

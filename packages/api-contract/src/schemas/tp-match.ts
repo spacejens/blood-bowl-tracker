@@ -31,20 +31,32 @@ export const ImportTpMatchSchema = z.object({
   externalSystemName: z.string().min(1),
 });
 
+/** A star player a match's team hired through its inducements, by DB id. */
+export const TpHiredStarPlayerSchema = z.object({
+  playerId: z.number().int(),
+  /** True when this import inserted the player row. */
+  created: z.boolean(),
+});
+
 /**
  * Output of `tpMatches.import`, one result per stage: `match` (resolving its
  * competition and teams, classifying it and upserting its row),
- * `participation` (its teams, on the match and on the competition), `events`
- * and `outcome`. A stage whose prerequisite failed reports nothing imported
- * and no error of its own.
+ * `participation` (its teams, on the match and on the competition),
+ * `starPlayerHires` (the star players either team hired through the match's
+ * inducements), `events` and `outcome`. A stage whose prerequisite failed
+ * reports nothing imported and no error of its own. `hiredStarPlayers` lists
+ * every star player the hires stage upserted, each once.
  */
 export const TpMatchImportResultSchema = z.object({
   match: ImportResultSchema,
   participation: ImportResultSchema,
+  starPlayerHires: ImportResultSchema,
   events: ImportResultSchema,
   outcome: ImportResultSchema,
+  hiredStarPlayers: z.array(TpHiredStarPlayerSchema),
 });
 
 export type TpBracketMatch = z.infer<typeof TpBracketMatchSchema>;
+export type TpHiredStarPlayer = z.infer<typeof TpHiredStarPlayerSchema>;
 export type ImportTpMatch = z.infer<typeof ImportTpMatchSchema>;
 export type TpMatchImportResult = z.infer<typeof TpMatchImportResultSchema>;

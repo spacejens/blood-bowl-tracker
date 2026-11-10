@@ -21,9 +21,19 @@ import { TpMatchContextService } from './tp-match-context.service';
 import { TpMatchImportService } from './tp-match-import.service';
 import { TpMatchOutcomeService } from './tp-match-outcome.service';
 import { TpMatchUpsertService } from './tp-match-upsert.service';
+import type { TpStarPlayerHiresOutcome } from './tp-star-player-hires.service';
+import { TpStarPlayerHiresService } from './tp-star-player-hires.service';
 
 const nothing = { success: true, imported: 0, errors: [] };
 const failure = (message: string): ImportError => ({ item: 1, message });
+const NO_HIRES: TpStarPlayerHiresOutcome = {
+  result: nothing,
+  hiredStarPlayers: [],
+};
+const HIRES: TpStarPlayerHiresOutcome = {
+  result: { success: true, imported: 1, errors: [] },
+  hiredStarPlayers: [{ playerId: 900, created: true }],
+};
 
 describe('TpMatchImportService', () => {
   let service: TpMatchImportService;
@@ -32,6 +42,7 @@ describe('TpMatchImportService', () => {
   let matchUpsert: MockProxy<TpMatchUpsertService>;
   let eventsUpsert: MockProxy<TpMatchEventsUpsertService>;
   let outcome: MockProxy<TpMatchOutcomeService>;
+  let starPlayerHires: MockProxy<TpStarPlayerHiresService>;
 
   beforeEach(async () => {
     parser = mock<MatchParserService>();
@@ -44,6 +55,8 @@ describe('TpMatchImportService', () => {
     matchUpsert.syncParticipation.mockResolvedValue(true);
     eventsUpsert.upsertEvents.mockResolvedValue(14);
     outcome.resolveOutcome.mockResolvedValue(true);
+    starPlayerHires = mock<TpStarPlayerHiresService>();
+    starPlayerHires.importHires.mockResolvedValue(NO_HIRES);
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpMatchImportService,
@@ -54,6 +67,7 @@ describe('TpMatchImportService', () => {
         { provide: TpMatchUpsertService, useValue: matchUpsert },
         { provide: TpMatchEventsUpsertService, useValue: eventsUpsert },
         { provide: TpMatchOutcomeService, useValue: outcome },
+        { provide: TpStarPlayerHiresService, useValue: starPlayerHires },
       ],
     }).compile();
     service = moduleRef.get(TpMatchImportService);
@@ -72,8 +86,10 @@ describe('TpMatchImportService', () => {
     await expect(importMatch()).resolves.toEqual({
       match: { success: true, imported: 1, errors: [] },
       participation: { success: true, imported: 1, errors: [] },
+      starPlayerHires: nothing,
       events: { success: true, imported: 14, errors: [] },
       outcome: { success: true, imported: 1, errors: [] },
+      hiredStarPlayers: [],
     });
     expect(context.resolve).toHaveBeenCalledWith({
       match: tpMatch(),
@@ -115,9 +131,46 @@ describe('TpMatchImportService', () => {
       errors: [failure('competition not imported')],
     });
     expect(result.participation).toEqual(nothing);
+    expect(result.starPlayerHires).toEqual(nothing);
+    expect(result.hiredStarPlayers).toEqual([]);
     expect(result.events).toEqual(nothing);
     expect(result.outcome).toEqual(nothing);
     expect(matchUpsert.upsertMatch).not.toHaveBeenCalled();
+    expect(starPlayerHires.importHires).not.toHaveBeenCalled();
+  });
+
+  it("imports the match's star player hires under its context and returns them", async () => {
+    starPlayerHires.importHires.mockResolvedValue(HIRES);
+
+    const result = await importMatch();
+
+    expect(starPlayerHires.importHires).toHaveBeenCalledWith({
+      match: tpMatch(),
+      context: matchContext(),
+    });
+    expect(result.starPlayerHires).toEqual(HIRES.result);
+    expect(result.hiredStarPlayers).toEqual(HIRES.hiredStarPlayers);
+  });
+
+  it('keeps the star player hires when the match row is not written', async () => {
+    starPlayerHires.importHires.mockResolvedValue(HIRES);
+    matchUpsert.upsertMatch.mockResolvedValue(undefined);
+
+    const result = await importMatch();
+
+    expect(result.starPlayerHires).toEqual(HIRES.result);
+    expect(result.hiredStarPlayers).toEqual(HIRES.hiredStarPlayers);
+    expect(result.events).toEqual(nothing);
+  });
+
+  it('keeps the star player hires when participation is not linked', async () => {
+    starPlayerHires.importHires.mockResolvedValue(HIRES);
+    matchUpsert.syncParticipation.mockResolvedValue(false);
+
+    const result = await importMatch();
+
+    expect(result.starPlayerHires).toEqual(HIRES.result);
+    expect(result.hiredStarPlayers).toEqual(HIRES.hiredStarPlayers);
   });
 
   it('stops after the match when it was not written', async () => {
@@ -207,6 +260,8 @@ describe('TpMatchImportService', () => {
           },
         ],
       });
+      expect(result.starPlayerHires).toEqual(nothing);
+      expect(result.hiredStarPlayers).toEqual([]);
       expect(context.resolve).not.toHaveBeenCalled();
     });
   });

@@ -1,6 +1,9 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
-import type { TpMatchImportResult } from '@blood-bowl-tracker/api-contract';
+import type {
+  TpHiredStarPlayer,
+  TpMatchImportResult,
+} from '@blood-bowl-tracker/api-contract';
 import {
   ImportResultService,
   ImportRunnerService,
@@ -52,10 +55,19 @@ function filesFrom(files: TpSourceFile[]): AsyncIterable<TpSourceFile> {
   })();
 }
 
-function outcome(eventsImported: number): TpMatchImportResult {
+function outcome(
+  eventsImported: number,
+  hiredStarPlayers: TpHiredStarPlayer[] = [],
+): TpMatchImportResult {
   return {
     match: { success: true, imported: 1, errors: [] },
     participation: { success: true, imported: 1, errors: [] },
+    starPlayerHires: {
+      success: true,
+      imported: hiredStarPlayers.length,
+      errors: [],
+    },
+    hiredStarPlayers,
     events: { success: true, imported: eventsImported, errors: [] },
     outcome: {
       success: false,
@@ -154,6 +166,7 @@ describe('TpMatchFilesImportService', () => {
     expect(importResults.result.mock.calls.map(([args]) => args)).toEqual([
       { imported: 2, errors: [] },
       { imported: 2, errors: [] },
+      { imported: 0, errors: [] },
       { imported: 7, errors: [] },
       {
         imported: 0,
@@ -163,6 +176,29 @@ describe('TpMatchFilesImportService', () => {
         ],
       },
     ]);
+  });
+
+  it('collects the hired star players of every match file, each id once, and the inserted ones', async () => {
+    sourceReader.filesOfType.mockReturnValue(
+      filesFrom([matchFile(1), matchFile(2)]),
+    );
+    importRunner.recordUpsertResult
+      .mockResolvedValueOnce(
+        outcome(3, [
+          { playerId: 900, created: true },
+          { playerId: 901, created: false },
+        ]),
+      )
+      .mockResolvedValueOnce(outcome(2, [{ playerId: 900, created: false }]));
+
+    const result = await service.importMatchFiles(OPTIONS);
+
+    expect(result.hiredStarPlayerIds).toEqual([900, 901]);
+    expect(result.insertedStarPlayerIds).toEqual([900]);
+    expect(importResults.result).toHaveBeenCalledWith({
+      imported: 3,
+      errors: [],
+    });
   });
 
   it('skips a file whose competition was not imported', async () => {

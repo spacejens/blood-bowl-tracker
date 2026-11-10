@@ -42,15 +42,11 @@ an earlier one fails:
    ordinary live team import (see [index.md](index.md#importing-a-team-live)),
    passing that side's match roster snapshot so a player who has since left
    the roster still exists to be referenced by the match's events.
-4. **Import the star players either team hired** through the match's
-   inducements — see [Star player hires](#star-player-hires) below. Only
-   attempted once both teams were imported; a failed hire never stops the
-   rest of the import.
-5. **Fetch the tournament and every phase/round fixture list** — the way
+4. **Fetch the tournament and every phase/round fixture list** — the way
    TP's own scores page does — giving every match in the competition's
    bracket, needed for category classification and for the competition's
    date span.
-6. **Upsert the competition**: its TP id, era (the one the home team was
+5. **Upsert the competition**: its TP id, era (the one the home team was
    imported under), type and start date derived from the fixture lists' dates (a
    competition this import creates gets no end date; see below) by
    the ≤ 3-day cup rule in `packages/import-shared`'s `CompetitionTypeService`,
@@ -62,8 +58,9 @@ an earlier one fails:
    competition import's own upsert stage (see
    [competition-import.md](competition-import.md)); a match import does not
    link the competition's other teams or record its awards.
-7. **The shared core**, below, importing the match itself.
-8. **Settle the players' SPP**, once step 7 wrote the match row: both
+6. **The shared core**, below, importing the match itself and the star
+   players either team hired.
+7. **Settle the players' SPP**, once step 6 wrote the match row: both
    teams' players get their `spp_total` and `spp_adjustment` from
    game-data's `SppAdjustmentsService.syncReportedAdjustments`, the step
    the bulk TP import runs after its match events (see
@@ -83,12 +80,12 @@ an earlier one fails:
    nothing is settled.
 
 Only the requested match is imported; its bracket siblings are used only for
-classification and the competition's dates — unless step 6 created the
+classification and the competition's dates — unless step 5 created the
 competition, below.
 
 ### Backfilling a brand-new competition
 
-When step 6 creates the competition (it was never imported before), the
+When step 5 creates the competition (it was never imported before), the
 import then completes it rather than leaving it holding one match, running
 up to four more steps after the shared core:
 
@@ -110,7 +107,7 @@ up to four more steps after the shared core:
    step 2 and are skipped, with one error in `extraTrophyAwards`, when step 2
    reported errors, since a missing match would skew them for good; the end
    date is settled either way.
-4. **Settle the players' SPP** (the match import's step 8 above), now for
+4. **Settle the players' SPP** (the match import's step 7 above), now for
    both match teams and every player the backfill imported, after steps 1–3:
    the registered teams, and the teams and players of every backfilled match,
    including players seen only in match snapshots and teams not in the
@@ -168,25 +165,24 @@ on `match`.
 
 A star player a team hires for one match is on no roster, so the match's
 own `inducements_roll` events are the only place the hire shows up.
-`TpLiveStarPlayerHiresService` imports each distinct hire (one per roster
+`TpStarPlayerHiresService` imports each distinct hire (one per roster
 and TP `lineUpMasterId`, however many times it is listed):
 
 - **The star's position** is upserted as a star player, keyed by its bare
   name as a TP id and its Name id — the same keys the official team list
   import gives a star, so both land on one row.
-- **Its stat line** is the position's catalog characteristics for the hiring
-  team's era, read from the database. The official team list must already
+- **Its stat line** is the position's catalog characteristics for the
+  match's era, read from the database. The official team list must already
   have been imported for that era; a hire whose position has no catalog
   characteristics there is skipped with an error.
 - **The hired player** is upserted into the hiring team's era, keyed by TP
   id `star-<rosterId>-<lineUpMasterId>`, built by `packages/parse-tp`'s
-  `TpStarHireKeyService` — the service `tools/import-tp`'s bulk hire pass
-  keys its hires through too, so re-importing a hire through either path
-  updates one row.
+  `TpStarHireKeyService`, so re-importing a hire updates one row.
 
-This step belongs to the live import only. The `tpMatches.import` procedure
-does not run it: `tools/import-tp`'s bulk run imports star hires in its own
-step before it imports the match files.
+It is a step of the shared core below, so `tpMatches.import`, the live match
+import and its matches backfill all import hires the same way. It runs once
+the match's context resolves, before the match row is written; a match whose
+context does not resolve imports no hire.
 
 ## The shared core
 
@@ -196,6 +192,7 @@ teams, classifies it, and upserts it:
 - **Context**: the competition by its TP id (must already be imported), and
   each team by its TP roster id, resolved to its team era in the
   competition's era.
+- **Star player hires**: see [Star player hires](#star-player-hires).
 - **Classification**: by the match's ascending `(phaseOrder, round)` position
   among its competition's bracket — see
   [import-tp's match category classification](../import-tp/file-format-match.md#match-category-classification-phasetypephaseorderroundwinner)
@@ -249,8 +246,9 @@ and a live one import a match through the same core. Input:
 }
 ```
 
-Output: `{ match, participation, events, outcome }` — one `ImportResult` per
-stage.
+Output: `{ match, participation, starPlayerHires, events, outcome }` — one
+`ImportResult` per stage — plus `hiredStarPlayers`: each hired star player's
+id and whether this import inserted it.
 
 ## Failures
 
@@ -265,10 +263,10 @@ as `TpBlockedError`, stopping at once, backfills included (see
 | Match not completed (no recorded result); live only                                                                                                                               | `match`                                     |
 | Team import failures (home or away); live only                                                                                                                                    | `homeTeam`/`awayTeam`, as for a team import |
 | `importMatchTeams` only: match request or parse failure, or an unexpected error                                                                                                   | `match`                                     |
-| Hiring team era unresolved, star position or player upsert failure, characteristics lookup failure, missing catalog characteristics, or external-system upsert failure; live only | `starPlayerHires`                           |
 | Tournament or fixture-list request/parse failure; live only                                                                                                                       | `competition`                               |
 | Unknown era, no dated fixtures, or competition upsert failure (including a new competition matching no curated group, or several); live only                                      | `competition`                               |
 | Competition not imported, team era unresolvable, unclassifiable bracket, or match upsert failure                                                                                  | `match`                                     |
+| Hiring team era unresolved, star position or player upsert failure, characteristics lookup failure, missing catalog characteristics, or Name external-system upsert failure       | `starPlayerHires`                           |
 | Team-link failure, including an enrollment-rule rejection                                                                                                                         | `participation`                             |
 | Event upsert failure, or an unresolved player (non-fatal)                                                                                                                         | `events`                                    |
 | Undecidable outcome                                                                                                                                                               | `outcome`                                   |
