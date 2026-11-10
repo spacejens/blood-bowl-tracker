@@ -348,7 +348,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    ```
    If the push fails, retry it once; if it still fails, report the error and wait for the developer under the protocol above (the re-sync it ends with flows back into the lock check and this push).
 
-   Then create the PR using the appropriate command for the active mode:
+   Then create the PR using the appropriate command for the active mode. The title must reach the shell as one literal argument: before substituting it into `--title "..."`, backslash-escape every `"`, `$`, backtick and `\` in it, so a title containing quotes or command-substitution syntax cannot split the argument or run commands.
 
    **Issue mode:**
    ```bash
