@@ -70,17 +70,6 @@ export const TpImportedPlayerSchema = z.object({
   unspentSppSnapshot: UnspentSppSnapshotSchema.optional(),
 });
 
-/**
- * A mercenary hire's position and the race/era it was hired into. A
- * mercenary appears on no TP catalog, so its race/era availability can only
- * be derived from hires like this one.
- */
-export const TpMercenaryPositionUsageSchema = z.object({
-  positionId: z.number().int(),
-  teamRaceCode: z.string(),
-  era: z.string(),
-});
-
 /** Output of `tpRosters.import`. */
 export const TpRosterImportResultSchema = z.object({
   team: ImportResultSchema,
@@ -88,13 +77,9 @@ export const TpRosterImportResultSchema = z.object({
   /** Every team era the team has after the import; empty if not imported. */
   teamEras: z.array(TeamEraSchema),
   importedPlayers: z.array(TpImportedPlayerSchema),
-  mercenaryPositionUsages: z.array(TpMercenaryPositionUsageSchema),
 });
 
 export type TpMatchEmbeddedPlayer = z.infer<typeof TpMatchEmbeddedPlayerSchema>;
 export type ImportTpRoster = z.infer<typeof ImportTpRosterSchema>;
 export type TpImportedPlayer = z.infer<typeof TpImportedPlayerSchema>;
-export type TpMercenaryPositionUsage = z.infer<
-  typeof TpMercenaryPositionUsageSchema
->;
 export type TpRosterImportResult = z.infer<typeof TpRosterImportResultSchema>;

@@ -4,7 +4,6 @@ import type {
   TeamEra,
   TpImportedPlayer,
   TpMatchEmbeddedPlayer,
-  TpMercenaryPositionUsage,
   TpRosterImportResult,
   UnspentSppSnapshot,
 } from '@blood-bowl-tracker/api-contract';
@@ -35,7 +34,6 @@ export interface RosterFilesImportOutcome {
   playerIdsByLineUpId: Map<number, number>;
   /** Players this run inserted, for the lasting-injury history backfill. */
   insertedPlayerIds: number[];
-  mercenaryPositionUsages: TpMercenaryPositionUsage[];
   /**
    * The career SPP total TP reports per DB player id, the highest across
    * every roster import of the player, for the reported-adjustments step.
@@ -80,7 +78,6 @@ export class TpRosterFilesImportService {
     const insertedPlayerIds: number[] = [];
     const reportedSppTotalsByPlayerId = new Map<number, number>();
     const unspentSppSnapshotsByPlayerId = new Map<number, UnspentSppSnapshot>();
-    const mercenaryPositionUsages: TpMercenaryPositionUsage[] = [];
 
     for (const entry of this.distinctByEraAndRoster(rosters)) {
       const rosterId = entry.roster.id;
@@ -131,7 +128,6 @@ export class TpRosterFilesImportService {
           insertedPlayerIds.push(player.playerId);
         }
       }
-      mercenaryPositionUsages.push(...outcome.mercenaryPositionUsages);
     }
 
     return {
@@ -146,7 +142,6 @@ export class TpRosterFilesImportService {
       teamErasByRosterId,
       playerIdsByLineUpId,
       insertedPlayerIds,
-      mercenaryPositionUsages,
       reportedSppTotalsByPlayerId,
       unspentSppSnapshotsByPlayerId,
     };

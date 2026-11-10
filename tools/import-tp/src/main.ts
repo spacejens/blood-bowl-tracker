@@ -18,7 +18,6 @@ import { TpOfficialTeamsTimingReportService } from './official-teams/tp-official
 import type { InducedStarPlayerHireGroup } from './players/tp-induced-star-players-import.service';
 import { TpInducedStarPlayersStepService } from './players/tp-induced-star-players-step.service';
 import { TpLastingInjuryBackfillImportService } from './players/tp-lasting-injury-backfill-import.service';
-import { TpMercenaryPositionRaceErasImportService } from './players/tp-mercenary-position-race-eras-import.service';
 import { TpSppAdjustmentsImportService } from './players/tp-spp-adjustments-import.service';
 import {
   type FreshestMatchEntries,
@@ -238,7 +237,6 @@ async function run(): Promise<ImportResult> {
       teamErasByRosterId,
       playerIdsByLineUpId,
       insertedPlayerIds,
-      mercenaryPositionUsages,
       reportedSppTotalsByPlayerId,
       unspentSppSnapshotsByPlayerId,
     } = rosterImport;
@@ -260,20 +258,6 @@ async function run(): Promise<ImportResult> {
     const { careerSppCountsByPlayerId } = app
       .get(TpRosterPlayerFactsService)
       .collect({ rosters, playerIdsByLineUpId });
-
-    // A mercenary Big Guy hire (e.g. "Giant Mercenary") appears on no TP
-    // official-list catalog at all, so -- unlike regular and star positions,
-    // which the official team list describes directly -- its
-    // positions_race_eras rows have to be derived from actual usage:
-    // the mercenaryPositionUsages the players step just emitted. Runs after
-    // players because that usage (which team/race+era each mercenary was
-    // hired into) is only known once players are imported. Idempotent
-    // (syncRaceEras is upsert-only).
-    const mercenaryPositionRaceErasOutcome = await app
-      .get(TpMercenaryPositionRaceErasImportService)
-      .syncMercenaryPositionRaceEras({
-        mercenaryPositionUsages,
-      });
 
     // Each competition goes to the server in one tpCompetitions.import call,
     // which upserts it, links every team registered to it (the roster files
@@ -383,7 +367,6 @@ async function run(): Promise<ImportResult> {
       rosterImport.teamResult,
       rosterImport.playerResult,
       starHiresOutcome.result,
-      mercenaryPositionRaceErasOutcome.result,
       competitionOutcome.competitionResult,
       competitionOutcome.participationResult,
       competitionOutcome.trophyAwardsResult,

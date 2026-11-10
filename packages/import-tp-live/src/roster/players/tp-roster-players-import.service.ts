@@ -2,7 +2,6 @@ import type {
   ImportError,
   TpImportedPlayer,
   TpMatchEmbeddedPlayer,
-  TpMercenaryPositionUsage,
   UnspentSppSnapshot,
   UpsertPlayer,
   UpsertPlayerCharacteristics,
@@ -48,7 +47,8 @@ export interface ImportRosterPlayersOptions {
 export interface TpRosterPlayersOutcome {
   imported: number;
   importedPlayers: TpImportedPlayer[];
-  mercenaryPositionUsages: TpMercenaryPositionUsage[];
+  /** The position of every imported mercenary hire, in import order. */
+  mercenaryPositionIds: number[];
   /**
    * Each imported player's characteristic increases, by database player id,
    * for the skills sync to send as advancement rows. A player whose counts
@@ -116,7 +116,7 @@ export class TpRosterPlayersImportService {
     const outcome: TpRosterPlayersOutcome = {
       imported: 0,
       importedPlayers: [],
-      mercenaryPositionUsages: [],
+      mercenaryPositionIds: [],
       increasesByPlayerId: new Map(),
     };
 
@@ -166,11 +166,7 @@ export class TpRosterPlayersImportService {
         ...(snapshot === undefined ? {} : { unspentSppSnapshot: snapshot }),
       });
       if (position.mercenary !== undefined) {
-        outcome.mercenaryPositionUsages.push({
-          positionId: position.positionId,
-          teamRaceCode: roster.teamRaceCode,
-          era: context.era.name,
-        });
+        outcome.mercenaryPositionIds.push(position.positionId);
       }
     }
     await this.retireDepartedPlayers({

@@ -53,7 +53,7 @@ describe('TpRosterImportService', () => {
       importedPlayers: [
         { lineUpId: 5001, playerId: 700, created: true, reportedSppTotal: 12 },
       ],
-      mercenaryPositionUsages: [],
+      mercenaryPositionIds: [],
       increasesByPlayerId: INCREASES,
     });
     const moduleRef = await Test.createTestingModule({
@@ -94,7 +94,6 @@ describe('TpRosterImportService', () => {
       importedPlayers: [
         { lineUpId: 5001, playerId: 700, created: true, reportedSppTotal: 12 },
       ],
-      mercenaryPositionUsages: [],
     });
     expect(context.resolve).toHaveBeenCalledWith(
       expect.objectContaining({ era: 'Fourth era', externalSystemName: 'TP' }),
@@ -150,7 +149,6 @@ describe('TpRosterImportService', () => {
       teamEras: [],
       teamEra: undefined,
       importedPlayers: [],
-      mercenaryPositionUsages: [],
     });
     expect(result).toHaveProperty('teamEra', undefined);
     expect(teamUpsert.upsertTeam).not.toHaveBeenCalled();
@@ -173,10 +171,7 @@ describe('TpRosterImportService', () => {
     playersImport.importPlayers.mockResolvedValue({
       imported: 1,
       importedPlayers: [],
-      mercenaryPositionUsages: [
-        { positionId: 55, teamRaceCode: 'orc', era: 'Fourth era' },
-        { positionId: 56, teamRaceCode: 'orc', era: 'Fourth era' },
-      ],
+      mercenaryPositionIds: [55, 56],
       increasesByPlayerId: new Map(),
     });
 

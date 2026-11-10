@@ -83,7 +83,6 @@ function outcome(
     players: { success: true, imported: 0, errors: [] },
     teamEras: [],
     importedPlayers: [],
-    mercenaryPositionUsages: [],
     ...overrides,
   };
 }
@@ -498,20 +497,6 @@ describe('TpRosterFilesImportService', () => {
       [5002, 701],
     ]);
     expect(result.insertedPlayerIds).toEqual([700]);
-  });
-
-  it('collects mercenary position usages', async () => {
-    const usage = { positionId: 5, teamRaceCode: 'Orc', era: 'Fourth era' };
-    importRunner.recordUpsertResult.mockResolvedValue(
-      outcome({ mercenaryPositionUsages: [usage] }),
-    );
-
-    const result = await service.importRosterFiles({
-      rosters: [entry(1, 'Fourth era')],
-      matchEmbeddedPlayersByRosterId: new Map(),
-    });
-
-    expect(result.mercenaryPositionUsages).toEqual([usage]);
   });
 
   it('sums imported counts and gathers errors into separate team and player results', async () => {

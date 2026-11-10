@@ -78,7 +78,6 @@ describe('TpLiveTeamImportService', () => {
       teamEras: [],
       teamEra: TEAM_ERA,
       importedPlayers: [],
-      mercenaryPositionUsages: [],
     });
   }
 
@@ -145,7 +144,6 @@ describe('TpLiveTeamImportService', () => {
       teamEras: [],
       teamEra: TEAM_ERA,
       importedPlayers: [],
-      mercenaryPositionUsages: [],
     });
     const session = mock<TpFetchSession>();
 
@@ -293,7 +291,6 @@ describe('TpLiveTeamImportService', () => {
       teamEras: [],
       teamEra: undefined,
       importedPlayers: [],
-      mercenaryPositionUsages: [],
     });
 
     const result = await service.importTeam({
@@ -317,7 +314,6 @@ describe('TpLiveTeamImportService', () => {
       teamEras: [],
       teamEra: TEAM_ERA,
       importedPlayers,
-      mercenaryPositionUsages: [],
     });
     const facts: TpLivePlayerSppFacts[] = [
       { playerId: 9, reportedSppTotal: 12 },

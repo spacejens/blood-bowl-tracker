@@ -212,8 +212,7 @@ The tool never parses a roster or a match for those upserts; it does parse roste
   [import-tp-live/index.md](../import-tp-live/index.md)) and its players. A
   team seen under several eras is sent once per era; the server's era sync
   only ever adds, so its eras accumulate. Returns `teamErasByRosterId`,
-  `playerIdsByLineUpId`, `insertedPlayerIds` and `mercenaryPositionUsages` for
-  the later steps.
+  `playerIdsByLineUpId` and `insertedPlayerIds` for the later steps.
 
 ### Player import
 
@@ -330,17 +329,10 @@ A star player hired mid-season through an `inducements_roll` event has no `lineU
 - **TpRosterPlayerFactsService** — reads each imported roster player's
   career SPP counts off the parsed roster files, keyed by DB player id, for
   the SPP adjustments.
-- **TpMercenaryPositionRaceErasImportService** — writes `positions_race_eras`
-  for mercenary Big Guy positions, which no official-list catalog carries, so
-  their race/era availability is the one kind still derived from observed
-  usage: the `mercenaryPositionUsages` the players step emits (one per
-  imported mercenary hire). Resolves each usage's `(teamRaceCode, era)` to
-  `(raceId, eraId)`, dedupes the pairs per position, and writes them with one
-  upsert-only `syncRaceEras` call per position. Runs right after players,
-  since the usages only exist once players are imported; an unresolvable race
-  code or era name is recorded as an error and skipped. A pair the server
-  rejects (the race has no `race_eras` row for that era) fails that
-  position's whole sync with one recorded error; other positions still sync.
+- **Mercenary availability** is recorded server-side, inside `tpRosters.import`
+  (see [import-tp-live's mercenary availability](../import-tp-live/index.md#mercenary-availability)):
+  no official-list catalog carries a mercenary Big Guy, so its race/era
+  availability is derived from the hires each roster import sees.
 
 ### Competitions and matches
 
@@ -431,12 +423,11 @@ which would take a data migration (see
 9. Roster import — teams, players and the players' own skills together, one `tpRosters.import` call per distinct era/roster pair (a roster id in more than one era is sent once per era; see [import-tp-live's architecture](../import-tp-live/index.md#what-it-owns)).
 10. Induced star hires.
 11. Roster player facts (career SPP counts).
-12. Mercenary position/race/era sync.
-13. Competitions (with their registered teams and trophy awards).
-14. Match files (one `tpMatches.import` call per file, importing the match, its teams, its events and its outcome together — see [import-tp-live's match import](../import-tp-live/match-import.md)).
-15. SPP adjustments.
-16. The lasting-injury backfill.
-17. Finally, missing trophy awards.
+12. Competitions (with their registered teams and trophy awards).
+13. Match files (one `tpMatches.import` call per file, importing the match, its teams, its events and its outcome together — see [import-tp-live's match import](../import-tp-live/match-import.md)).
+14. SPP adjustments.
+15. The lasting-injury backfill.
+16. Finally, missing trophy awards.
 
 Why the order is what it is:
 
