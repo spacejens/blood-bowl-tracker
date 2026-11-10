@@ -1,35 +1,18 @@
 import { ImportModule } from '@blood-bowl-tracker/import';
-import { ParseTpModule } from '@blood-bowl-tracker/parse-tp';
 import { Module } from '@nestjs/common';
 
-import { EraDataConfigModule } from '../eras/era-data-config.module';
-import { EraRulesSetModule } from '../eras/era-rules-set.module';
-import { SourceModule } from '../source/source.module';
-import { TpInducedStarPlayersImportService } from './tp-induced-star-players-import.service';
-import { TpInducedStarPlayersStepService } from './tp-induced-star-players-step.service';
 import { TpLastingInjuryBackfillImportService } from './tp-lasting-injury-backfill-import.service';
 import { TpSppAdjustmentsImportService } from './tp-spp-adjustments-import.service';
-import { TpStarPositionCharacteristicsBuilderService } from './tp-star-position-characteristics-builder.service';
 
 @Module({
-  imports: [
-    ImportModule,
-    ParseTpModule,
-    SourceModule,
-    EraDataConfigModule,
-    EraRulesSetModule,
-  ],
+  imports: [ImportModule],
   providers: [
     TpSppAdjustmentsImportService,
     TpLastingInjuryBackfillImportService,
-    TpInducedStarPlayersImportService,
-    TpInducedStarPlayersStepService,
-    TpStarPositionCharacteristicsBuilderService,
   ],
   exports: [
     TpSppAdjustmentsImportService,
     TpLastingInjuryBackfillImportService,
-    TpInducedStarPlayersStepService,
   ],
 })
 export class PlayersModule {}

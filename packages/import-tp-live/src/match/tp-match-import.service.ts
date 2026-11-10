@@ -92,10 +92,10 @@ export class TpMatchImportService {
    * Resolves the match's context, imports the star players either team hired
    * through its inducements (TpStarPlayerHiresService; once the context
    * resolves, whether or not the match row is then written), upserts the
-   * match, links its teams, then imports its events and resolves its outcome. A stage whose prerequisite
-   * failed is not attempted and reports nothing imported: nothing is
-   * imported without a context or a match row, and events and outcome need
-   * the match's teams linked.
+   * match, links its teams, then imports its events and resolves its
+   * outcome. A stage whose prerequisite failed is not attempted and reports
+   * nothing imported: nothing is imported without a context or a match row,
+   * and events and outcome need the match's teams linked.
    */
   async importMatch({
     match,

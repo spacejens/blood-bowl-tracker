@@ -27,9 +27,9 @@ import { TpStarPlayerHiresService } from './tp-star-player-hires.service';
 
 /**
  * Imports one TP match, with the star players its teams hired, straight
- * into the database through packages/game-data. packages/api-server imports it to implement
- * `tpMatches.import`; ImportTpLiveModule imports it for the live import. The
- * importing app provides packages/db's `DB`.
+ * into the database through packages/game-data. packages/api-server imports
+ * it to implement `tpMatches.import`; ImportTpLiveModule imports it for the
+ * live import. The importing app provides packages/db's `DB`.
  */
 @Module({
   imports: [

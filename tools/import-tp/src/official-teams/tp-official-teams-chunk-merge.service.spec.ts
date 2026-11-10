@@ -5,7 +5,6 @@ import type {
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { STATS } from './official-teams.test-helpers';
 import { TpOfficialTeamsChunkMergeService } from './tp-official-teams-chunk-merge.service';
 
 const ONE: ImportResult = { success: true, imported: 1, errors: [] };
@@ -208,58 +207,9 @@ describe('TpOfficialTeamsChunkMergeService', () => {
     expect(tallies.keywords.errors).toEqual([writeNine, nullItem, writeTwelve]);
   });
 
-  it("collects every position's characteristics by position and rules set id", () => {
-    const strong = { ...STATS, strength: 5 };
-
-    const { characteristicsByPositionId } = service.merge({
-      outcomes: [
-        {
-          rulesSet: 'BB2020',
-          outcome: outcome({
-            positionCharacteristics: [
-              { positionId: 9, rulesSetId: 20, ...STATS },
-            ],
-          }),
-        },
-        {
-          rulesSet: 'BB2020',
-          outcome: outcome({
-            positionCharacteristics: [
-              { positionId: 9, rulesSetId: 20, ...STATS },
-              { positionId: 10, rulesSetId: 20, ...strong },
-            ],
-          }),
-        },
-        {
-          rulesSet: 'BB2025',
-          outcome: outcome({
-            positionCharacteristics: [
-              { positionId: 9, rulesSetId: 25, ...strong },
-            ],
-          }),
-        },
-      ],
-      failureErrors: [],
-    });
-
-    expect(characteristicsByPositionId).toEqual(
-      new Map([
-        [
-          9,
-          new Map([
-            [20, STATS],
-            [25, strong],
-          ]),
-        ],
-        [10, new Map([[20, strong]])],
-      ]),
-    );
-  });
-
   it('merges nothing into empty tallies', () => {
     const merged = service.merge({ outcomes: [], failureErrors: [] });
 
     expect(merged.tallies.races).toEqual({ imported: 0, errors: [] });
-    expect(merged.characteristicsByPositionId.size).toBe(0);
   });
 });

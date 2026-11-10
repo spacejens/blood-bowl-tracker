@@ -15,8 +15,6 @@ import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
 import { TpMatchFilesImportService } from './match-files/tp-match-files-import.service';
 import { TpOfficialTeamsFilesImportService } from './official-teams/tp-official-teams-files-import.service';
 import { TpOfficialTeamsTimingReportService } from './official-teams/tp-official-teams-timing-report.service';
-import type { InducedStarPlayerHireGroup } from './players/tp-induced-star-players-import.service';
-import { TpInducedStarPlayersStepService } from './players/tp-induced-star-players-step.service';
 import { TpLastingInjuryBackfillImportService } from './players/tp-lasting-injury-backfill-import.service';
 import { TpSppAdjustmentsImportService } from './players/tp-spp-adjustments-import.service';
 import {
@@ -46,8 +44,7 @@ async function run(): Promise<ImportResult> {
     const eraOutcome = await app.get(TpErasImportService).importEras();
 
     // Every competition directory is scanned once, up front: its tournament,
-    // its era and its parsed matches feed the hired-star and match-snapshot
-    // passes below, long before the competitions themselves are imported
+    // its era and its parsed matches feed the match-snapshot pass below, long before the competitions themselves are imported
     // (after the rosters, further down). Nothing is upserted here.
     const competitionSources = await app
       .get(TpCompetitionSourcesService)
@@ -110,7 +107,6 @@ async function run(): Promise<ImportResult> {
     const officialTeamsOutcome = await app
       .get(TpOfficialTeamsFilesImportService)
       .importOfficialTeams({ officialTeams, skillMastersByMasterId });
-    const { characteristicsByPositionId } = officialTeamsOutcome;
 
     // Printed right away, so a failure in a later step cannot lose it: how
     // long each official team list request took and where the server spent
@@ -121,38 +117,15 @@ async function run(): Promise<ImportResult> {
       console.log(line);
     }
 
-    // A roster id can be imported under more than one era, so resolving a
-    // hired star player's team era later needs the real eraId the
-    // inducements_roll event came from -- not a guess: the era of the
-    // directory the match's competition was found in, which the competition
-    // scan above already resolved.
-
-    // Star players hired via an inducements_roll event aren't part of any
-    // roster's lineUps[], so they're gathered from the already-parsed match
-    // events (already-parsed data reused here, not re-scanned) and grouped
-    // by the hiring roster id AND the real era the match's
-    // competition belongs to (so a roster id spanning multiple eras
-    // resolves its team era unambiguously downstream, instead of guessing).
-    // The eraId lookup below is optional only for TypeScript's sake: every
-    // key in matchesByCompetitionTpId comes from a competition
-    // TpCompetitionSourcesService already validated has an eraId, so the
-    // undefined branch (match-embedded player accumulation above still runs)
-    // is unreachable in practice.
-    //
-    // This same pass also builds matchEmbeddedPlayersByRosterId: a standalone
-    // rosters_<id>.json file only reflects a roster's CURRENT composition as
-    // of when the local TP data mirror was downloaded, so a player who has
-    // since left/been replaced is silently absent from it even though
-    // historical matchEvents[] can still reference them. Each match's own
-    // homeRosterPlayers/awayRosterPlayers (parsed from
+    // One pass over the parsed matches builds matchEmbeddedPlayersByRosterId:
+    // a standalone rosters_<id>.json file only reflects a roster's CURRENT
+    // composition as of when the local TP data mirror was downloaded, so a
+    // player who has since left/been replaced is silently absent from it even
+    // though historical matchEvents[] can still reference them. Each match's
+    // own homeRosterPlayers/awayRosterPlayers (parsed from
     // inscriptionLocal/Visitor.roster.lineUps[]) embeds a per-match snapshot
     // of that side's roster, so accumulating them across every match a
-    // roster played (deduped by player id) fills that gap without a third
-    // scan of matchesByCompetitionTpId.
-    const inducedStarPlayerHireGroupsByKey = new Map<
-      string,
-      InducedStarPlayerHireGroup
-    >();
+    // roster played (deduped by player id) fills that gap.
     const matchEmbeddedPlayersByRosterIdMut = new Map<
       number,
       Map<number, FreshestMatchEntries>
@@ -174,12 +147,7 @@ async function run(): Promise<ImportResult> {
         freshness.accumulate(byPlayerId, player);
       }
     };
-    for (const [
-      competitionTpId,
-      matches,
-    ] of competitionSources.matchesByCompetitionTpId.entries()) {
-      const eraId =
-        competitionSources.competitionsByTpId.get(competitionTpId)?.eraId;
+    for (const matches of competitionSources.matchesByCompetitionTpId.values()) {
       for (const match of matches) {
         accumulateMatchEmbeddedPlayers(
           match.homeTeamTpId,
@@ -189,34 +157,8 @@ async function run(): Promise<ImportResult> {
           match.awayTeamTpId,
           match.awayRosterPlayers,
         );
-
-        if (eraId === undefined) {
-          continue;
-        }
-        for (const event of match.matchEvents) {
-          if (
-            event.type !== 'inducements_roll' ||
-            event.starPlayers.length === 0
-          ) {
-            continue;
-          }
-          const key = `${event.rosterId}:${eraId}`;
-          const existingGroup = inducedStarPlayerHireGroupsByKey.get(key);
-          if (existingGroup) {
-            existingGroup.starPlayers.push(...event.starPlayers);
-          } else {
-            inducedStarPlayerHireGroupsByKey.set(key, {
-              rosterId: event.rosterId,
-              eraId,
-              starPlayers: [...event.starPlayers],
-            });
-          }
-        }
       }
     }
-    const inducedStarPlayerHireGroups = Array.from(
-      inducedStarPlayerHireGroupsByKey.values(),
-    );
     const matchEmbeddedPlayersByRosterId = new Map(
       Array.from(matchEmbeddedPlayersByRosterIdMut.entries()).map(
         ([rosterId, byPlayerId]) => [rosterId, freshness.entries(byPlayerId)],
@@ -234,24 +176,11 @@ async function run(): Promise<ImportResult> {
       .get(TpRosterFilesImportService)
       .importRosterFiles({ rosters, matchEmbeddedPlayersByRosterId });
     const {
-      teamErasByRosterId,
       playerIdsByLineUpId,
       insertedPlayerIds,
       reportedSppTotalsByPlayerId,
       unspentSppSnapshotsByPlayerId,
     } = rosterImport;
-
-    // Star players hired through an inducements_roll are on no roster file,
-    // so they are imported here from the match data. characteristicsByPositionId
-    // (from the positions step) supplies a freshly hired star's template values.
-    const starHiresOutcome = await app
-      .get(TpInducedStarPlayersStepService)
-      .importStarHires({
-        groups: inducedStarPlayerHireGroups,
-        teamErasByRosterId,
-        characteristicsByPositionId,
-      });
-    const { starPlayerIdsByRosterAndMaster } = starHiresOutcome;
 
     // Career SPP counts come straight off the parsed roster files, keyed by
     // the DB ids the roster import returned.
@@ -286,11 +215,12 @@ async function run(): Promise<ImportResult> {
 
     // Each match file goes to the server as-is (tpMatches.import), which
     // classifies the match against its competition's bracket, upserts it,
-    // links its teams, imports its events and resolves its outcome. It runs
-    // after the roster, star-player and competition imports because the
-    // server resolves each match's teams and players by the TP ids those
-    // steps wrote, and before the SPP and lasting-injury passes, which read
-    // its match events.
+    // imports the star players its teams hired, links its teams, imports its
+    // events and resolves its outcome. It runs after the roster and
+    // competition imports because the server resolves each match's teams and
+    // players by the TP ids those steps wrote, and before the SPP and
+    // lasting-injury passes, which read its match events and take its hired
+    // star players' ids.
     const matchFilesOutcome = await app
       .get(TpMatchFilesImportService)
       .importMatchFiles({
@@ -312,7 +242,7 @@ async function run(): Promise<ImportResult> {
       .importSppAdjustments({
         playerIds: [
           ...playerIdsByLineUpId.values(),
-          ...starPlayerIdsByRosterAndMaster.values(),
+          ...matchFilesOutcome.hiredStarPlayerIds,
         ],
         careerCountsByPlayerId: careerSppCountsByPlayerId,
         reportedSppTotalsByPlayerId,
@@ -330,7 +260,7 @@ async function run(): Promise<ImportResult> {
       .get(TpLastingInjuryBackfillImportService)
       .importLastingInjuryHistory([
         ...insertedPlayerIds,
-        ...starHiresOutcome.insertedPlayerIds,
+        ...matchFilesOutcome.insertedStarPlayerIds,
       ]);
 
     // Runs last of all: TP records no player trophy winners at all, so every
@@ -366,7 +296,6 @@ async function run(): Promise<ImportResult> {
       officialTeamsOutcome.skillCategoriesResult,
       rosterImport.teamResult,
       rosterImport.playerResult,
-      starHiresOutcome.result,
       competitionOutcome.competitionResult,
       competitionOutcome.participationResult,
       competitionOutcome.trophyAwardsResult,

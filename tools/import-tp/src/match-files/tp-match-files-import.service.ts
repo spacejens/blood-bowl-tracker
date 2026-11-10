@@ -68,11 +68,10 @@ export class TpMatchFilesImportService {
    * playoff match needs. The server upserts the match, imports the star
    * players its teams hired, links its teams, imports its events and
    * resolves its outcome. The hired star players' ids are collected for the
-   * SPP and lasting-injury steps. Files are streamed again
-   * rather than kept from the competitions scan, so only one raw match is
-   * held at a time. A file under a competition that was not imported, or
-   * that did not parse during the competitions scan, was already reported
-   * there and is skipped.
+   * SPP and lasting-injury steps. Files are streamed again rather than kept
+   * from the competitions scan, so only one raw match is held at a time. A
+   * file under a competition that was not imported, or that did not parse
+   * during the competitions scan, was already reported there and is skipped.
    */
   async importMatchFiles(
     options: ImportMatchFilesOptions,

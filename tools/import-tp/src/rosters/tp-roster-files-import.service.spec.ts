@@ -431,42 +431,6 @@ describe('TpRosterFilesImportService', () => {
     expect(importRunner.recordUpsertResult).toHaveBeenCalledTimes(2);
   });
 
-  it('merges each call’s team eras by roster id, without duplicates', async () => {
-    importRunner.recordUpsertResult
-      .mockResolvedValueOnce(outcome({ teamEras: [{ id: 30, eraId: 39 }] }))
-      .mockResolvedValueOnce(
-        outcome({
-          teamEras: [
-            { id: 30, eraId: 39 },
-            { id: 31, eraId: 40 },
-          ],
-        }),
-      );
-
-    const result = await service.importRosterFiles({
-      rosters: [entry(1, 'Fourth era'), entry(1, 'Third era')],
-      matchEmbeddedPlayersByRosterId: new Map(),
-    });
-
-    expect(result.teamErasByRosterId.get(1)).toEqual([
-      { id: 30, eraId: 39 },
-      { id: 31, eraId: 40 },
-    ]);
-  });
-
-  it('records no team eras for a team that was not imported', async () => {
-    importRunner.recordUpsertResult.mockResolvedValue(
-      outcome({ teamEras: [] }),
-    );
-
-    const result = await service.importRosterFiles({
-      rosters: [entry(1, 'Fourth era')],
-      matchEmbeddedPlayersByRosterId: new Map(),
-    });
-
-    expect(result.teamErasByRosterId.has(1)).toBe(false);
-  });
-
   it("maps every imported player's lineUpId to its DB id and collects inserted ids", async () => {
     importRunner.recordUpsertResult.mockResolvedValue(
       outcome({
