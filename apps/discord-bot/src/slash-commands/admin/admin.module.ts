@@ -1,7 +1,7 @@
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { TpPathsModule } from '@blood-bowl-tracker/tp-paths';
 import { Module } from '@nestjs/common';
 
-import { ErrorLogService } from '../../shared/error-log.service';
 import { TpImportModule } from '../../tp-import/tp-import.module';
 import { SlashCommandRegistryModule } from '../slash-command-registry.module';
 import { ImportTpCommandService } from './import-tp-command.service';

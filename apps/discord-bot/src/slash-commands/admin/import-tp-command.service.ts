@@ -1,5 +1,6 @@
 import type { SlashCommandDefinition } from '@blood-bowl-tracker/discord-client';
 import { TpBlockedError } from '@blood-bowl-tracker/import-tp-live';
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { TpPageClassifierService } from '@blood-bowl-tracker/tp-paths';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import type {
@@ -13,7 +14,6 @@ import {
   IMPORT_TP_DISABLED_MESSAGE,
   IMPORT_TP_UNSUPPORTED_URL_MESSAGE,
 } from '../../error-messages';
-import { ErrorLogService } from '../../shared/error-log.service';
 import type { TpImportOutcome } from '../../tp-import/tp-import-dispatch.service';
 import { TpImportDispatchService } from '../../tp-import/tp-import-dispatch.service';
 import { SlashCommandRegistryService } from '../slash-command-registry.service';
