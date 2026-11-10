@@ -77,6 +77,18 @@ describe('TpMercenaryRaceErasSyncService', () => {
     expect(errors).toEqual([]);
   });
 
+  it('records one error and syncs nothing when resolving the race throws', async () => {
+    races.resolve.mockRejectedValue(new Error('db down'));
+    const errors: ImportError[] = [];
+
+    await sync([55, 56], errors);
+
+    expect(positions.syncRaceEras).not.toHaveBeenCalled();
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toContain('orc');
+    expect(errors[0].message).toContain('db down');
+  });
+
   it('records one error and syncs nothing when the race code cannot be resolved', async () => {
     races.resolve.mockResolvedValue({ found: false });
     const errors: ImportError[] = [];

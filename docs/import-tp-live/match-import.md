@@ -105,7 +105,7 @@ up to four more steps after the shared core:
    import's step 8 (see
    [competition-import.md](competition-import.md)). The awards run after
    step 2 and are skipped, with one error in `extraTrophyAwards`, when step 2
-   reported errors, since a missing match would skew them for good; the end
+   reported errors other than star player hire errors, since a missing match would skew them for good; the end
    date is settled either way.
 4. **Settle the players' SPP** (the match import's step 7 above), now for
    both match teams and every player the backfill imported, after steps 1–3:
@@ -257,21 +257,21 @@ None of the entry points throw for an import problem; every failure is one
 as `TpBlockedError`, stopping at once, backfills included (see
 [Failures in the index](index.md#failures)).
 
-| Failure                                                                                                                                                                           | Reported in                                 |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| Match request or parse failure                                                                                                                                                    | `match`                                     |
-| Match not completed (no recorded result); live only                                                                                                                               | `match`                                     |
-| Team import failures (home or away); live only                                                                                                                                    | `homeTeam`/`awayTeam`, as for a team import |
-| `importMatchTeams` only: match request or parse failure, or an unexpected error                                                                                                   | `match`                                     |
-| Tournament or fixture-list request/parse failure; live only                                                                                                                       | `competition`                               |
-| Unknown era, no dated fixtures, or competition upsert failure (including a new competition matching no curated group, or several); live only                                      | `competition`                               |
-| Competition not imported, team era unresolvable, unclassifiable bracket, or match upsert failure                                                                                  | `match`                                     |
-| Hiring team era unresolved, star position or player upsert failure, characteristics lookup failure, missing catalog characteristics, or Name external-system upsert failure       | `starPlayerHires`                           |
-| Team-link failure, including an enrollment-rule rejection                                                                                                                         | `participation`                             |
-| Event upsert failure, or an unresolved player (non-fatal)                                                                                                                         | `events`                                    |
-| Undecidable outcome                                                                                                                                                               | `outcome`                                   |
-| A backfilled team's import, the link or the awards fail, after creating the competition; live only                                                                                | `participantsBackfill`                      |
-| A backfilled match's fetch, team import or write fails, after creating the competition; live only                                                                                 | `matchesBackfill`                           |
-| Settling the end date or computing the extra trophy awards fails, after creating the competition, or they are skipped because `matchesBackfill` reported errors; live only        | `extraTrophyAwards`                         |
+| Failure                                                                                                                                                                                                       | Reported in                                 |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| Match request or parse failure                                                                                                                                                                                | `match`                                     |
+| Match not completed (no recorded result); live only                                                                                                                                                           | `match`                                     |
+| Team import failures (home or away); live only                                                                                                                                                                | `homeTeam`/`awayTeam`, as for a team import |
+| `importMatchTeams` only: match request or parse failure, or an unexpected error                                                                                                                               | `match`                                     |
+| Tournament or fixture-list request/parse failure; live only                                                                                                                                                   | `competition`                               |
+| Unknown era, no dated fixtures, or competition upsert failure (including a new competition matching no curated group, or several); live only                                                                  | `competition`                               |
+| Competition not imported, team era unresolvable, unclassifiable bracket, or match upsert failure                                                                                                              | `match`                                     |
+| Hiring team era unresolved, star position or player upsert failure, characteristics lookup failure, missing catalog characteristics, or Name external-system upsert failure                                   | `starPlayerHires`                           |
+| Team-link failure, including an enrollment-rule rejection                                                                                                                                                     | `participation`                             |
+| Event upsert failure, or an unresolved player (non-fatal)                                                                                                                                                     | `events`                                    |
+| Undecidable outcome                                                                                                                                                                                           | `outcome`                                   |
+| A backfilled team's import, the link or the awards fail, after creating the competition; live only                                                                                                            | `participantsBackfill`                      |
+| A backfilled match's fetch, team import or write fails, after creating the competition; live only                                                                                                             | `matchesBackfill`                           |
+| Settling the end date or computing the extra trophy awards fails, after creating the competition, or they are skipped because `matchesBackfill` reported errors other than star player hire errors; live only | `extraTrophyAwards`                         |
 
 A stage whose prerequisite failed reports nothing imported.

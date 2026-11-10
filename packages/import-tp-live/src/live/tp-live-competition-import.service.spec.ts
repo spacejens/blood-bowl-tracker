@@ -146,6 +146,7 @@ describe('TpLiveCompetitionImportService', () => {
       result: MATCHES_BACKFILL,
       sppPlayers: [],
       eventFailedPlayerIds: [],
+      awardsBlocked: false,
     });
     extraTrophyAwards = mock<TpExtraTrophyAwardsService>();
     extraTrophyAwards.computeExtras.mockResolvedValue(EXTRAS);
@@ -429,6 +430,7 @@ describe('TpLiveCompetitionImportService', () => {
         result: CLEAN_MATCHES_BACKFILL,
         sppPlayers: [],
         eventFailedPlayerIds: [],
+        awardsBlocked: false,
       });
       competitionImport.importCompetition.mockResolvedValue({
         ...CORE,
@@ -482,6 +484,7 @@ describe('TpLiveCompetitionImportService', () => {
         result: CLEAN_MATCHES_BACKFILL,
         sppPlayers: [],
         eventFailedPlayerIds: [],
+        awardsBlocked: false,
       });
       competitionImport.importCompetition.mockResolvedValue({
         ...CORE,
@@ -535,6 +538,7 @@ describe('TpLiveCompetitionImportService', () => {
         result: CLEAN_MATCHES_BACKFILL,
         sppPlayers: [BACKFILLED_SPP],
         eventFailedPlayerIds: [],
+        awardsBlocked: false,
       });
       competitionImport.importCompetition.mockResolvedValue({
         ...CORE,
@@ -554,6 +558,7 @@ describe('TpLiveCompetitionImportService', () => {
         result: CLEAN_MATCHES_BACKFILL,
         sppPlayers: [BACKFILLED_SPP],
         eventFailedPlayerIds: [FIRST_SPP.playerId, BACKFILLED_SPP.playerId],
+        awardsBlocked: false,
       });
       competitionImport.importCompetition.mockResolvedValue({
         ...CORE,
@@ -573,6 +578,7 @@ describe('TpLiveCompetitionImportService', () => {
         result: MATCHES_BACKFILL,
         sppPlayers: [],
         eventFailedPlayerIds: [],
+        awardsBlocked: false,
       });
       competitionImport.importCompetition.mockResolvedValue({
         ...CORE,

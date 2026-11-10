@@ -44,8 +44,9 @@ async function run(): Promise<ImportResult> {
     const eraOutcome = await app.get(TpErasImportService).importEras();
 
     // Every competition directory is scanned once, up front: its tournament,
-    // its era and its parsed matches feed the match-snapshot pass below, long before the competitions themselves are imported
-    // (after the rosters, further down). Nothing is upserted here.
+    // its era and its parsed matches feed the match-snapshot pass below, long
+    // before the competitions themselves are imported (after the rosters,
+    // further down). Nothing is upserted here.
     const competitionSources = await app
       .get(TpCompetitionSourcesService)
       .collect();

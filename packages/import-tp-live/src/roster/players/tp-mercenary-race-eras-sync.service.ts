@@ -49,15 +49,27 @@ export class TpMercenaryRaceErasSyncService {
     if (distinct.length === 0) {
       return;
     }
-    const race = await this.races.resolve({
-      externalSystemId: context.tpSystemId,
-      externalId: teamRaceCode,
+    const item = { teamRaceCode, positionIds: distinct };
+    const skipMessage = `Skipped the race/era availability of mercenary position(s) ${distinct.join(', ')}`;
+    const race = await this.runner.record({
+      run: () =>
+        this.races.resolve({
+          externalSystemId: context.tpSystemId,
+          externalId: teamRaceCode,
+        }),
+      item,
+      errors,
+      buildErrorMessage: (error) =>
+        `${skipMessage}: resolving race code "${teamRaceCode}" failed: ${this.runner.messageOf(error)}`,
     });
+    if (race === undefined) {
+      return;
+    }
     if (!race.found) {
       errors.push(
         this.importResults.error({
-          item: { teamRaceCode, positionIds: distinct },
-          message: `Skipped the race/era availability of mercenary position(s) ${distinct.join(', ')}: could not resolve race code "${teamRaceCode}"`,
+          item,
+          message: `${skipMessage}: could not resolve race code "${teamRaceCode}"`,
         }),
       );
       return;

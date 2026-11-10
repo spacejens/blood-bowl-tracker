@@ -12,9 +12,10 @@ export interface TpStarHireKeyOptions {
  * The TP external id of a hired star player. A star hired for a match is on
  * no roster's `lineUps[]`, so TP gives it no player id. Each hire is one
  * player row per hiring roster and star, keyed
- * `star-<rosterId>-<lineUpMasterId>`. tools/import-tp's bulk hire pass and
- * packages/import-tp-live's live hire import both key the row through this
- * service, so either path re-importing the same hire updates one row.
+ * `star-<rosterId>-<lineUpMasterId>`. packages/import-tp-live's server-side
+ * hire import keys the row through this service, and both the bulk run
+ * (through `tpMatches.import`) and the live match import reach it, so
+ * re-importing the same hire from either updates one row.
  * Constructor-free formatting, so specs may pass it as a real provider.
  */
 @Injectable()

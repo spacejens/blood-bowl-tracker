@@ -133,8 +133,8 @@ and skipped. Their coach is upserted server-side, from `coachTpId` and
 genuine coach-upsert failure records an error and skips the team.
 
 **Players** import every roster's `players`
-entry: each resolves a team era (roster id + era) and a position server-side, by `lineUpMasterId`,
-against whatever `TpOfficialPositionsUpsertService` upserted from the
+entry: each resolves a team era (roster id + era) and a position
+server-side, by `lineUpMasterId`, against whatever `TpOfficialPositionsUpsertService` upserted from the
 official team list. If that lookup fails but the player is flagged
 `isBigGuy: true` (a mercenary Big Guy hire like "Giant", with no catalog
 entry in either `rosterMaster` array at all — see "Still not handled" below

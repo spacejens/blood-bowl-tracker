@@ -87,6 +87,8 @@ const CORE: TpMatchImportResult = {
   outcome: one,
   hiredStarPlayers: [{ playerId: 900, created: true }],
 };
+/** The shared core's stages: the live result leaves out the hired players. */
+const { hiredStarPlayers: _hired, ...CORE_STAGES } = CORE;
 const PARTICIPANTS_BACKFILL: TpParticipantsBackfillResult = {
   teams: [{ rosterId: 163386, ...teamImported }],
   participation: one,
@@ -167,6 +169,7 @@ describe('TpLiveMatchImportService', () => {
       result: MATCHES_BACKFILL,
       sppPlayers: [],
       eventFailedPlayerIds: [],
+      awardsBlocked: false,
     });
     extraTrophyAwards = mock<TpExtraTrophyAwardsService>();
     extraTrophyAwards.computeExtras.mockResolvedValue(EXTRAS);
@@ -213,7 +216,7 @@ describe('TpLiveMatchImportService', () => {
       competition: one,
       homeTeam: teamImported,
       awayTeam: teamImported,
-      ...CORE,
+      ...CORE_STAGES,
       sppAdjustments: SETTLED,
     });
     expect(matchData.importTeams).toHaveBeenCalledWith({
@@ -529,6 +532,7 @@ describe('TpLiveMatchImportService', () => {
         result: MATCHES_BACKFILL,
         sppPlayers: [BACKFILLED_SPP],
         eventFailedPlayerIds: [],
+        awardsBlocked: false,
       });
 
       await importMatch();
@@ -547,6 +551,7 @@ describe('TpLiveMatchImportService', () => {
         result: MATCHES_BACKFILL,
         sppPlayers: [BACKFILLED_SPP],
         eventFailedPlayerIds: [HOME_SPP.playerId, BACKFILLED_SPP.playerId],
+        awardsBlocked: false,
       });
 
       await importMatch();
@@ -635,7 +640,7 @@ describe('TpLiveMatchImportService', () => {
         competition: one,
         homeTeam: teamImported,
         awayTeam: teamImported,
-        ...CORE,
+        ...CORE_STAGES,
         participantsBackfill: PARTICIPANTS_BACKFILL,
         matchesBackfill: MATCHES_BACKFILL,
         extraTrophyAwards: nothing,
@@ -752,6 +757,7 @@ describe('TpLiveMatchImportService', () => {
         result: FAILED_MATCHES_BACKFILL,
         sppPlayers: [],
         eventFailedPlayerIds: [],
+        awardsBlocked: true,
       });
 
       const result = await importMatch();
@@ -764,6 +770,22 @@ describe('TpLiveMatchImportService', () => {
         's30',
       );
       expect(result.extraTrophyAwards).toEqual(SKIPPED);
+      expect(result.matchesBackfill).toEqual(FAILED_MATCHES_BACKFILL);
+    });
+
+    it('awards the extras, still reporting the errors, when the match backfill reported only errors that do not block the awards', async () => {
+      participantsBackfill.backfill.mockResolvedValue(AWARDED_BACKFILL);
+      matchesBackfill.backfill.mockResolvedValue({
+        result: FAILED_MATCHES_BACKFILL,
+        sppPlayers: [],
+        eventFailedPlayerIds: [],
+        awardsBlocked: false,
+      });
+
+      const result = await importMatch();
+
+      expect(extraTrophyAwards.computeExtras).toHaveBeenCalledTimes(1);
+      expect(extraTrophyAwards.skippedForBackfillErrors).not.toHaveBeenCalled();
       expect(result.matchesBackfill).toEqual(FAILED_MATCHES_BACKFILL);
     });
 

@@ -59,7 +59,10 @@ interface FinishCompetitionOptions {
   era: string;
   externalSystemName: string;
   competition: UpsertedTpCompetition;
-  /** Whether the import's match backfill reported errors. */
+  /**
+   * Whether the import's match backfill reported errors that block the
+   * awards (star player hire errors do not).
+   */
   matchesBackfillFailed: boolean;
 }
 
@@ -215,11 +218,12 @@ export class TpLiveMatchImportService {
         };
       }
 
-      const core = await this.matchData.writeMatch({
-        match: ready.match,
-        bracket,
-        externalSystemName,
-      });
+      const { hiredStarPlayers: _hired, ...core } =
+        await this.matchData.writeMatch({
+          match: ready.match,
+          bracket,
+          externalSystemName,
+        });
       const imported: TpLiveMatchImportResult = {
         competition,
         homeTeam,
@@ -262,7 +266,7 @@ export class TpLiveMatchImportService {
             era: ready.era,
             externalSystemName,
             competition: upserted,
-            matchesBackfillFailed: matchesBackfill.errors.length > 0,
+            matchesBackfillFailed: backfilledMatches.awardsBlocked,
           })
         : this.importResults.result({ imported: 0, errors: [] });
       const sppAdjustments = await this.settleSpp(
@@ -305,8 +309,8 @@ export class TpLiveMatchImportService {
    * then award the trophies TP does not record. A failed re-upsert is
    * reported but does not stop the awards, which need only the
    * competition's id. The awards are skipped, with one recorded error, when
-   * the match backfill reported errors: a missing match would skew them for
-   * good. That never holds back the end date.
+   * the match backfill reported blocking errors (any but star player hire
+   * errors): a missing match would skew them for good. That never holds back the end date.
    */
   private async finishCompetition({
     tournamentSlug,

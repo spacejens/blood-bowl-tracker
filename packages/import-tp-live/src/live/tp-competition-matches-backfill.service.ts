@@ -44,6 +44,14 @@ export interface MatchesBackfillOutcome {
    * sum is incomplete, so the caller must not settle them.
    */
   eventFailedPlayerIds: number[];
+  /**
+   * Whether a backfilled match reported an error that could leave the
+   * competition's matches incomplete or wrong (any stage but star player
+   * hires, or a match that threw), so the caller must not compute the extra
+   * trophy awards. A failed star player hire is reported in `result` but
+   * leaves the match itself imported, so it does not set this.
+   */
+  awardsBlocked: boolean;
 }
 
 /**
@@ -83,6 +91,7 @@ export class TpCompetitionMatchesBackfillService {
     const errors: ImportError[] = [];
     const sppPlayers: TpLivePlayerSppFacts[] = [];
     const eventFailed = new Set<number>();
+    let awardsBlocked = false;
     for (const { id: matchId } of completed) {
       try {
         const result = await this.matchData.importMatchData({
@@ -96,7 +105,9 @@ export class TpCompetitionMatchesBackfillService {
         if (result.match.imported > 0) {
           imported += 1;
         }
-        errors.push(...this.errorsOf(result));
+        const stageErrors = this.errorsOf(result);
+        errors.push(...stageErrors, ...result.starPlayerHires.errors);
+        awardsBlocked ||= stageErrors.length > 0;
         const matchPlayers = [
           ...result.homeTeam.sppPlayers,
           ...result.awayTeam.sppPlayers,
@@ -110,6 +121,7 @@ export class TpCompetitionMatchesBackfillService {
           throw error;
         }
         const message = error instanceof Error ? error.message : String(error);
+        awardsBlocked = true;
         errors.push(
           this.importResults.error({
             item: { matchId },
@@ -122,10 +134,14 @@ export class TpCompetitionMatchesBackfillService {
       result: this.importResults.result({ imported, errors }),
       sppPlayers,
       eventFailedPlayerIds: [...eventFailed],
+      awardsBlocked,
     };
   }
 
-  /** Every error one match's import reported, in stage order. */
+  /**
+   * Every error one match's import reported, except those of its star player
+   * hires, in stage order.
+   */
   private errorsOf(result: TpMatchDataImportResult): ImportError[] {
     return [
       result.homeTeam.team,
@@ -134,7 +150,6 @@ export class TpCompetitionMatchesBackfillService {
       result.awayTeam.players,
       result.match,
       result.participation,
-      result.starPlayerHires,
       result.events,
       result.outcome,
     ].flatMap((stage) => stage.errors);
