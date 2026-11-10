@@ -67,6 +67,7 @@ import { RandomInsightsScopeService } from './random-insights-scope.service';
 import { RandomSourceService } from './random-source.service';
 import { TeamContextService } from './team-context.service';
 
+// game-data and game-data-queries modules the insights and deepdives read through.
 const GAME_DATA_MODULES = [
   CoachesQueriesModule,
   CompetitionGroupsQueriesModule,

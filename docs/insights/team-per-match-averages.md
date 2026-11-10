@@ -9,7 +9,7 @@ and deaths caused and suffered, per match.
 Every such average is the same query, shaped by one input: the **per-side
 value** summed for each match the team played. The query divides that sum by
 the team's number of distinct matches in scope. For the exact query, see
-`packages/game-data/src/teams/team-average-statistics.service.ts`.
+`packages/game-data-queries/src/teams/team-average-statistics.service.ts`.
 
 ## Per-side values
 

@@ -8,8 +8,10 @@ import {
   mockDb,
   sqlText,
 } from '@blood-bowl-tracker/db/test-helpers';
-import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
-import { MatchScopeFilterService } from '@blood-bowl-tracker/game-data';
+import {
+  FACT_SCOPE_ALL_TIME,
+  MatchScopeFilterService,
+} from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';

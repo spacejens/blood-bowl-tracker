@@ -15,7 +15,7 @@ merged with February 28 or March 1.
 The filter compares the calendar fields of a match's played-at timestamp
 directly, which is what gives that leap-year behaviour for free: there is no
 leap-year special case anywhere in the code. See
-`packages/game-data/src/insights/on-this-date.service.ts`.
+`packages/game-data-queries/src/insights/on-this-date.service.ts`.
 
 Both "today" (the `/onthisdate` command's default, and the date the
 scheduled random-insights job always uses) and the match date filter are

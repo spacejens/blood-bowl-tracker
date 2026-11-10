@@ -12,7 +12,7 @@ together with the action (see [lasting injuries caused](#lasting-injuries-caused
 
 For the exact query shape behind all of these — how each role is resolved, and
 how the grouping and filters are applied — see
-`packages/game-data/src/shared/match-event-counts.service.ts`.
+`packages/game-data-queries/src/shared/match-event-counts.service.ts`.
 
 ## The player/team grid is deliberately incomplete
 

@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { players, teamEras } from '../index.js';
-import { and, eq, inArray } from '../index.js';
+import { and, eq, inArray, players, teamEras } from '../index.js';
 import {
   extractAllFilterValues,
   extractFilterValues,

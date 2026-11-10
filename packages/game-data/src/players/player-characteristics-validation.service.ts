@@ -14,9 +14,8 @@ import { CharacteristicFormatValidationService } from '../shared/characteristic-
  * reject values that disagree with the rules set's declared display formats —
  * all before any write happens.
  *
- * Its own service rather than private methods on `PlayersService`, which sits
- * at the repo's 500-line source ceiling. The split is also the natural one:
- * nothing here touches the `players` table, only `rules_sets`.
+ * Its own service rather than private methods on `PlayersService`: nothing
+ * here touches the `players` table, only `rules_sets`.
  */
 @Injectable()
 export class PlayerCharacteristicsValidationService {

@@ -64,7 +64,6 @@ export { RulesSetsQueriesService } from './rules-sets/rules-sets-queries.service
 export { CharacteristicDisplayFormattingModule } from './shared/characteristic-display-formatting.module';
 export { CharacteristicDisplayFormattingService } from './shared/characteristic-display-formatting.service';
 export { PlayerContextNamesModule } from './shared/player-context-names.module';
-export type { PlayerContextNames } from './shared/player-context-names.service';
 export { PlayerContextNamesService } from './shared/player-context-names.service';
 export { TeamRaceCoachNamesModule } from './shared/team-race-coach-names.module';
 export { TeamRaceCoachNamesService } from './shared/team-race-coach-names.service';
@@ -72,10 +71,7 @@ export type { TeamTopPlayer } from './shared/team-top-player';
 export { SkillsQueriesModule } from './skills/skills-queries.module';
 export type { SkillPlayerCount } from './skills/skills-queries.service';
 export { SkillsQueriesService } from './skills/skills-queries.service';
-export type {
-  TeamAverageDirection,
-  TeamAverageRow,
-} from './teams/team-average-statistics.service';
+export type { TeamAverageDirection } from './teams/team-average-statistics.service';
 export { TeamAverageStatisticsService } from './teams/team-average-statistics.service';
 export { TeamsQueriesModule } from './teams/teams-queries.module';
 export { TeamsQueriesService } from './teams/teams-queries.service';

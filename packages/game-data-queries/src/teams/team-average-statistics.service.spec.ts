@@ -8,12 +8,12 @@ import {
   mockDb,
   sqlText,
 } from '@blood-bowl-tracker/db/test-helpers';
-import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
 import {
   CASUALTY_CAUSED_TYPES,
   CASUALTY_SUFFERED_TYPES,
   DEATH_CAUSED_TYPES,
   DEATH_SUFFERED_TYPES,
+  FACT_SCOPE_ALL_TIME,
   LASTING_INJURY_SUFFERED_TYPES,
   SERIOUS_INJURY_CAUSED_TYPES,
   SERIOUS_INJURY_SUFFERED_TYPES,

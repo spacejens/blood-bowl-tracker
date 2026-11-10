@@ -24,7 +24,7 @@ import { Inject, Injectable } from '@nestjs/common';
  * Counts every `trophy_awards` row tied to the team through its team era —
  * including player-kind awards (MVP, most casualties, ...), since
  * `team_era_id` is populated even for those. This is deliberately the same
- * aggregation as `TrophyAwardsService.countByTeam`, grouped rather than
+ * aggregation as `TrophyAwardsQueriesService.countByTeam`, grouped rather than
  * filtered to one team, so the toplists and a team's own deepdive trophy
  * count agree.
  */

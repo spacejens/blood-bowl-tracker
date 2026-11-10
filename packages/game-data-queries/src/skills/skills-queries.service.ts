@@ -68,7 +68,7 @@ export class SkillsQueriesService {
    * `players` row, so including them would both skew the ranking and count one
    * star's skills once per hiring team. Same exclusion, same reason, as
    * `PositionsQueriesService.countPlayersByPosition` and
-   * `PlayersService.topPlayersByTotalSpp`.
+   * `PlayersQueriesService.topPlayersByTotalSpp`.
    *
    * League and era scope reach the player through their own team era - no
    * match-event join - because a player's skills are a snapshot property of the
