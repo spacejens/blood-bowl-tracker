@@ -1,7 +1,7 @@
 # logging
 
-`packages/logging` holds `ErrorLogService`, the one way code running inside
-the Discord bot's process logs a caught exception. `apps/discord-bot`,
+`packages/logging` holds `ErrorLogService`, the way code running inside
+the Discord bot's process logs an unexpected caught exception. `apps/discord-bot`,
 `packages/discord-client`, `packages/db` (`AdvisoryLockService`) and
 `packages/api-server` (`RpcMiddleware`) all use it, so the same failure looks
 the same in `fly logs` wherever it was caught.
@@ -45,7 +45,8 @@ Log calls that pass only a string, with no error object, do not need it.
 
 `AdvisoryLockService`'s warnings keep their summaries, such as
 `Failed to reserve the advisory-lock connection`, and carry the underlying
-error after a colon on the same line, under the `AdvisoryLockService` context.
+error after a colon, with any stack frames on the lines below, under the
+`AdvisoryLockService` context.
 Search `fly logs` for the summary text; the detail that follows names the
 cause (for example a refused connection).
 
