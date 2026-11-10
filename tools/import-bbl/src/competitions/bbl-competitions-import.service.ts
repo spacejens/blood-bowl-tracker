@@ -162,7 +162,7 @@ export class BblCompetitionsImportService {
 
     const datesByCompetitionId = await this.collectMatchDates(errors);
     const competitions = await this.readCompetitionList(errors);
-    if (competitions === null) {
+    if (competitions === undefined) {
       errors.push(
         this.importResults.error({
           item: {
@@ -248,13 +248,13 @@ export class BblCompetitionsImportService {
    * param (or, if no such se page exists, the first matching sr page) — both
    * embed the identical dropdown. The bare `default.asp?p=se`/`p=sr` index
    * pages (no `s` param) have a different layout that lacks the dropdown
-   * entirely and are skipped. Returns null if no matching page exists, or if
+   * entirely and are skipped. Returns undefined if no matching page exists, or if
    * a parse fails (the failure is recorded as an error; parse errors do not
    * fall through to sr).
    */
   private async readCompetitionList(
     errors: ImportError[],
-  ): Promise<BblCompetition[] | null> {
+  ): Promise<BblCompetition[] | undefined> {
     for (const type of [PLAYED_LIST_PAGE_TYPE, STANDINGS_LIST_PAGE_TYPE]) {
       for await (const page of this.sourceReader.pages(type)) {
         if (page.params.s === undefined) {
@@ -270,11 +270,11 @@ export class BblCompetitionsImportService {
               error,
             ),
           );
-          return null;
+          return undefined;
         }
       }
     }
-    return null;
+    return undefined;
   }
 
   /**
