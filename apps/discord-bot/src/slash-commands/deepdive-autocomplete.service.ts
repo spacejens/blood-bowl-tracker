@@ -1,17 +1,15 @@
 import {
-  ErasService,
-  LeaguesService,
-  TrophiesService,
-} from '@blood-bowl-tracker/game-data';
-import {
   CoachesQueriesService,
   CompetitionGroupsQueriesService,
   CompetitionsQueriesService,
+  ErasQueriesService,
+  LeaguesQueriesService,
   PlayersQueriesService,
   PositionsQueriesService,
   RacesQueriesService,
   StarPlayersService,
   TeamsQueriesService,
+  TrophiesQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { AutocompleteInteraction } from 'discord.js';
@@ -31,7 +29,7 @@ const MAX_AUTOCOMPLETE_CHOICES = 25;
 @Injectable()
 export class DeepdiveAutocompleteService {
   constructor(
-    private readonly eras: ErasService,
+    private readonly erasQueries: ErasQueriesService,
     private readonly competitionsQueries: CompetitionsQueriesService,
     private readonly competitionGroupsQueries: CompetitionGroupsQueriesService,
     private readonly coachesQueries: CoachesQueriesService,
@@ -40,8 +38,8 @@ export class DeepdiveAutocompleteService {
     private readonly positionsQueries: PositionsQueriesService,
     private readonly racesQueries: RacesQueriesService,
     private readonly stars: StarPlayersService,
-    private readonly trophies: TrophiesService,
-    private readonly leagues: LeaguesService,
+    private readonly trophiesQueries: TrophiesQueriesService,
+    private readonly leaguesQueries: LeaguesQueriesService,
   ) {}
 
   async resolve(
@@ -49,7 +47,7 @@ export class DeepdiveAutocompleteService {
   ): Promise<{ name: string; value: string }[]> {
     const focused = interaction.options.getFocused(true);
     if (focused.name === 'era') {
-      const eras = await this.eras.searchByNamePrefix(
+      const eras = await this.erasQueries.searchByNamePrefix(
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );
@@ -150,7 +148,7 @@ export class DeepdiveAutocompleteService {
       }));
     }
     if (focused.name === 'trophy') {
-      const trophies = await this.trophies.searchByNamePrefix(
+      const trophies = await this.trophiesQueries.searchByNamePrefix(
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );
@@ -160,7 +158,7 @@ export class DeepdiveAutocompleteService {
       }));
     }
     if (focused.name === 'league') {
-      const leagues = await this.leagues.searchByNamePrefix(
+      const leagues = await this.leaguesQueries.searchByNamePrefix(
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );

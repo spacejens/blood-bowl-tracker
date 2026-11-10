@@ -2,12 +2,12 @@ import type { SlashCommandDefinition } from '@blood-bowl-tracker/discord-client'
 import type { MatchCategory } from '@blood-bowl-tracker/domain-enums';
 import { MATCH_CATEGORIES } from '@blood-bowl-tracker/domain-enums';
 import type { FactScope } from '@blood-bowl-tracker/game-data';
+import { CompetitionsService } from '@blood-bowl-tracker/game-data';
 import {
-  CompetitionsService,
-  ErasService,
-  LeaguesService,
-} from '@blood-bowl-tracker/game-data';
-import { CompetitionsQueriesService } from '@blood-bowl-tracker/game-data-queries';
+  CompetitionsQueriesService,
+  ErasQueriesService,
+  LeaguesQueriesService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import type {
   ApplicationCommandOptionData,
@@ -60,8 +60,8 @@ export interface ResolvedScope {
 @Injectable()
 export class InsightsCommandService implements OnModuleInit {
   constructor(
-    private readonly leagues: LeaguesService,
-    private readonly eras: ErasService,
+    private readonly leaguesQueries: LeaguesQueriesService,
+    private readonly erasQueries: ErasQueriesService,
     private readonly competitions: CompetitionsService,
     private readonly competitionsQueries: CompetitionsQueriesService,
     @Inject(FACT_TREE) private readonly factTree: FactNode,
@@ -161,13 +161,13 @@ export class InsightsCommandService implements OnModuleInit {
     }
 
     const leagueResult = await this.resolveScopeOption(leagueOption, (id) =>
-      this.leagues.findById(id),
+      this.leaguesQueries.findById(id),
     );
     if (leagueResult.kind === 'notFound') {
       return { kind: 'error', message: INSIGHTS_LEAGUE_NOT_FOUND_MESSAGE };
     }
     const eraResult = await this.resolveScopeOption(eraOption, (id) =>
-      this.eras.findById(id),
+      this.erasQueries.findById(id),
     );
     if (eraResult.kind === 'notFound') {
       return { kind: 'error', message: INSIGHTS_ERA_NOT_FOUND_MESSAGE };
@@ -229,13 +229,13 @@ export class InsightsCommandService implements OnModuleInit {
       };
     }
     if (token.kind === 'league') {
-      const league = await this.leagues.findById(token.id);
+      const league = await this.leaguesQueries.findById(token.id);
       return league === undefined
         ? { kind: 'error', message: INSIGHTS_LEAGUE_NOT_FOUND_MESSAGE }
         : { kind: 'ok', resolved: { league } };
     }
     if (token.kind === 'era') {
-      const era = await this.eras.findById(token.id);
+      const era = await this.erasQueries.findById(token.id);
       return era === undefined
         ? { kind: 'error', message: INSIGHTS_ERA_NOT_FOUND_MESSAGE }
         : { kind: 'ok', resolved: { era } };
@@ -479,14 +479,14 @@ export class InsightsCommandService implements OnModuleInit {
   ): Promise<{ name: string; value: string }[] | null> {
     const focused = interaction.options.getFocused(true);
     if (focused.name === 'league') {
-      const leagues = await this.leagues.searchByNamePrefix(
+      const leagues = await this.leaguesQueries.searchByNamePrefix(
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );
       return leagues.map((row) => ({ name: row.name, value: String(row.id) }));
     }
     if (focused.name === 'era') {
-      const eras = await this.eras.searchByNamePrefix(
+      const eras = await this.erasQueries.searchByNamePrefix(
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );

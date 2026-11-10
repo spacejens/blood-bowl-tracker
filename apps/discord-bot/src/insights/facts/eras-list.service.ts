@@ -1,5 +1,5 @@
 import type { FactScope } from '@blood-bowl-tracker/game-data';
-import { ErasService } from '@blood-bowl-tracker/game-data';
+import { ErasQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -24,7 +24,7 @@ interface EraEntry {
 @Injectable()
 export class ErasListService {
   constructor(
-    private readonly eras: ErasService,
+    private readonly erasQueries: ErasQueriesService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
     private readonly dateRangeFormatter: DateRangeFormatterService,
@@ -33,7 +33,7 @@ export class ErasListService {
 
   async resolve(scope: FactScope): Promise<string | InteractionReplyOptions> {
     const rows = await this.databaseTimeout.run(
-      this.eras.listErasWithLeague(scope),
+      this.erasQueries.listErasWithLeague(scope),
       null,
     );
     if (rows === null) {

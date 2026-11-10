@@ -125,14 +125,6 @@ describe('RulesSetsService', () => {
     expect(chains).toHaveLength(2);
   });
 
-  describe('countAll', () => {
-    it('returns the total row count', async () => {
-      const { chains } = await build([{ count: 5 }]);
-      await expect(service.countAll()).resolves.toBe(5);
-      expect(chains[0].from).toHaveBeenCalledTimes(1);
-    });
-  });
-
   describe('listByEra', () => {
     it("returns the era's rules sets", async () => {
       const bb2020 = { ...fakeRulesSet, moveFormat: 'bare' as const };

@@ -1,24 +1,24 @@
 import type { FactScope } from '@blood-bowl-tracker/game-data';
 import {
   CompetitionsService,
-  ErasService,
-  ExternalSystemsService,
   FACT_SCOPE_ALL_TIME,
-  KeywordsService,
-  LeaguesService,
-  MatchesService,
-  RulesSetsService,
-  TrophiesService,
 } from '@blood-bowl-tracker/game-data';
 import {
   CoachesQueriesService,
   CompetitionGroupsQueriesService,
   CompetitionsQueriesService,
+  ErasQueriesService,
+  ExternalSystemsQueriesService,
+  KeywordsQueriesService,
+  LeaguesQueriesService,
+  MatchesQueriesService,
   PlayersQueriesService,
   PositionsQueriesService,
   RacesQueriesService,
+  RulesSetsQueriesService,
   SkillsQueriesService,
   TeamsQueriesService,
+  TrophiesQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -74,15 +74,15 @@ async function makeService(
       StatsSummaryFactsService,
       NumberFormatterService,
       {
-        provide: LeaguesService,
+        provide: LeaguesQueriesService,
         useValue: overrides.leagues ?? {},
       },
       {
-        provide: ExternalSystemsService,
+        provide: ExternalSystemsQueriesService,
         useValue: overrides.externalSystems ?? {},
       },
       {
-        provide: RulesSetsService,
+        provide: RulesSetsQueriesService,
         useValue: overrides.rulesSets ?? {},
       },
       {
@@ -98,7 +98,7 @@ async function makeService(
         useValue: overrides.skills ?? {},
       },
       {
-        provide: KeywordsService,
+        provide: KeywordsQueriesService,
         useValue: overrides.keywords ?? {},
       },
       {
@@ -106,7 +106,7 @@ async function makeService(
         useValue: overrides.coaches ?? {},
       },
       {
-        provide: ErasService,
+        provide: ErasQueriesService,
         useValue: overrides.eras ?? {},
       },
       {
@@ -122,7 +122,7 @@ async function makeService(
         useValue: overrides.competitionGroupsQueries ?? {},
       },
       {
-        provide: TrophiesService,
+        provide: TrophiesQueriesService,
         useValue: overrides.trophies ?? {},
       },
       {
@@ -134,7 +134,7 @@ async function makeService(
         useValue: overrides.players ?? {},
       },
       {
-        provide: MatchesService,
+        provide: MatchesQueriesService,
         useValue: overrides.matches ?? {},
       },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },

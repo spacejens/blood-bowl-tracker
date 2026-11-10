@@ -1,17 +1,15 @@
 import { DiscordBotUsageModule } from '@blood-bowl-tracker/discord-bot-usage';
-import {
-  CompetitionsModule,
-  ErasModule,
-  LeaguesModule,
-  TrophiesModule,
-} from '@blood-bowl-tracker/game-data';
+import { CompetitionsModule } from '@blood-bowl-tracker/game-data';
 import {
   CoachesQueriesModule,
   CompetitionGroupsQueriesModule,
+  ErasQueriesModule,
+  LeaguesQueriesModule,
   PlayersQueriesModule,
   PositionsQueriesModule,
   RacesQueriesModule,
   TeamsQueriesModule,
+  TrophiesQueriesModule,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Module } from '@nestjs/common';
 
@@ -55,15 +53,15 @@ import { OptionValueResolverService } from './option-value-resolver.service';
     DiscordBotUsageModule,
     SlashCommandRegistryModule,
     RacesQueriesModule,
-    ErasModule,
-    LeaguesModule,
+    ErasQueriesModule,
+    LeaguesQueriesModule,
     CompetitionsModule,
     CompetitionGroupsQueriesModule,
     CoachesQueriesModule,
     TeamsQueriesModule,
     PlayersQueriesModule,
     PositionsQueriesModule,
-    TrophiesModule,
+    TrophiesQueriesModule,
   ],
   providers: [
     DebugInteractionsCommandService,

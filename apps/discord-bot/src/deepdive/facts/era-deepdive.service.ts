@@ -1,9 +1,9 @@
 import type { CompetitionType } from '@blood-bowl-tracker/domain-enums';
 import {
-  ErasService,
-  ExternalSystemsService,
-} from '@blood-bowl-tracker/game-data';
-import { CompetitionsQueriesService } from '@blood-bowl-tracker/game-data-queries';
+  CompetitionsQueriesService,
+  ErasQueriesService,
+  ExternalSystemsQueriesService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -50,9 +50,9 @@ type Competition = {
 @Injectable()
 export class EraDeepdiveService {
   constructor(
-    private readonly eras: ErasService,
+    private readonly erasQueries: ErasQueriesService,
     private readonly competitionsQueries: CompetitionsQueriesService,
-    private readonly externalSystems: ExternalSystemsService,
+    private readonly externalSystemsQueries: ExternalSystemsQueriesService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
     private readonly dateRangeFormatter: DateRangeFormatterService,
@@ -61,7 +61,7 @@ export class EraDeepdiveService {
 
   async resolve(eraId: number): Promise<string | InteractionReplyOptions> {
     const era: EraHeader | undefined | null = await this.databaseTimeout.run(
-      this.eras.findByIdWithLeague(eraId),
+      this.erasQueries.findByIdWithLeague(eraId),
       null,
     );
     if (era === null) {
@@ -72,7 +72,7 @@ export class EraDeepdiveService {
     }
 
     const rulesSetNames: string[] | null = await this.databaseTimeout.run(
-      this.eras.getRulesSetNames(eraId),
+      this.erasQueries.getRulesSetNames(eraId),
       null,
     );
     if (rulesSetNames === null) {
@@ -88,7 +88,7 @@ export class EraDeepdiveService {
     }
 
     const externalSystemNames: string[] | null = await this.databaseTimeout.run(
-      this.externalSystems.listNamesByEra(eraId),
+      this.externalSystemsQueries.listNamesByEra(eraId),
       null,
     );
     if (externalSystemNames === null) {

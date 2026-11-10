@@ -1,18 +1,16 @@
 import type { InteractionEventParameterRow } from '@blood-bowl-tracker/discord-bot-usage';
-import {
-  CompetitionsService,
-  ErasService,
-  LeaguesService,
-  TrophiesService,
-} from '@blood-bowl-tracker/game-data';
+import { CompetitionsService } from '@blood-bowl-tracker/game-data';
 import {
   CoachesQueriesService,
   CompetitionGroupsQueriesService,
+  ErasQueriesService,
+  LeaguesQueriesService,
   PlayersQueriesService,
   PositionsQueriesService,
   RacesQueriesService,
   StarPlayersService,
   TeamsQueriesService,
+  TrophiesQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 
@@ -65,8 +63,8 @@ export class OptionValueResolverService {
 
   constructor(
     private readonly racesQueries: RacesQueriesService,
-    private readonly eras: ErasService,
-    private readonly leagues: LeaguesService,
+    private readonly erasQueries: ErasQueriesService,
+    private readonly leaguesQueries: LeaguesQueriesService,
     private readonly competitions: CompetitionsService,
     private readonly competitionGroupsQueries: CompetitionGroupsQueriesService,
     private readonly coachesQueries: CoachesQueriesService,
@@ -74,14 +72,14 @@ export class OptionValueResolverService {
     private readonly playersQueries: PlayersQueriesService,
     private readonly starPlayers: StarPlayersService,
     private readonly positionsQueries: PositionsQueriesService,
-    private readonly trophies: TrophiesService,
+    private readonly trophiesQueries: TrophiesQueriesService,
   ) {
     const raceLookup: NameLookup = async (id) =>
       (await this.racesQueries.findById(id))?.name;
     const eraLookup: NameLookup = async (id) =>
-      (await this.eras.findById(id))?.name;
+      (await this.erasQueries.findById(id))?.name;
     const leagueLookup: NameLookup = async (id) =>
-      (await this.leagues.findById(id))?.name;
+      (await this.leaguesQueries.findById(id))?.name;
     const competitionLookup: NameLookup = async (id) =>
       (await this.competitions.findById(id))?.name;
     const competitionGroupLookup: NameLookup = async (id) =>
@@ -97,7 +95,7 @@ export class OptionValueResolverService {
     const positionLookup: NameLookup = async (id) =>
       (await this.positionsQueries.findById(id))?.name;
     const trophyLookup: NameLookup = async (id) =>
-      (await this.trophies.findById(id))?.name;
+      (await this.trophiesQueries.findById(id))?.name;
 
     this.lookups = new Map<string, NameLookup>([
       ['race', raceLookup],

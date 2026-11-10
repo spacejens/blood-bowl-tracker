@@ -1,5 +1,8 @@
-import { LeaguesService, TrophiesService } from '@blood-bowl-tracker/game-data';
-import { CompetitionGroupsQueriesService } from '@blood-bowl-tracker/game-data-queries';
+import {
+  CompetitionGroupsQueriesService,
+  LeaguesQueriesService,
+  TrophiesQueriesService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { ButtonStyle, ComponentType } from 'discord.js';
 import { describe, expect, it } from 'vitest';
@@ -32,15 +35,15 @@ type Group = { id: number; name: string };
 
 function makeLeagues(
   league: LeagueHeader | undefined,
-): MockProxy<LeaguesService> {
-  const leagues = mock<LeaguesService>();
+): MockProxy<LeaguesQueriesService> {
+  const leagues = mock<LeaguesQueriesService>();
 
   leagues.findById.mockResolvedValue(league);
   return leagues;
 }
 
-function makeTrophies(rows: Trophy[]): MockProxy<TrophiesService> {
-  const trophies = mock<TrophiesService>();
+function makeTrophies(rows: Trophy[]): MockProxy<TrophiesQueriesService> {
+  const trophies = mock<TrophiesQueriesService>();
 
   trophies.listByLeague.mockResolvedValue(rows);
   return trophies;
@@ -54,8 +57,8 @@ function makeGroups(rows: Group[]): MockProxy<CompetitionGroupsQueriesService> {
 }
 
 async function makeService(options: {
-  leagues: MockProxy<LeaguesService>;
-  trophies?: MockProxy<TrophiesService>;
+  leagues: MockProxy<LeaguesQueriesService>;
+  trophies?: MockProxy<TrophiesQueriesService>;
   competitionGroups?: MockProxy<CompetitionGroupsQueriesService>;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   entityComponents?: MockProxy<EntityComponentsService>;
@@ -81,9 +84,9 @@ async function makeService(options: {
   const moduleRef = await Test.createTestingModule({
     providers: [
       LeagueDeepdiveService,
-      { provide: LeaguesService, useValue: leagues },
+      { provide: LeaguesQueriesService, useValue: leagues },
       { provide: CompetitionGroupsQueriesService, useValue: competitionGroups },
-      { provide: TrophiesService, useValue: trophies },
+      { provide: TrophiesQueriesService, useValue: trophies },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
     ],

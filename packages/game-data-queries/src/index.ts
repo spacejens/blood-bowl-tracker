@@ -4,6 +4,10 @@ export { CompetitionGroupsQueriesModule } from './competition-groups/competition
 export { CompetitionGroupsQueriesService } from './competition-groups/competition-groups-queries.service';
 export { CompetitionsQueriesModule } from './competitions/competitions-queries.module';
 export { CompetitionsQueriesService } from './competitions/competitions-queries.service';
+export { ErasQueriesModule } from './eras/eras-queries.module';
+export { ErasQueriesService } from './eras/eras-queries.service';
+export { ExternalSystemsQueriesModule } from './external-systems/external-systems-queries.module';
+export { ExternalSystemsQueriesService } from './external-systems/external-systems-queries.service';
 export { DateToplistModule } from './insights/date-toplist.module';
 export type { DateMatchCount } from './insights/date-toplist.service';
 export { DateToplistService } from './insights/date-toplist.service';
@@ -13,6 +17,12 @@ export type {
   OnThisDateVictim,
 } from './insights/on-this-date.service';
 export { OnThisDateService } from './insights/on-this-date.service';
+export { KeywordsQueriesModule } from './keywords/keywords-queries.module';
+export { KeywordsQueriesService } from './keywords/keywords-queries.service';
+export { LeaguesQueriesModule } from './leagues/leagues-queries.module';
+export { LeaguesQueriesService } from './leagues/leagues-queries.service';
+export { MatchesQueriesModule } from './matches/matches-queries.module';
+export { MatchesQueriesService } from './matches/matches-queries.service';
 export type { IncompleteImportTeamRow } from './players/incomplete-import-players.service';
 export { IncompleteImportPlayersService } from './players/incomplete-import-players.service';
 export type {
@@ -49,6 +59,8 @@ export type {
   RaceTeamCount,
 } from './races/races-queries.service';
 export { RacesQueriesService } from './races/races-queries.service';
+export { RulesSetsQueriesModule } from './rules-sets/rules-sets-queries.module';
+export { RulesSetsQueriesService } from './rules-sets/rules-sets-queries.service';
 export { CharacteristicDisplayFormattingModule } from './shared/characteristic-display-formatting.module';
 export { CharacteristicDisplayFormattingService } from './shared/characteristic-display-formatting.service';
 export { PlayerContextNamesModule } from './shared/player-context-names.module';
@@ -68,3 +80,15 @@ export { TeamAverageStatisticsService } from './teams/team-average-statistics.se
 export { TeamsQueriesModule } from './teams/teams-queries.module';
 export { TeamsQueriesService } from './teams/teams-queries.service';
 export { TeamsStatisticsService } from './teams/teams-statistics.service';
+export { TrophiesQueriesModule } from './trophies/trophies-queries.module';
+export type { TrophyHeader } from './trophies/trophies-queries.service';
+export { TrophiesQueriesService } from './trophies/trophies-queries.service';
+export { TrophyAwardRuleDescriptionService } from './trophies/trophy-award-rule-description.service';
+export { TrophyAwardsQueriesModule } from './trophy-awards/trophy-awards-queries.module';
+export type {
+  CompetitionTrophyAward,
+  PlayerHonor,
+  TeamHonor,
+  TrophyRecipient,
+} from './trophy-awards/trophy-awards-queries.service';
+export { TrophyAwardsQueriesService } from './trophy-awards/trophy-awards-queries.service';

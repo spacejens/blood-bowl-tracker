@@ -1,5 +1,8 @@
-import { LeaguesService, TrophiesService } from '@blood-bowl-tracker/game-data';
-import { CompetitionGroupsQueriesService } from '@blood-bowl-tracker/game-data-queries';
+import {
+  CompetitionGroupsQueriesService,
+  LeaguesQueriesService,
+  TrophiesQueriesService,
+} from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -43,16 +46,19 @@ type NamedEntity = { id: number; name: string };
 @Injectable()
 export class LeagueDeepdiveService {
   constructor(
-    private readonly leagues: LeaguesService,
+    private readonly leaguesQueries: LeaguesQueriesService,
     private readonly competitionGroupsQueries: CompetitionGroupsQueriesService,
-    private readonly trophies: TrophiesService,
+    private readonly trophiesQueries: TrophiesQueriesService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
   ) {}
 
   async resolve(leagueId: number): Promise<string | InteractionReplyOptions> {
     const league: LeagueHeader | undefined | null =
-      await this.databaseTimeout.run(this.leagues.findById(leagueId), null);
+      await this.databaseTimeout.run(
+        this.leaguesQueries.findById(leagueId),
+        null,
+      );
     if (league === null) {
       return DEEPDIVE_LEAGUE_TIMEOUT_MESSAGE;
     }
@@ -61,7 +67,7 @@ export class LeagueDeepdiveService {
     }
 
     const leagueTrophies: NamedEntity[] | null = await this.databaseTimeout.run(
-      this.trophies.listByLeague(leagueId),
+      this.trophiesQueries.listByLeague(leagueId),
       null,
     );
     if (leagueTrophies === null) {

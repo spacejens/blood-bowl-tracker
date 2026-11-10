@@ -1,16 +1,9 @@
 import {
   CompetitionsModule,
-  ErasModule,
-  ExternalSystemsModule,
-  KeywordsModule,
-  LeaguesModule,
-  MatchesModule,
   PlayerSkillsModule,
   PositionRulesSetKeywordsModule,
   PositionRulesSetSkillsModule,
   PositionRulesSetsModule,
-  RulesSetsModule,
-  TrophiesModule,
 } from '@blood-bowl-tracker/game-data';
 import {
   CharacteristicDisplayFormattingModule,
@@ -18,14 +11,21 @@ import {
   CompetitionGroupsQueriesModule,
   CompetitionsQueriesModule,
   DateToplistModule,
+  ErasQueriesModule,
+  ExternalSystemsQueriesModule,
+  KeywordsQueriesModule,
+  LeaguesQueriesModule,
+  MatchesQueriesModule,
   OnThisDateModule,
   PlayerContextNamesModule,
   PlayersQueriesModule,
   PositionsQueriesModule,
   RacesQueriesModule,
+  RulesSetsQueriesModule,
   SkillsQueriesModule,
   TeamRaceCoachNamesModule,
   TeamsQueriesModule,
+  TrophiesQueriesModule,
 } from '@blood-bowl-tracker/game-data-queries';
 import { Module } from '@nestjs/common';
 
@@ -70,12 +70,10 @@ import { TeamContextService } from './team-context.service';
 const GAME_DATA_MODULES = [
   CoachesQueriesModule,
   CompetitionGroupsQueriesModule,
-  MatchesModule,
   CompetitionsModule,
   CompetitionsQueriesModule,
-  LeaguesModule,
-  RulesSetsModule,
-  ErasModule,
+  LeaguesQueriesModule,
+  ErasQueriesModule,
   DateToplistModule,
   OnThisDateModule,
   PlayerContextNamesModule,
@@ -90,9 +88,11 @@ const GAME_DATA_MODULES = [
   PositionRulesSetKeywordsModule,
   CharacteristicDisplayFormattingModule,
   SkillsQueriesModule,
-  KeywordsModule,
-  ExternalSystemsModule,
-  TrophiesModule,
+  KeywordsQueriesModule,
+  ExternalSystemsQueriesModule,
+  MatchesQueriesModule,
+  RulesSetsQueriesModule,
+  TrophiesQueriesModule,
 ];
 
 @Module({

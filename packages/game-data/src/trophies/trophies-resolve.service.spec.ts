@@ -4,7 +4,6 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
-import { LikePatternService } from '../shared/like-pattern.service';
 import { TrophiesService } from './trophies.service';
 import { TrophyRuleCurationSyncService } from './trophy-rule-curation-sync.service';
 
@@ -14,7 +13,6 @@ async function makeService(rows: unknown[]) {
     providers: [
       TrophiesService,
       { provide: DB, useValue: db },
-      { provide: LikePatternService, useValue: mock<LikePatternService>() },
       {
         provide: TrophyRuleCurationSyncService,
         useValue: mock<TrophyRuleCurationSyncService>(),

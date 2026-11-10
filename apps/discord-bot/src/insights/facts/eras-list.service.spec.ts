@@ -1,8 +1,6 @@
 import type { FactScope } from '@blood-bowl-tracker/game-data';
-import {
-  ErasService,
-  FACT_SCOPE_ALL_TIME,
-} from '@blood-bowl-tracker/game-data';
+import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
+import { ErasQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { ComponentType } from 'discord.js';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -59,13 +57,13 @@ async function realListDescription(): Promise<ListDescriptionService> {
 }
 
 async function makeServiceFromEras(
-  eras: ErasService,
+  eras: ErasQueriesService,
   entityComponents: MockProxy<EntityComponentsService> = passthroughEntityComponents(),
 ): Promise<ErasListService> {
   const moduleRef = await Test.createTestingModule({
     providers: [
       ErasListService,
-      { provide: ErasService, useValue: eras },
+      { provide: ErasQueriesService, useValue: eras },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
       { provide: DateRangeFormatterService, useValue: dateRangeFormatter },
@@ -84,7 +82,7 @@ async function makeService(
   rows: EraRow[],
   entityComponents?: MockProxy<EntityComponentsService>,
 ): Promise<ErasListService> {
-  const eras = mock<ErasService>();
+  const eras = mock<ErasQueriesService>();
   eras.listErasWithLeague.mockResolvedValue(rows);
   return makeServiceFromEras(eras, entityComponents);
 }
@@ -351,10 +349,10 @@ describe('ErasListService.resolve', () => {
     // real timer.
     stubDatabaseTimeoutOnce(databaseTimeout);
     await expectTimeoutFallback(
-      async (eras: ErasService) =>
+      async (eras: ErasQueriesService) =>
         (await makeServiceFromEras(eras)).resolve(FACT_SCOPE_ALL_TIME),
       () => {
-        const eras = mock<ErasService>();
+        const eras = mock<ErasQueriesService>();
         eras.listErasWithLeague.mockReturnValue(new Promise(() => {}));
         return eras;
       },
@@ -435,7 +433,7 @@ describe('ErasListService.resolve', () => {
   });
 
   it('passes the league scope through to the query', async () => {
-    const eras = mock<ErasService>();
+    const eras = mock<ErasQueriesService>();
     eras.listErasWithLeague.mockResolvedValue([]);
     const service = await makeServiceFromEras(eras);
     const scope: FactScope = { leagueId: 7 };
