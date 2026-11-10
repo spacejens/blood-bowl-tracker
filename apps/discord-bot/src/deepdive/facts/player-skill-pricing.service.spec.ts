@@ -37,7 +37,7 @@ function skill(overrides: Partial<PlayerSkillRow> = {}): PlayerSkillRow {
  * Built per test: the era's pricing model is an input the lookup mock must
  * carry before the service is compiled.
  */
-async function makeService(model: PricingModel | null = 'kind_priced') {
+async function makeService(model: PricingModel = 'kind_priced') {
   const pricing = mock<PlayerPricingModelService>();
   pricing.pricingModelForPlayer.mockResolvedValue(model);
   const databaseTimeout = mockDatabaseTimeout();
@@ -73,7 +73,8 @@ describe('PlayerSkillPricingService', () => {
   });
 
   it('is false when the era has no pricing model', async () => {
-    const { service } = await makeService(null);
+    const { service, pricing } = await makeService();
+    pricing.pricingModelForPlayer.mockResolvedValue(undefined);
 
     await expect(service.pricesByKind(PLAYER, [skill()])).resolves.toBe(false);
   });
