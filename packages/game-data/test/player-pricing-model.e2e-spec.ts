@@ -196,7 +196,7 @@ describe('PlayerPricingModelService (real Postgres)', () => {
   it('gives no model when the era rules sets disagree', async () => {
     await expect(
       service.pricingModelForPlayer(seeded.mixed),
-    ).resolves.toBeNull();
+    ).resolves.toBeUndefined();
   });
 
   it('lets a rules set with only league rows abstain', async () => {
@@ -208,7 +208,7 @@ describe('PlayerPricingModelService (real Postgres)', () => {
   it('gives no model when no rules set has costs of its own', async () => {
     await expect(
       service.pricingModelForPlayer(seeded.noCosts),
-    ).resolves.toBeNull();
+    ).resolves.toBeUndefined();
   });
 
   it('gives no model for a player that does not exist', async () => {
@@ -220,6 +220,8 @@ describe('PlayerPricingModelService (real Postgres)', () => {
         seeded.abstaining,
         seeded.noCosts,
       ) + 1000;
-    await expect(service.pricingModelForPlayer(missing)).resolves.toBeNull();
+    await expect(
+      service.pricingModelForPlayer(missing),
+    ).resolves.toBeUndefined();
   });
 });
