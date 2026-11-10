@@ -1,4 +1,5 @@
 import type { InteractionEventParameterRow } from '@blood-bowl-tracker/discord-bot-usage';
+import type { InteractionKind } from '@blood-bowl-tracker/domain-enums';
 import { CompetitionsService } from '@blood-bowl-tracker/game-data';
 import {
   CoachesQueriesService,
@@ -185,7 +186,7 @@ export class OptionValueResolverService {
    */
   resolveComponentParameters(
     prefix: string,
-    kind: 'button' | 'select_menu',
+    kind: Extract<InteractionKind, 'button' | 'select_menu'>,
     parameters: InteractionEventParameterRow[],
   ): Promise<InteractionEventParameterRow[]> {
     const entityIdKey = ENTITY_ID_PARAMETER_KEY[kind];

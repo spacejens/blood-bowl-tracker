@@ -1,3 +1,4 @@
+import type { InteractionKind } from '@blood-bowl-tracker/domain-enums';
 import {
   Inject,
   Injectable,
@@ -143,7 +144,7 @@ interface ReplyWithHandlerOptions {
   handle: () => Promise<string | InteractionReplyOptions>;
   /** Human-readable description of the component, for the log line. */
   description: string;
-  kind: 'button' | 'select_menu';
+  kind: Extract<InteractionKind, 'button' | 'select_menu'>;
   /** The matched customId prefix, which is the catalog entry's name. */
   name: string;
   parameters: HandledInteractionParameter[];

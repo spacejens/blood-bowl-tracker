@@ -72,8 +72,10 @@ packages/
   discord-client/     — NestJS module wrapping discord.js for connecting to
                         Discord, registering slash commands, and posting
                         messages; reports every handled interaction to
-                        registered listeners as plain data, with no database
-                        dependency; consumed by apps/discord-bot
+                        registered listeners as plain data, typed with
+                        packages/domain-enums (types only); no database or
+                        business-logic dependency; consumed by
+                        apps/discord-bot
   import/             — NestJS module with import orchestration logic:
                         generic upsert bookkeeping (ImportRunnerService,
                         BatchBufferService, ExternalIdResolverService) plus
@@ -267,7 +269,7 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
   - Like `packages/config-loader`, it deliberately depends on no other workspace package.
 - **`packages/discord-bot-usage`** (bot telemetry) — records what the bot was asked to do, not what it knows: every matched slash command, button click and select-menu selection lands in the `discord_bot_usage` schema.
   - `apps/discord-bot`'s `UsageRecordingService` is its only writer: it listens on `packages/discord-client`'s interaction-handled hook, which reports each interaction after it has already been replied to, fire-and-forget, so a recording failure can never affect a user-facing reply.
-  - The wiring lives in the app rather than in `packages/discord-client`, so the Discord transport package stays free of any database dependency.
+  - The wiring lives in the app rather than in `packages/discord-client`, so the Discord transport package stays free of any database dependency. Its only workspace dependency is `packages/domain-enums`, for the interaction kind and outcome types, which holds constants and types only.
   - `apps/discord-bot` reads it back through `InteractionEventsQueryService`, for the `/debuginteractions`, `/debugtopusers` and `/debugfilterusage` maintainer commands.
   - Broader reporting on the captured data is still separate work.
 - **`tools/import-bbl`** (importer, BBL source) — sibling of `tools/import-tp`; the same domain data usually exists in both upstream sources, so behavior added to one importer is usually wanted in the other; it reads the mirror's files through `packages/read-bbl-mirror`, while every BBL page-type and HTML interpretation stays in the tool
@@ -338,7 +340,7 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
 
 **One import tool per source.** Importing data from different upstream applications requires different extraction and transformation logic. Separate tools keep each integration self-contained, sharing common upsert/client-wrapping logic via `packages/import`.
 
-**Client packages stay separate from the business logic that uses them.** `packages/api-client` and `packages/discord-client` hold reusable technical plumbing (API transport, Discord client lifecycle) deliberately kept separate from the business logic built on top of it. `discord-client` has exactly one consumer today, `apps/discord-bot`; `api-client` already has several consumers — `packages/import` and each `tools/import-*` CLI configure it directly. Either way, keeping the transport layer as its own package means no untangling is needed as the set of consumers changes. For the same reason `discord-client` does not record usage itself: it exposes an interaction-handled hook, and `apps/discord-bot` decides what to do with each event.
+**Client packages stay separate from the business logic that uses them.** `packages/api-client` and `packages/discord-client` hold reusable technical plumbing (API transport, Discord client lifecycle) deliberately kept separate from the business logic built on top of it. `discord-client` has exactly one consumer today, `apps/discord-bot`; `api-client` already has several consumers — `packages/import` and each `tools/import-*` CLI configure it directly. Either way, keeping the transport layer as its own package means no untangling is needed as the set of consumers changes. For the same reason `discord-client` does not record usage itself: it exposes an interaction-handled hook, and `apps/discord-bot` decides what to do with each event. Depending on `packages/domain-enums` for the interaction kind and outcome types does not change this, since it holds constants and types only, no business logic.
 
 ## Testing
 
