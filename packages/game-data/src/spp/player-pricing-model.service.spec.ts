@@ -73,7 +73,9 @@ describe('PlayerPricingModelService', () => {
     );
     const service = await makeService(db);
 
-    await expect(service.pricingModelForPlayer(PLAYER)).resolves.toBeNull();
+    await expect(
+      service.pricingModelForPlayer(PLAYER),
+    ).resolves.toBeUndefined();
   });
 
   it('lets a rules set with no cost rows of its own abstain', async () => {
@@ -92,14 +94,18 @@ describe('PlayerPricingModelService', () => {
     const db = mockDb([{ rulesSetId: BB2020 }], []);
     const service = await makeService(db);
 
-    await expect(service.pricingModelForPlayer(PLAYER)).resolves.toBeNull();
+    await expect(
+      service.pricingModelForPlayer(PLAYER),
+    ).resolves.toBeUndefined();
   });
 
   it('reports no model, without a costs query, for an unknown player', async () => {
     const db = mockDb([]);
     const service = await makeService(db);
 
-    await expect(service.pricingModelForPlayer(PLAYER)).resolves.toBeNull();
+    await expect(
+      service.pricingModelForPlayer(PLAYER),
+    ).resolves.toBeUndefined();
     expect(db.chains).toHaveLength(1);
   });
 
