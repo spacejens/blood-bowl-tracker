@@ -1,5 +1,9 @@
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
+import { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import {
   AdvisoryLockService,
@@ -14,14 +18,17 @@ import {
 
 describe('AdvisoryLockService', () => {
   let sqlMock: LockSqlMock;
+  let errorLog: MockProxy<ErrorLogService>;
   let service: AdvisoryLockService;
 
   beforeEach(async () => {
     sqlMock = createLockSqlMock();
+    errorLog = mock<ErrorLogService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
         AdvisoryLockService,
         { provide: LOCK_SQL, useValue: sqlMock.sql },
+        { provide: ErrorLogService, useValue: errorLog },
       ],
     }).compile();
     service = moduleRef.get(AdvisoryLockService);
@@ -54,25 +61,43 @@ describe('AdvisoryLockService', () => {
   });
 
   it('returns false when reserving the connection fails', async () => {
-    sqlMock.reserveFails(new Error('connection refused'));
+    const refused = new Error('connection refused');
+    sqlMock.reserveFails(refused);
 
     await expect(service.tryAcquire()).resolves.toBe(false);
+    expect(errorLog.logWarn).toHaveBeenCalledWith(
+      expect.any(Logger),
+      'Failed to reserve the advisory-lock connection',
+      refused,
+    );
   });
 
   it('returns false and releases when the lock query throws', async () => {
-    sqlMock.queriesFail(new Error('server closed the connection'));
+    const closed = new Error('server closed the connection');
+    sqlMock.queriesFail(closed);
 
     await expect(service.tryAcquire()).resolves.toBe(false);
     expect(sqlMock.release).toHaveBeenCalledTimes(1);
+    expect(errorLog.logWarn).toHaveBeenCalledWith(
+      expect.any(Logger),
+      'Advisory lock query failed',
+      closed,
+    );
   });
 
   it('returns false without throwing when the fallback release throws', async () => {
     sqlMock.queueRows([{ acquired: false }]);
+    const releaseFailed = new Error('release failed');
     sqlMock.release.mockImplementation(() => {
-      throw new Error('release failed');
+      throw releaseFailed;
     });
 
     await expect(service.tryAcquire()).resolves.toBe(false);
+    expect(errorLog.logWarn).toHaveBeenCalledWith(
+      expect.any(Logger),
+      'Failed to release the advisory-lock connection',
+      releaseFailed,
+    );
   });
 
   it('confirms the lock is still held on the reserved connection', async () => {
@@ -95,9 +120,15 @@ describe('AdvisoryLockService', () => {
   it('reports the lock lost when the health query throws', async () => {
     sqlMock.queueRows([{ acquired: true }]);
     await service.tryAcquire();
-    sqlMock.queriesFail(new Error('connection terminated'));
+    const terminated = new Error('connection terminated');
+    sqlMock.queriesFail(terminated);
 
     await expect(service.isStillHeld()).resolves.toBe(false);
+    expect(errorLog.logWarn).toHaveBeenCalledWith(
+      expect.any(Logger),
+      'Advisory lock health check failed',
+      terminated,
+    );
   });
 
   it('reports the lock lost when it was never acquired', async () => {
@@ -130,20 +161,32 @@ describe('AdvisoryLockService', () => {
   it('still releases the connection when the unlock query throws', async () => {
     sqlMock.queueRows([{ acquired: true }]);
     await service.tryAcquire();
-    sqlMock.queriesFail(new Error('connection terminated'));
+    const terminated = new Error('connection terminated');
+    sqlMock.queriesFail(terminated);
 
     await expect(service.release()).resolves.toBeUndefined();
     expect(sqlMock.release).toHaveBeenCalledTimes(1);
+    expect(errorLog.logWarn).toHaveBeenCalledWith(
+      expect.any(Logger),
+      'Failed to unlock the advisory lock',
+      terminated,
+    );
   });
 
   it('resolves without throwing when release() itself throws', async () => {
     sqlMock.queueRows([{ acquired: true }]);
     await service.tryAcquire();
+    const releaseFailed = new Error('release failed');
     sqlMock.release.mockImplementation(() => {
-      throw new Error('release failed');
+      throw releaseFailed;
     });
 
     await expect(service.release()).resolves.toBeUndefined();
+    expect(errorLog.logWarn).toHaveBeenCalledWith(
+      expect.any(Logger),
+      'Failed to release the advisory-lock connection',
+      releaseFailed,
+    );
   });
 
   it('is a no-op to release when nothing was acquired', async () => {
