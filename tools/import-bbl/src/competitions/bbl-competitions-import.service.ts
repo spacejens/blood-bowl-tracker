@@ -248,9 +248,9 @@ export class BblCompetitionsImportService {
    * param (or, if no such se page exists, the first matching sr page) — both
    * embed the identical dropdown. The bare `default.asp?p=se`/`p=sr` index
    * pages (no `s` param) have a different layout that lacks the dropdown
-   * entirely and are skipped. Returns undefined if no matching page exists, or if
-   * a parse fails (the failure is recorded as an error; parse errors do not
-   * fall through to sr).
+   * entirely and are skipped. Returns undefined if no matching page exists,
+   * or if a parse fails (the failure is recorded as an error; parse errors do
+   * not fall through to sr).
    */
   private async readCompetitionList(
     errors: ImportError[],
