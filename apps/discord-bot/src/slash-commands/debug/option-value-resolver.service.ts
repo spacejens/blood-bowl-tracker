@@ -36,7 +36,10 @@ type NameLookup = (id: number) => Promise<string | undefined>;
 const ENTITY_ID_PARAMETER_KEY = {
   button: 'id',
   select_menu: 'value',
-} as const;
+} as const satisfies Record<
+  Extract<InteractionKind, 'button' | 'select_menu'>,
+  string
+>;
 
 /**
  * Turns a recorded slash-command option value, or a recorded button/select-
