@@ -4,6 +4,7 @@ import type {
 } from '@blood-bowl-tracker/api-contract';
 import type {
   PlayerCharacteristic,
+  PlayerSkillSource,
   PlayerStatus,
 } from '@blood-bowl-tracker/domain-enums';
 import { PLAYER_CHARACTERISTICS } from '@blood-bowl-tracker/domain-enums';
@@ -93,7 +94,7 @@ export interface BblPlayerAdvancements {
  * the import sends it confirmed.
  */
 export interface BblPlayerSkillRef extends BblSkillRef {
-  source: 'starting' | 'advancement';
+  source: Extract<PlayerSkillSource, 'starting' | 'advancement'>;
   advancementOrder?: number;
 }
 
