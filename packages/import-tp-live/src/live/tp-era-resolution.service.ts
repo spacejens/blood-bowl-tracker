@@ -29,7 +29,7 @@ export class TpEraResolutionService {
     private readonly eras: ErasService,
     private readonly races: RacesService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -51,7 +51,7 @@ export class TpEraResolutionService {
     externalSystemName,
     errors,
   }: ResolveEraOptions): Promise<string | undefined> {
-    const tpSystem = await this.runner.record({
+    const tpSystem = await this.recorder.record({
       run: () =>
         this.externalSystems.upsert({
           name: externalSystemName,
@@ -59,7 +59,7 @@ export class TpEraResolutionService {
         }),
       item: { externalSystems: [externalSystemName] },
       errors,
-      buildErrorMessage: (error) => this.runner.messageOf(error),
+      buildErrorMessage: (error) => this.recorder.messageOf(error),
     });
     if (tpSystem === undefined) {
       return undefined;
@@ -97,12 +97,12 @@ export class TpEraResolutionService {
       return undefined;
     }
 
-    const ongoing = await this.runner.record({
+    const ongoing = await this.recorder.record({
       run: () => this.races.listOngoingEras(race.id),
       item: { race: race.id, ongoingEras: 'list' },
       errors,
       buildErrorMessage: (error) =>
-        `Failed to list ongoing eras for race ${race.id}: ${this.runner.messageOf(error)}`,
+        `Failed to list ongoing eras for race ${race.id}: ${this.recorder.messageOf(error)}`,
     });
     if (ongoing === undefined) {
       return undefined;

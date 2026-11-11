@@ -32,7 +32,7 @@ export class TpExtraTrophyAwardsService {
   constructor(
     private readonly missingTrophyAwards: MissingTrophyAwardsService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   async computeExtras({
@@ -40,12 +40,12 @@ export class TpExtraTrophyAwardsService {
     tournamentSlug,
   }: ComputeExtraTrophyAwardsOptions): Promise<ImportResult> {
     const errors: ImportError[] = [];
-    const computed = await this.runner.record({
+    const computed = await this.recorder.record({
       run: () => this.missingTrophyAwards.computeMissingAwards(competitionId),
       item: { tournamentSlug, competitionId },
       errors,
       buildErrorMessage: (error) =>
-        `Could not compute the extra trophy awards of competition ${tournamentSlug}: ${this.runner.messageOf(error)}`,
+        `Could not compute the extra trophy awards of competition ${tournamentSlug}: ${this.recorder.messageOf(error)}`,
     });
     return this.importResults.result({
       imported: computed?.createdAwardCount ?? 0,

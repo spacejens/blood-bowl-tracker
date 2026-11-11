@@ -65,7 +65,7 @@ export class TpLiveAdvancementSyncService {
     private readonly order: TpAdvancementOrderService,
     private readonly unspentSpp: UnspentSppService,
     private readonly deduction: AdvancementOrderDeductionService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -75,24 +75,24 @@ export class TpLiveAdvancementSyncService {
    */
   async syncPlayer(options: LivePlayerSyncOptions): Promise<boolean> {
     const { player, playerId, skillEntries, increases, errors } = options;
-    const stored = await this.runner.record({
+    const stored = await this.recorder.record({
       run: () => this.reads.listStoredAdvancements(playerId),
       item: { lineUpId: player.id, playerId },
       errors,
       buildErrorMessage: (error) =>
-        `Failed to read the stored advancements of player "${player.name}" (${player.id}): ${this.runner.messageOf(error)}`,
+        `Failed to read the stored advancements of player "${player.name}" (${player.id}): ${this.recorder.messageOf(error)}`,
     });
     if (stored === undefined) {
       return false;
     }
     // The write stores some skills TP does not flag as free extras (a gained
     // Hatred, a trophy-granted skill); the plan must not number them as paid.
-    const resolvedEntries = await this.runner.record({
+    const resolvedEntries = await this.recorder.record({
       run: () => this.reads.resolveFreeExtras(skillEntries),
       item: { lineUpId: player.id, playerId },
       errors,
       buildErrorMessage: (error) =>
-        `Failed to read the free extras of player "${player.name}" (${player.id}): ${this.runner.messageOf(error)}`,
+        `Failed to read the free extras of player "${player.name}" (${player.id}): ${this.recorder.messageOf(error)}`,
     });
     if (resolvedEntries === undefined) {
       return false;
@@ -131,12 +131,12 @@ export class TpLiveAdvancementSyncService {
       return undefined;
     }
     // A failed read leaves no rules set, so the deduction finds no fit.
-    const inputs = await this.runner.record({
+    const inputs = await this.recorder.record({
       run: () => this.unspentSpp.advancementInputsForPlayers([playerId]),
       item: { lineUpId: player.id, playerId },
       errors,
       buildErrorMessage: (error) =>
-        `Failed to price the new advancements of player "${player.name}" (${player.id}): ${this.runner.messageOf(error)}`,
+        `Failed to price the new advancements of player "${player.name}" (${player.id}): ${this.recorder.messageOf(error)}`,
     });
     const numbers = this.deduction.deduce({
       rulesSets: inputs?.get(playerId) ?? [],
@@ -177,7 +177,7 @@ export class TpLiveAdvancementSyncService {
     entries: PlayerSkillEntry[],
   ): Promise<SyncPlayerSkillsResult | undefined> {
     const { player, playerId, increases, errors } = options;
-    return this.runner.record({
+    return this.recorder.record({
       run: () =>
         this.playerSkills.sync({
           entries,
@@ -188,7 +188,7 @@ export class TpLiveAdvancementSyncService {
       item: { lineUpId: player.id, playerId },
       errors,
       buildErrorMessage: (error) =>
-        `Failed to write ${entries.length} advancement(s) of player "${player.name}" (${player.id}): ${this.runner.messageOf(error)}`,
+        `Failed to write ${entries.length} advancement(s) of player "${player.name}" (${player.id}): ${this.recorder.messageOf(error)}`,
     });
   }
 }

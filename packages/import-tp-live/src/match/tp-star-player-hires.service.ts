@@ -85,7 +85,7 @@ export class TpStarPlayerHiresService {
     private readonly players: PlayersService,
     private readonly nameExternalId: NameExternalIdService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
     private readonly starHireKey: TpStarHireKeyService,
   ) {}
 
@@ -110,11 +110,11 @@ export class TpStarPlayerHiresService {
     if (hires.length === 0) {
       return outcome();
     }
-    const nameSystem = await this.runner.record({
+    const nameSystem = await this.recorder.record({
       run: () => this.externalSystems.upsert(NAME_EXTERNAL_SYSTEM),
       item: { externalSystems: [NAME_EXTERNAL_SYSTEM.name] },
       errors,
-      buildErrorMessage: (error) => this.runner.messageOf(error),
+      buildErrorMessage: (error) => this.recorder.messageOf(error),
     });
     if (nameSystem === undefined) {
       return outcome();
@@ -190,7 +190,7 @@ export class TpStarPlayerHiresService {
       return undefined;
     }
 
-    const upserted = await this.runner.record({
+    const upserted = await this.recorder.record({
       run: () =>
         this.positions.upsert({
           name,
@@ -203,7 +203,7 @@ export class TpStarPlayerHiresService {
       item,
       errors,
       buildErrorMessage: (error) =>
-        `Failed to upsert star player position "${name}": ${this.runner.messageOf(error)}`,
+        `Failed to upsert star player position "${name}": ${this.recorder.messageOf(error)}`,
     });
     if (upserted === undefined) {
       return undefined;
@@ -211,7 +211,7 @@ export class TpStarPlayerHiresService {
     const positionId = upserted.position.id;
 
     // Wrapped so a lookup that found nothing is told apart from one that threw.
-    const lookup = await this.runner.record({
+    const lookup = await this.recorder.record({
       run: async () => ({
         found: await this.positionRulesSets.findCharacteristicsContext(
           positionId,
@@ -221,7 +221,7 @@ export class TpStarPlayerHiresService {
       item,
       errors,
       buildErrorMessage: (error) =>
-        `Failed to look up the characteristics of star player position "${name}" (position ${positionId}, era ${eraId}): ${this.runner.messageOf(error)}`,
+        `Failed to look up the characteristics of star player position "${name}" (position ${positionId}, era ${eraId}): ${this.recorder.messageOf(error)}`,
     });
     if (lookup === undefined) {
       return undefined;
@@ -238,7 +238,7 @@ export class TpStarPlayerHiresService {
     }
     const { rulesSetId } = lookup.found;
 
-    const player = await this.runner.record({
+    const player = await this.recorder.record({
       run: () =>
         this.players.upsert({
           name,
@@ -259,7 +259,7 @@ export class TpStarPlayerHiresService {
       item,
       errors,
       buildErrorMessage: (error) =>
-        `Failed to upsert hired star player "${name}" (roster ${rosterId}): ${this.runner.messageOf(error)}`,
+        `Failed to upsert hired star player "${name}" (roster ${rosterId}): ${this.recorder.messageOf(error)}`,
     });
     return player === undefined
       ? undefined

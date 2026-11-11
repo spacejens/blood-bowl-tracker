@@ -69,7 +69,7 @@ export class TpBracketFetchService {
     private readonly tournamentParser: TournamentParserService,
     private readonly phaseParser: PhaseFixturesParserService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -210,7 +210,7 @@ export class TpBracketFetchService {
       errors.push(
         this.importResults.error({
           item,
-          message: `Could not parse ${what}: ${this.runner.messageOf(error)}`,
+          message: `Could not parse ${what}: ${this.recorder.messageOf(error)}`,
         }),
       );
       return undefined;

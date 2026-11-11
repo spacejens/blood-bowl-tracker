@@ -116,7 +116,7 @@ export class TpCompetitionUpsertService {
     private readonly span: TpCompetitionSpanService,
     private readonly classifier: TpCompetitionClassifierService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -158,7 +158,7 @@ export class TpCompetitionUpsertService {
     finished,
     errors,
   }: UpsertTpCompetitionOptions): Promise<UpsertedTpCompetition | undefined> {
-    const tpSystem = await this.runner.record({
+    const tpSystem = await this.recorder.record({
       run: () =>
         this.externalSystems.upsert({
           name: externalSystemName,
@@ -166,7 +166,7 @@ export class TpCompetitionUpsertService {
         }),
       item: { externalSystems: [externalSystemName] },
       errors,
-      buildErrorMessage: (error) => this.runner.messageOf(error),
+      buildErrorMessage: (error) => this.recorder.messageOf(error),
     });
     if (tpSystem === undefined) {
       return undefined;
@@ -247,7 +247,7 @@ export class TpCompetitionUpsertService {
       // date it had, possibly none); an unknown one never touches it.
       fields = { endDate: null };
     }
-    const upserted = await this.runner.record({
+    const upserted = await this.recorder.record({
       run: () =>
         this.competitions.upsert({
           ...fields,
@@ -257,7 +257,7 @@ export class TpCompetitionUpsertService {
       item: { competition: tournament.id },
       errors,
       buildErrorMessage: (error) =>
-        `Failed to upsert competition "${tournament.name}" (TP id ${tournament.id}): ${this.runner.messageOf(error)}`,
+        `Failed to upsert competition "${tournament.name}" (TP id ${tournament.id}): ${this.recorder.messageOf(error)}`,
     });
     if (upserted === undefined) {
       return undefined;
@@ -312,10 +312,10 @@ export class TpCompetitionUpsertService {
     errors,
   }: GroupFieldsOptions): Promise<GroupFields | undefined> {
     const buildSkipMessage = (error: unknown): string =>
-      `Skipping competition "${tournament.name}": ${this.runner.messageOf(error)}`;
+      `Skipping competition "${tournament.name}": ${this.recorder.messageOf(error)}`;
 
     if (competitionRef.found) {
-      const result = await this.runner.record({
+      const result = await this.recorder.record({
         run: async () => ({
           type: await this.classifier.sharedTypeOfCompetitionGroup(
             competitionRef.id,
@@ -330,7 +330,7 @@ export class TpCompetitionUpsertService {
       }
       return { identity: {}, type: result.type };
     }
-    const classification = await this.runner.record({
+    const classification = await this.recorder.record({
       run: () => this.classifier.classifyNew(tournament.name),
       item: { competition: tournament.id },
       errors,
@@ -383,7 +383,7 @@ export class TpCompetitionUpsertService {
     if (!competitionRef.found) {
       return playedDates;
     }
-    const existing = await this.runner.record({
+    const existing = await this.recorder.record({
       run: async () => {
         const row = await this.competitions.findById(competitionRef.id);
         if (row === undefined) {
@@ -396,7 +396,7 @@ export class TpCompetitionUpsertService {
       item: { competition: tournament.id },
       errors,
       buildErrorMessage: (error) =>
-        `Skipping competition "${tournament.name}": ${this.runner.messageOf(error)}`,
+        `Skipping competition "${tournament.name}": ${this.recorder.messageOf(error)}`,
     });
     if (existing === undefined) {
       return undefined;

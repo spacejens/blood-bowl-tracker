@@ -41,7 +41,7 @@ export class TpOfficialTeamsContextService {
     private readonly rulesSets: RulesSetsService,
     private readonly eras: ErasService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -61,7 +61,7 @@ export class TpOfficialTeamsContextService {
   }: ResolveOfficialTeamsContextOptions): Promise<
     TpOfficialTeamsContext | undefined
   > {
-    const systemIds = await this.runner.record({
+    const systemIds = await this.recorder.record({
       run: async () => {
         const tp = await this.externalSystems.upsert({
           name: externalSystemName,
@@ -74,7 +74,7 @@ export class TpOfficialTeamsContextService {
         externalSystems: [externalSystemName, NAME_EXTERNAL_SYSTEM.name],
       },
       errors,
-      buildErrorMessage: (error) => this.runner.messageOf(error),
+      buildErrorMessage: (error) => this.recorder.messageOf(error),
     });
     if (systemIds === undefined) {
       return undefined;
@@ -94,7 +94,7 @@ export class TpOfficialTeamsContextService {
       return undefined;
     }
 
-    const eras = await this.runner.record({
+    const eras = await this.recorder.record({
       run: () =>
         this.eras.listByRulesSetAndExternalSystem({
           rulesSetId: rulesSetRef.id,
@@ -103,7 +103,7 @@ export class TpOfficialTeamsContextService {
       item: { rulesSet },
       errors,
       buildErrorMessage: (error) =>
-        `Failed to read the eras of rules set "${rulesSet}": ${this.runner.messageOf(error)}`,
+        `Failed to read the eras of rules set "${rulesSet}": ${this.recorder.messageOf(error)}`,
     });
     if (eras === undefined) {
       return undefined;

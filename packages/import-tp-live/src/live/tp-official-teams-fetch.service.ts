@@ -30,7 +30,7 @@ export class TpOfficialTeamsFetchService {
     private readonly officialTeamsPaths: TpOfficialTeamsPathsService,
     private readonly parser: OfficialTeamsParserService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -78,7 +78,7 @@ export class TpOfficialTeamsFetchService {
       errors.push(
         this.importResults.error({
           item,
-          message: `Could not parse ${what}: ${this.runner.messageOf(error)}`,
+          message: `Could not parse ${what}: ${this.recorder.messageOf(error)}`,
         }),
       );
       return undefined;

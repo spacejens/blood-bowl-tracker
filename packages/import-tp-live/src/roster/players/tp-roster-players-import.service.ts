@@ -73,7 +73,7 @@ export class TpRosterPlayersImportService {
     private readonly lastingInjuryBuilder: TpLastingInjuryBuilderService,
     private readonly characteristicIncreases: TpCharacteristicIncreasesService,
     private readonly status: TpPlayerStatusService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -140,12 +140,12 @@ export class TpRosterPlayersImportService {
         baselineCache,
         errors,
       });
-      const upserted = await this.runner.record({
+      const upserted = await this.recorder.record({
         run: () => this.players.upsert(UpsertPlayerSchema.parse(data)),
         item: data,
         errors,
         buildErrorMessage: (error) =>
-          `Failed to import player "${player.name}": ${this.runner.messageOf(error)}`,
+          `Failed to import player "${player.name}": ${this.recorder.messageOf(error)}`,
       });
       if (upserted === undefined) {
         continue;
@@ -263,7 +263,7 @@ export class TpRosterPlayersImportService {
     if (roster.players.length === 0) {
       return;
     }
-    await this.runner.record({
+    await this.recorder.record({
       run: () =>
         this.players.retireAbsentExternalPlayers({
           teamEraId,
@@ -273,7 +273,7 @@ export class TpRosterPlayersImportService {
       item: { teamEraId },
       errors,
       buildErrorMessage: (error) =>
-        `Failed to retire players who left the roster: ${this.runner.messageOf(error)}`,
+        `Failed to retire players who left the roster: ${this.recorder.messageOf(error)}`,
     });
   }
 

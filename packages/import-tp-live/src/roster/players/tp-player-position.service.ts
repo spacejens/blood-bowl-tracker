@@ -46,7 +46,7 @@ export class TpPlayerPositionService {
     private readonly mercenaryCharacteristics: TpMercenaryCharacteristicsService,
     private readonly nameExternalId: NameExternalIdService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -151,12 +151,12 @@ export class TpPlayerPositionService {
     };
     // Parsed through the contract schema so a direct call is held to the
     // same validation a positions.upsert RPC call would be.
-    const upserted = await this.runner.record({
+    const upserted = await this.recorder.record({
       run: () => this.positions.upsert(UpsertPositionSchema.parse(data)),
       item: data,
       errors,
       buildErrorMessage: (error) =>
-        `Failed to import position "${name}": ${this.runner.messageOf(error)}`,
+        `Failed to import position "${name}": ${this.recorder.messageOf(error)}`,
     });
     if (upserted === undefined) {
       return undefined;

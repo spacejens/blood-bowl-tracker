@@ -36,7 +36,7 @@ export class TpMercenaryRaceErasSyncService {
     private readonly races: RacesService,
     private readonly positions: PositionsService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   async sync({
@@ -51,7 +51,7 @@ export class TpMercenaryRaceErasSyncService {
     }
     const item = { teamRaceCode, positionIds: distinct };
     const skipMessage = `Skipped the race/era availability of mercenary position(s) ${distinct.join(', ')}`;
-    const race = await this.runner.record({
+    const race = await this.recorder.record({
       run: () =>
         this.races.resolve({
           externalSystemId: context.tpSystemId,
@@ -60,7 +60,7 @@ export class TpMercenaryRaceErasSyncService {
       item,
       errors,
       buildErrorMessage: (error) =>
-        `${skipMessage}: resolving race code "${teamRaceCode}" failed: ${this.runner.messageOf(error)}`,
+        `${skipMessage}: resolving race code "${teamRaceCode}" failed: ${this.recorder.messageOf(error)}`,
     });
     if (race === undefined) {
       return;
@@ -77,7 +77,7 @@ export class TpMercenaryRaceErasSyncService {
     const raceId = race.id;
     const eraId = context.era.id;
     for (const positionId of distinct) {
-      await this.runner.record({
+      await this.recorder.record({
         run: () =>
           this.positions.syncRaceEras({
             positionId,
@@ -86,7 +86,7 @@ export class TpMercenaryRaceErasSyncService {
         item: { positionId, raceId, eraId },
         errors,
         buildErrorMessage: (error) =>
-          `Failed to record mercenary position ${positionId} as available to race ${raceId} in era ${eraId}: ${this.runner.messageOf(error)}`,
+          `Failed to record mercenary position ${positionId} as available to race ${raceId} in era ${eraId}: ${this.recorder.messageOf(error)}`,
       });
     }
   }

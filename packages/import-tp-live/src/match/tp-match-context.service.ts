@@ -42,7 +42,7 @@ export class TpMatchContextService {
     private readonly competitions: CompetitionsService,
     private readonly teams: TeamsService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -59,7 +59,7 @@ export class TpMatchContextService {
     externalSystemName,
     errors,
   }: ResolveMatchContextOptions): Promise<TpMatchContext | undefined> {
-    const tpSystem = await this.runner.record({
+    const tpSystem = await this.recorder.record({
       run: () =>
         this.externalSystems.upsert({
           name: externalSystemName,
@@ -67,7 +67,7 @@ export class TpMatchContextService {
         }),
       item: { externalSystems: [externalSystemName] },
       errors,
-      buildErrorMessage: (error) => this.runner.messageOf(error),
+      buildErrorMessage: (error) => this.recorder.messageOf(error),
     });
     if (tpSystem === undefined) {
       return undefined;

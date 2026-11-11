@@ -44,7 +44,7 @@ export class TpCompetitionTrophyAwardsService {
     private readonly trophies: TrophiesService,
     private readonly trophyAwards: TrophyAwardsService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -129,7 +129,7 @@ export class TpCompetitionTrophyAwardsService {
     if (trophyId === undefined) {
       return false;
     }
-    const awarded = await this.runner.record({
+    const awarded = await this.recorder.record({
       run: () =>
         this.trophyAwards.upsert({
           trophyId,
@@ -144,7 +144,7 @@ export class TpCompetitionTrophyAwardsService {
       },
       errors,
       buildErrorMessage: (error) =>
-        `Failed to record the "${key}" award in competition ${competition.competitionTpId}: ${this.runner.messageOf(error)}`,
+        `Failed to record the "${key}" award in competition ${competition.competitionTpId}: ${this.recorder.messageOf(error)}`,
     });
     return awarded !== undefined;
   }
