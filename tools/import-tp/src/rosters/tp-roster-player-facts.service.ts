@@ -1,6 +1,5 @@
 import type { SppCareerCounts } from '@blood-bowl-tracker/api-contract';
 import { SPP_CAREER_COUNT_KEYS } from '@blood-bowl-tracker/api-contract';
-import type { TpCareerSppCounts } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 import type { RosterEntry } from '../source/roster-collection.service';
@@ -48,29 +47,24 @@ export class TpRosterPlayerFactsService {
     return { careerSppCountsByPlayerId };
   }
 
+  /**
+   * Records one roster file's counts for a player, keeping each group's
+   * highest value across files. Stores a copy: the per-group maximum is
+   * written into the stored object, which must not be the parsed roster's.
+   */
   private noteCareerCounts(options: {
     byPlayerId: Map<number, SppCareerCounts>;
     playerId: number;
-    counts: TpCareerSppCounts;
+    counts: SppCareerCounts;
   }): void {
     const { byPlayerId, playerId, counts } = options;
-    const mapped: SppCareerCounts = {
-      touchdown: counts.touchdowns,
-      completion: counts.completions,
-      // TP reports one combined interception counter (no deflection field)
-      // and one combined casualty counter (no severity breakdown); both are
-      // priced with a single representative award value server-side.
-      interception: counts.interceptions,
-      mvp_award: counts.mvpAwards,
-      casualty: counts.casualties,
-    };
     const existing = byPlayerId.get(playerId);
     if (existing === undefined) {
-      byPlayerId.set(playerId, mapped);
+      byPlayerId.set(playerId, { ...counts });
       return;
     }
     for (const group of SPP_CAREER_COUNT_KEYS) {
-      existing[group] = Math.max(existing[group], mapped[group]);
+      existing[group] = Math.max(existing[group], counts[group]);
     }
   }
 }

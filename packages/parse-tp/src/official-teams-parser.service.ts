@@ -6,6 +6,7 @@ import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
 import { TpSkillCategoryMaskDecoderService } from './tp-skill-category-mask-decoder.service';
+import { TpSkillRefMapperService } from './tp-skill-ref-mapper.service';
 
 /**
  * The `teamRosterType` values marking a roster as one of the rules set's real
@@ -172,6 +173,7 @@ type StarPlayerMaster = z.infer<typeof StarPlayerMasterSchema>;
 export class OfficialTeamsParserService {
   constructor(
     private readonly skillCategoryMasks: TpSkillCategoryMaskDecoderService,
+    private readonly mapper: TpSkillRefMapperService,
   ) {}
 
   /**
@@ -243,23 +245,9 @@ export class OfficialTeamsParserService {
       name: entry.position,
       isStarPlayer,
       ...(entry.id === undefined ? {} : { tpPositionId: entry.id }),
-      characteristics: {
-        move: entry.ma,
-        strength: entry.st,
-        agility: entry.ag,
-        passing: entry.pa,
-        armour: entry.av,
-      },
+      characteristics: this.mapper.characteristics(entry),
       skills: [
-        ...entry.skills.map((skill) => ({
-          skillMasterId: skill.skillMasterId,
-          ...(skill.skillAttributeMaster === undefined
-            ? {}
-            : {
-                attributeValue: skill.skillAttributeMaster.value,
-                attributeType: skill.skillAttributeMaster.type,
-              }),
-        })),
+        ...entry.skills.map((skill) => this.mapper.skillRef(skill)),
         // Unconditional rather than gated on isStarPlayer: no roster this
         // importer reads (teamRosterType 0 or 1) carries the field on a
         // non-star entry, so a gate would guard a case the data proves

@@ -1,6 +1,13 @@
-import type { TpOfficialCharacteristics } from '@blood-bowl-tracker/api-contract';
+import type {
+  SppCareerCounts,
+  TpMatchEmbeddedPlayer,
+  TpOfficialCharacteristics,
+  TpOfficialSkillIdRef,
+} from '@blood-bowl-tracker/api-contract';
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
+
+import { TpSkillRefMapperService } from './tp-skill-ref-mapper.service';
 
 /**
  * One player's OWN current characteristics, from a `lineUps[]` entry. Same
@@ -54,36 +61,32 @@ export interface TpRosterPosition {
  * falls back to `fallbackPositionName` (gated on `isBigGuy`) to still import
  * such a player, reusing an `isStarPlayer: true` Position the same way a star
  * player does.
+ *
+ * The fields a match-embedded snapshot entry also carries (identity, SPP,
+ * `state`, `isActive`) come from the contract's `TpMatchEmbeddedPlayer`, the
+ * shape `MatchParserService` emits for those snapshots; this type adds only
+ * what a standalone roster file carries beyond them. The optional `state`
+ * and `isActive` are filled from the same `lineUps[]` entry when it has them.
+ * docs/import-tp/file-format-rosters.md describes what TP's SPP fields and
+ * `state` bits mean.
  */
-export interface TpRosterPlayer {
-  id: number;
-  name: string;
-  number: number;
-  lineUpMasterId: number;
-  rosterId: number;
-  fallbackPositionName: string;
-  isBigGuy: boolean;
+export interface TpRosterPlayer extends TpMatchEmbeddedPlayer {
   /**
-   * TP's own reported CAREER Star Player Points total for this player
-   * (`lineUps[].totalStarPlayerPoints`). Distinct from `starPlayerPoints` below.
-   */
-  totalStarPlayerPoints: number;
-  /**
-   * TP's unspent SPP for this player (`lineUps[].starPlayerPoints`), from the
-   * same entry as `totalStarPlayerPoints`, or `undefined` when the entry has
-   * none. A roster-file entry and a match-embedded entry both carry it, each
-   * with its own `totalStarPlayerPoints`; `MatchParserService` passes the
-   * match-embedded one on. docs/import-tp/file-format-rosters.md describes
-   * what TP's SPP fields mean.
-   */
-  starPlayerPoints?: number;
-  /**
-   * TP's per-action-type career counters, or `undefined` when the source entry
-   * carried none. Only a standalone `rosters_<id>.json` entry has them: the
+   * TP's career-wide, per-action-type counters, under the contract's
+   * `SppCareerCounts` groups, or `undefined` when the source entry carried
+   * none. Only a standalone `rosters_<id>.json` entry has them: the
    * match-embedded roster snapshots `MatchParserService` parses through the
    * same `LineUpSchema` do not, which is why every counter field is optional.
+   * Career-wide in exactly the sense `totalStarPlayerPoints` is: inclusive of
+   * competitions not downloaded/imported locally yet.
+   *
+   * TP's raw JSON has no deflection field, so `interception`
+   * (`totalInterceptions`) is a combined interception+deflection figure, and
+   * no casualty-severity breakdown, so `casualty` (`totalCasualties`) covers
+   * every severity. The server prices each with a single representative
+   * award value.
    */
-  careerCounts?: TpCareerSppCounts;
+  careerCounts?: SppCareerCounts;
   /**
    * The player's own current characteristics, or `undefined` when the source
    * entry carried none. Only a standalone `rosters_<id>.json` entry has them:
@@ -122,32 +125,6 @@ export interface TpRosterPlayer {
    * means.
    */
   skills?: TpPlayerSkills;
-  /**
-   * TP's `state` bitmask for the entry, or `undefined` when the entry carried
-   * none. TP does not document it; docs/import-tp/file-format-rosters.md
-   * records the bits whose meaning is inferred from the data. Read by the
-   * importer to derive the player's status, not interpreted here.
-   */
-  state?: number;
-  /**
-   * TP's `isActive` flag, or `undefined` when the entry carried none. Always
-   * `true` in a standalone roster file (it lists current players only); can
-   * be `false` in a match-embedded snapshot, for a player who has since left.
-   */
-  isActive?: boolean;
-}
-
-/**
- * One skill reference on a TP roster entry -- the position template's starting
- * skills and the player's own gained ones share this shape. `attributeType` is
- * TP's tag for what `attributeValue` holds; see `TpOfficialSkillIdRef` in
- * packages/api-contract for what each type means and why type 3 is
- * an opaque code a consumer must not compose as-is.
- */
-export interface TpPlayerSkillRef {
-  skillMasterId: number;
-  attributeValue?: string;
-  attributeType?: number;
 }
 
 /**
@@ -157,7 +134,7 @@ export interface TpPlayerSkillRef {
  * skill granted on top of the player's advancements, without SPP being spent
  * (such as Hatred); false when TP's entry carries no flag.
  */
-export interface TpGainedSkillRef extends TpPlayerSkillRef {
+export interface TpGainedSkillRef extends TpOfficialSkillIdRef {
   isRandom: boolean;
   isExtra: boolean;
   /**
@@ -177,32 +154,13 @@ export interface TpGainedSkillRef extends TpPlayerSkillRef {
  * values, which is not enough to record honestly, so the whole group is
  * reported as absent there -- the same all-or-nothing rule `careerCounts`,
  * `characteristics` and `lastingInjuries` already follow on this type.
+ * Starting and gained skills share the contract's `TpOfficialSkillIdRef` shape;
+ * see it for what each `attributeType` means and why type 3 is an opaque code a
+ * consumer must not compose as-is.
  */
 export interface TpPlayerSkills {
-  starting: TpPlayerSkillRef[];
+  starting: TpOfficialSkillIdRef[];
   gained: TpGainedSkillRef[];
-}
-
-/**
- * TP's career-wide, per-action-type counters for one player, from a standalone
- * `rosters_<id>.json` `lineUps[]` entry. Career-wide in exactly the sense
- * `totalStarPlayerPoints` is: inclusive of competitions that are still ongoing
- * and have not been downloaded/imported locally yet.
- *
- * TP's raw JSON has NO deflection field, so `interceptions`
- * (`totalInterceptions`) is a COMBINED interception+deflection figure, and no
- * casualty-severity breakdown, so `casualties` (`totalCasualties`) covers every
- * severity. Both are carried through as the combined counters they are; the
- * consumer prices each with a single representative award value -- see
- * docs/plans/2026-08-13-tp-spp-ongoing-competition-adjustment-design.md,
- * "Known limitations".
- */
-export interface TpCareerSppCounts {
-  touchdowns: number;
-  completions: number;
-  interceptions: number;
-  mvpAwards: number;
-  casualties: number;
 }
 
 /**
@@ -376,6 +334,8 @@ const RosterSchema = z.object({
 
 @Injectable()
 export class RosterParserService {
+  constructor(private readonly mapper: TpSkillRefMapperService) {}
+
   /**
    * Validate and flatten a parsed TP `rosters_<id>.json` body into a `TpRoster`.
    * Extra fields (stats/skills/costs) are allowed and dropped by zod's default
@@ -404,12 +364,12 @@ export class RosterParserService {
       positions: data.rosterMaster.lineUpMasters.map((entry) => ({
         tpPositionId: entry.id,
         name: entry.position,
-        characteristics: this.characteristics(entry),
+        characteristics: this.mapper.characteristics(entry),
       })),
       starPositions: data.rosterMaster.starPlayersMasters.map((entry) => ({
         tpPositionId: entry.id,
         name: entry.position,
-        characteristics: this.characteristics(entry),
+        characteristics: this.mapper.characteristics(entry),
       })),
       players: data.lineUps.map((entry) => ({
         id: entry.id,
@@ -448,11 +408,13 @@ export class RosterParserService {
    * The entry's per-action-type career counters, or `undefined` when it does
    * not carry the full set. All-or-nothing on purpose: a partial set would
    * silently under-count one action type and inflate the SPP left unexplained,
-   * which is the exact failure this data exists to prevent.
+   * which is the exact failure this data exists to prevent. Named with the
+   * contract's groups, so consumers pass the counts on unchanged; this is the
+   * only place TP's counter names are translated.
    */
   private careerCounts(
     entry: z.infer<typeof LineUpSchema>,
-  ): TpCareerSppCounts | undefined {
+  ): SppCareerCounts | undefined {
     const {
       totalTouchdowns,
       totalPass,
@@ -470,11 +432,11 @@ export class RosterParserService {
       return undefined;
     }
     return {
-      touchdowns: totalTouchdowns,
-      completions: totalPass,
-      interceptions: totalInterceptions,
-      mvpAwards: totalMVP,
-      casualties: totalCasualties,
+      touchdown: totalTouchdowns,
+      completion: totalPass,
+      interception: totalInterceptions,
+      mvp_award: totalMVP,
+      casualty: totalCasualties,
     };
   }
 
@@ -497,7 +459,7 @@ export class RosterParserService {
     ) {
       return undefined;
     }
-    return this.characteristics({ ma, st, ag, pa, av });
+    return this.mapper.characteristics({ ma, st, ag, pa, av });
   }
 
   /**
@@ -539,7 +501,7 @@ export class RosterParserService {
     ) {
       return undefined;
     }
-    return this.characteristics({ ma, st, ag, pa, av });
+    return this.mapper.characteristics({ ma, st, ag, pa, av });
   }
 
   /**
@@ -561,47 +523,15 @@ export class RosterParserService {
         return undefined;
       }
       gained.push({
-        ...this.skillRef(skill),
+        ...this.mapper.skillRef(skill),
         isRandom: skill.isRandom,
         isExtra: skill.isExtra === true,
         ...(skill.id === undefined ? {} : { rowId: skill.id }),
       });
     }
     return {
-      starting: master.skills.map((skill) => this.skillRef(skill)),
+      starting: master.skills.map((skill) => this.mapper.skillRef(skill)),
       gained,
-    };
-  }
-
-  /** One skill reference, with its attribute split out of TP's nested object. */
-  private skillRef(skill: {
-    skillMasterId: number;
-    skillAttributeMaster?: { value: string; type: number };
-  }): TpPlayerSkillRef {
-    if (skill.skillAttributeMaster === undefined) {
-      return { skillMasterId: skill.skillMasterId };
-    }
-    return {
-      skillMasterId: skill.skillMasterId,
-      attributeValue: skill.skillAttributeMaster.value,
-      attributeType: skill.skillAttributeMaster.type,
-    };
-  }
-
-  /** The five characteristics carried on every lineUp/star master entry. */
-  private characteristics(entry: {
-    ma: number;
-    st: number;
-    ag: number;
-    pa: number;
-    av: number;
-  }): TpOfficialCharacteristics {
-    return {
-      move: entry.ma,
-      strength: entry.st,
-      agility: entry.ag,
-      passing: entry.pa,
-      armour: entry.av,
     };
   }
 }

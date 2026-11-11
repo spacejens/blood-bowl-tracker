@@ -1,15 +1,14 @@
+import type { TpSkillMasterName } from '@blood-bowl-tracker/api-contract';
 import { Injectable } from '@nestjs/common';
 
 /**
  * One skill master as TP embeds it: its display name and BB2025's orthogonal
  * "elite" marker. TP writes `isElite: true` only on elite skills and omits
  * the field entirely otherwise -- and only BB2025 skill masters ever carry
- * it, so a pre-BB2025 skill is always `false` here.
+ * it, so a pre-BB2025 skill is always `false` here. The contract's
+ * `TpSkillMasterName` without its id, which is this map's key.
  */
-export interface TpSkillMaster {
-  name: string;
-  isElite: boolean;
-}
+export type TpSkillMaster = Omit<TpSkillMasterName, 'skillMasterId'>;
 
 /**
  * Harvests `skillMaster: { id, name, isElite? }` records from one

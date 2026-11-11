@@ -1,4 +1,7 @@
-import type { TpMatchEmbeddedPlayer } from '@blood-bowl-tracker/api-contract';
+import type {
+  TpBracketMatch,
+  TpMatchEmbeddedPlayer,
+} from '@blood-bowl-tracker/api-contract';
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -37,9 +40,17 @@ const MatchLineUpSchema = LineUpSchema.partial({ rosterId: true });
  * from it even though match events still reference them by `lineUpId`. A
  * match-embedded entry carries no `rosterId` of its own, so it defaults to the
  * parent roster's id, which is what it would be anyway.
+ *
+ * The bracket position (`id`, `phaseOrder`, `round`, both team ids and
+ * `winner`) is the contract's `TpBracketMatch`, which is what a match's
+ * category classification reads. `phaseOrder` is `group.phase.order`, the
+ * phase's 1-based position within the tournament; `round` is the match's
+ * top-level `round`, its 1-based position within the phase; the team ids
+ * are `inscriptionLocal.roster.id` / `inscriptionVisitor.roster.id`.
+ * `winner` maps `scoreResume.winner` (`Local`/`Visitor`/`Draw` to
+ * `home`/`away`/`draw`) and is absent when no result is recorded yet.
  */
-export interface TpMatch {
-  id: number;
+export interface TpMatch extends TpBracketMatch {
   playedDate: Date;
   /**
    * The match's display name, built as `<title-cased roundName> <round>` —
@@ -48,10 +59,6 @@ export interface TpMatch {
    * must never be used as an external id.
    */
   name: string;
-  /** The home team's TP roster id (`inscriptionLocal.roster.id`). */
-  homeTeamTpId: number;
-  /** The away team's TP roster id (`inscriptionVisitor.roster.id`). */
-  awayTeamTpId: number;
   /** The decoded, modeled subset of the match's raw `matchEvents[]` log. */
   matchEvents: TpMatchEvent[];
   /**
@@ -78,25 +85,6 @@ export interface TpMatch {
    * instead, and only carries `phaseType` for possible future use.
    */
   phaseType: number;
-  /** `group.phase.order` — the phase's 1-based position within the tournament. */
-  phaseOrder: number;
-  /**
-   * `round` — the match's 1-based position within its phase (distinct from
-   * `phaseOrder`, the phase's own position within the tournament). Combined
-   * with `phaseOrder`, this is what `TpMatchCategoryService` sorts on to
-   * reconstruct a season's playoff bracket sequence, since neither
-   * `phaseType` nor `phaseOrder` alone reliably identifies a stage.
-   */
-  round: number;
-  /**
-   * The match's outcome, from `scoreResume.winner`: `'home'` when the home
-   * team (TP's "Local") won, `'away'` when the away team ("Visitor") won,
-   * `'draw'` for a tie. `undefined` when no result is recorded yet
-   * (`scoreResume` absent, or its `winner` field absent). Used by
-   * `TpMatchCategoryService` to trace which teams advance through a season's
-   * playoff bracket, to split a shared "final + bronze" phase.
-   */
-  winner: 'home' | 'away' | 'draw' | undefined;
 }
 
 const TpMatchSchema = z.object({
@@ -153,7 +141,7 @@ export class MatchParserService {
    * defaults to the parent roster's own `id`. `phaseType`/`phaseOrder` map
    * `group.phase.type`/`group.phase.order`; `round` maps the top-level
    * `round` field. `winner` maps `scoreResume.winner`
-   * (`Local`/`Visitor`/`Draw` to `home`/`away`/`draw`), or `undefined` when
+   * (`Local`/`Visitor`/`Draw` to `home`/`away`/`draw`), or left out when
    * absent.
    * Extra fields are allowed and dropped. Throws an Error whose message names
    * the failing field on any shape mismatch, or when the resolved date string
@@ -234,7 +222,7 @@ export class MatchParserService {
       phaseType: group.phase.type,
       phaseOrder: group.phase.order,
       round,
-      winner,
+      ...(winner === undefined ? {} : { winner }),
     };
   }
 }

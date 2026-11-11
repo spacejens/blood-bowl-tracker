@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { RosterParserService } from './roster-parser.service';
+import { TpSkillRefMapperService } from './tp-skill-ref-mapper.service';
 
 function rosterBody(overrides: Record<string, unknown> = {}) {
   return {
@@ -86,8 +87,9 @@ describe('RosterParserService', () => {
   let service: RosterParserService;
 
   beforeEach(async () => {
+    // The mapper is pure and dependency-free, so it is passed real.
     const moduleRef = await Test.createTestingModule({
-      providers: [RosterParserService],
+      providers: [RosterParserService, TpSkillRefMapperService],
     }).compile();
     service = moduleRef.get(RosterParserService);
   });
@@ -432,11 +434,11 @@ describe('RosterParserService', () => {
       }),
     );
     expect(roster.players[0]?.careerCounts).toEqual({
-      touchdowns: 12,
-      completions: 4,
-      interceptions: 2,
-      mvpAwards: 3,
-      casualties: 5,
+      touchdown: 12,
+      completion: 4,
+      interception: 2,
+      mvp_award: 3,
+      casualty: 5,
     });
   });
 

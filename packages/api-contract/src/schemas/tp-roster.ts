@@ -22,7 +22,8 @@ export const TpMatchEmbeddedPlayerSchema = z.object({
    * TP's unspent SPP from the same entry as `totalStarPlayerPoints`, as of
    * the download. Optional: an entry may lack it. Not checked for sign or
    * against the total here: the server decides whether a reported figure
-   * makes sense. Used only for a player no roster file lists.
+   * makes sense. A roster file's own entry carries it too; a match-embedded
+   * entry's is used only for a player no roster file lists.
    */
   starPlayerPoints: z.number().int().optional(),
   /**
