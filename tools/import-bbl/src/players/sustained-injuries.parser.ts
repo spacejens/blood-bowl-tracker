@@ -1,10 +1,11 @@
 import type { PlayerLastingInjuries } from '@blood-bowl-tracker/api-contract';
+import type { PlayerCharacteristic } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 
 /** Which counter each of BBL's five stat tags feeds. */
 const COUNTER_BY_TAG: Readonly<
   Record<
-    'MA' | 'ST' | 'AG' | 'PA' | 'AV',
+    PlayerCharacteristic,
     Exclude<keyof PlayerLastingInjuries, 'missNextGame' | 'nigglingInjuryCount'>
   >
 > = {
@@ -82,7 +83,7 @@ export class SustainedInjuriesParser {
       if (absorbed !== undefined) {
         continue;
       }
-      const counter = COUNTER_BY_TAG[tag as 'MA' | 'ST' | 'AG' | 'PA' | 'AV'];
+      const counter = COUNTER_BY_TAG[tag as PlayerCharacteristic];
       injuries[counter] += 1;
     }
 

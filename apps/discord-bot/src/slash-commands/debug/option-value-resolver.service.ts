@@ -1,4 +1,5 @@
 import type { InteractionEventParameterRow } from '@blood-bowl-tracker/discord-bot-usage';
+import type { InteractionKind } from '@blood-bowl-tracker/domain-enums';
 import { CompetitionsService } from '@blood-bowl-tracker/game-data';
 import {
   CoachesQueriesService,
@@ -35,7 +36,10 @@ type NameLookup = (id: number) => Promise<string | undefined>;
 const ENTITY_ID_PARAMETER_KEY = {
   button: 'id',
   select_menu: 'value',
-} as const;
+} as const satisfies Record<
+  Extract<InteractionKind, 'button' | 'select_menu'>,
+  string
+>;
 
 /**
  * Turns a recorded slash-command option value, or a recorded button/select-
@@ -185,7 +189,7 @@ export class OptionValueResolverService {
    */
   resolveComponentParameters(
     prefix: string,
-    kind: 'button' | 'select_menu',
+    kind: Extract<InteractionKind, 'button' | 'select_menu'>,
     parameters: InteractionEventParameterRow[],
   ): Promise<InteractionEventParameterRow[]> {
     const entityIdKey = ENTITY_ID_PARAMETER_KEY[kind];

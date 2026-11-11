@@ -560,6 +560,9 @@ importers:
 
   packages/discord-client:
     dependencies:
+      '@blood-bowl-tracker/domain-enums':
+        specifier: workspace:*
+        version: link:../domain-enums
       '@blood-bowl-tracker/logging':
         specifier: workspace:*
         version: link:../logging
