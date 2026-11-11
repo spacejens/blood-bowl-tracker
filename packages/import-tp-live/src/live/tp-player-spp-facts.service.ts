@@ -36,8 +36,7 @@ export interface CollectPlayerSppFactsOptions {
  * Builds the SPP facts of one live team import's players: the live
  * counterpart of tools/import-tp's `TpRosterPlayerFactsService`, passing on the
  * career counters the roster parser already names with the groups the server
- * prices. Pure, with no
- * dependencies.
+ * prices. Pure, with no dependencies.
  */
 @Injectable()
 export class TpPlayerSppFactsService {
