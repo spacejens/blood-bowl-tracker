@@ -5,7 +5,7 @@ tracker. Unlike the system-specific importers (`tools/import-bbl/`,
 `tools/import-tp/`), which each bring in one external system's data, this tool
 lets a developer author a small amount of data by hand — new
 leagues/eras/rules-sets/races/positions/coaches/teams, or extra external IDs on
-records another importer will also touch.
+records another importer will also touch. A new entity kind imported by a source importer often needs matching manual data here.
 
 Its first batch is applied before the system-specific importers, so a
 hand-authored record (e.g. a race's full position list, or a team
@@ -473,7 +473,7 @@ See [Running import tools against production](../discord-bot/production-imports.
 - **Entity processors** (rules sets, keywords, leagues, eras, races, positions,
   position characteristics, coaches, teams, competition groups, competitions,
   SPP award values, advancement costs, trophies) — each resolves its
-  references and calls the shared `*ImportService` from `packages/import`. The positions processor
+  references and calls the shared `*ImportService` from [packages/import](../import/index.md). The positions processor
   additionally calls `syncRaceEras` to set race/era availability; a curated
   pair whose race has no `race_eras` row for that era fails that position's
   availability sync with one recorded error (the `race_eras` rows come from
