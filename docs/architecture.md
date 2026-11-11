@@ -58,7 +58,7 @@ pipeline. Use this to judge whether a change in one place needs a matching
 change — or opens an opportunity — somewhere else, then open the linked page
 for the specifics. Only participants in that pipeline are listed.
 
-- **`tools/download-tp`** (downloader) — fetches TP's API into local JSON files; what it records is exactly what `tools/import-tp` can import. See [download-tp](download-tp/index.md).
+- **`tools/download-tp`** (downloader) — fetches TP's API into local JSON files; `tools/import-tp` can only import what it recorded (and not all of that: news, classifications, honours and statistics are download-only). See [download-tp](download-tp/index.md).
 - **`packages/scrape-tp`** (shared fetching) — the one implementation of HTTP requests TP accepts, shared by `tools/download-tp` and `packages/import-tp-live`. See [scrape-tp](scrape-tp/index.md).
 - **`packages/tp-paths`** (shared TP paths) — every TP path the repo requests, and which kind of TP page a URL points to; shared by `tools/download-tp`, `packages/import-tp-live` and `apps/discord-bot`. See [tp-paths](tp-paths/index.md).
 - **`packages/parse-tp`** (shared parsing) — decodes `tools/download-tp`'s JSON for `tools/import-tp` and `packages/import-tp-live`, typed with the contract's TP wire shapes; it has no BBL counterpart. See [parse-tp](parse-tp/index.md).

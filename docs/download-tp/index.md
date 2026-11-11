@@ -3,8 +3,10 @@
 `tools/download-tp` fetches TP's API over plain HTTP and records the responses
 as local JSON files, for later import by `tools/import-tp`. It is a one-time
 operation per historical season, run locally by a developer — it is never
-deployed. What it records is exactly what `tools/import-tp` can later import,
-so widening or narrowing the download changes what is importable at all.
+deployed. `tools/import-tp` can only import what was recorded, so narrowing
+the download changes what is importable at all; some recorded responses (the
+news, classifications, honours and statistics pages) are download-only and
+are not imported.
 
 ## What it does
 
