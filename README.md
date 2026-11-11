@@ -60,9 +60,11 @@ pnpm run test:e2e     # e2e tests
 
 `docker-compose.yml` defines a `discord-bot` service, built from `apps/discord-bot/Dockerfile`,
 and a `postgres` service with a named volume for persistence. The bot waits
-for the database to be healthy before starting. Default credentials and
-database name are `blood_bowl` and are intended for local use only; override
-them via environment variables for any other deployment.
+for the database to be healthy before starting. The credentials and database
+name are `blood_bowl`, hard-coded in `docker-compose.yml` (both the `postgres`
+service and the bot's `DATABASE_URL`) and intended for local use only; host
+environment variables do not override them, so any other deployment needs its
+own Compose configuration that replaces both.
 
 ```bash
 docker compose up --build   # build and start both services
