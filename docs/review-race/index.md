@@ -8,7 +8,9 @@ skills and position keywords next to what the importers actually stored in
 `position_rules_set_keywords`. Like
 the other review tools it is a review aid for a human — it
 cannot decide what is "correct" on its own, because the interpretation logic it
-deliberately does not run is the thing being reviewed.
+deliberately does not run is the thing being reviewed. A change to what any of
+the three importers stores for races and positions usually needs a matching
+renderer change here.
 
 **Architectural boundary:** the raw-source panels never depend on `packages/game-data`,
 `packages/parse-tp`, `packages/import`, `tools/import-bbl`, `tools/import-tp` or
@@ -20,9 +22,9 @@ instead of showing up as a difference. That rule covers the **domain-specific** 
 only. The domain-agnostic scaffolding (HTML fragment assembly, timestamped report
 writing, JSON5 config loading, the `DataTypeReviewer`/`Stratifier` plug-in contracts
 and the app-module wiring) is shared with the other review tools
-through `packages/review-harness` — it never touches a raw source's meaning, so it
+through [`packages/review-harness`](../review-harness/index.md) — it never touches a raw source's meaning, so it
 cannot agree with itself about one. Locating and byte-decoding a BBL mirror file is
-shared on a similar basis, via `packages/read-bbl-mirror`: it carries no BBL-page-type
+shared on a similar basis, via [`packages/read-bbl-mirror`](../read-bbl-mirror/index.md): it carries no BBL-page-type
 awareness or HTML parsing, so depending on it does not weaken the boundary above.
 Walking the curated batches is shared via `packages/review-harness`'s
 `ManualBatchReaderService`. It shapes no entry, so every reading of what a curated entry
@@ -32,7 +34,7 @@ parses them (JSON5) and pools each top-level array.
 The manual curation data under `tools/import-manual/data/batches/` — every batch, pooled in
 order, a later batch's entry replacing an earlier one with the same key — is treated here as a **raw source**, not as part of the
 imported database. This is why the tool is the first review tool to treat it as an
-independent source: races and position characteristics that are hand-curated — precisely
+independent source (and why `ReviewSource` includes `'manual'`): races and position characteristics that are hand-curated — precisely
 the older rules sets' characteristics and the availability data neither BBL nor TP can
 evidence — need to be checked against imported data as an independent source of truth,
 which is what this tool does.

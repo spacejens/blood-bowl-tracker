@@ -4,7 +4,8 @@
 source's **raw** match data against what the importers actually stored in
 `game_data.match_events`. It is a review aid for a human: it cannot decide what
 is "correct" on its own, because the interpretation logic it deliberately does
-not run is the thing being reviewed.
+not run is the thing being reviewed. A change to what either importer stores for match
+events usually needs a matching renderer change here.
 
 **Architectural boundary:** the raw-source panels never depend on
 `packages/parse-tp`, `tools/import-tp`, or `tools/import-bbl` — not just for
@@ -26,10 +27,10 @@ comparison predicates and label/lookup tables — and nothing else. The
 domain-agnostic scaffolding (HTML fragment assembly, timestamped report
 writing, JSON5 config loading, the `DataTypeReviewer`/`Stratifier` plug-in
 contracts and the app-module wiring) is shared on purpose with
-the other review tools via `packages/review-harness`: a
+the other review tools via [`packages/review-harness`](../review-harness/index.md): a
 bug there cannot "agree with itself" against a raw source, because that code
 never touches a source's meaning. Locating and byte-decoding a BBL mirror file
-is shared on the same basis, via `packages/read-bbl-mirror`: it carries no
+is shared on the same basis, via [`packages/read-bbl-mirror`](../read-bbl-mirror/index.md): it carries no
 BBL-page-type awareness or HTML parsing, so depending on it does not weaken
 the boundary above. Depending on `packages/domain-enums` for match
 categories is likewise allowed: it holds constants and types only, no

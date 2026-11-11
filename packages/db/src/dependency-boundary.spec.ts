@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /**
- * `packages/db` is documented (docs/architecture.md) as the only workspace
+ * `packages/db` is documented (docs/db/index.md) as the only workspace
  * that imports directly from the database driver, so a breaking change in the
  * pre-release Drizzle dependency lands in exactly one place. That claim had
  * silently stopped being true; this test is what keeps it true.

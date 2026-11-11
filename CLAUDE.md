@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-See `README.md` for a description of what this project is and how the repository is structured.
+See `README.md` for what this project is, and `docs/architecture.md` for how the repository is structured: its workspace index links each app, package and tool to its own docs page.
 
 ## Workflow
 
@@ -390,4 +390,10 @@ pattern.
 1. Create the folder under `apps/`, `packages/`, or `tools/` with its own `package.json`.
 2. Name it `@blood-bowl-tracker/<name>` and set `"private": true`.
 3. Run `pnpm install` from the root to link it into the workspace.
-4. Update `README.md` to list the new package.
+4. Add a docs page for it at `docs/<name>/index.md`, describing its purpose,
+   what it owns and its dependency rules; list the folder in
+   `docs/spec-conventions.md`'s directory structure and doc styles; and add a
+   one-sentence entry linking to the page under `docs/architecture.md`'s
+   "Workspace index". If it takes part in the download → import → consume
+   pipeline, also add a one-line entry to that file's "Tool/app
+   relationships" section.

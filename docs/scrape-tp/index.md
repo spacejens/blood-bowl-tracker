@@ -23,8 +23,10 @@ Fetching only. The package knows how to make a request TP accepts and nothing
 about TP's URLs: it reads no config file, holds no frontend or API base URL,
 and has no mapping from frontend pages to API endpoints. Callers pass full
 absolute URLs, and the referer that belongs to each request; both consumers
-build these as a `TpRequest` from `packages/tp-paths`. It depends on no
-other workspace package.
+build these as a `TpRequest` from [tp-paths](../tp-paths/index.md). It
+depends on no other workspace package. A change to how requests look reaches
+`tools/download-tp` and `packages/import-tp-live` (and through it
+`apps/discord-bot`'s `/importtp`) together.
 
 ## Using it
 

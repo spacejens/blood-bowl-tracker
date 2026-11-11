@@ -122,7 +122,7 @@
       // on to avoid that, so the versions themselves are filtered.
       // automerge: false because every bump of this pinned pre-release is a
       // deliberate, reviewed change (see the drizzle notes in
-      // docs/architecture.md), even when Renovate classes it as a patch.
+      // docs/db/index.md), even when Renovate classes it as a patch.
       // This rule must stay below the npm patch/minor automerge rule: later
       // packageRules override earlier ones, so above it this automerge:
       // false would be overridden.

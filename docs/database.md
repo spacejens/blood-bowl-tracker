@@ -3,7 +3,8 @@
 How the PostgreSQL schema is migrated, how every table's history is
 tracked, and how importers are re-run safely against a long-lived database,
 with links to the pages describing how individual entities are stored. See
-[architecture.md](architecture.md) for the package structure around it.
+[db](db/index.md) for the package that holds the schema, and
+[architecture.md](architecture.md) for the structure around it.
 
 ## Migrations
 
@@ -72,8 +73,8 @@ Re-importing everything is not a way to apply a change.
 
 Every table in `packages/db/src/schema` — both the `game_data` schema
 (`packages/db/src/schema/game-data/`) and the `discord_bot_usage` schema
-(`packages/db/src/schema/discord-bot-usage/`, see `packages/discord-bot-usage`
-in [architecture.md](architecture.md#toolapp-relationships)) — is built with `historyTrackedTable()`
+(`packages/db/src/schema/discord-bot-usage/`, see
+[discord-bot-usage](discord-bot-usage/index.md)) — is built with `historyTrackedTable()`
 (`packages/db/src/schema/history.ts`), not a direct `<schema>.table(...)`
 call. It automatically adds `created_at`, `updated_at`, `history_version`,
 and `history_period` columns, derives a companion `<table>_history` table

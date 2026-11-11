@@ -257,6 +257,9 @@ migrations on top of the backup.
 
 ## Development
 
+Its entrypoint runs on [cli-shared](../cli-shared/index.md)'s `runCli`
+subcommand dispatcher, and it uses that package's shared helpers.
+
 ```bash
 pnpm --filter @blood-bowl-tracker/backup-cli run test        # unit tests with coverage
 pnpm --filter @blood-bowl-tracker/backup-cli run test:watch  # unit tests in watch mode

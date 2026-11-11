@@ -4,10 +4,11 @@
 sampled set of players: each import source's **raw** view of the player next to what the
 importers actually stored in `game_data`. Like `tools/review-match` it is a review aid for
 a human — it cannot decide what is "correct" on its own, because the interpretation logic
-it deliberately does not run is the thing being reviewed.
+it deliberately does not run is the thing being reviewed. A change to what either
+importer stores for players usually needs a matching renderer change here.
 
 **Architectural boundary:** the raw-source panels never depend on `packages/game-data`,
-`packages/parse-tp`, `tools/import-tp` or `tools/import-bbl` — not for parsing, not for
+`packages/parse-tp`, `packages/import`, `tools/import-tp` or `tools/import-bbl` — not for parsing, not for
 lookups, and not for "safe" shared domain knowledge such as event-code tables. Code that
 looks duplicated from `tools/review-match` — the SPP comparison and the TP event-label
 table — is duplicated on purpose: sharing it would let a bug agree with itself instead
@@ -15,7 +16,7 @@ of showing up as a difference. That rule covers the **domain-specific** half onl
 domain-agnostic scaffolding (HTML fragment assembly, timestamped report writing, JSON5
 config loading, the `DataTypeReviewer`/`Stratifier` plug-in contracts and the app-module
 wiring) is shared with the other review tools through
-`packages/review-harness` — it never touches a raw source's meaning, so it
+[`packages/review-harness`](../review-harness/index.md) — it never touches a raw source's meaning, so it
 cannot agree with itself about one.
 The advancement-cost check follows the same rule: it re-prices a player's
 stored advancements against `advancement_costs` itself rather than using
@@ -23,7 +24,7 @@ stored advancements against `advancement_costs` itself rather than using
 purpose, so a wrong curated cost or a wrong derivation shows up as a
 difference instead of agreeing with itself.
 Locating and byte-decoding a BBL mirror file is shared on a similar basis, via
-`packages/read-bbl-mirror`: it carries no BBL-page-type awareness or HTML
+[`packages/read-bbl-mirror`](../read-bbl-mirror/index.md): it carries no BBL-page-type awareness or HTML
 parsing, so depending on it does not weaken the boundary above.
 Walking the curated keyword batches is shared via
 `packages/review-harness`'s `ManualBatchReaderService`. It shapes no entry, so
