@@ -15,7 +15,11 @@ calling a deployed api-server's `/rpc` endpoint (see [API](../api/index.md)).
 - **Resilient transport** — `ResilientFetchService` is the `fetch` it hands to
   `RPCLink`: it bounds each attempt with a timeout and retries
   transport-level failures with exponential backoff. The imports this client
-  serves upsert everything they send, so a retried request is safe to repeat.
+  serves upsert everything they send, so a retried request does not duplicate
+  rows. One consequence: when a response is lost after the server committed,
+  the retry reports a newly inserted player as already existing, and the TP
+  bulk import's lasting-injury history backfill, which only covers players the
+  run inserted, then skips that player.
 
 ## Rules
 
