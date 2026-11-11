@@ -17,12 +17,19 @@ export interface MergeRetriggerResult {
    * on an up-to-date merge, which is a normal outcome, not a failure.
    */
   readonly failure?: string;
+  /**
+   * True only when this attempt's own `git merge` stopped on conflicts — it
+   * left `MERGE_HEAD` behind, read before the abort removed it. Always comes
+   * with a `failure`. A conflict is not something a review comment can stand
+   * in for: the caller has to resolve it.
+   */
+  readonly conflict?: boolean;
 }
 
 /** A git diagnostic line worth reporting ahead of any other stderr line. */
 const GIT_ERROR_LINE = /^(fatal|error):/;
 
-/** The abort is cleanup that must still run once the attempt's budget is spent. */
+/** The conflict check and the abort are cleanup that must still run once the attempt's budget is spent. */
 const ABORT_TIMEOUT_MS = 10_000;
 
 /**
@@ -32,8 +39,9 @@ const ABORT_TIMEOUT_MS = 10_000;
  * from — like every `gh` call the wait already makes.
  *
  * Never rejects: a review trigger must not abort the wait it belongs to, so
- * every failure becomes a `failure` line the caller reports while falling
- * back to the review comment.
+ * every failure becomes a `failure` line the caller reports, and a
+ * conflicting merge is additionally flagged (see
+ * `MergeRetriggerResult.conflict`).
  */
 @Injectable()
 export class ReviewRetriggerMergeService {
@@ -43,9 +51,9 @@ export class ReviewRetriggerMergeService {
    * `timeoutMs` is one budget for the whole attempt: a deadline is fixed when
    * it starts and each git step gets only the time left, so fetch, merge and
    * push together never outlast it. A step that would start after the
-   * deadline is not started. The one exception is the cleanup
-   * `git merge --abort` after a failed merge, which gets its own
-   * `ABORT_TIMEOUT_MS` and can therefore run past the deadline.
+   * deadline is not started. The exceptions are the cleanup steps after a
+   * failed merge — the conflict check and `git merge --abort` — which each
+   * get their own `ABORT_TIMEOUT_MS` and can therefore run past the deadline.
    *
    * A merge already in progress in the worktree is not this service's to
    * touch: it reports a failure and leaves that state alone.
@@ -59,7 +67,10 @@ export class ReviewRetriggerMergeService {
    * Once this attempt has started its own merge, any failure attempts
    * `git merge --abort`. Only a failed merge actually leaves one in
    * progress; after a failed push the abort finds nothing to undo and fails
-   * harmlessly, which keeps this to one failure path.
+   * harmlessly, which keeps this to one failure path. Before that abort it
+   * checks for `MERGE_HEAD`: a merge that stopped on conflicts is reported
+   * with `conflict: true`, so the caller can resolve it instead of falling
+   * back to the comment.
    */
   async mergeMainAndPush(timeoutMs: number): Promise<MergeRetriggerResult> {
     const deadline = Date.now() + timeoutMs;
@@ -85,10 +96,15 @@ export class ReviewRetriggerMergeService {
       await this.git(['push'], deadline);
       return { pushed: true };
     } catch (error) {
-      if (startedMerge) {
-        await this.abortMerge();
+      const failure = this.describe(error);
+      if (!startedMerge) {
+        return { pushed: false, failure };
       }
-      return { pushed: false, failure: this.describe(error) };
+      const conflict = await this.conflictLeftBehind();
+      await this.abortMerge();
+      return conflict
+        ? { pushed: false, conflict: true, failure }
+        : { pushed: false, failure };
     }
   }
 
@@ -182,6 +198,27 @@ export class ReviewRetriggerMergeService {
   /** A thrown value as a one-line message, whether or not it is an `Error`. */
   private describe(error: unknown): string {
     return error instanceof Error ? error.message : String(error);
+  }
+
+  /**
+   * Whether the failed attempt left a conflicted merge behind: `MERGE_HEAD`
+   * exists only while a merge that stopped on conflicts awaits resolution.
+   * A failed push or a budget overrun after the merge finds it gone, since
+   * that merge already committed. Gets `ABORT_TIMEOUT_MS` like the abort, as
+   * the attempt's own budget may be spent. Best effort: a check that fails
+   * or cannot run reads as no conflict.
+   */
+  private async conflictLeftBehind(): Promise<boolean> {
+    try {
+      const result = await this.processRunner.run(
+        'git',
+        ['rev-parse', '-q', '--verify', 'MERGE_HEAD'],
+        ABORT_TIMEOUT_MS,
+      );
+      return result.exitCode === 0;
+    } catch {
+      return false;
+    }
   }
 
   /** Best effort: a failed abort must not mask the failure being reported. */
