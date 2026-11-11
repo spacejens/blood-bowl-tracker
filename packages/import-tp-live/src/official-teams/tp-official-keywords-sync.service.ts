@@ -29,7 +29,7 @@ export class TpOfficialKeywordsSyncService {
     private readonly positionKeywords: PositionRulesSetKeywordsService,
     private readonly batchSync: TpOfficialBatchSyncService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -84,7 +84,7 @@ export class TpOfficialKeywordsSyncService {
         })),
         item: { positionId: slot.positionId, rulesSet: context.rulesSet },
         buildErrorMessage: (error) =>
-          `Failed to write the keywords of position "${slot.name}" (${context.rulesSet}): ${this.runner.messageOf(error)}`,
+          `Failed to write the keywords of position "${slot.name}" (${context.rulesSet}): ${this.recorder.messageOf(error)}`,
       });
     }
     return this.batchSync.syncGroups({

@@ -36,7 +36,7 @@ export class TpOfficialRacesUpsertService {
   constructor(
     private readonly races: RacesService,
     private readonly nameExternalId: NameExternalIdService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -68,7 +68,7 @@ export class TpOfficialRacesUpsertService {
     let imported = 0;
     const racesByCode = new Map<string, TpOfficialRaceRef>();
     for (const [raceName, codes] of codesByName) {
-      const upserted = await this.runner.record({
+      const upserted = await this.recorder.record({
         run: () =>
           this.races.upsert({
             name: raceName,
@@ -87,7 +87,7 @@ export class TpOfficialRacesUpsertService {
         item: { race: raceName, rulesSet: context.rulesSet },
         errors,
         buildErrorMessage: (error) =>
-          `Failed to upsert race "${raceName}" (${context.rulesSet}): ${this.runner.messageOf(error)}`,
+          `Failed to upsert race "${raceName}" (${context.rulesSet}): ${this.recorder.messageOf(error)}`,
       });
       if (upserted === undefined) {
         continue;

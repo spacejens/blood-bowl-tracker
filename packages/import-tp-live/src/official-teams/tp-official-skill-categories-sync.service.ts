@@ -23,7 +23,7 @@ export class TpOfficialSkillCategoriesSyncService {
   constructor(
     private readonly skillCategories: PositionRulesSetSkillCategoriesService,
     private readonly batchSync: TpOfficialBatchSyncService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -66,7 +66,7 @@ export class TpOfficialSkillCategoriesSyncService {
         ],
         item,
         buildErrorMessage: (error) =>
-          `Failed to write the skill categories of position "${slot.name}" (${context.rulesSet}): ${this.runner.messageOf(error)}`,
+          `Failed to write the skill categories of position "${slot.name}" (${context.rulesSet}): ${this.recorder.messageOf(error)}`,
       });
     }
     return this.batchSync.syncGroups({

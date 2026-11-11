@@ -64,7 +64,7 @@ export class TpMatchImportService {
     private readonly outcome: TpMatchOutcomeService,
     private readonly starPlayerHires: TpStarPlayerHiresService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /** {@link importMatch}, for match JSON not parsed yet. */
@@ -80,7 +80,7 @@ export class TpMatchImportService {
         matchErrors: [
           this.importResults.error({
             item: { competition: options.competitionTpId },
-            message: `Could not parse TP match: ${this.runner.messageOf(error)}`,
+            message: `Could not parse TP match: ${this.recorder.messageOf(error)}`,
           }),
         ],
       });

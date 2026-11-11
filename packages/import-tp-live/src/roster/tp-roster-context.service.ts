@@ -43,7 +43,7 @@ export class TpRosterContextService {
     private readonly eras: ErasService,
     private readonly rulesSets: RulesSetsService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -62,7 +62,7 @@ export class TpRosterContextService {
     externalSystemName,
     errors,
   }: ResolveRosterContextOptions): Promise<TpRosterContext | undefined> {
-    const systemIds = await this.runner.record({
+    const systemIds = await this.recorder.record({
       run: async () => {
         const tp = await this.externalSystems.upsert({
           name: externalSystemName,
@@ -75,7 +75,7 @@ export class TpRosterContextService {
         externalSystems: [externalSystemName, NAME_EXTERNAL_SYSTEM.name],
       },
       errors,
-      buildErrorMessage: (error) => this.runner.messageOf(error),
+      buildErrorMessage: (error) => this.recorder.messageOf(error),
     });
     if (systemIds === undefined) {
       return undefined;

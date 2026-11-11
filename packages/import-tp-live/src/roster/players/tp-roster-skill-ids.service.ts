@@ -52,7 +52,7 @@ export class TpRosterSkillIdsService {
     private readonly skillIdLookup: TpSkillIdLookupService,
     private readonly nameExternalId: NameExternalIdService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -143,7 +143,7 @@ export class TpRosterSkillIdsService {
     if (skillIdsByName.has(name)) {
       return skillIdsByName.get(name);
     }
-    const upserted = await this.runner.record({
+    const upserted = await this.recorder.record({
       run: () =>
         this.skills.upsert({
           name,
@@ -161,7 +161,7 @@ export class TpRosterSkillIdsService {
       item: { skill: name },
       errors,
       buildErrorMessage: (error) =>
-        `Failed to upsert skill "${name}": ${this.runner.messageOf(error)}`,
+        `Failed to upsert skill "${name}": ${this.recorder.messageOf(error)}`,
     });
     const id = upserted?.skill.id;
     skillIdsByName.set(name, id);

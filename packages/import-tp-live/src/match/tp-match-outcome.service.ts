@@ -26,7 +26,7 @@ export class TpMatchOutcomeService {
   constructor(
     private readonly matchOutcomes: MatchOutcomesService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -50,7 +50,7 @@ export class TpMatchOutcomeService {
     context,
     errors,
   }: ResolveTpMatchOutcomeOptions): Promise<boolean> {
-    const outcome = await this.runner.record({
+    const outcome = await this.recorder.record({
       run: () =>
         this.matchOutcomes.resolveForCompetition({
           competitionId: context.competitionId,
@@ -60,7 +60,7 @@ export class TpMatchOutcomeService {
       item: { match: match.id },
       errors,
       buildErrorMessage: (error) =>
-        `Failed to resolve the outcome of match ${match.id}: ${this.runner.messageOf(error)}`,
+        `Failed to resolve the outcome of match ${match.id}: ${this.recorder.messageOf(error)}`,
     });
     if (outcome === undefined) {
       return false;

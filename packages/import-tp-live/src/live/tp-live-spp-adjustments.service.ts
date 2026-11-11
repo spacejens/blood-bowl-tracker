@@ -44,7 +44,7 @@ export class TpLiveSppAdjustmentsService {
   constructor(
     private readonly sppAdjustments: SppAdjustmentsService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -67,13 +67,13 @@ export class TpLiveSppAdjustmentsService {
     let imported = 0;
     for (let i = 0; i < merged.length; i += SPP_ADJUSTMENTS_CHUNK_SIZE) {
       const chunk = merged.slice(i, i + SPP_ADJUSTMENTS_CHUNK_SIZE);
-      const outcome = await this.runner.record({
+      const outcome = await this.recorder.record({
         run: () =>
           this.sppAdjustments.syncReportedAdjustments({ players: chunk }),
         item: { playerIds: chunk.map((player) => player.playerId) },
         errors,
         buildErrorMessage: (error) =>
-          `Failed to settle the SPP adjustments of ${chunk.length} players: ${this.runner.messageOf(error)}`,
+          `Failed to settle the SPP adjustments of ${chunk.length} players: ${this.recorder.messageOf(error)}`,
       });
       imported += outcome?.updatedPlayerIds.length ?? 0;
     }
