@@ -1,10 +1,10 @@
 import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import type { Message } from 'discord.js';
 import { MessageFlags } from 'discord.js';
 
 import { DiscordBotConfigService } from '../discord-bot-config.service';
-import { ErrorLogService } from '../shared/error-log.service';
 import { TpFeedFormatterService } from './tp-feed-formatter.service';
 import { TpFeedImportService } from './tp-feed-import.service';
 import { TpFeedParserService } from './tp-feed-parser.service';

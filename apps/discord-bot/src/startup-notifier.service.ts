@@ -1,9 +1,9 @@
 import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { Injectable, Logger } from '@nestjs/common';
 
 import { DeploymentInfoService } from './deployment-info.service';
 import { DiscordBotConfigService } from './discord-bot-config.service';
-import { ErrorLogService } from './shared/error-log.service';
 
 /**
  * Posts the boot announcement. Which method runs depends on leader election,

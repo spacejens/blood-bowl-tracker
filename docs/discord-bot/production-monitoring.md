@@ -40,7 +40,8 @@ configured`, and similar) and the machine crash-loops. `fly status` shows
   commands go unanswered. Neither machine could take the advisory lock, which
   in practice means a third process holds it (a local bot pointed at the
   production database) or the lock connection cannot be opened at all;
-  `fly logs` shows `Failed to reserve the advisory-lock connection` in the
+  `fly logs` shows `Failed to reserve the advisory-lock connection`, followed
+  by a colon and the underlying error (stack frames on the lines below), in the
   latter case.
 - **A machine restarting after `Lost the leader lock while active`** — the
   active machine's dedicated lock connection dropped, which is fatal by

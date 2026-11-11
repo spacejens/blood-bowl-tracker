@@ -1,10 +1,10 @@
 import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { Injectable, Logger } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 
 import { DiscordBotConfigService } from '../discord-bot-config.service';
-import { ErrorLogService } from '../shared/error-log.service';
 import { InsightsCommandService } from '../slash-commands/insights-command.service';
 import { RandomInsightsScopeService } from './random-insights-scope.service';
 

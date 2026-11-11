@@ -1,3 +1,4 @@
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import type { ReservedSql, Sql } from 'postgres';
 
@@ -29,7 +30,10 @@ export class AdvisoryLockService implements OnModuleDestroy {
   private readonly logger = new Logger(AdvisoryLockService.name);
   private reserved?: ReservedSql;
 
-  constructor(@Inject(LOCK_SQL) private readonly sql: Sql) {}
+  constructor(
+    @Inject(LOCK_SQL) private readonly sql: Sql,
+    @Inject(ErrorLogService) private readonly errorLog: ErrorLogService,
+  ) {}
 
   /** True when this instance now holds the lock. Never throws. */
   async tryAcquire(): Promise<boolean> {
@@ -37,7 +41,11 @@ export class AdvisoryLockService implements OnModuleDestroy {
     try {
       reserved = await this.sql.reserve();
     } catch (error) {
-      this.logger.warn('Failed to reserve the advisory-lock connection', error);
+      this.errorLog.logWarn(
+        this.logger,
+        'Failed to reserve the advisory-lock connection',
+        error,
+      );
       return false;
     }
     try {
@@ -49,12 +57,16 @@ export class AdvisoryLockService implements OnModuleDestroy {
         return true;
       }
     } catch (error) {
-      this.logger.warn('Advisory lock query failed', error);
+      this.errorLog.logWarn(this.logger, 'Advisory lock query failed', error);
     }
     try {
       reserved.release();
     } catch (error) {
-      this.logger.warn('Failed to release the advisory-lock connection', error);
+      this.errorLog.logWarn(
+        this.logger,
+        'Failed to release the advisory-lock connection',
+        error,
+      );
     }
     return false;
   }
@@ -78,7 +90,11 @@ export class AdvisoryLockService implements OnModuleDestroy {
       `;
       return Number(rows[0]?.held ?? 0) > 0;
     } catch (error) {
-      this.logger.warn('Advisory lock health check failed', error);
+      this.errorLog.logWarn(
+        this.logger,
+        'Advisory lock health check failed',
+        error,
+      );
       return false;
     }
   }
@@ -108,12 +124,20 @@ export class AdvisoryLockService implements OnModuleDestroy {
         SELECT pg_advisory_unlock(${LOCK_CLASS_ID}, ${LOCK_OBJECT_ID})
       `;
     } catch (error) {
-      this.logger.warn('Failed to unlock the advisory lock', error);
+      this.errorLog.logWarn(
+        this.logger,
+        'Failed to unlock the advisory lock',
+        error,
+      );
     }
     try {
       reserved.release();
     } catch (error) {
-      this.logger.warn('Failed to release the advisory-lock connection', error);
+      this.errorLog.logWarn(
+        this.logger,
+        'Failed to release the advisory-lock connection',
+        error,
+      );
     }
   }
 
