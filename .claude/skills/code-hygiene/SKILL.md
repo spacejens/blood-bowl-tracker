@@ -5,7 +5,7 @@ description: Use for an on-demand code hygiene pass in the blood-bowl-tracker pr
 
 # code-hygiene
 
-Runs a fixed set of code hygiene checks — Node version updates, unused dependency/dead code removal, dependency placement (dependencies vs. devDependencies), a security audit, workspace version consistency, stale or risky `pnpm-workspace.yaml` overrides and release-age exclusions, circular dependency detection, lint, and format — and opens a single pull request with the results. Unlike `develop-feature`, there is no specification or planning step: the checks and their order are fixed every run.
+Runs a fixed set of code hygiene checks — Node version updates, unused dependency/dead code removal, dependency placement (dependencies vs. devDependencies), a security audit, workspace version consistency, stale or risky `pnpm-workspace.yaml` overrides and release-age exclusions, circular dependency detection, lint, and format — and opens a single pull request with the results. Unlike `implement`, there is no specification or planning step: the checks and their order are fixed every run.
 
 Ordinary npm dependency updates and Docker image tag bumps are **not** part of this skill — Renovate proposes those as its own PRs, configured by `renovate.json5` at the repo root. The one exception is the Node version, which this skill still owns (Task 1) because it has to move `.nvmrc`, every Dockerfile `FROM node:...` line, and every workspace's `@types/node` in lock-step; `renovate.json5` disables Renovate for `node` and `@types/node` so the two systems never conflict.
 
@@ -17,24 +17,24 @@ Ordinary npm dependency updates and Docker image tag bumps are **not** part of t
 
 Takes no arguments; always runs the full fixed task list below.
 
-## Relationship to develop-feature
+## Relationship to implement
 
-This skill reuses `develop-feature`'s Setup, Development, Self-review, and Integration phases directly — read `.claude/skills/develop-feature/SKILL.md` and follow those phases exactly, with the differences below. There is no Specification or Planning phase: the fixed task list in this document stands in for the "approved plan" that the Development phase executes.
+This skill reuses `implement`'s Setup, Development, Self-review, and Integration phases directly — read `.claude/skills/implement/SKILL.md` and follow those phases exactly, with the differences below. There is no Specification or Planning phase: the fixed task list in this document stands in for the "approved plan" that the Development phase executes.
 
-### Setup — differences from develop-feature's ad-hoc mode
+### Setup — differences from implement's ad-hoc mode
 
-Follow develop-feature's ad-hoc-mode Setup phase, with these changes:
+Follow implement's ad-hoc-mode Setup phase, with these changes:
 
 - Skip its text-description step (there is no free-form feature description) and its branch-name derivation step (there is no description to derive a slug from — see branch name below). Go straight to worktree creation.
-- **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree, exactly as develop-feature's Setup phase does.
-- Branch slug is always `code-hygiene-{YYYY-MM-DD}` using today's date — no confirmation prompt. As in `develop-feature`, `EnterWorktree` applies its `worktree-` prefix, so the branch created is `worktree-code-hygiene-{YYYY-MM-DD}` (e.g. `worktree-code-hygiene-2026-07-03`) and that is its permanent name — do not rename it.
-- Print a brief status line confirming the worktree path and baseline test result, then continue immediately into the fixed task list below (standing in for develop-feature's Development phase).
+- **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree, exactly as implement's Setup phase does.
+- Branch slug is always `code-hygiene-{YYYY-MM-DD}` using today's date — no confirmation prompt. As in `implement`, `EnterWorktree` applies its `worktree-` prefix, so the branch created is `worktree-code-hygiene-{YYYY-MM-DD}` (e.g. `worktree-code-hygiene-2026-07-03`) and that is its permanent name — do not rename it.
+- Print a brief status line confirming the worktree path and baseline test result, then continue immediately into the fixed task list below (standing in for implement's Development phase).
 
-### Development, Self-review, Integration — same as develop-feature, with these differences
+### Development, Self-review, Integration — same as implement, with these differences
 
-- **Development:** execute the fixed task list below instead of a written plan. Otherwise identical — one commit per completed task, `pnpm verify` after each, `superpowers:test-driven-development` and `superpowers:systematic-debugging` apply exactly as develop-feature's Development phase describes when a task involves writing or fixing code.
-- **Self-review:** identical to develop-feature's Self-review phase.
-- **Integration:** identical to develop-feature's Integration phase, except the PR:
+- **Development:** execute the fixed task list below instead of a written plan. Otherwise identical — one commit per completed task, `pnpm verify` after each, `superpowers:test-driven-development` and `superpowers:systematic-debugging` apply exactly as implement's Development phase describes when a task involves writing or fixing code.
+- **Self-review:** identical to implement's Self-review phase.
+- **Integration:** identical to implement's Integration phase, except the PR:
   ```bash
   gh pr create \
     --title "Code hygiene: <YYYY-MM-DD>" \
@@ -77,7 +77,7 @@ All three tools are already pinned root `devDependencies` with their `hygiene:*`
 
 ## Fixed task list (Development phase)
 
-One commit per task, `pnpm verify` after each (per develop-feature's Development phase discipline). A task that finds nothing to change makes no commit.
+One commit per task, `pnpm verify` after each (per implement's Development phase discipline). A task that finds nothing to change makes no commit.
 
 ### Task 1: Node version updates
 
