@@ -92,7 +92,7 @@ export class TpRosterImportService {
     private readonly mercenaryRaceEras: TpMercenaryRaceErasSyncService,
     private readonly playerSkills: TpRosterPlayerSkillsService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /** {@link importRoster}, for roster JSON not parsed yet. */
@@ -107,7 +107,7 @@ export class TpRosterImportService {
       return this.notImported([
         this.importResults.error({
           item: { era: options.era },
-          message: `Could not parse TP roster: ${this.runner.messageOf(error)}`,
+          message: `Could not parse TP roster: ${this.recorder.messageOf(error)}`,
         }),
       ]);
     }

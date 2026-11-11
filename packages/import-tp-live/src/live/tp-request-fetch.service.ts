@@ -51,7 +51,7 @@ export class TpRequestFetchService {
     private readonly connection: TpConnectionProvider,
     private readonly fetcher: TpFetcherService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /** TP's base URLs, for a path service's request methods. */
@@ -79,7 +79,7 @@ export class TpRequestFetchService {
       errors.push(
         this.importResults.error({
           item,
-          message: `Could not fetch ${what}: ${this.runner.messageOf(error)}`,
+          message: `Could not fetch ${what}: ${this.recorder.messageOf(error)}`,
         }),
       );
       return undefined;

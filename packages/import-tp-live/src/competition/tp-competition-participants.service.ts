@@ -25,7 +25,7 @@ export class TpCompetitionParticipantsService {
     private readonly teams: TeamsService,
     private readonly competitions: CompetitionsService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -79,7 +79,7 @@ export class TpCompetitionParticipantsService {
     }
 
     const teamEraIds = [...teamEraIdsByRosterId.values()];
-    const linked = await this.runner.record({
+    const linked = await this.recorder.record({
       run: () =>
         this.competitions.upsert({
           externalIds: [
@@ -93,7 +93,7 @@ export class TpCompetitionParticipantsService {
       item: { competition: competition.competitionTpId, teamEraIds },
       errors,
       buildErrorMessage: (error) =>
-        `Failed to add the registered teams to competition ${competition.competitionTpId}: ${this.runner.messageOf(error)}`,
+        `Failed to add the registered teams to competition ${competition.competitionTpId}: ${this.recorder.messageOf(error)}`,
     });
     return linked === undefined ? undefined : teamEraIdsByRosterId;
   }

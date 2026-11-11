@@ -94,7 +94,7 @@ export class TpCharacteristicIncreasesService {
   constructor(
     private readonly positionRulesSets: PositionRulesSetsService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -206,12 +206,12 @@ export class TpCharacteristicIncreasesService {
     if (cache.baselinesByPositionId.has(positionId)) {
       return cache.baselinesByPositionId.get(positionId);
     }
-    const rows = await this.runner.record({
+    const rows = await this.recorder.record({
       run: () => this.positionRulesSets.listByPosition(positionId),
       item: { positionRulesSets: positionId },
       errors,
       buildErrorMessage: (error) =>
-        `Failed to list characteristics for position ${positionId}: ${this.runner.messageOf(error)}`,
+        `Failed to list characteristics for position ${positionId}: ${this.recorder.messageOf(error)}`,
     });
     const baselines =
       rows === undefined

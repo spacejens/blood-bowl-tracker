@@ -30,7 +30,7 @@ export class TpOfficialCharacteristicsSyncService {
   constructor(
     private readonly positionRulesSets: PositionRulesSetsService,
     private readonly batchSync: TpOfficialBatchSyncService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -59,7 +59,7 @@ export class TpOfficialCharacteristicsSyncService {
         ],
         item: { positionId: slot.positionId, rulesSet: context.rulesSet },
         buildErrorMessage: (error) =>
-          `Failed to write the characteristics of position "${slot.name}" (${context.rulesSet}): ${this.runner.messageOf(error)}`,
+          `Failed to write the characteristics of position "${slot.name}" (${context.rulesSet}): ${this.recorder.messageOf(error)}`,
       }));
     const imported = await this.batchSync.syncGroups({
       groups,

@@ -18,7 +18,7 @@ export interface LoadKeywordCatalogOptions {
 export class TpOfficialKeywordCatalogService {
   constructor(
     private readonly keywords: KeywordsService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -34,12 +34,12 @@ export class TpOfficialKeywordCatalogService {
     tpSystemId,
     errors,
   }: LoadKeywordCatalogOptions): Promise<TpOfficialKeywordCatalog> {
-    const rows = await this.runner.record({
+    const rows = await this.recorder.record({
       run: () => this.keywords.listByExternalSystem(tpSystemId),
       item: { keywordCatalog: tpSystemId },
       errors,
       buildErrorMessage: (error) =>
-        `Failed to read the keyword catalogue: ${this.runner.messageOf(error)}`,
+        `Failed to read the keyword catalogue: ${this.recorder.messageOf(error)}`,
     });
     const byCode = new Map<number, { keywordId: number; name: string }>();
     for (const row of rows ?? []) {

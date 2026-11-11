@@ -23,7 +23,7 @@ export interface ResolveSkillIdsByTpIdOptions {
 export class TpSkillIdLookupService {
   constructor(
     private readonly skills: SkillsService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /** Skill name -> every TP id the masters give that name, in first-seen order. */
@@ -64,13 +64,13 @@ export class TpSkillIdLookupService {
     if (masterIds.length === 0) {
       return skillIds;
     }
-    const results = await this.runner.record({
+    const results = await this.recorder.record({
       run: () =>
         this.skills.resolveBatch(this.tpExternalIds(masterIds, tpSystemId)),
       item: { skillMasterIds: masterIds },
       errors,
       buildErrorMessage: (error) =>
-        `Failed to resolve TP skill ids by external id: ${this.runner.messageOf(error)}`,
+        `Failed to resolve TP skill ids by external id: ${this.recorder.messageOf(error)}`,
     });
     if (results === undefined) {
       return undefined;

@@ -43,7 +43,7 @@ export class TpMercenaryCharacteristicsService {
   constructor(
     private readonly positionRulesSets: PositionRulesSetsService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -59,12 +59,12 @@ export class TpMercenaryCharacteristicsService {
     errors: ImportError[];
   }): Promise<MercenaryCurated> {
     const { positionName, positionId, errors } = options;
-    const rows = await this.runner.record({
+    const rows = await this.recorder.record({
       run: () => this.positionRulesSets.listByPosition(positionId),
       item: { positionRulesSets: positionId },
       errors,
       buildErrorMessage: (error) =>
-        `Failed to list characteristics for position ${positionId}: ${this.runner.messageOf(error)}`,
+        `Failed to list characteristics for position ${positionId}: ${this.recorder.messageOf(error)}`,
     });
     if (rows === undefined) {
       return { loaded: false };

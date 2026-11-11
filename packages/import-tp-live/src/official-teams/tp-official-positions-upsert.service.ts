@@ -75,7 +75,7 @@ export class TpOfficialPositionsUpsertService {
     private readonly positions: PositionsService,
     private readonly nameExternalId: NameExternalIdService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
     private readonly precedence: TpOfficialListingPrecedenceService,
   ) {}
 
@@ -107,7 +107,7 @@ export class TpOfficialPositionsUpsertService {
     const slotsByPositionId = new Map<number, TpOfficialPositionSlot>();
     const slotIsOfficial = new Map<number, boolean>();
     for (const group of this.groupPositions(options).values()) {
-      const upserted = await this.runner.record({
+      const upserted = await this.recorder.record({
         run: () =>
           this.positions.upsert({
             name: group.name,
@@ -121,7 +121,7 @@ export class TpOfficialPositionsUpsertService {
         },
         errors,
         buildErrorMessage: (error) =>
-          `Failed to upsert position "${group.name}" (race "${group.race.raceName}", ${context.rulesSet}): ${this.runner.messageOf(error)}`,
+          `Failed to upsert position "${group.name}" (race "${group.race.raceName}", ${context.rulesSet}): ${this.recorder.messageOf(error)}`,
       });
       if (upserted === undefined) {
         continue;
@@ -159,7 +159,7 @@ export class TpOfficialPositionsUpsertService {
         slotIsOfficial.set(positionId, group.source.isOfficial);
       }
       if (context.eraIds.length > 0) {
-        await this.runner.record({
+        await this.recorder.record({
           run: () =>
             this.positions.syncRaceEras({
               positionId,
@@ -171,7 +171,7 @@ export class TpOfficialPositionsUpsertService {
           item: { positionId, raceId: group.race.raceId },
           errors,
           buildErrorMessage: (error) =>
-            `Failed to sync the race eras of position "${group.name}" (race "${group.race.raceName}"): ${this.runner.messageOf(error)}`,
+            `Failed to sync the race eras of position "${group.name}" (race "${group.race.raceName}"): ${this.recorder.messageOf(error)}`,
         });
       }
     }

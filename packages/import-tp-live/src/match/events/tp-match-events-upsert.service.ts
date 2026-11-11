@@ -27,7 +27,7 @@ export class TpMatchEventsUpsertService {
     private readonly eventsCorrelation: TpMatchEventsCorrelationService,
     private readonly players: PlayersService,
     private readonly matchEvents: MatchEventsService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -85,12 +85,12 @@ export class TpMatchEventsUpsertService {
       });
       for (const data of dataList) {
         const eventId = data.externalIds[0].externalId;
-        const upserted = await this.runner.record({
+        const upserted = await this.recorder.record({
           run: () => this.matchEvents.upsert(data),
           item: { match: match.id, event: eventId },
           errors,
           buildErrorMessage: (error) =>
-            `Failed to upsert event ${eventId} of match ${match.id}: ${this.runner.messageOf(error)}`,
+            `Failed to upsert event ${eventId} of match ${match.id}: ${this.recorder.messageOf(error)}`,
         });
         if (upserted !== undefined) {
           imported += 1;

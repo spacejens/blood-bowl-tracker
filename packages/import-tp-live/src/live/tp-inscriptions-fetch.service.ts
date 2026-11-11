@@ -31,7 +31,7 @@ export class TpInscriptionsFetchService {
     private readonly tournamentPaths: TpTournamentPathsService,
     private readonly inscriptionsParser: InscriptionsParserService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -80,7 +80,7 @@ export class TpInscriptionsFetchService {
         errors.push(
           this.importResults.error({
             item,
-            message: `Could not parse ${what}: ${this.runner.messageOf(error)}`,
+            message: `Could not parse ${what}: ${this.recorder.messageOf(error)}`,
           }),
         );
         return undefined;
