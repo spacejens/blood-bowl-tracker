@@ -39,7 +39,7 @@ const RUN_PRODUCTION_QUERY_USAGE =
 
 const FETCH_RECENT_DISCORD_MESSAGES_USAGE =
   'Usage: node dist/main.js fetch-recent-discord-messages ' +
-  `<channel-id> <count> (count is ${MIN_COUNT}-${MAX_COUNT})`;
+  `<channel-id> <count> [--before=<message-id>] (count is ${MIN_COUNT}-${MAX_COUNT})`;
 
 const FETCH_DISCORD_MESSAGE_USAGE =
   'Usage: node dist/main.js fetch-discord-message ' +
@@ -55,6 +55,7 @@ interface StartProductionTunnelInput {
 interface FetchRecentDiscordMessagesInput {
   readonly channelId: string;
   readonly count: number;
+  readonly before?: string;
 }
 
 interface DispatchArgs {
@@ -114,7 +115,25 @@ function readFetchRecentDiscordMessagesInput(): FetchRecentDiscordMessagesInput 
   ) {
     throw new Error(FETCH_RECENT_DISCORD_MESSAGES_USAGE);
   }
-  return { channelId, count: Number(countArg) };
+  const beforeArg = process.argv[5];
+  if (process.argv.length > 6) {
+    throw new Error(FETCH_RECENT_DISCORD_MESSAGES_USAGE);
+  }
+  let before: string | undefined;
+  if (beforeArg !== undefined) {
+    if (
+      !beforeArg.startsWith('--before=') ||
+      beforeArg.length === '--before='.length
+    ) {
+      throw new Error(FETCH_RECENT_DISCORD_MESSAGES_USAGE);
+    }
+    before = beforeArg.slice('--before='.length);
+  }
+  return {
+    channelId,
+    count: Number(countArg),
+    ...(before === undefined ? {} : { before }),
+  };
 }
 
 function readDiscordMessageLink(): string {
@@ -194,6 +213,7 @@ function dispatch(
         .run(
           args.fetchRecentDiscordMessages.channelId,
           args.fetchRecentDiscordMessages.count,
+          args.fetchRecentDiscordMessages.before,
         );
     }
     case 'fetch-discord-message': {

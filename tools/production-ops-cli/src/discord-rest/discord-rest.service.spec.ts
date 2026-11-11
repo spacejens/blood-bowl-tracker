@@ -200,5 +200,28 @@ describe('DiscordRestService', () => {
           '123456789 failed: Request aborted',
       );
     });
+
+    it('adds the before query when paging back', async () => {
+      rest.get.mockResolvedValue([]);
+
+      await service.getRecentMessages('123456789', 100, '987654321');
+
+      const [, options] = rest.get.mock.calls[0] as [
+        string,
+        { query: URLSearchParams },
+      ];
+      expect(options.query.toString()).toBe('limit=100&before=987654321');
+    });
+
+    it('names the before message on a failure when paging back', async () => {
+      rest.get.mockRejectedValue(new Error('Request aborted'));
+
+      await expect(
+        service.getRecentMessages('123456789', 5, '987654321'),
+      ).rejects.toThrow(
+        'Discord API request for the 5 messages before message 987654321 ' +
+          'of channel 123456789 failed: Request aborted',
+      );
+    });
   });
 });
