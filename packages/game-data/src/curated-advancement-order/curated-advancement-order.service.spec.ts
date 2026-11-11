@@ -97,7 +97,27 @@ const data: SyncPlayerSkills = {
   checkOrderAgainstSpend: true,
 };
 
-const rulesSets = [{} as RulesSetAdvancementInput];
+const candidate = (id: number, isFreeExtra: boolean) => ({
+  id,
+  skillId: id,
+  source: 'advancement' as const,
+  isFreeExtra,
+  advancementOrder: null,
+  orderConfirmed: false,
+});
+const rulesSetWith = (lonerIsFree: boolean): RulesSetAdvancementInput => ({
+  rulesSetId: 1,
+  pricingModel: 'kind_priced',
+  costs: [],
+  candidatesInput: {
+    skills: [candidate(11, false), candidate(13, lonerIsFree)],
+    skillCategories: new Map(),
+    positionAccess: new Map(),
+    costs: [],
+  },
+});
+
+const rulesSets = [rulesSetWith(false)];
 
 describe('CuratedAdvancementOrderService', () => {
   it('prices the order as the only allowed one, then syncs keeping the unspent SPP', async () => {
@@ -206,6 +226,93 @@ describe('CuratedAdvancementOrderService', () => {
       'Player 1 lists skill 9, which is not a paid advancement',
     );
     expect(playerSkills.sync).not.toHaveBeenCalled();
+  });
+
+  describe('with a stored gained skill whose free-extra flag is not set yet', () => {
+    const unflaggedLoner = {
+      id: 13,
+      skillId: 10,
+      characteristic: null,
+      attributeValue: '2+',
+      source: 'advancement',
+      isFreeExtra: false,
+      removed: false,
+    };
+    const stored = [
+      ...storedRows,
+      unflaggedLoner,
+      { ...unflaggedLoner, id: 14, skillId: 11, source: 'starting' },
+      { ...unflaggedLoner, id: 15, skillId: 12, removed: true },
+      { ...unflaggedLoner, id: 16, skillId: 13, isFreeExtra: true },
+    ];
+    it('treats it as free when the rules make it free: matched, priced and flagged by the sync', async () => {
+      const { service, reads, playerSkills, unspentSpp, deduction } =
+        await makeService(mockDb([{ sppTotal: 20, unspentSpp: 6 }], stored));
+      reads.resolveFreeExtras.mockImplementation((entries) =>
+        Promise.resolve(
+          entries.map((entry) =>
+            entry.skillId === 10 ? { ...entry, isFreeExtra: true } : entry,
+          ),
+        ),
+      );
+      unspentSpp.advancementInputsForPlayers.mockResolvedValue(
+        new Map([[1, [rulesSetWith(false)]]]),
+      );
+      deduction.deduce.mockReturnValue(
+        new Map([
+          [11, 1],
+          [12, 2],
+        ]),
+      );
+      playerSkills.sync.mockResolvedValue({ playerSkillIds: [12, 11, 13] });
+
+      expect(await service.sync(data)).toEqual({ playerSkillIds: [12, 11] });
+      // Only gained, active, unflagged skill rows are offered to the rules.
+      expect(reads.resolveFreeExtras).toHaveBeenLastCalledWith([
+        { playerId: 1, skillId: 8, source: 'chosen', attributeValue: null },
+        { playerId: 1, skillId: 9, source: 'random', attributeValue: null },
+        {
+          playerId: 1,
+          skillId: 10,
+          source: 'advancement',
+          attributeValue: '2+',
+        },
+      ]);
+      expect(deduction.deduce).toHaveBeenCalledWith({
+        rulesSets: [rulesSetWith(true)],
+        newRowIds: [11, 12],
+        orderedRowIds: [11, 12],
+        firstNumber: 1,
+        spent: 14,
+      });
+      expect(playerSkills.sync).toHaveBeenCalledWith(
+        {
+          ...data,
+          entries: [
+            ...data.entries,
+            {
+              playerId: 1,
+              skillId: 10,
+              source: 'advancement',
+              attributeValue: '2+',
+              isFreeExtra: true,
+            },
+          ],
+        },
+        { keepUnspentSpp: true },
+      );
+    });
+
+    it('counts it as paid when the rules leave it paid', async () => {
+      const { service, playerSkills } = await makeService(
+        mockDb([{ sppTotal: 20, unspentSpp: 6 }], stored),
+      );
+
+      await expect(service.sync(data)).rejects.toThrow(
+        'Player 1 has 3 paid advancements, but the entries list 2',
+      );
+      expect(playerSkills.sync).not.toHaveBeenCalled();
+    });
   });
 
   it('refuses a player that does not exist', async () => {

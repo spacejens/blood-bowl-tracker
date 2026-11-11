@@ -225,4 +225,75 @@ describe('Curated advancement orders are checked against the spend (real Postgre
 
     await expect(service.sync(data)).rejects.toThrow(/not a paid advancement/);
   });
+
+  describe('with a stored gained Loner stored before the name rule flagged it', () => {
+    const rows = () =>
+      db
+        .select({
+          skillId: playerAdvancements.skillId,
+          advancementOrder: playerAdvancements.advancementOrder,
+          orderConfirmed: playerAdvancements.orderConfirmed,
+          isFreeExtra: playerAdvancements.isFreeExtra,
+        })
+        .from(playerAdvancements)
+        .where(eq(playerAdvancements.playerId, seeded.playerId))
+        .orderBy(asc(playerAdvancements.id));
+
+    beforeEach(async () => {
+      // As a row stored before the rule: a paid-looking Loner holding slot 2.
+      await db
+        .update(playerAdvancements)
+        .set({ isFreeExtra: false })
+        .where(eq(playerAdvancements.skillId, seeded.skillIds.Loner));
+      await db
+        .update(playerAdvancements)
+        .set({ orderConfirmed: true })
+        .where(eq(playerAdvancements.playerId, seeded.playerId));
+    });
+
+    it('flags the Loner free and confirms the paid order 1..2 in one apply', async () => {
+      const result = await service.sync(curated('Block'));
+
+      expect(result.playerSkillIds).toHaveLength(2);
+      expect(await rows()).toEqual([
+        {
+          skillId: seeded.skillIds.Block,
+          advancementOrder: 1,
+          orderConfirmed: true,
+          isFreeExtra: false,
+        },
+        {
+          skillId: seeded.skillIds.Loner,
+          advancementOrder: 2,
+          orderConfirmed: false,
+          isFreeExtra: true,
+        },
+        {
+          skillId: seeded.skillIds.Dodge,
+          advancementOrder: 2,
+          orderConfirmed: true,
+          isFreeExtra: false,
+        },
+      ]);
+      const [player] = await db
+        .select({ unspentSpp: players.unspentSpp })
+        .from(players)
+        .where(eq(players.id, seeded.playerId));
+      expect(player.unspentSpp).toBe(0);
+    });
+
+    it('writes nothing, the Loner flag included, when the order is refused', async () => {
+      const before = await rows();
+
+      await expect(service.sync(curated('Dodge'))).rejects.toThrow(
+        CuratedAdvancementOrderError,
+      );
+
+      expect(await rows()).toEqual(before);
+      expect(before[1]).toMatchObject({
+        skillId: seeded.skillIds.Loner,
+        isFreeExtra: false,
+      });
+    });
+  });
 });

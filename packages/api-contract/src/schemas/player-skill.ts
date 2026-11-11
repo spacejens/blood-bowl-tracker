@@ -111,8 +111,10 @@ export const SyncPlayerSkillsSchema = z.object({
    * advancement order by hand. The server then refuses the whole batch
    * unless every such player's entries match his stored paid advancements
    * one for one, are confirmed and numbered from 1, and cost exactly the SPP
-   * the player reports as spent under some rules set of his era. A batch it
-   * accepts keeps the players' stored unspent SPP.
+   * the player reports as spent under some rules set of his era. A stored
+   * gained skill the free-extra rules make free counts as free even when its
+   * stored flag is unset, and an accepted batch flags it. A batch it accepts
+   * keeps the players' stored unspent SPP.
    */
   checkOrderAgainstSpend: z.boolean().optional(),
 });

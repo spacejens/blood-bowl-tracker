@@ -23,6 +23,14 @@ An advancement is a skill (by external id, with the variant the player's
 stored row carries, if any) or a characteristic increase (`MA`, `ST`, `AG`,
 `PA` or `AV`). Starting skills and free extras are not listed.
 
+A stored gained skill the free-extra rules make free (Hatred, Loner, or one a
+trophy award grants) counts as a free extra even when its stored row is not
+flagged yet, as a row stored before the rule existed can be: the entry
+leaves it out like any other free extra, the SPP check does not price it,
+and applying the entry flags the row as a free extra. The row keeps its
+stored number, unconfirmed, so the paid advancements are numbered 1 to n
+around it.
+
 The order is written confirmed, numbered from 1 in the order listed, so a
 later import never replaces it with a guess. The importer skips an entry
 whose player or skill does not resolve. For the rest, the server checks the
@@ -54,7 +62,7 @@ leaves the unspent figure unset until a bulk TP import stores it, in which case
 the order is written unchecked.
 
 A skill's stored source (chosen or random) is kept: the entry changes only
-the order. The player's stored unspent SPP is kept too: when known, the check
+the order, apart from flagging stored free extras as described above. The player's stored unspent SPP is kept too: when known, the check
 has just shown it fits the new order.
 
 This section runs last, after every section that creates the skills and
