@@ -27,15 +27,15 @@ advancements as skills plus increases, and the SPP spent.
 
 ## Resolved
 
-- **Nadiddnur** (Shambletown Peddlers, Third era, line-up 1421046, paid 3+0,
-  spent 14): his gained Loner is a
+- **Nadiddnur** (Shambletown Peddlers, Third era, line-up 1421046, paid 3+0
+  as TP records it, spent 14): his gained Loner is a
   [free extra](../game-concepts/skills/index.md#player-skills), so two paid
   skills remain, Dirty Player (+1), a random secondary skill, and Sneaky Git,
   a chosen primary, and his 14 SPP spend fits exactly. Batch 005 records the
   order Dirty Player, then Sneaky Git: the feed shows only Sneaky Git, at 8
   SPP (2025-04-16), the price of a second chosen primary skill, and TP's
   skill row ids give the same order. Applying the batch also flags his stored
-  Loner as a free extra where it was stored before the rule. TP records level
+  Loner as a free extra when its stored flag is not set. TP records level
   2 against 3 recorded skills, which the free Loner explains.
 - **Journeyman** (Elfyville Canaries, Third era, line-up 2454051, paid 1+0,
   spent 0): the only gained skill is Loner, a free extra, so he has no paid

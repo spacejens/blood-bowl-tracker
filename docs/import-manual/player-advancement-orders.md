@@ -25,7 +25,7 @@ stored row carries, if any) or a characteristic increase (`MA`, `ST`, `AG`,
 
 A stored gained skill the free-extra rules make free (Hatred, Loner, or one a
 trophy award grants) counts as a free extra even when its stored row is not
-flagged yet, as a row stored before the rule existed can be: the entry
+flagged, as a stored row whose flag is not set can be: the entry
 leaves it out like any other free extra, the SPP check does not price it,
 and applying the entry flags the row as a free extra. The row keeps its
 stored number, unconfirmed, so the paid advancements are numbered 1 to n
@@ -57,13 +57,14 @@ advancement costs exist until batch 004 is applied), so the order is then
 written confirmed without the pricing check. The second TP pass then stores
 TP's own unspent figure and does not re-check the order, so an order written
 unchecked is checked only if the batch is applied again with the figures
-stored. In production the check runs against the stored figures; a team imported live
-leaves the unspent figure unset until a bulk TP import stores it, in which case
-the order is written unchecked.
+stored. In production the check runs against the stored figures; a team
+imported live leaves the unspent figure unset until a bulk TP import stores it,
+in which case the order is written unchecked.
 
 A skill's stored source (chosen or random) is kept: the entry changes only
-the order, apart from flagging stored free extras as described above. The player's stored unspent SPP is kept too: when known, the check
-has just shown it fits the new order.
+the order, apart from flagging stored free extras as described above. The
+player's stored unspent SPP is kept too: when known, the check has just shown
+it fits the new order.
 
 This section runs last, after every section that creates the skills and
 players it references. Players come from the BBL and TP importers, so a
