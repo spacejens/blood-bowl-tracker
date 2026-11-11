@@ -3,7 +3,9 @@
 `packages/config-loader` is the source-agnostic JSON5 config-file loading
 (`createConfigLoaderServiceBase`) behind every config-reading tool: read the
 file, treat a missing file as an empty config, parse JSON5 with an error
-naming the path, and validate against a caller-supplied top-level schema.
+naming the path, and validate against a caller-supplied top-level schema. The
+schema only applies to a file that exists: a missing file returns the empty
+config as is, without schema defaults or required-field validation.
 
 ## Who uses it
 
