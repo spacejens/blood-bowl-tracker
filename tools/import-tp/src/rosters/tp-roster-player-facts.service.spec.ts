@@ -1,8 +1,5 @@
-import type {
-  TpCareerSppCounts,
-  TpRoster,
-  TpRosterPlayer,
-} from '@blood-bowl-tracker/parse-tp';
+import type { SppCareerCounts } from '@blood-bowl-tracker/api-contract';
+import type { TpRoster, TpRosterPlayer } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -41,14 +38,14 @@ function entry(players: TpRosterPlayer[], rosterId = 163386): RosterEntry {
 }
 
 function careerCounts(
-  overrides: Partial<TpCareerSppCounts> = {},
-): TpCareerSppCounts {
+  overrides: Partial<SppCareerCounts> = {},
+): SppCareerCounts {
   return {
-    touchdowns: 1,
-    completions: 2,
-    interceptions: 3,
-    mvpAwards: 4,
-    casualties: 5,
+    touchdown: 1,
+    completion: 2,
+    interception: 3,
+    mvp_award: 4,
+    casualty: 5,
     ...overrides,
   };
 }
@@ -87,13 +84,7 @@ describe('TpRosterPlayerFactsService', () => {
         entry([
           player({
             id: 5001,
-            careerCounts: {
-              touchdowns: 1,
-              completions: 2,
-              interceptions: 3,
-              mvpAwards: 4,
-              casualties: 5,
-            },
+            careerCounts: careerCounts(),
           }),
         ]),
       ],
@@ -124,13 +115,13 @@ describe('TpRosterPlayerFactsService', () => {
         entry([
           player({
             id: 5001,
-            careerCounts: careerCounts({ touchdowns: 5, completions: 1 }),
+            careerCounts: careerCounts({ touchdown: 5, completion: 1 }),
           }),
         ]),
         entry([
           player({
             id: 5001,
-            careerCounts: careerCounts({ touchdowns: 2, completions: 9 }),
+            careerCounts: careerCounts({ touchdown: 2, completion: 9 }),
           }),
         ]),
       ],
@@ -144,5 +135,21 @@ describe('TpRosterPlayerFactsService', () => {
       mvp_award: 4,
       casualty: 5,
     });
+  });
+
+  it("leaves the parsed roster's own counts untouched when keeping the highest", () => {
+    const first = careerCounts({ touchdown: 5, completion: 1 });
+    const second = careerCounts({ touchdown: 2, completion: 9 });
+
+    service.collect({
+      rosters: [
+        entry([player({ id: 5001, careerCounts: first })]),
+        entry([player({ id: 5001, careerCounts: second })]),
+      ],
+      playerIdsByLineUpId: new Map([[5001, 700]]),
+    });
+
+    expect(first).toEqual(careerCounts({ touchdown: 5, completion: 1 }));
+    expect(second).toEqual(careerCounts({ touchdown: 2, completion: 9 }));
   });
 });

@@ -434,11 +434,11 @@ describe('RosterParserService', () => {
       }),
     );
     expect(roster.players[0]?.careerCounts).toEqual({
-      touchdowns: 12,
-      completions: 4,
-      interceptions: 2,
-      mvpAwards: 3,
-      casualties: 5,
+      touchdown: 12,
+      completion: 4,
+      interception: 2,
+      mvp_award: 3,
+      casualty: 5,
     });
   });
 

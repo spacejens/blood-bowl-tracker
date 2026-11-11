@@ -1,16 +1,19 @@
-import type { TpImportedPlayer } from '@blood-bowl-tracker/api-contract';
+import type {
+  SppCareerCounts,
+  TpImportedPlayer,
+} from '@blood-bowl-tracker/api-contract';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { rosterPlayer, tpRoster } from '../roster/tp-roster.test-helpers';
 import { TpPlayerSppFactsService } from './tp-player-spp-facts.service';
 
-const CAREER = {
-  touchdowns: 3,
-  completions: 4,
-  interceptions: 1,
-  mvpAwards: 2,
-  casualties: 5,
+const CAREER: SppCareerCounts = {
+  touchdown: 3,
+  completion: 4,
+  interception: 1,
+  mvp_award: 2,
+  casualty: 5,
 };
 
 function importedPlayer(
@@ -46,13 +49,7 @@ describe('TpPlayerSppFactsService', () => {
       {
         playerId: 9,
         reportedSppTotal: 12,
-        careerCounts: {
-          touchdown: 3,
-          completion: 4,
-          interception: 1,
-          mvp_award: 2,
-          casualty: 5,
-        },
+        careerCounts: CAREER,
       },
     ]);
   });

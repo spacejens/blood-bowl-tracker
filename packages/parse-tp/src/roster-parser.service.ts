@@ -1,4 +1,5 @@
 import type {
+  SppCareerCounts,
   TpMatchEmbeddedPlayer,
   TpOfficialCharacteristics,
   TpOfficialSkillIdRef,
@@ -71,12 +72,21 @@ export interface TpRosterPosition {
  */
 export interface TpRosterPlayer extends TpMatchEmbeddedPlayer {
   /**
-   * TP's per-action-type career counters, or `undefined` when the source entry
-   * carried none. Only a standalone `rosters_<id>.json` entry has them: the
+   * TP's career-wide, per-action-type counters, under the contract's
+   * `SppCareerCounts` groups, or `undefined` when the source entry carried
+   * none. Only a standalone `rosters_<id>.json` entry has them: the
    * match-embedded roster snapshots `MatchParserService` parses through the
    * same `LineUpSchema` do not, which is why every counter field is optional.
+   * Career-wide in exactly the sense `totalStarPlayerPoints` is: inclusive of
+   * competitions not downloaded/imported locally yet.
+   *
+   * TP's raw JSON has no deflection field, so `interception`
+   * (`totalInterceptions`) is a combined interception+deflection figure, and
+   * no casualty-severity breakdown, so `casualty` (`totalCasualties`) covers
+   * every severity. The server prices each with a single representative
+   * award value.
    */
-  careerCounts?: TpCareerSppCounts;
+  careerCounts?: SppCareerCounts;
   /**
    * The player's own current characteristics, or `undefined` when the source
    * entry carried none. Only a standalone `rosters_<id>.json` entry has them:
@@ -151,28 +161,6 @@ export interface TpGainedSkillRef extends TpOfficialSkillIdRef {
 export interface TpPlayerSkills {
   starting: TpOfficialSkillIdRef[];
   gained: TpGainedSkillRef[];
-}
-
-/**
- * TP's career-wide, per-action-type counters for one player, from a standalone
- * `rosters_<id>.json` `lineUps[]` entry. Career-wide in exactly the sense
- * `totalStarPlayerPoints` is: inclusive of competitions that are still ongoing
- * and have not been downloaded/imported locally yet.
- *
- * TP's raw JSON has NO deflection field, so `interceptions`
- * (`totalInterceptions`) is a COMBINED interception+deflection figure, and no
- * casualty-severity breakdown, so `casualties` (`totalCasualties`) covers every
- * severity. Both are carried through as the combined counters they are; the
- * consumer prices each with a single representative award value -- see
- * docs/plans/2026-08-13-tp-spp-ongoing-competition-adjustment-design.md,
- * "Known limitations".
- */
-export interface TpCareerSppCounts {
-  touchdowns: number;
-  completions: number;
-  interceptions: number;
-  mvpAwards: number;
-  casualties: number;
 }
 
 /**
@@ -420,11 +408,13 @@ export class RosterParserService {
    * The entry's per-action-type career counters, or `undefined` when it does
    * not carry the full set. All-or-nothing on purpose: a partial set would
    * silently under-count one action type and inflate the SPP left unexplained,
-   * which is the exact failure this data exists to prevent.
+   * which is the exact failure this data exists to prevent. Named with the
+   * contract's groups, so consumers pass the counts on unchanged; this is the
+   * only place TP's counter names are translated.
    */
   private careerCounts(
     entry: z.infer<typeof LineUpSchema>,
-  ): TpCareerSppCounts | undefined {
+  ): SppCareerCounts | undefined {
     const {
       totalTouchdowns,
       totalPass,
@@ -442,11 +432,11 @@ export class RosterParserService {
       return undefined;
     }
     return {
-      touchdowns: totalTouchdowns,
-      completions: totalPass,
-      interceptions: totalInterceptions,
-      mvpAwards: totalMVP,
-      casualties: totalCasualties,
+      touchdown: totalTouchdowns,
+      completion: totalPass,
+      interception: totalInterceptions,
+      mvp_award: totalMVP,
+      casualty: totalCasualties,
     };
   }
 

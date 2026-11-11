@@ -13,7 +13,6 @@ export { ParseTpModule } from './parse-tp.module';
 export type { TpPhaseFixtures } from './phase-fixtures-parser.service';
 export { PhaseFixturesParserService } from './phase-fixtures-parser.service';
 export type {
-  TpCareerSppCounts,
   TpGainedSkillRef,
   TpPlayerCharacteristics,
   TpPlayerSkills,

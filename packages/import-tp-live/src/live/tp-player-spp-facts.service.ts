@@ -3,7 +3,7 @@ import type {
   TpImportedPlayer,
   UnspentSppSnapshot,
 } from '@blood-bowl-tracker/api-contract';
-import type { TpCareerSppCounts, TpRoster } from '@blood-bowl-tracker/parse-tp';
+import type { TpRoster } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -34,8 +34,9 @@ export interface CollectPlayerSppFactsOptions {
 
 /**
  * Builds the SPP facts of one live team import's players: the live
- * counterpart of tools/import-tp's `TpRosterPlayerFactsService`, mapping TP's
- * career counters to the groups the server prices. Pure, with no
+ * counterpart of tools/import-tp's `TpRosterPlayerFactsService`, passing on the
+ * career counters the roster parser already names with the groups the server
+ * prices. Pure, with no
  * dependencies.
  */
 @Injectable()
@@ -44,7 +45,7 @@ export class TpPlayerSppFactsService {
     roster,
     importedPlayers,
   }: CollectPlayerSppFactsOptions): TpLivePlayerSppFacts[] {
-    const countsByLineUpId = new Map<number, TpCareerSppCounts>();
+    const countsByLineUpId = new Map<number, SppCareerCounts>();
     for (const player of roster.players) {
       if (player.careerCounts !== undefined) {
         countsByLineUpId.set(player.id, player.careerCounts);
@@ -60,25 +61,10 @@ export class TpPlayerSppFactsService {
           : {
               playerId,
               reportedSppTotal,
-              careerCounts: this.groups(counts),
+              careerCounts: counts,
               ...snapshot,
             };
       },
     );
-  }
-
-  /**
-   * TP reports one combined interception counter (no deflection field) and
-   * one combined casualty counter (no severity breakdown); the server prices
-   * each with a single representative award value.
-   */
-  private groups(counts: TpCareerSppCounts): SppCareerCounts {
-    return {
-      touchdown: counts.touchdowns,
-      completion: counts.completions,
-      interception: counts.interceptions,
-      mvp_award: counts.mvpAwards,
-      casualty: counts.casualties,
-    };
   }
 }
