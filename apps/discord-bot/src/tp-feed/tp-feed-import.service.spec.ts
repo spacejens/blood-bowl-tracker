@@ -1,4 +1,5 @@
 import { TpBlockedError } from '@blood-bowl-tracker/import-tp-live';
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import type { TpPageClassification } from '@blood-bowl-tracker/tp-paths';
 import { TpPageClassifierService } from '@blood-bowl-tracker/tp-paths';
 import { Logger } from '@nestjs/common';
@@ -11,7 +12,6 @@ import { mock } from 'vitest-mock-extended';
 import { DiscordBotConfigService } from '../discord-bot-config.service';
 import { SleepService } from '../leader-election/sleep.service';
 import { ClockService } from '../shared/clock.service';
-import { ErrorLogService } from '../shared/error-log.service';
 import type { TpImportOutcome } from '../tp-import/tp-import-dispatch.service';
 import { TpImportDispatchService } from '../tp-import/tp-import-dispatch.service';
 import type { TpImportAssessment } from '../tp-import/tp-import-failure.service';

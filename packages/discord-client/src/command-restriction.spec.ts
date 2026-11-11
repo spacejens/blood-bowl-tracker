@@ -1,6 +1,8 @@
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { Test } from '@nestjs/testing';
 import type { Mock } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
 vi.mock('discord.js', async () =>
   (await import('./discord-js-mock.test-helpers.js')).discordJsModuleMock(),
@@ -51,6 +53,7 @@ describe('DiscordClientService restricted commands', () => {
         { provide: DEBUG_COMMAND_ROLE_ID, useValue: roles.debug },
         { provide: ADMIN_COMMAND_ROLE_ID, useValue: roles.admin },
         HandledInteractionBuilderService,
+        { provide: ErrorLogService, useValue: mock<ErrorLogService>() },
       ],
     }).compile();
     const service = moduleRef.get(DiscordClientService);

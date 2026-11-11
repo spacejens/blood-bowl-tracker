@@ -1,6 +1,9 @@
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 vi.mock('discord.js', async () =>
   (await import('./discord-js-mock.test-helpers.js')).discordJsModuleMock(),
@@ -33,6 +36,7 @@ import {
 describe('DiscordClientService', () => {
   let service: DiscordClientService;
   let discord: DiscordJsMocks;
+  let errorLog: MockProxy<ErrorLogService>;
 
   const flush = () => new Promise((resolve) => setImmediate(resolve));
 
@@ -58,6 +62,7 @@ describe('DiscordClientService', () => {
     // `Logger.prototype` spies some tests install. The discord.js mocks
     // themselves are built fresh just below.
     vi.clearAllMocks();
+    errorLog = mock<ErrorLogService>();
     discord = installDiscordJsMocks();
     discord.client.once.mockImplementation((event: string, cb: () => void) => {
       if (event === 'ready') cb();
@@ -75,6 +80,7 @@ describe('DiscordClientService', () => {
         MemberRoleAccessService,
         { provide: DISCORD_BOT_TOKEN, useValue: 'my-token' },
         HandledInteractionBuilderService,
+        { provide: ErrorLogService, useValue: errorLog },
       ],
     }).compile();
     service = moduleRef.get(DiscordClientService);
@@ -190,9 +196,6 @@ describe('DiscordClientService', () => {
   });
 
   it('logs when the underlying client emits an error event', async () => {
-    const logSpy = vi
-      .spyOn(Logger.prototype, 'error')
-      .mockImplementation(() => undefined);
     service.onModuleInit();
     await service.connect();
     const call = discord.client.on.mock.calls.find(
@@ -201,31 +204,32 @@ describe('DiscordClientService', () => {
     if (!call) throw new Error('error handler not registered');
     const errorHandler = call[1] as (error: unknown) => void;
 
-    errorHandler(new Error('connection reset'));
+    const error = new Error('connection reset');
 
-    expect(logSpy).toHaveBeenCalledWith(
+    errorHandler(error);
+
+    expect(errorLog.logError).toHaveBeenCalledWith(
+      expect.any(Logger),
       'Discord client error',
-      expect.any(Error),
+      error,
     );
   });
 
   it('logs an unhandled interaction error when handling the interaction itself throws', async () => {
-    const logSpy = vi
-      .spyOn(Logger.prototype, 'error')
-      .mockImplementation(() => undefined);
     service.onModuleInit();
     await service.connect();
 
     interactionHandler()({
-      isChatInputCommand: () => {
+      isAutocomplete: () => {
         throw new Error('malformed interaction');
       },
     });
     await flush();
 
-    expect(logSpy).toHaveBeenCalledWith(
+    expect(errorLog.logError).toHaveBeenCalledWith(
+      expect.any(Logger),
       'Unhandled interaction error',
-      expect.any(Error),
+      expect.objectContaining({ message: 'malformed interaction' }),
     );
   });
 
@@ -395,12 +399,10 @@ describe('DiscordClientService', () => {
   });
 
   it('logs a warning and continues clearing other guilds when one guild fails', async () => {
-    const warnSpy = vi
-      .spyOn(Logger.prototype, 'warn')
-      .mockImplementation(() => undefined);
+    const forbidden = new Error('403 Forbidden');
     const guildA = {
       id: 'a',
-      commands: { set: vi.fn().mockRejectedValue(new Error('403 Forbidden')) },
+      commands: { set: vi.fn().mockRejectedValue(forbidden) },
     };
     const guildB = {
       id: 'b',
@@ -419,9 +421,10 @@ describe('DiscordClientService', () => {
     ]);
     expect(guildA.commands.set).toHaveBeenCalledWith([]);
     expect(guildB.commands.set).toHaveBeenCalledWith([]);
-    expect(warnSpy).toHaveBeenCalledWith(
+    expect(errorLog.logWarn).toHaveBeenCalledWith(
+      expect.any(Logger),
       'Failed to clear guild-scoped commands for guild a',
-      expect.any(Error),
+      forbidden,
     );
   });
 
@@ -642,12 +645,13 @@ describe('DiscordClientService', () => {
   });
 
   it('replies with an error when a command handler throws', async () => {
+    const failure = new Error('boom');
     service.onModuleInit();
     await service.registerCommands([
       {
         name: 'stats',
         description: 'Show stats',
-        execute: vi.fn().mockRejectedValue(new Error('boom')),
+        execute: vi.fn().mockRejectedValue(failure),
       },
     ]);
     const reply = vi.fn().mockResolvedValue(undefined);
@@ -661,6 +665,40 @@ describe('DiscordClientService', () => {
     });
     await flush();
     expect(reply).toHaveBeenCalledWith('I am badly hurt');
+    expect(errorLog.logError).toHaveBeenCalledWith(
+      expect.any(Logger),
+      'Failed to handle /stats command',
+      failure,
+    );
+  });
+
+  it('logs when the failure reply itself cannot be sent', async () => {
+    service.onModuleInit();
+    await service.registerCommands([
+      {
+        name: 'stats',
+        description: 'Show stats',
+        execute: vi.fn().mockRejectedValue(new Error('boom')),
+      },
+    ]);
+    const replyError = new Error('interaction expired');
+    const reply = vi.fn().mockRejectedValue(replyError);
+    interactionHandler()({
+      isAutocomplete: () => false,
+      isButton: () => false,
+      isStringSelectMenu: () => false,
+      isChatInputCommand: () => true,
+      commandName: 'stats',
+      reply,
+    });
+
+    await vi.waitFor(() =>
+      expect(errorLog.logError).toHaveBeenCalledWith(
+        expect.any(Logger),
+        'Failed to send failure reply',
+        replyError,
+      ),
+    );
   });
 
   it('responds to an autocomplete interaction with the command choices', async () => {
@@ -748,10 +786,11 @@ describe('DiscordClientService', () => {
   });
 
   it('replies with an error when a button handler throws', async () => {
+    const failure = new Error('boom');
     service.onModuleInit();
     service.registerButtonHandler(
       'deepdive:era:',
-      vi.fn().mockRejectedValue(new Error('boom')),
+      vi.fn().mockRejectedValue(failure),
     );
     const reply = vi.fn().mockResolvedValue(undefined);
     interactionHandler()({
@@ -767,6 +806,11 @@ describe('DiscordClientService', () => {
     });
     await flush();
     expect(reply).toHaveBeenCalledWith('I am badly hurt');
+    expect(errorLog.logError).toHaveBeenCalledWith(
+      expect.any(Logger),
+      'Failed to handle button deepdive:era:7',
+      failure,
+    );
   });
 
   it('dispatches a select menu interaction to the handler whose prefix matches its customId', async () => {
@@ -949,10 +993,8 @@ describe('DiscordClientService', () => {
   });
 
   it('logs and keeps dispatching when a message handler rejects', async () => {
-    const errorLog = vi
-      .spyOn(Logger.prototype, 'error')
-      .mockImplementation(() => undefined);
-    const failing = vi.fn().mockRejectedValue(new Error('boom'));
+    const boom = new Error('boom');
+    const failing = vi.fn().mockRejectedValue(boom);
     const healthy = vi.fn().mockResolvedValue(undefined);
     service.registerMessageHandler(failing);
     service.registerMessageHandler(healthy);
@@ -962,10 +1004,10 @@ describe('DiscordClientService', () => {
     await flush();
 
     expect(healthy).toHaveBeenCalled();
-    expect(errorLog).toHaveBeenCalledWith(
+    expect(errorLog.logError).toHaveBeenCalledWith(
+      expect.any(Logger),
       'Unhandled message handler error',
-      expect.any(Error),
+      boom,
     );
-    errorLog.mockRestore();
   });
 });

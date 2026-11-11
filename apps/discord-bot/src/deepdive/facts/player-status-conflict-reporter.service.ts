@@ -1,10 +1,10 @@
 import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
 import type { PlayerStatus } from '@blood-bowl-tracker/domain-enums';
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { Injectable, Logger } from '@nestjs/common';
 import { MessageFlags } from 'discord.js';
 
 import { DiscordBotConfigService } from '../../discord-bot-config.service';
-import { ErrorLogService } from '../../shared/error-log.service';
 
 /** A player whose death is recorded in match events, but whose stored status says otherwise. */
 export interface PlayerStatusConflict {

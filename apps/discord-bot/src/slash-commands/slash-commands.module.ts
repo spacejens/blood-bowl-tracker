@@ -3,6 +3,7 @@ import {
   TrophiesQueriesModule,
   TrophyAwardsQueriesModule,
 } from '@blood-bowl-tracker/game-data-queries';
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { Module } from '@nestjs/common';
 
 import { CoachDeepdiveService } from '../deepdive/facts/coach-deepdive.service';
@@ -29,7 +30,6 @@ import { TeamDeepdiveService } from '../deepdive/facts/team-deepdive.service';
 import { TrophyDeepdiveService } from '../deepdive/facts/trophy-deepdive.service';
 import { UnspentSppLineService } from '../deepdive/facts/unspent-spp-line.service';
 import { InsightsModule } from '../insights/insights.module';
-import { ErrorLogService } from '../shared/error-log.service';
 import { AdminModule } from './admin/admin.module';
 import { DebugModule } from './debug/debug.module';
 import { DeepdiveAutocompleteService } from './deepdive-autocomplete.service';

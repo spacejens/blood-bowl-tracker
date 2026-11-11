@@ -1,11 +1,11 @@
 import { AdvisoryLockService } from '@blood-bowl-tracker/db';
 import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { RandomInsightsSchedulerService } from '../insights/random-insights-scheduler.service';
-import { ErrorLogService } from '../shared/error-log.service';
 import { SlashCommandRegistryService } from '../slash-commands/slash-command-registry.service';
 import { StartupNotifierService } from '../startup-notifier.service';
 import {

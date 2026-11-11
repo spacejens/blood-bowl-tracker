@@ -1,3 +1,4 @@
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { DynamicModule, FactoryProvider, Module } from '@nestjs/common';
 
 import { AdvisoryLockService, LOCK_SQL } from './advisory-lock.service';
@@ -36,6 +37,7 @@ export class AdvisoryLockModule {
           useFactory: (url: string) => createLockClient(url),
           inject: [LOCK_DATABASE_URL],
         },
+        ErrorLogService,
         AdvisoryLockService,
       ],
       exports: [AdvisoryLockService],

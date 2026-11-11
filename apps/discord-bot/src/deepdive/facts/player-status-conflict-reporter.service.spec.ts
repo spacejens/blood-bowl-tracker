@@ -1,4 +1,5 @@
 import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { Test } from '@nestjs/testing';
 import { MessageFlags } from 'discord.js';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -6,7 +7,6 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { DiscordBotConfigService } from '../../discord-bot-config.service';
-import { ErrorLogService } from '../../shared/error-log.service';
 import { PlayerStatusConflictReporterService } from './player-status-conflict-reporter.service';
 
 const DEBUG_CHANNEL = 'debug-channel';

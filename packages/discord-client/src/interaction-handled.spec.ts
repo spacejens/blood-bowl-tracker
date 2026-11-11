@@ -1,7 +1,10 @@
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { Mock } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 vi.mock('discord.js', async () =>
   (await import('./discord-js-mock.test-helpers.js')).discordJsModuleMock(),
@@ -32,6 +35,7 @@ describe('DiscordClientService interaction-handled listeners', () => {
   let service: DiscordClientService;
   let listener: Mock<InteractionHandledListener>;
   let discord: DiscordJsMocks;
+  let errorLog: MockProxy<ErrorLogService>;
 
   const flush = () => new Promise((resolve) => setImmediate(resolve));
 
@@ -115,6 +119,7 @@ describe('DiscordClientService interaction-handled listeners', () => {
   }
 
   beforeEach(async () => {
+    errorLog = mock<ErrorLogService>();
     discord = installDiscordJsMocks();
     discord.client.destroy.mockResolvedValue(undefined);
     listener = vi.fn<InteractionHandledListener>().mockResolvedValue(undefined);
@@ -124,6 +129,7 @@ describe('DiscordClientService interaction-handled listeners', () => {
         MemberRoleAccessService,
         HandledInteractionBuilderService,
         { provide: DISCORD_BOT_TOKEN, useValue: 'my-token' },
+        { provide: ErrorLogService, useValue: errorLog },
       ],
     }).compile();
     service = moduleRef.get(DiscordClientService);
@@ -244,9 +250,6 @@ describe('DiscordClientService interaction-handled listeners', () => {
   });
 
   it('replies normally and logs a warning when a listener rejects', async () => {
-    const warn = vi
-      .spyOn(Logger.prototype, 'warn')
-      .mockImplementation(() => undefined);
     const failure = new Error('db down');
     listener.mockRejectedValue(failure);
     await registerStats();
@@ -256,16 +259,14 @@ describe('DiscordClientService interaction-handled listeners', () => {
     await flush();
 
     expect(interaction.reply).toHaveBeenCalledWith('the answer');
-    expect(warn).toHaveBeenCalledWith(
+    expect(errorLog.logWarn).toHaveBeenCalledWith(
+      expect.any(Logger),
       'Interaction-handled listener failed',
       failure,
     );
   });
 
   it('replies normally and logs a warning when a listener throws synchronously', async () => {
-    const warn = vi
-      .spyOn(Logger.prototype, 'warn')
-      .mockImplementation(() => undefined);
     listener.mockImplementation(() => {
       throw new Error('sync boom');
     });
@@ -277,14 +278,14 @@ describe('DiscordClientService interaction-handled listeners', () => {
 
     expect(interaction.reply).toHaveBeenCalledTimes(1);
     expect(interaction.reply).toHaveBeenCalledWith('the answer');
-    expect(warn).toHaveBeenCalledWith(
+    expect(errorLog.logWarn).toHaveBeenCalledWith(
+      expect.any(Logger),
       'Interaction-handled listener failed',
       expect.objectContaining({ message: 'sync boom' }),
     );
   });
 
   it('notifies every listener in registration order, even after one rejects', async () => {
-    vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
     const second = vi
       .fn<InteractionHandledListener>()
       .mockResolvedValue(undefined);
@@ -304,7 +305,6 @@ describe('DiscordClientService interaction-handled listeners', () => {
   });
 
   it('still notifies later listeners when an earlier one throws synchronously', async () => {
-    vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
     const second = vi
       .fn<InteractionHandledListener>()
       .mockResolvedValue(undefined);
