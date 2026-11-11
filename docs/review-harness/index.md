@@ -21,8 +21,9 @@ all four at once.
   - `ExternalSystemLookupService` — the memoized `external_systems.id` lookup
     by each source's shared external-system name from `packages/domain-enums`.
   - `CharacteristicFormatService` with its none marker — rendering one
-    characteristic for a `CharacteristicFormat`, shared by `review-player` and
-    `review-race` (review-match has no characteristics to format).
+    characteristic for a `CharacteristicFormat`, shared by `review-player`,
+    `review-race` and `review-star-player` (review-match has no
+    characteristics to format).
   - `ManualBatchReaderService` — the mechanical reading of the hand-curated
     data batches: walking every batch directory and then every `.json5` file
     in name order, pooling each top-level array section (a missing, malformed

@@ -32,7 +32,7 @@ under `docs/<name>/`; this page only summarizes them.
   it only through those procedures.
 - `packages/game-data` is pure business logic over `packages/db`, with no
   network-facing dependency; `packages/game-data-queries` depends on it
-  one-way, and only `apps/discord-bot` imports it.
+  one-way, and only `apps/discord-bot` imports `packages/game-data-queries`.
 
 ## Client/server boundary
 

@@ -1,12 +1,12 @@
 # cli-shared
 
-`tools/cli-shared` is a library package with the plumbing the repo's CLI
-tools share. It has no CLI entry point of its own.
+`tools/cli-shared` is a library package with the plumbing five of the repo's
+CLI tools share. It has no CLI entry point of its own.
 
 ## What it owns
 
-- **`runCli`** — the subcommand-dispatcher driver every CLI entrypoint runs
-  on: [dev-workflow-cli](../dev-workflow-cli/index.md),
+- **`runCli`** — the subcommand-dispatcher driver these five CLIs'
+  entrypoints run on: [dev-workflow-cli](../dev-workflow-cli/index.md),
   [production-ops-cli](../production-ops-cli/index.md),
   [fs-utils-cli](../fs-utils-cli/index.md),
   [backup-cli](../backup-cli/index.md) and
@@ -17,7 +17,7 @@ tools share. It has no CLI entry point of its own.
 - **Child processes** — running and spawning them (`ChildProcessService`,
   `ProcessRunnerService`).
 - **Gitignored file lists** — the canonical gitignored file and directory
-  lists the worktree helpers sync.
+  lists.
 - **Production secrets** — the dotenv-based reader for
   `apps/discord-bot/.env.production` (`ProductionEnvFileService`).
 - **Postgres tooling** — the guarded `psql`/`pg_dump`/`pg_restore` runner

@@ -58,7 +58,7 @@ pnpm run test:e2e     # e2e tests
 
 > **Note:** The Docker Compose setup is intended for local development and testing of the production build. The same image runs in production on Fly.io against a Neon database — see [docs/discord-bot/production-hosting.md](docs/discord-bot/production-hosting.md) — so the Compose file is just a convenient way to run it locally. Once production is running continuously, point your local `.env` at a separate Discord bot identity instead of production's — see [docs/discord-bot/local-development.md](docs/discord-bot/local-development.md).
 
-`docker-compose.yml` defines a `discord-bot` service, built from `Dockerfile`,
+`docker-compose.yml` defines a `discord-bot` service, built from `apps/discord-bot/Dockerfile`,
 and a `postgres` service with a named volume for persistence. The bot waits
 for the database to be healthy before starting. Default credentials and
 database name are `blood_bowl` and are intended for local use only; override

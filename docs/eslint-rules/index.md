@@ -9,8 +9,9 @@ imported directly by the root `eslint.config.ts` under the `local/` prefix.
   parameters; constructors are exempt. See `CLAUDE.md`'s "Function parameter
   limit".
 - **`local/no-direct-service-instantiation`** — spec files, e2e specs and
-  `*.test-helpers.ts` modules may not `new` an injectable class; they build it
-  through `Test.createTestingModule`. See `CLAUDE.md`'s "Testing services".
+  `*.test-helpers.ts` modules may not `new` a class with an injectable naming
+  suffix (`*Service`, `*Parser`, `*Processor`, `*Reader`, `*Middleware`); they
+  build it through `Test.createTestingModule`. See `CLAUDE.md`'s "Testing services".
 - **`local/no-test-helper-imports`** — production code may not import a
   `*.test-helpers.ts` module.
 
