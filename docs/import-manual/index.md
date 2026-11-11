@@ -74,6 +74,7 @@ sppAwardValues
 advancementCosts
 trophies
 trophyAwards
+playerAdvancementOrders
 ```
 
 Every external-system name referenced anywhere in the pooled data — in
@@ -367,6 +368,9 @@ trophy on their own. TP's award data covers no other catalog entry today, so
 only those trophies are seeded. See
 [docs/import-tp/file-format-awards.md](../import-tp/file-format-awards.md) for the full
 value table and the evidence behind the scope.
+
+`playerAdvancementOrders` is described in
+[Player advancement orders](player-advancement-orders.md).
 
 ## Re-running on a populated database
 

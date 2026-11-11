@@ -51,7 +51,9 @@ function naturalKey(entry: PlayerSkillEntry): string {
  * A batch may list `characteristicPlayerIds`, the players whose characteristic
  * increases it states in full. Chunks hold whole players and each chunk lists
  * only its own players, because the server reconciles a listed player's
- * increases against the one call that carries them.
+ * increases against the one call that carries them. A batch flagged
+ * `checkOrderAgainstSpend` keeps the flag on every chunk, so the server checks
+ * each curated order against the player's reported SPP.
  */
 @Injectable()
 export class PlayerSkillsImportService {
@@ -79,6 +81,9 @@ export class PlayerSkillsImportService {
         ...(characteristicPlayerIds.length === 0
           ? {}
           : { characteristicPlayerIds }),
+        ...(batch.checkOrderAgainstSpend === true
+          ? { checkOrderAgainstSpend: true }
+          : {}),
       };
       const result = await this.importRunner.recordUpsertResult({
         upsert: () => this.client.playerSkills.sync(payload),

@@ -106,6 +106,15 @@ export const SyncPlayerSkillsSchema = z.object({
    * player not listed is rejected.
    */
   characteristicPlayerIds: z.array(z.number().int()).optional(),
+  /**
+   * True when the entries state each listed player's complete paid
+   * advancement order by hand. The server then refuses the whole batch
+   * unless every such player's entries match his stored paid advancements
+   * one for one, are confirmed and numbered from 1, and cost exactly the SPP
+   * the player reports as spent under some rules set of his era. A batch it
+   * accepts keeps the players' stored unspent SPP.
+   */
+  checkOrderAgainstSpend: z.boolean().optional(),
 });
 
 export const SyncPlayerSkillsResultSchema = z.object({

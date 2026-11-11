@@ -84,6 +84,16 @@ interface SyncFacts extends FreeExtraFacts {
   characteristicPlayerIds: ReadonlySet<number>;
 }
 
+/** Options for {@link PlayerSkillsService.sync}. */
+export interface PlayerSkillsSyncOptions {
+  /**
+   * Keep the changed players' stored unspent SPP instead of clearing it.
+   * Only for a caller that has just shown the stored figure still fits the
+   * written advancements (CuratedAdvancementOrderService).
+   */
+  keepUnspentSpp?: boolean;
+}
+
 /**
  * Owns every advancement row a player has — starting skills, gained skills
  * and characteristic increases — and how they came by each one.
@@ -128,9 +138,13 @@ export class PlayerSkillsService {
    * PlayerAdvancementSyncPlannerService's `isFreeExtra`; an
    * existing row is only ever marked, never unmarked. A free extra's order is
    * never stored confirmed, and a confirmed free extra's number is closed up
-   * in the player's paid numbering (see `closeFreeExtraSlots`).
+   * in the player's paid numbering (see `closeFreeExtraSlots`). The changed
+   * players' stored unspent SPP is cleared unless `options.keepUnspentSpp`.
    */
-  async sync(data: SyncPlayerSkills): Promise<SyncPlayerSkillsResult> {
+  async sync(
+    data: SyncPlayerSkills,
+    options: PlayerSkillsSyncOptions = {},
+  ): Promise<SyncPlayerSkillsResult> {
     const characteristicPlayerIds = new Set(data.characteristicPlayerIds ?? []);
     if (data.entries.length === 0 && characteristicPlayerIds.size === 0) {
       return { playerSkillIds: [] };
@@ -266,15 +280,17 @@ export class PlayerSkillsService {
       // A changed advancement can change what the player's advancements
       // cost, so the stored unspent SPP is cleared until the import's SPP
       // adjustment sync writes it again. Rows already cleared are left alone.
-      await tx
-        .update(players)
-        .set({ unspentSpp: null })
-        .where(
-          and(
-            inArray(players.id, [...changedPlayerIds]),
-            isNotNull(players.unspentSpp),
-          ),
-        );
+      if (options.keepUnspentSpp !== true) {
+        await tx
+          .update(players)
+          .set({ unspentSpp: null })
+          .where(
+            and(
+              inArray(players.id, [...changedPlayerIds]),
+              isNotNull(players.unspentSpp),
+            ),
+          );
+      }
       return { playerSkillIds: resultIds };
     });
   }

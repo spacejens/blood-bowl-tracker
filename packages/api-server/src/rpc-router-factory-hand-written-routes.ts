@@ -2,6 +2,7 @@ import { contract } from '@blood-bowl-tracker/api-contract';
 import {
   AdvancementCostsService,
   CompetitionGroupsService,
+  CuratedAdvancementOrderService,
   ExternalSystemsService,
   ManualImportBatchContentMismatchError,
   ManualImportBatchesService,
@@ -344,7 +345,9 @@ export function buildPositionRulesSetSkillCategoriesRoutes(
 // playerSkills: same shape and same reasoning as positionRulesSetSkills
 // above. `runSync` maps the service's authored-data rejections — a player or
 // skill that does not exist, and a batch repeating one natural key — to
-// BAD_REQUEST.
+// BAD_REQUEST. A sync flagged `checkOrderAgainstSpend` goes through
+// CuratedAdvancementOrderService, whose refusal (`CuratedAdvancementOrderError`)
+// `runSync` also maps to BAD_REQUEST.
 //
 // `list` delegates to `listByPlayer`, whose rows also carry the skill's name
 // and its category and elite flag under the requested rules set; the
@@ -352,10 +355,15 @@ export function buildPositionRulesSetSkillCategoriesRoutes(
 export function buildPlayerSkillsRoutes(
   upsertHandler: UpsertHandlerService,
   playerSkillsService: PlayerSkillsService,
+  curatedAdvancementOrder: CuratedAdvancementOrderService,
 ) {
   return {
     sync: implement(contract.playerSkills.sync).handler(({ input, errors }) =>
-      upsertHandler.runSync(errors, () => playerSkillsService.sync(input)),
+      upsertHandler.runSync(errors, () =>
+        input.checkOrderAgainstSpend === true
+          ? curatedAdvancementOrder.sync(input)
+          : playerSkillsService.sync(input),
+      ),
     ),
     list: implement(contract.playerSkills.list).handler(({ input }) =>
       playerSkillsService.listByPlayer(input.playerId, input.rulesSetId),

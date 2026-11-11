@@ -15,6 +15,7 @@ import { ErasProcessor } from '../entities/eras.processor';
 import { ExternalSystemsProcessor } from '../entities/external-systems.processor';
 import { KeywordsProcessor } from '../entities/keywords.processor';
 import { LeaguesProcessor } from '../entities/leagues.processor';
+import { PlayerAdvancementOrdersProcessor } from '../entities/player-advancement-orders.processor';
 import { PositionRulesSetSkillCategoriesProcessor } from '../entities/position-rules-set-skill-categories.processor';
 import { PositionRulesSetSkillsProcessor } from '../entities/position-rules-set-skills.processor';
 import { PositionRulesSetsProcessor } from '../entities/position-rules-sets.processor';
@@ -75,6 +76,7 @@ function emptyData(): ManualDataFile {
     trophies: [],
     competitionGroups: [],
     trophyAwards: [],
+    playerAdvancementOrders: [],
   };
 }
 
@@ -105,6 +107,7 @@ interface ProcessorMocks {
   advancementCosts: MockProxy<AdvancementCostsProcessor>;
   trophies: MockProxy<TrophiesProcessor>;
   trophyAwards: MockProxy<TrophyAwardsProcessor>;
+  playerAdvancementOrders: MockProxy<PlayerAdvancementOrdersProcessor>;
 }
 
 function processImpl(name: string, overrides: Overrides) {
@@ -154,6 +157,7 @@ async function makeService(overrides: Overrides = {}): Promise<{
     advancementCosts: mock<AdvancementCostsProcessor>(),
     trophies: mock<TrophiesProcessor>(),
     trophyAwards: mock<TrophyAwardsProcessor>(),
+    playerAdvancementOrders: mock<PlayerAdvancementOrdersProcessor>(),
   };
   procs.rulesSets.process.mockImplementation(
     processImpl('rulesSets', overrides),
@@ -195,6 +199,9 @@ async function makeService(overrides: Overrides = {}): Promise<{
   procs.trophies.process.mockImplementation(processImpl('trophies', overrides));
   procs.trophyAwards.process.mockImplementation(
     processImpl('trophyAwards', overrides),
+  );
+  procs.playerAdvancementOrders.process.mockImplementation(
+    processImpl('playerAdvancementOrders', overrides),
   );
 
   const importResults = mock<ImportResultService>();
@@ -239,6 +246,10 @@ async function makeService(overrides: Overrides = {}): Promise<{
       },
       { provide: TrophiesProcessor, useValue: procs.trophies },
       { provide: TrophyAwardsProcessor, useValue: procs.trophyAwards },
+      {
+        provide: PlayerAdvancementOrdersProcessor,
+        useValue: procs.playerAdvancementOrders,
+      },
       { provide: ImportResultService, useValue: importResults },
     ],
   }).compile();
@@ -274,12 +285,13 @@ describe('ManualImportService', () => {
         advancementCosts: 1,
         trophies: 1,
         trophyAwards: 1,
+        playerAdvancementOrders: 1,
       },
     });
 
     await service.run('/data/dir');
 
-    expect(resultArgs(importResults)).toEqual({ imported: 19, errors: [] });
+    expect(resultArgs(importResults)).toEqual({ imported: 20, errors: [] });
   });
 
   it('returns the ImportResult built by ImportResultService unchanged', async () => {
@@ -385,6 +397,10 @@ describe('ManualImportService', () => {
       order.push('trophyAwards');
       return Promise.resolve(0);
     });
+    procs.playerAdvancementOrders.process.mockImplementation(() => {
+      order.push('playerAdvancementOrders');
+      return Promise.resolve(0);
+    });
 
     await service.run('/data/dir');
 
@@ -408,6 +424,7 @@ describe('ManualImportService', () => {
       'advancementCosts',
       'trophies',
       'trophyAwards',
+      'playerAdvancementOrders',
     ]);
   });
 

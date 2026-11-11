@@ -10,6 +10,7 @@ import { ErasProcessor } from './eras.processor';
 import { ExternalSystemsProcessor } from './external-systems.processor';
 import { KeywordsProcessor } from './keywords.processor';
 import { LeaguesProcessor } from './leagues.processor';
+import { PlayerAdvancementOrdersProcessor } from './player-advancement-orders.processor';
 import { PositionRulesSetSkillCategoriesProcessor } from './position-rules-set-skill-categories.processor';
 import { PositionRulesSetSkillsProcessor } from './position-rules-set-skills.processor';
 import { PositionRulesSetsProcessor } from './position-rules-sets.processor';
@@ -44,6 +45,7 @@ const processors = [
   AdvancementCostsProcessor,
   TrophiesProcessor,
   TrophyAwardsProcessor,
+  PlayerAdvancementOrdersProcessor,
 ];
 
 @Module({
