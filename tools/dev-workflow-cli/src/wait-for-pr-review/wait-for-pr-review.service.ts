@@ -20,6 +20,7 @@ import {
   RetriggerReport,
   RetriggerState,
   TriggerClock,
+  TriggerOutcome,
 } from './wait-for-pr-review-retrigger';
 import {
   codeRabbitCommentSchema,
@@ -75,7 +76,9 @@ export interface WaitForPrReviewOptions {
    * Makes the `triggerAfterEpochSeconds` trigger merge `origin/main` into the
    * current branch and push, instead of posting the review comment — the push
    * asks for the review by itself. Falls back to the comment when the merge
-   * brings in nothing new or a git step fails. Has no effect on the
+   * brings in nothing new or a git step fails, except a merge that conflicts:
+   * that posts no comment and ends the wait at once with `mergeConflict`,
+   * since only resolving the conflict brings the branch up to date. Has no effect on the
    * star-gate trigger, and none without `triggerAfterEpochSeconds`.
    */
   readonly triggerMergeMain?: boolean;
@@ -124,6 +127,14 @@ export interface WaitForPrReviewResult {
   readonly commentUpdateFailed?: boolean;
   /** Present only when `commentUpdateFailed` is true. */
   readonly commentUpdateFailedComment?: CodeRabbitComment;
+  /**
+   * True only when the `triggerMergeMain` retrigger's merge of `main`
+   * conflicted. The merge was aborted, no review comment was posted, and the
+   * wait ended at once instead of polling on, so the caller can resolve the
+   * conflict and push. `retrigger` then reports `none` with the merge's
+   * `mergeFailure`.
+   */
+  readonly mergeConflict?: boolean;
   /**
    * Present only when `triggerMergeMain` was set and the caller-requested
    * trigger fired — on any of the outcomes above.
@@ -365,7 +376,7 @@ export class WaitForPrReviewService {
         // every interval for the rest of the wait.
         triggered = true;
         justTriggered = true;
-        retrigger.report = await this.triggerReview(
+        const fired = await this.triggerReview(
           options,
           {
             budgetMs: () => this.budgetMs(deadline, intervalMs),
@@ -373,6 +384,12 @@ export class WaitForPrReviewService {
           },
           outcome?.starGateComment === undefined,
         );
+        retrigger.report = fired.report;
+        // Nothing asked for a review and nothing will: waiting out the
+        // window would only delay the caller's own conflict resolution.
+        if (fired.mergeConflict === true) {
+          return { found: false, mergeConflict: true };
+        }
       }
       if (!justTriggered) {
         if (outcome?.rateLimitComment !== undefined) {
@@ -858,12 +875,14 @@ export class WaitForPrReviewService {
   }
 
   /**
-   * Asks for a review, returning how — or `undefined` when no merge was
+   * Asks for a review, returning how — with no `report` when no merge was
    * requested for this trigger. Only the caller-requested trigger with
    * `triggerMergeMain` set tries the merge. `callerRequested` is false when
    * the poll found a star-gate comment, even if the caller's trigger instant
    * has also passed: the star-gate trigger is not a rate-limit wait and
    * always comments, as does a merge that brought in nothing new or failed.
+   * A conflicting merge is the exception to the comment fallback: no comment
+   * is posted, and `mergeConflict` tells `pollUntilDone` to end the wait.
    *
    * The clock is read at each step, not once: a fallback comment after a slow
    * merge gets only what the wait's deadline still allows, and a merge is not
@@ -874,10 +893,10 @@ export class WaitForPrReviewService {
     options: WaitForPrReviewOptions,
     clock: TriggerClock,
     callerRequested: boolean,
-  ): Promise<RetriggerReport | undefined> {
+  ): Promise<TriggerOutcome> {
     if (options.triggerMergeMain !== true || !callerRequested) {
       await this.postTriggerComment(options.prNumber, clock.budgetMs());
-      return undefined;
+      return {};
     }
     // One read: the merge gets exactly the time this check saw, so the
     // deadline cannot pass between the check and the budget.
@@ -887,9 +906,21 @@ export class WaitForPrReviewService {
         ? MERGE_SKIPPED_PAST_DEADLINE
         : await this.retriggerMerge.mergeMainAndPush(left);
     if (merge.pushed) {
-      return { method: 'merge-push' };
+      return { report: { method: 'merge-push' } };
     }
-    return this.commentFallback(options.prNumber, clock, merge.failure);
+    if (merge.conflict === true) {
+      return {
+        report: { method: 'none', mergeFailure: merge.failure },
+        mergeConflict: true,
+      };
+    }
+    return {
+      report: await this.commentFallback(
+        options.prNumber,
+        clock,
+        merge.failure,
+      ),
+    };
   }
 
   /**

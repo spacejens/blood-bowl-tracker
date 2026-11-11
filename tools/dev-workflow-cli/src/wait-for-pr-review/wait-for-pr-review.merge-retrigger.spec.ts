@@ -68,6 +68,16 @@ describe('WaitForPrReviewService merge-main retrigger', () => {
       .map((call) => call[1]);
   }
 
+  /** How many `gh pr view` polls ran. */
+  function polls(): number {
+    return processRunner.run.mock.calls.filter(
+      (call) => call[1][0] === 'pr' && call[1][1] === 'view',
+    ).length;
+  }
+
+  const CONFLICT_FAILURE =
+    'git merge origin/main --no-edit failed: Automatic merge failed; fix conflicts and then commit the result.';
+
   /** A due trigger with the merge flag set, unless overridden. */
   function options(
     overrides: Partial<WaitForPrReviewOptions> = {},
@@ -120,10 +130,10 @@ describe('WaitForPrReviewService merge-main retrigger', () => {
     });
   });
 
-  it('comments and reports the failure when the merge failed', async () => {
+  it('comments and reports the failure when a git step other than a conflicting merge failed', async () => {
     mockPolls(EMPTY);
     const failure =
-      'git merge origin/main --no-edit failed: Automatic merge failed; fix conflicts and then commit the result.';
+      "git push failed: error: failed to push some refs to 'github.com:owner/repo.git'";
     retriggerMerge.mergeMainAndPush.mockResolvedValue({
       pushed: false,
       failure,
@@ -137,6 +147,58 @@ describe('WaitForPrReviewService merge-main retrigger', () => {
       timedOut: true,
       retrigger: { method: 'comment', mergeFailure: failure },
     });
+  });
+
+  it('ends the wait at once on a merge conflict, posting no comment', async () => {
+    mockPolls(EMPTY);
+    retriggerMerge.mergeMainAndPush.mockResolvedValue({
+      pushed: false,
+      conflict: true,
+      failure: CONFLICT_FAILURE,
+    });
+
+    // No timer is advanced: the result must arrive without any sleep.
+    const result = await service.run(options());
+
+    expect(result).toEqual({
+      found: false,
+      mergeConflict: true,
+      retrigger: { method: 'none', mergeFailure: CONFLICT_FAILURE },
+    });
+    expect(commentPosts()).toHaveLength(0);
+    expect(polls()).toBe(1);
+  });
+
+  it('reports the conflict rather than a rate limit seen in the same poll', async () => {
+    mockPolls(RATE_LIMITED);
+    retriggerMerge.mergeMainAndPush.mockResolvedValue({
+      pushed: false,
+      conflict: true,
+      failure: CONFLICT_FAILURE,
+    });
+
+    const result = await service.run(options());
+
+    expect(result).toEqual({
+      found: false,
+      mergeConflict: true,
+      retrigger: { method: 'none', mergeFailure: CONFLICT_FAILURE },
+    });
+    expect(commentPosts()).toHaveLength(0);
+  });
+
+  it('still returns a review found before the trigger, never merging', async () => {
+    mockPolls(FOUND);
+    retriggerMerge.mergeMainAndPush.mockResolvedValue({
+      pushed: false,
+      conflict: true,
+      failure: CONFLICT_FAILURE,
+    });
+
+    const result = await service.run(options());
+
+    expect(retriggerMerge.mergeMainAndPush).not.toHaveBeenCalled();
+    expect(result).toEqual({ found: true, review: REVIEW });
   });
 
   it('reports the retrigger alongside a review found after the push', async () => {
