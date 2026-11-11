@@ -16,11 +16,14 @@ import type {
 } from './player-advancement-sync.types';
 
 /**
- * The curated name of the one skill gained only as a free extra: BB2025
- * grants Hatred on top of a player's advancements, never as one. The skill
- * name alone is Hatred's identity: its variants live in `attribute_value`.
+ * The curated names of the skills a player only ever gains as free extras:
+ * BB2025 grants Hatred on top of a player's advancements, never as one, and
+ * a Journeyman gets Loner without spending SPP. The source is trusted to add
+ * a gained Loner only where it applies. The name alone is each skill's
+ * identity: their variants (Hatred's target, Loner's roll) live in
+ * `attribute_value`.
  */
-export const HATRED_SKILL_NAME = 'Hatred';
+export const FREE_EXTRA_SKILL_NAMES: readonly string[] = ['Hatred', 'Loner'];
 
 /**
  * Decides which advancement rows a `PlayerSkillsService.sync` batch writes,
@@ -51,9 +54,10 @@ export class PlayerAdvancementSyncPlannerService {
 
   /**
    * Whether a skill entry is stored as a free extra: the source flags it, it
-   * is a non-`starting` Hatred, or (for any other skill) one of the player's
-   * own trophy awards grants it. The trophy rule never applies to Hatred or
-   * to a `starting` entry: a starting skill is not gained, so it holds no
+   * is a non-`starting` skill the name rule covers
+   * (`FREE_EXTRA_SKILL_NAMES`), or (for any other skill) one of the player's
+   * own trophy awards grants it. The trophy rule never applies to a
+   * name-rule skill or to a `starting` entry: a starting skill is not gained, so it holds no
    * slot a trophy could make free.
    */
   isFreeExtra(
@@ -64,7 +68,7 @@ export class PlayerAdvancementSyncPlannerService {
     if (entry.isFreeExtra === true) {
       return true;
     }
-    if (facts.hatredSkillIds.has(skillId)) {
+    if (facts.freeExtraSkillIds.has(skillId)) {
       return entry.source !== 'starting';
     }
     return (

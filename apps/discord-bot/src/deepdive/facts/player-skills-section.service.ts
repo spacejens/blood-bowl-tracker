@@ -29,7 +29,7 @@ const UNKNOWN_SOURCE_SKILL_MARKER = '⚄? ';
 
 /**
  * Prefixed to a free extra: a gained skill that cost no SPP and is not one of
- * the player's advancements (BB2025's Hatred, a trophy-granted mutation). Only
+ * the player's advancements (BB2025's Hatred, a gained Loner, a trophy-granted mutation). Only
  * ever on a gained skill — a starting skill was never gained, so marking one
  * would read as a claim about how the player came by it. A plain Unicode
  * symbol rather than an emoji, matching every other marker in these embeds.

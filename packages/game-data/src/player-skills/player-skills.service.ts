@@ -34,7 +34,7 @@ import type {
   SkillInsert,
 } from './player-advancement-sync.types';
 import {
-  HATRED_SKILL_NAME,
+  FREE_EXTRA_SKILL_NAMES,
   PlayerAdvancementSyncPlannerService,
 } from './player-advancement-sync-planner.service';
 
@@ -177,9 +177,9 @@ export class PlayerSkillsService {
     const resolvedEntries = this.resolveEntries(data, {
       knownPlayerIds: new Set(playerRows.map((row) => row.id)),
       knownSkillIds: new Set(skillRows.map((row) => row.id)),
-      hatredSkillIds: new Set(
+      freeExtraSkillIds: new Set(
         skillRows
-          .filter((row) => row.name === HATRED_SKILL_NAME)
+          .filter((row) => FREE_EXTRA_SKILL_NAMES.includes(row.name))
           .map((row) => row.id),
       ),
       grantedSkillIdsByPlayer: this.syncPlanner.grantedSkillIdsByPlayer(
@@ -477,7 +477,7 @@ export class PlayerSkillsService {
   /**
    * Mark the player's rows of a skill one of their own trophy awards grants
    * as free extras. Covers an award recorded after the skill; `sync` covers
-   * the opposite order. Never applied to Hatred or to a `starting` row,
+   * the opposite order. Never applied to a skill free by name (Hatred, Loner) or to a `starting` row,
    * matching `sync`'s trophy rule. Clears nothing: `unmarkTrophyGranted` is
    * the counterpart, and the caller re-prices the player's stored unspent
    * SPP afterwards.
@@ -495,7 +495,7 @@ export class PlayerSkillsService {
       .select({ name: skills.name })
       .from(skills)
       .where(eq(skills.id, skillId));
-    if (skill === undefined || skill.name === HATRED_SKILL_NAME) {
+    if (skill === undefined || FREE_EXTRA_SKILL_NAMES.includes(skill.name)) {
       return;
     }
     await this.db.transaction(async (tx) => {
@@ -540,8 +540,8 @@ export class PlayerSkillsService {
 
   /**
    * Unmark the player's rows of a skill a trophy award used to grant, after
-   * that award's granted skill changed or was cleared. Skips Hatred (free by
-   * its own rule) and a skill another of the player's awards still grants;
+   * that award's granted skill changed or was cleared. Skips a skill free by name
+   * (Hatred, Loner) and a skill another of the player's awards still grants;
    * the caller has already stored the change, so the changed award no longer
    * counts. A row TP also flagged as an extra is unmarked too: the next TP
    * import marks it again. The caller re-prices the player's stored unspent
@@ -556,7 +556,7 @@ export class PlayerSkillsService {
       .select({ name: skills.name })
       .from(skills)
       .where(eq(skills.id, skillId));
-    if (skill === undefined || skill.name === HATRED_SKILL_NAME) {
+    if (skill === undefined || FREE_EXTRA_SKILL_NAMES.includes(skill.name)) {
       return;
     }
     const [stillGranted] = await this.db

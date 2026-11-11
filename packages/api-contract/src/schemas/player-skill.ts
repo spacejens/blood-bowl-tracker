@@ -45,7 +45,7 @@ export const PlayerCharacteristicSchema = z.enum(PLAYER_CHARACTERISTICS);
  * top of the player's advancements (TP's `isExtra`): it cost no SPP and is
  * not an advancement. Absent means false. The server also marks a skill as
  * free on its own (a skill one of the player's trophy awards grants, and
- * every non-`starting` Hatred), so a caller only sends what its source says.
+ * every non-`starting` Hatred or Loner), so a caller only sends what its source says.
  */
 export const PlayerSkillEntrySchema = z
   .object({

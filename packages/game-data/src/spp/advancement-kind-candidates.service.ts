@@ -18,8 +18,8 @@ type SkillAdvancement = PlayerSkillEntry & { skillId: number };
  * Turns a player's recorded advancements into the options each one could
  * have been under one rules set, for AdvancementSpendRangeService to price.
  *
- * - Starting skills and free extra skills (a gained Hatred, a skill TP flags
- *   as extra, a skill one of the player's own trophy awards granted) are not
+ * - Starting skills and free extra skills (a gained Hatred or Loner, a skill TP
+ *   flags as extra, a skill one of the player's own trophy awards granted) are not
  *   advancements and are skipped.
  * - A skill that a cost row grants (`granted_skill`, a league house rule such
  *   as Fan Favourite) can only be that row's advancement.

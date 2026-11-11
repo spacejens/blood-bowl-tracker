@@ -113,22 +113,24 @@ Some gained skills are **free extras**: the player has them without having
 spent SPP, and they are not among the player's advancements, so they cost
 nothing and do not raise the price of later advancements. Being a free extra
 is recorded beside the skill's source, not instead of it: the source still
-says chosen, random or advancement as the source system reported. Two kinds
+says chosen, random or advancement as the source system reported. Three kinds
 are known:
 
 - **Hatred** (BB2025) is only ever gained on top of a player's advancements,
   so every gained Hatred is a free extra. A player can hate several keywords,
   and each of those Hatred skills is free. TP also flags its extra skills
   itself, and every skill it flags is recorded as a free extra.
+- **Loner** gained as a skill is a free extra. It happens only to a
+  [Journeyman](../../glossary.md#journeyman), who gets Loner without spending
+  SPP. The source is trusted to add it only where it applies; nothing checks
+  that the player is a journeyman. A Loner that came with the position is a
+  starting skill, not a free extra.
 - **A skill a [trophy award](../trophies/index.md#trophy-award) grants**
   (Gudarnas Förkämpe's mutation). Neither BBL nor TP marks it as free; the
   award naming the skill is what marks it, whichever was recorded first. A
   starting skill is never marked this way.
   Changing or clearing the award's skill unmarks it again, unless another
   award of the same player still names it.
-
-A Journeyman's Loner is also granted without SPP, but no source marks it, so
-it is not recorded as a free extra.
 
 Syncing player skills only adds or updates rows for what's supplied. A player
 skill that a later sync no longer includes is not automatically removed —

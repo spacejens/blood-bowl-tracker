@@ -86,7 +86,7 @@ export class TpLiveAdvancementSyncService {
       return false;
     }
     // The write stores some skills TP does not flag as free extras (a gained
-    // Hatred, a trophy-granted skill); the plan must not number them as paid.
+    // Hatred or Loner, a trophy-granted skill); the plan must not number them as paid.
     const resolvedEntries = await this.recorder.record({
       run: () => this.reads.resolveFreeExtras(skillEntries),
       item: { lineUpId: player.id, playerId },

@@ -217,7 +217,7 @@ deduce and confirm what an earlier pass left unconfirmed.
 A free extra keeps its position in the gained order, unconfirmed and outside
 the paid numbering, so it can share a number with a paid advancement. Free
 extras are found before numbering by the same rule the write applies: TP's
-`isExtra` flag, a gained Hatred, or a skill one of the player's own trophy
+`isExtra` flag, a gained Hatred or Loner, or a skill one of the player's own trophy
 awards grants, even when TP leaves the flag off.
 
 TP's data has no timestamps and no per-skill history. Its skill row ids are
