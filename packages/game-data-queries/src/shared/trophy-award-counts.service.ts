@@ -7,6 +7,7 @@ import {
   desc,
   eq,
   eras,
+  players,
   teamEras,
   teams,
   trophyAwards,
@@ -15,11 +16,13 @@ import type { FactScope } from '@blood-bowl-tracker/game-data';
 import { Inject, Injectable } from '@nestjs/common';
 
 /**
- * Trophy-award counts, grouped by team or by coach. Both counts share one
- * join graph and one where clause, mirroring how MatchEventCountsService
- * pairs its own team- and coach-grouped counters — the coach variant extends
- * the team variant by exactly one hop, `teams.coachId -> coaches.id`, so a
- * coach's total is the sum of their teams' own totals.
+ * Trophy-award counts, grouped by team, by coach or by player. All three
+ * counts share one where clause, mirroring how MatchEventCountsService pairs
+ * its own team- and coach-grouped counters — the coach variant extends the
+ * team variant by exactly one hop, `teams.coachId -> coaches.id`, so a
+ * coach's total is the sum of their teams' own totals. The player variant
+ * reaches the player through `trophy_awards.player_id` instead, so only
+ * player-level awards count toward it.
  *
  * Counts every `trophy_awards` row tied to the team through its team era —
  * including player-kind awards (MVP, most casualties, ...), since
@@ -33,7 +36,7 @@ export class TrophyAwardCountsService {
   constructor(@Inject(DB) private readonly db: Db) {}
 
   /**
-   * The where clause shared by both counts. `scope.category` is deliberately
+   * The where clause shared by all three counts. `scope.category` is deliberately
    * ignored: trophy awards are not match events, so there is no match-category
    * dimension (the fact-tree leaves correspondingly declare
    * `supportsMatchCategory: false`). League and era are read off the winning
@@ -96,6 +99,33 @@ export class TrophyAwardCountsService {
       .innerJoin(coaches, eq(coaches.id, teams.coachId))
       .where(this.trophyAwardFilter(scope))
       .groupBy(coaches.id, coaches.name)
+      .orderBy(desc(count(trophyAwards.id)))
+      .limit(limit);
+  }
+
+  /**
+   * Players ranked by how many player-level trophies they have won, most
+   * first. The inner join on `trophy_awards.player_id` is what excludes
+   * team-level awards: their `player_id` is null, so they match no player.
+   * League and era are still read off the award's own team era, so the
+   * shared filter applies unchanged.
+   */
+  countTrophiesByPlayer(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ playerId: number; name: string; count: number }[]> {
+    return this.db
+      .select({
+        playerId: players.id,
+        name: players.name,
+        count: count(trophyAwards.id),
+      })
+      .from(trophyAwards)
+      .innerJoin(players, eq(players.id, trophyAwards.playerId))
+      .innerJoin(teamEras, eq(teamEras.id, trophyAwards.teamEraId))
+      .innerJoin(eras, eq(eras.id, teamEras.eraId))
+      .where(this.trophyAwardFilter(scope))
+      .groupBy(players.id, players.name)
       .orderBy(desc(count(trophyAwards.id)))
       .limit(limit);
   }
