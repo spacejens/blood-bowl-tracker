@@ -72,8 +72,10 @@ packages/
   discord-client/     — NestJS module wrapping discord.js for connecting to
                         Discord, registering slash commands, and posting
                         messages; reports every handled interaction to
-                        registered listeners as plain data, with no database
-                        dependency; consumed by apps/discord-bot
+                        registered listeners as plain data, typed with
+                        packages/domain-enums (types only); no database or
+                        business-logic dependency; consumed by
+                        apps/discord-bot
   import/             — NestJS module with import orchestration logic:
                         generic upsert bookkeeping (ImportRunnerService,
                         BatchBufferService, ExternalIdResolverService) plus
@@ -94,6 +96,12 @@ packages/
                         tpRosters/tpMatches/tpCompetitions/tpOfficialTeams.import and live entry points;
                         live match and competition imports also settle their
                         players' SPP adjustments, roster-only imports do not
+  logging/            — ErrorLogService: one shape for logging a caught
+                        exception at error or warn level, keeping the log
+                        context label intact; used by apps/discord-bot,
+                        packages/discord-client, packages/db and
+                        packages/api-server; no dependency on any other
+                        workspace package
   parse-tp/           — library package for reusable TP JSON-parsing logic
                         (matches, rosters, awards, tournaments) and the TP
                         keys and rules both import paths must agree on (the
@@ -232,7 +240,7 @@ Which side of the API each kind of workspace sits on. Unlike "Data flow" above, 
 
 - `apps/` are server-side (currently only `apps/discord-bot`); they call server-side packages like `packages/game-data` and `packages/game-data-queries` in-process and must never be forced to call themselves through the API
 - `tools/` are client-side; a tool that needs server-side logic goes through `packages/api-client` over the network rather than importing a server-side package (`packages/game-data`, `packages/game-data-queries`, `packages/db`, `packages/api-server`) directly. The `tools/review-*` family (`review-match`, `review-player`, `review-race`, `review-star-player`) is a deliberate exception: they read `packages/db` directly as local-only developer report aids outside the import pipeline, never touching the API. `tools/import-manual` is a second, test-only exception: it lists `packages/api-server` and `packages/db` as devDependencies so its e2e harness can start the real `ApiServerModule` in-process and query the game-data tables directly (see [import-manual batches](import-manual/batches.md#tested)); its production code under `src/` stays client-side and reaches the server only through `packages/api-client` and `packages/import`
-- `packages/` are usually one-sided (client-only or server-only). Deliberate exceptions exist for shared-shape/enum packages designed to serve both sides: `packages/api-contract` (the RPC contract, built on `packages/domain-enums` and external libraries), `packages/domain-enums` (the enum source of truth, with no dependencies of its own), `packages/tp-paths` (TP request and path computation shared between `packages/import-tp-live` and `tools/download-tp`, also with no dependencies of its own), `packages/scrape-tp` (the TP request fetching shared between the client-side `tools/download-tp` and the server-side `packages/import-tp-live`, with no workspace dependencies), `packages/parse-tp` (TP JSON parsing shared between the client-side `tools/import-tp` and the server-side `packages/import-tp-live`, whose only workspace dependencies are `packages/domain-enums` and `packages/api-contract`, which owns the TP wire shapes its output is typed with), and `packages/import-shared` (the import rules the client-side `packages/import` and the server-side `packages/import-tp-live` must apply identically, whose only workspace dependencies are `packages/api-contract`'s types and `packages/domain-enums`)
+- `packages/` are usually one-sided (client-only or server-only). Deliberate exceptions exist for shared-shape/enum packages designed to serve both sides: `packages/api-contract` (the RPC contract, built on `packages/domain-enums` and external libraries), `packages/domain-enums` (the enum source of truth, with no dependencies of its own), `packages/tp-paths` (TP request and path computation shared between `packages/import-tp-live` and `tools/download-tp`, also with no dependencies of its own), `packages/scrape-tp` (the TP request fetching shared between the client-side `tools/download-tp` and the server-side `packages/import-tp-live`, with no workspace dependencies), `packages/parse-tp` (TP JSON parsing shared between the client-side `tools/import-tp` and the server-side `packages/import-tp-live`, whose only workspace dependencies are `packages/domain-enums` and `packages/api-contract`, which owns the TP wire shapes its output is typed with), `packages/logging` (the shared error-log shaping, with no workspace dependencies; server-side packages use it directly, and the `tools/review-*` family reaches it through `packages/db`), and `packages/import-shared` (the import rules the client-side `packages/import` and the server-side `packages/import-tp-live` must apply identically, whose only workspace dependencies are `packages/api-contract`'s types and `packages/domain-enums`)
 
 ## Tool/app relationships
 
@@ -267,7 +275,7 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
   - Like `packages/config-loader`, it deliberately depends on no other workspace package.
 - **`packages/discord-bot-usage`** (bot telemetry) — records what the bot was asked to do, not what it knows: every matched slash command, button click and select-menu selection lands in the `discord_bot_usage` schema.
   - `apps/discord-bot`'s `UsageRecordingService` is its only writer: it listens on `packages/discord-client`'s interaction-handled hook, which reports each interaction after it has already been replied to, fire-and-forget, so a recording failure can never affect a user-facing reply.
-  - The wiring lives in the app rather than in `packages/discord-client`, so the Discord transport package stays free of any database dependency.
+  - The wiring lives in the app rather than in `packages/discord-client`, so the Discord transport package stays free of any database dependency. Its workspace dependencies are `packages/logging` and `packages/domain-enums`, the latter for the interaction kind and outcome types and holding constants and types only.
   - `apps/discord-bot` reads it back through `InteractionEventsQueryService`, for the `/debuginteractions`, `/debugtopusers` and `/debugfilterusage` maintainer commands.
   - Broader reporting on the captured data is still separate work.
 - **`tools/import-bbl`** (importer, BBL source) — sibling of `tools/import-tp`; the same domain data usually exists in both upstream sources, so behavior added to one importer is usually wanted in the other; it reads the mirror's files through `packages/read-bbl-mirror`, while every BBL page-type and HTML interpretation stays in the tool
@@ -338,7 +346,7 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
 
 **One import tool per source.** Importing data from different upstream applications requires different extraction and transformation logic. Separate tools keep each integration self-contained, sharing common upsert/client-wrapping logic via `packages/import`.
 
-**Client packages stay separate from the business logic that uses them.** `packages/api-client` and `packages/discord-client` hold reusable technical plumbing (API transport, Discord client lifecycle) deliberately kept separate from the business logic built on top of it. `discord-client` has exactly one consumer today, `apps/discord-bot`; `api-client` already has several consumers — `packages/import` and each `tools/import-*` CLI configure it directly. Either way, keeping the transport layer as its own package means no untangling is needed as the set of consumers changes. For the same reason `discord-client` does not record usage itself: it exposes an interaction-handled hook, and `apps/discord-bot` decides what to do with each event.
+**Client packages stay separate from the business logic that uses them.** `packages/api-client` and `packages/discord-client` hold reusable technical plumbing (API transport, Discord client lifecycle) deliberately kept separate from the business logic built on top of it. `discord-client` has exactly one consumer today, `apps/discord-bot`; `api-client` already has several consumers — `packages/import` and each `tools/import-*` CLI configure it directly. Either way, keeping the transport layer as its own package means no untangling is needed as the set of consumers changes. For the same reason `discord-client` does not record usage itself: it exposes an interaction-handled hook, and `apps/discord-bot` decides what to do with each event. Depending on `packages/domain-enums` for the interaction kind and outcome types does not change this, since it holds constants and types only, no business logic.
 
 ## Testing
 

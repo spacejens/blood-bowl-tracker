@@ -1,4 +1,5 @@
 import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { Test } from '@nestjs/testing';
 import type { CronJob } from 'cron';
@@ -6,7 +7,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { DiscordBotConfigService } from '../discord-bot-config.service';
-import { ErrorLogService } from '../shared/error-log.service';
 import { InsightsCommandService } from '../slash-commands/insights-command.service';
 import {
   RANDOM_INSIGHTS_JOB_NAME,

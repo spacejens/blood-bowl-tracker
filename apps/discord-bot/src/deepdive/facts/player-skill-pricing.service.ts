@@ -1,9 +1,9 @@
 import type { PlayerSkillRow } from '@blood-bowl-tracker/game-data';
 import { PlayerPricingModelService } from '@blood-bowl-tracker/game-data';
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { Injectable, Logger } from '@nestjs/common';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
-import { ErrorLogService } from '../../shared/error-log.service';
 
 /**
  * Whether the player deepdive should flag gained skills of unknown source:

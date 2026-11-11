@@ -28,6 +28,7 @@ import {
   StarPlayersService,
   TrophyAwardsQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { Test } from '@nestjs/testing';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
@@ -39,7 +40,6 @@ import { nullEntityComponents } from '../../entity-components-mock.test-helpers'
 import { ClockService } from '../../shared/clock.service';
 import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
 import { makeDateRangeFormatter } from '../../shared/date-range-formatter-mock.test-helpers';
-import { ErrorLogService } from '../../shared/error-log.service';
 import { EventCountLinesService } from '../../shared/event-count-lines.service';
 import { NumberFormatterService } from '../../shared/number-formatter.service';
 import { PlayerRowButtonService } from '../player-row-button.service';

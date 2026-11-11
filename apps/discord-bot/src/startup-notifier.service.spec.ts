@@ -1,11 +1,11 @@
 import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { DeploymentInfoService } from './deployment-info.service';
 import { DiscordBotConfigService } from './discord-bot-config.service';
-import { ErrorLogService } from './shared/error-log.service';
 import { StartupNotifierService } from './startup-notifier.service';
 
 describe('StartupNotifierService', () => {

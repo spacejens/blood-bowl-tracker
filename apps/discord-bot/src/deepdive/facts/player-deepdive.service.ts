@@ -29,6 +29,7 @@ import {
   StarPlayersService,
   TrophyAwardsQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { Injectable, Logger } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -54,7 +55,6 @@ import {
 } from '../../error-messages';
 import { ClockService } from '../../shared/clock.service';
 import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
-import { ErrorLogService } from '../../shared/error-log.service';
 import { EventCountLinesService } from '../../shared/event-count-lines.service';
 import { NumberFormatterService } from '../../shared/number-formatter.service';
 import {

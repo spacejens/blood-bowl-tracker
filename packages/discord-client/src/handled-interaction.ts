@@ -1,3 +1,8 @@
+import type {
+  InteractionKind,
+  InteractionOutcome,
+} from '@blood-bowl-tracker/domain-enums';
+
 /** One command option, or one component value, of a handled interaction. */
 export interface HandledInteractionParameter {
   key: string;
@@ -11,7 +16,7 @@ export interface HandledInteractionParameter {
  * no knowledge of discord.js.
  */
 export interface HandledInteraction {
-  kind: 'command' | 'button' | 'select_menu';
+  kind: InteractionKind;
   /** Command name, or the matched button/select-menu customId prefix. */
   name: string;
   occurredAt: Date;
@@ -24,7 +29,7 @@ export interface HandledInteraction {
   nickname?: string;
   discordChannelId: string;
   channelName?: string;
-  outcome: 'success' | 'failure';
+  outcome: InteractionOutcome;
   /** Set only when `outcome` is `'failure'`. */
   errorMessage?: string;
   parameters: HandledInteractionParameter[];

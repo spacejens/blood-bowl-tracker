@@ -57,4 +57,36 @@ describe('ErrorLogService', () => {
 
     expect(logger.error.mock.calls).toEqual([['Import failed: 42']]);
   });
+
+  it('warns with the summary and an Error stack in one message, never as a second argument', () => {
+    const error = new Error('connection refused');
+
+    service.logWarn(logger, 'Lock failed', error);
+
+    expect(logger.warn.mock.calls).toEqual([[`Lock failed: ${error.stack}`]]);
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it('warns with the message of an Error without a stack', () => {
+    const error = new Error('connection refused');
+    error.stack = undefined;
+
+    service.logWarn(logger, 'Lock failed', error);
+
+    expect(logger.warn.mock.calls).toEqual([
+      ['Lock failed: connection refused'],
+    ]);
+  });
+
+  it('warns with a thrown string appended to the summary', () => {
+    service.logWarn(logger, 'Lock failed', 'boom');
+
+    expect(logger.warn.mock.calls).toEqual([['Lock failed: boom']]);
+  });
+
+  it('warns with any other thrown value, stringified, appended to the summary', () => {
+    service.logWarn(logger, 'Lock failed', 42);
+
+    expect(logger.warn.mock.calls).toEqual([['Lock failed: 42']]);
+  });
 });

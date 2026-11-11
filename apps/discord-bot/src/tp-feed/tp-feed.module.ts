@@ -1,9 +1,9 @@
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { TpPathsModule } from '@blood-bowl-tracker/tp-paths';
 import { Module } from '@nestjs/common';
 
 import { SleepService } from '../leader-election/sleep.service';
 import { ClockService } from '../shared/clock.service';
-import { ErrorLogService } from '../shared/error-log.service';
 import { TpImportModule } from '../tp-import/tp-import.module';
 import { TpFeedBlockNoticeService } from './tp-feed-block-notice.service';
 import { TpFeedFormatterService } from './tp-feed-formatter.service';

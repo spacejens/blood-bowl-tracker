@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import type { NestMiddleware } from '@nestjs/common';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { isDefinedError } from '@orpc/server';
@@ -21,6 +22,7 @@ export class RpcMiddleware implements NestMiddleware {
     @Inject(RPC_ROUTER)
     router: ReturnType<RpcRouterFactoryService['build']>,
     private readonly auth: ApiTokenAuthService,
+    private readonly errorLog: ErrorLogService,
   ) {
     this.handler = new RPCHandler(router, {
       interceptors: [
@@ -36,9 +38,10 @@ export class RpcMiddleware implements NestMiddleware {
                 `Defined error handling RPC request ${location}: ${(err as Error).message}`,
               );
             } else {
-              this.logger.error(
+              this.errorLog.logError(
+                this.logger,
                 `Unhandled error handling RPC request ${location}`,
-                err instanceof Error ? err.stack : String(err),
+                err,
               );
             }
             throw err;

@@ -10,6 +10,8 @@ Each skill's own `SKILL.md` under `.claude/skills/` is the source of truth for i
 
 Builds a feature end-to-end: from a GitHub issue (`/develop-feature 42`) or a free-form description (`/develop-feature Add player stats endpoint`), through brainstorming a spec, writing an implementation plan, implementing it task-by-task with tests, self-review, opening a PR, and then waiting for the automated review bot's review and driving it to completion through `handle-pr-reviews`. This is the default entry point for any new feature or bug fix.
 
+`develop-feature` picks the branch name itself rather than asking: it keeps the issue number (or a `feature-` prefix in ad-hoc mode) and the important words of the title (or description), and shows the chosen name in its status line once the worktree is ready.
+
 A change that alters stored data or the schema ships its own fix to existing data: a migration or a manual batch, never a re-import — see [Changing data in a long-lived database](database.md#changing-data-in-a-long-lived-database). `develop-feature` checks this for every task it implements.
 
 ## handle-pr-reviews

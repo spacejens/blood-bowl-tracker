@@ -1,3 +1,5 @@
+import type { InteractionKind } from '@blood-bowl-tracker/domain-enums';
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import {
   Inject,
   Injectable,
@@ -143,7 +145,7 @@ interface ReplyWithHandlerOptions {
   handle: () => Promise<string | InteractionReplyOptions>;
   /** Human-readable description of the component, for the log line. */
   description: string;
-  kind: 'button' | 'select_menu';
+  kind: Extract<InteractionKind, 'button' | 'select_menu'>;
   /** The matched customId prefix, which is the catalog entry's name. */
   name: string;
   parameters: HandledInteractionParameter[];
@@ -174,6 +176,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     private readonly adminRoleId: string | undefined,
     private readonly memberRoleAccess: MemberRoleAccessService,
     private readonly handledInteractionBuilder: HandledInteractionBuilderService,
+    private readonly errorLog: ErrorLogService,
   ) {
     // GuildMessages delivers messageCreate at all; MessageContent is the
     // privileged intent that ungates the content and embeds of messages the
@@ -201,16 +204,21 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
    */
   onModuleInit(): void {
     this.client.on('error', (error) => {
-      this.logger.error('Discord client error', error);
+      this.errorLog.logError(this.logger, 'Discord client error', error);
     });
     this.client.on('interactionCreate', (interaction) => {
       this.handleInteraction(interaction).catch((error) => {
-        this.logger.error('Unhandled interaction error', error);
+        this.errorLog.logError(
+          this.logger,
+          'Unhandled interaction error',
+          error,
+        );
       });
     });
     this.client.on('messageCreate', (message) => {
       this.handleMessage(message).catch((error) => {
-        this.logger.error(
+        this.errorLog.logError(
+          this.logger,
           'Unexpected error dispatching message handlers',
           error,
         );
@@ -343,7 +351,8 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
       try {
         await guild.commands.set([]);
       } catch (error) {
-        this.logger.warn(
+        this.errorLog.logWarn(
+          this.logger,
           `Failed to clear guild-scoped commands for guild ${guild.id}`,
           error,
         );
@@ -502,13 +511,18 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
         outcome: 'success',
       });
     } catch (error) {
-      this.logger.error(
+      this.errorLog.logError(
+        this.logger,
         `Failed to handle /${interaction.commandName} command`,
         error,
       );
       await this.sendReply(interaction, 'I am badly hurt').catch(
         (replyError: unknown) =>
-          this.logger.error('Failed to send failure reply', replyError),
+          this.errorLog.logError(
+            this.logger,
+            'Failed to send failure reply',
+            replyError,
+          ),
       );
       this.notifyInteractionHandled({
         interaction,
@@ -533,7 +547,11 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
       try {
         await handler(message);
       } catch (error) {
-        this.logger.error('Unhandled message handler error', error);
+        this.errorLog.logError(
+          this.logger,
+          'Unhandled message handler error',
+          error,
+        );
       }
     }
   }
@@ -564,7 +582,11 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     try {
       await listener(this.handledInteractionBuilder.build(options));
     } catch (error) {
-      this.logger.warn('Interaction-handled listener failed', error);
+      this.errorLog.logWarn(
+        this.logger,
+        'Interaction-handled listener failed',
+        error,
+      );
     }
   }
 
@@ -696,10 +718,18 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
         outcome: 'success',
       });
     } catch (error) {
-      this.logger.error(`Failed to handle ${options.description}`, error);
+      this.errorLog.logError(
+        this.logger,
+        `Failed to handle ${options.description}`,
+        error,
+      );
       await this.sendReply(interaction, 'I am badly hurt').catch(
         (replyError: unknown) =>
-          this.logger.error('Failed to send failure reply', replyError),
+          this.errorLog.logError(
+            this.logger,
+            'Failed to send failure reply',
+            replyError,
+          ),
       );
       this.notifyInteractionHandled({
         interaction,
