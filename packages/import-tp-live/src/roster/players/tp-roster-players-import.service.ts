@@ -281,6 +281,8 @@ export class TpRosterPlayersImportService {
    * Match snapshots first, then the roster file's own players over them, so
    * a departed player is kept and the roster file wins on a shared id; every
    * player's SPP total is the highest either source reported.
+   * A match-embedded entry is a `TpRosterPlayer` without the roster-only
+   * fields, since that is the base `TpRosterPlayer` extends.
    */
   private mergePlayers(
     rosterPlayers: TpRosterPlayer[],

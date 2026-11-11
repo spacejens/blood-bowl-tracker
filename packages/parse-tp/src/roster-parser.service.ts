@@ -1,4 +1,5 @@
 import type {
+  TpMatchEmbeddedPlayer,
   TpOfficialCharacteristics,
   TpOfficialSkillIdRef,
 } from '@blood-bowl-tracker/api-contract';
@@ -59,29 +60,16 @@ export interface TpRosterPosition {
  * falls back to `fallbackPositionName` (gated on `isBigGuy`) to still import
  * such a player, reusing an `isStarPlayer: true` Position the same way a star
  * player does.
+ *
+ * The fields a match-embedded snapshot entry also carries (identity, SPP,
+ * `state`, `isActive`) come from the contract's `TpMatchEmbeddedPlayer`, the
+ * shape `MatchParserService` emits for those snapshots; this type adds only
+ * what a standalone roster file carries beyond them. The optional `state`
+ * and `isActive` are filled from the same `lineUps[]` entry when it has them.
+ * docs/import-tp/file-format-rosters.md describes what TP's SPP fields and
+ * `state` bits mean.
  */
-export interface TpRosterPlayer {
-  id: number;
-  name: string;
-  number: number;
-  lineUpMasterId: number;
-  rosterId: number;
-  fallbackPositionName: string;
-  isBigGuy: boolean;
-  /**
-   * TP's own reported CAREER Star Player Points total for this player
-   * (`lineUps[].totalStarPlayerPoints`). Distinct from `starPlayerPoints` below.
-   */
-  totalStarPlayerPoints: number;
-  /**
-   * TP's unspent SPP for this player (`lineUps[].starPlayerPoints`), from the
-   * same entry as `totalStarPlayerPoints`, or `undefined` when the entry has
-   * none. A roster-file entry and a match-embedded entry both carry it, each
-   * with its own `totalStarPlayerPoints`; `MatchParserService` passes the
-   * match-embedded one on. docs/import-tp/file-format-rosters.md describes
-   * what TP's SPP fields mean.
-   */
-  starPlayerPoints?: number;
+export interface TpRosterPlayer extends TpMatchEmbeddedPlayer {
   /**
    * TP's per-action-type career counters, or `undefined` when the source entry
    * carried none. Only a standalone `rosters_<id>.json` entry has them: the
@@ -127,19 +115,6 @@ export interface TpRosterPlayer {
    * means.
    */
   skills?: TpPlayerSkills;
-  /**
-   * TP's `state` bitmask for the entry, or `undefined` when the entry carried
-   * none. TP does not document it; docs/import-tp/file-format-rosters.md
-   * records the bits whose meaning is inferred from the data. Read by the
-   * importer to derive the player's status, not interpreted here.
-   */
-  state?: number;
-  /**
-   * TP's `isActive` flag, or `undefined` when the entry carried none. Always
-   * `true` in a standalone roster file (it lists current players only); can
-   * be `false` in a match-embedded snapshot, for a player who has since left.
-   */
-  isActive?: boolean;
 }
 
 /**
