@@ -175,8 +175,9 @@ or seasons through [import-shared](../import-shared/index.md)'s
 - **SourceModule** — reusable, data-type-agnostic core. `BblSourceReader`
   classifies files by page type (`p=` param) and streams pages one at a time
   (`pages(type)`), keeping memory bounded; listing the data folder and
-  decoding Windows-1252 are delegated to [`packages/read-bbl-mirror`](../read-bbl-mirror/index.md), shared with
-  the review tools. This is the pattern future data types reuse.
+  decoding Windows-1252 are delegated to
+  [`packages/read-bbl-mirror`](../read-bbl-mirror/index.md), shared with the
+  review tools. This is the pattern future data types reuse.
   `NormalizeExtractedTextService` cleans the text the page parsers extract: it
   collapses whitespace (non-breaking spaces included) and folds curly single
   and double quotes to `'` and `"`, so a BBL name equals the same

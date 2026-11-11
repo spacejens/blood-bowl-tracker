@@ -321,16 +321,9 @@ player is still imported, and `players.imported` still counts it.
 
 ## Dependencies
 
-It calls [game-data](../game-data/index.md) in-process and never reaches the
-api-server over RPC, so `apps/discord-bot` can call it directly while
-`tools/import-tp` reaches it only through the `tp*.import` procedures. For the
-same reason it deliberately depends on neither [import](../import/index.md)
-nor [api-client](../api-client/index.md): the import rules it must apply
-exactly like the bulk importers come from
-[import-shared](../import-shared/index.md). It fetches through
-[scrape-tp](../scrape-tp/index.md), builds its requests with
-[tp-paths](../tp-paths/index.md) and parses with
-[parse-tp](../parse-tp/index.md).
+It deliberately depends on neither [import](../import/index.md) nor
+[api-client](../api-client/index.md): the import rules it must apply exactly
+like the bulk importers come from [import-shared](../import-shared/index.md).
 
 ## Wiring it into an app
 

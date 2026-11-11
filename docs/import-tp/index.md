@@ -132,9 +132,8 @@ All are implemented by `packages/import-tp-live` (see [docs/import-tp-live/index
 The tool never parses a roster or a match for those upserts; it does parse rosters and matches for competition participation and for the career SPP counts later steps need.
 
 It reads `tools/download-tp`'s files through [parse-tp](../parse-tp/index.md).
-Player skills and their Hatred/Animosity targets, hired star players and
-mercenary race/era availability are interpreted only server-side, inside
-`tpRosters.import` and `tpMatches.import`. Its sibling is
+Player skills and their Hatred/Animosity targets are interpreted only
+server-side, inside `tpRosters.import`. Its sibling is
 [import-bbl](../import-bbl/index.md): the same domain data usually exists in
 both sources, so behavior added to one importer is usually wanted in the
 other.
