@@ -24,9 +24,9 @@ import type { PricingModel } from './unspent-spp.types';
  * Loads the era's rules sets and their own cost rows (no league rows: a house
  * rule adds advancements on top of a rules set's own and never decides the
  * model), then defers to `AdvancementPricingModelService`, so the answer is
- * the one `UnspentSppService` reports. `null` when the player does not exist,
- * their era lists no rules set, no rules set has costs of its own, or the
- * rules sets that have them disagree.
+ * the one `UnspentSppService` reports. `undefined` when the player does not
+ * exist, their era lists no rules set, no rules set has costs of its own, or
+ * the rules sets that have them disagree.
  */
 @Injectable()
 export class PlayerPricingModelService {
@@ -35,7 +35,9 @@ export class PlayerPricingModelService {
     private readonly pricingModel: AdvancementPricingModelService,
   ) {}
 
-  async pricingModelForPlayer(playerId: number): Promise<PricingModel | null> {
+  async pricingModelForPlayer(
+    playerId: number,
+  ): Promise<PricingModel | undefined> {
     const eraRows = await this.db
       .select({ rulesSetId: eraRulesSets.rulesSetId })
       .from(players)
@@ -44,7 +46,7 @@ export class PlayerPricingModelService {
       .where(eq(players.id, playerId));
     const rulesSetIds = eraRows.map((row) => row.rulesSetId);
     if (rulesSetIds.length === 0) {
-      return null;
+      return undefined;
     }
     const costs = await this.db
       .select({
@@ -59,6 +61,6 @@ export class PlayerPricingModelService {
           isNull(advancementCosts.leagueId),
         ),
       );
-    return this.pricingModel.modelFor(rulesSetIds, costs);
+    return this.pricingModel.modelFor(rulesSetIds, costs) ?? undefined;
   }
 }

@@ -409,10 +409,10 @@ describe('BblCompetitionsImportService', () => {
 
     await service.importCompetitions();
 
-    // readCompetitionList returns null on a parse failure, and the caller
-    // treats a null result the same as "no se or sr page was found" — so a
-    // parse failure records *two* errors: the page-parse error itself, and
-    // the caller's fallback "no se or sr page" error.
+    // readCompetitionList returns undefined on a parse failure, and the
+    // caller treats an undefined result the same as "no se or sr page was
+    // found" — so a parse failure records *two* errors: the page-parse error
+    // itself, and the caller's fallback "no se or sr page" error.
     const { imported, errors } = resultArgs(mocks.importResults);
     expect(imported).toBe(0);
     expect(
