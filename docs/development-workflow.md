@@ -6,21 +6,21 @@ Most skills isolate their work in its own git worktree and converge on a pull re
 
 Each skill's own `SKILL.md` under `.claude/skills/` is the source of truth for its exact phase-by-phase behavior — this document only orients you to which skill to reach for and how they fit together.
 
-## develop-feature
+## implement
 
-Builds a feature end-to-end: from a GitHub issue (`/develop-feature 42`) or a free-form description (`/develop-feature Add player stats endpoint`), through brainstorming a spec, writing an implementation plan, implementing it task-by-task with tests, self-review, opening a PR, and then waiting for the automated review bot's review and driving it to completion through `handle-pr-reviews`. This is the default entry point for any new feature or bug fix.
+Builds a feature end-to-end: from a GitHub issue (`/implement 42`) or a free-form description (`/implement Add player stats endpoint`), through brainstorming a spec, writing an implementation plan, implementing it task-by-task with tests, self-review, opening a PR, and then waiting for the automated review bot's review and driving it to completion through `handle-pr-reviews`. This is the default entry point for any new feature or bug fix.
 
-`develop-feature` picks the branch name itself rather than asking: it keeps the issue number (or a `feature-` prefix in ad-hoc mode) and the important words of the title (or description), and shows the chosen name in its status line once the worktree is ready.
+`implement` picks the branch name itself rather than asking: it keeps the issue number (or a `feature-` prefix in ad-hoc mode) and the important words of the title (or description), and shows the chosen name in its status line once the worktree is ready.
 
-A change that alters stored data or the schema ships its own fix to existing data: a migration or a manual batch, never a re-import — see [Changing data in a long-lived database](database.md#changing-data-in-a-long-lived-database). `develop-feature` checks this for every task it implements.
+A change that alters stored data or the schema ships its own fix to existing data: a migration or a manual batch, never a re-import — see [Changing data in a long-lived database](database.md#changing-data-in-a-long-lived-database). `implement` checks this for every task it implements.
 
 ## handle-pr-reviews
 
-Processes reviewer feedback on an already-open PR (`/handle-pr-reviews`, or `/handle-pr-reviews <N>` for a specific PR). Finds unhandled inline and top-level comments, fixes or rejects each with verification, pushes the results, and replies to every comment. Run this after a PR — from `develop-feature` or otherwise — receives review feedback, including Claude's own self-review comments.
+Processes reviewer feedback on an already-open PR (`/handle-pr-reviews`, or `/handle-pr-reviews <N>` for a specific PR). Finds unhandled inline and top-level comments, fixes or rejects each with verification, pushes the results, and replies to every comment. Run this after a PR — from `implement` or otherwise — receives review feedback, including Claude's own self-review comments.
 
 ## code-hygiene
 
-Runs a fixed set of code cleanup checks — Node version updates, unused dependency/dead code removal, a security audit, workspace version consistency, obsolete or risky `pnpm-workspace.yaml` overrides and release-age exclusions, circular dependency detection, lint, and format — and opens a PR with the results (`/code-hygiene`). Unlike `develop-feature`, there's no specification or planning step: the checks and their order are fixed. Run this periodically, or whenever the codebase needs a cleanup pass, independent of feature work.
+Runs a fixed set of code cleanup checks — Node version updates, unused dependency/dead code removal, a security audit, workspace version consistency, obsolete or risky `pnpm-workspace.yaml` overrides and release-age exclusions, circular dependency detection, lint, and format — and opens a PR with the results (`/code-hygiene`). Unlike `implement`, there's no specification or planning step: the checks and their order are fixed. Run this periodically, or whenever the codebase needs a cleanup pass, independent of feature work.
 
 ### Dependency and action updates
 
@@ -52,7 +52,7 @@ Often the outcome is that no code change is needed at all: a green major bump or
 
 ## wrap-up
 
-Verifies that work the developer says is finished is actually finished — checks the PR really merged on GitHub and that nothing was left uncommitted or unpushed outside the worktree — then offers to stop local Docker containers, remove the git worktree, and delete the local branch. Most often triggered conversationally (e.g. "that's merged"), though the developer can also run `/wrap-up` directly; run this after a `develop-feature` or `handle-pr-reviews` cycle's PR has merged.
+Verifies that work the developer says is finished is actually finished — checks the PR really merged on GitHub and that nothing was left uncommitted or unpushed outside the worktree — then offers to stop local Docker containers, remove the git worktree, and delete the local branch. Most often triggered conversationally (e.g. "that's merged"), though the developer can also run `/wrap-up` directly; run this after an `implement` or `handle-pr-reviews` cycle's PR has merged.
 
 ## deploy-local
 
@@ -67,7 +67,7 @@ It can also run, against the running instance:
 - the match/player/race/star player review tools
 - SchemaSpy diagram generation
 
-It is invoked directly, or offered by `develop-feature` after a PR is created and by `handle-pr-reviews` after pushing fixes.
+It is invoked directly, or offered by `implement` after a PR is created and by `handle-pr-reviews` after pushing fixes.
 
 It leaves the containers running — it's a manual-inspection tool, not a one-shot smoke test.
 
@@ -92,7 +92,7 @@ See `docs/discord-bot/production-hosting.md` for the underlying commands this sk
 
 ## write-issue
 
-Turns a free-form idea (`/write-issue <text>`) into one or more well-worded GitHub issues, through a short clarifying dialogue on purpose and scope. Can produce several issues from one request (e.g. "find the remaining gaps in X and write an issue for each"). Matches this repo's existing issue style — plain-text intent, not overly specific — so issues stay a durable statement of need rather than a stale implementation spec. Independent of the `develop-feature` cycle; the issues it creates are picked up by `develop-feature` later.
+Turns a free-form idea (`/write-issue <text>`) into one or more well-worded GitHub issues, through a short clarifying dialogue on purpose and scope. Can produce several issues from one request (e.g. "find the remaining gaps in X and write an issue for each"). Matches this repo's existing issue style — plain-text intent, not overly specific — so issues stay a durable statement of need rather than a stale implementation spec. Independent of the `implement` cycle; the issues it creates are picked up by `implement` later.
 
 ## codebase-review
 
@@ -152,11 +152,11 @@ CodeRabbit's review is **informational** — it is deliberately not wired in as 
 
 ### Serializing review activity across parallel sessions
 
-CodeRabbit enforces a per-developer review rate limit shared across every PR in the repository. Several `develop-feature` sessions running at once in different worktrees — the normal shape of unattended overnight work — would each open a PR and drive their own review loop, all competing for the same handful of reviews per hour, so every session crawls instead of one finishing quickly and the rest following.
+CodeRabbit enforces a per-developer review rate limit shared across every PR in the repository. Several `implement` sessions running at once in different worktrees — the normal shape of unattended overnight work — would each open a PR and drive their own review loop, all competing for the same handful of reviews per hour, so every session crawls instead of one finishing quickly and the rest following.
 
 A machine-wide FIFO lock serializes that, so one session at a time drives a review loop against the shared rate limit.
 
-- **`develop-feature`** Phase 6 takes it just before `gh pr create` (PR creation is itself what triggers the first review) and holds it until its review loop ends, temporarily releasing it across any indefinite wait for the developer. Right after taking it, Phase 6 merges the latest `main` into the branch again (verifying with `pnpm verify` if the merge brought anything in), because `main` often moves while a session waits its turn, and a PR opened behind `main` costs a later catch-up merge and extra review rounds.
+- **`implement`** Phase 6 takes it just before `gh pr create` (PR creation is itself what triggers the first review) and holds it until its review loop ends, temporarily releasing it across any indefinite wait for the developer. Right after taking it, Phase 6 merges the latest `main` into the branch again (verifying with `pnpm verify` if the merge brought anything in), because `main` often moves while a session waits its turn, and a PR opened behind `main` costs a later catch-up merge and extra review rounds.
 - **`handle-pr-reviews`** — a standalone run takes it only around its Phase 4 push, the one action in that skill that triggers a fresh review.
 - **Waiting sessions** that cannot get it wait quietly, in the order they started waiting, and take their turn automatically.
 - **Stale-holder reclaim** — a session that is killed without releasing the lock stops heartbeating, and the next waiting session reclaims it after 100 minutes. No manual intervention, which is what makes this safe to leave running overnight.
@@ -173,16 +173,16 @@ Like branch protection, this can't be configured by code in this repo — a GitH
 3. Sign in to the [CodeRabbit dashboard](https://app.coderabbit.ai) with the same GitHub account and confirm the repository is listed and enabled.
 4. Confirm auto-review-on-PR-open is on. This is CodeRabbit's default, and `.coderabbit.yaml` sets it explicitly, so the committed config wins — no dashboard change should be needed.
 
-Nothing else is required to _use_ the reviews: `develop-feature`'s Phase 6 waits for the review after it opens a PR and drives it to completion through `handle-pr-reviews` automatically (see the `develop-feature` section above). If the app is not installed, that wait simply times out after 20 minutes and asks you whether to keep waiting or skip ahead.
+Nothing else is required to _use_ the reviews: `implement`'s Phase 6 waits for the review after it opens a PR and drives it to completion through `handle-pr-reviews` automatically (see the `implement` section above). If the app is not installed, that wait simply times out after 20 minutes and asks you whether to keep waiting or skip ahead.
 
 ## How they fit together
 
-Issues are the starting point for `develop-feature`'s issue mode. They can be created manually (or through any other means) directly on GitHub as usual, or by a developer using the `write-issue` skill.
+Issues are the starting point for `implement`'s issue mode. They can be created manually (or through any other means) directly on GitHub as usual, or by a developer using the `write-issue` skill.
 
 A typical cycle:
 
-1. `develop-feature` takes an issue to a PR.
-2. The automated review bot reviews it and `develop-feature` drives that feedback to completion through `handle-pr-reviews` before it finishes.
+1. `implement` takes an issue to a PR.
+2. The automated review bot reviews it and `implement` drives that feedback to completion through `handle-pr-reviews` before it finishes.
 3. A human reviews what's left.
 4. `handle-pr-reviews` addresses any further feedback.
 5. The PR merges.
@@ -196,12 +196,12 @@ A typical cycle:
 Renovate's own dependency PRs run on a third track, outside all of these:
 
 - `finish-renovate-pr` picks up whichever of them got stuck and drives it to merge-ready.
-- It reuses `handle-pr-reviews` (with `--skip-deploy-local`, offering `deploy-local` separately at the end) and `wrap-up` the same way a `develop-feature` cycle does.
+- It reuses `handle-pr-reviews` (with `--skip-deploy-local`, offering `deploy-local` separately at the end) and `wrap-up` the same way an `implement` cycle does.
 - It does so without opening a new PR or syncing `main` in, since Renovate's PR and branch already exist.
 
 ## Issue labels
 
-Every issue, and every pull request opened by `develop-feature`, carries at least one **kind label** — one or more of `feature`, `bug`, `development`, `internal`. (Renovate's own dependency PRs are the exception: they carry only a `renovate:*` label, see below.) `write-issue` and `develop-feature` decide the kind label(s) by applying the tests below; this section is the reference they check against.
+Every issue, and every pull request opened by `implement`, carries at least one **kind label** — one or more of `feature`, `bug`, `development`, `internal`. (Renovate's own dependency PRs are the exception: they carry only a `renovate:*` label, see below.) `write-issue` and `implement` decide the kind label(s) by applying the tests below; this section is the reference they check against.
 
 - **`feature`** — the change is visible to, or usable by, an end user of one of this repo's apps (e.g. the Discord bot). _Test: would a user of the app notice a difference, or be able to do something they couldn't before?_
 - **`bug`** — existing end-user-visible behavior is currently wrong, and the issue is about restoring the intended behavior. _Test: is something an end user can see or use currently broken or incorrect?_
@@ -225,7 +225,7 @@ Worked examples:
 
 The remaining labels are **state or meta labels**. They are never chosen at issue-creation time and are not part of the kind-label decision:
 
-- **`in progress`** — applied automatically by `develop-feature` when it claims an issue to start work. It means the issue is actively being worked on, or already completed if the issue is closed; it is not removed when the issue closes.
+- **`in progress`** — applied automatically by `implement` when it claims an issue to start work. It means the issue is actively being worked on, or already completed if the issue is closed; it is not removed when the issue closes.
 - **`duplicate`** — applied by a human when closing an issue that duplicates another.
 - **`wontfix`** — applied by a human when closing an issue with no intent to address it.
 - **`renovate:minor`** / **`renovate:major`** / **`renovate:patch`** — applied automatically by the Renovate GitHub App to its own dependency-update PRs, by update type. Never applied manually.

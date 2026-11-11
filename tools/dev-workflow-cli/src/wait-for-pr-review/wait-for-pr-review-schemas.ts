@@ -20,7 +20,7 @@ export const jsonObjectSchema = z.looseObject({});
  * A comment-shaped candidate out of the reviews call — a rate-limit
  * warning, a comment-update-failure notice, or a star-gate notice. All three
  * fields are required, not just `body`: a caller retrying off a candidate
- * missing `id` or `submittedAt` (develop-feature's Phase 6 steps b2/b3)
+ * missing `id` or `submittedAt` (implement's Phase 6 steps b2/b3)
  * would build an unusable exclusion value or watermark.
  */
 export const codeRabbitCommentSchema = z.object({

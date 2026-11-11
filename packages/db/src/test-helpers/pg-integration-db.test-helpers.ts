@@ -27,7 +27,7 @@ function asExecuteArg(query: SQL): Parameters<Db['execute']>[0] {
  * A container per test run, on a random host port, deliberately instead of
  * docker-compose's `postgres` service: that service has a fixed
  * `container_name`, so only one git worktree can hold it at a time, and
- * parallel `develop-feature` sessions would collide on it.
+ * parallel `implement` sessions would collide on it.
  *
  * Reached through `@blood-bowl-tracker/db/test-helpers`, like `mockDb`.
  * Test-only; excluded from coverage by `vitest.config.ts`.
