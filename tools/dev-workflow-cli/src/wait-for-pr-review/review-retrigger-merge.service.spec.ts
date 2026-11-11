@@ -95,6 +95,39 @@ describe('ReviewRetriggerMergeService', () => {
     return processRunner.run.mock.calls.map((call) => call[1].join(' '));
   }
 
+  /**
+   * Answers the given steps with the given answers, but only once
+   * `git merge origin/main` has run: before it, every call keeps the
+   * `mockGit` answers. A conflicted merge leaves `MERGE_HEAD` behind, which
+   * the pre-merge in-progress check must not see.
+   */
+  function answerAfterMerge(answers: Partial<Record<Step, Answer>>) {
+    const run = processRunner.run.getMockImplementation();
+    let merged = false;
+    processRunner.run.mockImplementation((command, args, timeoutMs) => {
+      const step = stepOf(args);
+      if (step === 'merge') {
+        merged = true;
+      }
+      const answer = merged ? answers[step] : undefined;
+      if (answer !== undefined) {
+        if ('reject' in answer) {
+          // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+          return Promise.reject(answer.reject);
+        }
+        return Promise.resolve(answer);
+      }
+      return run?.(command, args, timeoutMs) as ReturnType<
+        ProcessRunnerService['run']
+      >;
+    });
+  }
+
+  const CONFLICT_STDOUT =
+    'Auto-merging README.md\n' +
+    'CONFLICT (content): Merge conflict in README.md\n' +
+    'Automatic merge failed; fix conflicts and then commit the result.\n';
+
   it('merges main and pushes when the merge creates a new commit', async () => {
     mockGit({});
 
@@ -222,6 +255,23 @@ describe('ReviewRetriggerMergeService', () => {
       expect(gitCalls().at(-1)).toBe('merge --abort');
       expect(gitCalls()).not.toContain('push');
     });
+
+    it('still detects a conflict once the merge has spent the budget', async () => {
+      mockGit({ merge: { exitCode: 1, stdout: CONFLICT_STDOUT, stderr: '' } });
+      answerAfterMerge({ 'merge-head': ok('c'.repeat(40)) });
+      const run = processRunner.run.getMockImplementation();
+      processRunner.run.mockImplementation(async (command, args, timeoutMs) => {
+        if (args[0] === 'merge' && args[1] !== '--abort') {
+          vi.advanceTimersByTime(TIMEOUT_MS);
+        }
+        return (await run?.(command, args, timeoutMs)) as ProcessResult;
+      });
+
+      const result = await service.mergeMainAndPush(TIMEOUT_MS);
+
+      expect(result.conflict).toBe(true);
+      expect(gitCalls().at(-1)).toBe('merge --abort');
+    });
   });
 
   it('reports a failed fetch by its fatal line without aborting', async () => {
@@ -247,15 +297,34 @@ describe('ReviewRetriggerMergeService', () => {
     ]);
   });
 
-  it('aborts a conflicting merge and reports its last stdout line', async () => {
+  it('flags a conflicting merge, checking MERGE_HEAD before aborting it', async () => {
+    mockGit({ merge: { exitCode: 1, stdout: CONFLICT_STDOUT, stderr: '' } });
+    answerAfterMerge({ 'merge-head': ok('c'.repeat(40)) });
+
+    const result = await service.mergeMainAndPush(TIMEOUT_MS);
+
+    expect(result).toEqual({
+      pushed: false,
+      conflict: true,
+      failure:
+        'git merge origin/main --no-edit failed: Automatic merge failed; fix conflicts and then commit the result.',
+    });
+    expect(gitCalls().slice(-3)).toEqual([
+      'merge origin/main --no-edit',
+      'rev-parse -q --verify MERGE_HEAD',
+      'merge --abort',
+    ]);
+    expect(processRunner.run.mock.calls.at(-2)?.[2]).toBe(10_000);
+    expect(gitCalls()).not.toContain('push');
+  });
+
+  it('does not flag a failed merge that left no MERGE_HEAD behind', async () => {
     mockGit({
       merge: {
         exitCode: 1,
-        stdout:
-          'Auto-merging README.md\n' +
-          'CONFLICT (content): Merge conflict in README.md\n' +
-          'Automatic merge failed; fix conflicts and then commit the result.\n',
-        stderr: '',
+        stdout: '',
+        stderr:
+          'error: Your local changes to the following files would be overwritten by merge:\n',
       },
     });
 
@@ -264,10 +333,35 @@ describe('ReviewRetriggerMergeService', () => {
     expect(result).toEqual({
       pushed: false,
       failure:
-        'git merge origin/main --no-edit failed: Automatic merge failed; fix conflicts and then commit the result.',
+        'git merge origin/main --no-edit failed: error: Your local changes to the following files would be overwritten by merge:',
     });
     expect(gitCalls()).toContain('merge --abort');
-    expect(gitCalls()).not.toContain('push');
+  });
+
+  it('reads a MERGE_HEAD check that cannot run as no conflict, and still aborts', async () => {
+    mockGit({ merge: { exitCode: 1, stdout: CONFLICT_STDOUT, stderr: '' } });
+    answerAfterMerge({
+      'merge-head': { reject: new Error('spawn git EAGAIN') },
+    });
+
+    const result = await service.mergeMainAndPush(TIMEOUT_MS);
+
+    expect(result.conflict).toBeUndefined();
+    expect(result.pushed).toBe(false);
+    expect(gitCalls().at(-1)).toBe('merge --abort');
+  });
+
+  it('does not check for a conflict when it failed before starting a merge', async () => {
+    mockGit({
+      fetch: { exitCode: 128, stdout: '', stderr: 'fatal: offline\n' },
+    });
+
+    const result = await service.mergeMainAndPush(TIMEOUT_MS);
+
+    expect(result.conflict).toBeUndefined();
+    expect(
+      gitCalls().filter((call) => call === 'rev-parse -q --verify MERGE_HEAD'),
+    ).toHaveLength(1);
   });
 
   it('reports a rejected push by its error line', async () => {
@@ -289,7 +383,10 @@ describe('ReviewRetriggerMergeService', () => {
       failure:
         "git push failed: error: failed to push some refs to 'github.com:owner/repo.git'",
     });
-    expect(gitCalls().at(-1)).toBe('merge --abort');
+    expect(gitCalls().slice(-2)).toEqual([
+      'rev-parse -q --verify MERGE_HEAD',
+      'merge --abort',
+    ]);
   });
 
   it('falls back to the first stderr line when none is fatal or an error', async () => {

@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
 import { PullRequestReviewCommentsService } from './pull-request-review-comments.service';
+import { RateLimitWaitTimeService } from './rate-limit-wait-time.service';
 import { ReviewRetriggerMergeService } from './review-retrigger-merge.service';
 import { WaitForPrReviewService } from './wait-for-pr-review.service';
 import { WaitForPrReviewFiltersService } from './wait-for-pr-review-filters.service';
@@ -40,7 +41,7 @@ export const RATE_LIMIT_COMMENT = {
 };
 
 /**
- * `parseAvailableAt` anchors to the rate-limit comment's own `submittedAt`,
+ * `RateLimitWaitTimeService.availableAt` anchors to the rate-limit comment's own `submittedAt`,
  * not `Date.now()` — a stale/re-matched comment should not get a
  * freshly-computed wait. Every parsed-wait-time test expects its result
  * relative to this fixed instant, not to whatever "now" is when the test
@@ -303,7 +304,10 @@ export interface WaitForPrReviewHarness {
  * `WaitForPrReviewFiltersService` is the deliberate exception CLAUDE.md
  * documents for a pure, dependency-free formatting service: it only assembles
  * jq program text, and these specs assert on that exact text, which mocking
- * would leave unasserted.
+ * would leave unasserted. `RateLimitWaitTimeService` is passed real too,
+ * under CLAUDE.md's carve-out for a pure, dependency-free decision service
+ * among otherwise-mocked collaborators: it only parses a wait time out of
+ * comment text, and these specs assert on the epochs it yields.
  */
 export async function createHarness(): Promise<WaitForPrReviewHarness> {
   const processRunner = mock<ProcessRunnerService>();
@@ -313,6 +317,7 @@ export async function createHarness(): Promise<WaitForPrReviewHarness> {
     providers: [
       WaitForPrReviewService,
       WaitForPrReviewFiltersService,
+      RateLimitWaitTimeService,
       { provide: ProcessRunnerService, useValue: processRunner },
       { provide: PullRequestReviewCommentsService, useValue: reviewComments },
       { provide: ReviewRetriggerMergeService, useValue: retriggerMerge },
