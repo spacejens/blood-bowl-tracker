@@ -1,6 +1,6 @@
 ---
 name: implement
-description: Use when implementing a GitHub issue or an ad-hoc feature in the blood-bowl-tracker project (also known by its former name, "implement" or "develop feature") — takes an issue number or a text description and guides development from branch creation to a pull request ready for human review
+description: Use when implementing a GitHub issue or an ad-hoc feature in the blood-bowl-tracker project (also known by its former name, "develop-feature" or "develop feature") — takes an issue number or a text description and guides development from branch creation to a pull request ready for human review
 ---
 
 # implement
