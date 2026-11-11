@@ -13,6 +13,7 @@ import { SkillMasterNamesParserService } from './skill-master-names-parser.servi
 import { TournamentParserService } from './tournament-parser.service';
 import { TpOfficialListingPrecedenceService } from './tp-official-listing-precedence.service';
 import { TpSkillCategoryMaskDecoderService } from './tp-skill-category-mask-decoder.service';
+import { TpSkillRefMapperService } from './tp-skill-ref-mapper.service';
 import { TpStarHireKeyService } from './tp-star-hire-key.service';
 import { WeatherTypeService } from './weather-type.service';
 
@@ -31,6 +32,7 @@ import { WeatherTypeService } from './weather-type.service';
     SkillMasterNamesParserService,
     TpOfficialListingPrecedenceService,
     TpSkillCategoryMaskDecoderService,
+    TpSkillRefMapperService,
     TpStarHireKeyService,
     WeatherTypeService,
   ],

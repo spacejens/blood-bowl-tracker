@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { OfficialTeamsParserService } from './official-teams-parser.service';
 import { TpSkillCategoryMaskDecoderService } from './tp-skill-category-mask-decoder.service';
+import { TpSkillRefMapperService } from './tp-skill-ref-mapper.service';
 
 /**
  * Trimmed excerpts from the real recorded responses
@@ -273,10 +274,13 @@ describe('OfficialTeamsParserService', () => {
   let service: OfficialTeamsParserService;
 
   beforeEach(async () => {
+    // The decoder and the mapper are pure, dependency-free links of the
+    // parser's chain, so they are passed real (CLAUDE.md, "pure chain").
     const moduleRef = await Test.createTestingModule({
       providers: [
         OfficialTeamsParserService,
         TpSkillCategoryMaskDecoderService,
+        TpSkillRefMapperService,
       ],
     }).compile();
     service = moduleRef.get(OfficialTeamsParserService);

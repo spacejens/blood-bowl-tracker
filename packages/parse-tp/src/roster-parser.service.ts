@@ -2,6 +2,8 @@ import type { TpOfficialCharacteristics } from '@blood-bowl-tracker/api-contract
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
+import { TpSkillRefMapperService } from './tp-skill-ref-mapper.service';
+
 /**
  * One player's OWN current characteristics, from a `lineUps[]` entry. Same
  * shape as the position template they were recruited from
@@ -376,6 +378,8 @@ const RosterSchema = z.object({
 
 @Injectable()
 export class RosterParserService {
+  constructor(private readonly mapper: TpSkillRefMapperService) {}
+
   /**
    * Validate and flatten a parsed TP `rosters_<id>.json` body into a `TpRoster`.
    * Extra fields (stats/skills/costs) are allowed and dropped by zod's default
@@ -404,12 +408,12 @@ export class RosterParserService {
       positions: data.rosterMaster.lineUpMasters.map((entry) => ({
         tpPositionId: entry.id,
         name: entry.position,
-        characteristics: this.characteristics(entry),
+        characteristics: this.mapper.characteristics(entry),
       })),
       starPositions: data.rosterMaster.starPlayersMasters.map((entry) => ({
         tpPositionId: entry.id,
         name: entry.position,
-        characteristics: this.characteristics(entry),
+        characteristics: this.mapper.characteristics(entry),
       })),
       players: data.lineUps.map((entry) => ({
         id: entry.id,
@@ -497,7 +501,7 @@ export class RosterParserService {
     ) {
       return undefined;
     }
-    return this.characteristics({ ma, st, ag, pa, av });
+    return this.mapper.characteristics({ ma, st, ag, pa, av });
   }
 
   /**
@@ -539,7 +543,7 @@ export class RosterParserService {
     ) {
       return undefined;
     }
-    return this.characteristics({ ma, st, ag, pa, av });
+    return this.mapper.characteristics({ ma, st, ag, pa, av });
   }
 
   /**
@@ -561,47 +565,15 @@ export class RosterParserService {
         return undefined;
       }
       gained.push({
-        ...this.skillRef(skill),
+        ...this.mapper.skillRef(skill),
         isRandom: skill.isRandom,
         isExtra: skill.isExtra === true,
         ...(skill.id === undefined ? {} : { rowId: skill.id }),
       });
     }
     return {
-      starting: master.skills.map((skill) => this.skillRef(skill)),
+      starting: master.skills.map((skill) => this.mapper.skillRef(skill)),
       gained,
-    };
-  }
-
-  /** One skill reference, with its attribute split out of TP's nested object. */
-  private skillRef(skill: {
-    skillMasterId: number;
-    skillAttributeMaster?: { value: string; type: number };
-  }): TpPlayerSkillRef {
-    if (skill.skillAttributeMaster === undefined) {
-      return { skillMasterId: skill.skillMasterId };
-    }
-    return {
-      skillMasterId: skill.skillMasterId,
-      attributeValue: skill.skillAttributeMaster.value,
-      attributeType: skill.skillAttributeMaster.type,
-    };
-  }
-
-  /** The five characteristics carried on every lineUp/star master entry. */
-  private characteristics(entry: {
-    ma: number;
-    st: number;
-    ag: number;
-    pa: number;
-    av: number;
-  }): TpOfficialCharacteristics {
-    return {
-      move: entry.ma,
-      strength: entry.st,
-      agility: entry.ag,
-      passing: entry.pa,
-      armour: entry.av,
     };
   }
 }

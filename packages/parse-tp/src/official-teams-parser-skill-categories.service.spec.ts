@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { OfficialTeamsParserService } from './official-teams-parser.service';
 import { TpSkillCategoryMaskDecoderService } from './tp-skill-category-mask-decoder.service';
+import { TpSkillRefMapperService } from './tp-skill-ref-mapper.service';
 
 const CHARACTERISTICS = { ma: 6, st: 3, ag: 3, pa: 4, av: 9, skills: [] };
 
@@ -46,12 +47,13 @@ describe('OfficialTeamsParserService skill categories', () => {
   let parser: OfficialTeamsParserService;
 
   beforeEach(async () => {
-    // The decoder is a pure, dependency-free link of the parser's chain, so
-    // it is passed real (CLAUDE.md, "pure chain").
+    // The decoder and the mapper are pure, dependency-free links of the
+    // parser's chain, so they are passed real (CLAUDE.md, "pure chain").
     const moduleRef = await Test.createTestingModule({
       providers: [
         OfficialTeamsParserService,
         TpSkillCategoryMaskDecoderService,
+        TpSkillRefMapperService,
       ],
     }).compile();
     parser = moduleRef.get(OfficialTeamsParserService);

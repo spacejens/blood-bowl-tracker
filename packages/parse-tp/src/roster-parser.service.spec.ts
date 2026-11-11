@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { RosterParserService } from './roster-parser.service';
+import { TpSkillRefMapperService } from './tp-skill-ref-mapper.service';
 
 function rosterBody(overrides: Record<string, unknown> = {}) {
   return {
@@ -86,8 +87,9 @@ describe('RosterParserService', () => {
   let service: RosterParserService;
 
   beforeEach(async () => {
+    // The mapper is pure and dependency-free, so it is passed real.
     const moduleRef = await Test.createTestingModule({
-      providers: [RosterParserService],
+      providers: [RosterParserService, TpSkillRefMapperService],
     }).compile();
     service = moduleRef.get(RosterParserService);
   });
