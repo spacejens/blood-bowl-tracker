@@ -56,7 +56,8 @@ A gained Loner is a free extra for only these two players in the whole data.
 
 For these players no order of the recorded advancements costs the reported
 spend, so no order can be confirmed. A curated order is refused by the manual
-import's SPP check for the same reason.
+import's SPP check for the same reason, whenever the player's SPP figures are
+stored.
 
 - **Snarg Half-Thought** (Masthugget Lucky Cocks, Fourth era, line-up
   2464143, paid 3+0, spent 38): TP level is 4 but only 3 advancements are

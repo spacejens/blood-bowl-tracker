@@ -46,8 +46,10 @@ batch with an import error when:
 The SPP checks run when the player's total SPP and unspent SPP are both
 stored. A scratch import's first TP pass stores no unspent SPP yet (no
 advancement costs exist until batch 004 is applied), so the order is then
-written confirmed without the pricing check and the second TP pass prices it.
-In production the check runs against the stored figures; a team imported live
+written confirmed without the pricing check. The second TP pass then stores
+TP's own unspent figure and does not re-check the order, so an order written
+unchecked is checked only if the batch is applied again with the figures
+stored. In production the check runs against the stored figures; a team imported live
 leaves the unspent figure unset until a bulk TP import stores it, in which case
 the order is written unchecked.
 

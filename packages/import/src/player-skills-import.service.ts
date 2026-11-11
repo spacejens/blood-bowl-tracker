@@ -53,7 +53,7 @@ function naturalKey(entry: PlayerSkillEntry): string {
  * only its own players, because the server reconciles a listed player's
  * increases against the one call that carries them. A batch flagged
  * `checkOrderAgainstSpend` keeps the flag on every chunk, so the server checks
- * each curated order against the player's reported SPP.
+ * each curated order against the player's reported SPP when it is stored.
  */
 @Injectable()
 export class PlayerSkillsImportService {

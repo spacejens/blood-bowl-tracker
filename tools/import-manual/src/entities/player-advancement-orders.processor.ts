@@ -20,8 +20,8 @@ export class PlayerAdvancementOrdersProcessor {
    * unresolved one skips the entry with an ImportError. Each entry goes to
    * `playerSkills.sync` on its own, confirmed and numbered from 1, with
    * `checkOrderAgainstSpend`, so the server refuses an order that does not
-   * match the player's stored paid advancements or the SPP he reported as
-   * spent. A refusal is recorded as an ImportError and writes nothing.
+   * match the player's stored paid advancements or, when his SPP figures are
+   * stored, the SPP he reported as spent. A refusal is recorded as an ImportError and writes nothing.
    * Skills go as `advancement`, which never replaces a stored chosen or
    * random source. Returns how many players were written.
    */

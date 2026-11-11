@@ -35,8 +35,8 @@ import { UnspentSppService } from '../spp/unspent-spp.service';
  * as "not a paid advancement" instead of being checked as a paid one. Any
  * player that fails refuses the whole batch before anything is written. An
  * accepted batch is written by PlayerSkillsService.sync, keeping the stored
- * unspent SPP (the check has shown it fits, or it is unknown and clearing
- * it would change nothing).
+ * unspent SPP (the check has shown it fits, or the figures are not stored
+ * and no check ran).
  *
  * The reads and pricing happen before, not inside, the sync transaction, so
  * a concurrent write between them is not excluded; manual imports run one

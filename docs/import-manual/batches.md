@@ -64,8 +64,8 @@ The batches:
   importer creates, so it applies after the source importers, in a plain
   `apply`; when the player's SPP figures are stored, the server refuses any
   order the reported spend does not allow. A scratch import's first TP pass
-  stores none yet, so the order is written unchecked and the second TP pass
-  prices it. An entry lists every stored paid advancement of the player, so
+  stores none yet, so the order is written unchecked; the second TP pass
+  stores TP's unspent figure without re-checking the order. An entry lists every stored paid advancement of the player, so
   if he later gains one and the TP data is downloaded again, a scratch apply
   of the batch is refused until a follow-up batch supersedes it.
 
