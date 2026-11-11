@@ -238,8 +238,9 @@ catalog, so where it may be fielded is derived from actual hires: after a
 roster's players are imported, every mercenary position it hired is recorded
 as available to the roster's race in the import's era (`positions_race_eras`,
 upsert-only). Bulk and live roster imports both do this. An unresolvable race
-code, or a race the era does not list (no `race_eras` row), is one error on
-the `players` result; the players stay imported.
+code is one error on the `players` result, and a race the era does not list
+(no `race_eras` row) is one error per mercenary position; the players stay
+imported.
 
 ## Era resolution
 
