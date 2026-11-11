@@ -1,9 +1,9 @@
 ---
-name: develop-feature
-description: Use when starting work on a GitHub issue or an ad-hoc feature in the blood-bowl-tracker project — takes an issue number or a text description and guides development from branch creation to a pull request ready for human review
+name: implement
+description: Use when implementing a GitHub issue or an ad-hoc feature in the blood-bowl-tracker project (also known by its former name, "implement" or "develop feature") — takes an issue number or a text description and guides development from branch creation to a pull request ready for human review
 ---
 
-# develop-feature
+# implement
 
 Structured feature development from a GitHub issue or free-form description to a pull request. See [docs/development-workflow.md](../../../docs/development-workflow.md) for the human-readable explanation of this process.
 
@@ -11,12 +11,12 @@ Structured feature development from a GitHub issue or free-form description to a
 
 **Issue mode** — provide a GitHub issue number:
 ```
-/develop-feature 42
+/implement 42
 ```
 
 **Ad-hoc mode** — provide a text description of the feature:
 ```
-/develop-feature Add player stats endpoint
+/implement Add player stats endpoint
 ```
 
 If the argument is a plain integer, issue mode is used. Any other text triggers ad-hoc mode.
@@ -288,7 +288,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
      and use the printed `mainRoot` value as `<main-root>` below.
      - **Already in the worktree** → safe to clean up on main automatically. For an `uncommittedFiles` entry whose `status` starts with `?` (untracked — `git restore`/`checkout --` is a no-op on these), delete it directly: `rm "<main-root>/<path>"`. For every other status code, use `git -C "<main-root>" restore <paths>` (or `git -C "<main-root>" checkout -- <paths>`); reset the redundant stray commits the same way. Report what was cleaned. If the `git -C "<main-root>" ...` command itself is refused by the harness (worktree isolation), do not silently skip cleanup — print the exact command to the developer and ask them to run it themselves, e.g. by typing `! <command>` in their prompt (which runs it in their own session and returns its output into the conversation).
      - **Provenance unclear** (not found in the worktree) → **never auto-discard**. Surface the paths / commit summaries and ask the developer via `AskUserQuestion` how to proceed — the change may be their own unrelated work.
-3. **Acquire the review lock, then create the PR.** Creating the PR is itself what triggers CodeRabbit's first review, and CodeRabbit's review rate limit is shared across every PR in the repo. Several `develop-feature` sessions running in parallel worktrees on this machine would otherwise all consume that quota at once and all crawl. Take the machine-wide review lock here and hold it through the end of step 5's review loop, so exactly one session drives a review loop at a time and the rest wait their turn in the order they started waiting. See `docs/development-workflow.md`'s "Serializing review activity across parallel sessions".
+3. **Acquire the review lock, then create the PR.** Creating the PR is itself what triggers CodeRabbit's first review, and CodeRabbit's review rate limit is shared across every PR in the repo. Several `implement` sessions running in parallel worktrees on this machine would otherwise all consume that quota at once and all crawl. Take the machine-wide review lock here and hold it through the end of step 5's review loop, so exactly one session drives a review loop at a time and the rest wait their turn in the order they started waiting. See `docs/development-workflow.md`'s "Serializing review activity across parallel sessions".
 
    Steps 1–2 above deliberately ran unlocked: neither syncing with `main` nor the stray-work check triggers a review, and step 1 can stop and wait for a developer to resolve a merge conflict by hand — holding a machine-wide lock across an unbounded human wait would stall every other session. Because waiting for the lock can take a long time while `main` keeps moving, a second, usually trivial sync runs right after the lock is taken (see "Sync with `main` again" below); that one is what keeps the PR current.
 
