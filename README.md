@@ -128,4 +128,4 @@ psql postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl
 
 ### Development workflow
 
-Features are developed using the `develop-feature` Claude skill — see [docs/development-workflow.md](docs/development-workflow.md) for the full process.
+Features are developed using the `implement` Claude skill — see [docs/development-workflow.md](docs/development-workflow.md) for the full process.

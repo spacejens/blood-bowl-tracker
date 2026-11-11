@@ -5,7 +5,7 @@ production database and network operations `deploy-production` invokes
 instead of hand-rolling the equivalent shell. Worktree isolation is one
 reason for this: a worktree-isolated session refuses to run shell commands
 complex enough that it cannot verify they stay inside the worktree — see
-[develop-feature/SKILL.md's "Worktree isolation and shell commands" section](../../.claude/skills/develop-feature/SKILL.md#worktree-isolation-and-shell-commands)
+[implement/SKILL.md's "Worktree isolation and shell commands" section](../../.claude/skills/implement/SKILL.md#worktree-isolation-and-shell-commands)
 for what that means in practice. But the pattern is also useful on its own merits, independent of
 that constraint: packaging multi-step logic (a detached tunnel process, a
 validated read-only query) behind one tested command is more repeatable and

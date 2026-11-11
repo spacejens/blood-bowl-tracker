@@ -2,7 +2,7 @@
 #
 # CodeRabbit configuration for blood-bowl-tracker.
 #
-# Reviews in this repo are consumed automatically: the develop-feature skill
+# Reviews in this repo are consumed automatically: the implement skill
 # waits for a submitted review after opening a PR and drives it to completion
 # through the handle-pr-reviews skill. See docs/development-workflow.md.
 language: en-US

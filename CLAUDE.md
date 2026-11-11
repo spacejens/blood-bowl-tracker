@@ -14,7 +14,7 @@ When a feature branch needs to catch up with `main` during development, **merge*
 
 ### Worktree discipline
 
-When work is happening inside a git worktree, **every file edit and git commit must land inside that worktree** — never in the main checkout or another worktree. A stray edit or commit in the main checkout dirties it and breaks running multiple `develop-feature` instances in parallel (the whole reason worktrees are used here).
+When work is happening inside a git worktree, **every file edit and git commit must land inside that worktree** — never in the main checkout or another worktree. A stray edit or commit in the main checkout dirties it and breaks running multiple `implement` instances in parallel (the whole reason worktrees are used here).
 
 - Every subagent shell command must be prefixed with `cd <worktree-path> &&`. Subagent shell sessions do not reliably persist a working directory across tool calls, and a dropped `cd` silently writes to the wrong checkout (commonly `main` in the primary repo).
 - After a subagent reports a commit, verify it landed on the expected branch/worktree with `git log --oneline -1` and `git branch --show-current` (run from the worktree) before trusting the report.
