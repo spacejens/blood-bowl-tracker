@@ -165,4 +165,74 @@ describe('TrophyAwardCountsService', () => {
       expect(chains[0].limit).toHaveBeenCalledWith(21);
     });
   });
+
+  describe('countTrophiesByPlayer', () => {
+    it('returns the rows the query resolves to, joining trophy awards to the winning player', async () => {
+      const rows = [
+        { playerId: 1, name: 'Griff Oberwald', count: 3 },
+        { playerId: 2, name: 'Morg n Thorg', count: 1 },
+      ];
+      const { db, chains } = await build(rows);
+      await expect(
+        service.countTrophiesByPlayer(FACT_SCOPE_ALL_TIME, 21),
+      ).resolves.toEqual(rows);
+      expect(db.select).toHaveBeenCalledTimes(1);
+      // An inner join on trophy_awards.player_id: a team-level award has a
+      // null player_id, so it matches no player and never counts.
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
+      ).toEqual(['players.id', 'trophy_awards.player_id']);
+      // League and era are still read off the award's own team era, exactly
+      // as for the team- and coach-grouped siblings.
+      expect(chains[0].innerJoin).toHaveBeenCalledTimes(3);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 1, 1)),
+      ).toEqual(['team_eras.id', 'trophy_awards.team_era_id']);
+      expect(extractJoinColumns(firstCallArg(chains[0].groupBy, 0, 0))).toEqual(
+        ['players.id'],
+      );
+      expect(extractJoinColumns(firstCallArg(chains[0].groupBy, 0, 1))).toEqual(
+        ['players.name'],
+      );
+      expect(chains[0].limit).toHaveBeenCalledWith(21);
+    });
+
+    it('filters by league when a leagueId is given', async () => {
+      const { chains } = await build([]);
+      await service.countTrophiesByPlayer({ leagueId: 9 }, 21);
+      expect(chains[0].where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        9,
+      ]);
+    });
+
+    it('filters by era when an eraId is given', async () => {
+      const { chains } = await build([]);
+      await service.countTrophiesByPlayer({ eraId: 20 }, 21);
+      expect(chains[0].where).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(20);
+    });
+
+    it('filters by competition when a competitionId is given', async () => {
+      const { chains } = await build([]);
+      await service.countTrophiesByPlayer({ competitionId: 30 }, 21);
+      expect(chains[0].where).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(30);
+    });
+
+    it('ignores a match category, which trophy awards have no dimension for', async () => {
+      const { chains } = await build([]);
+      await service.countTrophiesByPlayer({ category: 'cup_final' }, 21);
+      expect(chains[0].where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([]);
+    });
+
+    it('returns an empty list when no player has won anything', async () => {
+      const { chains } = await build([]);
+      await expect(
+        service.countTrophiesByPlayer(FACT_SCOPE_ALL_TIME, 21),
+      ).resolves.toEqual([]);
+      expect(chains[0].limit).toHaveBeenCalledWith(21);
+    });
+  });
 });
