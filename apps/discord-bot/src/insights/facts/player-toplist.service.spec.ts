@@ -59,6 +59,7 @@ type PlayerCountMethod =
   | 'countCasualtiesSufferedByPlayer'
   | 'countSeriousInjuriesSufferedByPlayer'
   | 'countLastingInjuriesSufferedByPlayer'
+  | 'countTrophiesByPlayer'
   | 'topPlayersByTotalSpp';
 
 interface PlayerCase {
@@ -220,6 +221,19 @@ const cases: PlayerCase[] = [
     eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 44 }],
     competitionRows: [{ playerId: 1, name: 'Griff Oberwald', count: 12 }],
     expectedTitle: 'Players by total SPP',
+  },
+  {
+    describeName: 'resolveTrophiesWon',
+    method: 'countTrophiesByPlayer',
+    resolve: (service, scope) => service.resolveTrophiesWon(scope),
+    rows: [
+      { playerId: 1, name: 'Griff Oberwald', count: 3 },
+      { playerId: 2, name: 'Morg n Thorg', count: 3 },
+      { playerId: 3, name: 'Zug', count: 1 },
+    ],
+    eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 2 }],
+    competitionRows: [{ playerId: 1, name: 'Griff Oberwald', count: 1 }],
+    expectedTitle: 'Players by trophies won',
   },
 ];
 
