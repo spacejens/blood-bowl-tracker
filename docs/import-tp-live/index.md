@@ -322,6 +322,12 @@ reports nothing imported.
 A skill gap never fails a player or the team: the skill is left out, the
 player is still imported, and `players.imported` still counts it.
 
+## Dependencies
+
+It deliberately depends on neither [import](../import/index.md) nor
+[api-client](../api-client/index.md): the import rules it must apply exactly
+like the bulk importers come from [import-shared](../import-shared/index.md).
+
 ## Wiring it into an app
 
 The package reads no config of its own. `TpRosterModule`, `TpMatchModule`

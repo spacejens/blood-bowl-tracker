@@ -3,7 +3,10 @@
 `tools/download-tp` fetches TP's API over plain HTTP and records the responses
 as local JSON files, for later import by `tools/import-tp`. It is a one-time
 operation per historical season, run locally by a developer — it is never
-deployed.
+deployed. `tools/import-tp` can only import what was recorded, so narrowing
+the download changes what is importable at all; some recorded responses (the
+news, classifications, honours and statistics pages) are download-only and
+are not imported.
 
 ## What it does
 
@@ -140,7 +143,7 @@ Plain HTTP cannot click through pages or observe what a page requests, so
 | `teams`                         | `rosters/masters?ruleSet=<id>` per configured rules set                                                                          |
 
 The mapping was captured once from a real browser session. If TP's frontend
-changes which endpoints a page calls, update `packages/tp-paths` to match:
+changes which endpoints a page calls, update [`packages/tp-paths`](../tp-paths/index.md) to match:
 every path, and the page each request is sent from as its referer, lives
 there, in `TpTournamentPathsService` (the tournament and all of its pages, including inscriptions, awards and the download-only news,
 classifications, honours and statistics paths), `TpRosterPathsService`,

@@ -1,6 +1,9 @@
 # Architecture
 
-Overview of the technical stack and package structure for this project.
+The technical stack, the rules that span more than one workspace, and an
+index of every app, package and tool with a link to its own documentation.
+Each workspace's own behavior, dependencies and design rules live on its page
+under `docs/<name>/`; this page only summarizes them.
 
 ## Technology choices
 
@@ -10,329 +13,79 @@ Overview of the technical stack and package structure for this project.
 - **API contract:** [oRPC](https://orpc.dev/) — a typed contract shared between server and client, dispatched over oRPC's native RPC transport (not REST/OpenAPI), enforced at compile time
 - **Testing:** Vitest
 - **Package manager:** pnpm with workspaces
-- **Deployment:** Docker, with a root `docker-compose.yml` for local development and on Fly.io + Neon in production (see `docs/discord-bot/production-hosting.md`)
-
-## Repository structure
-
-```text
-apps/
-  discord-bot/        — NestJS Discord bot; currently the only deployed app;
-                        hosts packages/api-server's /rpc endpoint in-process
-
-packages/
-  db/                 — Drizzle schema + migrations; the only package that
-                        imports directly from the database driver
-  domain-enums/       — single source of truth for every Blood Bowl domain
-                        enum's member list, as plain as-const string arrays,
-                        and its value type ((typeof X)[number]), which every
-                        package imports; plus the well-known external-system
-                        names (Name, NAF, BBL's tloeg.bbleague.se, TP's
-                        tourplay.net); deliberately depends on no other
-                        workspace package so packages/db and
-                        packages/api-contract can each build from it while
-                        staying mutually independent
-  game-data/          — DB-backed business logic for core game entities:
-                        ingestion and the reads importers, the API and the bot
-                        share; depends on packages/db, on packages/api-contract for
-                        shared contract shapes (Upsert* types) and on
-                        packages/domain-enums for enum value types; no
-                        network dependency; usable directly by any app
-  game-data-queries/  — read-only statistics, toplists, deepdive counts and
-                        lookups only apps/discord-bot uses; depends one-way
-                        on packages/game-data (never the reverse) plus
-                        packages/db, packages/domain-enums and
-                        packages/api-contract
-  api-contract/       — oRPC contract plus the Zod schemas and inferred
-                        Upsert* types for all game entities; the single source
-                        of truth for those shapes, consumed by api-server,
-                        api-client, game-data, and import; also owns the one
-                        MA/ST/AG/PA/AV line type (CharacteristicLine) that
-                        importers and game-data reuse instead of restating
-  api-server/         — Thin NestJS transport layer: mounts a single oRPC
-                        RPCHandler at /rpc, dispatching into packages/game-data;
-                        hosted in-process by apps/discord-bot (there is no
-                        separate deployed api-server process); /rpc requires a
-                        bearer token per importer tool, see
-                        docs/api/rpc-conventions.md
-  api-client/         — NestJS module wrapping an oRPC RPCLink client for
-                        calling a deployed api-server's /rpc endpoint; owns
-                        its own @nestjs/config-backed base URL configuration
-  config-loader/      — library package with the generic JSON5 config-file
-                        loading shared by the import tools (through
-                        packages/import) and tools/download-tp: read the file,
-                        treat a missing file as an empty config, parse JSON5
-                        with an error naming the path, and validate against a
-                        caller-supplied top-level schema
-  discord-bot-usage/  — NestJS module recording Discord bot usage into the
-                        discord_bot_usage schema: one row per triggered slash
-                        command, button click or select-menu selection, with
-                        the guild, channel, user and parameters behind it.
-                        Depends on packages/db; consumed by
-                        apps/discord-bot (writes and reads)
-  discord-client/     — NestJS module wrapping discord.js for connecting to
-                        Discord, registering slash commands, and posting
-                        messages; reports every handled interaction to
-                        registered listeners as plain data, typed with
-                        packages/domain-enums (types only); no database or
-                        business-logic dependency; consumed by
-                        apps/discord-bot
-  import/             — NestJS module with import orchestration logic:
-                        generic upsert bookkeeping (ImportRunnerService,
-                        BatchBufferService, ExternalIdResolverService) plus
-                        entity-specific import services (coaches,
-                        teams, players, matches, trophies, and so on) that
-                        call api-client; also owns the config-service factories the import
-                        tools' own config, external-system-name and source
-                        services are built from
-  import-shared/      — NestJS module with the pure, I/O-free import rules
-                        packages/import and packages/import-tp-live must
-                        apply identically: Name external-id formats, import
-                        result construction, upsert error recording and the
-                        cup/season span rule
-  import-tp-live/     — server-side NestJS module importing one TP roster or
-                        one completed TP match, with its teams and
-                        competition, or one rules set's official team list,
-                        through packages/game-data: the core behind
-                        tpRosters/tpMatches/tpCompetitions/tpOfficialTeams.import and live entry points;
-                        live match and competition imports also settle their
-                        players' SPP adjustments, roster-only imports do not
-  logging/            — ErrorLogService: one shape for logging a caught
-                        exception at error or warn level, keeping the log
-                        context label intact; used by apps/discord-bot,
-                        packages/discord-client, packages/db and
-                        packages/api-server; no dependency on any other
-                        workspace package
-  parse-tp/           — library package for reusable TP JSON-parsing logic
-                        (matches, rosters, awards, tournaments) and the TP
-                        keys and rules both import paths must agree on (the
-                        hired-star external id, official-over-legacy listing
-                        precedence); its output that crosses the API is
-                        typed with packages/api-contract's TP wire shapes;
-                        consumed by tools/import-tp and
-                        packages/import-tp-live
-  read-bbl-mirror/    — library package with the mechanical half of reading
-                        BBL's wget mirror: safe filename resolution against a
-                        caller-supplied data directory, missing files and
-                        directories reported as null/empty, Windows-1252 byte
-                        decoding, and plain file listing; no BBL page-type
-                        awareness or HTML parsing, and no dependency on any
-                        other workspace package
-  review-harness/     — NestJS module with the domain-agnostic half of the
-                        review tools: the review-run orchestration
-                        (ReviewServiceBase) and report document shell
-                        (ReportBuilderBase), HTML fragment assembly,
-                        timestamped report writing, JSON5 config loading,
-                        external-system id lookup, characteristic formatting,
-                        curated data batch reading (file walking and pooling,
-                        no entry shaping), and the plug-in interfaces + DI
-                        wiring each data-type module registers through;
-                        carries no BBL/TP parsing or interpretation logic
-  scrape-tp/          — NestJS module with the one implementation of fetching
-                        TP's API over plain HTTP: browser-like headers and
-                        per-visit sessions with a cookie jar and randomized
-                        pacing; no TP URL knowledge, no config, and no
-                        dependency on any other workspace package; consumed by
-                        tools/download-tp and packages/import-tp-live
-  tp-paths/           — every TP path this repo requests (roster,
-                        tournament and all its pages, match, official teams,
-                        plus the official-teams rules-set id map) as TP's
-                        frontend requests them, each paired with the page it
-                        is sent from into a ready-to-fetch request (full API
-                        URL plus referer page URL), and the reverse: which
-                        kind of TP page a URL points to; pure, no I/O,
-                        shared by tools/download-tp and import-tp-live
-
-tools/
-  download-tp/        — NestJS CLI application that fetches TP's API over
-                        plain HTTP via packages/scrape-tp and records the
-                        responses as local JSON files for later import by
-                        tools/import-tp
-  import-<source>/    — one NestJS CLI application per upstream data source; uses
-                        packages/import to call a deployed api-server instance
-  import-manual/      — NestJS CLI application for hand-authored supplementary
-                        data (leagues, eras, rules sets, races, positions,
-                        coaches, teams, and extra external IDs); run before and
-                        after the system-specific importers; uses packages/import
-  review-match/       — NestJS CLI application that reads game data directly via
-                        packages/db and renders raw source data side by side with
-                        imported match events as a static HTML report; a
-                        developer review aid, not part of any import path
-  review-player/      — NestJS CLI application that renders raw BBL and TP
-                        source data beside imported player records as a
-                        static HTML report, two panel pairs per player: an
-                        overview (identity, status, keywords) and a career
-                        history (SPP, advancements and their costs,
-                        characteristics, lasting injuries, unspent SPP);
-                        sibling of review-match, likewise a developer review
-                        aid
-  review-race/        — NestJS CLI application that renders raw BBL, TP and
-                        hand-curated source data beside imported races and
-                        their positions as a static HTML report, two panel
-                        pairs per race: race and availability (identity,
-                        position availability) and position details
-                        (characteristics, starting skills, keywords);
-                        sibling of review-match and review-player, likewise
-                        a developer review aid
-  review-star-player/ — NestJS CLI application that renders raw BBL, TP and
-                        hand-curated source data beside imported star player
-                        identity, per-rules-set characteristics, starting
-                        skills, keywords and hire eligibility as a static
-                        HTML report; sibling of the
-                        other review tools, likewise a developer review
-                        aid
-  db-diagram/         — shell script (db-diagram.sh, not an npm workspace
-                        package) that generates a SchemaSpy ER diagram and
-                        browsable schema docs for the local docker-compose
-                        database
-  eslint-rules/       — custom ESLint rules shared across the repo (currently
-                        max-function-params, no-direct-service-instantiation,
-                        and no-test-helper-imports), imported directly by the
-                        root eslint.config.ts
-  markdownlint-rules/ — custom markdownlint rules shared across the repo
-                        (currently max-file-lines), built to dist/ and loaded
-                        by the root .markdownlint-cli2.jsonc
-  cli-shared/         — library package with the plumbing the CLI
-                        packages below share: git main-checkout/worktree
-                        resolution, child-process running and spawning, the
-                        canonical gitignored file/directory lists, the
-                        dotenv-based reader for production's secrets in
-                        apps/discord-bot/.env.production, the guarded
-                        psql/pg_dump/pg_restore runner with connection-string
-                        redaction, and the shared runCli
-                        subcommand-dispatcher driver every entrypoint runs
-                        on (workflow-lint uses only runCli);
-                        no CLI entry point of its own
-  dev-workflow-cli/   — NestJS CLI application providing the developer/PR
-                        workflow helpers the Claude Code skills in
-                        .claude/skills/ call instead of hand-rolling the
-                        equivalent shell
-  production-ops-cli/ — NestJS CLI application providing the production
-                        database and tunnel operations deploy-production
-                        invokes
-  fs-utils-cli/       — NestJS CLI application providing the worktree-aware
-                        filesystem helpers (gitignored-config sync, writing a
-                        file through the docs/plans symlink) the Claude Code
-                        skills call
-  backup-cli/         — NestJS CLI application that backs up the production
-                        database to a private Cloudflare R2 bucket, lists,
-                        prunes, downloads and verifies those backups,
-                        restores one into the local development database,
-                        and raises and resolves the backup alert issues;
-                        run daily by .github/workflows/backup-production.yml
-  workflow-lint/      — NestJS CLI application that fails pnpm lint when a
-                        workflow in .github/workflows/ references a remote
-                        action by anything other than a full commit SHA
-```
+- **Deployment:** Docker, with a root `docker-compose.yml` for local development and on Fly.io + Neon in production (see [production hosting](discord-bot/production-hosting.md))
 
 ## Data flow
 
-- `apps/discord-bot` imports `packages/api-server` (to host the `/rpc` endpoint) and can import `packages/game-data` directly for shared reads and `packages/game-data-queries` for its bot-only statistics and lookups, in-process and without a network hop
-- `apps/discord-bot` also imports `packages/import-tp-live` and `packages/tp-paths` directly, for the `/importtp` on-demand TP import and the TP notification feed's automatic imports: both classify a TP URL with `TpPageClassifierService` and call the matching live entry point in-process through one shared dispatch
-- `tools/import-*` import `packages/import`, which internally calls `packages/api-client` to reach a deployed `api-server` over the network
-- `packages/api-server` also imports `packages/import-tp-live` to implement `tpRosters.import`, `tpMatches.import`, `tpCompetitions.import` and `tpOfficialTeams.import`; `packages/import-tp-live` calls `packages/game-data` in-process and never reaches the api-server over RPC, so `apps/discord-bot` can call it directly while `tools/import-tp` reaches it only through those procedures
-- `packages/api-server` imports `packages/game-data` (for persistence) and `packages/api-contract` (for the RPC contract it implements) — it has no dependency on `packages/db` directly
-- `packages/game-data` has no dependency on any network-facing package — it is pure business logic over `packages/db`
-- `packages/game-data-queries` imports `packages/game-data` one-way; `packages/game-data` never imports it, and only `apps/discord-bot` depends on it
+- `apps/discord-bot` hosts `packages/api-server`'s `/rpc` endpoint in-process
+  and reads through `packages/game-data` and `packages/game-data-queries`
+  without a network hop. It also imports TP data on demand through
+  `packages/import-tp-live` (see [discord-bot](discord-bot/index.md#how-it-fits-together)).
+- `tools/import-*` reach the server over the network: `packages/import` calls
+  `packages/api-client`, which calls the hosted api-server's `/rpc` (see
+  [import](import/index.md) and [API](api/index.md)).
+- `packages/api-server` dispatches into `packages/game-data` and, for the
+  `tp*.import` procedures, into `packages/import-tp-live`; it has no direct
+  `packages/db` dependency.
+- `packages/import-tp-live` calls `packages/game-data` in-process and never
+  goes over RPC, so the bot calls it directly while `tools/import-tp` reaches
+  it only through those procedures.
+- `packages/game-data` is pure business logic over `packages/db`, with no
+  network-facing dependency; `packages/game-data-queries` depends on it
+  one-way, and only `apps/discord-bot` imports `packages/game-data-queries`.
 
 ## Client/server boundary
 
 Which side of the API each kind of workspace sits on. Unlike "Data flow" above, which describes today's actual import graph, this is the rule new code must keep to.
 
-- `apps/` are server-side (currently only `apps/discord-bot`); they call server-side packages like `packages/game-data` and `packages/game-data-queries` in-process and must never be forced to call themselves through the API
-- `tools/` are client-side; a tool that needs server-side logic goes through `packages/api-client` over the network rather than importing a server-side package (`packages/game-data`, `packages/game-data-queries`, `packages/db`, `packages/api-server`) directly. The `tools/review-*` family (`review-match`, `review-player`, `review-race`, `review-star-player`) is a deliberate exception: they read `packages/db` directly as local-only developer report aids outside the import pipeline, never touching the API. `tools/import-manual` is a second, test-only exception: it lists `packages/api-server` and `packages/db` as devDependencies so its e2e harness can start the real `ApiServerModule` in-process and query the game-data tables directly (see [import-manual batches](import-manual/batches.md#tested)); its production code under `src/` stays client-side and reaches the server only through `packages/api-client` and `packages/import`
-- `packages/` are usually one-sided (client-only or server-only). Deliberate exceptions exist for shared-shape/enum packages designed to serve both sides: `packages/api-contract` (the RPC contract, built on `packages/domain-enums` and external libraries), `packages/domain-enums` (the enum source of truth, with no dependencies of its own), `packages/tp-paths` (TP request and path computation shared between `packages/import-tp-live` and `tools/download-tp`, also with no dependencies of its own), `packages/scrape-tp` (the TP request fetching shared between the client-side `tools/download-tp` and the server-side `packages/import-tp-live`, with no workspace dependencies), `packages/parse-tp` (TP JSON parsing shared between the client-side `tools/import-tp` and the server-side `packages/import-tp-live`, whose only workspace dependencies are `packages/domain-enums` and `packages/api-contract`, which owns the TP wire shapes its output is typed with), `packages/logging` (the shared error-log shaping, with no workspace dependencies; server-side packages use it directly, and the `tools/review-*` family reaches it through `packages/db`), and `packages/import-shared` (the import rules the client-side `packages/import` and the server-side `packages/import-tp-live` must apply identically, whose only workspace dependencies are `packages/api-contract`'s types and `packages/domain-enums`)
+- `apps/` are server-side (currently only `apps/discord-bot`); they call server-side packages like `packages/game-data` and `packages/game-data-queries` in-process and must never be forced to call themselves through the API.
+- `tools/` are client-side; a tool that needs server-side logic goes through `packages/api-client` over the network rather than importing a server-side package (`packages/game-data`, `packages/game-data-queries`, `packages/db`, `packages/api-server`) directly. Deliberate exceptions:
+  - The `tools/review-*` family (`review-match`, `review-player`, `review-race`, `review-star-player`) reads `packages/db` directly, as local-only developer report aids outside the import pipeline that never touch the API.
+  - `tools/import-manual` lists `packages/api-server` and `packages/db` as devDependencies, test-only, so its e2e harness can start the real `ApiServerModule` in-process and query the game-data tables (see [import-manual batches](import-manual/batches.md#tested)); its production code stays client-side.
+- `packages/` are usually one-sided (client-only or server-only). Deliberate exceptions are the shared-shape, shared-rule and dependency-free packages designed to serve both sides, each with its reasoning on its own page:
+  - `packages/api-contract` — the RPC contract (see [API](api/index.md#api-contract)).
+  - `packages/domain-enums` — the enum source of truth (see [domain-enums](domain-enums/index.md)).
+  - `packages/tp-paths` — TP request and path computation (see [tp-paths](tp-paths/index.md)).
+  - `packages/scrape-tp` — TP request fetching (see [scrape-tp](scrape-tp/index.md)).
+  - `packages/parse-tp` — TP JSON parsing (see [parse-tp](parse-tp/index.md)).
+  - `packages/logging` — shared error-log shaping (see [logging](logging/index.md)).
+  - `packages/import-shared` — the import rules bulk and live imports share (see [import-shared](import-shared/index.md)).
 
 ## Tool/app relationships
 
 Which tools and apps feed each other along the download → import → consume
 pipeline. Use this to judge whether a change in one place needs a matching
-change — or opens an opportunity — somewhere else. Only participants in that
-pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
-`tools/db-diagram`, `tools/eslint-rules`, `tools/markdownlint-rules`) are omitted.
+change — or opens an opportunity — somewhere else, then open the linked page
+for the specifics. Only participants in that pipeline are listed.
 
-- **`tools/download-tp`** (downloader) — fetches TP's API via `packages/scrape-tp` into local JSON files; what it records is exactly what `tools/import-tp` can later import, so widening or narrowing the download changes what is importable at all
-- **`packages/scrape-tp`** (shared fetching) — the one implementation of how this repo makes HTTP requests TP accepts: the browser-like header set, per-visit sessions with a cookie jar, and randomized pacing between a session's requests. Consumed by `tools/download-tp` and `packages/import-tp-live` (and through it `apps/discord-bot`'s on-demand `/importtp`), so a change to how requests look reaches both. It deliberately knows no TP URLs or page-to-endpoint mapping — those live in `packages/tp-paths`, whose `TpRequest` hands each consumer the full API URL and referer to pass in — and depends on no other workspace package
-- **`packages/parse-tp`** (shared parsing) — decodes `tools/download-tp`'s JSON; consumed by `tools/import-tp` and `packages/import-tp-live`. It also owns TP keys and rules shared across import code, such as `TpStarHireKeyService`'s hired-star external id (used by the one server-side hire import, which bulk and live both reach) and `TpOfficialListingPrecedenceService`'s official-over-legacy listing precedence. Its output is typed with `packages/api-contract`'s TP wire shapes wherever one exists rather than declared again here: awards, official team list races and match-embedded players use them directly, and its own types are built from them (a roster player extends the match-embedded player, a parsed match extends the bracket match, and skill references, career SPP counts and skill masters are the contract's types). The TP-to-contract field mappings (characteristics, skill references, career counter names) are written once, in the parser, so consumers pass the values on unchanged and a change to one of those shapes is a contract change that reaches the parser, `packages/import-tp-live` and `tools/import-tp` together. It has no BBL counterpart: BBL _interpretation_ (page-type parsing, HTML extraction) stays inside each tool that does it, deliberately, so the review tools can check the importer's reading of a page against their own. Only the mechanical file access is shared, via `packages/read-bbl-mirror`
-- **`packages/import-tp-live`** (TP roster and match import, server-side) — imports one TP roster's team and players, one completed TP match with its teams and competition, one competition with its registered teams and trophy awards (a finished competition import also awards the extra trophies TP does not record), or one rules set's official team list, directly through `packages/game-data`.
-  - It contains the live imports (fetch via `packages/scrape-tp`, parse via `packages/parse-tp`, era auto-resolution; a live match import creates the competition it needs).
-  - It also contains the implementations behind `tpRosters.import`, `tpMatches.import`, `tpCompetitions.import` and `tpOfficialTeams.import`, which `tools/import-tp`'s bulk run calls once per roster file, match file and competition, and several times per rules set (chunks of whole races) — so a change to how a TP team, player (including the player's own skills), match (including the star players its teams hired), competition or official team list is imported reaches bulk and live imports together.
-  - `apps/discord-bot` calls the same `TpLive*ImportService` entry points directly, in-process, for its `/importtp` slash command and its TP notification feed (which also imports both teams of a starting match through `TpLiveMatchTeamsImportService`).
-  - Deliberately depends on neither `packages/import` nor `packages/api-client` (see `docs/import-tp-live/index.md`); the import rules it must share with the bulk importers come from `packages/import-shared`.
-- **`packages/tp-paths`** (shared TP paths) — every TP path the repo requests: roster, tournament (including the news, classifications, honours and statistics pages only `tools/download-tp` fetches), match and official-teams paths (plus the official-teams rules-set id map), and the reverse direction. Each path service builds a `TpRequest` (the API path, the full API URL and the full referer page URL) from the caller's `TpBaseUrls`, so no consumer pairs an API path with its page or prefixes a base URL itself.
-  - `TpPageClassifierService` classifies a TP frontend URL as a competition, competition scores, match, roster or official-teams page (or unknown) with the ids the matching `packages/import-tp-live` entry point needs, so every on-demand consumer makes the same determination.
-  - Pure and I/O-free — the frontend base URL is a parameter, not config — so the client-only `tools/download-tp` and the server-side `packages/import-tp-live` can both depend on it without either gaining the other's dependencies.
-  - `apps/discord-bot` depends on it directly too, to classify a pasted TP URL for `/importtp` and a notification's link for the TP feed.
-- **`packages/import-shared`** (shared import rules) — the pure, I/O-free rules a bulk import and a live import must apply identically.
-  - It holds the "Name" external-id formats (`NameExternalIdService`), `ImportError`/`ImportResult` construction typed with `packages/api-contract`'s types (`ImportResultService`), per-item upsert error recording (`UpsertRecorderService`) and the at-most-three-days cup rule (`CompetitionTypeService`).
-  - Consumed by `packages/import`, which re-exports it to every `tools/import-*` (`tools/import-bbl` classifies competitions through `CompetitionTypeService`), and by `packages/import-tp-live`, so a change here reaches bulk and live imports together.
-  - The Name ids are identity-critical: if the two sides wrote different strings, a live and a bulk import of the same coach, team or position would create two rows.
-- **`packages/read-bbl-mirror`** (shared mirror access) — the mechanics of getting text out of a BBL wget mirror directory.
-  - It resolves a filename safely against a caller-supplied data directory.
-  - It reports a missing file as `null` and a missing directory as an empty listing.
-  - It decodes bytes as Windows-1252 (BBL's pages declare ISO-8859-1, but their bytes 0x80-0x9F are Windows-1252's curly quotes, dashes and ellipsis), and lists plain files.
-  - Consumed by `tools/import-bbl`, `tools/review-match`, `tools/review-player`, `tools/review-race` and `tools/review-star-player`, so a change here reaches all of them at once.
-  - It carries no BBL-page-type awareness and no HTML parsing on purpose: which files matter, what their names mean and what their contents say stay with each consumer, which is what keeps the review tools' independence from importer logic intact.
-  - Like `packages/config-loader`, it deliberately depends on no other workspace package.
-- **`packages/discord-bot-usage`** (bot telemetry) — records what the bot was asked to do, not what it knows: every matched slash command, button click and select-menu selection lands in the `discord_bot_usage` schema.
-  - `apps/discord-bot`'s `UsageRecordingService` is its only writer: it listens on `packages/discord-client`'s interaction-handled hook, which reports each interaction after it has already been replied to, fire-and-forget, so a recording failure can never affect a user-facing reply.
-  - The wiring lives in the app rather than in `packages/discord-client`, so the Discord transport package stays free of any database dependency. Its workspace dependencies are `packages/logging` and `packages/domain-enums`, the latter for the interaction kind and outcome types and holding constants and types only.
-  - `apps/discord-bot` reads it back through `InteractionEventsQueryService`, for the `/debuginteractions`, `/debugtopusers` and `/debugfilterusage` maintainer commands.
-  - Broader reporting on the captured data is still separate work.
-- **`tools/import-bbl`** (importer, BBL source) — sibling of `tools/import-tp`; the same domain data usually exists in both upstream sources, so behavior added to one importer is usually wanted in the other; it reads the mirror's files through `packages/read-bbl-mirror`, while every BBL page-type and HTML interpretation stays in the tool
-- **`tools/import-tp`** (importer, TP source) — reads `tools/download-tp`'s files via `packages/parse-tp`; sibling of `tools/import-bbl`, with the same reciprocity; its team, player, competition, match and official team list import go through the `tpRosters.import`, `tpCompetitions.import`, `tpMatches.import` and `tpOfficialTeams.import` procedures, one call per roster file, competition or match file, and several calls per rules set for the official team list; player skills and their Hatred/Animosity targets are interpreted only server-side, inside `tpRosters.import`; hired star players and mercenary race/era availability are imported only server-side, inside `tpMatches.import` and `tpRosters.import`
-- **`tools/import-manual`** (importer, hand-authored data) — runs before and after the source importers and supplies entities they reference (leagues, eras, rules sets, races, positions, coaches, teams, extra external IDs); a new entity kind imported by a source importer often needs matching manual data. It can also supply characteristics a source importer reads back over the API rather than deriving itself — see the gap-fill pattern in `docs/import-manual/index.md`
-- **`packages/import`** (shared import orchestration) — used by every `tools/import-*`; a change here reaches all importers at once. It owns:
-  - **The shared upsert plumbing** (`createUpsertImportServiceBase`) alongside the runner and batch helpers; for entities with exactly one upsert call, the import service is a declarative subclass supplying only the client resource it upserts through and the wording of its per-item error message, giving it the base class's shared `upsert(data, errors)` method — a subclass may still add its own entity-specific extra method alongside it.
-  - **Two kinds of hand-written exception.** Entities with more than one _upsert_ entry point stay hand-written, since the base class's single `upsert` method can't express two upsert entry points; `ExternalSystems`, `SppAwardValues` and `AdvancementCosts` stay hand-written for a different reason — an underlying resource that isn't shaped like a plain upsert.
-  - **A config-object factory rather than `review-harness`'s abstract-class pattern**, because what varies per entity here is only _data_ (which client resource, what error wording), not _behavior_ — a factory taking a config object fits that better than an abstract class with template methods to override. This is the "class factory for a base service" exemption (case 5) in `CLAUDE.md`'s "Service vs. loose function".
-  - **The same kind of factory for the import tools' config services** — `createImportConfigServiceBase` (connection getters plus the `IMPORT_CONFIG_ENV` production-file swap, over `packages/config-loader`) and `createSourceConfigServiceBase` — so each tool's config and source-config services are declarative subclasses supplying only their own file name, env var and DI token (the same `CLAUDE.md` case 5 class-factory exemption).
-  - **Not per-entity _parsing_ logic:** the BBL and TP entity import services look similar but genuinely differ in what they extract, so they stay per-tool.
-  - **Read calls for contract procedures:** `listCompetitionGroups`, backing `competitionGroups.list`.
-- **`packages/config-loader`** (shared config loading) — the source-agnostic JSON5 config-file loading (`createConfigLoaderServiceBase`) behind every import tool's config service (via `packages/import`'s `createImportConfigServiceBase`), `tools/download-tp`'s, `tools/backup-cli`'s, and `packages/review-harness`'s.
-  - `packages/review-harness` goes via its own `createReviewConfigServiceBase`, a factory over `createConfigLoaderServiceBase` in the same shape as `packages/import`'s, layering its own review-specific accessors on top; both are class factories under `CLAUDE.md`'s "Service vs. loose function" case 5.
-  - `packages/config-loader` knows nothing about what a config file contains: each caller supplies its own top-level schema, DI path token and getters.
-  - A change here changes _how_ config files are read for every config-reading tool at once; it does not define _what_ any of them accepts — each caller's own domain schema stays with the caller, not this package.
-  - It deliberately depends on no other workspace package, keeping the `tools/* → packages/*` direction intact.
-- **`packages/review-harness`** (shared review scaffolding) — used by every review tool (`tools/review-match`, `tools/review-player`, `tools/review-race`, `tools/review-star-player`); a change here reaches all review tools at once.
-  - It owns the review-run orchestration (`ReviewServiceBase`) and the report document shell (`ReportBuilderBase`).
-  - It also owns three leaf helpers shared by the tools:
-    - `ExternalSystemLookupService` (the memoized `external_systems.id` lookup by each source's shared external-system name from `packages/domain-enums`).
-    - `CharacteristicFormatService` with its none marker (rendering one characteristic for a `CharacteristicFormat` from `packages/domain-enums`), duplicated between `review-player` and `review-race` (review-match has no characteristics to format).
-    - `ManualBatchReaderService` (the mechanical reading of the hand-curated data batches: walking every batch directory and then every `.json5` file in name order, pooling each top-level array section with a missing, malformed or non-object file counted as empty, memoized per batches directory, plus the later-entry-wins `latestByKey`), used by `review-player`, `review-race` and `review-star-player` (review-match reads no curated data). It shapes no entry: each tool still reads what a curated entry means itself.
-  - Each tool's `ReviewService`/`ReportBuilderService` is a thin subclass supplying only what differs, and each tool provides the leaf helpers it uses by plain import.
-  - It deliberately carries no BBL/TP parsing or interpretation logic — raw-source parsing, comparison predicates and label tables stay duplicated per tool, see the review-tool entries below.
-- **`packages/api-contract`** (shared shapes) — newly imported data must exist in the contract before an importer can send it or a consumer can read it; a change here reaches api-server, api-client, game-data, import, import-shared and, for the TP wire shapes, parse-tp and import-tp-live together
-- **`apps/discord-bot`** (consumer) — reads imported data via `packages/game-data` and `packages/game-data-queries`; data newly landed by any importer is a candidate for a new command, fact, or insight. It is also a direct importer in its own right: the `/importtp` slash command, and the TP notification feed for every recognised notification, classify a TP URL with `packages/tp-paths`' `TpPageClassifierService` and call the matching `packages/import-tp-live` entry point in-process
-- **`tools/review-match`** (consumer, review aid) — renders raw BBL and TP source data beside imported match events, so a change to what either importer stores for match events usually needs a matching renderer change here
-  - It deliberately interprets the raw sources itself and must never depend on `packages/parse-tp` or importer logic (the mechanical file access is shared via `packages/read-bbl-mirror`, which carries no interpretation and so does not weaken that rule) (see `docs/review-match/index.md`). Depending on `packages/domain-enums` for match categories is likewise allowed, since it holds constants and types only, no interpretation.
-  - That independence rule covers the domain-specific half only; the generic report scaffolding is shared on purpose via `packages/review-harness`, where its `ReviewService` and `ReportBuilderService` subclass `ReviewServiceBase`/`ReportBuilderBase` and add only the match-result lookup and the per-match section.
-- **`tools/review-player`** (consumer, review aid) — renders raw BBL and TP source data beside imported player records in two panel pairs per player — an overview (identity, status, keywords) and a career history (SPP totals, advancements and their costs, characteristics, lasting injuries, unspent SPP), so a change to what either importer stores for players usually needs a matching renderer change here
-  - Sibling of `tools/review-match`, structured the same way and deliberately independent of it.
-  - It interprets the raw sources itself and must never depend on `packages/game-data`, `packages/parse-tp`, `packages/import`, or either importer (the mechanical file access is shared via `packages/read-bbl-mirror`, which carries no interpretation) (see `docs/review-player/index.md`).
-  - Walking the curated keyword batches is shared the same way, via `packages/review-harness`'s `ManualBatchReaderService`, which shapes no entry: every reading of what a curated keyword means stays in this tool.
-  - That independence rule covers the domain-specific half only; the generic report scaffolding is shared on purpose via `packages/review-harness`, where its `ReviewService` and `ReportBuilderService` subclass `ReviewServiceBase`/`ReportBuilderBase` and add only the per-player section.
-- **`tools/review-race`** (consumer, review aid) — renders raw BBL, TP and hand-curated source data beside imported races and their positions in two panel pairs per race — race and availability (identity, `positions_race_eras`) and position details (`position_rules_sets`, `position_rules_set_skills`, `position_rules_set_keywords`), so a change to what any of the three importers stores for races or positions usually needs a matching renderer change here
-  - Sibling of `tools/review-match` and `tools/review-player`, structured the same way.
-  - It interprets the raw sources itself and must never depend on `packages/game-data`, `packages/parse-tp`, `packages/import`, `tools/import-bbl`, `tools/import-tp` or `tools/import-manual` (the mechanical file access is shared via `packages/read-bbl-mirror`, which carries no interpretation and so needs no such callout) (see `docs/review-race/index.md`).
-  - Walking the curated batches is shared the same way, via `packages/review-harness`'s `ManualBatchReaderService`, which shapes no entry: every reading of what a curated entry means stays in this tool.
-  - That independence rule covers the domain-specific half only; the generic report scaffolding is shared on purpose via `packages/review-harness`, where its `ReviewService` and `ReportBuilderService` subclass `ReviewServiceBase`/`ReportBuilderBase` and add only the per-race section.
-  - It is the first review tool to treat the hand-curated `tools/import-manual` data as a raw source, which is why `ReviewSource` gained `'manual'`.
-- **`tools/review-star-player`** (consumer, review aid) — renders raw BBL, TP and hand-curated star data beside imported `positions`, `position_rules_sets` and `positions_race_eras`, so a change to what any of the three importers stores for star players usually needs a matching renderer change here
-  - Sibling of `tools/review-match`, `tools/review-player` and `tools/review-race`, structured the same way.
-  - It interprets the raw sources itself and must never depend on `packages/game-data`, `packages/parse-tp`, `packages/import`, `tools/import-bbl`, `tools/import-tp`, `tools/import-manual` or `tools/review-race` (the mechanical file access is shared via `packages/read-bbl-mirror`, which carries no interpretation and so needs no such callout) (see `docs/review-star-player/index.md`).
-  - Walking the curated batches is shared the same way, via `packages/review-harness`'s `ManualBatchReaderService`, which shapes no entry: every reading of what a curated entry means stays in this tool.
-  - That independence rule covers the domain-specific half only; the generic report scaffolding is shared on purpose via `packages/review-harness`.
-  - It exists because `tools/review-race` deliberately excludes star players from its per-race panels — a star is not owned by one race, so a per-race report is the wrong place to review it.
+- **`tools/download-tp`** (downloader) — fetches TP's API into local JSON files; `tools/import-tp` can only import what it recorded (and not all of that: news, classifications, honours and statistics are download-only). See [download-tp](download-tp/index.md).
+- **`packages/scrape-tp`** (shared fetching) — the one implementation of HTTP requests TP accepts, shared by `tools/download-tp` and `packages/import-tp-live`. See [scrape-tp](scrape-tp/index.md).
+- **`packages/tp-paths`** (shared TP paths) — every TP path the repo requests, and which kind of TP page a URL points to; shared by `tools/download-tp`, `packages/import-tp-live` and `apps/discord-bot`. See [tp-paths](tp-paths/index.md).
+- **`packages/parse-tp`** (shared parsing) — decodes `tools/download-tp`'s JSON for `tools/import-tp` and `packages/import-tp-live`, typed with the contract's TP wire shapes; it has no BBL counterpart. See [parse-tp](parse-tp/index.md).
+- **`packages/read-bbl-mirror`** (shared mirror access) — mechanical BBL mirror file access, without interpretation, for `tools/import-bbl` and every review tool. See [read-bbl-mirror](read-bbl-mirror/index.md).
+- **`packages/import-tp-live`** (TP import, server-side) — imports one TP roster, match, competition or official team list through `packages/game-data`; it backs both the `tp*.import` procedures and the bot's live imports, so a change reaches bulk and live imports together. See [import-tp-live](import-tp-live/index.md).
+- **`packages/import-shared`** (shared import rules) — the I/O-free rules bulk and live imports must apply identically, including the identity-critical Name ids. See [import-shared](import-shared/index.md).
+- **`packages/import`** (shared import orchestration) — used by every `tools/import-*`; a change here reaches all importers at once. See [import](import/index.md).
+- **`packages/config-loader`** (shared config loading) — how every config-reading tool reads its JSON5 file, not what it accepts. See [config-loader](config-loader/index.md).
+- **`packages/api-contract`** (shared shapes) — newly imported data must exist in the contract before an importer can send it or a consumer can read it. See [API](api/index.md#api-contract).
+- **`tools/import-bbl`** (importer, BBL source) — sibling of `tools/import-tp`: behavior added to one importer is usually wanted in the other. See [import-bbl](import-bbl/index.md).
+- **`tools/import-tp`** (importer, TP source) — reads `tools/download-tp`'s files and imports through the `tp*.import` procedures; sibling of `tools/import-bbl`. See [import-tp](import-tp/index.md).
+- **`tools/import-manual`** (importer, hand-authored data) — runs before and after the source importers and supplies entities they reference; a new entity kind often needs matching manual data. See [import-manual](import-manual/index.md).
+- **`apps/discord-bot`** (consumer) — newly imported data is a candidate for a new command, fact or insight; the bot is also a direct live TP importer. See [discord-bot](discord-bot/index.md#how-it-fits-together).
+- **`packages/discord-bot-usage`** (bot telemetry) — records what the bot was asked to do; written and read only by the bot. See [discord-bot-usage](discord-bot-usage/index.md).
+- **`packages/review-harness`** (shared review scaffolding) — the generic report scaffolding every review tool shares; it carries no BBL/TP interpretation. See [review-harness](review-harness/index.md).
+- **`tools/review-match`** (consumer, review aid) — raw source data beside imported match events; a change to what an importer stores for match events usually needs a matching renderer change here. See [review-match](review-match/index.md).
+- **`tools/review-player`** (consumer, review aid) — raw source data beside imported player records; same reciprocity for players. See [review-player](review-player/index.md).
+- **`tools/review-race`** (consumer, review aid) — raw and curated source data beside imported races and positions; same reciprocity for races and positions. See [review-race](review-race/index.md).
+- **`tools/review-star-player`** (consumer, review aid) — raw and curated source data beside imported star players; same reciprocity for star players. See [review-star-player](review-star-player/index.md).
+
+Every review tool deliberately interprets the raw sources itself and never
+depends on importer or parser logic; each page states exactly which packages
+that rules out.
 
 ## Key decisions
 
-**Drizzle in its own package.** The pre-release Drizzle dependency is isolated to `packages/db`, so the risk of breaking changes is contained to one place.
-
-- Every other workspace builds queries with the operators and types `packages/db` re-exports — and, in specs, the test-only ones on its `/test-helpers` subpath — rather than importing `drizzle-orm` itself.
-- The boundary is enforced by an automated test, not convention alone: `packages/db/src/dependency-boundary.spec.ts` scans every workspace's `package.json` and fails if anything but `packages/db` declares `drizzle-orm` or `postgres`.
-- `drizzle-orm` and `drizzle-kit` are pinned to one exact release-candidate version in `packages/db/package.json`, never a floating dist-tag such as `rc`. A new release candidate is then an explicit, reviewable version bump, never something a lockfile refresh in an unrelated PR pulls in silently. `renovate.json5` groups the two packages so they update together, restricts them to numbered releases (drizzle also publishes build-hash snapshots such as `1.0.0-rc.5-ab785fc`, which semver ranks above the numbered release they were built from), and never automerges them.
-- `AdvisoryLockService` — leader election's session-scoped Postgres advisory lock — lives in `packages/db` for the same driver-isolation reason: it needs its own `postgres.js` connection rather than drizzle's pool, and keeping it here is what lets `apps/discord-bot` declare no driver dependency at all.
-- The driver-facing helpers that more than one consumer needs live here too: `DbOrTx` (a `Db` or a transaction handle), `asBaseTable` (the generic-table widening for `.from()` and `.insert()`), and `isUniqueViolationOn`, the one classifier for a Postgres unique violation (SQLSTATE 23505) on a given table, unwrapped from drizzle's `DrizzleQueryError`. `packages/game-data` and `packages/discord-bot-usage` both use it to recover from concurrent-insert races, so the two can't classify the same error differently.
+**Drizzle in its own package.** The pre-release Drizzle dependency is isolated to `packages/db`, so the risk of breaking changes is contained to one place. An automated test enforces the boundary and the version is pinned exactly; see [db](db/index.md#why-drizzle-lives-in-its-own-package) for the details and the driver-facing helpers that live there for the same reason.
 
 **oRPC over ts-rest.** ts-rest's development had stalled — its only zod 4-compatible release was an unpromoted release candidate over a year old — which was blocking a needed zod upgrade. oRPC is actively maintained and supports zod 4.
 
@@ -380,7 +133,8 @@ crosses no dependency-direction rule.
 
 Migrations, history tracking and re-running importers are documented in
 [database.md](database.md), which links to the pages on how Star Player
-Points, characteristics and skills are stored.
+Points, characteristics and skills are stored. The package holding the schema
+is described in [db](db/index.md).
 
 ## Environment variable naming
 
@@ -422,3 +176,56 @@ string constant.
 ## Docker
 
 Each app in `apps/` has its own `Dockerfile`. The root `docker-compose.yml` defines services for PostgreSQL and each app, enabling a full local environment with a single `docker compose up`.
+
+## Workspace index
+
+Every workspace, with a link to its documentation. The monorepo's top-level
+folders are `apps/` (runnable applications), `packages/` (shared libraries
+consumed by apps and tools, not standalone) and `tools/` (developer tooling
+not shipped as part of any app).
+
+### Applications
+
+- **`apps/discord-bot`** — the Discord bot: scheduled facts, insights and deepdive slash commands, live TP imports, and the host of the RPC API. See [discord-bot](discord-bot/index.md).
+
+### Packages
+
+- **`packages/api-client`** — oRPC client for calling the hosted api-server over the network. See [api-client](api-client/index.md).
+- **`packages/api-contract`** — the oRPC contract and Zod schemas shared by server and clients. See [API](api/index.md#api-contract).
+- **`packages/api-server`** — the thin RPC transport layer the bot hosts in-process. See [API](api/index.md#api-server).
+- **`packages/config-loader`** — generic JSON5 config-file loading. See [config-loader](config-loader/index.md).
+- **`packages/db`** — Drizzle ORM schema and migrations for PostgreSQL. See [db](db/index.md).
+- **`packages/discord-bot-usage`** — records every Discord bot interaction. See [discord-bot-usage](discord-bot-usage/index.md).
+- **`packages/discord-client`** — discord.js wrapper for connecting, dispatching and posting. See [discord-client](discord-client/index.md).
+- **`packages/domain-enums`** — the single declaration of every Blood Bowl domain enum. See [domain-enums](domain-enums/index.md).
+- **`packages/game-data`** — server-side business logic and database access for core game entities. See [game-data](game-data/index.md).
+- **`packages/game-data-queries`** — read-only statistics, toplists and lookups only the bot uses. See [game-data-queries](game-data-queries/index.md).
+- **`packages/import`** — shared import orchestration for the `tools/import-*` CLIs. See [import](import/index.md).
+- **`packages/import-shared`** — the pure import rules bulk and live imports share. See [import-shared](import-shared/index.md).
+- **`packages/import-tp-live`** — server-side import of one TP roster, match, competition or official team list. See [import-tp-live](import-tp-live/index.md).
+- **`packages/logging`** — one consistent shape for logging a caught exception. See [logging](logging/index.md).
+- **`packages/parse-tp`** — reusable TP JSON parsing. See [parse-tp](parse-tp/index.md).
+- **`packages/read-bbl-mirror`** — mechanical file access to BBL's `wget` mirror. See [read-bbl-mirror](read-bbl-mirror/index.md).
+- **`packages/review-harness`** — the generic scaffolding behind the review tools. See [review-harness](review-harness/index.md).
+- **`packages/scrape-tp`** — fetching TP's API over plain HTTP. See [scrape-tp](scrape-tp/index.md).
+- **`packages/tp-paths`** — TP's URL paths and TP page classification. See [tp-paths](tp-paths/index.md).
+
+### Tools
+
+- **`tools/backup-cli`** — backs up, verifies and restores the production database. See [backup-cli](backup-cli/index.md).
+- **`tools/cli-shared`** — plumbing the CLI tools share. See [cli-shared](cli-shared/index.md).
+- **`tools/db-diagram`** — generates a SchemaSpy diagram of the local database. See [db-diagram](db-diagram/index.md).
+- **`tools/dev-workflow-cli`** — developer/PR workflow helpers the Claude Code skills call. See [dev-workflow-cli](dev-workflow-cli/index.md).
+- **`tools/download-tp`** — records TP's API responses as local JSON files. See [download-tp](download-tp/index.md).
+- **`tools/eslint-rules`** — the repo's custom ESLint rules. See [eslint-rules](eslint-rules/index.md).
+- **`tools/fs-utils-cli`** — worktree-aware filesystem helpers the Claude Code skills call. See [fs-utils-cli](fs-utils-cli/index.md).
+- **`tools/import-bbl`** — imports BBL data. See [import-bbl](import-bbl/index.md).
+- **`tools/import-manual`** — imports hand-authored supplementary data in once-applied batches. See [import-manual](import-manual/index.md).
+- **`tools/import-tp`** — imports TP data. See [import-tp](import-tp/index.md).
+- **`tools/markdownlint-rules`** — the repo's custom markdownlint rules. See [markdownlint-rules](markdownlint-rules/index.md).
+- **`tools/production-ops-cli`** — production database and tunnel operations, and fetching Discord messages. See [production-ops-cli](production-ops-cli/index.md).
+- **`tools/review-match`** — HTML report of raw match data against what was imported. See [review-match](review-match/index.md).
+- **`tools/review-player`** — HTML report of raw player data against what was imported. See [review-player](review-player/index.md).
+- **`tools/review-race`** — HTML report of raw race and position data against what was imported. See [review-race](review-race/index.md).
+- **`tools/review-star-player`** — HTML report of raw star player data against what was imported. See [review-star-player](review-star-player/index.md).
+- **`tools/workflow-lint`** — fails `pnpm lint` on a workflow action not pinned to a commit SHA. See [workflow-lint](workflow-lint/index.md).
