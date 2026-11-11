@@ -15,6 +15,7 @@ tools/import-manual/data/batches/
   002-initial-cleanup/
   003-reset-curated-names/
   004-advancement-costs/
+  005-tp-advancement-orders/
 ```
 
 A batch directory is named `NNN-<slug>`: a three-digit number and a lowercase
@@ -58,6 +59,11 @@ The batches:
   rules set, the primary and secondary skill categories of every CRP, CRP+
   and BB2016 position, and the free mutation of every Gudarnas Förkämpe
   award. It applies after the source importers; see [Batch 004](#batch-004).
+- **005-tp-advancement-orders** — hand-curated advancement orders of TP
+  players, read from the TP notification feed. It references players the TP
+  importer creates, so it applies after the source importers, in a plain
+  `apply`; the server refuses any order the player's reported spend does not
+  allow.
 
 ### Batch 004
 

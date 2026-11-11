@@ -38,22 +38,19 @@ advancements as skills plus increases, and the SPP spent.
   spent 0): the only gained skill is Loner, a free extra, so he has no paid
   advancement to order. His level is 0 and his spend is 0.
 
+- **Kalle Kvist** (Dalsland Treehuggers, line-up 586220, paid 4+2, spent
+  110), **Friska Fläkten** (Gnaget, line-up 1233619, paid 5+1, spent 104),
+  **K'Lent** (Mega Molochs, line-up 587380, paid 2+2, spent 64) and
+  **Gruamax** (Marstens IF Mrglgrlgrlgrl, line-up 1346393, paid 2+1, spent
+  32): confirmed from the TP feed, recorded in batch 005. The feed's
+  notifications cover every paid advancement of each, and the prices TP
+  charged add up to the reported spend. Notification dates: Kalle 2023-09-21
+  to 2024-04-10, Friska 2024-08-09 to 2025-05-26, K'Lent 2023-09-20 to
+  2025-12-13, Gruamax 2024-10-10 to 2024-12-03. Before the feed was read,
+  several orders fit each player's spend and nothing in the TP data placed the
+  characteristic increases.
+
 A gained Loner is a paid skill for only these two players in the whole data.
-
-## Ambiguous placement of characteristic increases
-
-For these four players several orders fit the spend at different costs, and
-nothing in the TP data places the increases.
-
-- **Kalle Kvist** (Dalsland Treehuggers, Third era, line-up 586220, paid 4+2,
-  spent 110): 48 orders fit the spend, 4 of them keep the skill id order, and
-  they give 2 distinct cost sequences.
-- **Friska Fläkten** (Gnaget, Third era, line-up 1233619, paid 5+1, spent 104):
-  600 orders fit, 5 keep the id order, and they give 5 cost sequences.
-- **K'Lent** (Mega Molochs, Third era, line-up 587380, paid 2+2, spent 64): 6
-  orders fit, all keep the id order, and they give 3 cost sequences.
-- **Gruamax** (Marstens IF Mrglgrlgrlgrl, Third era, line-up 1346393, paid
-  2+1, spent 32): 2 orders fit, giving 2 cost sequences.
 
 ## Spend not explainable by the recorded history
 
@@ -116,9 +113,56 @@ cases, and the `mercenary` field is empty for everyone.
 
 ## The TP feed
 
-The TP notification feed on Discord was checked for "New skill/characteristic"
-notifications of these players. The latest 100 feed messages (2026-10-29 to
-2026-11-10) mention none of them.
+The TP notification feed on Discord holds a "New skill/characteristic"
+notification for each advancement a player takes, with the SPP TP charged for
+it. The whole channel history was paged, 12,561 messages back to the start of
+the channel on 2022-11-22, which held 1,394 such notifications. They were
+matched to the 19 players by name and team, and read oldest first (two on the
+same day by message id). The feed's price per notification is given in stars
+below.
+
+The four players in batch 005 are listed under Resolved. For the others the
+feed shows:
+
+- **Snarg Half-Thought:** Secondary Block (10), Primary Guard (12), Primary
+  Stand Firm (16), summing to 38, the spend. The order is known, but the
+  prices are not those the cost model gives the recorded advancements, so the
+  server would refuse an order and none is curated.
+- **Ghudarshin:** Random Primary Block (3), Primary On the Ball (16), summing
+  to 19, the spend. Same: known order, no curated order.
+- **Curd And Lemon:** Secondary Pro (14), the spend. Same.
+- **Pedes Celeres:** Primary Block (14), the spend. Same.
+- **Phoneira:** Random Primary Side Step (3), Random Characteristics +1 MA
+  (20), Random Characteristics +1 MA (24), Primary Block (28), summing to 75,
+  the spend. Same.
+- **Vassili:** Primary Block (6), Random Characteristics +1 MA (20), Primary
+  Side Step (12), Primary Sprint (28), summing to 66, the spend. Same.
+- **Sergei:** Primary Tackle (6), Primary Mighty Blow (+1) (8), Primary Guard
+  (24), Primary Frenzy (16), Random Primary Dirty Player (+1) (10), summing
+  to 64, the spend. Same.
+- **Klo-Oukh:** Secondary Block (18), the spend. Same.
+- **Claudia von Drak:** the feed shows two advancements, Primary Dodge (6) and
+  Random Characteristics +1 MA (20), summing to 26, the spend, while the
+  database records one paid advancement.
+- **Nanna:** the feed shows two Random Characteristics +1 MA notifications
+  (18 and 20), summing to 38, the spend, while the database records one
+  increase.
+- **Paddan:** the feed shows three advancements, Random Primary Cannoneer (3),
+  Random Primary Pass (4) and Random Characteristics +1 PA (24), summing to
+  31, the spend, while the database records four (three skills and one
+  increase).
+- **Nadiddnur:** the feed shows only Primary Sneaky Git (8) of the spend of
+  14, so it covers one of his skills and not the others.
+- **Penthesilea:** the feed shows four of her five advancements, Random
+  Characteristics +1 MA (18), Random Characteristics +1 MA (20), Primary Sure
+  Hands (12) and Primary Accurate (28), summing to 78 of the spend of 88.
+- **Journeyman** (Elfyville Canaries): never appears in the feed.
+- **Button:** one notification, Primary Dirty Player (6), and no spent figure
+  to compare it with.
+
+For the players whose feed matches the spend but not the recorded
+advancements, the feed and the database disagree on what the player took;
+this page does not establish which is right.
 
 ## Curating an order
 

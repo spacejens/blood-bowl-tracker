@@ -162,9 +162,9 @@ describe('the importer sequence, run twice (real Postgres, real api-server)', ()
   });
 
   it('imports the batches after the stopping point with only the known errors, both times', () => {
-    // A later batch may also name trophy awards, whose players only the real
-    // BBL/TP importers create; those are the only errors allowed, and a
-    // re-run must report the same ones.
+    // A later batch may also name trophy awards and advancement orders, whose
+    // players only the real BBL/TP importers create; those are the only
+    // errors allowed, and a re-run must report the same ones.
     expect(second.later).toHaveLength(first.later.length);
     first.later.forEach((result, index) => {
       const firstMessages = messages(result.errors);
@@ -173,7 +173,7 @@ describe('the importer sequence, run twice (real Postgres, real api-server)', ()
       );
       for (const message of firstMessages) {
         expect(message).toMatch(
-          /^Cannot import award of trophy ".+": could not resolve reference (?:tloeg\.bbleague\.se|tourplay\.net)\|\d+\.$/,
+          /^Cannot import (?:award of trophy ".+"|the advancement order of player (?:tloeg\.bbleague\.se|tourplay\.net) \d+): could not resolve reference (?:tloeg\.bbleague\.se|tourplay\.net)\|\d+\.$/,
         );
       }
     });
