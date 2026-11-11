@@ -7,6 +7,27 @@ schedule, and it serves slash commands such as `/insights`. This page
 explains how to set up the bot on the Discord side and how to configure the
 application.
 
+## How it fits together
+
+- It hosts [`packages/api-server`](../api/index.md#api-server)'s `/rpc`
+  endpoint in-process; there is no separately deployed API.
+- It reads tracked data through [game-data](../game-data/index.md) and its
+  bot-only statistics and lookups through
+  [game-data-queries](../game-data-queries/index.md), in-process, without a
+  network hop. Data newly landed by any importer is a candidate for a new
+  command, fact or insight.
+- It is also a direct importer: the [`/importtp`](slash-commands/import-tp.md)
+  command and the [TP notification feed](tp-feed.md) classify a TP URL with
+  [tp-paths](../tp-paths/index.md)' `TpPageClassifierService` and call the
+  matching [import-tp-live](../import-tp-live/index.md) entry point in-process,
+  through one shared dispatch.
+- It connects to Discord through [discord-client](../discord-client/index.md)
+  and records each handled interaction, best effort, into
+  [discord-bot-usage](../discord-bot-usage/index.md) through its
+  `UsageRecordingService`.
+- Its user-facing error and status messages follow the conventions in
+  [architecture.md](../architecture.md#discord-bot-user-facing-messages).
+
 ## 1. Create a Discord application and bot
 
 1. Sign in to the [Discord Developer Portal](https://discord.com/developers/applications).

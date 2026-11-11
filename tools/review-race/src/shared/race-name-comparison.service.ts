@@ -12,7 +12,7 @@ const TEAM_SUFFIX = /\s+teams?$/;
  * tools/import-bbl's BblRaceNameService strips the same suffix for a
  * different purpose (canonicalizing a position's Name external id) and is
  * deliberately not reused here -- this package must stay independent of the
- * importers (see docs/architecture.md's review-race entry).
+ * importers (see docs/review-race/index.md).
  */
 @Injectable()
 export class RaceNameComparisonService {

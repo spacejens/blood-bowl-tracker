@@ -1,7 +1,7 @@
 # Imports
 
-Import tools (see `tools/import-<source>/` in `docs/architecture.md`) bring
-data in from upstream applications the tracker doesn't control. This page
+Import tools (see the [workspace index](../architecture.md#workspace-index))
+bring data in from upstream applications the tracker doesn't control. This page
 describes the general concepts they rely on to avoid creating duplicate
 records every time an import is re-run.
 

@@ -100,6 +100,9 @@ These run with the package's unit tests (`pnpm test`), not with
 
 ## Development
 
+Its entrypoint runs on [cli-shared](../cli-shared/index.md)'s `runCli`
+subcommand dispatcher.
+
 ```bash
 pnpm --filter @blood-bowl-tracker/workflow-lint run test        # unit tests with coverage
 pnpm --filter @blood-bowl-tracker/workflow-lint run test:watch  # unit tests in watch mode

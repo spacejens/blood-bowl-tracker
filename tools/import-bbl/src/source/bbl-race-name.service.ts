@@ -16,7 +16,7 @@ import { Injectable } from '@nestjs/common';
  * tools/review-race's RaceNameComparisonService strips the same suffix for a
  * different purpose (comparing BBL/TP race names for display, case- and
  * whitespace-insensitively) and must stay independent of this package -- see
- * docs/architecture.md's review-race entry -- so the two are not shared, only
+ * docs/review-race/index.md -- so the two are not shared, only
  * parallel.
  */
 @Injectable()
