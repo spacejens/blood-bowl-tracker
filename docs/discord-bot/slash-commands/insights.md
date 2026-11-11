@@ -294,6 +294,11 @@ deduplicated so a team that appears on multiple rows gets a single button.
   `Total SPP:` line; a competition- or match-category-scoped
   view instead sums only the scoped match events' SPP, which omits any manual
   adjustment folded into that stored total.
+- `player.toplist.trophies.won` — players ranked by number of trophies won.
+  Counts only player-level trophy awards (MVP, most casualties, ...) credited
+  to the player; team-level trophies are never counted toward any player. A
+  trophy award is not a match event, so a match category cannot scope this
+  count.
 
 Each player listed by the `player.toplist.*` facts above also gets a
 button, in the same order as the list, that opens that player's

@@ -168,6 +168,7 @@ export function stubFactTreeDeps(): FactTreeDeps {
   );
   playerToplist.resolveTimesSentOff.mockResolvedValue('player times sent off');
   playerToplist.resolveTotalSpp.mockResolvedValue('player total spp');
+  playerToplist.resolveTrophiesWon.mockResolvedValue('player trophies won');
 
   const raceToplist = mock<RaceToplistService>();
   raceToplist.resolveTeamsDescending.mockResolvedValue('race teams descending');

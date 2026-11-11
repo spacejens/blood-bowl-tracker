@@ -170,11 +170,12 @@ describe('buildFactTree competition capabilities', () => {
         factTreeNavigation.resolvePath(tree, 'player.toplist.fouls.committed'),
         factTreeNavigation.resolvePath(tree, 'player.toplist.sent_off'),
         factTreeNavigation.resolvePath(tree, 'player.toplist.totalSpp'),
+        factTreeNavigation.resolvePath(tree, 'player.toplist.trophies.won'),
         factTreeNavigation.resolvePath(tree, 'stats'),
         factTreeNavigation.resolvePath(tree, 'date.onThisDate'),
       ]),
     );
-    expect(supported).toHaveLength(34);
+    expect(supported).toHaveLength(35);
   });
 
   it('excludes the coach fouls toplist from competition filtering', () => {
@@ -265,7 +266,7 @@ describe('buildFactTree competition capabilities', () => {
 });
 
 describe('buildFactTree match category capabilities', () => {
-  it('excludes exactly the nineteen leaves that are not scoped to matches', () => {
+  it('excludes exactly the twenty leaves that are not scoped to matches', () => {
     const tree = buildFactTree(stubFactTreeDeps());
     const unsupported = factTreeNavigation
       .collectLeaves(tree)
@@ -277,6 +278,7 @@ describe('buildFactTree match category capabilities', () => {
         factTreeNavigation.resolvePath(tree, 'coach.toplist.trophies.won'),
         factTreeNavigation.resolvePath(tree, 'team.toplist.eras.active'),
         factTreeNavigation.resolvePath(tree, 'team.toplist.trophies.won'),
+        factTreeNavigation.resolvePath(tree, 'player.toplist.trophies.won'),
         factTreeNavigation.resolvePath(tree, 'race.toplist.teams.descending'),
         factTreeNavigation.resolvePath(tree, 'race.toplist.teams.ascending'),
         factTreeNavigation.resolvePath(tree, 'position.toplist.players'),
@@ -305,7 +307,7 @@ describe('buildFactTree match category capabilities', () => {
         ),
       ]),
     );
-    expect(unsupported).toHaveLength(19);
+    expect(unsupported).toHaveLength(20);
   });
 
   it('supports the match category on every other leaf', () => {
