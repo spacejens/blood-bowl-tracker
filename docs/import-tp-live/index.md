@@ -60,10 +60,9 @@ procedures use it:
   game-data's `SppAdjustmentsService` at the end of a live match or
   competition import (never of a team import alone).
 - **Match import**: `TpMatchModule`, with `TpMatchImportService` and its
-  match-context, upsert, events and outcome services, plus
-  `TpLiveMatchImportService`, `TpLiveMatchTeamsImportService`, their
-  match/bracket fetch services and `TpLiveStarPlayerHiresService` — see
-  [match-import.md](match-import.md).
+  match-context, star-player-hire, upsert, events and outcome services, plus
+  `TpLiveMatchImportService`, `TpLiveMatchTeamsImportService` and their
+  match/bracket fetch services — see [match-import.md](match-import.md).
 - **Competition import**: `TpCompetitionModule`, with
   `TpCompetitionImportService` and its upsert, participant and trophy-award
   services (the upsert is shared with the live match import), plus
@@ -232,6 +231,17 @@ confirm an order by themselves. A characteristic increase has no row id, so
 the spend is the only evidence of where it falls. A bulk snapshot has no
 stored baseline either.
 
+### Mercenary availability
+
+A mercenary Big Guy (e.g. "Giant Mercenary") appears on no TP official-list
+catalog, so where it may be fielded is derived from actual hires: after a
+roster's players are imported, every mercenary position it hired is recorded
+as available to the roster's race in the import's era (`positions_race_eras`,
+upsert-only). Bulk and live roster imports both do this. An unresolvable race
+code is one error on the `players` result, and a race the era does not list
+(no `race_eras` row) is one error per mercenary position; the players stay
+imported.
+
 ## Era resolution
 
 TP's roster names no era. An era passed explicitly is used once it is found
@@ -265,8 +275,7 @@ that way rewrites `spp_total` (raw, then settled again by the next match,
 competition or bulk import), adding history rows each way.
 Output: the `team` and `players` results, plus the team's team eras, each
 imported player's `lineUpId` → player id (and whether it was inserted) and the
-career SPP total TP reports for it, and the
-mercenary hires' position usages. The bulk importer's later steps resolve
+career SPP total TP reports for it. The bulk importer's later steps resolve
 teams and players by these. See
 [import-tp's architecture](../import-tp/index.md#architecture) for how the
 bulk run uses it. In the same call it writes each roster player's own

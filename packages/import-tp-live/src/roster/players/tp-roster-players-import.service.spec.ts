@@ -60,7 +60,7 @@ describe('TpRosterPlayersImportService', () => {
       importedPlayers: [
         { lineUpId: 5001, playerId: 700, created: true, reportedSppTotal: 12 },
       ],
-      mercenaryPositionUsages: [],
+      mercenaryPositionIds: [],
       increasesByPlayerId: new Map(),
     });
     expect(errors).toEqual([]);
@@ -325,7 +325,7 @@ describe('TpRosterPlayersImportService', () => {
     });
   });
 
-  it('emits a mercenaryPositionUsage for a mercenary hire', async () => {
+  it('emits the position id of a mercenary hire', async () => {
     const curated: MercenaryCurated = { loaded: false };
     const service = await makeService((m) => {
       m.positions.forPlayer.mockResolvedValue({
@@ -336,9 +336,7 @@ describe('TpRosterPlayersImportService', () => {
 
     const outcome = await run(service);
 
-    expect(outcome.mercenaryPositionUsages).toEqual([
-      { positionId: 55, teamRaceCode: 'orc', era: 'Fourth era' },
-    ]);
+    expect(outcome.mercenaryPositionIds).toEqual([55]);
   });
 
   it('records the upsert failure naming the player', async () => {
@@ -413,7 +411,7 @@ describe('TpRosterPlayersImportService', () => {
     expect(mocks.players.upsert.mock.calls[0][0].positionId).toBe(700);
   });
 
-  it('emits one mercenaryPositionUsage per hire, sharing the same position id', async () => {
+  it('emits one mercenary position id per hire, sharing the same position id', async () => {
     const curated: MercenaryCurated = { loaded: false };
     const service = await makeService((m) => {
       m.positions.forPlayer.mockResolvedValue({
@@ -426,18 +424,15 @@ describe('TpRosterPlayersImportService', () => {
       players: [rosterPlayer({ id: 1 }), rosterPlayer({ id: 2 })],
     });
 
-    expect(outcome.mercenaryPositionUsages).toEqual([
-      { positionId: 55, teamRaceCode: 'orc', era: 'Fourth era' },
-      { positionId: 55, teamRaceCode: 'orc', era: 'Fourth era' },
-    ]);
+    expect(outcome.mercenaryPositionIds).toEqual([55, 55]);
   });
 
-  it('emits no mercenaryPositionUsage for a regular (non-mercenary) roster player', async () => {
+  it('emits no mercenary position id for a regular (non-mercenary) roster player', async () => {
     const service = await makeService();
 
     const outcome = await run(service);
 
-    expect(outcome.mercenaryPositionUsages).toEqual([]);
+    expect(outcome.mercenaryPositionIds).toEqual([]);
   });
 
   describe('characteristics', () => {

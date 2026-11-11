@@ -1,7 +1,6 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
 import type {
-  TpOfficialCharacteristics,
   TpOfficialRace,
   TpSkillMasterName,
 } from '@blood-bowl-tracker/api-contract';
@@ -41,14 +40,6 @@ export interface OfficialTeamsFilesImportOutcome {
   keywordsResult: ImportResult;
   startingSkillsResult: ImportResult;
   skillCategoriesResult: ImportResult;
-  /**
-   * positionId -> rulesSetId -> characteristics, for the hired-star step,
-   * which uses them as a freshly hired star's template values.
-   */
-  characteristicsByPositionId: Map<
-    number,
-    Map<number, TpOfficialCharacteristics>
-  >;
   /** How long each request took, in the order they were sent. */
   requestTimings: OfficialTeamsRequestTiming[];
 }
@@ -123,7 +114,7 @@ export class TpOfficialTeamsFilesImportService {
       }
     }
 
-    const { tallies, characteristicsByPositionId } = this.chunkMerge.merge({
+    const { tallies } = this.chunkMerge.merge({
       outcomes,
       failureErrors,
     });
@@ -134,7 +125,6 @@ export class TpOfficialTeamsFilesImportService {
       keywordsResult: this.importResults.result(tallies.keywords),
       startingSkillsResult: this.importResults.result(tallies.startingSkills),
       skillCategoriesResult: this.importResults.result(tallies.skillCategories),
-      characteristicsByPositionId,
       requestTimings,
     };
   }

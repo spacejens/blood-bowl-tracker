@@ -19,7 +19,6 @@ import type { TpParticipantsBackfillResult } from './tp-competition-participants
 import { TpCompetitionParticipantsBackfillService } from './tp-competition-participants-backfill.service';
 import { TpExtraTrophyAwardsService } from './tp-extra-trophy-awards.service';
 import { TpLiveSppAdjustmentsService } from './tp-live-spp-adjustments.service';
-import { TpLiveStarPlayerHiresService } from './tp-live-star-player-hires.service';
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
 import { TpMatchDataImportService } from './tp-match-data-import.service';
 import { TpMatchEventsImportedService } from './tp-match-events-imported.service';
@@ -60,7 +59,10 @@ interface FinishCompetitionOptions {
   era: string;
   externalSystemName: string;
   competition: UpsertedTpCompetition;
-  /** Whether the import's match backfill reported errors. */
+  /**
+   * Whether the import's match backfill reported errors that block the
+   * awards (star player hire errors do not).
+   */
   matchesBackfillFailed: boolean;
 }
 
@@ -70,7 +72,11 @@ export interface TpLiveMatchImportResult {
   competition: ImportResult;
   homeTeam: TpLiveTeamImportResult;
   awayTeam: TpLiveTeamImportResult;
-  /** The star players either team hired through the match's inducements. */
+  /**
+   * The star players either team hired through the match's inducements,
+   * imported by the shared core once the competition is upserted; nothing
+   * imported when the core did not run.
+   */
   starPlayerHires: ImportResult;
   /** The match fetch, completion check, and the match row itself. */
   match: ImportResult;
@@ -112,7 +118,6 @@ export class TpLiveMatchImportService {
   constructor(
     private readonly fetcher: TpFetcherService,
     private readonly bracketFetch: TpBracketFetchService,
-    private readonly starPlayerHires: TpLiveStarPlayerHiresService,
     private readonly competitionUpsert: TpCompetitionUpsertService,
     private readonly matchData: TpMatchDataImportService,
     private readonly participantsBackfill: TpCompetitionParticipantsBackfillService,
@@ -126,10 +131,10 @@ export class TpLiveMatchImportService {
   /**
    * Import one completed match from TP's live API: fetch it, import both its
    * teams live (always, keeping their rosters current; the away team in the
-   * era the home team was imported under), import the star players either
-   * team hired through the match's inducements, fetch its tournament's whole
+   * era the home team was imported under), fetch its tournament's whole
    * bracket and upsert the competition, then import the match through the
-   * same server-side core `tpMatches.import` uses. When this import creates
+   * same server-side core `tpMatches.import` uses (which also imports the
+   * star players either team hired). When this import creates
    * the competition (or `forceMatchBackfill` is set), it then backfills the
    * competition's registered teams (with their participation links and its
    * trophy awards) and every completed match of the bracket, the requested
@@ -184,13 +189,6 @@ export class TpLiveMatchImportService {
         };
       }
 
-      const starPlayerHires = await this.starPlayerHires.importHires({
-        match: ready.match,
-        homeTeamEra: homeTeam.teamEra,
-        awayTeamEra: awayTeam.teamEra,
-        externalSystemName,
-      });
-
       const competitionErrors: ImportError[] = [];
       const bracket = await this.bracketFetch.fetchBracket({
         tournamentSlug,
@@ -216,21 +214,20 @@ export class TpLiveMatchImportService {
           ...this.nothingImported(),
           homeTeam,
           awayTeam,
-          starPlayerHires,
           competition,
         };
       }
 
-      const core = await this.matchData.writeMatch({
-        match: ready.match,
-        bracket,
-        externalSystemName,
-      });
+      const { hiredStarPlayers: _hired, ...core } =
+        await this.matchData.writeMatch({
+          match: ready.match,
+          bracket,
+          externalSystemName,
+        });
       const imported: TpLiveMatchImportResult = {
         competition,
         homeTeam,
         awayTeam,
-        starPlayerHires,
         ...core,
         sppAdjustments: this.importResults.result({ imported: 0, errors: [] }),
       };
@@ -269,7 +266,7 @@ export class TpLiveMatchImportService {
             era: ready.era,
             externalSystemName,
             competition: upserted,
-            matchesBackfillFailed: matchesBackfill.errors.length > 0,
+            matchesBackfillFailed: backfilledMatches.awardsBlocked,
           })
         : this.importResults.result({ imported: 0, errors: [] });
       const sppAdjustments = await this.settleSpp(
@@ -312,8 +309,8 @@ export class TpLiveMatchImportService {
    * then award the trophies TP does not record. A failed re-upsert is
    * reported but does not stop the awards, which need only the
    * competition's id. The awards are skipped, with one recorded error, when
-   * the match backfill reported errors: a missing match would skew them for
-   * good. That never holds back the end date.
+   * the match backfill reported blocking errors (any but star player hire
+   * errors): a missing match would skew them for good. That never holds back the end date.
    */
   private async finishCompetition({
     tournamentSlug,

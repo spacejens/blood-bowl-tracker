@@ -18,7 +18,6 @@ describe('RpcRouterFactoryService tpRosters router', () => {
       importedPlayers: [
         { lineUpId: 5001, playerId: 700, created: true, reportedSppTotal: 12 },
       ],
-      mercenaryPositionUsages: [],
     };
     harness.mocks.tpRosterImportService.importRawRoster.mockResolvedValue(
       outcome,

@@ -133,9 +133,8 @@ and skipped. Their coach is upserted server-side, from `coachTpId` and
 genuine coach-upsert failure records an error and skips the team.
 
 **Players** import every roster's `players`
-entry: each resolves a team era (roster id + era, via
-`teamErasByRosterId`) and a position server-side, by `lineUpMasterId`,
-against whatever `TpOfficialPositionsUpsertService` upserted from the
+entry: each resolves a team era (roster id + era) and a position
+server-side, by `lineUpMasterId`, against whatever `TpOfficialPositionsUpsertService` upserted from the
 official team list. If that lookup fails but the player is flagged
 `isBigGuy: true` (a mercenary Big Guy hire like "Giant", with no catalog
 entry in either `rosterMaster` array at all — see "Still not handled" below
@@ -168,15 +167,11 @@ player id — the standalone file's data wins on conflict for a given id
 standalone file doesn't list. **Hired star players** — named via an
 `inducements_roll` match event's `extraData.starPlayers[]` (see
 [`match_<id>.json`](./file-format-match.md)), not via any field on the
-roster file itself — are imported separately, by `tools/import-tp`'s
-`TpInducedStarPlayersStepService`. Each hired star player
-gets one reused `isStarPlayer: true` Position (a bare-name TP external id)
-and a Player scoped to the hiring roster's team-era for the era the hiring
-match's competition belongs to. Returns `starPlayerIdsByRosterAndMaster`
-(keyed `` `${rosterId}:${lineUpMasterId}` ``); as of this writing no
-match-event type references a player by `lineUpMasterId` (touchdown/injury
-use `lineUpId`), so this map is currently unconsumed downstream — kept for a
-future event type that would need it.
+roster file itself — are imported server-side, inside `tpMatches.import` (see
+[import-tp-live's star player hires](../import-tp-live/match-import.md#star-player-hires)).
+Each hired star player gets one reused `isStarPlayer: true` Position (a
+bare-name TP external id) and a Player scoped to the hiring roster's team-era
+for the era the hiring match's competition belongs to.
 
 **Embedded roster star players** (permanently on a roster's line-up, as
 opposed to the ones hired for a single match via `inducements_roll`): the

@@ -74,15 +74,24 @@ describe('ImportTpMatchSchema', () => {
 });
 
 describe('TpMatchImportResultSchema', () => {
-  it('accepts one ImportResult per stage', () => {
-    const ok = { success: true, imported: 1, errors: [] };
-    expect(
-      TpMatchImportResultSchema.safeParse({
-        match: ok,
-        participation: ok,
-        events: { ...ok, imported: 14 },
-        outcome: ok,
-      }).success,
-    ).toBe(true);
+  const ok = { success: true, imported: 1, errors: [] };
+  const full = {
+    match: ok,
+    participation: ok,
+    starPlayerHires: ok,
+    events: { ...ok, imported: 14 },
+    outcome: ok,
+    hiredStarPlayers: [{ playerId: 900, created: true }],
+  };
+
+  it('accepts one ImportResult per stage plus the hired star players', () => {
+    expect(TpMatchImportResultSchema.safeParse(full).success).toBe(true);
+  });
+
+  it('requires the star player hires stage and the hired star players', () => {
+    const { starPlayerHires: _s, ...noStage } = full;
+    const { hiredStarPlayers: _h, ...noPlayers } = full;
+    expect(TpMatchImportResultSchema.safeParse(noStage).success).toBe(false);
+    expect(TpMatchImportResultSchema.safeParse(noPlayers).success).toBe(false);
   });
 });

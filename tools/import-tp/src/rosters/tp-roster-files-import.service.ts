@@ -1,10 +1,8 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
 import type {
-  TeamEra,
   TpImportedPlayer,
   TpMatchEmbeddedPlayer,
-  TpMercenaryPositionUsage,
   TpRosterImportResult,
   UnspentSppSnapshot,
 } from '@blood-bowl-tracker/api-contract';
@@ -29,13 +27,10 @@ export interface ImportRosterFilesOptions {
 export interface RosterFilesImportOutcome {
   teamResult: ImportResult;
   playerResult: ImportResult;
-  /** Each imported team's team eras, by roster id. */
-  teamErasByRosterId: Map<number, TeamEra[]>;
   /** DB player id by TP `lineUps[].id`, for the match-events step. */
   playerIdsByLineUpId: Map<number, number>;
   /** Players this run inserted, for the lasting-injury history backfill. */
   insertedPlayerIds: number[];
-  mercenaryPositionUsages: TpMercenaryPositionUsage[];
   /**
    * The career SPP total TP reports per DB player id, the highest across
    * every roster import of the player, for the reported-adjustments step.
@@ -75,12 +70,10 @@ export class TpRosterFilesImportService {
     const seenPlayerErrors = new Set<string>();
     let teamsImported = 0;
     let playersImported = 0;
-    const teamErasByRosterId = new Map<number, TeamEra[]>();
     const playerIdsByLineUpId = new Map<number, number>();
     const insertedPlayerIds: number[] = [];
     const reportedSppTotalsByPlayerId = new Map<number, number>();
     const unspentSppSnapshotsByPlayerId = new Map<number, UnspentSppSnapshot>();
-    const mercenaryPositionUsages: TpMercenaryPositionUsage[] = [];
 
     for (const entry of this.distinctByEraAndRoster(rosters)) {
       const rosterId = entry.roster.id;
@@ -109,14 +102,6 @@ export class TpRosterFilesImportService {
       this.pushDistinct(teamErrors, seenTeamErrors, outcome.team.errors);
       playersImported += outcome.players.imported;
       this.pushDistinct(playerErrors, seenPlayerErrors, outcome.players.errors);
-      if (outcome.teamEras.length > 0) {
-        const known = teamErasByRosterId.get(rosterId) ?? [];
-        const knownIds = new Set(known.map((row) => row.id));
-        teamErasByRosterId.set(rosterId, [
-          ...known,
-          ...outcome.teamEras.filter((row) => !knownIds.has(row.id)),
-        ]);
-      }
       for (const player of outcome.importedPlayers) {
         playerIdsByLineUpId.set(player.lineUpId, player.playerId);
         reportedSppTotalsByPlayerId.set(
@@ -131,7 +116,6 @@ export class TpRosterFilesImportService {
           insertedPlayerIds.push(player.playerId);
         }
       }
-      mercenaryPositionUsages.push(...outcome.mercenaryPositionUsages);
     }
 
     return {
@@ -143,10 +127,8 @@ export class TpRosterFilesImportService {
         imported: playersImported,
         errors: playerErrors,
       }),
-      teamErasByRosterId,
       playerIdsByLineUpId,
       insertedPlayerIds,
-      mercenaryPositionUsages,
       reportedSppTotalsByPlayerId,
       unspentSppSnapshotsByPlayerId,
     };

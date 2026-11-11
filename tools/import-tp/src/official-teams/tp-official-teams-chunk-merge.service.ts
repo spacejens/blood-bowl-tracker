@@ -1,7 +1,4 @@
-import type {
-  TpOfficialCharacteristics,
-  TpOfficialTeamsImportResult,
-} from '@blood-bowl-tracker/api-contract';
+import type { TpOfficialTeamsImportResult } from '@blood-bowl-tracker/api-contract';
 import type { ImportError } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
@@ -43,11 +40,6 @@ export interface MergeOfficialTeamsChunksOptions {
 /** Every request's results merged into one per stage. */
 export interface MergedOfficialTeamsChunks {
   tallies: Record<OfficialTeamsStage, OfficialTeamsStageTally>;
-  /** positionId -> rulesSetId -> characteristics. */
-  characteristicsByPositionId: Map<
-    number,
-    Map<number, TpOfficialCharacteristics>
-  >;
 }
 
 /** An error's identity for de-duplication, scoped to its rules set and stage. */
@@ -70,8 +62,7 @@ export class TpOfficialTeamsChunkMergeService {
    * several requests is kept once: an exact repeat (same item and message),
    * or a gap the server reports once per request naming the position it was
    * "first seen on" (an item with a `position` plus a `keywordCode` or
-   * `skillMasterId`), which is identified without that position. Collects
-   * every position's characteristics by position and rules set id.
+   * `skillMasterId`), which is identified without that position.
    */
   merge({
     outcomes,
@@ -85,10 +76,6 @@ export class TpOfficialTeamsChunkMergeService {
       startingSkills: { imported: 0, errors: [] },
       skillCategories: { imported: 0, errors: [] },
     };
-    const characteristicsByPositionId = new Map<
-      number,
-      Map<number, TpOfficialCharacteristics>
-    >();
     const seen = new Set<string>();
     for (const { rulesSet, outcome } of outcomes) {
       for (const stage of OFFICIAL_TEAMS_STAGES) {
@@ -101,20 +88,8 @@ export class TpOfficialTeamsChunkMergeService {
           }
         }
       }
-      for (const {
-        positionId,
-        rulesSetId,
-        ...characteristics
-      } of outcome.positionCharacteristics) {
-        let byRulesSetId = characteristicsByPositionId.get(positionId);
-        if (byRulesSetId === undefined) {
-          byRulesSetId = new Map();
-          characteristicsByPositionId.set(positionId, byRulesSetId);
-        }
-        byRulesSetId.set(rulesSetId, characteristics);
-      }
     }
-    return { tallies, characteristicsByPositionId };
+    return { tallies };
   }
 
   private dedupeKey({ rulesSet, stage, error }: DedupeKeyOptions): string {

@@ -61,7 +61,7 @@ when an earlier one fails:
 8. **Award the extra trophies**: only once the competition is imported and
    finished, meaning step 5 returned at least one award.
    - The trophies TP does not record itself (`max_count`, `max_spp_sum` and `career_threshold` rules) are computed by game-data's `MissingTrophyAwardsService`, the same service `tools/import-tp`'s bulk run calls at its end.
-   - This runs after step 7 and is skipped, with one error in `extraTrophyAwards`, when step 7 reported errors: a trophy already awarded is never recomputed, so an award computed while a match is missing would stay wrong.
+   - This runs after step 7 and is skipped, with one error in `extraTrophyAwards`, when step 7 reported errors other than star player hire errors (a failed hire leaves its match imported, so it does not skew the awards): a trophy already awarded is never recomputed, so an award computed while a match is missing would stay wrong.
    - When no backfill ran in this import (a plain re-import of an existing competition), the step relies on the matches imported earlier, and cannot tell whether any is missing.
    - The step is idempotent, so re-importing is harmless.
 9. **Settle the players' SPP**: once the competition is imported, every
@@ -98,7 +98,7 @@ The result carries:
 - `teams`: one live team import result per registered team, with its `rosterId`.
 - `era`: the era the competition was imported under — the given one or the one the teams agreed on — or undefined when the import stopped before settling one.
 - When step 7 ran, `matchesBackfill`: one `ImportResult` counting the matches written and holding every backfilled match's errors.
-- `extraTrophyAwards`: one `ImportResult` counting the awards step 8 created (nothing imported when it did not run, and one error when it was skipped because step 7 reported errors).
+- `extraTrophyAwards`: one `ImportResult` counting the awards step 8 created (nothing imported when it did not run, and one error when it was skipped because step 7 reported errors other than star player hire errors).
 - `sppAdjustments`: one `ImportResult` counting the players step 9 settled (nothing imported when the competition was not imported).
 
 A team whose coach was never imported before is still imported: the live
@@ -203,4 +203,4 @@ as `TpBlockedError` and which stops it at once, mid-backfill included (see
 | Trophy award upsert failure                                                                                                         | `trophyAwards`                                        |
 | A backfilled match's fetch, team import or write fails; live only                                                                   | `matchesBackfill`; the other matches still import     |
 | Computing the extra trophy awards fails; live only                                                                                  | `extraTrophyAwards`; TP's own awards stay recorded    |
-| The match backfill reported errors, so the extra trophy awards are skipped; live only                                               | `extraTrophyAwards`; nothing awarded                  |
+| The match backfill reported errors other than star player hire errors, so the extra trophy awards are skipped; live only            | `extraTrophyAwards`; nothing awarded                  |

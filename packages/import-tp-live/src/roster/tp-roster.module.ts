@@ -25,6 +25,7 @@ import { TpCharacteristicIncreasesService } from './players/tp-characteristic-in
 import { TpLastingInjuryBuilderService } from './players/tp-lasting-injury-builder.service';
 import { TpLiveAdvancementSyncService } from './players/tp-live-advancement-sync.service';
 import { TpMercenaryCharacteristicsService } from './players/tp-mercenary-characteristics.service';
+import { TpMercenaryRaceErasSyncService } from './players/tp-mercenary-race-eras-sync.service';
 import { TpPlayerCharacteristicsBuilderService } from './players/tp-player-characteristics-builder.service';
 import { TpPlayerPositionService } from './players/tp-player-position.service';
 import { TpPlayerStatusService } from './players/tp-player-status.service';
@@ -69,6 +70,7 @@ import { TpRosterImportService } from './tp-roster-import.service';
     TpRosterPlayersImportService,
     TpPlayerPositionService,
     TpMercenaryCharacteristicsService,
+    TpMercenaryRaceErasSyncService,
     TpCharacteristicIncreasesService,
     TpPlayerCharacteristicsBuilderService,
     TpLastingInjuryBuilderService,

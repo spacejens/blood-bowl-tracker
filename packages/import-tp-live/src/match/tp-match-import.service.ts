@@ -16,6 +16,8 @@ import { TpMatchEventsUpsertService } from './events/tp-match-events-upsert.serv
 import { TpMatchContextService } from './tp-match-context.service';
 import { TpMatchOutcomeService } from './tp-match-outcome.service';
 import { TpMatchUpsertService } from './tp-match-upsert.service';
+import type { TpStarPlayerHiresOutcome } from './tp-star-player-hires.service';
+import { TpStarPlayerHiresService } from './tp-star-player-hires.service';
 
 /** Options for {@link TpMatchImportService.importMatch}. */
 export interface ImportMatchOptions {
@@ -37,6 +39,13 @@ export interface ImportRawMatchOptions extends Omit<
   content: unknown;
 }
 
+/** Options for {@link TpMatchImportService.notImported}. */
+interface NotImportedOptions {
+  matchErrors: ImportError[];
+  /** The hires already imported, when the context resolved. */
+  hires?: TpStarPlayerHiresOutcome;
+}
+
 /**
  * Imports one TP match straight into the database: the shared core of the
  * live import (TpLiveMatchImportService) and the `tpMatches.import`
@@ -53,6 +62,7 @@ export class TpMatchImportService {
     private readonly matchUpsert: TpMatchUpsertService,
     private readonly eventsUpsert: TpMatchEventsUpsertService,
     private readonly outcome: TpMatchOutcomeService,
+    private readonly starPlayerHires: TpStarPlayerHiresService,
     private readonly importResults: ImportResultService,
     private readonly runner: UpsertRecorderService,
   ) {}
@@ -66,22 +76,26 @@ export class TpMatchImportService {
     try {
       match = this.matchParser.parse(content);
     } catch (error) {
-      return this.notImported([
-        this.importResults.error({
-          item: { competition: options.competitionTpId },
-          message: `Could not parse TP match: ${this.runner.messageOf(error)}`,
-        }),
-      ]);
+      return this.notImported({
+        matchErrors: [
+          this.importResults.error({
+            item: { competition: options.competitionTpId },
+            message: `Could not parse TP match: ${this.runner.messageOf(error)}`,
+          }),
+        ],
+      });
     }
     return this.importMatch({ match, ...options });
   }
 
   /**
-   * Resolves the match's context, upserts the match, links its teams, then
-   * imports its events and resolves its outcome. A stage whose prerequisite
-   * failed is not attempted and reports nothing imported: nothing is
-   * imported without a context or a match row, and events and outcome need
-   * the match's teams linked.
+   * Resolves the match's context, imports the star players either team hired
+   * through its inducements (TpStarPlayerHiresService; once the context
+   * resolves, whether or not the match row is then written), upserts the
+   * match, links its teams, then imports its events and resolves its
+   * outcome. A stage whose prerequisite failed is not attempted and reports
+   * nothing imported: nothing is imported without a context or a match row,
+   * and events and outcome need the match's teams linked.
    */
   async importMatch({
     match,
@@ -97,8 +111,13 @@ export class TpMatchImportService {
       errors: matchErrors,
     });
     if (context === undefined) {
-      return this.notImported(matchErrors);
+      return this.notImported({ matchErrors });
     }
+    const hires = await this.starPlayerHires.importHires({ match, context });
+    const hireStages = {
+      starPlayerHires: hires.result,
+      hiredStarPlayers: hires.hiredStarPlayers,
+    };
     const matchId = await this.matchUpsert.upsertMatch({
       match,
       bracket,
@@ -106,7 +125,7 @@ export class TpMatchImportService {
       errors: matchErrors,
     });
     if (matchId === undefined) {
-      return this.notImported(matchErrors);
+      return this.notImported({ matchErrors, hires });
     }
     const matchResult = this.importResults.result({
       imported: 1,
@@ -127,6 +146,7 @@ export class TpMatchImportService {
       return {
         match: matchResult,
         participation,
+        ...hireStages,
         events: this.nothing(),
         outcome: this.nothing(),
       };
@@ -149,6 +169,7 @@ export class TpMatchImportService {
     return {
       match: matchResult,
       participation,
+      ...hireStages,
       events: this.importResults.result({
         imported: eventsImported,
         errors: eventErrors,
@@ -160,10 +181,15 @@ export class TpMatchImportService {
     };
   }
 
-  private notImported(matchErrors: ImportError[]): TpMatchImportResult {
+  private notImported({
+    matchErrors,
+    hires,
+  }: NotImportedOptions): TpMatchImportResult {
     return {
       match: this.importResults.result({ imported: 0, errors: matchErrors }),
       participation: this.nothing(),
+      starPlayerHires: hires?.result ?? this.nothing(),
+      hiredStarPlayers: hires?.hiredStarPlayers ?? [],
       events: this.nothing(),
       outcome: this.nothing(),
     };

@@ -166,11 +166,20 @@ describe('TpRosterImportResultSchema', () => {
             reportedSppTotal: 12,
           },
         ],
-        mercenaryPositionUsages: [
-          { positionId: 55, teamRaceCode: 'orc', era: 'Fourth era' },
-        ],
       }).success,
     ).toBe(true);
+  });
+
+  it('drops a mercenaryPositionUsages field, which is not part of the result', () => {
+    const empty = { success: true, imported: 0, errors: [] };
+    const parsed = TpRosterImportResultSchema.parse({
+      team: empty,
+      players: empty,
+      teamEras: [],
+      importedPlayers: [],
+      mercenaryPositionUsages: [],
+    });
+    expect(parsed).not.toHaveProperty('mercenaryPositionUsages');
   });
 
   it('TpImportedPlayerSchema carries an optional unspent snapshot', () => {

@@ -17,11 +17,7 @@ import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { mockImportResultService } from '../import-package.test-helpers';
 import { MonotonicClockService } from './monotonic-clock.service';
-import {
-  officialRace,
-  racePositions,
-  STATS,
-} from './official-teams.test-helpers';
+import { officialRace, racePositions } from './official-teams.test-helpers';
 import { TpOfficialStarNormalizerService } from './tp-official-star-normalizer.service';
 import type { MergedOfficialTeamsChunks } from './tp-official-teams-chunk-merge.service';
 import { TpOfficialTeamsChunkMergeService } from './tp-official-teams-chunk-merge.service';
@@ -82,7 +78,6 @@ function merged(): MergedOfficialTeamsChunks {
       startingSkills: tally(5),
       skillCategories: tally(6),
     },
-    characteristicsByPositionId: new Map([[9, new Map([[20, STATS]])]]),
   };
 }
 
@@ -372,7 +367,7 @@ describe('TpOfficialTeamsFilesImportService', () => {
     ]);
   });
 
-  it('reports one result per stage from the merged tallies, and the merged characteristics', async () => {
+  it('reports one result per stage from the merged tallies', async () => {
     const result = await service.importOfficialTeams({
       officialTeams: [{ race: ORC, rulesSet: 'BB2020' }],
       skillMastersByMasterId: new Map(),
@@ -388,9 +383,6 @@ describe('TpOfficialTeamsFilesImportService', () => {
     ]);
     expect(result.racesResult).toBe(CANNED_RESULT);
     expect(result.skillCategoriesResult).toBe(CANNED_RESULT);
-    expect(result.characteristicsByPositionId).toEqual(
-      new Map([[9, new Map([[20, STATS]])]]),
-    );
   });
 
   it('sends nothing when there is no official team list', async () => {

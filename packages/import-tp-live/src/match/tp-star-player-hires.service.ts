@@ -2,7 +2,7 @@ import type {
   ExternalId,
   ImportError,
   ImportResult,
-  TeamEra,
+  TpHiredStarPlayer,
 } from '@blood-bowl-tracker/api-contract';
 import { NAME_EXTERNAL_SYSTEM } from '@blood-bowl-tracker/domain-enums';
 import {
@@ -23,52 +23,61 @@ import type {
 import { TpStarHireKeyService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-/** Options for {@link TpLiveStarPlayerHiresService.importHires}. */
+import type { TpMatchContext } from './tp-match-context.service';
+
+/** Options for {@link TpStarPlayerHiresService.importHires}. */
 export interface ImportStarPlayerHiresOptions {
   match: TpMatch;
-  /** The home team's imported team era; undefined when it has none. */
-  homeTeamEra: TeamEra | undefined;
-  /** The away team's imported team era; undefined when it has none. */
-  awayTeamEra: TeamEra | undefined;
-  /** The name TP's external system is registered under. */
-  externalSystemName: string;
+  /** The match's resolved context: its TP system, era and both team eras. */
+  context: TpMatchContext;
+}
+
+/** What {@link TpStarPlayerHiresService.importHires} did. */
+export interface TpStarPlayerHiresOutcome {
+  /** `imported` counts the hired players upserted. */
+  result: ImportResult;
+  /** Every hired player upserted, each once. */
+  hiredStarPlayers: TpHiredStarPlayer[];
 }
 
 /** One star player hired by one roster in the match. */
 interface StarPlayerHire {
   rosterId: number;
-  /** The hiring side's team era; undefined when it cannot be resolved. */
-  teamEra: TeamEra | undefined;
+  /** The hiring side's team era; undefined for a roster on neither side. */
+  teamEraId: number | undefined;
   starPlayer: TpInducedStarPlayer;
 }
 
+/** The two external systems a hire is keyed under. */
 interface SystemIds {
   tpSystemId: number;
   nameSystemId: number;
 }
 
-/** Options for {@link TpLiveStarPlayerHiresService.importHire}. */
+/** Options for {@link TpStarPlayerHiresService.importHire}. */
 interface ImportHireOptions {
   hire: StarPlayerHire;
-  systemIds: SystemIds;
+  context: TpMatchContext;
+  nameSystemId: number;
   errors: ImportError[];
 }
 
 /**
- * Imports the star players a live-imported match's teams hired through an
- * `inducements_roll` event. A hired star is on no roster, so the match's
- * own events are the only place the hire shows up. Each hire upserts the
- * star's position (keyed exactly like the official team list import keys a
- * star: its bare name as a TP id plus its Name id, so both land on one row)
+ * Imports the star players a match's teams hired through an
+ * `inducements_roll` event: a step of every match import, bulk
+ * (`tpMatches.import`) and live alike. A hired star is on no roster, so the
+ * match's own events are the only place the hire shows up. Each hire upserts
+ * the star's position (keyed exactly like the official team list import keys
+ * a star: its bare name as a TP id plus its Name id, so both land on one row)
  * and a player in the hiring team's era, keyed by the TP id
- * packages/parse-tp's TpStarHireKeyService builds for the hire -- the key
- * tools/import-tp's bulk hire pass uses too. A freshly hired
- * star has no stat line of its own, so the position's catalog baseline for
- * the hiring era is used. Every failure is one ImportError for that hire;
- * the other hires are still imported.
+ * packages/parse-tp's TpStarHireKeyService builds for the hire, so
+ * re-importing a hire updates one row. A freshly hired star has no stat line
+ * of its own, so the position's catalog baseline for the match's era is used;
+ * the official team list must already be imported. Every failure is one
+ * ImportError for that hire; the other hires are still imported.
  */
 @Injectable()
-export class TpLiveStarPlayerHiresService {
+export class TpStarPlayerHiresService {
   constructor(
     private readonly externalSystems: ExternalSystemsService,
     private readonly positions: PositionsService,
@@ -82,47 +91,63 @@ export class TpLiveStarPlayerHiresService {
 
   /**
    * Imports every distinct `(rosterId, lineUpMasterId)` hire in the match.
-   * A match hiring no star touches nothing, not even the external systems.
-   * `imported` counts the hired players upserted.
+   * A match hiring no star touches nothing, not even the Name system.
    */
-  async importHires(
-    options: ImportStarPlayerHiresOptions,
-  ): Promise<ImportResult> {
+  async importHires({
+    match,
+    context,
+  }: ImportStarPlayerHiresOptions): Promise<TpStarPlayerHiresOutcome> {
     const errors: ImportError[] = [];
-    const hires = this.collectHires(options);
+    const hiredStarPlayers: TpHiredStarPlayer[] = [];
+    const outcome = (): TpStarPlayerHiresOutcome => ({
+      result: this.importResults.result({
+        imported: hiredStarPlayers.length,
+        errors,
+      }),
+      hiredStarPlayers,
+    });
+    const hires = this.collectHires(match, context);
     if (hires.length === 0) {
-      return this.importResults.result({ imported: 0, errors });
+      return outcome();
     }
-    const systemIds = await this.resolveSystemIds(
-      options.externalSystemName,
+    const nameSystem = await this.runner.record({
+      run: () => this.externalSystems.upsert(NAME_EXTERNAL_SYSTEM),
+      item: { externalSystems: [NAME_EXTERNAL_SYSTEM.name] },
       errors,
-    );
-    if (systemIds === undefined) {
-      return this.importResults.result({ imported: 0, errors });
+      buildErrorMessage: (error) => this.runner.messageOf(error),
+    });
+    if (nameSystem === undefined) {
+      return outcome();
     }
-    let imported = 0;
     for (const hire of hires) {
-      if (await this.importHire({ hire, systemIds, errors })) {
-        imported += 1;
+      const hired = await this.importHire({
+        hire,
+        context,
+        nameSystemId: nameSystem.system.id,
+        errors,
+      });
+      if (hired !== undefined) {
+        hiredStarPlayers.push(hired);
       }
     }
-    return this.importResults.result({ imported, errors });
+    return outcome();
   }
 
   /** Every distinct hire, in event order, deduplicated by roster and master id. */
   private collectHires(
-    options: ImportStarPlayerHiresOptions,
+    match: TpMatch,
+    context: TpMatchContext,
   ): StarPlayerHire[] {
     const hires = new Map<string, StarPlayerHire>();
-    for (const event of options.match.matchEvents) {
+    for (const event of match.matchEvents) {
       if (event.type !== 'inducements_roll') {
         continue;
       }
-      const teamEra = this.teamEraFor(event.rosterId, options);
+      const teamEraId = this.teamEraIdFor(event.rosterId, match, context);
       for (const starPlayer of event.starPlayers) {
         const key = `${event.rosterId}:${starPlayer.lineUpMasterId}`;
         if (!hires.has(key)) {
-          hires.set(key, { rosterId: event.rosterId, teamEra, starPlayer });
+          hires.set(key, { rosterId: event.rosterId, teamEraId, starPlayer });
         }
       }
     }
@@ -130,57 +155,39 @@ export class TpLiveStarPlayerHiresService {
   }
 
   /** The hiring side's team era, by whichever side's TP roster id matches. */
-  private teamEraFor(
+  private teamEraIdFor(
     rosterId: number,
-    { match, homeTeamEra, awayTeamEra }: ImportStarPlayerHiresOptions,
-  ): TeamEra | undefined {
+    match: TpMatch,
+    context: TpMatchContext,
+  ): number | undefined {
     if (rosterId === match.homeTeamTpId) {
-      return homeTeamEra;
+      return context.homeTeamEraId;
     }
     if (rosterId === match.awayTeamTpId) {
-      return awayTeamEra;
+      return context.awayTeamEraId;
     }
     return undefined;
   }
 
-  private resolveSystemIds(
-    externalSystemName: string,
-    errors: ImportError[],
-  ): Promise<SystemIds | undefined> {
-    return this.runner.record({
-      run: async () => {
-        const tp = await this.externalSystems.upsert({
-          name: externalSystemName,
-          category: 'imported_data_source',
-        });
-        const name = await this.externalSystems.upsert(NAME_EXTERNAL_SYSTEM);
-        return { tpSystemId: tp.system.id, nameSystemId: name.system.id };
-      },
-      item: {
-        externalSystems: [externalSystemName, NAME_EXTERNAL_SYSTEM.name],
-      },
-      errors,
-      buildErrorMessage: (error) => this.runner.messageOf(error),
-    });
-  }
-
-  /** Imports one hire; true when its player was upserted. */
+  /** Imports one hire; its player when upserted. */
   private async importHire({
     hire,
-    systemIds,
+    context,
+    nameSystemId,
     errors,
-  }: ImportHireOptions): Promise<boolean> {
-    const { rosterId, teamEra, starPlayer } = hire;
+  }: ImportHireOptions): Promise<TpHiredStarPlayer | undefined> {
+    const { rosterId, teamEraId, starPlayer } = hire;
     const { name, lineUpMasterId } = starPlayer;
+    const { tpSystemId, eraId } = context;
     const item = { rosterId, lineUpMasterId, starPlayer: name };
-    if (teamEra === undefined) {
+    if (teamEraId === undefined) {
       errors.push(
         this.importResults.error({
           item,
           message: `Skipped hired star player "${name}" (roster ${rosterId}): could not resolve the hiring team era`,
         }),
       );
-      return false;
+      return undefined;
     }
 
     const upserted = await this.runner.record({
@@ -188,7 +195,10 @@ export class TpLiveStarPlayerHiresService {
         this.positions.upsert({
           name,
           isStarPlayer: true,
-          externalIds: this.positionExternalIds(name, systemIds),
+          externalIds: this.positionExternalIds(name, {
+            tpSystemId,
+            nameSystemId,
+          }),
         }),
       item,
       errors,
@@ -196,50 +206,49 @@ export class TpLiveStarPlayerHiresService {
         `Failed to upsert star player position "${name}": ${this.runner.messageOf(error)}`,
     });
     if (upserted === undefined) {
-      return false;
+      return undefined;
     }
     const positionId = upserted.position.id;
 
     // Wrapped so a lookup that found nothing is told apart from one that threw.
     const lookup = await this.runner.record({
       run: async () => ({
-        context: await this.positionRulesSets.findCharacteristicsContext(
+        found: await this.positionRulesSets.findCharacteristicsContext(
           positionId,
-          teamEra.eraId,
+          eraId,
         ),
       }),
       item,
       errors,
       buildErrorMessage: (error) =>
-        `Failed to look up the characteristics of star player position "${name}" (position ${positionId}, era ${teamEra.eraId}): ${this.runner.messageOf(error)}`,
+        `Failed to look up the characteristics of star player position "${name}" (position ${positionId}, era ${eraId}): ${this.runner.messageOf(error)}`,
     });
     if (lookup === undefined) {
-      return false;
+      return undefined;
     }
-    const { context } = lookup;
-    const baseline = context?.baseline;
-    if (context === undefined || baseline === undefined) {
+    const baseline = lookup.found?.baseline;
+    if (lookup.found === undefined || baseline === undefined) {
       errors.push(
         this.importResults.error({
           item,
-          message: `Skipped hired star player "${name}" (roster ${rosterId}): position ${positionId} has no catalog characteristics in era ${teamEra.eraId}; import the official team list first`,
+          message: `Skipped hired star player "${name}" (roster ${rosterId}): position ${positionId} has no catalog characteristics in era ${eraId}; import the official team list first`,
         }),
       );
-      return false;
+      return undefined;
     }
-    const { rulesSetId } = context;
+    const { rulesSetId } = lookup.found;
 
     const player = await this.runner.record({
       run: () =>
         this.players.upsert({
           name,
-          teamEraId: teamEra.id,
+          teamEraId,
           positionId,
           ...baseline,
           rulesSetId,
           externalIds: [
             {
-              externalSystemId: systemIds.tpSystemId,
+              externalSystemId: tpSystemId,
               externalId: this.starHireKey.externalId({
                 rosterId,
                 lineUpMasterId,
@@ -252,7 +261,9 @@ export class TpLiveStarPlayerHiresService {
       buildErrorMessage: (error) =>
         `Failed to upsert hired star player "${name}" (roster ${rosterId}): ${this.runner.messageOf(error)}`,
     });
-    return player !== undefined;
+    return player === undefined
+      ? undefined
+      : { playerId: player.player.id, created: player.created };
   }
 
   /** A star's bare name as its TP id, plus its Name id. */

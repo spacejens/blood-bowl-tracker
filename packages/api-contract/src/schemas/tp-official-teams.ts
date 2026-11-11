@@ -185,8 +185,8 @@ export const TpOfficialTeamsStageTimingSchema = z.object({
 
 /**
  * Output of `tpOfficialTeams.import`, one result per stage, plus every
- * imported position's characteristics under the rules set, which a caller
- * importing hired star players later needs as their template values, and
+ * imported position's characteristics under the rules set (the values
+ * the imported positions carry, for a caller to inspect or reuse), and
  * how long each stage that ran took. `timings` is optional so a result
  * without it still parses; a caller that does not report timings ignores it.
  */

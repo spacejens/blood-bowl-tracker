@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
+import { TpMercenaryRaceErasSyncService } from './players/tp-mercenary-race-eras-sync.service';
 import { TpRosterPlayerSkillsService } from './players/tp-roster-player-skills.service';
 import { TpRosterPlayersImportService } from './players/tp-roster-players-import.service';
 import { TpTeamUpsertService } from './team/tp-team-upsert.service';
@@ -31,6 +32,7 @@ describe('TpRosterImportService', () => {
   let teamUpsert: MockProxy<TpTeamUpsertService>;
   let playersImport: MockProxy<TpRosterPlayersImportService>;
   let playerSkills: MockProxy<TpRosterPlayerSkillsService>;
+  let mercenaryRaceEras: MockProxy<TpMercenaryRaceErasSyncService>;
 
   beforeEach(async () => {
     parser = mock<RosterParserService>();
@@ -39,6 +41,8 @@ describe('TpRosterImportService', () => {
     playersImport = mock<TpRosterPlayersImportService>();
     playerSkills = mock<TpRosterPlayerSkillsService>();
     playerSkills.syncPlayerSkills.mockResolvedValue(0);
+    mercenaryRaceEras = mock<TpMercenaryRaceErasSyncService>();
+    mercenaryRaceEras.sync.mockResolvedValue(undefined);
     context.resolve.mockResolvedValue(rosterContext());
     teamUpsert.upsertTeam.mockResolvedValue([
       { id: 30, eraId: 39 },
@@ -49,7 +53,7 @@ describe('TpRosterImportService', () => {
       importedPlayers: [
         { lineUpId: 5001, playerId: 700, created: true, reportedSppTotal: 12 },
       ],
-      mercenaryPositionUsages: [],
+      mercenaryPositionIds: [],
       increasesByPlayerId: INCREASES,
     });
     const moduleRef = await Test.createTestingModule({
@@ -62,6 +66,10 @@ describe('TpRosterImportService', () => {
         { provide: TpTeamUpsertService, useValue: teamUpsert },
         { provide: TpRosterPlayersImportService, useValue: playersImport },
         { provide: TpRosterPlayerSkillsService, useValue: playerSkills },
+        {
+          provide: TpMercenaryRaceErasSyncService,
+          useValue: mercenaryRaceEras,
+        },
       ],
     }).compile();
     service = moduleRef.get(TpRosterImportService);
@@ -86,7 +94,6 @@ describe('TpRosterImportService', () => {
       importedPlayers: [
         { lineUpId: 5001, playerId: 700, created: true, reportedSppTotal: 12 },
       ],
-      mercenaryPositionUsages: [],
     });
     expect(context.resolve).toHaveBeenCalledWith(
       expect.objectContaining({ era: 'Fourth era', externalSystemName: 'TP' }),
@@ -142,10 +149,10 @@ describe('TpRosterImportService', () => {
       teamEras: [],
       teamEra: undefined,
       importedPlayers: [],
-      mercenaryPositionUsages: [],
     });
     expect(result).toHaveProperty('teamEra', undefined);
     expect(teamUpsert.upsertTeam).not.toHaveBeenCalled();
+    expect(mercenaryRaceEras.sync).not.toHaveBeenCalled();
   });
 
   it('skips the players when the team itself was not imported', async () => {
@@ -157,6 +164,40 @@ describe('TpRosterImportService', () => {
     expect(result.players).toEqual(nothing);
     expect(result).toHaveProperty('teamEra', undefined);
     expect(playersImport.importPlayers).not.toHaveBeenCalled();
+    expect(mercenaryRaceEras.sync).not.toHaveBeenCalled();
+  });
+
+  it("syncs the race/era availability of the roster's mercenary hires after its players", async () => {
+    playersImport.importPlayers.mockResolvedValue({
+      imported: 1,
+      importedPlayers: [],
+      mercenaryPositionIds: [55, 56],
+      increasesByPlayerId: new Map(),
+    });
+
+    await importRoster();
+
+    expect(mercenaryRaceEras.sync).toHaveBeenCalledWith({
+      positionIds: [55, 56],
+      teamRaceCode: tpRoster().teamRaceCode,
+      context: rosterContext(),
+      errors: [],
+    });
+  });
+
+  it('reports a mercenary availability error on the players result', async () => {
+    mercenaryRaceEras.sync.mockImplementation(({ errors }) => {
+      errors.push({ item: 55, message: 'rejected pair' });
+      return Promise.resolve();
+    });
+
+    const result = await importRoster();
+
+    expect(result.players).toEqual({
+      success: false,
+      imported: 1,
+      errors: [{ item: 55, message: 'rejected pair' }],
+    });
   });
 
   it('parses raw roster content before importing it', async () => {

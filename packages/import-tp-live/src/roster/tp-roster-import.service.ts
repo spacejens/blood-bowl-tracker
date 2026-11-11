@@ -12,6 +12,7 @@ import type { TpRoster } from '@blood-bowl-tracker/parse-tp';
 import { RosterParserService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
+import { TpMercenaryRaceErasSyncService } from './players/tp-mercenary-race-eras-sync.service';
 import { TpRosterPlayerSkillsService } from './players/tp-roster-player-skills.service';
 import { TpRosterPlayersImportService } from './players/tp-roster-players-import.service';
 import { TpTeamUpsertService } from './team/tp-team-upsert.service';
@@ -88,6 +89,7 @@ export class TpRosterImportService {
     private readonly rosterContext: TpRosterContextService,
     private readonly teamUpsert: TpTeamUpsertService,
     private readonly playersImport: TpRosterPlayersImportService,
+    private readonly mercenaryRaceEras: TpMercenaryRaceErasSyncService,
     private readonly playerSkills: TpRosterPlayerSkillsService,
     private readonly importResults: ImportResultService,
     private readonly runner: UpsertRecorderService,
@@ -119,11 +121,12 @@ export class TpRosterImportService {
 
   /**
    * Resolves the import's context, upserts the team under the era, then
-   * upserts its players into that team era and, when `rawContent` is given,
-   * syncs their skills. Nothing is imported when the context cannot be
-   * resolved, and the players (and their skills) are skipped when the team
-   * was not imported. A skill gap is reported on the players result and
-   * never un-imports a player.
+   * upserts its players into that team era, records where its mercenary
+   * hires' positions may be fielded (TpMercenaryRaceErasSyncService) and,
+   * when `rawContent` is given, syncs their skills. Nothing is imported when
+   * the context cannot be resolved, and the players (and their skills) are
+   * skipped when the team was not imported. A skill gap is reported on the
+   * players result and never un-imports a player.
    */
   async importRoster({
     roster,
@@ -172,7 +175,6 @@ export class TpRosterImportService {
         teamEras,
         teamEra: undefined,
         importedPlayers: [],
-        mercenaryPositionUsages: [],
       };
     }
 
@@ -182,6 +184,12 @@ export class TpRosterImportService {
       context,
       teamEraId: teamEra.id,
       deferSppTotal,
+      errors: playerErrors,
+    });
+    await this.mercenaryRaceEras.sync({
+      positionIds: players.mercenaryPositionIds,
+      teamRaceCode: roster.teamRaceCode,
+      context,
       errors: playerErrors,
     });
     if (rawContent !== undefined) {
@@ -204,7 +212,6 @@ export class TpRosterImportService {
       teamEras,
       teamEra,
       importedPlayers: players.importedPlayers,
-      mercenaryPositionUsages: players.mercenaryPositionUsages,
     };
   }
 
@@ -215,7 +222,6 @@ export class TpRosterImportService {
       teamEras: [],
       teamEra: undefined,
       importedPlayers: [],
-      mercenaryPositionUsages: [],
     };
   }
 }

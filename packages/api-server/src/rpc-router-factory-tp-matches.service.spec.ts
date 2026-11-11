@@ -15,8 +15,10 @@ describe('RpcRouterFactoryService tpMatches router', () => {
     const outcome = {
       match: one,
       participation: one,
+      starPlayerHires: one,
       events: { success: true, imported: 14, errors: [] },
       outcome: one,
+      hiredStarPlayers: [{ playerId: 900, created: true }],
     };
     harness.mocks.tpMatchImportService.importRawMatch.mockResolvedValue(
       outcome,

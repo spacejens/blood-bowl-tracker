@@ -29,8 +29,13 @@ export interface ImportMatchFilesOptions {
 export interface MatchFilesImportOutcome {
   matchResult: ImportResult;
   participationResult: ImportResult;
+  starPlayerHiresResult: ImportResult;
   eventsResult: ImportResult;
   outcomeResult: ImportResult;
+  /** DB ids of every star player hired in an imported match, each once. */
+  hiredStarPlayerIds: number[];
+  /** The hired star players this run inserted. */
+  insertedStarPlayerIds: number[];
 }
 
 /** The competition a directory's match files belong to. */
@@ -45,7 +50,7 @@ interface Tally {
   errors: ImportError[];
 }
 
-type Stage = keyof TpMatchImportResult;
+type Stage = Exclude<keyof TpMatchImportResult, 'hiredStarPlayers'>;
 
 @Injectable()
 export class TpMatchFilesImportService {
@@ -60,12 +65,13 @@ export class TpMatchFilesImportService {
    * Imports every match file through `tpMatches.import`: its raw content,
    * its competition's TP id, and that competition's whole bracket (every
    * parsed match's phase position, teams and winner), which classifying a
-   * playoff match needs. The server upserts the match, links its teams,
-   * imports its events and resolves its outcome. Files are streamed again
-   * rather than kept from the competitions scan, so only one raw match is
-   * held at a time. A file under a competition that was not imported, or
-   * that did not parse during the competitions scan, was already reported
-   * there and is skipped.
+   * playoff match needs. The server upserts the match, imports the star
+   * players its teams hired, links its teams, imports its events and
+   * resolves its outcome. The hired star players' ids are collected for the
+   * SPP and lasting-injury steps. Files are streamed again rather than kept
+   * from the competitions scan, so only one raw match is held at a time. A
+   * file under a competition that was not imported, or that did not parse
+   * during the competitions scan, was already reported there and is skipped.
    */
   async importMatchFiles(
     options: ImportMatchFilesOptions,
@@ -74,9 +80,12 @@ export class TpMatchFilesImportService {
     const tallies: Record<Stage, Tally> = {
       match: { imported: 0, errors: [] },
       participation: { imported: 0, errors: [] },
+      starPlayerHires: { imported: 0, errors: [] },
       events: { imported: 0, errors: [] },
       outcome: { imported: 0, errors: [] },
     };
+    const hiredStarPlayerIds = new Set<number>();
+    const insertedStarPlayerIds = new Set<number>();
 
     try {
       for await (const file of this.sourceReader.filesOfType('match')) {
@@ -109,6 +118,12 @@ export class TpMatchFilesImportService {
             tallies[stage].imported += outcome[stage].imported;
             tallies[stage].errors.push(...outcome[stage].errors);
           }
+          for (const { playerId, created } of outcome.hiredStarPlayers) {
+            hiredStarPlayerIds.add(playerId);
+            if (created) {
+              insertedStarPlayerIds.add(playerId);
+            }
+          }
         }
       }
     } catch (error) {
@@ -123,8 +138,11 @@ export class TpMatchFilesImportService {
     return {
       matchResult: this.importResults.result(tallies.match),
       participationResult: this.importResults.result(tallies.participation),
+      starPlayerHiresResult: this.importResults.result(tallies.starPlayerHires),
       eventsResult: this.importResults.result(tallies.events),
       outcomeResult: this.importResults.result(tallies.outcome),
+      hiredStarPlayerIds: [...hiredStarPlayerIds],
+      insertedStarPlayerIds: [...insertedStarPlayerIds],
     };
   }
 

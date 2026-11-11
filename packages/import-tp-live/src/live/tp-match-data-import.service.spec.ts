@@ -66,8 +66,10 @@ const BRACKET: TpBracket = {
 const CORE: TpMatchImportResult = {
   match: one,
   participation: one,
+  starPlayerHires: one,
   events: { success: true, imported: 14, errors: [] },
   outcome: one,
+  hiredStarPlayers: [],
 };
 
 describe('TpMatchDataImportService', () => {
@@ -259,6 +261,8 @@ describe('TpMatchDataImportService', () => {
           errors: [{ item: { matchId: MATCH_TP_ID }, message: 'status 403' }],
         },
         participation: nothing,
+        starPlayerHires: nothing,
+        hiredStarPlayers: [],
         events: nothing,
         outcome: nothing,
       });

@@ -31,8 +31,10 @@ const IMPORTED: TpMatchDataImportResult = {
   awayTeam: teamImported,
   match: one,
   participation: one,
+  starPlayerHires: one,
   events: one,
   outcome: one,
+  hiredStarPlayers: [],
 };
 const BRACKET: TpBracket = {
   tournament: {
@@ -84,6 +86,7 @@ describe('TpCompetitionMatchesBackfillService', () => {
       result: { success: true, imported: 2, errors: [] },
       sppPlayers: [],
       eventFailedPlayerIds: [],
+      awardsBlocked: false,
     });
     expect(matchData.importMatchData).toHaveBeenCalledTimes(2);
     expect(matchData.importMatchData).toHaveBeenNthCalledWith(1, {
@@ -305,6 +308,8 @@ describe('TpCompetitionMatchesBackfillService', () => {
           errors: [{ item: 1, message: 'status 403' }],
         },
         participation: nothing,
+        starPlayerHires: nothing,
+        hiredStarPlayers: [],
         events: nothing,
         outcome: nothing,
       })
@@ -329,7 +334,59 @@ describe('TpCompetitionMatchesBackfillService', () => {
       },
       sppPlayers: [],
       eventFailedPlayerIds: [],
+      awardsBlocked: true,
     });
+  });
+
+  it("reports a backfilled match's star player hire errors", async () => {
+    const hireError = { item: 1, message: 'no catalog characteristics' };
+    matchData.importMatchData.mockResolvedValue({
+      ...IMPORTED,
+      starPlayerHires: { success: false, imported: 0, errors: [hireError] },
+    });
+
+    const { result } = await backfill();
+
+    expect(result.errors).toContainEqual(hireError);
+  });
+
+  it('does not block the extra trophy awards for a match whose only error is a star player hire error', async () => {
+    matchData.importMatchData.mockResolvedValue({
+      ...IMPORTED,
+      starPlayerHires: {
+        success: false,
+        imported: 0,
+        errors: [{ item: 1, message: 'no catalog characteristics' }],
+      },
+    });
+
+    const outcome = await backfill();
+
+    expect(outcome.result.errors).toHaveLength(2);
+    expect(outcome.awardsBlocked).toBe(false);
+  });
+
+  it('blocks the extra trophy awards when a match reports an error in another stage', async () => {
+    matchData.importMatchData.mockResolvedValue({
+      ...IMPORTED,
+      match: {
+        success: false,
+        imported: 0,
+        errors: [{ item: 1, message: 'x' }],
+      },
+    });
+
+    const outcome = await backfill();
+
+    expect(outcome.awardsBlocked).toBe(true);
+  });
+
+  it('blocks the extra trophy awards when a match throws', async () => {
+    matchData.importMatchData.mockRejectedValue(new Error('boom'));
+
+    const outcome = await backfill();
+
+    expect(outcome.awardsBlocked).toBe(true);
   });
 
   it('reports a match that throws and carries on with the rest', async () => {
@@ -350,6 +407,7 @@ describe('TpCompetitionMatchesBackfillService', () => {
       },
       sppPlayers: [],
       eventFailedPlayerIds: [],
+      awardsBlocked: true,
     });
     expect(matchData.importMatchData).toHaveBeenCalledTimes(2);
   });
@@ -372,6 +430,7 @@ describe('TpCompetitionMatchesBackfillService', () => {
       result: nothing,
       sppPlayers: [],
       eventFailedPlayerIds: [],
+      awardsBlocked: false,
     });
     expect(matchData.importMatchData).not.toHaveBeenCalled();
   });
