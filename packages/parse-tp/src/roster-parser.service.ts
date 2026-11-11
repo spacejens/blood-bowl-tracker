@@ -1,4 +1,7 @@
-import type { TpOfficialCharacteristics } from '@blood-bowl-tracker/api-contract';
+import type {
+  TpOfficialCharacteristics,
+  TpOfficialSkillIdRef,
+} from '@blood-bowl-tracker/api-contract';
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -140,26 +143,13 @@ export interface TpRosterPlayer {
 }
 
 /**
- * One skill reference on a TP roster entry -- the position template's starting
- * skills and the player's own gained ones share this shape. `attributeType` is
- * TP's tag for what `attributeValue` holds; see `TpOfficialSkillIdRef` in
- * packages/api-contract for what each type means and why type 3 is
- * an opaque code a consumer must not compose as-is.
- */
-export interface TpPlayerSkillRef {
-  skillMasterId: number;
-  attributeValue?: string;
-  attributeType?: number;
-}
-
-/**
  * One skill the player gained via advancement. `isRandom` is TP's own record
  * of whether the advancement was randomly rolled rather than freely chosen --
  * a distinction BBL's data cannot make at all. `isExtra` is TP's flag for a
  * skill granted on top of the player's advancements, without SPP being spent
  * (such as Hatred); false when TP's entry carries no flag.
  */
-export interface TpGainedSkillRef extends TpPlayerSkillRef {
+export interface TpGainedSkillRef extends TpOfficialSkillIdRef {
   isRandom: boolean;
   isExtra: boolean;
   /**
@@ -179,9 +169,12 @@ export interface TpGainedSkillRef extends TpPlayerSkillRef {
  * values, which is not enough to record honestly, so the whole group is
  * reported as absent there -- the same all-or-nothing rule `careerCounts`,
  * `characteristics` and `lastingInjuries` already follow on this type.
+ * Starting and gained skills share the contract's `TpOfficialSkillIdRef` shape;
+ * see it for what each `attributeType` means and why type 3 is an opaque code a
+ * consumer must not compose as-is.
  */
 export interface TpPlayerSkills {
-  starting: TpPlayerSkillRef[];
+  starting: TpOfficialSkillIdRef[];
   gained: TpGainedSkillRef[];
 }
 

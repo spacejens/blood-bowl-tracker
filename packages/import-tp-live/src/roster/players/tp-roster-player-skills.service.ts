@@ -2,6 +2,7 @@ import type {
   ImportError,
   PlayerSkillEntry,
   TpImportedPlayer,
+  TpOfficialSkillIdRef,
   UnspentSppSnapshot,
 } from '@blood-bowl-tracker/api-contract';
 import type {
@@ -11,7 +12,6 @@ import type {
 import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import type {
   TpGainedSkillRef,
-  TpPlayerSkillRef,
   TpPlayerSkills,
   TpRoster,
   TpRosterPlayer,
@@ -72,7 +72,7 @@ interface SkillsRun {
 /** One raw reference, and how the player came by it. */
 interface SkillRefEntry {
   playerId: number;
-  ref: TpPlayerSkillRef;
+  ref: TpOfficialSkillIdRef;
   source: PlayerSkillSource;
   advancementOrder?: number;
   /** TP flags the skill as granted on top of the player's advancements. */
@@ -308,7 +308,7 @@ export class TpRosterPlayerSkillsService {
    */
   private attributeValue(
     run: SkillsRun,
-    { ref, skill }: { ref: TpPlayerSkillRef; skill: TpResolvedSkill },
+    { ref, skill }: { ref: TpOfficialSkillIdRef; skill: TpResolvedSkill },
   ): { value: string | null } | undefined {
     if (ref.attributeValue === undefined) {
       return { value: null };

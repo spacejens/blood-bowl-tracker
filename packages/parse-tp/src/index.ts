@@ -16,7 +16,6 @@ export type {
   TpCareerSppCounts,
   TpGainedSkillRef,
   TpPlayerCharacteristics,
-  TpPlayerSkillRef,
   TpPlayerSkills,
   TpRoster,
   TpRosterPlayer,
