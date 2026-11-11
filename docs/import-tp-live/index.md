@@ -230,6 +230,8 @@ order, not proof, so they only narrow what the spend can confirm and never
 confirm an order by themselves. A characteristic increase has no row id, so
 the spend is the only evidence of where it falls. A bulk snapshot has no
 stored baseline either.
+The TP players whose order stays unconfirmed, and why, are listed in
+[Unconfirmed TP advancement orders](../import-tp/unconfirmed-advancement-orders.md).
 
 ### Mercenary availability
 
