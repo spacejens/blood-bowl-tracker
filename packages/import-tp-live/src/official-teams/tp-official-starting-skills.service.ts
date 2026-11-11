@@ -58,7 +58,7 @@ export class TpOfficialStartingSkillsService {
     private readonly batchSync: TpOfficialBatchSyncService,
     private readonly nameExternalId: NameExternalIdService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -100,7 +100,7 @@ export class TpOfficialStartingSkillsService {
         entries,
         item: { positionId, rulesSet: context.rulesSet },
         buildErrorMessage: (error) =>
-          `Failed to write ${entries.length} starting skill(s) of position ${positionId} (${context.rulesSet}): ${this.runner.messageOf(error)}`,
+          `Failed to write ${entries.length} starting skill(s) of position ${positionId} (${context.rulesSet}): ${this.recorder.messageOf(error)}`,
       });
     }
     return this.batchSync.syncGroups({
@@ -188,7 +188,7 @@ export class TpOfficialStartingSkillsService {
       state.skillIdsByName.set(ref.name, ref.skillId);
       return ref.skillId;
     }
-    const upserted = await this.runner.record({
+    const upserted = await this.recorder.record({
       run: () =>
         this.skills.upsert({
           name: ref.name,
@@ -203,7 +203,7 @@ export class TpOfficialStartingSkillsService {
       item: { skill: ref.name },
       errors,
       buildErrorMessage: (error) =>
-        `Failed to upsert skill "${ref.name}": ${this.runner.messageOf(error)}`,
+        `Failed to upsert skill "${ref.name}": ${this.recorder.messageOf(error)}`,
     });
     // Cached even when undefined, so a failed skill is not retried (and
     // re-reported) for every other position listing it.
@@ -220,12 +220,12 @@ export class TpOfficialStartingSkillsService {
   private async isCurated(step: SkillStep, skillId: number): Promise<boolean> {
     const { ref, context, state, errors } = step;
     if (!state.curatedByName.has(ref.name)) {
-      const rows = await this.runner.record({
+      const rows = await this.recorder.record({
         run: () => this.skillRulesSets.listBySkill(skillId),
         item: { skill: ref.name },
         errors,
         buildErrorMessage: (error) =>
-          `Failed to read the curated categories of skill "${ref.name}": ${this.runner.messageOf(error)}`,
+          `Failed to read the curated categories of skill "${ref.name}": ${this.recorder.messageOf(error)}`,
       });
       state.curatedByName.set(
         ref.name,

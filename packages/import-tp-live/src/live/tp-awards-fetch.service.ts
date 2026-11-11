@@ -30,7 +30,7 @@ export class TpAwardsFetchService {
     private readonly tournamentPaths: TpTournamentPathsService,
     private readonly awardsParser: AwardsParserService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -68,7 +68,7 @@ export class TpAwardsFetchService {
       errors.push(
         this.importResults.error({
           item,
-          message: `Could not parse ${what}: ${this.runner.messageOf(error)}`,
+          message: `Could not parse ${what}: ${this.recorder.messageOf(error)}`,
         }),
       );
       return undefined;

@@ -41,7 +41,7 @@ export class TpMatchUpsertService {
     private readonly matches: MatchesService,
     private readonly competitions: CompetitionsService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -77,12 +77,12 @@ export class TpMatchUpsertService {
       errors.push(
         this.importResults.error({
           item: { match: match.id },
-          message: `Skipping match ${match.id}: ${this.runner.messageOf(error)}`,
+          message: `Skipping match ${match.id}: ${this.recorder.messageOf(error)}`,
         }),
       );
       return undefined;
     }
-    const upserted = await this.runner.record({
+    const upserted = await this.recorder.record({
       run: () =>
         this.matches.upsert({
           competitionId: context.competitionId,
@@ -95,7 +95,7 @@ export class TpMatchUpsertService {
       item: { match: match.id },
       errors,
       buildErrorMessage: (error) =>
-        `Failed to upsert match ${match.id}: ${this.runner.messageOf(error)}`,
+        `Failed to upsert match ${match.id}: ${this.recorder.messageOf(error)}`,
     });
     return upserted?.match.id;
   }
@@ -113,7 +113,7 @@ export class TpMatchUpsertService {
     errors,
   }: SyncTpMatchParticipationOptions): Promise<boolean> {
     const teamEraIds = [context.homeTeamEraId, context.awayTeamEraId];
-    const matchTeams = await this.runner.record({
+    const matchTeams = await this.recorder.record({
       run: () =>
         this.matches.upsert({
           externalIds: this.matchExternalIds(match, context),
@@ -122,12 +122,12 @@ export class TpMatchUpsertService {
       item: { match: match.id, teamEraIds },
       errors,
       buildErrorMessage: (error) =>
-        `Failed to link the teams of match ${match.id}: ${this.runner.messageOf(error)}`,
+        `Failed to link the teams of match ${match.id}: ${this.recorder.messageOf(error)}`,
     });
     if (matchTeams === undefined) {
       return false;
     }
-    const competitionTeams = await this.runner.record({
+    const competitionTeams = await this.recorder.record({
       run: () =>
         this.competitions.upsert({
           externalIds: [
@@ -141,7 +141,7 @@ export class TpMatchUpsertService {
       item: { competition: context.competitionTpId, teamEraIds },
       errors,
       buildErrorMessage: (error) =>
-        `Failed to add the teams of match ${match.id} to competition ${context.competitionTpId}: ${this.runner.messageOf(error)}`,
+        `Failed to add the teams of match ${match.id} to competition ${context.competitionTpId}: ${this.recorder.messageOf(error)}`,
     });
     return competitionTeams !== undefined;
   }

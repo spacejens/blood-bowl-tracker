@@ -38,7 +38,7 @@ export class TpTeamUpsertService {
     private readonly teams: TeamsService,
     private readonly nameExternalId: NameExternalIdService,
     private readonly importResults: ImportResultService,
-    private readonly runner: UpsertRecorderService,
+    private readonly recorder: UpsertRecorderService,
   ) {}
 
   /**
@@ -92,7 +92,7 @@ export class TpTeamUpsertService {
       }),
       // Parsed through the contract schema, like the team below, so a
       // direct call is held to the same validation an RPC call would be.
-      this.runner.record({
+      this.recorder.record({
         run: () => this.coaches.upsert(UpsertCoachSchema.parse(coachData)),
         item: {
           team: roster.id,
@@ -101,7 +101,7 @@ export class TpTeamUpsertService {
         },
         errors,
         buildErrorMessage: (error) =>
-          `Failed to import team "${roster.teamName}": could not import coach "${roster.coachName}": ${this.runner.messageOf(error)}`,
+          `Failed to import team "${roster.teamName}": could not import coach "${roster.coachName}": ${this.recorder.messageOf(error)}`,
       }),
     ]);
     if (!race.found) {
@@ -114,7 +114,7 @@ export class TpTeamUpsertService {
       return undefined;
     }
     if (coachUpsert === undefined) {
-      // The runner already recorded the coach failure.
+      // The recorder already recorded the coach failure.
       return undefined;
     }
 
@@ -136,12 +136,12 @@ export class TpTeamUpsertService {
     };
     // Parsed through the contract schema so a direct call is held to the
     // same validation a teams.upsert RPC call would be.
-    const upserted = await this.runner.record({
+    const upserted = await this.recorder.record({
       run: () => this.teams.upsert(UpsertTeamSchema.parse(data)),
       item: data,
       errors,
       buildErrorMessage: (error) =>
-        `Failed to import team "${roster.teamName}": ${this.runner.messageOf(error)}`,
+        `Failed to import team "${roster.teamName}": ${this.recorder.messageOf(error)}`,
     });
     return upserted?.team.eras;
   }
