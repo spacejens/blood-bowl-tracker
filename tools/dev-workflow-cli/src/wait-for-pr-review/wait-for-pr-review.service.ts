@@ -235,12 +235,12 @@ const NO_ACTIONABLE_COMMENTS_PHRASE_REGEX = new RegExp(
 const SECTION_FINGERPRINT_LENGTH = 12;
 
 /**
- * 20 minutes — the wait when the caller sets no timeout; `develop-feature`
+ * 20 minutes — the wait when the caller sets no timeout; `implement`
  * Phase 6 relies on this default and documents it.
  */
 const DEFAULT_TIMEOUT_MS = 1_200_000;
 /**
- * 30 seconds — the poll gap when the caller sets none; `develop-feature`
+ * 30 seconds — the poll gap when the caller sets none; `implement`
  * Phase 6 relies on this default and documents it.
  */
 const DEFAULT_INTERVAL_MS = 30_000;
@@ -252,7 +252,7 @@ const DEFAULT_INTERVAL_MS = 30_000;
  * so it is typically much shorter than a normal interval — but it is a fixed
  * pause, not clamped against `intervalMs`, so a caller-supplied interval
  * under 10 seconds would see the opposite. No caller passes one today: both
- * develop-feature's normal wait and its retrigger flows use intervals of 30
+ * implement's normal wait and its retrigger flows use intervals of 30
  * seconds or more. Distinct from `RateLimitWaitTimeService`'s wait buffer, which pads
  * CodeRabbit's own stated rate-limit duration so the retry does not fire
  * before that wait is over.
@@ -315,7 +315,7 @@ export class WaitForPrReviewService {
      * Deliberately layered on top of `options.excludeReviewId` via a
      * SEPARATE `excludeReviewIds` field, rather than overwriting
      * `excludeReviewId` itself: the caller's own `excludeReviewId` — e.g.
-     * develop-feature's watermark exclusion for a review it already handled
+     * implement's watermark exclusion for a review it already handled
      * in a previous iteration — must survive untouched for this wait's whole
      * lifetime, or that already-handled review could match again once a
      * later discard overwrote the exclusion that was suppressing it.
@@ -338,7 +338,7 @@ export class WaitForPrReviewService {
       }
       // Checked here — after a formal review has ruled itself out, but
       // before the rate-limit/comment-update-failure early returns below —
-      // so a caller-requested retrigger (develop-feature's Phase 6 steps
+      // so a caller-requested retrigger (implement's Phase 6 steps
       // b2/b3) fires once due regardless of what else this same poll
       // matched. A found review needs no retrigger — that outcome is
       // already the wait's success case — so it returns above without ever
@@ -410,7 +410,7 @@ export class WaitForPrReviewService {
       // remain when a result was just suppressed above, waking past the
       // deadline reports `timedOut` rather than the suppressed comment. Every
       // caller today budgets at least a 20-minute window after a trigger, so
-      // this cannot happen in practice — see develop-feature Phase 6 steps
+      // this cannot happen in practice — see implement Phase 6 steps
       // b2/b3's `--timeout-ms` computation.
       await this.sleep(justTriggered ? TRIGGER_SETTLE_MS : intervalMs);
       // `sleep` can resume at or after the deadline (real-timer drift, a
@@ -854,7 +854,7 @@ export class WaitForPrReviewService {
    * malformed jq response read as "no match" rather than crash the wait (the
    * reviews half's shape is asserted by a cast, not checked). All three
    * fields are validated, not just `body`: a caller retrying off a candidate
-   * missing `id` or `submittedAt` (develop-feature's Phase 6 steps b2/b3)
+   * missing `id` or `submittedAt` (implement's Phase 6 steps b2/b3)
    * would build an unusable exclusion value or watermark.
    */
   private prosePhraseComment(

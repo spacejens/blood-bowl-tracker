@@ -15,7 +15,7 @@ export const NOT_CURRENT_HOLDER = 'not the current holder';
 const REVIEW_LOCK_DEFAULT_INTERVAL_MS = 30_000;
 /**
  * 100 minutes. Comfortably longer than the longest normal gap between two
- * heartbeat checkpoints: `develop-feature`'s Phase 6 loop step (b2)'s
+ * heartbeat checkpoints: `implement`'s Phase 6 loop step (b2)'s
  * short-wait rate-limit branch can hold the lock through a
  * `wait-for-pr-review` wait of up to ~60 minutes (the rate limit's own
  * reported wait, capped below the 1-hour auto-continue threshold) plus a
@@ -107,7 +107,7 @@ export class ReviewLockService {
   /**
    * One attempt, as a pure transition. Ordering matters: an id that already
    * holds the lock is answered before anything is enqueued, so a re-invoked
-   * acquire (develop-feature re-acquiring after a heartbeat mismatch, say) is
+   * acquire (implement re-acquiring after a heartbeat mismatch, say) is
    * an idempotent heartbeat refresh rather than a duplicate ticket.
    */
   private tryAcquire(

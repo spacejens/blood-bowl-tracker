@@ -51,7 +51,7 @@ For each confirmed candidate, run a short one-question-at-a-time clarifying dial
 
 Explicitly avoid drilling into implementation details or asking for code — this repo's existing issues (e.g. issue #49) state the need and its purpose in plain text and leave the "how" to the developer implementing it later.
 
-Then run the cross-tool/app impact review for this candidate by following `develop-feature`'s step exactly (`.claude/skills/develop-feature/SKILL.md`, Phase 2 step 1) — don't duplicate that logic here, so the two skills can't drift out of sync. Read "the issue (issue mode) or provided text (ad-hoc mode)" there as this candidate, and ignore its `cd <worktree-path> &&` dispatch note: this skill creates no worktree, so the `Explore` agent runs against the current checkout. Any questions it produces join this candidate's one-at-a-time dialogue above and are asked before drafting; when it skips silently, so does this step. The answers set this candidate's scope — which related tools/apps it covers, or whether a related one becomes its own separate candidate — they do not become implementation detail written into the drafted issue body, consistent with this phase's rule against drilling into implementation details.
+Then run the cross-tool/app impact review for this candidate by following `implement`'s step exactly (`.claude/skills/implement/SKILL.md`, Phase 2 step 1) — don't duplicate that logic here, so the two skills can't drift out of sync. Read "the issue (issue mode) or provided text (ad-hoc mode)" there as this candidate, and ignore its `cd <worktree-path> &&` dispatch note: this skill creates no worktree, so the `Explore` agent runs against the current checkout. Any questions it produces join this candidate's one-at-a-time dialogue above and are asked before drafting; when it skips silently, so does this step. The answers set this candidate's scope — which related tools/apps it covers, or whether a related one becomes its own separate candidate — they do not become implementation detail written into the drafted issue body, consistent with this phase's rule against drilling into implementation details.
 
 Before drafting, check the open issues for ones that look like likely duplicates of, or heavy overlap with, the candidate. Fetch them with `author` included and filter out Renovate's Dependency Dashboard — a live status page Renovate rewrites itself, which must never be offered or matched as a duplicate:
 
@@ -87,4 +87,4 @@ If sub-issues are being attached to an existing parent one at a time rather than
 ## Non-goals
 
 - No worktree, no branch, no code changes — this skill only produces GitHub issues.
-- Does not assign the issue or apply an "in progress" label — that happens later, when `develop-feature` picks the issue up.
+- Does not assign the issue or apply an "in progress" label — that happens later, when `implement` picks the issue up.

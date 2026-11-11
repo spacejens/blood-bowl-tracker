@@ -891,7 +891,7 @@ describe('WaitForPrReviewService', () => {
   });
 
   it('still triggers a review when a stale rate-limit comment is found in the same poll', async () => {
-    // A retry (develop-feature's Phase 6 step b2) sets `--trigger-after` to
+    // A retry (implement's Phase 6 step b2) sets `--trigger-after` to
     // force an immediate retrigger, but only excludes the one rate-limit
     // comment id it already knows about. If a second, still-unexcluded
     // rate-limit comment is found on the very first poll, the trigger must

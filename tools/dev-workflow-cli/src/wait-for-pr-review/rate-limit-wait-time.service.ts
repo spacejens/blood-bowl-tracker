@@ -48,7 +48,7 @@ export class RateLimitWaitTimeService {
    * so retrying exactly on time risks both a wasted poll and a state-check
    * race right at the boundary. Buffering here rather than at the call sites
    * means every consumer of `availableAtEpochSeconds` — including
-   * develop-feature's Phase 6 retry trigger and the timeout it derives from
+   * implement's Phase 6 retry trigger and the timeout it derives from
    * that trigger — gets the slack for free. The `undefined` return below is
    * never buffered: with no duration parsed there is nothing to buffer, and
    * the caller's own default applies instead.
