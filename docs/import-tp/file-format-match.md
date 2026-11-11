@@ -36,7 +36,9 @@ numeric: `group.phase.type`, `group.phase.order`, and the match's own
 top-level `round`. `MatchParserService.parse()` additionally exposes these as
 `phaseType`/`phaseOrder`/`round` on `TpMatch`, plus `winner` (`'home'`/
 `'away'`/`'draw'`, mapped from `scoreResume.winner`, absent when no result is
-recorded); these bracket fields are the contract's `TpBracketMatch`. Decoding
+recorded). `TpMatch` extends the contract's `TpBracketMatch`, which carries
+`id`, `phaseOrder`, `round`, `homeTeamTpId`, `awayTeamTpId` and `winner`;
+`phaseType` is a parser-only field and not part of the contract. Decoding
 this into a `MatchCategory` is `packages/import-tp-live`'s
 `TpMatchCategoryService.classify()`'s job (see
 [import-tp-live's match import](../import-tp-live/match-import.md)) — see its
