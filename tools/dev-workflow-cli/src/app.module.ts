@@ -18,6 +18,7 @@ import { ReviewLockService } from './review-lock/review-lock.service';
 import { ReviewLockArgsService } from './review-lock/review-lock-args.service';
 import { ReviewLockStateService } from './review-lock/review-lock-state.service';
 import { PullRequestReviewCommentsService } from './wait-for-pr-review/pull-request-review-comments.service';
+import { RateLimitWaitTimeService } from './wait-for-pr-review/rate-limit-wait-time.service';
 import { ReviewRetriggerMergeService } from './wait-for-pr-review/review-retrigger-merge.service';
 import { WaitForPrReviewService } from './wait-for-pr-review/wait-for-pr-review.service';
 import { WaitForPrReviewArgsService } from './wait-for-pr-review/wait-for-pr-review-args.service';
@@ -44,6 +45,7 @@ import { WaitForPrReviewFiltersService } from './wait-for-pr-review/wait-for-pr-
     PostReviewQuestionsArgsService,
     WaitForPrReviewService,
     WaitForPrReviewFiltersService,
+    RateLimitWaitTimeService,
     PullRequestReviewCommentsService,
     ReviewRetriggerMergeService,
     WaitForPrReviewArgsService,
