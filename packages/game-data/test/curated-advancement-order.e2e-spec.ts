@@ -19,6 +19,7 @@ import { CuratedAdvancementOrderService } from '../src/curated-advancement-order
 import { CharacteristicAdvancementPlannerService } from '../src/player-skills/characteristic-advancement-planner.service';
 import { CuratedAdvancementOrderMatcherService } from '../src/player-skills/curated-advancement-order-matcher.service';
 import { PaidAdvancementSlotsService } from '../src/player-skills/paid-advancement-slots.service';
+import { PlayerAdvancementReadsService } from '../src/player-skills/player-advancement-reads.service';
 import { PlayerAdvancementSyncPlannerService } from '../src/player-skills/player-advancement-sync-planner.service';
 import { PlayerSkillsService } from '../src/player-skills/player-skills.service';
 import { CuratedAdvancementOrderError } from '../src/shared/curated-advancement-order-error';
@@ -54,6 +55,7 @@ describe('Curated advancement orders are checked against the spend (real Postgre
         CuratedAdvancementOrderMatcherService,
         PlayerSkillsService,
         PlayerAdvancementSyncPlannerService,
+        PlayerAdvancementReadsService,
         CharacteristicAdvancementPlannerService,
         PaidAdvancementSlotsService,
         UnspentSppService,
@@ -177,5 +179,50 @@ describe('Curated advancement orders are checked against the spend (real Postgre
         ),
       );
     expect(confirmed).toEqual([]);
+  });
+
+  it('writes the order confirmed, unchecked, when the SPP figures are unknown', async () => {
+    await db
+      .update(players)
+      .set({ unspentSpp: null })
+      .where(eq(players.id, seeded.playerId));
+
+    await service.sync(curated('Dodge'));
+
+    const rows = await db
+      .select({
+        skillId: playerAdvancements.skillId,
+        orderConfirmed: playerAdvancements.orderConfirmed,
+      })
+      .from(playerAdvancements)
+      .where(
+        and(
+          eq(playerAdvancements.playerId, seeded.playerId),
+          eq(playerAdvancements.isFreeExtra, false),
+        ),
+      )
+      .orderBy(asc(playerAdvancements.advancementOrder));
+    expect(rows).toEqual([
+      { skillId: seeded.skillIds.Dodge, orderConfirmed: true },
+      { skillId: seeded.skillIds.Block, orderConfirmed: true },
+    ]);
+  });
+
+  it('refuses a Loner listed as paid although the free-extra rule covers it', async () => {
+    await db
+      .update(playerAdvancements)
+      .set({ isFreeExtra: false })
+      .where(eq(playerAdvancements.skillId, seeded.skillIds.Loner));
+    const data = curated('Block');
+    data.entries.push({
+      playerId: seeded.playerId,
+      skillId: seeded.skillIds.Loner,
+      source: 'advancement',
+      attributeValue: '4+',
+      advancementOrder: 3,
+      orderConfirmed: true,
+    });
+
+    await expect(service.sync(data)).rejects.toThrow(/not a paid advancement/);
   });
 });

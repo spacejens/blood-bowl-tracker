@@ -8,6 +8,7 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { CuratedAdvancementOrderMatcherService } from '../player-skills/curated-advancement-order-matcher.service';
+import { PlayerAdvancementReadsService } from '../player-skills/player-advancement-reads.service';
 import { PlayerSkillsService } from '../player-skills/player-skills.service';
 import { CuratedAdvancementOrderError } from '../shared/curated-advancement-order-error';
 import { AdvancementOrderDeductionService } from '../spp/advancement-order-deduction.service';
@@ -20,6 +21,7 @@ interface Collaborators {
   playerSkills: MockProxy<PlayerSkillsService>;
   unspentSpp: MockProxy<UnspentSppService>;
   deduction: MockProxy<AdvancementOrderDeductionService>;
+  reads: MockProxy<PlayerAdvancementReadsService>;
 }
 
 async function makeService(
@@ -28,6 +30,10 @@ async function makeService(
   const playerSkills = mock<PlayerSkillsService>();
   const unspentSpp = mock<UnspentSppService>();
   const deduction = mock<AdvancementOrderDeductionService>();
+  const reads = mock<PlayerAdvancementReadsService>();
+  reads.resolveFreeExtras.mockImplementation((entries) =>
+    Promise.resolve(entries),
+  );
   const moduleRef = await Test.createTestingModule({
     providers: [
       CuratedAdvancementOrderService,
@@ -36,6 +42,7 @@ async function makeService(
       { provide: PlayerSkillsService, useValue: playerSkills },
       { provide: UnspentSppService, useValue: unspentSpp },
       { provide: AdvancementOrderDeductionService, useValue: deduction },
+      { provide: PlayerAdvancementReadsService, useValue: reads },
     ],
   }).compile();
   return {
@@ -44,6 +51,7 @@ async function makeService(
     playerSkills,
     unspentSpp,
     deduction,
+    reads,
   };
 }
 
@@ -138,13 +146,64 @@ describe('CuratedAdvancementOrderService', () => {
     expect(playerSkills.sync).not.toHaveBeenCalled();
   });
 
-  it('refuses a player with no reported unspent figure', async () => {
-    const { service, playerSkills } = await makeService(
-      mockDb([{ sppTotal: 20, unspentSpp: null }]),
+  it.each([
+    ['total', { sppTotal: null, unspentSpp: 6 }],
+    ['unspent', { sppTotal: 20, unspentSpp: null }],
+  ])(
+    'writes the order unchecked when the %s SPP is unknown',
+    async (_unused, figures) => {
+      const { service, playerSkills, unspentSpp, deduction } =
+        await makeService(mockDb([figures], storedRows));
+      playerSkills.sync.mockResolvedValue({ playerSkillIds: [12, 11] });
+
+      expect(await service.sync(data)).toEqual({ playerSkillIds: [12, 11] });
+      expect(unspentSpp.advancementInputsForPlayers).not.toHaveBeenCalled();
+      expect(deduction.deduce).not.toHaveBeenCalled();
+      expect(playerSkills.sync).toHaveBeenCalledWith(data, {
+        keepUnspentSpp: true,
+      });
+    },
+  );
+
+  it.each([
+    ['unspent is negative', { sppTotal: 20, unspentSpp: -1 }],
+    ['unspent exceeds the total', { sppTotal: 20, unspentSpp: 21 }],
+  ])('refuses figures where %s', async (_unused, figures) => {
+    const { service, playerSkills } = await makeService(mockDb([figures]));
+
+    await expect(service.sync(data)).rejects.toThrow(
+      'Player 1 has an unspent SPP figure outside 0 to the SPP total',
+    );
+    expect(playerSkills.sync).not.toHaveBeenCalled();
+  });
+
+  it('refuses known figures when no rules set prices advancements', async () => {
+    const { service, playerSkills, unspentSpp, deduction } = await makeService(
+      mockDb([{ sppTotal: 20, unspentSpp: 6 }], storedRows),
+    );
+    unspentSpp.advancementInputsForPlayers.mockResolvedValue(new Map());
+
+    await expect(service.sync(data)).rejects.toThrow(
+      'Player 1 has no rules set that prices advancements',
+    );
+    expect(deduction.deduce).not.toHaveBeenCalled();
+    expect(playerSkills.sync).not.toHaveBeenCalled();
+  });
+
+  it('refuses a skill the free-extra rules make free', async () => {
+    const { service, reads, playerSkills } = await makeService(
+      mockDb([{ sppTotal: 20, unspentSpp: 6 }], storedRows),
+    );
+    reads.resolveFreeExtras.mockImplementation((entries) =>
+      Promise.resolve(
+        entries.map((entry) =>
+          entry.skillId === 9 ? { ...entry, isFreeExtra: true } : entry,
+        ),
+      ),
     );
 
     await expect(service.sync(data)).rejects.toThrow(
-      'Player 1 has no consistent reported SPP total and unspent figure to check the order against',
+      'Player 1 lists skill 9, which is not a paid advancement',
     );
     expect(playerSkills.sync).not.toHaveBeenCalled();
   });

@@ -8,6 +8,7 @@ import { DB, eq, playerAdvancements, players } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { CuratedAdvancementOrderMatcherService } from '../player-skills/curated-advancement-order-matcher.service';
+import { PlayerAdvancementReadsService } from '../player-skills/player-advancement-reads.service';
 import { PlayerSkillsService } from '../player-skills/player-skills.service';
 import { CuratedAdvancementOrderError } from '../shared/curated-advancement-order-error';
 import {
@@ -24,10 +25,22 @@ import { UnspentSppService } from '../spp/unspent-spp.service';
  * (CuratedAdvancementOrderMatcherService). The curated order, as the only
  * order allowed, must also cost exactly the SPP he reports as spent (stored
  * total minus stored unspent) under some rules set of his era, priced by
- * AdvancementOrderDeductionService. Any player that fails refuses the whole
- * batch before anything is written. An accepted batch is written by
- * PlayerSkillsService.sync, keeping the stored unspent SPP the check has
- * just shown to fit.
+ * AdvancementOrderDeductionService. That check runs whenever both stored
+ * figures are known; when either is missing (a scratch import's first TP
+ * pass stores no unspent SPP yet) nothing reported contradicts the order, so
+ * it is accepted unchecked. Figures that contradict each other, or a player
+ * no rules set prices, refuse. Entries are first run through
+ * PlayerAdvancementReadsService.resolveFreeExtras, so a skill the sync would
+ * store as a free extra (Hatred, Loner, a trophy-granted skill) is refused
+ * as "not a paid advancement" instead of being checked as a paid one. Any
+ * player that fails refuses the whole batch before anything is written. An
+ * accepted batch is written by PlayerSkillsService.sync, keeping the stored
+ * unspent SPP (the check has shown it fits, or it is unknown and clearing
+ * it would change nothing).
+ *
+ * The reads and pricing happen before, not inside, the sync transaction, so
+ * a concurrent write between them is not excluded; manual imports run one
+ * at a time.
  */
 @Injectable()
 export class CuratedAdvancementOrderService {
@@ -37,6 +50,7 @@ export class CuratedAdvancementOrderService {
     private readonly unspentSpp: UnspentSppService,
     private readonly deduction: AdvancementOrderDeductionService,
     private readonly matcher: CuratedAdvancementOrderMatcherService,
+    private readonly reads: PlayerAdvancementReadsService,
   ) {}
 
   async sync(data: SyncPlayerSkills): Promise<SyncPlayerSkillsResult> {
@@ -46,11 +60,12 @@ export class CuratedAdvancementOrderService {
         ...(data.characteristicPlayerIds ?? []),
       ]),
     ];
+    const resolved = await this.reads.resolveFreeExtras(data.entries);
     const problems: string[] = [];
     for (const playerId of playerIds) {
       const problem = await this.problem(
         playerId,
-        data.entries.filter((entry) => entry.playerId === playerId),
+        resolved.filter((entry) => entry.playerId === playerId),
       );
       if (problem !== undefined) {
         problems.push(`Player ${playerId}${problem}`);
@@ -75,8 +90,8 @@ export class CuratedAdvancementOrderService {
       return ' does not exist';
     }
     const spent = this.spent(player);
-    if (spent === undefined) {
-      return ' has no consistent reported SPP total and unspent figure to check the order against';
+    if (spent === 'inconsistent') {
+      return ' has an unspent SPP figure outside 0 to the SPP total, so the order cannot be checked against it';
     }
     const stored = await this.db
       .select({
@@ -94,6 +109,9 @@ export class CuratedAdvancementOrderService {
     if (!match.ok) {
       return ` ${match.problem}`;
     }
+    if (spent === undefined) {
+      return undefined;
+    }
     const count = match.rowIdsInOrder.length;
     if (count > MAX_DEDUCED) {
       return ` has ${count} paid advancements; at most ${MAX_DEDUCED} can be checked`;
@@ -101,9 +119,13 @@ export class CuratedAdvancementOrderService {
     const inputs = await this.unspentSpp.advancementInputsForPlayers([
       playerId,
     ]);
+    const rulesSets = inputs.get(playerId) ?? [];
+    if (rulesSets.length === 0) {
+      return ' has no rules set that prices advancements, so the order cannot be checked against the SPP reported as spent';
+    }
     // With every paid row ordered, only the curated assignment can fit.
     const fitted = this.deduction.deduce({
-      rulesSets: inputs.get(playerId) ?? [],
+      rulesSets,
       newRowIds: match.rowIdsInOrder,
       orderedRowIds: match.rowIdsInOrder,
       firstNumber: 1,
@@ -114,19 +136,20 @@ export class CuratedAdvancementOrderService {
       : undefined;
   }
 
-  /** Stored total minus stored unspent, when both are known and consistent. */
+  /**
+   * Stored total minus stored unspent; `undefined` when either is unknown
+   * (nothing to check against), `'inconsistent'` when they contradict.
+   */
   private spent(player: {
     sppTotal: number | null;
     unspentSpp: number | null;
-  }): number | undefined {
+  }): number | 'inconsistent' | undefined {
     const { sppTotal, unspentSpp } = player;
-    if (
-      sppTotal === null ||
-      unspentSpp === null ||
-      unspentSpp < 0 ||
-      unspentSpp > sppTotal
-    ) {
+    if (sppTotal === null || unspentSpp === null) {
       return undefined;
+    }
+    if (unspentSpp < 0 || unspentSpp > sppTotal) {
+      return 'inconsistent';
     }
     return sppTotal - unspentSpp;
   }

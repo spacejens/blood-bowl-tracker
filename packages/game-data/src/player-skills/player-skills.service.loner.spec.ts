@@ -7,7 +7,7 @@ const playerRow = { id: 1 };
 const entry = { playerId: 1, skillId: 7, source: 'starting' as const };
 
 describe('PlayerSkillsService and a gained Loner', () => {
-  it('stores a gained Loner as a free extra, flagged by the source or not', async () => {
+  it('stores a gained Loner as a free extra although the source does not flag it', async () => {
     const db = mockDb(
       [playerRow],
       [{ id: 7, name: 'Loner' }],
