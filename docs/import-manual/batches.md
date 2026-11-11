@@ -59,7 +59,7 @@ The batches:
   rules set, the primary and secondary skill categories of every CRP, CRP+
   and BB2016 position, and the free mutation of every Gudarnas Förkämpe
   award. It applies after the source importers; see [Batch 004](#batch-004).
-- **005-tp-advancement-orders** — hand-curated advancement orders of TP
+- **005-tp-advancement-orders** — hand-curated advancement orders of five TP
   players, read from the TP notification feed. It references players the TP
   importer creates, so it applies after the source importers, in a plain
   `apply`; when the player's SPP figures are stored, the server refuses any

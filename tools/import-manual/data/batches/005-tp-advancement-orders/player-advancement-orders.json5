@@ -1,13 +1,17 @@
-// Batch 005: the advancement order of four TP players, read from the TP
+// Batch 005: the advancement order of five TP players, read from the TP
 // notification feed.
 //
 // Each order comes from the feed's "New skill/characteristic" notifications
 // for the player, read oldest first (two on the same day by message id). The
-// four players here are those whose notifications cover every paid
+// first four players here are those whose notifications cover every paid
 // advancement the database records and whose BB2020 prices, as the feed
 // shows them, add up to the SPP the player reported as spent. The only open
 // question for them was where the characteristic increases fall among the
-// skills, which the notifications settle.
+// skills, which the notifications settle. The fifth, Nadiddnur, has two paid
+// skills and a gained Loner that is a free extra and is not listed. The feed
+// shows only his second skill, at the price of a second advancement, which
+// places the other first, as the ascending order of TP's skill row ids does
+// too.
 //
 // Each entry names the player by his TP line-up id. ENTRY SHAPE: as in
 // docs/import-manual/player-advancement-orders.md. `advancements` lists every
@@ -67,6 +71,18 @@
         { skill: { system: 'Name', id: 'Dodge' } },
         { characteristic: 'ST' },
         { skill: { system: 'Name', id: 'Pro' } },
+      ],
+    },
+    // Nadiddnur, Shambletown Peddlers: feed notification 2025-04-16, Sneaky
+    // Git at 8; spent 14. Dirty Player is not in the feed: its place follows
+    // from the 8 SPP Sneaky Git cost (a second chosen primary skill; a first
+    // costs 6) and from TP's skill row ids (Dirty Player 815542, Sneaky Git
+    // 1122553). Dirty Player, a random secondary skill, cost 6 as the first.
+    {
+      player: { system: 'tourplay.net', id: '1421046' },
+      advancements: [
+        { skill: { system: 'Name', id: 'Dirty Player' }, attributeValue: '+1' },
+        { skill: { system: 'Name', id: 'Sneaky Git' } },
       ],
     },
   ],

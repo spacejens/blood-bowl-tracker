@@ -30,10 +30,13 @@ advancements as skills plus increases, and the SPP spent.
 - **Nadiddnur** (Shambletown Peddlers, Third era, line-up 1421046, paid 3+0,
   spent 14): his gained Loner is a
   [free extra](../game-concepts/skills/index.md#player-skills), so two paid
-  skills remain and his 14 SPP spend fits exactly; the deduction confirms the
-  order the next time he is imported (a migration does not change stored
-  rows), so existing data may still show it unconfirmed until then. TP records level 2 against 3 recorded
-  skills, which the free Loner explains.
+  skills remain, Dirty Player (+1), a random secondary skill, and Sneaky Git,
+  a chosen primary, and his 14 SPP spend fits exactly. Batch 005 records the
+  order Dirty Player, then Sneaky Git: the feed shows only Sneaky Git, at 8
+  SPP (2025-04-16), the price of a second chosen primary skill, and TP's
+  skill row ids give the same order. Applying the batch also flags his stored
+  Loner as a free extra where it was stored before the rule. TP records level
+  2 against 3 recorded skills, which the free Loner explains.
 - **Journeyman** (Elfyville Canaries, Third era, line-up 2454051, paid 1+0,
   spent 0): the only gained skill is Loner, a free extra, so he has no paid
   advancement to order. His level is 0 and his spend is 0.
@@ -122,7 +125,7 @@ matched to the 19 players by name and team, and read oldest first (two on the
 same day by message id). The feed's price per notification is given in SPP
 below.
 
-The four players in batch 005 are listed under Resolved. For the others the
+The five players in batch 005 are listed under Resolved. For the others the
 feed shows:
 
 - **Snarg Half-Thought:** Secondary Block (10), Primary Guard (12), Primary
@@ -152,8 +155,6 @@ feed shows:
   Random Primary Pass (4) and Random Characteristics +1 PA (24), summing to
   31, the spend, while the database records four (three skills and one
   increase).
-- **Nadiddnur:** the feed shows only Primary Sneaky Git (8) of the spend of
-  14, so it covers one of his skills and not the others.
 - **Penthesilea:** the feed shows four of her five advancements, Random
   Characteristics +1 MA (18), Random Characteristics +1 MA (20), Primary Sure
   Hands (12) and Primary Accurate (28), summing to 78 of the spend of 88.

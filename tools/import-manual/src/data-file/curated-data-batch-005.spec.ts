@@ -4,12 +4,14 @@ import { BATCH_001, BATCH_005, readBatch } from './curated-data.test-helpers';
 
 const TP = 'tourplay.net';
 
-type Advancement = { skill: string } | { characteristic: string };
+type Advancement =
+  { skill: string; attributeValue?: string } | { characteristic: string };
 
 /**
  * The advancement order of each player, as read oldest first from the TP
  * feed's "New skill/characteristic" notifications. Each sequence covers every
- * paid advancement the database records for the player.
+ * paid advancement the database records for the player, except where a
+ * player's entry says how the rest of his order is known.
  */
 const EXPECTED: { player: string; advancements: Advancement[] }[] = [
   {
@@ -55,12 +57,23 @@ const EXPECTED: { player: string; advancements: Advancement[] }[] = [
       { skill: 'Pro' },
     ],
   },
+  {
+    // Nadiddnur, Shambletown Peddlers: spent 14 = 6 + 8. The feed shows only
+    // Sneaky Git, at 8, the second advancement's price; Dirty Player (a
+    // random secondary skill) comes first, as TP's skill row ids also order
+    // them. His gained Loner is a free extra and not listed.
+    player: '1421046',
+    advancements: [
+      { skill: 'Dirty Player', attributeValue: '+1' },
+      { skill: 'Sneaky Git' },
+    ],
+  },
 ];
 
 describe('curated batch 005 TP advancement orders', () => {
   const orders = readBatch(BATCH_005).playerAdvancementOrders;
 
-  it('covers exactly the four players the feed settles, in order', () => {
+  it('covers exactly the five players the feed settles, in order', () => {
     expect(orders.map((o) => o.player)).toEqual(
       EXPECTED.map((e) => ({ system: TP, id: e.player })),
     );
@@ -71,7 +84,12 @@ describe('curated batch 005 TP advancement orders', () => {
       orders.map((o) =>
         o.advancements.map((a) =>
           'skill' in a
-            ? { skill: a.skill.id }
+            ? {
+                skill: a.skill.id,
+                ...(a.attributeValue === undefined
+                  ? {}
+                  : { attributeValue: a.attributeValue }),
+              }
             : { characteristic: a.characteristic },
         ),
       ),
