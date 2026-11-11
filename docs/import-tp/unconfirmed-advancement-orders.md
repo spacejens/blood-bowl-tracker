@@ -38,6 +38,8 @@ advancements as skills plus increases, and the SPP spent.
   spent 0): the only gained skill is Loner, a free extra, so he has no paid
   advancement to order. His level is 0 and his spend is 0.
 
+A gained Loner is a free extra for only these two players in the whole data.
+
 - **Kalle Kvist** (Dalsland Treehuggers, line-up 586220, paid 4+2, spent
   110), **Friska Fläkten** (Gnaget, line-up 1233619, paid 5+1, spent 104),
   **K'Lent** (Mega Molochs, line-up 587380, paid 2+2, spent 64) and
@@ -46,11 +48,9 @@ advancements as skills plus increases, and the SPP spent.
   notifications cover every paid advancement of each, and the prices TP
   charged add up to the reported spend. Notification dates: Kalle 2023-09-21
   to 2024-04-10, Friska 2024-08-09 to 2025-05-26, K'Lent 2023-09-20 to
-  2025-12-13, Gruamax 2024-10-10 to 2024-12-03. Before the feed was read,
-  several orders fit each player's spend and nothing in the TP data placed the
-  characteristic increases.
-
-A gained Loner is a paid skill for only these two players in the whole data.
+  2025-12-13, Gruamax 2024-10-10 to 2024-12-03. The TP data alone admits
+  several orders for each player's spend and places none of the characteristic
+  increases.
 
 ## Spend not explainable by the recorded history
 
@@ -118,7 +118,7 @@ notification for each advancement a player takes, with the SPP TP charged for
 it. The whole channel history was paged, 12,561 messages back to the start of
 the channel on 2022-11-22, which held 1,394 such notifications. They were
 matched to the 19 players by name and team, and read oldest first (two on the
-same day by message id). The feed's price per notification is given in stars
+same day by message id). The feed's price per notification is given in SPP
 below.
 
 The four players in batch 005 are listed under Resolved. For the others the
@@ -168,4 +168,5 @@ this page does not establish which is right.
 
 A player's order can be recorded by hand in a manual import batch (see
 [Player advancement orders](../import-manual/player-advancement-orders.md));
-the import refuses any order the reported spend does not allow.
+when the player's SPP figures are stored, the import refuses any order the
+reported spend does not allow.

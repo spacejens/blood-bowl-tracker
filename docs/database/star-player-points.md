@@ -95,8 +95,10 @@ means not known exactly. It is written by `SppAdjustmentsService` together
 with `spp_total`, in the SPP adjustment sync, the last step of a BBL or TP
 import that writes the column, so the two always describe the same total.
 
-A player upsert or a skill sync clears it. A curated order sent with `checkOrderAgainstSpend` keeps it: that sync is refused unless the stored figure fits the new order exactly. The closing SPP adjustment sync of
-an import that runs one writes it back; a plain TP live team import does not
+A player upsert or a skill sync clears it. A curated order sent with
+`checkOrderAgainstSpend` keeps it: when the stored figures are known, that
+sync is refused unless they fit the new order exactly. The closing SPP
+adjustment sync of an import that runs one writes it back; a plain TP live team import does not
 run that sync, so it can leave the value NULL until a later sync. And a trophy award that grants a skill, which only the manual
 import writes, marks the skill as a free extra and works the fixed-threshold
 value out again.

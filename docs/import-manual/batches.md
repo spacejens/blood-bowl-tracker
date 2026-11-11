@@ -62,8 +62,12 @@ The batches:
 - **005-tp-advancement-orders** — hand-curated advancement orders of TP
   players, read from the TP notification feed. It references players the TP
   importer creates, so it applies after the source importers, in a plain
-  `apply`; the server refuses any order the player's reported spend does not
-  allow.
+  `apply`; when the player's SPP figures are stored, the server refuses any
+  order the reported spend does not allow. A scratch import's first TP pass
+  stores none yet, so the order is written unchecked and the second TP pass
+  prices it. An entry lists every stored paid advancement of the player, so
+  if he later gains one and the TP data is downloaded again, a scratch apply
+  of the batch is refused until a follow-up batch supersedes it.
 
 ### Batch 004
 

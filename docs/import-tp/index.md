@@ -479,4 +479,4 @@ alike — see [Keyword target decoding](./keyword-target-decoding.md).
 - [file-format.md](./file-format.md) — working notes on the source JSON format.
 - [keyword-target-decoding.md](./keyword-target-decoding.md) — type-3
   `Hatred`/`Animosity` skill-attribute decoding and skillMasterId curation.
-- [unconfirmed-advancement-orders.md](./unconfirmed-advancement-orders.md) — the 19 TP players whose advancement order is not confirmed, and why.
+- [unconfirmed-advancement-orders.md](./unconfirmed-advancement-orders.md) — the 19 TP players that had no automatically confirmed order, which of them were confirmed from the TP feed, and why the rest are not.
