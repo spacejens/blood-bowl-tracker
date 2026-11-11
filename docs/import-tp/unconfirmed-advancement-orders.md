@@ -10,14 +10,15 @@ the rosters are downloaded again.
 ## How a TP order is established
 
 A TP player's gained skills are taken in ascending order of TP's per-skill row
-id, a global counter. Ordering by it fitted the SPP the player spent in every
-case where the spend constrains the skill order: 80 of 80 confirmed players,
-against 27 of 80 for TP's list order. The SPP deduction then prices every order
+id, a global counter. Ordering by it fits the SPP the player spent in every
+checked case where the spend constrains the skill order, far more often than
+TP's list order does; the counted evidence is in
+[Order of advancements](../import-tp-live/index.md#order-of-advancements). The
+SPP deduction then prices every order
 of the player's advancements with the era's cost table (BB2020 for the Third
 era, BB2025 for the Fourth), where the spend is the player's total SPP minus
 the unspent SPP. It confirms an order only when the spend admits one order, or
-when all fitting orders cost the same. See
-[Order of advancements](../import-tp-live/index.md#order-of-advancements).
+when all fitting orders cost the same.
 
 A characteristic increase carries no row id, so only the spend can place it
 among the skills. Where several placements fit the spend, nothing in the TP
@@ -30,7 +31,8 @@ advancements as skills plus increases, and the SPP spent.
   spent 14): his gained Loner is a
   [free extra](../game-concepts/skills/index.md#player-skills), so two paid
   skills remain and his 14 SPP spend fits exactly; the deduction confirms the
-  order the next time he is imported. TP records level 2 against 3 recorded
+  order the next time he is imported (a migration does not change stored
+  rows), so existing data may still show it unconfirmed until then. TP records level 2 against 3 recorded
   skills, which the free Loner explains.
 - **Journeyman** (Elfyville Canaries, Third era, line-up 2454051, paid 1+0,
   spent 0): the only gained skill is Loner, a free extra, so he has no paid
@@ -67,9 +69,8 @@ import's SPP check for the same reason.
   2+0, spent 19): fits with one more random primary skill, or with one
   recorded skill priced as a characteristic increase.
 - **Curd And Lemon** (Masthugget Lucky Cocks, Fourth era, line-up 2568039,
-  paid 1+0, spent 14): fits with one more random primary skill, with a
-  characteristic increase instead of the skill, or with the skill priced as
-  one.
+  paid 1+0, spent 14): fits with one more random primary skill, or with
+  the skill priced as a characteristic increase.
 - **Pedes Celeres** (Crookback Mountain Misfits, Fourth era, line-up 2477740,
   paid 1+0, spent 14): fits with one more chosen primary skill, or with the
   skill priced as a characteristic increase.
