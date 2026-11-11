@@ -1,65 +1,20 @@
 # blood-bowl-tracker
 
-A set of tools for tracking Blood Bowl games, teams, and players.
+A set of tools for tracking Blood Bowl games, teams, and players. It imports
+league history from BBL and TP, plus hand-curated data, into one PostgreSQL
+database, and serves statistics, toplists and deepdives about it through a
+Discord bot.
 
-New to the project? Start with the [glossary](docs/glossary.md), [spec conventions](docs/spec-conventions.md), and [architecture](docs/architecture.md).
+New to the project? Start with the [glossary](docs/glossary.md),
+[spec conventions](docs/spec-conventions.md), and
+[architecture](docs/architecture.md), whose
+[workspace index](docs/architecture.md#workspace-index) links every app,
+package and tool to its own documentation.
 
-## Repository structure
+## Applications
 
-This is a pnpm monorepo with three top-level workspace folders:
-
-| Folder      | Purpose                                                             |
-| ----------- | ------------------------------------------------------------------- |
-| `apps/`     | Runnable applications deployed or distributed to end users          |
-| `docs/`     | Specifications, glossary, and domain documentation                  |
-| `packages/` | Shared library packages consumed by apps and tools (not standalone) |
-| `tools/`    | Developer tooling and scripts not shipped as part of any app        |
-
-### Applications
-
-- **`apps/discord-bot`** — NestJS-based Discord bot for interacting with the tracker
-
-### Packages
-
-- **`packages/api-client`** — NestJS module wrapping an oRPC RPC client for calling the api-server over the network
-- **`packages/api-contract`** — oRPC contract (coaches.upsert, externalSystems.upsert) shared between api-server and api-client
-- **`packages/api-server`** — Thin NestJS transport layer dispatching RPC calls into packages/game-data; hosted in-process by apps/discord-bot
-- **`packages/config-loader`** — library package with the generic JSON5 config-file loading shared by the import tools (via `packages/import`), `tools/download-tp`, and the review tools (via `packages/review-harness`): read the file, treat a missing file as an empty config, parse JSON5 with a friendly path-naming error, and validate against a caller-supplied top-level schema
-- **`packages/db`** — Drizzle ORM schema and migrations for PostgreSQL
-- **`packages/discord-bot-usage`** — NestJS module that records Discord bot usage: every triggered slash command, button click and select-menu selection, with who triggered it, where, when, its parameters and whether it succeeded, written into the `discord_bot_usage` schema through `packages/db`
-- **`packages/discord-client`** — NestJS module wrapping discord.js for connecting to Discord, dispatching slash commands and components, and posting messages; reports each handled interaction to registered listeners (which is how `apps/discord-bot` records usage) without depending on the database (its workspace dependencies are `packages/domain-enums`, for types, and `packages/logging`)
-- **`packages/domain-enums`** — library package holding the single declaration of every Blood Bowl domain enum's member list (action types, weather types, characteristic formats, match categories and the rest) as plain `as const` string arrays, and the value type of each list, which every package imports instead of re-declaring it; it deliberately depends on no other workspace package, so `packages/db` can build its Drizzle enums and `packages/api-contract` its Zod schemas from the same source while staying mutually independent of each other
-- **`packages/game-data`** — Server-side business logic and DB access for core game entities: ingestion and the reads importers, the API and the bot share; used directly by api-server, import-tp-live and apps/discord-bot
-- **`packages/game-data-queries`** — Server-side, read-only statistics, toplists and lookups over the game data that only `apps/discord-bot` uses; depends one-way on `packages/game-data` and is imported only by `apps/discord-bot`
-- **`packages/import`** — NestJS module with upsert-handling bookkeeping and entity-specific import services (calling api-client) used across import tools; re-exports `packages/api-contract`'s `ImportError`/`ImportResult` types and `packages/import-shared`'s result, Name-id and cup-rule services under their established names
-- **`packages/import-shared`** — NestJS module with the pure, I/O-free import rules both the client-side `packages/import` and the server-side `packages/import-tp-live` must apply identically: the "Name" external-id formats (`NameExternalIdService`), import result construction (`ImportResultService`), per-item upsert error recording (`UpsertRecorderService`) and the cup-versus-season span rule (`CompetitionTypeService`)
-- **`packages/import-tp-live`** — server-side NestJS module that imports one TP roster, one completed TP match with its teams and competition, one TP competition with its registered teams and trophy awards, or one rules set's official team list, straight through `packages/game-data`, and implements the `tpRosters.import`, `tpMatches.import`, `tpCompetitions.import` and `tpOfficialTeams.import` procedures `tools/import-tp` calls; `apps/discord-bot` also calls the same four entry points directly, in-process, for its `/importtp` slash command (see [docs/import-tp-live/index.md](docs/import-tp-live/index.md))
-- **`packages/logging`** — NestJS service (`ErrorLogService`) for logging a caught exception at error or warn level in one consistent shape, without the error detail overwriting the log's context label; used by `apps/discord-bot`, `packages/discord-client`, `packages/db` and `packages/api-server`, and depends on no other workspace package (see [docs/logging/index.md](docs/logging/index.md))
-- **`packages/parse-tp`** — library package for reusable TP JSON-parsing logic and the TP keys both import paths must agree on (such as the hired-star external id), consumed by `tools/import-tp` and `packages/import-tp-live`
-- **`packages/read-bbl-mirror`** — library package with the mechanical half of reading BBL's wget mirror: safe filename resolution against a caller-supplied data directory, a missing file or directory reported as `null`/empty rather than thrown, Windows-1252 byte decoding (BBL's pages declare ISO-8859-1, but are Windows-1252), and plain file listing; consumed by `tools/import-bbl`, `tools/review-match`, `tools/review-player`, `tools/review-race` and `tools/review-star-player`, each of which keeps its own interpretation of what the files mean
-- **`packages/review-harness`** — NestJS module with the scaffolding behind the review tools, generic across BBL/TP: HTML fragment assembly, timestamped report writing, JSON5 config loading, and the plug-in interfaces and DI wiring a data-type module registers through; it carries no BBL/TP parsing or interpretation logic, shared by `tools/review-match`, `tools/review-player`, `tools/review-race` and `tools/review-star-player`
-- **`packages/scrape-tp`** — NestJS module with the one implementation of fetching TP's API over plain HTTP: the browser-like header set TP accepts, and per-visit sessions with their own cookie jar and randomized pacing between requests; it knows no TP URLs and depends on no other workspace package; consumed by `tools/download-tp` and `packages/import-tp-live` (see [docs/scrape-tp/index.md](docs/scrape-tp/index.md))
-- **`packages/tp-paths`** — NestJS module with TP's URL paths as TP's own frontend requests them (a roster's, a tournament's, including the pages only `tools/download-tp` fetches, a match's and the official team list's API and page paths, each paired into a ready-to-fetch `TpRequest` — full API URL plus referer page URL — from the caller's base URLs, plus the rules-set id map the official team list uses), and the reverse: `TpPageClassifierService`, which decides which kind of TP page (competition, competition scores, match, roster, official teams, or unknown) a URL points to and extracts its ids; pure path building and matching with no I/O, so `tools/download-tp`, `packages/import-tp-live` and `apps/discord-bot` (for its `/importtp` slash command) all depend on it
-
-### Tools
-
-- **`tools/import-bbl`** — NestJS CLI application for importing data from BBL (Blood Bowl League) exports into the tracker via the api-client
-- **`tools/import-tp`** — NestJS CLI application for importing TP data into the tracker (see [docs/import-tp/index.md](docs/import-tp/index.md))
-- **`tools/import-manual`** — NestJS CLI application for importing hand-authored supplementary data (leagues, eras, rules sets, races, positions, coaches, teams, and extra external IDs) into the tracker via the api-client, in once-applied batches run before and after the system-specific importers (see [docs/import-manual/index.md](docs/import-manual/index.md))
-- **`tools/review-match`** — NestJS CLI application that renders a side-by-side HTML report of each source's raw match data against what was imported into `game_data.match_events`, for spot-checking import correctness by hand (see [docs/review-match/index.md](docs/review-match/index.md))
-- **`tools/review-player`** — NestJS CLI application that renders a side-by-side HTML report of each source's raw player data against what was imported into `game_data`, for spot-checking import correctness by hand (see [docs/review-player/index.md](docs/review-player/index.md))
-- **`tools/review-race`** — NestJS CLI application that renders a side-by-side HTML report of each source's raw race and position data against what was imported into `positions_race_eras` and `position_rules_sets`, for spot-checking import correctness by hand (see [docs/review-race/index.md](docs/review-race/index.md))
-- **`tools/review-star-player`** — NestJS CLI application that renders a side-by-side HTML report of each source's raw star player data (identity, per-rules-set characteristics, starting skills, keywords, hire eligibility) against what was imported into `positions`, `position_rules_sets` and `positions_race_eras`, for spot-checking import correctness by hand (see [docs/review-star-player/index.md](docs/review-star-player/index.md))
-- **`tools/download-tp`** — NestJS CLI application that fetches TP's API over plain HTTP (via `packages/scrape-tp`) and records the responses as local JSON files for later import by `tools/import-tp` (see [docs/download-tp/index.md](docs/download-tp/index.md))
-- **`tools/dev-workflow-cli`** — NestJS CLI application providing the developer/PR workflow helpers the Claude Code skills in `.claude/skills/` call instead of hand-rolling the equivalent shell — for worktree isolation and for repeatability more generally (see [docs/dev-workflow-cli/index.md](docs/dev-workflow-cli/index.md))
-- **`tools/production-ops-cli`** — NestJS CLI application providing the production database and tunnel operations `deploy-production` invokes (see [docs/production-ops-cli/index.md](docs/production-ops-cli/index.md))
-- **`tools/fs-utils-cli`** — NestJS CLI application providing the worktree-aware filesystem helpers (gitignored-config sync, writing a file through the `docs/plans` symlink) the Claude Code skills call (see [docs/fs-utils-cli/index.md](docs/fs-utils-cli/index.md))
-- **`tools/backup-cli`** — NestJS CLI application that backs up the production database to a private Cloudflare R2 bucket, lists, prunes, downloads and verifies those backups, checks that the newest is recent enough, and restores one into the local development database or into production; it also raises and resolves the backup alert issues. Run daily by `.github/workflows/backup-production.yml` (see [docs/backup-cli/index.md](docs/backup-cli/index.md))
-- **`tools/workflow-lint`** — NestJS CLI application that fails `pnpm lint` when a workflow in `.github/workflows/` references a remote action by a tag or branch instead of a full commit SHA (see [docs/workflow-lint/index.md](docs/workflow-lint/index.md))
-- **`tools/cli-shared`** — library package with the plumbing the five CLI packages above share: git main-checkout/worktree resolution, child-process running and spawning, the canonical gitignored file/directory lists, the dotenv-based reader for production's secrets in `apps/discord-bot/.env.production`, the guarded `psql`/`pg_dump`/`pg_restore` runner with connection-string redaction, and the shared `runCli` subcommand-dispatcher driver all five entrypoints run on (`tools/workflow-lint` uses only `runCli`); no CLI entry point of its own
-- **`tools/db-diagram/db-diagram.sh`** — generates a [SchemaSpy](https://schemaspy.org/) ER diagram and browsable schema docs for the local docker-compose database into `docs/schemaspy-output/` (run via `pnpm run db:diagram`; requires the stack to be running — start it with `deploy-local` or `docker compose up -d --build`)
-- **`tools/eslint-rules`** — custom ESLint rules shared across the repo (currently `max-function-params`, imported directly by the root `eslint.config.ts`)
-- **`tools/markdownlint-rules`** — custom markdownlint rules shared across the repo (currently `max-file-lines`, which flags any markdown file over 500 lines), built to `dist/` and loaded by the root `.markdownlint-cli2.jsonc`'s `customRules`
+- **`apps/discord-bot`** — the Discord bot for interacting with the tracker
+  (see [docs/discord-bot/index.md](docs/discord-bot/index.md)).
 
 ## Getting started
 
@@ -103,14 +58,11 @@ pnpm run test:e2e     # e2e tests
 
 > **Note:** The Docker Compose setup is intended for local development and testing of the production build. The same image runs in production on Fly.io against a Neon database — see [docs/discord-bot/production-hosting.md](docs/discord-bot/production-hosting.md) — so the Compose file is just a convenient way to run it locally. Once production is running continuously, point your local `.env` at a separate Discord bot identity instead of production's — see [docs/discord-bot/local-development.md](docs/discord-bot/local-development.md).
 
-`docker-compose.yml` defines two services:
-
-| Service       | Description                                                |
-| ------------- | ---------------------------------------------------------- |
-| `discord-bot` | The NestJS application, built from `Dockerfile`            |
-| `postgres`    | PostgreSQL 17 database with a named volume for persistence |
-
-The bot waits for the database to be healthy before starting. Default credentials and database name are `blood_bowl` and are intended for local use only; override them via environment variables for any other deployment.
+`docker-compose.yml` defines a `discord-bot` service, built from `Dockerfile`,
+and a `postgres` service with a named volume for persistence. The bot waits
+for the database to be healthy before starting. Default credentials and
+database name are `blood_bowl` and are intended for local use only; override
+them via environment variables for any other deployment.
 
 ```bash
 docker compose up --build   # build and start both services
@@ -119,8 +71,8 @@ docker compose down -v      # also remove the postgres data volume
 ```
 
 The HTTP API is available at `http://localhost:3000` once the services are up.
-
-The database is exposed on host port 5433 (not 5432, to avoid conflicts with any local Postgres installation). Connect with `psql`:
+The database is exposed on host port 5433 (not 5432, to avoid conflicts with
+any local Postgres installation):
 
 ```bash
 psql postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl
