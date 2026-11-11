@@ -31,6 +31,9 @@ Run from the repo root. On success, every subcommand prints JSON on stdout; fail
 
 ## Development
 
+Its entrypoint runs on [cli-shared](../cli-shared/index.md)'s `runCli`
+subcommand dispatcher, and it uses that package's shared helpers.
+
 ```bash
 pnpm --filter @blood-bowl-tracker/fs-utils-cli run test        # unit tests with coverage
 pnpm --filter @blood-bowl-tracker/fs-utils-cli run test:watch  # unit tests in watch mode

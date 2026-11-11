@@ -23,6 +23,9 @@ change.
   (for `FactScope`, the match scope filter, the match event type groups and
   SPP totals); `packages/game-data` never imports this package.
 - Only `apps/discord-bot` depends on this package.
+- Its workspace dependencies are [game-data](../game-data/index.md) (one-way:
+  game-data never imports it), `packages/db`, `packages/domain-enums` and
+  `packages/api-contract`.
 
 ## Layout
 
@@ -38,4 +41,4 @@ helpers only these queries use, such as `MatchEventCountsService` and
 
 Unit specs follow the repo-wide service testing rules in `CLAUDE.md`.
 `pnpm run test` also runs a real-Postgres suite (`test/*.e2e-spec.ts`), so a
-running Docker daemon is required; see the note in the root `README.md`.
+running Docker daemon is required; see [game-data's Testing section](../game-data/index.md#testing).

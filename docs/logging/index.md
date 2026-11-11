@@ -20,6 +20,9 @@ Passing a raw `unknown` error, or `err.stack ?? String(err)`, therefore loses
 the context label (or the error detail) whenever the value is not a framed
 stack.
 
+It depends on no other workspace package. Server-side packages use it
+directly; the `tools/review-*` family reaches it only through `packages/db`.
+
 ## Using it
 
 Inject the service and pass your own `Logger`, so the context stays the class

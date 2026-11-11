@@ -8,7 +8,8 @@ actually stored in `positions`, `position_rules_sets`, `position_rules_set_skill
 `position_rules_set_keywords` and `positions_race_eras`. Like
 the other review tools it is a review aid for a human — it cannot decide what is
 "correct" on its own, because the interpretation logic it deliberately does not run
-is the thing being reviewed.
+is the thing being reviewed. A change to what any of the three importers stores
+for star players usually needs a matching renderer change here.
 
 ## Why star players get their own tool
 
@@ -31,9 +32,9 @@ showing up as a difference. That rule covers the **domain-specific** half only. 
 domain-agnostic scaffolding (HTML fragment assembly, timestamped report writing,
 JSON5 config loading, the `DataTypeReviewer`/`Stratifier` plug-in contracts and the
 app-module wiring) is shared with the other review tools through
-`packages/review-harness` — it never touches a raw source's meaning, so it cannot
+[`packages/review-harness`](../review-harness/index.md) — it never touches a raw source's meaning, so it cannot
 agree with itself about one. Locating and byte-decoding a BBL mirror file is shared
-on a similar basis, via `packages/read-bbl-mirror`: it carries no BBL-page-type
+on a similar basis, via [`packages/read-bbl-mirror`](../read-bbl-mirror/index.md): it carries no BBL-page-type
 awareness or HTML parsing, so depending on it does not weaken the boundary above.
 Walking the curated batches is shared via `packages/review-harness`'s
 `ManualBatchReaderService`. It shapes no entry, so every reading of what a curated

@@ -209,6 +209,9 @@ The JSON prints only when the capture ends. Polling can miss a body that lasts l
 
 ## Development
 
+Its entrypoint runs on [cli-shared](../cli-shared/index.md)'s `runCli`
+subcommand dispatcher, and it uses that package's shared helpers.
+
 ```bash
 pnpm --filter @blood-bowl-tracker/dev-workflow-cli run test        # unit tests with coverage
 pnpm --filter @blood-bowl-tracker/dev-workflow-cli run test:watch  # unit tests in watch mode
