@@ -1,6 +1,7 @@
 import { ApiServerModule } from '@blood-bowl-tracker/api-server';
 import { AdvisoryLockModule, DbModule } from '@blood-bowl-tracker/db';
 import { DiscordClientModule } from '@blood-bowl-tracker/discord-client';
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -15,7 +16,6 @@ import { RandomInsightsSchedulerService } from './insights/random-insights-sched
 import { LeaderElectionService } from './leader-election/leader-election.service';
 import { ProcessExitService } from './leader-election/process-exit.service';
 import { SleepService } from './leader-election/sleep.service';
-import { ErrorLogService } from './shared/error-log.service';
 import { SlashCommandsModule } from './slash-commands/slash-commands.module';
 import { StartupNotifierService } from './startup-notifier.service';
 import { TpConnectionModule } from './tp-connection.module';

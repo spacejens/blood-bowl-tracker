@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { isDefinedError, ORPCError } from '@orpc/server';
@@ -47,6 +48,7 @@ vi.mock('@orpc/server/node', () => ({
 describe('RpcMiddleware', () => {
   let middleware: RpcMiddleware;
   let auth: MockProxy<ApiTokenAuthService>;
+  let errorLog: MockProxy<ErrorLogService>;
   let rpcHandler: RpcHandlerMock;
   // Initialized here only so TypeScript infers the callable mock type;
   // reassigned fresh per test in beforeEach.
@@ -84,6 +86,7 @@ describe('RpcMiddleware', () => {
     rpc.state.current = rpcHandler;
     next = vi.fn();
     auth = mock<ApiTokenAuthService>();
+    errorLog = mock<ErrorLogService>();
     auth.authenticate.mockReturnValue({
       authenticated: true,
       callerName: 'import-bbl',
@@ -92,6 +95,7 @@ describe('RpcMiddleware', () => {
       providers: [
         RpcMiddleware,
         { provide: ApiTokenAuthService, useValue: auth },
+        { provide: ErrorLogService, useValue: errorLog },
         {
           provide: RPC_ROUTER,
           useValue: {} as ReturnType<RpcRouterFactoryService['build']>,
@@ -173,10 +177,7 @@ describe('RpcMiddleware', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it('logs unhandled errors at error level with method, path, and stack, then rethrows unchanged', async () => {
-    const errorSpy = vi
-      .spyOn(Logger.prototype, 'error')
-      .mockImplementation(() => undefined);
+  it('logs unhandled errors through ErrorLogService with method and path, then rethrows unchanged', async () => {
     const boom = new Error('database exploded');
     next.mockRejectedValue(boom);
 
@@ -191,19 +192,17 @@ describe('RpcMiddleware', () => {
       }),
     ).rejects.toBe(boom);
 
-    expect(errorSpy).toHaveBeenCalledTimes(1);
-    const [message, stack] = errorSpy.mock.calls[0] as [string, string];
-    expect(message).toContain('POST');
-    expect(message).toContain('/rpc/coaches/upsert');
-    expect(stack).toBe(boom.stack);
+    expect(errorLog.logError).toHaveBeenCalledTimes(1);
+    expect(errorLog.logError).toHaveBeenCalledWith(
+      expect.any(Logger),
+      'Unhandled error handling RPC request POST /rpc/coaches/upsert',
+      boom,
+    );
   });
 
   it('logs defined errors at warn level with method, path, and message (no stack), then rethrows unchanged', async () => {
     const warnSpy = vi
       .spyOn(Logger.prototype, 'warn')
-      .mockImplementation(() => undefined);
-    const errorSpy = vi
-      .spyOn(Logger.prototype, 'error')
       .mockImplementation(() => undefined);
     const conflict = new ORPCError('CONFLICT', {
       defined: true,
@@ -224,7 +223,7 @@ describe('RpcMiddleware', () => {
       }),
     ).rejects.toBe(conflict);
 
-    expect(errorSpy).not.toHaveBeenCalled();
+    expect(errorLog.logError).not.toHaveBeenCalled();
     expect(warnSpy).toHaveBeenCalledTimes(1);
     const [message] = warnSpy.mock.calls[0] as [string];
     expect(message).toContain('POST');
@@ -235,9 +234,6 @@ describe('RpcMiddleware', () => {
   it('passes the next() result through unchanged and logs nothing on success', async () => {
     const warnSpy = vi
       .spyOn(Logger.prototype, 'warn')
-      .mockImplementation(() => undefined);
-    const errorSpy = vi
-      .spyOn(Logger.prototype, 'error')
       .mockImplementation(() => undefined);
     const result = { matched: true, response: { status: 200 } };
     next.mockResolvedValue(result);
@@ -254,7 +250,7 @@ describe('RpcMiddleware', () => {
     ).resolves.toBe(result);
 
     expect(warnSpy).not.toHaveBeenCalled();
-    expect(errorSpy).not.toHaveBeenCalled();
+    expect(errorLog.logError).not.toHaveBeenCalled();
   });
 
   it('passes the Authorization header to ApiTokenAuthService and invokes the handler when it authenticates', async () => {

@@ -1,4 +1,5 @@
 import { TpBlockedError } from '@blood-bowl-tracker/import-tp-live';
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import type { TpPageClassification } from '@blood-bowl-tracker/tp-paths';
 import { TpPageClassifierService } from '@blood-bowl-tracker/tp-paths';
 import { Test } from '@nestjs/testing';
@@ -16,7 +17,6 @@ import {
   IMPORT_TP_DISABLED_MESSAGE,
   IMPORT_TP_UNSUPPORTED_URL_MESSAGE,
 } from '../../error-messages';
-import { ErrorLogService } from '../../shared/error-log.service';
 import type { TpImportOutcome } from '../../tp-import/tp-import-dispatch.service';
 import { TpImportDispatchService } from '../../tp-import/tp-import-dispatch.service';
 import { SlashCommandRegistryService } from '../slash-command-registry.service';

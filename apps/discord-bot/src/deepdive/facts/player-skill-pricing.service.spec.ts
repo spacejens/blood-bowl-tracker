@@ -3,6 +3,7 @@ import type {
   PricingModel,
 } from '@blood-bowl-tracker/game-data';
 import { PlayerPricingModelService } from '@blood-bowl-tracker/game-data';
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
@@ -12,7 +13,6 @@ import {
   mockDatabaseTimeout,
   stubDatabaseTimeoutOnce,
 } from '../../database-timeout-mock.test-helpers';
-import { ErrorLogService } from '../../shared/error-log.service';
 import { PlayerSkillPricingService } from './player-skill-pricing.service';
 
 const PLAYER = 1;

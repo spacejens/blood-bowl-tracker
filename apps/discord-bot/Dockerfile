@@ -18,6 +18,7 @@ COPY packages/game-data-queries/package.json packages/game-data-queries/
 COPY packages/import/package.json packages/import/
 COPY packages/import-shared/package.json packages/import-shared/
 COPY packages/import-tp-live/package.json packages/import-tp-live/
+COPY packages/logging/package.json packages/logging/
 COPY packages/parse-tp/package.json packages/parse-tp/
 COPY packages/scrape-tp/package.json packages/scrape-tp/
 COPY packages/tp-paths/package.json packages/tp-paths/
@@ -49,6 +50,7 @@ COPY packages/game-data-queries/package.json packages/game-data-queries/
 COPY packages/import/package.json packages/import/
 COPY packages/import-shared/package.json packages/import-shared/
 COPY packages/import-tp-live/package.json packages/import-tp-live/
+COPY packages/logging/package.json packages/logging/
 COPY packages/parse-tp/package.json packages/parse-tp/
 COPY packages/scrape-tp/package.json packages/scrape-tp/
 COPY packages/tp-paths/package.json packages/tp-paths/
@@ -69,6 +71,7 @@ COPY --from=builder /build/packages/game-data/dist ./packages/game-data/dist
 COPY --from=builder /build/packages/game-data-queries/dist ./packages/game-data-queries/dist
 COPY --from=builder /build/packages/import-shared/dist ./packages/import-shared/dist
 COPY --from=builder /build/packages/import-tp-live/dist ./packages/import-tp-live/dist
+COPY --from=builder /build/packages/logging/dist ./packages/logging/dist
 COPY --from=builder /build/packages/parse-tp/dist ./packages/parse-tp/dist
 COPY --from=builder /build/packages/scrape-tp/dist ./packages/scrape-tp/dist
 COPY --from=builder /build/packages/tp-paths/dist ./packages/tp-paths/dist

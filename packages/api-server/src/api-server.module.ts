@@ -31,6 +31,7 @@ import {
   TpOfficialTeamsModule,
   TpRosterModule,
 } from '@blood-bowl-tracker/import-tp-live';
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
@@ -75,6 +76,7 @@ import { UpsertHandlerService } from './upsert-handler.service';
   ],
   providers: [
     ApiTokenAuthService,
+    ErrorLogService,
     RpcRouterFactoryService,
     UpsertHandlerService,
     {

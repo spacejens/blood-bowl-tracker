@@ -1,4 +1,5 @@
 import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { MessageFlags } from 'discord.js';
@@ -7,7 +8,6 @@ import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { DiscordBotConfigService } from '../discord-bot-config.service';
-import { ErrorLogService } from '../shared/error-log.service';
 import { TpFeedBlockNoticeService } from './tp-feed-block-notice.service';
 import { TpFeedFormatterService } from './tp-feed-formatter.service';
 

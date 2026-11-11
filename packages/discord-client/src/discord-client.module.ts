@@ -1,3 +1,4 @@
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { DynamicModule, FactoryProvider, Global, Module } from '@nestjs/common';
 
 import {
@@ -49,6 +50,7 @@ export class DiscordClientModule {
         { provide: ADMIN_COMMAND_ROLE_ID, useValue: options.adminRoleId },
         MemberRoleAccessService,
         HandledInteractionBuilderService,
+        ErrorLogService,
         DiscordClientService,
       ],
       exports: [
@@ -81,6 +83,7 @@ export class DiscordClientModule {
         },
         MemberRoleAccessService,
         HandledInteractionBuilderService,
+        ErrorLogService,
         DiscordClientService,
       ],
       exports: [
