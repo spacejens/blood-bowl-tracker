@@ -32,6 +32,7 @@ import { mock } from 'vitest-mock-extended';
 
 import { LikePatternService } from '../shared/like-pattern.service';
 import { MatchEventCountsService } from '../shared/match-event-counts.service';
+import { TrophyAwardCountsService } from '../shared/trophy-award-counts.service';
 import { PlayersQueriesService } from './players-queries.service';
 
 describe('PlayersQueriesService toplist queries', () => {
@@ -39,6 +40,7 @@ describe('PlayersQueriesService toplist queries', () => {
   let likePattern: MockProxy<LikePatternService>;
   let sppTotals: MockProxy<SppTotalsService>;
   let matchEventCounts: MockProxy<MatchEventCountsService>;
+  let trophyAwardCounts: MockProxy<TrophyAwardCountsService>;
 
   async function build(...rowsPerQuery: unknown[][]): Promise<{
     db: Db;
@@ -51,6 +53,7 @@ describe('PlayersQueriesService toplist queries', () => {
         { provide: LikePatternService, useValue: likePattern },
         { provide: SppTotalsService, useValue: sppTotals },
         { provide: MatchEventCountsService, useValue: matchEventCounts },
+        { provide: TrophyAwardCountsService, useValue: trophyAwardCounts },
         { provide: DB, useValue: db },
       ],
     }).compile();
@@ -62,6 +65,7 @@ describe('PlayersQueriesService toplist queries', () => {
     likePattern = mock<LikePatternService>();
     sppTotals = mock<SppTotalsService>();
     matchEventCounts = mock<MatchEventCountsService>();
+    trophyAwardCounts = mock<TrophyAwardCountsService>();
   });
 
   it.each([
@@ -126,6 +130,36 @@ describe('PlayersQueriesService toplist queries', () => {
       scope: { eraId: 20 },
       limit: 21,
     });
+  });
+
+  it('countTrophiesByPlayer returns the rows TrophyAwardCountsService resolves to', async () => {
+    const rows = [
+      { playerId: 1, name: 'Griff Oberwald', count: 3 },
+      { playerId: 2, name: 'Morg n Thorg', count: 1 },
+    ];
+    trophyAwardCounts.countTrophiesByPlayer.mockResolvedValue(rows);
+    const { db } = await build();
+    await expect(
+      service.countTrophiesByPlayer(FACT_SCOPE_ALL_TIME, 21),
+    ).resolves.toEqual(rows);
+    // The query itself lives on the shared service, covered by its own
+    // spec; this service must not issue one of its own.
+    expect(db.select).not.toHaveBeenCalled();
+  });
+
+  it('countTrophiesByPlayer forwards the whole scope and limit verbatim', async () => {
+    // The shared service is what drops the match category, so the whole
+    // scope object is handed over unchanged.
+    trophyAwardCounts.countTrophiesByPlayer.mockResolvedValue([]);
+    await build();
+    await service.countTrophiesByPlayer(
+      { leagueId: 9, eraId: 20, competitionId: 30, category: 'cup_final' },
+      21,
+    );
+    expect(trophyAwardCounts.countTrophiesByPlayer).toHaveBeenCalledWith(
+      { leagueId: 9, eraId: 20, competitionId: 30, category: 'cup_final' },
+      21,
+    );
   });
 
   it('topPlayersByTotalSpp ranks by the stored spp_total for the all-time scope', async () => {
