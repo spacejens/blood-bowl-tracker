@@ -72,7 +72,6 @@ describe('MatchParserService', () => {
       phaseType: 160,
       phaseOrder: 1,
       round: 3,
-      winner: undefined,
     });
   });
 
@@ -112,16 +111,16 @@ describe('MatchParserService', () => {
     expect(result.winner).toBe('draw');
   });
 
-  it('leaves winner undefined when scoreResume is absent', () => {
+  it('omits winner when scoreResume is absent', () => {
     const result = service.parse(matchBody());
-    expect(result.winner).toBeUndefined();
+    expect(result).not.toHaveProperty('winner');
   });
 
-  it('leaves winner undefined when scoreResume.winner is absent', () => {
+  it('omits winner when scoreResume.winner is absent', () => {
     const result = service.parse(
       matchBody({ scoreResume: { startInstant: '2021-04-01T09:00:00Z' } }),
     );
-    expect(result.winner).toBeUndefined();
+    expect(result).not.toHaveProperty('winner');
   });
 
   it('maps inscriptionLocal.roster.lineUps / inscriptionVisitor.roster.lineUps to homeRosterPlayers/awayRosterPlayers', () => {
