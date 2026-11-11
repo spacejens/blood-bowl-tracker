@@ -1,9 +1,11 @@
 # discord-bot-usage
 
 `packages/discord-bot-usage` records what the Discord bot was asked to do, not
-what it knows: every triggered slash command, button click and select-menu
+what it knows: each triggered slash command, button click and select-menu
 selection, with who triggered it, where (guild and channel), when, its
-parameters and whether it succeeded. Rows land in the `discord_bot_usage`
+parameters and whether it succeeded. Recording is best effort: a failure to
+store a row is logged and does not affect the reply, so an interaction can be
+handled without a stored row. Rows land in the `discord_bot_usage`
 schema, history-tracked like every other table (see
 [database.md](../database.md#history-tracking)).
 

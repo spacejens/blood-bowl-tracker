@@ -22,7 +22,7 @@ application.
   matching [import-tp-live](../import-tp-live/index.md) entry point in-process,
   through one shared dispatch.
 - It connects to Discord through [discord-client](../discord-client/index.md)
-  and records every handled interaction into
+  and records each handled interaction, best effort, into
   [discord-bot-usage](../discord-bot-usage/index.md) through its
   `UsageRecordingService`.
 - Its user-facing error and status messages follow the conventions in
