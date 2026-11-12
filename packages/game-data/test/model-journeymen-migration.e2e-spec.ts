@@ -326,6 +326,7 @@ describe('model_journeymen migration (real Postgres)', () => {
       source: 'chosen',
       attributeValue: '4+',
       isFreeExtra: true,
+      advancementOrder: 1,
     });
     expect(rows[2]).toMatchObject({ advancementOrder: 2 });
   });
@@ -410,22 +411,70 @@ describe('model_journeymen migration (real Postgres)', () => {
 
   it('converts a confirmed Loner row and clears its order', async () => {
     const playerId = await newJourneyman(db, ids);
-    await db.insert(playerAdvancements).values({
-      playerId,
-      skillId: ids.loner,
-      source: 'advancement',
-      advancementOrder: 1,
-      orderConfirmed: true,
-      isFreeExtra: true,
-    });
+    await db.insert(playerAdvancements).values([
+      {
+        playerId,
+        skillId: ids.loner,
+        source: 'advancement',
+        advancementOrder: 1,
+        orderConfirmed: true,
+        isFreeExtra: true,
+      },
+      {
+        playerId,
+        skillId: ids.dodge,
+        source: 'random',
+        advancementOrder: 2,
+      },
+    ]);
 
     await runMigration(db);
 
-    expect((await rowsOf(db, playerId))[0]).toMatchObject({
+    const rows = await rowsOf(db, playerId);
+    expect(rows[0]).toMatchObject({
       source: 'starting',
       advancementOrder: null,
       orderConfirmed: false,
       isFreeExtra: false,
+    });
+    expect(rows[1]).toMatchObject({ advancementOrder: 2 });
+  });
+
+  it('shifts unconfirmed rows but never a confirmed one', async () => {
+    const playerId = await newJourneyman(db, ids);
+    await db.insert(playerAdvancements).values([
+      {
+        playerId,
+        skillId: ids.loner,
+        source: 'chosen',
+        advancementOrder: 1,
+        isFreeExtra: true,
+      },
+      {
+        playerId,
+        skillId: ids.block,
+        source: 'advancement',
+        advancementOrder: 2,
+        orderConfirmed: true,
+      },
+      {
+        playerId,
+        skillId: ids.dodge,
+        source: 'random',
+        advancementOrder: 3,
+      },
+    ]);
+
+    await runMigration(db);
+
+    const rows = await rowsOf(db, playerId);
+    expect(rows[1]).toMatchObject({
+      advancementOrder: 2,
+      orderConfirmed: true,
+    });
+    expect(rows[2]).toMatchObject({
+      advancementOrder: 2,
+      orderConfirmed: false,
     });
   });
 });

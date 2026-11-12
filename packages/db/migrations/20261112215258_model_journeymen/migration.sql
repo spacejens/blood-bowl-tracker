@@ -15,7 +15,10 @@ WHERE pos."id" = p."position_id"
 -- Each unconfirmed row of his numbered after that Loner moves down one (the
 -- proxy numbering TP's list order gave). A confirmed paid row is not moved:
 -- a gained Loner was stored as a free extra, whose confirmed slot was
--- already closed.
+-- already closed. Likewise no shift happens when the converted Loner is
+-- itself confirmed (the count only includes unconfirmed Loners): its slot is
+-- pinned, so the rows after it keep their numbers. The converted row is
+-- excluded from the shift; any other Loner row shifts like any other.
 UPDATE "game_data"."player_advancements" AS pa
 SET "advancement_order" = pa."advancement_order" - (
     SELECT count(*)
@@ -48,12 +51,18 @@ WHERE p."id" = pa."player_id"
   AND pa."removed" = false
   AND pa."source" <> 'starting'
   AND pa."advancement_order" IS NOT NULL
-  AND NOT EXISTS (
-    SELECT 1 FROM "game_data"."skills" AS own
-    WHERE own."id" = pa."skill_id" AND own."name" = 'Loner'
+  AND pa."id" <> (
+    SELECT min(m."id")
+    FROM "game_data"."player_advancements" AS m
+    JOIN "game_data"."skills" AS ms ON ms."id" = m."skill_id"
+    WHERE m."player_id" = pa."player_id"
+      AND ms."name" = 'Loner'
+      AND m."source" <> 'starting'
+      AND m."removed" = false
   );
 --> statement-breakpoint
--- That gained Loner becomes the journeyman's starting Loner, keeping its
+-- That gained Loner (deliberately the lowest id, so the choice is stable and
+-- the same one statement 2 counted) becomes the journeyman's starting Loner, keeping its
 -- roll as the variant. The history triggers record the change. The row's
 -- unique key (player, skill, variant) does not change, so no index can
 -- collide.

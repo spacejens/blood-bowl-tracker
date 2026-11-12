@@ -201,12 +201,12 @@ The cost model pins only confirmed entries to their advancement number, and
 every other entry is interchangeable with the rest. A sync never lets an
 unconfirmed incoming order overwrite a confirmed stored one.
 
-A row tracked by
-history cannot be deleted, so an increase a source stops reporting is flagged
-`removed` instead (only characteristic rows, and a recruited journeyman's
-starting Loner, may be); readers leave removed rows out. The migration that introduced
-characteristic rows backfilled one row of unknown order per unit of the five `*_increase_count` columns it then
-dropped from `players`, so the rows are the only current record of increases;
+A row tracked by history cannot be deleted, so an increase a source stops
+reporting is flagged `removed` instead (only characteristic rows, and a
+recruited journeyman's starting Loner, may be); readers leave removed rows
+out. The migration that introduced characteristic rows backfilled one row of
+unknown order per unit of the five `*_increase_count` columns it then dropped
+from `players`, so the rows are the only current record of increases;
 `players_history` snapshots taken before the migration keep the old counts.
 
 ## How the costs are curated
