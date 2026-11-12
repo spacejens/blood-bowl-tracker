@@ -405,8 +405,8 @@
     // Elf, Elven Union, High Elf, Wood Elf, Nurgle, Slann). The developer
     // checked every one of those ten races' entries below, position by
     // position, against the physical BB2016 rulebook. All match it except
-    // Skaven: Gutter Runner, whose Weeping Dagger batch
-    // 006-bb2016-gutter-runner-skills adds.
+    // Skaven: Gutter Runner, whose Weeping Dagger is added by batch
+    // 006-bb2016-gutter-runner-skills.
     // ================================================================
 
     // --- BB2016: Amazon (Teams of Legend p.1) ---
