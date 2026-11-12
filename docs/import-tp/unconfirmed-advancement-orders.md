@@ -41,7 +41,8 @@ advancements as skills plus increases, and the SPP spent.
   spent 0): the only gained skill is Loner, a free extra, so he has no paid
   advancement to order. His level is 0 and his spend is 0.
 
-A gained Loner is a free extra for only these two players in the whole data.
+Among TP players, a gained Loner exists for only these two. BBL also records
+a gained Loner, for journeymen who have no other advancement.
 
 - **Kalle Kvist** (Dalsland Treehuggers, line-up 586220, paid 4+2, spent
   110), **Friska Fläkten** (Gnaget, line-up 1233619, paid 5+1, spent 104),
