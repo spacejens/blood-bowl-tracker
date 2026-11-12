@@ -38,34 +38,7 @@ When a Claude Code skill needs the developer to make a choice, use `AskUserQuest
 
 ## Commands
 
-Run from the repo root to target all workspaces:
-
-```bash
-pnpm install          # install all dependencies
-pnpm build            # build all workspaces
-pnpm test             # run unit tests with coverage across all workspaces (90% threshold enforced)
-pnpm lint             # ESLint (no auto-fix)
-pnpm lint:fix         # ESLint with auto-fix
-pnpm typecheck        # tsc --noEmit across all workspaces
-pnpm format           # Prettier check (no write)
-pnpm format:fix       # Prettier write
-pnpm verify           # build + lint + typecheck + format + test in one command
-```
-
-Run from inside a specific workspace (e.g. `apps/discord-bot`) for targeted work:
-
-```bash
-pnpm run start:dev    # dev server with watch mode
-pnpm run start:prod   # run compiled output
-pnpm run test         # unit tests (*.spec.ts in src/) with coverage (90% threshold enforced)
-pnpm run test:e2e     # e2e tests (test/*.e2e-spec.ts)
-pnpm run lint         # ESLint (no auto-fix)
-pnpm run lint:fix     # ESLint with auto-fix
-pnpm run typecheck    # tsc --noEmit
-pnpm run format       # Prettier check (no write)
-pnpm run format:fix   # Prettier write
-pnpm run verify       # build + lint + typecheck + format + test for this workspace only
-```
+`pnpm verify` (build + lint + typecheck + format + test) runs from the repo root for all workspaces, or inside a workspace for just that one. The 90% coverage threshold is enforced by `pnpm test`. Other scripts are in each `package.json`.
 
 Run a single test file: `pnpm exec vitest run src/path/to/file.spec.ts`
 
