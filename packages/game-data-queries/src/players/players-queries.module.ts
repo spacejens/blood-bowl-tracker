@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 
 import { LikePatternModule } from '../shared/like-pattern.module';
 import { MatchEventCountsModule } from '../shared/match-event-counts.module';
+import { TrophyAwardCountsModule } from '../shared/trophy-award-counts.module';
 import { IncompleteImportPlayersService } from './incomplete-import-players.service';
 import { PlayerDeathService } from './player-death.service';
 import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
@@ -10,7 +11,12 @@ import { PlayersQueriesService } from './players-queries.service';
 import { StarPlayersService } from './star-players.service';
 
 @Module({
-  imports: [LikePatternModule, MatchEventCountsModule, SppModule],
+  imports: [
+    LikePatternModule,
+    MatchEventCountsModule,
+    SppModule,
+    TrophyAwardCountsModule,
+  ],
   providers: [
     IncompleteImportPlayersService,
     PlayerDeathService,

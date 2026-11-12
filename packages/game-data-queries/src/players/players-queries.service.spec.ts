@@ -16,6 +16,7 @@ import { mock } from 'vitest-mock-extended';
 
 import { LikePatternService } from '../shared/like-pattern.service';
 import { MatchEventCountsService } from '../shared/match-event-counts.service';
+import { TrophyAwardCountsService } from '../shared/trophy-award-counts.service';
 import { PlayersQueriesService } from './players-queries.service';
 
 const fakePlayer = {
@@ -53,6 +54,10 @@ describe('PlayersQueriesService', () => {
           useValue: mock<MatchEventCountsService>(),
         },
         { provide: SppTotalsService, useValue: mock<SppTotalsService>() },
+        {
+          provide: TrophyAwardCountsService,
+          useValue: mock<TrophyAwardCountsService>(),
+        },
         { provide: DB, useValue: dbMock.db },
       ],
     }).compile();

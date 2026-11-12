@@ -44,6 +44,7 @@ import { countRows } from '../shared/count-all';
 import { LikePatternService } from '../shared/like-pattern.service';
 import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import type { TeamTopPlayer } from '../shared/team-top-player';
+import { TrophyAwardCountsService } from '../shared/trophy-award-counts.service';
 
 /**
  * One player with the names and ids of their team, race, position and era —
@@ -87,6 +88,7 @@ export class PlayersQueriesService {
     private readonly likePattern: LikePatternService,
     private readonly sppTotals: SppTotalsService,
     private readonly matchEventCounts: MatchEventCountsService,
+    private readonly trophyAwardCounts: TrophyAwardCountsService,
   ) {}
 
   async findById(id: number): Promise<PlayerDetail | undefined> {
@@ -307,6 +309,18 @@ export class PlayersQueriesService {
       scope,
       limit,
     });
+  }
+
+  /**
+   * Players ranked by how many player-level trophies they have won. The query
+   * lives on TrophyAwardCountsService, next to the team- and coach-grouped
+   * trophy counts; team-level awards never count toward a player.
+   */
+  countTrophiesByPlayer(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ playerId: number; name: string; count: number }[]> {
+    return this.trophyAwardCounts.countTrophiesByPlayer(scope, limit);
   }
 
   countAll(): Promise<number> {

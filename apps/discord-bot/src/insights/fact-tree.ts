@@ -673,6 +673,20 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
           supportsMatchCategory: true,
           resolve: (scope) => deps.playerToplist.resolveTotalSpp(scope),
         },
+        trophies: {
+          won: {
+            // Counts only player-level trophy awards credited to the player;
+            // team-level awards (no player recorded) never count toward any
+            // player.
+            supportsLeague: true,
+            supportsEra: true,
+            supportsCompetition: true,
+            // Deliberately no match-category support: a trophy award is not a
+            // match event, so there is no category dimension to scope by.
+            supportsMatchCategory: false,
+            resolve: (scope) => deps.playerToplist.resolveTrophiesWon(scope),
+          },
+        },
       },
     },
     race: {

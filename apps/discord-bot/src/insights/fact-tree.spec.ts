@@ -17,10 +17,10 @@ beforeEach(async () => {
 });
 
 describe('buildFactTree', () => {
-  it('exposes exactly ninety leaf facts', () => {
+  it('exposes exactly ninety-one leaf facts', () => {
     expect(
       factTreeNavigation.collectLeaves(buildFactTree(stubFactTreeDeps())),
-    ).toHaveLength(90);
+    ).toHaveLength(91);
   });
 
   it('wires coach.toplist.matches.played to CoachToplistService.resolveMatchesPlayed', async () => {
@@ -621,6 +621,31 @@ describe('buildFactTree', () => {
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
     expect(d.playerToplist.resolveTotalSpp).toHaveBeenCalled();
+  });
+
+  it('wires player.toplist.trophies.won to PlayerToplistService.resolveTrophiesWon', async () => {
+    const d = stubFactTreeDeps();
+    const leaf = factTreeNavigation.resolvePath(
+      buildFactTree(d),
+      'player.toplist.trophies.won',
+    );
+    await (leaf as FactLeaf).resolve({ competitionId: 30 });
+    expect(d.playerToplist.resolveTrophiesWon).toHaveBeenCalledWith({
+      competitionId: 30,
+    });
+  });
+
+  it('declares league, era and competition scope but no match category for player.toplist.trophies.won', () => {
+    const leaf = factTreeNavigation.resolvePath(
+      buildFactTree(stubFactTreeDeps()),
+      'player.toplist.trophies.won',
+    ) as FactLeaf;
+    expect(leaf.supportsLeague).toBe(true);
+    expect(leaf.supportsEra).toBe(true);
+    expect(leaf.supportsCompetition).toBe(true);
+    // Trophy awards are not match events, so a match category has no meaning
+    // here - the leaf deliberately declares it unsupported.
+    expect(leaf.supportsMatchCategory).toBe(false);
   });
 
   it('wires race.toplist.teams.descending to RaceToplistService.resolveTeamsDescending', async () => {
