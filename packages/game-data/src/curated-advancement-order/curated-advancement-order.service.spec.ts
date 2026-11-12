@@ -214,11 +214,9 @@ describe('CuratedAdvancementOrderService', () => {
     const { service, reads, playerSkills } = await makeService(
       mockDb([{ sppTotal: 20, unspentSpp: 6 }], storedRows),
     );
-    reads.resolveFreeExtras.mockImplementation((entries) =>
-      Promise.resolve(
-        entries.map((entry) =>
-          entry.skillId === 9 ? { ...entry, isFreeExtra: true } : entry,
-        ),
+    reads.resolveFreeExtras.mockResolvedValueOnce(
+      data.entries.map((entry) =>
+        entry.skillId === 9 ? { ...entry, isFreeExtra: true } : entry,
       ),
     );
 
@@ -248,13 +246,19 @@ describe('CuratedAdvancementOrderService', () => {
     it('treats it as free when the rules make it free: matched, priced and flagged by the sync', async () => {
       const { service, reads, playerSkills, unspentSpp, deduction } =
         await makeService(mockDb([{ sppTotal: 20, unspentSpp: 6 }], stored));
-      reads.resolveFreeExtras.mockImplementation((entries) =>
-        Promise.resolve(
-          entries.map((entry) =>
-            entry.skillId === 10 ? { ...entry, isFreeExtra: true } : entry,
-          ),
-        ),
-      );
+      const offered = (skillId: number, source: string) => ({
+        playerId: 1,
+        skillId,
+        source,
+        attributeValue: skillId === 10 ? '2+' : null,
+      });
+      reads.resolveFreeExtras
+        .mockResolvedValueOnce(data.entries)
+        .mockResolvedValueOnce([
+          offered(8, 'chosen'),
+          offered(9, 'random'),
+          { ...offered(10, 'advancement'), isFreeExtra: true },
+        ]);
       unspentSpp.advancementInputsForPlayers.mockResolvedValue(
         new Map([[1, [rulesSetWith(false)]]]),
       );
