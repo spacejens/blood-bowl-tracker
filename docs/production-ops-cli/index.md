@@ -36,7 +36,7 @@ Run from the repo root. On success, every subcommand prints JSON on stdout; fail
 
 `fetch-recent-discord-messages` and `fetch-discord-message` call Discord through the discord.js `REST` client (API v10), shared via one `DiscordRestService`, so they get discord.js's rate-limit handling and retries. discord.js aborts and retries any attempt whose response headers take longer than 30 seconds. A Discord API failure is reported with the requested message or channel, the HTTP status, and Discord's error code and message; the bot token never appears in output.
 
-Discord returns a page newest first. To page back, pass the `id` of the last (oldest) message of the previous page as `--before`. An empty array means the start of the channel was reached.
+Discord returns a page newest first. To page back, pass the `id` of the last (oldest) message of the previous page as `--before`. An empty page after a non-empty page means the start of the channel was reached. An empty first page can also mean that the bot lacks `READ_MESSAGE_HISTORY` in the channel, so confirm that permission before treating the channel as empty.
 
 ## Development
 
