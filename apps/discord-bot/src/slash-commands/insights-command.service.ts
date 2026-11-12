@@ -34,6 +34,7 @@ import { FactTreeNavigationService } from '../insights/fact-tree-navigation.serv
 import { MatchCategoryLabelService } from '../insights/facts/match-category-label.service';
 import type { DateButtonScopeToken } from '../shared/date-button-id.service';
 import { DateRangeFormatterService } from '../shared/date-range-formatter.service';
+import { AutocompleteChoiceLabelService } from './autocomplete-choice-label.service';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
 
 const MAX_AUTOCOMPLETE_CHOICES = 25;
@@ -69,6 +70,7 @@ export class InsightsCommandService implements OnModuleInit {
     private readonly factTreeNavigation: FactTreeNavigationService,
     private readonly categoryLabel: MatchCategoryLabelService,
     private readonly dateRangeFormatter: DateRangeFormatterService,
+    private readonly choiceLabels: AutocompleteChoiceLabelService,
   ) {}
 
   onModuleInit(): void {
@@ -490,29 +492,19 @@ export class InsightsCommandService implements OnModuleInit {
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );
-      return this.toScopeChoices(eras);
+      return this.choiceLabels.datedScopeChoices(eras);
     }
     if (focused.name === 'competition') {
       const competitions = await this.competitionsQueries.searchByNamePrefix(
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );
-      return this.toScopeChoices(competitions);
+      return this.choiceLabels.datedScopeChoices(competitions);
     }
     return null;
   }
 
   private pickRandom(leaves: FactLeaf[]): FactLeaf {
     return leaves[Math.floor(Math.random() * leaves.length)];
-  }
-
-  /** The autocomplete choice shape for a named, league-scoped entity. */
-  private toScopeChoices(
-    rows: { id: number; name: string; leagueName: string }[],
-  ): { name: string; value: string }[] {
-    return rows.map((row) => ({
-      name: `${row.name} (${row.leagueName})`,
-      value: String(row.id),
-    }));
   }
 }
