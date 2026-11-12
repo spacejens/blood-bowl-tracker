@@ -175,8 +175,8 @@ slot. The migration closed such slots the same way, and left unconfirmed a
 player with a free extra of unknown number. A trophy award recorded after the
 skill does the same when it marks a confirmed row free.
 
-No other path closes
-a slot: an unconfirmed incoming entry that turns an already confirmed paid
+A journeyman's gained Loner closes its slot too (see below). No other path
+closes a slot: an unconfirmed incoming entry that turns an already confirmed paid
 row into a free extra (no import is known to do this) clears that row's
 confirmation and leaves the later numbers as they are. Unmarking does not
 reopen the slot: the row stays unconfirmed at its recorded number and the paid
@@ -196,6 +196,15 @@ the import takes them in that order and lets the spend confirm only orders
 that keep it; otherwise it keeps TP's list order and does not constrain the
 deduction. The ids never confirm an order alone, and increases have none
 (see [Order of advancements](../import-tp-live/index.md#order-of-advancements)).
+
+While `players.is_journeyman` is set, `JourneymanLonerService` keeps one
+starting Loner row for the player: it inserts one, revives a removed one, or
+turns a Loner stored as gained (before the player was marked) into the
+starting one, closing the number that row held in the confirmed paid
+numbering or, if unconfirmed, in the proxy numbering. When a write clears a
+stored marker (a recruitment), it flags only that starting Loner `removed`; a
+starting row holds no number, so the recruit's numbering is unchanged, and a
+gained Loner stays a free extra by the name rule.
 
 The cost model pins only confirmed entries to their advancement number, and
 every other entry is interchangeable with the rest. A sync never lets an

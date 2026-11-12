@@ -18,6 +18,7 @@ import {
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 
+import { JourneymanLonerService } from '../player-skills/journeyman-loner.service';
 import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
@@ -35,6 +36,7 @@ export class PlayersService {
     @Inject(DB) private readonly db: Db,
     private readonly characteristicsValidation: PlayerCharacteristicsValidationService,
     private readonly lastingInjuryValidation: PlayerLastingInjuryValidationService,
+    private readonly journeymen: JourneymanLonerService,
   ) {}
 
   /**
@@ -76,6 +78,12 @@ export class PlayersService {
    * Any supplied lasting injuries are similarly validated — all-or-nothing,
    * and every count a nonnegative integer — before anything is written; a
    * violation throws `LastingInjuryValidationError` and nothing is stored.
+   *
+   * The journeyman marker is written when given. While it is set after the
+   * write, the player's starting Loner is kept (`JourneymanLonerService`);
+   * a payload clearing a stored marker (a recruitment) retires that starting
+   * Loner. `unspentSpp` is already cleared on every write, so the Loner
+   * change needs no further clear.
    */
   async upsert(
     data: UpsertPlayer,
@@ -119,6 +127,12 @@ export class PlayersService {
       armourReductionCount: data.armourReductionCount,
     };
 
+    // Only a payload clearing the marker can recruit a journeyman, so only
+    // then is the stored marker read first.
+    const wasJourneyman =
+      data.isJourneyman === false &&
+      (await this.storedJourneymanMarker(data.externalIds));
+
     const { row: player, created } = await upsertByExternalIds<
       typeof players,
       typeof playerExternalIds
@@ -140,7 +154,35 @@ export class PlayersService {
       }),
     });
 
+    if (player.isJourneyman) {
+      await this.journeymen.ensureStartingLoner(player.id);
+    } else if (wasJourneyman) {
+      await this.journeymen.retireStartingLoner(player.id);
+    }
+
     return { player, created };
+  }
+
+  /** Whether a player these external ids name is stored as a journeyman. */
+  private async storedJourneymanMarker(
+    externalIds: readonly ExternalId[],
+  ): Promise<boolean> {
+    const rows = await this.db
+      .select({ isJourneyman: players.isJourneyman })
+      .from(players)
+      .innerJoin(playerExternalIds, eq(playerExternalIds.playerId, players.id))
+      .where(
+        or(
+          ...externalIds.map((id) =>
+            and(
+              eq(playerExternalIds.externalSystemId, id.externalSystemId),
+              eq(playerExternalIds.externalId, id.externalId),
+            ),
+          ),
+        ),
+      )
+      .limit(1);
+    return rows[0]?.isJourneyman === true;
   }
 
   /**

@@ -57,4 +57,29 @@ describe('PaidAdvancementSlotsService', () => {
       2,
     ]);
   });
+  describe('closeUnconfirmed', () => {
+    it('writes nothing when no slot closes', async () => {
+      const db = mockDb();
+
+      await service.closeUnconfirmed(db.db, { playerId: 1, slots: [] });
+
+      expect(db.db.update).not.toHaveBeenCalled();
+    });
+
+    it("shifts the player's unconfirmed, non-removed, non-starting rows after the slot", async () => {
+      const db = mockDb();
+
+      await service.closeUnconfirmed(db.db, { playerId: 1, slots: [3, 1] });
+
+      expect(db.chains).toHaveLength(1);
+      expect(db.db.update).toHaveBeenCalledWith(playerAdvancements);
+      expect(extractAllFilterValues(firstCallArg(db.chains[0].where))).toEqual([
+        1,
+        false,
+        false,
+        'starting',
+        1,
+      ]);
+    });
+  });
 });
