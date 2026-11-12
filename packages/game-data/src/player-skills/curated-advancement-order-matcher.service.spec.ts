@@ -147,6 +147,24 @@ describe('CuratedAdvancementOrderMatcherService', () => {
     );
   });
 
+  it('rejects a starting entry', () => {
+    expect(
+      matcher.match([skill(8, 1, { source: 'starting' })], stored),
+    ).toEqual({
+      ok: false,
+      problem: 'lists skill 8, which is not a paid advancement',
+    });
+  });
+
+  it('rejects a confirmed entry without an order', () => {
+    expect(
+      matcher.match([skill(8, 1, { advancementOrder: undefined })], stored),
+    ).toEqual({
+      ok: false,
+      problem: 'lists skill 8 without a confirmed order',
+    });
+  });
+
   it('rejects an empty list', () => {
     expect(matcher.match([], stored)).toEqual({
       ok: false,
