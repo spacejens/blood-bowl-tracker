@@ -45,11 +45,22 @@ export class DiscordRestService {
     });
   }
 
-  getRecentMessages(channelId: string, count: number): Promise<unknown> {
+  getRecentMessages(
+    channelId: string,
+    count: number,
+    before?: string,
+  ): Promise<unknown> {
+    const query = new URLSearchParams({ limit: String(count) });
+    if (before !== undefined) {
+      query.set('before', before);
+    }
     return this.get({
       route: Routes.channelMessages(channelId),
-      query: new URLSearchParams({ limit: String(count) }),
-      target: `the ${count} most recent messages of channel ${channelId}`,
+      query,
+      target:
+        before === undefined
+          ? `the ${count} most recent messages of channel ${channelId}`
+          : `the ${count} messages before message ${before} of channel ${channelId}`,
     });
   }
 

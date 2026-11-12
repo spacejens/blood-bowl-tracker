@@ -71,9 +71,9 @@ error, and dead, retired and departed players are worked out like any other.
   A stored figure inside the range settles it to that one value; one outside
   it leaves the range and is flagged.
 - **What counts as an advancement.** Starting skills and [free extra](../skills/index.md#player-skills)
-  skills (a gained Hatred, a skill TP flags as extra, a skill a trophy granted
+  skills (a gained Hatred, a gained Loner, a skill TP flags as extra, a skill a trophy granted
   such as Gudarnas Förkämpe's mutation) cost nothing and are not
-  advancements; a Journeyman's Loner is not recognised as free. A skill a league's
+  advancements. A skill a league's
   house rule grants at a fixed advancement ([tLoEG](../../glossary.md#tloeg)'s Fan Favourite) counts only
   as that advancement.
 - **Several rules sets.** When the player's era lists several rules sets, each

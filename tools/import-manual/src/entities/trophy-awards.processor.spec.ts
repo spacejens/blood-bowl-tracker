@@ -52,6 +52,7 @@ function emptyData(): ManualDataFile {
     trophies: [],
     competitionGroups: [],
     trophyAwards: [],
+    playerAdvancementOrders: [],
   };
 }
 

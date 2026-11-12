@@ -1,4 +1,7 @@
-import { SkillValidationError } from '@blood-bowl-tracker/game-data';
+import {
+  CuratedAdvancementOrderError,
+  SkillValidationError,
+} from '@blood-bowl-tracker/game-data';
 import { call } from '@orpc/server';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -24,6 +27,49 @@ describe('RpcRouterFactoryService playerSkills router', () => {
       entries: [{ playerId: 1, skillId: 7, source: 'starting' }],
     });
     expect(result).toEqual({ playerSkillIds: [51] });
+  });
+
+  it('sends a sync flagged checkOrderAgainstSpend to the curated order check', async () => {
+    harness.mocks.curatedAdvancementOrder.sync.mockResolvedValue({
+      playerSkillIds: [51],
+    });
+    const input = {
+      entries: [
+        {
+          playerId: 1,
+          skillId: 7,
+          source: 'advancement' as const,
+          advancementOrder: 1,
+          orderConfirmed: true,
+        },
+      ],
+      checkOrderAgainstSpend: true,
+    };
+
+    const result = await call(harness.router.playerSkills.sync, input);
+
+    expect(harness.mocks.curatedAdvancementOrder.sync).toHaveBeenCalledWith(
+      input,
+    );
+    expect(harness.mocks.playerSkillsService.sync).not.toHaveBeenCalled();
+    expect(result).toEqual({ playerSkillIds: [51] });
+  });
+
+  it('reports a refused curated order as BAD_REQUEST', async () => {
+    harness.mocks.curatedAdvancementOrder.sync.mockRejectedValue(
+      new CuratedAdvancementOrderError('Player 1 lists no advancements'),
+    );
+
+    await expect(
+      call(harness.router.playerSkills.sync, {
+        entries: [],
+        characteristicPlayerIds: [1],
+        checkOrderAgainstSpend: true,
+      }),
+    ).rejects.toMatchObject({
+      code: 'BAD_REQUEST',
+      message: 'Player 1 lists no advancements',
+    });
   });
 
   it('reports an entry naming a missing skill as BAD_REQUEST', async () => {

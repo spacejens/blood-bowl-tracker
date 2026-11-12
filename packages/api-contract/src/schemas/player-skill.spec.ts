@@ -96,6 +96,15 @@ describe('player skill schemas', () => {
     ).toBe(true);
   });
 
+  it('SyncPlayerSkillsSchema takes an optional checkOrderAgainstSpend flag', () => {
+    expect(
+      SyncPlayerSkillsSchema.parse({
+        entries: [],
+        checkOrderAgainstSpend: true,
+      }),
+    ).toEqual({ entries: [], checkOrderAgainstSpend: true });
+  });
+
   it('parses an empty sync batch and its result', () => {
     expect(SyncPlayerSkillsSchema.parse({ entries: [] })).toEqual({
       entries: [],

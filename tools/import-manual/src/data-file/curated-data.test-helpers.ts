@@ -19,6 +19,9 @@ export const BATCH_003 = 'batches/003-reset-curated-names';
 /** Batch 004: the SPP cost of each advancement for every rules set, and positions' skill categories TP does not supply. */
 export const BATCH_004 = 'batches/004-advancement-costs';
 
+/** Batch 005: the advancement order of TP players, read from the TP notification feed. */
+export const BATCH_005 = 'batches/005-tp-advancement-orders';
+
 /** Every batch directory, as `batches/<name>`, in name order. */
 export function listBatches(): string[] {
   return readdirSync(join(DATA_ROOT, 'batches'), { withFileTypes: true })

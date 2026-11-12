@@ -7,7 +7,8 @@ export const MIN_COUNT = 1;
 export const MAX_COUNT = 100;
 
 /**
- * Fetches the most recent messages of one Discord channel and returns
+ * Fetches the most recent messages of one Discord channel, or the ones before
+ * a given message when paging back, and returns
  * Discord's response verbatim, so embeds, attachments and every other field
  * survive intact for a human to inspect. `runCli` pretty-prints whatever
  * this returns.
@@ -16,7 +17,11 @@ export const MAX_COUNT = 100;
 export class FetchRecentDiscordMessagesService {
   constructor(private readonly discordRest: DiscordRestService) {}
 
-  async run(channelId: string, count: number): Promise<unknown> {
+  async run(
+    channelId: string,
+    count: number,
+    before?: string,
+  ): Promise<unknown> {
     // Runs before any Discord call, so before the token is read: this is about the input itself,
     // independent of any credential or connection.
     if (!Number.isInteger(count) || count < MIN_COUNT || count > MAX_COUNT) {
@@ -30,6 +35,11 @@ export class FetchRecentDiscordMessagesService {
         `channel id must be a Discord snowflake (digits only), got '${channelId}'.`,
       );
     }
-    return await this.discordRest.getRecentMessages(channelId, count);
+    if (before !== undefined && !/^\d+$/.test(before)) {
+      throw new Error(
+        `before must be a Discord message id (digits only), got '${before}'.`,
+      );
+    }
+    return await this.discordRest.getRecentMessages(channelId, count, before);
   }
 }

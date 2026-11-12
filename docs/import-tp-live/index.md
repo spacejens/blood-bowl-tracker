@@ -217,7 +217,7 @@ deduce and confirm what an earlier pass left unconfirmed.
 A free extra keeps its position in the gained order, unconfirmed and outside
 the paid numbering, so it can share a number with a paid advancement. Free
 extras are found before numbering by the same rule the write applies: TP's
-`isExtra` flag, a gained Hatred, or a skill one of the player's own trophy
+`isExtra` flag, a gained Hatred or Loner, or a skill one of the player's own trophy
 awards grants, even when TP leaves the flag off.
 
 TP's data has no timestamps and no per-skill history. Its skill row ids are
@@ -230,6 +230,9 @@ order, not proof, so they only narrow what the spend can confirm and never
 confirm an order by themselves. A characteristic increase has no row id, so
 the spend is the only evidence of where it falls. A bulk snapshot has no
 stored baseline either.
+
+The TP players whose order stays unconfirmed, and why, are listed in
+[Unconfirmed TP advancement orders](../import-tp/unconfirmed-advancement-orders.md).
 
 ### Mercenary availability
 

@@ -7,6 +7,7 @@ import {
   CompetitionGroupUpsertConflictError,
   CompetitionsService,
   CompetitionUpsertConflictError,
+  CuratedAdvancementOrderService,
   ErasService,
   EraUpsertConflictError,
   ExternalSystemsService,
@@ -124,6 +125,7 @@ export class RpcRouterFactoryService {
     private readonly positionRulesSetKeywordsService: PositionRulesSetKeywordsService,
     private readonly positionRulesSetSkillCategoriesService: PositionRulesSetSkillCategoriesService,
     private readonly playerSkillsService: PlayerSkillsService,
+    private readonly curatedAdvancementOrder: CuratedAdvancementOrderService,
     private readonly skillsService: SkillsService,
     private readonly keywordsService: KeywordsService,
     private readonly skillRulesSetsService: SkillRulesSetsService,
@@ -417,6 +419,7 @@ export class RpcRouterFactoryService {
       playerSkills: buildPlayerSkillsRoutes(
         this.upsertHandler,
         this.playerSkillsService,
+        this.curatedAdvancementOrder,
       ),
       skills: this.buildStandardEntityRoutes({
         procedures: contract.skills,

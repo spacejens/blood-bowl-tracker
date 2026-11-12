@@ -72,6 +72,38 @@ describe('PlayerSkillsImportService', () => {
     });
   });
 
+  it('forwards checkOrderAgainstSpend with the chunk', async () => {
+    runner.recordUpsertResult.mockResolvedValue({ playerSkillIds: [51] });
+
+    await service.syncPlayerSkills(
+      {
+        entries: [
+          entry({
+            source: 'advancement',
+            advancementOrder: 1,
+            orderConfirmed: true,
+          }),
+        ],
+        characteristicPlayerIds: [1],
+        checkOrderAgainstSpend: true,
+      },
+      errors,
+    );
+
+    await recordUpsertResultOptions(runner).upsert();
+    expect(client.playerSkills.sync).toHaveBeenCalledWith({
+      entries: [
+        entry({
+          source: 'advancement',
+          advancementOrder: 1,
+          orderConfirmed: true,
+        }),
+      ],
+      characteristicPlayerIds: [1],
+      checkOrderAgainstSpend: true,
+    });
+  });
+
   it('forwards the entries and returns how many were synced', async () => {
     runner.recordUpsertResult.mockResolvedValue({
       playerSkillIds: [51, 52],

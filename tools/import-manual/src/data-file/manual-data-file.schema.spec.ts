@@ -26,7 +26,55 @@ describe('ManualDataFileSchema', () => {
       trophies: [],
       competitionGroups: [],
       trophyAwards: [],
+      playerAdvancementOrders: [],
     });
+  });
+
+  it('accepts a player advancement order of skills and characteristics', () => {
+    const parsed = ManualDataFileSchema.parse({
+      playerAdvancementOrders: [
+        {
+          player: { system: 'tourplay.net', id: '586220' },
+          advancements: [
+            { skill: { system: 'Name', id: 'Block' } },
+            { characteristic: 'AG' },
+            {
+              skill: { system: 'Name', id: 'Hatred' },
+              attributeValue: 'Dwarf',
+            },
+          ],
+        },
+      ],
+    });
+    expect(parsed.playerAdvancementOrders[0].advancements).toHaveLength(3);
+  });
+
+  it('accepts an entry with no advancements', () => {
+    const parsed = ManualDataFileSchema.parse({
+      playerAdvancementOrders: [
+        {
+          player: { system: 'tloeg.bbleague.se', id: '3066' },
+          advancements: [],
+        },
+      ],
+    });
+
+    expect(parsed.playerAdvancementOrders[0].advancements).toEqual([]);
+  });
+
+  it('rejects an advancement naming both a skill and a characteristic', () => {
+    expect(() =>
+      ManualDataFileSchema.parse({
+        playerAdvancementOrders: [
+          {
+            player: { system: 'tourplay.net', id: '586220' },
+            advancements: [
+              { skill: { system: 'Name', id: 'Block' }, characteristic: 'AG' },
+            ],
+          },
+        ],
+      }),
+    ).toThrow();
   });
 
   it('accepts a trophy-award entry naming its trophy by curated name', () => {

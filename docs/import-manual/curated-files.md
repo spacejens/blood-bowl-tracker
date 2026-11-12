@@ -327,3 +327,15 @@ that otherwise repeats the award's trophy, competition and player. Each skill
 was identified from the downloaded BBL/TP data as the player's gained
 mutation; an award the data does not settle carries no skill.
 `curated-data-batch-004-trophy-awards.spec.ts` pins every entry.
+
+## Batch 005
+
+`data/batches/005-tp-advancement-orders/player-advancement-orders.json5` holds
+the advancement order of five TP players (Kalle Kvist, Friska Fläkten,
+K'Lent, Gruamax and Nadiddnur), as the TP feed's "New skill/characteristic"
+notifications list their advancements oldest first; for Nadiddnur, whose
+first skill is not in the feed, the price of the one notification and the
+order of TP's skill row ids place it. Players are referenced by
+TP line-up id and skills by curated name; the header comment records how the
+orders were chosen. `curated-data-batch-005.spec.ts` pins every entry and
+checks that each skill is one batch 001 declares.

@@ -15,6 +15,7 @@ tools/import-manual/data/batches/
   002-initial-cleanup/
   003-reset-curated-names/
   004-advancement-costs/
+  005-tp-advancement-orders/
 ```
 
 A batch directory is named `NNN-<slug>`: a three-digit number and a lowercase
@@ -58,6 +59,17 @@ The batches:
   rules set, the primary and secondary skill categories of every CRP, CRP+
   and BB2016 position, and the free mutation of every Gudarnas Förkämpe
   award. It applies after the source importers; see [Batch 004](#batch-004).
+- **005-tp-advancement-orders** — hand-curated advancement orders of five TP
+  players, read from the TP notification feed, and the entries that flag the
+  gained Loner of sixteen journeymen (see
+  [Player advancement orders](player-advancement-orders.md)). It references players the TP
+  importer creates, so it applies after the source importers, in a plain
+  `apply`; when the player's SPP figures are stored, the server refuses any
+  order the reported spend does not allow. A scratch import's first TP pass
+  stores none yet, so the order is written unchecked; the second TP pass
+  stores TP's unspent figure without re-checking the order. An entry lists every stored paid advancement of the player, so
+  if he later gains one and the TP data is downloaded again, a scratch apply
+  of the batch is refused until a follow-up batch supersedes it.
 
 ### Batch 004
 

@@ -31,8 +31,8 @@ export interface ResolvedPlayerSkill {
 
 /** What decides whether a skill entry is a free extra. */
 export interface FreeExtraFacts {
-  /** Ids of the batch's skills named Hatred. */
-  hatredSkillIds: ReadonlySet<number>;
+  /** Ids of the batch's skills named in FREE_EXTRA_SKILL_NAMES. */
+  freeExtraSkillIds: ReadonlySet<number>;
   /** Player id -> skills one of that player's own trophy awards grants. */
   grantedSkillIdsByPlayer: ReadonlyMap<number, ReadonlySet<number>>;
 }
