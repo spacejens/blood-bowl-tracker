@@ -127,7 +127,7 @@ See [game-concepts/external-systems](game-concepts/external-systems/index.md).
 
 ### Free extra skill
 
-A gained [skill](#skill) a [player](#player) has without having spent [SPP](#star-player-points-spp) on it, and that is not one of their [advancements](#advancement): it costs nothing and does not raise the price of later advancements. [BB2025](#bb2025)'s Hatred, a gained Loner, a skill [TP](#tp) flags as extra, and a skill a [trophy award](#trophy-award) grants are free extras.
+A gained [skill](#skill) a [player](#player) has without having spent [SPP](#star-player-points-spp) on it, and that is not one of their [advancements](#advancement): it costs nothing and does not raise the price of later advancements. [BB2025](#bb2025)'s Hatred, a Loner gained as a skill, a skill [TP](#tp) flags as extra, and a skill a [trophy award](#trophy-award) grants are free extras.
 
 See [game-concepts/skills](game-concepts/skills/index.md#player-skills).
 
@@ -153,7 +153,7 @@ See [discord-bot/slash-commands/insights.md](discord-bot/slash-commands/insights
 
 ### Journeyman
 
-A temporary [player](#player) fielded by a [team](#team) that has too few available players for a [match](#match), rather than a permanent member of its [roster](#roster). Unlike a [mercenary](#mercenary), a journeyman is drawn from the team's own basic [positions](#position) rather than hired in.
+A temporary [player](#player) fielded by a [team](#team) that has too few available players for a [match](#match), rather than a permanent member of its [roster](#roster). Unlike a [mercenary](#mercenary), a journeyman is drawn from the team's own basic [positions](#position) rather than hired in. The tracker marks a journeyman explicitly (a player named Journeyman in a basic position), stores his Loner as a starting [skill](#skill), and retires that starting Loner when he is recruited. See [game-concepts/players/index.md](game-concepts/players/index.md#journeymen).
 
 ### Keyword
 

@@ -62,7 +62,8 @@ Note on journeymen on `pl` pages: a player whose `<h1>` is "Journeyman" (any
 case) is a journeyman when his Skills cell lists Loner. BBL shows that Loner in
 the gained colour and numbers it, and the import leaves it out of his gained
 skills and closes its number, because the server stores a journeyman's Loner as
-a starting skill. A "Journeyman" page without Loner is a recruit. The local
+a starting skill. A "Journeyman" page without Loner is a recruit. A page that is not a journeyman
+keeps a gained Loner as an ordinary advancement and sends `isJourneyman` false. The local
 dump also has two `journeyman?` pages, which the rule does not match.
 
 Note on `pl` pages: a player page carries the player's `<h1>` name, two links —

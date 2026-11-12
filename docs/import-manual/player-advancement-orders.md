@@ -34,7 +34,9 @@ around it.
 An entry may list no advancements. The server accepts that only for a player
 who has no paid advancement and has reported no SPP spent, and applying it
 flags the player's stored Loner, Hatred or trophy-granted skill as a free
-extra without writing any order. It exists to flag a journeyman's Loner.
+extra without writing any order. A journeyman's Loner is a starting skill, not a
+gained one, so such an entry for a journeyman flags nothing and is still
+accepted.
 
 The order is written confirmed, numbered from 1 in the order listed, so a
 later import never replaces it with a guess. The importer skips an entry

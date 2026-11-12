@@ -120,11 +120,13 @@ are known:
   so every gained Hatred is a free extra. A player can hate several keywords,
   and each of those Hatred skills is free. TP also flags its extra skills
   itself, and every skill it flags is recorded as a free extra.
-- **Loner** gained as a skill is a free extra. It happens only to a
-  [Journeyman](../../glossary.md#journeyman), who gets Loner without spending
-  SPP. The source is trusted to add it only where it applies; nothing checks
-  that the player is a journeyman. A Loner that came with the position is a
-  starting skill, not a free extra.
+- **Loner** gained as a skill is a free extra. A Loner can be gained for
+  reasons other than being a [Journeyman](../../glossary.md#journeyman), and
+  is then a free extra; the source is trusted to add it only where it
+  applies. A journeyman's own Loner is not gained at all: it is a starting
+  skill the server keeps while the player is marked as a journeyman (see
+  [Journeymen](../players/index.md#journeymen)). A Loner that came with the
+  position is a starting skill, not a free extra.
 - **A skill a [trophy award](../trophies/index.md#trophy-award) grants**
   (Gudarnas Förkämpe's mutation). Neither BBL nor TP marks it as free; the
   award naming the skill is what marks it, whichever was recorded first. A

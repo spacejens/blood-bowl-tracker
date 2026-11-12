@@ -229,7 +229,8 @@ left the team is seen only in snapshots, without Loner (line-up 1008237, a
 Rotter Lineman in Sasong 26, is one). A snapshot names none of its skills,
 so its ids are read against the Loner ids the roster JSON names, and any id
 the roster leaves unnamed is named through the skill carrying it as a TP
-external id, in one lookup per roster. A journeyman's gained Loner is left
+external id, in one lookup per roster. When a player appears in several match snapshots, the
+last one wins for that Loner id check. A journeyman's gained Loner is left
 out of the skills sync, since the server keeps his Loner as a starting
 skill.
 

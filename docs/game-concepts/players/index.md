@@ -71,7 +71,7 @@ error, and dead, retired and departed players are worked out like any other.
   A stored figure inside the range settles it to that one value; one outside
   it leaves the range and is flagged.
 - **What counts as an advancement.** Starting skills and [free extra](../skills/index.md#player-skills)
-  skills (a gained Hatred, a gained Loner, a skill TP flags as extra, a skill a trophy granted
+  skills (a gained Hatred, a Loner gained as a skill, a skill TP flags as extra, a skill a trophy granted
   such as Gudarnas Förkämpe's mutation) cost nothing and are not
   advancements. A skill a league's
   house rule grants at a fixed advancement ([tLoEG](../../glossary.md#tloeg)'s Fan Favourite) counts only
@@ -179,3 +179,36 @@ only the skills still open are worked out again.
 The [player deepdive](../../discord-bot/slash-commands/deepdive-embeds-player.md#skills)
 flags a skill still recorded as gained by advancement when the era prices by
 kind, so it does not read as chosen.
+
+## Journeymen
+
+A [journeyman](../../glossary.md#journeyman) is marked explicitly on the
+player (`players.is_journeyman`). The rule is shared by the BBL, TP bulk and TP
+live importers (`JourneymanRuleService`, see
+[import-shared](../../import-shared/index.md)): a player named Journeyman, in
+any case, in a basic position, meaning a position of the team's race that is
+not a star player's, mercenary or Big Guy hire.
+
+- **Where the marker comes from.** A roster (or a BBL player page) states it:
+  the player is a journeyman while it lists Loner for him, and stops being one
+  when it does not or when he is renamed. A match line-up only ever sets it,
+  and only when the snapshot's skills include Loner; otherwise it says nothing
+  and the stored marker stays. A recruit who kept the name and left the team
+  is seen only in line-ups, without Loner, and so is never marked from them.
+- **His Loner is a starting skill.** The importers leave a detected
+  journeyman's gained Loner out of the skills they send, and the server keeps
+  one starting Loner row for him. A journeyman seen only in a line-up that
+  lists Loner gets that starting Loner, with no variant, from the server.
+  Starting skills are not [advancements](../skills/index.md#player-skills), so
+  he has no gained skill from it.
+- **Recruitment.** When a player is written with the marker cleared, the
+  server retires only that starting Loner by its `removed` flag; it never
+  deletes it, and spares a Loner that belongs to the player's position. A
+  starting row holds no number, so the recruit's advancement numbering is
+  unchanged. A Loner the source still lists as gained stays a free extra.
+- **Existing data.** A migration marked the journeymen already stored and
+  turned at most one gained Loner of each into the starting one, closing its
+  number.
+
+How the starting row is kept and retired is described under
+[Player advancements](../../database/star-player-points.md#player-advancements).

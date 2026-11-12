@@ -31,8 +31,8 @@ export interface SkillNamesByExternalIdOptions {
  * start with and (later) a player can gain.
  *
  * The standard upsert/resolve surface, plus the names behind external ids —
- * a skill row carries nothing but a name. What a skill *means* under a given rules set (its category) belongs
- * to SkillRulesSetsService, and which positions start with it to
+ * a skill row carries nothing but a name. What a skill *means* under a given
+ * rules set (its category) belongs to SkillRulesSetsService, and which positions start with it to
  * PositionRulesSetSkillsService.
  *
  * No `detectSemanticConflict`, unlike PositionsService: a skill row encodes
