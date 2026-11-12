@@ -242,6 +242,7 @@ describe('JourneymanLonerService', () => {
         'starting',
         false,
         'Loner',
+        true,
       ]);
       expect(db.transaction).not.toHaveBeenCalled();
     });
@@ -260,6 +261,34 @@ describe('JourneymanLonerService', () => {
           'position_rules_sets.position_id',
         ]),
       );
+    });
+
+    it('spares the starting Loner of a star-player position', async () => {
+      const db = mockDb();
+      const service = await makeService(db);
+
+      await service.retireStartingLoner(1);
+
+      const where = firstCallArg(db.chains[0].where);
+      expect(extractJoinColumns(where)).toEqual(
+        expect.arrayContaining(['positions.is_star_player', 'positions.id']),
+      );
+      expect(extractAllFilterValues(where)).toEqual([
+        1,
+        'starting',
+        false,
+        'Loner',
+        true,
+      ]);
+    });
+
+    it('matches the Loner skill by equality, so the player/skill index applies', async () => {
+      const db = mockDb();
+      const service = await makeService(db);
+
+      await service.retireStartingLoner(1);
+
+      expect(sqlText(firstCallArg(db.chains[0].where))).not.toContain(' in (');
     });
 
     it('never closes a slot: a starting row holds no number', async () => {

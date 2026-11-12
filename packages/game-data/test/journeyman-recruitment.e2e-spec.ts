@@ -8,6 +8,7 @@ import {
   players,
   positionRulesSets,
   positionRulesSetSkills,
+  positions,
 } from '@blood-bowl-tracker/db';
 import {
   closeTestDb,
@@ -161,6 +162,27 @@ describe('Recruiting a journeyman through player upserts and skill syncs (real P
       positionRulesSetId: positionRulesSet.id,
       skillId: seed.skillIds.Loner,
     });
+    await db.insert(playerAdvancements).values({
+      playerId: seed.playerId,
+      skillId: seed.skillIds.Loner,
+      source: 'starting',
+    });
+
+    await upsert(false);
+    await upsert(false);
+
+    expect(await lonerRows()).toEqual([startingLoner(false)]);
+  });
+
+  it('keeps the starting Loner of a star-player position with no starting skills recorded', async () => {
+    const [mercenary] = await db
+      .insert(positions)
+      .values({ name: 'Giant Mercenary', isStarPlayer: true })
+      .returning();
+    await db
+      .update(players)
+      .set({ positionId: mercenary.id })
+      .where(eq(players.id, seed.playerId));
     await db.insert(playerAdvancements).values({
       playerId: seed.playerId,
       skillId: seed.skillIds.Loner,

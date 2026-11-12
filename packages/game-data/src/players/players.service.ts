@@ -81,9 +81,10 @@ export class PlayersService {
    *
    * The journeyman marker is written when given. While it is set after the
    * write, the player's starting Loner is kept (`JourneymanLonerService`);
-   * while it is not, a starting Loner his position does not start with (a
-   * recruited journeyman's) is retired. `unspentSpp` is already cleared on every write, so the Loner
-   * change needs no further clear.
+   * while it is not, a starting Loner neither his position's starting skills
+   * nor a star-player position explain (a recruited journeyman's) is
+   * retired. `unspentSpp` is already cleared on
+   * every write, so the Loner change needs no further clear.
    */
   async upsert(
     data: UpsertPlayer,

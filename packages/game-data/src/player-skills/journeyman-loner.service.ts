@@ -7,6 +7,7 @@ import {
   players,
   positionRulesSets,
   positionRulesSetSkills,
+  positions,
   skills,
   sql,
 } from '@blood-bowl-tracker/db';
@@ -100,7 +101,7 @@ export class JourneymanLonerService {
   /**
    * Retire a recruited journeyman's starting Loner: flag the player's active
    * starting Loner `removed`, unless his position starts with Loner (under
-   * any rules set). One statement, so it is atomic and idempotent, and cheap
+   * any rules set) or is a star-player position. One statement, so it is atomic and idempotent, and cheap
    * enough to run on every write of a player who is not a journeyman: a
    * retire a failed write left undone happens on the next one. A starting
    * row holds no number, so the recruit's numbering needs no change. A
@@ -109,6 +110,9 @@ export class JourneymanLonerService {
    */
   async retireStartingLoner(playerId: number): Promise<void> {
     const positionLacksIt = sql`not exists (select 1 from ${positionRulesSetSkills} inner join ${positionRulesSets} on ${positionRulesSets.id} = ${positionRulesSetSkills.positionRulesSetId} inner join ${players} on ${players.positionId} = ${positionRulesSets.positionId} where ${players.id} = ${playerAdvancements.playerId} and ${positionRulesSetSkills.skillId} = ${playerAdvancements.skillId})`;
+    // A journeyman is always a basic position, and a star or mercenary
+    // position (Giant Mercenary, say) records no starting skills to check.
+    const notStarPosition = sql`not exists (select 1 from ${players} inner join ${positions} on ${positions.id} = ${players.positionId} where ${players.id} = ${playerAdvancements.playerId} and ${eq(positions.isStarPlayer, true)})`;
     await this.db
       .update(playerAdvancements)
       .set({ removed: true })
@@ -117,8 +121,12 @@ export class JourneymanLonerService {
           eq(playerAdvancements.playerId, playerId),
           eq(playerAdvancements.source, 'starting'),
           eq(playerAdvancements.removed, false),
-          sql`${playerAdvancements.skillId} in (select ${skills.id} from ${skills} where ${eq(skills.name, LONER_SKILL_NAME)})`,
+          eq(
+            playerAdvancements.skillId,
+            sql`(select ${skills.id} from ${skills} where ${eq(skills.name, LONER_SKILL_NAME)})`,
+          ),
           positionLacksIt,
+          notStarPosition,
         ),
       );
   }

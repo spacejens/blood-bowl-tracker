@@ -327,9 +327,9 @@ export class PlayerAdvancementSyncPlannerService {
     if (row.isFreeExtra && !existing.isFreeExtra) {
       values.isFreeExtra = true;
     }
-    // A skill row is only removed as a recruited journeyman's starting Loner;
-    // a source listing that skill again (the recruit's own Loner) revives the
-    // row with the entry's values, so its natural key is never left blocked.
+    // A removed skill row is always a starting row (a recruited journeyman's
+    // Loner, say); a source listing that skill again revives the row with
+    // the entry's values, so its natural key is never left blocked.
     if (existing.removed) {
       values.removed = false;
     }
