@@ -16,6 +16,7 @@ import {
   tpRoster,
 } from '../tp-roster.test-helpers';
 import { TpCharacteristicIncreasesService } from './tp-characteristic-increases.service';
+import { TpJourneymanService } from './tp-journeyman.service';
 import { TpLastingInjuryBuilderService } from './tp-lasting-injury-builder.service';
 import { TpMercenaryCharacteristicsService } from './tp-mercenary-characteristics.service';
 import { TpPlayerCharacteristicsBuilderService } from './tp-player-characteristics-builder.service';
@@ -34,6 +35,8 @@ export interface PlayersImportMocks {
   lastingInjuries: MockProxy<TpLastingInjuryBuilderService>;
   increases: MockProxy<TpCharacteristicIncreasesService>;
   status: MockProxy<TpPlayerStatusService>;
+  /** Decides no marker (undefined) unless a test configures it. */
+  journeymen: MockProxy<TpJourneymanService>;
 }
 
 /**
@@ -53,6 +56,7 @@ export async function buildPlayersImport(
     lastingInjuries: mock<TpLastingInjuryBuilderService>(),
     increases: mock<TpCharacteristicIncreasesService>(),
     status: mock<TpPlayerStatusService>(),
+    journeymen: mock<TpJourneymanService>(),
   };
   mocks.positions.resolveCatalogPositions.mockResolvedValue(
     new Map([[77, 11]]),
@@ -73,6 +77,7 @@ export async function buildPlayersImport(
     reportedGaps: new Set(),
   });
   mocks.status.forPlayer.mockReturnValue(null);
+  mocks.journeymen.decide.mockReturnValue(undefined);
   configure(mocks);
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -95,6 +100,7 @@ export async function buildPlayersImport(
         useValue: mocks.increases,
       },
       { provide: TpPlayerStatusService, useValue: mocks.status },
+      { provide: TpJourneymanService, useValue: mocks.journeymen },
     ],
   }).compile();
   return { service: moduleRef.get(TpRosterPlayersImportService), mocks };
@@ -106,6 +112,7 @@ export interface RunPlayersImportOptions {
   embedded?: TpRosterPlayer[];
   context?: ReturnType<typeof rosterContext>;
   deferSppTotal?: boolean;
+  lonerMasterIds?: ReadonlySet<number>;
   errors: ImportError[];
 }
 
@@ -120,6 +127,7 @@ export function runPlayersImport(
     context: options.context ?? rosterContext(),
     teamEraId: TEAM_ERA_ID,
     deferSppTotal: options.deferSppTotal,
+    lonerMasterIds: options.lonerMasterIds,
     errors: options.errors,
   });
 }

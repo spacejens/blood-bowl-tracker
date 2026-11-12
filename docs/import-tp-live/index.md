@@ -220,6 +220,11 @@ extras are found before numbering by the same rule the write applies: TP's
 `isExtra` flag, a gained Hatred or Loner, or a skill one of the player's own trophy
 awards grants, even when TP leaves the flag off.
 
+A player named Journeyman in a basic position (not a mercenary, Big Guy or
+roster star position) is marked a journeyman: a roster entry while it lists
+Loner, a match-snapshot-only entry always. His gained Loner is left out of
+the skills sync, since the server keeps his Loner as a starting skill.
+
 TP's data has no timestamps and no per-skill history. Its skill row ids are
 not monotonic with list position (one sampled player's gained skills carry
 ids 1597390, 1812869 and 1597388 in list order), but their order fits the

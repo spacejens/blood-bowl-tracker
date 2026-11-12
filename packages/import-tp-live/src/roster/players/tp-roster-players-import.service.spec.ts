@@ -62,6 +62,7 @@ describe('TpRosterPlayersImportService', () => {
       ],
       mercenaryPositionIds: [],
       increasesByPlayerId: new Map(),
+      journeymanPlayerIds: new Set(),
     });
     expect(errors).toEqual([]);
   });

@@ -16,6 +16,7 @@ import { Injectable } from '@nestjs/common';
 import type { TpRosterContext } from '../tp-roster-context.service';
 import type { IncreaseBaselineCache } from './tp-characteristic-increases.service';
 import { TpCharacteristicIncreasesService } from './tp-characteristic-increases.service';
+import { TpJourneymanService } from './tp-journeyman.service';
 import { TpLastingInjuryBuilderService } from './tp-lasting-injury-builder.service';
 import { TpMercenaryCharacteristicsService } from './tp-mercenary-characteristics.service';
 import { TpPlayerCharacteristicsBuilderService } from './tp-player-characteristics-builder.service';
@@ -40,6 +41,11 @@ export interface ImportRosterPlayersOptions {
    * `reportedSppTotal` this import returns.
    */
   deferSppTotal?: boolean;
+  /**
+   * Loner's skillMasterIds, read from the roster JSON. Without them a roster
+   * entry's Loner cannot be checked.
+   */
+  lonerMasterIds?: ReadonlySet<number>;
   errors: ImportError[];
 }
 
@@ -55,6 +61,11 @@ export interface TpRosterPlayersOutcome {
    * could not be derived has no entry.
    */
   increasesByPlayerId: Map<number, PlayerCharacteristicCounts>;
+  /**
+   * Database ids of the players imported as journeymen, whose gained Loner
+   * the skills sync leaves out.
+   */
+  journeymanPlayerIds: Set<number>;
 }
 
 /** An entry's unspent SPP and the career total reported beside it. */
@@ -74,6 +85,7 @@ export class TpRosterPlayersImportService {
     private readonly characteristicIncreases: TpCharacteristicIncreasesService,
     private readonly status: TpPlayerStatusService,
     private readonly recorder: UpsertRecorderService,
+    private readonly journeymen: TpJourneymanService,
   ) {}
 
   /**
@@ -92,7 +104,8 @@ export class TpRosterPlayersImportService {
    * names are not unique. Every player's status is sent too, `null` when
    * TP's data establishes none, so a re-import clears one the player no
    * longer has; a roster file and a match snapshot count equally for
-   * deciding a player is active.
+   * deciding a player is active. Each player's journeyman marker is sent
+   * as TpJourneymanService decides it, and left out when it decides none.
    */
   async importPlayers({
     roster,
@@ -100,6 +113,7 @@ export class TpRosterPlayersImportService {
     context,
     teamEraId,
     deferSppTotal,
+    lonerMasterIds,
     errors,
   }: ImportRosterPlayersOptions): Promise<TpRosterPlayersOutcome> {
     const merged = this.mergePlayers(roster.players, matchEmbeddedPlayers);
@@ -118,6 +132,7 @@ export class TpRosterPlayersImportService {
       importedPlayers: [],
       mercenaryPositionIds: [],
       increasesByPlayerId: new Map(),
+      journeymanPlayerIds: new Set(),
     };
 
     for (const player of merged) {
@@ -131,9 +146,12 @@ export class TpRosterPlayersImportService {
       if (position === undefined) {
         continue;
       }
-      const { data, increases } = await this.buildPayload({
+      const { data, increases, isJourneyman } = await this.buildPayload({
         player,
         position,
+        roster,
+        isRosterEntry: rosterEntries.has(player.id),
+        lonerMasterIds,
         context,
         teamEraId,
         deferSppTotal,
@@ -153,6 +171,9 @@ export class TpRosterPlayersImportService {
       outcome.imported += 1;
       if (increases !== undefined) {
         outcome.increasesByPlayerId.set(upserted.player.id, increases);
+      }
+      if (isJourneyman === true) {
+        outcome.journeymanPlayerIds.add(upserted.player.id);
       }
       const snapshot = this.unspentSnapshot(
         rosterEntries.get(player.id) ??
@@ -326,6 +347,9 @@ export class TpRosterPlayersImportService {
   private async buildPayload(options: {
     player: TpRosterPlayer;
     position: ResolvedPlayerPosition;
+    roster: TpRoster;
+    isRosterEntry: boolean;
+    lonerMasterIds: ReadonlySet<number> | undefined;
     context: TpRosterContext;
     teamEraId: number;
     deferSppTotal: boolean | undefined;
@@ -334,10 +358,14 @@ export class TpRosterPlayersImportService {
   }): Promise<{
     data: UpsertPlayer;
     increases: PlayerCharacteristicCounts | undefined;
+    isJourneyman: boolean | undefined;
   }> {
     const {
       player,
       position,
+      roster,
+      isRosterEntry,
+      lonerMasterIds,
       context,
       teamEraId,
       deferSppTotal,
@@ -396,6 +424,13 @@ export class TpRosterPlayersImportService {
             cache: baselineCache,
             errors,
           });
+    const isJourneyman = this.journeymen.decide({
+      player,
+      position,
+      roster,
+      isRosterEntry,
+      lonerMasterIds,
+    });
 
     const data: UpsertPlayer = {
       name: player.name,
@@ -414,10 +449,11 @@ export class TpRosterPlayersImportService {
         state: player.state,
         isActive: player.isActive,
       }),
+      ...(isJourneyman === undefined ? {} : { isJourneyman }),
       externalIds: [
         { externalSystemId: context.tpSystemId, externalId: String(player.id) },
       ],
     };
-    return { data, increases };
+    return { data, increases, isJourneyman };
   }
 }

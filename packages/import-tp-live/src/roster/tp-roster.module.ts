@@ -22,6 +22,7 @@ import { TpOfficialKeywordCatalogService } from '../official-teams/tp-official-k
 import { TpSkillIdLookupService } from '../tp-skill-id-lookup.service';
 import { TpAdvancementOrderService } from './players/tp-advancement-order.service';
 import { TpCharacteristicIncreasesService } from './players/tp-characteristic-increases.service';
+import { TpJourneymanService } from './players/tp-journeyman.service';
 import { TpLastingInjuryBuilderService } from './players/tp-lasting-injury-builder.service';
 import { TpLiveAdvancementSyncService } from './players/tp-live-advancement-sync.service';
 import { TpMercenaryCharacteristicsService } from './players/tp-mercenary-characteristics.service';
@@ -75,6 +76,7 @@ import { TpRosterImportService } from './tp-roster-import.service';
     TpPlayerCharacteristicsBuilderService,
     TpLastingInjuryBuilderService,
     TpPlayerStatusService,
+    TpJourneymanService,
     TpRosterPlayerSkillsService,
     TpAdvancementOrderService,
     TpLiveAdvancementSyncService,
