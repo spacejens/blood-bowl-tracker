@@ -56,6 +56,8 @@ interface Seeded {
   loner: number;
   block: number;
   dodge: number;
+  teamEraId: number;
+  linemanId: number;
 }
 
 async function seed(db: Db): Promise<Seeded> {
@@ -146,7 +148,29 @@ async function seed(db: Db): Promise<Seeded> {
     loner: loner.id,
     block: block.id,
     dodge: dodge.id,
+    teamEraId: teamEra.id,
+    linemanId: lineman.id,
   };
+}
+
+async function newJourneyman(db: Db, ids: Seeded): Promise<number> {
+  const [row] = await db
+    .insert(players)
+    .values({
+      name: 'Journeyman',
+      teamEraId: ids.teamEraId,
+      positionId: ids.linemanId,
+    })
+    .returning();
+  return row.id;
+}
+
+async function rowsOf(db: Db, playerId: number) {
+  return db
+    .select()
+    .from(playerAdvancements)
+    .where(eq(playerAdvancements.playerId, playerId))
+    .orderBy(asc(playerAdvancements.id));
 }
 
 async function rowFor(db: Db, playerId: number, skillId: number) {
@@ -265,5 +289,143 @@ describe('model_journeymen migration (real Postgres)', () => {
     await runMigration(db);
 
     expect(await advancementSnapshot(db)).toEqual(once);
+  });
+
+  it('converts only the first of several Loner rows', async () => {
+    const playerId = await newJourneyman(db, ids);
+    await db.insert(playerAdvancements).values([
+      {
+        playerId,
+        skillId: ids.loner,
+        source: 'chosen',
+        attributeValue: '3+',
+        advancementOrder: 1,
+        isFreeExtra: true,
+      },
+      {
+        playerId,
+        skillId: ids.loner,
+        source: 'chosen',
+        attributeValue: '4+',
+        advancementOrder: 2,
+        isFreeExtra: true,
+      },
+      {
+        playerId,
+        skillId: ids.dodge,
+        source: 'random',
+        advancementOrder: 3,
+      },
+    ]);
+
+    await runMigration(db);
+
+    const rows = await rowsOf(db, playerId);
+    expect(rows[0]).toMatchObject({ source: 'starting', attributeValue: '3+' });
+    expect(rows[1]).toMatchObject({
+      source: 'chosen',
+      attributeValue: '4+',
+      isFreeExtra: true,
+    });
+    expect(rows[2]).toMatchObject({ advancementOrder: 2 });
+  });
+
+  it('keeps a gained Loner when a starting one already exists', async () => {
+    const playerId = await newJourneyman(db, ids);
+    await db.insert(playerAdvancements).values([
+      { playerId, skillId: ids.loner, source: 'starting' },
+      {
+        playerId,
+        skillId: ids.loner,
+        source: 'chosen',
+        attributeValue: '4+',
+        advancementOrder: 1,
+        isFreeExtra: true,
+      },
+      {
+        playerId,
+        skillId: ids.dodge,
+        source: 'random',
+        advancementOrder: 2,
+      },
+    ]);
+
+    await runMigration(db);
+
+    const rows = await rowsOf(db, playerId);
+    expect(rows[0]).toMatchObject({ source: 'starting' });
+    expect(rows[1]).toMatchObject({
+      source: 'chosen',
+      advancementOrder: 1,
+      isFreeExtra: true,
+    });
+    expect(rows[2]).toMatchObject({ advancementOrder: 2 });
+  });
+
+  it('adds no Loner where a removed starting one already holds the key', async () => {
+    const playerId = await newJourneyman(db, ids);
+    await db.insert(playerAdvancements).values({
+      playerId,
+      skillId: ids.loner,
+      source: 'starting',
+      removed: true,
+    });
+
+    await runMigration(db);
+
+    const rows = await rowsOf(db, playerId);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ source: 'starting', removed: true });
+  });
+
+  it('converts a gained Loner beside a removed starting one', async () => {
+    const playerId = await newJourneyman(db, ids);
+    await db.insert(playerAdvancements).values([
+      {
+        playerId,
+        skillId: ids.loner,
+        source: 'starting',
+        removed: true,
+      },
+      {
+        playerId,
+        skillId: ids.loner,
+        source: 'chosen',
+        attributeValue: '4+',
+        advancementOrder: 1,
+        isFreeExtra: true,
+      },
+    ]);
+
+    await runMigration(db);
+
+    const rows = await rowsOf(db, playerId);
+    expect(rows).toHaveLength(2);
+    expect(rows[1]).toMatchObject({
+      source: 'starting',
+      advancementOrder: null,
+      removed: false,
+    });
+  });
+
+  it('converts a confirmed Loner row and clears its order', async () => {
+    const playerId = await newJourneyman(db, ids);
+    await db.insert(playerAdvancements).values({
+      playerId,
+      skillId: ids.loner,
+      source: 'advancement',
+      advancementOrder: 1,
+      orderConfirmed: true,
+      isFreeExtra: true,
+    });
+
+    await runMigration(db);
+
+    expect((await rowsOf(db, playerId))[0]).toMatchObject({
+      source: 'starting',
+      advancementOrder: null,
+      orderConfirmed: false,
+      isFreeExtra: false,
+    });
   });
 });
