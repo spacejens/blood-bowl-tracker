@@ -189,7 +189,8 @@ row, sets `removed` on a row the curation no longer lists, clears it when the
 curation lists that row again, and writes nothing for an unchanged curation.
 Every reader filters on `removed = false`.
 `position_rules_set_skill_categories` uses the same `removed` flag, synced by
-`PositionRulesSetSkillCategoriesService`.
+`PositionRulesSetSkillCategoriesService`. `player_advancements` uses it for an
+increase a source stops reporting and for a recruited journeyman's Loner.
 
 ## Re-running importers
 

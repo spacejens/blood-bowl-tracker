@@ -71,8 +71,8 @@ export const playerCharacteristicEnum = gameData.enum(
  * unknown. `orderConfirmed` says that order is the real sequence: only
  * confirmed entries are pinned by the cost model, and an unconfirmed order
  * never overwrites a confirmed one. `removed` flags a characteristic row the
- * source no longer reports, because tracked rows cannot be deleted; every
- * reader filters it out.
+ * source no longer reports, or a recruited journeyman's starting Loner,
+ * because tracked rows cannot be deleted; every reader filters it out.
  *
  * `isFreeExtra` marks a gained skill the player has without having spent SPP
  * on it and that is not one of their advancements, so it costs nothing and
@@ -80,7 +80,7 @@ export const playerCharacteristicEnum = gameData.enum(
  * `source`, which keeps saying chosen/random/advancement as the source
  * system reported. PlayerSkillsService sets it for a skill the entry flags
  * (TP's `isExtra`), for a skill one of the player's own trophy awards
- * grants, and for every non-`starting` Hatred or Loner (a Journeyman's Loner costs no SPP; BB2025 grants Hatred only on
+ * grants, and for every non-`starting` Hatred or Loner (a Loner gained without SPP being spent; BB2025 grants Hatred only on
  * top of a player's advancements; a player may hate several keywords, one
  * row each). `sync` and a new trophy award only ever set it; changing or
  * clearing an award's granted skill unmarks that skill's rows for the winner,
@@ -138,9 +138,13 @@ const playerAdvancementsTable = historyTrackedTable({
       'player_advancements_confirmed_has_order',
       sql`${t.orderConfirmed} = false OR ${t.advancementOrder} IS NOT NULL`,
     ),
-    onlyCharacteristicRemoved: check(
-      'player_advancements_only_characteristic_removed',
-      sql`${t.removed} = false OR ${t.source} = 'characteristic'`,
+    // A row a source stops describing is retired by this flag, since tracked
+    // rows cannot be deleted: a characteristic increase no longer reported,
+    // or a recruited journeyman's starting Loner. A gained skill, free extra
+    // or not, is never retired.
+    removedKinds: check(
+      'player_advancements_removed_kinds',
+      sql`${t.removed} = false OR ${t.source} = 'characteristic' OR ${t.source} = 'starting'`,
     ),
   }),
 });
