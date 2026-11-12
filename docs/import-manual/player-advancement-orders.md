@@ -33,9 +33,11 @@ around it.
 
 The order is written confirmed, numbered from 1 in the order listed, so a
 later import never replaces it with a guess. The importer skips an entry
-whose player or skill does not resolve. For the rest, the server checks the
-entry against what is stored before anything is written, and refuses the
-batch with an import error when:
+whose player or skill does not resolve. For the rest, the server checks each
+entry against what is stored before anything of that entry is written, and
+refuses that entry with an import error when it fails. The other entries are
+still processed, so the entries before and after a refused one are written,
+and the batch is left unrecorded. An entry is refused when:
 
 - an advancement listed is not one of the player's stored paid advancements,
   or the player has a paid advancement the entry leaves out (so an entry must
