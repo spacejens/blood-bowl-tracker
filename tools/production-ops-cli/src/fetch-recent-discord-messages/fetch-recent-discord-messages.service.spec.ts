@@ -27,7 +27,11 @@ describe('FetchRecentDiscordMessagesService', () => {
 
     const result = await service.run('123456789', 5);
 
-    expect(discordRest.getRecentMessages).toHaveBeenCalledWith('123456789', 5);
+    expect(discordRest.getRecentMessages).toHaveBeenCalledWith(
+      '123456789',
+      5,
+      undefined,
+    );
     expect(result).toBe(body);
   });
 
@@ -39,6 +43,7 @@ describe('FetchRecentDiscordMessagesService', () => {
     expect(discordRest.getRecentMessages).toHaveBeenCalledWith(
       '123456789',
       100,
+      undefined,
     );
   });
 
@@ -76,6 +81,25 @@ describe('FetchRecentDiscordMessagesService', () => {
   it('rejects a non-numeric channel id before reading the token or calling Discord', async () => {
     await expect(service.run('not-a-snowflake', 5)).rejects.toThrow(
       /snowflake/,
+    );
+    expect(discordRest.getRecentMessages).not.toHaveBeenCalled();
+  });
+
+  it('passes the before message id through when paging back', async () => {
+    discordRest.getRecentMessages.mockResolvedValue([]);
+
+    await service.run('123456789', 100, '987654321');
+
+    expect(discordRest.getRecentMessages).toHaveBeenCalledWith(
+      '123456789',
+      100,
+      '987654321',
+    );
+  });
+
+  it('rejects a non-numeric before id before reading the token or calling Discord', async () => {
+    await expect(service.run('123456789', 5, 'abc')).rejects.toThrow(
+      /before must be a Discord message id/,
     );
     expect(discordRest.getRecentMessages).not.toHaveBeenCalled();
   });

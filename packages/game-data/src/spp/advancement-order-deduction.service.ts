@@ -8,7 +8,7 @@ import type {
 } from './unspent-spp.types';
 
 /** The most new advancements whose orders are searched: 6! = 720 assignments. */
-const MAX_DEDUCED = 6;
+export const MAX_DEDUCED = 6;
 
 /** One way to give the new rows their numbers: row id -> advancement number. */
 type Assignment = Map<number, number>;

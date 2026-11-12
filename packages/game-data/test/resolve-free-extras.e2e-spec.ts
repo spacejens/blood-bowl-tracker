@@ -31,7 +31,7 @@ import { connectTestDb } from './e2e-database';
 interface Fixtures {
   playerId: number;
   otherPlayerId: number;
-  /** Skill name -> id: Block, Dodge, Hatred, Tentacles. */
+  /** Skill name -> id: Block, Dodge, Hatred, Loner, Tentacles. */
   skillIds: Record<string, number>;
 }
 
@@ -85,7 +85,11 @@ async function seed(db: Db): Promise<Fixtures> {
     .returning();
   const skillRows = await db
     .insert(skills)
-    .values(['Block', 'Dodge', 'Hatred', 'Tentacles'].map((name) => ({ name })))
+    .values(
+      ['Block', 'Dodge', 'Hatred', 'Loner', 'Tentacles'].map((name) => ({
+        name,
+      })),
+    )
     .returning();
   const skillIds = Object.fromEntries(
     skillRows.map((row) => [row.name, row.id]),
@@ -156,6 +160,8 @@ describe('Resolving free extras before a sync (real Postgres)', () => {
       entry('Tentacles'),
       entry('Hatred'),
       entry('Hatred', { source: 'starting', playerId: fixtures.otherPlayerId }),
+      entry('Loner'),
+      entry('Loner', { source: 'starting', playerId: fixtures.otherPlayerId }),
       entry('Tentacles', { playerId: fixtures.otherPlayerId }),
       entry('Block'),
       entry('Dodge', { isFreeExtra: true }),
@@ -165,9 +171,11 @@ describe('Resolving free extras before a sync (real Postgres)', () => {
       { ...entries[0], isFreeExtra: true },
       { ...entries[1], isFreeExtra: true },
       entries[2],
-      entries[3],
+      { ...entries[3], isFreeExtra: true },
       entries[4],
       entries[5],
+      entries[6],
+      entries[7],
     ]);
   });
 });

@@ -45,7 +45,7 @@ export const PlayerCharacteristicSchema = z.enum(PLAYER_CHARACTERISTICS);
  * top of the player's advancements (TP's `isExtra`): it cost no SPP and is
  * not an advancement. Absent means false. The server also marks a skill as
  * free on its own (a skill one of the player's trophy awards grants, and
- * every non-`starting` Hatred), so a caller only sends what its source says.
+ * every non-`starting` Hatred or Loner), so a caller only sends what its source says.
  */
 export const PlayerSkillEntrySchema = z
   .object({
@@ -106,6 +106,20 @@ export const SyncPlayerSkillsSchema = z.object({
    * player not listed is rejected.
    */
   characteristicPlayerIds: z.array(z.number().int()).optional(),
+  /**
+   * True when the entries state each listed player's complete paid
+   * advancement order by hand; a player with no paid advancement lists none
+   * and only has his free extras flagged. The server then refuses the whole batch
+   * unless every such player's entries match his stored paid advancements
+   * one for one, are confirmed and numbered from 1, and cost exactly the SPP
+   * the player reports as spent under some rules set of his era. That cost
+   * check applies only when both his total and unspent SPP are stored; a
+   * player missing either figure is checked for the one-for-one match alone. A stored
+   * gained skill the free-extra rules make free counts as free even when its
+   * stored flag is unset, and an accepted batch flags it. A batch it accepts
+   * keeps the players' stored unspent SPP.
+   */
+  checkOrderAgainstSpend: z.boolean().optional(),
 });
 
 export const SyncPlayerSkillsResultSchema = z.object({

@@ -114,6 +114,7 @@ describe('PlayerAdvancementReadsService', () => {
         7,
         8,
         'Hatred',
+        'Loner',
       ]);
       expect(db.chains[1].from).toHaveBeenCalledWith(trophyAwards);
       expect(extractAllFilterValues(firstCallArg(db.chains[1].where))).toEqual([
@@ -140,6 +141,21 @@ describe('PlayerAdvancementReadsService', () => {
       expect(
         await service.resolveFreeExtras([startingHatred, gained(9, 2)]),
       ).toEqual([startingHatred, { ...gained(9, 2), isFreeExtra: true }]);
+    });
+
+    it('flags a gained Loner but never a starting one', async () => {
+      // The mocked skills query returns the row the name filter matched.
+      const db = mockDb([{ id: 9 }], []);
+      const service = await makeService(db);
+      const startingLoner: PlayerSkillEntry = {
+        playerId: 1,
+        skillId: 9,
+        source: 'starting',
+      };
+
+      expect(
+        await service.resolveFreeExtras([startingLoner, gained(9, 2)]),
+      ).toEqual([startingLoner, { ...gained(9, 2), isFreeExtra: true }]);
     });
 
     it('keeps an entry the source already flags free', async () => {

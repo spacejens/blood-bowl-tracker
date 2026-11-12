@@ -15,6 +15,8 @@ export {
   CompetitionsService,
   CompetitionUpsertConflictError,
 } from './competitions/competitions.service';
+export { CuratedAdvancementOrderModule } from './curated-advancement-order/curated-advancement-order.module';
+export { CuratedAdvancementOrderService } from './curated-advancement-order/curated-advancement-order.service';
 export { ErasModule } from './eras/eras.module';
 export { ErasService, EraUpsertConflictError } from './eras/eras.service';
 export { ExternalSystemsModule } from './external-systems/external-systems.module';
@@ -53,7 +55,10 @@ export type {
 } from './player-skills/player-advancement-reads.service';
 export { PlayerAdvancementReadsService } from './player-skills/player-advancement-reads.service';
 export { PlayerSkillsModule } from './player-skills/player-skills.module';
-export type { PlayerSkillRow } from './player-skills/player-skills.service';
+export type {
+  PlayerSkillRow,
+  PlayerSkillsSyncOptions,
+} from './player-skills/player-skills.service';
 export { PlayerSkillsService } from './player-skills/player-skills.service';
 export { PlayerLastingInjuryBackfillService } from './players/player-lasting-injury-backfill.service';
 export { PlayersModule } from './players/players.module';
@@ -89,6 +94,7 @@ export {
 } from './rules-sets/rules-sets.service';
 export { AdvancementCostValidationError } from './shared/advancement-cost-validation-error';
 export { CharacteristicFormatMismatchError } from './shared/characteristic-format-mismatch-error';
+export { CuratedAdvancementOrderError } from './shared/curated-advancement-order-error';
 export type { FactScope } from './shared/fact-scope';
 export { FACT_SCOPE_ALL_TIME } from './shared/fact-scope';
 export { KeywordValidationError } from './shared/keyword-validation-error';

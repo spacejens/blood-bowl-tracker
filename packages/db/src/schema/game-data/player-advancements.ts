@@ -80,11 +80,11 @@ export const playerCharacteristicEnum = gameData.enum(
  * `source`, which keeps saying chosen/random/advancement as the source
  * system reported. PlayerSkillsService sets it for a skill the entry flags
  * (TP's `isExtra`), for a skill one of the player's own trophy awards
- * grants, and for every non-`starting` Hatred (BB2025 grants Hatred only on
+ * grants, and for every non-`starting` Hatred or Loner (a Journeyman's Loner costs no SPP; BB2025 grants Hatred only on
  * top of a player's advancements; a player may hate several keywords, one
  * row each). `sync` and a new trophy award only ever set it; changing or
  * clearing an award's granted skill unmarks that skill's rows for the winner,
- * unless it is Hatred or another award of the same player still grants it.
+ * unless it is Hatred or Loner or another award of the same player still grants it.
  */
 const playerAdvancementsTable = historyTrackedTable({
   schema: gameData,

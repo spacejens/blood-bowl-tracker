@@ -3,6 +3,7 @@ import {
   CharacteristicFormatSchema,
   ExternalSystemCategorySchema,
   KeywordKindSchema,
+  PlayerCharacteristicSchema,
   SkillCategorySchema,
   SppEarningActionTypeSchema,
   TrophyAwardRuleEventTypeSchema,
@@ -412,6 +413,28 @@ const TrophyAwardEntrySchema = z.object({
   grantedSkill: ExternalRefSchema.optional(),
 });
 
+/**
+ * One player's complete hand-curated advancement order: every paid
+ * advancement he has, first taken first, each a skill (with the variant his
+ * stored row carries, if any) or a characteristic increase. Starting skills
+ * and free extras are not listed. See
+ * docs/import-manual/player-advancement-orders.md.
+ */
+const PlayerAdvancementSchema = z.union([
+  z
+    .object({
+      skill: ExternalRefSchema,
+      attributeValue: z.string().min(1).optional(),
+    })
+    .strict(),
+  z.object({ characteristic: PlayerCharacteristicSchema }).strict(),
+]);
+
+const PlayerAdvancementOrderEntrySchema = z.object({
+  player: ExternalRefSchema,
+  advancements: z.array(PlayerAdvancementSchema),
+});
+
 export const ManualDataFileSchema = z
   .object({
     externalSystems: z.array(ExternalSystemEntrySchema).default([]),
@@ -438,9 +461,15 @@ export const ManualDataFileSchema = z
     trophies: z.array(TrophyEntrySchema).default([]),
     competitionGroups: z.array(CompetitionGroupEntrySchema).default([]),
     trophyAwards: z.array(TrophyAwardEntrySchema).default([]),
+    playerAdvancementOrders: z
+      .array(PlayerAdvancementOrderEntrySchema)
+      .default([]),
   })
   .strict();
 
+export type PlayerAdvancementOrderEntry = z.infer<
+  typeof PlayerAdvancementOrderEntrySchema
+>;
 export type ExternalRef = z.infer<typeof ExternalRefSchema>;
 export type PositionEntry = z.infer<typeof PositionEntrySchema>;
 export type PositionRulesSetSkillRef = z.infer<

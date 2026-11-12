@@ -17,7 +17,7 @@ import type {
 import { Inject, Injectable } from '@nestjs/common';
 
 import {
-  HATRED_SKILL_NAME,
+  FREE_EXTRA_SKILL_NAMES,
   PlayerAdvancementSyncPlannerService,
 } from './player-advancement-sync-planner.service';
 
@@ -58,7 +58,7 @@ export class PlayerAdvancementReadsService {
    * The entries with `isFreeExtra: true` set on each gained skill that
    * `PlayerSkillsService.sync` stores as a free extra although the source
    * did not flag it: by the same rule (PlayerAdvancementSyncPlannerService's
-   * `isFreeExtra`), a Hatred or a skill one of the player's own trophy
+   * `isFreeExtra`), a Hatred or Loner or a skill one of the player's own trophy
    * awards grants. Starting skills and increases are returned as given.
    * Two small queries, both skipped when no gained skill is left unflagged.
    */
@@ -79,11 +79,14 @@ export class PlayerAdvancementReadsService {
     const playerIds = [
       ...new Set(unflagged.map(({ entry }) => entry.playerId)),
     ];
-    const hatredRows = await this.db
+    const nameRuleRows = await this.db
       .select({ id: skills.id })
       .from(skills)
       .where(
-        and(inArray(skills.id, skillIds), eq(skills.name, HATRED_SKILL_NAME)),
+        and(
+          inArray(skills.id, skillIds),
+          inArray(skills.name, [...FREE_EXTRA_SKILL_NAMES]),
+        ),
       );
     const awards = await this.db
       .select({
@@ -98,7 +101,7 @@ export class PlayerAdvancementReadsService {
         ),
       );
     const facts = {
-      hatredSkillIds: new Set(hatredRows.map((row) => row.id)),
+      freeExtraSkillIds: new Set(nameRuleRows.map((row) => row.id)),
       grantedSkillIdsByPlayer: this.syncPlanner.grantedSkillIdsByPlayer(awards),
     };
     const free = new Set(

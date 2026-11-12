@@ -59,9 +59,34 @@ describe('PlayerAdvancementSyncPlannerService', () => {
 
   describe('isFreeExtra', () => {
     const facts = {
-      hatredSkillIds: new Set<number>(),
+      freeExtraSkillIds: new Set<number>(),
       grantedSkillIdsByPlayer: new Map([[1, new Set([7])]]),
     };
+
+    const nameFacts = {
+      freeExtraSkillIds: new Set([9]),
+      grantedSkillIdsByPlayer: new Map<number, Set<number>>(),
+    };
+
+    it('is free for a gained skill the name rule covers (Hatred, Loner)', () => {
+      expect(
+        planner.isFreeExtra(
+          { playerId: 1, skillId: 9, source: 'advancement' },
+          9,
+          nameFacts,
+        ),
+      ).toBe(true);
+    });
+
+    it('is not free for a starting skill the name rule covers', () => {
+      expect(
+        planner.isFreeExtra(
+          { playerId: 1, skillId: 9, source: 'starting' },
+          9,
+          nameFacts,
+        ),
+      ).toBe(false);
+    });
 
     it('is free for a gained skill a trophy grants', () => {
       expect(

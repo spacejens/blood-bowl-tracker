@@ -11,6 +11,7 @@ import { ErasProcessor } from '../entities/eras.processor';
 import { ExternalSystemsProcessor } from '../entities/external-systems.processor';
 import { KeywordsProcessor } from '../entities/keywords.processor';
 import { LeaguesProcessor } from '../entities/leagues.processor';
+import { PlayerAdvancementOrdersProcessor } from '../entities/player-advancement-orders.processor';
 import { PositionRulesSetSkillCategoriesProcessor } from '../entities/position-rules-set-skill-categories.processor';
 import { PositionRulesSetSkillsProcessor } from '../entities/position-rules-set-skills.processor';
 import { PositionRulesSetsProcessor } from '../entities/position-rules-sets.processor';
@@ -49,6 +50,7 @@ export class ManualImportService {
     private readonly advancementCosts: AdvancementCostsProcessor,
     private readonly trophies: TrophiesProcessor,
     private readonly trophyAwards: TrophyAwardsProcessor,
+    private readonly playerAdvancementOrders: PlayerAdvancementOrdersProcessor,
     private readonly importResults: ImportResultService,
   ) {}
 
@@ -58,7 +60,8 @@ export class ManualImportService {
    * rulesSets, skills, skillRulesSets, keywords, leagues, eras, races,
    * positions, positionRulesSets, positionRulesSetSkills,
    * positionRulesSetSkillCategories, coaches, teams, competitionGroups,
-   * competitions, sppAwardValues, advancementCosts, trophies, trophyAwards —
+   * competitions, sppAwardValues, advancementCosts, trophies, trophyAwards,
+   * playerAdvancementOrders —
    * with skills and skillRulesSets running right after rulesSets, since
    * skills need only the rules sets and running them early keeps the
    * category table available to everything after, positionRulesSets running
@@ -79,7 +82,9 @@ export class ManualImportService {
    * after rulesSets and races (which it references), advancementCosts running
    * after the rulesSets, leagues and skills it references, trophies running
    * after the leagues it may also reference, and trophyAwards last of all,
-   * after the trophies whose curated names its entries quote — sharing one
+   * after the trophies whose curated names its entries quote, then
+   * playerAdvancementOrders last of all, after every section that creates the
+   * players and skills it references — sharing one
    * error collector so one bad entry never aborts the rest.
    * Reference-resolution and upsert failures are collected; a missing
    * directory, malformed file, or unreachable API throws out of here to be
@@ -118,6 +123,7 @@ export class ManualImportService {
     imported += await this.advancementCosts.process(ctx);
     imported += await this.trophies.process(ctx);
     imported += await this.trophyAwards.process(ctx);
+    imported += await this.playerAdvancementOrders.process(ctx);
 
     return this.importResults.result({ imported, errors });
   }

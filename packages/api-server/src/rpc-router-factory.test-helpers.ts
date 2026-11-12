@@ -3,6 +3,7 @@ import {
   CoachesService,
   CompetitionGroupsService,
   CompetitionsService,
+  CuratedAdvancementOrderService,
   ErasService,
   ExternalSystemsService,
   KeywordsService,
@@ -67,6 +68,7 @@ export async function createRouterHarness() {
     positionRulesSetSkillCategoriesService:
       mock<PositionRulesSetSkillCategoriesService>(),
     playerSkillsService: mock<PlayerSkillsService>(),
+    curatedAdvancementOrder: mock<CuratedAdvancementOrderService>(),
     skillsService: mock<SkillsService>(),
     keywordsService: mock<KeywordsService>(),
     skillRulesSetsService: mock<SkillRulesSetsService>(),
@@ -125,6 +127,10 @@ export async function createRouterHarness() {
         useValue: mocks.positionRulesSetSkillCategoriesService,
       },
       { provide: PlayerSkillsService, useValue: mocks.playerSkillsService },
+      {
+        provide: CuratedAdvancementOrderService,
+        useValue: mocks.curatedAdvancementOrder,
+      },
       { provide: SkillsService, useValue: mocks.skillsService },
       { provide: KeywordsService, useValue: mocks.keywordsService },
       {
