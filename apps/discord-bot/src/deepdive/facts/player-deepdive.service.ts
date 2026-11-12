@@ -113,6 +113,9 @@ const REDUCTION_FIELDS = [
   ['AV', 'armourReductionCount'],
 ] as const;
 
+// A plain symbol, not an emoji, like the deepdive's other markers.
+const JOURNEYMAN_BADGE = '◇ Journeyman';
+
 /**
  * Composes the player deepdive embed, shared by `/deepdive player:<id>` and
  * the player deepdive buttons.
@@ -128,9 +131,6 @@ const REDUCTION_FIELDS = [
  * independent final net on the assembled string, so Discord's limit holds
  * even if that budgeting falls out of sync.
  */
-// A plain symbol, not an emoji, like the deepdive's other markers.
-const JOURNEYMAN_BADGE = '◇ Journeyman';
-
 @Injectable()
 export class PlayerDeepdiveService {
   private readonly logger = new Logger(PlayerDeepdiveService.name);
