@@ -216,7 +216,12 @@ export class PlayerAdvancementHistoryService {
       })
       .from(playerAdvancements)
       .innerJoin(skills, eq(skills.id, playerAdvancements.skillId))
-      .where(inArray(playerAdvancements.playerId, ids))
+      .where(
+        and(
+          inArray(playerAdvancements.playerId, ids),
+          eq(playerAdvancements.removed, false),
+        ),
+      )
       .orderBy(
         asc(playerAdvancements.playerId),
         asc(playerAdvancements.advancementOrder),

@@ -5,7 +5,6 @@ import {
 } from '@blood-bowl-tracker/db';
 import {
   extractAllFilterValues,
-  extractFilterValues,
   extractJoinColumns,
   firstCallArg,
   mockDb,
@@ -871,8 +870,19 @@ describe('PlayerSkillsService', () => {
       await expect(service.listByPlayer(1, 3)).resolves.toEqual([
         { ...eliteRow },
       ]);
-      expect(extractFilterValues(firstCallArg(db.chains[0].where))).toBe(1);
       expect(db.chains[0].orderBy).toHaveBeenCalled();
+    });
+
+    it("leaves out removed rows, such as a recruited journeyman's retired starting Loner", async () => {
+      const db = mockDb([eliteRow]);
+      const service = await makeService(db);
+
+      await service.listByPlayer(1, 3);
+
+      expect(extractAllFilterValues(firstCallArg(db.chains[0].where))).toEqual([
+        1,
+        false,
+      ]);
     });
 
     it('reports the stored order confirmation', async () => {

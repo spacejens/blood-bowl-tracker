@@ -127,7 +127,7 @@ See [game-concepts/external-systems](game-concepts/external-systems/index.md).
 
 ### Free extra skill
 
-A gained [skill](#skill) a [player](#player) has without having spent [SPP](#star-player-points-spp) on it, and that is not one of their [advancements](#advancement): it costs nothing and does not raise the price of later advancements. [BB2025](#bb2025)'s Hatred, a gained Loner (a journeyman's), a skill [TP](#tp) flags as extra, and a skill a [trophy award](#trophy-award) grants are free extras.
+A gained [skill](#skill) a [player](#player) has without having spent [SPP](#star-player-points-spp) on it, and that is not one of their [advancements](#advancement): it costs nothing and does not raise the price of later advancements. [BB2025](#bb2025)'s Hatred, a gained Loner, a skill [TP](#tp) flags as extra, and a skill a [trophy award](#trophy-award) grants are free extras.
 
 See [game-concepts/skills](game-concepts/skills/index.md#player-skills).
 

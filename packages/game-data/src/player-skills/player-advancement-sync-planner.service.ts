@@ -18,8 +18,9 @@ import type {
 /**
  * The curated names of the skills a player only ever gains as free extras:
  * BB2025 grants Hatred on top of a player's advancements, never as one, and
- * a Journeyman gets Loner without spending SPP. The source is trusted to add
- * a gained Loner only where it applies. The name alone is each skill's
+ * a Loner can be gained without spending SPP; a journeyman's own Loner is a
+ * starting skill JourneymanLonerService keeps, not a gained one. The source
+ * is trusted to add a gained Loner only where it applies. The name alone is each skill's
  * identity: their variants (Hatred's target, Loner's roll) live in
  * `attribute_value`.
  */
