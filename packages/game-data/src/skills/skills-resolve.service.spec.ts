@@ -54,3 +54,34 @@ describe('SkillsService.resolve', () => {
     ).resolves.toEqual({ found: false });
   });
 });
+
+describe('SkillsService.namesByExternalId', () => {
+  it("answers each external id a skill declares with that skill's name, in one query", async () => {
+    const { service, chains } = await makeService([
+      { externalId: '154', name: 'Loner' },
+      { externalId: '103', name: 'Shadowing' },
+    ]);
+
+    await expect(
+      service.namesByExternalId({
+        externalSystemId: 1,
+        externalIds: ['154', '103', '999'],
+      }),
+    ).resolves.toEqual(
+      new Map([
+        ['154', 'Loner'],
+        ['103', 'Shadowing'],
+      ]),
+    );
+    expect(chains).toHaveLength(1);
+  });
+
+  it('returns no names without querying for an empty request', async () => {
+    const { service, chains } = await makeService([]);
+
+    await expect(
+      service.namesByExternalId({ externalSystemId: 1, externalIds: [] }),
+    ).resolves.toEqual(new Map());
+    expect(chains).toHaveLength(0);
+  });
+});

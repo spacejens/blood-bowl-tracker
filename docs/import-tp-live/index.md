@@ -221,9 +221,17 @@ extras are found before numbering by the same rule the write applies: TP's
 awards grants, even when TP leaves the flag off.
 
 A player named Journeyman in a basic position (not a mercenary, Big Guy or
-roster star position) is marked a journeyman: a roster entry while it lists
-Loner, a match-snapshot-only entry always. His gained Loner is left out of
-the skills sync, since the server keeps his Loner as a starting skill.
+roster star position) is marked a journeyman. A roster entry is marked
+while it lists Loner and unmarked once it does not. A match-snapshot-only
+entry is marked only when its snapshot's skill ids include Loner, and
+otherwise leaves the marker alone: a recruit who kept the name and later
+left the team is seen only in snapshots, without Loner (line-up 1008237, a
+Rotter Lineman in Sasong 26, is one). A snapshot names none of its skills,
+so its ids are read against the Loner ids the roster JSON names, and any id
+the roster leaves unnamed is named through the skill carrying it as a TP
+external id, in one lookup per roster. A journeyman's gained Loner is left
+out of the skills sync, since the server keeps his Loner as a starting
+skill.
 
 TP's data has no timestamps and no per-skill history. Its skill row ids are
 not monotonic with list position (one sampled player's gained skills carry

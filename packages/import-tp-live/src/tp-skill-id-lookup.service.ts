@@ -83,4 +83,42 @@ export class TpSkillIdLookupService {
     });
     return skillIds;
   }
+
+  /**
+   * skillMasterId -> the name of the skill carrying it as a TP external id,
+   * in one batched lookup; ids no skill carries are left out. For ids a
+   * source lists with no name attached, such as a match snapshot's skills.
+   * Undefined when the lookup itself failed, which is reported here, once.
+   */
+  async namesByTpId({
+    masterIds,
+    tpSystemId,
+    errors,
+  }: ResolveSkillIdsByTpIdOptions): Promise<Map<number, string> | undefined> {
+    if (masterIds.length === 0) {
+      return new Map();
+    }
+    const names = await this.recorder.record({
+      run: () =>
+        this.skills.namesByExternalId({
+          externalSystemId: tpSystemId,
+          externalIds: masterIds.map(String),
+        }),
+      item: { skillMasterIds: masterIds },
+      errors,
+      buildErrorMessage: (error) =>
+        `Failed to name TP skill ids by external id: ${this.recorder.messageOf(error)}`,
+    });
+    if (names === undefined) {
+      return undefined;
+    }
+    const byMasterId = new Map<number, string>();
+    for (const masterId of masterIds) {
+      const name = names.get(String(masterId));
+      if (name !== undefined) {
+        byMasterId.set(masterId, name);
+      }
+    }
+    return byMasterId;
+  }
 }

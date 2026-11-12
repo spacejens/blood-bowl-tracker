@@ -105,7 +105,9 @@ export class TpRosterPlayersImportService {
    * TP's data establishes none, so a re-import clears one the player no
    * longer has; a roster file and a match snapshot count equally for
    * deciding a player is active. Each player's journeyman marker is sent
-   * as TpJourneymanService decides it, and left out when it decides none.
+   * as TpJourneymanService decides it, and left out when it decides none; a
+   * match-snapshot-only player is read by the Loner ids its snapshot lists,
+   * named for the whole roster in one lookup.
    */
   async importPlayers({
     roster,
@@ -124,6 +126,12 @@ export class TpRosterPlayersImportService {
     const rosterEntries = new Map(
       roster.players.map((entry) => [entry.id, entry]),
     );
+    const lineUpLonerMasterIds = await this.journeymen.lineUpLonerMasterIds({
+      players: merged.filter((player) => !rosterEntries.has(player.id)),
+      rosterLonerMasterIds: lonerMasterIds,
+      tpSystemId: context.tpSystemId,
+      errors,
+    });
     const matchEntries = this.freshestUnspentMatchEntries(matchEmbeddedPlayers);
     const mercenaryCache: MercenaryPositionCache = new Map();
     const baselineCache = this.characteristicIncreases.newCache();
@@ -146,12 +154,13 @@ export class TpRosterPlayersImportService {
       if (position === undefined) {
         continue;
       }
+      const isRosterEntry = rosterEntries.has(player.id);
       const { data, increases, isJourneyman } = await this.buildPayload({
         player,
         position,
         roster,
-        isRosterEntry: rosterEntries.has(player.id),
-        lonerMasterIds,
+        isRosterEntry,
+        lonerMasterIds: isRosterEntry ? lonerMasterIds : lineUpLonerMasterIds,
         context,
         teamEraId,
         deferSppTotal,

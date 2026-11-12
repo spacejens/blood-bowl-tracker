@@ -335,6 +335,10 @@ SPP, beside the entry's `totalStarPlayerPoints`) are kept too, but they
 describe the player as of the download, not as of the match, so a snapshot
 also says whether a player who has since left died, retired or is temporarily
 retired; the unspent figure is used for players no roster file lists;
+a snapshot entry's `skills[]` is a bare `{ skillMasterId }` list with no
+position template, no `isRandom` and no names, so it is kept only as the
+entry's `skillMasterIds`, which the import reads for Loner when deciding
+whether a player named Journeyman is a journeyman;
 the rest of these nested roster bodies remains unhandled), `scoreResume
 { startInstant, finishInstant }`, and — importantly — `scheduledDate`/
 `endScheduledDate`.

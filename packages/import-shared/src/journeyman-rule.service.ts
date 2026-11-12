@@ -14,9 +14,10 @@ export interface JourneymanSightingFacts {
   isBasicPosition: boolean;
   sighting: JourneymanSighting;
   /**
-   * Whether the roster lists Loner for the player, starting or gained.
-   * Undefined when the sighting cannot say (a line-up, or a roster entry
-   * without a skills group).
+   * Whether the sighting lists Loner for the player: for a roster, among
+   * its starting or gained skills; for a line-up, among the skills its
+   * snapshot lists. Undefined when the sighting cannot say (a roster entry
+   * without a skills group, or a line-up whose skills are unknown).
    */
   lonerListed?: boolean;
 }
@@ -28,8 +29,10 @@ const LONER_NAME = 'loner';
  * The one rule BBL, TP bulk and TP live imports use to mark a journeyman: a
  * temporary player named "Journeyman" in a basic position of the team's
  * race, who has Loner for free until recruited. A line-up sighting only ever
- * sets the marker. A roster sighting states it: a renamed player, or one the
- * roster lists without Loner, has been recruited. Pure and I/O-free.
+ * sets the marker, and only when it lists Loner: a recruit who kept the name
+ * and has since left the team is seen only in line-ups, without Loner. A
+ * roster sighting states it: a renamed player, or one the roster lists
+ * without Loner, has been recruited. Pure and I/O-free.
  */
 @Injectable()
 export class JourneymanRuleService {
@@ -50,7 +53,7 @@ export class JourneymanRuleService {
   decide(facts: JourneymanSightingFacts): boolean | undefined {
     const named = facts.isBasicPosition && this.isJourneymanName(facts.name);
     if (facts.sighting === 'lineUp') {
-      return named ? true : undefined;
+      return named && facts.lonerListed === true ? true : undefined;
     }
     if (!named) {
       return false;

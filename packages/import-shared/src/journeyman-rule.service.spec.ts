@@ -40,14 +40,36 @@ describe('JourneymanRuleService', () => {
   });
 
   describe('decide for a line-up sighting', () => {
-    it('sets the marker for a journeyman in a basic position', () => {
+    it('sets the marker for a journeyman in a basic position whose line-up lists Loner', () => {
+      expect(
+        service.decide({
+          name: 'Journeyman',
+          isBasicPosition: true,
+          sighting: 'lineUp',
+          lonerListed: true,
+        }),
+      ).toBe(true);
+    });
+
+    it('says nothing for a journeyman whose line-up lists no Loner, so a recruit who kept the name is never marked', () => {
+      expect(
+        service.decide({
+          name: 'Journeyman',
+          isBasicPosition: true,
+          sighting: 'lineUp',
+          lonerListed: false,
+        }),
+      ).toBeUndefined();
+    });
+
+    it('says nothing for a journeyman whose line-up skills are unknown', () => {
       expect(
         service.decide({
           name: 'Journeyman',
           isBasicPosition: true,
           sighting: 'lineUp',
         }),
-      ).toBe(true);
+      ).toBeUndefined();
     });
 
     it('says nothing for a renamed player, so a line-up never clears', () => {
@@ -56,6 +78,7 @@ describe('JourneymanRuleService', () => {
           name: 'Griff',
           isBasicPosition: true,
           sighting: 'lineUp',
+          lonerListed: true,
         }),
       ).toBeUndefined();
     });
@@ -66,6 +89,7 @@ describe('JourneymanRuleService', () => {
           name: 'Journeyman',
           isBasicPosition: false,
           sighting: 'lineUp',
+          lonerListed: true,
         }),
       ).toBeUndefined();
     });

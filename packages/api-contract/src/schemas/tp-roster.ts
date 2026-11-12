@@ -33,6 +33,13 @@ export const TpMatchEmbeddedPlayerSchema = z.object({
   state: z.number().int().nonnegative().optional(),
   /** TP's `isActive` flag, as of the download. Optional like `state`. */
   isActive: z.boolean().optional(),
+  /**
+   * The skillMasterIds a match snapshot lists for the player, as of the
+   * download, with no names attached. The import reads Loner among them to
+   * decide whether a player named Journeyman is a journeyman. Optional: a
+   * roster file's own entry carries its skills in a richer shape instead.
+   */
+  skillMasterIds: z.array(z.number().int()).optional(),
 });
 
 /** Input of `tpRosters.import`. */

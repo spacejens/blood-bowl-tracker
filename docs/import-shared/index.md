@@ -16,8 +16,10 @@ depend on it, so a change here reaches bulk and live imports together.
   rule. `tools/import-bbl` classifies competitions through it, by way of
   `packages/import`'s re-export.
 - **`JourneymanRuleService`** — the journeyman rule: a player named
-  "Journeyman" in a basic position. Line-ups only set the marker; a roster
-  states it from whether it lists Loner. Used by BBL, TP bulk and TP live.
+  "Journeyman" in a basic position. A line-up sets the marker only when its
+  skills list Loner (`lonerListed: true`), and otherwise leaves it alone, so
+  a recruit who kept the name is never marked from a line-up. A roster states
+  the marker from whether it lists Loner. Used by BBL, TP bulk and TP live.
 
 ## Why the Name ids must be shared
 

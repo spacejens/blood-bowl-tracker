@@ -78,6 +78,7 @@ export async function buildPlayersImport(
   });
   mocks.status.forPlayer.mockReturnValue(null);
   mocks.journeymen.decide.mockReturnValue(undefined);
+  mocks.journeymen.lineUpLonerMasterIds.mockResolvedValue(new Set());
   configure(mocks);
   const moduleRef = await Test.createTestingModule({
     providers: [

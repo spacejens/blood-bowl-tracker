@@ -219,9 +219,7 @@ increase, once; BB2025 rosters (rule set 25) have a lone chosen skill with a
 gap of 10, their secondary-skill price, twice. `pendingImprovements` is 0 on
 every downloaded entry. The exceptions seen: five entries with a visible skill and
 a zero gap are all Hatred flagged `isExtra` or a Journeyman's Loner, so those
-skills are present without any SPP having been spent (the import leaves a
-journeyman's Loner out of the gained skills it writes, and the server
-stores it as a starting skill instead); three line-ups
+skills are present without any SPP having been spent; three line-ups
 have a single chosen skill and a gap equal to the characteristic price, not
 to any skill price: line-up 2094737 in Sasong 29 (a BB2020 roster, gap 18
 against a secondary-skill price of 12) and two BB2025 line-ups (gap 14
