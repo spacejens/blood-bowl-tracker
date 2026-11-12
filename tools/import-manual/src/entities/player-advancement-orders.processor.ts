@@ -23,7 +23,7 @@ export class PlayerAdvancementOrdersProcessor {
    * match the player's stored paid advancements or, when his SPP figures are
    * stored, the SPP he reported as spent. A refusal is recorded as an ImportError and writes nothing.
    * Skills go as `advancement`, which never replaces a stored chosen or
-   * random source. Returns how many players were written.
+   * random source. An entry listing no advancements goes with no skill entries: the server accepts it only for a player with no paid advancement and flags his stored free extras. Returns how many skill entries were written.
    */
   async process(ctx: ProcessContext): Promise<number> {
     let imported = 0;

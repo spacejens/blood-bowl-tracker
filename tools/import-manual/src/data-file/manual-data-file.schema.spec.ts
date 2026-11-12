@@ -49,6 +49,19 @@ describe('ManualDataFileSchema', () => {
     expect(parsed.playerAdvancementOrders[0].advancements).toHaveLength(3);
   });
 
+  it('accepts an entry with no advancements', () => {
+    const parsed = ManualDataFileSchema.parse({
+      playerAdvancementOrders: [
+        {
+          player: { system: 'tloeg.bbleague.se', id: '3066' },
+          advancements: [],
+        },
+      ],
+    });
+
+    expect(parsed.playerAdvancementOrders[0].advancements).toEqual([]);
+  });
+
   it('rejects an advancement naming both a skill and a characteristic', () => {
     expect(() =>
       ManualDataFileSchema.parse({

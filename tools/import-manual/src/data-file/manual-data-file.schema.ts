@@ -432,7 +432,7 @@ const PlayerAdvancementSchema = z.union([
 
 const PlayerAdvancementOrderEntrySchema = z.object({
   player: ExternalRefSchema,
-  advancements: z.array(PlayerAdvancementSchema).min(1),
+  advancements: z.array(PlayerAdvancementSchema),
 });
 
 export const ManualDataFileSchema = z

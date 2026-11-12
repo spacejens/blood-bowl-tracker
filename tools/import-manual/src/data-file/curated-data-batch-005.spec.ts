@@ -71,7 +71,20 @@ const EXPECTED: { player: string; advancements: Advancement[] }[] = [
 ];
 
 describe('curated batch 005 TP advancement orders', () => {
-  const orders = readBatch(BATCH_005).playerAdvancementOrders;
+  const all = readBatch(BATCH_005).playerAdvancementOrders;
+  const orders = all.filter((o) => o.advancements.length > 0);
+  const flagOnly = all.filter((o) => o.advancements.length === 0);
+
+  it('lists the journeymen whose Loner it flags, and nothing else', () => {
+    expect(flagOnly.map((o) => o.player)).toEqual([
+      { system: TP, id: '2454051' },
+      ...[
+        3066, 3248, 3274, 3277, 3341, 3607, 3659, 3725, 3938, 3951, 4135, 4243,
+        4244, 4642, 5266,
+      ].map((id) => ({ system: 'tloeg.bbleague.se', id: String(id) })),
+    ]);
+    expect(all.slice(0, orders.length)).toEqual(orders);
+  });
 
   it('covers exactly the five players the feed settles, in order', () => {
     expect(orders.map((o) => o.player)).toEqual(

@@ -24,7 +24,8 @@ export type CuratedOrderMatch =
  * Pairs one player's hand-curated advancement order with his stored paid
  * advancements (gained skills that are not free extras, and characteristic
  * increases; never starting or removed rows). The entries must list every
- * paid advancement exactly once, each confirmed, numbered 1 to n. A skill
+ * paid advancement exactly once, each confirmed, numbered 1 to n; a player
+ * with no paid advancement matches an empty list. A skill
  * matches on skill and variant; an increase matches any unused increase of
  * the same characteristic, since those are interchangeable. A `problem`
  * reads after the player's name ("Player 12 has no paid ...").
@@ -69,9 +70,6 @@ export class CuratedAdvancementOrderMatcherService {
   }
 
   private shapeProblem(entries: PlayerSkillEntry[]): string | undefined {
-    if (entries.length === 0) {
-      return 'lists no advancements';
-    }
     for (const entry of entries) {
       if (entry.source === 'starting' || entry.isFreeExtra === true) {
         return `lists ${this.describe(entry)}, which is not a paid advancement`;

@@ -42,7 +42,9 @@ advancements as skills plus increases, and the SPP spent.
   advancement to order. His level is 0 and his spend is 0.
 
 Among TP players, a gained Loner exists for only these two. BBL also records
-a gained Loner, for journeymen who have no other advancement.
+a gained Loner, for journeymen who have no other advancement. Batch 005
+flags the stored Loner of each of them, and of the TP Journeyman, as a free
+extra.
 
 - **Kalle Kvist** (Dalsland Treehuggers, line-up 586220, paid 4+2, spent
   110), **Friska Fläkten** (Gnaget, line-up 1233619, paid 5+1, spent 104),

@@ -1,5 +1,5 @@
 // Batch 005: the advancement order of five TP players, read from the TP
-// notification feed.
+// notification feed, and the free Loner of sixteen journeymen.
 //
 // Each order comes from the feed's "New skill/characteristic" notifications
 // for the player, read oldest first (two on the same day by message id). The
@@ -20,11 +20,19 @@
 // or AV). The manual import's SPP check still applies when the batch is
 // applied, and refuses any order the reported spend does not allow.
 //
+// The last entries list no advancements at all. They name journeymen, each of
+// whom has a gained Loner and no paid advancement. An entry listing nothing is
+// accepted only for such a player, and applying it flags his stored Loner as a
+// free extra, as the importer does for a Loner it stores itself. Fifteen are
+// BBL journeymen, named by their BBL player id; the sixteenth is a TP
+// journeyman, named by his line-up id.
+//
 // curated-data-batch-005.spec.ts pins every entry.
 {
   externalSystems: [
     { name: 'Name', category: 'bookkeeping' },
     { name: 'tourplay.net', category: 'imported_data_source' },
+    { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
   ],
   playerAdvancementOrders: [
     // Kalle Kvist, Dalsland Treehuggers: notifications 2023-09-21 to
@@ -84,6 +92,71 @@
         { skill: { system: 'Name', id: 'Dirty Player' }, attributeValue: '+1' },
         { skill: { system: 'Name', id: 'Sneaky Git' } },
       ],
+    },
+    // Journeymen with a gained Loner and no paid advancement.
+    {
+      player: { system: 'tourplay.net', id: '2454051' },
+      advancements: [],
+    },
+    {
+      player: { system: 'tloeg.bbleague.se', id: '3066' },
+      advancements: [],
+    },
+    {
+      player: { system: 'tloeg.bbleague.se', id: '3248' },
+      advancements: [],
+    },
+    {
+      player: { system: 'tloeg.bbleague.se', id: '3274' },
+      advancements: [],
+    },
+    {
+      player: { system: 'tloeg.bbleague.se', id: '3277' },
+      advancements: [],
+    },
+    {
+      player: { system: 'tloeg.bbleague.se', id: '3341' },
+      advancements: [],
+    },
+    {
+      player: { system: 'tloeg.bbleague.se', id: '3607' },
+      advancements: [],
+    },
+    {
+      player: { system: 'tloeg.bbleague.se', id: '3659' },
+      advancements: [],
+    },
+    {
+      player: { system: 'tloeg.bbleague.se', id: '3725' },
+      advancements: [],
+    },
+    {
+      player: { system: 'tloeg.bbleague.se', id: '3938' },
+      advancements: [],
+    },
+    {
+      player: { system: 'tloeg.bbleague.se', id: '3951' },
+      advancements: [],
+    },
+    {
+      player: { system: 'tloeg.bbleague.se', id: '4135' },
+      advancements: [],
+    },
+    {
+      player: { system: 'tloeg.bbleague.se', id: '4243' },
+      advancements: [],
+    },
+    {
+      player: { system: 'tloeg.bbleague.se', id: '4244' },
+      advancements: [],
+    },
+    {
+      player: { system: 'tloeg.bbleague.se', id: '4642' },
+      advancements: [],
+    },
+    {
+      player: { system: 'tloeg.bbleague.se', id: '5266' },
+      advancements: [],
     },
   ],
 }

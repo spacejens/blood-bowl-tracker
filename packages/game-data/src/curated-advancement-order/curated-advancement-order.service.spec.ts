@@ -185,6 +185,61 @@ describe('CuratedAdvancementOrderService', () => {
     },
   );
 
+  describe('with an entry that lists no advancements', () => {
+    const noOrder: SyncPlayerSkills = {
+      entries: [],
+      characteristicPlayerIds: [1],
+      checkOrderAgainstSpend: true,
+    };
+    const unflaggedLoner = {
+      id: 13,
+      skillId: 10,
+      characteristic: null,
+      attributeValue: null,
+      source: 'advancement',
+      isFreeExtra: false,
+      removed: false,
+    };
+    const flagged = {
+      playerId: 1,
+      skillId: 10,
+      source: 'advancement' as const,
+      attributeValue: null,
+      isFreeExtra: true,
+    };
+
+    it('flags the player free extras when he has no paid advancement and spent nothing', async () => {
+      const { service, reads, playerSkills, deduction } = await makeService(
+        mockDb([{ sppTotal: 0, unspentSpp: 0 }], [unflaggedLoner]),
+      );
+      reads.resolveFreeExtras
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([flagged]);
+      playerSkills.sync.mockResolvedValue({ playerSkillIds: [13] });
+
+      expect(await service.sync(noOrder)).toEqual({ playerSkillIds: [] });
+      expect(deduction.deduce).not.toHaveBeenCalled();
+      expect(playerSkills.sync).toHaveBeenCalledWith(
+        { ...noOrder, entries: [flagged] },
+        { keepUnspentSpp: true },
+      );
+    });
+
+    it('refuses a player who has no paid advancement but spent SPP', async () => {
+      const { service, reads, playerSkills } = await makeService(
+        mockDb([{ sppTotal: 6, unspentSpp: 0 }], [unflaggedLoner]),
+      );
+      reads.resolveFreeExtras
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([flagged]);
+
+      await expect(service.sync(noOrder)).rejects.toThrow(
+        'Player 1 has no paid advancement, but 6 SPP reported as spent',
+      );
+      expect(playerSkills.sync).not.toHaveBeenCalled();
+    });
+  });
+
   it.each([
     ['unspent is negative', { sppTotal: 20, unspentSpp: -1 }],
     ['unspent exceeds the total', { sppTotal: 20, unspentSpp: 21 }],
@@ -350,7 +405,9 @@ describe('CuratedAdvancementOrderService', () => {
         characteristicPlayerIds: [1],
         checkOrderAgainstSpend: true,
       }),
-    ).rejects.toThrow('Player 1 lists no advancements');
+    ).rejects.toThrow(
+      'Player 1 has 2 paid advancements, but the entries list 0',
+    );
   });
 
   it('refuses more paid advancements than can be checked', async () => {

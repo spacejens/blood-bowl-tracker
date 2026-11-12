@@ -31,6 +31,11 @@ and applying the entry flags the row as a free extra. The row keeps its
 stored number, unconfirmed, so the paid advancements are numbered 1 to n
 around it.
 
+An entry may list no advancements. The server accepts that only for a player
+who has no paid advancement and has reported no SPP spent, and applying it
+flags the player's stored Loner, Hatred or trophy-granted skill as a free
+extra without writing any order. It exists to flag a journeyman's Loner.
+
 The order is written confirmed, numbered from 1 in the order listed, so a
 later import never replaces it with a guess. The importer skips an entry
 whose player or skill does not resolve. For the rest, the server checks each
@@ -43,10 +48,11 @@ and the batch is left unrecorded. An entry is refused when:
   or the player has a paid advancement the entry leaves out (so an entry must
   list every stored paid advancement; if the player later gains one and the TP
   data is downloaded again, a scratch apply is refused until a follow-up batch
-  supersedes the entry);
+  supersedes the entry), or an entry that lists none for a player who has one;
 - an advancement listed is a skill the free-extra rules make free (Hatred,
   Loner, or one a trophy award grants), since it is not a paid advancement;
 - the player's stored unspent SPP is negative or above his total SPP;
+- the player has no paid advancement but his SPP figures say he spent SPP;
 - the player's SPP figures are known but he has more than six paid
   advancements, or no rules set of his era prices advancements, so the order
   cannot be checked;

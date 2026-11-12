@@ -165,10 +165,22 @@ describe('CuratedAdvancementOrderMatcherService', () => {
     });
   });
 
-  it('rejects an empty list', () => {
+  it('rejects an empty list for a player with paid advancements', () => {
     expect(matcher.match([], stored)).toEqual({
       ok: false,
-      problem: 'lists no advancements',
+      problem: 'has 3 paid advancements, but the entries list 0',
     });
+  });
+
+  it('accepts an empty list for a player with no paid advancement', () => {
+    expect(
+      matcher.match(
+        [],
+        [
+          row(5, { skillId: 20, isFreeExtra: true }),
+          row(6, { source: 'starting' }),
+        ],
+      ),
+    ).toEqual({ ok: true, rowIdsInOrder: [] });
   });
 });

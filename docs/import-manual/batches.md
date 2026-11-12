@@ -60,7 +60,9 @@ The batches:
   and BB2016 position, and the free mutation of every Gudarnas Förkämpe
   award. It applies after the source importers; see [Batch 004](#batch-004).
 - **005-tp-advancement-orders** — hand-curated advancement orders of five TP
-  players, read from the TP notification feed. It references players the TP
+  players, read from the TP notification feed, and the entries that flag the
+  gained Loner of sixteen journeymen (see
+  [Player advancement orders](player-advancement-orders.md)). It references players the TP
   importer creates, so it applies after the source importers, in a plain
   `apply`; when the player's SPP figures are stored, the server refuses any
   order the reported spend does not allow. A scratch import's first TP pass

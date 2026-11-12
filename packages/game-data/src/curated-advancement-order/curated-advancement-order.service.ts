@@ -204,6 +204,12 @@ export class CuratedAdvancementOrderService {
   ): Promise<string | undefined> {
     const { rowIdsInOrder, freeRowIds, spent } = order;
     const count = rowIdsInOrder.length;
+    if (count === 0) {
+      // No paid advancement, so nothing can have been spent on one.
+      return spent === 0
+        ? undefined
+        : ` has no paid advancement, but ${spent} SPP reported as spent`;
+    }
     if (count > MAX_DEDUCED) {
       return ` has ${count} paid advancements; at most ${MAX_DEDUCED} can be checked`;
     }

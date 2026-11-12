@@ -108,7 +108,8 @@ export const SyncPlayerSkillsSchema = z.object({
   characteristicPlayerIds: z.array(z.number().int()).optional(),
   /**
    * True when the entries state each listed player's complete paid
-   * advancement order by hand. The server then refuses the whole batch
+   * advancement order by hand; a player with no paid advancement lists none
+   * and only has his free extras flagged. The server then refuses the whole batch
    * unless every such player's entries match his stored paid advancements
    * one for one, are confirmed and numbered from 1, and cost exactly the SPP
    * the player reports as spent under some rules set of his era. That cost
