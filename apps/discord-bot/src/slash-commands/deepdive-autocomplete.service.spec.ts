@@ -146,7 +146,7 @@ describe('DeepdiveAutocompleteService', () => {
   });
 
   it('labels player choices through the choice label service', async () => {
-    const rows = [{ id: 9, name: 'Griff', teamName: 'Reikland Reavers' }];
+    const rows = [{ id: 9, name: 'Griff' }];
     const choices = [
       {
         name: 'Griff (Blitzer, Reikland Reavers, Human, BB2020, Roze-El)',

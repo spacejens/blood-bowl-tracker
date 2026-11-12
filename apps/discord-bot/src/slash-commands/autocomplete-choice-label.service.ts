@@ -112,14 +112,22 @@ export class AutocompleteChoiceLabelService {
 
   /**
    * Cuts a label to Discord's limit from the end, marking the cut with an
-   * ellipsis. Counts code points (`Array.from`) so a cut never splits a
-   * surrogate pair.
+   * ellipsis. Discord may count the limit in UTF-16 units (as the discord.js
+   * validators do with `.length`), which is stricter than counting code
+   * points, so the label is measured in UTF-16 units and the cut accumulates
+   * whole code points, never splitting a surrogate pair.
    */
   private fit(label: string): string {
-    const characters = Array.from(label);
-    if (characters.length <= MAX_CHOICE_NAME_LENGTH) {
+    if (label.length <= MAX_CHOICE_NAME_LENGTH) {
       return label;
     }
-    return `${characters.slice(0, MAX_CHOICE_NAME_LENGTH - 1).join('')}${ELLIPSIS}`;
+    let kept = '';
+    for (const character of label) {
+      if (kept.length + character.length > MAX_CHOICE_NAME_LENGTH - 1) {
+        break;
+      }
+      kept += character;
+    }
+    return `${kept}${ELLIPSIS}`;
   }
 }

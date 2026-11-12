@@ -25,7 +25,7 @@ The command takes optional string arguments, each autocompleted by name: `era`,
 `competition-group`, `trophy` and `league`. A suggestion carries a disambiguator
 wherever names repeat, identifying the entity the way the insights toplists do:
 a team names its race and coach, `Name (Race, Coach)`; a player names its
-position, team, race, era and coach; a coach shows the span of their recorded
+position, team, race, era and coach, `Name (Position, Team, Race, Era, Coach)`; a coach shows the span of their recorded
 matches, `Name (2021-09-01 – 2023-06-10)`, or the bare name when they have no
 matches yet; eras and competitions name their league and date span,
 `Name (League, 2021-09-01 – present)`. Position names repeat across races

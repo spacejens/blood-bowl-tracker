@@ -200,5 +200,21 @@ describe('AutocompleteChoiceLabelService', () => {
 
       expect(choice.name).toBe(`${'n'.repeat(99)}…`);
     });
+
+    it('keeps an emoji-heavy label within 100 UTF-16 units without splitting a pair', async () => {
+      const name = '😀'.repeat(60);
+      const rows = [{ id: 3, name }];
+      teamContext.attachSuffixes.mockResolvedValue(
+        rows.map((row) => ({ ...row, contextSuffix: ' (Orc, 😀😀😀)' })),
+      );
+
+      const [choice] = await service.teamChoices(rows);
+
+      expect(choice.name.length).toBeLessThanOrEqual(100);
+      expect(choice.name).toBe(`${'😀'.repeat(49)}…`);
+      expect(choice.name).not.toMatch(
+        /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/,
+      );
+    });
   });
 });
