@@ -13,7 +13,7 @@ playerAdvancementOrders: [
     advancements: [
       { skill: { system: "Name", id: "Block" } },
       { characteristic: "AG" },
-      { skill: { system: "Name", id: "Hatred" }, attributeValue: "Dwarf" },
+      { skill: { system: "Name", id: "Dirty Player" }, attributeValue: "+1" },
     ],
   },
 ]
