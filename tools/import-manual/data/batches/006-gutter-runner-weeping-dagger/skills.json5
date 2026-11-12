@@ -1,0 +1,14 @@
+// Batch 006: Weeping Dagger as a trait under CRP and CRP+.
+//
+// The skill itself and its BB2016 category come from 001-initial-seed/skills.json5.
+// The Gutter Runner's starting skills in position-skills.json5 name it under
+// CRP and CRP+, and a starting skill must be categorised for its rules set.
+{
+  externalSystems: [
+    { name: 'Name', category: 'bookkeeping' },
+  ],
+  skillRulesSets: [
+    { skill: { system: 'Name', id: 'Weeping Dagger' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Weeping Dagger' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+  ],
+}

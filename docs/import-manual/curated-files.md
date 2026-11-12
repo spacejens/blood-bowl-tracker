@@ -342,14 +342,17 @@ checks that each skill is one batch 001 declares.
 
 ## Batch 006
 
-`data/batches/006-bb2016-gutter-runner-skills/position-skills.json5` adds
-Weeping Dagger to the BB2016 starting skills of Skaven: Gutter Runner. Batch
-002's `position-skills.json5` curates BB2016 starting skills for fourteen
-races from the Teams of Legend PDF. For the other ten (Human, Orc, Dwarf,
-Skaven, Dark Elf, Elven Union, High Elf, Wood Elf, Nurgle and Slann), the
-developer checked every position: the nine other than Slann against the
-physical BB2016 rulebook, Slann (which that rulebook does not cover) against
-Narrow-Tier Blood Bowl 2015 (NTBB2015.pdf). All of them matched except the
-Gutter Runner, which this batch corrects.
-`curated-data-batch-006.spec.ts` pins the entry and checks that its pair and
-skills are curated in batches 002 and 001.
+`data/batches/006-gutter-runner-weeping-dagger/position-skills.json5` adds
+Weeping Dagger to the CRP, CRP+ and BB2016 starting skills of Skaven: Gutter
+Runner, and its `skills.json5` categorises Weeping Dagger as a trait for CRP
+and CRP+, since a starting skill must be categorised for its rules set (batch
+001 already does so for BB2016). Batch 002's `position-skills.json5` curates
+BB2016 starting skills for fourteen races from the Teams of Legend PDF. For
+the other ten (Human, Orc, Dwarf, Skaven, Dark Elf, Elven Union, High Elf,
+Wood Elf, Nurgle and Slann), the developer checked every position: the nine
+other than Slann against the physical BB2016 rulebook, Slann (which that
+rulebook does not cover) against Narrow-Tier Blood Bowl 2015 (NTBB2015.pdf).
+All of them matched except the Gutter Runner, whose Weeping Dagger this batch
+adds, and the developer added it to CRP and CRP+ as well.
+`curated-data-batch-006.spec.ts` pins the entries and checks that their pairs
+and skills are curated in batches 002 and 001 or by this batch.

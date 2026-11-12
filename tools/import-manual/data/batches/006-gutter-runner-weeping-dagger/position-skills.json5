@@ -1,0 +1,26 @@
+// Batch 006: the Weeping Dagger starting skill of Skaven: Gutter Runner.
+//
+// 002-initial-cleanup/position-skills.json5 gives the Gutter Runner Dodge
+// alone under CRP, CRP+ and BB2016. The developer's rulebooks list Dodge and
+// the Weeping Dagger trait for all three. ENTRY SHAPE: as in 002's
+// position-skills.json5; each entry carries the position's whole skill list.
+// Starting skills are stored additively, so applying it adds Weeping Dagger
+// and leaves Dodge in place. skills.json5 in this batch categorises Weeping
+// Dagger for CRP and CRP+; 001-initial-seed/skills.json5 already does for
+// BB2016.
+//
+// Each pair's characteristics are curated in
+// 002-initial-cleanup/position-characteristics.json5, so this batch applies
+// after the source importers, in a plain `apply`.
+//
+// curated-data-batch-006.spec.ts pins the entries.
+{
+  externalSystems: [
+    { name: 'Name', category: 'bookkeeping' },
+  ],
+  positionRulesSetSkills: [
+    { position: { system: 'Name', id: 'Skaven: Gutter Runner' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Weeping Dagger' }] },
+    { position: { system: 'Name', id: 'Skaven: Gutter Runner' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Weeping Dagger' }] },
+    { position: { system: 'Name', id: 'Skaven: Gutter Runner' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Weeping Dagger' }] },
+  ],
+}
