@@ -3,9 +3,12 @@ import {
   and,
   DB,
   eq,
-  inArray,
   playerAdvancements,
+  players,
+  positionRulesSets,
+  positionRulesSetSkills,
   skills,
+  sql,
 } from '@blood-bowl-tracker/db';
 import type { PlayerSkillSource } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
@@ -29,14 +32,15 @@ interface LonerRow {
  * Keeps a journeyman's Loner a starting skill while `players.is_journeyman`
  * is set, and retires that starting row when he is recruited. The importers
  * leave Loner out of a detected journeyman's gained skills, so this service
- * is the only writer of that row. A journeyman's Loner row stored as gained
- * (before he was marked) is turned into the starting one, and its number
- * leaves the numbering. Rows are never deleted: a recruit's starting Loner
- * is flagged `removed`, and revived if he is marked again. A gained Loner of
- * a player who is not a journeyman is never touched here: it stays a free
- * extra by the name rule. Does nothing while no skill is named Loner: an
- * import creates it with the positions that start with it, before any
- * player.
+ * is the only writer of that row. When he has no starting Loner, a Loner
+ * row stored as gained (before he was marked) is turned into the starting
+ * one, and its number leaves the numbering. Rows are never deleted: a
+ * recruit's starting Loner is flagged `removed`, and revived if he is marked
+ * again. A gained Loner beside a starting one, or of a player who is not a
+ * journeyman, is never touched here: it stays a free extra by the name rule.
+ * A starting Loner the player's position starts with is never retired. Does
+ * nothing while no skill is named Loner: an import creates it with the
+ * positions that start with it, before any player.
  */
 @Injectable()
 export class JourneymanLonerService {
@@ -45,7 +49,12 @@ export class JourneymanLonerService {
     private readonly slots: PaidAdvancementSlotsService,
   ) {}
 
-  /** Make sure the journeyman has his starting Loner, and no gained one. */
+  /**
+   * Make sure the journeyman has his starting Loner: keep an active one,
+   * otherwise convert his lowest-id gained Loner, otherwise revive a removed
+   * starting one, otherwise insert one. The same rule the data migration
+   * follows.
+   */
   async ensureStartingLoner(playerId: number): Promise<void> {
     const lonerId = await this.lonerSkillId();
     if (lonerId === undefined) {
@@ -53,10 +62,13 @@ export class JourneymanLonerService {
     }
     await this.db.transaction(async (tx) => {
       const rows = await this.lonerRows(tx, playerId, lonerId);
-      const gained = rows.filter(
-        (row) => !row.removed && row.source !== 'starting',
-      );
-      if (gained.length > 0) {
+      if (rows.some((row) => !row.removed && row.source === 'starting')) {
+        return;
+      }
+      const [gained] = rows
+        .filter((row) => !row.removed && row.source !== 'starting')
+        .sort((a, b) => a.id - b.id);
+      if (gained !== undefined) {
         await tx
           .update(playerAdvancements)
           .set({
@@ -65,16 +77,8 @@ export class JourneymanLonerService {
             orderConfirmed: false,
             isFreeExtra: false,
           })
-          .where(
-            inArray(
-              playerAdvancements.id,
-              gained.map((row) => row.id),
-            ),
-          );
-        await this.closeSlots(tx, { playerId, rows: gained });
-        return;
-      }
-      if (rows.some((row) => !row.removed && row.source === 'starting')) {
+          .where(eq(playerAdvancements.id, gained.id));
+        await this.closeSlots(tx, { playerId, row: gained });
         return;
       }
       const retired = rows.find(
@@ -94,34 +98,29 @@ export class JourneymanLonerService {
   }
 
   /**
-   * Retire a recruited journeyman's starting Loner. A starting row holds no
-   * number, so the recruit's numbering needs no change. A gained Loner, free
-   * extra or not, is left alone: a source still listing one on the recruit
-   * is recording a Loner he has for another reason.
+   * Retire a recruited journeyman's starting Loner: flag the player's active
+   * starting Loner `removed`, unless his position starts with Loner (under
+   * any rules set). One statement, so it is atomic and idempotent, and cheap
+   * enough to run on every write of a player who is not a journeyman: a
+   * retire a failed write left undone happens on the next one. A starting
+   * row holds no number, so the recruit's numbering needs no change. A
+   * gained Loner, free extra or not, is left alone: a source still listing
+   * one on the recruit is recording a Loner he has for another reason.
    */
   async retireStartingLoner(playerId: number): Promise<void> {
-    const lonerId = await this.lonerSkillId();
-    if (lonerId === undefined) {
-      return;
-    }
-    await this.db.transaction(async (tx) => {
-      const rows = await this.lonerRows(tx, playerId, lonerId);
-      const leaving = rows.filter(
-        (row) => !row.removed && row.source === 'starting',
+    const positionLacksIt = sql`not exists (select 1 from ${positionRulesSetSkills} inner join ${positionRulesSets} on ${positionRulesSets.id} = ${positionRulesSetSkills.positionRulesSetId} inner join ${players} on ${players.positionId} = ${positionRulesSets.positionId} where ${players.id} = ${playerAdvancements.playerId} and ${positionRulesSetSkills.skillId} = ${playerAdvancements.skillId})`;
+    await this.db
+      .update(playerAdvancements)
+      .set({ removed: true })
+      .where(
+        and(
+          eq(playerAdvancements.playerId, playerId),
+          eq(playerAdvancements.source, 'starting'),
+          eq(playerAdvancements.removed, false),
+          sql`${playerAdvancements.skillId} in (select ${skills.id} from ${skills} where ${eq(skills.name, LONER_SKILL_NAME)})`,
+          positionLacksIt,
+        ),
       );
-      if (leaving.length === 0) {
-        return;
-      }
-      await tx
-        .update(playerAdvancements)
-        .set({ removed: true })
-        .where(
-          inArray(
-            playerAdvancements.id,
-            leaving.map((row) => row.id),
-          ),
-        );
-    });
   }
 
   private async lonerSkillId(): Promise<number | undefined> {
@@ -158,29 +157,23 @@ export class JourneymanLonerService {
   }
 
   /**
-   * Close the numbers the converted gained rows held: a confirmed paid row's
+   * Close the number the converted gained row held: a confirmed paid row's
    * in the confirmed paid numbering, an unconfirmed row's (a free extra's
    * included) in the proxy numbering.
    */
   private async closeSlots(
     tx: DbOrTx,
-    { playerId, rows }: { playerId: number; rows: LonerRow[] },
+    { playerId, row }: { playerId: number; row: LonerRow },
   ): Promise<void> {
-    const numbered = rows.filter(
-      (row): row is LonerRow & { advancementOrder: number } =>
-        row.source !== 'starting' && row.advancementOrder !== null,
-    );
+    const order = row.advancementOrder;
+    const numbered = order === null ? [] : [order];
     await this.slots.close(tx, {
       playerId,
-      slots: numbered
-        .filter((row) => row.orderConfirmed && !row.isFreeExtra)
-        .map((row) => row.advancementOrder),
+      slots: row.orderConfirmed && !row.isFreeExtra ? numbered : [],
     });
     await this.slots.closeUnconfirmed(tx, {
       playerId,
-      slots: numbered
-        .filter((row) => !row.orderConfirmed)
-        .map((row) => row.advancementOrder),
+      slots: row.orderConfirmed ? [] : numbered,
     });
   }
 }

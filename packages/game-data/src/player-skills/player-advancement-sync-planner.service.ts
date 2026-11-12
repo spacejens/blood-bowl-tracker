@@ -99,7 +99,8 @@ export class PlayerAdvancementSyncPlannerService {
 
   /**
    * Match each skill entry to its stored row by natural key: an unmatched one
-   * becomes an insert, a matched one an update of whatever changed.
+   * becomes an insert, a matched one an update of whatever changed. A
+   * matched removed row is revived.
    */
   planSkills(
     resolved: ResolvedPlayerSkill[],
@@ -325,6 +326,12 @@ export class PlayerAdvancementSyncPlannerService {
     // Set-only: a row once free stays free, whatever a later entry says.
     if (row.isFreeExtra && !existing.isFreeExtra) {
       values.isFreeExtra = true;
+    }
+    // A skill row is only removed as a recruited journeyman's starting Loner;
+    // a source listing that skill again (the recruit's own Loner) revives the
+    // row with the entry's values, so its natural key is never left blocked.
+    if (existing.removed) {
+      values.removed = false;
     }
     return values;
   }

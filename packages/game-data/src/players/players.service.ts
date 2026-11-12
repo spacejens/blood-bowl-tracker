@@ -81,8 +81,8 @@ export class PlayersService {
    *
    * The journeyman marker is written when given. While it is set after the
    * write, the player's starting Loner is kept (`JourneymanLonerService`);
-   * a payload clearing a stored marker (a recruitment) retires that starting
-   * Loner. `unspentSpp` is already cleared on every write, so the Loner
+   * while it is not, a starting Loner his position does not start with (a
+   * recruited journeyman's) is retired. `unspentSpp` is already cleared on every write, so the Loner
    * change needs no further clear.
    */
   async upsert(
@@ -127,12 +127,6 @@ export class PlayersService {
       armourReductionCount: data.armourReductionCount,
     };
 
-    // Only a payload clearing the marker can recruit a journeyman, so only
-    // then is the stored marker read first.
-    const wasJourneyman =
-      data.isJourneyman === false &&
-      (await this.storedJourneymanMarker(data.externalIds));
-
     const { row: player, created } = await upsertByExternalIds<
       typeof players,
       typeof playerExternalIds
@@ -154,35 +148,15 @@ export class PlayersService {
       }),
     });
 
+    // Both follow the written marker alone and are idempotent, so a write
+    // that failed before reaching them is put right by the next one.
     if (player.isJourneyman) {
       await this.journeymen.ensureStartingLoner(player.id);
-    } else if (wasJourneyman) {
+    } else {
       await this.journeymen.retireStartingLoner(player.id);
     }
 
     return { player, created };
-  }
-
-  /** Whether a player these external ids name is stored as a journeyman. */
-  private async storedJourneymanMarker(
-    externalIds: readonly ExternalId[],
-  ): Promise<boolean> {
-    const rows = await this.db
-      .select({ isJourneyman: players.isJourneyman })
-      .from(players)
-      .innerJoin(playerExternalIds, eq(playerExternalIds.playerId, players.id))
-      .where(
-        or(
-          ...externalIds.map((id) =>
-            and(
-              eq(playerExternalIds.externalSystemId, id.externalSystemId),
-              eq(playerExternalIds.externalId, id.externalId),
-            ),
-          ),
-        ),
-      )
-      .limit(1);
-    return rows[0]?.isJourneyman === true;
   }
 
   /**

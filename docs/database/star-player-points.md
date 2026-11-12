@@ -198,13 +198,17 @@ deduction. The ids never confirm an order alone, and increases have none
 (see [Order of advancements](../import-tp-live/index.md#order-of-advancements)).
 
 While `players.is_journeyman` is set, `JourneymanLonerService` keeps one
-starting Loner row for the player: it inserts one, revives a removed one, or
-turns a Loner stored as gained (before the player was marked) into the
-starting one, closing the number that row held in the confirmed paid
-numbering or, if unconfirmed, in the proxy numbering. When a write clears a
-stored marker (a recruitment), it flags only that starting Loner `removed`; a
-starting row holds no number, so the recruit's numbering is unchanged, and a
-gained Loner stays a free extra by the name rule.
+starting Loner row for the player. An active one is left as it is, beside any
+gained Loner. Otherwise it turns his lowest-id Loner stored as gained (before
+he was marked) into the starting one, closing the number that row held in the
+confirmed paid numbering or, if unconfirmed, in the proxy numbering. Failing
+that, it revives a removed starting Loner, or inserts one. Every write of a
+player who is not a journeyman flags his active starting Loner `removed`
+(a recruitment), unless his position starts with Loner under some rules set.
+A starting row holds no number, so the recruit's numbering is unchanged, and
+a gained Loner stays a free extra by the name rule. A skills sync whose entry
+matches a removed row revives it with the entry's values, so a recruit the
+source still lists with Loner gets that Loner back as a gained free extra.
 
 The cost model pins only confirmed entries to their advancement number, and
 every other entry is interchangeable with the rest. A sync never lets an

@@ -113,6 +113,33 @@ describe("A journeyman's starting Loner follows his marker (real Postgres)", () 
     ]);
   });
 
+  it('leaves a gained Loner beside an active starting one, and retires only the starting one', async () => {
+    await insertRows([
+      { skill: 'Loner', source: 'starting' },
+      {
+        skill: 'Loner',
+        source: 'chosen',
+        attributeValue: '4+',
+        order: 1,
+        free: true,
+      },
+    ]);
+
+    await service.ensureStartingLoner(seed.playerId);
+
+    expect(await states()).toEqual([
+      ['Loner', 'starting', null, false, false],
+      ['Loner', 'chosen', 1, true, false],
+    ]);
+
+    await service.retireStartingLoner(seed.playerId);
+
+    expect(await states()).toEqual([
+      ['Loner', 'starting', null, false, true],
+      ['Loner', 'chosen', 1, true, false],
+    ]);
+  });
+
   it('flags the starting Loner removed on recruitment and revives the same row', async () => {
     await insertRows([{ skill: 'Loner', source: 'starting' }]);
     const [{ id }] = await db
