@@ -38,7 +38,8 @@ leagues. A position with no race recorded is not suggested, since there would
 be no race to name, and star positions are excluded from `position`
 suggestions — they are looked up via `star-player` instead. Discord caps a
 suggestion's label at 100 characters, so an over-long label is cut short with
-`…`, losing the end of its context first and never the name. Labels are built
+`…`, losing the end of its context first and the name itself only when the
+name alone is too long. Labels are built
 in `apps/discord-bot/src/slash-commands/deepdive-autocomplete.service.ts` and,
 for the context-carrying ones,
 `apps/discord-bot/src/slash-commands/autocomplete-choice-label.service.ts`.
