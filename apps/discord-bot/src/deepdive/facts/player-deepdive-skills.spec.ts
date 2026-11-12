@@ -107,6 +107,29 @@ describe('PlayerDeepdiveService skill lines', () => {
     );
   });
 
+  it('badges a journeyman on the Position line', async () => {
+    const { service } = await makeService({
+      players: makePlayers({ player: { ...griff, isJourneyman: true } }),
+      positionRulesSets: makePositionRulesSets(context()),
+    });
+
+    const description = descriptionOf(await service.resolve(1));
+
+    expect(description).toContain('Position: Blitzer (◇ Journeyman)');
+  });
+
+  it('shows no badge for a player who is not a journeyman', async () => {
+    const { service } = await makeService({
+      players: makePlayers({ player: { ...griff, isJourneyman: false } }),
+      positionRulesSets: makePositionRulesSets(context()),
+    });
+
+    const description = descriptionOf(await service.resolve(1));
+
+    expect(description).toContain('Position: Blitzer');
+    expect(description).not.toContain('Journeyman');
+  });
+
   it('renders the skill lines after the lasting-injuries line', async () => {
     const { service } = await makeService({
       players: makePlayers({ player: { ...griff, ...INJURED } }),

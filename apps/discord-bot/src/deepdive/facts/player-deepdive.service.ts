@@ -128,6 +128,9 @@ const REDUCTION_FIELDS = [
  * independent final net on the assembled string, so Discord's limit holds
  * even if that budgeting falls out of sync.
  */
+// A plain symbol, not an emoji, like the deepdive's other markers.
+const JOURNEYMAN_BADGE = '◇ Journeyman';
+
 @Injectable()
 export class PlayerDeepdiveService {
   private readonly logger = new Logger(PlayerDeepdiveService.name);
@@ -378,7 +381,7 @@ export class PlayerDeepdiveService {
       `Team: ${player.teamName}`,
       `Era: ${this.dateRangeFormatter.formatNamed(player.eraName, player.eraStartDate, player.eraEndDate)}`,
       `Race: ${player.raceName}`,
-      `Position: ${player.positionName}`,
+      `Position: ${player.positionName}${player.isJourneyman ? ` (${JOURNEYMAN_BADGE})` : ''}`,
       this.buildStatusLine(player, killer),
       ...(conditionLines.length === 0 ? [] : ['', ...conditionLines]),
     ];
