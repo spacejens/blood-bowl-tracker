@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { CompetitionTypeService } from './competition-type.service';
 import { ImportResultService } from './import-result.service';
+import { JourneymanRuleService } from './journeyman-rule.service';
 import { NameExternalIdService } from './name-external-id.service';
 import { UpsertRecorderService } from './upsert-recorder.service';
 
@@ -14,12 +15,14 @@ import { UpsertRecorderService } from './upsert-recorder.service';
   providers: [
     CompetitionTypeService,
     ImportResultService,
+    JourneymanRuleService,
     NameExternalIdService,
     UpsertRecorderService,
   ],
   exports: [
     CompetitionTypeService,
     ImportResultService,
+    JourneymanRuleService,
     NameExternalIdService,
     UpsertRecorderService,
   ],

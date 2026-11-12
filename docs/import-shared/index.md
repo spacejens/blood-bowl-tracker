@@ -15,6 +15,9 @@ depend on it, so a change here reaches bulk and live imports together.
 - **`CompetitionTypeService`** — the at-most-three-days cup-versus-season span
   rule. `tools/import-bbl` classifies competitions through it, by way of
   `packages/import`'s re-export.
+- **`JourneymanRuleService`** — the journeyman rule: a player named
+  "Journeyman" in a basic position. Line-ups only set the marker; a roster
+  states it from whether it lists Loner. Used by BBL, TP bulk and TP live.
 
 ## Why the Name ids must be shared
 
