@@ -246,7 +246,10 @@ describe('CuratedAdvancementOrderService', () => {
     it('treats it as free when the rules make it free: matched, priced and flagged by the sync', async () => {
       const { service, reads, playerSkills, unspentSpp, deduction } =
         await makeService(mockDb([{ sppTotal: 20, unspentSpp: 6 }], stored));
-      const offered = (skillId: number, source: string) => ({
+      const offered = (
+        skillId: number,
+        source: 'chosen' | 'random' | 'advancement',
+      ) => ({
         playerId: 1,
         skillId,
         source,
