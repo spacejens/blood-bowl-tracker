@@ -349,7 +349,7 @@ races from the Teams of Legend PDF. For the other ten (Human, Orc, Dwarf,
 Skaven, Dark Elf, Elven Union, High Elf, Wood Elf, Nurgle and Slann), the
 developer checked every position: the nine other than Slann against the
 physical BB2016 rulebook, Slann (which that rulebook does not cover) against
-the public rules reference PDF. All of them matched except the Gutter Runner,
-which this batch corrects.
+Narrow-Tier Blood Bowl 2015 (NTBB2015.pdf). All of them matched except the
+Gutter Runner, which this batch corrects.
 `curated-data-batch-006.spec.ts` pins the entry and checks that its pair and
 skills are curated in batches 002 and 001.

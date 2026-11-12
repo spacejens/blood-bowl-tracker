@@ -400,14 +400,14 @@
     // ================================================================
     // BB2016 -- BB-Teams-of-Legend-Revised-1.pdf covers 14 of the 24 BB2016
     // groups curated in position-characteristics.json5 (Amazon p.1 ...
-    // Vampire p.9). The other 10 are legacy CRP-era races the same physical
-    // rulebook covers but this PDF does not (Human, Orc, Dwarf, Skaven, Dark
-    // Elf, Elven Union, High Elf, Wood Elf, Nurgle, Slann). The developer
-    // checked every one of those ten races' entries below, position by
-    // position: the nine other than Slann against the physical BB2016
-    // rulebook, Slann (which that rulebook does not cover) against the
-    // public rules reference PDF. All match their source except Skaven:
-    // Gutter Runner, whose Weeping Dagger is added by batch
+    // Vampire p.9). The other 10 are not in that PDF. Nine of them are
+    // legacy CRP-era races (Human, Orc, Dwarf, Skaven, Dark Elf, Elven Union,
+    // High Elf, Wood Elf, Nurgle) that the physical BB2016 rulebook covers.
+    // The tenth, Slann, is not in that rulebook; it comes from
+    // Narrow-Tier Blood Bowl 2015 (NTBB2015.pdf). The developer checked
+    // every one of those ten races' entries below, position by position,
+    // against its source. All match their source except Skaven: Gutter
+    // Runner, whose Weeping Dagger is added by batch
     // 006-bb2016-gutter-runner-skills.
     // ================================================================
 
@@ -500,7 +500,7 @@
     // Teams of Legend is 9 pages total and does not cover the BB2016
     // boxed-set teams or BB2016 CRP-legacy races -- the ten races below were
     // checked by the developer: nine against the physical BB2016 rulebook,
-    // Slann against the public rules reference PDF.
+    // Slann against Narrow-Tier Blood Bowl 2015 (NTBB2015.pdf).
 
     // --- BB2016: Human (physical BB2016 rulebook) ---
     // Human Lineman: no starting skills.
@@ -564,7 +564,7 @@
     { position: { system: 'Name', id: 'Nurgle: Bloaters' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Disturbing Presence' }, { system: 'Name', id: 'Foul Appearance' }, { system: 'Name', id: "Nurgle's Rot" }, { system: 'Name', id: 'Regeneration' }] },
     { position: { system: 'Name', id: 'Nurgle: Rotspawn' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Disturbing Presence' }, { system: 'Name', id: 'Foul Appearance' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: "Nurgle's Rot" }, { system: 'Name', id: 'Really Stupid' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Tentacles' }] },
 
-    // --- BB2016: Slann (public rules reference PDF) ---
+    // --- BB2016: Slann (NTBB2015.pdf) ---
     // Slann's BB2016 characteristics and starting skills both match its CRP+
     // entries (position-characteristics.json5 and the CRP+ section above).
     { position: { system: 'Name', id: 'Slann: Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Leap' }, { system: 'Name', id: 'Very Long Legs' }] },
