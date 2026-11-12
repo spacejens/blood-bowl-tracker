@@ -30,6 +30,7 @@ const upsertResult = {
   agilityReductionCount: 0,
   passingReductionCount: 0,
   armourReductionCount: 0,
+  isJourneyman: false,
   unspentSpp: null,
   createdAt: new Date('2026-01-01'),
   created: true,

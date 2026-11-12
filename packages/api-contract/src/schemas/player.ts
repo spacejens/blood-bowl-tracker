@@ -54,6 +54,9 @@ export const PlayerSchema = z.object({
   // nullable because null asserts that the player's rules set has no Passing
   // characteristic at all.
   ...CharacteristicLineSchema.shape,
+  // Whether the player is a journeyman, who has a starting Loner while he
+  // stays one. Decided by the importers through the shared journeyman rule.
+  isJourneyman: z.boolean(),
   // The player's currently outstanding lasting injuries. Plain required
   // fields rather than the characteristics precedent's superRefine: there is
   // no NULL/absent ambiguity to model here (false and 0 are permanently
@@ -114,6 +117,10 @@ export const UpsertPlayerSchema = z
     agilityReductionCount: z.number().int().nonnegative().optional(),
     passingReductionCount: z.number().int().nonnegative().optional(),
     armourReductionCount: z.number().int().nonnegative().optional(),
+    // Same contract as `status`: an omitted value leaves the stored marker
+    // alone. A line-up only ever sends true; a roster states it either way.
+    // The server keeps the player's starting Loner in step with it.
+    isJourneyman: z.boolean().optional(),
     externalIds: z.array(ExternalIdSchema).min(1),
   })
   .superRefine((data, ctx) => {

@@ -96,6 +96,9 @@ export class PlayersService {
       // Undefined is stripped by upsertByExternalIds, so an omitted status
       // leaves the stored one alone; an explicit null clears it to unknown.
       status: data.status,
+      // Undefined is stripped by upsertByExternalIds, so an omitted marker
+      // leaves the stored one alone.
+      isJourneyman: data.isJourneyman,
       // Undefined keys are stripped by upsertByExternalIds, so a payload
       // that says nothing about characteristics leaves the stored line
       // alone; an explicit null passing really writes null.

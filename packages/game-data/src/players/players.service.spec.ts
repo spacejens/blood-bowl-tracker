@@ -253,6 +253,37 @@ describe('PlayersService', () => {
       ).toBeUndefined();
     });
 
+    it('writes the journeyman marker when the payload states it', async () => {
+      const { chains } = await build(
+        [],
+        [{ ...fakePlayer, isJourneyman: true }],
+      );
+
+      await service.upsert({ ...base, isJourneyman: true, externalIds });
+
+      expect(firstCallArg(chains[1].values)).toMatchObject({
+        isJourneyman: true,
+      });
+    });
+
+    it('writes an explicit false journeyman marker', async () => {
+      const { chains } = await build([], [fakePlayer]);
+
+      await service.upsert({ ...base, isJourneyman: false, externalIds });
+
+      expect(firstCallArg(chains[1].values)).toMatchObject({
+        isJourneyman: false,
+      });
+    });
+
+    it('leaves the marker alone when the payload omits it', async () => {
+      const { chains } = await build([], [fakePlayer]);
+
+      await service.upsert({ ...base, externalIds });
+
+      expect(firstCallArg(chains[1].values)).not.toHaveProperty('isJourneyman');
+    });
+
     it('writes a null status through to the updated columns', async () => {
       const { chains } = await build(
         [{ ownerId: 1, externalSystemId: 1, externalId: '12345' }],
