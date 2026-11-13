@@ -1,8 +1,12 @@
 import type { Db, DbOrTx } from '@blood-bowl-tracker/db';
 import {
   and,
+  asc,
   DB,
   eq,
+  getTableName,
+  inArray,
+  isUniqueViolationOn,
   playerAdvancements,
   players,
   positionRulesSets,
@@ -54,15 +58,31 @@ export class JourneymanLonerService {
    * Make sure the journeyman has his starting Loner: keep an active one,
    * otherwise convert his lowest-id gained Loner, otherwise revive a removed
    * starting one, otherwise insert one. The same rule the data migration
-   * follows.
+   * follows. A concurrent write of the same journeyman that inserts his
+   * starting Loner first leaves this one's insert a unique violation; the
+   * row it wanted then exists, so that is success. The table is history
+   * tracked, so `ON CONFLICT` cannot be used instead (see docs/database.md).
    */
   async ensureStartingLoner(playerId: number): Promise<void> {
     const lonerId = await this.lonerSkillId();
     if (lonerId === undefined) {
       return;
     }
+    try {
+      await this.ensureInTransaction(playerId, lonerId);
+    } catch (error) {
+      if (!isUniqueViolationOn(error, getTableName(playerAdvancements))) {
+        throw error;
+      }
+    }
+  }
+
+  private async ensureInTransaction(
+    playerId: number,
+    lonerId: number,
+  ): Promise<void> {
     await this.db.transaction(async (tx) => {
-      const rows = await this.lonerRows(tx, playerId, lonerId);
+      const rows = await this.lonerRows(tx, playerId);
       if (rows.some((row) => !row.removed && row.source === 'starting')) {
         return;
       }
@@ -101,9 +121,10 @@ export class JourneymanLonerService {
   /**
    * Retire a recruited journeyman's starting Loner: flag the player's active
    * starting Loner `removed`, unless his position starts with Loner (under
-   * any rules set) or is a star-player position. One statement, so it is atomic and idempotent, and cheap
-   * enough to run on every write of a player who is not a journeyman: a
-   * retire a failed write left undone happens on the next one. A starting
+   * any rules set) or is a star-player position. One statement, so it is
+   * atomic and idempotent, and cheap enough to run on every write of a
+   * player who is not a journeyman: a retire a failed write left undone
+   * happens on the next one. A starting
    * row holds no number, so the recruit's numbering needs no change. A
    * gained Loner, free extra or not, is left alone: a source still listing
    * one on the recruit is recording a Loner he has for another reason.
@@ -121,30 +142,34 @@ export class JourneymanLonerService {
           eq(playerAdvancements.playerId, playerId),
           eq(playerAdvancements.source, 'starting'),
           eq(playerAdvancements.removed, false),
-          eq(
-            playerAdvancements.skillId,
-            sql`(select ${skills.id} from ${skills} where ${eq(skills.name, LONER_SKILL_NAME)})`,
-          ),
+          inArray(playerAdvancements.skillId, this.lonerSkillIds(this.db)),
           positionLacksIt,
           notStarPosition,
         ),
       );
   }
 
+  /** The lowest-id skill named Loner, the one a new starting row takes. */
   private async lonerSkillId(): Promise<number | undefined> {
     const [skill] = await this.db
       .select({ id: skills.id })
       .from(skills)
       .where(eq(skills.name, LONER_SKILL_NAME))
+      .orderBy(asc(skills.id))
       .limit(1);
     return skill?.id;
   }
 
-  private lonerRows(
-    tx: DbOrTx,
-    playerId: number,
-    lonerId: number,
-  ): Promise<LonerRow[]> {
+  /** Every skill named Loner, as a subquery: each counts as the Loner. */
+  private lonerSkillIds(db: DbOrTx) {
+    return db
+      .select({ id: skills.id })
+      .from(skills)
+      .where(eq(skills.name, LONER_SKILL_NAME));
+  }
+
+  /** The player's rows of every skill named Loner, locked for the update. */
+  private lonerRows(tx: DbOrTx, playerId: number): Promise<LonerRow[]> {
     return tx
       .select({
         id: playerAdvancements.id,
@@ -158,7 +183,7 @@ export class JourneymanLonerService {
       .where(
         and(
           eq(playerAdvancements.playerId, playerId),
-          eq(playerAdvancements.skillId, lonerId),
+          inArray(playerAdvancements.skillId, this.lonerSkillIds(tx)),
         ),
       )
       .for('update');

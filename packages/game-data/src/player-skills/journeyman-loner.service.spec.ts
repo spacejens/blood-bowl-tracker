@@ -1,6 +1,7 @@
-import { DB, playerAdvancements } from '@blood-bowl-tracker/db';
+import { DB, playerAdvancements, skills } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
 import {
+  DrizzleQueryError,
   extractAllFilterValues,
   extractJoinColumns,
   firstCallArg,
@@ -14,6 +15,26 @@ import { mock } from 'vitest-mock-extended';
 
 import { JourneymanLonerService } from './journeyman-loner.service';
 import { PaidAdvancementSlotsService } from './paid-advancement-slots.service';
+
+/**
+ * A unique violation on player_advancements as drizzle throws it: a
+ * `DrizzleQueryError` wrapping the driver error that carries the fields.
+ */
+function uniqueViolation(): Error {
+  const pgError = Object.assign(
+    new Error('duplicate key value violates unique constraint'),
+    {
+      code: '23505',
+      table_name: 'player_advancements',
+      constraint_name: 'player_advancements_skill_without_attribute_unique',
+    },
+  );
+  return new DrizzleQueryError(
+    'insert into "player_advancements" ...',
+    [],
+    pgError,
+  );
+}
 
 const loner = (overrides: Record<string, unknown>) => ({
   id: 10,
@@ -64,12 +85,53 @@ describe('JourneymanLonerService', () => {
       await service.ensureStartingLoner(1);
 
       expect(db.db.insert).toHaveBeenCalledWith(playerAdvancements);
-      expect(db.chains[2].values).toHaveBeenCalledWith({
+      expect(db.chains[3].values).toHaveBeenCalledWith({
         playerId: 1,
         skillId: 7,
         source: 'starting',
       });
       expect(db.db.update).not.toHaveBeenCalled();
+    });
+
+    it('inserts with the lowest-id skill named Loner', async () => {
+      const db = mockDb([{ id: 7 }], []);
+      const service = await makeService(db);
+
+      await service.ensureStartingLoner(1);
+
+      expect(db.chains[0].orderBy).toHaveBeenCalledTimes(1);
+      expect(db.chains[3].values).toHaveBeenCalledWith({
+        playerId: 1,
+        skillId: 7,
+        source: 'starting',
+      });
+    });
+
+    it('treats a concurrent insert of the same starting Loner as done', async () => {
+      const db = mockDb([{ id: 7 }], [], [], uniqueViolation());
+      const service = await makeService(db);
+
+      await expect(service.ensureStartingLoner(1)).resolves.toBeUndefined();
+    });
+
+    it('propagates any other failure', async () => {
+      const db = mockDb([{ id: 7 }], [], [], new Error('boom'));
+      const service = await makeService(db);
+
+      await expect(service.ensureStartingLoner(1)).rejects.toThrow('boom');
+    });
+
+    it("reads the player's rows of every skill named Loner", async () => {
+      const db = mockDb([{ id: 7 }], [loner({})]);
+      const service = await makeService(db);
+
+      await service.ensureStartingLoner(1);
+
+      // Chain 2 is the subquery naming every skill called Loner.
+      expect(db.chains[2].from).toHaveBeenCalledWith(skills);
+      expect(extractAllFilterValues(firstCallArg(db.chains[2].where))).toEqual([
+        'Loner',
+      ]);
     });
 
     it('writes nothing when an active starting Loner exists', async () => {
@@ -89,8 +151,8 @@ describe('JourneymanLonerService', () => {
       await service.ensureStartingLoner(1);
 
       expect(db.db.update).toHaveBeenCalledTimes(1);
-      expect(db.chains[2].set).toHaveBeenCalledWith({ removed: false });
-      expect(extractAllFilterValues(firstCallArg(db.chains[2].where))).toEqual([
+      expect(db.chains[3].set).toHaveBeenCalledWith({ removed: false });
+      expect(extractAllFilterValues(firstCallArg(db.chains[3].where))).toEqual([
         10,
       ]);
       expect(db.db.insert).not.toHaveBeenCalled();
@@ -105,7 +167,7 @@ describe('JourneymanLonerService', () => {
 
       await service.ensureStartingLoner(1);
 
-      expect(db.chains[2].set).toHaveBeenCalledWith({
+      expect(db.chains[3].set).toHaveBeenCalledWith({
         source: 'starting',
         advancementOrder: null,
         orderConfirmed: false,
@@ -168,7 +230,7 @@ describe('JourneymanLonerService', () => {
       await service.ensureStartingLoner(1);
 
       expect(db.db.update).toHaveBeenCalledTimes(1);
-      expect(extractAllFilterValues(firstCallArg(db.chains[2].where))).toEqual([
+      expect(extractAllFilterValues(firstCallArg(db.chains[3].where))).toEqual([
         11,
       ]);
       expect(slots.closeUnconfirmed).toHaveBeenCalledWith(expect.anything(), {
@@ -196,7 +258,7 @@ describe('JourneymanLonerService', () => {
       await service.ensureStartingLoner(1);
 
       expect(db.db.update).toHaveBeenCalledTimes(1);
-      expect(extractAllFilterValues(firstCallArg(db.chains[2].where))).toEqual([
+      expect(extractAllFilterValues(firstCallArg(db.chains[3].where))).toEqual([
         11,
       ]);
     });
@@ -234,14 +296,14 @@ describe('JourneymanLonerService', () => {
 
       await service.retireStartingLoner(1);
 
-      expect(db.chains).toHaveLength(1);
+      // The update, and the subquery naming every skill called Loner.
+      expect(db.chains).toHaveLength(2);
       expect(db.db.update).toHaveBeenCalledWith(playerAdvancements);
       expect(db.chains[0].set).toHaveBeenCalledWith({ removed: true });
       expect(extractAllFilterValues(firstCallArg(db.chains[0].where))).toEqual([
         1,
         'starting',
         false,
-        'Loner',
         true,
       ]);
       expect(db.transaction).not.toHaveBeenCalled();
@@ -277,18 +339,20 @@ describe('JourneymanLonerService', () => {
         1,
         'starting',
         false,
-        'Loner',
         true,
       ]);
     });
 
-    it('matches the Loner skill by equality, so the player/skill index applies', async () => {
+    it('matches every skill named Loner', async () => {
       const db = mockDb();
       const service = await makeService(db);
 
       await service.retireStartingLoner(1);
 
-      expect(sqlText(firstCallArg(db.chains[0].where))).not.toContain(' in (');
+      expect(db.chains[1].from).toHaveBeenCalledWith(skills);
+      expect(extractAllFilterValues(firstCallArg(db.chains[1].where))).toEqual([
+        'Loner',
+      ]);
     });
 
     it('never closes a slot: a starting row holds no number', async () => {

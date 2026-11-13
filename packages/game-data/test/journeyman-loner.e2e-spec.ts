@@ -5,6 +5,7 @@ import {
   eq,
   playerAdvancements,
   playerAdvancementsHistory,
+  skills,
 } from '@blood-bowl-tracker/db';
 import {
   closeTestDb,
@@ -196,5 +197,60 @@ describe("A journeyman's starting Loner follows his marker (real Postgres)", () 
       ['Loner', 'starting', null, false, true],
       ['Loner', 'chosen', 1, true, false],
     ]);
+  });
+
+  describe('with two skills named Loner', () => {
+    let secondLoner: number;
+
+    beforeEach(async () => {
+      const [row] = await db
+        .insert(skills)
+        .values({ name: 'Loner' })
+        .returning();
+      secondLoner = row.id;
+    });
+
+    it('ensures exactly one starting Loner when it is on the second skill', async () => {
+      await db.insert(playerAdvancements).values({
+        playerId: seed.playerId,
+        skillId: secondLoner,
+        source: 'starting',
+      });
+
+      await service.ensureStartingLoner(seed.playerId);
+
+      const rows = await db
+        .select()
+        .from(playerAdvancements)
+        .where(eq(playerAdvancements.playerId, seed.playerId));
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({ skillId: secondLoner, removed: false });
+    });
+
+    it('inserts on the lowest-id Loner and retires it without failing', async () => {
+      await service.ensureStartingLoner(seed.playerId);
+      await service.retireStartingLoner(seed.playerId);
+
+      const rows = await db
+        .select()
+        .from(playerAdvancements)
+        .where(eq(playerAdvancements.playerId, seed.playerId));
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        skillId: Math.min(seed.skillIds.Loner, secondLoner),
+        source: 'starting',
+        removed: true,
+      });
+    });
+  });
+
+  it('survives two concurrent ensures of the same journeyman', async () => {
+    await Promise.all([
+      service.ensureStartingLoner(seed.playerId),
+      service.ensureStartingLoner(seed.playerId),
+      service.ensureStartingLoner(seed.playerId),
+    ]);
+
+    expect(await states()).toEqual([['Loner', 'starting', null, false, false]]);
   });
 });
