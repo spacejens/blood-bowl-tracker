@@ -153,7 +153,7 @@ See [discord-bot/slash-commands/insights.md](discord-bot/slash-commands/insights
 
 ### Journeyman
 
-A temporary [player](#player) fielded by a [team](#team) that has too few available players for a [match](#match), rather than a permanent member of its [roster](#roster). Unlike a [mercenary](#mercenary), a journeyman is drawn from the team's own basic [positions](#position) rather than hired in. The tracker marks a journeyman explicitly (a player named Journeyman in a basic position), stores his Loner as a starting [skill](#skill), and retires that starting Loner when he is recruited. See [game-concepts/players/index.md](game-concepts/players/index.md#journeymen).
+A temporary [player](#player) fielded by a [team](#team) that has too few available players for a [match](#match), rather than a permanent member of its [roster](#roster). Unlike a [mercenary](#mercenary), a journeyman is drawn from the team's own basic [positions](#position) rather than hired in. The tracker marks a journeyman explicitly (a player named Journeyman in a basic position; a roster that shows him without Loner means he has been recruited, so the marker is cleared), stores his Loner as a starting [skill](#skill), and retires that starting Loner when he is recruited. See [game-concepts/players/index.md](game-concepts/players/index.md#journeymen).
 
 ### Keyword
 
