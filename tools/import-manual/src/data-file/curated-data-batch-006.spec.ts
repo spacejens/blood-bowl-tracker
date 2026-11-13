@@ -19,98 +19,56 @@ function skillRef(item: PositionRulesSetSkillRef): ExternalRef {
 
 const name = (id: string): ExternalRef => ({ system: 'Name', id });
 
-const RULES_SETS = ['CRP', 'CRP+', 'BB2016'];
-
-describe('curated batch 006 Gutter Runner Weeping Dagger', () => {
+describe('curated batch 006 BB2016 Gutter Runner skills', () => {
   const batch = () => readBatch(BATCH_006);
 
-  it('holds only starting skills, the skill categories they need and the Name system', () => {
+  it('holds only starting skills and the Name system they use', () => {
     const sections = Object.entries(batch())
       .filter(([, entries]) => entries.length > 0)
       .map(([section]) => section)
       .sort();
 
-    expect(sections).toEqual([
-      'externalSystems',
-      'positionRulesSetSkills',
-      'skillRulesSets',
+    expect(sections).toEqual(['externalSystems', 'positionRulesSetSkills']);
+    expect(batch().externalSystems).toEqual([
+      { name: 'Name', category: 'bookkeeping' },
     ]);
-    // Each of the batch's two files declares the Name system it references.
-    expect(
-      new Set(batch().externalSystems.map((system) => system.name)),
-    ).toEqual(new Set(['Name']));
-    expect(
-      batch().externalSystems.every(
-        (system) => system.category === 'bookkeeping',
-      ),
-    ).toBe(true);
   });
 
-  it('gives Skaven: Gutter Runner Dodge and Weeping Dagger under CRP, CRP+ and BB2016', () => {
+  it('gives Skaven: Gutter Runner Dodge and Weeping Dagger under BB2016', () => {
     expect(
       batch().positionRulesSetSkills.map((entry) => ({
         position: entry.position,
         rulesSet: entry.rulesSet,
         skills: entry.skills.map(skillRef),
       })),
-    ).toEqual(
-      RULES_SETS.map((rulesSet) => ({
-        position: name('Skaven: Gutter Runner'),
-        rulesSet: name(rulesSet),
-        skills: [name('Dodge'), name('Weeping Dagger')],
-      })),
-    );
-  });
-
-  it('categorises Weeping Dagger as a trait for CRP and CRP+, the rules sets batch 001 lacks it for', () => {
-    expect(
-      batch().skillRulesSets.map((entry) => ({
-        skill: entry.skill,
-        rulesSet: entry.rulesSet,
-        category: entry.category,
-        isElite: entry.isElite,
-      })),
     ).toEqual([
       {
-        skill: name('Weeping Dagger'),
-        rulesSet: name('CRP'),
-        category: 'trait',
-        isElite: false,
-      },
-      {
-        skill: name('Weeping Dagger'),
-        rulesSet: name('CRP+'),
-        category: 'trait',
-        isElite: false,
+        position: name('Skaven: Gutter Runner'),
+        rulesSet: name('BB2016'),
+        skills: [name('Dodge'), name('Weeping Dagger')],
       },
     ]);
-    const earlier = readFile(BATCH_001, 'skills.json5').skillRulesSets.filter(
-      (entry) => entry.skill.id === 'Weeping Dagger',
-    );
-
-    expect(earlier.map((entry) => entry.rulesSet.id)).toEqual(['BB2016']);
   });
 
-  it('restates every skill batch 002 gave each pair, so each entry is the whole list', () => {
-    const earlierEntries = readFile(
+  it('restates every skill batch 002 gave the pair, so the entry is the whole list', () => {
+    const earlier = readFile(
       BATCH_002,
       'position-skills.json5',
-    ).positionRulesSetSkills;
+    ).positionRulesSetSkills.find(
+      (entry) =>
+        entry.position.id === 'Skaven: Gutter Runner' &&
+        entry.rulesSet.id === 'BB2016',
+    );
 
-    for (const entry of batch().positionRulesSetSkills) {
-      const earlier = earlierEntries.find(
-        (candidate) =>
-          candidate.position.id === entry.position.id &&
-          candidate.rulesSet.id === entry.rulesSet.id,
-      );
-
-      expect(earlier).toBeDefined();
-      expect(entry.skills.map((skill) => skillRef(skill).id)).toEqual(
-        expect.arrayContaining(
-          (earlier?.skills ?? []).map((skill) => skillRef(skill).id),
-        ),
-      );
-    }
+    expect(earlier).toBeDefined();
+    const now = batch().positionRulesSetSkills.flatMap((entry) =>
+      entry.skills.map((skill) => skillRef(skill).id),
+    );
+    expect(now).toEqual(
+      expect.arrayContaining(
+        (earlier?.skills ?? []).map((skill) => skillRef(skill).id),
+      ),
+    );
   });
 
   it('names only pairs batch 002 curates characteristics for', () => {
@@ -129,12 +87,11 @@ describe('curated batch 006 Gutter Runner Weeping Dagger', () => {
     }
   });
 
-  it('names only skills categorised for that rules set by batch 001 or by this batch', () => {
+  it('names only skills batch 001 categorises for that rules set', () => {
     const curated = new Set(
-      [
-        ...readFile(BATCH_001, 'skills.json5').skillRulesSets,
-        ...batch().skillRulesSets,
-      ].map((entry) => `${entry.skill.id}|${entry.rulesSet.id}`),
+      readFile(BATCH_001, 'skills.json5').skillRulesSets.map(
+        (entry) => `${entry.skill.id}|${entry.rulesSet.id}`,
+      ),
     );
 
     for (const entry of batch().positionRulesSetSkills) {

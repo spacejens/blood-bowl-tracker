@@ -1,0 +1,22 @@
+// Batch 006: the BB2016 starting skills of Skaven: Gutter Runner.
+//
+// 002-initial-cleanup/position-skills.json5 gives the BB2016 Gutter Runner
+// Dodge alone. The developer's physical BB2016 rulebook lists Dodge and the
+// Weeping Dagger trait, which 001-initial-seed/skills.json5 already curates
+// as a BB2016 trait. ENTRY SHAPE: as in 002's position-skills.json5; the
+// entry carries the position's whole skill list. Starting skills are stored
+// additively, so applying it adds Weeping Dagger and leaves Dodge in place.
+//
+// The pair's characteristics are curated in
+// 002-initial-cleanup/position-characteristics.json5, so this batch applies
+// after the source importers, in a plain `apply`.
+//
+// curated-data-batch-006.spec.ts pins the entry.
+{
+  externalSystems: [
+    { name: 'Name', category: 'bookkeeping' },
+  ],
+  positionRulesSetSkills: [
+    { position: { system: 'Name', id: 'Skaven: Gutter Runner' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Weeping Dagger' }] },
+  ],
+}

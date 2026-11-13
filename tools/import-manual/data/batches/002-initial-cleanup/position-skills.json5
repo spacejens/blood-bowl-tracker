@@ -135,7 +135,6 @@
     // --- CRP: Skaven (CRP p.25) ---
     // Skaven Clanrat Lineman: no starting skills.
     { position: { system: 'Name', id: 'Skaven: Skaven Thrower' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Pass' }, { system: 'Name', id: 'Sure Hands' }] },
-    // Batch 006-gutter-runner-weeping-dagger adds Weeping Dagger.
     { position: { system: 'Name', id: 'Skaven: Gutter Runner' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }] },
     { position: { system: 'Name', id: 'Skaven: Skaven Blitzer' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Block' }] },
     { position: { system: 'Name', id: 'Skaven: Rat Ogre' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Wild Animal' }] },
@@ -349,7 +348,6 @@
     // --- CRP+: Skaven (NTBB2015 p.7) ---
     // Skaven Clanrat Lineman: no starting skills.
     // Identical to CRP's own Skaven roster.
-    // Batch 006-gutter-runner-weeping-dagger adds Weeping Dagger.
     { position: { system: 'Name', id: 'Skaven: Gutter Runner' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Dodge' }] },
     { position: { system: 'Name', id: 'Skaven: Skaven Blitzer' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Block' }] },
     { position: { system: 'Name', id: 'Skaven: Skaven Thrower' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Sure Hands' }, { system: 'Name', id: 'Pass' }] },
@@ -410,7 +408,7 @@
     // every one of those ten races' entries below, position by position,
     // against its source. All match their source except Skaven: Gutter
     // Runner, whose Weeping Dagger is added by batch
-    // 006-gutter-runner-weeping-dagger.
+    // 006-bb2016-gutter-runner-skills.
     // ================================================================
 
     // --- BB2016: Amazon (Teams of Legend p.1) ---
@@ -529,7 +527,7 @@
     // Skaven Clanrat Lineman: no starting skills.
     { position: { system: 'Name', id: 'Skaven: Skaven Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Pass' }, { system: 'Name', id: 'Sure Hands' }] },
     // The rulebook also gives the Gutter Runner Weeping Dagger; batch
-    // 006-gutter-runner-weeping-dagger adds it.
+    // 006-bb2016-gutter-runner-skills adds it.
     { position: { system: 'Name', id: 'Skaven: Gutter Runner' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Dodge' }] },
     { position: { system: 'Name', id: 'Skaven: Skaven Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }] },
     { position: { system: 'Name', id: 'Skaven: Rat Ogre' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Wild Animal' }] },
