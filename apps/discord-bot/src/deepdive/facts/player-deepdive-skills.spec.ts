@@ -115,7 +115,7 @@ describe('PlayerDeepdiveService skill lines', () => {
 
     const description = descriptionOf(await service.resolve(1));
 
-    expect(description).toContain('Position: Blitzer (◇ Journeyman)');
+    expect(description).toContain('Position: Blitzer (Journeyman)');
   });
 
   it('shows no badge for a player who is not a journeyman', async () => {

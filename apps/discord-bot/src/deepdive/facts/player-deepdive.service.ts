@@ -113,8 +113,8 @@ const REDUCTION_FIELDS = [
   ['AV', 'armourReductionCount'],
 ] as const;
 
-// A plain symbol, not an emoji, like the deepdive's other markers.
-const JOURNEYMAN_BADGE = '◇ Journeyman';
+// Shown in brackets after a journeyman's position.
+const JOURNEYMAN_BADGE = 'Journeyman';
 
 /**
  * Composes the player deepdive embed, shared by `/deepdive player:<id>` and
