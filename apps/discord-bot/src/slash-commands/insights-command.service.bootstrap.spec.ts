@@ -117,15 +117,28 @@ describe('InsightsCommandService — bootstrap and autocomplete', () => {
     ]);
   });
 
-  it('returns era autocomplete choices labelled "<name> (<league>)" with id values', async () => {
-    const { service, eras } = harness;
-    eras.searchByNamePrefix.mockResolvedValue([
-      { id: 20, name: 'BB2020', leagueName: 'Premier League' },
-    ]);
+  it('labels era autocomplete choices through the choice label service', async () => {
+    const { service, eras, choiceLabels } = harness;
+    const rows = [
+      {
+        id: 20,
+        name: 'BB2020',
+        leagueName: 'Premier League',
+        startDate: '2020-01-01',
+        endDate: null,
+      },
+    ];
+    const labelled = [
+      { name: 'BB2020 (Premier League, 2020-01-01 – present)', value: '20' },
+    ];
+    eras.searchByNamePrefix.mockResolvedValue(rows);
+    choiceLabels.datedScopeChoices.mockReturnValue(labelled);
     const choices = await service.autocomplete(
       autocompleteInteraction('era', 'bb'),
     );
-    expect(choices).toEqual([{ name: 'BB2020 (Premier League)', value: '20' }]);
+    expect(choices).toBe(labelled);
+    expect(eras.searchByNamePrefix).toHaveBeenCalledWith('bb', 25);
+    expect(choiceLabels.datedScopeChoices).toHaveBeenCalledWith(rows);
   });
 
   it('advertises a competition option alongside category, league and era', () => {
@@ -141,17 +154,34 @@ describe('InsightsCommandService — bootstrap and autocomplete', () => {
     });
   });
 
-  it('returns competition autocomplete choices labelled "<name> (<league>)" with id values', async () => {
-    const { service, competitionsQueries } = harness;
-    competitionsQueries.searchByNamePrefix.mockResolvedValue([
-      { id: 30, name: 'Major Season 24', leagueName: 'The Major' },
-    ]);
+  it('labels competition autocomplete choices through the choice label service', async () => {
+    const { service, competitionsQueries, choiceLabels } = harness;
+    const rows = [
+      {
+        id: 30,
+        name: 'Major Season 24',
+        leagueName: 'The Major',
+        startDate: '2024-01-15',
+        endDate: '2024-06-30',
+      },
+    ];
+    const labelled = [
+      {
+        name: 'Major Season 24 (The Major, 2024-01-15 – 2024-06-30)',
+        value: '30',
+      },
+    ];
+    competitionsQueries.searchByNamePrefix.mockResolvedValue(rows);
+    choiceLabels.datedScopeChoices.mockReturnValue(labelled);
     const choices = await service.autocomplete(
       autocompleteInteraction('competition', 'maj'),
     );
-    expect(choices).toEqual([
-      { name: 'Major Season 24 (The Major)', value: '30' },
-    ]);
+    expect(choices).toBe(labelled);
+    expect(competitionsQueries.searchByNamePrefix).toHaveBeenCalledWith(
+      'maj',
+      25,
+    );
+    expect(choiceLabels.datedScopeChoices).toHaveBeenCalledWith(rows);
   });
 
   it('advertises the match-category option last, with static choices instead of autocomplete', () => {

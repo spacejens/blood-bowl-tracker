@@ -361,11 +361,12 @@
     { skill: { system: 'Name', id: 'Sure Hands' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
     { skill: { system: 'Name', id: 'Kick' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
     { skill: { system: 'Name', id: 'Tackle' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
-    // TODO: verify -- BBL's downloaded data only ever spells this
-    // "Kick-off Return" (lowercase "off"); CRP's own heading (p.20) and
-    // categories table (p.21) both spell it "Kick-Off Return". Curated here
-    // under CRP's own spelling; confirm whether BBL's importer should
-    // normalize the case instead of this staying a second skill row.
+    // BBL's downloaded data spells this "Kick-off Return" (lowercase "off");
+    // CRP's own heading (p.20) and categories table (p.21) spell it
+    // "Kick-Off Return". The skill is curated under CRP's spelling with both
+    // spellings as Name external ids (in the skills section above, and
+    // re-asserted in 002-initial-cleanup/skills.json5), so BBL's spelling
+    // resolves to this same skill rather than a second skill row.
     { skill: { system: 'Name', id: 'Kick-Off Return' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
     { skill: { system: 'Name', id: 'Wrestle' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
 

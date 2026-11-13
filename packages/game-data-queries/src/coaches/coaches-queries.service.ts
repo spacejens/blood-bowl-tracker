@@ -11,6 +11,7 @@ import {
   eq,
   eras,
   ilike,
+  inArray,
   isNotNull,
   matches,
   matchTeams,
@@ -107,6 +108,37 @@ export class CoachesQueriesService {
       return undefined;
     }
     return { start: row.start, end: row.end };
+  }
+
+  /**
+   * Career spans for a batch of coaches, keyed by coach id: the UTC calendar
+   * days of each coach's first and last recorded match, computed exactly as
+   * `getCareerSpan` does but in one grouped query. A coach with no recorded
+   * matches has no row in the grouped result and so no entry in the map. An
+   * empty id list short-circuits rather than issuing an empty `inArray`,
+   * which SQL would reject.
+   */
+  async getCareerSpansByIds(
+    coachIds: number[],
+  ): Promise<Map<number, { start: string; end: string }>> {
+    if (coachIds.length === 0) {
+      return new Map();
+    }
+    const rows = await this.db
+      .select({
+        coachId: teams.coachId,
+        start: sql<string>`(min(${matches.playedAt}) at time zone 'UTC')::date`,
+        end: sql<string>`(max(${matches.playedAt}) at time zone 'UTC')::date`,
+      })
+      .from(matches)
+      .innerJoin(matchTeams, eq(matchTeams.matchId, matches.id))
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(inArray(teams.coachId, coachIds))
+      .groupBy(teams.coachId);
+    return new Map(
+      rows.map((row) => [row.coachId, { start: row.start, end: row.end }]),
+    );
   }
 
   getTopTeamsByMatchesPlayed(

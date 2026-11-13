@@ -40,6 +40,7 @@ import { TeamToplistService } from '../insights/facts/team-toplist.service';
 import { TrophiesListService } from '../insights/facts/trophies-list.service';
 import { DateRangeFormatterService } from '../shared/date-range-formatter.service';
 import { makeDateRangeFormatter } from '../shared/date-range-formatter-mock.test-helpers';
+import { AutocompleteChoiceLabelService } from './autocomplete-choice-label.service';
 import type { FactTreeLookup } from './fact-tree-lookup.test-helpers';
 import { InsightsCommandService } from './insights-command.service';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
@@ -410,6 +411,7 @@ export interface MakeServiceResult {
   factTreeNavigation: MockProxy<FactTreeNavigationService>;
   categoryLabel: MockProxy<MatchCategoryLabelService>;
   dateRangeFormatter: MockProxy<DateRangeFormatterService>;
+  choiceLabels: MockProxy<AutocompleteChoiceLabelService>;
   factTreeDeps: FactTreeMocks;
   factTree: FactNode;
   tree: FactTreeLookup;
@@ -438,6 +440,8 @@ export async function makeService(): Promise<MakeServiceResult> {
   // that service does (which is covered by its own spec).
   categoryLabel.label.mockImplementation((category) => `Label for ${category}`);
   const dateRangeFormatter = makeDateRangeFormatter();
+  const choiceLabels = mock<AutocompleteChoiceLabelService>();
+  choiceLabels.datedScopeChoices.mockReturnValue([]);
   const factTreeDeps = makeFactTreeMocks();
   const factTree = buildFactTree(factTreeDeps);
 
@@ -453,6 +457,7 @@ export async function makeService(): Promise<MakeServiceResult> {
       { provide: FactTreeNavigationService, useValue: factTreeNavigation },
       { provide: MatchCategoryLabelService, useValue: categoryLabel },
       { provide: DateRangeFormatterService, useValue: dateRangeFormatter },
+      { provide: AutocompleteChoiceLabelService, useValue: choiceLabels },
     ],
   }).compile();
 
@@ -466,6 +471,7 @@ export async function makeService(): Promise<MakeServiceResult> {
     factTreeNavigation,
     categoryLabel,
     dateRangeFormatter,
+    choiceLabels,
     factTreeDeps,
     factTree,
     tree: factTree as unknown as FactTreeLookup,

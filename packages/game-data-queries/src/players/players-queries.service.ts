@@ -155,12 +155,11 @@ export class PlayersQueriesService {
   searchByNamePrefix(
     prefix: string,
     limit: number,
-  ): Promise<{ id: number; name: string; teamName: string }[]> {
+  ): Promise<{ id: number; name: string }[]> {
     return this.db
-      .select({ id: players.id, name: players.name, teamName: teams.name })
+      .select({ id: players.id, name: players.name })
       .from(players)
       .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
-      .innerJoin(teams, eq(teams.id, teamEras.teamId))
       .innerJoin(positions, eq(positions.id, players.positionId))
       .where(
         and(

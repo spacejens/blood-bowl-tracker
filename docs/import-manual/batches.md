@@ -16,6 +16,7 @@ tools/import-manual/data/batches/
   003-reset-curated-names/
   004-advancement-costs/
   005-tp-advancement-orders/
+  006-bb2016-gutter-runner-skills/
 ```
 
 A batch directory is named `NNN-<slug>`: a three-digit number and a lowercase
@@ -70,6 +71,12 @@ The batches:
   stores TP's unspent figure without re-checking the order. An entry lists every stored paid advancement of the player, so
   if he later gains one and the TP data is downloaded again, a scratch apply
   of the batch is refused until a follow-up batch supersedes it.
+- **006-bb2016-gutter-runner-skills** — adds the Weeping Dagger trait to
+  the BB2016 starting skills of Skaven: Gutter Runner, which batch 002 gives
+  Dodge alone; the developer's physical BB2016 rulebook lists both. The entry
+  restates the position's whole skill list. It references a position and
+  rules-set pair whose characteristics batch 002 curates, so it applies after
+  the source importers, in a plain `apply`.
 
 ### Batch 004
 

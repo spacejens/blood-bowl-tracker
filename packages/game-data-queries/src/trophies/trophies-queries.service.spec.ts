@@ -74,6 +74,16 @@ describe('TrophiesQueriesService', () => {
       expect(
         extractJoinColumns(firstCallArg(chains[0].leftJoin, 0, 1)),
       ).toEqual(['competition_groups.id', 'trophies.competition_group_id']);
+      // The league is joined through the trophy's own league or, failing that,
+      // its competition group's league.
+      expect(chains[0].leftJoin).toHaveBeenCalledTimes(2);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].leftJoin, 1, 1)),
+      ).toEqual([
+        'leagues.id',
+        'trophies.league_id',
+        'competition_groups.league_id',
+      ]);
     });
 
     it('escapes LIKE metacharacters in the prefix before matching', async () => {

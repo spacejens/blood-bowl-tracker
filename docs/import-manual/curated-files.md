@@ -339,3 +339,17 @@ order of TP's skill row ids place it. Players are referenced by
 TP line-up id and skills by curated name; the header comment records how the
 orders were chosen. `curated-data-batch-005.spec.ts` pins every entry and
 checks that each skill is one batch 001 declares.
+
+## Batch 006
+
+`data/batches/006-bb2016-gutter-runner-skills/position-skills.json5` adds
+Weeping Dagger to the BB2016 starting skills of Skaven: Gutter Runner. Batch
+002's `position-skills.json5` curates BB2016 starting skills for fourteen
+races from the Teams of Legend PDF. For the other ten (Human, Orc, Dwarf,
+Skaven, Dark Elf, Elven Union, High Elf, Wood Elf, Nurgle and Slann), the
+developer checked every position: the nine other than Slann against the
+physical BB2016 rulebook, Slann (which that rulebook does not cover) against
+Narrow-Tier Blood Bowl 2015 (NTBB2015.pdf). All of them matched except the
+Gutter Runner, which this batch corrects.
+`curated-data-batch-006.spec.ts` pins the entry and checks that its pair and
+skills are curated in batches 002 and 001.

@@ -32,7 +32,11 @@ named — `— BB2020 (2020-01-01 – present)` — so a reader can tell whether
 scope is finished or still running; a league and a match category have no date
 range of their own and appear as bare names.
 
-`league`, `era` and `competition` autocomplete against the recorded data.
+`league`, `era` and `competition` autocomplete against the recorded data. An
+era or competition suggestion names its league and date span —
+`BB2020 (Premier League, 2020-01-01 – present)` — the same label `/deepdive`
+uses, so same-named eras or competitions can be told apart; a league
+suggestion is its bare name.
 `match-category` instead offers every match category as a fixed choice, so
 there is no id to mistype and no "not found" reply.
 

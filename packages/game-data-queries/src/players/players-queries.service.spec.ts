@@ -270,16 +270,14 @@ describe('PlayersQueriesService', () => {
   });
 
   describe('searchByNamePrefix', () => {
-    it('returns id, name, and team for name-prefix matches', async () => {
-      const rows = [
-        { id: 1, name: 'Griff Oberwald', teamName: 'Reikland Reavers' },
-      ];
+    it('returns id and name for name-prefix matches', async () => {
+      const rows = [{ id: 1, name: 'Griff Oberwald' }];
       likePattern.escape.mockReturnValue('Gri');
       const { chains } = await build(rows);
       await expect(service.searchByNamePrefix('Gri', 25)).resolves.toEqual(
         rows,
       );
-      expect(chains[0].innerJoin).toHaveBeenCalledTimes(3);
+      expect(chains[0].innerJoin).toHaveBeenCalledTimes(2);
       expect(chains[0].limit).toHaveBeenCalledWith(25);
     });
 
@@ -289,10 +287,10 @@ describe('PlayersQueriesService', () => {
 
       await service.searchByNamePrefix('Mor', 25);
 
-      // players -> teamEras -> teams -> positions
-      expect(chains[0].innerJoin).toHaveBeenCalledTimes(3);
+      // players -> teamEras -> positions
+      expect(chains[0].innerJoin).toHaveBeenCalledTimes(2);
       expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 2, 1)),
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 1, 1)),
       ).toEqual(['positions.id', 'players.position_id']);
       // isStarPlayer=false is the only filter value extractAllFilterValues can see
       // here; ilike()'s pattern argument isn't wrapped in a drizzle Param, so it's

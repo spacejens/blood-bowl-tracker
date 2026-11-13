@@ -400,12 +400,15 @@
     // ================================================================
     // BB2016 -- BB-Teams-of-Legend-Revised-1.pdf covers 14 of the 24 BB2016
     // groups curated in position-characteristics.json5 (Amazon p.1 ...
-    // Vampire p.9). The other 10 are legacy CRP-era races the same physical
-    // rulebook covers but this PDF does not (Human, Orc, Dwarf, Skaven, Dark
-    // Elf, Elven Union, High Elf, Wood Elf, Nurgle, Slann) -- every one of
-    // those ten races' entries below is sourced from public knowledge of the
-    // published BB2016 rules rather than a page in that PDF, and carries its
-    // own `// TODO: verify` comment.
+    // Vampire p.9). The other 10 are not in that PDF. Nine of them are
+    // legacy CRP-era races (Human, Orc, Dwarf, Skaven, Dark Elf, Elven Union,
+    // High Elf, Wood Elf, Nurgle) that the physical BB2016 rulebook covers.
+    // The tenth, Slann, is not in that rulebook; it comes from
+    // Narrow-Tier Blood Bowl 2015 (NTBB2015.pdf). The developer checked
+    // every one of those ten races' entries below, position by position,
+    // against its source. All match their source except Skaven: Gutter
+    // Runner, whose Weeping Dagger is added by batch
+    // 006-bb2016-gutter-runner-skills.
     // ================================================================
 
     // --- BB2016: Amazon (Teams of Legend p.1) ---
@@ -495,117 +498,78 @@
     { position: { system: 'Name', id: 'Vampire: Vampire Blitzers' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Blood Lust' }, { system: 'Name', id: 'Hypnotic Gaze' }, { system: 'Name', id: 'Regeneration' }] },
 
     // Teams of Legend is 9 pages total and does not cover the BB2016
-    // boxed-set teams or BB2016 CRP-legacy races -- those ten races below
-    // are sourced from public knowledge of the published BB2016 rules, not
-    // from that PDF, and every entry carries its own `// TODO: verify`
-    // comment.
+    // boxed-set teams or BB2016 CRP-legacy races -- the ten races below were
+    // checked by the developer: nine against the physical BB2016 rulebook,
+    // Slann against Narrow-Tier Blood Bowl 2015 (NTBB2015.pdf).
 
-    // --- BB2016: Human (public rules reference -- TODO: verify) ---
+    // --- BB2016: Human (physical BB2016 rulebook) ---
     // Human Lineman: no starting skills.
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Human: Human Catcher' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Catch' }, { system: 'Name', id: 'Dodge' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Human: Human Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Sure Hands' }, { system: 'Name', id: 'Pass' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Human: Human Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Human: Ogre' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Throw Team-Mate' }] },
 
-    // --- BB2016: Orc (public rules reference -- TODO: verify) ---
+    // --- BB2016: Orc (physical BB2016 rulebook) ---
     // Orc Lineman and Big Un Blocker: no starting skills.
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Orc: Goblin Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Orc: Orc Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Sure Hands' }, { system: 'Name', id: 'Pass' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Orc: Orc Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Orc: Untrained Troll' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Always Hungry' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Really Stupid' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Throw Team-Mate' }] },
 
-    // --- BB2016: Dwarf (public rules reference -- TODO: verify) ---
-    // TODO: verify against the physical BB2016 rulebook.
+    // --- BB2016: Dwarf (physical BB2016 rulebook) ---
     { position: { system: 'Name', id: 'Dwarf: Dwarf Blocker Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Tackle' }, { system: 'Name', id: 'Thick Skull' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Dwarf: Dwarf Runner' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Sure Hands' }, { system: 'Name', id: 'Thick Skull' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Dwarf: Dwarf Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Thick Skull' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Dwarf: Troll Slayer' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Dauntless' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Thick Skull' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Dwarf: Deathroller' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Break Tackle' }, { system: 'Name', id: 'Dirty Player' }, { system: 'Name', id: 'Juggernaut' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'No Hands' }, { system: 'Name', id: 'Secret Weapon' }, { system: 'Name', id: 'Stand Firm' }] },
 
-    // --- BB2016: Skaven (public rules reference -- TODO: verify) ---
+    // --- BB2016: Skaven (physical BB2016 rulebook) ---
     // Skaven Clanrat Lineman: no starting skills.
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Skaven: Skaven Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Pass' }, { system: 'Name', id: 'Sure Hands' }] },
-    // TODO: verify against the physical BB2016 rulebook.
+    // The rulebook also gives the Gutter Runner Weeping Dagger; batch
+    // 006-bb2016-gutter-runner-skills adds it.
     { position: { system: 'Name', id: 'Skaven: Gutter Runner' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Dodge' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Skaven: Skaven Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Skaven: Rat Ogre' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Wild Animal' }] },
 
-    // --- BB2016: Dark Elf (public rules reference -- TODO: verify) ---
+    // --- BB2016: Dark Elf (physical BB2016 rulebook) ---
     // Dark Elf Lineman: no starting skills.
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Dark Elf: Dark Elf Runner' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Dump-Off' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Dark Elf: Assassin' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Shadowing' }, { system: 'Name', id: 'Stab' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Dark Elf: Dark Elf Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Dark Elf: Witch Elf' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Jump Up' }] },
 
-    // --- BB2016: Elven Union (public rules reference -- TODO: verify) ---
+    // --- BB2016: Elven Union (physical BB2016 rulebook) ---
     // Elven Linemen: no starting skills.
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Elven Union: Elven Throwers' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Pass' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Elven Union: Elven Catchers' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Catch' }, { system: 'Name', id: 'Nerves of Steel' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Elven Union: Elven Blitzers' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Side Step' }] },
 
-    // --- BB2016: High Elf (public rules reference -- TODO: verify) ---
+    // --- BB2016: High Elf (physical BB2016 rulebook) ---
     // High Elf Linemen: no starting skills.
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'High Elf: High Elf Throwers' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Pass' }, { system: 'Name', id: 'Safe Pass' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'High Elf: High Elf Catchers' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Catch' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'High Elf: High Elf Blitzers' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }] },
 
-    // --- BB2016: Wood Elf (public rules reference -- TODO: verify) ---
+    // --- BB2016: Wood Elf (physical BB2016 rulebook) ---
     // Wood Elf Lineman: no starting skills.
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Wood Elf: Wood Elf Catcher' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Catch' }, { system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Sprint' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Wood Elf: Wood Elf Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Pass' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Wood Elf: Wardancer' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Leap' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Wood Elf: Loren Forest Treeman' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Stand Firm' }, { system: 'Name', id: 'Strong Arm' }, { system: 'Name', id: 'Take Root' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Throw Team-Mate' }] },
 
-    // --- BB2016: Nurgle (public rules reference -- TODO: verify) ---
-    // TODO: verify against the physical BB2016 rulebook.
+    // --- BB2016: Nurgle (physical BB2016 rulebook) ---
     { position: { system: 'Name', id: 'Nurgle: Rotter Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Decay' }, { system: 'Name', id: "Nurgle's Rot" }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Nurgle: Pestigors' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Horns' }, { system: 'Name', id: "Nurgle's Rot" }, { system: 'Name', id: 'Regeneration' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Nurgle: Bloaters' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Disturbing Presence' }, { system: 'Name', id: 'Foul Appearance' }, { system: 'Name', id: "Nurgle's Rot" }, { system: 'Name', id: 'Regeneration' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Nurgle: Rotspawn' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Disturbing Presence' }, { system: 'Name', id: 'Foul Appearance' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: "Nurgle's Rot" }, { system: 'Name', id: 'Really Stupid' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Tentacles' }] },
 
-    // --- BB2016: Slann (public rules reference -- TODO: verify) ---
-    // Slann's BB2016 characteristics match its CRP+ characteristics exactly
-    // (position-characteristics.json5); this roster follows the CRP+ skill
-    // list for the same reason.
-    // TODO: verify against the physical BB2016 rulebook.
+    // --- BB2016: Slann (NTBB2015.pdf) ---
+    // Slann's BB2016 characteristics and starting skills both match its CRP+
+    // entries (position-characteristics.json5 and the CRP+ section above).
     { position: { system: 'Name', id: 'Slann: Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Leap' }, { system: 'Name', id: 'Very Long Legs' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Slann: Catcher' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Diving Catch' }, { system: 'Name', id: 'Leap' }, { system: 'Name', id: 'Very Long Legs' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Slann: Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Diving Tackle' }, { system: 'Name', id: 'Jump Up' }, { system: 'Name', id: 'Leap' }, { system: 'Name', id: 'Very Long Legs' }] },
-    // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Slann: Kroxigor' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Thick Skull' }] },
   ],
 }
