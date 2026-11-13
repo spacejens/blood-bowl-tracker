@@ -43,11 +43,12 @@ advancements as skills plus increases, and the SPP spent.
   without spending SPP), so he has no gained skill and no paid advancement to
   order. His level is 0 and his spend is 0.
 
-Among TP players, a gained Loner that stays a gained skill exists only for
-Nadiddnur. BBL also records a Loner for journeymen who have no other
-advancement; those journeymen likewise have no gained skill, as their Loner is
-a starting skill. Batch 005's entries for them flag nothing and are still
-accepted.
+A player can gain Loner for reasons other than being a journeyman, through
+certain special rules. Such a Loner stays a gained skill and a free extra,
+so an entry here for such a player stays valid. A journeyman's own Loner is a
+starting skill instead: BBL also records a Loner for journeymen who have no
+other advancement, and those journeymen likewise have no gained skill. Batch
+005's entries for them flag nothing and are still accepted.
 
 - **Kalle Kvist** (Dalsland Treehuggers, line-up 586220, paid 4+2, spent
   110), **Friska Fläkten** (Gnaget, line-up 1233619, paid 5+1, spent 104),
