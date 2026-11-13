@@ -22,6 +22,9 @@ export const BATCH_004 = 'batches/004-advancement-costs';
 /** Batch 005: the advancement order of TP players, read from the TP notification feed. */
 export const BATCH_005 = 'batches/005-tp-advancement-orders';
 
+/** Batch 006: the BB2016 starting skills of Skaven: Gutter Runner, checked against the physical rulebook. */
+export const BATCH_006 = 'batches/006-bb2016-gutter-runner-skills';
+
 /** Every batch directory, as `batches/<name>`, in name order. */
 export function listBatches(): string[] {
   return readdirSync(join(DATA_ROOT, 'batches'), { withFileTypes: true })
