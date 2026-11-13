@@ -255,8 +255,8 @@ describe('TpJourneymanService', () => {
     expect(decide({ player: journeyman([13]) })).toBe(false);
   });
 
-  it('marks a roster Journeyman when Loner cannot be checked', () => {
-    expect(decide({ lonerMasterIds: undefined })).toBe(true);
+  it('leaves the marker alone for a roster Journeyman when Loner cannot be checked', () => {
+    expect(decide({ lonerMasterIds: undefined })).toBeUndefined();
   });
 
   it('clears the marker of a roster entry with another name', () => {

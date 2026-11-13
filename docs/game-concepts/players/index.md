@@ -191,7 +191,8 @@ not a star player's, mercenary or Big Guy hire.
 
 - **Where the marker comes from.** A roster (or a BBL player page) states it:
   the player is a journeyman while it lists Loner for him, and stops being one
-  when it does not or when he is renamed. A match line-up only ever sets it,
+  when it does not or when he is renamed. A roster entry whose Loner the
+  import cannot check leaves the stored marker alone. A match line-up only ever sets it,
   and only when the snapshot's skills include Loner; otherwise it says nothing
   and the stored marker stays. A recruit who kept the name and left the team
   is seen only in line-ups without Loner, which leave the marker alone, but

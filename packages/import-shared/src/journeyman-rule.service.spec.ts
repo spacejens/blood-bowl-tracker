@@ -140,14 +140,24 @@ describe('JourneymanRuleService', () => {
       ).toBe(false);
     });
 
-    it('sets the marker by name when the roster cannot say whether Loner is listed', () => {
+    it('says nothing when the roster cannot say whether Loner is listed', () => {
       expect(
         service.decide({
           name: 'Journeyman',
           isBasicPosition: true,
           sighting: 'roster',
         }),
-      ).toBe(true);
+      ).toBeUndefined();
+    });
+
+    it('still clears a renamed player when the roster cannot say whether Loner is listed', () => {
+      expect(
+        service.decide({
+          name: 'Grim',
+          isBasicPosition: true,
+          sighting: 'roster',
+        }),
+      ).toBe(false);
     });
   });
 });

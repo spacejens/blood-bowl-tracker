@@ -21,9 +21,10 @@ depend on it, so a change here reaches bulk and live imports together.
   player was recruited, and otherwise leaves it alone. A later roster that
   shows him without Loner, or renamed, clears it. A roster states the marker
   for a player named Journeyman in a basic position from whether it lists
-  Loner, and marks him when it cannot say (`lonerListed` undefined, a roster
-  entry without a skills group); any other roster player is unmarked. Used by
-  BBL, TP bulk and TP live.
+  Loner, and leaves the stored marker alone when it cannot check
+  (`lonerListed` undefined: a roster entry without a skills group, or no
+  Loner skill ids to read it against); any other roster player is unmarked.
+  Used by BBL, TP bulk and TP live.
 
 ## Why the Name ids must be shared
 

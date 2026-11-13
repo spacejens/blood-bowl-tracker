@@ -16,8 +16,10 @@ export interface JourneymanSightingFacts {
   /**
    * Whether the sighting lists Loner for the player: for a roster, among
    * its starting or gained skills; for a line-up, among the skills its
-   * snapshot lists. Undefined when the sighting cannot say (a roster entry
-   * without a skills group, or a line-up whose skills are unknown).
+   * snapshot lists. Undefined when the importer cannot check it: a roster
+   * entry without a skills group, no Loner skill ids to read the skills
+   * against, or a line-up whose skills are unknown. Such a sighting makes no
+   * claim about a player named Journeyman.
    */
   lonerListed?: boolean;
 }
@@ -34,7 +36,8 @@ const LONER_NAME = 'loner';
  * line-up without Loner says nothing. A line-up taken before the recruitment
  * still lists Loner and so marks him; a later roster sighting clears it. A
  * roster sighting states the marker: a renamed player, or one the roster
- * lists without Loner, has been recruited. Pure and I/O-free.
+ * lists without Loner, has been recruited; one whose Loner cannot be
+ * checked leaves the stored marker alone. Pure and I/O-free.
  */
 @Injectable()
 export class JourneymanRuleService {
@@ -52,8 +55,8 @@ export class JourneymanRuleService {
    * The marker to send for one sighting: true or false, or undefined when
    * the sighting says nothing and the stored marker must stay. A roster
    * sighting of a player named Journeyman in a basic position follows
-   * `lonerListed` when it is known, and marks him when it is undefined (a
-   * roster entry without a skills group).
+   * `lonerListed` when it is known, and makes no claim when it is undefined
+   * (the stored marker stays). Any other roster player is unmarked.
    */
   decide(facts: JourneymanSightingFacts): boolean | undefined {
     const named = facts.isBasicPosition && this.isJourneymanName(facts.name);
@@ -63,6 +66,6 @@ export class JourneymanRuleService {
     if (!named) {
       return false;
     }
-    return facts.lonerListed ?? true;
+    return facts.lonerListed;
   }
 }

@@ -222,7 +222,9 @@ awards grants, even when TP leaves the flag off.
 
 A player named Journeyman in a basic position (not a mercenary, Big Guy or
 roster star position) is marked a journeyman. A roster entry is marked
-while it lists Loner and unmarked once it does not. A match-snapshot-only
+while it lists Loner and unmarked once it does not; when the import cannot
+check (an entry without a skills group, or no Loner skill ids from the
+roster file), it leaves the stored marker alone. A match-snapshot-only
 entry is marked only when its snapshot's skill ids include Loner, and
 otherwise leaves the marker alone: a recruit who kept the name and later
 left the team is seen only in snapshots, without Loner (line-up 1008237, a
