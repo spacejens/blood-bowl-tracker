@@ -265,6 +265,22 @@ export const SppAdjustmentSummarySchema = z.object({
   hadCareerCounts: z.boolean(),
 });
 
+/**
+ * A confirmed advancement order the reported SPP adjustments sync found
+ * contradicting the SPP figures it just stored. The order itself is left as
+ * stored.
+ */
+export const AdvancementOrderProblemSchema = z.object({
+  playerId: z.number().int(),
+  name: z.string(),
+  /**
+   * Why the order does not fit, phrased like the curated order check, e.g.
+   * "this order cannot cost exactly the 14 SPP reported as spent under any
+   * rules set of the player's era".
+   */
+  problem: z.string(),
+});
+
 export const SyncSppAdjustmentsResultSchema = z.object({
   updatedPlayerIds: z.array(z.number().int()),
   /**
@@ -274,6 +290,15 @@ export const SyncSppAdjustmentsResultSchema = z.object({
    * the estimate makes. Optional: only the reported (TP) path populates it.
    */
   nonzeroAdjustments: z.array(SppAdjustmentSummarySchema).optional(),
+  /**
+   * After writing the figures, the reported (TP) path rechecks every
+   * complete confirmed advancement order of the players it wrote against
+   * their stored total and unspent SPP, as the curated order check does:
+   * one entry per player whose order contradicts them, by player id.
+   * Importers report each as an import error. Optional: only the reported
+   * path populates it.
+   */
+  orderProblems: z.array(AdvancementOrderProblemSchema).optional(),
 });
 
 /**
@@ -361,6 +386,9 @@ export type SyncReportedSppAdjustments = z.infer<
   typeof SyncReportedSppAdjustmentsSchema
 >;
 export type SppAdjustmentSummary = z.infer<typeof SppAdjustmentSummarySchema>;
+export type AdvancementOrderProblem = z.infer<
+  typeof AdvancementOrderProblemSchema
+>;
 export type SyncSppAdjustmentsResult = z.infer<
   typeof SyncSppAdjustmentsResultSchema
 >;

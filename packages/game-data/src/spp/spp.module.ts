@@ -9,6 +9,7 @@ import { AdvancementOrderSpendCheckService } from './advancement-order-spend-che
 import { AdvancementPricingModelService } from './advancement-pricing-model.service';
 import { AdvancementSpendRangeService } from './advancement-spend-range.service';
 import { BblSkillSourceInferenceService } from './bbl-skill-source-inference.service';
+import { ConfirmedAdvancementOrderRecheckService } from './confirmed-advancement-order-recheck.service';
 import { PlayerPricingModelService } from './player-pricing-model.service';
 import { SppAdjustmentsService } from './spp-adjustments.service';
 import { SppAwardValuesService } from './spp-award-values.service';
@@ -31,6 +32,7 @@ import { UnspentSppDecisionService } from './unspent-spp-decision.service';
     AdvancementPricingModelService,
     AdvancementSpendRangeService,
     BblSkillSourceInferenceService,
+    ConfirmedAdvancementOrderRecheckService,
     PlayerPricingModelService,
     SppAdjustmentsService,
     SppAwardValuesService,
