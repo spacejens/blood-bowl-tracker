@@ -125,7 +125,11 @@ export class AutocompleteChoiceLabelService {
   }
 
   private choice(id: number, name: string, suffix: string): AutocompleteChoice {
-    return { name: this.fit(`${name}${suffix}`), value: String(id) };
+    // A name that fills the limit exactly leaves no room for any context, and
+    // cutting the label would clip the name's last character for nothing.
+    const label =
+      name.length === MAX_CHOICE_NAME_LENGTH ? name : `${name}${suffix}`;
+    return { name: this.fit(label), value: String(id) };
   }
 
   /**

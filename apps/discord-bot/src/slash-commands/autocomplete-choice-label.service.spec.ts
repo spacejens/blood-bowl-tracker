@@ -232,6 +232,18 @@ describe('AutocompleteChoiceLabelService', () => {
       expect(choice.value).toBe('1');
     });
 
+    it('keeps a name of exactly 100 characters whole, dropping the suffix', async () => {
+      const name = 'n'.repeat(100);
+      const rows = [{ id: 2, name }];
+      teamContext.attachSuffixes.mockResolvedValue(
+        rows.map((row) => ({ ...row, contextSuffix: ' (Orc, Skarsnik)' })),
+      );
+
+      const [choice] = await service.teamChoices(rows);
+
+      expect(choice.name).toBe(name);
+    });
+
     it('trims an over-long name itself rather than dropping it', async () => {
       const name = 'n'.repeat(150);
       const rows = [{ id: 2, name }];
