@@ -50,15 +50,29 @@ export class ErasQueriesService {
     return rows[0];
   }
 
+  /**
+   * Eras whose name starts with `prefix`, with the owning league and the era's
+   * own span, so an autocomplete label can tell same-named eras apart.
+   */
   searchByNamePrefix(
     prefix: string,
     limit: number,
-  ): Promise<{ id: number; name: string; leagueName: string }[]> {
+  ): Promise<
+    {
+      id: number;
+      name: string;
+      leagueName: string;
+      startDate: string;
+      endDate: string | null;
+    }[]
+  > {
     return this.db
       .select({
         id: eras.id,
         name: eras.name,
         leagueName: leagues.name,
+        startDate: eras.startDate,
+        endDate: eras.endDate,
       })
       .from(eras)
       .innerJoin(leagues, eq(leagues.id, eras.leagueId))

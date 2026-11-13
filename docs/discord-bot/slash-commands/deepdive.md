@@ -23,17 +23,27 @@ are plain messages with no embed, so they have no headline to prefix.
 The command takes optional string arguments, each autocompleted by name: `era`,
 `coach`, `team`, `player`, `star-player`, `race`, `position`, `competition`,
 `competition-group`, `trophy` and `league`. A suggestion carries a disambiguator
-wherever names repeat: player names repeat across teams, position names repeat
-across races (nearly every race has a "Lineman"), and a position available to
-several races produces one suggestion per race, all selecting the same
-position. Entries scoped to a league name that league; trophies name the owning
-competition group, or the league when awarded directly; coach and team
-suggestions carry their id. A star player has no single team to name, so stars
-are shown bare. A position with no race recorded is not suggested, since there
-would be no race to name, and star positions are excluded from `position`
-suggestions — they are looked up via `star-player` instead. Exact label formats
-are built in
-`apps/discord-bot/src/slash-commands/deepdive-autocomplete.service.ts`.
+wherever names repeat, identifying the entity the way the insights toplists do:
+a team names its race and coach, `Name (Race, Coach)`; a player names its
+position, team, race, era and coach, `Name (Position, Team, Race, Era, Coach)`; a coach shows the span of their recorded
+matches, `Name (2021-09-01 – 2023-06-10)`, or the bare name when they have no
+matches yet; eras and competitions name their league and date span,
+`Name (League, 2021-09-01 – present)`. Position names repeat across races
+(nearly every race has a "Lineman"), so a position names its race, and a
+position available to several races produces one suggestion per race, all
+selecting the same position. Competition groups name their league; trophies
+name the owning competition group and its league, or just the league when
+awarded directly, `Name (Competition Group, League)`. A star
+player has no single team to name, so stars are shown bare, as are races and
+leagues. A position with no race recorded is not suggested, since there would
+be no race to name, and star positions are excluded from `position`
+suggestions — they are looked up via `star-player` instead. Discord caps a
+suggestion's label at 100 characters, so an over-long label is cut short with
+`…`, losing the end of its context first and the name itself only when the
+name alone is too long. Labels are built
+in `apps/discord-bot/src/slash-commands/deepdive-autocomplete.service.ts` and,
+for the context-carrying ones,
+`apps/discord-bot/src/slash-commands/autocomplete-choice-label.service.ts`.
 
 The command validates its arguments:
 

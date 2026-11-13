@@ -238,15 +238,30 @@ export class CompetitionsQueriesService {
       .from(competitions);
   }
 
+  /**
+   * Competitions whose name starts with `prefix`, with the owning league and
+   * the competition's own span, so an autocomplete label can tell same-named
+   * competitions apart.
+   */
   searchByNamePrefix(
     prefix: string,
     limit: number,
-  ): Promise<{ id: number; name: string; leagueName: string }[]> {
+  ): Promise<
+    {
+      id: number;
+      name: string;
+      leagueName: string;
+      startDate: string;
+      endDate: string | null;
+    }[]
+  > {
     return this.db
       .select({
         id: competitions.id,
         name: competitions.name,
         leagueName: leagues.name,
+        startDate: competitions.startDate,
+        endDate: competitions.endDate,
       })
       .from(competitions)
       .innerJoin(eras, eq(eras.id, competitions.eraId))

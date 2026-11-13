@@ -31,6 +31,7 @@ import { TrophyDeepdiveService } from '../deepdive/facts/trophy-deepdive.service
 import { UnspentSppLineService } from '../deepdive/facts/unspent-spp-line.service';
 import { InsightsModule } from '../insights/insights.module';
 import { AdminModule } from './admin/admin.module';
+import { AutocompleteChoiceLabelService } from './autocomplete-choice-label.service';
 import { DebugModule } from './debug/debug.module';
 import { DeepdiveAutocompleteService } from './deepdive-autocomplete.service';
 import { DeepdiveCommandService } from './deepdive-command.service';
@@ -73,6 +74,7 @@ import { SlashCommandRegistryModule } from './slash-command-registry.module';
   providers: [
     InsightsCommandService,
     OnThisDateCommandService,
+    AutocompleteChoiceLabelService,
     DeepdiveAutocompleteService,
     DeepdiveCommandService,
     DeepdiveTargetResolverService,
