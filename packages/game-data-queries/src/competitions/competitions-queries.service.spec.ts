@@ -1,5 +1,11 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB, getColumnTable, getTableName } from '@blood-bowl-tracker/db';
+import {
+  competitions,
+  DB,
+  getColumnTable,
+  getTableName,
+  leagues,
+} from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
 import {
   Column,
@@ -110,12 +116,18 @@ describe('CompetitionsQueriesService', () => {
   });
 
   describe('searchByNamePrefix', () => {
-    it('returns competitions joined to their league name, capped at the limit', async () => {
+    it('returns competitions joined to their league name with their date span, capped at the limit', async () => {
       const rows = [
-        { id: 7, name: 'Major Season 24', leagueName: 'The Major' },
+        {
+          id: 7,
+          name: 'Major Season 24',
+          leagueName: 'The Major',
+          startDate: '2024-01-15',
+          endDate: '2024-06-30',
+        },
       ];
       likePattern.escape.mockReturnValue('Maj');
-      const { chains } = await build(rows);
+      const { db, chains } = await build(rows);
       await expect(service.searchByNamePrefix('Maj', 25)).resolves.toEqual(
         rows,
       );
@@ -126,6 +138,13 @@ describe('CompetitionsQueriesService', () => {
       expect(
         extractJoinColumns(firstCallArg(chains[0].innerJoin, 1, 1)),
       ).toEqual(['leagues.id', 'eras.league_id']);
+      expect(firstCallArg(db.select)).toEqual({
+        id: competitions.id,
+        name: competitions.name,
+        leagueName: leagues.name,
+        startDate: competitions.startDate,
+        endDate: competitions.endDate,
+      });
     });
 
     it('escapes LIKE metacharacters in the prefix', async () => {

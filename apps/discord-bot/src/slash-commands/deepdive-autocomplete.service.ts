@@ -14,6 +14,9 @@ import {
 import { Injectable } from '@nestjs/common';
 import type { AutocompleteInteraction } from 'discord.js';
 
+import type { AutocompleteChoice } from './autocomplete-choice-label.service';
+import { AutocompleteChoiceLabelService } from './autocomplete-choice-label.service';
+
 /** Discord shows at most 25 autocomplete choices. */
 const MAX_AUTOCOMPLETE_CHOICES = 25;
 
@@ -25,6 +28,10 @@ const MAX_AUTOCOMPLETE_CHOICES = 25;
  *
  * Every choice's `value` is the entity id as a string, because that is what
  * the command's resolvers parse back out.
+ *
+ * Team, player, coach, era and competition labels need context beyond the
+ * search row and are built by `AutocompleteChoiceLabelService`; the remaining
+ * options label from the search row alone.
  */
 @Injectable()
 export class DeepdiveAutocompleteService {
@@ -40,51 +47,40 @@ export class DeepdiveAutocompleteService {
     private readonly stars: StarPlayersService,
     private readonly trophiesQueries: TrophiesQueriesService,
     private readonly leaguesQueries: LeaguesQueriesService,
+    private readonly choiceLabels: AutocompleteChoiceLabelService,
   ) {}
 
   async resolve(
     interaction: AutocompleteInteraction,
-  ): Promise<{ name: string; value: string }[]> {
+  ): Promise<AutocompleteChoice[]> {
     const focused = interaction.options.getFocused(true);
     if (focused.name === 'era') {
       const eras = await this.erasQueries.searchByNamePrefix(
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );
-      return eras.map((row) => ({
-        name: `${row.name} (${row.leagueName})`,
-        value: String(row.id),
-      }));
+      return this.choiceLabels.datedScopeChoices(eras);
     }
     if (focused.name === 'coach') {
       const coaches = await this.coachesQueries.searchByNamePrefix(
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );
-      return coaches.map((row) => ({
-        name: `${row.name} (#${row.id})`,
-        value: String(row.id),
-      }));
+      return this.choiceLabels.coachChoices(coaches);
     }
     if (focused.name === 'team') {
       const teams = await this.teamsQueries.searchByNamePrefix(
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );
-      return teams.map((row) => ({
-        name: `${row.name} (#${row.id})`,
-        value: String(row.id),
-      }));
+      return this.choiceLabels.teamChoices(teams);
     }
     if (focused.name === 'player') {
       const players = await this.playersQueries.searchByNamePrefix(
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );
-      return players.map((row) => ({
-        name: `${row.name} (${row.teamName})`,
-        value: String(row.id),
-      }));
+      return this.choiceLabels.playerChoices(players);
     }
     if (focused.name === 'star-player') {
       // Cannot reuse the `player` branch: `PlayersQueriesService.searchByNamePrefix`
@@ -131,10 +127,7 @@ export class DeepdiveAutocompleteService {
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );
-      return competitions.map((row) => ({
-        name: `${row.name} (${row.leagueName})`,
-        value: String(row.id),
-      }));
+      return this.choiceLabels.datedScopeChoices(competitions);
     }
     if (focused.name === 'competition-group') {
       const competitionGroups =
@@ -152,10 +145,7 @@ export class DeepdiveAutocompleteService {
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );
-      return trophies.map((row) => ({
-        name: `${row.name} (${row.competitionGroupId !== null ? row.competitionGroupName : row.leagueName})`,
-        value: String(row.id),
-      }));
+      return this.choiceLabels.trophyChoices(trophies);
     }
     if (focused.name === 'league') {
       const leagues = await this.leaguesQueries.searchByNamePrefix(

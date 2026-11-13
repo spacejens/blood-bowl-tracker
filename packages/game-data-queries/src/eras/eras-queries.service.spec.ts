@@ -1,5 +1,5 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB, rulesSets } from '@blood-bowl-tracker/db';
+import { DB, eras, leagues, rulesSets } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
 import {
   extractFilterValues,
@@ -94,15 +94,30 @@ describe('ErasQueriesService', () => {
   });
 
   describe('searchByNamePrefix', () => {
-    it('returns eras with their league name, limited', async () => {
-      const rows = [{ id: 7, name: 'BB2020', leagueName: 'Premier League' }];
+    it('returns eras with their league name and date span, limited', async () => {
+      const rows = [
+        {
+          id: 7,
+          name: 'BB2020',
+          leagueName: 'Premier League',
+          startDate: '2020-01-01',
+          endDate: null,
+        },
+      ];
       likePattern.escape.mockReturnValue('bb');
-      const { chains } = await build(rows);
+      const { db, chains } = await build(rows);
       await expect(service.searchByNamePrefix('bb', 25)).resolves.toEqual(rows);
       expect(chains[0].limit).toHaveBeenCalledWith(25);
       expect(
         extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
       ).toEqual(['leagues.id', 'eras.league_id']);
+      expect(firstCallArg(db.select)).toEqual({
+        id: eras.id,
+        name: eras.name,
+        leagueName: leagues.name,
+        startDate: eras.startDate,
+        endDate: eras.endDate,
+      });
     });
 
     it('escapes LIKE metacharacters in the prefix before matching', async () => {

@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { PlayerDeepdiveService } from '../deepdive/facts/player-deepdive.service';
 import { TrophyDeepdiveService } from '../deepdive/facts/trophy-deepdive.service';
 import { DiscordBotConfigModule } from '../discord-bot-config.module';
+import { AutocompleteChoiceLabelService } from './autocomplete-choice-label.service';
 import { DeepdiveCommandService } from './deepdive-command.service';
 import { InsightsCommandService } from './insights-command.service';
 import { SlashCommandsModule } from './slash-commands.module';
@@ -73,6 +74,9 @@ describe('SlashCommandsModule', () => {
     );
     expect(moduleRef.get(TrophyDeepdiveService)).toBeInstanceOf(
       TrophyDeepdiveService,
+    );
+    expect(moduleRef.get(AutocompleteChoiceLabelService)).toBeInstanceOf(
+      AutocompleteChoiceLabelService,
     );
   });
 });

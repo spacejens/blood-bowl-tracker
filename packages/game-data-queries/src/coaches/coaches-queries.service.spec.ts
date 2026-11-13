@@ -1,5 +1,5 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB } from '@blood-bowl-tracker/db';
+import { DB, teams } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
 import {
   extractAllFilterValues,
@@ -497,6 +497,54 @@ describe('CoachesQueriesService', () => {
       expect(sqlText(fields.start)).toContain(") at time zone 'UTC')::date");
       expect(sqlText(fields.end)).toContain('(max(');
       expect(sqlText(fields.end)).toContain(") at time zone 'UTC')::date");
+    });
+  });
+
+  describe('getCareerSpansByIds', () => {
+    it('maps each returned row to its career span, keyed by coach id', async () => {
+      await build([
+        { coachId: 7, start: '2021-09-01', end: '2023-06-10' },
+        { coachId: 9, start: '2024-03-16', end: '2024-03-16' },
+      ]);
+      const spans = await service.getCareerSpansByIds([7, 9]);
+      expect(spans.get(7)).toEqual({ start: '2021-09-01', end: '2023-06-10' });
+      expect(spans.get(9)).toEqual({ start: '2024-03-16', end: '2024-03-16' });
+      expect(spans.size).toBe(2);
+    });
+
+    it('filters on the requested coach ids and groups by coach', async () => {
+      const { chains } = await build([]);
+      await service.getCareerSpansByIds([7, 9]);
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toEqual([
+        7, 9,
+      ]);
+      expect(chains[0].groupBy).toHaveBeenCalledWith(teams.coachId);
+    });
+
+    it('converts the min/max match timestamps to UTC calendar days', async () => {
+      const { db } = await build([]);
+      await service.getCareerSpansByIds([7]);
+      const fields = firstCallArg(db.select) as {
+        start: unknown;
+        end: unknown;
+      };
+      expect(sqlText(fields.start)).toContain('(min(');
+      expect(sqlText(fields.start)).toContain(") at time zone 'UTC')::date");
+      expect(sqlText(fields.end)).toContain('(max(');
+      expect(sqlText(fields.end)).toContain(") at time zone 'UTC')::date");
+    });
+
+    it('has no entry for a coach the query returned no row for', async () => {
+      await build([{ coachId: 7, start: '2021-09-01', end: '2023-06-10' }]);
+      const spans = await service.getCareerSpansByIds([7, 99]);
+      expect(spans.get(99)).toBeUndefined();
+    });
+
+    it('returns an empty map without querying when no coach ids are given', async () => {
+      const { db } = await build([]);
+      const spans = await service.getCareerSpansByIds([]);
+      expect(spans.size).toBe(0);
+      expect(db.select).not.toHaveBeenCalled();
     });
   });
 

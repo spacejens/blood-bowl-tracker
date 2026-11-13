@@ -17,6 +17,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
+import { AutocompleteChoiceLabelService } from './autocomplete-choice-label.service';
 import { DeepdiveAutocompleteService } from './deepdive-autocomplete.service';
 
 function autocompleteInteraction(
@@ -56,6 +57,7 @@ describe('DeepdiveAutocompleteService', () => {
   let stars: MockProxy<StarPlayersService>;
   let trophies: MockProxy<TrophiesQueriesService>;
   let leagues: MockProxy<LeaguesQueriesService>;
+  let choiceLabels: MockProxy<AutocompleteChoiceLabelService>;
 
   beforeEach(async () => {
     eras = mock<ErasQueriesService>();
@@ -69,6 +71,7 @@ describe('DeepdiveAutocompleteService', () => {
     stars = mock<StarPlayersService>();
     trophies = mock<TrophiesQueriesService>();
     leagues = mock<LeaguesQueriesService>();
+    choiceLabels = mock<AutocompleteChoiceLabelService>();
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -87,46 +90,77 @@ describe('DeepdiveAutocompleteService', () => {
         { provide: StarPlayersService, useValue: stars },
         { provide: TrophiesQueriesService, useValue: trophies },
         { provide: LeaguesQueriesService, useValue: leagues },
+        { provide: AutocompleteChoiceLabelService, useValue: choiceLabels },
       ],
     }).compile();
     service = moduleRef.get(DeepdiveAutocompleteService);
   });
 
-  it('returns era choices labelled "<name> (<league>)" with id values', async () => {
-    eras.searchByNamePrefix.mockResolvedValue([
-      { id: 3, name: 'BB2020', leagueName: 'Premier League' },
-    ]);
+  it('labels era choices through the choice label service', async () => {
+    const rows = [
+      {
+        id: 3,
+        name: 'BB2020',
+        leagueName: 'Premier League',
+        startDate: '2020-01-01',
+        endDate: null,
+      },
+    ];
+    const choices = [
+      { name: 'BB2020 (Premier League, 2020-01-01 – present)', value: '3' },
+    ];
+    eras.searchByNamePrefix.mockResolvedValue(rows);
+    choiceLabels.datedScopeChoices.mockReturnValue(choices);
 
-    await expect(
-      service.resolve(autocompleteInteraction('bb')),
-    ).resolves.toEqual([{ name: 'BB2020 (Premier League)', value: '3' }]);
+    await expect(service.resolve(autocompleteInteraction('bb'))).resolves.toBe(
+      choices,
+    );
     expect(eras.searchByNamePrefix).toHaveBeenCalledWith('bb', 25);
+    expect(choiceLabels.datedScopeChoices).toHaveBeenCalledWith(rows);
   });
 
-  it('returns coach choices labelled "<name> (#<id>)" with id values', async () => {
-    coaches.searchByNamePrefix.mockResolvedValue([{ id: 5, name: 'Roze-El' }]);
+  it('labels coach choices through the choice label service', async () => {
+    const rows = [{ id: 5, name: 'Roze-El' }];
+    const choices = [{ name: 'Roze-El (2021-09-01 – 2023-06-10)', value: '5' }];
+    coaches.searchByNamePrefix.mockResolvedValue(rows);
+    choiceLabels.coachChoices.mockResolvedValue(choices);
 
     await expect(
       service.resolve(autocompleteInteraction('ro', 'coach')),
-    ).resolves.toEqual([{ name: 'Roze-El (#5)', value: '5' }]);
+    ).resolves.toBe(choices);
+    expect(coaches.searchByNamePrefix).toHaveBeenCalledWith('ro', 25);
+    expect(choiceLabels.coachChoices).toHaveBeenCalledWith(rows);
   });
 
-  it('returns team choices labelled "<name> (#<id>)" with id values', async () => {
-    teams.searchByNamePrefix.mockResolvedValue([{ id: 8, name: '40 Thieves' }]);
+  it('labels team choices through the choice label service', async () => {
+    const rows = [{ id: 8, name: '40 Thieves' }];
+    const choices = [{ name: '40 Thieves (Orc, Skarsnik)', value: '8' }];
+    teams.searchByNamePrefix.mockResolvedValue(rows);
+    choiceLabels.teamChoices.mockResolvedValue(choices);
 
     await expect(
       service.resolve(autocompleteInteraction('40', 'team')),
-    ).resolves.toEqual([{ name: '40 Thieves (#8)', value: '8' }]);
+    ).resolves.toBe(choices);
+    expect(teams.searchByNamePrefix).toHaveBeenCalledWith('40', 25);
+    expect(choiceLabels.teamChoices).toHaveBeenCalledWith(rows);
   });
 
-  it('returns player choices labelled "<name> (<team>)" with id values', async () => {
-    players.searchByNamePrefix.mockResolvedValue([
-      { id: 9, name: 'Griff', teamName: 'Reikland Reavers' },
-    ]);
+  it('labels player choices through the choice label service', async () => {
+    const rows = [{ id: 9, name: 'Griff' }];
+    const choices = [
+      {
+        name: 'Griff (Blitzer, Reikland Reavers, Human, BB2020, Roze-El)',
+        value: '9',
+      },
+    ];
+    players.searchByNamePrefix.mockResolvedValue(rows);
+    choiceLabels.playerChoices.mockResolvedValue(choices);
 
     await expect(
       service.resolve(autocompleteInteraction('gri', 'player')),
-    ).resolves.toEqual([{ name: 'Griff (Reikland Reavers)', value: '9' }]);
+    ).resolves.toBe(choices);
+    expect(players.searchByNamePrefix).toHaveBeenCalledWith('gri', 25);
+    expect(choiceLabels.playerChoices).toHaveBeenCalledWith(rows);
   });
 
   it('returns race choices labelled by plain name with id values', async () => {
@@ -167,50 +201,53 @@ describe('DeepdiveAutocompleteService', () => {
     ]);
   });
 
-  it('returns competition choices labelled "<name> (<league>)" with id values', async () => {
-    competitions.searchByNamePrefix.mockResolvedValue([
-      { id: 6, name: 'Major Season 24', leagueName: 'Premier League' },
-    ]);
+  it('labels competition choices through the choice label service', async () => {
+    const rows = [
+      {
+        id: 6,
+        name: 'Major Season 24',
+        leagueName: 'Premier League',
+        startDate: '2024-01-15',
+        endDate: '2024-06-30',
+      },
+    ];
+    const choices = [
+      {
+        name: 'Major Season 24 (Premier League, 2024-01-15 – 2024-06-30)',
+        value: '6',
+      },
+    ];
+    competitions.searchByNamePrefix.mockResolvedValue(rows);
+    choiceLabels.datedScopeChoices.mockReturnValue(choices);
 
     await expect(
       service.resolve(autocompleteInteraction('maj', 'competition')),
-    ).resolves.toEqual([
-      { name: 'Major Season 24 (Premier League)', value: '6' },
-    ]);
+    ).resolves.toBe(choices);
+    expect(competitions.searchByNamePrefix).toHaveBeenCalledWith('maj', 25);
+    expect(choiceLabels.datedScopeChoices).toHaveBeenCalledWith(rows);
   });
 
-  it('returns trophy choices labelled "<name> (<competition group>)" with id values', async () => {
-    trophies.searchByNamePrefix.mockResolvedValue([
+  it('delegates trophy labelling to the label service', async () => {
+    const rows = [
       {
         id: 7,
         name: 'Chaos Cup',
         competitionGroupId: 4,
         competitionGroupName: 'Major',
-        leagueName: null,
+        leagueName: 'The Premier League',
       },
-    ]);
+    ];
+    const choices = [
+      { name: 'Chaos Cup (Major, The Premier League)', value: '7' },
+    ];
+    trophies.searchByNamePrefix.mockResolvedValue(rows);
+    choiceLabels.trophyChoices.mockReturnValue(choices);
 
     await expect(
       service.resolve(autocompleteInteraction('cha', 'trophy')),
-    ).resolves.toEqual([{ name: 'Chaos Cup (Major)', value: '7' }]);
+    ).resolves.toEqual(choices);
     expect(trophies.searchByNamePrefix).toHaveBeenCalledWith('cha', 25);
-  });
-
-  it('labels a league-scoped trophy with its league', async () => {
-    trophies.searchByNamePrefix.mockResolvedValue([
-      {
-        id: 3,
-        name: 'Legendary Player',
-        competitionGroupId: null,
-        competitionGroupName: null,
-        leagueName: 'tLoEG',
-      },
-    ]);
-    const interaction = autocompleteInteraction('Leg', 'trophy');
-
-    expect(await service.resolve(interaction)).toEqual([
-      { name: 'Legendary Player (tLoEG)', value: '3' },
-    ]);
+    expect(choiceLabels.trophyChoices).toHaveBeenCalledWith(rows);
   });
 
   it('returns competition group choices labelled "<name> (<league>)" with id values', async () => {
