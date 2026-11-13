@@ -132,6 +132,14 @@ async function seed(db: Db): Promise<Seeded> {
       advancementOrder: 2,
     },
     {
+      // A Loner row, so only the star-position exclusion keeps him unmarked.
+      playerId: starNamed.id,
+      skillId: loner.id,
+      source: 'chosen',
+      advancementOrder: 1,
+      isFreeExtra: true,
+    },
+    {
       playerId: recruit.id,
       skillId: loner.id,
       source: 'chosen',
