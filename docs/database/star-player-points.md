@@ -213,8 +213,8 @@ source still lists with Loner gets that Loner back as a gained free extra.
 
 The migration that introduced the marker converted only existing journeymen
 that already had a Loner row, the same way, and invented no starting Loner.
-A line-up-only journeyman with no Loner stored is marked, and gets his
-starting Loner, from a later import.
+A line-up-only journeyman with no Loner stored stays unmarked until a later
+import sees a Loner id in his snapshot.
 
 The cost model pins only confirmed entries to their advancement number, and
 every other entry is interchangeable with the rest. A sync never lets an

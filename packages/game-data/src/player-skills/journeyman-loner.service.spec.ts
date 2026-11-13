@@ -99,7 +99,10 @@ describe('JourneymanLonerService', () => {
 
       await service.ensureStartingLoner(1);
 
-      expect(db.chains[0].orderBy).toHaveBeenCalledTimes(1);
+      const order = firstCallArg(db.chains[0].orderBy);
+      expect(extractJoinColumns(order)).toEqual(['skills.id']);
+      expect(sqlText(order)).toContain(' asc');
+      expect(db.chains[0].limit).toHaveBeenCalledWith(1);
       expect(db.chains[3].values).toHaveBeenCalledWith({
         playerId: 1,
         skillId: 7,
@@ -108,10 +111,24 @@ describe('JourneymanLonerService', () => {
     });
 
     it('treats a concurrent insert of the same starting Loner as done', async () => {
-      const db = mockDb([{ id: 7 }], [], [], uniqueViolation());
+      // Chain 4 re-reads the active starting Loner the other write inserted.
+      const db = mockDb([{ id: 7 }], [], [], uniqueViolation(), [{ id: 20 }]);
       const service = await makeService(db);
 
       await expect(service.ensureStartingLoner(1)).resolves.toBeUndefined();
+      expect(extractAllFilterValues(firstCallArg(db.chains[4].where))).toEqual([
+        1,
+        'starting',
+        false,
+      ]);
+    });
+
+    it('rethrows a unique violation that left no active starting Loner', async () => {
+      const violation = uniqueViolation();
+      const db = mockDb([{ id: 7 }], [], [], violation, []);
+      const service = await makeService(db);
+
+      await expect(service.ensureStartingLoner(1)).rejects.toBe(violation);
     });
 
     it('propagates any other failure', async () => {

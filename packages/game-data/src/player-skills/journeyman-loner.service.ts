@@ -58,10 +58,12 @@ export class JourneymanLonerService {
    * Make sure the journeyman has his starting Loner: keep an active one,
    * otherwise convert his lowest-id gained Loner, otherwise revive a removed
    * starting one, otherwise insert one. The same rule the data migration
-   * follows. A concurrent write of the same journeyman that inserts his
-   * starting Loner first leaves this one's insert a unique violation; the
-   * row it wanted then exists, so that is success. The table is history
-   * tracked, so `ON CONFLICT` cannot be used instead (see docs/database.md).
+   * follows. The one race this tolerates is a concurrent write of the same
+   * journeyman inserting his starting Loner first, which leaves this one's
+   * insert a unique violation on player_advancements. That counts as success
+   * only when a re-read finds an active starting Loner for him; any other
+   * unique violation is rethrown. The table is history tracked, so
+   * `ON CONFLICT` cannot be used instead (see docs/database.md).
    */
   async ensureStartingLoner(playerId: number): Promise<void> {
     const lonerId = await this.lonerSkillId();
@@ -71,10 +73,30 @@ export class JourneymanLonerService {
     try {
       await this.ensureInTransaction(playerId, lonerId);
     } catch (error) {
-      if (!isUniqueViolationOn(error, getTableName(playerAdvancements))) {
+      if (
+        !isUniqueViolationOn(error, getTableName(playerAdvancements)) ||
+        !(await this.hasActiveStartingLoner(playerId))
+      ) {
         throw error;
       }
     }
+  }
+
+  /** Whether the player has an active starting row of a skill named Loner. */
+  private async hasActiveStartingLoner(playerId: number): Promise<boolean> {
+    const rows = await this.db
+      .select({ id: playerAdvancements.id })
+      .from(playerAdvancements)
+      .where(
+        and(
+          eq(playerAdvancements.playerId, playerId),
+          eq(playerAdvancements.source, 'starting'),
+          eq(playerAdvancements.removed, false),
+          inArray(playerAdvancements.skillId, this.lonerSkillIds(this.db)),
+        ),
+      )
+      .limit(1);
+    return rows.length > 0;
   }
 
   private async ensureInTransaction(
@@ -124,10 +146,10 @@ export class JourneymanLonerService {
    * any rules set) or is a star-player position. One statement, so it is
    * atomic and idempotent, and cheap enough to run on every write of a
    * player who is not a journeyman: a retire a failed write left undone
-   * happens on the next one. A starting
-   * row holds no number, so the recruit's numbering needs no change. A
-   * gained Loner, free extra or not, is left alone: a source still listing
-   * one on the recruit is recording a Loner he has for another reason.
+   * happens on the next one. A starting row holds no number, so the
+   * recruit's numbering needs no change. A gained Loner, free extra or not,
+   * is left alone: a source still listing one on the recruit is recording a
+   * Loner he has for another reason.
    */
   async retireStartingLoner(playerId: number): Promise<void> {
     const positionLacksIt = sql`not exists (select 1 from ${positionRulesSetSkills} inner join ${positionRulesSets} on ${positionRulesSets.id} = ${positionRulesSetSkills.positionRulesSetId} inner join ${players} on ${players.positionId} = ${positionRulesSets.positionId} where ${players.id} = ${playerAdvancements.playerId} and ${positionRulesSetSkills.skillId} = ${playerAdvancements.skillId})`;

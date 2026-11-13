@@ -210,10 +210,11 @@ not a star player's, mercenary or Big Guy hire.
   starting row holds no number, so the recruit's advancement numbering is
   unchanged. A Loner the source still lists as gained stays a free extra.
 - **Existing data.** A migration marked the stored players named Journeyman,
-  in a basic position, that have a Loner row, and turned at most one gained
-  Loner of each into the starting one, closing its number. It invents no
-  Loner: a journeyman seen only in line-ups, with no Loner stored, stays
-  unmarked until a later import sees Loner in his snapshot and marks him.
+  in a basic position, that have a non-removed Loner row, and turned at most
+  one gained Loner of each into the starting one, closing its number. It
+  invents no Loner: a journeyman seen only in line-ups, with no Loner stored,
+  stays unmarked until a later import sees Loner in his snapshot and marks
+  him.
 
 How the starting row is kept and retired is described under
 [Player advancements](../../database/star-player-points.md#player-advancements).
