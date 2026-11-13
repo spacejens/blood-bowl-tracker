@@ -194,7 +194,9 @@ not a star player's, mercenary or Big Guy hire.
   when it does not or when he is renamed. A match line-up only ever sets it,
   and only when the snapshot's skills include Loner; otherwise it says nothing
   and the stored marker stays. A recruit who kept the name and left the team
-  is seen only in line-ups, without Loner, and so is never marked from them.
+  is seen only in line-ups without Loner, which leave the marker alone, but
+  a line-up from before his recruitment still lists Loner and marks him; a
+  later roster that shows him without Loner, or renamed, clears it.
 - **His Loner is a starting skill.** The importers leave a detected
   journeyman's gained Loner out of the skills they send, and the server keeps
   one starting Loner row for him. A journeyman seen only in a line-up that

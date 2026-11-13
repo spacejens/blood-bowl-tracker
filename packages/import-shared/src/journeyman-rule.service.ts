@@ -30,9 +30,11 @@ const LONER_NAME = 'loner';
  * temporary player named "Journeyman" in a basic position of the team's
  * race, who has Loner for free until recruited. A line-up sighting only ever
  * sets the marker, and only when it lists Loner: a recruit who kept the name
- * and has since left the team is seen only in line-ups, without Loner. A
- * roster sighting states it: a renamed player, or one the roster lists
- * without Loner, has been recruited. Pure and I/O-free.
+ * and has since left the team is seen only in line-ups, without Loner, and a
+ * line-up without Loner says nothing. A line-up taken before the recruitment
+ * still lists Loner and so marks him; a later roster sighting clears it. A
+ * roster sighting states the marker: a renamed player, or one the roster
+ * lists without Loner, has been recruited. Pure and I/O-free.
  */
 @Injectable()
 export class JourneymanRuleService {

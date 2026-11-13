@@ -226,7 +226,9 @@ while it lists Loner and unmarked once it does not. A match-snapshot-only
 entry is marked only when its snapshot's skill ids include Loner, and
 otherwise leaves the marker alone: a recruit who kept the name and later
 left the team is seen only in snapshots, without Loner (line-up 1008237, a
-Rotter Lineman in Sasong 26, is one). A snapshot names none of its skills,
+Rotter Lineman in Sasong 26, is one). A snapshot from before his
+recruitment still lists Loner and marks him; a later roster without Loner,
+or with a new name, clears it. A snapshot names none of its skills,
 so its ids are read against the Loner ids the roster JSON names, and any id
 the roster leaves unnamed is named through the skill carrying it as a TP
 external id, in one lookup per roster. When a player appears in several match snapshots, the

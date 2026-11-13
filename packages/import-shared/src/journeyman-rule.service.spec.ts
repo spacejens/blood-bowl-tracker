@@ -51,7 +51,7 @@ describe('JourneymanRuleService', () => {
       ).toBe(true);
     });
 
-    it('says nothing for a journeyman whose line-up lists no Loner, so a recruit who kept the name is never marked', () => {
+    it('says nothing for a journeyman whose line-up lists no Loner, leaving the marker alone', () => {
       expect(
         service.decide({
           name: 'Journeyman',
