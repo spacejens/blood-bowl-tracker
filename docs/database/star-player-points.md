@@ -210,9 +210,14 @@ A starting row holds no number, so the recruit's numbering is unchanged, and
 a gained Loner stays a free extra by the name rule. A skills sync whose entry
 matches a removed row revives it with the entry's values, so a recruit the
 source still lists with Loner gets that Loner back as a gained free extra.
-Both the ensure and the retire lock the player's row and re-read his stored
-marker first, acting only if it still matches, so of two overlapping writes
-of one player the last committed marker always wins.
+Both the ensure and the retire lock the player's row (`FOR NO KEY UPDATE`)
+and re-read his stored marker first, acting only if it still matches, so of
+two overlapping writes of one player the last committed marker always wins.
+The retire first checks, without a lock, whether the player has an active
+starting Loner at all, and stops there when he has none. An ensure or retire
+overlapping a skills sync of the same player can still deadlock; Postgres
+then aborts one of them, the import step records the error, and the next
+write of that player heals it.
 
 The migration that introduced the marker converted only existing journeymen
 that already had a Loner row, the same way, and invented no starting Loner.

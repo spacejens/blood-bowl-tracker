@@ -58,13 +58,13 @@ export class JourneymanLonerService {
    * Make sure the journeyman has his starting Loner: keep an active one,
    * otherwise convert his lowest-id gained Loner, otherwise revive a removed
    * starting one, otherwise insert one. The same rule the data migration
-   * follows. The one race this tolerates is a concurrent write of the same
-   * journeyman inserting his starting Loner first, which leaves this one's
-   * insert a unique violation on player_advancements. That counts as success
-   * only when a re-read finds an active starting Loner for him; any other
-   * unique violation is rethrown. The table is history tracked, so
-   * `ON CONFLICT` cannot be used instead (see docs/database.md). Runs only
-   * while the player's stored marker, read under a lock on his row, is set.
+   * follows. Runs only while the player's stored marker, read under a lock
+   * on his row, is set, so two ensures of one player serialize on that lock.
+   * A unique violation on player_advancements is still caught, as a guard
+   * for an insert of the same row that does not take the lock: it counts as
+   * success only when a re-read finds an active starting Loner for him, and
+   * is rethrown otherwise. The table is history tracked, so `ON CONFLICT`
+   * cannot be used instead (see docs/database.md).
    */
   async ensureStartingLoner(playerId: number): Promise<void> {
     const lonerId = await this.lonerSkillId();
@@ -147,20 +147,28 @@ export class JourneymanLonerService {
   /**
    * Retire a recruited journeyman's starting Loner: flag the player's active
    * starting Loner `removed`, unless his position starts with Loner (under
-   * any rules set) or is a star-player position. One statement, so it is
-   * atomic and idempotent, and cheap enough to run on every write of a
-   * player who is not a journeyman: a retire a failed write left undone
-   * happens on the next one. A starting row holds no number, so the
-   * recruit's numbering needs no change. A gained Loner, free extra or not,
-   * is left alone: a source still listing one on the recruit is recording a
-   * Loner he has for another reason. Runs only while the player's stored
-   * marker, read under a lock on his row, is cleared.
+   * any rules set) or is a star-player position. It runs on every write of
+   * a player who is not a journeyman, so a retire a failed write left
+   * undone happens on the next one, and it is idempotent. To stay cheap, an
+   * unlocked read first checks for an active starting Loner and returns when
+   * there is none, the usual case. That is race-safe: the caller's own
+   * cleared marker has already committed, and an ensure that adds a Loner
+   * holds the player lock until it commits, so the caller's write waited
+   * for it. Only when such a row exists does a transaction lock the player's
+   * row, re-check that the stored marker is still cleared, and flag the row.
+   * A starting row holds no number, so the recruit's numbering needs no
+   * change. A gained Loner, free extra or not, is left alone: a source still
+   * listing one on the recruit is recording a Loner he has for another
+   * reason.
    */
   async retireStartingLoner(playerId: number): Promise<void> {
     const positionLacksIt = sql`not exists (select 1 from ${positionRulesSetSkills} inner join ${positionRulesSets} on ${positionRulesSets.id} = ${positionRulesSetSkills.positionRulesSetId} inner join ${players} on ${players.positionId} = ${positionRulesSets.positionId} where ${players.id} = ${playerAdvancements.playerId} and ${positionRulesSetSkills.skillId} = ${playerAdvancements.skillId})`;
     // A journeyman is always a basic position, and a star or mercenary
     // position (Giant Mercenary, say) records no starting skills to check.
     const notStarPosition = sql`not exists (select 1 from ${players} inner join ${positions} on ${positions.id} = ${players.positionId} where ${players.id} = ${playerAdvancements.playerId} and ${eq(positions.isStarPlayer, true)})`;
+    if (!(await this.hasActiveStartingLoner(playerId))) {
+      return;
+    }
     await this.db.transaction(async (tx) => {
       if ((await this.lockedMarker(tx, playerId)) !== false) {
         return;
@@ -182,8 +190,10 @@ export class JourneymanLonerService {
   }
 
   /**
-   * The player's stored marker, read with his row locked until the
-   * transaction ends. Two overlapping writes of one player then apply their
+   * The player's stored marker, read with his row locked (FOR NO KEY
+   * UPDATE) until the transaction ends. That lock conflicts with the player
+   * upsert's update and with other ensures and retires, but not with the
+   * key-share locks foreign-key inserts into his child tables take. Two overlapping writes of one player then apply their
    * Loner change in turn, each against the marker last committed, so the
    * last committed marker always wins. Undefined when the row is gone.
    */
@@ -195,7 +205,7 @@ export class JourneymanLonerService {
       .select({ isJourneyman: players.isJourneyman })
       .from(players)
       .where(eq(players.id, playerId))
-      .for('update');
+      .for('no key update');
     return row?.isJourneyman;
   }
 
