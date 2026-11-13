@@ -6,6 +6,7 @@ import { sql } from 'drizzle-orm';
 import {
   boolean,
   check,
+  index,
   integer,
   serial,
   text,
@@ -105,6 +106,11 @@ const playerAdvancementsTable = historyTrackedTable({
     removed: boolean('removed').notNull().default(false),
   },
   extraConfig: (t) => ({
+    // Most reads and writes pick one player's rows (a journeyman's Loner
+    // retirement runs on every player write of an import), so the player id
+    // gets its own index rather than relying on the partial unique indexes
+    // below, which leave characteristic rows out.
+    playerIdIndex: index('player_advancements_player_id_index').on(t.playerId),
     // Two partial indexes instead of one UNIQUE NULLS NOT DISTINCT: a player
     // can raise the same characteristic more than once, and those rows all
     // have a null skill and variant, so uniqueness covers skill rows only.
