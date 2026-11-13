@@ -217,12 +217,12 @@ describe('model_journeymen migration (real Postgres)', () => {
     ids = await seed(db);
   });
 
-  it('marks only players named Journeyman in a non-star position', async () => {
+  it('marks only players named Journeyman in a non-star position with a Loner row', async () => {
     await runMigration(db);
 
     expect(await isJourneyman(db, ids.bblJourneyman)).toBe(true);
     expect(await isJourneyman(db, ids.tpJourneyman)).toBe(true);
-    expect(await isJourneyman(db, ids.lineUpJourneyman)).toBe(true);
+    expect(await isJourneyman(db, ids.lineUpJourneyman)).toBe(false);
     expect(await isJourneyman(db, ids.starNamedJourneyman)).toBe(false);
     expect(await isJourneyman(db, ids.recruit)).toBe(false);
   });
@@ -258,19 +258,27 @@ describe('model_journeymen migration (real Postgres)', () => {
     });
   });
 
-  it('adds a starting Loner to a journeyman with none', async () => {
+  it('invents no Loner for a Journeyman-named player with no Loner row', async () => {
     await runMigration(db);
 
-    const rows = await db
-      .select()
-      .from(playerAdvancements)
-      .where(eq(playerAdvancements.playerId, ids.lineUpJourneyman));
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({
-      skillId: ids.loner,
-      source: 'starting',
-      attributeValue: null,
+    expect(await rowsOf(db, ids.lineUpJourneyman)).toEqual([]);
+  });
+
+  it('leaves unmarked a recruit named Journeyman with other skills but no Loner', async () => {
+    const playerId = await newJourneyman(db, ids);
+    await db.insert(playerAdvancements).values({
+      playerId,
+      skillId: ids.block,
+      source: 'chosen',
+      advancementOrder: 1,
     });
+
+    await runMigration(db);
+
+    expect(await isJourneyman(db, playerId)).toBe(false);
+    const rows = await rowsOf(db, playerId);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ skillId: ids.block, advancementOrder: 1 });
   });
 
   it("leaves a non-journeyman's gained free Loner untouched", async () => {
@@ -363,7 +371,7 @@ describe('model_journeymen migration (real Postgres)', () => {
     expect(rows[2]).toMatchObject({ advancementOrder: 2 });
   });
 
-  it('adds no Loner where a removed starting one already holds the key', async () => {
+  it('leaves unmarked a player whose only Loner row is removed', async () => {
     const playerId = await newJourneyman(db, ids);
     await db.insert(playerAdvancements).values({
       playerId,
@@ -374,6 +382,7 @@ describe('model_journeymen migration (real Postgres)', () => {
 
     await runMigration(db);
 
+    expect(await isJourneyman(db, playerId)).toBe(false);
     const rows = await rowsOf(db, playerId);
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ source: 'starting', removed: true });
@@ -476,5 +485,46 @@ describe('model_journeymen migration (real Postgres)', () => {
       advancementOrder: 2,
       orderConfirmed: false,
     });
+  });
+
+  it('treats every skill named Loner alike, converting one row and closing its slot', async () => {
+    const [secondLoner] = await db
+      .insert(skills)
+      .values({ name: 'Loner' })
+      .returning();
+    const playerId = await newJourneyman(db, ids);
+    await db.insert(playerAdvancements).values([
+      {
+        playerId,
+        skillId: secondLoner.id,
+        source: 'chosen',
+        advancementOrder: 1,
+        isFreeExtra: true,
+      },
+      {
+        playerId,
+        skillId: ids.loner,
+        source: 'chosen',
+        attributeValue: '4+',
+        advancementOrder: 2,
+        isFreeExtra: true,
+      },
+      {
+        playerId,
+        skillId: ids.dodge,
+        source: 'random',
+        advancementOrder: 3,
+      },
+    ]);
+
+    await runMigration(db);
+
+    expect(await isJourneyman(db, playerId)).toBe(true);
+    const rows = await rowsOf(db, playerId);
+    expect(rows.map((row) => [row.source, row.advancementOrder])).toEqual([
+      ['starting', null],
+      ['chosen', 1],
+      ['random', 2],
+    ]);
   });
 });

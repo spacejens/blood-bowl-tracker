@@ -1,13 +1,25 @@
 -- A journeyman is a temporary player named "Journeyman" in a basic position
 -- of the team's race (any position that is not a star player's). Mark every
--- such player, trimming the name and ignoring its case.
+-- such player that already has a Loner row that is not removed, of any
+-- source, trimming the name and ignoring its case. A Journeyman-named player
+-- with no Loner row is left unmarked: he may be a recruit, and a later
+-- import that sees his Loner marks him. Every skill named Loner counts.
 UPDATE "game_data"."players" AS p
 SET "is_journeyman" = true
 FROM "game_data"."positions" AS pos
 WHERE pos."id" = p."position_id"
   AND pos."is_star_player" = false
   AND lower(btrim(p."name")) = 'journeyman'
-  AND p."is_journeyman" = false;
+  AND p."is_journeyman" = false
+  AND EXISTS (
+    SELECT 1
+    FROM "game_data"."player_advancements" AS a
+    WHERE a."player_id" = p."id"
+      AND a."removed" = false
+      AND a."skill_id" IN (
+        SELECT "id" FROM "game_data"."skills" WHERE "name" = 'Loner'
+      )
+  );
 --> statement-breakpoint
 -- A journeyman's Loner becomes a starting skill below, so it leaves the
 -- numbering. Only one Loner row per journeyman is converted: his
@@ -26,9 +38,10 @@ SET "advancement_order" = pa."advancement_order" - (
     WHERE l."id" = (
         SELECT min(m."id")
         FROM "game_data"."player_advancements" AS m
-        JOIN "game_data"."skills" AS ms ON ms."id" = m."skill_id"
         WHERE m."player_id" = pa."player_id"
-          AND ms."name" = 'Loner'
+          AND m."skill_id" IN (
+            SELECT "id" FROM "game_data"."skills" WHERE "name" = 'Loner'
+          )
           AND m."source" <> 'starting'
           AND m."removed" = false
       )
@@ -37,9 +50,10 @@ SET "advancement_order" = pa."advancement_order" - (
       AND NOT EXISTS (
         SELECT 1
         FROM "game_data"."player_advancements" AS st
-        JOIN "game_data"."skills" AS sts ON sts."id" = st."skill_id"
         WHERE st."player_id" = pa."player_id"
-          AND sts."name" = 'Loner'
+          AND st."skill_id" IN (
+            SELECT "id" FROM "game_data"."skills" WHERE "name" = 'Loner'
+          )
           AND st."source" = 'starting'
           AND st."removed" = false
       )
@@ -54,60 +68,46 @@ WHERE p."id" = pa."player_id"
   AND pa."id" <> (
     SELECT min(m."id")
     FROM "game_data"."player_advancements" AS m
-    JOIN "game_data"."skills" AS ms ON ms."id" = m."skill_id"
     WHERE m."player_id" = pa."player_id"
-      AND ms."name" = 'Loner'
+      AND m."skill_id" IN (
+        SELECT "id" FROM "game_data"."skills" WHERE "name" = 'Loner'
+      )
       AND m."source" <> 'starting'
       AND m."removed" = false
   );
 --> statement-breakpoint
--- That gained Loner (deliberately the lowest id, so the choice is stable and
--- the same one statement 2 counted) becomes the journeyman's starting Loner, keeping its
--- roll as the variant. The history triggers record the change. The row's
--- unique key (player, skill, variant) does not change, so no index can
--- collide.
+-- That gained Loner (deliberately the lowest id over every skill named
+-- Loner, so the choice is stable and the same one statement 2 counted)
+-- becomes the journeyman's starting Loner, keeping its roll as the variant.
+-- The history triggers record the change. The row's unique key (player,
+-- skill, variant) does not change, so no index can collide. A marked
+-- journeyman always has a Loner row, so no starting Loner is invented here.
 UPDATE "game_data"."player_advancements" AS pa
 SET "source" = 'starting',
   "advancement_order" = NULL,
   "order_confirmed" = false,
   "is_free_extra" = false
-FROM "game_data"."players" AS p, "game_data"."skills" AS s
+FROM "game_data"."players" AS p
 WHERE p."id" = pa."player_id"
-  AND s."id" = pa."skill_id"
   AND p."is_journeyman" = true
-  AND s."name" = 'Loner'
   AND pa."source" <> 'starting'
   AND pa."removed" = false
   AND pa."id" = (
     SELECT min(m."id")
     FROM "game_data"."player_advancements" AS m
     WHERE m."player_id" = pa."player_id"
-      AND m."skill_id" = pa."skill_id"
+      AND m."skill_id" IN (
+        SELECT "id" FROM "game_data"."skills" WHERE "name" = 'Loner'
+      )
       AND m."source" <> 'starting'
       AND m."removed" = false
   )
   AND NOT EXISTS (
     SELECT 1 FROM "game_data"."player_advancements" AS st
     WHERE st."player_id" = pa."player_id"
-      AND st."skill_id" = pa."skill_id"
+      AND st."skill_id" IN (
+        SELECT "id" FROM "game_data"."skills" WHERE "name" = 'Loner'
+      )
       AND st."source" = 'starting'
       AND st."removed" = false
-  );
---> statement-breakpoint
--- A journeyman with no Loner recorded at all (one TP shows only in match
--- line-ups, which name no skills) gets a starting Loner with no variant.
--- It is skipped where any row, removed or not, already holds the
--- (player, Loner, no variant) key, which a unique index would reject.
-INSERT INTO "game_data"."player_advancements" ("player_id", "skill_id", "source")
-SELECT p."id", s."id", 'starting'
-FROM "game_data"."players" AS p
-CROSS JOIN "game_data"."skills" AS s
-WHERE p."is_journeyman" = true
-  AND s."name" = 'Loner'
-  AND NOT EXISTS (
-    SELECT 1 FROM "game_data"."player_advancements" AS pa
-    WHERE pa."player_id" = p."id"
-      AND pa."skill_id" = s."id"
-      AND ((pa."source" = 'starting' AND pa."removed" = false)
-        OR pa."attribute_value" IS NULL)
   );

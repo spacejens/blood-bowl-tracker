@@ -200,15 +200,20 @@ not a star player's, mercenary or Big Guy hire.
   one starting Loner row for him. A journeyman seen only in a line-up that
   lists Loner gets that starting Loner, with no variant, from the server.
   Starting skills are not [advancements](../skills/index.md#player-skills), so
-  he has no gained skill from it.
+  he has no gained skill from it. A gained Loner still sent for a marked
+  journeyman (from a manual batch, say) is turned back into the starting row
+  by the next write of the player, unless a starting Loner remains beside it,
+  in which case it stays a free extra.
 - **Recruitment.** When a player is written with the marker cleared, the
   server retires only that starting Loner by its `removed` flag; it never
   deletes it, and spares a Loner that belongs to the player's position. A
   starting row holds no number, so the recruit's advancement numbering is
   unchanged. A Loner the source still lists as gained stays a free extra.
-- **Existing data.** A migration marked the journeymen already stored and
-  turned at most one gained Loner of each into the starting one, closing its
-  number.
+- **Existing data.** A migration marked the stored players named Journeyman,
+  in a basic position, that have a Loner row, and turned at most one gained
+  Loner of each into the starting one, closing its number. It invents no
+  Loner: a journeyman seen only in line-ups, with no Loner stored, stays
+  unmarked until a later import sees Loner in his snapshot and marks him.
 
 How the starting row is kept and retired is described under
 [Player advancements](../../database/star-player-points.md#player-advancements).

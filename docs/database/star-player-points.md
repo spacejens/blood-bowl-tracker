@@ -211,6 +211,11 @@ a gained Loner stays a free extra by the name rule. A skills sync whose entry
 matches a removed row revives it with the entry's values, so a recruit the
 source still lists with Loner gets that Loner back as a gained free extra.
 
+The migration that introduced the marker converted only existing journeymen
+that already had a Loner row, the same way, and invented no starting Loner.
+A line-up-only journeyman with no Loner stored is marked, and gets his
+starting Loner, from a later import.
+
 The cost model pins only confirmed entries to their advancement number, and
 every other entry is interchangeable with the rest. A sync never lets an
 unconfirmed incoming order overwrite a confirmed stored one.
