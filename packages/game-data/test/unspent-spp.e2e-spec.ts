@@ -39,6 +39,7 @@ import { AdvancementKindCandidatesService } from '../src/spp/advancement-kind-ca
 import { AdvancementPricingModelService } from '../src/spp/advancement-pricing-model.service';
 import { AdvancementSpendRangeService } from '../src/spp/advancement-spend-range.service';
 import { BblSkillSourceInferenceService } from '../src/spp/bbl-skill-source-inference.service';
+import { ConfirmedAdvancementOrderRecheckService } from '../src/spp/confirmed-advancement-order-recheck.service';
 import { SppAdjustmentsService } from '../src/spp/spp-adjustments.service';
 import { SppForcedRateService } from '../src/spp/spp-forced-rate.service';
 import { SppOngoingEstimateService } from '../src/spp/spp-ongoing-estimate.service';
@@ -663,6 +664,8 @@ describe('unspent_spp storage (real Postgres)', () => {
     );
     const ongoing = mock<SppOngoingEstimateService>();
     ongoing.estimateForPlayers.mockResolvedValue(new Map());
+    const recheck = mock<ConfirmedAdvancementOrderRecheckService>();
+    recheck.recheck.mockResolvedValue([]);
     const moduleRef = await Test.createTestingModule({
       providers: [
         SppAdjustmentsService,
@@ -681,6 +684,7 @@ describe('unspent_spp storage (real Postgres)', () => {
           useValue: mock<SppForcedRateService>(),
         },
         { provide: SppOngoingEstimateService, useValue: ongoing },
+        { provide: ConfirmedAdvancementOrderRecheckService, useValue: recheck },
       ],
     }).compile();
     adjustments = moduleRef.get(SppAdjustmentsService);

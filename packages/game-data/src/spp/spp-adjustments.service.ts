@@ -11,6 +11,7 @@ import { DB, inArray, players } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { BblSkillSourceInferenceService } from './bbl-skill-source-inference.service';
+import { ConfirmedAdvancementOrderRecheckService } from './confirmed-advancement-order-recheck.service';
 import { SppForcedRateService } from './spp-forced-rate.service';
 import { SppOngoingEstimateService } from './spp-ongoing-estimate.service';
 import { SppTotalsService } from './spp-totals.service';
@@ -52,6 +53,13 @@ interface AdjustmentWrite extends TotalWrite {
  * spend BBL reports settles it (see `BblSkillSourceInferenceService`),
  * before the unspent SPP is stored. A skill settled on an earlier import
  * stays settled.
+ *
+ * The TP sync then rechecks the confirmed advancement orders of the players
+ * it wrote against the total and unspent SPP it stored
+ * (ConfirmedAdvancementOrderRecheckService) and returns each contradiction
+ * in `orderProblems`; the orders are left as stored. The BBL sync does not:
+ * BBL's unspent figure is priced at BB2020 costs, so under another era's
+ * rules sets it could contradict an order that is right.
  */
 @Injectable()
 export class SppAdjustmentsService {
@@ -62,6 +70,7 @@ export class SppAdjustmentsService {
     private readonly ongoingEstimate: SppOngoingEstimateService,
     private readonly unspentDecision: UnspentSppDecisionService,
     private readonly skillSources: BblSkillSourceInferenceService,
+    private readonly orderRecheck: ConfirmedAdvancementOrderRecheckService,
   ) {}
 
   async syncScrapedAdjustments(
@@ -148,7 +157,11 @@ export class SppAdjustmentsService {
     // payload writes the same values.
     const ids = [...reportedByPlayerId.keys()];
     if (ids.length === 0) {
-      return { updatedPlayerIds: [], nonzeroAdjustments: [] };
+      return {
+        updatedPlayerIds: [],
+        nonzeroAdjustments: [],
+        orderProblems: [],
+      };
     }
 
     // The name comes along for the nonzero-adjustment summary below.
@@ -157,7 +170,11 @@ export class SppAdjustmentsService {
       .from(players)
       .where(inArray(players.id, ids));
     if (rows.length === 0) {
-      return { updatedPlayerIds: [], nonzeroAdjustments: [] };
+      return {
+        updatedPlayerIds: [],
+        nonzeroAdjustments: [],
+        orderProblems: [],
+      };
     }
 
     const reportedIds = rows.map((row) => row.id);
@@ -202,13 +219,17 @@ export class SppAdjustmentsService {
       }
     }
 
+    const written = await this.applyWrites(
+      await this.withUnspentSpp(totals, snapshotsByPlayerId),
+    );
     return {
-      ...(await this.applyWrites(
-        await this.withUnspentSpp(totals, snapshotsByPlayerId),
-      )),
+      ...written,
       nonzeroAdjustments: nonzeroAdjustments.sort(
         (a, b) => b.adjustment - a.adjustment,
       ),
+      // After the write's transaction: a contradiction is reported, and
+      // never undoes the figures just stored.
+      orderProblems: await this.orderRecheck.recheck(written.updatedPlayerIds),
     };
   }
 

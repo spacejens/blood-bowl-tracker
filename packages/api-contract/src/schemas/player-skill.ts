@@ -114,7 +114,9 @@ export const SyncPlayerSkillsSchema = z.object({
    * one for one, are confirmed and numbered from 1, and cost exactly the SPP
    * the player reports as spent under some rules set of his era. That cost
    * check applies only when both his total and unspent SPP are stored; a
-   * player missing either figure is checked for the one-for-one match alone. A stored
+   * player missing either figure is checked for the one-for-one match alone,
+   * and the reported SPP adjustments sync rechecks the order once it stores
+   * both (see `SyncSppAdjustmentsResultSchema.orderProblems`). A stored
    * gained skill the free-extra rules make free counts as free even when its
    * stored flag is unset, and an accepted batch flags it. A batch it accepts
    * keeps the players' stored unspent SPP.

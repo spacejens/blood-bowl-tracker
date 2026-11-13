@@ -11,6 +11,7 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { BblSkillSourceInferenceService } from './bbl-skill-source-inference.service';
+import { ConfirmedAdvancementOrderRecheckService } from './confirmed-advancement-order-recheck.service';
 import { SppAdjustmentsService } from './spp-adjustments.service';
 import { SppForcedRateService } from './spp-forced-rate.service';
 import { SppOngoingEstimateService } from './spp-ongoing-estimate.service';
@@ -25,6 +26,7 @@ interface Harness {
   ongoing: MockProxy<SppOngoingEstimateService>;
   unspent: MockProxy<UnspentSppDecisionService>;
   skillSources: MockProxy<BblSkillSourceInferenceService>;
+  recheck: MockProxy<ConfirmedAdvancementOrderRecheckService>;
 }
 
 async function makeService(db: MockDbResult): Promise<Harness> {
@@ -35,6 +37,8 @@ async function makeService(db: MockDbResult): Promise<Harness> {
   const unspent = mock<UnspentSppDecisionService>();
   unspent.decide.mockResolvedValue(new Map());
   const skillSources = mock<BblSkillSourceInferenceService>();
+  const recheck = mock<ConfirmedAdvancementOrderRecheckService>();
+  recheck.recheck.mockResolvedValue([]);
   const moduleRef = await Test.createTestingModule({
     providers: [
       SppAdjustmentsService,
@@ -44,6 +48,7 @@ async function makeService(db: MockDbResult): Promise<Harness> {
       { provide: SppOngoingEstimateService, useValue: ongoing },
       { provide: UnspentSppDecisionService, useValue: unspent },
       { provide: BblSkillSourceInferenceService, useValue: skillSources },
+      { provide: ConfirmedAdvancementOrderRecheckService, useValue: recheck },
     ],
   }).compile();
   return {
@@ -54,6 +59,7 @@ async function makeService(db: MockDbResult): Promise<Harness> {
     ongoing,
     unspent,
     skillSources,
+    recheck,
   };
 }
 
@@ -596,7 +602,11 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
       players: [{ playerId: 1 }],
     });
 
-    expect(result).toEqual({ updatedPlayerIds: [], nonzeroAdjustments: [] });
+    expect(result).toEqual({
+      updatedPlayerIds: [],
+      nonzeroAdjustments: [],
+      orderProblems: [],
+    });
     expect(h.db.chains).toHaveLength(0);
   });
 
@@ -607,7 +617,11 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
       players: [{ playerId: 1, reportedSppTotal: 5 }],
     });
 
-    expect(result).toEqual({ updatedPlayerIds: [], nonzeroAdjustments: [] });
+    expect(result).toEqual({
+      updatedPlayerIds: [],
+      nonzeroAdjustments: [],
+      orderProblems: [],
+    });
     expect(h.totals.totalsForPlayers).not.toHaveBeenCalled();
   });
 
@@ -798,5 +812,83 @@ describe('SppAdjustmentsService skill sources', () => {
     });
 
     expect(h.skillSources.inferSources).not.toHaveBeenCalled();
+  });
+});
+
+describe('SppAdjustmentsService confirmed order recheck', () => {
+  const problem = {
+    playerId: 1,
+    name: 'Karcheres',
+    problem:
+      "this order cannot cost exactly the 14 SPP reported as spent under any rules set of the player's era",
+  };
+
+  it('rechecks the players the TP sync wrote and returns their order problems', async () => {
+    const h = await makeService(
+      mockDb(
+        [
+          { id: 1, name: 'Karcheres' },
+          { id: 2, name: 'Other' },
+        ],
+        [{ id: 2 }, { id: 1 }],
+      ),
+    );
+    h.totals.totalsForPlayers.mockResolvedValue(new Map());
+    h.recheck.recheck.mockResolvedValue([problem]);
+
+    const result = await h.service.syncReportedAdjustments({
+      players: [
+        { playerId: 1, reportedSppTotal: 20 },
+        { playerId: 2, reportedSppTotal: 20 },
+      ],
+    });
+
+    expect(h.recheck.recheck).toHaveBeenCalledWith([1, 2]);
+    expect(result.orderProblems).toEqual([problem]);
+  });
+
+  it('rechecks only the players the update reports as written', async () => {
+    const h = await makeService(
+      mockDb(
+        [
+          { id: 1, name: 'Karcheres' },
+          { id: 2, name: 'Other' },
+        ],
+        [{ id: 1 }],
+      ),
+    );
+    h.totals.totalsForPlayers.mockResolvedValue(new Map());
+
+    await h.service.syncReportedAdjustments({
+      players: [
+        { playerId: 1, reportedSppTotal: 20 },
+        { playerId: 2, reportedSppTotal: 20 },
+      ],
+    });
+
+    expect(h.recheck.recheck).toHaveBeenCalledWith([1]);
+  });
+
+  it('rechecks nothing when the TP sync writes nothing', async () => {
+    const h = await makeService(mockDb([]));
+
+    await h.service.syncReportedAdjustments({
+      players: [{ playerId: 1, reportedSppTotal: 5 }],
+    });
+
+    expect(h.recheck.recheck).not.toHaveBeenCalled();
+  });
+
+  it('does not recheck in the BBL sync', async () => {
+    const h = await makeService(mockDb([{ id: 1 }]));
+    h.totals.totalsForPlayers.mockResolvedValue(new Map());
+    h.forcedRate.forcedRateSumsForPlayers.mockResolvedValue(new Map());
+
+    const result = await h.service.syncScrapedAdjustments({
+      players: [{ playerId: 1, scrapedTotal: 20 }],
+    });
+
+    expect(h.recheck.recheck).not.toHaveBeenCalled();
+    expect(result).not.toHaveProperty('orderProblems');
   });
 });
