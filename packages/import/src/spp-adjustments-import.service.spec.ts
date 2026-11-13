@@ -1,5 +1,6 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
@@ -25,6 +26,7 @@ describe('SppAdjustmentsImportService', () => {
         SppAdjustmentsImportService,
         { provide: API_CLIENT, useValue: client },
         { provide: ImportRunnerService, useValue: runner },
+        ImportResultService,
       ],
     }).compile();
     service = moduleRef.get(SppAdjustmentsImportService);
@@ -126,6 +128,40 @@ describe('SppAdjustmentsImportService', () => {
       expect(client.players.syncReportedSppAdjustments).toHaveBeenCalledWith(
         data,
       );
+    });
+
+    it('appends one error per order problem the sync reports', async () => {
+      runner.recordUpsertResult.mockResolvedValue({
+        updatedPlayerIds: [3],
+        orderProblems: [
+          {
+            playerId: 3,
+            name: 'Karcheres',
+            problem: 'has 7 paid advancements; at most 6 can be checked',
+          },
+        ],
+      });
+
+      await service.syncReportedSppAdjustments(data, errors);
+
+      expect(errors).toEqual([
+        {
+          item: { playerId: 3 },
+          message:
+            'Rechecking the confirmed advancement order of Karcheres (player 3) against his stored SPP failed: has 7 paid advancements; at most 6 can be checked',
+        },
+      ]);
+    });
+
+    it('appends nothing when the sync failed or reported no order problem', async () => {
+      runner.recordUpsertResult.mockResolvedValueOnce(undefined);
+      await service.syncReportedSppAdjustments(data, errors);
+      runner.recordUpsertResult.mockResolvedValueOnce({
+        updatedPlayerIds: [3],
+      });
+      await service.syncReportedSppAdjustments(data, errors);
+
+      expect(errors).toEqual([]);
     });
 
     it('builds a failure message naming the batch size', async () => {

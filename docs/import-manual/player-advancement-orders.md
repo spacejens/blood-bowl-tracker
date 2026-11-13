@@ -60,14 +60,22 @@ and the batch is left unrecorded. An entry is refused when:
   any rules set of the player's era.
 
 The SPP checks run when the player's total SPP and unspent SPP are both
-stored. A scratch import's first TP pass stores no unspent SPP yet (no
-advancement costs exist until batch 004 is applied), so the order is then
-written confirmed without the pricing check. The second TP pass then stores
-TP's own unspent figure and does not re-check the order, so an order written
-unchecked is checked only if the batch is applied again with the figures
-stored. In production the check runs against the stored figures; a team
-imported live leaves the unspent figure unset until a bulk TP import stores it,
-in which case the order is written unchecked.
+stored. When either is missing, the order is written confirmed after the
+one-for-one match alone. That happens in two cases: a scratch import's first
+TP pass stores no unspent SPP yet (no advancement costs exist until batch 004
+is applied), and a team imported live leaves the unspent figure unset until a
+match or competition import settles it.
+
+The TP SPP adjustments step stores both figures at the end of a bulk TP
+import and of a live match or competition import. It then rechecks the order
+of every player it writes whose paid advancements are all confirmed, with the
+same SPP checks. An order that fails is reported as an import error of that
+step, naming the player. The order stays as stored and confirmed, so a later
+import still never replaces it with a guess. The error repeats on every later
+import that stores the figures, until a follow-up batch supersedes the order
+or the data changes. BBL's SPP adjustments step does not recheck: BBL's
+unspent figure is priced at BB2020 costs, so under another era's rules sets
+it could contradict an order that is right.
 
 A skill's stored source (chosen or random) is kept: the entry changes only
 the order, apart from flagging stored free extras as described above. The

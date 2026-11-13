@@ -55,6 +55,11 @@ export interface ImportSppAdjustmentsOptions {
  * Whatever adjustment survives that comes back in `nonzeroAdjustments`, a
  * one-off developer review aid the import run prints at the end.
  *
+ * The server then rechecks the confirmed advancement orders of the players it
+ * wrote against the stored total and unspent SPP. Each contradiction becomes
+ * an import error of this step (through `SppAdjustmentsImportService`), so the
+ * run exits non-zero while the orders stay as stored.
+ *
  * Must run after the match-events step, since it depends on
  * `match_events.spp_value` already being populated. Idempotent: the server
  * writes an absolute value on every run.

@@ -1,4 +1,5 @@
 import type {
+  AdvancementOrderProblem,
   ImportError,
   ImportResult,
 } from '@blood-bowl-tracker/api-contract';
@@ -14,6 +15,20 @@ import { Injectable } from '@nestjs/common';
 export class ImportResultService {
   error(args: { item: unknown; message: string }): ImportError {
     return { item: args.item, message: args.message };
+  }
+
+  /**
+   * One error per confirmed advancement order the SPP adjustments sync found
+   * contradicting the player's stored SPP, so a bulk and a live import word
+   * them alike.
+   */
+  orderProblemErrors(problems: AdvancementOrderProblem[]): ImportError[] {
+    return problems.map(({ playerId, name, problem }) =>
+      this.error({
+        item: { playerId },
+        message: `Rechecking the confirmed advancement order of ${name} (player ${playerId}) against his stored SPP failed: ${problem}`,
+      }),
+    );
   }
 
   /** `success` is true exactly when `errors` is empty. */

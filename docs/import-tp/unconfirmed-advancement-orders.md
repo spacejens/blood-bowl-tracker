@@ -175,3 +175,6 @@ A player's order can be recorded by hand in a manual import batch (see
 [Player advancement orders](../import-manual/player-advancement-orders.md));
 when the player's SPP figures are stored, the import refuses any order the
 reported spend does not allow.
+The check also runs after the figures are stored: the TP SPP adjustments
+step rechecks every confirmed order and reports a contradiction as an
+import error.

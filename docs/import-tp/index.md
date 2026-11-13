@@ -381,7 +381,11 @@ A star player hired mid-season through an `inducements_roll` event has no `lineU
   career-wide and can include competitions not yet downloaded, each player's
   TP-reported career action counts are sent along so the server can price and
   discount those not-yet-imported events instead of misattributing them as
-  unexplained adjustment. Runs after match-file import, since it depends on
+  unexplained adjustment. It then rechecks every confirmed advancement order
+  of the players it wrote against the stored total and unspent SPP (see
+  [Player advancement orders](../import-manual/player-advancement-orders.md)).
+  A contradiction is an import error of this step, so the run exits
+  non-zero, while the order stays as stored. Runs after match-file import, since it depends on
   `match_events.spp_value` already being populated.
 
 ### Lasting-injury history backfill

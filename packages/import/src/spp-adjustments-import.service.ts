@@ -5,6 +5,7 @@ import type {
   SyncScrapedSppAdjustments,
   SyncSppAdjustmentsResult,
 } from '@blood-bowl-tracker/api-contract';
+import { ImportResultService } from '@blood-bowl-tracker/import-shared';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { ImportRunnerService } from './import-runner.service';
@@ -16,13 +17,17 @@ import type { ImportError } from './types';
  * non-fatal error if the call itself fails. Which players to send — and
  * which of the two shapes applies — is each importer's business: BBL sends
  * the career totals it scraped, TP sends bare ids and the server reads the
- * totals it already imported.
+ * totals it already imported. A confirmed advancement order the reported
+ * sync finds contradicting the stored SPP comes back in `orderProblems`.
+ * Each one is recorded as an error, so the rest of the import carries on and
+ * the run reports failure.
  */
 @Injectable()
 export class SppAdjustmentsImportService {
   constructor(
     @Inject(API_CLIENT) private readonly client: ApiClient,
     private readonly importRunner: ImportRunnerService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   syncScrapedSppAdjustments(
@@ -40,11 +45,11 @@ export class SppAdjustmentsImportService {
     });
   }
 
-  syncReportedSppAdjustments(
+  async syncReportedSppAdjustments(
     data: SyncReportedSppAdjustments,
     errors: ImportError[],
   ): Promise<SyncSppAdjustmentsResult | undefined> {
-    return this.importRunner.recordUpsertResult({
+    const result = await this.importRunner.recordUpsertResult({
       upsert: () => this.client.players.syncReportedSppAdjustments(data),
       item: data,
       errors,
@@ -53,5 +58,9 @@ export class SppAdjustmentsImportService {
           err instanceof Error ? err.message : String(err)
         }`,
     });
+    errors.push(
+      ...this.importResults.orderProblemErrors(result?.orderProblems ?? []),
+    );
+    return result;
   }
 }
