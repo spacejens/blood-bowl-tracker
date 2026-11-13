@@ -158,7 +158,7 @@ describe('ConfirmedAdvancementOrderRecheckService', () => {
                 source: 'characteristic',
                 advancementOrder: 1,
               }),
-              // An unflagged Loner the free-extra rules make free: counted free.
+              // Returned by the spend check already counted free.
               row(13, {
                 isFreeExtra: true,
                 advancementOrder: 2,

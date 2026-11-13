@@ -74,7 +74,9 @@ when an earlier one fails:
    after step 7: the match backfill re-imports every team's roster, which
    writes TP's raw total back. It runs even when no backfill ran, since step
    3 re-imported the rosters too. A failure is reported in `sppAdjustments`
-   and never fails the import. As in a live match import, a confirmed advancement order that the stored SPP contradicts is reported there too. A player of a backfilled match whose events
+   and never fails the import. As in a live match import, a confirmed advancement
+   order that the stored SPP contradicts is reported there too. A player of a
+   backfilled match whose events
    were not imported (a team import failed, the match row was not written,
    participation was not linked, or the events stage reported errors) is not
    settled, from any source, since the imported-event sum is incomplete; a

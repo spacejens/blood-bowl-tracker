@@ -385,8 +385,8 @@ A star player hired mid-season through an `inducements_roll` event has no `lineU
   of the players it wrote against the stored total and unspent SPP (see
   [Player advancement orders](../import-manual/player-advancement-orders.md)).
   A contradiction is an import error of this step, so the run exits
-  non-zero, while the order stays as stored. Runs after match-file import, since it depends on
-  `match_events.spp_value` already being populated.
+  non-zero, while the order stays as stored. Runs after match-file import,
+  since it depends on `match_events.spp_value` already being populated.
 
 ### Lasting-injury history backfill
 
