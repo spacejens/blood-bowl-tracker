@@ -63,7 +63,8 @@ export class JourneymanLonerService {
    * insert a unique violation on player_advancements. That counts as success
    * only when a re-read finds an active starting Loner for him; any other
    * unique violation is rethrown. The table is history tracked, so
-   * `ON CONFLICT` cannot be used instead (see docs/database.md).
+   * `ON CONFLICT` cannot be used instead (see docs/database.md). Runs only
+   * while the player's stored marker, read under a lock on his row, is set.
    */
   async ensureStartingLoner(playerId: number): Promise<void> {
     const lonerId = await this.lonerSkillId();
@@ -104,6 +105,9 @@ export class JourneymanLonerService {
     lonerId: number,
   ): Promise<void> {
     await this.db.transaction(async (tx) => {
+      if ((await this.lockedMarker(tx, playerId)) !== true) {
+        return;
+      }
       const rows = await this.lonerRows(tx, playerId);
       if (rows.some((row) => !row.removed && row.source === 'starting')) {
         return;
@@ -149,26 +153,50 @@ export class JourneymanLonerService {
    * happens on the next one. A starting row holds no number, so the
    * recruit's numbering needs no change. A gained Loner, free extra or not,
    * is left alone: a source still listing one on the recruit is recording a
-   * Loner he has for another reason.
+   * Loner he has for another reason. Runs only while the player's stored
+   * marker, read under a lock on his row, is cleared.
    */
   async retireStartingLoner(playerId: number): Promise<void> {
     const positionLacksIt = sql`not exists (select 1 from ${positionRulesSetSkills} inner join ${positionRulesSets} on ${positionRulesSets.id} = ${positionRulesSetSkills.positionRulesSetId} inner join ${players} on ${players.positionId} = ${positionRulesSets.positionId} where ${players.id} = ${playerAdvancements.playerId} and ${positionRulesSetSkills.skillId} = ${playerAdvancements.skillId})`;
     // A journeyman is always a basic position, and a star or mercenary
     // position (Giant Mercenary, say) records no starting skills to check.
     const notStarPosition = sql`not exists (select 1 from ${players} inner join ${positions} on ${positions.id} = ${players.positionId} where ${players.id} = ${playerAdvancements.playerId} and ${eq(positions.isStarPlayer, true)})`;
-    await this.db
-      .update(playerAdvancements)
-      .set({ removed: true })
-      .where(
-        and(
-          eq(playerAdvancements.playerId, playerId),
-          eq(playerAdvancements.source, 'starting'),
-          eq(playerAdvancements.removed, false),
-          inArray(playerAdvancements.skillId, this.lonerSkillIds(this.db)),
-          positionLacksIt,
-          notStarPosition,
-        ),
-      );
+    await this.db.transaction(async (tx) => {
+      if ((await this.lockedMarker(tx, playerId)) !== false) {
+        return;
+      }
+      await tx
+        .update(playerAdvancements)
+        .set({ removed: true })
+        .where(
+          and(
+            eq(playerAdvancements.playerId, playerId),
+            eq(playerAdvancements.source, 'starting'),
+            eq(playerAdvancements.removed, false),
+            inArray(playerAdvancements.skillId, this.lonerSkillIds(tx)),
+            positionLacksIt,
+            notStarPosition,
+          ),
+        );
+    });
+  }
+
+  /**
+   * The player's stored marker, read with his row locked until the
+   * transaction ends. Two overlapping writes of one player then apply their
+   * Loner change in turn, each against the marker last committed, so the
+   * last committed marker always wins. Undefined when the row is gone.
+   */
+  private async lockedMarker(
+    tx: DbOrTx,
+    playerId: number,
+  ): Promise<boolean | undefined> {
+    const [row] = await tx
+      .select({ isJourneyman: players.isJourneyman })
+      .from(players)
+      .where(eq(players.id, playerId))
+      .for('update');
+    return row?.isJourneyman;
   }
 
   /** The lowest-id skill named Loner, the one a new starting row takes. */

@@ -5,6 +5,7 @@ import {
   eq,
   playerAdvancements,
   playerAdvancementsHistory,
+  players,
   skills,
 } from '@blood-bowl-tracker/db';
 import {
@@ -60,6 +61,24 @@ describe("A journeyman's starting Loner follows his marker (real Postgres)", () 
     service = moduleRef.get(JourneymanLonerService);
   });
 
+  /** Store the player's marker, as the player upsert before each call does. */
+  async function setMarker(isJourneyman: boolean): Promise<void> {
+    await db
+      .update(players)
+      .set({ isJourneyman })
+      .where(eq(players.id, seed.playerId));
+  }
+
+  async function ensure(): Promise<void> {
+    await setMarker(true);
+    await service.ensureStartingLoner(seed.playerId);
+  }
+
+  async function retire(): Promise<void> {
+    await setMarker(false);
+    await service.retireStartingLoner(seed.playerId);
+  }
+
   async function insertRows(rows: Row[]): Promise<void> {
     await db.insert(playerAdvancements).values(
       rows.map((row) => ({
@@ -94,8 +113,8 @@ describe("A journeyman's starting Loner follows his marker (real Postgres)", () 
   }
 
   it('gives a journeyman with no rows one starting Loner, idempotently', async () => {
-    await service.ensureStartingLoner(seed.playerId);
-    await service.ensureStartingLoner(seed.playerId);
+    await ensure();
+    await ensure();
 
     expect(await states()).toEqual([['Loner', 'starting', null, false, false]]);
   });
@@ -106,7 +125,7 @@ describe("A journeyman's starting Loner follows his marker (real Postgres)", () 
       { skill: 'Dodge', source: 'chosen', order: 2 },
     ]);
 
-    await service.ensureStartingLoner(seed.playerId);
+    await ensure();
 
     expect(await states()).toEqual([
       ['Loner', 'starting', null, false, false],
@@ -126,14 +145,14 @@ describe("A journeyman's starting Loner follows his marker (real Postgres)", () 
       },
     ]);
 
-    await service.ensureStartingLoner(seed.playerId);
+    await ensure();
 
     expect(await states()).toEqual([
       ['Loner', 'starting', null, false, false],
       ['Loner', 'chosen', 1, true, false],
     ]);
 
-    await service.retireStartingLoner(seed.playerId);
+    await retire();
 
     expect(await states()).toEqual([
       ['Loner', 'starting', null, false, true],
@@ -149,14 +168,14 @@ describe("A journeyman's starting Loner follows his marker (real Postgres)", () 
     const historyBefore = (await db.select().from(playerAdvancementsHistory))
       .length;
 
-    await service.retireStartingLoner(seed.playerId);
+    await retire();
 
     expect(await states()).toEqual([['Loner', 'starting', null, false, true]]);
     expect(
       (await db.select().from(playerAdvancementsHistory)).length,
     ).toBeGreaterThan(historyBefore);
 
-    await service.ensureStartingLoner(seed.playerId);
+    await ensure();
 
     const rows = await db.select().from(playerAdvancements);
     expect(rows).toHaveLength(1);
@@ -170,7 +189,7 @@ describe("A journeyman's starting Loner follows his marker (real Postgres)", () 
       { skill: 'Dodge', source: 'chosen', order: 2 },
     ]);
 
-    await service.retireStartingLoner(seed.playerId);
+    await retire();
 
     expect(await states()).toEqual([
       ['Loner', 'starting', null, false, true],
@@ -191,7 +210,7 @@ describe("A journeyman's starting Loner follows his marker (real Postgres)", () 
       },
     ]);
 
-    await service.retireStartingLoner(seed.playerId);
+    await retire();
 
     expect(await states()).toEqual([
       ['Loner', 'starting', null, false, true],
@@ -217,7 +236,7 @@ describe("A journeyman's starting Loner follows his marker (real Postgres)", () 
         source: 'starting',
       });
 
-      await service.ensureStartingLoner(seed.playerId);
+      await ensure();
 
       const rows = await db
         .select()
@@ -228,8 +247,8 @@ describe("A journeyman's starting Loner follows his marker (real Postgres)", () 
     });
 
     it('inserts on the lowest-id Loner and retires it without failing', async () => {
-      await service.ensureStartingLoner(seed.playerId);
-      await service.retireStartingLoner(seed.playerId);
+      await ensure();
+      await retire();
 
       const rows = await db
         .select()
@@ -245,6 +264,7 @@ describe("A journeyman's starting Loner follows his marker (real Postgres)", () 
   });
 
   it('survives two concurrent ensures of the same journeyman', async () => {
+    await setMarker(true);
     await Promise.all([
       service.ensureStartingLoner(seed.playerId),
       service.ensureStartingLoner(seed.playerId),

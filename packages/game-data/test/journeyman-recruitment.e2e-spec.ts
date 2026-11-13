@@ -42,6 +42,7 @@ describe('Recruiting a journeyman through player upserts and skill syncs (real P
   let db: Db;
   let playersService: PlayersService;
   let playerSkills: PlayerSkillsService;
+  let journeymen: JourneymanLonerService;
   let seed: LonerPlayerSeed;
   let externalSystemId: number;
 
@@ -82,6 +83,7 @@ describe('Recruiting a journeyman through player upserts and skill syncs (real P
     }).compile();
     playersService = moduleRef.get(PlayersService);
     playerSkills = moduleRef.get(PlayerSkillsService);
+    journeymen = moduleRef.get(JourneymanLonerService);
   });
 
   async function upsert(isJourneyman: boolean): Promise<void> {
@@ -191,6 +193,27 @@ describe('Recruiting a journeyman through player upserts and skill syncs (real P
 
     await upsert(false);
     await upsert(false);
+
+    expect(await lonerRows()).toEqual([startingLoner(false)]);
+  });
+
+  it('ignores a stale ensure that resumes after the player was recruited', async () => {
+    await upsert(true);
+    await upsert(false);
+
+    // An overlapping write that stored the marker true before the recruit's
+    // write now resumes and ensures his Loner.
+    await journeymen.ensureStartingLoner(seed.playerId);
+
+    expect(await lonerRows()).toEqual([startingLoner(true)]);
+  });
+
+  it('ignores a stale retire that resumes after the player was marked again', async () => {
+    await upsert(true);
+
+    // An overlapping write that stored the marker false before this one now
+    // resumes and retires his Loner.
+    await journeymen.retireStartingLoner(seed.playerId);
 
     expect(await lonerRows()).toEqual([startingLoner(false)]);
   });

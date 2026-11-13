@@ -149,8 +149,10 @@ export class PlayersService {
       }),
     });
 
-    // Both follow the written marker alone and are idempotent, so a write
-    // that failed before reaching them is put right by the next one.
+    // Both are idempotent, so a write that failed before reaching them is
+    // put right by the next one. Each re-reads the stored marker under a
+    // lock on the player's row and acts only if it still matches, so an
+    // overlapping write of the same player cannot apply a stale change.
     if (player.isJourneyman) {
       await this.journeymen.ensureStartingLoner(player.id);
     } else {

@@ -210,6 +210,9 @@ A starting row holds no number, so the recruit's numbering is unchanged, and
 a gained Loner stays a free extra by the name rule. A skills sync whose entry
 matches a removed row revives it with the entry's values, so a recruit the
 source still lists with Loner gets that Loner back as a gained free extra.
+Both the ensure and the retire lock the player's row and re-read his stored
+marker first, acting only if it still matches, so of two overlapping writes
+of one player the last committed marker always wins.
 
 The migration that introduced the marker converted only existing journeymen
 that already had a Loner row, the same way, and invented no starting Loner.

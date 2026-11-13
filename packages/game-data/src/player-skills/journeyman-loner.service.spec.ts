@@ -1,4 +1,9 @@
-import { DB, playerAdvancements, skills } from '@blood-bowl-tracker/db';
+import {
+  DB,
+  playerAdvancements,
+  players,
+  skills,
+} from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
 import {
   DrizzleQueryError,
@@ -36,6 +41,10 @@ function uniqueViolation(): Error {
   );
 }
 
+/** The locked player row's stored marker, the first in-transaction read. */
+const STORED_JOURNEYMAN = [{ isJourneyman: true }];
+const STORED_NOT_JOURNEYMAN = [{ isJourneyman: false }];
+
 const loner = (overrides: Record<string, unknown>) => ({
   id: 10,
   source: 'starting',
@@ -53,8 +62,10 @@ describe('JourneymanLonerService', () => {
     slots = mock<PaidAdvancementSlotsService>();
   });
 
-  // Query order: chain 0 = the Loner skill lookup, chain 1 = the player's
-  // Loner rows (inside the transaction), then writes.
+  // Query order for ensure: chain 0 = the Loner skill lookup, then inside
+  // the transaction chain 1 = the locked player row, chain 2 = the player's
+  // Loner rows (chain 3 their Loner subquery), then writes. For retire:
+  // chain 0 = the locked player row, then the update and its subquery.
   async function makeService(
     db: MockDbResult,
   ): Promise<JourneymanLonerService> {
@@ -78,14 +89,49 @@ describe('JourneymanLonerService', () => {
       expect(db.transaction).not.toHaveBeenCalled();
     });
 
-    it('inserts a starting Loner when the player has none', async () => {
+    it("locks the player's row and reads his stored marker first", async () => {
+      const db = mockDb([{ id: 7 }], STORED_JOURNEYMAN, [loner({})]);
+      const service = await makeService(db);
+
+      await service.ensureStartingLoner(1);
+
+      expect(db.transaction).toHaveBeenCalledTimes(1);
+      expect(db.chains[1].from).toHaveBeenCalledWith(players);
+      expect(db.chains[1].for).toHaveBeenCalledWith('update');
+      expect(extractAllFilterValues(firstCallArg(db.chains[1].where))).toEqual([
+        1,
+      ]);
+    });
+
+    it('does nothing once the stored marker is cleared', async () => {
+      const db = mockDb([{ id: 7 }], STORED_NOT_JOURNEYMAN);
+      const service = await makeService(db);
+
+      await service.ensureStartingLoner(1);
+
+      expect(db.chains).toHaveLength(2);
+      expect(db.db.insert).not.toHaveBeenCalled();
+      expect(db.db.update).not.toHaveBeenCalled();
+    });
+
+    it('does nothing when the player row is gone', async () => {
       const db = mockDb([{ id: 7 }], []);
       const service = await makeService(db);
 
       await service.ensureStartingLoner(1);
 
+      expect(db.chains).toHaveLength(2);
+      expect(db.db.insert).not.toHaveBeenCalled();
+    });
+
+    it('inserts a starting Loner when the player has none', async () => {
+      const db = mockDb([{ id: 7 }], STORED_JOURNEYMAN, []);
+      const service = await makeService(db);
+
+      await service.ensureStartingLoner(1);
+
       expect(db.db.insert).toHaveBeenCalledWith(playerAdvancements);
-      expect(db.chains[3].values).toHaveBeenCalledWith({
+      expect(db.chains[4].values).toHaveBeenCalledWith({
         playerId: 1,
         skillId: 7,
         source: 'starting',
@@ -94,7 +140,7 @@ describe('JourneymanLonerService', () => {
     });
 
     it('inserts with the lowest-id skill named Loner', async () => {
-      const db = mockDb([{ id: 7 }], []);
+      const db = mockDb([{ id: 7 }], STORED_JOURNEYMAN, []);
       const service = await makeService(db);
 
       await service.ensureStartingLoner(1);
@@ -103,7 +149,7 @@ describe('JourneymanLonerService', () => {
       expect(extractJoinColumns(order)).toEqual(['skills.id']);
       expect(sqlText(order)).toContain(' asc');
       expect(db.chains[0].limit).toHaveBeenCalledWith(1);
-      expect(db.chains[3].values).toHaveBeenCalledWith({
+      expect(db.chains[4].values).toHaveBeenCalledWith({
         playerId: 1,
         skillId: 7,
         source: 'starting',
@@ -111,12 +157,19 @@ describe('JourneymanLonerService', () => {
     });
 
     it('treats a concurrent insert of the same starting Loner as done', async () => {
-      // Chain 4 re-reads the active starting Loner the other write inserted.
-      const db = mockDb([{ id: 7 }], [], [], uniqueViolation(), [{ id: 20 }]);
+      // Chain 5 re-reads the active starting Loner the other write inserted.
+      const db = mockDb(
+        [{ id: 7 }],
+        STORED_JOURNEYMAN,
+        [],
+        [],
+        uniqueViolation(),
+        [{ id: 20 }],
+      );
       const service = await makeService(db);
 
       await expect(service.ensureStartingLoner(1)).resolves.toBeUndefined();
-      expect(extractAllFilterValues(firstCallArg(db.chains[4].where))).toEqual([
+      expect(extractAllFilterValues(firstCallArg(db.chains[5].where))).toEqual([
         1,
         'starting',
         false,
@@ -125,34 +178,40 @@ describe('JourneymanLonerService', () => {
 
     it('rethrows a unique violation that left no active starting Loner', async () => {
       const violation = uniqueViolation();
-      const db = mockDb([{ id: 7 }], [], [], violation, []);
+      const db = mockDb([{ id: 7 }], STORED_JOURNEYMAN, [], [], violation, []);
       const service = await makeService(db);
 
       await expect(service.ensureStartingLoner(1)).rejects.toBe(violation);
     });
 
     it('propagates any other failure', async () => {
-      const db = mockDb([{ id: 7 }], [], [], new Error('boom'));
+      const db = mockDb(
+        [{ id: 7 }],
+        STORED_JOURNEYMAN,
+        [],
+        [],
+        new Error('boom'),
+      );
       const service = await makeService(db);
 
       await expect(service.ensureStartingLoner(1)).rejects.toThrow('boom');
     });
 
     it("reads the player's rows of every skill named Loner", async () => {
-      const db = mockDb([{ id: 7 }], [loner({})]);
+      const db = mockDb([{ id: 7 }], STORED_JOURNEYMAN, [loner({})]);
       const service = await makeService(db);
 
       await service.ensureStartingLoner(1);
 
-      // Chain 2 is the subquery naming every skill called Loner.
-      expect(db.chains[2].from).toHaveBeenCalledWith(skills);
-      expect(extractAllFilterValues(firstCallArg(db.chains[2].where))).toEqual([
+      // Chain 3 is the subquery naming every skill called Loner.
+      expect(db.chains[3].from).toHaveBeenCalledWith(skills);
+      expect(extractAllFilterValues(firstCallArg(db.chains[3].where))).toEqual([
         'Loner',
       ]);
     });
 
     it('writes nothing when an active starting Loner exists', async () => {
-      const db = mockDb([{ id: 7 }], [loner({})]);
+      const db = mockDb([{ id: 7 }], STORED_JOURNEYMAN, [loner({})]);
       const service = await makeService(db);
 
       await service.ensureStartingLoner(1);
@@ -162,29 +221,30 @@ describe('JourneymanLonerService', () => {
     });
 
     it('revives a removed starting Loner', async () => {
-      const db = mockDb([{ id: 7 }], [loner({ removed: true })]);
+      const db = mockDb([{ id: 7 }], STORED_JOURNEYMAN, [
+        loner({ removed: true }),
+      ]);
       const service = await makeService(db);
 
       await service.ensureStartingLoner(1);
 
       expect(db.db.update).toHaveBeenCalledTimes(1);
-      expect(db.chains[3].set).toHaveBeenCalledWith({ removed: false });
-      expect(extractAllFilterValues(firstCallArg(db.chains[3].where))).toEqual([
+      expect(db.chains[4].set).toHaveBeenCalledWith({ removed: false });
+      expect(extractAllFilterValues(firstCallArg(db.chains[4].where))).toEqual([
         10,
       ]);
       expect(db.db.insert).not.toHaveBeenCalled();
     });
 
     it('turns a gained free Loner into the starting one and closes its unconfirmed slot', async () => {
-      const db = mockDb(
-        [{ id: 7 }],
-        [loner({ source: 'chosen', advancementOrder: 2, isFreeExtra: true })],
-      );
+      const db = mockDb([{ id: 7 }], STORED_JOURNEYMAN, [
+        loner({ source: 'chosen', advancementOrder: 2, isFreeExtra: true }),
+      ]);
       const service = await makeService(db);
 
       await service.ensureStartingLoner(1);
 
-      expect(db.chains[3].set).toHaveBeenCalledWith({
+      expect(db.chains[4].set).toHaveBeenCalledWith({
         source: 'starting',
         advancementOrder: null,
         orderConfirmed: false,
@@ -202,18 +262,15 @@ describe('JourneymanLonerService', () => {
     });
 
     it('leaves a gained Loner alone when an active starting Loner exists', async () => {
-      const db = mockDb(
-        [{ id: 7 }],
-        [
-          loner({}),
-          loner({
-            id: 11,
-            source: 'chosen',
-            advancementOrder: 1,
-            isFreeExtra: true,
-          }),
-        ],
-      );
+      const db = mockDb([{ id: 7 }], STORED_JOURNEYMAN, [
+        loner({}),
+        loner({
+          id: 11,
+          source: 'chosen',
+          advancementOrder: 1,
+          isFreeExtra: true,
+        }),
+      ]);
       const service = await makeService(db);
 
       await service.ensureStartingLoner(1);
@@ -225,29 +282,26 @@ describe('JourneymanLonerService', () => {
     });
 
     it('converts only the lowest-id gained Loner', async () => {
-      const db = mockDb(
-        [{ id: 7 }],
-        [
-          loner({
-            id: 12,
-            source: 'chosen',
-            advancementOrder: 3,
-            isFreeExtra: true,
-          }),
-          loner({
-            id: 11,
-            source: 'chosen',
-            advancementOrder: 1,
-            isFreeExtra: true,
-          }),
-        ],
-      );
+      const db = mockDb([{ id: 7 }], STORED_JOURNEYMAN, [
+        loner({
+          id: 12,
+          source: 'chosen',
+          advancementOrder: 3,
+          isFreeExtra: true,
+        }),
+        loner({
+          id: 11,
+          source: 'chosen',
+          advancementOrder: 1,
+          isFreeExtra: true,
+        }),
+      ]);
       const service = await makeService(db);
 
       await service.ensureStartingLoner(1);
 
       expect(db.db.update).toHaveBeenCalledTimes(1);
-      expect(extractAllFilterValues(firstCallArg(db.chains[3].where))).toEqual([
+      expect(extractAllFilterValues(firstCallArg(db.chains[4].where))).toEqual([
         11,
       ]);
       expect(slots.closeUnconfirmed).toHaveBeenCalledWith(expect.anything(), {
@@ -257,40 +311,34 @@ describe('JourneymanLonerService', () => {
     });
 
     it('prefers converting a gained Loner over reviving a removed starting one', async () => {
-      const db = mockDb(
-        [{ id: 7 }],
-        [
-          loner({ removed: true }),
-          loner({
-            id: 11,
-            source: 'chosen',
-            attributeValue: '4+',
-            advancementOrder: 1,
-            isFreeExtra: true,
-          }),
-        ],
-      );
+      const db = mockDb([{ id: 7 }], STORED_JOURNEYMAN, [
+        loner({ removed: true }),
+        loner({
+          id: 11,
+          source: 'chosen',
+          attributeValue: '4+',
+          advancementOrder: 1,
+          isFreeExtra: true,
+        }),
+      ]);
       const service = await makeService(db);
 
       await service.ensureStartingLoner(1);
 
       expect(db.db.update).toHaveBeenCalledTimes(1);
-      expect(extractAllFilterValues(firstCallArg(db.chains[3].where))).toEqual([
+      expect(extractAllFilterValues(firstCallArg(db.chains[4].where))).toEqual([
         11,
       ]);
     });
 
     it("closes a confirmed paid Loner's slot in the paid numbering", async () => {
-      const db = mockDb(
-        [{ id: 7 }],
-        [
-          loner({
-            source: 'advancement',
-            advancementOrder: 1,
-            orderConfirmed: true,
-          }),
-        ],
-      );
+      const db = mockDb([{ id: 7 }], STORED_JOURNEYMAN, [
+        loner({
+          source: 'advancement',
+          advancementOrder: 1,
+          orderConfirmed: true,
+        }),
+      ]);
       const service = await makeService(db);
 
       await service.ensureStartingLoner(1);
@@ -308,32 +356,65 @@ describe('JourneymanLonerService', () => {
 
   describe('retireStartingLoner', () => {
     it("flags the player's active starting Loner removed in one statement", async () => {
-      const db = mockDb();
+      const db = mockDb(STORED_NOT_JOURNEYMAN);
       const service = await makeService(db);
 
       await service.retireStartingLoner(1);
 
-      // The update, and the subquery naming every skill called Loner.
-      expect(db.chains).toHaveLength(2);
+      // The player lock, the update, and the subquery naming every skill
+      // called Loner.
+      expect(db.chains).toHaveLength(3);
       expect(db.db.update).toHaveBeenCalledWith(playerAdvancements);
-      expect(db.chains[0].set).toHaveBeenCalledWith({ removed: true });
-      expect(extractAllFilterValues(firstCallArg(db.chains[0].where))).toEqual([
+      expect(db.chains[1].set).toHaveBeenCalledWith({ removed: true });
+      expect(extractAllFilterValues(firstCallArg(db.chains[1].where))).toEqual([
         1,
         'starting',
         false,
         true,
       ]);
-      expect(db.transaction).not.toHaveBeenCalled();
+      expect(db.transaction).toHaveBeenCalledTimes(1);
     });
 
-    it("spares a starting Loner the player's position starts with", async () => {
-      const db = mockDb();
+    it("locks the player's row and reads his stored marker first", async () => {
+      const db = mockDb(STORED_NOT_JOURNEYMAN);
       const service = await makeService(db);
 
       await service.retireStartingLoner(1);
 
-      expect(sqlText(firstCallArg(db.chains[0].where))).toContain('not exists');
-      expect(extractJoinColumns(firstCallArg(db.chains[0].where))).toEqual(
+      expect(db.chains[0].from).toHaveBeenCalledWith(players);
+      expect(db.chains[0].for).toHaveBeenCalledWith('update');
+      expect(extractAllFilterValues(firstCallArg(db.chains[0].where))).toEqual([
+        1,
+      ]);
+    });
+
+    it('does nothing while the stored marker is set', async () => {
+      const db = mockDb(STORED_JOURNEYMAN);
+      const service = await makeService(db);
+
+      await service.retireStartingLoner(1);
+
+      expect(db.chains).toHaveLength(1);
+      expect(db.db.update).not.toHaveBeenCalled();
+    });
+
+    it('does nothing when the player row is gone', async () => {
+      const db = mockDb([]);
+      const service = await makeService(db);
+
+      await service.retireStartingLoner(1);
+
+      expect(db.db.update).not.toHaveBeenCalled();
+    });
+
+    it("spares a starting Loner the player's position starts with", async () => {
+      const db = mockDb(STORED_NOT_JOURNEYMAN);
+      const service = await makeService(db);
+
+      await service.retireStartingLoner(1);
+
+      expect(sqlText(firstCallArg(db.chains[1].where))).toContain('not exists');
+      expect(extractJoinColumns(firstCallArg(db.chains[1].where))).toEqual(
         expect.arrayContaining([
           'position_rules_set_skills.skill_id',
           'players.position_id',
@@ -343,12 +424,12 @@ describe('JourneymanLonerService', () => {
     });
 
     it('spares the starting Loner of a star-player position', async () => {
-      const db = mockDb();
+      const db = mockDb(STORED_NOT_JOURNEYMAN);
       const service = await makeService(db);
 
       await service.retireStartingLoner(1);
 
-      const where = firstCallArg(db.chains[0].where);
+      const where = firstCallArg(db.chains[1].where);
       expect(extractJoinColumns(where)).toEqual(
         expect.arrayContaining(['positions.is_star_player', 'positions.id']),
       );
@@ -361,19 +442,19 @@ describe('JourneymanLonerService', () => {
     });
 
     it('matches every skill named Loner', async () => {
-      const db = mockDb();
+      const db = mockDb(STORED_NOT_JOURNEYMAN);
       const service = await makeService(db);
 
       await service.retireStartingLoner(1);
 
-      expect(db.chains[1].from).toHaveBeenCalledWith(skills);
-      expect(extractAllFilterValues(firstCallArg(db.chains[1].where))).toEqual([
+      expect(db.chains[2].from).toHaveBeenCalledWith(skills);
+      expect(extractAllFilterValues(firstCallArg(db.chains[2].where))).toEqual([
         'Loner',
       ]);
     });
 
     it('never closes a slot: a starting row holds no number', async () => {
-      const db = mockDb();
+      const db = mockDb(STORED_NOT_JOURNEYMAN);
       const service = await makeService(db);
 
       await service.retireStartingLoner(1);
