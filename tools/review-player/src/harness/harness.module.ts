@@ -19,6 +19,7 @@ import { PlayerAdvancementsModule } from '../player-advancements/player-advancem
 import { PlayerAdvancementsStratificationService } from '../player-advancements/player-advancements-stratification.service';
 import { CharacteristicsChangeStratificationService } from '../player-characteristics/characteristics-change-stratification.service';
 import { PlayerCharacteristicsModule } from '../player-characteristics/player-characteristics.module';
+import { JourneymanStratificationService } from '../player-info/journeyman-stratification.service';
 import { PlayerInfoModule } from '../player-info/player-info.module';
 import { RandomPlayerStratificationService } from '../player-info/random-player-stratification.service';
 import { StarPlayerStratificationService } from '../player-info/star-player-stratification.service';
@@ -80,6 +81,7 @@ import { ReviewService } from './review.service';
       HealedInjuryStratificationService,
       RandomPlayerStratificationService,
       StarPlayerStratificationService,
+      JourneymanStratificationService,
       PlayerKeywordsStratificationService,
       PlayerStatusStratificationService,
       UnspentSppOutsideRangeStratificationService,
