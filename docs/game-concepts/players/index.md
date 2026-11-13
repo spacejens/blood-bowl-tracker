@@ -207,9 +207,12 @@ not a star player's, mercenary or Big Guy hire.
   journeyman (from a manual batch, say) is turned back into the starting row
   by the next write of the player, unless a starting Loner remains beside it,
   in which case it stays a free extra.
-- **Recruitment.** When a player is written with the marker cleared, the
-  server retires only that starting Loner by its `removed` flag; it never
-  deletes it, and spares a Loner that belongs to the player's position. A
+- **Recruitment.** When a write flips the stored marker from set to cleared,
+  the server retires only that starting Loner by its `removed` flag; it never
+  deletes it, and spares a Loner that belongs to the player's position.
+  Other writes of a player who is not a journeyman leave his starting skills
+  alone. If the retire fails after the marker was written, the Loner stays
+  until the marker is set and cleared again. A
   starting row holds no number, so the recruit's advancement numbering is
   unchanged. A Loner the source still lists as gained stays a free extra.
 - **Existing data.** A migration marked the stored players named Journeyman,

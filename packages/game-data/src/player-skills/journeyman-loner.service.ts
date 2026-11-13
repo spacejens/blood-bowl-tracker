@@ -147,11 +147,10 @@ export class JourneymanLonerService {
   /**
    * Retire a recruited journeyman's starting Loner: flag the player's active
    * starting Loner `removed`, unless his position starts with Loner (under
-   * any rules set) or is a star-player position. It runs on every write of
-   * a player who is not a journeyman, so a retire a failed write left
-   * undone happens on the next one, and it is idempotent. To stay cheap, an
-   * unlocked read first checks for an active starting Loner and returns when
-   * there is none, the usual case. That is race-safe: the caller's own
+   * any rules set) or is a star-player position. The player upsert calls it
+   * only for a write that flips his stored marker from true to false, and
+   * it is idempotent. An unlocked read first checks for an active starting
+   * Loner and returns when there is none. That is race-safe: the caller's own
    * cleared marker has already committed, and an ensure that adds a Loner
    * holds the player lock until it commits, so the caller's write waited
    * for it. Only when such a row exists does a transaction lock the player's

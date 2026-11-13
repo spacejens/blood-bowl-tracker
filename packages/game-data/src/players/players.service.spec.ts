@@ -271,11 +271,12 @@ describe('PlayersService', () => {
     });
 
     it('writes an explicit false journeyman marker', async () => {
-      const { chains } = await build([], [fakePlayer]);
+      // query 0: the stored-marker lookup a clearing payload reads first.
+      const { chains } = await build([], [], [fakePlayer]);
 
       await service.upsert({ ...base, isJourneyman: false, externalIds });
 
-      expect(firstCallArg(chains[1].values)).toMatchObject({
+      expect(firstCallArg(chains[2].values)).toMatchObject({
         isJourneyman: false,
       });
     });
@@ -308,8 +309,22 @@ describe('PlayersService', () => {
       expect(journeymen.ensureStartingLoner).toHaveBeenCalledWith(1);
     });
 
-    it('retires a journeyman starting Loner whenever the written row is not a journeyman', async () => {
+    it('reads no stored marker for a true write', async () => {
+      const { chains } = await build(
+        [],
+        [{ ...fakePlayer, isJourneyman: true }],
+      );
+
+      await service.upsert({ ...base, isJourneyman: true, externalIds });
+
+      // The same three queries as the plain create case: lookup, insert,
+      // external ids.
+      expect(chains).toHaveLength(3);
+    });
+
+    it('retires the starting Loner when the write clears a stored journeyman', async () => {
       await build(
+        [{ isJourneyman: true }],
         [{ ownerId: 1, externalSystemId: 1, externalId: '12345' }],
         [{ ...fakePlayer, isJourneyman: false }],
       );
@@ -320,22 +335,52 @@ describe('PlayersService', () => {
       expect(journeymen.ensureStartingLoner).not.toHaveBeenCalled();
     });
 
-    it('retires it also when the payload omits the marker', async () => {
-      await build([], [fakePlayer]);
-
-      await service.upsert({ ...base, externalIds });
-
-      expect(journeymen.retireStartingLoner).toHaveBeenCalledWith(1);
-    });
-
-    it('reads no stored marker before the write', async () => {
-      const { chains } = await build([], [fakePlayer]);
+    it('does not retire when the stored marker was already cleared', async () => {
+      await build(
+        [{ isJourneyman: false }],
+        [{ ownerId: 1, externalSystemId: 1, externalId: '12345' }],
+        [{ ...fakePlayer, isJourneyman: false }],
+      );
 
       await service.upsert({ ...base, isJourneyman: false, externalIds });
 
-      // The same three queries as the plain create case: lookup, insert,
-      // external ids.
+      expect(journeymen.retireStartingLoner).not.toHaveBeenCalled();
+      expect(journeymen.ensureStartingLoner).not.toHaveBeenCalled();
+    });
+
+    it('does not retire a new player written as no journeyman', async () => {
+      await build([], [], [fakePlayer]);
+
+      await service.upsert({ ...base, isJourneyman: false, externalIds });
+
+      expect(journeymen.retireStartingLoner).not.toHaveBeenCalled();
+    });
+
+    it('never retires, nor reads the stored marker, when the payload omits it', async () => {
+      const { chains } = await build([], [fakePlayer]);
+
+      await service.upsert({ ...base, externalIds });
+
+      expect(journeymen.retireStartingLoner).not.toHaveBeenCalled();
       expect(chains).toHaveLength(3);
+    });
+
+    it('looks up the stored marker by the payload external ids', async () => {
+      const { chains } = await build(
+        [{ isJourneyman: true }],
+        [],
+        [fakePlayer],
+      );
+
+      await service.upsert({ ...base, isJourneyman: false, externalIds });
+
+      expect(chains[0].from).toHaveBeenCalledWith(players);
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        1,
+        '12345',
+        2,
+        'Griff Oberwald',
+      ]);
     });
 
     it('writes a null status through to the updated columns', async () => {

@@ -4,6 +4,7 @@ import {
   eq,
   externalSystems,
   playerAdvancements,
+  playerAdvancementsHistory,
   playerExternalIds,
   players,
   positionRulesSets,
@@ -142,7 +143,7 @@ describe('Recruiting a journeyman through player upserts and skill syncs (real P
     expect(await lonerRows()).toEqual([startingLoner(false)]);
   });
 
-  it('retires a starting Loner a failed recruitment left behind on the next write', async () => {
+  it('leaves a starting Loner a failed recruitment left behind until the marker changes again', async () => {
     await upsert(true);
     // The marker already reads false, as if an earlier write had stored it
     // but failed before retiring the Loner.
@@ -152,8 +153,45 @@ describe('Recruiting a journeyman through player upserts and skill syncs (real P
       .where(eq(players.id, seed.playerId));
 
     await upsert(false);
+    expect(await lonerRows()).toEqual([startingLoner(false)]);
 
+    await upsert(true);
+    await upsert(false);
     expect(await lonerRows()).toEqual([startingLoner(true)]);
+  });
+
+  it('never touches the native starting Loner of a position with no rules-set rows', async () => {
+    const [minotaur] = await db
+      .insert(positions)
+      .values({ name: 'Minotaur', isStarPlayer: false })
+      .returning();
+    await db
+      .update(players)
+      .set({ positionId: minotaur.id })
+      .where(eq(players.id, seed.playerId));
+    const [row] = await db
+      .insert(playerAdvancements)
+      .values({
+        playerId: seed.playerId,
+        skillId: seed.skillIds.Loner,
+        source: 'starting',
+      })
+      .returning();
+    const historyRows = async (): Promise<number> =>
+      (
+        await db
+          .select()
+          .from(playerAdvancementsHistory)
+          .where(eq(playerAdvancementsHistory.id, row.id))
+      ).length;
+    const before = await historyRows();
+
+    await upsert(false);
+    await upsert(false);
+    await upsert(false);
+
+    expect(await lonerRows()).toEqual([startingLoner(false)]);
+    expect(await historyRows()).toBe(before);
   });
 
   it('keeps the starting Loner of a player whose position starts with it', async () => {

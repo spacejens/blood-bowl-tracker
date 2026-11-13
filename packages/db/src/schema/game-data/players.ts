@@ -59,8 +59,8 @@ const playersTable = historyTrackedTable({
     // Whether the player is a journeyman: a temporary player drawn from a
     // basic position of the team's race, who has Loner for free while he
     // stays one (stored as a `starting` Loner row). Set and cleared by the
-    // importers through the shared journeyman rule; clearing it on a
-    // recruited player also retires that Loner row.
+    // importers through the shared journeyman rule; a write that clears it
+    // on a stored journeyman (a recruitment) also retires that Loner row.
     isJourneyman: boolean('is_journeyman').notNull().default(false),
     // The player's own current Move/Strength/Agility/Passing/Armour, as the
     // source reports them. Not merely a copy of the position's baseline:

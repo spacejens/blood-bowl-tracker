@@ -80,10 +80,12 @@ export class PlayersService {
    * violation throws `LastingInjuryValidationError` and nothing is stored.
    *
    * The journeyman marker is written when given. While it is set after the
-   * write, the player's starting Loner is kept (`JourneymanLonerService`);
-   * while it is not, a starting Loner neither his position's starting skills
-   * nor a star-player position explain (a recruited journeyman's) is
-   * retired. `unspentSpp` is already cleared on
+   * write, the player's starting Loner is kept (`JourneymanLonerService`).
+   * A write that flips the stored marker from true to false (a recruitment)
+   * retires that starting Loner, unless his position's starting skills or a
+   * star-player position explain it; no other write touches it. If the
+   * write commits but the retire then fails, the Loner stays until the
+   * marker is set and cleared again. `unspentSpp` is already cleared on
    * every write, so the Loner change needs no further clear.
    */
   async upsert(
@@ -128,6 +130,12 @@ export class PlayersService {
       armourReductionCount: data.armourReductionCount,
     };
 
+    // Only a payload clearing the marker can recruit a journeyman, so only
+    // then is the stored marker read first.
+    const wasJourneyman =
+      data.isJourneyman === false &&
+      (await this.storedJourneymanMarker(data.externalIds));
+
     const { row: player, created } = await upsertByExternalIds<
       typeof players,
       typeof playerExternalIds
@@ -149,17 +157,38 @@ export class PlayersService {
       }),
     });
 
-    // Both are idempotent, so a write that failed before reaching them is
-    // put right by the next one. Each re-reads the stored marker under a
-    // lock on the player's row and acts only if it still matches, so an
-    // overlapping write of the same player cannot apply a stale change.
+    // Each re-reads the stored marker under a lock on the player's row and
+    // acts only if it still matches, so an overlapping write of the same
+    // player cannot apply a stale change.
     if (player.isJourneyman) {
       await this.journeymen.ensureStartingLoner(player.id);
-    } else {
+    } else if (wasJourneyman) {
       await this.journeymen.retireStartingLoner(player.id);
     }
 
     return { player, created };
+  }
+
+  /** Whether a player these external ids name is stored as a journeyman. */
+  private async storedJourneymanMarker(
+    externalIds: readonly ExternalId[],
+  ): Promise<boolean> {
+    const rows = await this.db
+      .select({ isJourneyman: players.isJourneyman })
+      .from(players)
+      .innerJoin(playerExternalIds, eq(playerExternalIds.playerId, players.id))
+      .where(
+        or(
+          ...externalIds.map((id) =>
+            and(
+              eq(playerExternalIds.externalSystemId, id.externalSystemId),
+              eq(playerExternalIds.externalId, id.externalId),
+            ),
+          ),
+        ),
+      )
+      .limit(1);
+    return rows[0]?.isJourneyman === true;
   }
 
   /**

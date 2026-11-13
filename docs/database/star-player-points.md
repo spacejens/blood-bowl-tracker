@@ -202,10 +202,14 @@ starting Loner row for the player. An active one is left as it is, beside any
 gained Loner. Otherwise it turns his lowest-id Loner stored as gained (before
 he was marked) into the starting one, closing the number that row held in the
 confirmed paid numbering or, if unconfirmed, in the proxy numbering. Failing
-that, it revives a removed starting Loner, or inserts one. Every write of a
-player who is not a journeyman flags his active starting Loner `removed`
-(a recruitment), unless his position starts with Loner under some rules set
-or is a star-player position (a journeyman is always a basic position).
+that, it revives a removed starting Loner, or inserts one. A write that flips
+the stored marker from true to false (a recruitment) flags his active
+starting Loner `removed`, unless his position starts with Loner under some
+rules set or is a star-player position (a journeyman is always a basic
+position); no other write of a player who is not a journeyman touches it.
+If the write commits but the retire then fails, the starting Loner stays
+until the marker changes again: a later write that marks him and one that
+clears it again retires it.
 A starting row holds no number, so the recruit's numbering is unchanged, and
 a gained Loner stays a free extra by the name rule. A skills sync whose entry
 matches a removed row revives it with the entry's values, so a recruit the
@@ -216,8 +220,9 @@ two overlapping writes of one player the last committed marker always wins.
 The retire first checks, without a lock, whether the player has an active
 starting Loner at all, and stops there when he has none. An ensure or retire
 overlapping a skills sync of the same player can still deadlock; Postgres
-then aborts one of them, the import step records the error, and the next
-write of that player heals it.
+then aborts one of them and the import step records the error. An aborted
+ensure is redone by the player's next journeyman write; an aborted retire
+leaves the starting Loner until the marker changes again, as above.
 
 The migration that introduced the marker converted only existing journeymen
 that already had a Loner row, the same way, and invented no starting Loner.
