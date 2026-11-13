@@ -20,7 +20,10 @@ depend on it, so a change here reaches bulk and live imports together.
   skills list Loner (`lonerListed: true`), even a snapshot taken before the
   player was recruited, and otherwise leaves it alone. A later roster that
   shows him without Loner, or renamed, clears it. A roster states the marker
-  from whether it lists Loner. Used by BBL, TP bulk and TP live.
+  for a player named Journeyman in a basic position from whether it lists
+  Loner, and marks him when it cannot say (`lonerListed` undefined, a roster
+  entry without a skills group); any other roster player is unmarked. Used by
+  BBL, TP bulk and TP live.
 
 ## Why the Name ids must be shared
 

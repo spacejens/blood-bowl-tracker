@@ -50,7 +50,10 @@ export class JourneymanRuleService {
 
   /**
    * The marker to send for one sighting: true or false, or undefined when
-   * the sighting says nothing and the stored marker must stay.
+   * the sighting says nothing and the stored marker must stay. A roster
+   * sighting of a player named Journeyman in a basic position follows
+   * `lonerListed` when it is known, and marks him when it is undefined (a
+   * roster entry without a skills group).
    */
   decide(facts: JourneymanSightingFacts): boolean | undefined {
     const named = facts.isBasicPosition && this.isJourneymanName(facts.name);
