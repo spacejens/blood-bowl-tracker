@@ -31,7 +31,8 @@ const ELLIPSIS = '…';
  * eras and competitions apart. Labels match how the insights toplists
  * identify the same entities: a team by race and coach, a player by the full
  * position/team/race/era/coach set, a coach by career span, and an era or
- * competition by league and date span.
+ * competition by league and date span, and a trophy by its competition group
+ * and league.
  *
  * Every label is kept within Discord's 100-character limit by cutting from
  * the end, so the context suffix is shortened first and the entity name is
@@ -92,6 +93,23 @@ export class AutocompleteChoiceLabelService {
         span === undefined
           ? ''
           : ` (${this.dateRangeFormatter.format(span.start, span.end)})`;
+      return this.choice(row.id, row.name, suffix);
+    });
+  }
+
+  trophyChoices(
+    rows: {
+      id: number;
+      name: string;
+      competitionGroupName: string | null;
+      leagueName: string | null;
+    }[],
+  ): AutocompleteChoice[] {
+    return rows.map((row) => {
+      const context = [row.competitionGroupName, row.leagueName].filter(
+        (part): part is string => part !== null,
+      );
+      const suffix = context.length === 0 ? '' : ` (${context.join(', ')})`;
       return this.choice(row.id, row.name, suffix);
     });
   }

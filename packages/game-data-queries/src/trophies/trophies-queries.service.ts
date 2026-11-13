@@ -10,6 +10,7 @@ import {
   inArray,
   leagues,
   or,
+  sql,
   trophies,
   trophyAwardRuleEligiblePositions,
   trophyAwardRuleExcludedMatchEventTypes,
@@ -93,11 +94,19 @@ export class TrophiesQueriesService {
         .from(trophies)
         // Both joins are outer: a trophy carries exactly one of the two scopes,
         // so an inner join on either would drop every trophy of the other kind.
+        // The league is the trophy's own, or the one its competition group
+        // belongs to, so every trophy resolves to a league name.
         .leftJoin(
           competitionGroups,
           eq(competitionGroups.id, trophies.competitionGroupId),
         )
-        .leftJoin(leagues, eq(leagues.id, trophies.leagueId))
+        .leftJoin(
+          leagues,
+          eq(
+            leagues.id,
+            sql`coalesce(${trophies.leagueId}, ${competitionGroups.leagueId})`,
+          ),
+        )
         .where(ilike(trophies.name, `${this.likePattern.escape(prefix)}%`))
         .orderBy(trophies.name)
         .limit(limit)

@@ -156,6 +156,49 @@ describe('AutocompleteChoiceLabelService', () => {
     });
   });
 
+  describe('trophyChoices', () => {
+    it('labels a group-scoped trophy "<name> (<competition group>, <league>)"', () => {
+      expect(
+        service.trophyChoices([
+          {
+            id: 7,
+            name: 'Chaos Cup',
+            competitionGroupName: 'Major',
+            leagueName: 'The Premier League',
+          },
+        ]),
+      ).toEqual([
+        { name: 'Chaos Cup (Major, The Premier League)', value: '7' },
+      ]);
+    });
+
+    it('labels a league-scoped trophy with its league only', () => {
+      expect(
+        service.trophyChoices([
+          {
+            id: 3,
+            name: 'Legendary Player',
+            competitionGroupName: null,
+            leagueName: 'tLoEG',
+          },
+        ]),
+      ).toEqual([{ name: 'Legendary Player (tLoEG)', value: '3' }]);
+    });
+
+    it('falls back to the bare name when no context resolves', () => {
+      expect(
+        service.trophyChoices([
+          {
+            id: 4,
+            name: 'Orphan',
+            competitionGroupName: null,
+            leagueName: null,
+          },
+        ]),
+      ).toEqual([{ name: 'Orphan', value: '4' }]);
+    });
+  });
+
   describe('100-character limit', () => {
     it('keeps a label of exactly 100 characters untouched', () => {
       // ' (L, D)' is 7 characters, so a 93-character name makes exactly 100.

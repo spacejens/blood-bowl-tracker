@@ -32,7 +32,8 @@ matches yet; eras and competitions name their league and date span,
 (nearly every race has a "Lineman"), so a position names its race, and a
 position available to several races produces one suggestion per race, all
 selecting the same position. Competition groups name their league; trophies
-name the owning competition group, or the league when awarded directly. A star
+name the owning competition group and its league, or just the league when
+awarded directly, `Name (Competition Group, League)`. A star
 player has no single team to name, so stars are shown bare, as are races and
 leagues. A position with no race recorded is not suggested, since there would
 be no race to name, and star positions are excluded from `position`

@@ -145,10 +145,7 @@ export class DeepdiveAutocompleteService {
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );
-      return trophies.map((row) => ({
-        name: `${row.name} (${row.competitionGroupId !== null ? row.competitionGroupName : row.leagueName})`,
-        value: String(row.id),
-      }));
+      return this.choiceLabels.trophyChoices(trophies);
     }
     if (focused.name === 'league') {
       const leagues = await this.leaguesQueries.searchByNamePrefix(

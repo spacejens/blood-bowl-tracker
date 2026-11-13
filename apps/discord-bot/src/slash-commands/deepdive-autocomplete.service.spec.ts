@@ -227,38 +227,27 @@ describe('DeepdiveAutocompleteService', () => {
     expect(choiceLabels.datedScopeChoices).toHaveBeenCalledWith(rows);
   });
 
-  it('returns trophy choices labelled "<name> (<competition group>)" with id values', async () => {
-    trophies.searchByNamePrefix.mockResolvedValue([
+  it('delegates trophy labelling to the label service', async () => {
+    const rows = [
       {
         id: 7,
         name: 'Chaos Cup',
         competitionGroupId: 4,
         competitionGroupName: 'Major',
-        leagueName: null,
+        leagueName: 'The Premier League',
       },
-    ]);
+    ];
+    const choices = [
+      { name: 'Chaos Cup (Major, The Premier League)', value: '7' },
+    ];
+    trophies.searchByNamePrefix.mockResolvedValue(rows);
+    choiceLabels.trophyChoices.mockReturnValue(choices);
 
     await expect(
       service.resolve(autocompleteInteraction('cha', 'trophy')),
-    ).resolves.toEqual([{ name: 'Chaos Cup (Major)', value: '7' }]);
+    ).resolves.toEqual(choices);
     expect(trophies.searchByNamePrefix).toHaveBeenCalledWith('cha', 25);
-  });
-
-  it('labels a league-scoped trophy with its league', async () => {
-    trophies.searchByNamePrefix.mockResolvedValue([
-      {
-        id: 3,
-        name: 'Legendary Player',
-        competitionGroupId: null,
-        competitionGroupName: null,
-        leagueName: 'tLoEG',
-      },
-    ]);
-    const interaction = autocompleteInteraction('Leg', 'trophy');
-
-    expect(await service.resolve(interaction)).toEqual([
-      { name: 'Legendary Player (tLoEG)', value: '3' },
-    ]);
+    expect(choiceLabels.trophyChoices).toHaveBeenCalledWith(rows);
   });
 
   it('returns competition group choices labelled "<name> (<league>)" with id values', async () => {
