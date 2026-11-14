@@ -34,8 +34,9 @@ export interface CheckDriftResult {
  * has no main-checkout counterpart at all. A listed file that is absent from
  * the worktree is not a finding — there is nothing there to lose. Also flags
  * a directory that should be a `sync-gitignored`-managed symlink (such as
- * `docs/plans` or `tools/production-ops-cli/data`) but is instead a real, worktree-local directory —
- * `sync-gitignored` never overwrites one that already existed. Supplies
+ * `docs/plans` or `tools/production-ops-cli/data`) but is instead a real,
+ * worktree-local directory — `sync-gitignored` never overwrites one that
+ * already existed. Supplies
  * classification and diff text only; resolving each finding stays in the
  * calling skill. A no-op outside a worktree.
  */
