@@ -63,7 +63,12 @@ without a `source` keeps a chosen or random source already stored. The
 player's characteristics, total SPP, unspent SPP, status and SPP adjustment
 are written in the same transaction as his advancements. A later TP import
 whose data establishes no status for him keeps the filled one (see
-[player status](../import-tp/index.md#player-status)).
+[player status](../import-tp/index.md#player-status)). The unspent SPP has no
+such protection: a TP import writes it as not known, and under a rules set
+that prices advancements by kind only a TP snapshot restores it. A filled
+player can therefore lose it without counting as incomplete again, and
+applying the same entry again is then refused, because his stored data no
+longer equals the entry.
 
 ## When an entry is refused
 
