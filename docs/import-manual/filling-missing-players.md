@@ -105,6 +105,38 @@ A player filled in is no longer incomplete, so applying the same entry again
 changes nothing and is not an error. Applying a different entry for him is
 refused: a fill never overwrites data that is already complete.
 
+## Generated fills
+
+`production-ops-cli generate-incomplete-player-fills` (see
+[production-ops-cli](../production-ops-cli/index.md#generating-incomplete-player-fills))
+writes entries for the incomplete TP players who provably have no
+advancements: their total SPP is below the cheapest advancement any rules
+set of their era prices, house rules included. Each entry is:
+
+- the position's characteristics, worsened by the stat reductions the
+  player's match events record. MA, ST and AV fall by one per reduction. AG
+  and PA rise by one under a target-number format such as `3+`, never past
+  `6+`, and fall like MA under a bare one;
+- the position's starting skills and no advancements;
+- the whole total, unspent;
+- the stored status, else `dead` if a death is recorded, else `retired` when
+  no team era of the player's team plays in an ongoing competition.
+
+A player is skipped, with the reason reported, when any of these holds:
+
+- he is a journeyman;
+- his total is missing or too high;
+- a rules set of his era prices nothing;
+- a trophy could have granted him a skill, or he has a gained Loner, Hatred
+  or free extra;
+- his position's data differs between the rules sets of his era, or names a
+  skill with no `Name` id;
+- the result is not a valid line;
+- anything already stored would make the fill refuse the entry;
+- his status cannot be told.
+
+The server's checks above still apply when the batch is applied.
+
 ## Order
 
 This section runs last, after every section that creates the skills it

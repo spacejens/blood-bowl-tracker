@@ -13,6 +13,10 @@ import {
   MAX_COUNT,
   MIN_COUNT,
 } from './fetch-recent-discord-messages/fetch-recent-discord-messages.service';
+import {
+  type GenerateIncompletePlayerFillsInput,
+  GenerateIncompletePlayerFillsService,
+} from './generate-incomplete-player-fills/generate-incomplete-player-fills.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
 import { RunProductionQueryService } from './run-production-query/run-production-query.service';
 
@@ -23,6 +27,7 @@ const SUBCOMMANDS = [
   'run-production-query',
   'fetch-recent-discord-messages',
   'fetch-discord-message',
+  'generate-incomplete-player-fills',
 ] as const;
 
 type Subcommand = (typeof SUBCOMMANDS)[number];
@@ -45,6 +50,10 @@ const FETCH_DISCORD_MESSAGE_USAGE =
   'Usage: node dist/main.js fetch-discord-message ' +
   'https://discord.com/channels/<guild-id>/<channel-id>/<message-id>';
 
+const GENERATE_INCOMPLETE_PLAYER_FILLS_USAGE =
+  'Usage: node dist/main.js generate-incomplete-player-fills ' +
+  '[--out=<repo-relative-path>]';
+
 /** Arguments for `start-production-tunnel`; absent for every other subcommand. */
 interface StartProductionTunnelInput {
   readonly localPort: number;
@@ -64,6 +73,7 @@ interface DispatchArgs {
   readonly runProductionQueryStdin?: string;
   readonly fetchRecentDiscordMessages?: FetchRecentDiscordMessagesInput;
   readonly discordMessageLink?: string;
+  readonly generateIncompletePlayerFills?: GenerateIncompletePlayerFillsInput;
 }
 
 function readExpectedApiBaseUrl(): string {
@@ -144,6 +154,20 @@ function readDiscordMessageLink(): string {
   return messageLink;
 }
 
+function readGenerateIncompletePlayerFillsInput(): GenerateIncompletePlayerFillsInput {
+  const outArg = process.argv[3];
+  if (process.argv.length > 4) {
+    throw new Error(GENERATE_INCOMPLETE_PLAYER_FILLS_USAGE);
+  }
+  if (outArg === undefined) {
+    return {};
+  }
+  if (!outArg.startsWith('--out=') || outArg.length === '--out='.length) {
+    throw new Error(GENERATE_INCOMPLETE_PLAYER_FILLS_USAGE);
+  }
+  return { out: outArg.slice('--out='.length) };
+}
+
 function readArgs(subcommand: Subcommand): DispatchArgs {
   return {
     expectedApiBaseUrl:
@@ -165,6 +189,10 @@ function readArgs(subcommand: Subcommand): DispatchArgs {
     discordMessageLink:
       subcommand === 'fetch-discord-message'
         ? readDiscordMessageLink()
+        : undefined,
+    generateIncompletePlayerFills:
+      subcommand === 'generate-incomplete-player-fills'
+        ? readGenerateIncompletePlayerFillsInput()
         : undefined,
   };
 }
@@ -221,6 +249,14 @@ function dispatch(
         throw new Error(FETCH_DISCORD_MESSAGE_USAGE);
       }
       return app.get(FetchDiscordMessageService).run(args.discordMessageLink);
+    }
+    case 'generate-incomplete-player-fills': {
+      if (args.generateIncompletePlayerFills === undefined) {
+        throw new Error(GENERATE_INCOMPLETE_PLAYER_FILLS_USAGE);
+      }
+      return app
+        .get(GenerateIncompletePlayerFillsService)
+        .run(args.generateIncompletePlayerFills);
     }
   }
 }
