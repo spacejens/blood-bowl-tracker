@@ -48,6 +48,7 @@ Which side of the API each kind of workspace sits on. Unlike "Data flow" above, 
   - `packages/tp-paths` — TP request and path computation (see [tp-paths](tp-paths/index.md)).
   - `packages/scrape-tp` — TP request fetching (see [scrape-tp](scrape-tp/index.md)).
   - `packages/parse-tp` — TP JSON parsing (see [parse-tp](parse-tp/index.md)).
+  - `packages/parse-tp-feed` — TP feed advancement-report parsing (see [parse-tp-feed](parse-tp-feed/index.md)).
   - `packages/logging` — shared error-log shaping (see [logging](logging/index.md)).
   - `packages/import-shared` — the import rules bulk and live imports share (see [import-shared](import-shared/index.md)).
 
@@ -62,6 +63,7 @@ for the specifics. Only participants in that pipeline are listed.
 - **`packages/scrape-tp`** (shared fetching) — the one implementation of HTTP requests TP accepts, shared by `tools/download-tp` and `packages/import-tp-live`. See [scrape-tp](scrape-tp/index.md).
 - **`packages/tp-paths`** (shared TP paths) — every TP path the repo requests, and which kind of TP page a URL points to; shared by `tools/download-tp`, `packages/import-tp-live` and `apps/discord-bot`. See [tp-paths](tp-paths/index.md).
 - **`packages/parse-tp`** (shared parsing) — decodes `tools/download-tp`'s JSON for `tools/import-tp` and `packages/import-tp-live`, typed with the contract's TP wire shapes; it has no BBL counterpart. See [parse-tp](parse-tp/index.md).
+- **`packages/parse-tp-feed`** (shared TP feed parsing) — reads the TP feed channel's advancement reports for the bot's live feed and for `tools/production-ops-cli`'s `read-tp-feed-history`, so a live notification and one read back from history are understood alike. See [parse-tp-feed](parse-tp-feed/index.md).
 - **`packages/read-bbl-mirror`** (shared mirror access) — mechanical BBL mirror file access, without interpretation, for `tools/import-bbl` and every review tool. See [read-bbl-mirror](read-bbl-mirror/index.md).
 - **`packages/import-tp-live`** (TP import, server-side) — imports one TP roster, match, competition or official team list through `packages/game-data`; it backs both the `tp*.import` procedures and the bot's live imports, so a change reaches bulk and live imports together. See [import-tp-live](import-tp-live/index.md).
 - **`packages/import-shared`** (shared import rules) — the I/O-free rules bulk and live imports must apply identically, including the identity-critical Name ids. See [import-shared](import-shared/index.md).
@@ -205,6 +207,7 @@ not shipped as part of any app).
 - **`packages/import-tp-live`** — server-side import of one TP roster, match, competition or official team list. See [import-tp-live](import-tp-live/index.md).
 - **`packages/logging`** — one consistent shape for logging a caught exception. See [logging](logging/index.md).
 - **`packages/parse-tp`** — reusable TP JSON parsing. See [parse-tp](parse-tp/index.md).
+- **`packages/parse-tp-feed`** — parsing of the TP feed's advancement reports. See [parse-tp-feed](parse-tp-feed/index.md).
 - **`packages/read-bbl-mirror`** — mechanical file access to BBL's `wget` mirror. See [read-bbl-mirror](read-bbl-mirror/index.md).
 - **`packages/review-harness`** — the generic scaffolding behind the review tools. See [review-harness](review-harness/index.md).
 - **`packages/scrape-tp`** — fetching TP's API over plain HTTP. See [scrape-tp](scrape-tp/index.md).
