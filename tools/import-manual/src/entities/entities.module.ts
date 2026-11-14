@@ -8,6 +8,7 @@ import { CompetitionGroupsProcessor } from './competition-groups.processor';
 import { CompetitionsProcessor } from './competitions.processor';
 import { ErasProcessor } from './eras.processor';
 import { ExternalSystemsProcessor } from './external-systems.processor';
+import { IncompletePlayerFillsProcessor } from './incomplete-player-fills.processor';
 import { KeywordsProcessor } from './keywords.processor';
 import { LeaguesProcessor } from './leagues.processor';
 import { PlayerAdvancementOrdersProcessor } from './player-advancement-orders.processor';
@@ -46,6 +47,7 @@ const processors = [
   TrophiesProcessor,
   TrophyAwardsProcessor,
   PlayerAdvancementOrdersProcessor,
+  IncompletePlayerFillsProcessor,
 ];
 
 @Module({
