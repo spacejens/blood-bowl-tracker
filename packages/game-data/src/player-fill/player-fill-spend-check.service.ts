@@ -39,9 +39,13 @@ export class PlayerFillSpendCheckService {
 
   async problem(input: PlayerFillSpendInput): Promise<string | undefined> {
     const reported = this.spendCheck.reportedSpend(input);
+    if (reported.kind === 'inconsistent') {
+      return reported.problem;
+    }
+    // Both figures are given, so this is not expected; an unestablished
+    // spend is still refused rather than let through unchecked.
     if (reported.kind !== 'spent') {
-      // Both figures are given, so reportedSpend never answers 'unknown' here.
-      return reported.kind === 'inconsistent' ? reported.problem : undefined;
+      return ' has no reported spend to check the advancements against';
     }
     const rows = input.planned.map((row, at): AdvancementRow => ({
       id: at + 1,

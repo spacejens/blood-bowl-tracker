@@ -108,6 +108,16 @@ describe('PlayerFillSpendCheckService', () => {
     expect(unspentSpp.advancementInputsForPlayers).not.toHaveBeenCalled();
   });
 
+  it('refuses, reading nothing, when the spend is not established', async () => {
+    const { service, spendCheck, unspentSpp } = await makeService();
+    spendCheck.reportedSpend.mockReturnValue({ kind: 'unknown' });
+
+    await expect(
+      service.problem({ playerId: 9, planned, sppTotal: 8, unspentSpp: 2 }),
+    ).resolves.toBe(' has no reported spend to check the advancements against');
+    expect(unspentSpp.advancementInputsForPlayers).not.toHaveBeenCalled();
+  });
+
   it("prices the planned rows in place of the stored ones, under the era's rules sets", async () => {
     const db = mockDb([
       { skillId: 71, rulesSetId: 2, category: 'agility' },
