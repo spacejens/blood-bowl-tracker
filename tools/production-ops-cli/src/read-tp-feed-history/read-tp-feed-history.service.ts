@@ -36,7 +36,10 @@ interface RunContext {
   readonly channelId: string;
   readonly maxPages: number;
   state: TpFeedHistoryState;
+  /** Successful page requests, reported in the summary. */
   pagesFetched: number;
+  /** Pages counted against `maxPages`; empty or short catch-up pages are free. */
+  budgetUsed: number;
   messagesSeen: number;
   newReports: number;
   stoppedByError: string | null;
@@ -75,6 +78,7 @@ export class ReadTpFeedHistoryService {
       maxPages: maxPages ?? Number.POSITIVE_INFINITY,
       state: await this.initialState(channelId),
       pagesFetched: 0,
+      budgetUsed: 0,
       messagesSeen: 0,
       newReports: 0,
       stoppedByError: null,
@@ -145,6 +149,7 @@ export class ReadTpFeedHistoryService {
     while (after !== null && this.canFetch(context)) {
       const page = await this.fetchPage(context, { after });
       if (page === null || page.length === 0) return;
+      if (page.length === PAGE_SIZE) context.budgetUsed += 1;
       const newest = this.snowflakes.newest(page.map((message) => message.id));
       if (this.snowflakes.compare(newest, after) <= 0) {
         this.stopWithoutProgress(context, `after=${after}`);
@@ -163,6 +168,7 @@ export class ReadTpFeedHistoryService {
       const before = context.state.oldestId ?? undefined;
       const page = await this.fetchPage(context, { before });
       if (page === null) return;
+      context.budgetUsed += 1;
       const ids = page.map((message) => message.id);
       const hasIds = ids.length > 0;
       if (
@@ -194,7 +200,7 @@ export class ReadTpFeedHistoryService {
 
   private canFetch(context: RunContext): boolean {
     return (
-      context.stoppedByError === null && context.pagesFetched < context.maxPages
+      context.stoppedByError === null && context.budgetUsed < context.maxPages
     );
   }
 

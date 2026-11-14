@@ -234,6 +234,53 @@ describe('ReadTpFeedHistoryService', () => {
     expect(discordRest.getRecentMessages).not.toHaveBeenCalled();
   });
 
+  describe('max pages budget for the catch-up phase', () => {
+    it('does not spend the budget on an empty catch-up page, so one-page reruns advance backwards', async () => {
+      let saved = state({ newestId: '5000', oldestId: '4000' });
+      store.readState.mockImplementation(() => Promise.resolve(saved));
+      store.writeState.mockImplementation((_channel, next) => {
+        saved = next;
+        return Promise.resolve();
+      });
+      discordRest.getMessagesAfter.mockResolvedValue([]);
+      discordRest.getRecentMessages
+        .mockResolvedValueOnce(messages(3999, 100))
+        .mockResolvedValueOnce(messages(3899, 100));
+
+      const first = await service.run(CHANNEL, 1);
+      const second = await service.run(CHANNEL, 1);
+
+      expect(saved.oldestId).toBe('3800');
+      expect(first).toMatchObject({ pagesFetched: 2 });
+      expect(second).toMatchObject({ pagesFetched: 2 });
+    });
+
+    it('does not spend the budget on a short catch-up page', async () => {
+      store.readState.mockResolvedValue(
+        state({ newestId: '500', oldestId: '300' }),
+      );
+      discordRest.getMessagesAfter.mockResolvedValueOnce(messages(510, 10));
+      discordRest.getRecentMessages.mockResolvedValueOnce(messages(299, 100));
+
+      const summary = await service.run(CHANNEL, 1);
+
+      expect(discordRest.getRecentMessages).toHaveBeenCalledTimes(1);
+      expect(summary).toMatchObject({ pagesFetched: 2, stoppedByError: null });
+    });
+
+    it('spends the budget on a full catch-up page', async () => {
+      store.readState.mockResolvedValue(
+        state({ newestId: '500', oldestId: '300' }),
+      );
+      discordRest.getMessagesAfter.mockResolvedValueOnce(messages(600, 100));
+
+      const summary = await service.run(CHANNEL, 1);
+
+      expect(discordRest.getRecentMessages).not.toHaveBeenCalled();
+      expect(summary).toMatchObject({ pagesFetched: 1, stoppedByError: null });
+    });
+  });
+
   it('saves only advancement messages and counts only newly saved ones', async () => {
     const page = messages(3, 3);
     discordRest.getRecentMessages.mockResolvedValueOnce(page);

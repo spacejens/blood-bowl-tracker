@@ -55,8 +55,12 @@ collects evidence; it does not change any player.
   Each run first catches up on messages newer than the newest one it saved
   (`after=<newest id>`, repeated while pages come back full). It then
   continues backwards until the start of the channel, or until it has
-  fetched `--max-pages` pages in total. A short page means the start was
-  reached.
+  used up `--max-pages` pages. A catch-up page counts towards that budget
+  only when it is full (more may be waiting); an empty or short catch-up
+  page ends the catch-up and is free, so `--max-pages=1` reruns still move
+  backwards. A short page while paging backwards means the start was
+  reached. The summary's pages fetched counts every successful request,
+  free ones included.
 - **Resuming.** The state is saved after every page. If a page still fails
   after discord.js's retries, or comes back in an unexpected shape, the run
   stops without an error exit. The summary names the failure, and a rerun
