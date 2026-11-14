@@ -344,3 +344,73 @@ describe('AdvancementOrderSpendCheckService.spendProblems', () => {
     expect([...problems.keys()]).toEqual([2]);
   });
 });
+
+describe('AdvancementOrderSpendCheckService.plannedSpendProblem', () => {
+  const order = (rowIdsInOrder: number[], spent: number) => ({
+    playerId: 1,
+    rowIdsInOrder,
+    freeRowIds: new Set<number>(),
+    spent,
+  });
+
+  it('accepts no paid advancement with nothing spent, without pricing', async () => {
+    const { service, deduction } = await makeService();
+
+    expect(service.plannedSpendProblem(order([], 0), [])).toBeUndefined();
+    expect(deduction.deduce).not.toHaveBeenCalled();
+  });
+
+  it('reports no paid advancement with SPP spent', async () => {
+    const { service } = await makeService();
+
+    expect(service.plannedSpendProblem(order([], 4), [])).toBe(
+      ' has no paid advancement, but 4 SPP reported as spent',
+    );
+  });
+
+  it('reports more paid advancements than can be checked', async () => {
+    const { service } = await makeService();
+
+    expect(
+      service.plannedSpendProblem(order([1, 2, 3, 4, 5, 6, 7], 70), []),
+    ).toBe(' has 7 paid advancements; at most 6 can be checked');
+  });
+
+  it('reports a player no rules set prices', async () => {
+    const { service } = await makeService();
+
+    expect(service.plannedSpendProblem(order([11], 6), [])).toBe(
+      ' has no rules set that prices advancements, so the order cannot be checked against the SPP reported as spent',
+    );
+  });
+
+  it('prices the given inputs as the only allowed order, reading nothing', async () => {
+    const { service, deduction, unspentSpp, db } = await makeService();
+    deduction.deduce.mockReturnValue(new Map([[11, 1]]));
+
+    expect(
+      service.plannedSpendProblem(order([11], 6), [rulesSetWith(false)]),
+    ).toBeUndefined();
+    expect(deduction.deduce).toHaveBeenCalledWith(
+      expect.objectContaining({
+        newRowIds: [11],
+        orderedRowIds: [11],
+        firstNumber: 1,
+        spent: 6,
+      }),
+    );
+    expect(unspentSpp.advancementInputsForPlayers).not.toHaveBeenCalled();
+    expect(db.db.select).not.toHaveBeenCalled();
+  });
+
+  it('reports an order the spend does not allow', async () => {
+    const { service, deduction } = await makeService();
+    deduction.deduce.mockReturnValue(undefined);
+
+    expect(
+      service.plannedSpendProblem(order([11], 7), [rulesSetWith(false)]),
+    ).toBe(
+      ": this order cannot cost exactly the 7 SPP reported as spent under any rules set of the player's era",
+    );
+  });
+});

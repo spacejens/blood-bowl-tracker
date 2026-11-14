@@ -16,6 +16,7 @@ export * from './schemas/manual-import-batch';
 export * from './schemas/match';
 export * from './schemas/match-event';
 export * from './schemas/player';
+export * from './schemas/player-fill';
 export * from './schemas/player-skill';
 export * from './schemas/position';
 export * from './schemas/position-rules-set';

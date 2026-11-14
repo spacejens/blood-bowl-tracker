@@ -52,6 +52,10 @@ import {
   UpsertPlayerSchema,
 } from './schemas/player';
 import {
+  FillIncompletePlayerResultSchema,
+  FillIncompletePlayerSchema,
+} from './schemas/player-fill';
+import {
   ListPlayerSkillsSchema,
   PlayerSkillRefSchema,
   SyncPlayerSkillsResultSchema,
@@ -176,6 +180,23 @@ export const contract = {
     syncLastingInjuryHistory: oc
       .input(SyncLastingInjuryHistorySchema)
       .output(SyncLastingInjuryHistoryResultSchema),
+    // Not an upsert: fills in, in place, the complete data a manual import
+    // batch supplies for one existing TP player whose import left it
+    // incomplete, one player per call. BAD_REQUEST is declared because the
+    // server refuses a player that is not a non-star TP player, an entry
+    // contradicting stored data or the SPP reported as spent, characteristics
+    // no rules set of his era allows, and a player already complete with
+    // different data -- authored-data feedback the importer reports per
+    // entry. A player already complete with exactly this data answers
+    // `unchanged`, so a batch re-run is safe.
+    fillIncomplete: oc
+      .input(FillIncompletePlayerSchema)
+      .errors({
+        BAD_REQUEST: {
+          message: 'Player fill is not valid',
+        },
+      })
+      .output(FillIncompletePlayerResultSchema),
     // Players became resolvable when tools/import-manual gained a curated
     // trophy-awards file: a manually curated award names its winning player
     // by external id, across tools and phases, exactly like every other

@@ -80,6 +80,10 @@ The batches:
   rules-set pair whose characteristics batch 002 curates, so it applies after
   the source importers, in a plain `apply`.
 
+A batch can also fill in the data of a TP player the TP import left
+incomplete, through the `incompletePlayerFills` section; see
+[Filling in missing players](filling-missing-players.md).
+
 ### Batch 004
 
 Detail for the 004-advancement-costs entry above.

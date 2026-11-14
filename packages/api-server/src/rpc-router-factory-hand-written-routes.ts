@@ -8,6 +8,7 @@ import {
   ManualImportBatchesService,
   MatchOutcomesService,
   MissingTrophyAwardsService,
+  PlayerFillService,
   PlayerLastingInjuryBackfillService,
   PlayerSkillsService,
   PositionRulesSetKeywordsService,
@@ -177,6 +178,23 @@ export function buildPlayerSppAdjustmentRoutes(
       contract.players.syncLastingInjuryHistory,
     ).handler(({ input }) =>
       lastingInjuryBackfillService.syncLastingInjuryHistory(input),
+    ),
+  };
+}
+
+// players.fillIncomplete: one manual fill of a missing TP player's data, not
+// an upsert -- no external-id conflict to map and no entity+created shape to
+// return. It goes through `runSync`, which maps the service's refusals
+// (`IncompletePlayerFillError`, and `CharacteristicFormatMismatchError` for
+// characteristics no rules set of the player's era allows) to BAD_REQUEST.
+export function buildPlayerFillRoute(
+  upsertHandler: UpsertHandlerService,
+  playerFill: PlayerFillService,
+) {
+  return {
+    fillIncomplete: implement(contract.players.fillIncomplete).handler(
+      ({ input, errors }) =>
+        upsertHandler.runSync(errors, () => playerFill.fill(input)),
     ),
   };
 }

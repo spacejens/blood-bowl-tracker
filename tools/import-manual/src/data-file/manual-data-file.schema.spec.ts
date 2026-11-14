@@ -27,6 +27,7 @@ describe('ManualDataFileSchema', () => {
       competitionGroups: [],
       trophyAwards: [],
       playerAdvancementOrders: [],
+      incompletePlayerFills: [],
     });
   });
 

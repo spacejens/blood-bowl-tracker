@@ -15,6 +15,8 @@ import {
 import {
   COMPETITION_TYPES,
   LEARNABLE_SKILL_CATEGORIES,
+  PLAYER_STATUSES,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/domain-enums';
 import { z } from 'zod';
 
@@ -435,6 +437,56 @@ const PlayerAdvancementOrderEntrySchema = z.object({
   advancements: z.array(PlayerAdvancementSchema),
 });
 
+/**
+ * The complete current characteristic line of a player being filled in. MA,
+ * ST, AG and AV are positive, since a zero is what marks him incomplete; PA
+ * may be 0 ("-") and is left out under a rules set with no Passing.
+ */
+const IncompletePlayerFillCharacteristicsSchema = z
+  .object({
+    ma: z.number().int().positive(),
+    st: z.number().int().positive(),
+    ag: z.number().int().positive(),
+    pa: z.number().int().nonnegative().optional(),
+    av: z.number().int().positive(),
+  })
+  .strict();
+
+/**
+ * One advancement of a player being filled in, first taken first: a skill
+ * (with its variant, whether it was chosen or random when known, and whether
+ * it is a free extra) or a characteristic increase.
+ */
+const IncompletePlayerFillAdvancementSchema = z.union([
+  z
+    .object({
+      skill: ExternalRefSchema,
+      attributeValue: z.string().min(1).optional(),
+      source: z.enum(['chosen', 'random']).optional(),
+      freeExtra: z.boolean().optional(),
+    })
+    .strict(),
+  z.object({ characteristic: PlayerCharacteristicSchema }).strict(),
+]);
+
+/**
+ * The complete data of one TP player the TP import left incomplete. Every
+ * field is required, so an entry is never partial. See
+ * docs/import-manual/filling-missing-players.md.
+ */
+const IncompletePlayerFillEntrySchema = z.object({
+  player: z.object({
+    system: z.literal(TP_EXTERNAL_SYSTEM_NAME),
+    id: z.string().min(1),
+  }),
+  status: z.enum(PLAYER_STATUSES),
+  characteristics: IncompletePlayerFillCharacteristicsSchema,
+  sppTotal: z.number().int().nonnegative(),
+  unspentSpp: z.number().int().nonnegative(),
+  startingSkills: z.array(PositionRulesSetSkillRefSchema),
+  advancements: z.array(IncompletePlayerFillAdvancementSchema),
+});
+
 export const ManualDataFileSchema = z
   .object({
     externalSystems: z.array(ExternalSystemEntrySchema).default([]),
@@ -464,11 +516,15 @@ export const ManualDataFileSchema = z
     playerAdvancementOrders: z
       .array(PlayerAdvancementOrderEntrySchema)
       .default([]),
+    incompletePlayerFills: z.array(IncompletePlayerFillEntrySchema).default([]),
   })
   .strict();
 
 export type PlayerAdvancementOrderEntry = z.infer<
   typeof PlayerAdvancementOrderEntrySchema
+>;
+export type IncompletePlayerFillEntry = z.infer<
+  typeof IncompletePlayerFillEntrySchema
 >;
 export type ExternalRef = z.infer<typeof ExternalRefSchema>;
 export type PositionEntry = z.infer<typeof PositionEntrySchema>;

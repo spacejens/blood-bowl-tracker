@@ -13,6 +13,7 @@ import {
   MatchEventsService,
   MatchOutcomesService,
   MissingTrophyAwardsService,
+  PlayerFillService,
   PlayerLastingInjuryBackfillService,
   PlayerSkillsService,
   PlayersService,
@@ -87,6 +88,7 @@ export async function createRouterHarness() {
     advancementCostsService: mock<AdvancementCostsService>(),
     playerLastingInjuryBackfillService:
       mock<PlayerLastingInjuryBackfillService>(),
+    playerFillService: mock<PlayerFillService>(),
     tpRosterImportService: mock<TpRosterImportService>(),
     tpMatchImportService: mock<TpMatchImportService>(),
     tpCompetitionImportService: mock<TpCompetitionImportService>(),
@@ -169,6 +171,7 @@ export async function createRouterHarness() {
         provide: PlayerLastingInjuryBackfillService,
         useValue: mocks.playerLastingInjuryBackfillService,
       },
+      { provide: PlayerFillService, useValue: mocks.playerFillService },
       {
         provide: TpRosterImportService,
         useValue: mocks.tpRosterImportService,

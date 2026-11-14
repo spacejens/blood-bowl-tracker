@@ -49,6 +49,8 @@ export {
   MatchesService,
   MatchUpsertConflictError,
 } from './matches/matches.service';
+export { PlayerFillModule } from './player-fill/player-fill.module';
+export { PlayerFillService } from './player-fill/player-fill.service';
 export { JourneymanLonerService } from './player-skills/journeyman-loner.service';
 export type {
   PlayerCharacteristicAdvancementRow,
@@ -61,6 +63,7 @@ export type {
   PlayerSkillsSyncOptions,
 } from './player-skills/player-skills.service';
 export { PlayerSkillsService } from './player-skills/player-skills.service';
+export { INCOMPLETE_PLAYER_CRITERIA } from './players/incomplete-player-criteria';
 export { PlayerLastingInjuryBackfillService } from './players/player-lasting-injury-backfill.service';
 export { PlayersModule } from './players/players.module';
 export {
@@ -98,6 +101,7 @@ export { CharacteristicFormatMismatchError } from './shared/characteristic-forma
 export { CuratedAdvancementOrderError } from './shared/curated-advancement-order-error';
 export type { FactScope } from './shared/fact-scope';
 export { FACT_SCOPE_ALL_TIME } from './shared/fact-scope';
+export { IncompletePlayerFillError } from './shared/incomplete-player-fill-error';
 export { KeywordValidationError } from './shared/keyword-validation-error';
 export {
   CASUALTY_CAUSED_TYPES,

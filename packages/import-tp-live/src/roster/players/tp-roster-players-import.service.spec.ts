@@ -52,7 +52,6 @@ describe('TpRosterPlayersImportService', () => {
       teamEraId: TEAM_ERA_ID,
       positionId: 11,
       sppTotal: 12,
-      status: null,
       externalIds: [{ externalSystemId: TP_SYSTEM_ID, externalId: '5001' }],
     });
     expect(outcome).toEqual({
@@ -813,14 +812,13 @@ describe('TpRosterPlayersImportService', () => {
       });
     });
 
-    it('sends an unknown status explicitly as null', async () => {
+    it('leaves the status out when TP establishes none, so a stored one is kept', async () => {
       const service = await makeService();
 
       await run(service);
 
-      expect(mocks.players.upsert.mock.calls[0][0]).toHaveProperty(
+      expect(mocks.players.upsert.mock.calls[0][0]).not.toHaveProperty(
         'status',
-        null,
       );
     });
 

@@ -11,6 +11,7 @@ import { ExternalIdResolverService } from './external-id-resolver.service';
 import { ExternalSystemBootstrapService } from './external-system-bootstrap.service';
 import { ExternalSystemsImportService } from './external-systems-import.service';
 import { ImportRunnerService } from './import-runner.service';
+import { IncompletePlayerFillImportService } from './incomplete-player-fill-import.service';
 import { KeywordsImportService } from './keywords-import.service';
 import { LastingInjuriesImportService } from './lasting-injuries-import.service';
 import { LeaguesImportService } from './leagues-import.service';
@@ -61,6 +62,7 @@ import { TrophyAwardsImportService } from './trophy-awards-import.service';
     KeywordsImportService,
     PlayersImportService,
     PlayerSkillsImportService,
+    IncompletePlayerFillImportService,
     PositionRulesSetKeywordsImportService,
     PositionRulesSetsImportService,
     PositionRulesSetSkillCategoriesImportService,
@@ -100,6 +102,7 @@ import { TrophyAwardsImportService } from './trophy-awards-import.service';
     KeywordsImportService,
     PlayersImportService,
     PlayerSkillsImportService,
+    IncompletePlayerFillImportService,
     PositionRulesSetKeywordsImportService,
     PositionRulesSetsImportService,
     PositionRulesSetSkillCategoriesImportService,

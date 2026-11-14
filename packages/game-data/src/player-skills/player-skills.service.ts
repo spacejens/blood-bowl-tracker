@@ -92,6 +92,12 @@ export interface PlayerSkillsSyncOptions {
    * written advancements (CuratedAdvancementOrderService).
    */
   keepUnspentSpp?: boolean;
+  /**
+   * Run the writes on this transaction instead of opening one, so they
+   * commit or roll back with the caller's own writes (PlayerFillService).
+   * The reads before the writes still use the injected db.
+   */
+  tx?: DbOrTx;
 }
 
 /**
@@ -140,6 +146,7 @@ export class PlayerSkillsService {
    * never stored confirmed, and a confirmed free extra's number is closed up
    * in the player's paid numbering (see `closeFreeExtraSlots`). The changed
    * players' stored unspent SPP is cleared unless `options.keepUnspentSpp`.
+   * With `options.tx` the writes run on the caller's transaction.
    */
   async sync(
     data: SyncPlayerSkills,
@@ -253,8 +260,9 @@ export class PlayerSkillsService {
     }
 
     // One transaction around every write: the caller treats this single call
-    // as one batch that either wholly succeeds or wholly fails.
-    return this.db.transaction(async (tx) => {
+    // as one batch that either wholly succeeds or wholly fails. A caller that
+    // passes its own transaction gets the writes on it instead.
+    const write = async (tx: DbOrTx): Promise<SyncPlayerSkillsResult> => {
       for (const { id, values } of skillWrites.updates) {
         await tx
           .update(playerAdvancements)
@@ -292,7 +300,10 @@ export class PlayerSkillsService {
           );
       }
       return { playerSkillIds: resultIds };
-    });
+    };
+    return options.tx === undefined
+      ? this.db.transaction(write)
+      : write(options.tx);
   }
 
   /** Insert the new skill rows and record their ids in `resultIds`. */

@@ -57,7 +57,8 @@ export type ReportedSpend =
  * under the rules sets of his era. The stored gained skills the free-extra
  * rules make free (PlayerAdvancementReadsService.resolveFreeExtras) count as
  * free in the pricing even while their stored flag is unset. Used by the
- * curated order write and by the recheck after the SPP adjustments sync.
+ * curated order write, by the recheck after the SPP adjustments sync, and,
+ * over rows not yet stored, by the manual fill of a missing player.
  * Problems are phrased to follow the player's name ("Player 12 has ...",
  * "Player 12: this order ..."). Reads are batched over the given players.
  */
@@ -165,22 +166,13 @@ export class AdvancementOrderSpendCheckService {
     const problems = new Map<number, string>();
     const priced: SpendCheckOrder[] = [];
     for (const order of orders) {
-      const count = order.rowIdsInOrder.length;
-      if (count === 0) {
-        // No paid advancement, so nothing can have been spent on one.
-        if (order.spent !== 0) {
-          problems.set(
-            order.playerId,
-            ` has no paid advancement, but ${order.spent} SPP reported as spent`,
-          );
-        }
-      } else if (count > MAX_DEDUCED) {
-        problems.set(
-          order.playerId,
-          ` has ${count} paid advancements; at most ${MAX_DEDUCED} can be checked`,
-        );
-      } else {
+      if (this.needsPricing(order)) {
         priced.push(order);
+      } else {
+        const problem = this.countProblem(order);
+        if (problem !== undefined) {
+          problems.set(order.playerId, problem);
+        }
       }
     }
     if (priced.length === 0) {
@@ -199,6 +191,38 @@ export class AdvancementOrderSpendCheckService {
       }
     }
     return problems;
+  }
+
+  /**
+   * Why an order of advancements not yet stored cannot cost the player's
+   * spend, by the same rules as `spendProblems`, priced over the inputs the
+   * caller built for those rows (PlayerFillSpendCheckService). Reads nothing.
+   */
+  plannedSpendProblem(
+    order: SpendCheckOrder,
+    rulesSets: RulesSetAdvancementInput[],
+  ): string | undefined {
+    return this.needsPricing(order)
+      ? this.pricingProblem(order, rulesSets)
+      : this.countProblem(order);
+  }
+
+  /** Whether the order has between one and MAX_DEDUCED paid rows to price. */
+  private needsPricing(order: SpendCheckOrder): boolean {
+    const count = order.rowIdsInOrder.length;
+    return count > 0 && count <= MAX_DEDUCED;
+  }
+
+  /** The problem of an order with no paid row, or too many to price. */
+  private countProblem(order: SpendCheckOrder): string | undefined {
+    const count = order.rowIdsInOrder.length;
+    if (count === 0) {
+      // No paid advancement, so nothing can have been spent on one.
+      return order.spent === 0
+        ? undefined
+        : ` has no paid advancement, but ${order.spent} SPP reported as spent`;
+    }
+    return ` has ${count} paid advancements; at most ${MAX_DEDUCED} can be checked`;
   }
 
   /** Why the order cannot cost the spend under the given rules sets, if it cannot. */

@@ -30,6 +30,7 @@ function emptyData(): ManualDataFile {
     competitionGroups: [],
     trophyAwards: [],
     playerAdvancementOrders: [],
+    incompletePlayerFills: [],
   };
 }
 
@@ -413,5 +414,73 @@ describe('ExternalSystemsProcessor', () => {
       'tourplay.net',
       'imported_data_source',
     );
+  });
+
+  describe('incompletePlayerFills', () => {
+    function dataWithFill(systems: string[]): ManualDataFile {
+      const data = emptyData();
+      data.externalSystems = systems.map((name) => ({
+        name,
+        category: 'imported_data_source' as const,
+      }));
+      data.incompletePlayerFills = [
+        {
+          player: { system: 'tourplay.net', id: '1' },
+          status: 'active',
+          characteristics: { ma: 6, st: 3, ag: 3, pa: 4, av: 8 },
+          sppTotal: 0,
+          unspentSpp: 0,
+          startingSkills: [
+            { system: 'BareSkillSys', id: 'a' },
+            {
+              skill: { system: 'WrappedSkillSys', id: 'b' },
+              attributeValue: '+1',
+            },
+          ],
+          advancements: [
+            { skill: { system: 'AdvSkillSys', id: 'c' } },
+            { characteristic: 'MA' },
+          ],
+        },
+      ];
+      return data;
+    }
+
+    it.each(['tourplay.net', 'BareSkillSys', 'WrappedSkillSys', 'AdvSkillSys'])(
+      'throws when a fill references %s without declaring it',
+      async (missing) => {
+        const all = [
+          'tourplay.net',
+          'BareSkillSys',
+          'WrappedSkillSys',
+          'AdvSkillSys',
+        ];
+        const data = dataWithFill(all.filter((name) => name !== missing));
+        externalSystemsImport.upsertExternalSystem.mockResolvedValue(1);
+
+        await expect(processor.bootstrap(data)).rejects.toThrow(
+          `External system "${missing}" is referenced but not declared`,
+        );
+      },
+    );
+
+    it('bootstraps the systems a fully declared fill references', async () => {
+      externalSystemsImport.upsertExternalSystem.mockResolvedValue(1);
+      const data = dataWithFill([
+        'tourplay.net',
+        'BareSkillSys',
+        'WrappedSkillSys',
+        'AdvSkillSys',
+      ]);
+
+      const systemIds = await processor.bootstrap(data);
+
+      expect([...systemIds.keys()].sort()).toEqual([
+        'AdvSkillSys',
+        'BareSkillSys',
+        'WrappedSkillSys',
+        'tourplay.net',
+      ]);
+    });
   });
 });

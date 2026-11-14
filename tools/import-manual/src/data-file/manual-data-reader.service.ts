@@ -39,6 +39,7 @@ export class ManualDataReader {
       competitionGroups: [],
       trophyAwards: [],
       playerAdvancementOrders: [],
+      incompletePlayerFills: [],
     };
 
     for (const path of await this.listFiles(dir)) {
@@ -69,6 +70,7 @@ export class ManualDataReader {
       pooled.competitionGroups.push(...file.competitionGroups);
       pooled.trophyAwards.push(...file.trophyAwards);
       pooled.playerAdvancementOrders.push(...file.playerAdvancementOrders);
+      pooled.incompletePlayerFills.push(...file.incompletePlayerFills);
     }
 
     return pooled;

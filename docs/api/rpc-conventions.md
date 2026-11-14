@@ -192,6 +192,15 @@ lands as one link. `positionRulesSetSkillCategories.sync` replaces each named
 pair's whole category set. A category the entry leaves out is flagged removed,
 so a caller always sends the complete set.
 
+`players.fillIncomplete` writes one caller-authored player at a time: the
+complete data a manual import batch supplies for an existing TP player whose
+import left it incomplete. Every check runs before anything is written, and a
+refusal is `BAD_REQUEST`: a player that is not a non-star TP player, an entry
+that contradicts a stored value, characteristics no rules set of his era
+allows, advancements the SPP he reports as spent cannot pay for, or a player
+already complete with different data. Re-sending the data of a player already
+complete with exactly that data answers `unchanged` and writes nothing.
+
 A procedure may also be plainly read-only, existing because a caller needs data
 that no `upsert` call's input or output can give it. Such a procedure writes
 nothing, and declares no contract errors. Current examples:
