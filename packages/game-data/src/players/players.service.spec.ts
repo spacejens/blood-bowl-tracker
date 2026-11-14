@@ -12,6 +12,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
+import { JourneymanLonerService } from '../player-skills/journeyman-loner.service';
 import { CharacteristicFormatMismatchError } from '../shared/characteristic-format-mismatch-error';
 import { LastingInjuryValidationError } from '../shared/lasting-injury-validation-error';
 import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
@@ -41,6 +42,7 @@ const fakePlayer = {
 describe('PlayersService', () => {
   let service: PlayersService;
   let characteristicsValidation: MockProxy<PlayerCharacteristicsValidationService>;
+  let journeymen: MockProxy<JourneymanLonerService>;
 
   async function build(...rowsPerQuery: unknown[][]): Promise<MockDbResult> {
     const dbMock = mockDb(...rowsPerQuery);
@@ -58,6 +60,7 @@ describe('PlayersService', () => {
         // Pure and dependency-free (CLAUDE.md's decision-service carve-out):
         // no constructor, no I/O — passed real rather than mocked.
         PlayerLastingInjuryValidationService,
+        { provide: JourneymanLonerService, useValue: journeymen },
         { provide: DB, useValue: dbMock.db },
       ],
     }).compile();
@@ -67,6 +70,7 @@ describe('PlayersService', () => {
 
   beforeEach(() => {
     characteristicsValidation = mock<PlayerCharacteristicsValidationService>();
+    journeymen = mock<JourneymanLonerService>();
   });
 
   describe('upsert', () => {
@@ -251,6 +255,132 @@ describe('PlayersService', () => {
       expect(
         (firstCallArg(chains[1].values) as { status?: string }).status,
       ).toBeUndefined();
+    });
+
+    it('writes the journeyman marker when the payload states it', async () => {
+      const { chains } = await build(
+        [],
+        [{ ...fakePlayer, isJourneyman: true }],
+      );
+
+      await service.upsert({ ...base, isJourneyman: true, externalIds });
+
+      expect(firstCallArg(chains[1].values)).toMatchObject({
+        isJourneyman: true,
+      });
+    });
+
+    it('writes an explicit false journeyman marker', async () => {
+      // query 0: the stored-marker lookup a clearing payload reads first.
+      const { chains } = await build([], [], [fakePlayer]);
+
+      await service.upsert({ ...base, isJourneyman: false, externalIds });
+
+      expect(firstCallArg(chains[2].values)).toMatchObject({
+        isJourneyman: false,
+      });
+    });
+
+    it('leaves the marker alone when the payload omits it', async () => {
+      const { chains } = await build([], [fakePlayer]);
+
+      await service.upsert({ ...base, externalIds });
+
+      expect(firstCallArg(chains[1].values)).not.toHaveProperty('isJourneyman');
+    });
+
+    it('ensures the starting Loner when the player is a journeyman after the write', async () => {
+      await build([], [{ ...fakePlayer, isJourneyman: true }]);
+
+      await service.upsert({ ...base, isJourneyman: true, externalIds });
+
+      expect(journeymen.ensureStartingLoner).toHaveBeenCalledWith(1);
+      expect(journeymen.retireStartingLoner).not.toHaveBeenCalled();
+    });
+
+    it('ensures it when the payload omits the marker but the stored row has it', async () => {
+      await build(
+        [{ ownerId: 1, externalSystemId: 1, externalId: '12345' }],
+        [{ ...fakePlayer, isJourneyman: true }],
+      );
+
+      await service.upsert({ ...base, externalIds });
+
+      expect(journeymen.ensureStartingLoner).toHaveBeenCalledWith(1);
+    });
+
+    it('reads no stored marker for a true write', async () => {
+      const { chains } = await build(
+        [],
+        [{ ...fakePlayer, isJourneyman: true }],
+      );
+
+      await service.upsert({ ...base, isJourneyman: true, externalIds });
+
+      // The same three queries as the plain create case: lookup, insert,
+      // external ids.
+      expect(chains).toHaveLength(3);
+    });
+
+    it('retires the starting Loner when the write clears a stored journeyman', async () => {
+      await build(
+        [{ isJourneyman: true }],
+        [{ ownerId: 1, externalSystemId: 1, externalId: '12345' }],
+        [{ ...fakePlayer, isJourneyman: false }],
+      );
+
+      await service.upsert({ ...base, isJourneyman: false, externalIds });
+
+      expect(journeymen.retireStartingLoner).toHaveBeenCalledWith(1);
+      expect(journeymen.ensureStartingLoner).not.toHaveBeenCalled();
+    });
+
+    it('does not retire when the stored marker was already cleared', async () => {
+      await build(
+        [{ isJourneyman: false }],
+        [{ ownerId: 1, externalSystemId: 1, externalId: '12345' }],
+        [{ ...fakePlayer, isJourneyman: false }],
+      );
+
+      await service.upsert({ ...base, isJourneyman: false, externalIds });
+
+      expect(journeymen.retireStartingLoner).not.toHaveBeenCalled();
+      expect(journeymen.ensureStartingLoner).not.toHaveBeenCalled();
+    });
+
+    it('does not retire a new player written as no journeyman', async () => {
+      await build([], [], [fakePlayer]);
+
+      await service.upsert({ ...base, isJourneyman: false, externalIds });
+
+      expect(journeymen.retireStartingLoner).not.toHaveBeenCalled();
+    });
+
+    it('never retires, nor reads the stored marker, when the payload omits it', async () => {
+      const { chains } = await build([], [fakePlayer]);
+
+      await service.upsert({ ...base, externalIds });
+
+      expect(journeymen.retireStartingLoner).not.toHaveBeenCalled();
+      expect(chains).toHaveLength(3);
+    });
+
+    it('looks up the stored marker by the payload external ids', async () => {
+      const { chains } = await build(
+        [{ isJourneyman: true }],
+        [],
+        [fakePlayer],
+      );
+
+      await service.upsert({ ...base, isJourneyman: false, externalIds });
+
+      expect(chains[0].from).toHaveBeenCalledWith(players);
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        1,
+        '12345',
+        2,
+        'Griff Oberwald',
+      ]);
     });
 
     it('writes a null status through to the updated columns', async () => {

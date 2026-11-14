@@ -20,6 +20,7 @@ import {
   tpRoster,
 } from '../tp-roster.test-helpers';
 import { TpLiveAdvancementSyncService } from './tp-live-advancement-sync.service';
+import type { SyncRosterPlayerSkillsOptions } from './tp-roster-player-skills.service';
 import { TpRosterPlayerSkillsService } from './tp-roster-player-skills.service';
 import { TpRosterSkillIdsService } from './tp-roster-skill-ids.service';
 
@@ -87,6 +88,7 @@ describe('TpRosterPlayerSkillsService', () => {
     options: {
       increasesByPlayerId?: ReadonlyMap<number, PlayerCharacteristicCounts>;
       confirmNewAdvancements?: boolean;
+      journeymen?: SyncRosterPlayerSkillsOptions['journeymen'];
     } = {},
   ) =>
     service.syncPlayerSkills({
@@ -95,6 +97,7 @@ describe('TpRosterPlayerSkillsService', () => {
       importedPlayers,
       increasesByPlayerId: options.increasesByPlayerId ?? new Map(),
       confirmNewAdvancements: options.confirmNewAdvancements,
+      journeymen: options.journeymen,
       context: rosterContext(),
       errors,
     });
@@ -102,6 +105,51 @@ describe('TpRosterPlayerSkillsService', () => {
   /** The skill entries handed to the advancement sync, one list per player. */
   const handed = (): PlayerSkillEntry[][] =>
     liveSync.syncPlayer.mock.calls.map(([options]) => options.skillEntries);
+
+  describe('journeymen', () => {
+    /** A player who gained Loner (master 60), then Block (master 41). */
+    const lonerThenBlock = () =>
+      rosterPlayer({
+        skills: {
+          starting: [],
+          gained: [
+            { skillMasterId: 60, isRandom: false, isExtra: false },
+            { skillMasterId: 41, isRandom: false, isExtra: false },
+          ],
+        },
+      });
+
+    it("leaves a journeyman's gained Loner out", async () => {
+      await sync([lonerThenBlock()], undefined, {
+        journeymen: {
+          playerIds: new Set([700]),
+          lonerMasterIds: new Set([60]),
+        },
+      });
+
+      expect(handed()).toEqual([
+        [
+          {
+            playerId: 700,
+            skillId: 500,
+            source: 'chosen',
+            attributeValue: null,
+            advancementOrder: 1,
+          },
+        ],
+      ]);
+    });
+
+    it('keeps a gained Loner of a player who is not a journeyman', async () => {
+      await sync([lonerThenBlock()], undefined, {
+        journeymen: { playerIds: new Set(), lonerMasterIds: new Set([60]) },
+      });
+
+      expect(handed()[0]).toContainEqual(
+        expect.objectContaining({ skillId: 501, advancementOrder: 1 }),
+      );
+    });
+  });
 
   it('writes starting skills, then gained ones as chosen or random in advancement order', async () => {
     const player = rosterPlayer({

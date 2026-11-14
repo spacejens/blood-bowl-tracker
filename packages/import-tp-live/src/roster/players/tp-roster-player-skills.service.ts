@@ -45,6 +45,14 @@ export interface SyncRosterPlayerSkillsOptions {
    * the order of his paid advancements deduced from TP's reported spend.
    */
   confirmNewAdvancements?: boolean;
+  /**
+   * The imported journeymen and Loner's skillMasterIds. A journeyman's
+   * gained Loner is left out: the server keeps his Loner as a starting skill.
+   */
+  journeymen?: {
+    playerIds: ReadonlySet<number>;
+    lonerMasterIds: ReadonlySet<number>;
+  };
   context: TpRosterContext;
   errors: ImportError[];
 }
@@ -96,7 +104,9 @@ interface SkillRefEntry {
  * TpLiveAdvancementSyncService, which numbers the paid advancements and
  * confirms their order where TP's spend decides it. Only a roster entry
  * with a skills group or derived increases contributes: a
- * match-snapshot-only player carries neither.
+ * match-snapshot-only player carries neither. A journeyman's gained Loner is
+ * left out, the server keeping his Loner as a starting skill; the gained
+ * order is taken from what remains, so later skills need no renumbering.
  */
 @Injectable()
 export class TpRosterPlayerSkillsService {
@@ -122,6 +132,7 @@ export class TpRosterPlayerSkillsService {
     importedPlayers,
     increasesByPlayerId,
     confirmNewAdvancements,
+    journeymen,
     context,
     errors,
   }: SyncRosterPlayerSkillsOptions): Promise<number> {
@@ -129,6 +140,7 @@ export class TpRosterPlayerSkillsService {
       players: roster.players,
       importedPlayers,
       increasesByPlayerId,
+      journeymen,
     });
     if (withSkills.length === 0) {
       return 0;
@@ -237,16 +249,19 @@ export class TpRosterPlayerSkillsService {
 
   /**
    * Every roster player that was imported and carries a skills group or
-   * derived increases, with TP's unspent figure for them.
+   * derived increases, with TP's unspent figure for them, and a
+   * journeyman's gained Loner left out.
    */
   private playersWithSkills({
     players,
     importedPlayers,
     increasesByPlayerId,
+    journeymen,
   }: {
     players: TpRosterPlayer[];
     importedPlayers: TpImportedPlayer[];
     increasesByPlayerId: ReadonlyMap<number, PlayerCharacteristicCounts>;
+    journeymen: SyncRosterPlayerSkillsOptions['journeymen'];
   }): PlayerWithSkills[] {
     const imported = new Map(
       importedPlayers.map((entry) => [entry.lineUpId, entry]),
@@ -264,12 +279,32 @@ export class TpRosterPlayerSkillsService {
         {
           player,
           playerId: entry.playerId,
-          skills: player.skills ?? { starting: [], gained: [] },
+          skills: this.withoutJourneymanLoner(
+            player.skills ?? { starting: [], gained: [] },
+            journeymen?.playerIds.has(entry.playerId) === true
+              ? journeymen.lonerMasterIds
+              : undefined,
+          ),
           increases,
           snapshot: entry.unspentSppSnapshot,
         },
       ];
     });
+  }
+
+  /** The skills with a journeyman's gained Loner left out. */
+  private withoutJourneymanLoner(
+    skills: TpPlayerSkills,
+    lonerMasterIds: ReadonlySet<number> | undefined,
+  ): TpPlayerSkills {
+    return lonerMasterIds === undefined
+      ? skills
+      : {
+          starting: skills.starting,
+          gained: skills.gained.filter(
+            (ref) => !lonerMasterIds.has(ref.skillMasterId),
+          ),
+        };
   }
 
   /**

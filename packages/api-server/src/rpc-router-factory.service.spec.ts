@@ -721,6 +721,7 @@ describe('RpcRouterFactoryService', () => {
         passingReductionCount: 0,
         armourReductionCount: 0,
         unspentSpp: null,
+        isJourneyman: false,
         createdAt: new Date('2026-01-01'),
         updatedAt: new Date('2026-01-01'),
         historyVersion: 1,
@@ -754,6 +755,7 @@ describe('RpcRouterFactoryService', () => {
       passingReductionCount: 0,
       armourReductionCount: 0,
       unspentSpp: null,
+      isJourneyman: false,
       createdAt: new Date('2026-01-01'),
       created: true,
     });

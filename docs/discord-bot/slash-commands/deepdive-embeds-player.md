@@ -15,7 +15,9 @@ player name as the title, then its team, era, race and position lines
 (every player always has all four — a player
 belongs to exactly one team-era, and therefore to exactly one era). The era
 line names the era and its date range, with an ongoing era marked as still
-running.
+running. A journeyman's position line ends in `(Journeyman)`, as in
+`Position: Blitzer (Journeyman)`; his Loner is listed among his starting
+skills.
 
 ## Status
 

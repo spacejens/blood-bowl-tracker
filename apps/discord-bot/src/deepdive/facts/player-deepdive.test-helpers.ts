@@ -92,6 +92,7 @@ export const griff = {
   raceId: 4,
   positionId: 4,
   positionName: 'Blitzer',
+  isJourneyman: false,
   eraName: 'Season 5',
   eraId: 7,
   eraStartDate: '2020-01-01',

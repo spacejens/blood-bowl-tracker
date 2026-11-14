@@ -80,6 +80,7 @@ describe('PlayersQueriesService', () => {
         raceId: 4,
         positionName: 'Blitzer',
         positionId: 3,
+        isJourneyman: false,
         eraName: 'Season 5',
         eraId: 7,
         eraStartDate: '2020-01-01',
@@ -105,6 +106,7 @@ describe('PlayersQueriesService', () => {
         expect.arrayContaining([
           'teamId',
           'raceId',
+          'isJourneyman',
           'eraName',
           'eraId',
           'sppTotal',

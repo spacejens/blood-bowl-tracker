@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
+import { JourneymanLonerService } from '../player-skills/journeyman-loner.service';
 import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
 import { PlayerLastingInjuryValidationService } from './player-lasting-injury-validation.service';
 import { PlayersService } from './players.service';
@@ -20,6 +21,10 @@ async function makeService(rows: unknown[]) {
       {
         provide: PlayerLastingInjuryValidationService,
         useValue: mock<PlayerLastingInjuryValidationService>(),
+      },
+      {
+        provide: JourneymanLonerService,
+        useValue: mock<JourneymanLonerService>(),
       },
       { provide: DB, useValue: db },
     ],

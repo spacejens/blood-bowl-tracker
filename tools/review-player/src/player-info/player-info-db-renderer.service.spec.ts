@@ -43,6 +43,7 @@ describe('PlayerInfoDbRendererService', () => {
             teamName: 'Bull Whip Whippersnappers',
             positionName: 'Hobgoblin Linemen',
             isStarPlayer: false,
+            isJourneyman: false,
             eraName: 'Third Era',
           },
         ],
@@ -60,7 +61,31 @@ describe('PlayerInfoDbRendererService', () => {
     expect(html).toContain('<td>Team</td><td>Bull Whip Whippersnappers</td>');
     expect(html).toContain('<td>Position</td><td>Hobgoblin Linemen</td>');
     expect(html).toContain('<td>Star player position</td><td>no</td>');
+    expect(html).toContain('<td>Journeyman</td><td>no</td>');
     expect(html).toContain('<td>Era</td><td>Third Era</td>');
+  });
+
+  it('shows the stored journeyman marker as yes', async () => {
+    const service = await makeService(
+      mockDb(
+        [
+          {
+            playerId: 42,
+            playerName: 'Journeyman',
+            teamName: 'Bockar',
+            positionName: 'Lineman',
+            isStarPlayer: false,
+            isJourneyman: true,
+            eraName: 'Third Era',
+          },
+        ],
+        [],
+      ),
+    );
+
+    const html = await service.render(player);
+
+    expect(html).toContain('<td>Journeyman</td><td>yes</td>');
   });
 
   it('lists every external id the player carries, per system', async () => {

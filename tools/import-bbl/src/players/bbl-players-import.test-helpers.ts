@@ -8,6 +8,7 @@ import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
   ImportResultService,
+  JourneymanRuleService,
   PlayersImportService,
   ReferenceLookupService,
   TeamsImportService,
@@ -22,6 +23,7 @@ import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.se
 import type { BblPage } from '../source/bbl-page.types';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { PageParseErrorService } from '../source/page-parse-error.service';
+import { BblJourneymanAdvancementsService } from './bbl-journeyman-advancements.service';
 import { BblPlayersImportService } from './bbl-players-import.service';
 import type { BblPlayer } from './player-page-parser';
 import { PlayerPageParser } from './player-page-parser';
@@ -207,6 +209,8 @@ export async function makeService(
     providers: [
       BblPlayersImportService,
       CharacteristicNotationConversionService,
+      BblJourneymanAdvancementsService,
+      JourneymanRuleService,
       { provide: BblSourceReader, useValue: reader },
       { provide: PlayerPageParser, useValue: parser },
       { provide: PlayersImportService, useValue: playersImport },

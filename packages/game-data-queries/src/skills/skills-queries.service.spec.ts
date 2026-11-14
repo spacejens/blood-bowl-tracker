@@ -51,9 +51,11 @@ describe('SkillsQueriesService', () => {
 
       await service.countPlayersBySkillAny(FACT_SCOPE_ALL_TIME, 21);
 
-      // The only literal in the WHERE tree is positions.is_star_player = false:
-      // "any" deliberately spans all four sources, so it adds no source filter.
+      // The literals are removed = false (a retired starting Loner is left
+      // out) and positions.is_star_player = false: "any" deliberately spans all
+      // four sources, so it adds no source filter.
       expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        false,
         false,
       ]);
       expect(chains[0].limit).toHaveBeenCalledWith(21);
@@ -104,6 +106,7 @@ describe('SkillsQueriesService', () => {
         'chosen',
         'random',
         false,
+        false,
       ]);
     });
 
@@ -116,6 +119,7 @@ describe('SkillsQueriesService', () => {
 
       expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
         'chosen',
+        false,
         false,
       ]);
     });
@@ -130,6 +134,7 @@ describe('SkillsQueriesService', () => {
       expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
         'random',
         false,
+        false,
       ]);
     });
 
@@ -139,6 +144,7 @@ describe('SkillsQueriesService', () => {
       await service.countPlayersBySkillAny({ leagueId: 9 }, 21);
 
       expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        false,
         false,
         9,
       ]);
@@ -151,6 +157,7 @@ describe('SkillsQueriesService', () => {
 
       expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
         'chosen',
+        false,
         false,
         20,
       ]);

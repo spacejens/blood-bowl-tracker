@@ -15,13 +15,8 @@ import { TpRawPlayerSkillsIndexService } from '../source/tp-raw-player-skills-in
 const NONE = '—';
 const NOT_RECORDED = 'not recorded';
 
-/** The skill name the Journeyman caveat keys on; the name comes from TP's data. */
-const LONER_SKILL_NAME = 'Loner';
-
 const EXTRA_CAVEAT =
   'Extra skills (isExtra, such as Hatred) are imported as free extras, so the modelled range prices them at 0.';
-const LONER_CAVEAT =
-  "A Journeyman's Loner is granted without SPP being spent; the modelled range does not recognise it and prices it as an advancement, so such a player can legitimately be listed.";
 
 /**
  * What TP's roster files say about a player's SPP and advancements: the
@@ -38,9 +33,8 @@ const LONER_CAVEAT =
  * an advancement on the same characteristic cancel out in the difference,
  * so it is shown for orientation only and never compared.
  *
- * A player with an extra skill or a gained Loner gets a line on how the
- * modelled range prices it, since either can legitimately put the player in
- * the unspent-SPP stratum.
+ * A player with an extra skill gets a line on how the modelled range prices
+ * it, since it can legitimately put the player in the unspent-SPP stratum.
  */
 @Injectable()
 export class TpPlayerAdvancementsRawRendererService {
@@ -110,9 +104,6 @@ export class TpPlayerAdvancementsRawRendererService {
     const gained = advancements.gainedSkills;
     return [
       gained.some((skill) => skill.isExtra === true) ? EXTRA_CAVEAT : null,
-      gained.some((skill) => skill.name === LONER_SKILL_NAME)
-        ? LONER_CAVEAT
-        : null,
     ]
       .filter((text): text is string => text !== null)
       .map((text) => `<p>${this.html.escape(text)}</p>`)

@@ -181,8 +181,8 @@ slot. The migration closed such slots the same way, and left unconfirmed a
 player with a free extra of unknown number. A trophy award recorded after the
 skill does the same when it marks a confirmed row free.
 
-No other path closes
-a slot: an unconfirmed incoming entry that turns an already confirmed paid
+A journeyman's gained Loner closes its slot too (see below). No other path
+closes a slot: an unconfirmed incoming entry that turns an already confirmed paid
 row into a free extra (no import is known to do this) clears that row's
 confirmation and leaves the later numbers as they are. Unmarking does not
 reopen the slot: the row stays unconfirmed at its recorded number and the paid
@@ -203,16 +203,48 @@ that keep it; otherwise it keeps TP's list order and does not constrain the
 deduction. The ids never confirm an order alone, and increases have none
 (see [Order of advancements](../import-tp-live/index.md#order-of-advancements)).
 
+While `players.is_journeyman` is set, `JourneymanLonerService` keeps one
+starting Loner row for the player. An active one is left as it is, beside any
+gained Loner. Otherwise it turns his lowest-id Loner stored as gained (before
+he was marked) into the starting one, closing the number that row held in the
+confirmed paid numbering or, if unconfirmed, in the proxy numbering. Failing
+that, it revives a removed starting Loner, or inserts one. A write that flips
+the stored marker from true to false (a recruitment) flags his active
+starting Loner `removed`, unless his position starts with Loner under some
+rules set or is a star-player position (a journeyman is always a basic
+position); no other write of a player who is not a journeyman touches it.
+If the write commits but the retire then fails, the starting Loner stays
+until the marker changes again: a later write that marks him and one that
+clears it again retires it.
+A starting row holds no number, so the recruit's numbering is unchanged, and
+a gained Loner stays a free extra by the name rule. A skills sync whose entry
+matches a removed row revives it with the entry's values, so a recruit the
+source still lists with Loner gets that Loner back as a gained free extra.
+Both the ensure and the retire lock the player's row (`FOR NO KEY UPDATE`)
+and re-read his stored marker first, acting only if it still matches, so of
+two overlapping writes of one player the last committed marker always wins.
+The retire first checks, without a lock, whether the player has an active
+starting Loner at all, and stops there when he has none. An ensure or retire
+overlapping a skills sync of the same player can still deadlock; Postgres
+then aborts one of them and the import step records the error. An aborted
+ensure is redone by the player's next journeyman write; an aborted retire
+leaves the starting Loner until the marker changes again, as above.
+
+The migration that introduced the marker converted only existing journeymen
+that already had a Loner row, the same way, and invented no starting Loner.
+A line-up-only journeyman with no Loner stored stays unmarked until a later
+import sees a Loner id in his snapshot.
+
 The cost model pins only confirmed entries to their advancement number, and
 every other entry is interchangeable with the rest. A sync never lets an
 unconfirmed incoming order overwrite a confirmed stored one.
 
-A row tracked by
-history cannot be deleted, so an increase a source stops reporting is flagged
-`removed` instead (only characteristic rows may be); readers leave removed
-rows out. The migration that introduced characteristic rows backfilled one
-row of unknown order per unit of the five `*_increase_count` columns it then
-dropped from `players`, so the rows are the only current record of increases;
+A row tracked by history cannot be deleted, so an increase a source stops
+reporting is flagged `removed` instead (only characteristic rows, and a
+recruited journeyman's starting Loner, may be); readers leave removed rows
+out. The migration that introduced characteristic rows backfilled one row of
+unknown order per unit of the five `*_increase_count` columns it then dropped
+from `players`, so the rows are the only current record of increases;
 `players_history` snapshots taken before the migration keep the old counts.
 
 ## How the costs are curated

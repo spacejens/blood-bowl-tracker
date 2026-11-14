@@ -103,6 +103,7 @@ export class SkillsQueriesService {
           sources === undefined
             ? undefined
             : inArray(playerAdvancements.source, [...sources]),
+          eq(playerAdvancements.removed, false),
           eq(positions.isStarPlayer, false),
           scope.leagueId === undefined
             ? undefined

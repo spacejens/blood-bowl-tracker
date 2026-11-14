@@ -138,7 +138,8 @@ export class MatchParserService {
    * `inscriptionVisitor.roster.lineUps[]` field-for-field the same way
    * `RosterParserService.parse()` maps its own `lineUps[]` to `players`,
    * except a missing `rosterId` (real match-embedded entries omit it)
-   * defaults to the parent roster's own `id`. `phaseType`/`phaseOrder` map
+   * defaults to the parent roster's own `id`, and each entry's bare
+   * `skills[]` list becomes its `skillMasterIds`. `phaseType`/`phaseOrder` map
    * `group.phase.type`/`group.phase.order`; `round` maps the top-level
    * `round` field. `winner` maps `scoreResume.winner`
    * (`Local`/`Visitor`/`Draw` to `home`/`away`/`draw`), or left out when
@@ -205,6 +206,7 @@ export class MatchParserService {
       starPlayerPoints: entry.starPlayerPoints,
       state: entry.state,
       isActive: entry.isActive,
+      skillMasterIds: entry.skills.map((skill) => skill.skillMasterId),
     });
     return {
       id: matchId,

@@ -1,0 +1,71 @@
+import { Injectable } from '@nestjs/common';
+
+/** Where a source showed the player: its roster, or only a match line-up. */
+export type JourneymanSighting = 'roster' | 'lineUp';
+
+/** What one source sighting says about a player. */
+export interface JourneymanSightingFacts {
+  /** The player's name as the source gives it. */
+  name: string;
+  /**
+   * Whether the player's position is one a journeyman can be drawn from:
+   * not a star player, mercenary or Big Guy hire.
+   */
+  isBasicPosition: boolean;
+  sighting: JourneymanSighting;
+  /**
+   * Whether the sighting lists Loner for the player: for a roster, among
+   * its starting or gained skills; for a line-up, among the skills its
+   * snapshot lists. Undefined when the importer cannot check it: a roster
+   * entry without a skills group, no Loner skill ids to read the skills
+   * against, or a line-up whose skills are unknown. Such a sighting makes no
+   * claim about a player named Journeyman.
+   */
+  lonerListed?: boolean;
+}
+
+const JOURNEYMAN_NAME = 'journeyman';
+const LONER_NAME = 'loner';
+
+/**
+ * The one rule BBL, TP bulk and TP live imports use to mark a journeyman: a
+ * temporary player named "Journeyman" in a basic position of the team's
+ * race, who has Loner for free until recruited. A line-up sighting only ever
+ * sets the marker, and only when it lists Loner: a recruit who kept the name
+ * and has since left the team is seen only in line-ups, without Loner, and a
+ * line-up without Loner says nothing. A line-up taken before the recruitment
+ * still lists Loner and so marks him; a later roster sighting clears it. A
+ * roster sighting states the marker: a renamed player, or one the roster
+ * lists without Loner, has been recruited; one whose Loner cannot be
+ * checked leaves the stored marker alone. Pure and I/O-free.
+ */
+@Injectable()
+export class JourneymanRuleService {
+  /** Whether the source names the player "Journeyman" (trimmed, any case). */
+  isJourneymanName(name: string): boolean {
+    return name.trim().toLowerCase() === JOURNEYMAN_NAME;
+  }
+
+  /** Whether a skill name is Loner (trimmed, any case). */
+  isLonerName(name: string): boolean {
+    return name.trim().toLowerCase() === LONER_NAME;
+  }
+
+  /**
+   * The marker to send for one sighting: true or false, or undefined when
+   * the sighting says nothing and the stored marker must stay. A roster
+   * sighting of a player named Journeyman in a basic position follows
+   * `lonerListed` when it is known, and makes no claim when it is undefined
+   * (the stored marker stays). Any other roster player is unmarked.
+   */
+  decide(facts: JourneymanSightingFacts): boolean | undefined {
+    const named = facts.isBasicPosition && this.isJourneymanName(facts.name);
+    if (facts.sighting === 'lineUp') {
+      return named && facts.lonerListed === true ? true : undefined;
+    }
+    if (!named) {
+      return false;
+    }
+    return facts.lonerListed;
+  }
+}

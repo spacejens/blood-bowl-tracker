@@ -604,7 +604,8 @@ export class PlayerSkillsService {
    * Every skill recorded for this player, joined to `skills` for the name and
    * to `skill_rules_sets` for how `rulesSetId` categorises it, ordered by
    * source, then advancement order, then skill name so the list is stable
-   * across calls.
+   * across calls. Removed rows (a recruited journeyman's retired starting
+   * Loner) are left out.
    *
    * The `skill_rules_sets` join is a left join, unlike the equivalent join in
    * PositionRulesSetSkillsService: `sync` above deliberately accepts a player
@@ -637,7 +638,12 @@ export class PlayerSkillsService {
           eq(skillRulesSets.rulesSetId, rulesSetId),
         ),
       )
-      .where(eq(playerAdvancements.playerId, playerId))
+      .where(
+        and(
+          eq(playerAdvancements.playerId, playerId),
+          eq(playerAdvancements.removed, false),
+        ),
+      )
       .orderBy(
         // Sorts by the Postgres enum's declaration order, which relies on
         // `PLAYER_SKILL_SOURCES` (packages/domain-enums/src/skills.ts) being

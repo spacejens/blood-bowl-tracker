@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { SharedModule } from '../shared/shared.module';
 import { SourceModule } from '../source/source.module';
 import { BblPlayerInfoRawRendererService } from './bbl-player-info-raw-renderer.service';
+import { JourneymanStratificationService } from './journeyman-stratification.service';
 import { PlayerInfoDbRendererService } from './player-info-db-renderer.service';
 import { RandomPlayerStratificationService } from './random-player-stratification.service';
 import { StarPlayerStratificationService } from './star-player-stratification.service';
@@ -12,13 +13,14 @@ import { TpPlayerInfoRawRendererService } from './tp-player-info-raw-renderer.se
 /**
  * The player-info renderers — the overview's identity part: raw panels from
  * each source's own player page or match aggregate, and an imported panel from
- * the database — and two sampling strata (random, star players) other data
- * types can reuse.
+ * the database — and three sampling strata (random, star players,
+ * journeymen) other data types can reuse.
  */
 @Module({
   imports: [SharedModule, SourceModule],
   providers: [
     BblPlayerInfoRawRendererService,
+    JourneymanStratificationService,
     PlayerInfoDbRendererService,
     RandomPlayerStratificationService,
     StarPlayerStratificationService,
@@ -27,6 +29,7 @@ import { TpPlayerInfoRawRendererService } from './tp-player-info-raw-renderer.se
   ],
   exports: [
     BblPlayerInfoRawRendererService,
+    JourneymanStratificationService,
     PlayerInfoDbRendererService,
     RandomPlayerStratificationService,
     StarPlayerStratificationService,

@@ -68,5 +68,6 @@ export {
 export {
   CompetitionTypeService,
   ImportResultService,
+  JourneymanRuleService,
   NameExternalIdService,
 } from '@blood-bowl-tracker/import-shared';

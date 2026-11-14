@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
+import { TpJourneymanService } from './players/tp-journeyman.service';
 import { TpMercenaryRaceErasSyncService } from './players/tp-mercenary-race-eras-sync.service';
 import { TpRosterPlayerSkillsService } from './players/tp-roster-player-skills.service';
 import { TpRosterPlayersImportService } from './players/tp-roster-players-import.service';
@@ -24,6 +25,8 @@ import { TpRosterImportService } from './tp-roster-import.service';
 const nothing = { success: true, imported: 0, errors: [] };
 const RAW = { raw: 'roster' };
 const INCREASES = new Map([[700, { MA: 1, ST: 0, AG: 0, PA: 0, AV: 0 }]]);
+const LONER_MASTER_IDS = new Set([60]);
+const JOURNEYMAN_PLAYER_IDS = new Set([700]);
 
 describe('TpRosterImportService', () => {
   let service: TpRosterImportService;
@@ -33,6 +36,7 @@ describe('TpRosterImportService', () => {
   let playersImport: MockProxy<TpRosterPlayersImportService>;
   let playerSkills: MockProxy<TpRosterPlayerSkillsService>;
   let mercenaryRaceEras: MockProxy<TpMercenaryRaceErasSyncService>;
+  let journeymen: MockProxy<TpJourneymanService>;
 
   beforeEach(async () => {
     parser = mock<RosterParserService>();
@@ -43,6 +47,8 @@ describe('TpRosterImportService', () => {
     playerSkills.syncPlayerSkills.mockResolvedValue(0);
     mercenaryRaceEras = mock<TpMercenaryRaceErasSyncService>();
     mercenaryRaceEras.sync.mockResolvedValue(undefined);
+    journeymen = mock<TpJourneymanService>();
+    journeymen.lonerMasterIds.mockReturnValue(LONER_MASTER_IDS);
     context.resolve.mockResolvedValue(rosterContext());
     teamUpsert.upsertTeam.mockResolvedValue([
       { id: 30, eraId: 39 },
@@ -55,6 +61,7 @@ describe('TpRosterImportService', () => {
       ],
       mercenaryPositionIds: [],
       increasesByPlayerId: INCREASES,
+      journeymanPlayerIds: JOURNEYMAN_PLAYER_IDS,
     });
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -70,6 +77,7 @@ describe('TpRosterImportService', () => {
           provide: TpMercenaryRaceErasSyncService,
           useValue: mercenaryRaceEras,
         },
+        { provide: TpJourneymanService, useValue: journeymen },
       ],
     }).compile();
     service = moduleRef.get(TpRosterImportService);
@@ -173,6 +181,7 @@ describe('TpRosterImportService', () => {
       importedPlayers: [],
       mercenaryPositionIds: [55, 56],
       increasesByPlayerId: new Map(),
+      journeymanPlayerIds: new Set(),
     });
 
     await importRoster();
@@ -277,12 +286,42 @@ describe('TpRosterImportService', () => {
       ],
       increasesByPlayerId: INCREASES,
       confirmNewAdvancements: undefined,
+      journeymen: {
+        playerIds: JOURNEYMAN_PLAYER_IDS,
+        lonerMasterIds: LONER_MASTER_IDS,
+      },
       context: rosterContext(),
       errors: [],
     });
     expect(
       playersImport.importPlayers.mock.invocationCallOrder[0],
     ).toBeLessThan(playerSkills.syncPlayerSkills.mock.invocationCallOrder[0]);
+  });
+
+  it("reads Loner's skill masters from the raw roster for the players import and the skills sync", async () => {
+    await importWithRaw();
+
+    expect(journeymen.lonerMasterIds).toHaveBeenCalledWith(RAW);
+    expect(playersImport.importPlayers).toHaveBeenCalledWith(
+      expect.objectContaining({ lonerMasterIds: LONER_MASTER_IDS }),
+    );
+    expect(playerSkills.syncPlayerSkills).toHaveBeenCalledWith(
+      expect.objectContaining({
+        journeymen: {
+          playerIds: JOURNEYMAN_PLAYER_IDS,
+          lonerMasterIds: LONER_MASTER_IDS,
+        },
+      }),
+    );
+  });
+
+  it("checks no roster entry's Loner without raw content", async () => {
+    await importRoster();
+
+    expect(journeymen.lonerMasterIds).not.toHaveBeenCalled();
+    expect(playersImport.importPlayers).toHaveBeenCalledWith(
+      expect.objectContaining({ lonerMasterIds: undefined }),
+    );
   });
 
   it('passes confirmNewAdvancements through to the skills sync', async () => {

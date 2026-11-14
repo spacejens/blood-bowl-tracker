@@ -38,13 +38,17 @@ advancements as skills plus increases, and the SPP spent.
   Loner as a free extra when its stored flag is not set. TP records level
   2 against 3 recorded skills, which the free Loner explains.
 - **Journeyman** (Elfyville Canaries, Third era, line-up 2454051, paid 1+0,
-  spent 0): the only gained skill is Loner, a free extra, so he has no paid
-  advancement to order. His level is 0 and his spend is 0.
+  spent 0): the only skill TP lists is Loner, which is his starting skill (a
+  [journeyman](../game-concepts/players/index.md#journeymen) has Loner
+  without spending SPP), so he has no gained skill and no paid advancement to
+  order. His level is 0 and his spend is 0.
 
-Among TP players, a gained Loner exists for only these two. BBL also records
-a gained Loner, for journeymen who have no other advancement. Batch 005
-flags the stored Loner of each of them, and of the TP Journeyman, as a free
-extra.
+A player can gain Loner for reasons other than being a journeyman, through
+certain special rules. Such a Loner stays a gained skill and a free extra,
+so an entry here for such a player stays valid. A journeyman's own Loner is a
+starting skill instead: BBL also records a Loner for journeymen who have no
+other advancement, and those journeymen likewise have no gained skill. Batch
+005's entries for them flag nothing and are still accepted.
 
 - **Kalle Kvist** (Dalsland Treehuggers, line-up 586220, paid 4+2, spent
   110), **Friska Fläkten** (Gnaget, line-up 1233619, paid 5+1, spent 104),

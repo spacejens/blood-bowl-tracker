@@ -1,0 +1,57 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "7741fcb9-7bd0-4661-a2c3-74c5ef0809f9",
+  "prevIds": [
+    "935c6f7b-66eb-4c7f-82ac-d1a0155996ce"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "game_data",
+        "player_advancements",
+        "player_advancements_player_id_index"
+      ],
+      "writes": [
+        "s|idx|game_data.player_advancements_player_id_index",
+        "n|idx|game_data.player_advancements_player_id_index",
+        "e|idx|game_data.player_advancements_player_id_index",
+        "n|rel|game_data.player_advancements_player_id_index"
+      ],
+      "reads": [
+        "n|tbl|game_data.player_advancements",
+        "n|sch|game_data",
+        "n|col|game_data.player_advancements.player_id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "player_advancements",
+        "name": "player_advancements_player_id_index",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "player_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    }
+  ]
+}

@@ -18,10 +18,11 @@ import type {
 /**
  * The curated names of the skills a player only ever gains as free extras:
  * BB2025 grants Hatred on top of a player's advancements, never as one, and
- * a Journeyman gets Loner without spending SPP. The source is trusted to add
- * a gained Loner only where it applies. The name alone is each skill's
- * identity: their variants (Hatred's target, Loner's roll) live in
- * `attribute_value`.
+ * a Loner can be gained without spending SPP; a journeyman's own Loner is a
+ * starting skill JourneymanLonerService keeps, not a gained one. The source
+ * is trusted to add a gained Loner only where it applies. The name alone is
+ * each skill's identity: their variants (Hatred's target, Loner's roll) live
+ * in `attribute_value`.
  */
 export const FREE_EXTRA_SKILL_NAMES: readonly string[] = ['Hatred', 'Loner'];
 
@@ -99,7 +100,8 @@ export class PlayerAdvancementSyncPlannerService {
 
   /**
    * Match each skill entry to its stored row by natural key: an unmatched one
-   * becomes an insert, a matched one an update of whatever changed.
+   * becomes an insert, a matched one an update of whatever changed. A
+   * matched removed row is revived.
    */
   planSkills(
     resolved: ResolvedPlayerSkill[],
@@ -325,6 +327,12 @@ export class PlayerAdvancementSyncPlannerService {
     // Set-only: a row once free stays free, whatever a later entry says.
     if (row.isFreeExtra && !existing.isFreeExtra) {
       values.isFreeExtra = true;
+    }
+    // A removed skill row is always a starting row (a recruited journeyman's
+    // Loner, say); a source listing that skill again revives the row with
+    // the entry's values, so its natural key is never left blocked.
+    if (existing.removed) {
+      values.removed = false;
     }
     return values;
   }

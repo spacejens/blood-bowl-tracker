@@ -12,6 +12,7 @@ import type { TpRoster } from '@blood-bowl-tracker/parse-tp';
 import { RosterParserService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
+import { TpJourneymanService } from './players/tp-journeyman.service';
 import { TpMercenaryRaceErasSyncService } from './players/tp-mercenary-race-eras-sync.service';
 import { TpRosterPlayerSkillsService } from './players/tp-roster-player-skills.service';
 import { TpRosterPlayersImportService } from './players/tp-roster-players-import.service';
@@ -93,6 +94,7 @@ export class TpRosterImportService {
     private readonly playerSkills: TpRosterPlayerSkillsService,
     private readonly importResults: ImportResultService,
     private readonly recorder: UpsertRecorderService,
+    private readonly journeymen: TpJourneymanService,
   ) {}
 
   /** {@link importRoster}, for roster JSON not parsed yet. */
@@ -123,7 +125,10 @@ export class TpRosterImportService {
    * Resolves the import's context, upserts the team under the era, then
    * upserts its players into that team era, records where its mercenary
    * hires' positions may be fielded (TpMercenaryRaceErasSyncService) and,
-   * when `rawContent` is given, syncs their skills. Nothing is imported when
+   * when `rawContent` is given, syncs their skills. Loner's skill masters,
+   * read from `rawContent`, let a roster entry's journeyman marker follow
+   * whether it lists Loner, and keep a journeyman's gained Loner out of the
+   * skills sync. Nothing is imported when
    * the context cannot be resolved, and the players (and their skills) are
    * skipped when the team was not imported. A skill gap is reported on the
    * players result and never un-imports a player.
@@ -178,12 +183,17 @@ export class TpRosterImportService {
       };
     }
 
+    const lonerMasterIds =
+      rawContent === undefined
+        ? undefined
+        : this.journeymen.lonerMasterIds(rawContent);
     const players = await this.playersImport.importPlayers({
       roster,
       matchEmbeddedPlayers,
       context,
       teamEraId: teamEra.id,
       deferSppTotal,
+      lonerMasterIds,
       errors: playerErrors,
     });
     await this.mercenaryRaceEras.sync({
@@ -199,6 +209,10 @@ export class TpRosterImportService {
         importedPlayers: players.importedPlayers,
         increasesByPlayerId: players.increasesByPlayerId,
         confirmNewAdvancements,
+        journeymen:
+          lonerMasterIds === undefined
+            ? undefined
+            : { playerIds: players.journeymanPlayerIds, lonerMasterIds },
         context,
         errors: playerErrors,
       });

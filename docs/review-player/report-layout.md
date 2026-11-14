@@ -28,7 +28,7 @@ appear only for a player they apply to:
 - that a gap in the recorded advancement history can explain a reported spend
   above the modelled range, on a spend row that actually is above it;
 - why a stored unspent SPP outside the modelled range is only a possible gap;
-- for a TP player with an extra skill or a gained Loner, how those are priced.
+- for a TP player with an extra skill, how it is priced.
 
 ## Rules-set resolution
 

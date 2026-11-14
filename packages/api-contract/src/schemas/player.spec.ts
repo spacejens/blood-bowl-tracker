@@ -38,6 +38,7 @@ describe('player schemas', () => {
       armour: 9,
       ...noLastingInjuries,
       unspentSpp: null,
+      isJourneyman: false,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.name).toBe('Griff Oberwald');
@@ -58,8 +59,61 @@ describe('player schemas', () => {
       ...noLastingInjuries,
       createdAt: '2026-01-01T00:00:00.000Z',
     };
-    expect(PlayerSchema.parse({ ...valid, unspentSpp: 7 }).unspentSpp).toBe(7);
-    expect(() => PlayerSchema.parse(valid)).toThrow(/unspentSpp/);
+    expect(
+      PlayerSchema.parse({ ...valid, unspentSpp: 7, isJourneyman: false })
+        .unspentSpp,
+    ).toBe(7);
+    expect(() => PlayerSchema.parse({ ...valid, isJourneyman: false })).toThrow(
+      /unspentSpp/,
+    );
+  });
+
+  it('PlayerSchema requires isJourneyman', () => {
+    const valid = {
+      id: 1,
+      name: 'Griff Oberwald',
+      teamEraId: 10,
+      positionId: 20,
+      move: 6,
+      strength: 3,
+      agility: 3,
+      passing: 4,
+      armour: 9,
+      ...noLastingInjuries,
+      unspentSpp: null,
+      createdAt: '2026-01-01T00:00:00.000Z',
+    };
+    expect(
+      PlayerSchema.parse({ ...valid, isJourneyman: true }).isJourneyman,
+    ).toBe(true);
+    expect(() => PlayerSchema.parse(valid)).toThrow(/isJourneyman/);
+  });
+
+  it.each([true, false])(
+    'UpsertPlayerSchema accepts isJourneyman %s',
+    (value) => {
+      const parsed = UpsertPlayerSchema.parse({
+        isJourneyman: value,
+        externalIds: [{ externalSystemId: 1, externalId: 'x' }],
+      });
+      expect(parsed.isJourneyman).toBe(value);
+    },
+  );
+
+  it('UpsertPlayerSchema leaves isJourneyman undefined when omitted', () => {
+    const parsed = UpsertPlayerSchema.parse({
+      externalIds: [{ externalSystemId: 1, externalId: 'x' }],
+    });
+    expect(parsed.isJourneyman).toBeUndefined();
+  });
+
+  it('UpsertPlayerSchema rejects a non-boolean isJourneyman', () => {
+    expect(() =>
+      UpsertPlayerSchema.parse({
+        isJourneyman: 'yes',
+        externalIds: [{ externalSystemId: 1, externalId: 'x' }],
+      }),
+    ).toThrow();
   });
 
   it('UnspentSppSnapshotSchema takes whole numbers, a negative figure included', () => {
@@ -218,6 +272,7 @@ describe('player schemas', () => {
       armour: 9,
       ...noLastingInjuries,
       unspentSpp: null,
+      isJourneyman: false,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.move).toBe(6);
@@ -237,6 +292,7 @@ describe('player schemas', () => {
       armour: 8,
       ...noLastingInjuries,
       unspentSpp: null,
+      isJourneyman: false,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.passing).toBeNull();

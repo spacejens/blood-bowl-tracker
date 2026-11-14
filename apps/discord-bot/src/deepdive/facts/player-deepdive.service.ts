@@ -113,6 +113,9 @@ const REDUCTION_FIELDS = [
   ['AV', 'armourReductionCount'],
 ] as const;
 
+// Shown in brackets after a journeyman's position.
+const JOURNEYMAN_BADGE = 'Journeyman';
+
 /**
  * Composes the player deepdive embed, shared by `/deepdive player:<id>` and
  * the player deepdive buttons.
@@ -378,7 +381,7 @@ export class PlayerDeepdiveService {
       `Team: ${player.teamName}`,
       `Era: ${this.dateRangeFormatter.formatNamed(player.eraName, player.eraStartDate, player.eraEndDate)}`,
       `Race: ${player.raceName}`,
-      `Position: ${player.positionName}`,
+      `Position: ${player.positionName}${player.isJourneyman ? ` (${JOURNEYMAN_BADGE})` : ''}`,
       this.buildStatusLine(player, killer),
       ...(conditionLines.length === 0 ? [] : ['', ...conditionLines]),
     ];

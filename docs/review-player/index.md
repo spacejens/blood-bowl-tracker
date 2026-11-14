@@ -44,7 +44,7 @@ in two panel pairs (an overview and a career history).
 
 ## What it does
 
-1. Samples players per source (BBL and TP) across twenty-three strata:
+1. Samples players per source (BBL and TP) across twenty-four strata:
    1. **SPP totals disagree** — every player, star or not, whose SPP computed from
       the events where they are the acting participant, plus any stored adjustment,
       differs from their stored total (a nonzero adjustment on its own is not a
@@ -194,6 +194,14 @@ in two panel pairs (an overview and a career history).
        panels use; only the BBL unspent-SPP reader caches each page it reads,
        so the panels of a listed BBL player do not read that page again.
 
+   24. **Journeyman player** — `playersPerStratum` players the database marks
+       as journeymen (`players.is_journeyman`). Journeymen are rare, so this
+       guarantees a run shows one beside its source: the imported panel shows
+       the stored marker, and the advancement panels show his starting Loner
+       and no gained one, next to what the BBL page or the TP roster or
+       line-up records for him. It reads only the database; the raw panels
+       interpret the sources on their own.
+
    The random-sample stratum excludes star players outright: today's data model
    gives a popular star their own `players` row per team that induces them, so
    an unbounded stratum would be dominated by the same few stars appearing many
@@ -237,13 +245,13 @@ gaps in the report (and as console warnings) — never as failures.
 cp tools/review-player/review-player-config.example.json5 tools/review-player/review-player-config.json5
 ```
 
-| Key                              | Meaning                                                                                                                                                                                                                                                                      |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `database.url`                   | Connection string of the database holding the imported data (required)                                                                                                                                                                                                       |
-| `playersPerStratum`              | Players sampled per source for every bounded stratum — random, star-players, non-standard-SPP, the three magnitude strata, the currently-injured and healed-injury strata, and the six player-status strata (default 3); the discrepancy and reported-spend strata ignore it |
-| `bbl.dataDir` / `tp.dataDir`     | The same downloaded data directories `tools/import-bbl` / `tools/import-tp` read                                                                                                                                                                                             |
-| `overrides.bbl` / `overrides.tp` | External player ids always included (BBL: `pid`; TP: the line-up `id`)                                                                                                                                                                                                       |
-| `outputPath`                     | Base path each report is written next to, timestamped (default `output/report.html`)                                                                                                                                                                                         |
+| Key                              | Meaning                                                                                                                                                                                                                                                                                             |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `database.url`                   | Connection string of the database holding the imported data (required)                                                                                                                                                                                                                              |
+| `playersPerStratum`              | Players sampled per source for every bounded stratum — random, star-players, non-standard-SPP, the three magnitude strata, the currently-injured and healed-injury strata, the six player-status strata and the journeyman stratum (default 3); the discrepancy and reported-spend strata ignore it |
+| `bbl.dataDir` / `tp.dataDir`     | The same downloaded data directories `tools/import-bbl` / `tools/import-tp` read                                                                                                                                                                                                                    |
+| `overrides.bbl` / `overrides.tp` | External player ids always included (BBL: `pid`; TP: the line-up `id`)                                                                                                                                                                                                                              |
+| `outputPath`                     | Base path each report is written next to, timestamped (default `output/report.html`)                                                                                                                                                                                                                |
 
 The tool finds BBL and TP records by their shared external-system names
 (`tloeg.bbleague.se` and `tourplay.net`), so they are not configured.

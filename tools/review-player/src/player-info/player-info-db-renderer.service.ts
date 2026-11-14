@@ -21,7 +21,8 @@ import type { SampledPlayer } from '../shared/review.types';
 
 /**
  * Renders what the importers actually stored about a player: identity, the
- * team era they belong to, their position, every other team era that hired
+ * team era they belong to, their position, whether they are marked a
+ * journeyman, every other team era that hired
  * the same star player, and every external id they carry. SPP totals are
  * deliberately absent — they open the career-history panel pair.
  */
@@ -40,6 +41,7 @@ export class PlayerInfoDbRendererService {
         teamName: teams.name,
         positionName: positions.name,
         isStarPlayer: positions.isStarPlayer,
+        isJourneyman: players.isJourneyman,
         positionId: players.positionId,
         eraName: eras.name,
       })
@@ -69,6 +71,7 @@ export class PlayerInfoDbRendererService {
         ['Team', stored.teamName],
         ['Position', stored.positionName],
         ['Star player position', stored.isStarPlayer ? 'yes' : 'no'],
+        ['Journeyman', stored.isJourneyman ? 'yes' : 'no'],
         ['Era', stored.eraName],
         ...otherHires,
         ...externalIds,

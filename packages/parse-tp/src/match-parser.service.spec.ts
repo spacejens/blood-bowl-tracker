@@ -172,6 +172,7 @@ describe('MatchParserService', () => {
         fallbackPositionName: 'Dwarf Lineman',
         isBigGuy: false,
         totalStarPlayerPoints: 23,
+        skillMasterIds: [],
       },
     ]);
     expect(result.awayRosterPlayers).toEqual([
@@ -184,6 +185,7 @@ describe('MatchParserService', () => {
         fallbackPositionName: 'Dwarf Runner',
         isBigGuy: false,
         totalStarPlayerPoints: 35,
+        skillMasterIds: [],
       },
     ]);
   });
@@ -305,6 +307,7 @@ describe('MatchParserService', () => {
         fallbackPositionName: 'Giant Mercenary',
         isBigGuy: true,
         totalStarPlayerPoints: 10,
+        skillMasterIds: [],
       },
     ]);
   });
@@ -338,6 +341,39 @@ describe('MatchParserService', () => {
       state: 8209,
       isActive: false,
     });
+  });
+
+  it("keeps the skillMasterIds of a match-embedded entry's bare skill list", () => {
+    // Line-up 1008237 as a Sasong 26 match snapshot embeds it.
+    const result = service.parse(
+      matchBody({
+        inscriptionLocal: {
+          roster: {
+            id: 10,
+            lineUps: [
+              {
+                lineUpMasterId: 321,
+                id: 1008237,
+                isActive: false,
+                name: 'Journeyman',
+                number: 19,
+                position: 'Rotter Lineman',
+                starPlayerPoints: 1,
+                totalStarPlayerPoints: 4,
+                state: 16,
+                skills: [
+                  { skillMasterId: 103 },
+                  { skillMasterId: 151 },
+                  { skillMasterId: 156 },
+                ],
+              },
+            ],
+          },
+        },
+      }),
+    );
+
+    expect(result.homeRosterPlayers[0].skillMasterIds).toEqual([103, 151, 156]);
   });
 
   it('leaves state and isActive undefined on a snapshot entry carrying neither', () => {
@@ -403,6 +439,7 @@ describe('MatchParserService', () => {
         fallbackPositionName: 'Blitzer',
         isBigGuy: false,
         totalStarPlayerPoints: 15,
+        skillMasterIds: [],
       },
     ]);
   });
