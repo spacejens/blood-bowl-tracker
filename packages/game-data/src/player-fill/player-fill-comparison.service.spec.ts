@@ -271,6 +271,185 @@ describe('PlayerFillComparisonService', () => {
     ).toEqual([]);
   });
 
+  describe('matching order', () => {
+    const agIncreases: PlannedFillRow[] = [1, 2].map((paidNumber) => ({
+      skillId: null,
+      characteristic: 'AG',
+      attributeValue: null,
+      source: 'characteristic',
+      isFreeExtra: false,
+      paidNumber,
+    }));
+    const agRow = (overrides: Partial<StoredFillRow>): StoredFillRow =>
+      stored({
+        skillId: null,
+        characteristic: 'AG',
+        source: 'characteristic',
+        ...overrides,
+      });
+    const unconfirmedAg = agRow({
+      orderConfirmed: false,
+      advancementOrder: null,
+    });
+
+    it('lets a confirmed increase claim its number before an earlier unconfirmed one', () => {
+      expect(
+        service.compare({
+          fields: blank,
+          rows: [unconfirmedAg, agRow({ advancementOrder: 1 })],
+          data,
+          planned: agIncreases,
+        }).contradictions,
+      ).toEqual([]);
+    });
+
+    it('finds such a partly confirmed pair of increases not yet identical, and a fully confirmed one identical', () => {
+      const compare = (rows: StoredFillRow[]) =>
+        service.compare({
+          fields: filled,
+          rows,
+          data: { ...data, startingSkills: [], advancements: [] },
+          planned: agIncreases,
+        });
+
+      expect(
+        compare([unconfirmedAg, agRow({ advancementOrder: 1 })]).identical,
+      ).toBe(false);
+      expect(
+        compare([
+          agRow({ advancementOrder: 2 }),
+          agRow({ advancementOrder: 1 }),
+        ]).identical,
+      ).toBe(true);
+    });
+
+    it('lets a confirmed repeated skill claim its number before an earlier unconfirmed one', () => {
+      const twice: PlannedFillRow[] = [1, 2].map((paidNumber) => ({
+        ...planned[1],
+        paidNumber,
+      }));
+
+      expect(
+        service.compare({
+          fields: blank,
+          rows: [
+            stored({ orderConfirmed: false, advancementOrder: null }),
+            stored({ advancementOrder: 1 }),
+          ],
+          data,
+          planned: twice,
+        }).contradictions,
+      ).toEqual([]);
+    });
+
+    it('still reports contradictions in the order the rows are stored', () => {
+      expect(
+        service.compare({
+          fields: blank,
+          rows: [
+            stored({ skillId: 98, orderConfirmed: false }),
+            stored({ skillId: 99 }),
+          ],
+          data,
+          planned,
+        }).contradictions,
+      ).toEqual([
+        'skill 98 is stored but not in the entry',
+        'skill 99 is stored but not in the entry',
+      ]);
+    });
+  });
+
+  it('is not identical when the source differs beyond chosen or random', () => {
+    expect(
+      service.compare({
+        fields: filled,
+        rows: [startingRow, stored({ source: 'advancement' })],
+        data,
+        planned,
+      }),
+    ).toEqual({ contradictions: [], identical: false });
+  });
+
+  it('is not identical when a free extra is stored as paid', () => {
+    const freeExtra = planned.map((row) =>
+      row.paidNumber === null
+        ? row
+        : { ...row, isFreeExtra: true, paidNumber: null },
+    );
+
+    expect(
+      service.compare({
+        fields: filled,
+        rows: [
+          startingRow,
+          stored({ orderConfirmed: false, advancementOrder: null }),
+        ],
+        data,
+        planned: freeExtra,
+      }),
+    ).toEqual({ contradictions: [], identical: false });
+  });
+
+  it('is not identical when a paid row is stored unconfirmed', () => {
+    expect(
+      service.compare({
+        fields: filled,
+        rows: [
+          startingRow,
+          stored({ orderConfirmed: false, advancementOrder: null }),
+        ],
+        data,
+        planned,
+      }).identical,
+    ).toBe(false);
+  });
+
+  it('reports a disagreeing ST, AG and AV', () => {
+    expect(
+      service.compare({
+        fields: { ...blank, strength: 4, agility: 2, armour: 8 },
+        rows: [],
+        data,
+        planned,
+      }).contradictions,
+    ).toEqual([
+      'stored ST 4, the entry says 3',
+      'stored AG 2, the entry says 3',
+      'stored AV 8, the entry says 9',
+    ]);
+  });
+
+  it('accepts a stored zero characteristic against a non-zero entry', () => {
+    expect(
+      service.compare({
+        fields: { ...filled, move: 0, strength: 0, agility: 0, armour: 0 },
+        rows: [startingRow, stored()],
+        data,
+        planned,
+      }),
+    ).toEqual({ contradictions: [], identical: false });
+  });
+
+  it('reports a confirmed stored row the entry makes a free extra', () => {
+    const freeExtra = planned.map((row) =>
+      row.paidNumber === null
+        ? row
+        : { ...row, isFreeExtra: true, paidNumber: null },
+    );
+
+    expect(
+      service.compare({
+        fields: blank,
+        rows: [stored()],
+        data,
+        planned: freeExtra,
+      }).contradictions,
+    ).toEqual([
+      'skill 71 is stored confirmed as advancement 1, the entry makes it a free extra',
+    ]);
+  });
+
   it('is not identical when a planned row is not stored yet', () => {
     expect(
       service.compare({ fields: filled, rows: [startingRow], data, planned })

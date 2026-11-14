@@ -56,23 +56,23 @@ export class PlayerFillComparisonService {
           `stored ${check.label} ${String(check.stored)}, the entry says ${String(check.entry)}`,
       );
     const unmatched = input.planned.map((_row, at) => at);
+    const matches = this.matchRows(input.rows, input.planned, unmatched);
     let rowsExact = true;
-    for (const row of input.rows) {
-      const at = this.matchIndex(row, input.planned, unmatched);
+    input.rows.forEach((row, index) => {
+      const at = matches[index];
       if (at === undefined) {
         contradictions.push(
           `${this.describe(row)} is stored but not in the entry`,
         );
-        continue;
+        return;
       }
-      unmatched.splice(unmatched.indexOf(at), 1);
       const planned = input.planned[at];
       const problem = this.rowProblem(row, planned);
       if (problem !== undefined) {
         contradictions.push(problem);
       }
       rowsExact &&= this.rowExact(row, planned);
-    }
+    });
     const fieldsEqual = this.fieldChecks(input.fields, input.data, false).every(
       (check) => check.stored === check.entry,
     );
@@ -124,6 +124,34 @@ export class PlayerFillComparisonService {
       },
       { label: 'status', stored: fields.status, entry: data.status },
     ];
+  }
+
+  /**
+   * Pairs each stored row with a planned one (by stored-row index), taking
+   * confirmed rows first so an unconfirmed row never uses up the planned row
+   * whose paid number a confirmed row needs. Removes the paired rows from
+   * `unmatched`.
+   */
+  private matchRows(
+    rows: StoredFillRow[],
+    planned: PlannedFillRow[],
+    unmatched: number[],
+  ): (number | undefined)[] {
+    const matches: (number | undefined)[] = rows.map(() => undefined);
+    const byConfirmed = rows
+      .map((_row, index) => index)
+      .sort(
+        (a, b) =>
+          Number(rows[b].orderConfirmed) - Number(rows[a].orderConfirmed),
+      );
+    for (const index of byConfirmed) {
+      const at = this.matchIndex(rows[index], planned, unmatched);
+      if (at !== undefined) {
+        unmatched.splice(unmatched.indexOf(at), 1);
+        matches[index] = at;
+      }
+    }
+    return matches;
   }
 
   /** The unmatched planned row this stored row pairs with, if any. */
