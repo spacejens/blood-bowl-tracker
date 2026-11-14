@@ -20,6 +20,7 @@ COPY packages/import-shared/package.json packages/import-shared/
 COPY packages/import-tp-live/package.json packages/import-tp-live/
 COPY packages/logging/package.json packages/logging/
 COPY packages/parse-tp/package.json packages/parse-tp/
+COPY packages/parse-tp-feed/package.json packages/parse-tp-feed/
 COPY packages/scrape-tp/package.json packages/scrape-tp/
 COPY packages/tp-paths/package.json packages/tp-paths/
 COPY tools/import-bbl/package.json tools/import-bbl/
@@ -52,6 +53,7 @@ COPY packages/import-shared/package.json packages/import-shared/
 COPY packages/import-tp-live/package.json packages/import-tp-live/
 COPY packages/logging/package.json packages/logging/
 COPY packages/parse-tp/package.json packages/parse-tp/
+COPY packages/parse-tp-feed/package.json packages/parse-tp-feed/
 COPY packages/scrape-tp/package.json packages/scrape-tp/
 COPY packages/tp-paths/package.json packages/tp-paths/
 COPY tools/import-bbl/package.json tools/import-bbl/
@@ -73,6 +75,7 @@ COPY --from=builder /build/packages/import-shared/dist ./packages/import-shared/
 COPY --from=builder /build/packages/import-tp-live/dist ./packages/import-tp-live/dist
 COPY --from=builder /build/packages/logging/dist ./packages/logging/dist
 COPY --from=builder /build/packages/parse-tp/dist ./packages/parse-tp/dist
+COPY --from=builder /build/packages/parse-tp-feed/dist ./packages/parse-tp-feed/dist
 COPY --from=builder /build/packages/scrape-tp/dist ./packages/scrape-tp/dist
 COPY --from=builder /build/packages/tp-paths/dist ./packages/tp-paths/dist
 

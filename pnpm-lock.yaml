@@ -235,6 +235,9 @@ importers:
       '@blood-bowl-tracker/logging':
         specifier: workspace:*
         version: link:../../packages/logging
+      '@blood-bowl-tracker/parse-tp-feed':
+        specifier: workspace:*
+        version: link:../../packages/parse-tp-feed
       '@blood-bowl-tracker/tp-paths':
         specifier: workspace:*
         version: link:../../packages/tp-paths

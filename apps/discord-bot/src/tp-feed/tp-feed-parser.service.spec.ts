@@ -1,3 +1,4 @@
+import { TpFeedAdvancementParserService } from '@blood-bowl-tracker/parse-tp-feed';
 import { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -27,8 +28,11 @@ describe('TpFeedParserService', () => {
     warn = vi
       .spyOn(Logger.prototype, 'warn')
       .mockImplementation(() => undefined);
+    // TpFeedAdvancementParserService is pure and dependency-free, so it is
+    // passed real (CLAUDE.md's pure decision-service carve-out): these tests
+    // assert the bot's whole event output for real TP embed shapes.
     const moduleRef = await Test.createTestingModule({
-      providers: [TpFeedParserService],
+      providers: [TpFeedParserService, TpFeedAdvancementParserService],
     }).compile();
     service = moduleRef.get(TpFeedParserService);
   });
