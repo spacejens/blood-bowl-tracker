@@ -97,11 +97,17 @@ import that writes the column, so the two always describe the same total.
 
 A player upsert or a skill sync clears it. A curated order sent with
 `checkOrderAgainstSpend` keeps it: when the stored figures are known, that
-sync is refused unless they fit the new order exactly. The closing SPP
-adjustment sync of an import that runs one writes it back; a plain TP live team import does not
-run that sync, so it can leave the value NULL until a later sync. And a trophy award that grants a skill, which only the manual
-import writes, marks the skill as a free extra and works the fixed-threshold
-value out again.
+sync is refused unless they fit the new order exactly. When they are not
+known, the order is written after the one-for-one match alone. The TP SPP
+adjustment sync then rechecks every confirmed order of the players it writes
+against the total and unspent SPP it has just stored. It reports a
+contradiction as an import error and leaves the order as stored (see
+[Player advancement orders](../import-manual/player-advancement-orders.md)).
+The closing SPP adjustment sync of an import that runs one writes it back; a
+plain TP live team import does not run that sync, so it can leave the value
+NULL until a later sync. And a trophy award that grants a skill, which only
+the manual import writes, marks the skill as a free extra and works the
+fixed-threshold value out again.
 
 A stored fixed-threshold value is cleared or recomputed on the writes that change a player's history, but not when reference data (advancement
 costs, era rules sets, skill categories, position access) or the model code

@@ -1,5 +1,5 @@
 import type { SyncPlayerSkills } from '@blood-bowl-tracker/api-contract';
-import { DB, playerAdvancements, players } from '@blood-bowl-tracker/db';
+import { DB, players } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
@@ -11,25 +11,26 @@ import { CuratedAdvancementOrderMatcherService } from '../player-skills/curated-
 import { PlayerAdvancementReadsService } from '../player-skills/player-advancement-reads.service';
 import { PlayerSkillsService } from '../player-skills/player-skills.service';
 import { CuratedAdvancementOrderError } from '../shared/curated-advancement-order-error';
-import { AdvancementOrderDeductionService } from '../spp/advancement-order-deduction.service';
-import { UnspentSppService } from '../spp/unspent-spp.service';
-import type { RulesSetAdvancementInput } from '../spp/unspent-spp.types';
+import type {
+  SpendCheckRow,
+  StoredWithFreeExtras,
+} from '../spp/advancement-order-spend-check.service';
+import { AdvancementOrderSpendCheckService } from '../spp/advancement-order-spend-check.service';
 import { CuratedAdvancementOrderService } from './curated-advancement-order.service';
 
-interface Collaborators {
+interface Harness {
+  service: CuratedAdvancementOrderService;
   db: MockDbResult;
   playerSkills: MockProxy<PlayerSkillsService>;
-  unspentSpp: MockProxy<UnspentSppService>;
-  deduction: MockProxy<AdvancementOrderDeductionService>;
+  spendCheck: MockProxy<AdvancementOrderSpendCheckService>;
   reads: MockProxy<PlayerAdvancementReadsService>;
 }
 
-async function makeService(
-  db: MockDbResult,
-): Promise<{ service: CuratedAdvancementOrderService } & Collaborators> {
+async function makeService(db: MockDbResult): Promise<Harness> {
   const playerSkills = mock<PlayerSkillsService>();
-  const unspentSpp = mock<UnspentSppService>();
-  const deduction = mock<AdvancementOrderDeductionService>();
+  const spendCheck = mock<AdvancementOrderSpendCheckService>();
+  spendCheck.storedWithFreeExtras.mockResolvedValue(new Map());
+  spendCheck.spendProblems.mockResolvedValue(new Map());
   const reads = mock<PlayerAdvancementReadsService>();
   reads.resolveFreeExtras.mockImplementation((entries) =>
     Promise.resolve(entries),
@@ -40,8 +41,7 @@ async function makeService(
       CuratedAdvancementOrderMatcherService,
       { provide: DB, useValue: db.db },
       { provide: PlayerSkillsService, useValue: playerSkills },
-      { provide: UnspentSppService, useValue: unspentSpp },
-      { provide: AdvancementOrderDeductionService, useValue: deduction },
+      { provide: AdvancementOrderSpendCheckService, useValue: spendCheck },
       { provide: PlayerAdvancementReadsService, useValue: reads },
     ],
   }).compile();
@@ -49,32 +49,35 @@ async function makeService(
     service: moduleRef.get(CuratedAdvancementOrderService),
     db,
     playerSkills,
-    unspentSpp,
-    deduction,
+    spendCheck,
     reads,
   };
 }
 
-const storedRows = [
-  {
-    id: 11,
-    skillId: 8,
-    characteristic: null,
-    attributeValue: null,
-    source: 'chosen',
-    isFreeExtra: false,
-    removed: false,
-  },
-  {
-    id: 12,
-    skillId: 9,
-    characteristic: null,
-    attributeValue: null,
-    source: 'random',
-    isFreeExtra: false,
-    removed: false,
-  },
-];
+const row = (
+  id: number,
+  skillId: number,
+  source: 'chosen' | 'random',
+): SpendCheckRow => ({
+  id,
+  playerId: 1,
+  skillId,
+  characteristic: null,
+  attributeValue: null,
+  source,
+  isFreeExtra: false,
+  removed: false,
+  advancementOrder: null,
+  orderConfirmed: false,
+});
+const storedRows = [row(11, 8, 'chosen'), row(12, 9, 'random')];
+const storedOf = (
+  stored: SpendCheckRow[],
+  extra: Partial<StoredWithFreeExtras> = {},
+): Map<number, StoredWithFreeExtras> =>
+  new Map([
+    [1, { stored, freeRowIds: new Set<number>(), flagEntries: [], ...extra }],
+  ]);
 
 const data: SyncPlayerSkills = {
   entries: [
@@ -97,178 +100,136 @@ const data: SyncPlayerSkills = {
   checkOrderAgainstSpend: true,
 };
 
-const candidate = (id: number, isFreeExtra: boolean) => ({
-  id,
-  skillId: id,
-  source: 'advancement' as const,
-  isFreeExtra,
-  advancementOrder: null,
-  orderConfirmed: false,
-});
-const rulesSetWith = (lonerIsFree: boolean): RulesSetAdvancementInput => ({
-  rulesSetId: 1,
-  pricingModel: 'kind_priced',
-  costs: [],
-  candidatesInput: {
-    skills: [candidate(11, false), candidate(13, lonerIsFree)],
-    skillCategories: new Map(),
-    positionAccess: new Map(),
-    costs: [],
-  },
-});
-
-const rulesSets = [rulesSetWith(false)];
-
 describe('CuratedAdvancementOrderService', () => {
-  it('prices the order as the only allowed one, then syncs keeping the unspent SPP', async () => {
-    const { service, db, playerSkills, unspentSpp, deduction } =
-      await makeService(mockDb([{ sppTotal: 20, unspentSpp: 6 }], storedRows));
-    unspentSpp.advancementInputsForPlayers.mockResolvedValue(
-      new Map([[1, rulesSets]]),
+  it('checks the matched order against the spend, then syncs keeping the unspent SPP', async () => {
+    const { service, db, playerSkills, spendCheck } = await makeService(
+      mockDb([{ sppTotal: 20, unspentSpp: 6 }]),
     );
-    deduction.deduce.mockReturnValue(
-      new Map([
-        [11, 1],
-        [12, 2],
-      ]),
+    spendCheck.reportedSpend.mockReturnValue({ kind: 'spent', spent: 14 });
+    spendCheck.storedWithFreeExtras.mockResolvedValue(
+      storedOf(storedRows, { freeRowIds: new Set([16]) }),
     );
     playerSkills.sync.mockResolvedValue({ playerSkillIds: [12, 11] });
 
     expect(await service.sync(data)).toEqual({ playerSkillIds: [12, 11] });
     expect(db.chains[0].from).toHaveBeenCalledWith(players);
-    expect(db.chains[1].from).toHaveBeenCalledWith(playerAdvancements);
-    expect(deduction.deduce).toHaveBeenCalledWith({
-      rulesSets,
-      newRowIds: [11, 12],
-      orderedRowIds: [11, 12],
-      firstNumber: 1,
-      spent: 14,
+    expect(spendCheck.reportedSpend).toHaveBeenCalledWith({
+      sppTotal: 20,
+      unspentSpp: 6,
     });
+    expect(spendCheck.storedWithFreeExtras).toHaveBeenCalledWith([1]);
+    expect(spendCheck.spendProblems).toHaveBeenCalledWith([
+      {
+        playerId: 1,
+        rowIdsInOrder: [11, 12],
+        freeRowIds: new Set([16]),
+        spent: 14,
+      },
+    ]);
     expect(playerSkills.sync).toHaveBeenCalledWith(data, {
       keepUnspentSpp: true,
     });
   });
 
   it('refuses an order the spend does not allow, writing nothing', async () => {
-    const { service, playerSkills, unspentSpp, deduction } = await makeService(
-      mockDb([{ sppTotal: 20, unspentSpp: 6 }], storedRows),
+    const { service, playerSkills, spendCheck } = await makeService(
+      mockDb([{ sppTotal: 20, unspentSpp: 6 }]),
     );
-    unspentSpp.advancementInputsForPlayers.mockResolvedValue(
-      new Map([[1, rulesSets]]),
+    spendCheck.reportedSpend.mockReturnValue({ kind: 'spent', spent: 14 });
+    spendCheck.storedWithFreeExtras.mockResolvedValue(storedOf(storedRows));
+    spendCheck.spendProblems.mockResolvedValue(
+      new Map([
+        [1, ': this order cannot cost exactly the 14 SPP reported as spent'],
+      ]),
     );
-    deduction.deduce.mockReturnValue(undefined);
 
     await expect(service.sync(data)).rejects.toThrow(
       new CuratedAdvancementOrderError(
-        "Player 1: this order cannot cost exactly the 14 SPP reported as spent under any rules set of the player's era",
+        'Player 1: this order cannot cost exactly the 14 SPP reported as spent',
       ),
     );
     expect(playerSkills.sync).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ['total', { sppTotal: null, unspentSpp: 6 }],
-    ['unspent', { sppTotal: 20, unspentSpp: null }],
-  ])(
-    'writes the order unchecked when the %s SPP is unknown',
-    async (_unused, figures) => {
-      const { service, playerSkills, unspentSpp, deduction } =
-        await makeService(mockDb([figures], storedRows));
-      playerSkills.sync.mockResolvedValue({ playerSkillIds: [12, 11] });
+  it('writes the order unchecked when the SPP figures are unknown', async () => {
+    const { service, playerSkills, spendCheck } = await makeService(
+      mockDb([{ sppTotal: 20, unspentSpp: null }]),
+    );
+    spendCheck.reportedSpend.mockReturnValue({ kind: 'unknown' });
+    spendCheck.storedWithFreeExtras.mockResolvedValue(storedOf(storedRows));
+    playerSkills.sync.mockResolvedValue({ playerSkillIds: [12, 11] });
 
-      expect(await service.sync(data)).toEqual({ playerSkillIds: [12, 11] });
-      expect(unspentSpp.advancementInputsForPlayers).not.toHaveBeenCalled();
-      expect(deduction.deduce).not.toHaveBeenCalled();
-      expect(playerSkills.sync).toHaveBeenCalledWith(data, {
-        keepUnspentSpp: true,
-      });
-    },
-  );
+    expect(await service.sync(data)).toEqual({ playerSkillIds: [12, 11] });
+    expect(spendCheck.spendProblems).not.toHaveBeenCalled();
+    expect(playerSkills.sync).toHaveBeenCalledWith(data, {
+      keepUnspentSpp: true,
+    });
+  });
 
-  describe('with an entry that lists no advancements', () => {
+  it('refuses inconsistent figures before reading the stored rows', async () => {
+    const { service, playerSkills, spendCheck } = await makeService(
+      mockDb([{ sppTotal: 20, unspentSpp: 21 }]),
+    );
+    spendCheck.reportedSpend.mockReturnValue({
+      kind: 'inconsistent',
+      problem: ' has an unspent SPP figure outside 0 to the SPP total',
+    });
+
+    await expect(service.sync(data)).rejects.toThrow(
+      'Player 1 has an unspent SPP figure outside 0 to the SPP total',
+    );
+    expect(spendCheck.storedWithFreeExtras).not.toHaveBeenCalled();
+    expect(playerSkills.sync).not.toHaveBeenCalled();
+  });
+
+  it('appends the entries flagging stored free extras and returns only the caller ids', async () => {
+    const { service, playerSkills, spendCheck } = await makeService(
+      mockDb([{ sppTotal: 20, unspentSpp: 6 }]),
+    );
+    const flag = {
+      playerId: 1,
+      skillId: 10,
+      source: 'advancement' as const,
+      attributeValue: '2+',
+      isFreeExtra: true,
+    };
+    spendCheck.reportedSpend.mockReturnValue({ kind: 'spent', spent: 14 });
+    spendCheck.storedWithFreeExtras.mockResolvedValue(
+      storedOf(storedRows, { flagEntries: [flag] }),
+    );
+    playerSkills.sync.mockResolvedValue({ playerSkillIds: [12, 11, 13] });
+
+    expect(await service.sync(data)).toEqual({ playerSkillIds: [12, 11] });
+    expect(playerSkills.sync).toHaveBeenCalledWith(
+      { ...data, entries: [...data.entries, flag] },
+      { keepUnspentSpp: true },
+    );
+  });
+
+  it('checks a player with no stored rows and no entries as having no paid advancement', async () => {
     const noOrder: SyncPlayerSkills = {
       entries: [],
       characteristicPlayerIds: [1],
       checkOrderAgainstSpend: true,
     };
-    const unflaggedLoner = {
-      id: 13,
-      skillId: 10,
-      characteristic: null,
-      attributeValue: null,
-      source: 'advancement',
-      isFreeExtra: false,
-      removed: false,
-    };
-    const flagged = {
-      playerId: 1,
-      skillId: 10,
-      source: 'advancement' as const,
-      attributeValue: null,
-      isFreeExtra: true,
-    };
-
-    it('flags the player free extras when he has no paid advancement and spent nothing', async () => {
-      const { service, reads, playerSkills, deduction } = await makeService(
-        mockDb([{ sppTotal: 0, unspentSpp: 0 }], [unflaggedLoner]),
-      );
-      reads.resolveFreeExtras
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([flagged]);
-      playerSkills.sync.mockResolvedValue({ playerSkillIds: [13] });
-
-      expect(await service.sync(noOrder)).toEqual({ playerSkillIds: [] });
-      expect(deduction.deduce).not.toHaveBeenCalled();
-      expect(playerSkills.sync).toHaveBeenCalledWith(
-        { ...noOrder, entries: [flagged] },
-        { keepUnspentSpp: true },
-      );
-    });
-
-    it('refuses a player who has no paid advancement but spent SPP', async () => {
-      const { service, reads, playerSkills } = await makeService(
-        mockDb([{ sppTotal: 6, unspentSpp: 0 }], [unflaggedLoner]),
-      );
-      reads.resolveFreeExtras
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([flagged]);
-
-      await expect(service.sync(noOrder)).rejects.toThrow(
-        'Player 1 has no paid advancement, but 6 SPP reported as spent',
-      );
-      expect(playerSkills.sync).not.toHaveBeenCalled();
-    });
-  });
-
-  it.each([
-    ['unspent is negative', { sppTotal: 20, unspentSpp: -1 }],
-    ['unspent exceeds the total', { sppTotal: 20, unspentSpp: 21 }],
-  ])('refuses figures where %s', async (_unused, figures) => {
-    const { service, playerSkills } = await makeService(mockDb([figures]));
-
-    await expect(service.sync(data)).rejects.toThrow(
-      'Player 1 has an unspent SPP figure outside 0 to the SPP total',
+    const { service, playerSkills, spendCheck } = await makeService(
+      mockDb([{ sppTotal: 0, unspentSpp: 0 }]),
     );
-    expect(playerSkills.sync).not.toHaveBeenCalled();
-  });
+    spendCheck.reportedSpend.mockReturnValue({ kind: 'spent', spent: 0 });
+    playerSkills.sync.mockResolvedValue({ playerSkillIds: [] });
 
-  it('refuses known figures when no rules set prices advancements', async () => {
-    const { service, playerSkills, unspentSpp, deduction } = await makeService(
-      mockDb([{ sppTotal: 20, unspentSpp: 6 }], storedRows),
-    );
-    unspentSpp.advancementInputsForPlayers.mockResolvedValue(new Map());
-
-    await expect(service.sync(data)).rejects.toThrow(
-      'Player 1 has no rules set that prices advancements',
-    );
-    expect(deduction.deduce).not.toHaveBeenCalled();
-    expect(playerSkills.sync).not.toHaveBeenCalled();
+    expect(await service.sync(noOrder)).toEqual({ playerSkillIds: [] });
+    expect(spendCheck.spendProblems).toHaveBeenCalledWith([
+      { playerId: 1, rowIdsInOrder: [], freeRowIds: new Set(), spent: 0 },
+    ]);
   });
 
   it('refuses a skill the free-extra rules make free', async () => {
-    const { service, reads, playerSkills } = await makeService(
-      mockDb([{ sppTotal: 20, unspentSpp: 6 }], storedRows),
+    const { service, reads, playerSkills, spendCheck } = await makeService(
+      mockDb([{ sppTotal: 20, unspentSpp: 6 }]),
     );
+    spendCheck.reportedSpend.mockReturnValue({ kind: 'spent', spent: 14 });
+    spendCheck.storedWithFreeExtras.mockResolvedValue(storedOf(storedRows));
     reads.resolveFreeExtras.mockResolvedValueOnce(
       data.entries.map((entry) =>
         entry.skillId === 9 ? { ...entry, isFreeExtra: true } : entry,
@@ -281,159 +242,24 @@ describe('CuratedAdvancementOrderService', () => {
     expect(playerSkills.sync).not.toHaveBeenCalled();
   });
 
-  describe('with a stored gained skill whose free-extra flag is not set yet', () => {
-    const unflaggedLoner = {
-      id: 13,
-      skillId: 10,
-      characteristic: null,
-      attributeValue: '2+',
-      source: 'advancement',
-      isFreeExtra: false,
-      removed: false,
-    };
-    const stored = [
-      ...storedRows,
-      unflaggedLoner,
-      { ...unflaggedLoner, id: 14, skillId: 11, source: 'starting' },
-      { ...unflaggedLoner, id: 15, skillId: 12, removed: true },
-      { ...unflaggedLoner, id: 16, skillId: 13, isFreeExtra: true },
-    ];
-    it('treats it as free when the rules make it free: matched, priced and flagged by the sync', async () => {
-      const { service, reads, playerSkills, unspentSpp, deduction } =
-        await makeService(mockDb([{ sppTotal: 20, unspentSpp: 6 }], stored));
-      const offered = (
-        skillId: number,
-        source: 'chosen' | 'random' | 'advancement',
-      ) => ({
-        playerId: 1,
-        skillId,
-        source,
-        attributeValue: skillId === 10 ? '2+' : null,
-      });
-      reads.resolveFreeExtras
-        .mockResolvedValueOnce(data.entries)
-        .mockResolvedValueOnce([
-          offered(8, 'chosen'),
-          offered(9, 'random'),
-          { ...offered(10, 'advancement'), isFreeExtra: true },
-        ]);
-      unspentSpp.advancementInputsForPlayers.mockResolvedValue(
-        new Map([[1, [rulesSetWith(false)]]]),
-      );
-      deduction.deduce.mockReturnValue(
-        new Map([
-          [11, 1],
-          [12, 2],
-        ]),
-      );
-      playerSkills.sync.mockResolvedValue({ playerSkillIds: [12, 11, 13] });
-
-      expect(await service.sync(data)).toEqual({ playerSkillIds: [12, 11] });
-      // Only gained, active, unflagged skill rows are offered to the rules.
-      expect(reads.resolveFreeExtras).toHaveBeenLastCalledWith([
-        { playerId: 1, skillId: 8, source: 'chosen', attributeValue: null },
-        { playerId: 1, skillId: 9, source: 'random', attributeValue: null },
-        {
-          playerId: 1,
-          skillId: 10,
-          source: 'advancement',
-          attributeValue: '2+',
-        },
-      ]);
-      expect(deduction.deduce).toHaveBeenCalledWith({
-        rulesSets: [rulesSetWith(true)],
-        newRowIds: [11, 12],
-        orderedRowIds: [11, 12],
-        firstNumber: 1,
-        spent: 14,
-      });
-      expect(playerSkills.sync).toHaveBeenCalledWith(
-        {
-          ...data,
-          entries: [
-            ...data.entries,
-            {
-              playerId: 1,
-              skillId: 10,
-              source: 'advancement',
-              attributeValue: '2+',
-              isFreeExtra: true,
-            },
-          ],
-        },
-        { keepUnspentSpp: true },
-      );
-    });
-
-    it('counts it as paid when the rules leave it paid', async () => {
-      const { service, playerSkills } = await makeService(
-        mockDb([{ sppTotal: 20, unspentSpp: 6 }], stored),
-      );
-
-      await expect(service.sync(data)).rejects.toThrow(
-        'Player 1 has 3 paid advancements, but the entries list 2',
-      );
-      expect(playerSkills.sync).not.toHaveBeenCalled();
-    });
-  });
-
   it('refuses a player that does not exist', async () => {
     const { service } = await makeService(mockDb([]));
 
     await expect(service.sync(data)).rejects.toThrow('Player 1 does not exist');
   });
 
-  it('refuses an entry that does not match the stored paid advancements', async () => {
-    const { service, deduction } = await makeService(
-      mockDb([{ sppTotal: 20, unspentSpp: 6 }], [storedRows[0]]),
+  it('refuses an entry that does not match the stored paid advancements, without pricing', async () => {
+    const { service, spendCheck } = await makeService(
+      mockDb([{ sppTotal: 20, unspentSpp: 6 }]),
+    );
+    spendCheck.reportedSpend.mockReturnValue({ kind: 'spent', spent: 14 });
+    spendCheck.storedWithFreeExtras.mockResolvedValue(
+      storedOf([storedRows[0]]),
     );
 
     await expect(service.sync(data)).rejects.toThrow(
       'Player 1 has no paid advancement matching skill 9',
     );
-    expect(deduction.deduce).not.toHaveBeenCalled();
-  });
-
-  it('refuses a listed player with no entries', async () => {
-    const { service } = await makeService(
-      mockDb([{ sppTotal: 20, unspentSpp: 6 }], storedRows),
-    );
-
-    await expect(
-      service.sync({
-        entries: [],
-        characteristicPlayerIds: [1],
-        checkOrderAgainstSpend: true,
-      }),
-    ).rejects.toThrow(
-      'Player 1 has 2 paid advancements, but the entries list 0',
-    );
-  });
-
-  it('refuses more paid advancements than can be checked', async () => {
-    const many = Array.from({ length: 7 }, (_unused, at) => ({
-      ...storedRows[0],
-      id: 20 + at,
-      skillId: 30 + at,
-    }));
-    const { service, deduction } = await makeService(
-      mockDb([{ sppTotal: 200, unspentSpp: 0 }], many),
-    );
-
-    await expect(
-      service.sync({
-        entries: many.map((row, at) => ({
-          playerId: 1,
-          skillId: row.skillId,
-          source: 'advancement' as const,
-          advancementOrder: at + 1,
-          orderConfirmed: true,
-        })),
-        checkOrderAgainstSpend: true,
-      }),
-    ).rejects.toThrow(
-      'Player 1 has 7 paid advancements; at most 6 can be checked',
-    );
-    expect(deduction.deduce).not.toHaveBeenCalled();
+    expect(spendCheck.spendProblems).not.toHaveBeenCalled();
   });
 });

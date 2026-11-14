@@ -37,7 +37,9 @@ export interface SettleSppOptions {
  * computed here. It must run only once the players' match events are
  * written: the sync measures TP's reported total against them. Idempotent:
  * the sync writes absolute values. Every failure is recorded in the
- * returned result, never thrown.
+ * returned result, never thrown. The sync also rechecks the confirmed
+ * advancement orders of the players it settled; each contradiction it
+ * reports is recorded as an error too.
  */
 @Injectable()
 export class TpLiveSppAdjustmentsService {
@@ -76,6 +78,9 @@ export class TpLiveSppAdjustmentsService {
           `Failed to settle the SPP adjustments of ${chunk.length} players: ${this.recorder.messageOf(error)}`,
       });
       imported += outcome?.updatedPlayerIds.length ?? 0;
+      errors.push(
+        ...this.importResults.orderProblemErrors(outcome?.orderProblems ?? []),
+      );
     }
     return this.importResults.result({ imported, errors });
   }

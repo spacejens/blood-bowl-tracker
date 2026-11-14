@@ -38,6 +38,35 @@ describe('TpLiveSppAdjustmentsService', () => {
     service = moduleRef.get(TpLiveSppAdjustmentsService);
   });
 
+  it('records each order problem the sync reports as an error', async () => {
+    sppAdjustments.syncReportedAdjustments.mockResolvedValue({
+      updatedPlayerIds: [1],
+      nonzeroAdjustments: [],
+      orderProblems: [
+        {
+          playerId: 1,
+          name: 'Karcheres',
+          problem:
+            "this order cannot cost exactly the 14 SPP reported as spent under any rules set of the player's era",
+        },
+      ],
+    });
+
+    await expect(
+      service.settle([{ playerId: 1, reportedSppTotal: 20 }]),
+    ).resolves.toEqual({
+      success: false,
+      imported: 1,
+      errors: [
+        {
+          item: { playerId: 1 },
+          message:
+            "Rechecking the confirmed advancement order of Karcheres (player 1) against his stored SPP failed: this order cannot cost exactly the 14 SPP reported as spent under any rules set of the player's era",
+        },
+      ],
+    });
+  });
+
   it('settles nothing, and calls nothing, when there are no players', async () => {
     await expect(service.settle([])).resolves.toEqual({
       success: true,

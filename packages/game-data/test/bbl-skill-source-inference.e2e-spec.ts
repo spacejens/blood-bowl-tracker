@@ -42,6 +42,7 @@ import { AdvancementKindCandidatesService } from '../src/spp/advancement-kind-ca
 import { AdvancementPricingModelService } from '../src/spp/advancement-pricing-model.service';
 import { AdvancementSpendRangeService } from '../src/spp/advancement-spend-range.service';
 import { BblSkillSourceInferenceService } from '../src/spp/bbl-skill-source-inference.service';
+import { ConfirmedAdvancementOrderRecheckService } from '../src/spp/confirmed-advancement-order-recheck.service';
 import { SppAdjustmentsService } from '../src/spp/spp-adjustments.service';
 import { SppForcedRateService } from '../src/spp/spp-forced-rate.service';
 import { SppOngoingEstimateService } from '../src/spp/spp-ongoing-estimate.service';
@@ -255,6 +256,10 @@ describe('BBL skill source inference in the closing SPP sync (real Postgres)', (
         {
           provide: SppOngoingEstimateService,
           useValue: mock<SppOngoingEstimateService>(),
+        },
+        {
+          provide: ConfirmedAdvancementOrderRecheckService,
+          useValue: mock<ConfirmedAdvancementOrderRecheckService>(),
         },
       ],
     }).compile();

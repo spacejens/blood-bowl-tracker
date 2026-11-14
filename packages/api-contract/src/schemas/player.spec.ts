@@ -581,6 +581,30 @@ describe('SyncLastingInjuryHistoryResultSchema', () => {
 });
 
 describe('SyncSppAdjustmentsResultSchema', () => {
+  it('accepts order problems', () => {
+    const parsed = {
+      updatedPlayerIds: [3],
+      orderProblems: [
+        {
+          playerId: 3,
+          name: 'Karcheres',
+          problem:
+            "this order cannot cost exactly the 14 SPP reported as spent under any rules set of the player's era",
+        },
+      ],
+    };
+    expect(SyncSppAdjustmentsResultSchema.parse(parsed)).toEqual(parsed);
+  });
+
+  it('rejects an order problem without its text', () => {
+    expect(() =>
+      SyncSppAdjustmentsResultSchema.parse({
+        updatedPlayerIds: [3],
+        orderProblems: [{ playerId: 3, name: 'Karcheres' }],
+      }),
+    ).toThrow();
+  });
+
   it('accepts the updated player ids', () => {
     expect(
       SyncSppAdjustmentsResultSchema.parse({ updatedPlayerIds: [3] }),

@@ -68,8 +68,11 @@ an earlier one fails:
    measures TP's reported career total against the imported match events,
    after an estimate of the SPP from competitions not imported yet (from
    TP's career action counts, which only a roster player has). Reported in
-   `sppAdjustments`; a failure there never fails the import. When the
-   backfill below runs, this step moves to the very end instead. A player
+   `sppAdjustments`; a failure there never fails the import. The sync also
+   rechecks the players' confirmed advancement orders against the SPP it
+   stored, and each contradiction is an error in `sppAdjustments` (see
+   [Player advancement orders](../import-manual/player-advancement-orders.md)).
+   When the backfill below runs, this step moves to the very end instead. A player
    whose match events were not imported is not settled: the match row was
    not written, participation was not linked (the events are only imported
    after linking), or the `events` stage reported errors. The imported-event

@@ -34,4 +34,28 @@ describe('ImportResultService', () => {
       expect(result.errors).toEqual([error]);
     });
   });
+
+  describe('orderProblemErrors', () => {
+    it('turns each order problem into an import error naming the player', () => {
+      expect(
+        service.orderProblemErrors([
+          {
+            playerId: 3,
+            name: 'Karcheres',
+            problem: 'has 7 paid advancements; at most 6 can be checked',
+          },
+        ]),
+      ).toEqual([
+        {
+          item: { playerId: 3 },
+          message:
+            'Rechecking the confirmed advancement order of Karcheres (player 3) against his stored SPP failed: has 7 paid advancements; at most 6 can be checked',
+        },
+      ]);
+    });
+
+    it('returns no errors for no problems', () => {
+      expect(service.orderProblemErrors([])).toEqual([]);
+    });
+  });
 });

@@ -10,7 +10,9 @@ depend on it, so a change here reaches bulk and live imports together.
 
 - **`NameExternalIdService`** — the "Name" external-id formats.
 - **`ImportResultService`** — `ImportError`/`ImportResult` construction, typed
-  with `packages/api-contract`'s types.
+  with `packages/api-contract`'s types. This includes the errors for confirmed
+  advancement orders that the SPP adjustments sync finds contradicting the
+  stored SPP, worded alike for bulk and live imports.
 - **`UpsertRecorderService`** — per-item upsert error recording.
 - **`CompetitionTypeService`** — the at-most-three-days cup-versus-season span
   rule. `tools/import-bbl` classifies competitions through it, by way of

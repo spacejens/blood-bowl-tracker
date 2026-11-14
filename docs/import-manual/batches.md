@@ -67,10 +67,12 @@ The batches:
   importer creates, so it applies after the source importers, in a plain
   `apply`; when the player's SPP figures are stored, the server refuses any
   order the reported spend does not allow. A scratch import's first TP pass
-  stores none yet, so the order is written unchecked; the second TP pass
-  stores TP's unspent figure without re-checking the order. An entry lists every stored paid advancement of the player, so
-  if he later gains one and the TP data is downloaded again, a scratch apply
-  of the batch is refused until a follow-up batch supersedes it.
+  stores none yet, so the order is written after the one-for-one match
+  alone; once the second TP pass stores TP's unspent figure, the SPP
+  adjustments step rechecks the order and reports a contradiction as an
+  import error. An entry lists every stored paid advancement of the player,
+  so if he later gains one and the TP data is downloaded again, a scratch
+  apply of the batch is refused until a follow-up batch supersedes it.
 - **006-bb2016-gutter-runner-skills** — adds the Weeping Dagger trait to
   the BB2016 starting skills of Skaven: Gutter Runner, which batch 002 gives
   Dodge alone; the developer's physical BB2016 rulebook lists both. The entry
