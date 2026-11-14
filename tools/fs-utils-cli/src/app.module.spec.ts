@@ -2,13 +2,13 @@ import {
   ChildProcessService,
   GitRootsService,
   ProcessRunnerService,
+  WriteFileService,
 } from '@blood-bowl-tracker/cli-shared';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 import { AppModule } from './app.module';
 import { SyncGitignoredService } from './sync-gitignored/sync-gitignored.service';
-import { WriteFileService } from './write-file/write-file.service';
 
 describe('AppModule', () => {
   it('wires every fs-utils subcommand service with its dependencies resolved', async () => {

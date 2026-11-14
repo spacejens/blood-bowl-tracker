@@ -2,12 +2,11 @@
 
 import { readFileSync } from 'node:fs';
 
-import { runCli } from '@blood-bowl-tracker/cli-shared';
+import { runCli, WriteFileService } from '@blood-bowl-tracker/cli-shared';
 import { INestApplicationContext } from '@nestjs/common';
 
 import { AppModule } from './app.module';
 import { SyncGitignoredService } from './sync-gitignored/sync-gitignored.service';
-import { WriteFileService } from './write-file/write-file.service';
 
 const SUBCOMMANDS = ['sync-gitignored', 'write-file'] as const;
 
