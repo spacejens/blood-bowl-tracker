@@ -145,8 +145,13 @@ export class ReadTpFeedHistoryService {
     while (after !== null && this.canFetch(context)) {
       const page = await this.fetchPage(context, { after });
       if (page === null || page.length === 0) return;
+      const newest = this.snowflakes.newest(page.map((message) => message.id));
+      if (this.snowflakes.compare(newest, after) <= 0) {
+        this.stopWithoutProgress(context, `after=${after}`);
+        return;
+      }
       await this.storePage(context, page);
-      after = this.snowflakes.newest(page.map((message) => message.id));
+      after = newest;
       await this.saveState(context, { ...context.state, newestId: after });
       if (page.length < PAGE_SIZE) return;
     }
@@ -158,9 +163,17 @@ export class ReadTpFeedHistoryService {
       const before = context.state.oldestId ?? undefined;
       const page = await this.fetchPage(context, { before });
       if (page === null) return;
-      await this.storePage(context, page);
       const ids = page.map((message) => message.id);
       const hasIds = ids.length > 0;
+      if (
+        before !== undefined &&
+        hasIds &&
+        this.snowflakes.compare(this.snowflakes.oldest(ids), before) >= 0
+      ) {
+        this.stopWithoutProgress(context, `before=${before}`);
+        return;
+      }
+      await this.storePage(context, page);
       await this.saveState(context, {
         ...context.state,
         newestId:
@@ -170,6 +183,13 @@ export class ReadTpFeedHistoryService {
         reachedStart: page.length < PAGE_SIZE,
       });
     }
+  }
+
+  /** A page that does not move the cursor would repeat forever. */
+  private stopWithoutProgress(context: RunContext, cursor: string): void {
+    context.stoppedByError =
+      `Discord returned a page that does not move past ${cursor}, ` +
+      'so paging stopped.';
   }
 
   private canFetch(context: RunContext): boolean {

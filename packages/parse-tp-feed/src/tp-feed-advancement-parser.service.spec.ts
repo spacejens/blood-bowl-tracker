@@ -105,6 +105,24 @@ describe('TpFeedAdvancementParserService', () => {
       });
     });
 
+    it.each([
+      ['-1 MA', 'MA', -1],
+      ['+1 PA', 'PA', 1],
+      ['+1 AV', 'AV', 1],
+    ] as const)(
+      'parses the characteristic change %s',
+      (text, characteristic, delta) => {
+        const result = service.parse(
+          advancementEmbed(`Random Characteristics \` ${text} \` \` ★16 \``),
+        );
+
+        expect(result).toMatchObject({
+          ok: true,
+          advancement: { gain: { characteristic, delta } },
+        });
+      },
+    );
+
     it('keeps the category and cost but no gain for a characteristic it does not know', () => {
       const result = service.parse(
         advancementEmbed('Random Characteristics ` +1 XY ` ` ★16 `'),

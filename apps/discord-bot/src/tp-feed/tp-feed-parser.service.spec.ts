@@ -149,6 +149,33 @@ describe('TpFeedParserService', () => {
     });
   });
 
+  it('still returns a new skill/characteristic event, echoing the collapsed value text, when the wording is unknown', () => {
+    expect(
+      service.parse(
+        sampleMessage({
+          author: {
+            name: 'New skill/characteristic',
+            url: 'https://tourplay.net/en/blood-bowl/roster/167242',
+          },
+          fields: [
+            {
+              name: '`#8` Phothara The Crimson *(Tomb Guardian)*',
+              value: 'Something ` new `  ` ★8 `',
+              inline: false,
+            },
+          ],
+          footer: { text: 'Rocket From The Tombs' },
+        }),
+      ),
+    ).toMatchObject({
+      status: 'event',
+      event: {
+        kind: 'new-skill-or-characteristic',
+        description: 'Something new ★8',
+      },
+    });
+  });
+
   it('parses a hired notification', () => {
     expect(service.parse(hiredMessage())).toEqual({
       status: 'event',

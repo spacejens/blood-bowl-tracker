@@ -171,16 +171,13 @@ function readReadTpFeedHistoryInput(): ReadTpFeedHistoryInput {
   if (maxPagesArg === undefined) {
     return { channelId };
   }
-  if (
-    !maxPagesArg.startsWith(MAX_PAGES_FLAG) ||
-    maxPagesArg.length === MAX_PAGES_FLAG.length
-  ) {
+  const pages = maxPagesArg.startsWith(MAX_PAGES_FLAG)
+    ? maxPagesArg.slice(MAX_PAGES_FLAG.length)
+    : '';
+  if (!/^\d+$/u.test(pages)) {
     throw new Error(READ_TP_FEED_HISTORY_USAGE);
   }
-  return {
-    channelId,
-    maxPages: Number(maxPagesArg.slice(MAX_PAGES_FLAG.length)),
-  };
+  return { channelId, maxPages: Number(pages) };
 }
 
 function readArgs(subcommand: Subcommand): DispatchArgs {

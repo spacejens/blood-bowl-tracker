@@ -215,15 +215,6 @@ export class TpFeedParserService {
     return Number(digits);
   }
 
-  /**
-   * `` "Random Primary ` Guard ` ` ★8 `" `` → "Random Primary Guard ★8".
-   * Backticks become spaces (rather than being deleted) so the words they
-   * separate do not run together, and the result's whitespace is collapsed.
-   */
-  private parseSkillDescription(value: string | undefined): string {
-    return (value ?? '').replaceAll('`', ' ').replace(/\s+/gu, ' ').trim();
-  }
-
   private parseFailure(
     kind: TpFeedEvent['kind'],
     field: string,

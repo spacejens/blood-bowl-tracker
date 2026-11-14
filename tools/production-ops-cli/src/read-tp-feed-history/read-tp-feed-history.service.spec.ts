@@ -289,6 +289,60 @@ describe('ReadTpFeedHistoryService', () => {
     expect(store.writeState).not.toHaveBeenCalled();
   });
 
+  it('stops when a catch-up page does not advance the cursor', async () => {
+    store.readState.mockResolvedValue(
+      state({ newestId: '500', oldestId: '300', reachedStart: true }),
+    );
+    discordRest.getMessagesAfter.mockResolvedValueOnce(messages(500, 100));
+
+    const summary = await service.run(CHANNEL);
+
+    expect(discordRest.getMessagesAfter).toHaveBeenCalledTimes(1);
+    expect(store.writeState).not.toHaveBeenCalled();
+    expect(summary.stoppedByError).toMatch(/does not move past after=500/);
+    expect(store.writeIndex).toHaveBeenCalled();
+  });
+
+  it('stops when a backwards page does not advance the cursor', async () => {
+    store.readState.mockResolvedValue(
+      state({ newestId: '500', oldestId: '300' }),
+    );
+    discordRest.getMessagesAfter.mockResolvedValueOnce([]);
+    discordRest.getRecentMessages.mockResolvedValueOnce(messages(400, 100));
+
+    const summary = await service.run(CHANNEL);
+
+    expect(discordRest.getRecentMessages).toHaveBeenCalledTimes(1);
+    expect(store.writeState).not.toHaveBeenCalled();
+    expect(summary.stoppedByError).toMatch(/does not move past before=300/);
+    expect(summary.reachedStart).toBe(false);
+    expect(store.writeIndex).toHaveBeenCalled();
+  });
+
+  it('advances both cursors correctly from a page in ascending order', async () => {
+    store.readState.mockResolvedValue(
+      state({ newestId: '500', oldestId: '300' }),
+    );
+    discordRest.getMessagesAfter
+      .mockResolvedValueOnce(messages(600, 100).reverse())
+      .mockResolvedValueOnce([]);
+    discordRest.getRecentMessages.mockResolvedValueOnce(
+      messages(299, 2).reverse(),
+    );
+
+    await service.run(CHANNEL);
+
+    expect(discordRest.getMessagesAfter).toHaveBeenLastCalledWith(
+      CHANNEL,
+      100,
+      '600',
+    );
+    expect(store.writeState).toHaveBeenLastCalledWith(
+      CHANNEL,
+      state({ newestId: '600', oldestId: '298', reachedStart: true }),
+    );
+  });
+
   it('does not read backwards after a failed catch-up', async () => {
     store.readState.mockResolvedValue(
       state({ newestId: '500', oldestId: '300' }),

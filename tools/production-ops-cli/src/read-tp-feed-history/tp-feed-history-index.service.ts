@@ -16,6 +16,10 @@ export interface TpFeedHistoryReport {
   readonly messageId: string;
   readonly link: string;
   readonly timestamp: string;
+  readonly teamName: string;
+  readonly playerNumber: string;
+  readonly playerName: string;
+  readonly position: string;
   /**
    * Whether the bot had reacted with its check mark. A hint only: a missing
    * reaction can also mean downtime, a failed import or scraping off.
@@ -125,6 +129,10 @@ export class TpFeedHistoryIndexService {
       messageId: message.id,
       link,
       timestamp: message.timestamp,
+      teamName: found.teamName,
+      playerNumber: found.playerNumber,
+      playerName: found.playerName,
+      position: found.position,
       botReacted: this.botReacted(message),
       rosterLink: found.rosterLink,
       selection: found.selection,

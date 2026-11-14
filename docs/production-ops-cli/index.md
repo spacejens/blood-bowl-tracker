@@ -68,7 +68,9 @@ collects evidence; it does not change any player.
   off.
 - **Summary.** It prints the pages fetched, the messages seen, the new
   reports saved, the number of unparsed reports, whether the channel start
-  was reached, and the failure that stopped it, if any.
+  was reached, and the failure that stopped it, if any. An empty first page
+  reports `reachedStart: true` with `messagesSeen: 0`, which can mean the bot
+  lacks the Read Message History permission, not only an empty channel.
 
 The input is validated before the bot token is read. The output lives in the
 gitignored `tools/production-ops-cli/data/tp-feed-<channel-id>/`:
@@ -77,7 +79,7 @@ gitignored `tools/production-ops-cli/data/tp-feed-<channel-id>/`:
 | --- | --- |
 | `messages/<id>.json` | The raw message, for advancement reports only. An existing file is never rewritten, so reruns are idempotent |
 | `state.json` | The guild id, the newest and oldest fetched ids, and whether the start was reached |
-| `reports.json` | Regenerated from the raw files on every run: team → `#number name (position)` → reports in message order, each with its parsed fields, message id, link, timestamp, raw text and `botReacted` |
+| `reports.json` | Regenerated from the raw files on every run: team → `#number name (position)` → reports in message order. Each report is self-contained: the team name, player number, name and position, the parsed fields, message id, link, timestamp, raw text and `botReacted` |
 | `unparsed.json` | Advancement messages whose gain or player line was not understood: the reason, message id and link |
 
 `tools/fs-utils-cli`'s `sync-gitignored` links this directory back to the

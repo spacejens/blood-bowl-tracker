@@ -102,17 +102,24 @@ describe('TpFeedHistoryIndexService', () => {
         });
 
       const index = service.build({
-        messages: [advancementMessage('20'), advancementMessage('10')],
+        messages: [advancementMessage('10'), advancementMessage('9')],
         guildId: GUILD,
         channelId: CHANNEL,
       });
 
       const reports =
         index.reports['Rocket From The Tombs']['#6 Grimgor (Black Orc)'];
-      expect(reports.map((r) => r.messageId)).toEqual(['10', '20']);
+      expect(reports.map((r) => r.messageId)).toEqual(['9', '10']);
+      expect(parser.parse).toHaveBeenCalledWith(
+        advancementMessage('9').embeds[0],
+      );
       expect(reports[0]).toEqual({
-        messageId: '10',
-        link: 'https://discord.com/channels/111/222/10',
+        messageId: '9',
+        link: 'https://discord.com/channels/111/222/9',
+        teamName: 'Rocket From The Tombs',
+        playerNumber: '6',
+        playerName: 'Grimgor',
+        position: 'Black Orc',
         timestamp: TIMESTAMP,
         botReacted: false,
         rosterLink: 'https://tourplay.net/en/blood-bowl/roster/1',
