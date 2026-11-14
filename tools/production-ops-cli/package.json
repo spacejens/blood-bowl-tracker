@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@blood-bowl-tracker/cli-shared": "workspace:*",
+    "@blood-bowl-tracker/parse-tp-feed": "workspace:*",
     "@nestjs/common": "^12.0.0",
     "@nestjs/core": "^12.0.0",
     "discord.js": "^14.27.0",
