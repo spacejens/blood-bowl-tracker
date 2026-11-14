@@ -226,11 +226,14 @@ describe('ReadTpFeedHistoryService', () => {
     store.readState.mockResolvedValue(
       state({ newestId: '500', oldestId: '300' }),
     );
-    discordRest.getMessagesAfter.mockResolvedValue(messages(600, 100));
+    discordRest.getMessagesAfter
+      .mockResolvedValueOnce(messages(600, 100))
+      .mockResolvedValueOnce(messages(700, 100));
 
-    await service.run(CHANNEL, 2);
+    const summary = await service.run(CHANNEL, 2);
 
     expect(discordRest.getMessagesAfter).toHaveBeenCalledTimes(2);
+    expect(summary).toMatchObject({ pagesFetched: 2, stoppedByError: null });
     expect(discordRest.getRecentMessages).not.toHaveBeenCalled();
   });
 
