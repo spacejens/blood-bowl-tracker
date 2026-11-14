@@ -61,6 +61,7 @@ export type {
   PlayerSkillsSyncOptions,
 } from './player-skills/player-skills.service';
 export { PlayerSkillsService } from './player-skills/player-skills.service';
+export { INCOMPLETE_PLAYER_CRITERIA } from './players/incomplete-player-criteria';
 export { PlayerLastingInjuryBackfillService } from './players/player-lasting-injury-backfill.service';
 export { PlayersModule } from './players/players.module';
 export {

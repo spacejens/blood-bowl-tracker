@@ -1,4 +1,4 @@
-import type { Db, SQL } from '@blood-bowl-tracker/db';
+import type { Db } from '@blood-bowl-tracker/db';
 import {
   and,
   coaches,
@@ -6,7 +6,6 @@ import {
   DB,
   eq,
   eras,
-  isNull,
   or,
   players,
   positions,
@@ -14,6 +13,7 @@ import {
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
+import { INCOMPLETE_PLAYER_CRITERIA } from '@blood-bowl-tracker/game-data';
 import { Inject, Injectable } from '@nestjs/common';
 
 /**
@@ -32,31 +32,10 @@ export interface IncompleteImportTeamRow {
 }
 
 /**
- * What makes a player's imported data incomplete; a player matching ANY entry
- * counts. A zero `move`/`strength`/`agility`/`armour` is the column default,
- * legal under no rules set, so it marks an import that never supplied the
- * real value. A NULL `spp_total`/`spp_adjustment`/`status` means no source
- * populated it. `passing` is deliberately absent: NULL and 0 are both
- * legitimate there. A new kind of gap is a one-line addition here.
- *
- * Star players are never counted, whatever these columns hold. That exclusion
- * is applied in the query, not in this list, because it narrows which players
- * are looked at rather than describing a kind of gap.
- */
-const INCOMPLETE_PLAYER_CRITERIA: readonly SQL[] = [
-  eq(players.move, 0),
-  eq(players.strength, 0),
-  eq(players.agility, 0),
-  eq(players.armour, 0),
-  isNull(players.sppTotal),
-  isNull(players.sppAdjustment),
-  isNull(players.status),
-];
-
-/**
  * Finds the team-eras holding players with incomplete import data, for the
  * `/debugincompleteimport` maintainer command. Ordering is left to the
- * caller, which groups and sorts by coach.
+ * caller, which groups and sorts by coach. What counts as incomplete is
+ * game-data's shared `INCOMPLETE_PLAYER_CRITERIA`.
  */
 @Injectable()
 export class IncompleteImportPlayersService {
