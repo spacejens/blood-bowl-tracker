@@ -395,7 +395,7 @@ describe('Filling in a missing TP player (real Postgres)', () => {
     expect(firstRows).toHaveLength(2);
   });
 
-  it('keeps the filled status through a later TP upsert that establishes none', async () => {
+  it('keeps the filled status through an upsert that omits it', async () => {
     await service.fill(entry());
 
     // The shape the bulk TP import sends for a player whose TP entry has no

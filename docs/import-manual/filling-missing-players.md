@@ -63,7 +63,8 @@ without a `source` keeps a chosen or random source already stored. The
 player's characteristics, total SPP, unspent SPP, status and SPP adjustment
 are written in the same transaction as his advancements. A later TP import
 whose data establishes no status for him keeps the filled one (see
-[player status](../import-tp/index.md#player-status)). The unspent SPP has no
+[player status](../import-tp/index.md#player-status)); one that finds him
+absent from a non-empty roster still retires him, as for any TP player. The unspent SPP has no
 such protection: a TP import writes it as not known, and under a rules set
 that prices advancements by kind only a TP snapshot restores it. A filled
 player can therefore lose it without counting as incomplete again, and
