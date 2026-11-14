@@ -37,6 +37,7 @@ import {
   PlayerFillService,
   PlayersModule,
   PlayersService,
+  SkillValidationError,
 } from '@blood-bowl-tracker/game-data';
 import type { DynamicModule } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
@@ -448,6 +449,19 @@ describe('Filling in a missing TP player (real Postgres)', () => {
     expect(await storedPlayer()).toEqual(before);
     expect(await storedRows()).toEqual([]);
     expect(await incomplete.findTeamsWithIncompletePlayers()).toHaveLength(1);
+  });
+
+  it('refuses a skill listed both as starting and gained, writing nothing', async () => {
+    const before = await storedPlayer();
+    await expect(
+      service.fill(
+        entry({
+          startingSkills: [{ skillId: seeded.dodgeId, attributeValue: null }],
+        }),
+      ),
+    ).rejects.toThrow(SkillValidationError);
+    expect(await storedPlayer()).toEqual(before);
+    expect(await storedRows()).toEqual([]);
   });
 
   it('refuses a missing PA under a rules set with Passing, writing nothing', async () => {

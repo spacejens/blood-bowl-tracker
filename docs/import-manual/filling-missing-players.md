@@ -79,6 +79,8 @@ refuses it with an import error when:
   unspent SPP or status, or a stored skill or increase the entry does not
   list (or lists with a different chosen-or-random source, a different
   confirmed number, or as paid where the stored one is a free extra);
+- the same skill with the same variant is listed twice, as a starting skill
+  and an advancement or as two advancements;
 - the characteristics do not fit any rules set of his era, including a
   missing or unexpected `pa`;
 - the unspent SPP is above the total, or the advancements cannot cost exactly
