@@ -56,6 +56,8 @@ export interface PlayerSkillUpdate {
     advancementOrder?: number | null;
     orderConfirmed?: boolean;
     isFreeExtra?: true;
+    /** A removed row an entry lists again comes back. */
+    removed?: false;
   };
 }
 

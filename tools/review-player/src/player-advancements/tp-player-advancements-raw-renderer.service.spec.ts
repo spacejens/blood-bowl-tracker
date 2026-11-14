@@ -134,7 +134,7 @@ describe('TpPlayerAdvancementsRawRendererService', () => {
     expect(html).not.toContain('Journeyman');
   });
 
-  it('explains pricing for a player with a gained Loner', async () => {
+  it('adds no pricing line for a gained Loner', async () => {
     index.advancementsFor.mockResolvedValue(
       advancements({
         gainedSkills: [gained('Loner', { attributeValue: '4+' })],
@@ -143,12 +143,9 @@ describe('TpPlayerAdvancementsRawRendererService', () => {
 
     const html = await service.render('2477481');
 
-    expect(html).toContain(
-      '<p>A Journeyman&#39;s Loner is granted without SPP being spent; the ' +
-        'modelled range does not recognise it and prices it as an ' +
-        'advancement, so such a player can legitimately be listed.</p>',
-    );
-    expect(html).not.toContain('Extra skills');
+    expect(html).toContain('<td>Loner (4+)</td><td>gained</td>');
+    expect(html).not.toContain('Journeyman');
+    expect(html).not.toContain('<p>');
   });
 
   it('shows the derived improvements under a heading that says so', async () => {

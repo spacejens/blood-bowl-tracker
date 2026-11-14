@@ -135,6 +135,7 @@ export class PlayerAdvancementsStratificationService implements PlayerStratifier
        )
       where ps.player_id = ${players.id}
         and ps.source <> 'starting'
+        and ps.removed = false
         ${extra}
     )`;
   }
@@ -149,6 +150,7 @@ export class PlayerAdvancementsStratificationService implements PlayerStratifier
       select coalesce(array_agg(ps.skill_id order by ps.skill_id), '{}')
       from ${playerAdvancements} ps
       where ps.player_id = ${players.id} and ps.source = 'starting'
+        and ps.removed = false
     ) is distinct from (
       select coalesce(array_agg(prss.skill_id order by prss.skill_id), '{}')
       from ${positionRulesSets} prs

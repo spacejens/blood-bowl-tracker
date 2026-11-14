@@ -56,6 +56,12 @@ const playersTable = historyTrackedTable({
     // reported a status, which is deliberately distinct from a known
     // 'active'. Unrelated to deaths derived from match events.
     status: playerStatusEnum('status'),
+    // Whether the player is a journeyman: a temporary player drawn from a
+    // basic position of the team's race, who has Loner for free while he
+    // stays one (stored as a `starting` Loner row). Set and cleared by the
+    // importers through the shared journeyman rule; a write that clears it
+    // on a stored journeyman (a recruitment) also retires that Loner row.
+    isJourneyman: boolean('is_journeyman').notNull().default(false),
     // The player's own current Move/Strength/Agility/Passing/Armour, as the
     // source reports them. Not merely a copy of the position's baseline:
     // both BBL and TP report a player's current values, and injuries and

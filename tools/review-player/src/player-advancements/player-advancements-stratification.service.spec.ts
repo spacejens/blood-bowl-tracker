@@ -92,6 +92,7 @@ describe('PlayerAdvancementsStratificationService', () => {
     const where = dbResult.chains[0].where.mock.calls[0][0] as SQL;
     const rendered = new PgDialect().sqlToQuery(where).sql;
     expect(rendered).toContain('is_elite');
+    expect(rendered).toContain('ps.removed = false');
   });
 
   it('renders conditions for the random and chosen strata', async () => {
@@ -125,6 +126,7 @@ describe('PlayerAdvancementsStratificationService', () => {
     const rendered = new PgDialect().sqlToQuery(where).sql;
     expect(rendered).toContain('array_agg');
     expect(rendered.toLowerCase()).toContain('is distinct from');
+    expect(rendered).toContain('ps.removed = false');
   });
 
   it('rejects an unknown stratum id', async () => {

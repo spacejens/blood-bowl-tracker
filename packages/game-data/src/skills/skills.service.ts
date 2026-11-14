@@ -4,7 +4,14 @@ import type {
   UpsertSkill,
 } from '@blood-bowl-tracker/api-contract';
 import type { Db, Skill } from '@blood-bowl-tracker/db';
-import { DB, skillExternalIds, skills } from '@blood-bowl-tracker/db';
+import {
+  and,
+  DB,
+  eq,
+  inArray,
+  skillExternalIds,
+  skills,
+} from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
@@ -13,13 +20,19 @@ import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
 export class SkillUpsertConflictError extends UpsertConflictError {}
 
+/** Options for {@link SkillsService.namesByExternalId}. */
+export interface SkillNamesByExternalIdOptions {
+  externalSystemId: number;
+  externalIds: readonly string[];
+}
+
 /**
  * Owns the `skills` catalogue: the named player abilities a position can
  * start with and (later) a player can gain.
  *
- * Only the standard upsert/resolve surface — a skill row carries nothing but
- * a name. What a skill *means* under a given rules set (its category) belongs
- * to SkillRulesSetsService, and which positions start with it to
+ * The standard upsert/resolve surface, plus the names behind external ids —
+ * a skill row carries nothing but a name. What a skill *means* under a given
+ * rules set (its category) belongs to SkillRulesSetsService, and which positions start with it to
  * PositionRulesSetSkillsService.
  *
  * No `detectSemanticConflict`, unlike PositionsService: a skill row encodes
@@ -63,6 +76,32 @@ export class SkillsService {
   async resolve(externalId: ExternalId): Promise<ResolveResult> {
     const [result] = await this.resolveBatch([externalId]);
     return result;
+  }
+
+  /**
+   * The name of the skill declaring each given external id of one system,
+   * keyed by external id, in one query. An id no skill declares is left out.
+   * Lets an importer tell what a source's bare skill id is when the source
+   * names it nowhere.
+   */
+  async namesByExternalId({
+    externalSystemId,
+    externalIds,
+  }: SkillNamesByExternalIdOptions): Promise<Map<string, string>> {
+    if (externalIds.length === 0) {
+      return new Map();
+    }
+    const rows = await this.db
+      .select({ externalId: skillExternalIds.externalId, name: skills.name })
+      .from(skillExternalIds)
+      .innerJoin(skills, eq(skills.id, skillExternalIds.skillId))
+      .where(
+        and(
+          eq(skillExternalIds.externalSystemId, externalSystemId),
+          inArray(skillExternalIds.externalId, [...externalIds]),
+        ),
+      );
+    return new Map(rows.map((row) => [row.externalId, row.name]));
   }
 
   resolveBatch(externalIds: readonly ExternalId[]): Promise<ResolveResult[]> {

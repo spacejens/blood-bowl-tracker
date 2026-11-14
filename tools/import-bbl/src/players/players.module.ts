@@ -6,6 +6,7 @@ import { CharacteristicNotationConversionService } from '../shared/characteristi
 import { SkillEntryService } from '../shared/skill-entry.service';
 import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.service';
 import { SourceModule } from '../source/source.module';
+import { BblJourneymanAdvancementsService } from './bbl-journeyman-advancements.service';
 import { BblLastingInjuryBackfillImportService } from './bbl-lasting-injury-backfill-import.service';
 import { BblPlayerSkillsImportService } from './bbl-player-skills-import.service';
 import { BblPlayersImportService } from './bbl-players-import.service';
@@ -20,6 +21,7 @@ import { SustainedInjuriesParser } from './sustained-injuries.parser';
     SustainedInjuriesParser,
     SkillEntryService,
     BblPlayersImportService,
+    BblJourneymanAdvancementsService,
     BblPlayerSkillsImportService,
     BblSppAdjustmentsImportService,
     BblLastingInjuryBackfillImportService,

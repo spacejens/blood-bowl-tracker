@@ -78,6 +78,18 @@ describe('ImportTpRosterSchema', () => {
     expect(parsed.matchEmbeddedPlayers).toEqual([embedded]);
   });
 
+  it("keeps a match-embedded player's snapshot skill ids", () => {
+    const parsed = ImportTpRosterSchema.parse({
+      roster: {},
+      era: 'Third era',
+      externalSystemName: 'TP',
+      matchEmbeddedPlayers: [{ ...embedded, skillMasterIds: [103, 151, 156] }],
+    });
+    expect(parsed.matchEmbeddedPlayers[0].skillMasterIds).toEqual([
+      103, 151, 156,
+    ]);
+  });
+
   it("keeps a match-embedded player's state and isActive", () => {
     const parsed = ImportTpRosterSchema.parse({
       roster: {},

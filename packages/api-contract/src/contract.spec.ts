@@ -259,6 +259,7 @@ describe('contract', () => {
       passingReductionCount: 0,
       armourReductionCount: 0,
       unspentSpp: null,
+      isJourneyman: false,
       createdAt: new Date('2026-01-01'),
       created: true,
     });

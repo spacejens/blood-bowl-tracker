@@ -1,0 +1,1 @@
+CREATE INDEX "player_advancements_player_id_index" ON "game_data"."player_advancements" ("player_id");

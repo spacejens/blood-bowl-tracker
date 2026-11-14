@@ -1,0 +1,137 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "ba705833-7662-44cd-a39b-98aefe212744",
+  "prevIds": [
+    "5ba64b35-5c9a-4431-9d96-f75058e70884"
+  ],
+  "footprints": [
+    {
+      "statementType": "drop_check",
+      "statementTarget": [
+        "table",
+        "game_data",
+        "player_advancements"
+      ],
+      "writes": [
+        "s|ck|game_data.player_advancements.player_advancements_only_characteristic_removed",
+        "n|ck|game_data.player_advancements.player_advancements_only_characteristic_removed",
+        "e|ck|game_data.player_advancements.player_advancements_only_characteristic_removed",
+        "n|con|game_data.player_advancements.player_advancements_only_characteristic_removed"
+      ],
+      "reads": [
+        "n|tbl|game_data.player_advancements",
+        "n|sch|game_data",
+        "e|col|game_data.player_advancements.removed",
+        "e|col|game_data.player_advancements.source",
+        "e|col|game_data.player_advancements.characteristic"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "players",
+        "is_journeyman"
+      ],
+      "writes": [
+        "s|col|game_data.players.is_journeyman",
+        "n|col|game_data.players.is_journeyman",
+        "e|col|game_data.players.is_journeyman"
+      ],
+      "reads": [
+        "n|tbl|game_data.players",
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "players_history",
+        "is_journeyman"
+      ],
+      "writes": [
+        "s|col|game_data.players_history.is_journeyman",
+        "n|col|game_data.players_history.is_journeyman",
+        "e|col|game_data.players_history.is_journeyman"
+      ],
+      "reads": [
+        "n|tbl|game_data.players_history",
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "add_check",
+      "statementTarget": [
+        "table",
+        "game_data",
+        "player_advancements"
+      ],
+      "writes": [
+        "s|ck|game_data.player_advancements.player_advancements_removed_kinds",
+        "n|ck|game_data.player_advancements.player_advancements_removed_kinds",
+        "e|ck|game_data.player_advancements.player_advancements_removed_kinds",
+        "n|con|game_data.player_advancements.player_advancements_removed_kinds"
+      ],
+      "reads": [
+        "n|tbl|game_data.player_advancements",
+        "n|sch|game_data",
+        "n|col|game_data.player_advancements.removed",
+        "n|col|game_data.player_advancements.source",
+        "n|col|game_data.player_advancements.characteristic"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "players",
+        "name": "is_journeyman",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "false",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "players_history",
+        "name": "is_journeyman",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "player_advancements",
+        "name": "player_advancements_removed_kinds",
+        "value": "\"removed\" = false OR \"source\" = 'characteristic' OR \"source\" = 'starting'",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "drop",
+      "key": "checks\u0000[\"game_data\",\"player_advancements\",\"player_advancements_only_characteristic_removed\"]"
+    }
+  ]
+}

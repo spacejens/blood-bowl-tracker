@@ -86,7 +86,7 @@ describe('player_advancements', () => {
     'player_advancements_skill_or_characteristic',
     'player_advancements_characteristic_has_no_skill_fields',
     'player_advancements_confirmed_has_order',
-    'player_advancements_only_characteristic_removed',
+    'player_advancements_removed_kinds',
   ])('declares the %s check', (name) => {
     expect(config.checks.map((c) => c.name)).toContain(name);
   });

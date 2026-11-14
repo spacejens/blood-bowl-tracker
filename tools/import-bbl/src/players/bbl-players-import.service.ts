@@ -4,6 +4,7 @@ import {
   BBL_EXTERNAL_SYSTEM_NAME,
   ExternalSystemBootstrapService,
   ImportResultService,
+  JourneymanRuleService,
   PlayersImportService,
   ReferenceLookupService,
   TeamsImportService,
@@ -15,6 +16,7 @@ import { CharacteristicNotationConversionService } from '../shared/characteristi
 import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.service';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { PageParseErrorService } from '../source/page-parse-error.service';
+import { BblJourneymanAdvancementsService } from './bbl-journeyman-advancements.service';
 import type { BblScrapedSpp } from './bbl-spp-adjustments-import.service';
 import type { BblPlayerAdvancements } from './player-page-parser';
 import { PlayerPageParser } from './player-page-parser';
@@ -46,6 +48,8 @@ export class BblPlayersImportService {
     private readonly upsertFieldNarrowing: UpsertFieldNarrowingService,
     private readonly notationConversion: CharacteristicNotationConversionService,
     private readonly lookup: ReferenceLookupService,
+    private readonly journeymanRule: JourneymanRuleService,
+    private readonly journeymanAdvancements: BblJourneymanAdvancementsService,
   ) {}
 
   /**
@@ -64,7 +68,9 @@ export class BblPlayersImportService {
    * rules set that writes Agility/Armour as bare numbers receives those two
    * converted out of BBL's BB2020 notation. Each player's status
    * (active/dead/retired/temporarily retired, from their page header) is sent
-   * too.
+   * too, along with the player's journeyman marker; a journeyman's gained
+   * Loner is left out of his advancements (the server keeps it as a starting
+   * skill).
    */
   async importPlayers({
     teamsByCode,
@@ -363,6 +369,20 @@ export class BblPlayersImportService {
           player.characteristics.armour,
           rulesSet.armourFormat,
         );
+        const parsedAdvancements = {
+          skills: player.skills,
+          characteristicIncreases: player.characteristicIncreases,
+        };
+        // A BBL team player page only ever links one of the race's team
+        // positions, so every BBL player counts as in a basic position.
+        const isJourneyman =
+          this.journeymanRule.decide({
+            name: player.name,
+            isBasicPosition: true,
+            sighting: 'roster',
+            lonerListed:
+              this.journeymanAdvancements.listsLoner(parsedAdvancements),
+          }) === true;
         const upserted = await this.playersImport.upsertPlayerResult(
           {
             name: player.name,
@@ -377,6 +397,7 @@ export class BblPlayersImportService {
             // Sent on every run, so a re-run updates an existing player's
             // status (e.g. one who has died since the previous import).
             status: player.status,
+            isJourneyman,
             rulesSetId: rulesSet.id,
             externalIds: [
               { externalSystemId: bblSystemId, externalId: player.pid },
@@ -396,10 +417,14 @@ export class BblPlayersImportService {
           if (upserted.created) {
             insertedPlayerIds.push(upserted.id);
           }
-          advancementsByPlayerId.set(upserted.id, {
-            skills: player.skills,
-            characteristicIncreases: player.characteristicIncreases,
-          });
+          advancementsByPlayerId.set(
+            upserted.id,
+            isJourneyman
+              ? this.journeymanAdvancements.withoutGainedLoner(
+                  parsedAdvancements,
+                )
+              : parsedAdvancements,
+          );
         }
       } catch (error) {
         errors.push(this.pageParseError.build(page.params, 'player', error));

@@ -1,6 +1,10 @@
 import { DB } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import {
+  extractAllFilterValues,
+  firstCallArg,
+  mockDb,
+} from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
@@ -210,6 +214,25 @@ describe('PlayerAdvancementHistoryService', () => {
       ],
     });
     expect(dbResult.chains).toHaveLength(7);
+  });
+
+  it('leaves removed skill rows out of the stored skills', async () => {
+    const dbResult = mockDb(
+      ERA_RULES_SETS,
+      COSTS,
+      [playerRow()],
+      SKILLS,
+      INCREASES,
+      POSITION_CATEGORIES,
+      SKILL_CATEGORIES,
+    );
+    const service = await makeService(dbResult);
+
+    await service.forPlayers([42]);
+
+    expect(
+      extractAllFilterValues(firstCallArg(dbResult.chains[3].where)),
+    ).toContain(false);
   });
 
   it('ignores a stored row that names no skill', async () => {

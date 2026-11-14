@@ -182,6 +182,37 @@ describe('PlayerAdvancementSyncPlannerService', () => {
       expect(writes.inserts).toHaveLength(1);
     });
 
+    it("revives a removed row an entry matches, taking the entry's values", () => {
+      // A recruited journeyman's retired starting Loner, which the source
+      // still lists as a gained (free) Loner.
+      const writes = planner.planSkills(
+        [skill({ advancementOrder: 1, isFreeExtra: true })],
+        [existing({ id: 40, source: 'starting', removed: true })],
+        [],
+      );
+      expect(writes.updates).toEqual([
+        {
+          id: 40,
+          values: {
+            source: 'chosen',
+            advancementOrder: 1,
+            isFreeExtra: true,
+            removed: false,
+          },
+        },
+      ]);
+      expect(writes.changedPlayerIds).toEqual([1]);
+    });
+
+    it('revives a removed starting row a starting entry matches', () => {
+      const writes = planner.planSkills(
+        [skill({ source: 'starting' })],
+        [existing({ id: 40, source: 'starting', removed: true })],
+        [],
+      );
+      expect(writes.updates).toEqual([{ id: 40, values: { removed: false } }]);
+    });
+
     it('keeps a stored chosen source when the entry only says advancement', () => {
       const writes = planner.planSkills(
         [skill({ source: 'advancement' })],

@@ -60,6 +60,8 @@ export interface PlayerDetail
   raceId: number;
   positionName: string;
   positionId: number;
+  /** Whether the player is a journeyman, who has Loner while he stays one. */
+  isJourneyman: boolean;
   eraName: string;
   eraId: number;
   /** The era's own span (`null` end = ongoing), for the `Era:` line. */
@@ -102,6 +104,7 @@ export class PlayersQueriesService {
         raceId: races.id,
         positionName: positions.name,
         positionId: positions.id,
+        isJourneyman: players.isJourneyman,
         eraName: eras.name,
         eraId: eras.id,
         eraStartDate: eras.startDate,

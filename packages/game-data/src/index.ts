@@ -49,6 +49,7 @@ export {
   MatchesService,
   MatchUpsertConflictError,
 } from './matches/matches.service';
+export { JourneymanLonerService } from './player-skills/journeyman-loner.service';
 export type {
   PlayerCharacteristicAdvancementRow,
   StoredPlayerAdvancement,

@@ -128,4 +128,64 @@ describe('TpSkillIdLookupService', () => {
       ]);
     });
   });
+
+  describe('namesByTpId', () => {
+    it('looks nothing up for no ids', async () => {
+      await expect(
+        service.namesByTpId({
+          masterIds: [],
+          tpSystemId: TP_SYSTEM_ID,
+          errors,
+        }),
+      ).resolves.toEqual(new Map());
+
+      expect(skills.namesByExternalId).not.toHaveBeenCalled();
+    });
+
+    it('names every id a skill carries as a TP external id, in one lookup', async () => {
+      skills.namesByExternalId.mockResolvedValue(
+        new Map([
+          ['154', 'Loner'],
+          ['199', 'Dodge'],
+        ]),
+      );
+
+      const names = await service.namesByTpId({
+        masterIds: [154, 199, 404],
+        tpSystemId: TP_SYSTEM_ID,
+        errors,
+      });
+
+      expect(names).toEqual(
+        new Map([
+          [154, 'Loner'],
+          [199, 'Dodge'],
+        ]),
+      );
+      expect(skills.namesByExternalId).toHaveBeenCalledTimes(1);
+      expect(skills.namesByExternalId).toHaveBeenCalledWith({
+        externalSystemId: TP_SYSTEM_ID,
+        externalIds: ['154', '199', '404'],
+      });
+      expect(errors).toEqual([]);
+    });
+
+    it('reports a failed lookup once and returns undefined', async () => {
+      skills.namesByExternalId.mockRejectedValue(new Error('db down'));
+
+      const names = await service.namesByTpId({
+        masterIds: [154],
+        tpSystemId: TP_SYSTEM_ID,
+        errors,
+      });
+
+      expect(names).toBeUndefined();
+      expect(errors).toEqual([
+        {
+          item: { skillMasterIds: [154] },
+          message: 'Failed to name TP skill ids by external id: db down',
+        },
+      ]);
+    });
+  });
 });
