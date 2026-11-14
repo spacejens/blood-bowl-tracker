@@ -45,7 +45,10 @@ describe('gitignored-files constants', () => {
   });
 
   it('exports GITIGNORED_AUTO_CREATE_SYMLINK_DIRS as a readonly array', () => {
-    expect(GITIGNORED_AUTO_CREATE_SYMLINK_DIRS).toEqual(['docs/plans']);
+    expect(GITIGNORED_AUTO_CREATE_SYMLINK_DIRS).toEqual([
+      'docs/plans',
+      'tools/production-ops-cli/data',
+    ]);
   });
 
   it('exports ENV_PRODUCTION_PATH and lists it among the drift files', () => {

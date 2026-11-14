@@ -36,6 +36,9 @@ interface DiscordGetRequest {
  */
 @Injectable()
 export class DiscordRestService {
+  /** Built on the first request, then reused for the whole process. */
+  private client?: Promise<REST>;
+
   constructor(private readonly botToken: DiscordBotTokenService) {}
 
   getMessage(channelId: string, messageId: string): Promise<unknown> {
@@ -64,8 +67,27 @@ export class DiscordRestService {
     });
   }
 
+  getMessagesAfter(
+    channelId: string,
+    count: number,
+    after: string,
+  ): Promise<unknown> {
+    return this.get({
+      route: Routes.channelMessages(channelId),
+      query: new URLSearchParams({ limit: String(count), after }),
+      target: `the ${count} messages after message ${after} of channel ${channelId}`,
+    });
+  }
+
+  getChannel(channelId: string): Promise<unknown> {
+    return this.get({
+      route: Routes.channel(channelId),
+      target: `channel ${channelId}`,
+    });
+  }
+
   private async get(request: DiscordGetRequest): Promise<unknown> {
-    const rest = await this.createClient();
+    const rest = await this.restClient();
     try {
       return await rest.get(request.route, { query: request.query });
     } catch (error) {
@@ -76,9 +98,16 @@ export class DiscordRestService {
   }
 
   /**
-   * Built per call: one request per CLI process, and the token is read only
-   * once the caller's own input validation has passed.
+   * One client per process, so discord.js's rate-limit bucket handling spans
+   * a loop of requests. Built lazily, so the token is read only once the
+   * caller's own input validation has passed.
    */
+  private restClient(): Promise<REST> {
+    this.client ??= this.createClient();
+    return this.client;
+  }
+
+  /** Reads the token and builds the client; called once, by restClient. */
   private async createClient(): Promise<REST> {
     const token = await this.botToken.read();
     // Node's global fetch rather than discord.js's default undici request
