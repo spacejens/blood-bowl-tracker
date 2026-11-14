@@ -1,4 +1,7 @@
-import type { FillIncompletePlayer } from '@blood-bowl-tracker/api-contract';
+import type {
+  FillIncompletePlayer,
+  PlayerSkillEntry,
+} from '@blood-bowl-tracker/api-contract';
 import { DB, players } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
@@ -23,6 +26,7 @@ import { PlayerFillStateService } from './player-fill-state.service';
 interface Harness {
   service: PlayerFillService;
   db: MockDbResult;
+  reads: MockProxy<PlayerAdvancementReadsService>;
   spendCheck: MockProxy<PlayerFillSpendCheckService>;
   validation: MockProxy<PlayerCharacteristicsValidationService>;
   playerSkills: MockProxy<PlayerSkillsService>;
@@ -36,13 +40,14 @@ interface Harness {
  */
 async function makeService(
   loaded: PlayerFillState | undefined,
+  resolved?: PlayerSkillEntry[],
 ): Promise<Harness> {
   const db = mockDb();
   const state = mock<PlayerFillStateService>();
   state.load.mockResolvedValue(loaded);
   const reads = mock<PlayerAdvancementReadsService>();
   reads.resolveFreeExtras.mockImplementation((entries) =>
-    Promise.resolve(entries),
+    Promise.resolve(resolved ?? entries),
   );
   const spendCheck = mock<PlayerFillSpendCheckService>();
   spendCheck.problem.mockResolvedValue(undefined);
@@ -71,6 +76,7 @@ async function makeService(
   return {
     service: moduleRef.get(PlayerFillService),
     db,
+    reads,
     spendCheck,
     validation,
     playerSkills,
@@ -326,6 +332,79 @@ describe('PlayerFillService', () => {
       unspentSpp: 2,
     });
     expect(db.transaction).not.toHaveBeenCalled();
+  });
+
+  it('plans the spend check from the entries after free-extra resolution', async () => {
+    const twoSkills: FillIncompletePlayer = {
+      ...fill,
+      advancements: [
+        {
+          kind: 'skill',
+          skillId: 71,
+          attributeValue: null,
+          source: 'chosen',
+          isFreeExtra: false,
+        },
+        {
+          kind: 'skill',
+          skillId: 72,
+          attributeValue: null,
+          source: 'chosen',
+          isFreeExtra: false,
+        },
+      ],
+    };
+    const raw: PlayerSkillEntry[] = [
+      {
+        playerId: 9,
+        skillId: 70,
+        source: 'starting',
+        attributeValue: null,
+      },
+      {
+        playerId: 9,
+        skillId: 71,
+        source: 'chosen',
+        attributeValue: null,
+        isFreeExtra: false,
+        advancementOrder: 1,
+        orderConfirmed: true,
+      },
+      {
+        playerId: 9,
+        skillId: 72,
+        source: 'chosen',
+        attributeValue: null,
+        isFreeExtra: false,
+        advancementOrder: 2,
+        orderConfirmed: true,
+      },
+    ];
+    const resolved = raw.map((entry) =>
+      entry.skillId === 71 ? { ...entry, isFreeExtra: true } : entry,
+    );
+    const { service, reads, spendCheck } = await makeService(
+      incomplete(),
+      resolved,
+    );
+
+    await service.fill(twoSkills);
+
+    expect(reads.resolveFreeExtras).toHaveBeenCalledWith(raw);
+    expect(spendCheck.problem).toHaveBeenCalledWith({
+      playerId: 9,
+      planned: [
+        expect.objectContaining({ skillId: 70, paidNumber: null }),
+        expect.objectContaining({
+          skillId: 71,
+          isFreeExtra: true,
+          paidNumber: null,
+        }),
+        expect.objectContaining({ skillId: 72, paidNumber: 1 }),
+      ],
+      sppTotal: 8,
+      unspentSpp: 2,
+    });
   });
 
   it('writes the rows and the fields in one transaction, computing the SPP adjustment', async () => {
