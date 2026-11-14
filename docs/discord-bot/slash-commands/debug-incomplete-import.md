@@ -45,9 +45,9 @@ listed for its regular players.
 
 The criteria are kept as one named list, `INCOMPLETE_PLAYER_CRITERIA` in
 `packages/game-data/src/players/incomplete-player-criteria.ts`, so a newly
-discovered kind of gap is a one-line addition. The manual import that fills
-in a missing player's data uses the same list, so the two always agree on
-what counts as incomplete.
+discovered kind of gap is a one-line addition. The manual import that
+[fills in a missing player's data](../../import-manual/filling-missing-players.md)
+uses the same list, so the two always agree on what counts as incomplete.
 
 ## The reply
 

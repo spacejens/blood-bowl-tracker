@@ -77,6 +77,7 @@ function emptyData(): ManualDataFile {
     competitionGroups: [],
     trophyAwards: [],
     playerAdvancementOrders: [],
+    incompletePlayerFills: [],
   };
 }
 
