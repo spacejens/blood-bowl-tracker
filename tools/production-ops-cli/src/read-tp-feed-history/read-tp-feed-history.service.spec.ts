@@ -239,12 +239,11 @@ describe('ReadTpFeedHistoryService', () => {
 
   describe('max pages budget for the catch-up phase', () => {
     it('does not spend the budget on an empty catch-up page, so one-page reruns advance backwards', async () => {
-      let saved = state({ newestId: '5000', oldestId: '4000' });
-      store.readState.mockImplementation(() => Promise.resolve(saved));
-      store.writeState.mockImplementation((_channel, next) => {
-        saved = next;
-        return Promise.resolve();
-      });
+      const afterFirstRun = state({ newestId: '5000', oldestId: '3900' });
+      const afterSecondRun = state({ newestId: '5000', oldestId: '3800' });
+      store.readState
+        .mockResolvedValueOnce(state({ newestId: '5000', oldestId: '4000' }))
+        .mockResolvedValueOnce(afterFirstRun);
       discordRest.getMessagesAfter.mockResolvedValue([]);
       discordRest.getRecentMessages
         .mockResolvedValueOnce(messages(3999, 100))
@@ -253,9 +252,13 @@ describe('ReadTpFeedHistoryService', () => {
       const first = await service.run(CHANNEL, 1);
       const second = await service.run(CHANNEL, 1);
 
-      expect(saved.oldestId).toBe('3800');
       expect(first).toMatchObject({ pagesFetched: 2 });
       expect(second).toMatchObject({ pagesFetched: 2 });
+      expect(store.writeState).toHaveBeenCalledWith(CHANNEL, afterFirstRun);
+      expect(store.writeState).toHaveBeenLastCalledWith(
+        CHANNEL,
+        afterSecondRun,
+      );
     });
 
     it('does not spend the budget on a short catch-up page', async () => {
