@@ -3,8 +3,8 @@ import { vi } from 'vitest';
 /**
  * Test-only helper. Do not import from production code.
  *
- * `DiscordRestService` constructs its own discord.js `REST` client per call
- * instead of receiving it by injection, so its spec replaces the whole
+ * `DiscordRestService` constructs its own discord.js `REST` client on its first
+ * request instead of receiving it by injection, so its spec replaces the whole
  * `discord.js` module:
  *
  * ```ts
@@ -98,6 +98,7 @@ export function discordJsModuleMock(): Record<string, unknown> {
     // Distinguishable fake routes, so tests can assert the right endpoint was
     // targeted without depending on discord-api-types' real route building.
     Routes: {
+      channel: vi.fn((channelId: string) => `/fake/channels/${channelId}`),
       channelMessage: vi.fn(
         (channelId: string, messageId: string) =>
           `/fake/channels/${channelId}/messages/${messageId}`,
