@@ -65,6 +65,7 @@ interface Seed {
   tpSystemId: number;
   blockId: number;
   dodgeId: number;
+  hatredId: number;
 }
 
 /**
@@ -91,18 +92,28 @@ async function seed(db: Db): Promise<Seed> {
     .values({ eraId: era.id, rulesSetId: bb2020.id });
   const [block] = await db.insert(skills).values({ name: 'Block' }).returning();
   const [dodge] = await db.insert(skills).values({ name: 'Dodge' }).returning();
+  const [hatred] = await db
+    .insert(skills)
+    .values({ name: 'Hatred' })
+    .returning();
   await db.insert(skillRulesSets).values([
     { skillId: block.id, rulesSetId: bb2020.id, category: 'general' },
     { skillId: dodge.id, rulesSetId: bb2020.id, category: 'agility' },
   ]);
-  await db.insert(advancementCosts).values(
-    [6, 8, 12, 16, 20, 30].map((sppCost, index) => ({
+  await db.insert(advancementCosts).values([
+    ...[6, 8, 12, 16, 20, 30].map((sppCost, index) => ({
       rulesSetId: bb2020.id,
       advancementNumber: index + 1,
       advancementKind: 'chosen_primary_skill' as const,
       sppCost,
     })),
-  );
+    ...[18, 20, 24, 28, 32, 42].map((sppCost, index) => ({
+      rulesSetId: bb2020.id,
+      advancementNumber: index + 1,
+      advancementKind: 'random_characteristic' as const,
+      sppCost,
+    })),
+  ]);
   const [lineman] = await db
     .insert(positions)
     .values({ name: 'Lineman', isStarPlayer: false })
@@ -161,6 +172,7 @@ async function seed(db: Db): Promise<Seed> {
     tpSystemId: tp.id,
     blockId: block.id,
     dodgeId: dodge.id,
+    hatredId: hatred.id,
   };
 }
 
@@ -282,6 +294,92 @@ describe('Filling in a missing TP player (real Postgres)', () => {
     ]);
   });
 
+  it('numbers the paid advancements around a free extra, and answers unchanged on a re-run', async () => {
+    // Dodge is paid advancement 1 (6 SPP) and the AG increase paid
+    // advancement 2 (20 SPP); Hatred is free by name, so 4 of 30 is unspent.
+    const mixed = entry({
+      characteristics: {
+        move: 6,
+        strength: 3,
+        agility: 2,
+        passing: 4,
+        armour: 9,
+      },
+      sppTotal: 30,
+      unspentSpp: 4,
+      advancements: [
+        {
+          kind: 'skill',
+          skillId: seeded.dodgeId,
+          attributeValue: null,
+          source: 'chosen',
+          isFreeExtra: false,
+        },
+        {
+          kind: 'skill',
+          skillId: seeded.hatredId,
+          attributeValue: 'Dwarf',
+          source: 'chosen',
+          isFreeExtra: false,
+        },
+        { kind: 'characteristic', characteristic: 'AG' },
+      ],
+    });
+
+    await expect(service.fill(mixed)).resolves.toEqual({
+      playerId: seeded.playerId,
+      outcome: 'filled',
+    });
+    const rows = await db
+      .select({
+        skillId: playerAdvancements.skillId,
+        characteristic: playerAdvancements.characteristic,
+        isFreeExtra: playerAdvancements.isFreeExtra,
+        advancementOrder: playerAdvancements.advancementOrder,
+        orderConfirmed: playerAdvancements.orderConfirmed,
+      })
+      .from(playerAdvancements)
+      .where(eq(playerAdvancements.playerId, seeded.playerId))
+      .orderBy(asc(playerAdvancements.id));
+    expect(rows).toEqual([
+      {
+        skillId: seeded.blockId,
+        characteristic: null,
+        isFreeExtra: false,
+        advancementOrder: null,
+        orderConfirmed: false,
+      },
+      {
+        skillId: seeded.dodgeId,
+        characteristic: null,
+        isFreeExtra: false,
+        advancementOrder: 1,
+        orderConfirmed: true,
+      },
+      {
+        skillId: seeded.hatredId,
+        characteristic: null,
+        isFreeExtra: true,
+        advancementOrder: 2,
+        orderConfirmed: false,
+      },
+      {
+        skillId: null,
+        characteristic: 'AG',
+        isFreeExtra: false,
+        advancementOrder: 2,
+        orderConfirmed: true,
+      },
+    ]);
+    const firstPlayer = await storedPlayer();
+
+    await expect(service.fill(mixed)).resolves.toEqual({
+      playerId: seeded.playerId,
+      outcome: 'unchanged',
+    });
+    expect(await storedPlayer()).toEqual(firstPlayer);
+  });
+
   it('answers unchanged when the same entry is applied again', async () => {
     await service.fill(entry());
     const firstPlayer = await storedPlayer();
@@ -316,12 +414,13 @@ describe('Filling in a missing TP player (real Postgres)', () => {
 
   it('refuses a different entry once the player is complete', async () => {
     await service.fill(entry());
+    const playerBefore = await storedPlayer();
     const rowsBefore = await storedRows();
 
     await expect(service.fill(entry({ status: 'dead' }))).rejects.toThrow(
       IncompletePlayerFillError,
     );
-    expect((await storedPlayer()).status).toBe('active');
+    expect(await storedPlayer()).toEqual(playerBefore);
     expect(await storedRows()).toEqual(rowsBefore);
   });
 
