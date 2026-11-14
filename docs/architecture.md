@@ -226,7 +226,7 @@ not shipped as part of any app).
 - **`tools/import-manual`** — imports hand-authored supplementary data in once-applied batches. See [import-manual](import-manual/index.md).
 - **`tools/import-tp`** — imports TP data. See [import-tp](import-tp/index.md).
 - **`tools/markdownlint-rules`** — the repo's custom markdownlint rules. See [markdownlint-rules](markdownlint-rules/index.md).
-- **`tools/production-ops-cli`** — production database and tunnel operations, and fetching Discord messages. See [production-ops-cli](production-ops-cli/index.md).
+- **`tools/production-ops-cli`** — production database and tunnel operations, fetching Discord messages, and reading the TP feed's history. See [production-ops-cli](production-ops-cli/index.md).
 - **`tools/review-match`** — HTML report of raw match data against what was imported. See [review-match](review-match/index.md).
 - **`tools/review-player`** — HTML report of raw player data against what was imported. See [review-player](review-player/index.md).
 - **`tools/review-race`** — HTML report of raw race and position data against what was imported. See [review-race](review-race/index.md).

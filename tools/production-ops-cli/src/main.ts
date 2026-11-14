@@ -14,6 +14,7 @@ import {
   MIN_COUNT,
 } from './fetch-recent-discord-messages/fetch-recent-discord-messages.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
+import { ReadTpFeedHistoryService } from './read-tp-feed-history/read-tp-feed-history.service';
 import { RunProductionQueryService } from './run-production-query/run-production-query.service';
 
 const SUBCOMMANDS = [
@@ -23,6 +24,7 @@ const SUBCOMMANDS = [
   'run-production-query',
   'fetch-recent-discord-messages',
   'fetch-discord-message',
+  'read-tp-feed-history',
 ] as const;
 
 type Subcommand = (typeof SUBCOMMANDS)[number];
@@ -45,6 +47,11 @@ const FETCH_DISCORD_MESSAGE_USAGE =
   'Usage: node dist/main.js fetch-discord-message ' +
   'https://discord.com/channels/<guild-id>/<channel-id>/<message-id>';
 
+const READ_TP_FEED_HISTORY_USAGE =
+  'Usage: node dist/main.js read-tp-feed-history <channel-id> [--max-pages=N]';
+
+const MAX_PAGES_FLAG = '--max-pages=';
+
 /** Arguments for `start-production-tunnel`; absent for every other subcommand. */
 interface StartProductionTunnelInput {
   readonly localPort: number;
@@ -58,12 +65,19 @@ interface FetchRecentDiscordMessagesInput {
   readonly before?: string;
 }
 
+/** Arguments for `read-tp-feed-history`; absent otherwise. */
+interface ReadTpFeedHistoryInput {
+  readonly channelId: string;
+  readonly maxPages?: number;
+}
+
 interface DispatchArgs {
   readonly expectedApiBaseUrl?: string;
   readonly startProductionTunnel?: StartProductionTunnelInput;
   readonly runProductionQueryStdin?: string;
   readonly fetchRecentDiscordMessages?: FetchRecentDiscordMessagesInput;
   readonly discordMessageLink?: string;
+  readonly readTpFeedHistory?: ReadTpFeedHistoryInput;
 }
 
 function readExpectedApiBaseUrl(): string {
@@ -144,6 +158,31 @@ function readDiscordMessageLink(): string {
   return messageLink;
 }
 
+/**
+ * Reads only the argument syntax; the service itself checks that the channel
+ * id is a snowflake and the page count a positive integer.
+ */
+function readReadTpFeedHistoryInput(): ReadTpFeedHistoryInput {
+  const channelId = process.argv[3];
+  const maxPagesArg = process.argv[4];
+  if (channelId === undefined || channelId === '' || process.argv.length > 5) {
+    throw new Error(READ_TP_FEED_HISTORY_USAGE);
+  }
+  if (maxPagesArg === undefined) {
+    return { channelId };
+  }
+  if (
+    !maxPagesArg.startsWith(MAX_PAGES_FLAG) ||
+    maxPagesArg.length === MAX_PAGES_FLAG.length
+  ) {
+    throw new Error(READ_TP_FEED_HISTORY_USAGE);
+  }
+  return {
+    channelId,
+    maxPages: Number(maxPagesArg.slice(MAX_PAGES_FLAG.length)),
+  };
+}
+
 function readArgs(subcommand: Subcommand): DispatchArgs {
   return {
     expectedApiBaseUrl:
@@ -165,6 +204,10 @@ function readArgs(subcommand: Subcommand): DispatchArgs {
     discordMessageLink:
       subcommand === 'fetch-discord-message'
         ? readDiscordMessageLink()
+        : undefined,
+    readTpFeedHistory:
+      subcommand === 'read-tp-feed-history'
+        ? readReadTpFeedHistoryInput()
         : undefined,
   };
 }
@@ -221,6 +264,14 @@ function dispatch(
         throw new Error(FETCH_DISCORD_MESSAGE_USAGE);
       }
       return app.get(FetchDiscordMessageService).run(args.discordMessageLink);
+    }
+    case 'read-tp-feed-history': {
+      if (args.readTpFeedHistory === undefined) {
+        throw new Error(READ_TP_FEED_HISTORY_USAGE);
+      }
+      return app
+        .get(ReadTpFeedHistoryService)
+        .run(args.readTpFeedHistory.channelId, args.readTpFeedHistory.maxPages);
     }
   }
 }
