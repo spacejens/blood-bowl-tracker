@@ -156,29 +156,37 @@ const complete = incomplete({
 
 describe('PlayerFillService', () => {
   it('refuses a player that does not exist', async () => {
-    const { service } = await makeService(undefined);
+    const { service, db } = await makeService(undefined);
 
     await expect(service.fill(fill)).rejects.toThrow(
       new IncompletePlayerFillError('Player 9 does not exist'),
     );
+
+    expect(db.transaction).not.toHaveBeenCalled();
   });
 
   it('refuses a player who is not a TP player', async () => {
-    const { service } = await makeService(
+    const { service, db } = await makeService(
       incomplete({ tpExternalId: undefined }),
     );
 
     await expect(service.fill(fill)).rejects.toThrow(
       new IncompletePlayerFillError('Player 9 is not a TP player'),
     );
+
+    expect(db.transaction).not.toHaveBeenCalled();
   });
 
   it('refuses a star player', async () => {
-    const { service } = await makeService(incomplete({ isStarPlayer: true }));
+    const { service, db } = await makeService(
+      incomplete({ isStarPlayer: true }),
+    );
 
     await expect(service.fill(fill)).rejects.toThrow(
       new IncompletePlayerFillError('Player 9 is a star player'),
     );
+
+    expect(db.transaction).not.toHaveBeenCalled();
   });
 
   it('leaves a complete player stored exactly as the entry unchanged, writing nothing', async () => {
@@ -206,13 +214,15 @@ describe('PlayerFillService', () => {
   });
 
   it('refuses a complete player whose rows differ even with no contradiction', async () => {
-    const { service } = await makeService({ ...complete, rows: [] });
+    const { service, db } = await makeService({ ...complete, rows: [] });
 
     await expect(service.fill(fill)).rejects.toThrow(
       new IncompletePlayerFillError(
         'Player 9 already has complete data that differs from the entry',
       ),
     );
+
+    expect(db.transaction).not.toHaveBeenCalled();
   });
 
   it('refuses an entry that contradicts stored data, writing nothing', async () => {
@@ -275,20 +285,24 @@ describe('PlayerFillService', () => {
   });
 
   it('rethrows an unexpected validation failure', async () => {
-    const { service, validation } = await makeService(incomplete());
+    const { service, validation, db } = await makeService(incomplete());
     validation.validate.mockRejectedValue(new Error('db down'));
 
     await expect(service.fill(fill)).rejects.toThrow('db down');
+
+    expect(db.transaction).not.toHaveBeenCalled();
   });
 
   it('refuses a player whose era has no rules set', async () => {
-    const { service } = await makeService(incomplete({ rulesSetIds: [] }));
+    const { service, db } = await makeService(incomplete({ rulesSetIds: [] }));
 
     await expect(service.fill(fill)).rejects.toThrow(
       new IncompletePlayerFillError(
         "Player 9's era has no rules set to check the characteristics against",
       ),
     );
+
+    expect(db.transaction).not.toHaveBeenCalled();
   });
 
   it('refuses advancements the reported spend does not allow, writing nothing', async () => {

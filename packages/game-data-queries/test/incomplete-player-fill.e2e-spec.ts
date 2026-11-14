@@ -197,6 +197,14 @@ describe('Filling in a missing TP player (real Postgres)', () => {
       .where(eq(playerAdvancements.playerId, seeded.playerId))
       .orderBy(asc(playerAdvancements.id));
 
+  const storedPlayer = async () => {
+    const [player] = await db
+      .select()
+      .from(players)
+      .where(eq(players.id, seeded.playerId));
+    return player;
+  };
+
   beforeAll(async () => {
     db = await connectTestDb();
   });
@@ -257,19 +265,27 @@ describe('Filling in a missing TP player (real Postgres)', () => {
 
   it('answers unchanged when the same entry is applied again', async () => {
     await service.fill(entry());
+    const firstPlayer = await storedPlayer();
+    const firstRows = await storedRows();
 
     await expect(service.fill(entry())).resolves.toEqual({
       playerId: seeded.playerId,
       outcome: 'unchanged',
     });
+    expect(await storedPlayer()).toEqual(firstPlayer);
+    expect(await storedRows()).toEqual(firstRows);
+    expect(firstRows).toHaveLength(2);
   });
 
   it('refuses a different entry once the player is complete', async () => {
     await service.fill(entry());
+    const rowsBefore = await storedRows();
 
     await expect(service.fill(entry({ status: 'dead' }))).rejects.toThrow(
       IncompletePlayerFillError,
     );
+    expect((await storedPlayer()).status).toBe('active');
+    expect(await storedRows()).toEqual(rowsBefore);
   });
 
   it('refuses an entry that contradicts a stored value, writing nothing', async () => {
@@ -277,23 +293,29 @@ describe('Filling in a missing TP player (real Postgres)', () => {
       .update(players)
       .set({ move: 5 })
       .where(eq(players.id, seeded.playerId));
+    const before = await storedPlayer();
+    expect(before.move).toBe(5);
 
     await expect(service.fill(entry())).rejects.toThrow(
       IncompletePlayerFillError,
     );
+    expect(await storedPlayer()).toEqual(before);
     expect(await storedRows()).toEqual([]);
   });
 
   it('refuses advancements the reported spend does not allow, writing nothing', async () => {
+    const before = await storedPlayer();
     await expect(service.fill(entry({ unspentSpp: 0 }))).rejects.toThrow(
       IncompletePlayerFillError,
     );
 
+    expect(await storedPlayer()).toEqual(before);
     expect(await storedRows()).toEqual([]);
     expect(await incomplete.findTeamsWithIncompletePlayers()).toHaveLength(1);
   });
 
-  it('refuses a missing PA under a rules set with Passing', async () => {
+  it('refuses a missing PA under a rules set with Passing, writing nothing', async () => {
+    const before = await storedPlayer();
     await expect(
       service.fill(
         entry({
@@ -307,5 +329,8 @@ describe('Filling in a missing TP player (real Postgres)', () => {
         }),
       ),
     ).rejects.toThrow(CharacteristicFormatMismatchError);
+    expect(await storedPlayer()).toEqual(before);
+    expect(await storedRows()).toEqual([]);
+    expect(await incomplete.findTeamsWithIncompletePlayers()).toHaveLength(1);
   });
 });
