@@ -276,9 +276,12 @@ first copy of each roster file, so players added to a team after that copy
 was downloaded are known only from snapshots, and their snapshot `state` and
 `isActive` are as trustworthy as a roster file's.
 
-The status is sent on every player upsert, unknown included (as `null`), so a
-re-import clears a status the player no longer has — one back from temporary
-retirement becomes `active` again. A star player hired through an
+The status is sent with every player upsert that establishes one, so a
+re-import replaces a status the player no longer has — one back from temporary
+retirement becomes `active` again. An unknown status is left out, so it keeps
+the stored one (from an earlier import or a
+[manual fill](../import-manual/filling-missing-players.md)) rather than
+clearing it. A star player hired through an
 `inducements_roll` event has no `lineUps[]` entry, so no status is sent for
 them and theirs stays unknown. The retirement below never touches them
 either: their TP external id is not a `lineUps` id (it starts with `star-`).

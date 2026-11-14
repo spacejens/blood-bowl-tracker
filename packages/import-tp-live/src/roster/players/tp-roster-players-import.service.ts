@@ -440,6 +440,10 @@ export class TpRosterPlayersImportService {
       isRosterEntry,
       lonerMasterIds,
     });
+    const status = this.status.forPlayer({
+      state: player.state,
+      isActive: player.isActive,
+    });
 
     const data: UpsertPlayer = {
       name: player.name,
@@ -452,12 +456,11 @@ export class TpRosterPlayersImportService {
         : { sppTotal: player.totalStarPlayerPoints }),
       ...characteristics,
       ...lastingInjuries,
-      // Sent on every import, null included, so a re-import clears a status
-      // the player no longer has.
-      status: this.status.forPlayer({
-        state: player.state,
-        isActive: player.isActive,
-      }),
+      // Sent whenever TP establishes one, so a re-import replaces a status
+      // the player no longer has. An entry that establishes none (no
+      // isActive, no status bit) says nothing, so the stored status, from
+      // an earlier import or a manual fill, is kept.
+      ...(status === null ? {} : { status }),
       ...(isJourneyman === undefined ? {} : { isJourneyman }),
       externalIds: [
         { externalSystemId: context.tpSystemId, externalId: String(player.id) },

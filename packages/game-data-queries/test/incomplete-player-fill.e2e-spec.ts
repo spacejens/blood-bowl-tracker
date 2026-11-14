@@ -35,6 +35,8 @@ import {
   IncompletePlayerFillError,
   PlayerFillModule,
   PlayerFillService,
+  PlayersModule,
+  PlayersService,
 } from '@blood-bowl-tracker/game-data';
 import type { DynamicModule } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
@@ -58,6 +60,9 @@ function makeDbModule(db: Db): DynamicModule {
 
 interface Seed {
   playerId: number;
+  teamEraId: number;
+  positionId: number;
+  tpSystemId: number;
   blockId: number;
   dodgeId: number;
 }
@@ -149,12 +154,20 @@ async function seed(db: Db): Promise<Seed> {
     externalSystemId: tp.id,
     externalId: '586220',
   });
-  return { playerId: player.id, blockId: block.id, dodgeId: dodge.id };
+  return {
+    playerId: player.id,
+    teamEraId: teamEra.id,
+    positionId: lineman.id,
+    tpSystemId: tp.id,
+    blockId: block.id,
+    dodgeId: dodge.id,
+  };
 }
 
 describe('Filling in a missing TP player (real Postgres)', () => {
   let db: Db;
   let service: PlayerFillService;
+  let playersService: PlayersService;
   let incomplete: IncompleteImportPlayersService;
   let seeded: Seed;
 
@@ -217,9 +230,15 @@ describe('Filling in a missing TP player (real Postgres)', () => {
     await resetGameDataTables(db);
     seeded = await seed(db);
     const moduleRef = await Test.createTestingModule({
-      imports: [makeDbModule(db), PlayerFillModule, PlayersQueriesModule],
+      imports: [
+        makeDbModule(db),
+        PlayerFillModule,
+        PlayersModule,
+        PlayersQueriesModule,
+      ],
     }).compile();
     service = moduleRef.get(PlayerFillService);
+    playersService = moduleRef.get(PlayersService);
     incomplete = moduleRef.get(IncompleteImportPlayersService);
   });
 
@@ -275,6 +294,24 @@ describe('Filling in a missing TP player (real Postgres)', () => {
     expect(await storedPlayer()).toEqual(firstPlayer);
     expect(await storedRows()).toEqual(firstRows);
     expect(firstRows).toHaveLength(2);
+  });
+
+  it('keeps the filled status through a later TP upsert that establishes none', async () => {
+    await service.fill(entry());
+
+    // The shape the bulk TP import sends for a player whose TP entry has no
+    // status: no status, and the total deferred to the SPP sync.
+    await playersService.upsert({
+      name: 'Incomplete',
+      teamEraId: seeded.teamEraId,
+      positionId: seeded.positionId,
+      externalIds: [
+        { externalSystemId: seeded.tpSystemId, externalId: '586220' },
+      ],
+    });
+
+    expect((await storedPlayer()).status).toBe('active');
+    expect(await incomplete.findTeamsWithIncompletePlayers()).toEqual([]);
   });
 
   it('refuses a different entry once the player is complete', async () => {

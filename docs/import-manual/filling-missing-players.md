@@ -61,7 +61,9 @@ trophy award grants) is stored as a free extra, like a `freeExtra: true`
 skill, and the paid advancements are numbered around it. A skill listed
 without a `source` keeps a chosen or random source already stored. The
 player's characteristics, total SPP, unspent SPP, status and SPP adjustment
-are written in the same transaction as his advancements.
+are written in the same transaction as his advancements. A later TP import
+whose data establishes no status for him keeps the filled one (see
+[player status](../import-tp/index.md#player-status)).
 
 ## When an entry is refused
 
