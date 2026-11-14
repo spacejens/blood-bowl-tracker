@@ -50,9 +50,8 @@ See `import-manual-config.example.json5` for a worked example.
 ## Data files
 
 The tool reads every `.json5` file directly inside a batch directory (or the
-directory given on the command line), non-recursively, in alphabetical filename
-order, and pools their sections together before importing. A single file may mix any of these optional
-top-level sections:
+directory given on the command line), non-recursively, in alphabetical filename order, and pools
+their sections together before importing. A single file may mix any of these optional top-level sections:
 
 ```text
 externalSystems
@@ -76,6 +75,7 @@ advancementCosts
 trophies
 trophyAwards
 playerAdvancementOrders
+incompletePlayerFills
 ```
 
 Every external-system name referenced anywhere in the pooled data — in
@@ -370,8 +370,8 @@ only those trophies are seeded. See
 [docs/import-tp/file-format-awards.md](../import-tp/file-format-awards.md) for the full
 value table and the evidence behind the scope.
 
-`playerAdvancementOrders` is described in
-[Player advancement orders](player-advancement-orders.md).
+`playerAdvancementOrders` is described in [Player advancement orders](player-advancement-orders.md),
+and `incompletePlayerFills` in [Filling in missing players](filling-missing-players.md).
 
 ## Re-running on a populated database
 
