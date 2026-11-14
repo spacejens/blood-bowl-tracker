@@ -439,4 +439,13 @@ describe('resolve procedures', () => {
       inputSchema.safeParse({ races: [], externalSystemName: 'TP' }).success,
     ).toBe(false);
   });
+
+  it('defines players.fillIncomplete with a BAD_REQUEST error', () => {
+    expect(errorCodesOf(contract.players.fillIncomplete)).toEqual([
+      'BAD_REQUEST',
+    ]);
+    const inputSchema = contract.players.fillIncomplete['~orpc']
+      .inputSchema as z.ZodType;
+    expect(inputSchema.safeParse({ playerId: 9 }).success).toBe(false);
+  });
 });
