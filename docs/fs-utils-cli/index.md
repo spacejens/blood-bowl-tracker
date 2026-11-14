@@ -17,7 +17,7 @@ to write through the `docs/plans` symlink.
 
 | Subcommand | Purpose |
 | --- | --- |
-| `sync-gitignored` | Copy/symlink missing gitignored dev config into a worktree, and link `docs/plans` and `tools/production-ops-cli/data` back to the main checkout (creating them there first if needed), so files written into them from a worktree survive its removal |
+| `sync-gitignored` | Copy/symlink missing gitignored dev config into a worktree, and link `docs/plans` and `tools/production-ops-cli/data` back to the main checkout (creating them there first if needed), so files written into them from a worktree survive its removal (for `tools/production-ops-cli/data`, only when the command creates the link: if the worktree already has a real `data` directory, `sync-gitignored` skips it, its files stay worktree-local, and they need separate preservation) |
 | `write-file` | Write a file at a repo-relative path, reading its content from stdin — used to save specs and plans through the `docs/plans` symlink, which the Claude Code Write tool refuses to write through |
 
 ## Running it
