@@ -15,6 +15,10 @@ import { PlayersService } from './players.service';
     PlayerLastingInjuryBackfillService,
     PlayerLastingInjuryValidationService,
   ],
-  exports: [PlayersService, PlayerLastingInjuryBackfillService],
+  exports: [
+    PlayersService,
+    PlayerLastingInjuryBackfillService,
+    PlayerCharacteristicsValidationService,
+  ],
 })
 export class PlayersModule {}
