@@ -3,6 +3,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -70,6 +71,12 @@ describe('TpFeedHistoryStoreService', () => {
     expect(gitRoots.resolve).toHaveBeenCalledTimes(1);
   });
 
+  it('refuses a channel id that is not all digits', async () => {
+    await expect(service.directory('../x')).rejects.toThrow(
+      /Invalid Discord channel id/,
+    );
+  });
+
   describe('state', () => {
     it('reads no state before the first run', async () => {
       await expect(service.readState(CHANNEL)).resolves.toBeNull();
@@ -95,6 +102,46 @@ describe('TpFeedHistoryStoreService', () => {
       await expect(service.readState(CHANNEL)).rejects.toThrow(
         /state\.json is not a valid TP feed history state file/,
       );
+    });
+
+    it('refuses a truncated state file, naming it', async () => {
+      mkdirSync(channelDir, { recursive: true });
+      writeFileSync(join(channelDir, 'state.json'), '{"guildId": "1", "new');
+
+      await expect(service.readState(CHANNEL)).rejects.toThrow(
+        /state\.json is not valid JSON/,
+      );
+    });
+
+    it('replaces an existing state and leaves no temp file behind', async () => {
+      const first = {
+        guildId: '111',
+        newestId: '900',
+        oldestId: '100',
+        reachedStart: false,
+      };
+      const second = { ...first, oldestId: '50', reachedStart: true };
+      await service.writeState(CHANNEL, first);
+
+      await service.writeState(CHANNEL, second);
+
+      await expect(service.readState(CHANNEL)).resolves.toEqual(second);
+      expect(readdirSync(channelDir)).toEqual(['state.json']);
+    });
+
+    it('removes its temp file and propagates when the final rename fails', async () => {
+      mkdirSync(join(channelDir, 'state.json'), { recursive: true });
+      writeFileSync(join(channelDir, 'state.json', 'keep'), 'x');
+
+      await expect(
+        service.writeState(CHANNEL, {
+          guildId: '1',
+          newestId: null,
+          oldestId: null,
+          reachedStart: false,
+        }),
+      ).rejects.toThrow();
+      expect(readdirSync(channelDir)).toEqual(['state.json']);
     });
 
     it('propagates a read failure other than a missing file', async () => {
@@ -142,6 +189,55 @@ describe('TpFeedHistoryStoreService', () => {
       await expect(service.readMessages(CHANNEL)).resolves.toEqual([]);
     });
 
+    it('leaves no temp file after saving', async () => {
+      await service.saveMessage(CHANNEL, message('5'));
+      await service.saveMessage(CHANNEL, message('5'));
+
+      expect(readdirSync(join(channelDir, 'messages'))).toEqual(['5.json']);
+    });
+
+    it('ignores leftover temp files when reading', async () => {
+      await service.saveMessage(CHANNEL, message('5'));
+      writeFileSync(join(channelDir, 'messages/.6.abc.tmp'), '{"trunc');
+      writeFileSync(join(channelDir, 'messages/7.json.tmp'), '{"trunc');
+
+      const messages = await service.readMessages(CHANNEL);
+
+      expect(messages.map((m) => m.id)).toEqual(['5']);
+    });
+
+    it('names a corrupt message file in the error', async () => {
+      mkdirSync(join(channelDir, 'messages'), { recursive: true });
+      writeFileSync(join(channelDir, 'messages/5.json'), '{"id": "5", ');
+
+      await expect(service.readMessages(CHANNEL)).rejects.toThrow(
+        /messages\/5\.json is not valid JSON/,
+      );
+    });
+
+    it('names a message file of the wrong shape in the error', async () => {
+      mkdirSync(join(channelDir, 'messages'), { recursive: true });
+      writeFileSync(join(channelDir, 'messages/5.json'), '{"id": 5}');
+
+      await expect(service.readMessages(CHANNEL)).rejects.toThrow(
+        /messages\/5\.json is not a valid saved TP feed message/,
+      );
+    });
+
+    it('returns messages in numeric id order, whatever the id lengths', async () => {
+      await service.saveMessage(CHANNEL, message('1000000000'));
+      await service.saveMessage(CHANNEL, message('999999999'));
+      await service.saveMessage(CHANNEL, message('1000000001'));
+
+      const messages = await service.readMessages(CHANNEL);
+
+      expect(messages.map((m) => m.id)).toEqual([
+        '999999999',
+        '1000000000',
+        '1000000001',
+      ]);
+    });
+
     it('reads back every saved message, ignoring other files', async () => {
       await service.saveMessage(CHANNEL, message('5'));
       await service.saveMessage(CHANNEL, message('7'));
@@ -149,7 +245,7 @@ describe('TpFeedHistoryStoreService', () => {
 
       const messages = await service.readMessages(CHANNEL);
 
-      expect(messages.map((m) => m.id).sort()).toEqual(['5', '7']);
+      expect(messages.map((m) => m.id)).toEqual(['5', '7']);
       expect(messages[0]).toHaveProperty('extra', 'kept');
     });
 

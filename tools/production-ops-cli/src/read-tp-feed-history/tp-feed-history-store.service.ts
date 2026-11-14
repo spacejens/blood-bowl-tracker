@@ -1,4 +1,13 @@
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import {
+  link,
+  mkdir,
+  readdir,
+  readFile,
+  rename,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { GitRootsService } from '@blood-bowl-tracker/cli-shared';
@@ -40,6 +49,9 @@ export class TpFeedHistoryStoreService {
   constructor(private readonly gitRoots: GitRootsService) {}
 
   async directory(channelId: string): Promise<string> {
+    if (!/^\d+$/.test(channelId)) {
+      throw new Error(`Invalid Discord channel id: ${channelId}`);
+    }
     this.root ??= this.gitRoots
       .resolve()
       .then(({ worktreeRoot }) => join(worktreeRoot, TP_FEED_HISTORY_DATA_DIR));
@@ -55,7 +67,7 @@ export class TpFeedHistoryStoreService {
       if (this.errorCode(error) === 'ENOENT') return null;
       throw error;
     }
-    const parsed = stateSchema.safeParse(this.parseJson(text));
+    const parsed = stateSchema.safeParse(this.parseJson(text, path));
     if (!parsed.success) {
       throw new Error(
         `${path} is not a valid TP feed history state file: ${parsed.error.message}`,
@@ -77,16 +89,16 @@ export class TpFeedHistoryStoreService {
   ): Promise<boolean> {
     const dir = join(await this.directory(channelId), 'messages');
     await mkdir(dir, { recursive: true });
+    const temp = join(dir, `.${message.id}.${randomUUID()}.tmp`);
     try {
-      await writeFile(
-        join(dir, `${message.id}.json`),
-        `${JSON.stringify(message, null, 2)}\n`,
-        { encoding: 'utf8', flag: 'wx' },
-      );
+      await writeFile(temp, `${JSON.stringify(message, null, 2)}\n`, 'utf8');
+      await link(temp, join(dir, `${message.id}.json`));
       return true;
     } catch (error) {
       if (this.errorCode(error) === 'EEXIST') return false;
       throw error;
+    } finally {
+      await rm(temp, { force: true });
     }
   }
 
@@ -100,11 +112,22 @@ export class TpFeedHistoryStoreService {
       throw error;
     }
     const messages: TpFeedMessage[] = [];
-    for (const name of names.filter((n) => n.endsWith('.json'))) {
-      const text = await readFile(join(dir, name), 'utf8');
-      messages.push(tpFeedMessageSchema.parse(this.parseJson(text)));
+    for (const name of names.filter((n) => /^\d+\.json$/.test(n))) {
+      const path = join(dir, name);
+      const parsed = tpFeedMessageSchema.safeParse(
+        this.parseJson(await readFile(path, 'utf8'), path),
+      );
+      if (!parsed.success) {
+        throw new Error(
+          `${path} is not a valid saved TP feed message: ${parsed.error.message}`,
+        );
+      }
+      messages.push(parsed.data);
     }
-    return messages;
+    return messages.sort((a, b) => {
+      const diff = BigInt(a.id) - BigInt(b.id);
+      return diff === 0n ? 0 : diff < 0n ? -1 : 1;
+    });
   }
 
   async writeIndex(
@@ -122,15 +145,25 @@ export class TpFeedHistoryStoreService {
     value: unknown,
   ): Promise<void> {
     await mkdir(dir, { recursive: true });
-    await writeFile(
-      join(dir, name),
-      `${JSON.stringify(value, null, 2)}\n`,
-      'utf8',
-    );
+    const temp = join(dir, `.${name}.${randomUUID()}.tmp`);
+    try {
+      await writeFile(temp, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+      await rename(temp, join(dir, name));
+    } catch (error) {
+      await rm(temp, { force: true });
+      throw error;
+    }
   }
 
-  private parseJson(text: string): unknown {
-    return JSON.parse(text) as unknown;
+  private parseJson(text: string, path: string): unknown {
+    try {
+      return JSON.parse(text) as unknown;
+    } catch (error) {
+      throw new Error(
+        `${path} is not valid JSON: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error },
+      );
+    }
   }
 
   private errorCode(error: unknown): string | undefined {
