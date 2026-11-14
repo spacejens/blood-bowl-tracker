@@ -6,7 +6,6 @@ import {
   eraRulesSets,
   externalSystems,
   or,
-  playerAdvancements,
   playerExternalIds,
   players,
   positions,
@@ -15,6 +14,7 @@ import {
 import { TP_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
+import { PlayerAdvancementReadsService } from '../player-skills/player-advancement-reads.service';
 import { INCOMPLETE_PLAYER_CRITERIA } from '../players/incomplete-player-criteria';
 import type { PlayerFillState } from './player-fill.types';
 
@@ -22,12 +22,16 @@ import type { PlayerFillState } from './player-fill.types';
  * Reads what a manual fill checks about one stored player: his fill fields,
  * whether he is a star player, his TP external id, whether the shared
  * INCOMPLETE_PLAYER_CRITERIA still match him, his era's rules sets and his
- * active advancement rows. Five small queries, the last four skipped when
- * the player does not exist.
+ * active advancement rows in stored order
+ * (PlayerAdvancementReadsService.listStoredAdvancements). Five small reads,
+ * the last four skipped when the player does not exist.
  */
 @Injectable()
 export class PlayerFillStateService {
-  constructor(@Inject(DB) private readonly db: Db) {}
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    private readonly reads: PlayerAdvancementReadsService,
+  ) {}
 
   async load(playerId: number): Promise<PlayerFillState | undefined> {
     const [player] = await this.db
@@ -76,23 +80,7 @@ export class PlayerFillStateService {
       .select({ rulesSetId: eraRulesSets.rulesSetId })
       .from(eraRulesSets)
       .where(eq(eraRulesSets.eraId, player.eraId));
-    const rows = await this.db
-      .select({
-        skillId: playerAdvancements.skillId,
-        characteristic: playerAdvancements.characteristic,
-        attributeValue: playerAdvancements.attributeValue,
-        source: playerAdvancements.source,
-        isFreeExtra: playerAdvancements.isFreeExtra,
-        advancementOrder: playerAdvancements.advancementOrder,
-        orderConfirmed: playerAdvancements.orderConfirmed,
-      })
-      .from(playerAdvancements)
-      .where(
-        and(
-          eq(playerAdvancements.playerId, playerId),
-          eq(playerAdvancements.removed, false),
-        ),
-      );
+    const rows = await this.reads.listStoredAdvancements(playerId);
     return {
       playerId,
       isStarPlayer: player.isStarPlayer,

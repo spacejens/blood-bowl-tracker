@@ -5,6 +5,8 @@ import type {
   PlayerStatus,
 } from '@blood-bowl-tracker/domain-enums';
 
+import type { StoredPlayerAdvancement } from '../player-skills/player-advancement-reads.service';
+
 /** One advancement row a fill leaves the player with. */
 export interface PlannedFillRow {
   /** Null for a characteristic increase. */
@@ -20,15 +22,7 @@ export interface PlannedFillRow {
 }
 
 /** One active (not removed) advancement row stored for the player. */
-export interface StoredFillRow {
-  skillId: number | null;
-  characteristic: PlayerCharacteristic | null;
-  attributeValue: string | null;
-  source: PlayerSkillSource;
-  isFreeExtra: boolean;
-  advancementOrder: number | null;
-  orderConfirmed: boolean;
-}
+export type StoredFillRow = StoredPlayerAdvancement;
 
 /** The player columns a fill writes, as stored. */
 export interface StoredFillFields {
