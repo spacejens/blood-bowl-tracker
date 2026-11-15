@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
+import { ZodError } from 'zod';
 
 import {
   CANDIDATES_SQL,
@@ -140,7 +141,7 @@ describe('IncompletePlayerFillQueriesService', () => {
       { competitionName: 'Ogretoberfest 14', teamId: null },
     ]);
 
-    await expect(service.load()).rejects.toThrow();
+    await expect(service.load()).rejects.toBeInstanceOf(ZodError);
     expect(json.rows).toHaveBeenCalledTimes(1);
   });
 

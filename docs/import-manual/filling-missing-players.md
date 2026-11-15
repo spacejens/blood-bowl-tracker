@@ -126,8 +126,9 @@ A player is skipped, with the reason reported, when any of these holds:
   ongoing competition, whatever his stored status: his data is still
   changing, and his stored total may understate his real one while SPP
   adjustments estimate the competition in progress;
-- his total is missing or too high;
-- a rules set of his era prices nothing;
+- his total is missing;
+- his era has no rules set, or a rules set of his era prices nothing;
+- his total is at or above the cheapest advancement cost of his era;
 - he holds any trophy award (a trophy may grant a skill, and one not
   recorded yet looks the same as none), or he has a gained Loner, Hatred or
   free extra;
