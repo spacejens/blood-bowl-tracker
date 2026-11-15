@@ -31,7 +31,8 @@ export function eligibleInput(
 ): FillPlannerInput {
   return {
     candidates: [candidate()],
-    consequenceCounts: [],
+    statReductionPlayerIds: [],
+    deathPlayerIds: [],
     storedAdvancements: [],
     freeSkillRiskPlayerIds: [],
     ongoingTeamIds: [],

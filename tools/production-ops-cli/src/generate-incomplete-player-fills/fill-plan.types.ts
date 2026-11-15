@@ -21,9 +21,6 @@ export type CharacteristicFormats = Record<
   CharacteristicFormat
 >;
 
-/** How many stat reductions of each kind a player's match events record. */
-export type ReductionCounts = Record<CharacteristicKey, number>;
-
 /** An incomplete, non-star TP player, as stored. */
 export interface CandidateRow {
   playerId: number;
@@ -40,13 +37,6 @@ export interface CandidateRow {
   agility: number;
   passing: number | null;
   armour: number;
-}
-
-/** How many events of one stat-reduction or death type name the player as recipient. */
-export interface ConsequenceCountRow {
-  playerId: number;
-  consequenceType: string;
-  count: number;
 }
 
 /** One stored, non-removed advancement row of a candidate. */
@@ -86,7 +76,10 @@ export interface EraRulesSetRow {
 
 export interface FillPlannerInput {
   candidates: CandidateRow[];
-  consequenceCounts: ConsequenceCountRow[];
+  /** Candidates named as recipient of any stat-reduction match event. */
+  statReductionPlayerIds: number[];
+  /** Candidates named as recipient of a death match event. */
+  deathPlayerIds: number[];
   storedAdvancements: StoredAdvancementRow[];
   freeSkillRiskPlayerIds: number[];
   ongoingTeamIds: number[];
@@ -114,6 +107,7 @@ export const SKIP_REASONS = [
   'era-unpriced',
   'spp-too-high',
   'free-skill-risk',
+  'lasting-injury-uncertain',
   'position-ambiguous',
   'invalid-characteristics',
   'stored-data-contradicts',

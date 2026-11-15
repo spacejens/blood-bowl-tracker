@@ -4,7 +4,7 @@ import { mock, MockProxy } from 'vitest-mock-extended';
 
 import {
   CANDIDATES_SQL,
-  CONSEQUENCE_COUNTS_SQL,
+  CONSEQUENCES_SQL,
   ERA_RULES_SETS_SQL,
   FREE_SKILL_RISK_SQL,
   INCOMPLETE_PLAYER_CONDITIONS,
@@ -63,8 +63,12 @@ describe('IncompletePlayerFillQueriesService', () => {
     results = new Map<string, unknown[]>([
       [CANDIDATES_SQL, [CANDIDATE]],
       [
-        CONSEQUENCE_COUNTS_SQL,
-        [{ playerId: 1, consequenceType: 'death', count: 1 }],
+        CONSEQUENCES_SQL,
+        [
+          { playerId: 1, hasStatReduction: false, hasDeath: true },
+          { playerId: 2, hasStatReduction: true, hasDeath: false },
+          { playerId: 3, hasStatReduction: true, hasDeath: true },
+        ],
       ],
       [STORED_ADVANCEMENTS_SQL, []],
       [FREE_SKILL_RISK_SQL, [{ playerId: 9 }]],
@@ -99,7 +103,8 @@ describe('IncompletePlayerFillQueriesService', () => {
   it('loads every query into the planner input', async () => {
     await expect(service.load()).resolves.toEqual({
       candidates: [CANDIDATE],
-      consequenceCounts: [{ playerId: 1, consequenceType: 'death', count: 1 }],
+      statReductionPlayerIds: [2, 3],
+      deathPlayerIds: [1, 3],
       storedAdvancements: [],
       freeSkillRiskPlayerIds: [9],
       ongoingTeamIds: [20],

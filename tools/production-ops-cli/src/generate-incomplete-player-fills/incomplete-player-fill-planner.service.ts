@@ -1,11 +1,9 @@
 import type { PlayerStatus } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 
-import { CharacteristicReductionService } from './characteristic-reduction.service';
+import { CharacteristicValidityService } from './characteristic-validity.service';
 import type {
   CandidateRow,
-  CharacteristicKey,
-  CharacteristicLine,
   EraRulesSetRow,
   FillEntry,
   FillPlan,
@@ -14,23 +12,11 @@ import type {
   PositionProfile,
   PositionRulesSetRow,
   PositionSkillRow,
-  ReductionCounts,
   SkipReason,
   StoredAdvancementRow,
 } from './fill-plan.types';
 import { SKIP_REASONS } from './fill-plan.types';
 import { PositionProfileService } from './position-profile.service';
-
-/** Which characteristic each stat-reduction consequence type lowers. */
-const REDUCTION_TYPES: Readonly<Record<string, CharacteristicKey>> = {
-  stat_reduction_ma: 'ma',
-  stat_reduction_st: 'st',
-  stat_reduction_ag: 'ag',
-  stat_reduction_pa: 'pa',
-  stat_reduction_av: 'av',
-};
-
-const DEATH_TYPE = 'death';
 
 /** Skills the free-extra rules make free when gained outside the paid advancements. */
 const FREE_EXTRA_SKILL_NAMES: ReadonlySet<string> = new Set([
@@ -39,7 +25,8 @@ const FREE_EXTRA_SKILL_NAMES: ReadonlySet<string> = new Set([
 ]);
 
 interface PlannerIndex {
-  consequences: Map<number, Map<string, number>>;
+  statReduction: Set<number>;
+  death: Set<number>;
   stored: Map<number, StoredAdvancementRow[]>;
   freeSkillRisk: Set<number>;
   ongoingTeams: Set<number>;
@@ -52,7 +39,6 @@ type Decision = { entry: FillEntry } | { reason: SkipReason };
 
 interface ContradictionCheck {
   candidate: CandidateRow;
-  line: CharacteristicLine;
   stored: StoredAdvancementRow[];
   profile: PositionProfile;
 }
@@ -60,7 +46,6 @@ interface ContradictionCheck {
 interface EntryParts {
   candidate: CandidateRow;
   sppTotal: number;
-  line: CharacteristicLine;
   profile: PositionProfile;
   status: PlayerStatus;
 }
@@ -69,8 +54,11 @@ interface EntryParts {
  * Plans the `incompletePlayerFills` entries for incomplete TP players who
  * provably have no advancements: their total SPP is below the cheapest
  * advancement any rules set of their era prices, so the whole total is
- * unspent. Each entry is the position's line worsened by the player's stat
- * reductions, the position's starting skills and no advancements. Anything
+ * unspent. Each entry is the position's characteristics and starting
+ * skills and no advancements. A recorded stat reduction is injury history,
+ * not necessarily his current line (newer rules sets let lasting injuries
+ * heal, and a reduction at a characteristic's limit changes nothing), so
+ * such a player is skipped rather than guessed at. Anything
  * not certain is skipped with the first reason that applies, and the
  * skipped players are listed by reason.
  *
@@ -79,7 +67,7 @@ interface EntryParts {
 @Injectable()
 export class IncompletePlayerFillPlannerService {
   constructor(
-    private readonly reduction: CharacteristicReductionService,
+    private readonly validity: CharacteristicValidityService,
     private readonly profiles: PositionProfileService,
   ) {}
 
@@ -135,6 +123,9 @@ export class IncompletePlayerFillPlannerService {
     ) {
       return { reason: 'free-skill-risk' };
     }
+    if (index.statReduction.has(candidate.playerId)) {
+      return { reason: 'lasting-injury-uncertain' };
+    }
     const rows =
       index.positionRulesSets.get(
         `${candidate.positionId}|${candidate.eraId}`,
@@ -148,15 +139,12 @@ export class IncompletePlayerFillPlannerService {
     if (profile === undefined) {
       return { reason: 'position-ambiguous' };
     }
-    const line = this.reduction.apply({
-      line: profile.line,
-      formats: profile.formats,
-      reductions: this.reductions(index.consequences.get(candidate.playerId)),
-    });
-    if (line === undefined) {
+    if (
+      !this.validity.isValid({ line: profile.line, formats: profile.formats })
+    ) {
       return { reason: 'invalid-characteristics' };
     }
-    if (this.contradicts({ candidate, line, stored, profile })) {
+    if (this.contradicts({ candidate, stored, profile })) {
       return { reason: 'stored-data-contradicts' };
     }
     const status = this.status(candidate, index);
@@ -164,7 +152,7 @@ export class IncompletePlayerFillPlannerService {
       return { reason: 'status-unresolved' };
     }
     return {
-      entry: this.entry({ candidate, sppTotal, line, profile, status }),
+      entry: this.entry({ candidate, sppTotal, profile, status }),
     };
   }
 
@@ -187,17 +175,6 @@ export class IncompletePlayerFillPlannerService {
     return row.isFreeExtra || FREE_EXTRA_SKILL_NAMES.has(row.skillName ?? '');
   }
 
-  private reductions(counts: Map<string, number> | undefined): ReductionCounts {
-    const reductions: ReductionCounts = { ma: 0, st: 0, ag: 0, pa: 0, av: 0 };
-    for (const [type, count] of counts ?? []) {
-      const key = REDUCTION_TYPES[type];
-      if (key !== undefined) {
-        reductions[key] += count;
-      }
-    }
-    return reductions;
-  }
-
   /**
    * Whether anything already stored would make the fill refuse the entry:
    * a non-zero MA/ST/AG/AV or a stored PA that differs from the line, a
@@ -205,7 +182,8 @@ export class IncompletePlayerFillPlannerService {
    * stored starting skill the position does not list.
    */
   private contradicts(check: ContradictionCheck): boolean {
-    const { candidate, line, stored, profile } = check;
+    const { candidate, stored, profile } = check;
+    const line = profile.line;
     const pairs: [number, number][] = [
       [candidate.move, line.ma],
       [candidate.strength, line.st],
@@ -242,9 +220,7 @@ export class IncompletePlayerFillPlannerService {
     if (candidate.status !== null) {
       return candidate.status;
     }
-    const deaths =
-      index.consequences.get(candidate.playerId)?.get(DEATH_TYPE) ?? 0;
-    if (deaths > 0) {
+    if (index.death.has(candidate.playerId)) {
       return 'dead';
     }
     if (index.ongoingTeams.has(candidate.teamId)) {
@@ -254,7 +230,8 @@ export class IncompletePlayerFillPlannerService {
   }
 
   private entry(parts: EntryParts): FillEntry {
-    const { candidate, sppTotal, line, profile, status } = parts;
+    const { candidate, sppTotal, profile, status } = parts;
+    const line = profile.line;
     return {
       player: { system: 'tourplay.net', id: candidate.tpId },
       status,
@@ -280,18 +257,9 @@ export class IncompletePlayerFillPlannerService {
   }
 
   private index(input: FillPlannerInput): PlannerIndex {
-    const consequences = new Map<number, Map<string, number>>();
-    for (const row of input.consequenceCounts) {
-      const byType =
-        consequences.get(row.playerId) ?? new Map<string, number>();
-      byType.set(
-        row.consequenceType,
-        (byType.get(row.consequenceType) ?? 0) + row.count,
-      );
-      consequences.set(row.playerId, byType);
-    }
     return {
-      consequences,
+      statReduction: new Set(input.statReductionPlayerIds),
+      death: new Set(input.deathPlayerIds),
       stored: this.groupBy(input.storedAdvancements, (row) => row.playerId),
       freeSkillRisk: new Set(input.freeSkillRiskPlayerIds),
       ongoingTeams: new Set(input.ongoingTeamIds),

@@ -52,14 +52,18 @@ SELECT player_id AS "playerId", tp_id AS "tpId", team_id AS "teamId",
   move, strength, agility, passing, armour
 FROM candidates`;
 
-export const CONSEQUENCE_COUNTS_SQL = `${CANDIDATES_CTE}
+const STAT_REDUCTION_TYPES = `'stat_reduction_ma', 'stat_reduction_st',
+  'stat_reduction_ag', 'stat_reduction_pa', 'stat_reduction_av'`;
+
+/** Per candidate, whether match events record a stat reduction or a death for him. */
+export const CONSEQUENCES_SQL = `${CANDIDATES_CTE}
 SELECT me.consequence_player_id AS "playerId",
-  me.consequence_type::text AS "consequenceType", count(*)::int AS "count"
+  bool_or(me.consequence_type IN (${STAT_REDUCTION_TYPES})) AS "hasStatReduction",
+  bool_or(me.consequence_type = 'death') AS "hasDeath"
 FROM game_data.match_events me
 JOIN candidates c ON c.player_id = me.consequence_player_id
-WHERE me.consequence_type IN ('stat_reduction_ma', 'stat_reduction_st',
-  'stat_reduction_ag', 'stat_reduction_pa', 'stat_reduction_av', 'death')
-GROUP BY me.consequence_player_id, me.consequence_type`;
+WHERE me.consequence_type IN (${STAT_REDUCTION_TYPES}, 'death')
+GROUP BY me.consequence_player_id`;
 
 export const STORED_ADVANCEMENTS_SQL = `${CANDIDATES_CTE}
 SELECT pa.player_id AS "playerId", pa.source::text AS "source",

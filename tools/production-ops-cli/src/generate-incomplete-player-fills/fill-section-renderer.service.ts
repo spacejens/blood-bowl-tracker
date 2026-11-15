@@ -6,9 +6,9 @@ import type { FillEntry } from './fill-plan.types';
 const HEADER = [
   '// The data of TP players the TP import left incomplete whose total SPP is',
   '// below the cheapest advancement any rules set of their era prices, so they',
-  "// have no advancements: each is his position's line worsened by the stat",
-  "// reductions his match events record, his position's starting skills, and",
-  '// his whole total unspent. Generated from the production database by',
+  "// have no advancements: each is his position's characteristics and starting",
+  '// skills, and his whole total unspent. Players with a recorded stat',
+  '// reduction are left out. Generated from the production database by',
   '// production-ops-cli generate-incomplete-player-fills; see',
   '// docs/import-manual/filling-missing-players.md#generated-fills.',
 ];

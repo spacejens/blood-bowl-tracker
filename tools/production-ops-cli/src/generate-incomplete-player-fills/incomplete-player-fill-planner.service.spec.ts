@@ -2,7 +2,7 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
-import { CharacteristicReductionService } from './characteristic-reduction.service';
+import { CharacteristicValidityService } from './characteristic-validity.service';
 import { candidate, eligibleInput, profile } from './fill-plan.test-helpers';
 import type { FillPlannerInput, SkipReason } from './fill-plan.types';
 import { IncompletePlayerFillPlannerService } from './incomplete-player-fill-planner.service';
@@ -10,20 +10,18 @@ import { PositionProfileService } from './position-profile.service';
 
 describe('IncompletePlayerFillPlannerService', () => {
   let service: IncompletePlayerFillPlannerService;
-  let reduction: MockProxy<CharacteristicReductionService>;
+  let validity: MockProxy<CharacteristicValidityService>;
   let profiles: MockProxy<PositionProfileService>;
 
   beforeEach(async () => {
-    reduction = mock<CharacteristicReductionService>();
+    validity = mock<CharacteristicValidityService>();
     profiles = mock<PositionProfileService>();
     profiles.resolve.mockReturnValue(profile());
-    // Canned: the unreduced position line. The reduction rules themselves
-    // are covered by characteristic-reduction.service.spec.ts.
-    reduction.apply.mockReturnValue(profile().line);
+    validity.isValid.mockReturnValue(true);
     const moduleRef = await Test.createTestingModule({
       providers: [
         IncompletePlayerFillPlannerService,
-        { provide: CharacteristicReductionService, useValue: reduction },
+        { provide: CharacteristicValidityService, useValue: validity },
         { provide: PositionProfileService, useValue: profiles },
       ],
     }).compile();
@@ -79,7 +77,9 @@ describe('IncompletePlayerFillPlannerService', () => {
   });
 
   it('leaves pa out when the rules set has no Passing', () => {
-    reduction.apply.mockReturnValue({ ma: 6, st: 3, ag: 3, pa: null, av: 8 });
+    profiles.resolve.mockReturnValue(
+      profile({ line: { ma: 6, st: 3, ag: 3, pa: null, av: 8 } }),
+    );
 
     expect(service.plan(eligibleInput()).entries[0].characteristics).toEqual({
       ma: 6,
@@ -90,28 +90,27 @@ describe('IncompletePlayerFillPlannerService', () => {
   });
 
   it('keeps a structural zero passing', () => {
-    reduction.apply.mockReturnValue({ ma: 6, st: 3, ag: 3, pa: 0, av: 9 });
+    profiles.resolve.mockReturnValue(
+      profile({ line: { ma: 6, st: 3, ag: 3, pa: 0, av: 9 } }),
+    );
 
     expect(service.plan(eligibleInput()).entries[0].characteristics.pa).toBe(0);
   });
 
-  it('counts the stat reductions his match events record, ignoring other consequences', () => {
-    service.plan(
-      eligibleInput({
-        consequenceCounts: [
-          { playerId: 1, consequenceType: 'stat_reduction_ma', count: 2 },
-          { playerId: 1, consequenceType: 'stat_reduction_ag', count: 1 },
-          { playerId: 1, consequenceType: 'niggling_injury', count: 3 },
-          { playerId: 2, consequenceType: 'stat_reduction_st', count: 1 },
-        ],
-      }),
-    );
+  it("checks the position's line against its formats", () => {
+    service.plan(eligibleInput());
 
-    expect(reduction.apply).toHaveBeenCalledWith({
+    expect(validity.isValid).toHaveBeenCalledWith({
       line: profile().line,
       formats: profile().formats,
-      reductions: { ma: 2, st: 0, ag: 1, pa: 0, av: 0 },
     });
+  });
+
+  it("ignores another player's stat reduction", () => {
+    expect(
+      service.plan(eligibleInput({ statReductionPlayerIds: [2] })).report
+        .eligible,
+    ).toBe(1);
   });
 
   it('fills a player with zero SPP', () => {
@@ -168,6 +167,11 @@ describe('IncompletePlayerFillPlannerService', () => {
       'a trophy that can grant a skill',
       { freeSkillRiskPlayerIds: [1] },
       'free-skill-risk',
+    ],
+    [
+      'a recorded stat reduction',
+      { statReductionPlayerIds: [1] },
+      'lasting-injury-uncertain',
     ],
     [
       'a stored gained Loner',
@@ -279,8 +283,8 @@ describe('IncompletePlayerFillPlannerService', () => {
     expect(reasonFor(eligibleInput())).toBe('position-ambiguous');
   });
 
-  it('skips a player whose reduced characteristics are invalid', () => {
-    reduction.apply.mockReturnValue(undefined);
+  it("skips a player whose position's characteristics are invalid", () => {
+    validity.isValid.mockReturnValue(false);
 
     expect(reasonFor(eligibleInput())).toBe('invalid-characteristics');
   });
@@ -328,9 +332,7 @@ describe('IncompletePlayerFillPlannerService', () => {
   it('marks a player dead when his match events record a death', () => {
     const plan = service.plan(
       eligibleInput({
-        consequenceCounts: [
-          { playerId: 1, consequenceType: 'death', count: 1 },
-        ],
+        deathPlayerIds: [1],
         ongoingTeamIds: [20],
       }),
     );
@@ -355,7 +357,7 @@ describe('IncompletePlayerFillPlannerService', () => {
       players: ['90', '1000'],
     });
     expect(plan.report.skipped.journeyman).toEqual({ count: 0, players: [] });
-    expect(Object.keys(plan.report.skipped)).toHaveLength(9);
+    expect(Object.keys(plan.report.skipped)).toHaveLength(10);
   });
 
   it('orders entries by numeric TP id', () => {

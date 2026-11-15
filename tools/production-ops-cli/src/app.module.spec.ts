@@ -16,7 +16,7 @@ import { DiscordBotTokenService } from './discord-bot-token/discord-bot-token.se
 import { DiscordRestService } from './discord-rest/discord-rest.service';
 import { FetchDiscordMessageService } from './fetch-discord-message/fetch-discord-message.service';
 import { FetchRecentDiscordMessagesService } from './fetch-recent-discord-messages/fetch-recent-discord-messages.service';
-import { CharacteristicReductionService } from './generate-incomplete-player-fills/characteristic-reduction.service';
+import { CharacteristicValidityService } from './generate-incomplete-player-fills/characteristic-validity.service';
 import { FillSectionRendererService } from './generate-incomplete-player-fills/fill-section-renderer.service';
 import { GenerateIncompletePlayerFillsService } from './generate-incomplete-player-fills/generate-incomplete-player-fills.service';
 import { IncompletePlayerFillPlannerService } from './generate-incomplete-player-fills/incomplete-player-fill-planner.service';
@@ -68,8 +68,8 @@ describe('AppModule', () => {
       RunProductionQueryService,
     );
     expect(moduleRef.get(WriteFileService)).toBeInstanceOf(WriteFileService);
-    expect(moduleRef.get(CharacteristicReductionService)).toBeInstanceOf(
-      CharacteristicReductionService,
+    expect(moduleRef.get(CharacteristicValidityService)).toBeInstanceOf(
+      CharacteristicValidityService,
     );
     expect(moduleRef.get(FillSectionRendererService)).toBeInstanceOf(
       FillSectionRendererService,

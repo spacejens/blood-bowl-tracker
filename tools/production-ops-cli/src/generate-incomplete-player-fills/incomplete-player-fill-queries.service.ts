@@ -8,7 +8,7 @@ import { z } from 'zod';
 import type { FillPlannerInput } from './fill-plan.types';
 import {
   CANDIDATES_SQL,
-  CONSEQUENCE_COUNTS_SQL,
+  CONSEQUENCES_SQL,
   ERA_RULES_SETS_SQL,
   FREE_SKILL_RISK_SQL,
   ONGOING_COMPETITION_NAMES,
@@ -40,10 +40,10 @@ const CandidateRowSchema = z.object({
   armour: value,
 });
 
-const ConsequenceCountRowSchema = z.object({
+const ConsequenceRowSchema = z.object({
   playerId: id,
-  consequenceType: z.string(),
-  count: value,
+  hasStatReduction: z.boolean(),
+  hasDeath: z.boolean(),
 });
 
 const StoredAdvancementRowSchema = z.object({
@@ -107,12 +107,19 @@ export class IncompletePlayerFillQueriesService {
   async load(): Promise<FillPlannerInput> {
     const ongoing = await this.rows(ONGOING_COMPETITIONS_SQL, OngoingRowSchema);
     this.assertOngoingFound(ongoing);
+    const candidates = await this.rows(CANDIDATES_SQL, CandidateRowSchema);
+    const consequences = await this.rows(
+      CONSEQUENCES_SQL,
+      ConsequenceRowSchema,
+    );
     return {
-      candidates: await this.rows(CANDIDATES_SQL, CandidateRowSchema),
-      consequenceCounts: await this.rows(
-        CONSEQUENCE_COUNTS_SQL,
-        ConsequenceCountRowSchema,
-      ),
+      candidates,
+      statReductionPlayerIds: consequences
+        .filter((row) => row.hasStatReduction)
+        .map((row) => row.playerId),
+      deathPlayerIds: consequences
+        .filter((row) => row.hasDeath)
+        .map((row) => row.playerId),
       storedAdvancements: await this.rows(
         STORED_ADVANCEMENTS_SQL,
         StoredAdvancementRowSchema,
