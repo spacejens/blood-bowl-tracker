@@ -224,4 +224,76 @@ describe('DiscordRestService', () => {
       );
     });
   });
+
+  describe('client reuse', () => {
+    it('builds one client for the whole process and reads the token once', async () => {
+      vi.mocked(REST).mockClear();
+      rest.get.mockResolvedValue([]);
+
+      await service.getRecentMessages('123456789', 100);
+      await service.getRecentMessages('123456789', 100, '987654321');
+      await service.getMessagesAfter('123456789', 100, '987654321');
+
+      expect(vi.mocked(REST)).toHaveBeenCalledTimes(1);
+      expect(rest.setToken).toHaveBeenCalledTimes(1);
+      expect(botToken.read).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('getMessagesAfter', () => {
+    it('GETs the channel-messages route with the limit and after queries', async () => {
+      const body = [{ id: '987654322' }];
+      rest.get.mockResolvedValue(body);
+
+      const result = await service.getMessagesAfter(
+        '123456789',
+        100,
+        '987654321',
+      );
+
+      const [route, options] = rest.get.mock.calls[0] as [
+        string,
+        { query: URLSearchParams },
+      ];
+      expect(route).toBe('/fake/channels/123456789/messages');
+      expect(options.query.toString()).toBe('limit=100&after=987654321');
+      expect(result).toBe(body);
+    });
+
+    it('names the after message and channel on a failure', async () => {
+      rest.get.mockRejectedValue(new Error('Request aborted'));
+
+      await expect(
+        service.getMessagesAfter('123456789', 100, '987654321'),
+      ).rejects.toThrow(
+        'Discord API request for the 100 messages after message 987654321 ' +
+          'of channel 123456789 failed: Request aborted',
+      );
+    });
+  });
+
+  describe('getChannel', () => {
+    it('GETs the channel route and returns the body unchanged', async () => {
+      const body = { id: '123456789', guild_id: '555' };
+      rest.get.mockResolvedValue(body);
+
+      const result = await service.getChannel('123456789');
+
+      expect(rest.get).toHaveBeenCalledWith('/fake/channels/123456789', {
+        query: undefined,
+      });
+      expect(result).toBe(body);
+    });
+
+    it('names the channel on a Discord API error', async () => {
+      rest.get.mockRejectedValue(
+        discordApiError(404, 10003, 'Unknown Channel'),
+      );
+
+      await expect(service.getChannel('123456789')).rejects.toThrow(
+        'Discord API request for channel 123456789 failed with status 404 ' +
+          '(code 10003): Unknown Channel',
+      );
+    });
+  });
 });

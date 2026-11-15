@@ -32,12 +32,13 @@ export interface SyncGitignoredResult {
  * has. Copy-if-missing only: an existing worktree file or symlink is never
  * overwritten, because a developer may have deliberately set one up
  * differently. The large data directories are symlinked rather than copied,
- * as is `docs/plans` — which is additionally created on the main-checkout
- * side first when it does not exist yet. When this command is the one that
- * creates the `docs/plans` link, plans written in the worktree afterward
- * survive its removal; if the worktree already had its own `docs/plans`
- * (skipped, never overwritten), that guarantee does not apply — those files
- * stay worktree-local. A no-op outside a worktree.
+ * as are the auto-created holding directories (`docs/plans`,
+ * `tools/production-ops-cli/data`), which are additionally created on the
+ * main-checkout side first when they do not exist yet. When this command is
+ * the one that creates such a link, files written through it in the worktree
+ * afterward survive its removal; if the worktree already had its own
+ * directory there (skipped, never overwritten), that guarantee does not
+ * apply and those files stay worktree-local. A no-op outside a worktree.
  */
 @Injectable()
 export class SyncGitignoredService {

@@ -37,6 +37,7 @@ tmp/
 # worktrees — no trailing slash so both forms are ignored)
 tools/import-bbl/data
 tools/import-tp/data
+tools/production-ops-cli/data
 
 # tools/import-bbl real configs, local and production (the committed template
 # for both is import-bbl-config.example.json5)

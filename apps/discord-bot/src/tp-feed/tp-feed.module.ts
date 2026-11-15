@@ -1,4 +1,5 @@
 import { ErrorLogService } from '@blood-bowl-tracker/logging';
+import { ParseTpFeedModule } from '@blood-bowl-tracker/parse-tp-feed';
 import { TpPathsModule } from '@blood-bowl-tracker/tp-paths';
 import { Module } from '@nestjs/common';
 
@@ -23,9 +24,11 @@ import { TpFeedParserService } from './tp-feed-parser.service';
  * the one-line TP block/resume notices; `ClockService` is dependency-free
  * and gives the import queue the time it needs to wait out a block;
  * `ErrorLogService` is dependency-free and logs unexpected exceptions.
+ * `ParseTpFeedModule` supplies the advancement-report parsing the
+ * history-reading tool shares.
  */
 @Module({
-  imports: [TpImportModule, TpPathsModule],
+  imports: [TpImportModule, TpPathsModule, ParseTpFeedModule],
   providers: [
     TpFeedParserService,
     TpFeedFormatterService,

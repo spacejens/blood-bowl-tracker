@@ -1,11 +1,11 @@
+import {
+  TP_FEED_ADVANCEMENT_AUTHOR,
+  TpFeedAdvancementParserService,
+} from '@blood-bowl-tracker/parse-tp-feed';
 import { Injectable, Logger } from '@nestjs/common';
 import type { Embed, Message } from 'discord.js';
 
 import type { TeamInfo, TpFeedEvent, TpFeedParseResult } from './tp-feed-event';
-
-/** `` `#10` Helmut Cool *(Imperial Thrower)* `` */
-const PLAYER_FIELD_PATTERN =
-  /^`#(?<number>[^`]+)`\s+(?<name>.+?)\s+\*\((?<position>[^)]+)\)\*$/u;
 
 /**
  * "Winner Calavera Selvática FC in 3 hours and 30 minutes." A greedy winner
@@ -19,13 +19,6 @@ const WINNER_DESCRIPTION_PATTERN = /^Winner\s+(?<winner>.+)\s+in\s+.+$/u;
 
 /** "Draw in 2 hours and 46 minutes." */
 const DRAW_DESCRIPTION_PATTERN = /^Draw\s+in\s+.+$/u;
-
-/** The parsed pieces every player-scoped notification shares. */
-interface PlayerFieldParts {
-  playerNumber: string;
-  playerName: string;
-  position: string;
-}
 
 /**
  * Turns one TP (tourplay.net) webhook notification into a typed event.
@@ -46,6 +39,10 @@ interface PlayerFieldParts {
 @Injectable()
 export class TpFeedParserService {
   private readonly logger = new Logger(TpFeedParserService.name);
+
+  constructor(
+    private readonly advancementParser: TpFeedAdvancementParserService,
+  ) {}
 
   parse(message: Message): TpFeedParseResult {
     const embed = message.embeds.at(0);
@@ -73,7 +70,7 @@ export class TpFeedParserService {
     if (title.includes('Match scheduled') || authorName === 'Match Event') {
       return { status: 'ignored' };
     }
-    if (authorName === 'New skill/characteristic') {
+    if (authorName === TP_FEED_ADVANCEMENT_AUTHOR) {
       return this.parseNewSkillOrCharacteristic(embed, message.id);
     }
     if (authorName === 'Hired') {
@@ -152,23 +149,31 @@ export class TpFeedParserService {
     return { status: 'event', event: { kind, link } };
   }
 
+  /**
+   * Read by the shared advancement parser. The feed tolerates a value whose
+   * wording it does not understand: it only needs the value's text to echo.
+   */
   private parseNewSkillOrCharacteristic(
     embed: Embed,
     messageId: string,
   ): TpFeedParseResult {
     const kind = 'new-skill-or-characteristic';
-    const field = embed.fields.at(0);
-    const player = this.parsePlayerField(field?.name);
-    if (!player) return this.parseFailure(kind, 'player field', messageId);
-    const teamName = embed.footer?.text;
-    if (!teamName) return this.parseFailure(kind, 'footer.text', messageId);
-    const link = embed.author?.url;
-    if (!link) return this.parseFailure(kind, 'author.url', messageId);
-    const description = this.parseSkillDescription(field?.value);
-    if (!description) return this.parseFailure(kind, 'field value', messageId);
+    const result = this.advancementParser.parse(embed);
+    if (!result.ok) {
+      return this.parseFailure(kind, result.failedField, messageId);
+    }
+    const { playerNumber, playerName, position, teamName } = result.advancement;
     return {
       status: 'event',
-      event: { kind, ...player, teamName, description, link },
+      event: {
+        kind,
+        playerNumber,
+        playerName,
+        position,
+        teamName,
+        description: result.advancement.valueText,
+        link: result.advancement.rosterLink,
+      },
     };
   }
 
@@ -177,7 +182,9 @@ export class TpFeedParserService {
     messageId: string,
     kind: 'hired' | 'fired' | 'temporarily-retired',
   ): TpFeedParseResult {
-    const player = this.parsePlayerField(embed.fields.at(0)?.name);
+    const player = this.advancementParser.parsePlayerLine(
+      embed.fields.at(0)?.name,
+    );
     if (!player) return this.parseFailure(kind, 'player field', messageId);
     const teamName = embed.footer?.text;
     if (!teamName) return this.parseFailure(kind, 'footer.text', messageId);
@@ -201,30 +208,11 @@ export class TpFeedParserService {
     return { name: teamName, race, coach };
   }
 
-  private parsePlayerField(name: string | undefined): PlayerFieldParts | null {
-    const groups = name ? PLAYER_FIELD_PATTERN.exec(name)?.groups : undefined;
-    if (!groups) return null;
-    return {
-      playerNumber: groups.number,
-      playerName: groups.name,
-      position: groups.position,
-    };
-  }
-
   /** `` "`      0      `" `` → 0; anything non-numeric → null. */
   private parseScore(value: string | undefined): number | null {
     const digits = value?.replaceAll('`', '').trim();
     if (!digits || !/^\d+$/u.test(digits)) return null;
     return Number(digits);
-  }
-
-  /**
-   * `` "Random Primary ` Guard ` ` ★8 `" `` → "Random Primary Guard ★8".
-   * Backticks become spaces (rather than being deleted) so the words they
-   * separate do not run together, and the result's whitespace is collapsed.
-   */
-  private parseSkillDescription(value: string | undefined): string {
-    return (value ?? '').replaceAll('`', ' ').replace(/\s+/gu, ' ').trim();
   }
 
   private parseFailure(
