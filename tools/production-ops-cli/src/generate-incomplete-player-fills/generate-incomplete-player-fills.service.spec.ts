@@ -4,7 +4,12 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
 import { eligibleInput } from './fill-plan.test-helpers';
-import type { FillEntry, FillPlan } from './fill-plan.types';
+import {
+  type FillEntry,
+  type FillPlan,
+  type FillReport,
+  SKIP_REASONS,
+} from './fill-plan.types';
 import { FillSectionRendererService } from './fill-section-renderer.service';
 import { GenerateIncompletePlayerFillsService } from './generate-incomplete-player-fills.service';
 import { IncompletePlayerFillPlannerService } from './incomplete-player-fill-planner.service';
@@ -20,13 +25,24 @@ const ENTRY: FillEntry = {
   advancements: [],
 };
 
+/** A full skip tally: every reason present, empty unless overridden. */
+function skippedWith(
+  overrides: Partial<FillReport['skipped']> = {},
+): FillReport['skipped'] {
+  const skipped = {} as FillReport['skipped'];
+  for (const reason of SKIP_REASONS) {
+    skipped[reason] = overrides[reason] ?? { count: 0, players: [] };
+  }
+  return skipped;
+}
+
 function planWith(entries: FillEntry[]): FillPlan {
   return {
     entries,
     report: {
       considered: 1,
       eligible: entries.length,
-      skipped: {} as FillPlan['report']['skipped'],
+      skipped: skippedWith(),
     },
   };
 }
@@ -97,10 +113,10 @@ describe('GenerateIncompletePlayerFillsService', () => {
       report: {
         considered: 2,
         eligible: 0,
-        skipped: {
-          'spp-too-high': ['11'],
-          journeyman: ['12'],
-        } as unknown as FillPlan['report']['skipped'],
+        skipped: skippedWith({
+          'spp-too-high': { count: 1, players: ['11'] },
+          journeyman: { count: 1, players: ['12'] },
+        }),
       },
     });
 
@@ -113,8 +129,8 @@ describe('GenerateIncompletePlayerFillsService', () => {
     const message = (failure as Error).message;
     expect(message).toContain('nothing written');
     expect(message).toContain('"considered":2');
-    expect(message).toContain('"spp-too-high":["11"]');
-    expect(message).toContain('"journeyman":["12"]');
+    expect(message).toContain('"spp-too-high":{"count":1,"players":["11"]}');
+    expect(message).toContain('"journeyman":{"count":1,"players":["12"]}');
     expect(writeFile.run).not.toHaveBeenCalled();
   });
 
