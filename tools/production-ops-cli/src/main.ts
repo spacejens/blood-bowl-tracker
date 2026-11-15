@@ -18,6 +18,7 @@ import {
   GenerateIncompletePlayerFillsService,
 } from './generate-incomplete-player-fills/generate-incomplete-player-fills.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
+import { ReadTpFeedHistoryService } from './read-tp-feed-history/read-tp-feed-history.service';
 import { RunProductionQueryService } from './run-production-query/run-production-query.service';
 
 const SUBCOMMANDS = [
@@ -28,6 +29,7 @@ const SUBCOMMANDS = [
   'fetch-recent-discord-messages',
   'fetch-discord-message',
   'generate-incomplete-player-fills',
+  'read-tp-feed-history',
 ] as const;
 
 type Subcommand = (typeof SUBCOMMANDS)[number];
@@ -53,6 +55,10 @@ const FETCH_DISCORD_MESSAGE_USAGE =
 const GENERATE_INCOMPLETE_PLAYER_FILLS_USAGE =
   'Usage: node dist/main.js generate-incomplete-player-fills ' +
   '[--out=<repo-relative-path>]';
+const READ_TP_FEED_HISTORY_USAGE =
+  'Usage: node dist/main.js read-tp-feed-history <channel-id> [--max-pages=N]';
+
+const MAX_PAGES_FLAG = '--max-pages=';
 
 /** Arguments for `start-production-tunnel`; absent for every other subcommand. */
 interface StartProductionTunnelInput {
@@ -67,6 +73,12 @@ interface FetchRecentDiscordMessagesInput {
   readonly before?: string;
 }
 
+/** Arguments for `read-tp-feed-history`; absent otherwise. */
+interface ReadTpFeedHistoryInput {
+  readonly channelId: string;
+  readonly maxPages?: number;
+}
+
 interface DispatchArgs {
   readonly expectedApiBaseUrl?: string;
   readonly startProductionTunnel?: StartProductionTunnelInput;
@@ -74,6 +86,7 @@ interface DispatchArgs {
   readonly fetchRecentDiscordMessages?: FetchRecentDiscordMessagesInput;
   readonly discordMessageLink?: string;
   readonly generateIncompletePlayerFills?: GenerateIncompletePlayerFillsInput;
+  readonly readTpFeedHistory?: ReadTpFeedHistoryInput;
 }
 
 function readExpectedApiBaseUrl(): string {
@@ -168,6 +181,28 @@ function readGenerateIncompletePlayerFillsInput(): GenerateIncompletePlayerFills
   return { out: outArg.slice('--out='.length) };
 }
 
+/**
+ * Reads only the argument syntax; the service itself checks that the channel
+ * id is a snowflake and the page count a positive integer.
+ */
+function readReadTpFeedHistoryInput(): ReadTpFeedHistoryInput {
+  const channelId = process.argv[3];
+  const maxPagesArg = process.argv[4];
+  if (channelId === undefined || channelId === '' || process.argv.length > 5) {
+    throw new Error(READ_TP_FEED_HISTORY_USAGE);
+  }
+  if (maxPagesArg === undefined) {
+    return { channelId };
+  }
+  const pages = maxPagesArg.startsWith(MAX_PAGES_FLAG)
+    ? maxPagesArg.slice(MAX_PAGES_FLAG.length)
+    : '';
+  if (!/^\d+$/u.test(pages)) {
+    throw new Error(READ_TP_FEED_HISTORY_USAGE);
+  }
+  return { channelId, maxPages: Number(pages) };
+}
+
 function readArgs(subcommand: Subcommand): DispatchArgs {
   return {
     expectedApiBaseUrl:
@@ -193,6 +228,10 @@ function readArgs(subcommand: Subcommand): DispatchArgs {
     generateIncompletePlayerFills:
       subcommand === 'generate-incomplete-player-fills'
         ? readGenerateIncompletePlayerFillsInput()
+        : undefined,
+    readTpFeedHistory:
+      subcommand === 'read-tp-feed-history'
+        ? readReadTpFeedHistoryInput()
         : undefined,
   };
 }
@@ -257,6 +296,14 @@ function dispatch(
       return app
         .get(GenerateIncompletePlayerFillsService)
         .run(args.generateIncompletePlayerFills);
+    }
+    case 'read-tp-feed-history': {
+      if (args.readTpFeedHistory === undefined) {
+        throw new Error(READ_TP_FEED_HISTORY_USAGE);
+      }
+      return app
+        .get(ReadTpFeedHistoryService)
+        .run(args.readTpFeedHistory.channelId, args.readTpFeedHistory.maxPages);
     }
   }
 }

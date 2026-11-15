@@ -35,6 +35,16 @@ scope: match-scheduled notifications, and the in-match event notifications
 (touchdown, casualty, MVP, foul, and so on) that all share a generic
 `Match Event` embed author.
 
+New skill/characteristic notifications, and the player line of hire, fire
+and temporary retirement notifications, are read by the shared
+[parse-tp-feed](../parse-tp-feed/index.md) package, so the
+[production-ops CLI](../production-ops-cli/index.md) reads the channel's past
+notifications the same way. The feed echoes a new skill/characteristic
+notification whenever its player, team, roster link and value are present,
+even if TP worded the value in a way the package does not understand.
+To read the advancement reports already in the channel, see
+[Reading the TP feed history](../production-ops-cli/index.md#reading-the-tp-feed-history).
+
 Anything else posted by a webhook with an embed in the source channel logs a
 warning naming the message id and a short excerpt of the embed, and so does
 any recognised notification whose fields do not parse. Both cases also post a

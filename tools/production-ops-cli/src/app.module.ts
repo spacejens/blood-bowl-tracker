@@ -2,6 +2,7 @@ import {
   ChildProcessModule,
   CliSharedModule,
 } from '@blood-bowl-tracker/cli-shared';
+import { ParseTpFeedModule } from '@blood-bowl-tracker/parse-tp-feed';
 import { Module } from '@nestjs/common';
 
 import { CheckProductionConfigPortService } from './check-production-config-port/check-production-config-port.service';
@@ -17,10 +18,14 @@ import { IncompletePlayerFillQueriesService } from './generate-incomplete-player
 import { PositionProfileService } from './generate-incomplete-player-fills/position-profile.service';
 import { ProductionJsonQueryService } from './generate-incomplete-player-fills/production-json-query.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
+import { ReadTpFeedHistoryService } from './read-tp-feed-history/read-tp-feed-history.service';
+import { SnowflakeOrderService } from './read-tp-feed-history/snowflake-order.service';
+import { TpFeedHistoryIndexService } from './read-tp-feed-history/tp-feed-history-index.service';
+import { TpFeedHistoryStoreService } from './read-tp-feed-history/tp-feed-history-store.service';
 import { RunProductionQueryService } from './run-production-query/run-production-query.service';
 
 @Module({
-  imports: [CliSharedModule, ChildProcessModule],
+  imports: [CliSharedModule, ChildProcessModule, ParseTpFeedModule],
   providers: [
     DiscordBotTokenService,
     DiscordRestService,
@@ -36,6 +41,10 @@ import { RunProductionQueryService } from './run-production-query/run-production
     IncompletePlayerFillQueriesService,
     PositionProfileService,
     ProductionJsonQueryService,
+    ReadTpFeedHistoryService,
+    SnowflakeOrderService,
+    TpFeedHistoryIndexService,
+    TpFeedHistoryStoreService,
   ],
 })
 export class AppModule {}

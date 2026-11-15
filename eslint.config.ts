@@ -57,6 +57,8 @@ export default tseslint.config(
             'packages/logging/vitest.config.ts',
             'packages/parse-tp/test/*.ts',
             'packages/parse-tp/vitest.config.ts',
+            'packages/parse-tp-feed/test/*.ts',
+            'packages/parse-tp-feed/vitest.config.ts',
             'packages/read-bbl-mirror/test/*.ts',
             'packages/read-bbl-mirror/vitest.config.ts',
             'packages/review-harness/test/*.ts',

@@ -7,6 +7,7 @@ import {
   ProductionEnvFileService,
   WriteFileService,
 } from '@blood-bowl-tracker/cli-shared';
+import { TpFeedAdvancementParserService } from '@blood-bowl-tracker/parse-tp-feed';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
@@ -24,6 +25,10 @@ import { IncompletePlayerFillQueriesService } from './generate-incomplete-player
 import { PositionProfileService } from './generate-incomplete-player-fills/position-profile.service';
 import { ProductionJsonQueryService } from './generate-incomplete-player-fills/production-json-query.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
+import { ReadTpFeedHistoryService } from './read-tp-feed-history/read-tp-feed-history.service';
+import { SnowflakeOrderService } from './read-tp-feed-history/snowflake-order.service';
+import { TpFeedHistoryIndexService } from './read-tp-feed-history/tp-feed-history-index.service';
+import { TpFeedHistoryStoreService } from './read-tp-feed-history/tp-feed-history-store.service';
 import { RunProductionQueryService } from './run-production-query/run-production-query.service';
 
 describe('AppModule', () => {
@@ -88,6 +93,21 @@ describe('AppModule', () => {
     );
     expect(moduleRef.get(ProductionJsonQueryService)).toBeInstanceOf(
       ProductionJsonQueryService,
+    );
+    expect(moduleRef.get(ReadTpFeedHistoryService)).toBeInstanceOf(
+      ReadTpFeedHistoryService,
+    );
+    expect(moduleRef.get(TpFeedHistoryStoreService)).toBeInstanceOf(
+      TpFeedHistoryStoreService,
+    );
+    expect(moduleRef.get(TpFeedHistoryIndexService)).toBeInstanceOf(
+      TpFeedHistoryIndexService,
+    );
+    expect(moduleRef.get(SnowflakeOrderService)).toBeInstanceOf(
+      SnowflakeOrderService,
+    );
+    expect(moduleRef.get(TpFeedAdvancementParserService)).toBeInstanceOf(
+      TpFeedAdvancementParserService,
     );
   });
 });

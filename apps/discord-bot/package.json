@@ -34,6 +34,7 @@
     "@blood-bowl-tracker/game-data-queries": "workspace:*",
     "@blood-bowl-tracker/import-tp-live": "workspace:*",
     "@blood-bowl-tracker/logging": "workspace:*",
+    "@blood-bowl-tracker/parse-tp-feed": "workspace:*",
     "@blood-bowl-tracker/tp-paths": "workspace:*",
     "@nestjs/common": "^12.0.0",
     "@nestjs/config": "^12.0.0",
