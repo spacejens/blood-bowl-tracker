@@ -271,7 +271,28 @@ describe('IncompletePlayerFillPlannerService', () => {
     [
       'a team in an ongoing competition',
       { ongoingTeamIds: [20] },
-      'status-unresolved',
+      'team-in-ongoing-competition',
+    ],
+    [
+      'a team in an ongoing competition, whatever his stored status',
+      {
+        candidates: [candidate({ status: 'retired' })],
+        ongoingTeamIds: [20],
+      },
+      'team-in-ongoing-competition',
+    ],
+    [
+      'a team in an ongoing competition, even with a recorded death',
+      { deathPlayerIds: [1], ongoingTeamIds: [20] },
+      'team-in-ongoing-competition',
+    ],
+    [
+      'a team in an ongoing competition before any SPP check',
+      {
+        candidates: [candidate({ sppTotal: null })],
+        ongoingTeamIds: [20],
+      },
+      'team-in-ongoing-competition',
     ],
   ])('skips %s', (_label, overrides, reason) => {
     expect(reasonFor(eligibleInput(overrides))).toBe(reason);
@@ -322,7 +343,6 @@ describe('IncompletePlayerFillPlannerService', () => {
     const plan = service.plan(
       eligibleInput({
         candidates: [candidate({ status: 'active' })],
-        ongoingTeamIds: [20],
       }),
     );
 
@@ -333,7 +353,6 @@ describe('IncompletePlayerFillPlannerService', () => {
     const plan = service.plan(
       eligibleInput({
         deathPlayerIds: [1],
-        ongoingTeamIds: [20],
       }),
     );
 

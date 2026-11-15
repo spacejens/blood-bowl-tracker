@@ -117,12 +117,15 @@ set of their era prices, house rules included. Each entry is:
   when the rules set has Passing;
 - the position's starting skills and no advancements;
 - the whole total, unspent;
-- the stored status, else `dead` if a death is recorded, else `retired` when
-  no team era of the player's team plays in an ongoing competition.
+- the stored status, else `dead` if a death is recorded, else `retired`.
 
 A player is skipped, with the reason reported, when any of these holds:
 
 - he is a journeyman;
+- a team era of his team is enrolled in an ongoing competition, whatever
+  his stored status: his data is still changing, and his stored total may
+  understate his real one while SPP adjustments estimate the competition in
+  progress;
 - his total is missing or too high;
 - a rules set of his era prices nothing;
 - a trophy could have granted him a skill, or he has a gained Loner, Hatred
@@ -134,8 +137,7 @@ A player is skipped, with the reason reported, when any of these holds:
 - his position's data differs between the rules sets of his era, or names a
   skill with no `Name` id;
 - the position's line is not a valid one;
-- anything already stored would make the fill refuse the entry;
-- his status cannot be told.
+- anything already stored would make the fill refuse the entry.
 
 The server's checks above still apply when the batch is applied.
 

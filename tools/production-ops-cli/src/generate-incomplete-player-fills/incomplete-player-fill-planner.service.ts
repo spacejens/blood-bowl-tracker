@@ -103,6 +103,11 @@ export class IncompletePlayerFillPlannerService {
     if (candidate.isJourneyman) {
       return { reason: 'journeyman' };
     }
+    // His data is a moving target, and his stored total may understate his
+    // real one while SPP adjustments estimate the competition in progress.
+    if (index.ongoingTeams.has(candidate.teamId)) {
+      return { reason: 'team-in-ongoing-competition' };
+    }
     const sppTotal = candidate.sppTotal;
     if (sppTotal === null || sppTotal < 0) {
       return { reason: 'spp-missing' };
@@ -148,9 +153,6 @@ export class IncompletePlayerFillPlannerService {
       return { reason: 'stored-data-contradicts' };
     }
     const status = this.status(candidate, index);
-    if (status === undefined) {
-      return { reason: 'status-unresolved' };
-    }
     return {
       entry: this.entry({ candidate, sppTotal, profile, status }),
     };
@@ -213,20 +215,15 @@ export class IncompletePlayerFillPlannerService {
     );
   }
 
-  private status(
-    candidate: CandidateRow,
-    index: PlannerIndex,
-  ): PlayerStatus | undefined {
+  /**
+   * The stored status, else dead when a death is recorded, else retired: a
+   * player of a team in no ongoing competition plays no more.
+   */
+  private status(candidate: CandidateRow, index: PlannerIndex): PlayerStatus {
     if (candidate.status !== null) {
       return candidate.status;
     }
-    if (index.death.has(candidate.playerId)) {
-      return 'dead';
-    }
-    if (index.ongoingTeams.has(candidate.teamId)) {
-      return undefined;
-    }
-    return 'retired';
+    return index.death.has(candidate.playerId) ? 'dead' : 'retired';
   }
 
   private entry(parts: EntryParts): FillEntry {

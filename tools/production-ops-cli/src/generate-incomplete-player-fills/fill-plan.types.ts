@@ -103,6 +103,7 @@ export interface PositionProfile {
 
 export const SKIP_REASONS = [
   'journeyman',
+  'team-in-ongoing-competition',
   'spp-missing',
   'era-unpriced',
   'spp-too-high',
@@ -111,7 +112,6 @@ export const SKIP_REASONS = [
   'position-ambiguous',
   'invalid-characteristics',
   'stored-data-contradicts',
-  'status-unresolved',
 ] as const;
 export type SkipReason = (typeof SKIP_REASONS)[number];
 
