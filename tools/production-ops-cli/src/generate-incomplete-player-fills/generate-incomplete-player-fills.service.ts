@@ -44,7 +44,8 @@ export class GenerateIncompletePlayerFillsService {
     }
     if (plan.entries.length === 0) {
       throw new Error(
-        'No incomplete player is eligible for a fill; nothing written.',
+        'No incomplete player is eligible for a fill; nothing written. ' +
+          `Report: ${JSON.stringify(plan.report)}`,
       );
     }
     const written = await this.writeFile.run(input.out, section);

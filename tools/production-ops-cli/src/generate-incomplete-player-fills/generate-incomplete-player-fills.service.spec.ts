@@ -91,6 +91,33 @@ describe('GenerateIncompletePlayerFillsService', () => {
     expect(writeFile.run).not.toHaveBeenCalled();
   });
 
+  it('reports why every player was skipped when it refuses to write', async () => {
+    planner.plan.mockReturnValue({
+      entries: [],
+      report: {
+        considered: 2,
+        eligible: 0,
+        skipped: {
+          'spp-too-high': ['11'],
+          journeyman: ['12'],
+        } as unknown as FillPlan['report']['skipped'],
+      },
+    });
+
+    const failure = await service
+      .run({ out: 'x.json5' })
+      .then(() => undefined)
+      .catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(Error);
+    const message = (failure as Error).message;
+    expect(message).toContain('nothing written');
+    expect(message).toContain('"considered":2');
+    expect(message).toContain('"spp-too-high":["11"]');
+    expect(message).toContain('"journeyman":["12"]');
+    expect(writeFile.run).not.toHaveBeenCalled();
+  });
+
   it('prints an empty section when nothing is eligible and no path is given', async () => {
     planner.plan.mockReturnValue(planWith([]));
 

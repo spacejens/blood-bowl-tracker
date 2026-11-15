@@ -58,7 +58,8 @@ The output is JSON: `report` counts the players considered and filled, and
 lists the skipped players' TP ids under each reason. `section` holds the
 batch file when no `--out` is given. With `--out`, the file is written
 through cli-shared's `WriteFileService` and `written` reports it. A run with
-`--out` and no eligible player writes nothing and fails.
+`--out` and no eligible player writes nothing and fails, with the report in the
+error message so the skipped players and their reasons are still visible.
 
 The package depends on `@blood-bowl-tracker/domain-enums` for the status and
 characteristic-format enums. `@blood-bowl-tracker/db` and
