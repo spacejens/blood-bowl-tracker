@@ -59,7 +59,7 @@ const PlayerIdRowSchema = z.object({ playerId: id });
 
 const OngoingRowSchema = z.object({
   competitionName: z.string(),
-  teamId: id.nullable(),
+  teamId: id,
 });
 
 const PositionRulesSetRowSchema = z.object({
@@ -127,9 +127,7 @@ export class IncompletePlayerFillQueriesService {
       freeSkillRiskPlayerIds: (
         await this.rows(FREE_SKILL_RISK_SQL, PlayerIdRowSchema)
       ).map((row) => row.playerId),
-      ongoingTeamIds: ongoing.flatMap((row) =>
-        row.teamId === null ? [] : [row.teamId],
-      ),
+      ongoingTeamIds: [...new Set(ongoing.map((row) => row.teamId))],
       positionRulesSets: await this.rows(
         POSITION_RULES_SETS_SQL,
         PositionRulesSetRowSchema,
@@ -150,8 +148,9 @@ export class IncompletePlayerFillQueriesService {
   }
 
   /**
-   * Without the ongoing competitions every player of their teams would be
-   * filled as retired, so a name that matches nothing stops the run.
+   * Without the ongoing competitions' teams every player of those teams
+   * would be filled, so a name with no team (not found, or with no enrolled
+   * team and no match) stops the run.
    */
   private assertOngoingFound(
     rows: readonly { competitionName: string }[],
@@ -159,9 +158,10 @@ export class IncompletePlayerFillQueriesService {
     for (const name of ONGOING_COMPETITION_NAMES) {
       if (!rows.some((row) => row.competitionName === name)) {
         throw new Error(
-          `Ongoing competition "${name}" not found in the database. Its ` +
-            "teams' players cannot be told apart from retired ones; check " +
-            'the stored competition name in ONGOING_COMPETITION_NAMES.',
+          `Ongoing competition "${name}" has no enrolled or playing team ` +
+            "in the database. Its teams' players cannot be told apart from " +
+            'retired ones; check the stored competition name in ' +
+            'ONGOING_COMPETITION_NAMES.',
         );
       }
     }

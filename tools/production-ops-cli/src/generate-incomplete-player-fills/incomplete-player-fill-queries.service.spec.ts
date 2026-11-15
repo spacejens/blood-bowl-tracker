@@ -76,7 +76,8 @@ describe('IncompletePlayerFillQueriesService', () => {
         ONGOING_COMPETITIONS_SQL,
         [
           { competitionName: 'Major Season 31', teamId: 20 },
-          { competitionName: 'Ogretoberfest 14', teamId: null },
+          { competitionName: 'Ogretoberfest 14', teamId: 21 },
+          { competitionName: 'Ogretoberfest 14', teamId: 20 },
         ],
       ],
       [POSITION_RULES_SETS_SQL, [PRS]],
@@ -107,7 +108,7 @@ describe('IncompletePlayerFillQueriesService', () => {
       deathPlayerIds: [1, 3],
       storedAdvancements: [],
       freeSkillRiskPlayerIds: [9],
-      ongoingTeamIds: [20],
+      ongoingTeamIds: [20, 21],
       positionRulesSets: [PRS],
       positionSkills: [SKILL],
       eraRulesSets: [{ eraId: 4, rulesSetId: 7, cheapestCost: 6 }],
@@ -122,15 +123,30 @@ describe('IncompletePlayerFillQueriesService', () => {
     }
   });
 
-  it('refuses to run when an ongoing competition is not found', async () => {
+  it('refuses to run when an ongoing competition has no team', async () => {
     results.set(ONGOING_COMPETITIONS_SQL, [
       { competitionName: 'Major Season 31', teamId: 20 },
     ]);
 
     await expect(service.load()).rejects.toThrow(
-      'Ongoing competition "Ogretoberfest 14" not found',
+      'Ongoing competition "Ogretoberfest 14" has no enrolled or playing team',
     );
     expect(json.rows).toHaveBeenCalledTimes(1);
+  });
+
+  it('refuses an ongoing-competition row with no team', async () => {
+    results.set(ONGOING_COMPETITIONS_SQL, [
+      { competitionName: 'Major Season 31', teamId: 20 },
+      { competitionName: 'Ogretoberfest 14', teamId: null },
+    ]);
+
+    await expect(service.load()).rejects.toThrow();
+    expect(json.rows).toHaveBeenCalledTimes(1);
+  });
+
+  it('counts both enrolled teams and teams in matches as ongoing', () => {
+    expect(ONGOING_COMPETITIONS_SQL).toContain('game_data.competition_teams');
+    expect(ONGOING_COMPETITIONS_SQL).toContain('game_data.match_teams');
   });
 
   it('refuses a row of the wrong shape', async () => {

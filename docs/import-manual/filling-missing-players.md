@@ -122,10 +122,10 @@ set of their era prices, house rules included. Each entry is:
 A player is skipped, with the reason reported, when any of these holds:
 
 - he is a journeyman;
-- a team era of his team is enrolled in an ongoing competition, whatever
-  his stored status: his data is still changing, and his stored total may
-  understate his real one while SPP adjustments estimate the competition in
-  progress;
+- a team era of his team is enrolled in, or plays in a match of, an
+  ongoing competition, whatever his stored status: his data is still
+  changing, and his stored total may understate his real one while SPP
+  adjustments estimate the competition in progress;
 - his total is missing or too high;
 - a rules set of his era prices nothing;
 - a trophy could have granted him a skill, or he has a gained Loner, Hatred

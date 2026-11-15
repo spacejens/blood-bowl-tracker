@@ -21,8 +21,9 @@ export const INCOMPLETE_PLAYER_CONDITIONS = [
 ] as const;
 
 /**
- * Competitions still being played. A player of a team enrolled in one may
- * still be active, so his status cannot be inferred.
+ * Competitions still being played. A player of a team enrolled in one, or
+ * playing in its matches, may still be active and gaining SPP, so he is not
+ * filled.
  */
 export const ONGOING_COMPETITION_NAMES = [
   'Major Season 31',
@@ -88,11 +89,22 @@ WHERE ta.granted_skill_id IS NOT NULL
     WHERE granted_skill_id IS NOT NULL
   )`;
 
-export const ONGOING_COMPETITIONS_SQL = `SELECT c.name AS "competitionName",
-  te.team_id AS "teamId"
+/**
+ * Every team of an ongoing competition: enrolled in it, or a side in one of
+ * its matches. A competition with neither has no row at all.
+ */
+export const ONGOING_COMPETITIONS_SQL = `SELECT DISTINCT
+  c.name AS "competitionName", te.team_id AS "teamId"
 FROM game_data.competitions c
-LEFT JOIN game_data.competition_teams ct ON ct.competition_id = c.id
-LEFT JOIN game_data.team_eras te ON te.id = ct.team_era_id
+JOIN (
+  SELECT ct.competition_id, ct.team_era_id
+  FROM game_data.competition_teams ct
+  UNION
+  SELECT m.competition_id, mt.team_era_id
+  FROM game_data.matches m
+  JOIN game_data.match_teams mt ON mt.match_id = m.id
+) playing ON playing.competition_id = c.id
+JOIN game_data.team_eras te ON te.id = playing.team_era_id
 WHERE c.name IN (${ONGOING_COMPETITION_NAMES.map((name) => `'${name}'`).join(', ')})`;
 
 export const POSITION_RULES_SETS_SQL = `${CANDIDATES_CTE}
