@@ -122,6 +122,30 @@ describe('PositionProfileService', () => {
     expect(service.resolve({ rows, skills: [] })).toBeUndefined();
   });
 
+  it('is uncertain when a starting skill has an empty attribute value', () => {
+    expect(
+      service.resolve({
+        rows: [row()],
+        skills: [skill({ attributeValue: '' })],
+      }),
+    ).toBeUndefined();
+  });
+
+  it('sorts skills by code point, uppercase before lowercase', () => {
+    expect(
+      service
+        .resolve({
+          rows: [row()],
+          skills: [
+            skill({ skillId: 101, nameId: 'block' }),
+            skill({ skillId: 102, nameId: 'Loner', attributeValue: '4+' }),
+            skill({ skillId: 103, nameId: 'Loner', attributeValue: '3+' }),
+          ],
+        })
+        ?.skills.map((s) => `${s.nameId}${s.attributeValue ?? ''}`),
+    ).toEqual(['Loner3+', 'Loner4+', 'block']);
+  });
+
   it('is uncertain when a starting skill has no Name-system id', () => {
     expect(
       service.resolve({ rows: [row()], skills: [skill({ nameId: null })] }),

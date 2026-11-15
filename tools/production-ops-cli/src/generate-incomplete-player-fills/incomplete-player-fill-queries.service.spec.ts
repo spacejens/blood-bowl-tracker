@@ -149,6 +149,19 @@ describe('IncompletePlayerFillQueriesService', () => {
     expect(ONGOING_COMPETITIONS_SQL).toContain('game_data.match_teams');
   });
 
+  it('treats any trophy award to a candidate as a free-skill risk', () => {
+    expect(FREE_SKILL_RISK_SQL).not.toContain('granted_skill_id');
+    expect(FREE_SKILL_RISK_SQL).toContain(
+      'JOIN candidates c ON c.player_id = ta.player_id',
+    );
+  });
+
+  it("scopes position skills to the candidates' positions in their eras", () => {
+    expect(POSITION_SKILLS_SQL).toContain(
+      'WHERE (prs.position_id, ers.era_id) IN',
+    );
+  });
+
   it('refuses a row of the wrong shape', async () => {
     results.set(CANDIDATES_SQL, [{ ...CANDIDATE, tpId: 500 }]);
 

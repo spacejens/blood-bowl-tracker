@@ -163,11 +163,7 @@ describe('IncompletePlayerFillPlannerService', () => {
       },
       'spp-too-high',
     ],
-    [
-      'a trophy that can grant a skill',
-      { freeSkillRiskPlayerIds: [1] },
-      'free-skill-risk',
-    ],
+    ['a trophy award', { freeSkillRiskPlayerIds: [1] }, 'free-skill-risk'],
     [
       'a recorded stat reduction',
       { statReductionPlayerIds: [1] },
@@ -259,6 +255,21 @@ describe('IncompletePlayerFillPlannerService', () => {
       'stored-data-contradicts',
     ],
     [
+      'a stored strength that differs',
+      { candidates: [candidate({ strength: 4 })] },
+      'stored-data-contradicts',
+    ],
+    [
+      'a stored agility that differs',
+      { candidates: [candidate({ agility: 4 })] },
+      'stored-data-contradicts',
+    ],
+    [
+      'a stored armour that differs',
+      { candidates: [candidate({ armour: 8 })] },
+      'stored-data-contradicts',
+    ],
+    [
       'a stored passing that differs',
       { candidates: [candidate({ passing: 3 })] },
       'stored-data-contradicts',
@@ -296,6 +307,31 @@ describe('IncompletePlayerFillPlannerService', () => {
     ],
   ])('skips %s', (_label, overrides, reason) => {
     expect(reasonFor(eligibleInput(overrides))).toBe(reason);
+  });
+
+  it('skips a stored starting skill whose attribute value differs from the position', () => {
+    profiles.resolve.mockReturnValue(
+      profile({
+        skills: [{ skillId: 102, nameId: 'Loner', attributeValue: '3+' }],
+      }),
+    );
+
+    expect(
+      reasonFor(
+        eligibleInput({
+          storedAdvancements: [
+            {
+              playerId: 1,
+              source: 'starting',
+              skillId: 102,
+              skillName: 'Loner',
+              attributeValue: '4+',
+              isFreeExtra: false,
+            },
+          ],
+        }),
+      ),
+    ).toBe('stored-data-contradicts');
   });
 
   it('skips a player whose position is ambiguous', () => {
@@ -349,6 +385,17 @@ describe('IncompletePlayerFillPlannerService', () => {
     expect(plan.entries[0].status).toBe('active');
   });
 
+  it('keeps a stored status over a recorded death', () => {
+    const plan = service.plan(
+      eligibleInput({
+        candidates: [candidate({ status: 'retired' })],
+        deathPlayerIds: [1],
+      }),
+    );
+
+    expect(plan.entries[0].status).toBe('retired');
+  });
+
   it('marks a player dead when his match events record a death', () => {
     const plan = service.plan(
       eligibleInput({
@@ -392,6 +439,26 @@ describe('IncompletePlayerFillPlannerService', () => {
     expect(plan.entries.map((entry) => entry.player.id)).toEqual([
       '90',
       '1000',
+    ]);
+  });
+
+  it('orders TP ids that are not numbers by code unit', () => {
+    const plan = service.plan(
+      eligibleInput({
+        candidates: [
+          candidate({ playerId: 1, tpId: 'b' }),
+          candidate({ playerId: 2, tpId: 'B' }),
+          candidate({ playerId: 3, tpId: 'a' }),
+          candidate({ playerId: 4, tpId: 'a' }),
+        ],
+      }),
+    );
+
+    expect(plan.entries.map((entry) => entry.player.id)).toEqual([
+      'B',
+      'a',
+      'a',
+      'b',
     ]);
   });
 });

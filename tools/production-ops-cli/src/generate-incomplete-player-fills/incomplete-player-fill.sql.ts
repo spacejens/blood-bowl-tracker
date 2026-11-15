@@ -76,18 +76,13 @@ LEFT JOIN game_data.skills s ON s.id = pa.skill_id
 WHERE pa.removed = false`;
 
 /**
- * Candidates holding an award of a trophy that has granted a skill in any
- * award: a null granted skill can mean it is not known yet.
+ * Candidates holding any trophy award: a trophy may grant a skill, and a
+ * null granted skill can mean it is not known yet.
  */
 export const FREE_SKILL_RISK_SQL = `${CANDIDATES_CTE}
 SELECT DISTINCT ta.player_id AS "playerId"
 FROM game_data.trophy_awards ta
-JOIN candidates c ON c.player_id = ta.player_id
-WHERE ta.granted_skill_id IS NOT NULL
-  OR ta.trophy_id IN (
-    SELECT trophy_id FROM game_data.trophy_awards
-    WHERE granted_skill_id IS NOT NULL
-  )`;
+JOIN candidates c ON c.player_id = ta.player_id`;
 
 /**
  * Every team of an ongoing competition: enrolled in it, or a side in one of
@@ -129,12 +124,15 @@ SELECT DISTINCT ON (prss.id)
   prss.attribute_value AS "attributeValue"
 FROM game_data.position_rules_set_skills prss
 JOIN game_data.position_rules_sets prs ON prs.id = prss.position_rules_set_id
+JOIN game_data.era_rules_sets ers ON ers.rules_set_id = prs.rules_set_id
 LEFT JOIN (
   game_data.skills_external_ids se
   JOIN game_data.external_systems ses
     ON ses.id = se.external_system_id AND ses.name = 'Name'
 ) ON se.skill_id = prss.skill_id
-WHERE prs.position_id IN (SELECT position_id FROM candidates)
+WHERE (prs.position_id, ers.era_id) IN (
+  SELECT position_id, era_id FROM candidates
+)
 ORDER BY prss.id, se.external_id`;
 
 /** Every rules set of a candidate's era, with its cheapest advancement of any kind or league. */

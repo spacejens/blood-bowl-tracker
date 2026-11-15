@@ -18,8 +18,9 @@ export interface PositionProfileInput {
  * Decides whether a position's stored data is certain in one era: exactly
  * one profile (characteristics, characteristic formats and starting skills)
  * across the era's rules sets. Two rules sets that agree count as one. A
- * starting skill with no Name-system id cannot be referenced by a fill, so
- * it makes the position uncertain too.
+ * starting skill with no Name-system id cannot be referenced by a fill, and
+ * one with an empty attribute value cannot be written to one, so either
+ * makes the position uncertain too.
  *
  * Pure decision logic, with no I/O and no dependencies.
  */
@@ -48,7 +49,7 @@ export class PositionProfileService {
     );
     const named: ProfileSkill[] = [];
     for (const skill of own) {
-      if (skill.nameId === null) {
+      if (skill.nameId === null || skill.attributeValue === '') {
         return undefined;
       }
       named.push({
@@ -59,8 +60,8 @@ export class PositionProfileService {
     }
     named.sort(
       (a, b) =>
-        a.nameId.localeCompare(b.nameId) ||
-        (a.attributeValue ?? '').localeCompare(b.attributeValue ?? ''),
+        this.compare(a.nameId, b.nameId) ||
+        this.compare(a.attributeValue ?? '', b.attributeValue ?? ''),
     );
     // Keys are listed explicitly so the JSON comparison above does not
     // depend on the key order the query happened to produce.
@@ -81,5 +82,13 @@ export class PositionProfileService {
       },
       skills: named,
     };
+  }
+
+  /** Code-unit order, so the result does not depend on the runtime's locale. */
+  private compare(a: string, b: string): number {
+    if (a < b) {
+      return -1;
+    }
+    return a > b ? 1 : 0;
   }
 }

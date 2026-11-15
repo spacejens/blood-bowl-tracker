@@ -128,14 +128,15 @@ A player is skipped, with the reason reported, when any of these holds:
   adjustments estimate the competition in progress;
 - his total is missing or too high;
 - a rules set of his era prices nothing;
-- a trophy could have granted him a skill, or he has a gained Loner, Hatred
-  or free extra;
+- he holds any trophy award (a trophy may grant a skill, and one not
+  recorded yet looks the same as none), or he has a gained Loner, Hatred or
+  free extra;
 - his match events record any stat reduction. That is injury history, not
   necessarily his current line: newer rules sets let lasting injuries heal,
   and a reduction at a characteristic's limit changes nothing. Such players
   stay incomplete;
 - his position's data differs between the rules sets of his era, or names a
-  skill with no `Name` id;
+  skill with no `Name` id or with an empty attribute value;
 - the position's line is not a valid one;
 - anything already stored would make the fill refuse the entry.
 

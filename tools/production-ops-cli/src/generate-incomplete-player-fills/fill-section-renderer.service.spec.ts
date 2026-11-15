@@ -35,6 +35,16 @@ describe('FillSectionRendererService', () => {
     });
   });
 
+  it('renders valid JSON5 with no entries', () => {
+    expect(JSON5.parse(service.render([]))).toEqual({
+      externalSystems: [
+        { name: 'Name', category: 'bookkeeping' },
+        { name: 'tourplay.net', category: 'imported_data_source' },
+      ],
+      incompletePlayerFills: [],
+    });
+  });
+
   it('opens with a comment naming the generator and ends with a newline', () => {
     const text = service.render([ENTRY]);
 

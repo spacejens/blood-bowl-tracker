@@ -77,7 +77,20 @@ describe('ProductionJsonQueryService', () => {
     });
 
     await expect(service.rows('SELECT 1 AS a')).rejects.toThrow(
-      'Production query timed out',
+      /^Production query timed out$/,
+    );
+  });
+
+  it('reports a timed-out query with its stderr', async () => {
+    query.run.mockResolvedValue({
+      exitCode: 124,
+      stdout: '',
+      stderr: 'canceling statement\n',
+      timedOut: true,
+    });
+
+    await expect(service.rows('SELECT 1 AS a')).rejects.toThrow(
+      /^Production query timed out: canceling statement$/,
     );
   });
 

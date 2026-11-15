@@ -78,7 +78,7 @@ export class IncompletePlayerFillPlannerService {
     ) as unknown as FillReport['skipped'];
     const entries: FillEntry[] = [];
     const candidates = [...input.candidates].sort(
-      (a, b) => Number(a.tpId) - Number(b.tpId) || a.tpId.localeCompare(b.tpId),
+      (a, b) => Number(a.tpId) - Number(b.tpId) || this.compare(a.tpId, b.tpId),
     );
     for (const candidate of candidates) {
       const decision = this.decide(candidate, index);
@@ -156,6 +156,14 @@ export class IncompletePlayerFillPlannerService {
     return {
       entry: this.entry({ candidate, sppTotal, profile, status }),
     };
+  }
+
+  /** Code-unit order, so the result does not depend on the runtime's locale. */
+  private compare(a: string, b: string): number {
+    if (a < b) {
+      return -1;
+    }
+    return a > b ? 1 : 0;
   }
 
   /** Undefined when the era has no rules set, or one that prices nothing. */

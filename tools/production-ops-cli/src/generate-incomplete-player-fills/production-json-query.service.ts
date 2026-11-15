@@ -28,7 +28,12 @@ export class ProductionJsonQueryService {
       { tuplesOnly: true },
     );
     if (result.timedOut) {
-      throw new Error(`Production query timed out: ${result.stderr.trim()}`);
+      const stderr = result.stderr.trim();
+      throw new Error(
+        stderr === ''
+          ? 'Production query timed out'
+          : `Production query timed out: ${stderr}`,
+      );
     }
     if (result.exitCode !== 0) {
       throw new Error(
