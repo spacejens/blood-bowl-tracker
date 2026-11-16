@@ -9,7 +9,12 @@ import type {
 } from './fill-plan.types';
 import { CHARACTERISTIC_KEYS } from './fill-plan.types';
 
-/** The most a characteristic can be reduced below the position's start value. */
+/**
+ * The most reductions that can worsen a characteristic. It is also the most a
+ * characteristic can be reduced below the position's start value when it has
+ * no increase; replaying reductions between increases is certain only up to
+ * this many reductions.
+ */
 export const REDUCTION_CAP = 2;
 
 /** The worst die-roll target a target-number characteristic can reach. */
@@ -34,12 +39,22 @@ export interface ReduceInput {
   reductions: ReductionCounts;
 }
 
+export interface WorsenInput {
+  line: CharacteristicLine;
+  formats: CharacteristicFormats;
+  characteristic: CharacteristicKey;
+  /** How many reductions have already worsened this characteristic. */
+  worsened: number;
+}
+
 /**
- * Applies characteristic increases and stat reductions to a line, by the
- * characteristic's format: AG and PA in a target-number format (`plus`,
+ * Applies characteristic increases and stat reductions to a line, one at a
+ * time (improve, worsen) or all of a position's reductions at once (reduce),
+ * by the characteristic's format: AG and PA in a target-number format (`plus`,
  * `plus_zero_legal`) get better as they go down; every other characteristic
  * gets better as it goes up. A reduction worsens the value by one, never by
- * more than REDUCTION_CAP in all, and never past the floor: MA, ST and a bare
+ * more than REDUCTION_CAP times in all (a reduction held at the floor does not
+ * count), and never past the floor: MA, ST and a bare
  * characteristic 1, target-number AG and PA 6+, target-number AV 3+. A
  * structural-zero or absent PA is unaffected. These limits are the
  * rulebooks'; the database holds none.
@@ -69,25 +84,42 @@ export class CharacteristicChangeService {
     return next;
   }
 
-  reduce(input: ReduceInput): CharacteristicLine {
-    const reduced = { ...input.line };
-    for (const key of CHARACTERISTIC_KEYS) {
-      const value = input.line[key];
-      const count = input.reductions[key];
-      const format = input.formats[key];
-      if (value === null || format === 'absent' || count === 0) {
-        continue;
-      }
-      const steps = Math.min(
-        count,
-        REDUCTION_CAP,
-        this.room({ key, value, format }),
-      );
-      reduced[key] = this.lowerIsBetter(key, format)
-        ? value + steps
-        : value - steps;
+  /**
+   * The line with one stat reduction applied, or an unchanged copy when the
+   * characteristic is at its floor, has no value, or was already worsened
+   * REDUCTION_CAP times.
+   */
+  worsen(input: WorsenInput): CharacteristicLine {
+    const { line, formats, characteristic: key, worsened } = input;
+    const next = { ...line };
+    const value = line[key];
+    const format = formats[key];
+    if (
+      value === null ||
+      format === 'absent' ||
+      worsened >= REDUCTION_CAP ||
+      this.room({ key, value, format }) === 0
+    ) {
+      return next;
     }
-    return reduced;
+    next[key] = this.lowerIsBetter(key, format) ? value + 1 : value - 1;
+    return next;
+  }
+
+  reduce(input: ReduceInput): CharacteristicLine {
+    let line = { ...input.line };
+    for (const characteristic of CHARACTERISTIC_KEYS) {
+      const count = Math.min(input.reductions[characteristic], REDUCTION_CAP);
+      for (let worsened = 0; worsened < count; worsened += 1) {
+        line = this.worsen({
+          line,
+          formats: input.formats,
+          characteristic,
+          worsened,
+        });
+      }
+    }
+    return line;
   }
 
   private lowerIsBetter(

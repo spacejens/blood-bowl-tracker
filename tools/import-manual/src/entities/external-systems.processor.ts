@@ -80,6 +80,9 @@ export class ExternalSystemsProcessor {
     for (const entry of data.keywords) {
       addAll(entry.externalIds);
     }
+    for (const entry of data.lastingInjuryRepairs) {
+      add(entry.player);
+    }
     for (const entry of data.incompletePlayerFills) {
       add(entry.player);
       for (const skill of entry.startingSkills) {

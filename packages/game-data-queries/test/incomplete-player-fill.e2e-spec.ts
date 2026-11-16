@@ -34,6 +34,7 @@ import {
   CharacteristicFormatMismatchError,
   IncompletePlayerFillError,
   PlayerFillModule,
+  PlayerFillReductionsRecordService,
   PlayerFillService,
   PlayersModule,
   PlayersService,
@@ -180,6 +181,7 @@ async function seed(db: Db): Promise<Seed> {
 describe('Filling in a missing TP player (real Postgres)', () => {
   let db: Db;
   let service: PlayerFillService;
+  let reductionsRecord: PlayerFillReductionsRecordService;
   let playersService: PlayersService;
   let incomplete: IncompleteImportPlayersService;
   let seeded: Seed;
@@ -251,6 +253,7 @@ describe('Filling in a missing TP player (real Postgres)', () => {
       ],
     }).compile();
     service = moduleRef.get(PlayerFillService);
+    reductionsRecord = moduleRef.get(PlayerFillReductionsRecordService);
     playersService = moduleRef.get(PlayersService);
     incomplete = moduleRef.get(IncompleteImportPlayersService);
   });
@@ -482,5 +485,53 @@ describe('Filling in a missing TP player (real Postgres)', () => {
     expect(await storedPlayer()).toEqual(before);
     expect(await storedRows()).toEqual([]);
     expect(await incomplete.findTeamsWithIncompletePlayers()).toHaveLength(1);
+  });
+
+  const reducedArmour = () =>
+    entry({
+      characteristics: {
+        move: 6,
+        strength: 3,
+        agility: 3,
+        passing: 4,
+        armour: 8,
+      },
+    });
+
+  it('records the lasting reduction a fill leaves on the line', async () => {
+    await service.fill(reducedArmour());
+
+    expect(await storedPlayer()).toMatchObject({
+      armour: 8,
+      moveReductionCount: 0,
+      strengthReductionCount: 0,
+      agilityReductionCount: 0,
+      passingReductionCount: 0,
+      armourReductionCount: 1,
+      nigglingInjuryCount: 0,
+      missNextGame: false,
+    });
+  });
+
+  it('records the reductions of a player filled without them, once', async () => {
+    await service.fill(reducedArmour());
+    await db
+      .update(players)
+      .set({ armourReductionCount: 0 })
+      .where(eq(players.id, seeded.playerId));
+
+    await expect(
+      reductionsRecord.record({ playerId: seeded.playerId }),
+    ).resolves.toEqual({ playerId: seeded.playerId, outcome: 'recorded' });
+    expect((await storedPlayer()).armourReductionCount).toBe(1);
+    await expect(
+      reductionsRecord.record({ playerId: seeded.playerId }),
+    ).resolves.toEqual({ playerId: seeded.playerId, outcome: 'unchanged' });
+  });
+
+  it('refuses to record the reductions of a player still incomplete', async () => {
+    await expect(
+      reductionsRecord.record({ playerId: seeded.playerId }),
+    ).rejects.toThrow(IncompletePlayerFillError);
   });
 });

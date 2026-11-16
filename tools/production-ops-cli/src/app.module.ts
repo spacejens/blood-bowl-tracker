@@ -13,6 +13,7 @@ import { FetchRecentDiscordMessagesService } from './fetch-recent-discord-messag
 import { AdvancementFillStageService } from './generate-incomplete-player-fills/advancement-fill-stage.service';
 import { AdvancementPricingService } from './generate-incomplete-player-fills/advancement-pricing.service';
 import { CharacteristicChangeService } from './generate-incomplete-player-fills/characteristic-change.service';
+import { CharacteristicReplayService } from './generate-incomplete-player-fills/characteristic-replay.service';
 import { CharacteristicValidityService } from './generate-incomplete-player-fills/characteristic-validity.service';
 import { FeedPlayerMatcherService } from './generate-incomplete-player-fills/feed-player-matcher.service';
 import { FeedSkillResolverService } from './generate-incomplete-player-fills/feed-skill-resolver.service';
@@ -47,6 +48,7 @@ import { RunProductionQueryService } from './run-production-query/run-production
     AdvancementFillStageService,
     InjuryFillStageService,
     CharacteristicChangeService,
+    CharacteristicReplayService,
     LastingInjuryProofService,
     FeedPlayerMatcherService,
     FeedSkillResolverService,

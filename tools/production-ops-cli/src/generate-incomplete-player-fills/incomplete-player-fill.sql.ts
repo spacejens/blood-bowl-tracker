@@ -244,3 +244,41 @@ WHERE c.player_id IN (
   WHERE me.consequence_type IN (${STAT_REDUCTION_TYPES})
 )
 GROUP BY c.player_id, m.competition_id`;
+
+/** The five lasting stat-reduction columns of `game_data.players`. */
+export const REDUCTION_COUNT_COLUMNS = [
+  'move_reduction_count',
+  'strength_reduction_count',
+  'agility_reduction_count',
+  'passing_reduction_count',
+  'armour_reduction_count',
+] as const;
+
+/**
+ * The `lastingInjuryRepairs` entries: every non-star TP player no longer
+ * incomplete, with a stat-reduction match event recorded and no lasting
+ * reduction stored, named by one TP id (the first in text order). The server
+ * records only what his stored line and increases show: it writes nothing
+ * when his stored line does not show a reduction (it healed, it was absorbed
+ * by a limit, the position has no start value, or the stored line is out of
+ * date). INCOMPLETE_PLAYER_CONDITIONS never
+ * yields NULL (the characteristic columns are NOT NULL and the rest are
+ * `is null` tests), so NOT (...) selects exactly the complete players.
+ */
+export const LASTING_INJURY_REPAIRS_SQL = `SELECT DISTINCT ON (p.id)
+  json_build_object('system', 'tourplay.net', 'id', pe.external_id)
+    AS "player"
+FROM game_data.players p
+JOIN game_data.positions pos ON pos.id = p.position_id
+JOIN game_data.players_external_ids pe ON pe.player_id = p.id
+JOIN game_data.external_systems es ON es.id = pe.external_system_id
+WHERE es.name = 'tourplay.net'
+  AND pos.is_star_player = false
+  AND NOT (${INCOMPLETE_PLAYER_CONDITIONS.map((condition) => `p.${condition}`).join(' OR ')})
+  AND ${REDUCTION_COUNT_COLUMNS.map((column) => `p.${column} = 0`).join('\n  AND ')}
+  AND EXISTS (
+    SELECT 1 FROM game_data.match_events me
+    WHERE me.consequence_player_id = p.id
+      AND me.consequence_type IN (${STAT_REDUCTION_TYPES})
+  )
+ORDER BY p.id, pe.external_id`;

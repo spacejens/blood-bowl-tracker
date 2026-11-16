@@ -281,6 +281,24 @@ describe('ManualDataReader', () => {
     expect(data.keywords.map((k) => k.name)).toEqual(['Goblin', 'Big Guy']);
   });
 
+  it('pools the lastingInjuryRepairs section across files', async () => {
+    write(
+      'a.json5',
+      `{ lastingInjuryRepairs: [{ player: { system: 'tourplay.net', id: '1' } }] }`,
+    );
+    write(
+      'b.json5',
+      `{ lastingInjuryRepairs: [{ player: { system: 'tourplay.net', id: '2' } }] }`,
+    );
+
+    const data = await reader.read(dir);
+
+    expect(data.lastingInjuryRepairs.map((r) => r.player.id)).toEqual([
+      '1',
+      '2',
+    ]);
+  });
+
   describe('readRaw', () => {
     it('pools the parsed sections of every file, in filename order', async () => {
       write(

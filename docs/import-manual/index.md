@@ -76,6 +76,7 @@ trophies
 trophyAwards
 playerAdvancementOrders
 incompletePlayerFills
+lastingInjuryRepairs
 ```
 
 Every external-system name referenced anywhere in the pooled data — in
@@ -103,11 +104,9 @@ enforces `externalIds.min(1)` — a record with none could never be matched
 again), with one exception: a `competitionGroups` entry declares no
 `externalIds` of its own — the importer derives one for it instead (see the
 Competition groups subsection below). External IDs and cross-references are
-written as
-`{ system, id }`
-pairs, where `system` is an external-system name and `id` is the identifier
-within it: BBL ids are written as the site's own raw value, while `Name` ids
-follow the `name:` namespacing convention (see
+written as `{ system, id }` pairs, where `system` is an external-system name
+and `id` is the identifier within it: BBL ids are written as the site's own
+raw value, while `Name` ids follow the `name:` namespacing convention (see
 [docs/api/imports.md](../api/imports.md)):
 
 ```jsonc
@@ -371,7 +370,7 @@ only those trophies are seeded. See
 value table and the evidence behind the scope.
 
 `playerAdvancementOrders` is described in [Player advancement orders](player-advancement-orders.md),
-and `incompletePlayerFills` in [Filling in missing players](filling-missing-players.md).
+and `incompletePlayerFills` and `lastingInjuryRepairs` in [Filling in missing players](filling-missing-players.md).
 
 ## Re-running on a populated database
 

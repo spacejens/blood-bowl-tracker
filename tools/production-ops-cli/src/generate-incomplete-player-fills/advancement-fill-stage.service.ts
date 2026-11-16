@@ -6,15 +6,15 @@ import { Injectable } from '@nestjs/common';
 
 import type { TpFeedHistoryReport } from '../read-tp-feed-history/tp-feed-history-index.service';
 import { AdvancementPricingService } from './advancement-pricing.service';
-import { CharacteristicChangeService } from './characteristic-change.service';
+import { CharacteristicReplayService } from './characteristic-replay.service';
 import { CharacteristicValidityService } from './characteristic-validity.service';
 import { FeedSkillResolverService } from './feed-skill-resolver.service';
 import { FillEntryBuilderService } from './fill-entry-builder.service';
 import type {
   AdvancementCostRow,
   CandidateRow,
+  CharacteristicEvent,
   CharacteristicKey,
-  CharacteristicLine,
   FillAdvancement,
   PositionAccessRow,
   PositionProfile,
@@ -24,9 +24,12 @@ import type {
   SkillNameRow,
   SkipReason,
   StageDecision,
+  StatReductionEventRow,
   StoredAdvancementRow,
+  TeamCompetitionRow,
 } from './fill-plan.types';
 import { FREE_EXTRA_SKILL_NAMES } from './fill-plan.types';
+import { LastingInjuryProofService } from './lasting-injury-proof.service';
 
 /** The server's order check prices at most this many paid advancements. */
 export const MAX_PAID_ADVANCEMENTS = 6;
@@ -47,6 +50,10 @@ export interface AdvancementStageInput {
   /** The feed reports matched to him, oldest first. */
   reports: readonly TpFeedHistoryReport[];
   hasStatReduction: boolean;
+  /** His stat-reduction match events; read only when hasStatReduction. */
+  reductions: readonly StatReductionEventRow[];
+  /** Every competition his team era played in, with its last match. */
+  competitions: readonly TeamCompetitionRow[];
   /** He holds a trophy award, or a stored gained free skill. */
   freeSkillRisk: boolean;
   stored: readonly StoredAdvancementRow[];
@@ -68,32 +75,41 @@ export interface AdvancementStageInput {
  * reports, oldest first, are his advancements, and the fill is written only
  * when they are proven:
  *
+ * - any stat reductions recorded for him certainly still apply
+ *   (LastingInjuryProofService);
  * - his total and unspent SPP are stored, the reports are at most six, all
  *   resolve to stored skills or increases, and no reported skill is free
  *   (Loner, Hatred, a granted skill) or repeats a skill he has;
  * - priced in order under every rules set of his era, they give one set of
  *   costs, the costs add up to exactly his total minus his unspent SPP, and
  *   each is the cost its report shows;
- * - his position's line with the increases applied is valid, and nothing
- *   stored contradicts the entry.
+ * - his position's line with the increases and reductions replayed in the
+ *   order they happened (CharacteristicReplayService) is certain and valid,
+ *   and nothing stored contradicts the entry.
  *
- * A player with stat reductions is not filled: injuries and advancements
- * together are not proven here. The checks run in a fixed order and the
- * first that fails is the reason reported.
+ * The checks run in a fixed order and the first that fails is the reason
+ * reported.
  */
 @Injectable()
 export class AdvancementFillStageService {
   constructor(
+    private readonly proof: LastingInjuryProofService,
     private readonly skills: FeedSkillResolverService,
     private readonly pricing: AdvancementPricingService,
-    private readonly changes: CharacteristicChangeService,
+    private readonly replay: CharacteristicReplayService,
     private readonly validity: CharacteristicValidityService,
     private readonly entries: FillEntryBuilderService,
   ) {}
 
   decide(input: AdvancementStageInput): StageDecision {
-    if (input.hasStatReduction) {
-      return { reason: 'advancement-and-injury' };
+    if (
+      input.hasStatReduction &&
+      this.proof.prove({
+        reductions: input.reductions,
+        competitions: input.competitions,
+      }) === undefined
+    ) {
+      return { reason: 'lasting-injury-uncertain' };
     }
     if (input.freeSkillRisk) {
       return { reason: 'free-skill-risk' };
@@ -151,13 +167,21 @@ export class AdvancementFillStageService {
     unspentSpp: number;
   }): StageDecision {
     const { input, steps, profile, unspentSpp } = parts;
-    const line = this.line(steps, profile);
+    const outcome = this.replay.replay({
+      line: profile.line,
+      formats: profile.formats,
+      events: this.events(input, steps),
+    });
+    if (outcome.kind === 'order-uncertain') {
+      return { reason: 'characteristic-order-uncertain' };
+    }
     if (
-      line === undefined ||
-      !this.validity.isValid({ line, formats: profile.formats })
+      outcome.kind === 'unapplicable' ||
+      !this.validity.isValid({ line: outcome.line, formats: profile.formats })
     ) {
       return { reason: 'invalid-characteristics' };
     }
+    const line = outcome.line;
     const { candidate, stored } = input;
     if (
       this.entries.contradicts({ candidate, stored, profile, line, unspentSpp })
@@ -232,27 +256,31 @@ export class AdvancementFillStageService {
     }));
   }
 
-  /** The position's line with every increase applied in order. */
-  private line(
+  /** His increases at their reports' times, and his reductions at their matches' times. */
+  private events(
+    input: AdvancementStageInput,
     steps: ResolvedStep[],
-    profile: PositionProfile,
-  ): CharacteristicLine | undefined {
-    let line = profile.line;
-    for (const step of steps) {
-      if (step.kind !== 'characteristic') {
-        continue;
-      }
-      const next = this.changes.improve({
-        line,
-        formats: profile.formats,
-        characteristic: step.characteristic,
-      });
-      if (next === undefined) {
-        return undefined;
-      }
-      line = next;
-    }
-    return line;
+  ): CharacteristicEvent[] {
+    const increases = steps.flatMap((step, at): CharacteristicEvent[] =>
+      step.kind === 'characteristic'
+        ? [
+            {
+              kind: 'increase',
+              characteristic: step.characteristic,
+              at: input.reports[at].timestamp,
+            },
+          ]
+        : [],
+    );
+    const reductions = input.hasStatReduction ? input.reductions : [];
+    return [
+      ...increases,
+      ...reductions.map((row): CharacteristicEvent => ({
+        kind: 'reduction',
+        characteristic: row.characteristic,
+        at: row.playedAt,
+      })),
+    ];
   }
 
   /** Whether a reported skill repeats a starting skill or an earlier report, in any variant. */

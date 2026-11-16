@@ -8,13 +8,18 @@ import {
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
-import { CHARACTERISTIC_KEYS, type FillPlannerRows } from './fill-plan.types';
+import {
+  CHARACTERISTIC_KEYS,
+  type FillPlannerRows,
+  type LastingInjuryRepairEntry,
+} from './fill-plan.types';
 import {
   ADVANCEMENT_COSTS_SQL,
   CANDIDATES_SQL,
   CONSEQUENCES_SQL,
   ERA_RULES_SETS_SQL,
   FREE_SKILL_RISK_SQL,
+  LASTING_INJURY_REPAIRS_SQL,
   ONGOING_COMPETITION_NAMES,
   ONGOING_COMPETITIONS_SQL,
   POSITION_ACCESS_SQL,
@@ -165,12 +170,20 @@ const TeamCompetitionRowSchema = z.object({
   lastPlayedAt: timestamp,
 });
 
+const LastingInjuryRepairRowSchema = z.object({
+  player: z.object({
+    system: z.literal('tourplay.net'),
+    id: z.string().min(1),
+  }),
+});
+
 /**
  * Reads what the fill planner needs from production, one read-only query
  * per kind of row, and validates every row before the planner sees it. The
  * rows cover the candidates and their stored data, team players and rosters,
  * skill names and categories, position access, advancement costs and
- * stat-reduction events.
+ * stat-reduction events; separately, the complete players to list for a
+ * lasting-reduction repair.
  */
 @Injectable()
 export class IncompletePlayerFillQueriesService {
@@ -233,6 +246,14 @@ export class IncompletePlayerFillQueriesService {
         TeamCompetitionRowSchema,
       ),
     };
+  }
+
+  /**
+   * The complete TP players to list for a lasting-reduction repair, already
+   * shaped as batch entries.
+   */
+  async loadLastingInjuryRepairs(): Promise<LastingInjuryRepairEntry[]> {
+    return this.rows(LASTING_INJURY_REPAIRS_SQL, LastingInjuryRepairRowSchema);
   }
 
   private async rows<T extends z.ZodType>(

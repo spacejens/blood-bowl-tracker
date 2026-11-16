@@ -40,6 +40,7 @@ export class ManualDataReader {
       trophyAwards: [],
       playerAdvancementOrders: [],
       incompletePlayerFills: [],
+      lastingInjuryRepairs: [],
     };
 
     for (const path of await this.listFiles(dir)) {
@@ -71,6 +72,7 @@ export class ManualDataReader {
       pooled.trophyAwards.push(...file.trophyAwards);
       pooled.playerAdvancementOrders.push(...file.playerAdvancementOrders);
       pooled.incompletePlayerFills.push(...file.incompletePlayerFills);
+      pooled.lastingInjuryRepairs.push(...file.lastingInjuryRepairs);
     }
 
     return pooled;

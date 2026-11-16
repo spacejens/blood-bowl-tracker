@@ -448,4 +448,14 @@ describe('resolve procedures', () => {
       .inputSchema as z.ZodType;
     expect(inputSchema.safeParse({ playerId: 9 }).success).toBe(false);
   });
+
+  it('defines players.recordLastingReductions with a BAD_REQUEST error', () => {
+    expect(errorCodesOf(contract.players.recordLastingReductions)).toEqual([
+      'BAD_REQUEST',
+    ]);
+    const inputSchema = contract.players.recordLastingReductions['~orpc']
+      .inputSchema as z.ZodType;
+    expect(inputSchema.safeParse({ playerId: 9 }).success).toBe(true);
+    expect(inputSchema.safeParse({}).success).toBe(false);
+  });
 });

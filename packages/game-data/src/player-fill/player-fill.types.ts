@@ -1,4 +1,7 @@
-import type { ExternalId } from '@blood-bowl-tracker/api-contract';
+import type {
+  ExternalId,
+  PlayerLastingInjuries,
+} from '@blood-bowl-tracker/api-contract';
 import type {
   PlayerCharacteristic,
   PlayerSkillSource,
@@ -43,10 +46,21 @@ export interface PlayerFillState {
   isStarPlayer: boolean;
   /** His TP external id; undefined when he has none, so is not a TP player. */
   tpExternalId: ExternalId | undefined;
+  positionId: number;
+  /** The era of his team era. */
+  eraId: number;
   /** Whether INCOMPLETE_PLAYER_CRITERIA still matches him. */
   incomplete: boolean;
   fields: StoredFillFields;
+  /** His five stored lasting stat-reduction counts. */
+  reductions: LastingReductionCounts;
   rows: StoredFillRow[];
   /** The rules sets of his team's era. */
   rulesSetIds: number[];
 }
+
+/** The five lasting stat-reduction counts of a player, as stored. */
+export type LastingReductionCounts = Omit<
+  PlayerLastingInjuries,
+  'missNextGame' | 'nigglingInjuryCount'
+>;

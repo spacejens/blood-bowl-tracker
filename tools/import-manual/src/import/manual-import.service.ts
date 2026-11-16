@@ -11,6 +11,7 @@ import { ErasProcessor } from '../entities/eras.processor';
 import { ExternalSystemsProcessor } from '../entities/external-systems.processor';
 import { IncompletePlayerFillsProcessor } from '../entities/incomplete-player-fills.processor';
 import { KeywordsProcessor } from '../entities/keywords.processor';
+import { LastingInjuryRepairsProcessor } from '../entities/lasting-injury-repairs.processor';
 import { LeaguesProcessor } from '../entities/leagues.processor';
 import { PlayerAdvancementOrdersProcessor } from '../entities/player-advancement-orders.processor';
 import { PositionRulesSetSkillCategoriesProcessor } from '../entities/position-rules-set-skill-categories.processor';
@@ -53,6 +54,7 @@ export class ManualImportService {
     private readonly trophyAwards: TrophyAwardsProcessor,
     private readonly playerAdvancementOrders: PlayerAdvancementOrdersProcessor,
     private readonly incompletePlayerFills: IncompletePlayerFillsProcessor,
+    private readonly lastingInjuryRepairs: LastingInjuryRepairsProcessor,
     private readonly importResults: ImportResultService,
   ) {}
 
@@ -63,7 +65,7 @@ export class ManualImportService {
    * positions, positionRulesSets, positionRulesSetSkills,
    * positionRulesSetSkillCategories, coaches, teams, competitionGroups,
    * competitions, sppAwardValues, advancementCosts, trophies, trophyAwards,
-   * playerAdvancementOrders, incompletePlayerFills —
+   * playerAdvancementOrders, incompletePlayerFills, lastingInjuryRepairs —
    * with skills and skillRulesSets running right after rulesSets, since
    * skills need only the rules sets and running them early keeps the
    * category table available to everything after, positionRulesSets running
@@ -86,7 +88,9 @@ export class ManualImportService {
    * after the leagues it may also reference, and trophyAwards last of all,
    * after the trophies whose curated names its entries quote, then
    * playerAdvancementOrders and incompletePlayerFills last of all, after every
-   * section that creates the players and skills they reference — sharing one
+   * section that creates the players and skills they reference, then
+   * lastingInjuryRepairs, so a player filled in the same run is complete by
+   * the time his lasting reductions are recorded — sharing one
    * error collector so one bad entry never aborts the rest.
    * Reference-resolution and upsert failures are collected; a missing
    * directory, malformed file, or unreachable API throws out of here to be
@@ -127,6 +131,7 @@ export class ManualImportService {
     imported += await this.trophyAwards.process(ctx);
     imported += await this.playerAdvancementOrders.process(ctx);
     imported += await this.incompletePlayerFills.process(ctx);
+    imported += await this.lastingInjuryRepairs.process(ctx);
 
     return this.importResults.result({ imported, errors });
   }
