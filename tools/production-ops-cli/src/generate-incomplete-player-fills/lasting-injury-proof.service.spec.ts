@@ -53,6 +53,26 @@ describe('LastingInjuryProofService', () => {
     ).toEqual({ ma: 2, st: 0, ag: 0, pa: 0, av: 1 });
   });
 
+  it('is uncertain without any competition rows', () => {
+    expect(
+      service.prove({ reductions: [reduction()], competitions: [] }),
+    ).toBeUndefined();
+  });
+
+  it('is uncertain when the competition rows omit the reductions own competition', () => {
+    expect(
+      service.prove({
+        reductions: [reduction()],
+        competitions: [
+          competition({
+            competitionId: 49,
+            lastPlayedAt: '2023-12-01T19:00:00+00:00',
+          }),
+        ],
+      }),
+    ).toBeUndefined();
+  });
+
   it('is uncertain without any reduction', () => {
     expect(
       service.prove({ reductions: [], competitions: [competition()] }),
@@ -103,6 +123,7 @@ describe('LastingInjuryProofService', () => {
       service.prove({
         reductions: [reduction()],
         competitions: [
+          competition(),
           competition({
             competitionId: 51,
             lastPlayedAt: '2024-03-01T19:00:00+00:00',
@@ -120,6 +141,7 @@ describe('LastingInjuryProofService', () => {
           reduction({ playedAt: '2024-03-01T19:00:00+00:00' }),
         ],
         competitions: [
+          competition(),
           competition({
             competitionId: 51,
             lastPlayedAt: '2024-04-01T19:00:00+00:00',
@@ -140,6 +162,7 @@ describe('LastingInjuryProofService', () => {
       service.prove({
         reductions: [reduction()],
         competitions: [
+          competition(),
           competition({ competitionId: 51, lastPlayedAt: 'not a date' }),
         ],
       }),

@@ -350,9 +350,13 @@ describe('AdvancementFillStageService', () => {
         }),
       );
 
-      expect('entry' in decision && decision.entry.advancements).toHaveLength(
-        6,
-      );
+      const advancements =
+        'entry' in decision ? decision.entry.advancements : [];
+      expect(
+        advancements.map(
+          (advancement) => 'skill' in advancement && advancement.skill.id,
+        ),
+      ).toEqual(steps.map((step) => step.kind === 'skill' && step.nameId));
     });
 
     it('accepts unspent SPP equal to the total, with nothing spent', () => {

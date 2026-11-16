@@ -214,5 +214,35 @@ describe('CharacteristicChangeService', () => {
         }),
       ).toEqual(BARE_LINE);
     });
+
+    it('leaves a non-null value in absent format alone', () => {
+      expect(
+        service.reduce({
+          line: { ...BARE_LINE, pa: 3 },
+          formats: BARE,
+          reductions: { ...NONE, pa: 1 },
+        }),
+      ).toEqual({ ...BARE_LINE, pa: 3 });
+    });
+
+    it('stops a bare AG at 1', () => {
+      expect(
+        service.reduce({
+          line: { ...BARE_LINE, ag: 1 },
+          formats: BARE,
+          reductions: { ...NONE, ag: 2 },
+        }),
+      ).toEqual({ ...BARE_LINE, ag: 1 });
+    });
+
+    it('stops a bare PA at 1', () => {
+      expect(
+        service.reduce({
+          line: { ...BARE_LINE, pa: 1 },
+          formats: { ...BARE, pa: 'bare' },
+          reductions: { ...NONE, pa: 2 },
+        }),
+      ).toEqual({ ...BARE_LINE, pa: 1 });
+    });
   });
 });

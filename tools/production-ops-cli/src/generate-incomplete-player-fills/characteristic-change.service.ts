@@ -74,10 +74,10 @@ export class CharacteristicChangeService {
     for (const key of CHARACTERISTIC_KEYS) {
       const value = input.line[key];
       const count = input.reductions[key];
-      if (value === null || count === 0) {
+      const format = input.formats[key];
+      if (value === null || format === 'absent' || count === 0) {
         continue;
       }
-      const format = input.formats[key];
       const steps = Math.min(
         count,
         REDUCTION_CAP,

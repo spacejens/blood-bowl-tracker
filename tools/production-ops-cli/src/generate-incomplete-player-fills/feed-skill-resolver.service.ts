@@ -39,9 +39,10 @@ type SkillLookup =
  * A skill is the one stored skill whose `Name` id is the report's text, or
  * else, when no skill has that id, the text before a trailing parenthesis,
  * which is then its variant ("Mighty Blow (+1)"). A text or base that
- * several skills share is ambiguous and unresolved. A characteristic gain must be a +1 under the
- * characteristics category, and a skill must be primary or secondary. One
- * report that cannot be resolved leaves the whole player unresolved.
+ * several skills share is ambiguous and unresolved. A characteristic gain
+ * must be a +1 under the characteristics category, and a skill must be
+ * primary or secondary. One report that cannot be resolved leaves the whole
+ * player unresolved.
  *
  * Pure decision logic, with no I/O and no dependencies.
  */

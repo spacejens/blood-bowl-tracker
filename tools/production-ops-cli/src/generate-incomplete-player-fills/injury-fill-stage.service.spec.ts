@@ -78,6 +78,20 @@ describe('InjuryFillStageService', () => {
     });
   });
 
+  it('worsens AG and PA by their target-number formats', () => {
+    proof.prove.mockReturnValue({ ma: 0, st: 0, ag: 1, pa: 1, av: 0 });
+
+    const decision = service.decide(stageInput());
+
+    expect('entry' in decision && decision.entry.characteristics).toEqual({
+      ma: 6,
+      st: 3,
+      ag: 4,
+      pa: 5,
+      av: 9,
+    });
+  });
+
   it('passes the status through to the entry', () => {
     const decision = service.decide(stageInput({ status: 'active' }));
 

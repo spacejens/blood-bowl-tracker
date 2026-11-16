@@ -161,8 +161,49 @@ describe('FeedPlayerMatcherService', () => {
     });
 
     expect(result.byPlayer.size).toBe(0);
-    expect(result.summary.ambiguousKeys).toBe(1);
+    expect(result.summary).toEqual({
+      reportKeys: 1,
+      matchedKeys: 0,
+      ambiguousKeys: 1,
+      unmatchedKeys: 0,
+    });
   });
+
+  it('marks no stored player ambiguous for a key whose reports name two rosters', () => {
+    const result = service.match({
+      reports: {
+        Firestarters: {
+          [KEY]: [
+            report(),
+            report({
+              rosterLink: 'https://tourplay.net/en/blood-bowl/roster/1',
+            }),
+          ],
+        },
+      },
+      rosters: [
+        { teamId: 20, rosterId: '24801' },
+        { teamId: 21, rosterId: '1' },
+      ],
+      players: [FLAME, { ...FLAME, playerId: 2, teamId: 21 }],
+    });
+
+    expect(result.byPlayer).toEqual(new Map());
+  });
+
+  it.each(['flame', ' Flame ', 'FLAME'])(
+    'does not match the name %j, which differs only by case or whitespace',
+    (playerName) => {
+      const result = service.match({
+        reports: { Firestarters: { [KEY]: [report({ playerName })] } },
+        rosters: ROSTERS,
+        players: [FLAME],
+      });
+
+      expect(result.byPlayer.size).toBe(0);
+      expect(result.summary.unmatchedKeys).toBe(1);
+    },
+  );
 
   it('leaves a key without a readable roster link, or without reports, unmatched', () => {
     const result = service.match({

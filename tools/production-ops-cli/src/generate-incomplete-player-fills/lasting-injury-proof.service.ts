@@ -6,6 +6,7 @@ import type {
   TeamCompetitionRow,
 } from './fill-plan.types';
 
+/** All rows belong to one player. */
 export interface LastingInjuryInput {
   /** The player's stat-reduction match events. */
   reductions: readonly StatReductionEventRow[];
@@ -34,6 +35,10 @@ export class LastingInjuryProofService {
     }
     const competitionIds = new Set(reductions.map((row) => row.competitionId));
     if (competitionIds.size !== 1) {
+      return undefined;
+    }
+    const covered = new Set(competitions.map((row) => row.competitionId));
+    if ([...competitionIds].some((id) => !covered.has(id))) {
       return undefined;
     }
     const reducedAt = reductions.map((row) => Date.parse(row.playedAt));

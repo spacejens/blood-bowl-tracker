@@ -32,7 +32,8 @@ const ROSTER_ID = /\/roster\/(\d+)\/?$/u;
  * Matches the feed's player keys (team, shirt number, name, position) to
  * stored players. The shirt number is not stored, so a key names the
  * players of its roster's team with its name and position. A key that names
- * one player gives him its reports, oldest first. A key that names several,
+ * one player gives him its reports in the order the input has them; the
+ * matcher relies on that order and does not sort. A key that names several,
  * or whose reports link several rosters, makes them ambiguous, and so does
  * a player named by more than one key. A key that names nobody is counted
  * and left.
