@@ -180,6 +180,11 @@ export interface FillEntry {
   advancements: FillAdvancement[];
 }
 
+/** One `lastingInjuryRepairs` entry, as the batch file holds it. */
+export interface LastingInjuryRepairEntry {
+  player: { system: 'tourplay.net'; id: string };
+}
+
 export interface SkipTally {
   count: number;
   /** TP external ids, in the order the players were considered. */
