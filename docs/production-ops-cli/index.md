@@ -70,6 +70,7 @@ players are not filled from feed reports; the other fills still run.
 `report` also gives `eligibleByStage` (fills with no advancements, from
 the feed, and with lasting injuries) and `feed` (how many feed player keys
 matched one stored player, several, or no player of a candidate's team; `null` without the flag).
+`journeymenFilled` counts the entries filled as journeymen (`journeyman: true`), which `eligibleByStage.noAdvancement` also counts.
 
 The package depends on `@blood-bowl-tracker/domain-enums` for the status,
 characteristic-format, skill, advancement-kind and match-event enums.

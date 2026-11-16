@@ -5,6 +5,7 @@ import { ZodError } from 'zod';
 
 import {
   ADVANCEMENT_COSTS_SQL,
+  BIG_GUY_POSITIONS_SQL,
   CANDIDATES_SQL,
   CONSEQUENCES_SQL,
   ERA_RULES_SETS_SQL,
@@ -143,6 +144,7 @@ describe('IncompletePlayerFillQueriesService', () => {
       [ADVANCEMENT_COSTS_SQL, [COST]],
       [STAT_REDUCTION_EVENTS_SQL, [REDUCTION]],
       [TEAM_COMPETITIONS_SQL, [TEAM_COMPETITION]],
+      [BIG_GUY_POSITIONS_SQL, [{ positionId: 30, eraId: 4 }]],
     ]);
     // Canned rows per statement; unknown SQL is a test bug, so fail loudly.
     json.rows.mockImplementation((sql) => {
@@ -187,7 +189,16 @@ describe('IncompletePlayerFillQueriesService', () => {
       advancementCosts: [COST],
       statReductionEvents: [REDUCTION],
       teamCompetitions: [TEAM_COMPETITION],
+      bigGuyPositions: [{ positionId: 30, eraId: 4 }],
     });
+  });
+
+  it('finds Big Guy positions by keyword name, per candidate era', () => {
+    expect(BIG_GUY_POSITIONS_SQL).toContain("k.name = 'Big Guy'");
+    expect(BIG_GUY_POSITIONS_SQL).toContain('position_rules_set_keywords');
+    expect(BIG_GUY_POSITIONS_SQL).toContain(
+      'SELECT position_id, era_id FROM candidates',
+    );
   });
 
   it('finds team rosters by their tourplay.net external id', () => {

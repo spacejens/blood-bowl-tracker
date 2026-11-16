@@ -1,11 +1,22 @@
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import type { EntryParts } from './fill-entry-builder.service';
 import { FillEntryBuilderService } from './fill-entry-builder.service';
 import { candidate, profile } from './fill-plan.test-helpers';
 import type { StoredAdvancementRow } from './fill-plan.types';
 
 const LINE = { ma: 7, st: 3, ag: 3, pa: 4, av: 9 };
+
+const PARTS: EntryParts = {
+  candidate: candidate(),
+  line: LINE,
+  profile: profile(),
+  sppTotal: 20,
+  unspentSpp: 2,
+  status: 'retired',
+  advancements: [],
+};
 
 function startingBlock(
   overrides: Partial<StoredAdvancementRow> = {},
@@ -58,6 +69,20 @@ describe('FillEntryBuilderService', () => {
           { characteristic: 'MA' },
         ],
       });
+    });
+
+    it("marks a journeyman's entry, right after the player", () => {
+      const entry = service.build({
+        ...PARTS,
+        candidate: candidate({ isJourneyman: true }),
+      });
+
+      expect(entry.journeyman).toBe(true);
+      expect(Object.keys(entry).slice(0, 2)).toEqual(['player', 'journeyman']);
+    });
+
+    it('leaves the field out for anyone else', () => {
+      expect(service.build(PARTS)).not.toHaveProperty('journeyman');
     });
 
     it('leaves pa out when the line has none', () => {

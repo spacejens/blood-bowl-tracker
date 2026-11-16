@@ -1,4 +1,7 @@
-import { CONSEQUENCE_TYPES } from '@blood-bowl-tracker/domain-enums';
+import {
+  BIG_GUY_KEYWORD_NAME,
+  CONSEQUENCE_TYPES,
+} from '@blood-bowl-tracker/domain-enums';
 
 /**
  * The SQL the fill generator runs against production. Every statement is a
@@ -244,3 +247,19 @@ WHERE c.player_id IN (
   WHERE me.consequence_type IN (${STAT_REDUCTION_TYPES})
 )
 GROUP BY c.player_id, m.competition_id`;
+
+/**
+ * Each candidate position and era where the position carries the Big Guy
+ * keyword under a rules set of the era: not a basic position, so a marked
+ * journeyman in it is not filled.
+ */
+export const BIG_GUY_POSITIONS_SQL = `${CANDIDATES_CTE}
+SELECT DISTINCT prs.position_id AS "positionId", ers.era_id AS "eraId"
+FROM game_data.position_rules_set_keywords prk
+JOIN game_data.keywords k ON k.id = prk.keyword_id
+JOIN game_data.position_rules_sets prs ON prs.id = prk.position_rules_set_id
+JOIN game_data.era_rules_sets ers ON ers.rules_set_id = prs.rules_set_id
+WHERE k.name = '${BIG_GUY_KEYWORD_NAME}'
+  AND (prs.position_id, ers.era_id) IN (
+    SELECT position_id, era_id FROM candidates
+  )`;

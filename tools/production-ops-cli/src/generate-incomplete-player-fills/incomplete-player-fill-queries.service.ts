@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { CHARACTERISTIC_KEYS, type FillPlannerRows } from './fill-plan.types';
 import {
   ADVANCEMENT_COSTS_SQL,
+  BIG_GUY_POSITIONS_SQL,
   CANDIDATES_SQL,
   CONSEQUENCES_SQL,
   ERA_RULES_SETS_SQL,
@@ -165,12 +166,14 @@ const TeamCompetitionRowSchema = z.object({
   lastPlayedAt: timestamp,
 });
 
+const BigGuyPositionRowSchema = z.object({ positionId: id, eraId: id });
+
 /**
  * Reads what the fill planner needs from production, one read-only query
  * per kind of row, and validates every row before the planner sees it. The
  * rows cover the candidates and their stored data, team players and rosters,
  * skill names and categories, position access, advancement costs and
- * stat-reduction events.
+ * stat-reduction events and Big Guy positions.
  */
 @Injectable()
 export class IncompletePlayerFillQueriesService {
@@ -231,6 +234,10 @@ export class IncompletePlayerFillQueriesService {
       teamCompetitions: await this.rows(
         TEAM_COMPETITIONS_SQL,
         TeamCompetitionRowSchema,
+      ),
+      bigGuyPositions: await this.rows(
+        BIG_GUY_POSITIONS_SQL,
+        BigGuyPositionRowSchema,
       ),
     };
   }

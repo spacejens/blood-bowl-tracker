@@ -106,6 +106,8 @@ export interface FillPlannerRows {
   statReductionEvents: StatReductionEventRow[];
   /** Only for candidates with a stat reduction. */
   teamCompetitions: TeamCompetitionRow[];
+  /** Candidate positions that are not basic in the candidate's era. */
+  bigGuyPositions: BigGuyPositionRow[];
 }
 
 export interface FillPlannerInput extends FillPlannerRows {
@@ -166,6 +168,8 @@ export type FillAdvancement =
 /** One `incompletePlayerFills` entry, as the batch file holds it. */
 export interface FillEntry {
   player: { system: 'tourplay.net'; id: string };
+  /** A journeyman whose stored marker is set; his Loner is left to the server. */
+  journeyman?: true;
   status: PlayerStatus;
   characteristics: {
     ma: number;
@@ -191,6 +195,8 @@ export interface FillReport {
   eligible: number;
   /** Players filled, by the kind of proof. */
   eligibleByStage: Record<FillStage, number>;
+  /** Players filled as journeymen (`journeyman: true`), also counted under `noAdvancement`. */
+  journeymenFilled: number;
   /** How the feed's player keys matched; null without feed evidence. */
   feed: FeedSummary | null;
   skipped: Record<SkipReason, SkipTally>;
@@ -201,9 +207,18 @@ export interface FillPlan {
   report: FillReport;
 }
 
+/** The skill a journeyman holds as a starting skill while he stays one. */
+export const LONER_SKILL_NAME = 'Loner';
+
+/** A candidate's position that carries the Big Guy keyword under a rules set of his era. */
+export interface BigGuyPositionRow {
+  positionId: number;
+  eraId: number;
+}
+
 /** Skills the server's free-extra rules make free when gained outside the paid advancements. */
 export const FREE_EXTRA_SKILL_NAMES: ReadonlySet<string> = new Set([
-  'Loner',
+  LONER_SKILL_NAME,
   'Hatred',
 ]);
 

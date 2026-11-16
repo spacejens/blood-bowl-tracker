@@ -130,7 +130,7 @@ same entry is again `unchanged`.
 [production-ops-cli](../production-ops-cli/index.md#generating-incomplete-player-fills))
 writes entries for the incomplete TP players whose data it can prove. Every
 entry has the stored status, else `dead` if a death is recorded, else
-`retired`. There are three kinds of entry:
+`retired`. There are four kinds of entry:
 
 - **No advancements.** His total SPP is below the cheapest advancement any
   rules set of his era prices, house rules included, and no stat reduction
@@ -147,6 +147,18 @@ entry has the stored status, else `dead` if a death is recorded, else
   a target-number format), and AG and PA 1 (6+ in a target-number format).
   A PA of 0 (cannot pass) stays 0. These limits are the rulebooks'; the
   database does not hold them. The rest is as for no advancements.
+- **Journeymen.** A player whose stored journeyman marker is set (a
+  line-up or roster that listed Loner set it, and no roster has since shown
+  him recruited), in a basic position, and otherwise filled as for no
+  advancements, with no stat reduction recorded. The entry has
+  `journeyman: true` and leaves his Loner out of the starting skills; his
+  stored starting Loner is not compared and is not a free-skill risk. A
+  player merely named Journeyman with no marker stays incomplete. One
+  uncertainty remains: a recruit who kept the name and left the team, seen
+  since only in line-ups without Loner, still carries the marker. The
+  database stores no line-up snapshots to rule that out. It matters only
+  below the cheapest advancement, where such a player differs from his
+  fill only by a Loner he no longer has.
 - **Advancements from the TP feed** (with `--feed-channel`). The advancement
   reports `read-tp-feed-history` saved are matched to him. The reports of
   one feed player must name exactly one stored player: the same team (found
@@ -166,7 +178,9 @@ entry has the stored status, else `dead` if a death is recorded, else
 
 A player is skipped, with the reason reported, when any of these holds:
 
-- he is a journeyman (`journeyman`);
+- he is a marked journeyman whose position carries the Big Guy keyword
+  under a rules set of his era (not a basic position), or who has stat
+  reductions recorded (`journeyman`);
 - a team era of his team is enrolled in, or plays in a match of, an ongoing
   competition, whatever his stored status (`team-in-ongoing-competition`):
   his data is still changing, and his stored total may understate his real
@@ -175,8 +189,9 @@ A player is skipped, with the reason reported, when any of these holds:
 - his era has no rules set, or a rules set of his era prices nothing
   (`era-unpriced`);
 - the feed reports name him together with another stored player, or two
-  feed players name him (`feed-match-ambiguous`);
-- with no feed reports, his total is at or above the cheapest advancement
+  feed players name him, or any feed report names a marked journeyman
+  (`feed-match-ambiguous`);
+- with no feed reports, or as a marked journeyman, his total is at or above the cheapest advancement
   cost of his era (`spp-too-high`);
 - he holds any trophy award (a trophy may grant a skill, and one not
   recorded yet looks the same as none), he has a gained Loner, Hatred or

@@ -7,8 +7,9 @@ const HEADER = [
   '// The data of TP players the TP import left incomplete whose data could be',
   '// proven: players too low on SPP to have advanced (no advancements, the',
   '// whole total unspent, stat reductions applied when all fall in their last',
-  '// competition), and players whose advancements the TP feed reports prove in',
-  '// order and to the SPP spent. Generated from the production database by',
+  '// competition; a marked journeyman with journeyman: true and his Loner left',
+  '// to the server), and players whose advancements the TP feed reports prove',
+  '// in order and to the SPP spent. Generated from the production database by',
   '// production-ops-cli generate-incomplete-player-fills; see',
   '// docs/import-manual/filling-missing-players.md#generated-fills.',
 ];

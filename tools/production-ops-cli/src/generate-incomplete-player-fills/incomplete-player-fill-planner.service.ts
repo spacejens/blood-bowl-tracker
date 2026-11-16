@@ -29,7 +29,11 @@ import type {
   StoredAdvancementRow,
   TeamCompetitionRow,
 } from './fill-plan.types';
-import { FREE_EXTRA_SKILL_NAMES, SKIP_REASONS } from './fill-plan.types';
+import {
+  FREE_EXTRA_SKILL_NAMES,
+  LONER_SKILL_NAME,
+  SKIP_REASONS,
+} from './fill-plan.types';
 import { InjuryFillStageService } from './injury-fill-stage.service';
 import { PositionProfileService } from './position-profile.service';
 
@@ -49,6 +53,8 @@ interface PlannerIndex {
   costs: Map<number, AdvancementCostRow[]>;
   reductions: Map<number, StatReductionEventRow[]>;
   competitions: Map<number, TeamCompetitionRow[]>;
+  bigGuyPositions: Set<string>;
+  lonerSkillIds: Set<number>;
 }
 
 type Decision = { entry: FillEntry; stage: FillStage } | { reason: SkipReason };
@@ -63,13 +69,16 @@ interface Gated {
 /**
  * Plans the `incompletePlayerFills` entries for incomplete TP players whose
  * data can be proven, and reports everyone else by the first reason that
- * applies. Every candidate passes the shared gates (journeyman, ongoing
+ * applies. Every candidate passes the shared gates (ongoing
  * competition, total stored, era priced); then:
  *
  * - a player the TP feed reports name goes to AdvancementFillStageService;
  * - a player whose total is below the cheapest advancement of his era, and
  *   with no free-skill risk, goes to InjuryFillStageService when stat
  *   reductions are recorded for him;
+ * - a marked journeyman is filled only as one with no advancements, with
+ *   `journeyman: true` and his starting Loner left to the server (see
+ *   `journeyman`);
  * - otherwise he provably has no advancements, and is filled with his
  *   position's line and starting skills and his whole total unspent.
  *
@@ -111,6 +120,7 @@ export class IncompletePlayerFillPlannerService {
       advancement: 0,
       injuryOnly: 0,
     };
+    let journeymenFilled = 0;
     const entries: FillEntry[] = [];
     const candidates = [...input.candidates].sort(
       (a, b) => Number(a.tpId) - Number(b.tpId) || this.compare(a.tpId, b.tpId),
@@ -120,6 +130,9 @@ export class IncompletePlayerFillPlannerService {
       if ('entry' in decision) {
         entries.push(decision.entry);
         eligibleByStage[decision.stage] += 1;
+        if (decision.entry.journeyman === true) {
+          journeymenFilled += 1;
+        }
       } else {
         skipped[decision.reason].count += 1;
         skipped[decision.reason].players.push(candidate.tpId);
@@ -131,6 +144,7 @@ export class IncompletePlayerFillPlannerService {
         considered: candidates.length,
         eligible: entries.length,
         eligibleByStage,
+        journeymenFilled,
         feed: feed?.summary ?? null,
         skipped,
       },
@@ -138,9 +152,6 @@ export class IncompletePlayerFillPlannerService {
   }
 
   private decide(candidate: CandidateRow, index: PlannerIndex): Decision {
-    if (candidate.isJourneyman) {
-      return { reason: 'journeyman' };
-    }
     // His data is a moving target, and his stored total may understate his
     // real one while SPP adjustments estimate the competition in progress.
     if (index.ongoingTeams.has(candidate.teamId)) {
@@ -157,6 +168,9 @@ export class IncompletePlayerFillPlannerService {
       return { reason: 'era-unpriced' };
     }
     const gated: Gated = { candidate, sppTotal, index };
+    if (candidate.isJourneyman) {
+      return this.journeyman(gated, cheapest);
+    }
     const match = index.feed.get(candidate.playerId);
     if (match?.kind === 'ambiguous') {
       return { reason: 'feed-match-ambiguous' };
@@ -192,20 +206,63 @@ export class IncompletePlayerFillPlannerService {
     return this.noAdvancement(gated);
   }
 
+  /**
+   * A marked journeyman, past the shared gates: filled only as one who has
+   * not advanced. A Big Guy position is not a basic one a journeyman is
+   * drawn from, and his stat reductions are not reconstructed, so either
+   * skips him as `journeyman`. Feed reports naming him mean either that he
+   * advanced, and so was recruited, or that the key names someone else, so
+   * any feed match skips him as `feed-match-ambiguous`. His stored starting
+   * Loner is not a gained free skill, so it is no free-skill risk.
+   */
+  private journeyman(gated: Gated, cheapest: number): Decision {
+    const { candidate, sppTotal, index } = gated;
+    if (
+      index.bigGuyPositions.has(`${candidate.positionId}|${candidate.eraId}`)
+    ) {
+      return { reason: 'journeyman' };
+    }
+    if (index.feed.has(candidate.playerId)) {
+      return { reason: 'feed-match-ambiguous' };
+    }
+    if (sppTotal >= cheapest) {
+      return { reason: 'spp-too-high' };
+    }
+    if (this.freeSkillRisk(gated)) {
+      return { reason: 'free-skill-risk' };
+    }
+    if (index.statReduction.has(candidate.playerId)) {
+      return { reason: 'journeyman' };
+    }
+    return this.noAdvancement(gated);
+  }
+
   /** A player too low on SPP to have advanced, with no stat reduction. */
   private noAdvancement(gated: Gated): Decision {
     const { candidate, sppTotal, index } = gated;
-    const profile = this.profile(candidate, index);
-    if (profile === undefined) {
+    const found = this.profile(candidate, index);
+    if (found === undefined) {
       return { reason: 'position-ambiguous' };
     }
+    // A journeyman's Loner is the server's: left out of his entry and of
+    // the check against what is stored.
+    const profile = candidate.isJourneyman
+      ? {
+          ...found,
+          skills: found.skills.filter(
+            (skill) => !index.lonerSkillIds.has(skill.skillId),
+          ),
+        }
+      : found;
     if (
       !this.validity.isValid({ line: profile.line, formats: profile.formats })
     ) {
       return { reason: 'invalid-characteristics' };
     }
     const line = profile.line;
-    const stored = this.stored(gated);
+    const stored = this.stored(gated).filter(
+      (row) => !(candidate.isJourneyman && this.isStartingLoner(row)),
+    );
     if (
       this.entries.contradicts({
         candidate,
@@ -314,6 +371,10 @@ export class IncompletePlayerFillPlannerService {
     return costs.length === 0 ? undefined : Math.min(...costs);
   }
 
+  private isStartingLoner(row: StoredAdvancementRow): boolean {
+    return row.source === 'starting' && row.skillName === LONER_SKILL_NAME;
+  }
+
   private isGainedFreeSkill(row: StoredAdvancementRow): boolean {
     if (row.source === 'starting' || row.source === 'characteristic') {
       return false;
@@ -353,6 +414,14 @@ export class IncompletePlayerFillPlannerService {
         (row) => row.playerId,
       ),
       competitions: this.groupBy(input.teamCompetitions, (row) => row.playerId),
+      bigGuyPositions: new Set(
+        input.bigGuyPositions.map((row) => `${row.positionId}|${row.eraId}`),
+      ),
+      lonerSkillIds: new Set(
+        input.skillNames
+          .filter((row) => row.skillName === LONER_SKILL_NAME)
+          .map((row) => row.skillId),
+      ),
     };
   }
 

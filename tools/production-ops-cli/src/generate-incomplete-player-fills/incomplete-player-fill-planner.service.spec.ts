@@ -97,6 +97,7 @@ describe('IncompletePlayerFillPlannerService', () => {
     ]);
     expect(plan.report.considered).toBe(1);
     expect(plan.report.eligible).toBe(1);
+    expect(plan.report.journeymenFilled).toBe(0);
   });
 
   it('hands the position rows and their skills to the profile decision', () => {
@@ -167,11 +168,6 @@ describe('IncompletePlayerFillPlannerService', () => {
   });
 
   it.each<[string, Partial<FillPlannerInput>, SkipReason]>([
-    [
-      'a journeyman',
-      { candidates: [candidate({ isJourneyman: true })] },
-      'journeyman',
-    ],
     [
       'a missing total',
       { candidates: [candidate({ sppTotal: null })] },
@@ -629,10 +625,10 @@ describe('IncompletePlayerFillPlannerService', () => {
       reasonFor(
         eligibleInput({
           feed: FEED,
-          candidates: [candidate({ isJourneyman: true })],
+          candidates: [candidate({ sppTotal: null })],
         }),
       ),
-    ).toBe('journeyman');
+    ).toBe('spp-missing');
     expect(advancementStage.decide).not.toHaveBeenCalled();
   });
 

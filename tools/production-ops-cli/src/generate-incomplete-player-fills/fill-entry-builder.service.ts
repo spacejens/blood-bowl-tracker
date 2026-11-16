@@ -42,6 +42,7 @@ export class FillEntryBuilderService {
     const { candidate, line, profile } = parts;
     return {
       player: { system: 'tourplay.net', id: candidate.tpId },
+      ...(candidate.isJourneyman ? { journeyman: true as const } : {}),
       status: parts.status,
       characteristics: {
         ma: line.ma,
