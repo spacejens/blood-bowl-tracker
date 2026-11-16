@@ -54,11 +54,13 @@ const FETCH_DISCORD_MESSAGE_USAGE =
 
 const GENERATE_INCOMPLETE_PLAYER_FILLS_USAGE =
   'Usage: node dist/main.js generate-incomplete-player-fills ' +
-  '[--out=<repo-relative-path>]';
+  '[--out=<repo-relative-path>] [--feed-channel=<channel-id>]';
 const READ_TP_FEED_HISTORY_USAGE =
   'Usage: node dist/main.js read-tp-feed-history <channel-id> [--max-pages=N]';
 
 const MAX_PAGES_FLAG = '--max-pages=';
+const OUT_FLAG = '--out=';
+const FEED_CHANNEL_FLAG = '--feed-channel=';
 
 /** Arguments for `start-production-tunnel`; absent for every other subcommand. */
 interface StartProductionTunnelInput {
@@ -167,18 +169,31 @@ function readDiscordMessageLink(): string {
   return messageLink;
 }
 
+/** Each flag at most once, in any order; the channel id must be all digits. */
 function readGenerateIncompletePlayerFillsInput(): GenerateIncompletePlayerFillsInput {
-  const outArg = process.argv[3];
-  if (process.argv.length > 4) {
-    throw new Error(GENERATE_INCOMPLETE_PLAYER_FILLS_USAGE);
+  let out: string | undefined;
+  let feedChannel: string | undefined;
+  for (const arg of process.argv.slice(3)) {
+    if (
+      out === undefined &&
+      arg.startsWith(OUT_FLAG) &&
+      arg.length > OUT_FLAG.length
+    ) {
+      out = arg.slice(OUT_FLAG.length);
+    } else if (
+      feedChannel === undefined &&
+      arg.startsWith(FEED_CHANNEL_FLAG) &&
+      /^\d+$/u.test(arg.slice(FEED_CHANNEL_FLAG.length))
+    ) {
+      feedChannel = arg.slice(FEED_CHANNEL_FLAG.length);
+    } else {
+      throw new Error(GENERATE_INCOMPLETE_PLAYER_FILLS_USAGE);
+    }
   }
-  if (outArg === undefined) {
-    return {};
-  }
-  if (!outArg.startsWith('--out=') || outArg.length === '--out='.length) {
-    throw new Error(GENERATE_INCOMPLETE_PLAYER_FILLS_USAGE);
-  }
-  return { out: outArg.slice('--out='.length) };
+  return {
+    ...(out === undefined ? {} : { out }),
+    ...(feedChannel === undefined ? {} : { feedChannel }),
+  };
 }
 
 /**

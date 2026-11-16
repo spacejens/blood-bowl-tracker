@@ -109,39 +109,85 @@ refused: a fill never overwrites data that is already complete.
 
 `production-ops-cli generate-incomplete-player-fills` (see
 [production-ops-cli](../production-ops-cli/index.md#generating-incomplete-player-fills))
-writes entries for the incomplete TP players who provably have no
-advancements: their total SPP is below the cheapest advancement any rules
-set of their era prices, house rules included. Each entry is:
+writes entries for the incomplete TP players whose data it can prove. Every
+entry has the stored status, else `dead` if a death is recorded, else
+`retired`. There are three kinds of entry:
 
-- the position's start values for the characteristics, with `pa` only
-  when the rules set has Passing;
-- the position's starting skills and no advancements;
-- the whole total, unspent;
-- the stored status, else `dead` if a death is recorded, else `retired`.
+- **No advancements.** His total SPP is below the cheapest advancement any
+  rules set of his era prices, house rules included, and no stat reduction
+  is recorded for him. The entry is the position's start values (`pa` only
+  when the rules set has Passing), its starting skills, no advancements, and
+  the whole total unspent.
+- **Lasting injuries.** His total SPP is below the cheapest advancement, and
+  every stat reduction recorded for him was suffered in one competition,
+  after which his team era played no other competition. No point at which
+  lasting injuries heal can have passed. Each reduction worsens the
+  position's start value by one: MA, ST and AV go down; AG and PA go down
+  when bare and up in a target-number format. A characteristic is never
+  worsened by more than two in all, and never past MA 1, ST 1, AV 1 (3+ in
+  a target-number format), and AG and PA 1 (6+ in a target-number format).
+  A PA of 0 (cannot pass) stays 0. These limits are the rulebooks'; the
+  database does not hold them. The rest is as for no advancements.
+- **Advancements from the TP feed** (with `--feed-channel`). The advancement
+  reports `read-tp-feed-history` saved are matched to him. The reports of
+  one feed player must name exactly one stored player: the same team (found
+  by the report's roster link), name and position. The shirt number is not
+  stored, so it is not compared, and he must be named by no other feed
+  player. His reports, in the order they were posted, are his advancements,
+  at most six. Each is priced at its advancement number by the kind the
+  report gives: a chosen or random primary or secondary skill, or a random
+  characteristic increase (a table roll under fixed thresholds). Every rules
+  set of his era must give the same price. The prices must add up to exactly
+  his stored total minus his stored unspent SPP, and each must be the cost
+  its report shows. The entry is the position's start values with each
+  increase applied (MA, ST and AV up by one; AG and PA one better, which is
+  one lower in a target-number format), the starting skills, the reported
+  skills with their chosen or random source and any variant ("Mighty Blow
+  (+1)"), and his stored total and unspent SPP.
 
 A player is skipped, with the reason reported, when any of these holds:
 
-- he is a journeyman;
-- a team era of his team is enrolled in, or plays in a match of, an
-  ongoing competition, whatever his stored status: his data is still
-  changing, and his stored total may understate his real one while SPP
-  adjustments estimate the competition in progress;
-- his total is missing;
-- his era has no rules set, or a rules set of his era prices nothing;
-- his total is at or above the cheapest advancement cost of his era;
+- he is a journeyman (`journeyman`);
+- a team era of his team is enrolled in, or plays in a match of, an ongoing
+  competition, whatever his stored status (`team-in-ongoing-competition`):
+  his data is still changing, and his stored total may understate his real
+  one while SPP adjustments estimate the competition in progress;
+- his total is missing (`spp-missing`);
+- his era has no rules set, or a rules set of his era prices nothing
+  (`era-unpriced`);
+- the feed reports name him together with another stored player, or two
+  feed players name him (`feed-match-ambiguous`);
+- with no feed reports, his total is at or above the cheapest advancement
+  cost of his era (`spp-too-high`);
 - he holds any trophy award (a trophy may grant a skill, and one not
-  recorded yet looks the same as none), or he has a gained Loner, Hatred or
-  free extra;
-- his match events record any stat reduction. That is injury history, not
-  necessarily his current line: newer rules sets let lasting injuries heal,
-  and a reduction at a characteristic's limit changes nothing. Such players
-  stay incomplete;
+  recorded yet looks the same as none), he has a gained Loner, Hatred or
+  free extra stored, or the feed reports a Loner, a Hatred or a skill a
+  cost row grants (`free-skill-risk`);
+- his stat reductions are not certain to last (`lasting-injury-uncertain`);
+- the feed reports advancements and stat reductions are recorded for him
+  (`advancement-and-injury`);
+- with feed reports: his unspent SPP is not stored
+  (`unspent-spp-missing`); there are more than six reports
+  (`too-many-advancements`); a reported skill names no stored skill, or
+  several (`skill-unresolved`); a reported skill repeats a starting skill
+  or another report, in any variant (`duplicate-skill`); the position's
+  access puts a reported skill on the other side of primary and secondary
+  than the report, or gives a category two different accesses
+  (`skill-category-mismatch`); the rules sets of his era price the reports
+  differently (`rules-sets-disagree`); the prices cannot be found, or do
+  not add up to the SPP he spent (`spp-does-not-add-up`); or a price is not
+  the cost the report shows (`feed-cost-mismatch`);
 - his position's data differs between the rules sets of his era, or names a
-  skill with no `Name` id or with an empty attribute value;
-- the position's line is not a valid one;
-- anything already stored would make the fill refuse the entry.
+  skill with no `Name` id or with an empty attribute value
+  (`position-ambiguous`);
+- the resulting line is not a valid one (`invalid-characteristics`);
+- anything already stored would make the fill refuse the entry
+  (`stored-data-contradicts`).
 
 The server's checks above still apply when the batch is applied.
+
+Batches 007 and 008 hold the fills generated this way (see
+[Batches](batches.md)).
 
 ## Order
 

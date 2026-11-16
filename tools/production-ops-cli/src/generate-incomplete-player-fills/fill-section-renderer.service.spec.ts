@@ -59,4 +59,24 @@ describe('FillSectionRendererService', () => {
     expect(text).toContain('player: {\n');
     expect(text).toContain("system: 'tourplay.net'");
   });
+
+  it('renders advancements as the batch format writes them', () => {
+    const entry: FillEntry = {
+      ...ENTRY,
+      advancements: [
+        {
+          skill: { system: 'Name', id: 'Mighty Blow' },
+          attributeValue: '+1',
+          source: 'random',
+        },
+        { characteristic: 'MA' },
+      ],
+    };
+
+    expect(
+      JSON5.parse<{ incompletePlayerFills: FillEntry[] }>(
+        service.render([entry]),
+      ).incompletePlayerFills,
+    ).toEqual([entry]);
+  });
 });

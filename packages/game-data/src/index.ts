@@ -57,6 +57,7 @@ export type {
   StoredPlayerAdvancement,
 } from './player-skills/player-advancement-reads.service';
 export { PlayerAdvancementReadsService } from './player-skills/player-advancement-reads.service';
+export { FREE_EXTRA_SKILL_NAMES } from './player-skills/player-advancement-sync-planner.service';
 export { PlayerSkillsModule } from './player-skills/player-skills.module';
 export type {
   PlayerSkillRow,
@@ -139,7 +140,12 @@ export {
   SkillUpsertConflictError,
 } from './skills/skills.service';
 export { AdvancementCostsService } from './spp/advancement-costs.service';
-export { AdvancementOrderDeductionService } from './spp/advancement-order-deduction.service';
+export { AdvancementKindCandidatesService } from './spp/advancement-kind-candidates.service';
+export {
+  AdvancementOrderDeductionService,
+  MAX_DEDUCED,
+} from './spp/advancement-order-deduction.service';
+export { AdvancementSpendRangeService } from './spp/advancement-spend-range.service';
 export { PlayerPricingModelService } from './spp/player-pricing-model.service';
 export { SppModule } from './spp/spp.module';
 export { SppAdjustmentsService } from './spp/spp-adjustments.service';

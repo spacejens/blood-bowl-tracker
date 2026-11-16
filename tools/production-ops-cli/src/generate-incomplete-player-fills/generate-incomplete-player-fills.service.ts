@@ -2,6 +2,7 @@ import type { WriteFileResult } from '@blood-bowl-tracker/cli-shared';
 import { WriteFileService } from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
 
+import { TpFeedHistoryStoreService } from '../read-tp-feed-history/tp-feed-history-store.service';
 import type { FillReport } from './fill-plan.types';
 import { FillSectionRendererService } from './fill-section-renderer.service';
 import { IncompletePlayerFillPlannerService } from './incomplete-player-fill-planner.service';
@@ -10,6 +11,11 @@ import { IncompletePlayerFillQueriesService } from './incomplete-player-fill-que
 export interface GenerateIncompletePlayerFillsInput {
   /** Repo-relative path to write the batch file to; printed when absent. */
   readonly out?: string;
+  /**
+   * The TP feed channel whose saved `reports.json` (read-tp-feed-history)
+   * proves advancements; absent leaves that stage off.
+   */
+  readonly feedChannel?: string;
 }
 
 export interface GenerateIncompletePlayerFillsResult {
@@ -22,8 +28,9 @@ export interface GenerateIncompletePlayerFillsResult {
 
 /**
  * `generate-incomplete-player-fills`: reads production read-only, plans a
- * fill for every incomplete TP player too low on SPP to have advanced, and
- * prints or writes the batch file with a report of who was skipped and why.
+ * fill for every incomplete TP player whose data can be proven (optionally
+ * from the saved TP feed reports), and prints or writes the batch file with a
+ * report of who was filled by which proof, and who was skipped and why.
  */
 @Injectable()
 export class GenerateIncompletePlayerFillsService {
@@ -32,12 +39,18 @@ export class GenerateIncompletePlayerFillsService {
     private readonly planner: IncompletePlayerFillPlannerService,
     private readonly renderer: FillSectionRendererService,
     private readonly writeFile: WriteFileService,
+    private readonly feedHistory: TpFeedHistoryStoreService,
   ) {}
 
   async run(
     input: GenerateIncompletePlayerFillsInput,
   ): Promise<GenerateIncompletePlayerFillsResult> {
-    const plan = this.planner.plan(await this.queries.load());
+    // Read first, so missing evidence stops the run before any production query.
+    const feed =
+      input.feedChannel === undefined
+        ? null
+        : await this.feedHistory.readReports(input.feedChannel);
+    const plan = this.planner.plan({ ...(await this.queries.load()), feed });
     const section = this.renderer.render(plan.entries);
     if (input.out === undefined) {
       return { report: plan.report, section };

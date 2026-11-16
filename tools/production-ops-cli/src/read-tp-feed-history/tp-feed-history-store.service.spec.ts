@@ -16,6 +16,7 @@ import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
+import type { TpFeedHistoryReports } from './tp-feed-history-index.service';
 import { TpFeedHistoryStoreService } from './tp-feed-history-store.service';
 import type { TpFeedMessage } from './tp-feed-message.schema';
 
@@ -271,5 +272,113 @@ describe('TpFeedHistoryStoreService', () => {
     expect(readFileSync(join(channelDir, 'unparsed.json'), 'utf8')).toBe(
       `${JSON.stringify(index.unparsed, null, 2)}\n`,
     );
+  });
+
+  describe('readReports', () => {
+    const REPORT = {
+      messageId: '1057968552151359499',
+      link: 'https://discord.com/channels/1/222/1057968552151359499',
+      timestamp: '2022-12-29T10:29:18.938000+00:00',
+      teamName: 'Firestarters',
+      playerNumber: '13',
+      playerName: 'Flame',
+      position: 'Gnoblar Lineman',
+      botReacted: false,
+      rosterLink: 'https://tourplay.net/en/blood-bowl/roster/24801',
+      selection: 'random',
+      category: 'primary',
+      gain: { skill: 'Safe Pair of Hands' },
+      sppCost: 3,
+      valueText: 'Random Primary Safe Pair of Hands ★3',
+      rawValue: 'Random Primary ` Safe Pair of Hands ` ` ★3 `',
+    } as const;
+    const REPORTS: TpFeedHistoryReports = {
+      Firestarters: {
+        '#13 Flame (Gnoblar Lineman)': [
+          REPORT,
+          {
+            ...REPORT,
+            messageId: '1057968552151359500',
+            category: 'characteristics',
+            gain: { characteristic: 'MA', delta: 1 },
+            sppCost: 18,
+          },
+        ],
+      },
+    };
+
+    it('reads back the reports the index wrote', async () => {
+      await service.writeIndex(CHANNEL, { reports: REPORTS, unparsed: [] });
+
+      await expect(service.readReports(CHANNEL)).resolves.toEqual(REPORTS);
+    });
+
+    it('reads back a report with a zero SPP cost, which the parser produces for a star of zero', async () => {
+      const zeroCost: TpFeedHistoryReports = {
+        Firestarters: {
+          '#13 Flame (Gnoblar Lineman)': [{ ...REPORT, sppCost: 0 }],
+        },
+      };
+      await service.writeIndex(CHANNEL, { reports: zeroCost, unparsed: [] });
+
+      await expect(service.readReports(CHANNEL)).resolves.toEqual(zeroCost);
+    });
+
+    it('rejects a report with a negative SPP cost', async () => {
+      mkdirSync(channelDir, { recursive: true });
+      writeFileSync(
+        join(channelDir, 'reports.json'),
+        JSON.stringify({
+          Firestarters: { key: [{ ...REPORT, sppCost: -1 }] },
+        }),
+        'utf8',
+      );
+
+      await expect(service.readReports(CHANNEL)).rejects.toThrow(
+        `${join(channelDir, 'reports.json')} is not a valid TP feed reports file`,
+      );
+    });
+
+    it('says how to create a missing reports file', async () => {
+      await expect(service.readReports(CHANNEL)).rejects.toThrow(
+        `${join(channelDir, 'reports.json')} does not exist; run read-tp-feed-history ${CHANNEL} first.`,
+      );
+    });
+
+    it('names a reports file that is not JSON', async () => {
+      mkdirSync(channelDir, { recursive: true });
+      writeFileSync(join(channelDir, 'reports.json'), '{', 'utf8');
+
+      await expect(service.readReports(CHANNEL)).rejects.toThrow(
+        `${join(channelDir, 'reports.json')} is not valid JSON`,
+      );
+    });
+
+    it('names a reports file of the wrong shape', async () => {
+      mkdirSync(channelDir, { recursive: true });
+      writeFileSync(
+        join(channelDir, 'reports.json'),
+        JSON.stringify({
+          Firestarters: { key: [{ ...REPORT, sppCost: null }] },
+        }),
+        'utf8',
+      );
+
+      await expect(service.readReports(CHANNEL)).rejects.toThrow(
+        `${join(channelDir, 'reports.json')} is not a valid TP feed reports file`,
+      );
+    });
+
+    it('propagates a read failure other than a missing file', async () => {
+      mkdirSync(join(channelDir, 'reports.json'), { recursive: true });
+
+      await expect(service.readReports(CHANNEL)).rejects.toThrow(/EISDIR/);
+    });
+
+    it('refuses a channel id that is not all digits', async () => {
+      await expect(service.readReports('../x')).rejects.toThrow(
+        'Invalid Discord channel id: ../x',
+      );
+    });
   });
 });

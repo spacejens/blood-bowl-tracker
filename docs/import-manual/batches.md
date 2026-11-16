@@ -18,6 +18,7 @@ tools/import-manual/data/batches/
   005-tp-advancement-orders/
   006-bb2016-gutter-runner-skills/
   007-tp-low-spp-player-fills/
+  008-tp-feed-player-fills/
 ```
 
 A batch directory is named `NNN-<slug>`: a three-digit number and a lowercase
@@ -89,6 +90,16 @@ The batches:
   [Generated fills](filling-missing-players.md#generated-fills) for who is
   skipped and why), so it references players the TP importer creates and
   applies after the source importers, in a plain `apply`.
+- **008-tp-feed-player-fills** — fills in the data of 156 incomplete TP
+  players whose data could be proven: 118 whose advancements the TP feed
+  reports prove, in order and to the SPP they spent, and 38 too low on SPP
+  to have advanced whose stat reductions all fall in their last competition.
+  It is generated from the production database and the saved TP feed history
+  by `production-ops-cli generate-incomplete-player-fills --feed-channel=<id>`
+  (see [Generated fills](filling-missing-players.md#generated-fills) for who
+  is skipped and why). It references players the TP importer creates and
+  batch 004's advancement costs, so it applies after the source importers
+  and after batch 007, in a plain `apply`.
 
 A batch can also fill in the data of a TP player the TP import left
 incomplete, through the `incompletePlayerFills` section; see

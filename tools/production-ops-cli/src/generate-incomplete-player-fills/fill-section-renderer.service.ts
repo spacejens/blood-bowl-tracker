@@ -4,11 +4,11 @@ import JSON5 from 'json5';
 import type { FillEntry } from './fill-plan.types';
 
 const HEADER = [
-  '// The data of TP players the TP import left incomplete whose total SPP is',
-  '// below the cheapest advancement any rules set of their era prices, so they',
-  "// have no advancements: each is his position's characteristics and starting",
-  '// skills, and his whole total unspent. Players with a recorded stat',
-  '// reduction are left out. Generated from the production database by',
+  '// The data of TP players the TP import left incomplete whose data could be',
+  '// proven: players too low on SPP to have advanced (no advancements, the',
+  '// whole total unspent, stat reductions applied when all fall in their last',
+  '// competition), and players whose advancements the TP feed reports prove in',
+  '// order and to the SPP spent. Generated from the production database by',
   '// production-ops-cli generate-incomplete-player-fills; see',
   '// docs/import-manual/filling-missing-players.md#generated-fills.',
 ];
