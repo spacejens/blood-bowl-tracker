@@ -7,7 +7,10 @@ import type {
   SkillCategory,
 } from '@blood-bowl-tracker/domain-enums';
 
-import type { TpFeedHistoryReport } from '../read-tp-feed-history/tp-feed-history-index.service';
+import type {
+  TpFeedHistoryReport,
+  TpFeedHistoryReports,
+} from '../read-tp-feed-history/tp-feed-history-index.service';
 
 /** The five characteristics, by the keys a fill entry uses. */
 export const CHARACTERISTIC_KEYS = ['ma', 'st', 'ag', 'pa', 'av'] as const;
@@ -80,7 +83,7 @@ export interface EraRulesSetRow {
   cheapestCost: number | null;
 }
 
-export interface FillPlannerInput {
+export interface FillPlannerRows {
   candidates: CandidateRow[];
   /** Candidates named as recipient of any stat-reduction match event. */
   statReductionPlayerIds: number[];
@@ -92,6 +95,22 @@ export interface FillPlannerInput {
   positionRulesSets: PositionRulesSetRow[];
   positionSkills: PositionSkillRow[];
   eraRulesSets: EraRulesSetRow[];
+  /** Every non-star player of a candidate's team. */
+  teamPlayers: TeamPlayerRow[];
+  /** The roster ids of the candidates' teams. */
+  teamRosters: TeamRosterRow[];
+  skillNames: SkillNameRow[];
+  skillCategories: SkillCategoryRow[];
+  positionAccess: PositionAccessRow[];
+  advancementCosts: AdvancementCostRow[];
+  statReductionEvents: StatReductionEventRow[];
+  /** Only for candidates with a stat reduction. */
+  teamCompetitions: TeamCompetitionRow[];
+}
+
+export interface FillPlannerInput extends FillPlannerRows {
+  /** The feed channel's saved `reports.json`; null leaves the advancement stage off. */
+  feed: TpFeedHistoryReports | null;
 }
 
 export interface ProfileSkill {

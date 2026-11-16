@@ -4,15 +4,23 @@ import { mock, MockProxy } from 'vitest-mock-extended';
 import { ZodError } from 'zod';
 
 import {
+  ADVANCEMENT_COSTS_SQL,
   CANDIDATES_SQL,
   CONSEQUENCES_SQL,
   ERA_RULES_SETS_SQL,
   FREE_SKILL_RISK_SQL,
   INCOMPLETE_PLAYER_CONDITIONS,
   ONGOING_COMPETITIONS_SQL,
+  POSITION_ACCESS_SQL,
   POSITION_RULES_SETS_SQL,
   POSITION_SKILLS_SQL,
+  SKILL_CATEGORIES_SQL,
+  SKILL_NAMES_SQL,
+  STAT_REDUCTION_EVENTS_SQL,
   STORED_ADVANCEMENTS_SQL,
+  TEAM_COMPETITIONS_SQL,
+  TEAM_PLAYERS_SQL,
+  TEAM_ROSTERS_SQL,
 } from './incomplete-player-fill.sql';
 import { IncompletePlayerFillQueriesService } from './incomplete-player-fill-queries.service';
 import { ProductionJsonQueryService } from './production-json-query.service';
@@ -54,6 +62,33 @@ const SKILL = {
   attributeValue: null,
 };
 
+const TEAM_PLAYER = {
+  playerId: 1,
+  teamId: 20,
+  playerName: 'Flame',
+  positionName: 'Gnoblar Lineman',
+};
+const COST = {
+  eraId: 4,
+  rulesSetId: 7,
+  leagueId: null,
+  advancementNumber: 1,
+  advancementKind: 'chosen_primary_skill',
+  skillId: null,
+  sppCost: 6,
+};
+const REDUCTION = {
+  playerId: 2,
+  characteristic: 'ma',
+  competitionId: 50,
+  playedAt: '2024-03-01T19:00:00+00:00',
+};
+const TEAM_COMPETITION = {
+  playerId: 2,
+  competitionId: 50,
+  lastPlayedAt: '2024-04-01T19:00:00+00:00',
+};
+
 describe('IncompletePlayerFillQueriesService', () => {
   let service: IncompletePlayerFillQueriesService;
   let json: MockProxy<ProductionJsonQueryService>;
@@ -84,6 +119,30 @@ describe('IncompletePlayerFillQueriesService', () => {
       [POSITION_RULES_SETS_SQL, [PRS]],
       [POSITION_SKILLS_SQL, [SKILL]],
       [ERA_RULES_SETS_SQL, [{ eraId: 4, rulesSetId: 7, cheapestCost: 6 }]],
+      [TEAM_PLAYERS_SQL, [TEAM_PLAYER]],
+      [TEAM_ROSTERS_SQL, [{ teamId: 20, rosterId: '24801' }]],
+      [
+        SKILL_NAMES_SQL,
+        [{ skillId: 200, skillName: 'Dodge', nameId: 'Dodge' }],
+      ],
+      [
+        SKILL_CATEGORIES_SQL,
+        [{ skillId: 200, rulesSetId: 7, category: 'agility' }],
+      ],
+      [
+        POSITION_ACCESS_SQL,
+        [
+          {
+            positionId: 30,
+            rulesSetId: 7,
+            category: 'agility',
+            access: 'primary',
+          },
+        ],
+      ],
+      [ADVANCEMENT_COSTS_SQL, [COST]],
+      [STAT_REDUCTION_EVENTS_SQL, [REDUCTION]],
+      [TEAM_COMPETITIONS_SQL, [TEAM_COMPETITION]],
     ]);
     // Canned rows per statement; unknown SQL is a test bug, so fail loudly.
     json.rows.mockImplementation((sql) => {
@@ -113,7 +172,88 @@ describe('IncompletePlayerFillQueriesService', () => {
       positionRulesSets: [PRS],
       positionSkills: [SKILL],
       eraRulesSets: [{ eraId: 4, rulesSetId: 7, cheapestCost: 6 }],
+      teamPlayers: [TEAM_PLAYER],
+      teamRosters: [{ teamId: 20, rosterId: '24801' }],
+      skillNames: [{ skillId: 200, skillName: 'Dodge', nameId: 'Dodge' }],
+      skillCategories: [{ skillId: 200, rulesSetId: 7, category: 'agility' }],
+      positionAccess: [
+        {
+          positionId: 30,
+          rulesSetId: 7,
+          category: 'agility',
+          access: 'primary',
+        },
+      ],
+      advancementCosts: [COST],
+      statReductionEvents: [REDUCTION],
+      teamCompetitions: [TEAM_COMPETITION],
     });
+  });
+
+  it('finds team rosters by their tourplay.net external id', () => {
+    expect(TEAM_ROSTERS_SQL).toContain("es.name = 'tourplay.net'");
+    expect(TEAM_ROSTERS_SQL).toContain('teams_external_ids');
+  });
+
+  it("selects each rules set's own costs and the era league's", () => {
+    expect(ADVANCEMENT_COSTS_SQL).toContain(
+      'ac.league_id IS NULL OR ac.league_id = e.league_id',
+    );
+  });
+
+  it('selects every stat-reduction consequence type', () => {
+    for (const type of [
+      'stat_reduction_ma',
+      'stat_reduction_st',
+      'stat_reduction_ag',
+      'stat_reduction_pa',
+      'stat_reduction_av',
+    ]) {
+      expect(STAT_REDUCTION_EVENTS_SQL).toContain(`'${type}'`);
+      expect(TEAM_COMPETITIONS_SQL).toContain(`'${type}'`);
+      expect(CONSEQUENCES_SQL).toContain(`'${type}'`);
+    }
+  });
+
+  it('skips removed position access rows', () => {
+    expect(POSITION_ACCESS_SQL).toContain('prsc.removed = false');
+  });
+
+  it.each([
+    [
+      'an unknown characteristic',
+      STAT_REDUCTION_EVENTS_SQL,
+      { ...REDUCTION, characteristic: 'xx' },
+    ],
+    [
+      'an unreadable match date',
+      STAT_REDUCTION_EVENTS_SQL,
+      { ...REDUCTION, playedAt: 'soon' },
+    ],
+    [
+      'an unreadable last match date',
+      TEAM_COMPETITIONS_SQL,
+      { ...TEAM_COMPETITION, lastPlayedAt: 'soon' },
+    ],
+    [
+      'an unknown advancement kind',
+      ADVANCEMENT_COSTS_SQL,
+      { ...COST, advancementKind: 'bribe' },
+    ],
+    [
+      'an unknown skill access',
+      POSITION_ACCESS_SQL,
+      {
+        positionId: 30,
+        rulesSetId: 7,
+        category: 'agility',
+        access: 'tertiary',
+      },
+    ],
+  ])('rejects %s', async (_name, sql, row) => {
+    results.set(sql, [row]);
+
+    await expect(service.load()).rejects.toBeInstanceOf(ZodError);
   });
 
   it('selects only incomplete, non-star TP players', () => {

@@ -1,3 +1,5 @@
+import { CONSEQUENCE_TYPES } from '@blood-bowl-tracker/domain-enums';
+
 /**
  * The SQL the fill generator runs against production. Every statement is a
  * single SELECT with no trailing semicolon, since ProductionJsonQueryService
@@ -32,7 +34,8 @@ export const ONGOING_COMPETITION_NAMES = [
 
 const CANDIDATES_CTE = `WITH candidates AS (
   SELECT DISTINCT ON (p.id)
-    p.id AS player_id, pe.external_id AS tp_id, te.team_id, p.position_id,
+    p.id AS player_id, pe.external_id AS tp_id, te.team_id, p.team_era_id,
+    p.position_id,
     te.era_id, p.spp_total, p.unspent_spp, p.status::text AS status,
     p.is_journeyman, p.move, p.strength, p.agility, p.passing, p.armour
   FROM game_data.players p
@@ -53,8 +56,13 @@ SELECT player_id AS "playerId", tp_id AS "tpId", team_id AS "teamId",
   move, strength, agility, passing, armour
 FROM candidates`;
 
-const STAT_REDUCTION_TYPES = `'stat_reduction_ma', 'stat_reduction_st',
-  'stat_reduction_ag', 'stat_reduction_pa', 'stat_reduction_av'`;
+const STAT_REDUCTION_PREFIX = 'stat_reduction_';
+
+const STAT_REDUCTION_TYPES = CONSEQUENCE_TYPES.filter((type) =>
+  type.startsWith(STAT_REDUCTION_PREFIX),
+)
+  .map((type) => `'${type}'`)
+  .join(', ');
 
 /** Per candidate, whether match events record a stat reduction or a death for him. */
 export const CONSEQUENCES_SQL = `${CANDIDATES_CTE}
@@ -143,3 +151,96 @@ FROM game_data.era_rules_sets ers
 LEFT JOIN game_data.advancement_costs ac ON ac.rules_set_id = ers.rules_set_id
 WHERE ers.era_id IN (SELECT era_id FROM candidates)
 GROUP BY ers.era_id, ers.rules_set_id`;
+
+/** Every non-star player of a candidate's team, complete or not, to match feed reports against. */
+export const TEAM_PLAYERS_SQL = `${CANDIDATES_CTE}
+SELECT p.id AS "playerId", te.team_id AS "teamId", p.name AS "playerName",
+  pos.name AS "positionName"
+FROM game_data.players p
+JOIN game_data.team_eras te ON te.id = p.team_era_id
+JOIN game_data.positions pos ON pos.id = p.position_id
+WHERE pos.is_star_player = false
+  AND te.team_id IN (SELECT team_id FROM candidates)`;
+
+/** The TP roster id (`tourplay.net` external id) of every candidate's team. */
+export const TEAM_ROSTERS_SQL = `${CANDIDATES_CTE}
+SELECT DISTINCT tei.team_id AS "teamId", tei.external_id AS "rosterId"
+FROM game_data.teams_external_ids tei
+JOIN game_data.external_systems es ON es.id = tei.external_system_id
+WHERE es.name = 'tourplay.net'
+  AND tei.team_id IN (SELECT team_id FROM candidates)`;
+
+/** Every `Name`-system id of every skill, with the skill's stored name. */
+export const SKILL_NAMES_SQL = `SELECT se.skill_id AS "skillId",
+  s.name AS "skillName", se.external_id AS "nameId"
+FROM game_data.skills_external_ids se
+JOIN game_data.external_systems es ON es.id = se.external_system_id
+JOIN game_data.skills s ON s.id = se.skill_id
+WHERE es.name = 'Name'`;
+
+const CANDIDATE_RULES_SET_IDS = `SELECT ers.rules_set_id
+  FROM game_data.era_rules_sets ers
+  WHERE ers.era_id IN (SELECT era_id FROM candidates)`;
+
+/** Every skill's category under every rules set of a candidate's era. */
+export const SKILL_CATEGORIES_SQL = `${CANDIDATES_CTE}
+SELECT srs.skill_id AS "skillId", srs.rules_set_id AS "rulesSetId",
+  srs.category::text AS "category"
+FROM game_data.skill_rules_sets srs
+WHERE srs.rules_set_id IN (${CANDIDATE_RULES_SET_IDS})`;
+
+/** Each candidate position's access to skill categories under his era's rules sets. */
+export const POSITION_ACCESS_SQL = `${CANDIDATES_CTE}
+SELECT DISTINCT prs.position_id AS "positionId",
+  prs.rules_set_id AS "rulesSetId",
+  prsc.skill_category::text AS "category", prsc.access::text AS "access"
+FROM game_data.position_rules_set_skill_categories prsc
+JOIN game_data.position_rules_sets prs ON prs.id = prsc.position_rules_set_id
+JOIN game_data.era_rules_sets ers ON ers.rules_set_id = prs.rules_set_id
+WHERE prsc.removed = false
+  AND (prs.position_id, ers.era_id) IN (
+    SELECT position_id, era_id FROM candidates
+  )`;
+
+/**
+ * The advancement costs that apply to a candidate's era: each rules set's
+ * own rows and the rows of the era's league, the rows UnspentSppService
+ * (packages/game-data) prices a player's advancements with.
+ */
+export const ADVANCEMENT_COSTS_SQL = `${CANDIDATES_CTE}
+SELECT ers.era_id AS "eraId", ac.rules_set_id AS "rulesSetId",
+  ac.league_id AS "leagueId", ac.advancement_number AS "advancementNumber",
+  ac.advancement_kind::text AS "advancementKind", ac.skill_id AS "skillId",
+  ac.spp_cost AS "sppCost"
+FROM game_data.era_rules_sets ers
+JOIN game_data.eras e ON e.id = ers.era_id
+JOIN game_data.advancement_costs ac ON ac.rules_set_id = ers.rules_set_id
+  AND (ac.league_id IS NULL OR ac.league_id = e.league_id)
+WHERE ers.era_id IN (SELECT DISTINCT era_id FROM candidates)`;
+
+/** Every stat-reduction match event of a candidate, with the match's competition and date. */
+export const STAT_REDUCTION_EVENTS_SQL = `${CANDIDATES_CTE}
+SELECT me.consequence_player_id AS "playerId",
+  replace(me.consequence_type::text, '${STAT_REDUCTION_PREFIX}', '')
+    AS "characteristic",
+  m.competition_id AS "competitionId", m.played_at AS "playedAt"
+FROM game_data.match_events me
+JOIN candidates c ON c.player_id = me.consequence_player_id
+JOIN game_data.matches m ON m.id = me.match_id
+WHERE me.consequence_type IN (${STAT_REDUCTION_TYPES})`;
+
+/**
+ * For each candidate with a stat reduction, every competition his team era
+ * played a match in, with the last such match.
+ */
+export const TEAM_COMPETITIONS_SQL = `${CANDIDATES_CTE}
+SELECT c.player_id AS "playerId", m.competition_id AS "competitionId",
+  max(m.played_at) AS "lastPlayedAt"
+FROM candidates c
+JOIN game_data.match_teams mt ON mt.team_era_id = c.team_era_id
+JOIN game_data.matches m ON m.id = mt.match_id
+WHERE c.player_id IN (
+  SELECT me.consequence_player_id FROM game_data.match_events me
+  WHERE me.consequence_type IN (${STAT_REDUCTION_TYPES})
+)
+GROUP BY c.player_id, m.competition_id`;

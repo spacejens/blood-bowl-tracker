@@ -86,6 +86,15 @@ export function eligibleInput(
       },
     ],
     eraRulesSets: [{ eraId: 4, rulesSetId: 7, cheapestCost: 6 }],
+    teamPlayers: [],
+    teamRosters: [],
+    skillNames: [],
+    skillCategories: [],
+    positionAccess: [],
+    advancementCosts: [],
+    statReductionEvents: [],
+    teamCompetitions: [],
+    feed: null,
     ...overrides,
   };
 }

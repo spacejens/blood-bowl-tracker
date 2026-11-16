@@ -37,7 +37,10 @@ export class GenerateIncompletePlayerFillsService {
   async run(
     input: GenerateIncompletePlayerFillsInput,
   ): Promise<GenerateIncompletePlayerFillsResult> {
-    const plan = this.planner.plan(await this.queries.load());
+    const plan = this.planner.plan({
+      ...(await this.queries.load()),
+      feed: null,
+    });
     const section = this.renderer.render(plan.entries);
     if (input.out === undefined) {
       return { report: plan.report, section };

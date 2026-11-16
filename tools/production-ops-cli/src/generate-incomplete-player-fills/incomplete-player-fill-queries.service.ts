@@ -1,21 +1,32 @@
 import {
+  ADVANCEMENT_KINDS,
   CHARACTERISTIC_FORMATS,
   PLAYER_STATUSES,
+  SKILL_ACCESS_LEVELS,
+  SKILL_CATEGORIES,
 } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
-import type { FillPlannerInput } from './fill-plan.types';
+import { CHARACTERISTIC_KEYS, type FillPlannerRows } from './fill-plan.types';
 import {
+  ADVANCEMENT_COSTS_SQL,
   CANDIDATES_SQL,
   CONSEQUENCES_SQL,
   ERA_RULES_SETS_SQL,
   FREE_SKILL_RISK_SQL,
   ONGOING_COMPETITION_NAMES,
   ONGOING_COMPETITIONS_SQL,
+  POSITION_ACCESS_SQL,
   POSITION_RULES_SETS_SQL,
   POSITION_SKILLS_SQL,
+  SKILL_CATEGORIES_SQL,
+  SKILL_NAMES_SQL,
+  STAT_REDUCTION_EVENTS_SQL,
   STORED_ADVANCEMENTS_SQL,
+  TEAM_COMPETITIONS_SQL,
+  TEAM_PLAYERS_SQL,
+  TEAM_ROSTERS_SQL,
 } from './incomplete-player-fill.sql';
 import { ProductionJsonQueryService } from './production-json-query.service';
 
@@ -96,15 +107,76 @@ const EraRulesSetRowSchema = z.object({
   cheapestCost: value.nullable(),
 });
 
+const timestamp = z
+  .string()
+  .refine((text) => !Number.isNaN(Date.parse(text)), 'not a timestamp');
+
+const TeamPlayerRowSchema = z.object({
+  playerId: id,
+  teamId: id,
+  playerName: z.string(),
+  positionName: z.string(),
+});
+
+const TeamRosterRowSchema = z.object({
+  teamId: id,
+  rosterId: z.string().min(1),
+});
+
+const SkillNameRowSchema = z.object({
+  skillId: id,
+  skillName: z.string(),
+  nameId: z.string().min(1),
+});
+
+const SkillCategoryRowSchema = z.object({
+  skillId: id,
+  rulesSetId: id,
+  category: z.enum(SKILL_CATEGORIES),
+});
+
+const PositionAccessRowSchema = z.object({
+  positionId: id,
+  rulesSetId: id,
+  category: z.enum(SKILL_CATEGORIES),
+  access: z.enum(SKILL_ACCESS_LEVELS),
+});
+
+const AdvancementCostRowSchema = z.object({
+  eraId: id,
+  rulesSetId: id,
+  leagueId: id.nullable(),
+  advancementNumber: value.positive(),
+  advancementKind: z.enum(ADVANCEMENT_KINDS),
+  skillId: id.nullable(),
+  sppCost: value.positive(),
+});
+
+const StatReductionEventRowSchema = z.object({
+  playerId: id,
+  characteristic: z.enum(CHARACTERISTIC_KEYS),
+  competitionId: id,
+  playedAt: timestamp,
+});
+
+const TeamCompetitionRowSchema = z.object({
+  playerId: id,
+  competitionId: id,
+  lastPlayedAt: timestamp,
+});
+
 /**
  * Reads what the fill planner needs from production, one read-only query
- * per kind of row, and validates every row before the planner sees it.
+ * per kind of row, and validates every row before the planner sees it. The
+ * rows cover the candidates and their stored data, team players and rosters,
+ * skill names and categories, position access, advancement costs and
+ * stat-reduction events.
  */
 @Injectable()
 export class IncompletePlayerFillQueriesService {
   constructor(private readonly json: ProductionJsonQueryService) {}
 
-  async load(): Promise<FillPlannerInput> {
+  async load(): Promise<FillPlannerRows> {
     const ongoing = await this.rows(ONGOING_COMPETITIONS_SQL, OngoingRowSchema);
     this.assertOngoingFound(ongoing);
     const candidates = await this.rows(CANDIDATES_SQL, CandidateRowSchema);
@@ -137,6 +209,29 @@ export class IncompletePlayerFillQueriesService {
         PositionSkillRowSchema,
       ),
       eraRulesSets: await this.rows(ERA_RULES_SETS_SQL, EraRulesSetRowSchema),
+      teamPlayers: await this.rows(TEAM_PLAYERS_SQL, TeamPlayerRowSchema),
+      teamRosters: await this.rows(TEAM_ROSTERS_SQL, TeamRosterRowSchema),
+      skillNames: await this.rows(SKILL_NAMES_SQL, SkillNameRowSchema),
+      skillCategories: await this.rows(
+        SKILL_CATEGORIES_SQL,
+        SkillCategoryRowSchema,
+      ),
+      positionAccess: await this.rows(
+        POSITION_ACCESS_SQL,
+        PositionAccessRowSchema,
+      ),
+      advancementCosts: await this.rows(
+        ADVANCEMENT_COSTS_SQL,
+        AdvancementCostRowSchema,
+      ),
+      statReductionEvents: await this.rows(
+        STAT_REDUCTION_EVENTS_SQL,
+        StatReductionEventRowSchema,
+      ),
+      teamCompetitions: await this.rows(
+        TEAM_COMPETITIONS_SQL,
+        TeamCompetitionRowSchema,
+      ),
     };
   }
 
