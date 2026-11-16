@@ -46,11 +46,14 @@ Every field is required except where noted, so an entry is never partial:
   optional `attributeValue`, an optional `source` of `chosen` or `random`,
   and `freeExtra: true` for a skill gained outside the paid advancements),
   or a characteristic increase (`MA`, `ST`, `AG`, `PA` or `AV`).
+- `journeyman` — optional, and only `true`: the player is a journeyman
+  whose stored marker is set. The server keeps his starting Loner, so
+  `startingSkills` must not list Loner. See [Journeymen](#journeymen).
 
 The SPP adjustment is not authored: it is worked out the way the TP import
 does it, the total minus the SPP the player's imported match events are
-worth, never below 0. A stored adjustment is kept. A fill does not set the
-journeyman flag.
+worth, never below 0. A stored adjustment is kept. A fill does not change the
+journeyman marker.
 
 ## What is written
 
@@ -71,6 +74,16 @@ player can therefore lose it without counting as incomplete again, and
 applying the same entry again is then refused, because his stored data no
 longer equals the entry.
 
+## Journeymen
+
+An entry with `journeyman: true` fills a journeyman the TP import has
+marked (see [Journeymen](../game-concepts/players/index.md#journeymen)).
+His Loner is a starting skill the server owns. The entry leaves it out,
+the stored starting Loner is expected beside the entry's starting skills,
+and the server keeps or inserts it in the same transaction that writes the
+rest. An entry without the field leaves the marker and any Loner alone, so
+a stored starting Loner it does not list is a contradiction.
+
 ## When an entry is refused
 
 The importer skips an entry whose player or skill does not resolve. For the
@@ -78,6 +91,10 @@ rest, the server checks each entry before anything of it is written, and
 refuses it with an import error when:
 
 - the player is not a TP player, or is a star player;
+- the entry says `journeyman: true` and the player's stored marker is not
+  set, or his position carries the Big Guy keyword under a rules set of his
+  era (not a basic position), or the entry lists Loner among its starting
+  skills;
 - the player is no longer counted as incomplete, and his stored data is not
   exactly what the entry would write (see [Re-running](#re-running));
 - a value already stored for him disagrees with the entry: a non-zero
@@ -103,7 +120,9 @@ the batch is left unrecorded, as for
 
 A player filled in is no longer incomplete, so applying the same entry again
 changes nothing and is not an error. Applying a different entry for him is
-refused: a fill never overwrites data that is already complete.
+refused: a fill never overwrites data that is already complete. For a
+journeyman entry, the comparison includes his stored starting Loner, so the
+same entry is again `unchanged`.
 
 ## Generated fills
 

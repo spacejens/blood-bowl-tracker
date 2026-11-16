@@ -213,6 +213,9 @@ the stored marker from true to false (a recruitment) flags his active
 starting Loner `removed`, unless his position starts with Loner under some
 rules set or is a star-player position (a journeyman is always a basic
 position); no other write of a player who is not a journeyman touches it.
+A manual fill of a marked journeyman (`journeyman: true`, see
+[Filling in missing players](../import-manual/filling-missing-players.md#journeymen))
+runs the same ensure on the fill's own transaction.
 If the write commits but the retire then fails, the starting Loner stays
 until the marker changes again: a later write that marks him and one that
 clears it again retires it.

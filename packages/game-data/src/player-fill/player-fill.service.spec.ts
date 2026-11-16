@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
+import { JourneymanLonerService } from '../player-skills/journeyman-loner.service';
 import { PlayerAdvancementReadsService } from '../player-skills/player-advancement-reads.service';
 import { PlayerSkillsService } from '../player-skills/player-skills.service';
 import { PlayerCharacteristicsValidationService } from '../players/player-characteristics-validation.service';
@@ -31,6 +32,7 @@ interface Harness {
   validation: MockProxy<PlayerCharacteristicsValidationService>;
   playerSkills: MockProxy<PlayerSkillsService>;
   sppTotals: MockProxy<SppTotalsService>;
+  loner: MockProxy<JourneymanLonerService>;
 }
 
 /**
@@ -56,6 +58,9 @@ async function makeService(
   playerSkills.sync.mockResolvedValue({ playerSkillIds: [] });
   const sppTotals = mock<SppTotalsService>();
   sppTotals.totalsForPlayers.mockResolvedValue(new Map([[9, 5]]));
+  const loner = mock<JourneymanLonerService>();
+  loner.findLonerSkillIds.mockResolvedValue([80]);
+  loner.ensureStartingLoner.mockResolvedValue(undefined);
   const moduleRef = await Test.createTestingModule({
     providers: [
       PlayerFillService,
@@ -71,6 +76,7 @@ async function makeService(
       },
       { provide: PlayerSkillsService, useValue: playerSkills },
       { provide: SppTotalsService, useValue: sppTotals },
+      { provide: JourneymanLonerService, useValue: loner },
     ],
   }).compile();
   return {
@@ -81,6 +87,7 @@ async function makeService(
     validation,
     playerSkills,
     sppTotals,
+    loner,
   };
 }
 
@@ -161,6 +168,18 @@ const complete = incomplete({
     },
   ],
 });
+
+const journeymanFill: FillIncompletePlayer = { ...fill, journeyman: true };
+
+const startingLoner = {
+  skillId: 80,
+  characteristic: null,
+  attributeValue: null,
+  source: 'starting' as const,
+  isFreeExtra: false,
+  advancementOrder: null,
+  orderConfirmed: false,
+};
 
 describe('PlayerFillService', () => {
   it('refuses a player that does not exist', async () => {
@@ -476,6 +495,123 @@ describe('PlayerFillService', () => {
     expect(sppTotals.totalsForPlayers).not.toHaveBeenCalled();
     expect(db.chains[0].set).toHaveBeenCalledWith(
       expect.objectContaining({ sppAdjustment: 1 }),
+    );
+  });
+});
+
+describe('PlayerFillService journeyman entries', () => {
+  it('refuses one for a player whose marker is not set, writing nothing', async () => {
+    const { service, db, loner } = await makeService(incomplete());
+
+    await expect(service.fill(journeymanFill)).rejects.toThrow(
+      new IncompletePlayerFillError('Player 9 is not marked a journeyman'),
+    );
+    expect(db.transaction).not.toHaveBeenCalled();
+    expect(loner.ensureStartingLoner).not.toHaveBeenCalled();
+  });
+
+  it('refuses one for a Big Guy position', async () => {
+    const { service, db } = await makeService(
+      incomplete({ isJourneyman: true, isBigGuyPosition: true }),
+    );
+
+    await expect(service.fill(journeymanFill)).rejects.toThrow(
+      new IncompletePlayerFillError('Player 9 is not in a basic position'),
+    );
+    expect(db.transaction).not.toHaveBeenCalled();
+  });
+
+  it('refuses one that lists Loner among the starting skills', async () => {
+    const { service, db } = await makeService(
+      incomplete({ isJourneyman: true }),
+    );
+
+    await expect(
+      service.fill({
+        ...journeymanFill,
+        startingSkills: [
+          { skillId: 70, attributeValue: null },
+          { skillId: 80, attributeValue: '4+' },
+        ],
+      }),
+    ).rejects.toThrow(
+      new IncompletePlayerFillError(
+        'Player 9 lists Loner among the starting skills of a journeyman entry',
+      ),
+    );
+    expect(db.transaction).not.toHaveBeenCalled();
+  });
+
+  it('accepts his stored starting Loner, writes the entry and ensures the Loner in the same transaction', async () => {
+    const { service, db, loner, playerSkills } = await makeService(
+      incomplete({ isJourneyman: true, rows: [startingLoner] }),
+    );
+
+    await expect(service.fill(journeymanFill)).resolves.toEqual({
+      playerId: 9,
+      outcome: 'filled',
+    });
+    expect(db.transaction).toHaveBeenCalledTimes(1);
+    expect(loner.ensureStartingLoner).toHaveBeenCalledWith(9, { tx: db.db });
+    const synced = playerSkills.sync.mock.calls[0][0].entries;
+    expect(synced.map((entry) => entry.skillId)).toEqual([70, 71]);
+    expect(db.db.update).toHaveBeenCalledWith(players);
+  });
+
+  it('prices only the entry, not the Loner it keeps', async () => {
+    const { service, spendCheck } = await makeService(
+      incomplete({ isJourneyman: true, rows: [startingLoner] }),
+    );
+
+    await service.fill(journeymanFill);
+
+    const planned = spendCheck.problem.mock.calls[0][0].planned;
+    expect(planned.map((row) => row.skillId)).toEqual([70, 71]);
+  });
+
+  it('leaves a complete journeyman stored exactly as the entry unchanged', async () => {
+    const { service, db, loner } = await makeService({
+      ...complete,
+      isJourneyman: true,
+      rows: [...complete.rows, startingLoner],
+    });
+
+    await expect(service.fill(journeymanFill)).resolves.toEqual({
+      playerId: 9,
+      outcome: 'unchanged',
+    });
+    expect(db.transaction).not.toHaveBeenCalled();
+    expect(loner.ensureStartingLoner).not.toHaveBeenCalled();
+  });
+
+  it('refuses a different entry for a complete journeyman', async () => {
+    const { service } = await makeService({
+      ...complete,
+      isJourneyman: true,
+      rows: [...complete.rows, startingLoner],
+    });
+
+    await expect(
+      service.fill({ ...journeymanFill, sppTotal: 9, unspentSpp: 3 }),
+    ).rejects.toThrow(/already has complete data that differs from the entry/);
+  });
+
+  it('neither reads nor ensures Loner for an entry without the flag', async () => {
+    const { service, loner } = await makeService(incomplete());
+
+    await service.fill(fill);
+
+    expect(loner.findLonerSkillIds).not.toHaveBeenCalled();
+    expect(loner.ensureStartingLoner).not.toHaveBeenCalled();
+  });
+
+  it('still refuses a stored starting Loner an entry without the flag leaves out', async () => {
+    const { service } = await makeService(
+      incomplete({ isJourneyman: true, rows: [startingLoner] }),
+    );
+
+    await expect(service.fill(fill)).rejects.toThrow(
+      /starting skill 80 is stored but not in the entry/,
     );
   });
 });

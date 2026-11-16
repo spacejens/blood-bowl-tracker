@@ -221,6 +221,12 @@ not a star player's, mercenary or Big Guy hire.
   invents no Loner: a journeyman seen only in line-ups, with no Loner stored,
   stays unmarked until a later import sees Loner in his snapshot and marks
   him.
+- **Filling a missing journeyman.** A TP journeyman the import left
+  incomplete can be filled by a manual batch entry with `journeyman: true`,
+  which keeps his marker and starting Loner (see
+  [Filling in missing players](../../import-manual/filling-missing-players.md#journeymen)).
+  Only a player whose marker is set is filled this way; one merely named
+  Journeyman stays incomplete.
 
 How the starting row is kept and retired is described under
 [Player advancements](../../database/star-player-points.md#player-advancements).
