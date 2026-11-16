@@ -68,8 +68,9 @@ evidence `read-tp-feed-history` saves (see
 query runs. A missing or malformed file stops the run. Without the flag,
 players are not filled from feed reports; the other fills still run.
 `report` also gives `eligibleByStage` (fills with no advancements, from
-the feed, and with lasting injuries) and `feed` (how many feed player keys
-matched one stored player, several, or no player of a candidate's team; `null` without the flag).
+the feed with or without lasting injuries, and with lasting injuries only)
+and `feed` (how many feed player keys matched one stored player, several,
+or no player of a candidate's team; `null` without the flag).
 
 The package depends on `@blood-bowl-tracker/domain-enums` for the status,
 characteristic-format, skill, advancement-kind and match-event enums.

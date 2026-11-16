@@ -144,6 +144,14 @@ entry has the stored status, else `dead` if a death is recorded, else
   one lower in a target-number format), the starting skills, the reported
   skills with their chosen or random source and any variant ("Mighty Blow
   (+1)"), and his stored total and unspent SPP.
+  When stat reductions are recorded for him, they must certainly last, as
+  for lasting injuries above, and they are applied together with the
+  increases in the order they happened: an increase when its report was
+  posted, a reduction when its match was played. Each change applies the
+  limits above as it happens, so an increase can lift a value a reduction
+  left at its floor, and the cap of two counts only reductions that worsened
+  the value. Changes to one characteristic on the same UTC day have no known
+  order, and every order of them must give the same value.
 
 A player is skipped, with the reason reported, when any of these holds:
 
@@ -164,8 +172,6 @@ A player is skipped, with the reason reported, when any of these holds:
   free extra stored, or the feed reports a Loner, a Hatred or a skill a
   cost row grants (`free-skill-risk`);
 - his stat reductions are not certain to last (`lasting-injury-uncertain`);
-- the feed reports advancements and stat reductions are recorded for him
-  (`advancement-and-injury`);
 - with feed reports: his unspent SPP is not stored
   (`unspent-spp-missing`); there are more than six reports
   (`too-many-advancements`); a reported skill names no stored skill, or
@@ -180,6 +186,8 @@ A player is skipped, with the reason reported, when any of these holds:
 - his position's data differs between the rules sets of his era, or names a
   skill with no `Name` id or with an empty attribute value
   (`position-ambiguous`);
+- same-day changes to one characteristic give different values depending on
+  their order (`characteristic-order-uncertain`);
 - the resulting line is not a valid one (`invalid-characteristics`);
 - anything already stored would make the fill refuse the entry
   (`stored-data-contradicts`).
