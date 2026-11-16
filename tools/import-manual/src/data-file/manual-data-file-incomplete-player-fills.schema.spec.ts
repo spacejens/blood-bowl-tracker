@@ -82,4 +82,14 @@ describe('ManualDataFileSchema incompletePlayerFills', () => {
       }).success,
     ).toBe(false);
   });
+
+  it('accepts journeyman: true and keeps it', () => {
+    const result = parse({ ...entry, journeyman: true });
+    expect(result.success).toBe(true);
+    expect(result.data?.incompletePlayerFills[0].journeyman).toBe(true);
+  });
+
+  it('rejects journeyman: false as meaningless', () => {
+    expect(parse({ ...entry, journeyman: false }).success).toBe(false);
+  });
 });
