@@ -23,6 +23,7 @@ import {
   LASTING_INJURY_REPAIRS_SQL,
   ONGOING_COMPETITION_NAMES,
   ONGOING_COMPETITIONS_SQL,
+  PAID_ADVANCEMENTS_SQL,
   POSITION_ACCESS_SQL,
   POSITION_RULES_SETS_SQL,
   POSITION_SKILLS_SQL,
@@ -120,8 +121,20 @@ const timestamp = z
 const TeamPlayerRowSchema = z.object({
   playerId: id,
   teamId: id,
+  eraId: id,
+  positionId: id,
   playerName: z.string(),
   positionName: z.string(),
+  sppTotal: value.nullable(),
+  unspentSpp: value.nullable(),
+  isJourneyman: z.boolean(),
+});
+
+const PaidAdvancementRowSchema = z.object({
+  playerId: id,
+  skillId: id.nullable(),
+  attributeValue: z.string().nullable(),
+  characteristic: z.enum(CHARACTERISTIC_KEYS).nullable(),
 });
 
 const TeamRosterRowSchema = z.object({
@@ -205,7 +218,7 @@ const LastingInjuryRepairCandidateRowSchema = z.object({
 /**
  * Reads what the fill planner needs from production, one read-only query
  * per kind of row, and validates every row before the planner sees it. The
- * rows cover the candidates and their stored data, team players and rosters,
+ * rows cover the candidates and their stored data, team players (TP players of the candidates' teams), their paid advancements and rosters,
  * skill names and categories, position access, advancement costs and
  * stat-reduction events and Big Guy positions; separately, the complete
  * players who may need a lasting-reduction repair.
@@ -249,6 +262,10 @@ export class IncompletePlayerFillQueriesService {
       eraRulesSets: await this.rows(ERA_RULES_SETS_SQL, EraRulesSetRowSchema),
       teamPlayers: await this.rows(TEAM_PLAYERS_SQL, TeamPlayerRowSchema),
       teamRosters: await this.rows(TEAM_ROSTERS_SQL, TeamRosterRowSchema),
+      paidAdvancements: await this.rows(
+        PAID_ADVANCEMENTS_SQL,
+        PaidAdvancementRowSchema,
+      ),
       skillNames: await this.rows(SKILL_NAMES_SQL, SkillNameRowSchema),
       skillCategories: await this.rows(
         SKILL_CATEGORIES_SQL,

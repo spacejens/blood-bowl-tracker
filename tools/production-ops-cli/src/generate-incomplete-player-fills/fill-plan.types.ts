@@ -94,14 +94,20 @@ export interface FillPlannerRows {
   ongoingTeamIds: number[];
   positionRulesSets: PositionRulesSetRow[];
   positionSkills: PositionSkillRow[];
+  /** Rules sets and cheapest costs of the team players' eras; the candidates' eras are among them. */
   eraRulesSets: EraRulesSetRow[];
-  /** Every non-star player of a candidate's team. */
+  /** Every non-star TP player of a candidate's team. */
   teamPlayers: TeamPlayerRow[];
   /** The roster ids of the candidates' teams. */
   teamRosters: TeamRosterRow[];
+  /** The stored paid advancements of every team player. */
+  paidAdvancements: PaidAdvancementRow[];
   skillNames: SkillNameRow[];
+  /** Skill categories under the team players' eras' rules sets; the candidates' are among them. */
   skillCategories: SkillCategoryRow[];
+  /** Category access of the team players' positions; the candidates' positions are among them. */
   positionAccess: PositionAccessRow[];
+  /** Advancement costs of the team players' eras; the candidates' eras are among them. */
   advancementCosts: AdvancementCostRow[];
   statReductionEvents: StatReductionEventRow[];
   /** Only for candidates with a stat reduction. */
@@ -272,12 +278,29 @@ export type ReplayOutcome =
   | { kind: 'unapplicable' }
   | { kind: 'order-uncertain' };
 
-/** A non-star player of a candidate's team, for matching feed reports. */
+/** A non-star TP player of a candidate's team, complete or not, for matching feed reports. */
 export interface TeamPlayerRow {
   playerId: number;
   teamId: number;
+  eraId: number;
+  positionId: number;
   playerName: string;
   positionName: string;
+  sppTotal: number | null;
+  unspentSpp: number | null;
+  isJourneyman: boolean;
+}
+
+/**
+ * One stored paid advancement of a team player: a gained skill with its
+ * variant (`characteristic` null), or a characteristic increase (`skillId`
+ * null). Not removed, not starting, not a free extra.
+ */
+export interface PaidAdvancementRow {
+  playerId: number;
+  skillId: number | null;
+  attributeValue: string | null;
+  characteristic: CharacteristicKey | null;
 }
 
 /** A team's TP roster id: its `tourplay.net` external id. */

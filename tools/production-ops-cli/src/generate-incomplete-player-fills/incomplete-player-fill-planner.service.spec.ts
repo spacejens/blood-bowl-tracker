@@ -11,6 +11,7 @@ import {
   eligibleInput,
   profile,
   report,
+  teamPlayer,
 } from './fill-plan.test-helpers';
 import {
   type FeedSummary,
@@ -520,14 +521,7 @@ describe('IncompletePlayerFillPlannerService', () => {
     const input = eligibleInput({
       feed: FEED,
       teamRosters: [{ teamId: 20, rosterId: '24801' }],
-      teamPlayers: [
-        {
-          playerId: 1,
-          teamId: 20,
-          playerName: 'Flame',
-          positionName: 'Gnoblar Lineman',
-        },
-      ],
+      teamPlayers: [teamPlayer()],
     });
 
     const plan = service.plan(input);

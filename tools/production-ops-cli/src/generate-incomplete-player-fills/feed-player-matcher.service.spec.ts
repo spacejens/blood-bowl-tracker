@@ -3,16 +3,11 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { TpFeedHistoryReports } from '../read-tp-feed-history/tp-feed-history-index.service';
 import { FeedPlayerMatcherService } from './feed-player-matcher.service';
-import { report } from './fill-plan.test-helpers';
+import { report, teamPlayer } from './fill-plan.test-helpers';
 import type { TeamPlayerRow, TeamRosterRow } from './fill-plan.types';
 
 const ROSTERS: TeamRosterRow[] = [{ teamId: 20, rosterId: '24801' }];
-const FLAME: TeamPlayerRow = {
-  playerId: 1,
-  teamId: 20,
-  playerName: 'Flame',
-  positionName: 'Gnoblar Lineman',
-};
+const FLAME: TeamPlayerRow = teamPlayer();
 const KEY = '#13 Flame (Gnoblar Lineman)';
 
 describe('FeedPlayerMatcherService', () => {

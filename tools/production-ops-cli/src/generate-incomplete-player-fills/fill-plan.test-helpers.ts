@@ -3,6 +3,7 @@ import type {
   CandidateRow,
   FillPlannerInput,
   PositionProfile,
+  TeamPlayerRow,
 } from './fill-plan.types';
 
 /** A chosen primary Dodge for #13 Flame (Gnoblar Lineman) of roster 24801, at 6. */
@@ -25,6 +26,24 @@ export function report(
     sppCost: 6,
     valueText: 'Primary Dodge ★6',
     rawValue: 'Primary ` Dodge ` ` ★6 `',
+    ...overrides,
+  };
+}
+
+/** Flame (Gnoblar Lineman, team 20, era 4, position 30): a TP player with 20 SPP, 2 unspent. */
+export function teamPlayer(
+  overrides: Partial<TeamPlayerRow> = {},
+): TeamPlayerRow {
+  return {
+    playerId: 1,
+    teamId: 20,
+    eraId: 4,
+    positionId: 30,
+    playerName: 'Flame',
+    positionName: 'Gnoblar Lineman',
+    sppTotal: 20,
+    unspentSpp: 2,
+    isJourneyman: false,
     ...overrides,
   };
 }
@@ -88,6 +107,7 @@ export function eligibleInput(
     eraRulesSets: [{ eraId: 4, rulesSetId: 7, cheapestCost: 6 }],
     teamPlayers: [],
     teamRosters: [],
+    paidAdvancements: [],
     skillNames: [],
     skillCategories: [],
     positionAccess: [],
