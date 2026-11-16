@@ -95,7 +95,7 @@ describe('FillEntryBuilderService', () => {
 
   describe('contradicts', () => {
     const base = {
-      candidate: candidate({ sppTotal: 20 }),
+      candidate: candidate(),
       stored: [] as StoredAdvancementRow[],
       profile: profile(),
       line: LINE,

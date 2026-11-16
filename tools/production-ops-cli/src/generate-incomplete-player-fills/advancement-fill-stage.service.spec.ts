@@ -188,12 +188,44 @@ describe('AdvancementFillStageService', () => {
     });
   });
 
-  it('accepts a reported skill that repeats a starting skill with another variant', () => {
+  it('refuses a reported skill that repeats a starting skill with another variant', () => {
     skills.resolve.mockReturnValue([
       skillStep({ skillId: 100, nameId: 'Block', attributeValue: '+1' }),
     ]);
 
-    expect(reasonFor(stageInput())).toBeUndefined();
+    expect(reasonFor(stageInput())).toBe('duplicate-skill');
+  });
+
+  it('skips a player whose position has conflicting access rows for a category', () => {
+    const access = {
+      positionId: 30,
+      rulesSetId: 7,
+      category: 'agility' as const,
+    };
+
+    expect(
+      reasonFor(
+        stageInput({
+          positionAccess: [
+            { ...access, access: 'primary' },
+            { ...access, access: 'secondary' },
+          ],
+        }),
+      ),
+    ).toBe('skill-category-mismatch');
+  });
+
+  it('accepts identical duplicate access rows', () => {
+    const row = {
+      positionId: 30,
+      rulesSetId: 7,
+      category: 'agility' as const,
+      access: 'primary' as const,
+    };
+
+    expect(
+      reasonFor(stageInput({ positionAccess: [row, row] })),
+    ).toBeUndefined();
   });
 
   it.each<[string, Partial<AdvancementStageInput>, SkipReason]>([

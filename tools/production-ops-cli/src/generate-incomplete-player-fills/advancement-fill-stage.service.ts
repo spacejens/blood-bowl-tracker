@@ -130,6 +130,9 @@ export class AdvancementFillStageService {
     if (this.repeatsSkill(steps, profile)) {
       return { reason: 'duplicate-skill' };
     }
+    if (this.hasConflictingAccess(input.positionAccess)) {
+      return { reason: 'skill-category-mismatch' };
+    }
     const priceReason = this.priceReason(
       steps,
       input,
@@ -201,6 +204,17 @@ export class AdvancementFillStageService {
       : undefined;
   }
 
+  /** Whether one rules set gives a category two different accesses; identical duplicates are fine. */
+  private hasConflictingAccess(rows: readonly PositionAccessRow[]): boolean {
+    const seen = new Map<string, string>();
+    return rows.some((row) => {
+      const key = JSON.stringify([row.rulesSetId, row.category]);
+      const earlier = seen.get(key);
+      seen.set(key, row.access);
+      return earlier !== undefined && earlier !== row.access;
+    });
+  }
+
   private rulesSets(input: AdvancementStageInput): RulesSetPricingInput[] {
     return input.rulesSetIds.map((rulesSetId) => ({
       rulesSetId,
@@ -241,25 +255,21 @@ export class AdvancementFillStageService {
     return line;
   }
 
-  /** Whether a reported skill repeats a starting skill or an earlier report. */
+  /** Whether a reported skill repeats a starting skill or an earlier report, in any variant. */
   private repeatsSkill(
     steps: ResolvedStep[],
     profile: PositionProfile,
   ): boolean {
-    const seen = new Set(
-      profile.skills.map((skill) =>
-        JSON.stringify([skill.skillId, skill.attributeValue]),
-      ),
-    );
+    // A player never gains a skill he has, whatever its variant.
+    const seen = new Set(profile.skills.map((skill) => skill.skillId));
     for (const step of steps) {
       if (step.kind !== 'skill') {
         continue;
       }
-      const key = JSON.stringify([step.skillId, step.attributeValue]);
-      if (seen.has(key)) {
+      if (seen.has(step.skillId)) {
         return true;
       }
-      seen.add(key);
+      seen.add(step.skillId);
     }
     return false;
   }

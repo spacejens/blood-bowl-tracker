@@ -3,12 +3,16 @@ import {
   AdvancementKindCandidatesService,
   AdvancementOrderDeductionService,
   AdvancementSpendRangeService,
+  FREE_EXTRA_SKILL_NAMES as SERVER_FREE_EXTRA_SKILL_NAMES,
+  MAX_DEDUCED,
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { MAX_PAID_ADVANCEMENTS } from './advancement-fill-stage.service';
 import { AdvancementPricingService } from './advancement-pricing.service';
 import type { ResolvedStep, RulesSetPricingInput } from './fill-plan.types';
+import { FREE_EXTRA_SKILL_NAMES } from './fill-plan.types';
 import {
   BB2020_COSTS,
   BB2025_COSTS,
@@ -146,5 +150,17 @@ describe('AdvancementPricingService against game-data', () => {
     for (let spent = 0; spent <= 60; spent++) {
       expect(serverAccepts(steps, rulesSets, spent)).toBe(false);
     }
+  });
+});
+
+describe('constants duplicated from game-data', () => {
+  it('prices as many paid advancements as the server deduces', () => {
+    expect(MAX_PAID_ADVANCEMENTS).toBe(MAX_DEDUCED);
+  });
+
+  it('treats the same skills as free extras as the server', () => {
+    expect([...FREE_EXTRA_SKILL_NAMES].sort()).toEqual(
+      [...SERVER_FREE_EXTRA_SKILL_NAMES].sort(),
+    );
   });
 });

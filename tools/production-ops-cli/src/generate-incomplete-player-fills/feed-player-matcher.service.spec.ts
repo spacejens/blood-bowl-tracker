@@ -45,6 +45,35 @@ describe('FeedPlayerMatcherService', () => {
     });
   });
 
+  it("orders a player's reports by message id, oldest first", () => {
+    const older = report({ messageId: '999' });
+    const middle = report({ messageId: '1057968552151359499' });
+    const newest = report({ messageId: '1057968552151359500' });
+
+    const result = service.match({
+      reports: { Firestarters: { [KEY]: [newest, older, middle] } },
+      rosters: ROSTERS,
+      players: [FLAME],
+    });
+
+    expect(result.byPlayer).toEqual(
+      new Map([[1, { kind: 'reports', reports: [older, middle, newest] }]]),
+    );
+  });
+
+  it('marks the players a key names as ambiguous when a message id is not a number', () => {
+    const result = service.match({
+      reports: {
+        Firestarters: { [KEY]: [report(), report({ messageId: 'abc' })] },
+      },
+      rosters: ROSTERS,
+      players: [FLAME],
+    });
+
+    expect(result.byPlayer).toEqual(new Map([[1, { kind: 'ambiguous' }]]));
+    expect(result.summary).toMatchObject({ matchedKeys: 0, ambiguousKeys: 1 });
+  });
+
   it('leaves a key whose roster is no stored team unmatched', () => {
     const result = service.match({
       reports: { Firestarters: { [KEY]: [report()] } },

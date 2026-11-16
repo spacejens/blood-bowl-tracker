@@ -73,9 +73,12 @@ export class AdvancementPricingService {
     if (prices.some((price) => price.kind === 'category-mismatch')) {
       return { kind: 'category-mismatch' };
     }
-    const lists = prices.map((price) =>
-      price.kind === 'costs' ? price.costs : [],
-    );
+    // Only cost prices remain after the two checks above.
+    const lists = prices
+      .filter((price): price is Extract<RulesSetPrice, { kind: 'costs' }> => {
+        return price.kind === 'costs';
+      })
+      .map((price) => price.costs);
     if (lists.length === 0) {
       return { kind: 'unpriced' };
     }

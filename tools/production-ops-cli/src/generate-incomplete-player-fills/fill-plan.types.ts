@@ -287,7 +287,7 @@ export interface FeedSummary {
   matchedKeys: number;
   /** Keys naming several stored players, or with several roster links. */
   ambiguousKeys: number;
-  /** Keys naming no stored player. */
+  /** Keys naming no player of a candidate's team. */
   unmatchedKeys: number;
 }
 

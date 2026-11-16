@@ -170,8 +170,9 @@ A player is skipped, with the reason reported, when any of these holds:
   (`unspent-spp-missing`); there are more than six reports
   (`too-many-advancements`); a reported skill names no stored skill, or
   several (`skill-unresolved`); a reported skill repeats a starting skill
-  or another report (`duplicate-skill`); the position's access puts a
-  reported skill on the other side of primary and secondary than the report
+  or another report, in any variant (`duplicate-skill`); the position's
+  access puts a reported skill on the other side of primary and secondary
+  than the report, or gives a category two different accesses
   (`skill-category-mismatch`); the rules sets of his era price the reports
   differently (`rules-sets-disagree`); the prices cannot be found, or do
   not add up to the SPP he spent (`spp-does-not-add-up`); or a price is not

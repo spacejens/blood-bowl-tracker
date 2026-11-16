@@ -32,11 +32,11 @@ const ROSTER_ID = /\/roster\/(\d+)\/?$/u;
  * Matches the feed's player keys (team, shirt number, name, position) to
  * stored players. The shirt number is not stored, so a key names the
  * players of its roster's team with its name and position. A key that names
- * one player gives him its reports in the order the input has them; the
- * matcher relies on that order and does not sort. A key that names several,
- * or whose reports link several rosters, makes them ambiguous, and so does
- * a player named by more than one key. A key that names nobody is counted
- * and left.
+ * one player gives him its reports ordered by message id, oldest first. A
+ * key that names several, whose reports link several rosters, or one of
+ * whose message ids is not a number, makes them ambiguous, and so does a
+ * player named by more than one key. A key that names no player of a
+ * candidate's team is counted and left.
  *
  * Pure decision logic, with no I/O and no dependencies.
  */
@@ -67,14 +67,25 @@ export class FeedPlayerMatcherService {
       for (const reports of Object.values(players)) {
         summary.reportKeys += 1;
         const stored = this.storedFor(reports, lookups);
-        if (stored === undefined || stored.length > 1) {
+        // An unparseable message id leaves the order unproven: ambiguous.
+        const unordered = !reports.every((row) => /^\d+$/u.test(row.messageId));
+        if (
+          stored === undefined ||
+          stored.length > 1 ||
+          (unordered && stored.length > 0)
+        ) {
           summary.ambiguousKeys += 1;
           stored?.forEach((playerId) => ambiguous.add(playerId));
         } else if (stored.length === 0) {
           summary.unmatchedKeys += 1;
         } else {
           summary.matchedKeys += 1;
-          found.set(stored[0], [...(found.get(stored[0]) ?? []), reports]);
+          found.set(stored[0], [
+            ...(found.get(stored[0]) ?? []),
+            [...reports].sort((a, b) =>
+              BigInt(a.messageId) < BigInt(b.messageId) ? -1 : 1,
+            ),
+          ]);
         }
       }
     }
