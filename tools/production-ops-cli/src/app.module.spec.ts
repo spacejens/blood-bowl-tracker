@@ -32,6 +32,7 @@ import { IncompletePlayerFillQueriesService } from './generate-incomplete-player
 import { InjuryFillStageService } from './generate-incomplete-player-fills/injury-fill-stage.service';
 import { LastingInjuryProofService } from './generate-incomplete-player-fills/lasting-injury-proof.service';
 import { PositionProfileService } from './generate-incomplete-player-fills/position-profile.service';
+import { PricingRulesSetsService } from './generate-incomplete-player-fills/pricing-rules-sets.service';
 import { ProductionJsonQueryService } from './generate-incomplete-player-fills/production-json-query.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
 import { ReadTpFeedHistoryService } from './read-tp-feed-history/read-tp-feed-history.service';
@@ -87,6 +88,9 @@ describe('AppModule', () => {
     );
     expect(moduleRef.get(AdvancementPricingService)).toBeInstanceOf(
       AdvancementPricingService,
+    );
+    expect(moduleRef.get(PricingRulesSetsService)).toBeInstanceOf(
+      PricingRulesSetsService,
     );
     expect(moduleRef.get(AdvancementFillStageService)).toBeInstanceOf(
       AdvancementFillStageService,

@@ -19,7 +19,6 @@ import type {
   PositionAccessRow,
   PositionProfile,
   ResolvedStep,
-  RulesSetPricingInput,
   SkillCategoryRow,
   SkillNameRow,
   SkipReason,
@@ -30,6 +29,7 @@ import type {
 } from './fill-plan.types';
 import { FREE_EXTRA_SKILL_NAMES } from './fill-plan.types';
 import { LastingInjuryProofService } from './lasting-injury-proof.service';
+import { PricingRulesSetsService } from './pricing-rules-sets.service';
 
 /** The server's order check prices at most this many paid advancements. */
 export const MAX_PAID_ADVANCEMENTS = 6;
@@ -96,6 +96,7 @@ export class AdvancementFillStageService {
     private readonly proof: LastingInjuryProofService,
     private readonly skills: FeedSkillResolverService,
     private readonly pricing: AdvancementPricingService,
+    private readonly pricingRulesSets: PricingRulesSetsService,
     private readonly replay: CharacteristicReplayService,
     private readonly validity: CharacteristicValidityService,
     private readonly entries: FillEntryBuilderService,
@@ -209,7 +210,12 @@ export class AdvancementFillStageService {
   ): SkipReason | undefined {
     const outcome = this.pricing.price({
       steps,
-      rulesSets: this.rulesSets(input),
+      rulesSets: this.pricingRulesSets.build({
+        rulesSetIds: input.rulesSetIds,
+        costs: input.costs,
+        skillCategories: input.skillCategories,
+        positionAccess: input.positionAccess,
+      }),
     });
     if (outcome.kind === 'granted-skill') {
       return 'free-skill-risk';
@@ -237,23 +243,6 @@ export class AdvancementFillStageService {
       seen.set(key, row.access);
       return earlier !== undefined && earlier !== row.access;
     });
-  }
-
-  private rulesSets(input: AdvancementStageInput): RulesSetPricingInput[] {
-    return input.rulesSetIds.map((rulesSetId) => ({
-      rulesSetId,
-      costs: input.costs.filter((cost) => cost.rulesSetId === rulesSetId),
-      skillCategories: new Map(
-        input.skillCategories
-          .filter((row) => row.rulesSetId === rulesSetId)
-          .map((row) => [row.skillId, row.category]),
-      ),
-      positionAccess: new Map(
-        input.positionAccess
-          .filter((row) => row.rulesSetId === rulesSetId)
-          .map((row) => [row.category, row.access]),
-      ),
-    }));
   }
 
   /** His increases at their reports' times, and his reductions at their matches' times. */
