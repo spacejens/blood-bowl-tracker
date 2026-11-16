@@ -47,3 +47,43 @@ describe('RpcRouterFactoryService players.fillIncomplete router', () => {
     });
   });
 });
+
+describe('RpcRouterFactoryService players.recordLastingReductions router', () => {
+  let harness: Awaited<ReturnType<typeof createRouterHarness>>;
+
+  beforeEach(async () => {
+    harness = await createRouterHarness();
+  });
+
+  it('records the reductions through the service', async () => {
+    harness.mocks.playerFillReductionsRecordService.record.mockResolvedValue({
+      playerId: 9,
+      outcome: 'recorded',
+    });
+
+    const result = await call(harness.router.players.recordLastingReductions, {
+      playerId: 9,
+    });
+
+    expect(
+      harness.mocks.playerFillReductionsRecordService.record,
+    ).toHaveBeenCalledWith({ playerId: 9 });
+    expect(result).toEqual({ playerId: 9, outcome: 'recorded' });
+  });
+
+  it('reports a refusal as BAD_REQUEST', async () => {
+    harness.mocks.playerFillReductionsRecordService.record.mockRejectedValue(
+      new IncompletePlayerFillError(
+        'Player 9 is still incomplete: fill him in before recording his lasting reductions',
+      ),
+    );
+
+    await expect(
+      call(harness.router.players.recordLastingReductions, { playerId: 9 }),
+    ).rejects.toMatchObject({
+      code: 'BAD_REQUEST',
+      message:
+        'Player 9 is still incomplete: fill him in before recording his lasting reductions',
+    });
+  });
+});

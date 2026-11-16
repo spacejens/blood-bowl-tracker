@@ -22,6 +22,7 @@ import {
   MatchOutcomesService,
   MatchUpsertConflictError,
   MissingTrophyAwardsService,
+  PlayerFillReductionsRecordService,
   PlayerFillService,
   PlayerLastingInjuryBackfillService,
   PlayerSkillsService,
@@ -114,6 +115,7 @@ export class RpcRouterFactoryService {
     private readonly sppAdjustmentsService: SppAdjustmentsService,
     private readonly playerLastingInjuryBackfillService: PlayerLastingInjuryBackfillService,
     private readonly playerFillService: PlayerFillService,
+    private readonly playerFillReductionsRecordService: PlayerFillReductionsRecordService,
     private readonly erasService: ErasService,
     private readonly positionsService: PositionsService,
     private readonly teamsService: TeamsService,
@@ -376,7 +378,11 @@ export class RpcRouterFactoryService {
           this.sppAdjustmentsService,
           this.playerLastingInjuryBackfillService,
         ),
-        ...buildPlayerFillRoute(this.upsertHandler, this.playerFillService),
+        ...buildPlayerFillRoute(
+          this.upsertHandler,
+          this.playerFillService,
+          this.playerFillReductionsRecordService,
+        ),
         ...this.buildResolveRoute({
           procedure: contract.players.resolve,
           service: this.playersService,
