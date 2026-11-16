@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
 import { CharacteristicValidityService } from './characteristic-validity.service';
+import { FillEntryBuilderService } from './fill-entry-builder.service';
 import { candidate, eligibleInput, profile } from './fill-plan.test-helpers';
 import {
   type FillPlannerInput,
@@ -27,6 +28,8 @@ describe('IncompletePlayerFillPlannerService', () => {
         IncompletePlayerFillPlannerService,
         { provide: CharacteristicValidityService, useValue: validity },
         { provide: PositionProfileService, useValue: profiles },
+        // Pure and dependency-free, so passed real to keep asserting real entries.
+        FillEntryBuilderService,
       ],
     }).compile();
     service = moduleRef.get(IncompletePlayerFillPlannerService);

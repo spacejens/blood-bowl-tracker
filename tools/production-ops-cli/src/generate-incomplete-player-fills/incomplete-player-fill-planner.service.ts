@@ -1,7 +1,7 @@
-import type { PlayerStatus } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 
 import { CharacteristicValidityService } from './characteristic-validity.service';
+import { FillEntryBuilderService } from './fill-entry-builder.service';
 import type {
   CandidateRow,
   EraRulesSetRow,
@@ -9,7 +9,6 @@ import type {
   FillPlan,
   FillPlannerInput,
   FillReport,
-  PositionProfile,
   PositionRulesSetRow,
   PositionSkillRow,
   SkipReason,
@@ -31,19 +30,6 @@ interface PlannerIndex {
 
 type Decision = { entry: FillEntry } | { reason: SkipReason };
 
-interface ContradictionCheck {
-  candidate: CandidateRow;
-  stored: StoredAdvancementRow[];
-  profile: PositionProfile;
-}
-
-interface EntryParts {
-  candidate: CandidateRow;
-  sppTotal: number;
-  profile: PositionProfile;
-  status: PlayerStatus;
-}
-
 /**
  * Plans the `incompletePlayerFills` entries for incomplete TP players who
  * provably have no advancements: their total SPP is below the cheapest
@@ -63,6 +49,7 @@ export class IncompletePlayerFillPlannerService {
   constructor(
     private readonly validity: CharacteristicValidityService,
     private readonly profiles: PositionProfileService,
+    private readonly entries: FillEntryBuilderService,
   ) {}
 
   plan(input: FillPlannerInput): FillPlan {
@@ -143,12 +130,31 @@ export class IncompletePlayerFillPlannerService {
     ) {
       return { reason: 'invalid-characteristics' };
     }
-    if (this.contradicts({ candidate, stored, profile })) {
+    const unspentSpp = sppTotal;
+    if (
+      this.entries.contradicts({
+        candidate,
+        stored,
+        profile,
+        line: profile.line,
+        unspentSpp,
+      })
+    ) {
       return { reason: 'stored-data-contradicts' };
     }
-    const status = this.status(candidate, index);
     return {
-      entry: this.entry({ candidate, sppTotal, profile, status }),
+      entry: this.entries.build({
+        candidate,
+        line: profile.line,
+        profile,
+        sppTotal,
+        unspentSpp,
+        status: this.entries.status(
+          candidate,
+          index.death.has(candidate.playerId),
+        ),
+        advancements: [],
+      }),
     };
   }
 
@@ -177,82 +183,6 @@ export class IncompletePlayerFillPlannerService {
       return false;
     }
     return row.isFreeExtra || FREE_EXTRA_SKILL_NAMES.has(row.skillName ?? '');
-  }
-
-  /**
-   * Whether anything already stored would make the fill refuse the entry:
-   * a non-zero MA/ST/AG/AV or a stored PA that differs from the line, a
-   * stored unspent SPP other than the total, a stored advancement, or a
-   * stored starting skill the position does not list.
-   */
-  private contradicts(check: ContradictionCheck): boolean {
-    const { candidate, stored, profile } = check;
-    const line = profile.line;
-    const pairs: [number, number][] = [
-      [candidate.move, line.ma],
-      [candidate.strength, line.st],
-      [candidate.agility, line.ag],
-      [candidate.armour, line.av],
-    ];
-    if (pairs.some(([value, entry]) => value !== 0 && value !== entry)) {
-      return true;
-    }
-    if (candidate.passing !== null && candidate.passing !== line.pa) {
-      return true;
-    }
-    if (
-      candidate.unspentSpp !== null &&
-      candidate.unspentSpp !== candidate.sppTotal
-    ) {
-      return true;
-    }
-    return stored.some(
-      (row) =>
-        row.source !== 'starting' ||
-        !profile.skills.some(
-          (skill) =>
-            skill.skillId === row.skillId &&
-            skill.attributeValue === row.attributeValue,
-        ),
-    );
-  }
-
-  /**
-   * The stored status, else dead when a death is recorded, else retired: a
-   * player of a team in no ongoing competition plays no more.
-   */
-  private status(candidate: CandidateRow, index: PlannerIndex): PlayerStatus {
-    if (candidate.status !== null) {
-      return candidate.status;
-    }
-    return index.death.has(candidate.playerId) ? 'dead' : 'retired';
-  }
-
-  private entry(parts: EntryParts): FillEntry {
-    const { candidate, sppTotal, profile, status } = parts;
-    const line = profile.line;
-    return {
-      player: { system: 'tourplay.net', id: candidate.tpId },
-      status,
-      characteristics: {
-        ma: line.ma,
-        st: line.st,
-        ag: line.ag,
-        ...(line.pa === null ? {} : { pa: line.pa }),
-        av: line.av,
-      },
-      sppTotal,
-      unspentSpp: sppTotal,
-      startingSkills: profile.skills.map((skill) =>
-        skill.attributeValue === null
-          ? { system: 'Name', id: skill.nameId }
-          : {
-              skill: { system: 'Name', id: skill.nameId },
-              attributeValue: skill.attributeValue,
-            },
-      ),
-      advancements: [],
-    };
   }
 
   private index(input: FillPlannerInput): PlannerIndex {

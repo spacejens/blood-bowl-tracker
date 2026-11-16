@@ -22,6 +22,7 @@ import { CharacteristicChangeService } from './generate-incomplete-player-fills/
 import { CharacteristicValidityService } from './generate-incomplete-player-fills/characteristic-validity.service';
 import { FeedPlayerMatcherService } from './generate-incomplete-player-fills/feed-player-matcher.service';
 import { FeedSkillResolverService } from './generate-incomplete-player-fills/feed-skill-resolver.service';
+import { FillEntryBuilderService } from './generate-incomplete-player-fills/fill-entry-builder.service';
 import { FillSectionRendererService } from './generate-incomplete-player-fills/fill-section-renderer.service';
 import { GenerateIncompletePlayerFillsService } from './generate-incomplete-player-fills/generate-incomplete-player-fills.service';
 import { IncompletePlayerFillPlannerService } from './generate-incomplete-player-fills/incomplete-player-fill-planner.service';
@@ -101,6 +102,9 @@ describe('AppModule', () => {
     );
     expect(moduleRef.get(GenerateIncompletePlayerFillsService)).toBeInstanceOf(
       GenerateIncompletePlayerFillsService,
+    );
+    expect(moduleRef.get(FillEntryBuilderService)).toBeInstanceOf(
+      FillEntryBuilderService,
     );
     expect(moduleRef.get(IncompletePlayerFillPlannerService)).toBeInstanceOf(
       IncompletePlayerFillPlannerService,
