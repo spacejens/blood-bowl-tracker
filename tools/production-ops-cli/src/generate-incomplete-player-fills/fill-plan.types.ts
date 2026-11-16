@@ -210,6 +210,25 @@ export const FREE_EXTRA_SKILL_NAMES: ReadonlySet<string> = new Set([
 /** How many reductions each characteristic has suffered. */
 export type ReductionCounts = Record<CharacteristicKey, number>;
 
+export type CharacteristicEventKind = 'increase' | 'reduction';
+
+/**
+ * One change to a characteristic: an increase, at the time its feed report
+ * was posted, or a proven stat reduction, at the time its match was played.
+ */
+export interface CharacteristicEvent {
+  kind: CharacteristicEventKind;
+  characteristic: CharacteristicKey;
+  /** When it happened, as an ISO timestamp. */
+  at: string;
+}
+
+/** The line a replay of characteristic events gives, or why it gives none. */
+export type ReplayOutcome =
+  | { kind: 'replayed'; line: CharacteristicLine }
+  | { kind: 'unapplicable' }
+  | { kind: 'order-uncertain' };
+
 /** A non-star player of a candidate's team, for matching feed reports. */
 export interface TeamPlayerRow {
   playerId: number;
