@@ -66,7 +66,8 @@ interface Gated {
  * applies. Every candidate passes the shared gates (journeyman, ongoing
  * competition, total stored, era priced); then:
  *
- * - a player the TP feed reports name goes to AdvancementFillStageService;
+ * - a player the TP feed reports name goes to AdvancementFillStageService,
+ *   with his stat reductions, which must certainly last when he has any;
  * - a player whose total is below the cheapest advancement of his era, and
  *   with no free-skill risk, goes to InjuryFillStageService when stat
  *   reductions are recorded for him;
@@ -242,6 +243,8 @@ export class IncompletePlayerFillPlannerService {
       status: this.status(gated),
       reports,
       hasStatReduction: index.statReduction.has(candidate.playerId),
+      reductions: index.reductions.get(candidate.playerId) ?? [],
+      competitions: index.competitions.get(candidate.playerId) ?? [],
       freeSkillRisk: this.freeSkillRisk(gated),
       stored: this.stored(gated),
       profile: this.profile(candidate, index),

@@ -135,7 +135,6 @@ export const SKIP_REASONS = [
   'spp-too-high',
   'free-skill-risk',
   'lasting-injury-uncertain',
-  'advancement-and-injury',
   'unspent-spp-missing',
   'too-many-advancements',
   'skill-unresolved',
@@ -145,6 +144,7 @@ export const SKIP_REASONS = [
   'spp-does-not-add-up',
   'feed-cost-mismatch',
   'position-ambiguous',
+  'characteristic-order-uncertain',
   'invalid-characteristics',
   'stored-data-contradicts',
 ] as const;
