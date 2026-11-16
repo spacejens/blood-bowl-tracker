@@ -74,8 +74,32 @@ export const FillIncompletePlayerResultSchema = z.object({
   outcome: z.enum(['filled', 'unchanged']),
 });
 
+/**
+ * One complete TP player whose lasting stat reductions the server derives
+ * from his stored data and records; see `players.recordLastingReductions`.
+ */
+export const RecordLastingReductionsSchema = z.object({
+  playerId: z.number().int(),
+});
+
+/**
+ * `recorded` when this call wrote his reductions; `unchanged` when he
+ * already had one stored or his stored data shows none, so nothing was
+ * written.
+ */
+export const RecordLastingReductionsResultSchema = z.object({
+  playerId: z.number().int(),
+  outcome: z.enum(['recorded', 'unchanged']),
+});
+
 export type FillAdvancement = z.infer<typeof FillAdvancementSchema>;
 export type FillIncompletePlayer = z.infer<typeof FillIncompletePlayerSchema>;
 export type FillIncompletePlayerResult = z.infer<
   typeof FillIncompletePlayerResultSchema
+>;
+export type RecordLastingReductions = z.infer<
+  typeof RecordLastingReductionsSchema
+>;
+export type RecordLastingReductionsResult = z.infer<
+  typeof RecordLastingReductionsResultSchema
 >;

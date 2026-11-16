@@ -8,6 +8,7 @@ import {
   ManualImportBatchesService,
   MatchOutcomesService,
   MissingTrophyAwardsService,
+  PlayerFillReductionsRecordService,
   PlayerFillService,
   PlayerLastingInjuryBackfillService,
   PlayerSkillsService,
@@ -184,17 +185,25 @@ export function buildPlayerSppAdjustmentRoutes(
 
 // players.fillIncomplete: one manual fill of a missing TP player's data, not
 // an upsert -- no external-id conflict to map and no entity+created shape to
-// return. It goes through `runSync`, which maps the service's refusals
-// (`IncompletePlayerFillError`, and `CharacteristicFormatMismatchError` for
-// characteristics no rules set of the player's era allows) to BAD_REQUEST.
+// return. players.recordLastingReductions: the lasting stat reductions of
+// one complete TP player, derived from his stored data. Both go through
+// `runSync`, which maps the services' refusals (`IncompletePlayerFillError`,
+// and `CharacteristicFormatMismatchError` for characteristics no rules set
+// of the player's era allows) to BAD_REQUEST.
 export function buildPlayerFillRoute(
   upsertHandler: UpsertHandlerService,
   playerFill: PlayerFillService,
+  reductionsRecord: PlayerFillReductionsRecordService,
 ) {
   return {
     fillIncomplete: implement(contract.players.fillIncomplete).handler(
       ({ input, errors }) =>
         upsertHandler.runSync(errors, () => playerFill.fill(input)),
+    ),
+    recordLastingReductions: implement(
+      contract.players.recordLastingReductions,
+    ).handler(({ input, errors }) =>
+      upsertHandler.runSync(errors, () => reductionsRecord.record(input)),
     ),
   };
 }

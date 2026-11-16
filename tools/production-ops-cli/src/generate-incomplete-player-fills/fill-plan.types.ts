@@ -137,7 +137,6 @@ export const SKIP_REASONS = [
   'spp-too-high',
   'free-skill-risk',
   'lasting-injury-uncertain',
-  'advancement-and-injury',
   'unspent-spp-missing',
   'too-many-advancements',
   'skill-unresolved',
@@ -147,6 +146,7 @@ export const SKIP_REASONS = [
   'spp-does-not-add-up',
   'feed-cost-mismatch',
   'position-ambiguous',
+  'characteristic-order-uncertain',
   'invalid-characteristics',
   'stored-data-contradicts',
 ] as const;
@@ -182,6 +182,11 @@ export interface FillEntry {
   unspentSpp: number;
   startingSkills: FillStartingSkill[];
   advancements: FillAdvancement[];
+}
+
+/** One `lastingInjuryRepairs` entry, as the batch file holds it. */
+export interface LastingInjuryRepairEntry {
+  player: { system: 'tourplay.net'; id: string };
 }
 
 export interface SkipTally {
@@ -224,6 +229,25 @@ export const FREE_EXTRA_SKILL_NAMES: ReadonlySet<string> = new Set([
 
 /** How many reductions each characteristic has suffered. */
 export type ReductionCounts = Record<CharacteristicKey, number>;
+
+export type CharacteristicEventKind = 'increase' | 'reduction';
+
+/**
+ * One change to a characteristic: an increase, at the time its feed report
+ * was posted, or a proven stat reduction, at the time its match was played.
+ */
+export interface CharacteristicEvent {
+  kind: CharacteristicEventKind;
+  characteristic: CharacteristicKey;
+  /** When it happened, as an ISO timestamp. */
+  at: string;
+}
+
+/** The line a replay of characteristic events gives, or why it gives none. */
+export type ReplayOutcome =
+  | { kind: 'replayed'; line: CharacteristicLine }
+  | { kind: 'unapplicable' }
+  | { kind: 'order-uncertain' };
 
 /** A non-star player of a candidate's team, for matching feed reports. */
 export interface TeamPlayerRow {

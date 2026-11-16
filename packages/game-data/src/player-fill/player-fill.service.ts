@@ -17,6 +17,7 @@ import { SppTotalsService } from '../spp/spp-totals.service';
 import type { PlannedFillRow, PlayerFillState } from './player-fill.types';
 import { PlayerFillComparisonService } from './player-fill-comparison.service';
 import { PlayerFillEntriesService } from './player-fill-entries.service';
+import { PlayerFillReductionsService } from './player-fill-reductions.service';
 import { PlayerFillSpendCheckService } from './player-fill-spend-check.service';
 import { PlayerFillStateService } from './player-fill-state.service';
 
@@ -40,10 +41,12 @@ import { PlayerFillStateService } from './player-fill-state.service';
  * An accepted entry is written in one transaction: the advancement rows by
  * PlayerSkillsService.sync (starting skills as `starting`, advancements
  * confirmed and numbered from 1, his increases reconciled, the unspent SPP
- * kept), then the player's characteristics, SPP total, unspent SPP and
- * status. The SPP adjustment is computed the way the TP sync does it, total
- * minus the era-correct event sum (SppTotalsService), clamped at 0, and only
- * when none is stored.
+ * kept), then the player's characteristics, SPP total, unspent SPP, status
+ * and the five lasting stat-reduction counts PlayerFillReductionsService
+ * derives from the entry's line and increases (his niggling injuries and
+ * miss-next-game are not written). The SPP adjustment is computed the way
+ * the TP sync does it, total minus the era-correct event sum
+ * (SppTotalsService), clamped at 0, and only when none is stored.
  *
  * An entry with `journeyman: true` is accepted only for a player whose
  * stored marker is set and whose position is basic (not a Big Guy), and
@@ -67,6 +70,7 @@ export class PlayerFillService {
     private readonly playerSkills: PlayerSkillsService,
     private readonly sppTotals: SppTotalsService,
     private readonly loner: JourneymanLonerService,
+    private readonly reductions: PlayerFillReductionsService,
   ) {}
 
   async fill(data: FillIncompletePlayer): Promise<FillIncompletePlayerResult> {
@@ -121,6 +125,14 @@ export class PlayerFillService {
       throw refuse(spendProblem);
     }
     const sppAdjustment = await this.sppAdjustment(state, data);
+    const lastingReductions = await this.reductions.derive({
+      positionId: state.positionId,
+      eraId: state.eraId,
+      line: data.characteristics,
+      increases: planned.flatMap((row) =>
+        row.characteristic === null ? [] : [row.characteristic],
+      ),
+    });
     await this.db.transaction(async (tx) => {
       await this.playerSkills.sync(
         { entries: syncEntries, characteristicPlayerIds: [playerId] },
@@ -134,6 +146,7 @@ export class PlayerFillService {
           unspentSpp: data.unspentSpp,
           status: data.status,
           sppAdjustment,
+          ...lastingReductions,
         })
         .where(eq(players.id, playerId));
       if (data.journeyman === true) {

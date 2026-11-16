@@ -556,6 +556,17 @@ describe('IncompletePlayerFillPlannerService', () => {
       byPlayer: new Map([[1, { kind: 'reports', reports: [report()] }]]),
       summary: SUMMARY,
     });
+    const event = {
+      playerId: 1,
+      characteristic: 'av' as const,
+      competitionId: 50,
+      playedAt: '2024-03-01T19:00:00+00:00',
+    };
+    const played = {
+      playerId: 1,
+      competitionId: 50,
+      lastPlayedAt: '2024-04-01T19:00:00+00:00',
+    };
     advancementStage.decide.mockReturnValue({ entry: STAGED });
     const ownCost = {
       eraId: 4,
@@ -578,6 +589,8 @@ describe('IncompletePlayerFillPlannerService', () => {
         feed: FEED,
         candidates: [candidate({ sppTotal: 40, unspentSpp: 2 })],
         statReductionPlayerIds: [1],
+        statReductionEvents: [event, { ...event, playerId: 2 }],
+        teamCompetitions: [played, { ...played, playerId: 2 }],
         freeSkillRiskPlayerIds: [1],
         skillNames: [{ skillId: 200, skillName: 'Dodge', nameId: 'Dodge' }],
         advancementCosts: [ownCost, { ...ownCost, eraId: 9 }],
@@ -592,6 +605,8 @@ describe('IncompletePlayerFillPlannerService', () => {
       status: 'retired',
       reports: [report()],
       hasStatReduction: true,
+      reductions: [event],
+      competitions: [played],
       freeSkillRisk: true,
       stored: [],
       profile: profile(),

@@ -6,11 +6,18 @@ import type { AdvancementStageInput } from './advancement-fill-stage.service';
 import { AdvancementFillStageService } from './advancement-fill-stage.service';
 import { AdvancementPricingService } from './advancement-pricing.service';
 import { CharacteristicChangeService } from './characteristic-change.service';
+import { CharacteristicReplayService } from './characteristic-replay.service';
 import { CharacteristicValidityService } from './characteristic-validity.service';
 import { FeedSkillResolverService } from './feed-skill-resolver.service';
 import { FillEntryBuilderService } from './fill-entry-builder.service';
 import { candidate, profile, report } from './fill-plan.test-helpers';
-import type { PricingOutcome, SkipReason } from './fill-plan.types';
+import type {
+  PricingOutcome,
+  SkipReason,
+  StatReductionEventRow,
+  TeamCompetitionRow,
+} from './fill-plan.types';
+import { LastingInjuryProofService } from './lasting-injury-proof.service';
 import {
   BB2020_COSTS,
   costRows,
@@ -28,6 +35,8 @@ function stageInput(
     status: 'retired',
     reports: [report()],
     hasStatReduction: false,
+    reductions: [],
+    competitions: [],
     freeSkillRisk: false,
     stored: [],
     profile: profile(),
@@ -40,6 +49,31 @@ function stageInput(
     ],
     ...overrides,
   };
+}
+
+/** An AV reduction in competition 50, the last his team era played. */
+const REDUCTION: StatReductionEventRow = {
+  playerId: 1,
+  characteristic: 'av',
+  competitionId: 50,
+  playedAt: '2024-03-01T19:00:00+00:00',
+};
+const PLAYED: TeamCompetitionRow = {
+  playerId: 1,
+  competitionId: 50,
+  lastPlayedAt: '2024-04-01T19:00:00+00:00',
+};
+
+/** `stageInput()` for a player whose one reduction certainly lasts. */
+function injuredInput(
+  overrides: Partial<AdvancementStageInput> = {},
+): AdvancementStageInput {
+  return stageInput({
+    hasStatReduction: true,
+    reductions: [REDUCTION],
+    competitions: [PLAYED],
+    ...overrides,
+  });
 }
 
 describe('AdvancementFillStageService', () => {
@@ -57,8 +91,11 @@ describe('AdvancementFillStageService', () => {
         AdvancementFillStageService,
         { provide: FeedSkillResolverService, useValue: skills },
         { provide: AdvancementPricingService, useValue: pricing },
-        // Pure and dependency-free, so passed real.
+        // Pure, so passed real: the replay with its pure change service, the
+        // dependency-free injury proof, validity and entry builder.
+        CharacteristicReplayService,
         CharacteristicChangeService,
+        LastingInjuryProofService,
         CharacteristicValidityService,
         FillEntryBuilderService,
       ],
@@ -179,6 +216,7 @@ describe('AdvancementFillStageService', () => {
       stageInput({
         candidate: candidate({ sppTotal: 40, unspentSpp: 2 }),
         sppTotal: 40,
+        reports: [report(), report()],
       }),
     );
 
@@ -229,16 +267,6 @@ describe('AdvancementFillStageService', () => {
   });
 
   it.each<[string, Partial<AdvancementStageInput>, SkipReason]>([
-    [
-      'a recorded stat reduction',
-      { hasStatReduction: true },
-      'advancement-and-injury',
-    ],
-    [
-      'a stat reduction and a free-skill risk',
-      { hasStatReduction: true, freeSkillRisk: true },
-      'advancement-and-injury',
-    ],
     ['a free-skill risk', { freeSkillRisk: true }, 'free-skill-risk'],
     [
       'no stored unspent SPP',
@@ -360,6 +388,170 @@ describe('AdvancementFillStageService', () => {
         }),
       ),
     ).toBe('invalid-characteristics');
+  });
+
+  describe('with stat reductions', () => {
+    it('fills a player whose reductions certainly last with them applied', () => {
+      expect(service.decide(injuredInput())).toEqual({
+        entry: {
+          player: { system: 'tourplay.net', id: '500' },
+          status: 'retired',
+          characteristics: { ma: 6, st: 3, ag: 3, pa: 4, av: 8 },
+          sppTotal: 8,
+          unspentSpp: 2,
+          startingSkills: [{ system: 'Name', id: 'Block' }],
+          advancements: [
+            { skill: { system: 'Name', id: 'Dodge' }, source: 'chosen' },
+          ],
+        },
+      });
+    });
+
+    it('skips a player whose reductions may have healed', () => {
+      expect(
+        reasonFor(
+          injuredInput({
+            competitions: [
+              PLAYED,
+              {
+                playerId: 1,
+                competitionId: 51,
+                lastPlayedAt: '2024-05-01T19:00:00+00:00',
+              },
+            ],
+          }),
+        ),
+      ).toBe('lasting-injury-uncertain');
+    });
+
+    it('skips a player with a recorded reduction but no reduction rows', () => {
+      expect(reasonFor(injuredInput({ reductions: [] }))).toBe(
+        'lasting-injury-uncertain',
+      );
+    });
+
+    it('reports uncertain injuries before a free-skill risk', () => {
+      expect(
+        reasonFor(
+          injuredInput({
+            freeSkillRisk: true,
+            reductions: [REDUCTION, { ...REDUCTION, competitionId: 51 }],
+            competitions: [PLAYED, { ...PLAYED, competitionId: 51 }],
+          }),
+        ),
+      ).toBe('lasting-injury-uncertain');
+    });
+
+    it('applies the other checks to a player whose injuries are proven', () => {
+      expect(reasonFor(injuredInput({ freeSkillRisk: true }))).toBe(
+        'free-skill-risk',
+      );
+    });
+
+    describe('with a reported increase', () => {
+      beforeEach(() => {
+        skills.resolve.mockReturnValue([increaseStep()]);
+        pricing.price.mockReturnValue({
+          kind: 'priced',
+          stepCosts: [18],
+          total: 18,
+        });
+      });
+
+      /** An MA increase reported at `timestamp`, for 18 of his 20 SPP. */
+      function increaseInput(
+        timestamp: string,
+        overrides: Partial<AdvancementStageInput> = {},
+      ): AdvancementStageInput {
+        return injuredInput({
+          candidate: candidate({ sppTotal: 20, unspentSpp: 2 }),
+          sppTotal: 20,
+          reports: [report({ timestamp })],
+          ...overrides,
+        });
+      }
+
+      it('combines an increase and a later reduction on one characteristic', () => {
+        const decision = service.decide(
+          increaseInput('2024-02-01T10:00:00+00:00', {
+            reductions: [{ ...REDUCTION, characteristic: 'ma' }],
+          }),
+        );
+
+        expect('entry' in decision && decision.entry).toMatchObject({
+          characteristics: { ma: 6, st: 3, ag: 3, pa: 4, av: 9 },
+          advancements: [{ characteristic: 'MA' }],
+        });
+      });
+
+      it('applies an increase and a reduction on different characteristics', () => {
+        const decision = service.decide(
+          increaseInput('2024-02-01T10:00:00+00:00'),
+        );
+
+        expect('entry' in decision && decision.entry).toMatchObject({
+          characteristics: { ma: 7, st: 3, ag: 3, pa: 4, av: 8 },
+        });
+      });
+
+      it('skips a same-day increase and reduction whose order matters', () => {
+        expect(
+          reasonFor(
+            increaseInput('2024-03-01T10:00:00+00:00', {
+              reductions: [{ ...REDUCTION, characteristic: 'ma' }],
+              profile: profile({ line: { ma: 1, st: 3, ag: 3, pa: 4, av: 9 } }),
+            }),
+          ),
+        ).toBe('characteristic-order-uncertain');
+      });
+    });
+
+    it('times each increase by its own report', () => {
+      // The increase is the second report, posted the day of the MA
+      // reduction; reading the first report's time would order them.
+      skills.resolve.mockReturnValue([skillStep(), increaseStep()]);
+      pricing.price.mockReturnValue({
+        kind: 'priced',
+        stepCosts: [6, 18],
+        total: 24,
+      });
+
+      expect(
+        reasonFor(
+          injuredInput({
+            candidate: candidate({ sppTotal: 26, unspentSpp: 2 }),
+            sppTotal: 26,
+            reports: [
+              report({ timestamp: '2024-02-01T10:00:00+00:00' }),
+              report({ timestamp: '2024-03-01T10:00:00+00:00' }),
+            ],
+            reductions: [{ ...REDUCTION, characteristic: 'ma' }],
+            profile: profile({ line: { ma: 1, st: 3, ag: 3, pa: 4, av: 9 } }),
+          }),
+        ),
+      ).toBe('characteristic-order-uncertain');
+    });
+  });
+
+  it('ignores report times when no reduction is recorded', () => {
+    skills.resolve.mockReturnValue([increaseStep()]);
+    pricing.price.mockReturnValue({
+      kind: 'priced',
+      stepCosts: [18],
+      total: 18,
+    });
+
+    const decision = service.decide(
+      stageInput({
+        candidate: candidate({ sppTotal: 20, unspentSpp: 2 }),
+        sppTotal: 20,
+        reports: [report({ timestamp: 'not a date' })],
+      }),
+    );
+
+    expect('entry' in decision && decision.entry).toMatchObject({
+      characteristics: { ma: 7, st: 3, ag: 3, pa: 4, av: 9 },
+    });
   });
 
   describe('boundaries', () => {

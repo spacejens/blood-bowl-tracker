@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   FillIncompletePlayerResultSchema,
   FillIncompletePlayerSchema,
+  RecordLastingReductionsResultSchema,
+  RecordLastingReductionsSchema,
 } from './player-fill';
 
 const fill = {
@@ -112,6 +114,35 @@ describe('FillIncompletePlayerResultSchema', () => {
       FillIncompletePlayerResultSchema.safeParse({
         playerId: 9,
         outcome: 'skipped',
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe('RecordLastingReductionsSchema', () => {
+  it('takes one player id', () => {
+    expect(
+      RecordLastingReductionsSchema.safeParse({ playerId: 9 }).success,
+    ).toBe(true);
+    expect(
+      RecordLastingReductionsSchema.safeParse({ playerId: '9' }).success,
+    ).toBe(false);
+    expect(RecordLastingReductionsSchema.safeParse({}).success).toBe(false);
+  });
+});
+
+describe('RecordLastingReductionsResultSchema', () => {
+  it('reports whether the reductions were recorded or left unchanged', () => {
+    for (const outcome of ['recorded', 'unchanged']) {
+      expect(
+        RecordLastingReductionsResultSchema.safeParse({ playerId: 9, outcome })
+          .success,
+      ).toBe(true);
+    }
+    expect(
+      RecordLastingReductionsResultSchema.safeParse({
+        playerId: 9,
+        outcome: 'filled',
       }).success,
     ).toBe(false);
   });

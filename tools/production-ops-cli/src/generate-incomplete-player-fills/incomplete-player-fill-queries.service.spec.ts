@@ -11,10 +11,12 @@ import {
   ERA_RULES_SETS_SQL,
   FREE_SKILL_RISK_SQL,
   INCOMPLETE_PLAYER_CONDITIONS,
+  LASTING_INJURY_REPAIRS_SQL,
   ONGOING_COMPETITIONS_SQL,
   POSITION_ACCESS_SQL,
   POSITION_RULES_SETS_SQL,
   POSITION_SKILLS_SQL,
+  REDUCTION_COUNT_COLUMNS,
   SKILL_CATEGORIES_SQL,
   SKILL_NAMES_SQL,
   STAT_REDUCTION_EVENTS_SQL,
@@ -90,6 +92,8 @@ const TEAM_COMPETITION = {
   lastPlayedAt: '2024-04-01T19:00:00+00:00',
 };
 
+const REPAIR = { player: { system: 'tourplay.net', id: '929761' } };
+
 describe('IncompletePlayerFillQueriesService', () => {
   let service: IncompletePlayerFillQueriesService;
   let json: MockProxy<ProductionJsonQueryService>;
@@ -145,6 +149,7 @@ describe('IncompletePlayerFillQueriesService', () => {
       [STAT_REDUCTION_EVENTS_SQL, [REDUCTION]],
       [TEAM_COMPETITIONS_SQL, [TEAM_COMPETITION]],
       [BIG_GUY_POSITIONS_SQL, [{ positionId: 30, eraId: 4 }]],
+      [LASTING_INJURY_REPAIRS_SQL, [REPAIR]],
     ]);
     // Canned rows per statement; unknown SQL is a test bug, so fail loudly.
     json.rows.mockImplementation((sql) => {
@@ -334,5 +339,63 @@ describe('IncompletePlayerFillQueriesService', () => {
     );
 
     await expect(service.load()).rejects.toThrow('boom');
+  });
+
+  describe('loadLastingInjuryRepairs', () => {
+    it('loads the repair entries', async () => {
+      await expect(service.loadLastingInjuryRepairs()).resolves.toEqual([
+        REPAIR,
+      ]);
+    });
+
+    it('refuses an entry of another system', async () => {
+      results.set(LASTING_INJURY_REPAIRS_SQL, [
+        { player: { system: 'tloeg.bbleague.se', id: '47' } },
+      ]);
+
+      await expect(service.loadLastingInjuryRepairs()).rejects.toBeInstanceOf(
+        ZodError,
+      );
+    });
+
+    it('selects complete, non-star TP players', () => {
+      expect(LASTING_INJURY_REPAIRS_SQL).toContain("es.name = 'tourplay.net'");
+      expect(LASTING_INJURY_REPAIRS_SQL).toContain(
+        'pos.is_star_player = false',
+      );
+      expect(LASTING_INJURY_REPAIRS_SQL).toContain(
+        `AND NOT (${INCOMPLETE_PLAYER_CONDITIONS.map(
+          (condition) => `p.${condition}`,
+        ).join(' OR ')})`,
+      );
+    });
+
+    it('selects players with no reduction stored', () => {
+      expect(REDUCTION_COUNT_COLUMNS).toEqual([
+        'move_reduction_count',
+        'strength_reduction_count',
+        'agility_reduction_count',
+        'passing_reduction_count',
+        'armour_reduction_count',
+      ]);
+      for (const column of REDUCTION_COUNT_COLUMNS) {
+        expect(LASTING_INJURY_REPAIRS_SQL).toContain(`p.${column} = 0`);
+      }
+    });
+
+    it('selects players with a recorded stat reduction', () => {
+      for (const type of [
+        'stat_reduction_ma',
+        'stat_reduction_st',
+        'stat_reduction_ag',
+        'stat_reduction_pa',
+        'stat_reduction_av',
+      ]) {
+        expect(LASTING_INJURY_REPAIRS_SQL).toContain(`'${type}'`);
+      }
+      expect(LASTING_INJURY_REPAIRS_SQL).toContain(
+        'me.consequence_player_id = p.id',
+      );
+    });
   });
 });

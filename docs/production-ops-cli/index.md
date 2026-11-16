@@ -55,11 +55,16 @@ matches. What it selects and why is described in
 [Filling in missing players](../import-manual/filling-missing-players.md#generated-fills).
 
 The output is JSON: `report` counts the players considered and filled, and
-lists the skipped players' TP ids under each reason. `section` holds the
-batch file when no `--out` is given. With `--out`, the file is written
-through cli-shared's `WriteFileService` and `written` reports it. A run with
-`--out` and no eligible player writes nothing and fails, with the report in the
-error message so the skipped players and their reasons are still visible.
+lists the skipped players' TP ids under each reason. The batch file also
+gets a `lastingInjuryRepairs` section listing every complete non-star TP
+player with a stat reduction recorded in a match and none stored (see
+[Recording lasting reductions](../import-manual/filling-missing-players.md#recording-lasting-reductions));
+`report.lastingInjuryRepairs` counts them. `section` holds the batch file
+when no `--out` is given. With `--out`, the file is written through
+cli-shared's `WriteFileService` and `written` reports it. A run with `--out`,
+no eligible player and no repair writes nothing and fails, with the report
+in the error message so the skipped players and their reasons are still
+visible.
 
 `--feed-channel=<channel-id>` reads
 `tools/production-ops-cli/data/tp-feed-<channel-id>/reports.json`, the
@@ -68,9 +73,11 @@ evidence `read-tp-feed-history` saves (see
 query runs. A missing or malformed file stops the run. Without the flag,
 players are not filled from feed reports; the other fills still run.
 `report` also gives `eligibleByStage` (fills with no advancements, from
-the feed, and with lasting injuries) and `feed` (how many feed player keys
-matched one stored player, several, or no player of a candidate's team; `null` without the flag).
-`journeymenFilled` counts the entries filled as journeymen (`journeyman: true`), which `eligibleByStage.noAdvancement` also counts.
+the feed with or without lasting injuries, and with lasting injuries only)
+and `feed` (how many feed player keys matched one stored player, several,
+or no player of a candidate's team; `null` without the flag).
+`journeymenFilled` counts the entries filled as journeymen
+(`journeyman: true`), which `eligibleByStage.noAdvancement` also counts.
 
 The package depends on `@blood-bowl-tracker/domain-enums` for the status,
 characteristic-format, skill, advancement-kind and match-event enums.

@@ -201,6 +201,15 @@ allows, advancements the SPP he reports as spent cannot pay for, or a player
 already complete with different data. Re-sending the data of a player already
 complete with exactly that data answers `unchanged` and writes nothing.
 
+`players.recordLastingReductions` records the lasting stat reductions of one
+TP player who is no longer incomplete and has none stored. The caller sends
+only the player id: the server derives the counts from his stored
+characteristics and characteristic increases against his position's start
+values, writes only the five reduction counts, and answers `recorded`. It
+answers `unchanged`, writing nothing, when a reduction is already stored or
+his stored data shows none. A player that does not exist, is not a non-star
+TP player, or is still incomplete is refused with `BAD_REQUEST`.
+
 A procedure may also be plainly read-only, existing because a caller needs data
 that no `upsert` call's input or output can give it. Such a procedure writes
 nothing, and declares no contract errors. Current examples:

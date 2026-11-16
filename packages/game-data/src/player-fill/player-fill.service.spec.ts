@@ -18,11 +18,23 @@ import { CharacteristicFormatMismatchError } from '../shared/characteristic-form
 import { IncompletePlayerFillError } from '../shared/incomplete-player-fill-error';
 import { SppTotalsService } from '../spp/spp-totals.service';
 import { PlayerFillService } from './player-fill.service';
-import type { PlayerFillState } from './player-fill.types';
+import type {
+  LastingReductionCounts,
+  PlayerFillState,
+} from './player-fill.types';
 import { PlayerFillComparisonService } from './player-fill-comparison.service';
 import { PlayerFillEntriesService } from './player-fill-entries.service';
+import { PlayerFillReductionsService } from './player-fill-reductions.service';
 import { PlayerFillSpendCheckService } from './player-fill-spend-check.service';
 import { PlayerFillStateService } from './player-fill-state.service';
+
+const NO_REDUCTIONS: LastingReductionCounts = {
+  moveReductionCount: 0,
+  strengthReductionCount: 0,
+  agilityReductionCount: 0,
+  passingReductionCount: 0,
+  armourReductionCount: 0,
+};
 
 interface Harness {
   service: PlayerFillService;
@@ -33,6 +45,7 @@ interface Harness {
   playerSkills: MockProxy<PlayerSkillsService>;
   sppTotals: MockProxy<SppTotalsService>;
   loner: MockProxy<JourneymanLonerService>;
+  reductions: MockProxy<PlayerFillReductionsService>;
 }
 
 /**
@@ -61,6 +74,8 @@ async function makeService(
   const loner = mock<JourneymanLonerService>();
   loner.findLonerSkillIds.mockResolvedValue([80]);
   loner.ensureStartingLoner.mockResolvedValue(undefined);
+  const reductions = mock<PlayerFillReductionsService>();
+  reductions.derive.mockResolvedValue(NO_REDUCTIONS);
   const moduleRef = await Test.createTestingModule({
     providers: [
       PlayerFillService,
@@ -77,6 +92,7 @@ async function makeService(
       { provide: PlayerSkillsService, useValue: playerSkills },
       { provide: SppTotalsService, useValue: sppTotals },
       { provide: JourneymanLonerService, useValue: loner },
+      { provide: PlayerFillReductionsService, useValue: reductions },
     ],
   }).compile();
   return {
@@ -88,6 +104,7 @@ async function makeService(
     playerSkills,
     sppTotals,
     loner,
+    reductions,
   };
 }
 
@@ -116,6 +133,8 @@ function incomplete(overrides: Partial<PlayerFillState> = {}): PlayerFillState {
     isJourneyman: false,
     isBigGuyPosition: false,
     tpExternalId: { externalSystemId: 3, externalId: '586220' },
+    positionId: 30,
+    eraId: 4,
     incomplete: true,
     fields: {
       move: 0,
@@ -128,6 +147,7 @@ function incomplete(overrides: Partial<PlayerFillState> = {}): PlayerFillState {
       unspentSpp: null,
       status: null,
     },
+    reductions: NO_REDUCTIONS,
     rows: [],
     rulesSetIds: [2],
     ...overrides,
@@ -217,7 +237,7 @@ describe('PlayerFillService', () => {
   });
 
   it('leaves a complete player stored exactly as the entry unchanged, writing nothing', async () => {
-    const { service, db, playerSkills, spendCheck } =
+    const { service, db, playerSkills, spendCheck, reductions } =
       await makeService(complete);
 
     await expect(service.fill(fill)).resolves.toEqual({
@@ -227,6 +247,7 @@ describe('PlayerFillService', () => {
     expect(db.transaction).not.toHaveBeenCalled();
     expect(playerSkills.sync).not.toHaveBeenCalled();
     expect(spendCheck.problem).not.toHaveBeenCalled();
+    expect(reductions.derive).not.toHaveBeenCalled();
   });
 
   it('refuses a complete player whose data differs, writing nothing', async () => {
@@ -471,6 +492,11 @@ describe('PlayerFillService', () => {
       unspentSpp: 2,
       status: 'active',
       sppAdjustment: 3,
+      moveReductionCount: 0,
+      strengthReductionCount: 0,
+      agilityReductionCount: 0,
+      passingReductionCount: 0,
+      armourReductionCount: 0,
     });
   });
 
@@ -496,6 +522,45 @@ describe('PlayerFillService', () => {
     expect(db.chains[0].set).toHaveBeenCalledWith(
       expect.objectContaining({ sppAdjustment: 1 }),
     );
+  });
+
+  it('records the lasting reductions derived from the entry line and its increases', async () => {
+    const { service, db, reductions } = await makeService(incomplete());
+    reductions.derive.mockResolvedValue({
+      ...NO_REDUCTIONS,
+      armourReductionCount: 1,
+    });
+    const withIncrease: FillIncompletePlayer = {
+      ...fill,
+      advancements: [
+        ...fill.advancements,
+        { kind: 'characteristic', characteristic: 'AV' },
+      ],
+    };
+
+    await service.fill(withIncrease);
+
+    expect(reductions.derive).toHaveBeenCalledWith({
+      positionId: 30,
+      eraId: 4,
+      line: fill.characteristics,
+      increases: ['AV'],
+    });
+    expect(db.chains[0].set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        moveReductionCount: 0,
+        armourReductionCount: 1,
+      }),
+    );
+  });
+
+  it('derives no reductions for a refused entry', async () => {
+    const { service, reductions } = await makeService(
+      incomplete({ fields: { ...incomplete().fields, move: 5 } }),
+    );
+
+    await expect(service.fill(fill)).rejects.toThrow(IncompletePlayerFillError);
+    expect(reductions.derive).not.toHaveBeenCalled();
   });
 });
 

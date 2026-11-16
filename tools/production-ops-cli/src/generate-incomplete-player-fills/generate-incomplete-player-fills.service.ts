@@ -18,8 +18,13 @@ export interface GenerateIncompletePlayerFillsInput {
   readonly feedChannel?: string;
 }
 
+export interface GenerateIncompletePlayerFillsReport extends FillReport {
+  /** The players listed in the file's `lastingInjuryRepairs` section. */
+  readonly lastingInjuryRepairs: number;
+}
+
 export interface GenerateIncompletePlayerFillsResult {
-  readonly report: FillReport;
+  readonly report: GenerateIncompletePlayerFillsReport;
   /** The rendered batch file, when no path was given. */
   readonly section?: string;
   /** What was written, when a path was given. */
@@ -29,8 +34,10 @@ export interface GenerateIncompletePlayerFillsResult {
 /**
  * `generate-incomplete-player-fills`: reads production read-only, plans a
  * fill for every incomplete TP player whose data can be proven (optionally
- * from the saved TP feed reports), and prints or writes the batch file with a
- * report of who was filled by which proof, and who was skipped and why.
+ * from the saved TP feed reports), lists the complete TP players whose
+ * lasting stat reductions the server should record, and prints or writes
+ * the batch file with a report of who was filled by which proof, who was
+ * skipped and why, and how many repairs are listed.
  */
 @Injectable()
 export class GenerateIncompletePlayerFillsService {
@@ -51,17 +58,23 @@ export class GenerateIncompletePlayerFillsService {
         ? null
         : await this.feedHistory.readReports(input.feedChannel);
     const plan = this.planner.plan({ ...(await this.queries.load()), feed });
-    const section = this.renderer.render(plan.entries);
+    const repairs = await this.queries.loadLastingInjuryRepairs();
+    const report: GenerateIncompletePlayerFillsReport = {
+      ...plan.report,
+      lastingInjuryRepairs: repairs.length,
+    };
+    const section = this.renderer.render(plan.entries, repairs);
     if (input.out === undefined) {
-      return { report: plan.report, section };
+      return { report, section };
     }
-    if (plan.entries.length === 0) {
+    if (plan.entries.length === 0 && repairs.length === 0) {
       throw new Error(
-        'No incomplete player is eligible for a fill; nothing written. ' +
-          `Report: ${JSON.stringify(plan.report)}`,
+        'No incomplete player is eligible for a fill and no player needs ' +
+          'his lasting reductions recorded; nothing written. ' +
+          `Report: ${JSON.stringify(report)}`,
       );
     }
     const written = await this.writeFile.run(input.out, section);
-    return { report: plan.report, written };
+    return { report, written };
   }
 }

@@ -245,4 +245,90 @@ describe('CharacteristicChangeService', () => {
       ).toEqual({ ...BARE_LINE, pa: 1 });
     });
   });
+
+  describe('worsen', () => {
+    it.each<[CharacteristicKey, CharacteristicLine]>([
+      ['ma', { ...LINE, ma: 5 }],
+      ['st', { ...LINE, st: 2 }],
+      ['av', { ...LINE, av: 8 }],
+      ['ag', { ...LINE, ag: 4 }],
+      ['pa', { ...LINE, pa: 5 }],
+    ])('worsens %s by one', (characteristic, expected) => {
+      expect(
+        service.worsen({
+          line: LINE,
+          formats: TARGET,
+          characteristic,
+          worsened: 0,
+        }),
+      ).toEqual(expected);
+    });
+
+    it('lowers a bare AG by one', () => {
+      expect(
+        service.worsen({
+          line: BARE_LINE,
+          formats: BARE,
+          characteristic: 'ag',
+          worsened: 0,
+        }),
+      ).toEqual({ ...BARE_LINE, ag: 2 });
+    });
+
+    it('worsens a second time', () => {
+      expect(
+        service.worsen({
+          line: LINE,
+          formats: TARGET,
+          characteristic: 'ma',
+          worsened: 1,
+        }),
+      ).toEqual({ ...LINE, ma: 5 });
+    });
+
+    it('leaves a characteristic already worsened twice', () => {
+      expect(
+        service.worsen({
+          line: LINE,
+          formats: TARGET,
+          characteristic: 'ma',
+          worsened: 2,
+        }),
+      ).toEqual(LINE);
+    });
+
+    it.each<[string, CharacteristicLine, CharacteristicKey]>([
+      ['MA 1', { ...LINE, ma: 1 }, 'ma'],
+      ['target-number AV 3+', { ...LINE, av: 3 }, 'av'],
+      ['target-number AG 6+', { ...LINE, ag: 6 }, 'ag'],
+      ['a structural zero PA', { ...LINE, pa: 0 }, 'pa'],
+    ])('leaves %s at its floor', (_name, line, characteristic) => {
+      expect(
+        service.worsen({ line, formats: TARGET, characteristic, worsened: 0 }),
+      ).toEqual(line);
+    });
+
+    it('leaves PA under a rules set without Passing', () => {
+      expect(
+        service.worsen({
+          line: BARE_LINE,
+          formats: BARE,
+          characteristic: 'pa',
+          worsened: 0,
+        }),
+      ).toEqual(BARE_LINE);
+    });
+
+    it('leaves the given line untouched', () => {
+      const line = { ...LINE };
+      service.worsen({
+        line,
+        formats: TARGET,
+        characteristic: 'ma',
+        worsened: 0,
+      });
+
+      expect(line).toEqual(LINE);
+    });
+  });
 });

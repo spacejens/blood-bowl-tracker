@@ -74,6 +74,11 @@ player can therefore lose it without counting as incomplete again, and
 applying the same entry again is then refused, because his stored data no
 longer equals the entry.
 
+The same transaction records his lasting stat reductions (see
+[Recording lasting reductions](#recording-lasting-reductions)). His niggling
+injuries and whether he misses the next game are not written and stay at
+none.
+
 ## Journeymen
 
 An entry with `journeyman: true` fills a journeyman the TP import has
@@ -175,6 +180,19 @@ entry has the stored status, else `dead` if a death is recorded, else
   one lower in a target-number format), the starting skills, the reported
   skills with their chosen or random source and any variant ("Mighty Blow
   (+1)"), and his stored total and unspent SPP.
+  When stat reductions are recorded for him, they must certainly last, as
+  for lasting injuries above, and they are applied together with the
+  increases in the order they happened: an increase when its report was
+  posted, a reduction when its match was played. Each change applies the
+  limits above as it happens, so an increase can lift a value a reduction
+  left at its floor, and the cap of two counts only reductions that worsened
+  the value. A characteristic with an increase and more than two reductions
+  is skipped, because there the cap is ambiguous. Changes to one
+  characteristic on the same UTC day have no known order, and every order of
+  them must give the same value.
+  This ordering rests on two assumptions. A reduction is placed at its
+  match's recorded play time, which can be an estimate when the source gave
+  no play date. An increase is placed at its report's post time.
 
 A player is skipped, with the reason reported, when any of these holds:
 
@@ -198,8 +216,6 @@ A player is skipped, with the reason reported, when any of these holds:
   free extra stored, or the feed reports a Loner, a Hatred or a skill a
   cost row grants (`free-skill-risk`);
 - his stat reductions are not certain to last (`lasting-injury-uncertain`);
-- the feed reports advancements and stat reductions are recorded for him
-  (`advancement-and-injury`);
 - with feed reports: his unspent SPP is not stored
   (`unspent-spp-missing`); there are more than six reports
   (`too-many-advancements`); a reported skill names no stored skill, or
@@ -214,18 +230,70 @@ A player is skipped, with the reason reported, when any of these holds:
 - his position's data differs between the rules sets of his era, or names a
   skill with no `Name` id or with an empty attribute value
   (`position-ambiguous`);
+- same-day changes to one characteristic give different values depending on
+  their order, or a characteristic has both increases and more than two
+  reductions (`characteristic-order-uncertain`);
 - the resulting line is not a valid one (`invalid-characteristics`);
 - anything already stored would make the fill refuse the entry
   (`stored-data-contradicts`).
 
 The server's checks above still apply when the batch is applied.
 
-Batches 007 and 008 hold the fills generated this way (see
+The generated file also holds a `lastingInjuryRepairs` section, see
+[Recording lasting reductions](#recording-lasting-reductions).
+
+Batches 007, 008 and 009 hold the fills generated this way (see
 [Batches](batches.md)).
+
+## Recording lasting reductions
+
+A fill records the player's lasting stat reductions, the counts the player
+deepdive shows under "Lasting injuries" (`AV -1`). They are not authored. For
+each characteristic, the server takes his characteristic increases on it and
+subtracts how many steps better than the position's start value the value is
+(a worse value counts as negative steps), never going below 0. The start
+value is the one of his era's rules set the deepdive compares against. So a
+value one worse than the start value with no increase is one reduction, and
+a value equal to it with one increase is also one: an increase undone by a
+reduction. AG and PA are better when lower in a target-number format, every
+other characteristic when higher. A characteristic with no start value, and
+PA under a rules set without Passing, records none. The counts follow the
+same identity the TP import uses between a player's increases and his
+reductions (increases = better-side gap + reduction). Unlike the TP import,
+a reduction that cancels an increase is recorded, because the increases come
+from the player's stored advancements. A fill also overwrites reduction
+counts stored for the player, which is safe because an incomplete player has
+none stored in practice. Niggling injuries and missing the next game are not
+recorded.
+
+Players filled before fills recorded their reductions get them through the
+`lastingInjuryRepairs` section:
+
+```jsonc
+lastingInjuryRepairs: [{ player: { system: "tourplay.net", id: "586220" } }]
+```
+
+An entry names one TP player and carries no counts: the server derives them
+from his stored characteristics and increases as above, and writes only the
+five reduction counts. The importer skips an entry whose player does not
+resolve. The server refuses, with an import error, a player who is not a TP
+player, is a star player or is still counted as incomplete (fill him in
+instead). It writes nothing for a player who already has a reduction stored,
+or whose stored line does not show a reduction (it healed, it was absorbed
+by a limit, the position has no start value, or the stored line is out of
+date). Applying the same entry again changes nothing.
+
+`generate-incomplete-player-fills` lists every non-star TP player who is no
+longer incomplete, has a stat reduction recorded in a match and has no
+reduction stored; the server decides which of them get one. A player the
+server finds nothing to record for is listed again by every later run, which
+is harmless because applying his entry changes nothing.
 
 ## Order
 
 This section runs last, after every section that creates the skills it
-references and after `playerAdvancementOrders`. The players come from the TP
-importer, so a batch using it applies after the source importers, in a plain
-`apply`, once batch 004's advancement costs exist to price the advancements.
+references and after `playerAdvancementOrders`; `lastingInjuryRepairs` runs
+after it, so a player filled in the same batch is complete by then. The
+players come from the TP importer, so a batch using either applies after the
+source importers, in a plain `apply`, once batch 004's advancement costs
+exist to price the advancements.

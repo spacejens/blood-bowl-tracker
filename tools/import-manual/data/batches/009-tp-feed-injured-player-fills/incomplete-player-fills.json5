@@ -1,0 +1,659 @@
+// The data of TP players the TP import left incomplete whose data could be
+// proven: players too low on SPP to have advanced (no advancements, the
+// whole total unspent, stat reductions applied when all fall in their last
+// competition), and players whose advancements the TP feed reports prove in
+// order and to the SPP spent. Then the complete TP players with a stat
+// reduction recorded in a match and none stored, for the server to record
+// the lasting reductions their stored data shows. Generated from the
+// production database by production-ops-cli
+// generate-incomplete-player-fills; see
+// docs/import-manual/filling-missing-players.md#generated-fills.
+{
+  externalSystems: [
+    {
+      name: 'Name',
+      category: 'bookkeeping',
+    },
+    {
+      name: 'tourplay.net',
+      category: 'imported_data_source',
+    },
+  ],
+  incompletePlayerFills: [
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '929761',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 2,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 6,
+      unspentSpp: 3,
+      startingSkills: [],
+      advancements: [
+        {
+          skill: {
+            system: 'Name',
+            id: 'Dauntless',
+          },
+          source: 'random',
+        },
+      ],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1233452',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 5,
+        av: 9,
+      },
+      sppTotal: 9,
+      unspentSpp: 2,
+      startingSkills: [],
+      advancements: [
+        {
+          skill: {
+            system: 'Name',
+            id: 'Dauntless',
+          },
+          source: 'random',
+        },
+        {
+          skill: {
+            system: 'Name',
+            id: 'Fend',
+          },
+          source: 'random',
+        },
+      ],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1242443',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 4,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 9,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          skill: {
+            system: 'Name',
+            id: 'Aminosity',
+          },
+          attributeValue: 'All',
+        },
+      ],
+      advancements: [
+        {
+          skill: {
+            system: 'Name',
+            id: 'Kick',
+          },
+          source: 'random',
+        },
+        {
+          skill: {
+            system: 'Name',
+            id: 'Dauntless',
+          },
+          source: 'random',
+        },
+      ],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1258450',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 1,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 6,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [
+        {
+          skill: {
+            system: 'Name',
+            id: 'Strip Ball',
+          },
+          source: 'random',
+        },
+      ],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1479949',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 5,
+        av: 7,
+      },
+      sppTotal: 24,
+      unspentSpp: 8,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Jump Up',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Wresle',
+        },
+      ],
+      advancements: [
+        {
+          skill: {
+            system: 'Name',
+            id: 'Dodge',
+          },
+          source: 'chosen',
+        },
+        {
+          skill: {
+            system: 'Name',
+            id: 'Diving Catch',
+          },
+          source: 'random',
+        },
+        {
+          skill: {
+            system: 'Name',
+            id: 'Sprint',
+          },
+          source: 'random',
+        },
+      ],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1615776',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 4,
+        st: 3,
+        ag: 4,
+        pa: 5,
+        av: 10,
+      },
+      sppTotal: 8,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Brawler',
+        },
+        {
+          system: 'Name',
+          id: 'Grab',
+        },
+      ],
+      advancements: [
+        {
+          skill: {
+            system: 'Name',
+            id: 'Guard',
+          },
+          source: 'chosen',
+        },
+      ],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1615778',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 3,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+      ],
+      advancements: [
+        {
+          skill: {
+            system: 'Name',
+            id: 'Side Step',
+          },
+          source: 'random',
+        },
+      ],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2605790',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 4,
+        ag: 5,
+        pa: 6,
+        av: 9,
+      },
+      sppTotal: 8,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Juggernaut',
+        },
+        {
+          system: 'Name',
+          id: 'Unsteady',
+        },
+      ],
+      advancements: [
+        {
+          skill: {
+            system: 'Name',
+            id: 'Block',
+          },
+          source: 'chosen',
+        },
+      ],
+    },
+  ],
+  lastingInjuryRepairs: [
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '688945',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '688949',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '559107',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '559112',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '721450',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '868624',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '869388',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '869391',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1101506',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '707308',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1232376',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '870139',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '870133',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1304782',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1233453',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1076320',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1613402',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1614735',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1233623',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1724625',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1258448',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1546214',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1245156',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1256093',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2144604',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2026818',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1642216',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2077704',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2279649',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2104650',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2105121',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '904149',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '905236',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1250616',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '3062224',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2463396',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2589855',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2463398',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '3062429',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2442081',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2862222',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2464152',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2464149',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2993225',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2888951',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2592815',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2735305',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2477749',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2948265',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2618990',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2618991',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '3007476',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2618999',
+      },
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2616691',
+      },
+    },
+  ],
+}
