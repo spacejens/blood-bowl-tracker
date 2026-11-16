@@ -206,7 +206,14 @@ describe('FeedSplitSearchService', () => {
   });
 
   it('stops at the second split that is not ruled out', () => {
-    verdicts({ '1:1,2': 'valid', '2:1': 'valid', '1:2': 'valid' });
+    // Splits run [1,1], [2,1], [1,2], [2,2]; the second is already valid, and
+    // the third would be the first to ask about player 2 with report 2.
+    verdicts({
+      '1:1,2': 'valid',
+      '1:2': 'valid',
+      '2:1': 'valid',
+      '1:1': 'valid',
+    });
 
     expect(
       service.search({
