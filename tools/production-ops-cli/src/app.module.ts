@@ -10,6 +10,7 @@ import { DiscordBotTokenService } from './discord-bot-token/discord-bot-token.se
 import { DiscordRestService } from './discord-rest/discord-rest.service';
 import { FetchDiscordMessageService } from './fetch-discord-message/fetch-discord-message.service';
 import { FetchRecentDiscordMessagesService } from './fetch-recent-discord-messages/fetch-recent-discord-messages.service';
+import { AdvancementFillStageService } from './generate-incomplete-player-fills/advancement-fill-stage.service';
 import { AdvancementPricingService } from './generate-incomplete-player-fills/advancement-pricing.service';
 import { CharacteristicChangeService } from './generate-incomplete-player-fills/characteristic-change.service';
 import { CharacteristicValidityService } from './generate-incomplete-player-fills/characteristic-validity.service';
@@ -42,6 +43,7 @@ import { RunProductionQueryService } from './run-production-query/run-production
     RunProductionQueryService,
     CharacteristicValidityService,
     AdvancementPricingService,
+    AdvancementFillStageService,
     CharacteristicChangeService,
     LastingInjuryProofService,
     FeedPlayerMatcherService,
