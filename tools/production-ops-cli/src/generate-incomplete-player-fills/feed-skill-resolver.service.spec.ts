@@ -126,6 +126,13 @@ describe('FeedSkillResolverService', () => {
       }),
     ],
     [
+      'a characteristic decrease',
+      report({
+        category: 'characteristics',
+        gain: { characteristic: 'MA', delta: -1 },
+      }),
+    ],
+    [
       'a characteristic under a skill category',
       report({ gain: { characteristic: 'MA', delta: 1 } }),
     ],
@@ -151,6 +158,51 @@ describe('FeedSkillResolverService', () => {
           ...NAMES,
           { skillId: 201, skillName: 'Dodge too', nameId: 'Dodge' },
         ],
+      }),
+    ).toBeUndefined();
+  });
+
+  it('does not fall back to a variant split when the whole text is shared', () => {
+    expect(
+      service.resolve({
+        reports: [report({ gain: { skill: 'Dodge (x)' } })],
+        skillNames: [
+          ...NAMES,
+          { skillId: 201, skillName: 'Dodge X', nameId: 'Dodge (x)' },
+          { skillId: 202, skillName: 'Dodge Y', nameId: 'Dodge (x)' },
+        ],
+      }),
+    ).toBeUndefined();
+  });
+
+  it('cannot resolve a variant whose base two skills share', () => {
+    expect(
+      service.resolve({
+        reports: [report({ gain: { skill: 'Mighty Blow (+1)' } })],
+        skillNames: [
+          ...NAMES,
+          { skillId: 301, skillName: 'Mighty Blow too', nameId: 'Mighty Blow' },
+        ],
+      }),
+    ).toBeUndefined();
+  });
+
+  it('trims the variant value', () => {
+    expect(
+      service.resolve({
+        reports: [report({ gain: { skill: 'Mighty Blow ( +1 )' } })],
+        skillNames: NAMES,
+      }),
+    ).toEqual([
+      expect.objectContaining({ skillId: 300, attributeValue: '+1' }),
+    ]);
+  });
+
+  it('cannot resolve a blank variant', () => {
+    expect(
+      service.resolve({
+        reports: [report({ gain: { skill: 'Mighty Blow (  )' } })],
+        skillNames: NAMES,
       }),
     ).toBeUndefined();
   });

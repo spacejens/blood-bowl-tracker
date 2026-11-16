@@ -29,11 +29,17 @@ interface NamedSkill {
   attributeValue: string | null;
 }
 
+type SkillLookup =
+  | { found: 'none' }
+  | { found: 'ambiguous' }
+  | { found: 'one'; skill: Pick<NamedSkill, 'skillId' | 'skillName'> };
+
 /**
  * Turns a player's feed reports into the steps pricing and the entry read.
  * A skill is the one stored skill whose `Name` id is the report's text, or
- * else the text before a trailing parenthesis, which is then its variant
- * ("Mighty Blow (+1)"). A characteristic gain must be a +1 under the
+ * else, when no skill has that id, the text before a trailing parenthesis,
+ * which is then its variant ("Mighty Blow (+1)"). A text or base that
+ * several skills share is ambiguous and unresolved. A characteristic gain must be a +1 under the
  * characteristics category, and a skill must be primary or secondary. One
  * report that cannot be resolved leaves the whole player unresolved.
  *
@@ -89,29 +95,43 @@ export class FeedSkillResolverService {
     text: string,
     skillNames: readonly SkillNameRow[],
   ): NamedSkill | undefined {
-    const whole = this.only(text, skillNames);
-    if (whole !== undefined) {
-      return { ...whole, nameId: text, attributeValue: null };
-    }
-    const variant = VARIANT.exec(text);
-    if (variant === null) {
+    const whole = this.lookup(text, skillNames);
+    if (whole.found === 'ambiguous') {
       return undefined;
     }
-    const base = this.only(variant[1], skillNames);
-    return base === undefined
-      ? undefined
-      : { ...base, nameId: variant[1], attributeValue: variant[2] };
+    if (whole.found === 'one') {
+      return { ...whole.skill, nameId: text, attributeValue: null };
+    }
+    const variant = VARIANT.exec(text);
+    const attributeValue = variant?.[2].trim();
+    if (
+      variant === null ||
+      attributeValue === undefined ||
+      attributeValue === ''
+    ) {
+      return undefined;
+    }
+    const base = this.lookup(variant[1], skillNames);
+    return base.found === 'one'
+      ? { ...base.skill, nameId: variant[1], attributeValue }
+      : undefined;
   }
 
-  /** The one skill with this Name id; undefined with none or several. */
-  private only(
+  /** Whether none, one or several distinct skills have this Name id. */
+  private lookup(
     nameId: string,
     skillNames: readonly SkillNameRow[],
-  ): Pick<NamedSkill, 'skillId' | 'skillName'> | undefined {
+  ): SkillLookup {
     const rows = skillNames.filter((row) => row.nameId === nameId);
     const skillIds = new Set(rows.map((row) => row.skillId));
+    if (skillIds.size === 0) {
+      return { found: 'none' };
+    }
     return skillIds.size === 1
-      ? { skillId: rows[0].skillId, skillName: rows[0].skillName }
-      : undefined;
+      ? {
+          found: 'one',
+          skill: { skillId: rows[0].skillId, skillName: rows[0].skillName },
+        }
+      : { found: 'ambiguous' };
   }
 }
