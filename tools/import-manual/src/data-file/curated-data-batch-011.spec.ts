@@ -9,7 +9,7 @@ import {
   readBatch,
 } from './curated-data.test-helpers';
 
-/** The TP players the feed matched to more than one stored player before batch 011. */
+/** The TP players whose feed reports named more than one stored player. */
 const TOLD_APART = new Set([
   '342210',
   '342214',

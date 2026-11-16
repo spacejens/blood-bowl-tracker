@@ -62,7 +62,11 @@ const MESSAGE_ID = /^\d+$/u;
  * one possible owner gives him its reports, oldest first, and the
  * advancement stage checks them. Any other component goes to
  * FeedSplitSearchService, and its one proven split gives each owner his
- * reports; an owner given none is left out.
+ * reports; an owner given none is left out. So one owner named by several
+ * feed keys is decided through the split search, and an undecidable or
+ * invalid split leaves him `feed-match-ambiguous`, while one owner named by
+ * one key goes straight to the advancement stage, which gives the specific
+ * skip reason.
  *
  * Pure decision logic, with no I/O; its collaborators are pure as well.
  */

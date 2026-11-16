@@ -297,6 +297,36 @@ describe('FeedPlayerMatcherService', () => {
     });
   });
 
+  describe('a key with a report nobody can afford', () => {
+    it('keeps twins ambiguous without a split search', () => {
+      const result = service.match(
+        matchInput({
+          reports: {
+            Firestarters: {
+              [KEY]: [
+                report(),
+                report({ messageId: '1057968552151359500', sppCost: 30 }),
+              ],
+            },
+          },
+          players: [FLAME, TWIN],
+        }),
+      );
+
+      expect(search.search).not.toHaveBeenCalled();
+      expect(result.byPlayer).toEqual(
+        new Map([
+          [1, { kind: 'ambiguous' }],
+          [2, { kind: 'ambiguous' }],
+        ]),
+      );
+      expect(result.summary).toMatchObject({
+        matchedKeys: 0,
+        ambiguousKeys: 1,
+      });
+    });
+  });
+
   describe('marked journeymen', () => {
     it('keeps a key ambiguous when a marked journeyman can afford a report', () => {
       const result = service.match(
@@ -499,6 +529,52 @@ describe('FeedPlayerMatcherService', () => {
           ],
         }),
       );
+    });
+
+    it('searches one component when a key bridges the owners of two other keys', () => {
+      // Roster 1 names team 20, roster 2 names team 21, roster 3 names both.
+      const rosterReport = (messageId: string, rosterId: string) =>
+        report({
+          messageId,
+          rosterLink: `https://tourplay.net/en/blood-bowl/roster/${rosterId}`,
+        });
+      const a = rosterReport('1', '1');
+      const b = rosterReport('2', '2');
+      const c = rosterReport('3', '3');
+      const elsewhere = teamPlayer({ playerId: 2, teamId: 21 });
+
+      service.match(
+        matchInput({
+          reports: {
+            Firestarters: {
+              '#1 Flame (Gnoblar Lineman)': [a],
+              '#2 Flame (Gnoblar Lineman)': [b],
+              '#3 Flame (Gnoblar Lineman)': [c],
+            },
+          },
+          rosters: [
+            { teamId: 20, rosterId: '1' },
+            { teamId: 21, rosterId: '2' },
+            { teamId: 20, rosterId: '3' },
+            { teamId: 21, rosterId: '3' },
+          ],
+          players: [FLAME, elsewhere],
+        }),
+      );
+
+      expect(search.search).toHaveBeenCalledTimes(1);
+      expect(search.search).toHaveBeenCalledWith({
+        reports: [
+          { report: a, owners: [1] },
+          { report: b, owners: [2] },
+          { report: c, owners: [1, 2] },
+        ],
+        owners: new Map([
+          [1, bareOwner(FLAME)],
+          [2, bareOwner(elsewhere)],
+        ]),
+        skillNames: [],
+      });
     });
 
     it('keeps a player ambiguous whom another key names alone, when a key he shares proves nothing', () => {

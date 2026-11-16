@@ -223,9 +223,9 @@ checks `feed-match-ambiguous`, `spp-too-high` and `free-skill-risk` before it.
 - some reports of a feed player that could name him could also belong to
   someone not stored, or no single way of sharing out the reports of the
   feed players that could name him passes the checks (none, several, one
-  that cannot be decided because a skill, a price or unspent SPP is
-  missing, or more than 8 reports or 4 players to try), or a marked
-  journeyman could own one of those reports (`feed-match-ambiguous`);
+  that cannot be decided, for example a skill, a price, the total or the
+  unspent SPP is missing, or more than 8 reports or 4 players to try), or a
+  marked journeyman could own one of those reports (`feed-match-ambiguous`);
 - with no feed reports, or as a marked journeyman, his total is at or
   above the cheapest advancement cost of his era (`spp-too-high`);
 - he holds any trophy award (a trophy may grant a skill, and one not

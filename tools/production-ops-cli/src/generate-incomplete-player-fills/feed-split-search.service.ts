@@ -11,7 +11,7 @@ export const MAX_SPLIT_OWNERS = 4;
 
 export interface SplitReport {
   report: TpFeedHistoryReport;
-  /** The ids of the stored players who may own it. */
+  /** The ids of the stored players who may own it; each must be in the input's owners. */
   owners: readonly number[];
 }
 
@@ -49,6 +49,15 @@ export class FeedSplitSearchService {
   search(
     input: SplitSearchInput,
   ): Map<number, TpFeedHistoryReport[]> | undefined {
+    for (const row of input.reports) {
+      for (const ownerId of row.owners) {
+        if (!input.owners.has(ownerId)) {
+          throw new Error(
+            `Report ${row.report.messageId} names owner ${String(ownerId)}, who is not among the owners searched`,
+          );
+        }
+      }
+    }
     if (
       input.reports.length > MAX_SPLIT_REPORTS ||
       input.owners.size > MAX_SPLIT_OWNERS

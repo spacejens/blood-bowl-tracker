@@ -199,6 +199,17 @@ describe('FeedSplitSearchService', () => {
     expect(forPlayerOne).toHaveLength(1);
   });
 
+  it('throws when a report names an owner that is not among the owners', () => {
+    expect(() =>
+      service.search({
+        reports: [split(1, 1, 3)],
+        owners: owners(1, 2),
+        skillNames: NAMES,
+      }),
+    ).toThrow('names owner 3');
+    expect(fits.fit).not.toHaveBeenCalled();
+  });
+
   it('gives an empty result for no reports', () => {
     expect(
       service.search({ reports: [], owners: owners(1), skillNames: NAMES }),

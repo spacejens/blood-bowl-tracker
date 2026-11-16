@@ -218,7 +218,8 @@ const LastingInjuryRepairCandidateRowSchema = z.object({
 /**
  * Reads what the fill planner needs from production, one read-only query
  * per kind of row, and validates every row before the planner sees it. The
- * rows cover the candidates and their stored data, team players (TP players of the candidates' teams), their paid advancements and rosters,
+ * rows cover the candidates and their stored data, team players (TP
+ * players of the candidates' teams), their paid advancements and rosters,
  * skill names and categories, position access, advancement costs and
  * stat-reduction events and Big Guy positions; separately, the complete
  * players who may need a lasting-reduction repair.
