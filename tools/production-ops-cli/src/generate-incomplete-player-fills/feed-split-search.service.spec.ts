@@ -183,19 +183,43 @@ describe('FeedSplitSearchService', () => {
     expect(fits.fit).not.toHaveBeenCalled();
   });
 
-  it('checks each owner with each set of reports at most once', () => {
-    verdicts({ '1:1': 'valid', '2:2': 'valid' });
+  it('checks an owner given the same reports by several splits only once', () => {
+    verdicts({});
 
+    // Player 1 gets report 1 alone in all four splits of reports 2 and 3.
     service.search({
-      reports: [split(1, 1, 2), split(2, 1, 2)],
-      owners: owners(1, 2),
+      reports: [split(1, 1), split(2, 2, 3), split(3, 2, 3)],
+      owners: owners(1, 2, 3),
       skillNames: NAMES,
     });
 
-    const keys = fits.fit.mock.calls.map(
-      ([input]) =>
-        `${input.owner.playerId}:${input.reports.map((row) => row.messageId).join(',')}`,
+    const forPlayerOne = fits.fit.mock.calls.filter(
+      ([input]) => input.owner.playerId === 1,
     );
-    expect(new Set(keys).size).toBe(keys.length);
+    expect(forPlayerOne).toHaveLength(1);
+  });
+
+  it('gives an empty result for no reports', () => {
+    expect(
+      service.search({ reports: [], owners: owners(1), skillNames: NAMES }),
+    ).toEqual(new Map());
+  });
+
+  it('stops at the second split that is not ruled out', () => {
+    verdicts({ '1:1,2': 'valid', '2:1': 'valid', '1:2': 'valid' });
+
+    expect(
+      service.search({
+        reports: [split(1, 1, 2), split(2, 1, 2)],
+        owners: owners(1, 2),
+        skillNames: NAMES,
+      }),
+    ).toBeUndefined();
+    const later = fits.fit.mock.calls.filter(
+      ([input]) =>
+        input.owner.playerId === 2 &&
+        input.reports.map((row) => row.messageId).join(',') === '2',
+    );
+    expect(later).toHaveLength(0);
   });
 });
