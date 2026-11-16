@@ -28,6 +28,7 @@ import { FillSectionRendererService } from './generate-incomplete-player-fills/f
 import { GenerateIncompletePlayerFillsService } from './generate-incomplete-player-fills/generate-incomplete-player-fills.service';
 import { IncompletePlayerFillPlannerService } from './generate-incomplete-player-fills/incomplete-player-fill-planner.service';
 import { IncompletePlayerFillQueriesService } from './generate-incomplete-player-fills/incomplete-player-fill-queries.service';
+import { InjuryFillStageService } from './generate-incomplete-player-fills/injury-fill-stage.service';
 import { LastingInjuryProofService } from './generate-incomplete-player-fills/lasting-injury-proof.service';
 import { PositionProfileService } from './generate-incomplete-player-fills/position-profile.service';
 import { ProductionJsonQueryService } from './generate-incomplete-player-fills/production-json-query.service';
@@ -88,6 +89,9 @@ describe('AppModule', () => {
     );
     expect(moduleRef.get(AdvancementFillStageService)).toBeInstanceOf(
       AdvancementFillStageService,
+    );
+    expect(moduleRef.get(InjuryFillStageService)).toBeInstanceOf(
+      InjuryFillStageService,
     );
     expect(moduleRef.get(CharacteristicChangeService)).toBeInstanceOf(
       CharacteristicChangeService,
