@@ -42,6 +42,12 @@ function planWith(entries: FillEntry[]): FillPlan {
     report: {
       considered: 1,
       eligible: entries.length,
+      eligibleByStage: {
+        noAdvancement: entries.length,
+        advancement: 0,
+        injuryOnly: 0,
+      },
+      feed: null,
       skipped: skippedWith(),
     },
   };
@@ -113,6 +119,8 @@ describe('GenerateIncompletePlayerFillsService', () => {
       report: {
         considered: 2,
         eligible: 0,
+        eligibleByStage: { noAdvancement: 0, advancement: 0, injuryOnly: 0 },
+        feed: null,
         skipped: skippedWith({
           'spp-too-high': { count: 1, players: ['11'] },
           journeyman: { count: 1, players: ['12'] },

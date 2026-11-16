@@ -1,20 +1,36 @@
+import type { PlayerStatus } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 
+import type { TpFeedHistoryReport } from '../read-tp-feed-history/tp-feed-history-index.service';
+import type { AdvancementStageInput } from './advancement-fill-stage.service';
+import { AdvancementFillStageService } from './advancement-fill-stage.service';
 import { CharacteristicValidityService } from './characteristic-validity.service';
+import { FeedPlayerMatcherService } from './feed-player-matcher.service';
 import { FillEntryBuilderService } from './fill-entry-builder.service';
 import type {
+  AdvancementCostRow,
   CandidateRow,
   EraRulesSetRow,
+  FeedMatch,
   FillEntry,
   FillPlan,
   FillPlannerInput,
   FillReport,
+  FillStage,
+  PositionAccessRow,
+  PositionProfile,
   PositionRulesSetRow,
   PositionSkillRow,
+  SkillCategoryRow,
+  SkillNameRow,
   SkipReason,
+  StageDecision,
+  StatReductionEventRow,
   StoredAdvancementRow,
+  TeamCompetitionRow,
 } from './fill-plan.types';
 import { FREE_EXTRA_SKILL_NAMES, SKIP_REASONS } from './fill-plan.types';
+import { InjuryFillStageService } from './injury-fill-stage.service';
 import { PositionProfileService } from './position-profile.service';
 
 interface PlannerIndex {
@@ -26,21 +42,40 @@ interface PlannerIndex {
   positionRulesSets: Map<string, PositionRulesSetRow[]>;
   positionSkills: Map<number, PositionSkillRow[]>;
   eraRulesSets: Map<number, EraRulesSetRow[]>;
+  feed: Map<number, FeedMatch>;
+  skillNames: SkillNameRow[];
+  skillCategories: SkillCategoryRow[];
+  positionAccess: Map<number, PositionAccessRow[]>;
+  costs: Map<number, AdvancementCostRow[]>;
+  reductions: Map<number, StatReductionEventRow[]>;
+  competitions: Map<number, TeamCompetitionRow[]>;
 }
 
-type Decision = { entry: FillEntry } | { reason: SkipReason };
+type Decision = { entry: FillEntry; stage: FillStage } | { reason: SkipReason };
+
+/** A candidate past the shared gates, with his stored total. */
+interface Gated {
+  candidate: CandidateRow;
+  sppTotal: number;
+  index: PlannerIndex;
+}
 
 /**
- * Plans the `incompletePlayerFills` entries for incomplete TP players who
- * provably have no advancements: their total SPP is below the cheapest
- * advancement any rules set of their era prices, so the whole total is
- * unspent. Each entry is the position's characteristics and starting
- * skills and no advancements. A recorded stat reduction is injury history,
- * not necessarily his current line (newer rules sets let lasting injuries
- * heal, and a reduction at a characteristic's limit changes nothing), so
- * such a player is skipped rather than guessed at. Anything
- * not certain is skipped with the first reason that applies, and the
- * skipped players are listed by reason.
+ * Plans the `incompletePlayerFills` entries for incomplete TP players whose
+ * data can be proven, and reports everyone else by the first reason that
+ * applies. Every candidate passes the shared gates (journeyman, ongoing
+ * competition, total stored, era priced); then:
+ *
+ * - a player the TP feed reports name goes to AdvancementFillStageService;
+ * - a player whose total is below the cheapest advancement of his era, and
+ *   with no free-skill risk, goes to InjuryFillStageService when stat
+ *   reductions are recorded for him;
+ * - otherwise he provably has no advancements, and is filled with his
+ *   position's line and starting skills and his whole total unspent.
+ *
+ * A player a feed key names ambiguously is skipped, and a player the feed
+ * does not name is never taken to have advanced: his total must be below the
+ * cheapest advancement, which proves he has none.
  *
  * Pure decision logic, with no I/O; its collaborators are pure as well.
  */
@@ -50,13 +85,32 @@ export class IncompletePlayerFillPlannerService {
     private readonly validity: CharacteristicValidityService,
     private readonly profiles: PositionProfileService,
     private readonly entries: FillEntryBuilderService,
+    private readonly matcher: FeedPlayerMatcherService,
+    private readonly advancementStage: AdvancementFillStageService,
+    private readonly injuryStage: InjuryFillStageService,
   ) {}
 
   plan(input: FillPlannerInput): FillPlan {
-    const index = this.index(input);
+    const feed =
+      input.feed === null
+        ? null
+        : this.matcher.match({
+            reports: input.feed,
+            rosters: input.teamRosters,
+            players: input.teamPlayers,
+          });
+    const index = this.index(
+      input,
+      feed?.byPlayer ?? new Map<number, FeedMatch>(),
+    );
     const skipped = Object.fromEntries(
       SKIP_REASONS.map((reason) => [reason, { count: 0, players: [] }]),
     ) as unknown as FillReport['skipped'];
+    const eligibleByStage: Record<FillStage, number> = {
+      noAdvancement: 0,
+      advancement: 0,
+      injuryOnly: 0,
+    };
     const entries: FillEntry[] = [];
     const candidates = [...input.candidates].sort(
       (a, b) => Number(a.tpId) - Number(b.tpId) || this.compare(a.tpId, b.tpId),
@@ -65,6 +119,7 @@ export class IncompletePlayerFillPlannerService {
       const decision = this.decide(candidate, index);
       if ('entry' in decision) {
         entries.push(decision.entry);
+        eligibleByStage[decision.stage] += 1;
       } else {
         skipped[decision.reason].count += 1;
         skipped[decision.reason].players.push(candidate.tpId);
@@ -75,6 +130,8 @@ export class IncompletePlayerFillPlannerService {
       report: {
         considered: candidates.length,
         eligible: entries.length,
+        eligibleByStage,
+        feed: feed?.summary ?? null,
         skipped,
       },
     };
@@ -99,29 +156,46 @@ export class IncompletePlayerFillPlannerService {
     if (cheapest === undefined) {
       return { reason: 'era-unpriced' };
     }
+    const gated: Gated = { candidate, sppTotal, index };
+    const match = index.feed.get(candidate.playerId);
+    if (match?.kind === 'ambiguous') {
+      return { reason: 'feed-match-ambiguous' };
+    }
+    if (match?.kind === 'reports') {
+      return this.staged(
+        'advancement',
+        this.advancementStage.decide(
+          this.advancementInput(gated, match.reports),
+        ),
+      );
+    }
     if (sppTotal >= cheapest) {
       return { reason: 'spp-too-high' };
     }
-    const stored = index.stored.get(candidate.playerId) ?? [];
-    if (
-      index.freeSkillRisk.has(candidate.playerId) ||
-      stored.some((row) => this.isGainedFreeSkill(row))
-    ) {
+    if (this.freeSkillRisk(gated)) {
       return { reason: 'free-skill-risk' };
     }
     if (index.statReduction.has(candidate.playerId)) {
-      return { reason: 'lasting-injury-uncertain' };
+      return this.staged(
+        'injuryOnly',
+        this.injuryStage.decide({
+          candidate,
+          sppTotal,
+          status: this.status(gated),
+          reductions: index.reductions.get(candidate.playerId) ?? [],
+          competitions: index.competitions.get(candidate.playerId) ?? [],
+          stored: this.stored(gated),
+          profile: this.profile(candidate, index),
+        }),
+      );
     }
-    const rows =
-      index.positionRulesSets.get(
-        `${candidate.positionId}|${candidate.eraId}`,
-      ) ?? [];
-    const profile = this.profiles.resolve({
-      rows,
-      skills: rows.flatMap(
-        (row) => index.positionSkills.get(row.positionRulesSetId) ?? [],
-      ),
-    });
+    return this.noAdvancement(gated);
+  }
+
+  /** A player too low on SPP to have advanced, with no stat reduction. */
+  private noAdvancement(gated: Gated): Decision {
+    const { candidate, sppTotal, index } = gated;
+    const profile = this.profile(candidate, index);
     if (profile === undefined) {
       return { reason: 'position-ambiguous' };
     }
@@ -130,14 +204,15 @@ export class IncompletePlayerFillPlannerService {
     ) {
       return { reason: 'invalid-characteristics' };
     }
-    const unspentSpp = sppTotal;
+    const line = profile.line;
+    const stored = this.stored(gated);
     if (
       this.entries.contradicts({
         candidate,
         stored,
         profile,
-        line: profile.line,
-        unspentSpp,
+        line,
+        unspentSpp: sppTotal,
       })
     ) {
       return { reason: 'stored-data-contradicts' };
@@ -145,17 +220,78 @@ export class IncompletePlayerFillPlannerService {
     return {
       entry: this.entries.build({
         candidate,
-        line: profile.line,
+        line,
         profile,
         sppTotal,
-        unspentSpp,
-        status: this.entries.status(
-          candidate,
-          index.death.has(candidate.playerId),
-        ),
+        unspentSpp: sppTotal,
+        status: this.status(gated),
         advancements: [],
       }),
+      stage: 'noAdvancement',
     };
+  }
+
+  private advancementInput(
+    gated: Gated,
+    reports: TpFeedHistoryReport[],
+  ): AdvancementStageInput {
+    const { candidate, sppTotal, index } = gated;
+    return {
+      candidate,
+      sppTotal,
+      status: this.status(gated),
+      reports,
+      hasStatReduction: index.statReduction.has(candidate.playerId),
+      freeSkillRisk: this.freeSkillRisk(gated),
+      stored: this.stored(gated),
+      profile: this.profile(candidate, index),
+      skillNames: index.skillNames,
+      rulesSetIds: (index.eraRulesSets.get(candidate.eraId) ?? []).map(
+        (row) => row.rulesSetId,
+      ),
+      costs: index.costs.get(candidate.eraId) ?? [],
+      skillCategories: index.skillCategories,
+      positionAccess: index.positionAccess.get(candidate.positionId) ?? [],
+    };
+  }
+
+  private staged(stage: FillStage, decision: StageDecision): Decision {
+    return 'entry' in decision ? { entry: decision.entry, stage } : decision;
+  }
+
+  private stored(gated: Gated): StoredAdvancementRow[] {
+    return gated.index.stored.get(gated.candidate.playerId) ?? [];
+  }
+
+  private status(gated: Gated): PlayerStatus {
+    return this.entries.status(
+      gated.candidate,
+      gated.index.death.has(gated.candidate.playerId),
+    );
+  }
+
+  /** A trophy award, or a stored gained free skill. */
+  private freeSkillRisk(gated: Gated): boolean {
+    return (
+      gated.index.freeSkillRisk.has(gated.candidate.playerId) ||
+      this.stored(gated).some((row) => this.isGainedFreeSkill(row))
+    );
+  }
+
+  private profile(
+    candidate: CandidateRow,
+    index: PlannerIndex,
+  ): PositionProfile | undefined {
+    const rows =
+      index.positionRulesSets.get(
+        `${candidate.positionId}|${candidate.eraId}`,
+      ) ?? [];
+    return this.profiles.resolve({
+      rows,
+      skills: rows.flatMap(
+        (row) => index.positionSkills.get(row.positionRulesSetId) ?? [],
+      ),
+    });
   }
 
   /** Code-unit order, so the result does not depend on the runtime's locale. */
@@ -185,7 +321,10 @@ export class IncompletePlayerFillPlannerService {
     return row.isFreeExtra || FREE_EXTRA_SKILL_NAMES.has(row.skillName ?? '');
   }
 
-  private index(input: FillPlannerInput): PlannerIndex {
+  private index(
+    input: FillPlannerInput,
+    feed: Map<number, FeedMatch>,
+  ): PlannerIndex {
     return {
       statReduction: new Set(input.statReductionPlayerIds),
       death: new Set(input.deathPlayerIds),
@@ -201,6 +340,19 @@ export class IncompletePlayerFillPlannerService {
         (row) => row.positionRulesSetId,
       ),
       eraRulesSets: this.groupBy(input.eraRulesSets, (row) => row.eraId),
+      feed,
+      skillNames: input.skillNames,
+      skillCategories: input.skillCategories,
+      positionAccess: this.groupBy(
+        input.positionAccess,
+        (row) => row.positionId,
+      ),
+      costs: this.groupBy(input.advancementCosts, (row) => row.eraId),
+      reductions: this.groupBy(
+        input.statReductionEvents,
+        (row) => row.playerId,
+      ),
+      competitions: this.groupBy(input.teamCompetitions, (row) => row.playerId),
     };
   }
 

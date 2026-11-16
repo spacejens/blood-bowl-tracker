@@ -189,6 +189,10 @@ export interface SkipTally {
 export interface FillReport {
   considered: number;
   eligible: number;
+  /** Players filled, by the kind of proof. */
+  eligibleByStage: Record<FillStage, number>;
+  /** How the feed's player keys matched; null without feed evidence. */
+  feed: FeedSummary | null;
   skipped: Record<SkipReason, SkipTally>;
 }
 

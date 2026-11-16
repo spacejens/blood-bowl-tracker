@@ -2,25 +2,60 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
+import { AdvancementFillStageService } from './advancement-fill-stage.service';
 import { CharacteristicValidityService } from './characteristic-validity.service';
+import { FeedPlayerMatcherService } from './feed-player-matcher.service';
 import { FillEntryBuilderService } from './fill-entry-builder.service';
-import { candidate, eligibleInput, profile } from './fill-plan.test-helpers';
 import {
+  candidate,
+  eligibleInput,
+  profile,
+  report,
+} from './fill-plan.test-helpers';
+import {
+  type FeedSummary,
+  type FillEntry,
   type FillPlannerInput,
   SKIP_REASONS,
   type SkipReason,
 } from './fill-plan.types';
 import { IncompletePlayerFillPlannerService } from './incomplete-player-fill-planner.service';
+import { InjuryFillStageService } from './injury-fill-stage.service';
 import { PositionProfileService } from './position-profile.service';
+
+const SUMMARY: FeedSummary = {
+  reportKeys: 1,
+  matchedKeys: 1,
+  ambiguousKeys: 0,
+  unmatchedKeys: 0,
+};
+const FEED = { Firestarters: { '#13 Flame (Gnoblar Lineman)': [report()] } };
+const STAGED: FillEntry = {
+  player: { system: 'tourplay.net', id: '500' },
+  status: 'retired',
+  characteristics: { ma: 6, st: 3, ag: 3, pa: 4, av: 9 },
+  sppTotal: 8,
+  unspentSpp: 2,
+  startingSkills: [],
+  advancements: [{ characteristic: 'MA' }],
+};
 
 describe('IncompletePlayerFillPlannerService', () => {
   let service: IncompletePlayerFillPlannerService;
   let validity: MockProxy<CharacteristicValidityService>;
   let profiles: MockProxy<PositionProfileService>;
+  let matcher: MockProxy<FeedPlayerMatcherService>;
+  let advancementStage: MockProxy<AdvancementFillStageService>;
+  let injuryStage: MockProxy<InjuryFillStageService>;
 
   beforeEach(async () => {
     validity = mock<CharacteristicValidityService>();
     profiles = mock<PositionProfileService>();
+    matcher = mock<FeedPlayerMatcherService>();
+    advancementStage = mock<AdvancementFillStageService>();
+    injuryStage = mock<InjuryFillStageService>();
+    matcher.match.mockReturnValue({ byPlayer: new Map(), summary: SUMMARY });
+    injuryStage.decide.mockReturnValue({ reason: 'lasting-injury-uncertain' });
     profiles.resolve.mockReturnValue(profile());
     validity.isValid.mockReturnValue(true);
     const moduleRef = await Test.createTestingModule({
@@ -28,6 +63,9 @@ describe('IncompletePlayerFillPlannerService', () => {
         IncompletePlayerFillPlannerService,
         { provide: CharacteristicValidityService, useValue: validity },
         { provide: PositionProfileService, useValue: profiles },
+        { provide: FeedPlayerMatcherService, useValue: matcher },
+        { provide: AdvancementFillStageService, useValue: advancementStage },
+        { provide: InjuryFillStageService, useValue: injuryStage },
         // Pure and dependency-free, so passed real to keep asserting real entries.
         FillEntryBuilderService,
       ],
@@ -467,5 +505,195 @@ describe('IncompletePlayerFillPlannerService', () => {
       'a',
       'b',
     ]);
+  });
+
+  it('counts a no-advancement fill and reports no feed without evidence', () => {
+    const plan = service.plan(eligibleInput());
+
+    expect(plan.report.eligibleByStage).toEqual({
+      noAdvancement: 1,
+      advancement: 0,
+      injuryOnly: 0,
+    });
+    expect(plan.report.feed).toBeNull();
+    expect(matcher.match).not.toHaveBeenCalled();
+    expect(advancementStage.decide).not.toHaveBeenCalled();
+  });
+
+  it('matches the feed against the team rows and reports the summary', () => {
+    const input = eligibleInput({
+      feed: FEED,
+      teamRosters: [{ teamId: 20, rosterId: '24801' }],
+      teamPlayers: [
+        {
+          playerId: 1,
+          teamId: 20,
+          playerName: 'Flame',
+          positionName: 'Gnoblar Lineman',
+        },
+      ],
+    });
+
+    const plan = service.plan(input);
+
+    expect(matcher.match).toHaveBeenCalledWith({
+      reports: FEED,
+      rosters: input.teamRosters,
+      players: input.teamPlayers,
+    });
+    expect(plan.report.feed).toEqual(SUMMARY);
+  });
+
+  it('skips a player the feed names ambiguously', () => {
+    matcher.match.mockReturnValue({
+      byPlayer: new Map([[1, { kind: 'ambiguous' }]]),
+      summary: SUMMARY,
+    });
+
+    expect(reasonFor(eligibleInput({ feed: FEED }))).toBe(
+      'feed-match-ambiguous',
+    );
+  });
+
+  it('hands a player the feed names to the advancement stage, with his era and position rows', () => {
+    matcher.match.mockReturnValue({
+      byPlayer: new Map([[1, { kind: 'reports', reports: [report()] }]]),
+      summary: SUMMARY,
+    });
+    advancementStage.decide.mockReturnValue({ entry: STAGED });
+    const ownCost = {
+      eraId: 4,
+      rulesSetId: 7,
+      leagueId: null,
+      advancementNumber: 1,
+      advancementKind: 'chosen_primary_skill' as const,
+      skillId: null,
+      sppCost: 6,
+    };
+    const ownAccess = {
+      positionId: 30,
+      rulesSetId: 7,
+      category: 'agility' as const,
+      access: 'primary' as const,
+    };
+
+    const plan = service.plan(
+      eligibleInput({
+        feed: FEED,
+        candidates: [candidate({ sppTotal: 40, unspentSpp: 2 })],
+        statReductionPlayerIds: [1],
+        freeSkillRiskPlayerIds: [1],
+        skillNames: [{ skillId: 200, skillName: 'Dodge', nameId: 'Dodge' }],
+        advancementCosts: [ownCost, { ...ownCost, eraId: 9 }],
+        skillCategories: [{ skillId: 200, rulesSetId: 7, category: 'agility' }],
+        positionAccess: [ownAccess, { ...ownAccess, positionId: 31 }],
+      }),
+    );
+
+    expect(advancementStage.decide).toHaveBeenCalledWith({
+      candidate: candidate({ sppTotal: 40, unspentSpp: 2 }),
+      sppTotal: 40,
+      status: 'retired',
+      reports: [report()],
+      hasStatReduction: true,
+      freeSkillRisk: true,
+      stored: [],
+      profile: profile(),
+      skillNames: [{ skillId: 200, skillName: 'Dodge', nameId: 'Dodge' }],
+      rulesSetIds: [7],
+      costs: [ownCost],
+      skillCategories: [{ skillId: 200, rulesSetId: 7, category: 'agility' }],
+      positionAccess: [ownAccess],
+    });
+    expect(plan.entries).toEqual([STAGED]);
+    expect(plan.report.eligibleByStage.advancement).toBe(1);
+  });
+
+  it("reports the advancement stage's skip reason", () => {
+    matcher.match.mockReturnValue({
+      byPlayer: new Map([[1, { kind: 'reports', reports: [report()] }]]),
+      summary: SUMMARY,
+    });
+    advancementStage.decide.mockReturnValue({ reason: 'feed-cost-mismatch' });
+
+    expect(reasonFor(eligibleInput({ feed: FEED }))).toBe('feed-cost-mismatch');
+  });
+
+  it('applies the shared gates before the feed', () => {
+    matcher.match.mockReturnValue({
+      byPlayer: new Map([[1, { kind: 'reports', reports: [report()] }]]),
+      summary: SUMMARY,
+    });
+
+    expect(
+      reasonFor(
+        eligibleInput({
+          feed: FEED,
+          candidates: [candidate({ isJourneyman: true })],
+        }),
+      ),
+    ).toBe('journeyman');
+    expect(advancementStage.decide).not.toHaveBeenCalled();
+  });
+
+  it('does not fill a player with advancing SPP as unadvanced when the feed does not name him', () => {
+    // A feed key naming two rosters is only counted ambiguous, so no stored
+    // player is marked; his SPP alone must keep him off the no-advancement path.
+    expect(
+      reasonFor(
+        eligibleInput({
+          feed: FEED,
+          candidates: [candidate({ sppTotal: 40 })],
+        }),
+      ),
+    ).toBe('spp-too-high');
+    expect(advancementStage.decide).not.toHaveBeenCalled();
+  });
+
+  it('hands a low-SPP player with stat reductions to the injury stage', () => {
+    const event = {
+      playerId: 1,
+      characteristic: 'ma' as const,
+      competitionId: 50,
+      playedAt: '2024-03-01T19:00:00+00:00',
+    };
+    const played = {
+      playerId: 1,
+      competitionId: 50,
+      lastPlayedAt: '2024-04-01T19:00:00+00:00',
+    };
+    injuryStage.decide.mockReturnValue({ entry: STAGED });
+
+    const plan = service.plan(
+      eligibleInput({
+        statReductionPlayerIds: [1],
+        statReductionEvents: [event, { ...event, playerId: 2 }],
+        teamCompetitions: [played, { ...played, playerId: 2 }],
+      }),
+    );
+
+    expect(injuryStage.decide).toHaveBeenCalledWith({
+      candidate: candidate(),
+      sppTotal: 5,
+      status: 'retired',
+      reductions: [event],
+      competitions: [played],
+      stored: [],
+      profile: profile(),
+    });
+    expect(plan.entries).toEqual([STAGED]);
+    expect(plan.report.eligibleByStage.injuryOnly).toBe(1);
+  });
+
+  it('skips a free-skill risk before the injury stage', () => {
+    expect(
+      reasonFor(
+        eligibleInput({
+          statReductionPlayerIds: [1],
+          freeSkillRiskPlayerIds: [1],
+        }),
+      ),
+    ).toBe('free-skill-risk');
+    expect(injuryStage.decide).not.toHaveBeenCalled();
   });
 });
