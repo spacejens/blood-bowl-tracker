@@ -329,4 +329,158 @@ describe('AdvancementFillStageService', () => {
       ),
     ).toBe('invalid-characteristics');
   });
+
+  describe('boundaries', () => {
+    it('fills a player with exactly six reports', () => {
+      const steps = Array.from({ length: 6 }, (_unused, at) =>
+        skillStep({ skillId: 201 + at, nameId: `Skill ${at}` }),
+      );
+      skills.resolve.mockReturnValue(steps);
+      pricing.price.mockReturnValue({
+        kind: 'priced',
+        stepCosts: [6, 6, 6, 6, 6, 6],
+        total: 36,
+      });
+
+      const decision = service.decide(
+        stageInput({
+          candidate: candidate({ sppTotal: 40, unspentSpp: 4 }),
+          sppTotal: 40,
+          reports: Array.from({ length: 6 }, () => report()),
+        }),
+      );
+
+      expect('entry' in decision && decision.entry.advancements).toHaveLength(
+        6,
+      );
+    });
+
+    it('accepts unspent SPP equal to the total, with nothing spent', () => {
+      skills.resolve.mockReturnValue([]);
+      pricing.price.mockReturnValue({
+        kind: 'priced',
+        stepCosts: [],
+        total: 0,
+      });
+
+      expect(
+        reasonFor(
+          stageInput({
+            candidate: candidate({ sppTotal: 8, unspentSpp: 8 }),
+            reports: [],
+          }),
+        ),
+      ).toBeUndefined();
+    });
+
+    it('accepts no unspent SPP, with everything spent', () => {
+      skills.resolve.mockReturnValue([skillStep({ reportedCost: 8 })]);
+      pricing.price.mockReturnValue({
+        kind: 'priced',
+        stepCosts: [8],
+        total: 8,
+      });
+
+      expect(
+        reasonFor(
+          stageInput({ candidate: candidate({ sppTotal: 8, unspentSpp: 0 }) }),
+        ),
+      ).toBeUndefined();
+    });
+  });
+
+  describe('check order', () => {
+    const sevenReports = Array.from({ length: 7 }, () => report());
+
+    it('reports a missing unspent SPP before too many advancements', () => {
+      expect(
+        reasonFor(
+          stageInput({
+            candidate: candidate({ sppTotal: 8, unspentSpp: null }),
+            reports: sevenReports,
+          }),
+        ),
+      ).toBe('unspent-spp-missing');
+    });
+
+    it('reports too many advancements before unresolved skills', () => {
+      skills.resolve.mockReturnValue(undefined);
+
+      expect(reasonFor(stageInput({ reports: sevenReports }))).toBe(
+        'too-many-advancements',
+      );
+    });
+
+    it('reports a reported Loner before an ambiguous position', () => {
+      skills.resolve.mockReturnValue([
+        skillStep({ skillName: 'Loner', nameId: 'Loner' }),
+      ]);
+
+      expect(reasonFor(stageInput({ profile: undefined }))).toBe(
+        'free-skill-risk',
+      );
+    });
+
+    it('reports a duplicate skill before a mismatching price', () => {
+      skills.resolve.mockReturnValue([
+        skillStep({ skillId: 100, nameId: 'Block' }),
+      ]);
+      pricing.price.mockReturnValue({
+        kind: 'priced',
+        stepCosts: [5],
+        total: 6,
+      });
+
+      expect(reasonFor(stageInput())).toBe('duplicate-skill');
+    });
+
+    it('reports an invalid line before a stored contradiction', () => {
+      expect(
+        reasonFor(
+          stageInput({
+            candidate: candidate({ sppTotal: 8, unspentSpp: 2, move: 5 }),
+            profile: profile({ line: { ma: 6, st: 0, ag: 3, pa: 4, av: 9 } }),
+          }),
+        ),
+      ).toBe('invalid-characteristics');
+    });
+  });
+
+  it('skips a player whose stored advancement is not a starting skill', () => {
+    expect(
+      reasonFor(
+        stageInput({
+          stored: [
+            {
+              playerId: 1,
+              source: 'chosen',
+              skillId: 200,
+              skillName: 'Dodge',
+              attributeValue: null,
+              isFreeExtra: false,
+            },
+          ],
+        }),
+      ),
+    ).toBe('stored-data-contradicts');
+  });
+
+  it('accepts a stored starting skill the position lists', () => {
+    expect(
+      reasonFor(
+        stageInput({
+          stored: [
+            {
+              playerId: 1,
+              source: 'starting',
+              skillId: 100,
+              skillName: 'Block',
+              attributeValue: null,
+              isFreeExtra: false,
+            },
+          ],
+        }),
+      ),
+    ).toBeUndefined();
+  });
 });

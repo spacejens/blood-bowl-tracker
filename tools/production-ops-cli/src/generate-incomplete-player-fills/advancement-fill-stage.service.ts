@@ -41,7 +41,7 @@ const CHARACTERISTIC_NAMES: Record<CharacteristicKey, PlayerCharacteristic> = {
 
 export interface AdvancementStageInput {
   candidate: CandidateRow;
-  /** His stored total, already known to be present. */
+  /** His stored total, already known to be present; equals `candidate.sppTotal`. */
   sppTotal: number;
   status: PlayerStatus;
   /** The feed reports matched to him, oldest first. */
