@@ -44,7 +44,13 @@ const playerRow = {
   sppAdjustment: null,
   unspentSpp: null,
   status: null,
+  moveReductionCount: 0,
+  strengthReductionCount: 0,
+  agilityReductionCount: 0,
+  passingReductionCount: 0,
+  armourReductionCount: 1,
   isStarPlayer: false,
+  positionId: 30,
   eraId: 4,
 };
 
@@ -80,6 +86,8 @@ describe('PlayerFillStateService', () => {
       playerId: 9,
       isStarPlayer: false,
       tpExternalId: { externalSystemId: 3, externalId: '586220' },
+      positionId: 30,
+      eraId: 4,
       incomplete: true,
       fields: {
         move: 0,
@@ -91,6 +99,13 @@ describe('PlayerFillStateService', () => {
         sppAdjustment: null,
         unspentSpp: null,
         status: null,
+      },
+      reductions: {
+        moveReductionCount: 0,
+        strengthReductionCount: 0,
+        agilityReductionCount: 0,
+        passingReductionCount: 0,
+        armourReductionCount: 1,
       },
       rows: [storedRow],
       rulesSetIds: [2, 5],

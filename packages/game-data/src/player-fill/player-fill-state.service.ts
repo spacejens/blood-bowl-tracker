@@ -20,7 +20,8 @@ import type { PlayerFillState } from './player-fill.types';
 
 /**
  * Reads what a manual fill checks about one stored player: his fill fields,
- * whether he is a star player, his TP external id, whether the shared
+ * his position, era and stored lasting stat-reduction counts, whether he is
+ * a star player, his TP external id, whether the shared
  * INCOMPLETE_PLAYER_CRITERIA still match him, his era's rules sets and his
  * active advancement rows in stored order
  * (PlayerAdvancementReadsService.listStoredAdvancements). Five small reads,
@@ -45,6 +46,12 @@ export class PlayerFillStateService {
         sppAdjustment: players.sppAdjustment,
         unspentSpp: players.unspentSpp,
         status: players.status,
+        moveReductionCount: players.moveReductionCount,
+        strengthReductionCount: players.strengthReductionCount,
+        agilityReductionCount: players.agilityReductionCount,
+        passingReductionCount: players.passingReductionCount,
+        armourReductionCount: players.armourReductionCount,
+        positionId: players.positionId,
         isStarPlayer: positions.isStarPlayer,
         eraId: teamEras.eraId,
       })
@@ -85,6 +92,8 @@ export class PlayerFillStateService {
       playerId,
       isStarPlayer: player.isStarPlayer,
       tpExternalId,
+      positionId: player.positionId,
+      eraId: player.eraId,
       incomplete: incomplete.length > 0,
       fields: {
         move: player.move,
@@ -96,6 +105,13 @@ export class PlayerFillStateService {
         sppAdjustment: player.sppAdjustment,
         unspentSpp: player.unspentSpp,
         status: player.status,
+      },
+      reductions: {
+        moveReductionCount: player.moveReductionCount,
+        strengthReductionCount: player.strengthReductionCount,
+        agilityReductionCount: player.agilityReductionCount,
+        passingReductionCount: player.passingReductionCount,
+        armourReductionCount: player.armourReductionCount,
       },
       rows,
       rulesSetIds: rulesSetRows.map((row) => row.rulesSetId),
