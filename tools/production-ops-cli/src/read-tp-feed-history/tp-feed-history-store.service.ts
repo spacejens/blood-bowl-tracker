@@ -14,7 +14,11 @@ import { GitRootsService } from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
-import type { TpFeedHistoryIndex } from './tp-feed-history-index.service';
+import type {
+  TpFeedHistoryIndex,
+  TpFeedHistoryReports,
+} from './tp-feed-history-index.service';
+import { tpFeedHistoryReportsSchema } from './tp-feed-history-reports.schema';
 import { TpFeedMessage, tpFeedMessageSchema } from './tp-feed-message.schema';
 
 /** Gitignored; symlinked back to the main checkout from every worktree. */
@@ -40,7 +44,8 @@ const stateSchema = z.object({
 /**
  * The saved TP feed history of one channel: `messages/<id>.json` (raw
  * advancement messages, written once and never overwritten), `state.json`,
- * and the regenerated `reports.json` and `unparsed.json`.
+ * and the regenerated `reports.json` and `unparsed.json`. `reports.json` is
+ * also read back for the fill generator.
  */
 @Injectable()
 export class TpFeedHistoryStoreService {
@@ -137,6 +142,32 @@ export class TpFeedHistoryStoreService {
     const dir = await this.directory(channelId);
     await this.writeJson(dir, 'reports.json', index.reports);
     await this.writeJson(dir, 'unparsed.json', index.unparsed);
+  }
+
+  /** The saved `reports.json`; an error when it is missing or not valid. */
+  async readReports(channelId: string): Promise<TpFeedHistoryReports> {
+    const path = join(await this.directory(channelId), 'reports.json');
+    let text: string;
+    try {
+      text = await readFile(path, 'utf8');
+    } catch (error) {
+      if (this.errorCode(error) === 'ENOENT') {
+        throw new Error(
+          `${path} does not exist; run read-tp-feed-history ${channelId} first.`,
+          { cause: error },
+        );
+      }
+      throw error;
+    }
+    const parsed = tpFeedHistoryReportsSchema.safeParse(
+      this.parseJson(text, path),
+    );
+    if (!parsed.success) {
+      throw new Error(
+        `${path} is not a valid TP feed reports file: ${parsed.error.message}`,
+      );
+    }
+    return parsed.data;
   }
 
   private async writeJson(
