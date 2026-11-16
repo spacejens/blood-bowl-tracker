@@ -1,8 +1,33 @@
+import type { TpFeedHistoryReport } from '../read-tp-feed-history/tp-feed-history-index.service';
 import type {
   CandidateRow,
   FillPlannerInput,
   PositionProfile,
 } from './fill-plan.types';
+
+/** A chosen primary Dodge for #13 Flame (Gnoblar Lineman) of roster 24801, at 6. */
+export function report(
+  overrides: Partial<TpFeedHistoryReport> = {},
+): TpFeedHistoryReport {
+  return {
+    messageId: '1057968552151359499',
+    link: 'https://discord.com/channels/1/2/1057968552151359499',
+    timestamp: '2022-12-29T10:29:18.938000+00:00',
+    teamName: 'Firestarters',
+    playerNumber: '13',
+    playerName: 'Flame',
+    position: 'Gnoblar Lineman',
+    botReacted: false,
+    rosterLink: 'https://tourplay.net/en/blood-bowl/roster/24801',
+    selection: 'chosen',
+    category: 'primary',
+    gain: { skill: 'Dodge' },
+    sppCost: 6,
+    valueText: 'Primary Dodge ★6',
+    rawValue: 'Primary ` Dodge ` ` ★6 `',
+    ...overrides,
+  };
+}
 
 /** An incomplete TP player who is eligible under `eligibleInput()`. */
 export function candidate(overrides: Partial<CandidateRow> = {}): CandidateRow {
