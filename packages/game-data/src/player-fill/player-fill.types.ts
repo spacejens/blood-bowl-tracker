@@ -1,4 +1,7 @@
-import type { ExternalId } from '@blood-bowl-tracker/api-contract';
+import type {
+  ExternalId,
+  PlayerLastingInjuries,
+} from '@blood-bowl-tracker/api-contract';
 import type {
   PlayerCharacteristic,
   PlayerSkillSource,
@@ -50,3 +53,9 @@ export interface PlayerFillState {
   /** The rules sets of his team's era. */
   rulesSetIds: number[];
 }
+
+/** The five lasting stat-reduction counts of a player, as stored. */
+export type LastingReductionCounts = Omit<
+  PlayerLastingInjuries,
+  'missNextGame' | 'nigglingInjuryCount'
+>;
