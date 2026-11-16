@@ -33,6 +33,15 @@ interface LonerRow {
   removed: boolean;
 }
 
+/** Options for {@link JourneymanLonerService.ensureStartingLoner}. */
+export interface EnsureStartingLonerOptions {
+  /**
+   * Run the ensure on this transaction instead of opening one, so it
+   * commits or rolls back with the caller's own writes (PlayerFillService).
+   */
+  tx?: DbOrTx;
+}
+
 /**
  * Keeps a journeyman's Loner a starting skill while `players.is_journeyman`
  * is set, and retires that starting row when he is recruited. The importers
@@ -60,19 +69,29 @@ export class JourneymanLonerService {
    * starting one, otherwise insert one. The same rule the data migration
    * follows. Runs only while the player's stored marker, read under a lock
    * on his row, is set, so two ensures of one player serialize on that lock.
-   * A unique violation on player_advancements is still caught, as a guard
-   * for an insert of the same row that does not take the lock: it counts as
-   * success only when a re-read finds an active starting Loner for him, and
-   * is rethrown otherwise. The table is history tracked, so `ON CONFLICT`
-   * cannot be used instead (see docs/database.md).
+   * Without `options.tx` it opens its own transaction, and a unique violation
+   * on player_advancements is still caught, as a guard for an insert of the
+   * same row that does not take the lock: it counts as success only when a
+   * re-read finds an active starting Loner for him, and is rethrown
+   * otherwise. With `options.tx` it runs on the caller's transaction and
+   * any failure propagates, since a failed statement has already aborted
+   * that transaction. The table is history tracked, so `ON CONFLICT` cannot
+   * be used instead (see docs/database.md).
    */
-  async ensureStartingLoner(playerId: number): Promise<void> {
+  async ensureStartingLoner(
+    playerId: number,
+    options: EnsureStartingLonerOptions = {},
+  ): Promise<void> {
     const lonerId = await this.lonerSkillId();
     if (lonerId === undefined) {
       return;
     }
+    if (options.tx !== undefined) {
+      await this.ensureOn(options.tx, playerId, lonerId);
+      return;
+    }
     try {
-      await this.ensureInTransaction(playerId, lonerId);
+      await this.db.transaction((tx) => this.ensureOn(tx, playerId, lonerId));
     } catch (error) {
       if (
         !isUniqueViolationOn(error, getTableName(playerAdvancements)) ||
@@ -81,6 +100,16 @@ export class JourneymanLonerService {
         throw error;
       }
     }
+  }
+
+  /** Every skill named Loner, lowest id first; each counts as the Loner. */
+  async findLonerSkillIds(): Promise<number[]> {
+    const rows = await this.db
+      .select({ id: skills.id })
+      .from(skills)
+      .where(eq(skills.name, LONER_SKILL_NAME))
+      .orderBy(asc(skills.id));
+    return rows.map((row) => row.id);
   }
 
   /** Whether the player has an active starting row of a skill named Loner. */
@@ -100,48 +129,48 @@ export class JourneymanLonerService {
     return rows.length > 0;
   }
 
-  private async ensureInTransaction(
+  /** The ensure itself, on a transaction that is already open. */
+  private async ensureOn(
+    tx: DbOrTx,
     playerId: number,
     lonerId: number,
   ): Promise<void> {
-    await this.db.transaction(async (tx) => {
-      if ((await this.lockedMarker(tx, playerId)) !== true) {
-        return;
-      }
-      const rows = await this.lonerRows(tx, playerId);
-      if (rows.some((row) => !row.removed && row.source === 'starting')) {
-        return;
-      }
-      const [gained] = rows
-        .filter((row) => !row.removed && row.source !== 'starting')
-        .sort((a, b) => a.id - b.id);
-      if (gained !== undefined) {
-        await tx
-          .update(playerAdvancements)
-          .set({
-            source: 'starting',
-            advancementOrder: null,
-            orderConfirmed: false,
-            isFreeExtra: false,
-          })
-          .where(eq(playerAdvancements.id, gained.id));
-        await this.closeSlots(tx, { playerId, row: gained });
-        return;
-      }
-      const retired = rows.find(
-        (row) => row.removed && row.source === 'starting',
-      );
-      if (retired !== undefined) {
-        await tx
-          .update(playerAdvancements)
-          .set({ removed: false })
-          .where(eq(playerAdvancements.id, retired.id));
-        return;
-      }
+    if ((await this.lockedMarker(tx, playerId)) !== true) {
+      return;
+    }
+    const rows = await this.lonerRows(tx, playerId);
+    if (rows.some((row) => !row.removed && row.source === 'starting')) {
+      return;
+    }
+    const [gained] = rows
+      .filter((row) => !row.removed && row.source !== 'starting')
+      .sort((a, b) => a.id - b.id);
+    if (gained !== undefined) {
       await tx
-        .insert(playerAdvancements)
-        .values({ playerId, skillId: lonerId, source: 'starting' });
-    });
+        .update(playerAdvancements)
+        .set({
+          source: 'starting',
+          advancementOrder: null,
+          orderConfirmed: false,
+          isFreeExtra: false,
+        })
+        .where(eq(playerAdvancements.id, gained.id));
+      await this.closeSlots(tx, { playerId, row: gained });
+      return;
+    }
+    const retired = rows.find(
+      (row) => row.removed && row.source === 'starting',
+    );
+    if (retired !== undefined) {
+      await tx
+        .update(playerAdvancements)
+        .set({ removed: false })
+        .where(eq(playerAdvancements.id, retired.id));
+      return;
+    }
+    await tx
+      .insert(playerAdvancements)
+      .values({ playerId, skillId: lonerId, source: 'starting' });
   }
 
   /**

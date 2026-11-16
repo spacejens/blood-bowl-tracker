@@ -356,6 +356,75 @@ describe('JourneymanLonerService', () => {
         slots: [],
       });
     });
+
+    describe("on the caller's transaction", () => {
+      // The skill lookup still runs on the injected db (its chain 0); the
+      // ensure itself runs on `tx`: chain 0 the locked player row, chain 1
+      // his Loner rows, chain 2 their Loner subquery, then the write.
+      it('inserts a starting Loner on the given transaction, opening none', async () => {
+        const db = mockDb([{ id: 7 }]);
+        const tx = mockDb(STORED_JOURNEYMAN, []);
+        const service = await makeService(db);
+
+        await service.ensureStartingLoner(1, { tx: tx.db });
+
+        expect(db.transaction).not.toHaveBeenCalled();
+        expect(tx.transaction).not.toHaveBeenCalled();
+        expect(db.chains).toHaveLength(1);
+        expect(tx.chains[0].for).toHaveBeenCalledWith('no key update');
+        expect(tx.db.insert).toHaveBeenCalledWith(playerAdvancements);
+        expect(tx.chains[3].values).toHaveBeenCalledWith({
+          playerId: 1,
+          skillId: 7,
+          source: 'starting',
+        });
+      });
+
+      it('does nothing on the transaction once the stored marker is cleared', async () => {
+        const db = mockDb([{ id: 7 }]);
+        const tx = mockDb(STORED_NOT_JOURNEYMAN);
+        const service = await makeService(db);
+
+        await service.ensureStartingLoner(1, { tx: tx.db });
+
+        expect(tx.chains).toHaveLength(1);
+        expect(tx.db.insert).not.toHaveBeenCalled();
+      });
+
+      it('lets a unique violation abort the caller, without a re-read', async () => {
+        const violation = uniqueViolation();
+        const db = mockDb([{ id: 7 }]);
+        const tx = mockDb(STORED_JOURNEYMAN, [], [], violation);
+        const service = await makeService(db);
+
+        await expect(
+          service.ensureStartingLoner(1, { tx: tx.db }),
+        ).rejects.toBe(violation);
+        expect(db.chains).toHaveLength(1);
+      });
+    });
+  });
+
+  describe('findLonerSkillIds', () => {
+    it('lists every skill named Loner, lowest id first', async () => {
+      const db = mockDb([{ id: 7 }, { id: 9 }]);
+      const service = await makeService(db);
+
+      await expect(service.findLonerSkillIds()).resolves.toEqual([7, 9]);
+      expect(db.chains[0].from).toHaveBeenCalledWith(skills);
+      expect(extractAllFilterValues(firstCallArg(db.chains[0].where))).toEqual([
+        'Loner',
+      ]);
+      const order = firstCallArg(db.chains[0].orderBy);
+      expect(extractJoinColumns(order)).toEqual(['skills.id']);
+      expect(sqlText(order)).toContain(' asc');
+    });
+
+    it('is empty while no skill is named Loner', async () => {
+      const service = await makeService(mockDb([]));
+
+      await expect(service.findLonerSkillIds()).resolves.toEqual([]);
+    });
   });
 
   describe('retireStartingLoner', () => {
