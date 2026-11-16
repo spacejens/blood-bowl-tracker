@@ -5,13 +5,19 @@ import {
   eq,
   eraRulesSets,
   externalSystems,
+  keywords,
   or,
   playerExternalIds,
   players,
+  positionRulesSetKeywords,
+  positionRulesSets,
   positions,
   teamEras,
 } from '@blood-bowl-tracker/db';
-import { TP_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/domain-enums';
+import {
+  BIG_GUY_KEYWORD_NAME,
+  TP_EXTERNAL_SYSTEM_NAME,
+} from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { PlayerAdvancementReadsService } from '../player-skills/player-advancement-reads.service';
@@ -20,12 +26,13 @@ import type { PlayerFillState } from './player-fill.types';
 
 /**
  * Reads what a manual fill checks about one stored player: his fill fields,
- * his position, era and stored lasting stat-reduction counts, whether he is
- * a star player, his TP external id, whether the shared
- * INCOMPLETE_PLAYER_CRITERIA still match him, his era's rules sets and his
+ * journeyman marker, position, era and stored lasting stat-reduction counts,
+ * whether he is a star player, his TP external id, whether the shared
+ * INCOMPLETE_PLAYER_CRITERIA still match him, his era's rules sets, whether
+ * his position is a Big Guy under one of them, and his
  * active advancement rows in stored order
- * (PlayerAdvancementReadsService.listStoredAdvancements). Five small reads,
- * the last four skipped when the player does not exist.
+ * (PlayerAdvancementReadsService.listStoredAdvancements). Six small reads,
+ * the last five skipped when the player does not exist.
  */
 @Injectable()
 export class PlayerFillStateService {
@@ -53,6 +60,7 @@ export class PlayerFillStateService {
         armourReductionCount: players.armourReductionCount,
         positionId: players.positionId,
         isStarPlayer: positions.isStarPlayer,
+        isJourneyman: players.isJourneyman,
         eraId: teamEras.eraId,
       })
       .from(players)
@@ -87,10 +95,32 @@ export class PlayerFillStateService {
       .select({ rulesSetId: eraRulesSets.rulesSetId })
       .from(eraRulesSets)
       .where(eq(eraRulesSets.eraId, player.eraId));
+    const bigGuy = await this.db
+      .select({ id: positionRulesSetKeywords.id })
+      .from(positionRulesSetKeywords)
+      .innerJoin(keywords, eq(keywords.id, positionRulesSetKeywords.keywordId))
+      .innerJoin(
+        positionRulesSets,
+        eq(positionRulesSets.id, positionRulesSetKeywords.positionRulesSetId),
+      )
+      .innerJoin(
+        eraRulesSets,
+        eq(eraRulesSets.rulesSetId, positionRulesSets.rulesSetId),
+      )
+      .where(
+        and(
+          eq(positionRulesSets.positionId, player.positionId),
+          eq(eraRulesSets.eraId, player.eraId),
+          eq(keywords.name, BIG_GUY_KEYWORD_NAME),
+        ),
+      )
+      .limit(1);
     const rows = await this.reads.listStoredAdvancements(playerId);
     return {
       playerId,
       isStarPlayer: player.isStarPlayer,
+      isJourneyman: player.isJourneyman,
+      isBigGuyPosition: bigGuy.length > 0,
       tpExternalId,
       positionId: player.positionId,
       eraId: player.eraId,

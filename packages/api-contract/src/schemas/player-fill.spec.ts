@@ -27,6 +27,23 @@ const fill = {
 };
 
 describe('FillIncompletePlayerSchema', () => {
+  it('accepts an optional journeyman flag', () => {
+    const result = FillIncompletePlayerSchema.safeParse({
+      ...fill,
+      journeyman: true,
+    });
+    expect(result.success).toBe(true);
+    expect(result.data?.journeyman).toBe(true);
+    expect(FillIncompletePlayerSchema.parse(fill).journeyman).toBeUndefined();
+  });
+
+  it('rejects a journeyman flag that is not a boolean', () => {
+    expect(
+      FillIncompletePlayerSchema.safeParse({ ...fill, journeyman: 'yes' })
+        .success,
+    ).toBe(false);
+  });
+
   it('accepts a complete fill', () => {
     expect(FillIncompletePlayerSchema.safeParse(fill).success).toBe(true);
   });

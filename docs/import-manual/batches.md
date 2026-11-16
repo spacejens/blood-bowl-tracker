@@ -20,6 +20,7 @@ tools/import-manual/data/batches/
   007-tp-low-spp-player-fills/
   008-tp-feed-player-fills/
   009-tp-feed-injured-player-fills/
+  010-tp-journeyman-fills/
 ```
 
 A batch directory is named `NNN-<slug>`: a three-digit number and a lowercase
@@ -111,6 +112,13 @@ The batches:
   [Recording lasting reductions](filling-missing-players.md#recording-lasting-reductions)).
   It is generated the same way as batch 008, and applies after the source
   importers and after batch 008, in a plain `apply`.
+- **010-tp-journeyman-fills** — fills in the data of 40 incomplete TP
+  journeymen whose stored marker is set, in a basic position and below the
+  cheapest advancement of their era, so they provably have none: each gets
+  his position's characteristics and starting skills (his Loner kept by the
+  server), his whole SPP unspent and his status, with `journeyman: true`.
+  It is generated the same way as batch 008, and applies after the source
+  importers and after batch 009, in a plain `apply`.
 
 A batch can also fill in the data of a TP player the TP import left
 incomplete, through the `incompletePlayerFills` section; see

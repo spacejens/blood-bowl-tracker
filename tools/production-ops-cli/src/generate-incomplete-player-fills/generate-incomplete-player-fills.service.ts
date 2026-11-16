@@ -7,6 +7,7 @@ import type { FillReport } from './fill-plan.types';
 import { FillSectionRendererService } from './fill-section-renderer.service';
 import { IncompletePlayerFillPlannerService } from './incomplete-player-fill-planner.service';
 import { IncompletePlayerFillQueriesService } from './incomplete-player-fill-queries.service';
+import { LastingInjuryRepairSelectorService } from './lasting-injury-repair-selector.service';
 
 export interface GenerateIncompletePlayerFillsInput {
   /** Repo-relative path to write the batch file to; printed when absent. */
@@ -21,6 +22,11 @@ export interface GenerateIncompletePlayerFillsInput {
 export interface GenerateIncompletePlayerFillsReport extends FillReport {
   /** The players listed in the file's `lastingInjuryRepairs` section. */
   readonly lastingInjuryRepairs: number;
+  /**
+   * The players selected for a repair but left out of that section because
+   * their stored line shows no reduction for the server to record.
+   */
+  readonly lastingInjuryRepairsNothingToRecord: number;
 }
 
 export interface GenerateIncompletePlayerFillsResult {
@@ -35,9 +41,10 @@ export interface GenerateIncompletePlayerFillsResult {
  * `generate-incomplete-player-fills`: reads production read-only, plans a
  * fill for every incomplete TP player whose data can be proven (optionally
  * from the saved TP feed reports), lists the complete TP players whose
- * lasting stat reductions the server should record, and prints or writes
- * the batch file with a report of who was filled by which proof, who was
- * skipped and why, and how many repairs are listed.
+ * stored line shows a lasting stat reduction the server would record, and
+ * prints or writes the batch file with a report of who was filled by which
+ * proof, who was skipped and why, and how many repairs are listed or left
+ * out with nothing to record.
  */
 @Injectable()
 export class GenerateIncompletePlayerFillsService {
@@ -47,6 +54,7 @@ export class GenerateIncompletePlayerFillsService {
     private readonly renderer: FillSectionRendererService,
     private readonly writeFile: WriteFileService,
     private readonly feedHistory: TpFeedHistoryStoreService,
+    private readonly repairSelector: LastingInjuryRepairSelectorService,
   ) {}
 
   async run(
@@ -58,10 +66,12 @@ export class GenerateIncompletePlayerFillsService {
         ? null
         : await this.feedHistory.readReports(input.feedChannel);
     const plan = this.planner.plan({ ...(await this.queries.load()), feed });
-    const repairs = await this.queries.loadLastingInjuryRepairs();
+    const candidates = await this.queries.loadLastingInjuryRepairCandidates();
+    const repairs = this.repairSelector.select(candidates);
     const report: GenerateIncompletePlayerFillsReport = {
       ...plan.report,
       lastingInjuryRepairs: repairs.length,
+      lastingInjuryRepairsNothingToRecord: candidates.length - repairs.length,
     };
     const section = this.renderer.render(plan.entries, repairs);
     if (input.out === undefined) {

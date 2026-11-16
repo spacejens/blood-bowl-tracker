@@ -4,7 +4,7 @@ import type {
 } from '@blood-bowl-tracker/api-contract';
 import { Injectable } from '@nestjs/common';
 
-import type { PlannedFillRow } from './player-fill.types';
+import type { PlannedFillRow, StoredFillRow } from './player-fill.types';
 
 /**
  * Turns a fill into the `playerSkills.sync` entries that write it, and those
@@ -67,5 +67,47 @@ export class PlayerFillEntriesService {
         paidNumber: isPaid ? paid : null,
       };
     });
+  }
+
+  /**
+   * The starting Loner rows a journeyman fill leaves him with, which the
+   * entry itself does not list: each active starting row of a Loner skill
+   * he holds, as stored. When he holds none, the row expected is the
+   * lowest-id Loner without a variant, which is what an insert writes. None
+   * while no skill is named Loner, since nothing is then inserted.
+   */
+  journeymanLonerRows(
+    stored: readonly StoredFillRow[],
+    lonerIds: readonly number[],
+  ): PlannedFillRow[] {
+    const held = stored.filter(
+      (row) =>
+        row.source === 'starting' &&
+        row.skillId !== null &&
+        lonerIds.includes(row.skillId),
+    );
+    if (held.length > 0) {
+      return held.map((row) => ({
+        skillId: row.skillId,
+        characteristic: null,
+        attributeValue: row.attributeValue,
+        source: 'starting',
+        isFreeExtra: row.isFreeExtra,
+        paidNumber: null,
+      }));
+    }
+    const [lonerId] = lonerIds;
+    return lonerId === undefined
+      ? []
+      : [
+          {
+            skillId: lonerId,
+            characteristic: null,
+            attributeValue: null,
+            source: 'starting',
+            isFreeExtra: false,
+            paidNumber: null,
+          },
+        ];
   }
 }

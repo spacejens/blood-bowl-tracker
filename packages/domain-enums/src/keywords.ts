@@ -19,3 +19,9 @@
 export const KEYWORD_KINDS = ['species', 'positional', 'special'] as const;
 
 export type KeywordKind = (typeof KEYWORD_KINDS)[number];
+
+/**
+ * The positional keyword of a Big Guy. A Big Guy position is not a basic
+ * one, so a journeyman is never drawn from it.
+ */
+export const BIG_GUY_KEYWORD_NAME = 'Big Guy';

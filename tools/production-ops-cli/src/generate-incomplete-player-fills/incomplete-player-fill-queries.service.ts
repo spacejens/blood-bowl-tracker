@@ -11,10 +11,11 @@ import { z } from 'zod';
 import {
   CHARACTERISTIC_KEYS,
   type FillPlannerRows,
-  type LastingInjuryRepairEntry,
+  type LastingInjuryRepairCandidate,
 } from './fill-plan.types';
 import {
   ADVANCEMENT_COSTS_SQL,
+  BIG_GUY_POSITIONS_SQL,
   CANDIDATES_SQL,
   CONSEQUENCES_SQL,
   ERA_RULES_SETS_SQL,
@@ -170,11 +171,35 @@ const TeamCompetitionRowSchema = z.object({
   lastPlayedAt: timestamp,
 });
 
-const LastingInjuryRepairRowSchema = z.object({
+const BigGuyPositionRowSchema = z.object({ positionId: id, eraId: id });
+
+const LineSchema = z.object({
+  ma: value,
+  st: value,
+  ag: value,
+  pa: value.nullable(),
+  av: value,
+});
+
+const LastingInjuryRepairCandidateRowSchema = z.object({
   player: z.object({
     system: z.literal('tourplay.net'),
     id: z.string().min(1),
   }),
+  line: LineSchema,
+  increases: z.array(z.enum(CHARACTERISTIC_KEYS)),
+  context: z
+    .object({
+      formats: z.object({
+        ma: format,
+        st: format,
+        ag: format,
+        pa: format,
+        av: format,
+      }),
+      baseline: LineSchema.nullable(),
+    })
+    .nullable(),
 });
 
 /**
@@ -182,8 +207,8 @@ const LastingInjuryRepairRowSchema = z.object({
  * per kind of row, and validates every row before the planner sees it. The
  * rows cover the candidates and their stored data, team players and rosters,
  * skill names and categories, position access, advancement costs and
- * stat-reduction events; separately, the complete players to list for a
- * lasting-reduction repair.
+ * stat-reduction events and Big Guy positions; separately, the complete
+ * players who may need a lasting-reduction repair.
  */
 @Injectable()
 export class IncompletePlayerFillQueriesService {
@@ -245,15 +270,24 @@ export class IncompletePlayerFillQueriesService {
         TEAM_COMPETITIONS_SQL,
         TeamCompetitionRowSchema,
       ),
+      bigGuyPositions: await this.rows(
+        BIG_GUY_POSITIONS_SQL,
+        BigGuyPositionRowSchema,
+      ),
     };
   }
 
   /**
-   * The complete TP players to list for a lasting-reduction repair, already
-   * shaped as batch entries.
+   * The complete TP players who may need a lasting-reduction repair, with
+   * what the server derives their reductions from.
    */
-  async loadLastingInjuryRepairs(): Promise<LastingInjuryRepairEntry[]> {
-    return this.rows(LASTING_INJURY_REPAIRS_SQL, LastingInjuryRepairRowSchema);
+  async loadLastingInjuryRepairCandidates(): Promise<
+    LastingInjuryRepairCandidate[]
+  > {
+    return this.rows(
+      LASTING_INJURY_REPAIRS_SQL,
+      LastingInjuryRepairCandidateRowSchema,
+    );
   }
 
   private async rows<T extends z.ZodType>(

@@ -66,6 +66,8 @@ function filled(overrides: Partial<PlayerFillState> = {}): PlayerFillState {
   return {
     playerId: 9,
     isStarPlayer: false,
+    isJourneyman: false,
+    isBigGuyPosition: false,
     tpExternalId: { externalSystemId: 3, externalId: '586220' },
     incomplete: false,
     positionId: 30,

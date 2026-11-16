@@ -5,6 +5,7 @@ import type {
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import type { StoredFillRow } from './player-fill.types';
 import { PlayerFillEntriesService } from './player-fill-entries.service';
 
 const fill: FillIncompletePlayer = {
@@ -116,5 +117,61 @@ describe('PlayerFillEntriesService', () => {
         paidNumber: 2,
       },
     ]);
+  });
+
+  describe('journeymanLonerRows', () => {
+    const stored = (overrides: Partial<StoredFillRow>): StoredFillRow => ({
+      skillId: 80,
+      characteristic: null,
+      attributeValue: null,
+      source: 'starting',
+      isFreeExtra: false,
+      advancementOrder: null,
+      orderConfirmed: false,
+      ...overrides,
+    });
+
+    it('expects each starting Loner he holds, with its stored variant', () => {
+      expect(
+        service.journeymanLonerRows(
+          [
+            stored({ skillId: 70 }),
+            stored({ skillId: 81, attributeValue: '4+' }),
+          ],
+          [80, 81],
+        ),
+      ).toEqual([
+        {
+          skillId: 81,
+          characteristic: null,
+          attributeValue: '4+',
+          source: 'starting',
+          isFreeExtra: false,
+          paidNumber: null,
+        },
+      ]);
+    });
+
+    it('expects the lowest-id Loner without a variant when he holds none', () => {
+      expect(
+        service.journeymanLonerRows(
+          [stored({ skillId: 80, source: 'chosen' })],
+          [80, 81],
+        ),
+      ).toEqual([
+        {
+          skillId: 80,
+          characteristic: null,
+          attributeValue: null,
+          source: 'starting',
+          isFreeExtra: false,
+          paidNumber: null,
+        },
+      ]);
+    });
+
+    it('expects nothing while no skill is named Loner', () => {
+      expect(service.journeymanLonerRows([], [])).toEqual([]);
+    });
   });
 });

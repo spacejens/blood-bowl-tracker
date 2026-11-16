@@ -471,7 +471,7 @@ const IncompletePlayerFillAdvancementSchema = z.union([
 
 /**
  * The complete data of one TP player the TP import left incomplete. Every
- * field is required, so an entry is never partial. See
+ * field but `journeyman` is required, so an entry is never partial. See
  * docs/import-manual/filling-missing-players.md.
  */
 const IncompletePlayerFillEntrySchema = z.object({
@@ -485,6 +485,8 @@ const IncompletePlayerFillEntrySchema = z.object({
   unspentSpp: z.number().int().nonnegative(),
   startingSkills: z.array(PositionRulesSetSkillRefSchema),
   advancements: z.array(IncompletePlayerFillAdvancementSchema),
+  /** A journeyman whose stored marker is set; see filling-missing-players.md. */
+  journeyman: z.literal(true).optional(),
 });
 
 /**

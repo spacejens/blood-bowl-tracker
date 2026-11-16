@@ -7,13 +7,14 @@ import type { Db } from '@blood-bowl-tracker/db';
 import { DB, eq, players } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 
+import { JourneymanLonerService } from '../player-skills/journeyman-loner.service';
 import { PlayerAdvancementReadsService } from '../player-skills/player-advancement-reads.service';
 import { PlayerSkillsService } from '../player-skills/player-skills.service';
 import { PlayerCharacteristicsValidationService } from '../players/player-characteristics-validation.service';
 import { CharacteristicFormatMismatchError } from '../shared/characteristic-format-mismatch-error';
 import { IncompletePlayerFillError } from '../shared/incomplete-player-fill-error';
 import { SppTotalsService } from '../spp/spp-totals.service';
-import type { PlayerFillState } from './player-fill.types';
+import type { PlannedFillRow, PlayerFillState } from './player-fill.types';
 import { PlayerFillComparisonService } from './player-fill-comparison.service';
 import { PlayerFillEntriesService } from './player-fill-entries.service';
 import { PlayerFillReductionsService } from './player-fill-reductions.service';
@@ -44,9 +45,14 @@ import { PlayerFillStateService } from './player-fill-state.service';
  * and the five lasting stat-reduction counts PlayerFillReductionsService
  * derives from the entry's line and increases (his niggling injuries and
  * miss-next-game are not written). The SPP adjustment is computed the way
- * the TP sync does it, total
- * minus the era-correct event sum (SppTotalsService), clamped at 0, and only
- * when none is stored. The journeyman flag is not touched.
+ * the TP sync does it, total minus the era-correct event sum
+ * (SppTotalsService), clamped at 0, and only when none is stored.
+ *
+ * An entry with `journeyman: true` is accepted only for a player whose
+ * stored marker is set and whose position is basic (not a Big Guy), and
+ * must not list Loner: his stored starting Loner is expected beside the
+ * entry's rows, and JourneymanLonerService.ensureStartingLoner keeps it
+ * in the same transaction. Without it, the marker and Loner are not touched.
  *
  * The reads happen before the transaction, so a concurrent write between
  * them is not excluded; manual imports run one at a time.
@@ -63,6 +69,7 @@ export class PlayerFillService {
     private readonly characteristicsValidation: PlayerCharacteristicsValidationService,
     private readonly playerSkills: PlayerSkillsService,
     private readonly sppTotals: SppTotalsService,
+    private readonly loner: JourneymanLonerService,
     private readonly reductions: PlayerFillReductionsService,
   ) {}
 
@@ -81,6 +88,7 @@ export class PlayerFillService {
     if (state.isStarPlayer) {
       throw refuse(' is a star player');
     }
+    const lonerRows = await this.journeymanLonerRows(state, data);
     const syncEntries = this.entries.entries(data);
     const planned = this.entries.plan(
       await this.reads.resolveFreeExtras(syncEntries),
@@ -89,7 +97,7 @@ export class PlayerFillService {
       fields: state.fields,
       rows: state.rows,
       data,
-      planned,
+      planned: [...planned, ...lonerRows],
     });
     if (!state.incomplete) {
       if (identical) {
@@ -141,8 +149,47 @@ export class PlayerFillService {
           ...lastingReductions,
         })
         .where(eq(players.id, playerId));
+      if (data.journeyman === true) {
+        await this.loner.ensureStartingLoner(playerId, { tx });
+      }
     });
     return { playerId, outcome: 'filled' };
+  }
+
+  /**
+   * For a journeyman entry, the starting Loner rows he is expected to end
+   * with (PlayerFillEntriesService.journeymanLonerRows), after refusing the
+   * entry when his stored marker is not set, his position is a Big Guy one
+   * (not basic), or the entry lists a Loner itself. Empty for any other
+   * entry, which never reads or touches Loner.
+   */
+  private async journeymanLonerRows(
+    state: PlayerFillState,
+    data: FillIncompletePlayer,
+  ): Promise<PlannedFillRow[]> {
+    if (data.journeyman !== true) {
+      return [];
+    }
+    const refuse = (problem: string): IncompletePlayerFillError =>
+      new IncompletePlayerFillError(`Player ${data.playerId}${problem}`);
+    if (!state.isJourneyman) {
+      throw refuse(' is not marked a journeyman');
+    }
+    if (state.isBigGuyPosition) {
+      throw refuse(' is not in a basic position');
+    }
+    const lonerIds = await this.loner.findLonerSkillIds();
+    const listsLoner =
+      data.startingSkills.some((skill) => lonerIds.includes(skill.skillId)) ||
+      data.advancements.some(
+        (advancement) =>
+          advancement.kind === 'skill' &&
+          lonerIds.includes(advancement.skillId),
+      );
+    if (listsLoner) {
+      throw refuse(' lists Loner among the skills of a journeyman entry');
+    }
+    return this.entries.journeymanLonerRows(state.rows, lonerIds);
   }
 
   /**

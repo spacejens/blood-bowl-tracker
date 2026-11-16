@@ -44,6 +44,13 @@ export interface StoredFillFields {
 export interface PlayerFillState {
   playerId: number;
   isStarPlayer: boolean;
+  /** Whether his stored journeyman marker is set. */
+  isJourneyman: boolean;
+  /**
+   * Whether his position carries the Big Guy keyword under some rules set
+   * of his era, so is not a basic position a journeyman is drawn from.
+   */
+  isBigGuyPosition: boolean;
   /** His TP external id; undefined when he has none, so is not a TP player. */
   tpExternalId: ExternalId | undefined;
   positionId: number;

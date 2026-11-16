@@ -1,4 +1,7 @@
-import { CONSEQUENCE_TYPES } from '@blood-bowl-tracker/domain-enums';
+import {
+  BIG_GUY_KEYWORD_NAME,
+  CONSEQUENCE_TYPES,
+} from '@blood-bowl-tracker/domain-enums';
 
 /**
  * The SQL the fill generator runs against production. Every statement is a
@@ -245,6 +248,22 @@ WHERE c.player_id IN (
 )
 GROUP BY c.player_id, m.competition_id`;
 
+/**
+ * Each candidate position and era where the position carries the Big Guy
+ * keyword under a rules set of the era: not a basic position, so a marked
+ * journeyman in it is not filled.
+ */
+export const BIG_GUY_POSITIONS_SQL = `${CANDIDATES_CTE}
+SELECT DISTINCT prs.position_id AS "positionId", ers.era_id AS "eraId"
+FROM game_data.position_rules_set_keywords prk
+JOIN game_data.keywords k ON k.id = prk.keyword_id
+JOIN game_data.position_rules_sets prs ON prs.id = prk.position_rules_set_id
+JOIN game_data.era_rules_sets ers ON ers.rules_set_id = prs.rules_set_id
+WHERE k.name = '${BIG_GUY_KEYWORD_NAME}'
+  AND (prs.position_id, ers.era_id) IN (
+    SELECT position_id, era_id FROM candidates
+  )`;
+
 /** The five lasting stat-reduction columns of `game_data.players`. */
 export const REDUCTION_COUNT_COLUMNS = [
   'move_reduction_count',
@@ -254,21 +273,56 @@ export const REDUCTION_COUNT_COLUMNS = [
   'armour_reduction_count',
 ] as const;
 
+const LINE_COLUMNS = (alias: string): string =>
+  `'ma', ${alias}.move, 'st', ${alias}.strength, 'ag', ${alias}.agility,
+      'pa', ${alias}.passing, 'av', ${alias}.armour`;
+
 /**
- * The `lastingInjuryRepairs` entries: every non-star TP player no longer
+ * The `lastingInjuryRepairs` candidates: every non-star TP player no longer
  * incomplete, with a stat-reduction match event recorded and no lasting
- * reduction stored, named by one TP id (the first in text order). The server
- * records only what his stored line and increases show: it writes nothing
- * when his stored line does not show a reduction (it healed, it was absorbed
- * by a limit, the position has no start value, or the stored line is out of
- * date). INCOMPLETE_PLAYER_CONDITIONS never
- * yields NULL (the characteristic columns are NOT NULL and the rest are
- * `is null` tests), so NOT (...) selects exactly the complete players.
+ * reduction stored, named by one TP id (the first in text order), with what
+ * the server derives his reductions from: his stored line, his active
+ * characteristic increases, and the rules set context
+ * PositionRulesSetsService.findCharacteristicsContext resolves for his
+ * position and his team era's era (the last-listed era rules set with a
+ * row for the position, else the last-listed one with no start line; null
+ * when the era lists none). LastingInjuryRepairSelectorService keeps those
+ * the server would record a reduction for. INCOMPLETE_PLAYER_CONDITIONS
+ * never yields NULL (the characteristic columns are NOT NULL and the rest
+ * are `is null` tests), so NOT (...) selects exactly the complete players.
+ * The rules-set context subquery must track
+ * PositionRulesSetsService.findCharacteristicsContext in packages/game-data.
  */
 export const LASTING_INJURY_REPAIRS_SQL = `SELECT DISTINCT ON (p.id)
   json_build_object('system', 'tourplay.net', 'id', pe.external_id)
-    AS "player"
+    AS "player",
+  json_build_object(${LINE_COLUMNS('p')}) AS "line",
+  coalesce((
+    SELECT json_agg(lower(adv.characteristic::text) ORDER BY adv.id)
+    FROM game_data.player_advancements adv
+    WHERE adv.player_id = p.id
+      AND adv.removed = false
+      AND adv.source = 'characteristic'
+      AND adv.characteristic IS NOT NULL
+  ), '[]'::json) AS "increases",
+  (
+    SELECT json_build_object(
+      'formats', json_build_object('ma', rs.move_format,
+        'st', rs.strength_format, 'ag', rs.agility_format,
+        'pa', rs.passing_format, 'av', rs.armour_format),
+      'baseline', CASE WHEN prs.id IS NULL THEN NULL
+        ELSE json_build_object(${LINE_COLUMNS('prs')}) END)
+    FROM game_data.era_rules_sets ers
+    JOIN game_data.rules_sets rs ON rs.id = ers.rules_set_id
+    LEFT JOIN game_data.position_rules_sets prs
+      ON prs.rules_set_id = ers.rules_set_id
+      AND prs.position_id = p.position_id
+    WHERE ers.era_id = te.era_id
+    ORDER BY (prs.id IS NULL) ASC, ers.id DESC
+    LIMIT 1
+  ) AS "context"
 FROM game_data.players p
+JOIN game_data.team_eras te ON te.id = p.team_era_id
 JOIN game_data.positions pos ON pos.id = p.position_id
 JOIN game_data.players_external_ids pe ON pe.player_id = p.id
 JOIN game_data.external_systems es ON es.id = pe.external_system_id

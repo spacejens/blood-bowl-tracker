@@ -29,6 +29,7 @@ export class IncompletePlayerFillsProcessor {
    * that; a refusal is recorded as an ImportError and the other entries
    * still run. An advancement listed without a source goes as
    * `advancement`, which never replaces a stored chosen or random source.
+   * An entry's `journeyman: true` goes on as is.
    * Returns how many entries the server accepted, re-runs it found
    * unchanged included.
    */
@@ -120,6 +121,7 @@ export class IncompletePlayerFillsProcessor {
         attributeValue: skill.attributeValue,
       })),
       advancements,
+      ...(entry.journeyman === true ? { journeyman: true } : {}),
     };
   }
 }

@@ -94,6 +94,7 @@ export function eligibleInput(
     advancementCosts: [],
     statReductionEvents: [],
     teamCompetitions: [],
+    bigGuyPositions: [],
     feed: null,
     ...overrides,
   };

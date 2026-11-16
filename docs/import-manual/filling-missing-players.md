@@ -46,11 +46,14 @@ Every field is required except where noted, so an entry is never partial:
   optional `attributeValue`, an optional `source` of `chosen` or `random`,
   and `freeExtra: true` for a skill gained outside the paid advancements),
   or a characteristic increase (`MA`, `ST`, `AG`, `PA` or `AV`).
+- `journeyman` — optional, and only `true`: the player is a journeyman
+  whose stored marker is set. The server keeps his starting Loner, so
+  `startingSkills` must not list Loner. See [Journeymen](#journeymen).
 
 The SPP adjustment is not authored: it is worked out the way the TP import
 does it, the total minus the SPP the player's imported match events are
-worth, never below 0. A stored adjustment is kept. A fill does not set the
-journeyman flag.
+worth, never below 0. A stored adjustment is kept. A fill does not change the
+journeyman marker.
 
 ## What is written
 
@@ -76,6 +79,16 @@ The same transaction records his lasting stat reductions (see
 injuries and whether he misses the next game are not written and stay at
 none.
 
+## Journeymen
+
+An entry with `journeyman: true` fills a journeyman the TP import has
+marked (see [Journeymen](../game-concepts/players/index.md#journeymen)).
+His Loner is a starting skill the server owns. The entry leaves it out,
+the stored starting Loner is expected beside the entry's starting skills,
+and the server keeps or inserts it in the same transaction that writes the
+rest. An entry without the field leaves the marker and any Loner alone, so
+a stored starting Loner it does not list is a contradiction.
+
 ## When an entry is refused
 
 The importer skips an entry whose player or skill does not resolve. For the
@@ -83,6 +96,10 @@ rest, the server checks each entry before anything of it is written, and
 refuses it with an import error when:
 
 - the player is not a TP player, or is a star player;
+- the entry says `journeyman: true` and the player's stored marker is not
+  set, or his position carries the Big Guy keyword under a rules set of his
+  era (not a basic position), or the entry lists Loner among its starting
+  skills or advancements;
 - the player is no longer counted as incomplete, and his stored data is not
   exactly what the entry would write (see [Re-running](#re-running));
 - a value already stored for him disagrees with the entry: a non-zero
@@ -108,7 +125,9 @@ the batch is left unrecorded, as for
 
 A player filled in is no longer incomplete, so applying the same entry again
 changes nothing and is not an error. Applying a different entry for him is
-refused: a fill never overwrites data that is already complete.
+refused: a fill never overwrites data that is already complete. For a
+journeyman entry, the comparison includes his stored starting Loner, so the
+same entry is again `unchanged`.
 
 ## Generated fills
 
@@ -116,7 +135,7 @@ refused: a fill never overwrites data that is already complete.
 [production-ops-cli](../production-ops-cli/index.md#generating-incomplete-player-fills))
 writes entries for the incomplete TP players whose data it can prove. Every
 entry has the stored status, else `dead` if a death is recorded, else
-`retired`. There are three kinds of entry:
+`retired`. There are four kinds of entry:
 
 - **No advancements.** His total SPP is below the cheapest advancement any
   rules set of his era prices, house rules included, and no stat reduction
@@ -133,6 +152,18 @@ entry has the stored status, else `dead` if a death is recorded, else
   a target-number format), and AG and PA 1 (6+ in a target-number format).
   A PA of 0 (cannot pass) stays 0. These limits are the rulebooks'; the
   database does not hold them. The rest is as for no advancements.
+- **Journeymen.** A player whose stored journeyman marker is set (a
+  line-up or roster that listed Loner set it, and no roster has since shown
+  him recruited), in a basic position, and otherwise filled as for no
+  advancements, with no stat reduction recorded. The entry has
+  `journeyman: true` and leaves his Loner out of the starting skills; his
+  stored starting Loner is not compared and is not a free-skill risk. A
+  player merely named Journeyman with no marker stays incomplete. One
+  uncertainty remains: a recruit who kept the name and left the team, seen
+  since only in line-ups without Loner, still carries the marker. The
+  database stores no line-up snapshots to rule that out. It matters only
+  below the cheapest advancement, where such a player differs from his
+  fill only by a Loner he no longer has.
 - **Advancements from the TP feed** (with `--feed-channel`). The advancement
   reports `read-tp-feed-history` saved are matched to him. The reports of
   one feed player must name exactly one stored player: the same team (found
@@ -163,9 +194,15 @@ entry has the stored status, else `dead` if a death is recorded, else
   match's recorded play time, which can be an estimate when the source gave
   no play date. An increase is placed at its report's post time.
 
-A player is skipped, with the reason reported, when any of these holds:
+A player is skipped, with the reason reported, when any of these holds. The
+list is not in precedence order: he is reported by the first reason that
+applies in the planner's order, which checks `team-in-ongoing-competition`,
+`spp-missing` and `era-unpriced` before `journeyman`, and for stat reductions
+checks `feed-match-ambiguous`, `spp-too-high` and `free-skill-risk` before it.
 
-- he is a journeyman (`journeyman`);
+- he is a marked journeyman whose position carries the Big Guy keyword
+  under a rules set of his era (not a basic position), or who has stat
+  reductions recorded (`journeyman`);
 - a team era of his team is enrolled in, or plays in a match of, an ongoing
   competition, whatever his stored status (`team-in-ongoing-competition`):
   his data is still changing, and his stored total may understate his real
@@ -174,9 +211,10 @@ A player is skipped, with the reason reported, when any of these holds:
 - his era has no rules set, or a rules set of his era prices nothing
   (`era-unpriced`);
 - the feed reports name him together with another stored player, or two
-  feed players name him (`feed-match-ambiguous`);
-- with no feed reports, his total is at or above the cheapest advancement
-  cost of his era (`spp-too-high`);
+  feed players name him, or any feed report names a marked journeyman
+  (`feed-match-ambiguous`);
+- with no feed reports, or as a marked journeyman, his total is at or
+  above the cheapest advancement cost of his era (`spp-too-high`);
 - he holds any trophy award (a trophy may grant a skill, and one not
   recorded yet looks the same as none), he has a gained Loner, Hatred or
   free extra stored, or the feed reports a Loner, a Hatred or a skill a
@@ -208,7 +246,7 @@ The server's checks above still apply when the batch is applied.
 The generated file also holds a `lastingInjuryRepairs` section, see
 [Recording lasting reductions](#recording-lasting-reductions).
 
-Batches 007, 008 and 009 hold the fills generated this way (see
+Batches 007, 008, 009 and 010 hold the fills generated this way (see
 [Batches](batches.md)).
 
 ## Recording lasting reductions
@@ -251,9 +289,14 @@ date). Applying the same entry again changes nothing.
 
 `generate-incomplete-player-fills` lists every non-star TP player who is no
 longer incomplete, has a stat reduction recorded in a match and has no
-reduction stored; the server decides which of them get one. A player the
-server finds nothing to record for is listed again by every later run, which
-is harmless because applying his entry changes nothing.
+reduction stored, and whose stored line shows a reduction the server would
+record. It reads his stored line, his active characteristic increases and
+the rules set the server compares against, and derives his counts the same
+way the server does (a spec runs the derivation side by side). A player whose
+reduction healed, was absorbed by a limit, has no start value to compare
+against, or whose stored line is out of date is left out, since his entry
+would change nothing; the report counts him under
+`lastingInjuryRepairsNothingToRecord`.
 
 ## Order
 

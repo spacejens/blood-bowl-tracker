@@ -6,7 +6,10 @@ import {
   firstCallArg,
   mockDb,
 } from '@blood-bowl-tracker/db/test-helpers';
-import { TP_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/domain-enums';
+import {
+  BIG_GUY_KEYWORD_NAME,
+  TP_EXTERNAL_SYSTEM_NAME,
+} from '@blood-bowl-tracker/domain-enums';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -50,6 +53,7 @@ const playerRow = {
   passingReductionCount: 0,
   armourReductionCount: 1,
   isStarPlayer: false,
+  isJourneyman: false,
   positionId: 30,
   eraId: 4,
 };
@@ -85,6 +89,8 @@ describe('PlayerFillStateService', () => {
     await expect(service.load(9)).resolves.toEqual({
       playerId: 9,
       isStarPlayer: false,
+      isJourneyman: false,
+      isBigGuyPosition: false,
       tpExternalId: { externalSystemId: 3, externalId: '586220' },
       positionId: 30,
       eraId: 4,
@@ -111,6 +117,47 @@ describe('PlayerFillStateService', () => {
       rulesSetIds: [2, 5],
     });
     expect(reads.listStoredAdvancements).toHaveBeenCalledWith(9);
+  });
+
+  it('reads the stored journeyman marker', async () => {
+    const { service } = await makeService(
+      [{ ...playerRow, isJourneyman: true }],
+      [],
+      [],
+      [],
+      [],
+    );
+
+    expect((await service.load(9))?.isJourneyman).toBe(true);
+  });
+
+  it("finds the Big Guy keyword on his position under his era's rules sets", async () => {
+    const { service, db } = await makeService(
+      [playerRow],
+      [],
+      [],
+      [{ rulesSetId: 2 }],
+      [{ id: 1 }],
+    );
+
+    expect((await service.load(9))?.isBigGuyPosition).toBe(true);
+    const where = firstCallArg(db.chains[4].where);
+    expect(extractJoinColumns(where)).toEqual([
+      'position_rules_sets.position_id',
+      'era_rules_sets.era_id',
+      'keywords.name',
+    ]);
+    expect(extractAllFilterValues(where)).toEqual([
+      30,
+      4,
+      BIG_GUY_KEYWORD_NAME,
+    ]);
+  });
+
+  it('is not a Big Guy position without that keyword', async () => {
+    const { service } = await makeService([playerRow], [], [], [], []);
+
+    expect((await service.load(9))?.isBigGuyPosition).toBe(false);
   });
 
   it('reports a complete player without a TP id as such', async () => {

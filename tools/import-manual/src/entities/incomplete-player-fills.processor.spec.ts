@@ -181,4 +181,24 @@ describe('IncompletePlayerFillsProcessor', () => {
     expect(await processor.process(makeContext([entry, entry]))).toBe(1);
     expect(fills.fill).toHaveBeenCalledTimes(2);
   });
+
+  it('passes journeyman: true on', async () => {
+    refResolver.resolveRef.mockResolvedValue(9);
+    refResolver.resolveRefs.mockResolvedValue([70, 71, 72, 73]);
+    fills.fill.mockResolvedValue({ playerId: 9, outcome: 'filled' });
+
+    await processor.process(makeContext([{ ...entry, journeyman: true }]));
+
+    expect(fills.fill.mock.calls[0][0].journeyman).toBe(true);
+  });
+
+  it('sends no journeyman field for an entry without one', async () => {
+    refResolver.resolveRef.mockResolvedValue(9);
+    refResolver.resolveRefs.mockResolvedValue([70, 71, 72, 73]);
+    fills.fill.mockResolvedValue({ playerId: 9, outcome: 'filled' });
+
+    await processor.process(makeContext([entry]));
+
+    expect(fills.fill.mock.calls[0][0]).not.toHaveProperty('journeyman');
+  });
 });

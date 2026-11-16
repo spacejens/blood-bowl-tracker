@@ -106,6 +106,8 @@ export interface FillPlannerRows {
   statReductionEvents: StatReductionEventRow[];
   /** Only for candidates with a stat reduction. */
   teamCompetitions: TeamCompetitionRow[];
+  /** Candidate positions that are not basic in the candidate's era. */
+  bigGuyPositions: BigGuyPositionRow[];
 }
 
 export interface FillPlannerInput extends FillPlannerRows {
@@ -166,6 +168,8 @@ export type FillAdvancement =
 /** One `incompletePlayerFills` entry, as the batch file holds it. */
 export interface FillEntry {
   player: { system: 'tourplay.net'; id: string };
+  /** A journeyman whose stored marker is set; his Loner is left to the server. */
+  journeyman?: true;
   status: PlayerStatus;
   characteristics: {
     ma: number;
@@ -185,6 +189,29 @@ export interface LastingInjuryRepairEntry {
   player: { system: 'tourplay.net'; id: string };
 }
 
+/**
+ * The rules set the server compares a stored player against: the formats
+ * of his era's last-listed rules set with a row for his position, and that
+ * row's start line, or, when no rules set of the era has one, the formats of
+ * the last-listed rules set and no start line.
+ */
+export interface RepairRulesSetContext {
+  formats: CharacteristicFormats;
+  baseline: CharacteristicLine | null;
+}
+
+/**
+ * A complete, non-star TP player with a stat reduction recorded in a match
+ * and none stored, with what the server derives his reductions from.
+ */
+export interface LastingInjuryRepairCandidate extends LastingInjuryRepairEntry {
+  line: CharacteristicLine;
+  /** One element per active characteristic increase he has. */
+  increases: CharacteristicKey[];
+  /** Null when his era lists no rules set. */
+  context: RepairRulesSetContext | null;
+}
+
 export interface SkipTally {
   count: number;
   /** TP external ids, in the order the players were considered. */
@@ -196,6 +223,8 @@ export interface FillReport {
   eligible: number;
   /** Players filled, by the kind of proof. */
   eligibleByStage: Record<FillStage, number>;
+  /** Players filled as journeymen (`journeyman: true`), also counted under `noAdvancement`. */
+  journeymenFilled: number;
   /** How the feed's player keys matched; null without feed evidence. */
   feed: FeedSummary | null;
   skipped: Record<SkipReason, SkipTally>;
@@ -206,9 +235,18 @@ export interface FillPlan {
   report: FillReport;
 }
 
+/** The skill a journeyman holds as a starting skill while he stays one. */
+export const LONER_SKILL_NAME = 'Loner';
+
+/** A candidate's position that carries the Big Guy keyword under a rules set of his era. */
+export interface BigGuyPositionRow {
+  positionId: number;
+  eraId: number;
+}
+
 /** Skills the server's free-extra rules make free when gained outside the paid advancements. */
 export const FREE_EXTRA_SKILL_NAMES: ReadonlySet<string> = new Set([
-  'Loner',
+  LONER_SKILL_NAME,
   'Hatred',
 ]);
 
