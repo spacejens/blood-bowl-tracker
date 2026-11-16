@@ -77,4 +77,49 @@ describe('IncompletePlayerFillImportService', () => {
       'Failed to fill in player 9: boom',
     );
   });
+
+  describe('recordLastingReductions', () => {
+    it("returns the server's outcome", async () => {
+      runner.recordUpsertResult.mockResolvedValue({
+        playerId: 9,
+        outcome: 'recorded',
+      });
+
+      await expect(
+        service.recordLastingReductions({ playerId: 9 }, []),
+      ).resolves.toEqual({ playerId: 9, outcome: 'recorded' });
+    });
+
+    it('calls players.recordLastingReductions through the runner, recording against the data', async () => {
+      runner.recordUpsertResult.mockResolvedValue(undefined);
+      const errors: ImportError[] = [];
+      const request = { playerId: 9 };
+
+      await service.recordLastingReductions(request, errors);
+
+      const options = recordUpsertResultOptions(runner);
+      expect(options.item).toBe(request);
+      expect(options.errors).toBe(errors);
+      await options.upsert();
+      expect(client.players.recordLastingReductions).toHaveBeenCalledWith(
+        request,
+      );
+    });
+
+    it('names the player in its error message', async () => {
+      runner.recordUpsertResult.mockResolvedValue(undefined);
+
+      await service.recordLastingReductions({ playerId: 9 }, []);
+
+      const options = recordUpsertResultOptions(runner);
+      expect(
+        options.buildErrorMessage(new Error('Player 9 is a star player')),
+      ).toBe(
+        'Failed to record the lasting reductions of player 9: Player 9 is a star player',
+      );
+      expect(options.buildErrorMessage('boom')).toBe(
+        'Failed to record the lasting reductions of player 9: boom',
+      );
+    });
+  });
 });
