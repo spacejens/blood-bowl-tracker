@@ -31,6 +31,7 @@ function emptyData(): ManualDataFile {
     trophyAwards: [],
     playerAdvancementOrders: [],
     incompletePlayerFills: [],
+    lastingInjuryRepairs: [],
   };
 }
 
@@ -481,6 +482,38 @@ describe('ExternalSystemsProcessor', () => {
         'WrappedSkillSys',
         'tourplay.net',
       ]);
+    });
+  });
+
+  describe('lastingInjuryRepairs', () => {
+    function dataWithRepair(systems: string[]): ManualDataFile {
+      const data = emptyData();
+      data.externalSystems = systems.map((name) => ({
+        name,
+        category: 'imported_data_source' as const,
+      }));
+      data.lastingInjuryRepairs = [
+        { player: { system: 'tourplay.net', id: '1' } },
+      ];
+      return data;
+    }
+
+    it('throws when a repair references tourplay.net without declaring it', async () => {
+      externalSystemsImport.upsertExternalSystem.mockResolvedValue(1);
+
+      await expect(processor.bootstrap(dataWithRepair([]))).rejects.toThrow(
+        'External system "tourplay.net" is referenced but not declared',
+      );
+    });
+
+    it('bootstraps the system a declared repair references', async () => {
+      externalSystemsImport.upsertExternalSystem.mockResolvedValue(1);
+
+      const systemIds = await processor.bootstrap(
+        dataWithRepair(['tourplay.net']),
+      );
+
+      expect([...systemIds.keys()]).toEqual(['tourplay.net']);
     });
   });
 });

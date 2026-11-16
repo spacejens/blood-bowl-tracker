@@ -487,6 +487,20 @@ const IncompletePlayerFillEntrySchema = z.object({
   advancements: z.array(IncompletePlayerFillAdvancementSchema),
 });
 
+/**
+ * A TP player no longer incomplete whose lasting stat reductions the server
+ * derives from his stored data and records when none are stored. It carries
+ * no counts. See docs/import-manual/filling-missing-players.md.
+ */
+const LastingInjuryRepairEntrySchema = z
+  .object({
+    player: z.object({
+      system: z.literal(TP_EXTERNAL_SYSTEM_NAME),
+      id: z.string().min(1),
+    }),
+  })
+  .strict();
+
 export const ManualDataFileSchema = z
   .object({
     externalSystems: z.array(ExternalSystemEntrySchema).default([]),
@@ -517,6 +531,7 @@ export const ManualDataFileSchema = z
       .array(PlayerAdvancementOrderEntrySchema)
       .default([]),
     incompletePlayerFills: z.array(IncompletePlayerFillEntrySchema).default([]),
+    lastingInjuryRepairs: z.array(LastingInjuryRepairEntrySchema).default([]),
   })
   .strict();
 
@@ -525,6 +540,9 @@ export type PlayerAdvancementOrderEntry = z.infer<
 >;
 export type IncompletePlayerFillEntry = z.infer<
   typeof IncompletePlayerFillEntrySchema
+>;
+export type LastingInjuryRepairEntry = z.infer<
+  typeof LastingInjuryRepairEntrySchema
 >;
 export type ExternalRef = z.infer<typeof ExternalRefSchema>;
 export type PositionEntry = z.infer<typeof PositionEntrySchema>;
