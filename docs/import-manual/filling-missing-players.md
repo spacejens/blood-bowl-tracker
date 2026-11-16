@@ -185,6 +185,9 @@ A player is skipped, with the reason reported, when any of these holds:
 
 The server's checks above still apply when the batch is applied.
 
+Batches 007 and 008 hold the fills generated this way (see
+[Batches](batches.md)).
+
 ## Order
 
 This section runs last, after every section that creates the skills it
