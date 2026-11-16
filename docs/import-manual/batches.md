@@ -19,6 +19,7 @@ tools/import-manual/data/batches/
   006-bb2016-gutter-runner-skills/
   007-tp-low-spp-player-fills/
   008-tp-feed-player-fills/
+  009-tp-feed-injured-player-fills/
 ```
 
 A batch directory is named `NNN-<slug>`: a three-digit number and a lowercase
@@ -100,6 +101,11 @@ The batches:
   is skipped and why). It references players the TP importer creates and
   batch 004's advancement costs, so it applies after the source importers
   and after batch 007, in a plain `apply`.
+- **009-tp-feed-injured-player-fills** — fills in the data of 8 incomplete TP
+  players whose advancements the TP feed reports prove and who also have
+  stat reductions that certainly still apply, combined in the order they
+  happened. It is generated the same way as batch 008, and applies after the
+  source importers and after batch 008, in a plain `apply`.
 
 A batch can also fill in the data of a TP player the TP import left
 incomplete, through the `incompletePlayerFills` section; see

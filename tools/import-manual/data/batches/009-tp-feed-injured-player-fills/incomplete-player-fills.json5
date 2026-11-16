@@ -1,0 +1,330 @@
+// The data of TP players the TP import left incomplete whose data could be
+// proven: players too low on SPP to have advanced (no advancements, the
+// whole total unspent, stat reductions applied when all fall in their last
+// competition), and players whose advancements the TP feed reports prove in
+// order and to the SPP spent. Generated from the production database by
+// production-ops-cli generate-incomplete-player-fills; see
+// docs/import-manual/filling-missing-players.md#generated-fills.
+{
+  externalSystems: [
+    {
+      name: 'Name',
+      category: 'bookkeeping',
+    },
+    {
+      name: 'tourplay.net',
+      category: 'imported_data_source',
+    },
+  ],
+  incompletePlayerFills: [
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '929761',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 2,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 6,
+      unspentSpp: 3,
+      startingSkills: [],
+      advancements: [
+        {
+          skill: {
+            system: 'Name',
+            id: 'Dauntless',
+          },
+          source: 'random',
+        },
+      ],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1233452',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 5,
+        av: 9,
+      },
+      sppTotal: 9,
+      unspentSpp: 2,
+      startingSkills: [],
+      advancements: [
+        {
+          skill: {
+            system: 'Name',
+            id: 'Dauntless',
+          },
+          source: 'random',
+        },
+        {
+          skill: {
+            system: 'Name',
+            id: 'Fend',
+          },
+          source: 'random',
+        },
+      ],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1242443',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 4,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 9,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          skill: {
+            system: 'Name',
+            id: 'Aminosity',
+          },
+          attributeValue: 'All',
+        },
+      ],
+      advancements: [
+        {
+          skill: {
+            system: 'Name',
+            id: 'Kick',
+          },
+          source: 'random',
+        },
+        {
+          skill: {
+            system: 'Name',
+            id: 'Dauntless',
+          },
+          source: 'random',
+        },
+      ],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1258450',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 1,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 6,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [
+        {
+          skill: {
+            system: 'Name',
+            id: 'Strip Ball',
+          },
+          source: 'random',
+        },
+      ],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1479949',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 5,
+        av: 7,
+      },
+      sppTotal: 24,
+      unspentSpp: 8,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Jump Up',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Wresle',
+        },
+      ],
+      advancements: [
+        {
+          skill: {
+            system: 'Name',
+            id: 'Dodge',
+          },
+          source: 'chosen',
+        },
+        {
+          skill: {
+            system: 'Name',
+            id: 'Diving Catch',
+          },
+          source: 'random',
+        },
+        {
+          skill: {
+            system: 'Name',
+            id: 'Sprint',
+          },
+          source: 'random',
+        },
+      ],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1615776',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 4,
+        st: 3,
+        ag: 4,
+        pa: 5,
+        av: 10,
+      },
+      sppTotal: 8,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Brawler',
+        },
+        {
+          system: 'Name',
+          id: 'Grab',
+        },
+      ],
+      advancements: [
+        {
+          skill: {
+            system: 'Name',
+            id: 'Guard',
+          },
+          source: 'chosen',
+        },
+      ],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1615778',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 3,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+      ],
+      advancements: [
+        {
+          skill: {
+            system: 'Name',
+            id: 'Side Step',
+          },
+          source: 'random',
+        },
+      ],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2605790',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 4,
+        ag: 5,
+        pa: 6,
+        av: 9,
+      },
+      sppTotal: 8,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Juggernaut',
+        },
+        {
+          system: 'Name',
+          id: 'Unsteady',
+        },
+      ],
+      advancements: [
+        {
+          skill: {
+            system: 'Name',
+            id: 'Block',
+          },
+          source: 'chosen',
+        },
+      ],
+    },
+  ],
+}
