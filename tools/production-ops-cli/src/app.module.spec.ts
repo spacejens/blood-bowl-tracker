@@ -22,6 +22,7 @@ import { AdvancementPricingService } from './generate-incomplete-player-fills/ad
 import { CharacteristicChangeService } from './generate-incomplete-player-fills/characteristic-change.service';
 import { CharacteristicReplayService } from './generate-incomplete-player-fills/characteristic-replay.service';
 import { CharacteristicValidityService } from './generate-incomplete-player-fills/characteristic-validity.service';
+import { FeedOwnerFitService } from './generate-incomplete-player-fills/feed-owner-fit.service';
 import { FeedPlayerMatcherService } from './generate-incomplete-player-fills/feed-player-matcher.service';
 import { FeedSkillResolverService } from './generate-incomplete-player-fills/feed-skill-resolver.service';
 import { FillEntryBuilderService } from './generate-incomplete-player-fills/fill-entry-builder.service';
@@ -91,6 +92,9 @@ describe('AppModule', () => {
     );
     expect(moduleRef.get(PricingRulesSetsService)).toBeInstanceOf(
       PricingRulesSetsService,
+    );
+    expect(moduleRef.get(FeedOwnerFitService)).toBeInstanceOf(
+      FeedOwnerFitService,
     );
     expect(moduleRef.get(AdvancementFillStageService)).toBeInstanceOf(
       AdvancementFillStageService,

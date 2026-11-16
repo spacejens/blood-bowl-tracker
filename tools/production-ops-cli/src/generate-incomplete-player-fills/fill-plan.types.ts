@@ -419,6 +419,31 @@ export type PricingOutcome =
   | { kind: 'disagree' }
   | { kind: 'unpriced' };
 
+/** What deciding whether a stored player owns a list of feed reports reads of him. */
+export interface FeedOwner {
+  playerId: number;
+  sppTotal: number | null;
+  unspentSpp: number | null;
+  /** One entry per rules set of his era, for his position. */
+  rulesSets: RulesSetPricingInput[];
+  /** His stored paid advancements; empty when none are stored. */
+  paid: PaidAdvancementRow[];
+}
+
+/** Whether a player can own a list of reports; `unknown` when a check cannot be decided. */
+export type FeedFit = 'valid' | 'invalid' | 'unknown';
+
+/** The rows deciding whether a stored player can own a list of feed reports. */
+export type FeedPricingRows = Pick<
+  FillPlannerRows,
+  | 'paidAdvancements'
+  | 'skillNames'
+  | 'eraRulesSets'
+  | 'advancementCosts'
+  | 'skillCategories'
+  | 'positionAccess'
+>;
+
 /** A stage's verdict on one candidate. */
 export type StageDecision = { entry: FillEntry } | { reason: SkipReason };
 
