@@ -189,7 +189,7 @@ describe('FeedPlayerMatcherService', () => {
       players: [FLAME],
     });
 
-    expect(result.byPlayer.size).toBe(0);
+    expect(result.byPlayer).toEqual(new Map([[1, { kind: 'ambiguous' }]]));
     expect(result.summary).toEqual({
       reportKeys: 1,
       matchedKeys: 0,
@@ -198,7 +198,31 @@ describe('FeedPlayerMatcherService', () => {
     });
   });
 
-  it('marks no stored player ambiguous for a key whose reports name two rosters', () => {
+  it('keeps a player ambiguous that another key names alone when a key naming two rosters implicates him', () => {
+    const result = service.match({
+      reports: {
+        Firestarters: {
+          [KEY]: [
+            report(),
+            report({
+              rosterLink: 'https://tourplay.net/en/blood-bowl/roster/1',
+            }),
+          ],
+          '#14 Flame (Gnoblar Lineman)': [report({ messageId: '1' })],
+        },
+      },
+      rosters: [
+        { teamId: 20, rosterId: '24801' },
+        { teamId: 21, rosterId: '1' },
+      ],
+      players: [FLAME],
+    });
+
+    expect(result.byPlayer).toEqual(new Map([[1, { kind: 'ambiguous' }]]));
+    expect(result.summary).toMatchObject({ matchedKeys: 1, ambiguousKeys: 1 });
+  });
+
+  it('marks every stored player of every roster a key names as ambiguous', () => {
     const result = service.match({
       reports: {
         Firestarters: {
@@ -217,7 +241,12 @@ describe('FeedPlayerMatcherService', () => {
       players: [FLAME, { ...FLAME, playerId: 2, teamId: 21 }],
     });
 
-    expect(result.byPlayer).toEqual(new Map());
+    expect(result.byPlayer).toEqual(
+      new Map([
+        [1, { kind: 'ambiguous' }],
+        [2, { kind: 'ambiguous' }],
+      ]),
+    );
   });
 
   it.each(['flame', ' Flame ', 'FLAME'])(

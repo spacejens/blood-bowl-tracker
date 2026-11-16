@@ -66,16 +66,16 @@ export class FeedPlayerMatcherService {
     for (const players of Object.values(input.reports)) {
       for (const reports of Object.values(players)) {
         summary.reportKeys += 1;
-        const stored = this.storedFor(reports, lookups);
+        const { stored, spansRosters } = this.storedFor(reports, lookups);
         // An unparseable message id leaves the order unproven: ambiguous.
         const unordered = !reports.every((row) => /^\d+$/u.test(row.messageId));
         if (
-          stored === undefined ||
+          spansRosters ||
           stored.length > 1 ||
           (unordered && stored.length > 0)
         ) {
           summary.ambiguousKeys += 1;
-          stored?.forEach((playerId) => ambiguous.add(playerId));
+          stored.forEach((playerId) => ambiguous.add(playerId));
         } else if (stored.length === 0) {
           summary.unmatchedKeys += 1;
         } else {
@@ -105,29 +105,30 @@ export class FeedPlayerMatcherService {
   }
 
   /**
-   * The stored players a key's reports name; undefined when the reports
-   * link more than one roster.
+   * The stored players a key's reports name, and whether the reports link
+   * more than one roster. The players of every linked roster's teams are
+   * kept in that case, so the key makes each of them ambiguous.
    */
   private storedFor(
     reports: readonly TpFeedHistoryReport[],
     lookups: Lookups,
-  ): number[] | undefined {
+  ): { stored: number[]; spansRosters: boolean } {
     if (reports.length === 0) {
-      return [];
+      return { stored: [], spansRosters: false };
     }
     const rosterIds = new Set(
       reports.map((row) => ROSTER_ID.exec(row.rosterLink)?.[1] ?? ''),
     );
     if (rosterIds.has('')) {
-      return [];
+      return { stored: [], spansRosters: false };
     }
-    if (rosterIds.size > 1) {
-      return undefined;
-    }
-    const [rosterId] = rosterIds;
     const { playerName, position } = reports[0];
-    const teamIds = new Set(lookups.teamsByRoster.get(rosterId) ?? []);
-    return [
+    const teamIds = new Set(
+      [...rosterIds].flatMap(
+        (rosterId) => lookups.teamsByRoster.get(rosterId) ?? [],
+      ),
+    );
+    const stored = [
       ...new Set(
         [...teamIds].flatMap(
           (teamId) =>
@@ -136,6 +137,7 @@ export class FeedPlayerMatcherService {
         ),
       ),
     ];
+    return { stored, spansRosters: rosterIds.size > 1 };
   }
 
   private key(teamId: number, playerName: string, position: string): string {
