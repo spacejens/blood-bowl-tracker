@@ -313,6 +313,32 @@ describe('TpFeedHistoryStoreService', () => {
       await expect(service.readReports(CHANNEL)).resolves.toEqual(REPORTS);
     });
 
+    it('reads back a report with a zero SPP cost, which the parser produces for a star of zero', async () => {
+      const zeroCost: TpFeedHistoryReports = {
+        Firestarters: {
+          '#13 Flame (Gnoblar Lineman)': [{ ...REPORT, sppCost: 0 }],
+        },
+      };
+      await service.writeIndex(CHANNEL, { reports: zeroCost, unparsed: [] });
+
+      await expect(service.readReports(CHANNEL)).resolves.toEqual(zeroCost);
+    });
+
+    it('rejects a report with a negative SPP cost', async () => {
+      mkdirSync(channelDir, { recursive: true });
+      writeFileSync(
+        join(channelDir, 'reports.json'),
+        JSON.stringify({
+          Firestarters: { key: [{ ...REPORT, sppCost: -1 }] },
+        }),
+        'utf8',
+      );
+
+      await expect(service.readReports(CHANNEL)).rejects.toThrow(
+        `${join(channelDir, 'reports.json')} is not a valid TP feed reports file`,
+      );
+    });
+
     it('says how to create a missing reports file', async () => {
       await expect(service.readReports(CHANNEL)).rejects.toThrow(
         `${join(channelDir, 'reports.json')} does not exist; run read-tp-feed-history ${CHANNEL} first.`,

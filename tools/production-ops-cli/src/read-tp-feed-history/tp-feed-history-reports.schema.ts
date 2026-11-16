@@ -25,7 +25,7 @@ const tpFeedHistoryReportSchema = z.object({
   selection: z.enum(['random', 'chosen']),
   category: z.enum(['primary', 'secondary', 'characteristics']),
   gain: gainSchema,
-  sppCost: z.number().int().positive(),
+  sppCost: z.number().int().nonnegative(),
   valueText: z.string(),
   rawValue: z.string(),
 });
