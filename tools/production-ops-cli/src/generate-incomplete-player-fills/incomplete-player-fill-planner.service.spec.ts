@@ -4,7 +4,11 @@ import { mock, MockProxy } from 'vitest-mock-extended';
 
 import { CharacteristicValidityService } from './characteristic-validity.service';
 import { candidate, eligibleInput, profile } from './fill-plan.test-helpers';
-import type { FillPlannerInput, SkipReason } from './fill-plan.types';
+import {
+  type FillPlannerInput,
+  SKIP_REASONS,
+  type SkipReason,
+} from './fill-plan.types';
 import { IncompletePlayerFillPlannerService } from './incomplete-player-fill-planner.service';
 import { PositionProfileService } from './position-profile.service';
 
@@ -423,7 +427,7 @@ describe('IncompletePlayerFillPlannerService', () => {
       players: ['90', '1000'],
     });
     expect(plan.report.skipped.journeyman).toEqual({ count: 0, players: [] });
-    expect(Object.keys(plan.report.skipped)).toHaveLength(10);
+    expect(Object.keys(plan.report.skipped)).toHaveLength(SKIP_REASONS.length);
   });
 
   it('orders entries by numeric TP id', () => {

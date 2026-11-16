@@ -15,14 +15,8 @@ import type {
   SkipReason,
   StoredAdvancementRow,
 } from './fill-plan.types';
-import { SKIP_REASONS } from './fill-plan.types';
+import { FREE_EXTRA_SKILL_NAMES, SKIP_REASONS } from './fill-plan.types';
 import { PositionProfileService } from './position-profile.service';
-
-/** Skills the free-extra rules make free when gained outside the paid advancements. */
-const FREE_EXTRA_SKILL_NAMES: ReadonlySet<string> = new Set([
-  'Loner',
-  'Hatred',
-]);
 
 interface PlannerIndex {
   statReduction: Set<number>;

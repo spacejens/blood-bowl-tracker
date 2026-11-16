@@ -10,6 +10,7 @@ import { DiscordBotTokenService } from './discord-bot-token/discord-bot-token.se
 import { DiscordRestService } from './discord-rest/discord-rest.service';
 import { FetchDiscordMessageService } from './fetch-discord-message/fetch-discord-message.service';
 import { FetchRecentDiscordMessagesService } from './fetch-recent-discord-messages/fetch-recent-discord-messages.service';
+import { CharacteristicChangeService } from './generate-incomplete-player-fills/characteristic-change.service';
 import { CharacteristicValidityService } from './generate-incomplete-player-fills/characteristic-validity.service';
 import { FillSectionRendererService } from './generate-incomplete-player-fills/fill-section-renderer.service';
 import { GenerateIncompletePlayerFillsService } from './generate-incomplete-player-fills/generate-incomplete-player-fills.service';
@@ -35,6 +36,7 @@ import { RunProductionQueryService } from './run-production-query/run-production
     ProductionTunnelService,
     RunProductionQueryService,
     CharacteristicValidityService,
+    CharacteristicChangeService,
     FillSectionRendererService,
     GenerateIncompletePlayerFillsService,
     IncompletePlayerFillPlannerService,
