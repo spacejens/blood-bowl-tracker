@@ -368,11 +368,11 @@ export type FeedMatch =
 /** How the feed's player keys matched the stored players. */
 export interface FeedSummary {
   reportKeys: number;
-  /** Keys naming exactly one stored player. */
+  /** Keys whose reports were given to stored players. */
   matchedKeys: number;
-  /** Keys naming several stored players, or with several roster links. */
+  /** Keys whose reports could belong to several players, or to someone not stored. */
   ambiguousKeys: number;
-  /** Keys naming no player of a candidate's team. */
+  /** Keys no stored TP player of a candidate's team can own any report of. */
   unmatchedKeys: number;
 }
 

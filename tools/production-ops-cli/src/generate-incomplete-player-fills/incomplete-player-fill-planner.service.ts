@@ -83,9 +83,10 @@ interface Gated {
  * - otherwise he provably has no advancements, and is filled with his
  *   position's line and starting skills and his whole total unspent.
  *
- * A player a feed key names ambiguously is skipped, and a player the feed
- * does not name is never taken to have advanced: his total must be below the
- * cheapest advancement, which proves he has none.
+ * A player the feed matcher cannot tell apart from another possible owner of
+ * his reports is skipped, and a player the feed does not name is never taken
+ * to have advanced: his total must be below the cheapest advancement, which
+ * proves he has none.
  *
  * Pure decision logic, with no I/O; its collaborators are pure as well.
  */
@@ -108,6 +109,14 @@ export class IncompletePlayerFillPlannerService {
             reports: input.feed,
             rosters: input.teamRosters,
             players: input.teamPlayers,
+            pricing: {
+              paidAdvancements: input.paidAdvancements,
+              skillNames: input.skillNames,
+              eraRulesSets: input.eraRulesSets,
+              advancementCosts: input.advancementCosts,
+              skillCategories: input.skillCategories,
+              positionAccess: input.positionAccess,
+            },
           });
     const index = this.index(
       input,

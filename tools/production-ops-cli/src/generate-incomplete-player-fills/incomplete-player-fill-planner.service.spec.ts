@@ -522,6 +522,14 @@ describe('IncompletePlayerFillPlannerService', () => {
       feed: FEED,
       teamRosters: [{ teamId: 20, rosterId: '24801' }],
       teamPlayers: [teamPlayer()],
+      paidAdvancements: [
+        {
+          playerId: 1,
+          skillId: 200,
+          attributeValue: null,
+          characteristic: null,
+        },
+      ],
     });
 
     const plan = service.plan(input);
@@ -530,6 +538,14 @@ describe('IncompletePlayerFillPlannerService', () => {
       reports: FEED,
       rosters: input.teamRosters,
       players: input.teamPlayers,
+      pricing: {
+        paidAdvancements: input.paidAdvancements,
+        skillNames: input.skillNames,
+        eraRulesSets: input.eraRulesSets,
+        advancementCosts: input.advancementCosts,
+        skillCategories: input.skillCategories,
+        positionAccess: input.positionAccess,
+      },
     });
     expect(plan.report.feed).toEqual(SUMMARY);
   });
