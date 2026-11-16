@@ -115,23 +115,18 @@ describe('CharacteristicReplayService', () => {
     ).toEqual({ kind: 'replayed', line: { ...LINE, ma: 2 } });
   });
 
-  it('counts only reductions that worsened the value toward the cap', () => {
-    // 2 -> 1 -> 1 (floor, not counted) -> 2 -> 1
+  it('fills a characteristic with an increase and exactly two reductions', () => {
+    // 6 -> 5 -> 4 -> 5
     expect(
-      replay(
-        [
-          reduction('ma', day(1)),
-          reduction('ma', day(2)),
-          increase('ma', day(3)),
-          reduction('ma', day(4)),
-        ],
-        { ...LINE, ma: 2 },
-      ),
-    ).toEqual({ kind: 'replayed', line: { ...LINE, ma: 1 } });
+      replay([
+        reduction('ma', day(1)),
+        reduction('ma', day(2)),
+        increase('ma', day(3)),
+      ]),
+    ).toEqual({ kind: 'replayed', line: { ...LINE, ma: 5 } });
   });
 
-  it('stops worsening after two reductions, across an increase', () => {
-    // 6 -> 5 -> 4 -> 5 -> 5 (cap)
+  it('skips an increase with more reductions than the cap', () => {
     expect(
       replay([
         reduction('ma', day(1)),
@@ -139,7 +134,7 @@ describe('CharacteristicReplayService', () => {
         increase('ma', day(3)),
         reduction('ma', day(4)),
       ]),
-    ).toEqual({ kind: 'replayed', line: { ...LINE, ma: 5 } });
+    ).toEqual({ kind: 'order-uncertain' });
   });
 
   it('replays a target-number AG by its format', () => {
@@ -225,6 +220,20 @@ describe('CharacteristicReplayService', () => {
         { ...LINE, ag: 2 },
       ),
     ).toEqual({ kind: 'order-uncertain' });
+  });
+
+  it('cannot apply when a later day fails in every order after an earlier uncertain day', () => {
+    expect(
+      replay(
+        [
+          increase('ag', day(1)),
+          increase('ag', day(1)),
+          reduction('ag', day(1)),
+          increase('ag', day(2)),
+        ],
+        { ...LINE, ag: 2 },
+      ),
+    ).toEqual({ kind: 'unapplicable' });
   });
 
   it('cannot apply events an increase fails for in every order', () => {

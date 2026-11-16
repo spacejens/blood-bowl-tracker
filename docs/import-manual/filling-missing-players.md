@@ -150,8 +150,13 @@ entry has the stored status, else `dead` if a death is recorded, else
   posted, a reduction when its match was played. Each change applies the
   limits above as it happens, so an increase can lift a value a reduction
   left at its floor, and the cap of two counts only reductions that worsened
-  the value. Changes to one characteristic on the same UTC day have no known
-  order, and every order of them must give the same value.
+  the value. A characteristic with an increase and more than two reductions
+  is skipped, because there the cap is ambiguous. Changes to one
+  characteristic on the same UTC day have no known order, and every order of
+  them must give the same value.
+  This ordering rests on two assumptions. A reduction is placed at its
+  match's recorded play time, which can be an estimate when the source gave
+  no play date. An increase is placed at its report's post time.
 
 A player is skipped, with the reason reported, when any of these holds:
 
@@ -187,7 +192,8 @@ A player is skipped, with the reason reported, when any of these holds:
   skill with no `Name` id or with an empty attribute value
   (`position-ambiguous`);
 - same-day changes to one characteristic give different values depending on
-  their order (`characteristic-order-uncertain`);
+  their order, or a characteristic has both increases and more than two
+  reductions (`characteristic-order-uncertain`);
 - the resulting line is not a valid one (`invalid-characteristics`);
 - anything already stored would make the fill refuse the entry
   (`stored-data-contradicts`).

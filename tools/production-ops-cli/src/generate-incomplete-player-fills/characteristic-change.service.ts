@@ -9,7 +9,12 @@ import type {
 } from './fill-plan.types';
 import { CHARACTERISTIC_KEYS } from './fill-plan.types';
 
-/** The most a characteristic can be reduced below the position's start value. */
+/**
+ * The most reductions that can worsen a characteristic. It is also the most a
+ * characteristic can be reduced below the position's start value when it has
+ * no increase; replaying reductions between increases is certain only up to
+ * this many reductions.
+ */
 export const REDUCTION_CAP = 2;
 
 /** The worst die-roll target a target-number characteristic can reach. */
@@ -48,7 +53,8 @@ export interface WorsenInput {
  * by the characteristic's format: AG and PA in a target-number format (`plus`,
  * `plus_zero_legal`) get better as they go down; every other characteristic
  * gets better as it goes up. A reduction worsens the value by one, never by
- * more than REDUCTION_CAP in all, and never past the floor: MA, ST and a bare
+ * more than REDUCTION_CAP times in all (a reduction held at the floor does not
+ * count), and never past the floor: MA, ST and a bare
  * characteristic 1, target-number AG and PA 6+, target-number AV 3+. A
  * structural-zero or absent PA is unaffected. These limits are the
  * rulebooks'; the database holds none.

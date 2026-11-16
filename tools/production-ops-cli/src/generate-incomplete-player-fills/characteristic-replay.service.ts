@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 
-import { CharacteristicChangeService } from './characteristic-change.service';
+import {
+  CharacteristicChangeService,
+  REDUCTION_CAP,
+} from './characteristic-change.service';
 import type {
   CharacteristicEvent,
   CharacteristicEventKind,
@@ -38,6 +41,11 @@ interface ApplyStep {
  * limits of CharacteristicChangeService as it occurs: an increase stops at
  * the best value, a reduction at the floor and after two reductions that
  * worsened the value. Events on different characteristics never interact.
+ * A characteristic with both increases and more reductions than the cap
+ * allows is order-uncertain: whether the cap counts reductions that worsened
+ * the value or all reductions below the start value gives different lines
+ * once an increase sits between them. A characteristic with only reductions
+ * is replayed whatever their number.
  * Events of one kind on a characteristic are applied in any order, since
  * their order cannot matter. Otherwise they are ordered by time, and events
  * on the same UTC day have no known order: every ordering of them is tried,
@@ -66,6 +74,11 @@ export class CharacteristicReplayService {
 
   /** Replays the events of one characteristic, all of which name `key`. */
   private replayKey(input: ReplayInput, key: CharacteristicKey): ReplayOutcome {
+    const increases = input.events.filter((e) => e.kind === 'increase').length;
+    const reductions = input.events.length - increases;
+    if (increases > 0 && reductions > REDUCTION_CAP) {
+      return { kind: 'order-uncertain' };
+    }
     const groups = this.groups(input.events);
     if (groups === undefined) {
       return { kind: 'order-uncertain' };
