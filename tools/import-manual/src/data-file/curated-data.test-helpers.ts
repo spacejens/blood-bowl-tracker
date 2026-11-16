@@ -34,6 +34,9 @@ export const BATCH_008 = 'batches/008-tp-feed-player-fills';
 /** Batch 009: the data of incomplete TP players proven from the TP feed with lasting injuries, and the lasting reductions of players filled before fills recorded them, generated from production. */
 export const BATCH_009 = 'batches/009-tp-feed-injured-player-fills';
 
+/** Batch 010: the data of incomplete TP journeymen who cannot have advanced, generated from production. */
+export const BATCH_010 = 'batches/010-tp-journeyman-fills';
+
 /** Every batch directory, as `batches/<name>`, in name order. */
 export function listBatches(): string[] {
   return readdirSync(join(DATA_ROOT, 'batches'), { withFileTypes: true })
