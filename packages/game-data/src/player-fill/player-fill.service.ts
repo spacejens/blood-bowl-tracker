@@ -179,10 +179,15 @@ export class PlayerFillService {
       throw refuse(' is not in a basic position');
     }
     const lonerIds = await this.loner.findLonerSkillIds();
-    if (data.startingSkills.some((skill) => lonerIds.includes(skill.skillId))) {
-      throw refuse(
-        ' lists Loner among the starting skills of a journeyman entry',
+    const listsLoner =
+      data.startingSkills.some((skill) => lonerIds.includes(skill.skillId)) ||
+      data.advancements.some(
+        (advancement) =>
+          advancement.kind === 'skill' &&
+          lonerIds.includes(advancement.skillId),
       );
+    if (listsLoner) {
+      throw refuse(' lists Loner among the skills of a journeyman entry');
     }
     return this.entries.journeymanLonerRows(state.rows, lonerIds);
   }

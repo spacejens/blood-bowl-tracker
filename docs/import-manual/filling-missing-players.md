@@ -99,7 +99,7 @@ refuses it with an import error when:
 - the entry says `journeyman: true` and the player's stored marker is not
   set, or his position carries the Big Guy keyword under a rules set of his
   era (not a basic position), or the entry lists Loner among its starting
-  skills;
+  skills or advancements;
 - the player is no longer counted as incomplete, and his stored data is not
   exactly what the entry would write (see [Re-running](#re-running));
 - a value already stored for him disagrees with the entry: a non-zero

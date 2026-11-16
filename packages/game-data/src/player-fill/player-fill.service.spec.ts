@@ -601,7 +601,33 @@ describe('PlayerFillService journeyman entries', () => {
       }),
     ).rejects.toThrow(
       new IncompletePlayerFillError(
-        'Player 9 lists Loner among the starting skills of a journeyman entry',
+        'Player 9 lists Loner among the skills of a journeyman entry',
+      ),
+    );
+    expect(db.transaction).not.toHaveBeenCalled();
+  });
+
+  it('refuses one that lists Loner among the advancements', async () => {
+    const { service, db } = await makeService(
+      incomplete({ isJourneyman: true }),
+    );
+
+    await expect(
+      service.fill({
+        ...journeymanFill,
+        advancements: [
+          {
+            kind: 'skill',
+            skillId: 80,
+            attributeValue: '4+',
+            source: 'advancement',
+            isFreeExtra: true,
+          },
+        ],
+      }),
+    ).rejects.toThrow(
+      new IncompletePlayerFillError(
+        'Player 9 lists Loner among the skills of a journeyman entry',
       ),
     );
     expect(db.transaction).not.toHaveBeenCalled();
