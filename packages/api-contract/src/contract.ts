@@ -54,6 +54,8 @@ import {
 import {
   FillIncompletePlayerResultSchema,
   FillIncompletePlayerSchema,
+  RecordLastingReductionsResultSchema,
+  RecordLastingReductionsSchema,
 } from './schemas/player-fill';
 import {
   ListPlayerSkillsSchema,
@@ -197,6 +199,20 @@ export const contract = {
         },
       })
       .output(FillIncompletePlayerResultSchema),
+    // Not an upsert either: records, in place, the lasting stat reductions
+    // the server derives from one complete TP player's stored data, when
+    // none are stored, one player per call. BAD_REQUEST is declared because
+    // the server refuses a player that is not a non-star TP player or is
+    // still incomplete. A player with a reduction already stored, or whose
+    // stored data shows none, answers `unchanged`, so a batch re-run is safe.
+    recordLastingReductions: oc
+      .input(RecordLastingReductionsSchema)
+      .errors({
+        BAD_REQUEST: {
+          message: 'Lasting reductions cannot be recorded',
+        },
+      })
+      .output(RecordLastingReductionsResultSchema),
     // Players became resolvable when tools/import-manual gained a curated
     // trophy-awards file: a manually curated award names its winning player
     // by external id, across tools and phases, exactly like every other
