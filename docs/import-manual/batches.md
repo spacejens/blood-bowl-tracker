@@ -17,6 +17,7 @@ tools/import-manual/data/batches/
   004-advancement-costs/
   005-tp-advancement-orders/
   006-bb2016-gutter-runner-skills/
+  007-tp-low-spp-player-fills/
 ```
 
 A batch directory is named `NNN-<slug>`: a three-digit number and a lowercase
@@ -79,6 +80,15 @@ The batches:
   restates the position's whole skill list. It references a position and
   rules-set pair whose characteristics batch 002 curates, so it applies after
   the source importers, in a plain `apply`.
+- **007-tp-low-spp-player-fills** — fills in the data of 257 incomplete TP
+  players whose total SPP is below the cheapest advancement of their era, so
+  they provably have none: each gets his position's characteristics and
+  starting skills, his whole SPP unspent, and a status of dead (a death in
+  his match events) or retired. It is generated from the production database
+  by `production-ops-cli generate-incomplete-player-fills` (see
+  [Generated fills](filling-missing-players.md#generated-fills) for who is
+  skipped and why), so it references players the TP importer creates and
+  applies after the source importers, in a plain `apply`.
 
 A batch can also fill in the data of a TP player the TP import left
 incomplete, through the `incompletePlayerFills` section; see
