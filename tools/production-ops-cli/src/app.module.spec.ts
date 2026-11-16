@@ -24,6 +24,7 @@ import { FillSectionRendererService } from './generate-incomplete-player-fills/f
 import { GenerateIncompletePlayerFillsService } from './generate-incomplete-player-fills/generate-incomplete-player-fills.service';
 import { IncompletePlayerFillPlannerService } from './generate-incomplete-player-fills/incomplete-player-fill-planner.service';
 import { IncompletePlayerFillQueriesService } from './generate-incomplete-player-fills/incomplete-player-fill-queries.service';
+import { LastingInjuryProofService } from './generate-incomplete-player-fills/lasting-injury-proof.service';
 import { PositionProfileService } from './generate-incomplete-player-fills/position-profile.service';
 import { ProductionJsonQueryService } from './generate-incomplete-player-fills/production-json-query.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
@@ -83,6 +84,9 @@ describe('AppModule', () => {
     );
     expect(moduleRef.get(CharacteristicChangeService)).toBeInstanceOf(
       CharacteristicChangeService,
+    );
+    expect(moduleRef.get(LastingInjuryProofService)).toBeInstanceOf(
+      LastingInjuryProofService,
     );
     expect(moduleRef.get(FillSectionRendererService)).toBeInstanceOf(
       FillSectionRendererService,
