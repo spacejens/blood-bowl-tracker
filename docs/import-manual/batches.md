@@ -104,8 +104,13 @@ The batches:
 - **009-tp-feed-injured-player-fills** — fills in the data of 8 incomplete TP
   players whose advancements the TP feed reports prove and who also have
   stat reductions that certainly still apply, combined in the order they
-  happened. It is generated the same way as batch 008, and applies after the
-  source importers and after batch 008, in a plain `apply`.
+  happened. It also lists 54 complete TP players with a stat reduction
+  recorded in a match and none stored, among them players batches 007 and
+  008 filled, for the server to record the lasting reductions their stored
+  data shows (see
+  [Recording lasting reductions](filling-missing-players.md#recording-lasting-reductions)).
+  It is generated the same way as batch 008, and applies after the source
+  importers and after batch 008, in a plain `apply`.
 
 A batch can also fill in the data of a TP player the TP import left
 incomplete, through the `incompletePlayerFills` section; see
