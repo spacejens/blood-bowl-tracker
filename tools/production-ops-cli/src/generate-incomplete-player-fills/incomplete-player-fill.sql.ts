@@ -290,6 +290,8 @@ const LINE_COLUMNS = (alias: string): string =>
  * the server would record a reduction for. INCOMPLETE_PLAYER_CONDITIONS
  * never yields NULL (the characteristic columns are NOT NULL and the rest
  * are `is null` tests), so NOT (...) selects exactly the complete players.
+ * The rules-set context subquery must track
+ * PositionRulesSetsService.findCharacteristicsContext in packages/game-data.
  */
 export const LASTING_INJURY_REPAIRS_SQL = `SELECT DISTINCT ON (p.id)
   json_build_object('system', 'tourplay.net', 'id', pe.external_id)

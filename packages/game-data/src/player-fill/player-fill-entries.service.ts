@@ -72,9 +72,9 @@ export class PlayerFillEntriesService {
   /**
    * The starting Loner rows a journeyman fill leaves him with, which the
    * entry itself does not list: each active starting row of a Loner skill
-   * he holds, as stored, or else the one JourneymanLonerService inserts
-   * (the lowest-id Loner, without a variant). None while no skill is named
-   * Loner, since nothing is then inserted.
+   * he holds, as stored. When he holds none, the row expected is the
+   * lowest-id Loner without a variant, which is what an insert writes. None
+   * while no skill is named Loner, since nothing is then inserted.
    */
   journeymanLonerRows(
     stored: readonly StoredFillRow[],

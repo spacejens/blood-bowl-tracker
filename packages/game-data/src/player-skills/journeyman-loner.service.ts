@@ -82,7 +82,7 @@ export class JourneymanLonerService {
     playerId: number,
     options: EnsureStartingLonerOptions = {},
   ): Promise<void> {
-    const lonerId = await this.lonerSkillId();
+    const [lonerId] = await this.findLonerSkillIds();
     if (lonerId === undefined) {
       return;
     }
@@ -235,17 +235,6 @@ export class JourneymanLonerService {
       .where(eq(players.id, playerId))
       .for('no key update');
     return row?.isJourneyman;
-  }
-
-  /** The lowest-id skill named Loner, the one a new starting row takes. */
-  private async lonerSkillId(): Promise<number | undefined> {
-    const [skill] = await this.db
-      .select({ id: skills.id })
-      .from(skills)
-      .where(eq(skills.name, LONER_SKILL_NAME))
-      .orderBy(asc(skills.id))
-      .limit(1);
-    return skill?.id;
   }
 
   /** Every skill named Loner, as a subquery: each counts as the Loner. */

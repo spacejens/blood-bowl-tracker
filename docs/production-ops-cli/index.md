@@ -66,8 +66,8 @@ the query resolves, the way game-data's `PlayerFillReductionsService` does,
 and leaves out every candidate with nothing to record.
 `report.lastingInjuryRepairs` counts the listed players and
 `report.lastingInjuryRepairsNothingToRecord` the ones left out. `section`
-holds the batch file when no `--out` is given. With `--out`, the file is written through
-cli-shared's `WriteFileService` and `written` reports it. A run with `--out`,
+holds the batch file when no `--out` is given. With `--out`, the file is
+written through cli-shared's `WriteFileService` and `written` reports it. A run with `--out`,
 no eligible player and no repair writes nothing and fails, with the report
 in the error message so the skipped players and their reasons are still
 visible.

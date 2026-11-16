@@ -45,9 +45,9 @@ export const FillAdvancementSchema = z.discriminatedUnion('kind', [
 /**
  * Everything `/debugincompleteimport` needs to stop counting one existing TP
  * player, supplied in full by a manual import batch. All fields but
- * `journeyman` are required, so a fill is never partial. The server writes it only to a
- * non-star TP player still counted as incomplete, and only when nothing
- * stored contradicts it; see `players.fillIncomplete`.
+ * `journeyman` are required, so a fill is never partial. The server writes
+ * it only to a non-star TP player still counted as incomplete, and only when
+ * nothing stored contradicts it; see `players.fillIncomplete`.
  */
 export const FillIncompletePlayerSchema = z.object({
   playerId: z.number().int(),

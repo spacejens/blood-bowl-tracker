@@ -144,7 +144,7 @@ describe('JourneymanLonerService', () => {
     });
 
     it('inserts with the lowest-id skill named Loner', async () => {
-      const db = mockDb([{ id: 7 }], STORED_JOURNEYMAN, []);
+      const db = mockDb([{ id: 7 }, { id: 9 }], STORED_JOURNEYMAN, []);
       const service = await makeService(db);
 
       await service.ensureStartingLoner(1);
@@ -152,7 +152,6 @@ describe('JourneymanLonerService', () => {
       const order = firstCallArg(db.chains[0].orderBy);
       expect(extractJoinColumns(order)).toEqual(['skills.id']);
       expect(sqlText(order)).toContain(' asc');
-      expect(db.chains[0].limit).toHaveBeenCalledWith(1);
       expect(db.chains[4].values).toHaveBeenCalledWith({
         playerId: 1,
         skillId: 7,

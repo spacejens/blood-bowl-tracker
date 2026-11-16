@@ -125,6 +125,7 @@ describe('PlayerFillStateService', () => {
       [],
       [],
       [],
+      [],
     );
 
     expect((await service.load(9))?.isJourneyman).toBe(true);

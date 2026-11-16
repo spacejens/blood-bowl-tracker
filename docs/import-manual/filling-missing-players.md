@@ -194,7 +194,11 @@ entry has the stored status, else `dead` if a death is recorded, else
   match's recorded play time, which can be an estimate when the source gave
   no play date. An increase is placed at its report's post time.
 
-A player is skipped, with the reason reported, when any of these holds:
+A player is skipped, with the reason reported, when any of these holds. The
+list is not in precedence order: he is reported by the first reason that
+applies in the planner's order, which checks `team-in-ongoing-competition`,
+`spp-missing` and `era-unpriced` before `journeyman`, and for stat reductions
+checks `feed-match-ambiguous`, `spp-too-high` and `free-skill-risk` before it.
 
 - he is a marked journeyman whose position carries the Big Guy keyword
   under a rules set of his era (not a basic position), or who has stat
@@ -209,8 +213,8 @@ A player is skipped, with the reason reported, when any of these holds:
 - the feed reports name him together with another stored player, or two
   feed players name him, or any feed report names a marked journeyman
   (`feed-match-ambiguous`);
-- with no feed reports, or as a marked journeyman, his total is at or above the cheapest advancement
-  cost of his era (`spp-too-high`);
+- with no feed reports, or as a marked journeyman, his total is at or
+  above the cheapest advancement cost of his era (`spp-too-high`);
 - he holds any trophy award (a trophy may grant a skill, and one not
   recorded yet looks the same as none), he has a gained Loner, Hatred or
   free extra stored, or the feed reports a Loner, a Hatred or a skill a
@@ -288,7 +292,7 @@ longer incomplete, has a stat reduction recorded in a match and has no
 reduction stored, and whose stored line shows a reduction the server would
 record. It reads his stored line, his active characteristic increases and
 the rules set the server compares against, and derives his counts the same
-way the server does (a spec runs both side by side). A player whose
+way the server does (a spec runs the derivation side by side). A player whose
 reduction healed, was absorbed by a limit, has no start value to compare
 against, or whose stored line is out of date is left out, since his entry
 would change nothing; the report counts him under
