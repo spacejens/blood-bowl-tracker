@@ -11,7 +11,7 @@ import { z } from 'zod';
 import {
   CHARACTERISTIC_KEYS,
   type FillPlannerRows,
-  type LastingInjuryRepairEntry,
+  type LastingInjuryRepairCandidate,
 } from './fill-plan.types';
 import {
   ADVANCEMENT_COSTS_SQL,
@@ -173,11 +173,33 @@ const TeamCompetitionRowSchema = z.object({
 
 const BigGuyPositionRowSchema = z.object({ positionId: id, eraId: id });
 
-const LastingInjuryRepairRowSchema = z.object({
+const LineSchema = z.object({
+  ma: value,
+  st: value,
+  ag: value,
+  pa: value.nullable(),
+  av: value,
+});
+
+const LastingInjuryRepairCandidateRowSchema = z.object({
   player: z.object({
     system: z.literal('tourplay.net'),
     id: z.string().min(1),
   }),
+  line: LineSchema,
+  increases: z.array(z.enum(CHARACTERISTIC_KEYS)),
+  context: z
+    .object({
+      formats: z.object({
+        ma: format,
+        st: format,
+        ag: format,
+        pa: format,
+        av: format,
+      }),
+      baseline: LineSchema.nullable(),
+    })
+    .nullable(),
 });
 
 /**
@@ -186,7 +208,7 @@ const LastingInjuryRepairRowSchema = z.object({
  * rows cover the candidates and their stored data, team players and rosters,
  * skill names and categories, position access, advancement costs and
  * stat-reduction events and Big Guy positions; separately, the complete
- * players to list for a lasting-reduction repair.
+ * players who may need a lasting-reduction repair.
  */
 @Injectable()
 export class IncompletePlayerFillQueriesService {
@@ -256,11 +278,16 @@ export class IncompletePlayerFillQueriesService {
   }
 
   /**
-   * The complete TP players to list for a lasting-reduction repair, already
-   * shaped as batch entries.
+   * The complete TP players who may need a lasting-reduction repair, with
+   * what the server derives their reductions from.
    */
-  async loadLastingInjuryRepairs(): Promise<LastingInjuryRepairEntry[]> {
-    return this.rows(LASTING_INJURY_REPAIRS_SQL, LastingInjuryRepairRowSchema);
+  async loadLastingInjuryRepairCandidates(): Promise<
+    LastingInjuryRepairCandidate[]
+  > {
+    return this.rows(
+      LASTING_INJURY_REPAIRS_SQL,
+      LastingInjuryRepairCandidateRowSchema,
+    );
   }
 
   private async rows<T extends z.ZodType>(

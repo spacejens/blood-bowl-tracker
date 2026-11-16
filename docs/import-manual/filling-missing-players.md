@@ -285,9 +285,14 @@ date). Applying the same entry again changes nothing.
 
 `generate-incomplete-player-fills` lists every non-star TP player who is no
 longer incomplete, has a stat reduction recorded in a match and has no
-reduction stored; the server decides which of them get one. A player the
-server finds nothing to record for is listed again by every later run, which
-is harmless because applying his entry changes nothing.
+reduction stored, and whose stored line shows a reduction the server would
+record. It reads his stored line, his active characteristic increases and
+the rules set the server compares against, and derives his counts the same
+way the server does (a spec runs both side by side). A player whose
+reduction healed, was absorbed by a limit, has no start value to compare
+against, or whose stored line is out of date is left out, since his entry
+would change nothing; the report counts him under
+`lastingInjuryRepairsNothingToRecord`.
 
 ## Order
 

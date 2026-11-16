@@ -92,7 +92,15 @@ const TEAM_COMPETITION = {
   lastPlayedAt: '2024-04-01T19:00:00+00:00',
 };
 
-const REPAIR = { player: { system: 'tourplay.net', id: '929761' } };
+const REPAIR = {
+  player: { system: 'tourplay.net', id: '929761' },
+  line: { ma: 6, st: 3, ag: 3, pa: null, av: 8 },
+  increases: ['ma', 'av'],
+  context: {
+    formats: { ma: 'bare', st: 'bare', ag: 'plus', pa: 'absent', av: 'plus' },
+    baseline: { ma: 6, st: 3, ag: 3, pa: null, av: 9 },
+  },
+};
 
 describe('IncompletePlayerFillQueriesService', () => {
   let service: IncompletePlayerFillQueriesService;
@@ -341,21 +349,67 @@ describe('IncompletePlayerFillQueriesService', () => {
     await expect(service.load()).rejects.toThrow('boom');
   });
 
-  describe('loadLastingInjuryRepairs', () => {
-    it('loads the repair entries', async () => {
-      await expect(service.loadLastingInjuryRepairs()).resolves.toEqual([
-        REPAIR,
-      ]);
+  describe('loadLastingInjuryRepairCandidates', () => {
+    it('loads the repair candidates', async () => {
+      await expect(
+        service.loadLastingInjuryRepairCandidates(),
+      ).resolves.toEqual([REPAIR]);
+    });
+
+    it('loads a candidate whose era has no start line or no rules set', async () => {
+      const noBaseline = {
+        ...REPAIR,
+        context: { ...REPAIR.context, baseline: null },
+      };
+      const noRulesSet = { ...REPAIR, context: null };
+      results.set(LASTING_INJURY_REPAIRS_SQL, [noBaseline, noRulesSet]);
+
+      await expect(
+        service.loadLastingInjuryRepairCandidates(),
+      ).resolves.toEqual([noBaseline, noRulesSet]);
     });
 
     it('refuses an entry of another system', async () => {
       results.set(LASTING_INJURY_REPAIRS_SQL, [
-        { player: { system: 'tloeg.bbleague.se', id: '47' } },
+        { ...REPAIR, player: { system: 'tloeg.bbleague.se', id: '47' } },
       ]);
 
-      await expect(service.loadLastingInjuryRepairs()).rejects.toBeInstanceOf(
-        ZodError,
+      await expect(
+        service.loadLastingInjuryRepairCandidates(),
+      ).rejects.toBeInstanceOf(ZodError);
+    });
+
+    it('refuses an unknown increase', async () => {
+      results.set(LASTING_INJURY_REPAIRS_SQL, [
+        { ...REPAIR, increases: ['MA'] },
+      ]);
+
+      await expect(
+        service.loadLastingInjuryRepairCandidates(),
+      ).rejects.toBeInstanceOf(ZodError);
+    });
+
+    it("reads the player's active characteristic increases", () => {
+      expect(LASTING_INJURY_REPAIRS_SQL).toContain('adv.removed = false');
+      expect(LASTING_INJURY_REPAIRS_SQL).toContain(
+        "adv.source = 'characteristic'",
       );
+      expect(LASTING_INJURY_REPAIRS_SQL).toContain(
+        'lower(adv.characteristic::text)',
+      );
+    });
+
+    it('resolves the rules set as PositionRulesSetsService.findCharacteristicsContext does', () => {
+      expect(LASTING_INJURY_REPAIRS_SQL).toContain(
+        'WHERE ers.era_id = te.era_id',
+      );
+      expect(LASTING_INJURY_REPAIRS_SQL).toContain(
+        'AND prs.position_id = p.position_id',
+      );
+      expect(LASTING_INJURY_REPAIRS_SQL).toContain(
+        'ORDER BY (prs.id IS NULL) ASC, ers.id DESC',
+      );
+      expect(LASTING_INJURY_REPAIRS_SQL).toContain('LIMIT 1');
     });
 
     it('selects complete, non-star TP players', () => {

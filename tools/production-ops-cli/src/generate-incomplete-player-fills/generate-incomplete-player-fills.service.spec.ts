@@ -9,6 +9,7 @@ import {
   type FillEntry,
   type FillPlan,
   type FillReport,
+  type LastingInjuryRepairCandidate,
   type LastingInjuryRepairEntry,
   SKIP_REASONS,
 } from './fill-plan.types';
@@ -16,10 +17,22 @@ import { FillSectionRendererService } from './fill-section-renderer.service';
 import { GenerateIncompletePlayerFillsService } from './generate-incomplete-player-fills.service';
 import { IncompletePlayerFillPlannerService } from './incomplete-player-fill-planner.service';
 import { IncompletePlayerFillQueriesService } from './incomplete-player-fill-queries.service';
+import { LastingInjuryRepairSelectorService } from './lasting-injury-repair-selector.service';
 
 const REPAIR: LastingInjuryRepairEntry = {
   player: { system: 'tourplay.net', id: '929761' },
 };
+
+const LINE = { ma: 6, st: 3, ag: 3, pa: 4, av: 9 };
+
+function repairCandidate(id: string): LastingInjuryRepairCandidate {
+  return {
+    player: { system: 'tourplay.net', id },
+    line: LINE,
+    increases: [],
+    context: null,
+  };
+}
 
 const ENTRY: FillEntry = {
   player: { system: 'tourplay.net', id: '500' },
@@ -67,6 +80,7 @@ describe('GenerateIncompletePlayerFillsService', () => {
   let renderer: MockProxy<FillSectionRendererService>;
   let writeFile: MockProxy<WriteFileService>;
   let feedHistory: MockProxy<TpFeedHistoryStoreService>;
+  let repairSelector: MockProxy<LastingInjuryRepairSelectorService>;
 
   beforeEach(async () => {
     queries = mock<IncompletePlayerFillQueriesService>();
@@ -74,8 +88,10 @@ describe('GenerateIncompletePlayerFillsService', () => {
     renderer = mock<FillSectionRendererService>();
     writeFile = mock<WriteFileService>();
     feedHistory = mock<TpFeedHistoryStoreService>();
+    repairSelector = mock<LastingInjuryRepairSelectorService>();
     queries.load.mockResolvedValue(eligibleInput());
-    queries.loadLastingInjuryRepairs.mockResolvedValue([]);
+    queries.loadLastingInjuryRepairCandidates.mockResolvedValue([]);
+    repairSelector.select.mockReturnValue([]);
     planner.plan.mockReturnValue(planWith([ENTRY]));
     renderer.render.mockReturnValue('// file\n');
     const moduleRef = await Test.createTestingModule({
@@ -86,6 +102,10 @@ describe('GenerateIncompletePlayerFillsService', () => {
         { provide: FillSectionRendererService, useValue: renderer },
         { provide: WriteFileService, useValue: writeFile },
         { provide: TpFeedHistoryStoreService, useValue: feedHistory },
+        {
+          provide: LastingInjuryRepairSelectorService,
+          useValue: repairSelector,
+        },
       ],
     }).compile();
     service = moduleRef.get(GenerateIncompletePlayerFillsService);
@@ -97,7 +117,11 @@ describe('GenerateIncompletePlayerFillsService', () => {
     expect(planner.plan).toHaveBeenCalledWith(eligibleInput());
     expect(renderer.render).toHaveBeenCalledWith([ENTRY], []);
     expect(result).toEqual({
-      report: { ...planWith([ENTRY]).report, lastingInjuryRepairs: 0 },
+      report: {
+        ...planWith([ENTRY]).report,
+        lastingInjuryRepairs: 0,
+        lastingInjuryRepairsNothingToRecord: 0,
+      },
       section: '// file\n',
     });
     expect(writeFile.run).not.toHaveBeenCalled();
@@ -110,7 +134,11 @@ describe('GenerateIncompletePlayerFillsService', () => {
 
     expect(writeFile.run).toHaveBeenCalledWith('x.json5', '// file\n');
     expect(result).toEqual({
-      report: { ...planWith([ENTRY]).report, lastingInjuryRepairs: 0 },
+      report: {
+        ...planWith([ENTRY]).report,
+        lastingInjuryRepairs: 0,
+        lastingInjuryRepairsNothingToRecord: 0,
+      },
       written: { written: 'x.json5', bytes: 8 },
     });
   });
@@ -124,18 +152,34 @@ describe('GenerateIncompletePlayerFillsService', () => {
     expect(writeFile.run).not.toHaveBeenCalled();
   });
 
-  it('renders and counts the lasting-reduction repairs', async () => {
-    queries.loadLastingInjuryRepairs.mockResolvedValue([REPAIR]);
+  it('renders and counts only the repairs the server would record', async () => {
+    const candidates = [repairCandidate('929761'), repairCandidate('688945')];
+    queries.loadLastingInjuryRepairCandidates.mockResolvedValue(candidates);
+    repairSelector.select.mockReturnValue([REPAIR]);
 
     const result = await service.run({});
 
+    expect(repairSelector.select).toHaveBeenCalledWith(candidates);
     expect(renderer.render).toHaveBeenCalledWith([ENTRY], [REPAIR]);
     expect(result.report.lastingInjuryRepairs).toBe(1);
+    expect(result.report.lastingInjuryRepairsNothingToRecord).toBe(1);
+  });
+
+  it('writes nothing when no candidate has a reduction to record and nothing is eligible', async () => {
+    planner.plan.mockReturnValue(planWith([]));
+    queries.loadLastingInjuryRepairCandidates.mockResolvedValue([
+      repairCandidate('929761'),
+    ]);
+
+    await expect(service.run({ out: 'x.json5' })).rejects.toThrow(
+      'nothing written',
+    );
+    expect(writeFile.run).not.toHaveBeenCalled();
   });
 
   it('writes a batch file with repairs and no fills', async () => {
     planner.plan.mockReturnValue(planWith([]));
-    queries.loadLastingInjuryRepairs.mockResolvedValue([REPAIR]);
+    repairSelector.select.mockReturnValue([REPAIR]);
     writeFile.run.mockResolvedValue({ written: 'x.json5', bytes: 8 });
 
     await service.run({ out: 'x.json5' });
@@ -147,7 +191,7 @@ describe('GenerateIncompletePlayerFillsService', () => {
     queries.load.mockRejectedValue(new Error('Production query failed'));
 
     await expect(service.run({})).rejects.toThrow('Production query failed');
-    expect(queries.loadLastingInjuryRepairs).not.toHaveBeenCalled();
+    expect(queries.loadLastingInjuryRepairCandidates).not.toHaveBeenCalled();
   });
 
   it('reports why every player was skipped when it refuses to write', async () => {

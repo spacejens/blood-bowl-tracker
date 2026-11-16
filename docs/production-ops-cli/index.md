@@ -57,10 +57,16 @@ matches. What it selects and why is described in
 The output is JSON: `report` counts the players considered and filled, and
 lists the skipped players' TP ids under each reason. The batch file also
 gets a `lastingInjuryRepairs` section listing every complete non-star TP
-player with a stat reduction recorded in a match and none stored (see
-[Recording lasting reductions](../import-manual/filling-missing-players.md#recording-lasting-reductions));
-`report.lastingInjuryRepairs` counts them. `section` holds the batch file
-when no `--out` is given. With `--out`, the file is written through
+player with a stat reduction recorded in a match and none stored whose
+stored line shows a reduction the server would record (see
+[Recording lasting reductions](../import-manual/filling-missing-players.md#recording-lasting-reductions)).
+`LastingInjuryRepairSelectorService` derives each candidate's counts from
+his stored line, active characteristic increases and the rules set context
+the query resolves, the way game-data's `PlayerFillReductionsService` does,
+and leaves out every candidate with nothing to record.
+`report.lastingInjuryRepairs` counts the listed players and
+`report.lastingInjuryRepairsNothingToRecord` the ones left out. `section`
+holds the batch file when no `--out` is given. With `--out`, the file is written through
 cli-shared's `WriteFileService` and `written` reports it. A run with `--out`,
 no eligible player and no repair writes nothing and fails, with the report
 in the error message so the skipped players and their reasons are still
@@ -82,11 +88,13 @@ or no player of a candidate's team; `null` without the flag).
 The package depends on `@blood-bowl-tracker/domain-enums` for the status,
 characteristic-format, skill, advancement-kind and match-event enums.
 `@blood-bowl-tracker/db` and `@blood-bowl-tracker/game-data` are dev
-dependencies, used only by two drift-guard specs. One keeps the SQL
-selection in step with `INCOMPLETE_PLAYER_CRITERIA`. The other runs the
+dependencies, used only by three drift-guard specs. One keeps the SQL
+selection in step with `INCOMPLETE_PLAYER_CRITERIA`. Another runs the
 generator's advancement pricing next to game-data's own order check
 (`AdvancementOrderDeductionService`) and requires the server to accept
-exactly the spend the generator prices.
+exactly the spend the generator prices. The third runs the repair
+selector's reduction counts next to game-data's
+`PlayerFillReductionsService` and requires both to agree.
 
 ## Reading the TP feed history
 

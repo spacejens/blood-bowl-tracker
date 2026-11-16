@@ -189,6 +189,29 @@ export interface LastingInjuryRepairEntry {
   player: { system: 'tourplay.net'; id: string };
 }
 
+/**
+ * The rules set the server compares a stored player against: the formats
+ * of his era's last-listed rules set with a row for his position, and that
+ * row's start line, or, when no rules set of the era has one, the formats of
+ * the last-listed rules set and no start line.
+ */
+export interface RepairRulesSetContext {
+  formats: CharacteristicFormats;
+  baseline: CharacteristicLine | null;
+}
+
+/**
+ * A complete, non-star TP player with a stat reduction recorded in a match
+ * and none stored, with what the server derives his reductions from.
+ */
+export interface LastingInjuryRepairCandidate extends LastingInjuryRepairEntry {
+  line: CharacteristicLine;
+  /** One element per active characteristic increase he has. */
+  increases: CharacteristicKey[];
+  /** Null when his era lists no rules set. */
+  context: RepairRulesSetContext | null;
+}
+
 export interface SkipTally {
   count: number;
   /** TP external ids, in the order the players were considered. */

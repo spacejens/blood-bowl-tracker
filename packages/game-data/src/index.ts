@@ -51,6 +51,8 @@ export {
 } from './matches/matches.service';
 export { PlayerFillModule } from './player-fill/player-fill.module';
 export { PlayerFillService } from './player-fill/player-fill.service';
+export type { ReductionsInput } from './player-fill/player-fill-reductions.service';
+export { PlayerFillReductionsService } from './player-fill/player-fill-reductions.service';
 export { PlayerFillReductionsRecordService } from './player-fill/player-fill-reductions-record.service';
 export { JourneymanLonerService } from './player-skills/journeyman-loner.service';
 export type {
