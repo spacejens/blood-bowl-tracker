@@ -18,6 +18,7 @@ import { CharacteristicValidityService } from './generate-incomplete-player-fill
 import { FeedOwnerFitService } from './generate-incomplete-player-fills/feed-owner-fit.service';
 import { FeedPlayerMatcherService } from './generate-incomplete-player-fills/feed-player-matcher.service';
 import { FeedSkillResolverService } from './generate-incomplete-player-fills/feed-skill-resolver.service';
+import { FeedSplitSearchService } from './generate-incomplete-player-fills/feed-split-search.service';
 import { FillEntryBuilderService } from './generate-incomplete-player-fills/fill-entry-builder.service';
 import { FillSectionRendererService } from './generate-incomplete-player-fills/fill-section-renderer.service';
 import { GenerateIncompletePlayerFillsService } from './generate-incomplete-player-fills/generate-incomplete-player-fills.service';
@@ -50,6 +51,7 @@ import { RunProductionQueryService } from './run-production-query/run-production
     AdvancementPricingService,
     PricingRulesSetsService,
     FeedOwnerFitService,
+    FeedSplitSearchService,
     AdvancementFillStageService,
     InjuryFillStageService,
     CharacteristicChangeService,
