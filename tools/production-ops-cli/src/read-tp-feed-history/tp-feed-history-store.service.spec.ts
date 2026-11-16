@@ -16,6 +16,7 @@ import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
+import type { TpFeedHistoryReports } from './tp-feed-history-index.service';
 import { TpFeedHistoryStoreService } from './tp-feed-history-store.service';
 import type { TpFeedMessage } from './tp-feed-message.schema';
 
@@ -291,7 +292,7 @@ describe('TpFeedHistoryStoreService', () => {
       valueText: 'Random Primary Safe Pair of Hands ★3',
       rawValue: 'Random Primary ` Safe Pair of Hands ` ` ★3 `',
     } as const;
-    const REPORTS = {
+    const REPORTS: TpFeedHistoryReports = {
       Firestarters: {
         '#13 Flame (Gnoblar Lineman)': [
           REPORT,
