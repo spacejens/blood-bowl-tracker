@@ -71,6 +71,11 @@ player can therefore lose it without counting as incomplete again, and
 applying the same entry again is then refused, because his stored data no
 longer equals the entry.
 
+The same transaction records his lasting stat reductions (see
+[Recording lasting reductions](#recording-lasting-reductions)). His niggling
+injuries and whether he misses the next game are not written and stay at
+none.
+
 ## When an entry is refused
 
 The importer skips an entry whose player or skill does not resolve. For the
@@ -200,12 +205,53 @@ A player is skipped, with the reason reported, when any of these holds:
 
 The server's checks above still apply when the batch is applied.
 
+The generated file also holds a `lastingInjuryRepairs` section, see
+[Recording lasting reductions](#recording-lasting-reductions).
+
 Batches 007, 008 and 009 hold the fills generated this way (see
 [Batches](batches.md)).
+
+## Recording lasting reductions
+
+A fill records the player's lasting stat reductions, the counts the player
+deepdive shows under "Lasting injuries" (`AV -1`). They are not authored. For
+each characteristic, the server takes his characteristic increases on it and
+subtracts how many steps better than the position's start value the value is
+(a worse value counts as negative steps), never going below 0. The start
+value is the one of his era's rules set the deepdive compares against. So a
+value one worse than the start value with no increase is one reduction, and
+a value equal to it with one increase is also one: an increase undone by a
+reduction. AG and PA are better when lower in a target-number format, every
+other characteristic when higher. A characteristic with no start value, and
+PA under a rules set without Passing, records none. This is how the TP
+import records a live player's reductions. Niggling injuries and missing the
+next game are not recorded.
+
+Players filled before fills recorded their reductions get them through the
+`lastingInjuryRepairs` section:
+
+```jsonc
+lastingInjuryRepairs: [{ player: { system: "tourplay.net", id: "586220" } }]
+```
+
+An entry names one TP player and carries no counts: the server derives them
+from his stored characteristics and increases as above, and writes only the
+five reduction counts. The importer skips an entry whose player does not
+resolve. The server refuses, with an import error, a player who is not a TP
+player, is a star player or is still counted as incomplete (fill him in
+instead). It writes nothing for a player who already has a reduction stored,
+or whose stored data shows none (a healed reduction, or one an increase
+outweighs). Applying the same entry again changes nothing.
+
+`generate-incomplete-player-fills` lists every non-star TP player who is no
+longer incomplete, has a stat reduction recorded in a match and has no
+reduction stored; the server decides which of them get one.
 
 ## Order
 
 This section runs last, after every section that creates the skills it
-references and after `playerAdvancementOrders`. The players come from the TP
-importer, so a batch using it applies after the source importers, in a plain
-`apply`, once batch 004's advancement costs exist to price the advancements.
+references and after `playerAdvancementOrders`; `lastingInjuryRepairs` runs
+after it, so a player filled in the same batch is complete by then. The
+players come from the TP importer, so a batch using either applies after the
+source importers, in a plain `apply`, once batch 004's advancement costs
+exist to price the advancements.

@@ -55,11 +55,16 @@ matches. What it selects and why is described in
 [Filling in missing players](../import-manual/filling-missing-players.md#generated-fills).
 
 The output is JSON: `report` counts the players considered and filled, and
-lists the skipped players' TP ids under each reason. `section` holds the
-batch file when no `--out` is given. With `--out`, the file is written
-through cli-shared's `WriteFileService` and `written` reports it. A run with
-`--out` and no eligible player writes nothing and fails, with the report in the
-error message so the skipped players and their reasons are still visible.
+lists the skipped players' TP ids under each reason. The batch file also
+gets a `lastingInjuryRepairs` section listing every complete non-star TP
+player with a stat reduction recorded in a match and none stored (see
+[Recording lasting reductions](../import-manual/filling-missing-players.md#recording-lasting-reductions));
+`report.lastingInjuryRepairs` counts them. `section` holds the batch file
+when no `--out` is given. With `--out`, the file is written through
+cli-shared's `WriteFileService` and `written` reports it. A run with `--out`,
+no eligible player and no repair writes nothing and fails, with the report
+in the error message so the skipped players and their reasons are still
+visible.
 
 `--feed-channel=<channel-id>` reads
 `tools/production-ops-cli/data/tp-feed-<channel-id>/reports.json`, the
