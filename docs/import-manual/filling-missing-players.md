@@ -223,9 +223,14 @@ value one worse than the start value with no increase is one reduction, and
 a value equal to it with one increase is also one: an increase undone by a
 reduction. AG and PA are better when lower in a target-number format, every
 other characteristic when higher. A characteristic with no start value, and
-PA under a rules set without Passing, records none. This is how the TP
-import records a live player's reductions. Niggling injuries and missing the
-next game are not recorded.
+PA under a rules set without Passing, records none. The counts follow the
+same identity the TP import uses between a player's increases and his
+reductions (increases = better-side gap + reduction). Unlike the TP import,
+a reduction that cancels an increase is recorded, because the increases come
+from the player's stored advancements. A fill also overwrites reduction
+counts stored for the player, which is safe because an incomplete player has
+none stored in practice. Niggling injuries and missing the next game are not
+recorded.
 
 Players filled before fills recorded their reductions get them through the
 `lastingInjuryRepairs` section:
@@ -240,12 +245,15 @@ five reduction counts. The importer skips an entry whose player does not
 resolve. The server refuses, with an import error, a player who is not a TP
 player, is a star player or is still counted as incomplete (fill him in
 instead). It writes nothing for a player who already has a reduction stored,
-or whose stored data shows none (a healed reduction, or one an increase
-outweighs). Applying the same entry again changes nothing.
+or whose stored line does not show a reduction (it healed, it was absorbed
+by a limit, the position has no start value, or the stored line is out of
+date). Applying the same entry again changes nothing.
 
 `generate-incomplete-player-fills` lists every non-star TP player who is no
 longer incomplete, has a stat reduction recorded in a match and has no
-reduction stored; the server decides which of them get one.
+reduction stored; the server decides which of them get one. A player the
+server finds nothing to record for is listed again by every later run, which
+is harmless because applying his entry changes nothing.
 
 ## Order
 

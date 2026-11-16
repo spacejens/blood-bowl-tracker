@@ -27,7 +27,11 @@ interface Comparison {
     keyof PositionCharacteristicsContext,
     'rulesSetId' | 'baseline'
   >;
-  /** Whether a lower value is the better one under a target-number format. */
+  /**
+   * Whether the characteristic is one where a lower value is better, but only
+   * under a target-number format (plus / plus_zero_legal) for AG and PA; the
+   * format check decides.
+   */
   rollTarget: boolean;
 }
 

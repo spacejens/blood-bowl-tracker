@@ -3,7 +3,7 @@ import type {
   RecordLastingReductionsResult,
 } from '@blood-bowl-tracker/api-contract';
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB, eq, players } from '@blood-bowl-tracker/db';
+import { and, DB, eq, players } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { IncompletePlayerFillError } from '../shared/incomplete-player-fill-error';
@@ -21,8 +21,9 @@ import { PlayerFillStateService } from './player-fill-state.service';
  * IncompletePlayerFillError. A player with any reduction count stored is
  * left as he is, so recorded state is never overwritten. Otherwise the
  * counts PlayerFillReductionsService derives from his stored line and active
- * characteristic increases are written, when any is above 0. Only the five
- * reduction columns are written.
+ * characteristic increases are written, when any is above 0, and only while
+ * all five stored counts are still 0. Only the five reduction columns are
+ * written.
  */
 @Injectable()
 export class PlayerFillReductionsRecordService {
@@ -74,7 +75,20 @@ export class PlayerFillReductionsRecordService {
     if (Object.values(derived).every((count) => count === 0)) {
       return unchanged;
     }
-    await this.db.update(players).set(derived).where(eq(players.id, playerId));
-    return { playerId, outcome: 'recorded' };
+    const updated = await this.db
+      .update(players)
+      .set(derived)
+      .where(
+        and(
+          eq(players.id, playerId),
+          eq(players.moveReductionCount, 0),
+          eq(players.strengthReductionCount, 0),
+          eq(players.agilityReductionCount, 0),
+          eq(players.passingReductionCount, 0),
+          eq(players.armourReductionCount, 0),
+        ),
+      )
+      .returning({ id: players.id });
+    return updated.length === 0 ? unchanged : { playerId, outcome: 'recorded' };
   }
 }

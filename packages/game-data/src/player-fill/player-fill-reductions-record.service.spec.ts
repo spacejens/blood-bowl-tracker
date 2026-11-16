@@ -1,6 +1,10 @@
 import { DB, players } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import {
+  extractAllFilterValues,
+  firstCallArg,
+  mockDb,
+} from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -36,8 +40,9 @@ interface Harness {
 
 async function makeService(
   loaded: PlayerFillState | undefined,
+  updatedRows: unknown[] = [{ id: 9 }],
 ): Promise<Harness> {
-  const db = mockDb();
+  const db = mockDb(updatedRows);
   const state = mock<PlayerFillStateService>();
   state.load.mockResolvedValue(loaded);
   const reductions = mock<PlayerFillReductionsService>();
@@ -171,5 +176,17 @@ describe('PlayerFillReductionsRecordService', () => {
     });
     expect(db.db.update).toHaveBeenCalledWith(players);
     expect(db.chains[0].set).toHaveBeenCalledWith(DERIVED);
+    expect(extractAllFilterValues(firstCallArg(db.chains[0].where))).toEqual([
+      9, 0, 0, 0, 0, 0,
+    ]);
+  });
+
+  it('answers unchanged when a concurrent write left no row to update', async () => {
+    const { service } = await makeService(filled(), []);
+
+    await expect(service.record({ playerId: 9 })).resolves.toEqual({
+      playerId: 9,
+      outcome: 'unchanged',
+    });
   });
 });

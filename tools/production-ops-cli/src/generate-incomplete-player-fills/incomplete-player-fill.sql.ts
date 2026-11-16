@@ -257,9 +257,11 @@ export const REDUCTION_COUNT_COLUMNS = [
 /**
  * The `lastingInjuryRepairs` entries: every non-star TP player no longer
  * incomplete, with a stat-reduction match event recorded and no lasting
- * reduction stored, named by his lowest TP id. The server records only what
- * his stored line and increases show, so a reduction since healed or
- * outweighed by increases writes nothing. INCOMPLETE_PLAYER_CONDITIONS never
+ * reduction stored, named by one TP id (the first in text order). The server
+ * records only what his stored line and increases show: it writes nothing
+ * when his stored line does not show a reduction (it healed, it was absorbed
+ * by a limit, the position has no start value, or the stored line is out of
+ * date). INCOMPLETE_PLAYER_CONDITIONS never
  * yields NULL (the characteristic columns are NOT NULL and the rest are
  * `is null` tests), so NOT (...) selects exactly the complete players.
  */
