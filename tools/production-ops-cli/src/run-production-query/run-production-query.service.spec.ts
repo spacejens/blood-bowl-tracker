@@ -205,4 +205,27 @@ describe('RunProductionQueryService', () => {
       "SELECT 1; \\! printf 'not actually a meta-command';",
     );
   });
+
+  it('asks psql for quiet, tuples-only, unaligned output when tuplesOnly is set', async () => {
+    pgClient.runToResult.mockResolvedValue(SUCCESS);
+
+    await service.run('SELECT 1', { tuplesOnly: true });
+
+    expect(firstCallArgs()).toEqual([
+      '--no-psqlrc',
+      '--quiet',
+      '--tuples-only',
+      '--no-align',
+      '-v',
+      'ON_ERROR_STOP=1',
+      '-c',
+      'BEGIN TRANSACTION READ ONLY;',
+      '-c',
+      "SET LOCAL statement_timeout = '30s';",
+      '-c',
+      'SELECT 1',
+      '-c',
+      'COMMIT;',
+    ]);
+  });
 });

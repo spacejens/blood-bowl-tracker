@@ -105,6 +105,44 @@ A player filled in is no longer incomplete, so applying the same entry again
 changes nothing and is not an error. Applying a different entry for him is
 refused: a fill never overwrites data that is already complete.
 
+## Generated fills
+
+`production-ops-cli generate-incomplete-player-fills` (see
+[production-ops-cli](../production-ops-cli/index.md#generating-incomplete-player-fills))
+writes entries for the incomplete TP players who provably have no
+advancements: their total SPP is below the cheapest advancement any rules
+set of their era prices, house rules included. Each entry is:
+
+- the position's start values for the characteristics, with `pa` only
+  when the rules set has Passing;
+- the position's starting skills and no advancements;
+- the whole total, unspent;
+- the stored status, else `dead` if a death is recorded, else `retired`.
+
+A player is skipped, with the reason reported, when any of these holds:
+
+- he is a journeyman;
+- a team era of his team is enrolled in, or plays in a match of, an
+  ongoing competition, whatever his stored status: his data is still
+  changing, and his stored total may understate his real one while SPP
+  adjustments estimate the competition in progress;
+- his total is missing;
+- his era has no rules set, or a rules set of his era prices nothing;
+- his total is at or above the cheapest advancement cost of his era;
+- he holds any trophy award (a trophy may grant a skill, and one not
+  recorded yet looks the same as none), or he has a gained Loner, Hatred or
+  free extra;
+- his match events record any stat reduction. That is injury history, not
+  necessarily his current line: newer rules sets let lasting injuries heal,
+  and a reduction at a characteristic's limit changes nothing. Such players
+  stay incomplete;
+- his position's data differs between the rules sets of his era, or names a
+  skill with no `Name` id or with an empty attribute value;
+- the position's line is not a valid one;
+- anything already stored would make the fill refuse the entry.
+
+The server's checks above still apply when the batch is applied.
+
 ## Order
 
 This section runs last, after every section that creates the skills it

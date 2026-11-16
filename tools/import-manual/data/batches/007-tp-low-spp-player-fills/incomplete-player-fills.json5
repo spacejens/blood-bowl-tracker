@@ -1,0 +1,7694 @@
+// The data of TP players the TP import left incomplete whose total SPP is
+// below the cheapest advancement any rules set of their era prices, so they
+// have no advancements: each is his position's characteristics and starting
+// skills, and his whole total unspent. Players with a recorded stat
+// reduction are left out. Generated from the production database by
+// production-ops-cli generate-incomplete-player-fills; see
+// docs/import-manual/filling-missing-players.md#generated-fills.
+{
+  externalSystems: [
+    {
+      name: 'Name',
+      category: 'bookkeeping',
+    },
+    {
+      name: 'tourplay.net',
+      category: 'imported_data_source',
+    },
+  ],
+  incompletePlayerFills: [
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '342206',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 5,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+        {
+          system: 'Name',
+          id: 'Regeneration',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '342992',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 3,
+        ag: 4,
+        pa: 0,
+        av: 9,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+        {
+          system: 'Name',
+          id: 'Dauntless',
+        },
+        {
+          system: 'Name',
+          id: 'Frenzy',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '342993',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 3,
+        ag: 4,
+        pa: 0,
+        av: 9,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+        {
+          system: 'Name',
+          id: 'Dauntless',
+        },
+        {
+          system: 'Name',
+          id: 'Frenzy',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '343826',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 4,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Bombardier',
+        },
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Secret Weapon',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '343827',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 4,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Bombardier',
+        },
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Secret Weapon',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '343833',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '345459',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 4,
+        ag: 4,
+        pa: 0,
+        av: 10,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '345464',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '349302',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 9,
+        st: 2,
+        ag: 2,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '365443',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Pogo',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '458250',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '458251',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 2,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '520686',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '520689',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '559115',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '578532',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 4,
+        st: 5,
+        ag: 5,
+        pa: 5,
+        av: 10,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Always Hungry',
+        },
+        {
+          skill: {
+            system: 'Name',
+            id: 'Loner',
+          },
+          attributeValue: '4+',
+        },
+        {
+          skill: {
+            system: 'Name',
+            id: 'Mighty Blow',
+          },
+          attributeValue: '+1',
+        },
+        {
+          system: 'Name',
+          id: 'Projctile Vomit',
+        },
+        {
+          system: 'Name',
+          id: 'Really Stupid',
+        },
+        {
+          system: 'Name',
+          id: 'Regeneration',
+        },
+        {
+          system: 'Name',
+          id: 'Throw Team-Mate',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '578541',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 10,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          skill: {
+            system: 'Name',
+            id: 'Aminosity',
+          },
+          attributeValue: 'Orc Lineman',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '586224',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 2,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 1,
+      unspentSpp: 1,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '587374',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 4,
+        ag: 5,
+        pa: 6,
+        av: 10,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '589357',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 2,
+        pa: 2,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Pass',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '594147',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '595515',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 3,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Fend',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '595519',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '595522',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '595955',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '599630',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '603020',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 3,
+        ag: 4,
+        pa: 6,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Decay',
+        },
+        {
+          system: 'Name',
+          id: 'Plague Ridden',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '603021',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 3,
+        ag: 4,
+        pa: 6,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Decay',
+        },
+        {
+          system: 'Name',
+          id: 'Plague Ridden',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '605484',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 2,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '605744',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '605766',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '607543',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 3,
+        av: 8,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'On the Ball',
+        },
+        {
+          system: 'Name',
+          id: 'Pass',
+        },
+        {
+          system: 'Name',
+          id: 'Safe Pass',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '609917',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Sprint',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '647958',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 4,
+        st: 4,
+        ag: 4,
+        pa: 6,
+        av: 10,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Disturbing Precense',
+        },
+        {
+          system: 'Name',
+          id: 'Foul Appearance',
+        },
+        {
+          system: 'Name',
+          id: 'Plague Ridden',
+        },
+        {
+          system: 'Name',
+          id: 'Regeneration',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '657696',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 3,
+        ag: 4,
+        pa: 6,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Decay',
+        },
+        {
+          system: 'Name',
+          id: 'Plague Ridden',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '681825',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 3,
+        ag: 4,
+        pa: 6,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Decay',
+        },
+        {
+          system: 'Name',
+          id: 'Plague Ridden',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '688782',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 5,
+        ag: 5,
+        pa: 0,
+        av: 10,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Bone Head',
+        },
+        {
+          skill: {
+            system: 'Name',
+            id: 'Loner',
+          },
+          attributeValue: '4+',
+        },
+        {
+          skill: {
+            system: 'Name',
+            id: 'Mighty Blow',
+          },
+          attributeValue: '+1',
+        },
+        {
+          system: 'Name',
+          id: 'Prehensile Tail',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '690742',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '707589',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 8,
+        st: 2,
+        ag: 3,
+        pa: 5,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Catch',
+        },
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '711174',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '712244',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 4,
+        st: 4,
+        ag: 4,
+        pa: 6,
+        av: 10,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Disturbing Precense',
+        },
+        {
+          system: 'Name',
+          id: 'Foul Appearance',
+        },
+        {
+          system: 'Name',
+          id: 'Plague Ridden',
+        },
+        {
+          system: 'Name',
+          id: 'Regeneration',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '725817',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '727132',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 5,
+        ag: 4,
+        pa: 5,
+        av: 10,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Bone Head',
+        },
+        {
+          skill: {
+            system: 'Name',
+            id: 'Mighty Blow',
+          },
+          attributeValue: '+1',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+        {
+          system: 'Name',
+          id: 'Throw Team-Mate',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '733557',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '733559',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '733561',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 5,
+        ag: 4,
+        pa: 5,
+        av: 10,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Bone Head',
+        },
+        {
+          skill: {
+            system: 'Name',
+            id: 'Mighty Blow',
+          },
+          attributeValue: '+1',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+        {
+          system: 'Name',
+          id: 'Throw Team-Mate',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '734405',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '735312',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 3,
+        ag: 4,
+        pa: 6,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Decay',
+        },
+        {
+          system: 'Name',
+          id: 'Plague Ridden',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '735366',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 2,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '736678',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 2,
+        pa: 2,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Pass',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '737490',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '753483',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 5,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Catch',
+        },
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Sprint',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '753484',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '765891',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '786932',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 8,
+        st: 2,
+        ag: 2,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Catch',
+        },
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '793691',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '803998',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '807001',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 3,
+        ag: 4,
+        pa: 6,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Decay',
+        },
+        {
+          system: 'Name',
+          id: 'Plague Ridden',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '818893',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 3,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Fend',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '844003',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '844004',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '862934',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '869484',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 3,
+        av: 8,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Fend',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '869486',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 5,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Catch',
+        },
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Sprint',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '869494',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '869644',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '869651',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '870136',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '870860',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '870997',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '871000',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '871003',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '872105',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 2,
+        pa: 2,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Pass',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '884228',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 4,
+        st: 4,
+        ag: 4,
+        pa: 5,
+        av: 10,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Brawler',
+        },
+        {
+          system: 'Name',
+          id: 'Grab',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '884229',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '889765',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 3,
+        st: 7,
+        ag: 3,
+        pa: 0,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Ball & Chain',
+        },
+        {
+          system: 'Name',
+          id: 'No Hands',
+        },
+        {
+          system: 'Name',
+          id: 'Secret Weapon',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '889770',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '891099',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '891100',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '891106',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '904024',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 5,
+        av: 9,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+        {
+          system: 'Name',
+          id: 'Regeneration',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '904027',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '904029',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 5,
+        av: 9,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+        {
+          system: 'Name',
+          id: 'Regeneration',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '904125',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 4,
+        st: 3,
+        ag: 4,
+        pa: 5,
+        av: 10,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+        {
+          system: 'Name',
+          id: 'Tackle',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '904130',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 10,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '904132',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Frenzy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '904135',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 5,
+        ag: 4,
+        pa: 5,
+        av: 10,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Bone Head',
+        },
+        {
+          skill: {
+            system: 'Name',
+            id: 'Mighty Blow',
+          },
+          attributeValue: '+1',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+        {
+          system: 'Name',
+          id: 'Throw Team-Mate',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '904141',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 3,
+        ag: 4,
+        pa: 0,
+        av: 9,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+        {
+          system: 'Name',
+          id: 'Dauntless',
+        },
+        {
+          system: 'Name',
+          id: 'Frenzy',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '904150',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '905228',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 9,
+        st: 2,
+        ag: 2,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '905239',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '929760',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 2,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '937326',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 2,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '939441',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '949452',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '950449',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '984275',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1001979',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1001980',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1002017',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1021608',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1039738',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1047203',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1051418',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1055381',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1055383',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1078395',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 2,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1084417',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1098915',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 4,
+        ag: 2,
+        pa: 5,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Animal Savagery',
+        },
+        {
+          skill: {
+            system: 'Name',
+            id: 'Blood Lust',
+          },
+          attributeValue: '3+',
+        },
+        {
+          system: 'Name',
+          id: 'Hypnotic Gaze',
+        },
+        {
+          system: 'Name',
+          id: 'Juggernaut',
+        },
+        {
+          system: 'Name',
+          id: 'Regeneration',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1101260',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 2,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1130180',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1137044',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1147333',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 2,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1167867',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 4,
+        st: 4,
+        ag: 4,
+        pa: 5,
+        av: 10,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Brawler',
+        },
+        {
+          system: 'Name',
+          id: 'Grab',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1167868',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 4,
+        st: 4,
+        ag: 4,
+        pa: 5,
+        av: 10,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Brawler',
+        },
+        {
+          system: 'Name',
+          id: 'Grab',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1169635',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 3,
+        av: 8,
+      },
+      sppTotal: 1,
+      unspentSpp: 1,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'On the Ball',
+        },
+        {
+          system: 'Name',
+          id: 'Pass',
+        },
+        {
+          system: 'Name',
+          id: 'Safe Pass',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1182106',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 2,
+        av: 9,
+      },
+      sppTotal: 1,
+      unspentSpp: 1,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Pass',
+        },
+        {
+          system: 'Name',
+          id: 'Sure Hands',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1182352',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1194618',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 2,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1202463',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 2,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1231646',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 8,
+        st: 2,
+        ag: 3,
+        pa: 5,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Catch',
+        },
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1231933',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 2,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1231939',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 3,
+        ag: 4,
+        pa: 6,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Decay',
+        },
+        {
+          system: 'Name',
+          id: 'Plague Ridden',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1232375',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1232622',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1233450',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1233627',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Swarming',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1234773',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Swarming',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1236406',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 3,
+        av: 7,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Jump Up',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Trickster',
+        },
+        {
+          system: 'Name',
+          id: 'Wresle',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1236408',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 7,
+        st: 2,
+        ag: 2,
+        pa: 0,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'My Ball',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1236410',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Guard',
+        },
+        {
+          system: 'Name',
+          id: 'Jump Up',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Wresle',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1236413',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 2,
+        st: 6,
+        ag: 5,
+        pa: 5,
+        av: 11,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          skill: {
+            system: 'Name',
+            id: 'Mighty Blow',
+          },
+          attributeValue: '+1',
+        },
+        {
+          system: 'Name',
+          id: 'Stand Firm',
+        },
+        {
+          system: 'Name',
+          id: 'Strong Arm',
+        },
+        {
+          system: 'Name',
+          id: 'Tak root',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+        {
+          system: 'Name',
+          id: 'Throw Team-Mate',
+        },
+        {
+          system: 'Name',
+          id: 'Timmm-Ber!',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1245158',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 3,
+        av: 7,
+      },
+      sppTotal: 1,
+      unspentSpp: 1,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Jump Up',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Trickster',
+        },
+        {
+          system: 'Name',
+          id: 'Wresle',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1245165',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Jump Up',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Wresle',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1245166',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Jump Up',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Wresle',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1247353',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 5,
+        ag: 4,
+        pa: 0,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Claw',
+        },
+        {
+          system: 'Name',
+          id: 'Disturbing Precense',
+        },
+        {
+          system: 'Name',
+          id: 'Frenzy',
+        },
+        {
+          skill: {
+            system: 'Name',
+            id: 'Loner',
+          },
+          attributeValue: '4+',
+        },
+        {
+          system: 'Name',
+          id: 'Unchannelled Fury',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1247359',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+        {
+          system: 'Name',
+          id: 'Drunkard',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1247360',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+        {
+          system: 'Name',
+          id: 'Drunkard',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1247361',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+        {
+          system: 'Name',
+          id: 'Drunkard',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1247362',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+        {
+          system: 'Name',
+          id: 'Drunkard',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1247363',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+        {
+          system: 'Name',
+          id: 'Drunkard',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1257659',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1257885',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Pogo',
+        },
+        {
+          system: 'Name',
+          id: 'Very Long Legs',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1257889',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Pogo',
+        },
+        {
+          system: 'Name',
+          id: 'Very Long Legs',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1257890',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Pogo',
+        },
+        {
+          system: 'Name',
+          id: 'Very Long Legs',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1258446',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1340553',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Swarming',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1346835',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Swarming',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1347671',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Guard',
+        },
+        {
+          system: 'Name',
+          id: 'Jump Up',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Wresle',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1349770',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1357160',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1357161',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1390108',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Guard',
+        },
+        {
+          system: 'Name',
+          id: 'Jump Up',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Wresle',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1400195',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1430705',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1430706',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1430708',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1444584',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Swarming',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1444585',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Swarming',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1458624',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Guard',
+        },
+        {
+          system: 'Name',
+          id: 'Jump Up',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Wresle',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1464571',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1466689',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1479948',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 1,
+      unspentSpp: 1,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Jump Up',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Wresle',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1500318',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 5,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+        {
+          system: 'Name',
+          id: 'Frenzy',
+        },
+        {
+          system: 'Name',
+          id: 'Jump Up',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1500822',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Guard',
+        },
+        {
+          system: 'Name',
+          id: 'Jump Up',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Wresle',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1512729',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1514186',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Swarming',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1528401',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 7,
+        st: 2,
+        ag: 2,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Diving Catch',
+        },
+        {
+          system: 'Name',
+          id: 'Pogo',
+        },
+        {
+          system: 'Name',
+          id: 'Very Long Legs',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1581445',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1581446',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Swarming',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1584324',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 0,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Chainsaw',
+        },
+        {
+          system: 'Name',
+          id: 'Secret Weapon',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1589057',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1603389',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1611328',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Guard',
+        },
+        {
+          system: 'Name',
+          id: 'Jump Up',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Wresle',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1611329',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Guard',
+        },
+        {
+          system: 'Name',
+          id: 'Jump Up',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Wresle',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1613404',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+        {
+          system: 'Name',
+          id: 'Drunkard',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1614742',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Swarming',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1615771',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 4,
+        st: 4,
+        ag: 4,
+        pa: 5,
+        av: 10,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Brawler',
+        },
+        {
+          system: 'Name',
+          id: 'Grab',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1623846',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1623851',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1623853',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1625345',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1628271',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1628290',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1628291',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1642217',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Jump Up',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Wresle',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1659435',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+        {
+          system: 'Name',
+          id: 'Drunkard',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1704861',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1712265',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1721249',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1735822',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 1,
+      unspentSpp: 1,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+        {
+          system: 'Name',
+          id: 'Drunkard',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1741249',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 3,
+        st: 7,
+        ag: 3,
+        pa: 0,
+        av: 8,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Ball & Chain',
+        },
+        {
+          system: 'Name',
+          id: 'No Hands',
+        },
+        {
+          system: 'Name',
+          id: 'Secret Weapon',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1741264',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1761091',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 7,
+        st: 2,
+        ag: 2,
+        pa: 0,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'My Ball',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1761981',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1786340',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1794249',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Guard',
+        },
+        {
+          system: 'Name',
+          id: 'Jump Up',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Wresle',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1806016',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1811254',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Pogo',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1821185',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Jump Up',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Wresle',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1831088',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1857473',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 7,
+        st: 2,
+        ag: 2,
+        pa: 0,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'My Ball',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1874357',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1879624',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 0,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Chainsaw',
+        },
+        {
+          system: 'Name',
+          id: 'Secret Weapon',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1879637',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1885433',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1885434',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1904648',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1916186',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 7,
+        st: 2,
+        ag: 2,
+        pa: 0,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'My Ball',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1916428',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1923532',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+        {
+          system: 'Name',
+          id: 'Drunkard',
+        },
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1937977',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1954327',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Jump Up',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Wresle',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1959612',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Swarming',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1966853',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 3,
+        st: 7,
+        ag: 3,
+        pa: 0,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Ball & Chain',
+        },
+        {
+          system: 'Name',
+          id: 'No Hands',
+        },
+        {
+          system: 'Name',
+          id: 'Secret Weapon',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1971399',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2026214',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2026215',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2026447',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2026814',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 6,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          skill: {
+            system: 'Name',
+            id: 'Dirty Player',
+          },
+          attributeValue: '+1',
+        },
+        {
+          system: 'Name',
+          id: 'Disturbing Precense',
+        },
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2026815',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 0,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Chainsaw',
+        },
+        {
+          system: 'Name',
+          id: 'Secret Weapon',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2026817',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2028965',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 3,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Fend',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2028966',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 3,
+        av: 8,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Fend',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2028970',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2062197',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 2,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2064586',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Frenzy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2104649',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 2,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2105122',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 2,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2105722',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2105723',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2244181',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 5,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Stand Firm',
+        },
+        {
+          system: 'Name',
+          id: 'Wresle',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2276489',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 5,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2279636',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 2,
+        pa: 2,
+        av: 8,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Pass',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2395615',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 2,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2453983',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2464148',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 4,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Insignificant',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2569330',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 4,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Bombardier',
+        },
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Secret Weapon',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2605786',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 8,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2605787',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 8,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2618989',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2618992',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2619074',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 4,
+        st: 4,
+        ag: 4,
+        pa: 6,
+        av: 10,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Disturbing Precense',
+        },
+        {
+          system: 'Name',
+          id: 'Foul Appearance',
+        },
+        {
+          system: 'Name',
+          id: 'Plague Ridden',
+        },
+        {
+          system: 'Name',
+          id: 'Regeneration',
+        },
+        {
+          system: 'Name',
+          id: 'Stand Firm',
+        },
+        {
+          system: 'Name',
+          id: 'Unsteady',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2619081',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 3,
+        ag: 4,
+        pa: 6,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Decay',
+        },
+        {
+          system: 'Name',
+          id: 'Plague Ridden',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2685062',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2735180',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 3,
+        ag: 4,
+        pa: 6,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Decay',
+        },
+        {
+          system: 'Name',
+          id: 'Plague Ridden',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2792779',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 4,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Insignificant',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2805647',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2884200',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2885474',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 1,
+        ag: 3,
+        pa: 4,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Sprint',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2913549',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 4,
+        st: 3,
+        ag: 4,
+        pa: 6,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Eye Gouge',
+        },
+        {
+          system: 'Name',
+          id: 'Regeneration',
+        },
+        {
+          system: 'Name',
+          id: 'Unsteady',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2941230',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2951265',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 3,
+        ag: 4,
+        pa: 6,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Decay',
+        },
+        {
+          system: 'Name',
+          id: 'Plague Ridden',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2952917',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 4,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Insignificant',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '3025715',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 4,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Insignificant',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '3032605',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 3,
+        ag: 4,
+        pa: 6,
+        av: 9,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Decay',
+        },
+        {
+          system: 'Name',
+          id: 'Plague Ridden',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '3032946',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 4,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Insignificant',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+      ],
+      advancements: [],
+    },
+  ],
+}

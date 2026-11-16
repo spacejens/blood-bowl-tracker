@@ -13,6 +13,10 @@ import {
   MAX_COUNT,
   MIN_COUNT,
 } from './fetch-recent-discord-messages/fetch-recent-discord-messages.service';
+import {
+  type GenerateIncompletePlayerFillsInput,
+  GenerateIncompletePlayerFillsService,
+} from './generate-incomplete-player-fills/generate-incomplete-player-fills.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
 import { ReadTpFeedHistoryService } from './read-tp-feed-history/read-tp-feed-history.service';
 import { RunProductionQueryService } from './run-production-query/run-production-query.service';
@@ -24,6 +28,7 @@ const SUBCOMMANDS = [
   'run-production-query',
   'fetch-recent-discord-messages',
   'fetch-discord-message',
+  'generate-incomplete-player-fills',
   'read-tp-feed-history',
 ] as const;
 
@@ -47,6 +52,9 @@ const FETCH_DISCORD_MESSAGE_USAGE =
   'Usage: node dist/main.js fetch-discord-message ' +
   'https://discord.com/channels/<guild-id>/<channel-id>/<message-id>';
 
+const GENERATE_INCOMPLETE_PLAYER_FILLS_USAGE =
+  'Usage: node dist/main.js generate-incomplete-player-fills ' +
+  '[--out=<repo-relative-path>]';
 const READ_TP_FEED_HISTORY_USAGE =
   'Usage: node dist/main.js read-tp-feed-history <channel-id> [--max-pages=N]';
 
@@ -77,6 +85,7 @@ interface DispatchArgs {
   readonly runProductionQueryStdin?: string;
   readonly fetchRecentDiscordMessages?: FetchRecentDiscordMessagesInput;
   readonly discordMessageLink?: string;
+  readonly generateIncompletePlayerFills?: GenerateIncompletePlayerFillsInput;
   readonly readTpFeedHistory?: ReadTpFeedHistoryInput;
 }
 
@@ -158,6 +167,20 @@ function readDiscordMessageLink(): string {
   return messageLink;
 }
 
+function readGenerateIncompletePlayerFillsInput(): GenerateIncompletePlayerFillsInput {
+  const outArg = process.argv[3];
+  if (process.argv.length > 4) {
+    throw new Error(GENERATE_INCOMPLETE_PLAYER_FILLS_USAGE);
+  }
+  if (outArg === undefined) {
+    return {};
+  }
+  if (!outArg.startsWith('--out=') || outArg.length === '--out='.length) {
+    throw new Error(GENERATE_INCOMPLETE_PLAYER_FILLS_USAGE);
+  }
+  return { out: outArg.slice('--out='.length) };
+}
+
 /**
  * Reads only the argument syntax; the service itself checks that the channel
  * id is a snowflake and the page count a positive integer.
@@ -201,6 +224,10 @@ function readArgs(subcommand: Subcommand): DispatchArgs {
     discordMessageLink:
       subcommand === 'fetch-discord-message'
         ? readDiscordMessageLink()
+        : undefined,
+    generateIncompletePlayerFills:
+      subcommand === 'generate-incomplete-player-fills'
+        ? readGenerateIncompletePlayerFillsInput()
         : undefined,
     readTpFeedHistory:
       subcommand === 'read-tp-feed-history'
@@ -261,6 +288,14 @@ function dispatch(
         throw new Error(FETCH_DISCORD_MESSAGE_USAGE);
       }
       return app.get(FetchDiscordMessageService).run(args.discordMessageLink);
+    }
+    case 'generate-incomplete-player-fills': {
+      if (args.generateIncompletePlayerFills === undefined) {
+        throw new Error(GENERATE_INCOMPLETE_PLAYER_FILLS_USAGE);
+      }
+      return app
+        .get(GenerateIncompletePlayerFillsService)
+        .run(args.generateIncompletePlayerFills);
     }
     case 'read-tp-feed-history': {
       if (args.readTpFeedHistory === undefined) {

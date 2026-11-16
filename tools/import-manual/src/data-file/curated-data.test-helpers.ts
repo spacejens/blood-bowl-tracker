@@ -25,6 +25,9 @@ export const BATCH_005 = 'batches/005-tp-advancement-orders';
 /** Batch 006: the BB2016 starting skills of Skaven: Gutter Runner, checked against the physical rulebook. */
 export const BATCH_006 = 'batches/006-bb2016-gutter-runner-skills';
 
+/** Batch 007: the data of incomplete TP players too low on SPP to have advanced, generated from production. */
+export const BATCH_007 = 'batches/007-tp-low-spp-player-fills';
+
 /** Every batch directory, as `batches/<name>`, in name order. */
 export function listBatches(): string[] {
   return readdirSync(join(DATA_ROOT, 'batches'), { withFileTypes: true })

@@ -23,6 +23,10 @@ CLI tools share. It has no CLI entry point of its own.
 - **Postgres tooling** — the guarded `psql`/`pg_dump`/`pg_restore` runner
   (`PgClientService`), with connection-string redaction
   (`DatabaseUrlRedactorService`).
+- **Symlink-safe file writes** — `WriteFileService`, which writes a file at a
+  repo-relative path and refuses any path or symlink that would land outside
+  the worktree or the main checkout. `fs-utils-cli`'s `write-file` and
+  `production-ops-cli`'s `generate-incomplete-player-fills` both use it.
 
 `tools/workflow-lint` uses only `runCli`; the other four use the rest as
 they need it.

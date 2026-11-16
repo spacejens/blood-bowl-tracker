@@ -20,3 +20,5 @@ export {
 } from './process-runner.service';
 export { ProductionEnvFileService } from './production-env-file.service';
 export { runCli } from './run-cli';
+export type { WriteFileResult } from './write-file.service';
+export { WriteFileService } from './write-file.service';

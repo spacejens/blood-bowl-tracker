@@ -11,7 +11,8 @@ that constraint: packaging multi-step logic (a directory sync, a symlink-safe
 file write) behind one tested command is more repeatable and reliable than
 re-deriving the equivalent shell inline every time a skill needs it.
 `write-file` in particular exists because the Claude Code Write tool refuses
-to write through the `docs/plans` symlink.
+to write through the `docs/plans` symlink. The write itself is cli-shared's
+`WriteFileService` (see [cli-shared](../cli-shared/index.md)).
 
 ## Subcommands
 
