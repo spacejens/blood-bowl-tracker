@@ -14,16 +14,16 @@ it.
 
 ## Subcommands
 
-| Subcommand | Purpose |
-| --- | --- |
-| `check-production-config-port` | Verify an import tool's production config `apiBaseUrl` matches the expected tunnel port |
-| `start-production-tunnel` | Start `deploy-production`'s `flyctl proxy` tunnel as a detached, pid-tracked process |
-| `stop-production-tunnel` | Stop the tunnel started by `start-production-tunnel`, using its persisted pid |
-| `run-production-query` | Run a read-only, timeout-enforced SQL query against production, reading it from stdin |
-| `generate-incomplete-player-fills` | Plan the manual-import fills of incomplete TP players too low on SPP to have advanced, read-only from production; prints the batch file and a report, or writes the file with `--out=<repo-relative-path>` |
-| `fetch-recent-discord-messages` | Fetch the N (1-100) most recent raw messages of a Discord channel, embeds included; `--before=<message-id>` fetches the N before that message instead, so a caller can page back through history |
-| `fetch-discord-message` | Fetch one raw Discord message, embeds included, by its message link |
-| `read-tp-feed-history` | Read a TP feed channel's whole history and save its advancement reports as local evidence; `--max-pages=N` stops after N pages of 100 |
+| Subcommand                         | Purpose                                                                                                                                                                                                                                                                                                |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `check-production-config-port`     | Verify an import tool's production config `apiBaseUrl` matches the expected tunnel port                                                                                                                                                                                                                |
+| `start-production-tunnel`          | Start `deploy-production`'s `flyctl proxy` tunnel as a detached, pid-tracked process                                                                                                                                                                                                                   |
+| `stop-production-tunnel`           | Stop the tunnel started by `start-production-tunnel`, using its persisted pid                                                                                                                                                                                                                          |
+| `run-production-query`             | Run a read-only, timeout-enforced SQL query against production, reading it from stdin                                                                                                                                                                                                                  |
+| `generate-incomplete-player-fills` | Plan the manual-import fills of incomplete TP players whose data can be proven, read-only from production, optionally with the TP feed evidence `read-tp-feed-history` saved (`--feed-channel=<channel-id>`); prints the batch file and a report, or writes the file with `--out=<repo-relative-path>` |
+| `fetch-recent-discord-messages`    | Fetch the N (1-100) most recent raw messages of a Discord channel, embeds included; `--before=<message-id>` fetches the N before that message instead, so a caller can page back through history                                                                                                       |
+| `fetch-discord-message`            | Fetch one raw Discord message, embeds included, by its message link                                                                                                                                                                                                                                    |
+| `read-tp-feed-history`             | Read a TP feed channel's whole history and save its advancement reports as local evidence; `--max-pages=N` stops after N pages of 100                                                                                                                                                                  |
 
 ## Running it
 
@@ -61,10 +61,24 @@ through cli-shared's `WriteFileService` and `written` reports it. A run with
 `--out` and no eligible player writes nothing and fails, with the report in the
 error message so the skipped players and their reasons are still visible.
 
-The package depends on `@blood-bowl-tracker/domain-enums` for the status and
-characteristic-format enums. `@blood-bowl-tracker/db` and
-`@blood-bowl-tracker/game-data` are dev dependencies, used only by that
-drift-guard spec.
+`--feed-channel=<channel-id>` reads
+`tools/production-ops-cli/data/tp-feed-<channel-id>/reports.json`, the
+evidence `read-tp-feed-history` saves (see
+[Reading the TP feed history](#reading-the-tp-feed-history)), before any
+query runs. A missing or malformed file stops the run. Without the flag, players are
+not filled from feed reports; the other fills still run. `report` also
+gives `eligibleByStage` (fills with no advancements, from the feed, and
+with lasting injuries) and `feed` (how many feed player keys matched one
+stored player, several, or none; `null` without the flag).
+
+The package depends on `@blood-bowl-tracker/domain-enums` for the status,
+characteristic-format, skill, advancement-kind and match-event enums.
+`@blood-bowl-tracker/db` and `@blood-bowl-tracker/game-data` are dev
+dependencies, used only by two drift-guard specs. One keeps the SQL
+selection in step with `INCOMPLETE_PLAYER_CRITERIA`. The other runs the
+generator's advancement pricing next to game-data's own order check
+(`AdvancementOrderDeductionService`) and requires the server to accept
+exactly the spend the generator prices.
 
 ## Reading the TP feed history
 
@@ -106,12 +120,12 @@ collects evidence; it does not change any player.
 The input is validated before the bot token is read. The output lives in the
 gitignored `tools/production-ops-cli/data/tp-feed-<channel-id>/`:
 
-| File | Content |
-| --- | --- |
-| `messages/<id>.json` | The raw message, for advancement reports only. An existing file is never rewritten, so reruns are idempotent |
-| `state.json` | The guild id, the newest and oldest fetched ids, and whether the start was reached |
-| `reports.json` | Regenerated from the raw files on every run: team → `#number name (position)` → reports in message order. Each report is self-contained: the team name, player number, name and position, the parsed fields, message id, link, timestamp, raw text and `botReacted` |
-| `unparsed.json` | Advancement messages whose gain or player line was not understood: the reason, message id and link |
+| File                 | Content                                                                                                                                                                                                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `messages/<id>.json` | The raw message, for advancement reports only. An existing file is never rewritten, so reruns are idempotent                                                                                                                                                        |
+| `state.json`         | The guild id, the newest and oldest fetched ids, and whether the start was reached                                                                                                                                                                                  |
+| `reports.json`       | Regenerated from the raw files on every run: team → `#number name (position)` → reports in message order. Each report is self-contained: the team name, player number, name and position, the parsed fields, message id, link, timestamp, raw text and `botReacted` |
+| `unparsed.json`      | Advancement messages whose gain or player line was not understood: the reason, message id and link                                                                                                                                                                  |
 
 `tools/fs-utils-cli`'s `sync-gitignored` links this directory back to the
 main checkout from a worktree, so output written there survives the

@@ -3,7 +3,8 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
-import { eligibleInput } from './fill-plan.test-helpers';
+import { TpFeedHistoryStoreService } from '../read-tp-feed-history/tp-feed-history-store.service';
+import { eligibleInput, report } from './fill-plan.test-helpers';
 import {
   type FillEntry,
   type FillPlan,
@@ -59,12 +60,14 @@ describe('GenerateIncompletePlayerFillsService', () => {
   let planner: MockProxy<IncompletePlayerFillPlannerService>;
   let renderer: MockProxy<FillSectionRendererService>;
   let writeFile: MockProxy<WriteFileService>;
+  let feedHistory: MockProxy<TpFeedHistoryStoreService>;
 
   beforeEach(async () => {
     queries = mock<IncompletePlayerFillQueriesService>();
     planner = mock<IncompletePlayerFillPlannerService>();
     renderer = mock<FillSectionRendererService>();
     writeFile = mock<WriteFileService>();
+    feedHistory = mock<TpFeedHistoryStoreService>();
     queries.load.mockResolvedValue(eligibleInput());
     planner.plan.mockReturnValue(planWith([ENTRY]));
     renderer.render.mockReturnValue('// file\n');
@@ -75,6 +78,7 @@ describe('GenerateIncompletePlayerFillsService', () => {
         { provide: IncompletePlayerFillPlannerService, useValue: planner },
         { provide: FillSectionRendererService, useValue: renderer },
         { provide: WriteFileService, useValue: writeFile },
+        { provide: TpFeedHistoryStoreService, useValue: feedHistory },
       ],
     }).compile();
     service = moduleRef.get(GenerateIncompletePlayerFillsService);
@@ -155,5 +159,37 @@ describe('GenerateIncompletePlayerFillsService', () => {
 
     await expect(service.run({})).rejects.toThrow('Production query failed');
     expect(planner.plan).not.toHaveBeenCalled();
+  });
+
+  const FEED = { Firestarters: { '#13 Flame (Gnoblar Lineman)': [report()] } };
+
+  it("plans with the feed channel's saved reports", async () => {
+    feedHistory.readReports.mockResolvedValue(FEED);
+
+    await service.run({ feedChannel: '1044490136337002506' });
+
+    expect(feedHistory.readReports).toHaveBeenCalledWith('1044490136337002506');
+    expect(planner.plan).toHaveBeenCalledWith({
+      ...eligibleInput(),
+      feed: FEED,
+    });
+  });
+
+  it('fails on missing feed evidence before querying production', async () => {
+    feedHistory.readReports.mockRejectedValue(
+      new Error('reports.json does not exist'),
+    );
+
+    await expect(
+      service.run({ feedChannel: '1044490136337002506' }),
+    ).rejects.toThrow('reports.json does not exist');
+    expect(queries.load).not.toHaveBeenCalled();
+  });
+
+  it('plans without feed evidence when no channel is given', async () => {
+    await service.run({});
+
+    expect(feedHistory.readReports).not.toHaveBeenCalled();
+    expect(planner.plan).toHaveBeenCalledWith(eligibleInput());
   });
 });
