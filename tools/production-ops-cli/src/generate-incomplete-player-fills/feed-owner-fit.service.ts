@@ -22,12 +22,15 @@ export interface FeedFitInput {
 /**
  * Whether one stored player can own a list of feed reports, by what
  * AdvancementFillStageService requires of a feed-matched player: at most six
- * reports, each priced in order at the cost it shows, the prices adding up
- * to his total minus his unspent SPP, and, when he has paid advancements
- * stored, the reports are exactly those advancements. No reports always
- * fit. A check that cannot be decided (SPP not stored, a skill not
- * resolved, reports not priced) gives `unknown`, so it never rules a split
- * in or out.
+ * reports, each priced in order at the cost it shows. The prices must not
+ * exceed his total minus his unspent SPP (the SPP he spent). When they add
+ * up to exactly that, and he has paid advancements stored, the reports must
+ * be exactly those advancements. When they add up to less, the feed may
+ * lack a later report, so the fit is `unknown`, unless he has paid
+ * advancements stored and a report is not among them, which rules him out.
+ * No reports always fit. A check that cannot be decided (SPP not stored, a
+ * skill not resolved, reports not priced, a possible gap after the reports)
+ * gives `unknown`, so it never rules a split in or out.
  *
  * Pure decision logic, with no I/O; its collaborators are pure as well.
  */
@@ -60,15 +63,23 @@ export class FeedOwnerFitService {
     if (outcome.kind !== 'priced') {
       return 'unknown';
     }
-    if (
-      outcome.stepCosts.some((cost, at) => cost !== steps[at].reportedCost) ||
-      outcome.total !== owner.sppTotal - owner.unspentSpp
-    ) {
+    if (outcome.stepCosts.some((cost, at) => cost !== steps[at].reportedCost)) {
       return 'invalid';
     }
-    return owner.paid.length === 0 || this.samePaid(steps, owner.paid)
-      ? 'valid'
-      : 'invalid';
+    const spent = owner.sppTotal - owner.unspentSpp;
+    if (outcome.total > spent) {
+      return 'invalid';
+    }
+    if (outcome.total === spent) {
+      return owner.paid.length === 0 || this.samePaid(steps, owner.paid)
+        ? 'valid'
+        : 'invalid';
+    }
+    // The reports cost less than he spent: the feed may lack a later report.
+    if (owner.paid.length === 0) {
+      return 'unknown';
+    }
+    return this.withinPaid(steps, owner.paid) ? 'unknown' : 'invalid';
   }
 
   /** Whether the steps are exactly the stored paid advancements, in any order. */
@@ -76,6 +87,33 @@ export class FeedOwnerFitService {
     steps: readonly ResolvedStep[],
     paid: readonly PaidAdvancementRow[],
   ): boolean {
+    const { reported, stored } = this.keys(steps, paid);
+    return (
+      JSON.stringify(reported.sort(this.byText)) ===
+      JSON.stringify(stored.sort(this.byText))
+    );
+  }
+
+  /** Whether every step is one of the stored paid advancements, counting repeats. */
+  private withinPaid(
+    steps: readonly ResolvedStep[],
+    paid: readonly PaidAdvancementRow[],
+  ): boolean {
+    const { reported, stored } = this.keys(steps, paid);
+    return reported.every((key) => {
+      const at = stored.indexOf(key);
+      if (at === -1) {
+        return false;
+      }
+      stored.splice(at, 1);
+      return true;
+    });
+  }
+
+  private keys(
+    steps: readonly ResolvedStep[],
+    paid: readonly PaidAdvancementRow[],
+  ): { reported: string[]; stored: string[] } {
     const reported = steps.map((step) =>
       step.kind === 'characteristic'
         ? this.characteristicKey(step.characteristic)
@@ -86,10 +124,7 @@ export class FeedOwnerFitService {
         ? this.skillKey(row.skillId, row.attributeValue)
         : this.characteristicKey(row.characteristic),
     );
-    return (
-      JSON.stringify(reported.sort(this.byText)) ===
-      JSON.stringify(stored.sort(this.byText))
-    );
+    return { reported, stored };
   }
 
   private skillKey(

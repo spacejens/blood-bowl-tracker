@@ -430,7 +430,11 @@ export interface FeedOwner {
   paid: PaidAdvancementRow[];
 }
 
-/** Whether a player can own a list of reports; `unknown` when a check cannot be decided. */
+/**
+ * Whether a player can own a list of reports; `unknown` when a check cannot
+ * be decided, including when the reports cost less than the SPP he spent (the
+ * feed may lack a later report).
+ */
 export type FeedFit = 'valid' | 'invalid' | 'unknown';
 
 /** The rows deciding whether a stored player can own a list of feed reports. */

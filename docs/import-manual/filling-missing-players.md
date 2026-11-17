@@ -176,7 +176,12 @@ entry has the stored status, else `dead` if a death is recorded, else
   decided together: every way of giving each report to one of its possible
   owners is tried. A way is valid when each player's reports, in the order
   they were posted, pass the pricing checks below and, for a player with
-  paid advancements stored, are exactly those advancements. A player given
+  paid advancements stored, are exactly those advancements. A wrong shown
+  cost, or prices adding up to more than the SPP he spent, rules a player
+  out. Prices adding up to less than the SPP he spent mean the feed may
+  lack a later report, so the check cannot be decided and the feed players
+  sharing him stay ambiguous (unless a report is not among his stored paid
+  advancements, which rules him out). A player given
   no reports is always valid, since the feed only goes back to the end
   of 2022. When exactly one way is valid, each player gets his reports.
   His reports, in the order they were posted, are his advancements, at
@@ -224,7 +229,9 @@ checks `feed-match-ambiguous`, `spp-too-high` and `free-skill-risk` before it.
   someone not stored, or no single way of sharing out the reports of the
   feed players that could name him passes the checks (none, several, one
   that cannot be decided, for example a skill, a price, the total or the
-  unspent SPP is missing, or more than 8 reports or 4 players to try), or a
+  unspent SPP is missing, or a player's reports are priced correctly but add
+  up to less than the SPP he spent, so the feed may lack a later report, or
+  more than 8 reports or 4 players to try), or a
   marked journeyman could own one of those reports (`feed-match-ambiguous`);
 - with no feed reports, or as a marked journeyman, his total is at or
   above the cheapest advancement cost of his era (`spp-too-high`);

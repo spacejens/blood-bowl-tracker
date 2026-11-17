@@ -125,9 +125,62 @@ describe('FeedOwnerFitService', () => {
     ).toBe('invalid');
   });
 
-  it('refuses prices that do not add up to the SPP he spent', () => {
+  it('refuses prices above the SPP he spent', () => {
+    expect(
+      service.fit(fitInput({ owner: { ...fitInput().owner, unspentSpp: 4 } })),
+    ).toBe('invalid');
+  });
+
+  it('cannot decide when the prices are below the SPP he spent and no paid advancements are stored', () => {
     expect(
       service.fit(fitInput({ owner: { ...fitInput().owner, unspentSpp: 0 } })),
+    ).toBe('unknown');
+  });
+
+  it('cannot decide when the prices are below the SPP he spent and the reports are among his stored paid advancements', () => {
+    expect(
+      service.fit(
+        fitInput({
+          owner: {
+            ...fitInput().owner,
+            unspentSpp: 0,
+            paid: [PAID_DODGE, PAID_MA],
+          },
+        }),
+      ),
+    ).toBe('unknown');
+  });
+
+  it('refuses a report that is not among his stored paid advancements when the prices are below the SPP he spent', () => {
+    expect(
+      service.fit(
+        fitInput({
+          owner: { ...fitInput().owner, unspentSpp: 0, paid: [PAID_MA] },
+        }),
+      ),
+    ).toBe('invalid');
+  });
+
+  it('refuses a report given more often than he stored it when the prices are below the SPP he spent', () => {
+    skills.resolve.mockReturnValue([skillStep(), skillStep()]);
+    pricing.price.mockReturnValue({
+      kind: 'priced',
+      stepCosts: [6, 6],
+      total: 12,
+    });
+
+    expect(
+      service.fit(
+        fitInput({
+          owner: {
+            ...fitInput().owner,
+            sppTotal: 20,
+            unspentSpp: 2,
+            paid: [PAID_DODGE, PAID_MA],
+          },
+          reports: [report(), report()],
+        }),
+      ),
     ).toBe('invalid');
   });
 
