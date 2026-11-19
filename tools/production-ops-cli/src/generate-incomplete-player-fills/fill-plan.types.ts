@@ -432,8 +432,9 @@ export interface FeedOwner {
 
 /**
  * Whether a player can own a list of reports; `unknown` when a check cannot
- * be decided, including when the reports cost less than the SPP he spent (the
- * feed may lack a later report).
+ * be decided, including when the feed may lack a report: a later one when the
+ * reports cost less than the SPP he spent, an earlier one when a shown cost is
+ * above its price.
  */
 export type FeedFit = 'valid' | 'invalid' | 'unknown';
 

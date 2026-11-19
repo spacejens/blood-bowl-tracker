@@ -176,12 +176,15 @@ entry has the stored status, else `dead` if a death is recorded, else
   decided together: every way of giving each report to one of its possible
   owners is tried. A way is valid when each player's reports, in the order
   they were posted, pass the pricing checks below and, for a player with
-  paid advancements stored, are exactly those advancements. A wrong shown
-  cost, or prices adding up to more than the SPP he spent, rules a player
-  out. Prices adding up to less than the SPP he spent mean the feed may
-  lack a later report, so the check cannot be decided and the feed players
-  sharing him stay ambiguous (unless a report is not among his stored paid
-  advancements, which rules him out). A player given
+  paid advancements stored, are exactly those advancements. A shown cost
+  below its price, or prices adding up to more than the SPP he spent, rules
+  a player out: a report the feed lacks before his reports would only move
+  them to later advancement numbers, whose costs never fall. A shown cost
+  above its price may mean the feed lacks an earlier report, and prices
+  adding up to less than the SPP he spent that it lacks a later one. Either
+  way the check cannot be decided and the feed players sharing him stay
+  ambiguous (unless a report is not among his stored paid advancements,
+  which rules him out). A player given
   no reports is always valid, since the feed only goes back to the end
   of 2022. When exactly one way is valid, each player gets his reports.
   His reports, in the order they were posted, are his advancements, at

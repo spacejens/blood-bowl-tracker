@@ -22,15 +22,19 @@ export interface FeedFitInput {
 /**
  * Whether one stored player can own a list of feed reports, by what
  * AdvancementFillStageService requires of a feed-matched player: at most six
- * reports, each priced in order at the cost it shows. The prices must not
- * exceed his total minus his unspent SPP (the SPP he spent). When they add
- * up to exactly that, and he has paid advancements stored, the reports must
- * be exactly those advancements. When they add up to less, the feed may
- * lack a later report, so the fit is `unknown`, unless he has paid
- * advancements stored and a report is not among them, which rules him out.
- * No reports always fit. A check that cannot be decided (SPP not stored, a
- * skill not resolved, reports not priced, a possible gap after the reports)
- * gives `unknown`, so it never rules a split in or out.
+ * reports, each priced in order as his first advancements. A shown cost
+ * below its price rules him out: an earlier report the feed lacks would
+ * only move the reports to later advancement numbers, whose costs never
+ * fall. A shown cost above its price may mean such a gap. The prices must
+ * not exceed his total minus his unspent SPP (the SPP he spent). When they
+ * add up to exactly that, every shown cost is its price, and he has paid
+ * advancements stored, the reports must be exactly those advancements. When
+ * a shown cost is above its price, or the prices add up to less than he
+ * spent, the feed may lack a report, so the fit is `unknown`, unless he has
+ * paid advancements stored and a report is not among them, which rules him
+ * out. No reports always fit. A check that cannot be decided (SPP not
+ * stored, a skill not resolved, reports not priced, a possible gap in the
+ * feed) gives `unknown`, so it never rules a split in or out.
  *
  * Pure decision logic, with no I/O; its collaborators are pure as well.
  */
@@ -63,19 +67,26 @@ export class FeedOwnerFitService {
     if (outcome.kind !== 'priced') {
       return 'unknown';
     }
-    if (outcome.stepCosts.some((cost, at) => cost !== steps[at].reportedCost)) {
+    // The reports are priced as his first advancements. A report the feed
+    // lacks before them would only move them to later, never cheaper,
+    // advancement numbers, so a shown cost below its price rules him out.
+    if (steps.some((step, at) => step.reportedCost < outcome.stepCosts[at])) {
       return 'invalid';
     }
     const spent = owner.sppTotal - owner.unspentSpp;
     if (outcome.total > spent) {
       return 'invalid';
     }
-    if (outcome.total === spent) {
+    const earlierGap = steps.some(
+      (step, at) => step.reportedCost > outcome.stepCosts[at],
+    );
+    if (outcome.total === spent && !earlierGap) {
       return owner.paid.length === 0 || this.samePaid(steps, owner.paid)
         ? 'valid'
         : 'invalid';
     }
-    // The reports cost less than he spent: the feed may lack a later report.
+    // The feed may lack a report: an earlier one when a shown cost is above
+    // its price, a later one when the reports cost less than he spent.
     if (owner.paid.length === 0) {
       return 'unknown';
     }

@@ -117,11 +117,69 @@ describe('FeedOwnerFitService', () => {
     expect(service.fit(fitInput())).toBe('unknown');
   });
 
-  it('refuses a report whose shown cost is not its price', () => {
+  it('refuses a report whose shown cost is below its price, which no earlier report missing from the feed explains', () => {
     pricing.price.mockReturnValue({ kind: 'priced', stepCosts: [8], total: 8 });
 
     expect(
       service.fit(fitInput({ owner: { ...fitInput().owner, sppTotal: 10 } })),
+    ).toBe('invalid');
+  });
+
+  it('cannot decide when a shown cost is above its price, since the feed may lack an earlier report', () => {
+    pricing.price.mockReturnValue({ kind: 'priced', stepCosts: [4], total: 4 });
+
+    expect(service.fit(fitInput())).toBe('unknown');
+  });
+
+  it('cannot decide when a shown cost is above its price and the prices add up to the SPP he spent', () => {
+    pricing.price.mockReturnValue({ kind: 'priced', stepCosts: [4], total: 4 });
+
+    expect(
+      service.fit(
+        fitInput({
+          owner: {
+            ...fitInput().owner,
+            unspentSpp: 4,
+            paid: [PAID_DODGE, PAID_MA],
+          },
+        }),
+      ),
+    ).toBe('unknown');
+  });
+
+  it('refuses a shown cost above its price when the report is not among his stored paid advancements', () => {
+    pricing.price.mockReturnValue({ kind: 'priced', stepCosts: [4], total: 4 });
+
+    expect(
+      service.fit(
+        fitInput({ owner: { ...fitInput().owner, paid: [PAID_MA] } }),
+      ),
+    ).toBe('invalid');
+  });
+
+  it('refuses reports when one shown cost is below its price, even if another is above', () => {
+    skills.resolve.mockReturnValue([skillStep(), increaseStep()]);
+    pricing.price.mockReturnValue({
+      kind: 'priced',
+      stepCosts: [4, 20],
+      total: 24,
+    });
+
+    expect(
+      service.fit(
+        fitInput({
+          owner: { ...fitInput().owner, sppTotal: 30 },
+          reports: [report(), report()],
+        }),
+      ),
+    ).toBe('invalid');
+  });
+
+  it('refuses a shown cost above its price when even the prices exceed the SPP he spent', () => {
+    pricing.price.mockReturnValue({ kind: 'priced', stepCosts: [4], total: 4 });
+
+    expect(
+      service.fit(fitInput({ owner: { ...fitInput().owner, unspentSpp: 5 } })),
     ).toBe('invalid');
   });
 
