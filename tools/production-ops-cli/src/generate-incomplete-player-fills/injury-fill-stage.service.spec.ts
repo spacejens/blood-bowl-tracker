@@ -30,6 +30,7 @@ function stageInput(
       {
         playerId: 1,
         competitionId: 50,
+        firstPlayedAt: '2024-02-01T19:00:00+00:00',
         lastPlayedAt: '2024-04-01T19:00:00+00:00',
       },
     ],

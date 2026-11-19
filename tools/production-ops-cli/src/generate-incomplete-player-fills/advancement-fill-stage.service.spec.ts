@@ -62,6 +62,7 @@ const REDUCTION: StatReductionEventRow = {
 const PLAYED: TeamCompetitionRow = {
   playerId: 1,
   competitionId: 50,
+  firstPlayedAt: '2024-02-01T19:00:00+00:00',
   lastPlayedAt: '2024-04-01T19:00:00+00:00',
 };
 
@@ -420,6 +421,7 @@ describe('AdvancementFillStageService', () => {
               {
                 playerId: 1,
                 competitionId: 51,
+                firstPlayedAt: '2024-04-15T19:00:00+00:00',
                 lastPlayedAt: '2024-05-01T19:00:00+00:00',
               },
             ],

@@ -184,8 +184,13 @@ describe('IncompletePlayerFillPlannerService', () => {
       'an era with an unpriced rules set',
       {
         eraRulesSets: [
-          { eraId: 4, rulesSetId: 7, cheapestCost: 6 },
-          { eraId: 4, rulesSetId: 8, cheapestCost: null },
+          { eraId: 4, rulesSetId: 7, rulesSetName: 'BB2020', cheapestCost: 6 },
+          {
+            eraId: 4,
+            rulesSetId: 8,
+            rulesSetName: 'BB2020',
+            cheapestCost: null,
+          },
         ],
       },
       'era-unpriced',
@@ -199,8 +204,8 @@ describe('IncompletePlayerFillPlannerService', () => {
       'a total at the cheapest cost of another rules set of the era',
       {
         eraRulesSets: [
-          { eraId: 4, rulesSetId: 7, cheapestCost: 6 },
-          { eraId: 4, rulesSetId: 8, cheapestCost: 5 },
+          { eraId: 4, rulesSetId: 7, rulesSetName: 'BB2020', cheapestCost: 6 },
+          { eraId: 4, rulesSetId: 8, rulesSetName: 'BB2020', cheapestCost: 5 },
         ],
       },
       'spp-too-high',
@@ -579,6 +584,7 @@ describe('IncompletePlayerFillPlannerService', () => {
     const played = {
       playerId: 1,
       competitionId: 50,
+      firstPlayedAt: '2024-02-01T19:00:00+00:00',
       lastPlayedAt: '2024-04-01T19:00:00+00:00',
     };
     advancementStage.decide.mockReturnValue({ entry: STAGED });
@@ -685,6 +691,7 @@ describe('IncompletePlayerFillPlannerService', () => {
     const played = {
       playerId: 1,
       competitionId: 50,
+      firstPlayedAt: '2024-02-01T19:00:00+00:00',
       lastPlayedAt: '2024-04-01T19:00:00+00:00',
     };
     injuryStage.decide.mockReturnValue({ entry: STAGED });
