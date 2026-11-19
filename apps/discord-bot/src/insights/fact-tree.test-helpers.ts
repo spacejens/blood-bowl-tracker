@@ -35,6 +35,16 @@ export function stubFactTreeDeps(): FactTreeDeps {
   coachToplist.resolveCompletions.mockResolvedValue('coach completions');
   coachToplist.resolveInterceptions.mockResolvedValue('coach interceptions');
   coachToplist.resolveDeflections.mockResolvedValue('coach deflections');
+  coachToplist.resolveCasualtiesCaused.mockResolvedValue(
+    'coach casualties caused',
+  );
+  coachToplist.resolveSeriousInjuriesCaused.mockResolvedValue(
+    'coach serious injuries caused',
+  );
+  coachToplist.resolveLastingInjuriesCaused.mockResolvedValue(
+    'coach lasting injuries caused',
+  );
+  coachToplist.resolveDeathsCaused.mockResolvedValue('coach deaths caused');
   coachToplist.resolveTrophiesWon.mockResolvedValue('coach trophies won');
   coachToplist.resolveTimeBetweenMatchesDescending.mockResolvedValue(
     'coach longest time between matches',

@@ -106,6 +106,15 @@ schema rather than here — see `packages/db/src/schema/game-data/match-events.t
   the same way.
 - `coach.toplist.deflections` — coaches ranked by passes deflected, counted the
   same way.
+- `coach.toplist.casualties.caused` — coaches ranked by casualties inflicted.
+  Counts the same events as `team.toplist.casualties.caused` (a foul earns no
+  casualty credit), summed over every team the coach has coached.
+- `coach.toplist.injuries.serious.caused` — coaches ranked by serious injuries
+  inflicted, counted the same way as `team.toplist.injuries.serious.caused`.
+- `coach.toplist.injuries.lasting.caused` — coaches ranked by lasting injuries
+  inflicted, counted the same way as `team.toplist.injuries.lasting.caused`.
+- `coach.toplist.deaths.caused` — coaches ranked by opponents killed, counted
+  the same way as `team.toplist.deaths.caused`.
 - `coach.toplist.trophies.won` — coaches ranked by number of trophies their
   teams have won. Counts every recorded trophy award tied to any of the
   coach's teams, including player awards (MVP, most casualties, ...) won by

@@ -17,10 +17,10 @@ beforeEach(async () => {
 });
 
 describe('buildFactTree', () => {
-  it('exposes exactly ninety-five leaf facts', () => {
+  it('exposes exactly ninety-nine leaf facts', () => {
     expect(
       factTreeNavigation.collectLeaves(buildFactTree(stubFactTreeDeps())),
-    ).toHaveLength(95);
+    ).toHaveLength(99);
   });
 
   it('wires coach.toplist.matches.played to CoachToplistService.resolveMatchesPlayed', async () => {
@@ -212,6 +212,10 @@ describe('buildFactTree', () => {
     ['coach.toplist.completions', 'resolveCompletions'],
     ['coach.toplist.interceptions', 'resolveInterceptions'],
     ['coach.toplist.deflections', 'resolveDeflections'],
+    ['coach.toplist.casualties.caused', 'resolveCasualtiesCaused'],
+    ['coach.toplist.injuries.serious.caused', 'resolveSeriousInjuriesCaused'],
+    ['coach.toplist.injuries.lasting.caused', 'resolveLastingInjuriesCaused'],
+    ['coach.toplist.deaths.caused', 'resolveDeathsCaused'],
   ] as const)(
     'wires %s to CoachToplistService.%s',
     async (path, resolveName) => {

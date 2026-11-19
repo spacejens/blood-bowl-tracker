@@ -20,6 +20,10 @@ type CoachToplistMethod =
   | 'countCompletionsByCoach'
   | 'countInterceptionsByCoach'
   | 'countDeflectionsByCoach'
+  | 'countCasualtiesCausedByCoach'
+  | 'countSeriousInjuriesCausedByCoach'
+  | 'countLastingInjuriesCausedByCoach'
+  | 'countDeathsCausedByCoach'
   | 'countMatchesPlayedByCoach'
   | 'countMatchesWonByCoach'
   | 'countMatchesLostByCoach'
@@ -63,6 +67,10 @@ export class CoachToplistService {
         countCompletionsByCoach: 'Coaches by completions',
         countInterceptionsByCoach: 'Coaches by interceptions',
         countDeflectionsByCoach: 'Coaches by deflections',
+        countCasualtiesCausedByCoach: 'Coaches by casualties caused',
+        countSeriousInjuriesCausedByCoach: 'Coaches by serious injuries caused',
+        countLastingInjuriesCausedByCoach: 'Coaches by lasting injuries caused',
+        countDeathsCausedByCoach: 'Coaches by deaths caused',
         countMatchesPlayedByCoach: 'Coaches by matches played',
         countMatchesWonByCoach: 'Coaches by matches won',
         countMatchesLostByCoach: 'Coaches by matches lost',
@@ -111,6 +119,39 @@ export class CoachToplistService {
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
     return this.resolvers.countDeflectionsByCoach(this.coachesQueries, scope);
+  }
+
+  resolveCasualtiesCaused(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolvers.countCasualtiesCausedByCoach(
+      this.coachesQueries,
+      scope,
+    );
+  }
+
+  resolveSeriousInjuriesCaused(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolvers.countSeriousInjuriesCausedByCoach(
+      this.coachesQueries,
+      scope,
+    );
+  }
+
+  resolveLastingInjuriesCaused(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolvers.countLastingInjuriesCausedByCoach(
+      this.coachesQueries,
+      scope,
+    );
+  }
+
+  resolveDeathsCaused(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolvers.countDeathsCausedByCoach(this.coachesQueries, scope);
   }
 
   resolveMatchesPlayed(
