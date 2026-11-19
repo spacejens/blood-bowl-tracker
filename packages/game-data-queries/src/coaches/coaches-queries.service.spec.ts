@@ -13,11 +13,15 @@ import {
   StringChunk,
 } from '@blood-bowl-tracker/db/test-helpers';
 import {
+  CASUALTY_CAUSED_TYPES,
   COMPLETION_TYPES,
+  DEATH_CAUSED_TYPES,
   DEFLECTION_TYPES,
   FACT_SCOPE_ALL_TIME,
   FOUL_TYPES,
   INTERCEPTION_TYPES,
+  LASTING_INJURY_SUFFERED_TYPES,
+  SERIOUS_INJURY_CAUSED_TYPES,
   TOUCHDOWN_TYPES,
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
@@ -219,6 +223,9 @@ describe('CoachesQueriesService', () => {
       ['countCompletionsByCoach', COMPLETION_TYPES],
       ['countInterceptionsByCoach', INTERCEPTION_TYPES],
       ['countDeflectionsByCoach', DEFLECTION_TYPES],
+      ['countCasualtiesCausedByCoach', CASUALTY_CAUSED_TYPES],
+      ['countSeriousInjuriesCausedByCoach', SERIOUS_INJURY_CAUSED_TYPES],
+      ['countDeathsCausedByCoach', DEATH_CAUSED_TYPES],
     ] as const)('%s', (method, types) => {
       it('returns the rows MatchEventCountsService resolves to', async () => {
         const rows = [
@@ -252,6 +259,52 @@ describe('CoachesQueriesService', () => {
           limit: 21,
         });
       });
+    });
+
+    describe('countLastingInjuriesCausedByCoach', () => {
+      it('returns the rows MatchEventCountsService resolves to', async () => {
+        const rows = [{ coachId: 1, name: 'Roze Madder', count: 6 }];
+        matchEventCounts.countMatchEventsByCoach.mockResolvedValue(rows);
+        await build();
+        await expect(
+          service.countLastingInjuriesCausedByCoach(FACT_SCOPE_ALL_TIME, 21),
+        ).resolves.toEqual(rows);
+      });
+
+      it('forwards a casualty acting selector narrowed to lasting consequences and drops the competition', async () => {
+        // A foul is not in CASUALTY_CAUSED_TYPES, so a foul that leaves a
+        // lasting injury earns its coach no credit; the consequence filter
+        // keeps only casualties whose own row records a lasting injury.
+        await build();
+        await service.countLastingInjuriesCausedByCoach(
+          {
+            leagueId: 9,
+            eraId: 20,
+            competitionId: 30,
+            category: 'season_final',
+          },
+          21,
+        );
+        expect(matchEventCounts.countMatchEventsByCoach).toHaveBeenCalledWith({
+          selector: {
+            role: 'acting',
+            types: CASUALTY_CAUSED_TYPES,
+            consequenceTypes: LASTING_INJURY_SUFFERED_TYPES,
+          },
+          scope: { leagueId: 9, eraId: 20, category: 'season_final' },
+          limit: 21,
+        });
+      });
+    });
+
+    it('countCasualtiesCausedByCoach does not count fouls', async () => {
+      await build();
+      await service.countCasualtiesCausedByCoach(FACT_SCOPE_ALL_TIME, 21);
+      const [{ selector }] =
+        matchEventCounts.countMatchEventsByCoach.mock.calls[0];
+      for (const foulType of FOUL_TYPES) {
+        expect(selector.types).not.toContain(foulType);
+      }
     });
 
     it('countMatchesPlayedByCoach filters by the match category', async () => {

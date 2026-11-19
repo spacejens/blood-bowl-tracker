@@ -17,13 +17,20 @@ import {
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
-import type { ActionType } from '@blood-bowl-tracker/domain-enums';
+import type {
+  ActionType,
+  ConsequenceType,
+} from '@blood-bowl-tracker/domain-enums';
 import type { FactScope } from '@blood-bowl-tracker/game-data';
 import {
+  CASUALTY_CAUSED_TYPES,
   COMPLETION_TYPES,
+  DEATH_CAUSED_TYPES,
   DEFLECTION_TYPES,
   FOUL_TYPES,
   INTERCEPTION_TYPES,
+  LASTING_INJURY_SUFFERED_TYPES,
+  SERIOUS_INJURY_CAUSED_TYPES,
   TOUCHDOWN_TYPES,
 } from '@blood-bowl-tracker/game-data';
 import { Inject, Injectable } from '@nestjs/common';
@@ -34,6 +41,16 @@ import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import { MatchOutcomeCountsService } from '../shared/match-outcome-counts.service';
 import { TrophyAwardCountsService } from '../shared/trophy-award-counts.service';
 import { CoachMatchGapsService } from './coach-match-gaps.service';
+
+/**
+ * The acting-side event filter of a match-event-backed coach count: the
+ * action types that count, optionally narrowed to rows whose own consequence
+ * is one of `consequenceTypes` (see MatchEventSelector).
+ */
+type ActingCoachEvents = {
+  types: readonly ActionType[];
+  consequenceTypes?: readonly ConsequenceType[];
+};
 
 /**
  * Read-only coach lookups, scoped counts and toplists for the Discord bot.
@@ -392,15 +409,17 @@ export class CoachesQueriesService {
    * team's coach and summed over all of the coach's teams. Deliberately does
    * not forward scope.competitionId: these coach toplists are
    * league/era/match-category-scoped only (the trophy toplist below is the
-   * exception, since a trophy award belongs to a competition).
+   * exception, since a trophy award belongs to a competition). An optional
+   * consequenceTypes narrows the count to actions whose own row records one
+   * of those consequences.
    */
   private countActingEventsByCoach(
-    types: readonly ActionType[],
+    events: ActingCoachEvents,
     scope: FactScope,
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
     return this.matchEventCounts.countMatchEventsByCoach({
-      selector: { role: 'acting', types },
+      selector: { role: 'acting', ...events },
       scope: {
         leagueId: scope.leagueId,
         eraId: scope.eraId,
@@ -414,35 +433,104 @@ export class CoachesQueriesService {
     scope: FactScope,
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
-    return this.countActingEventsByCoach(FOUL_TYPES, scope, limit);
+    return this.countActingEventsByCoach({ types: FOUL_TYPES }, scope, limit);
   }
 
   countTouchdownsScoredByCoach(
     scope: FactScope,
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
-    return this.countActingEventsByCoach(TOUCHDOWN_TYPES, scope, limit);
+    return this.countActingEventsByCoach(
+      { types: TOUCHDOWN_TYPES },
+      scope,
+      limit,
+    );
   }
 
   countCompletionsByCoach(
     scope: FactScope,
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
-    return this.countActingEventsByCoach(COMPLETION_TYPES, scope, limit);
+    return this.countActingEventsByCoach(
+      { types: COMPLETION_TYPES },
+      scope,
+      limit,
+    );
   }
 
   countInterceptionsByCoach(
     scope: FactScope,
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
-    return this.countActingEventsByCoach(INTERCEPTION_TYPES, scope, limit);
+    return this.countActingEventsByCoach(
+      { types: INTERCEPTION_TYPES },
+      scope,
+      limit,
+    );
   }
 
   countDeflectionsByCoach(
     scope: FactScope,
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
-    return this.countActingEventsByCoach(DEFLECTION_TYPES, scope, limit);
+    return this.countActingEventsByCoach(
+      { types: DEFLECTION_TYPES },
+      scope,
+      limit,
+    );
+  }
+
+  countCasualtiesCausedByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.countActingEventsByCoach(
+      { types: CASUALTY_CAUSED_TYPES },
+      scope,
+      limit,
+    );
+  }
+
+  countSeriousInjuriesCausedByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.countActingEventsByCoach(
+      { types: SERIOUS_INJURY_CAUSED_TYPES },
+      scope,
+      limit,
+    );
+  }
+
+  /**
+   * Lasting injuries the coach's teams inflicted: a casualty-severity action
+   * whose own row carries a lasting consequence, as for
+   * TeamsStatisticsService.countLastingInjuriesCausedByTeam. A foul does not
+   * count, and a consequence-only row has no causer.
+   */
+  countLastingInjuriesCausedByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.countActingEventsByCoach(
+      {
+        types: CASUALTY_CAUSED_TYPES,
+        consequenceTypes: LASTING_INJURY_SUFFERED_TYPES,
+      },
+      scope,
+      limit,
+    );
+  }
+
+  countDeathsCausedByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.countActingEventsByCoach(
+      { types: DEATH_CAUSED_TYPES },
+      scope,
+      limit,
+    );
   }
 
   /**
