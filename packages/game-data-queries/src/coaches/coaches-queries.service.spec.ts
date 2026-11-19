@@ -12,7 +12,14 @@ import {
   sqlText,
   StringChunk,
 } from '@blood-bowl-tracker/db/test-helpers';
-import { FACT_SCOPE_ALL_TIME, FOUL_TYPES } from '@blood-bowl-tracker/game-data';
+import {
+  COMPLETION_TYPES,
+  DEFLECTION_TYPES,
+  FACT_SCOPE_ALL_TIME,
+  FOUL_TYPES,
+  INTERCEPTION_TYPES,
+  TOUCHDOWN_TYPES,
+} from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -202,31 +209,44 @@ describe('CoachesQueriesService', () => {
       expect(chains[0].limit).toHaveBeenCalledWith(21);
     });
 
-    it('countFoulsCommittedByCoach returns the rows MatchEventCountsService resolves to', async () => {
-      const rows = [
-        { coachId: 1, name: 'Roze Madder', count: 13 },
-        { coachId: 2, name: 'Grashnak', count: 4 },
-      ];
-      matchEventCounts.countMatchEventsByCoach.mockResolvedValue(rows);
-      await build();
-      await expect(
-        service.countFoulsCommittedByCoach(FACT_SCOPE_ALL_TIME, 21),
-      ).resolves.toEqual(rows);
-    });
+    describe.each([
+      ['countFoulsCommittedByCoach', FOUL_TYPES],
+      ['countTouchdownsScoredByCoach', TOUCHDOWN_TYPES],
+      ['countCompletionsByCoach', COMPLETION_TYPES],
+      ['countInterceptionsByCoach', INTERCEPTION_TYPES],
+      ['countDeflectionsByCoach', DEFLECTION_TYPES],
+    ] as const)('%s', (method, types) => {
+      it('returns the rows MatchEventCountsService resolves to', async () => {
+        const rows = [
+          { coachId: 1, name: 'Roze Madder', count: 13 },
+          { coachId: 2, name: 'Grashnak', count: 4 },
+        ];
+        matchEventCounts.countMatchEventsByCoach.mockResolvedValue(rows);
+        await build();
+        await expect(service[method](FACT_SCOPE_ALL_TIME, 21)).resolves.toEqual(
+          rows,
+        );
+      });
 
-    it('countFoulsCommittedByCoach forwards a foul selector and drops the competition from the scope', async () => {
-      // Coach toplists are league/era/match-category-scoped only, so the
-      // competitionId must not reach the count service even though it would
-      // accept one.
-      await build();
-      await service.countFoulsCommittedByCoach(
-        { leagueId: 9, eraId: 20, competitionId: 30, category: 'season_final' },
-        21,
-      );
-      expect(matchEventCounts.countMatchEventsByCoach).toHaveBeenCalledWith({
-        selector: { role: 'acting', types: FOUL_TYPES },
-        scope: { leagueId: 9, eraId: 20, category: 'season_final' },
-        limit: 21,
+      it('forwards an acting selector for its own event types and drops the competition from the scope', async () => {
+        // Coach match-event toplists are league/era/match-category-scoped
+        // only, so the competitionId must not reach the count service even
+        // though it would accept one.
+        await build();
+        await service[method](
+          {
+            leagueId: 9,
+            eraId: 20,
+            competitionId: 30,
+            category: 'season_final',
+          },
+          21,
+        );
+        expect(matchEventCounts.countMatchEventsByCoach).toHaveBeenCalledWith({
+          selector: { role: 'acting', types },
+          scope: { leagueId: 9, eraId: 20, category: 'season_final' },
+          limit: 21,
+        });
       });
     });
 
@@ -775,9 +795,9 @@ describe('CoachesQueriesService', () => {
     });
 
     it('forwards the whole scope and limit verbatim, competition included', async () => {
-      // Unlike countFoulsCommittedByCoach, this one keeps the competitionId:
-      // a trophy award belongs to a competition, so coach.toplist.trophies.won
-      // declares supportsCompetition: true.
+      // Unlike the match-event-backed coach counts, this one keeps the
+      // competitionId: a trophy award belongs to a competition, so
+      // coach.toplist.trophies.won declares supportsCompetition: true.
       trophyAwardCounts.countTrophiesByCoach.mockResolvedValue([]);
       await build();
       await service.countTrophiesByCoach(

@@ -74,6 +74,37 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
             resolve: (scope) => deps.coachToplist.resolveFoulsCommitted(scope),
           },
         },
+        touchdowns: {
+          scored: {
+            supportsLeague: true,
+            supportsEra: true,
+            supportsCompetition: false,
+            supportsMatchCategory: true,
+            resolve: (scope) =>
+              deps.coachToplist.resolveTouchdownsScored(scope),
+          },
+        },
+        completions: {
+          supportsLeague: true,
+          supportsEra: true,
+          supportsCompetition: false,
+          supportsMatchCategory: true,
+          resolve: (scope) => deps.coachToplist.resolveCompletions(scope),
+        },
+        interceptions: {
+          supportsLeague: true,
+          supportsEra: true,
+          supportsCompetition: false,
+          supportsMatchCategory: true,
+          resolve: (scope) => deps.coachToplist.resolveInterceptions(scope),
+        },
+        deflections: {
+          supportsLeague: true,
+          supportsEra: true,
+          supportsCompetition: false,
+          supportsMatchCategory: true,
+          resolve: (scope) => deps.coachToplist.resolveDeflections(scope),
+        },
         trophies: {
           won: {
             // Counts every trophy_awards row tied to any of the coach's teams -

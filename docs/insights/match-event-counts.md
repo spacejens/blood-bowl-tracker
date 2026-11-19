@@ -22,12 +22,12 @@ Not every count exists for both grouping entities, and that is by design — not
   top list of deaths suffered would be a list of ones.
 - MVP awards are counted by player but not by team. The award is a per-player honour; totalling it
   per team measures matches played, not merit.
-- Fouls committed are additionally counted by **coach**, reached from the per-team count by way of
-  the team's coach. It is the only coach-grouped count today: coaches are ranked on fouls because
-  someone wanted to read that list, not because every player/team count needs a coach twin. The
-  match-event-backed coach grouping takes league, era and match-category scopes
-  only; the trophies-by-coach toplist is the one coach toplist that takes a
-  competition scope.
+- A handful of acting-side counts are additionally counted by **coach**, reached from the per-team
+  count by way of the team's coach and summed over every team the coach has coached: fouls
+  committed, touchdowns scored, completions, interceptions and deflections. They exist because
+  someone wanted to read those lists, not because every player/team count needs a coach twin. The
+  match-event-backed coach grouping takes league, era and match-category scopes only; the
+  trophies-by-coach toplist is the one coach toplist that takes a competition scope.
 
 The shared count helper makes filling in the grid mechanically trivial. Do not. A count exists
 because someone wants to read it, not because the grid has a hole.

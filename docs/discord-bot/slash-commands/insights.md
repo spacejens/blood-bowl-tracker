@@ -97,6 +97,15 @@ schema rather than here — see `packages/db/src/schema/game-data/match-events.t
   sense.
 - `coach.toplist.fouls.committed` — coaches ranked by fouls committed. Counts
   foul events credited to the acting team, attributed to that team's coach.
+- `coach.toplist.touchdowns.scored` — coaches ranked by touchdowns scored.
+  Counts touchdown events credited to the acting team, summed over every team
+  the coach has coached.
+- `coach.toplist.completions` — coaches ranked by passes completed, counted the
+  same way.
+- `coach.toplist.interceptions` — coaches ranked by interceptions made, counted
+  the same way.
+- `coach.toplist.deflections` — coaches ranked by passes deflected, counted the
+  same way.
 - `coach.toplist.trophies.won` — coaches ranked by number of trophies their
   teams have won. Counts every recorded trophy award tied to any of the
   coach's teams, including player awards (MVP, most casualties, ...) won by

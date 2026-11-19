@@ -17,10 +17,10 @@ beforeEach(async () => {
 });
 
 describe('buildFactTree', () => {
-  it('exposes exactly ninety-one leaf facts', () => {
+  it('exposes exactly ninety-five leaf facts', () => {
     expect(
       factTreeNavigation.collectLeaves(buildFactTree(stubFactTreeDeps())),
-    ).toHaveLength(91);
+    ).toHaveLength(95);
   });
 
   it('wires coach.toplist.matches.played to CoachToplistService.resolveMatchesPlayed', async () => {
@@ -206,6 +206,21 @@ describe('buildFactTree', () => {
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
     expect(d.coachToplist.resolveFoulsCommitted).toHaveBeenCalled();
   });
+
+  it.each([
+    ['coach.toplist.touchdowns.scored', 'resolveTouchdownsScored'],
+    ['coach.toplist.completions', 'resolveCompletions'],
+    ['coach.toplist.interceptions', 'resolveInterceptions'],
+    ['coach.toplist.deflections', 'resolveDeflections'],
+  ] as const)(
+    'wires %s to CoachToplistService.%s',
+    async (path, resolveName) => {
+      const d = stubFactTreeDeps();
+      const leaf = factTreeNavigation.resolvePath(buildFactTree(d), path);
+      await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
+      expect(d.coachToplist[resolveName]).toHaveBeenCalled();
+    },
+  );
 
   it('wires coach.toplist.trophies.won to CoachToplistService.resolveTrophiesWon', async () => {
     const d = stubFactTreeDeps();

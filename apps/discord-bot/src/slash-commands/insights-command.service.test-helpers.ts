@@ -128,6 +128,18 @@ function makeFactTreeMocks(): FactTreeMocks {
   coachToplist.resolveFoulsCommitted.mockResolvedValue(
     sampleEmbedReply('Coaches by fouls committed', '1. Roze Madder — 8'),
   );
+  coachToplist.resolveTouchdownsScored.mockResolvedValue(
+    sampleEmbedReply('Coaches by touchdowns scored', '1. Roze Madder — 42'),
+  );
+  coachToplist.resolveCompletions.mockResolvedValue(
+    sampleEmbedReply('Coaches by completions', '1. Roze Madder — 30'),
+  );
+  coachToplist.resolveInterceptions.mockResolvedValue(
+    sampleEmbedReply('Coaches by interceptions', '1. Roze Madder — 5'),
+  );
+  coachToplist.resolveDeflections.mockResolvedValue(
+    sampleEmbedReply('Coaches by deflections', '1. Roze Madder — 8'),
+  );
   coachToplist.resolveTrophiesWon.mockResolvedValue(
     sampleEmbedReply('Coaches by trophies won', '1. Roze Madder — 3'),
   );
