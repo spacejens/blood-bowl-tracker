@@ -392,15 +392,16 @@ describe('IncompletePlayerFillQueriesService', () => {
     expect(ONGOING_COMPETITIONS_SQL).toContain('game_data.match_teams');
   });
 
-  it('treats only an award of a skill-granting trophy as a free-skill risk', () => {
-    expect(FREE_SKILL_RISK_SQL).not.toContain('granted_skill_id');
+  it('treats an award of a skill-granting trophy, or one that records a skill, as a free-skill risk', () => {
     expect(FREE_SKILL_RISK_SQL).toContain(
       'JOIN game_data.trophies t ON t.id = ta.trophy_id',
     );
     expect(FREE_SKILL_RISK_SQL).toContain(
       'JOIN candidates c ON c.player_id = ta.player_id',
     );
-    expect(FREE_SKILL_RISK_SQL).toContain('WHERE t.grants_skill = true');
+    expect(FREE_SKILL_RISK_SQL).toContain(
+      'WHERE t.grants_skill = true OR ta.granted_skill_id IS NOT NULL',
+    );
   });
 
   it("scopes position skills to the candidates' positions in their eras", () => {

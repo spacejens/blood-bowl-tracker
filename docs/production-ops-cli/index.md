@@ -54,8 +54,9 @@ not found by name, or no team era is enrolled in it or plays in one of its
 matches. What it selects and why is described in
 [Filling in missing players](../import-manual/filling-missing-players.md#generated-fills).
 A trophy award makes its player a free-skill risk only when the trophy is
-curated as granting a skill (`game_data.trophies.grants_skill`), so the
-queries need a database whose migrations include that column.
+curated as granting a skill (`game_data.trophies.grants_skill`) or the award
+records a granted skill, so the queries need a database whose migrations
+include that column.
 
 The output is JSON: `report` counts the players considered and filled, and
 lists the skipped players' TP ids under each reason. The batch file also

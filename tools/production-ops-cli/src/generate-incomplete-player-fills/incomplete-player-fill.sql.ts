@@ -118,15 +118,17 @@ WHERE pa.removed = false`;
 /**
  * Candidates holding an award of a trophy curated as granting a skill: the
  * award may have given him a skill outside his advancements, and a null
- * granted skill can mean it is not known yet. An award of any other trophy
- * gives no skill, so it is no risk.
+ * granted skill can mean it is not known yet. An award that records a granted
+ * skill is a risk whatever its trophy is curated as, since reconstruction
+ * never reads that skill. An award of any other trophy gives no skill, so it
+ * is no risk.
  */
 export const FREE_SKILL_RISK_SQL = `${CANDIDATES_CTE}
 SELECT DISTINCT ta.player_id AS "playerId"
 FROM game_data.trophy_awards ta
 JOIN game_data.trophies t ON t.id = ta.trophy_id
 JOIN candidates c ON c.player_id = ta.player_id
-WHERE t.grants_skill = true`;
+WHERE t.grants_skill = true OR ta.granted_skill_id IS NOT NULL`;
 
 /**
  * Every team of an ongoing competition: enrolled in it, or a side in one of
