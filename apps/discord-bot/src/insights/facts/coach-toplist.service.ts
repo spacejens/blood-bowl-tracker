@@ -16,6 +16,10 @@ import { ToplistFactoryService } from './toplist-factory.service';
 
 type CoachToplistMethod =
   | 'countFoulsCommittedByCoach'
+  | 'countTouchdownsScoredByCoach'
+  | 'countCompletionsByCoach'
+  | 'countInterceptionsByCoach'
+  | 'countDeflectionsByCoach'
   | 'countMatchesPlayedByCoach'
   | 'countMatchesWonByCoach'
   | 'countMatchesLostByCoach'
@@ -55,6 +59,10 @@ export class CoachToplistService {
     >({
       titles: {
         countFoulsCommittedByCoach: 'Coaches by fouls committed',
+        countTouchdownsScoredByCoach: 'Coaches by touchdowns scored',
+        countCompletionsByCoach: 'Coaches by completions',
+        countInterceptionsByCoach: 'Coaches by interceptions',
+        countDeflectionsByCoach: 'Coaches by deflections',
         countMatchesPlayedByCoach: 'Coaches by matches played',
         countMatchesWonByCoach: 'Coaches by matches won',
         countMatchesLostByCoach: 'Coaches by matches lost',
@@ -76,6 +84,33 @@ export class CoachToplistService {
       this.coachesQueries,
       scope,
     );
+  }
+
+  resolveTouchdownsScored(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolvers.countTouchdownsScoredByCoach(
+      this.coachesQueries,
+      scope,
+    );
+  }
+
+  resolveCompletions(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolvers.countCompletionsByCoach(this.coachesQueries, scope);
+  }
+
+  resolveInterceptions(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolvers.countInterceptionsByCoach(this.coachesQueries, scope);
+  }
+
+  resolveDeflections(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolvers.countDeflectionsByCoach(this.coachesQueries, scope);
   }
 
   resolveMatchesPlayed(

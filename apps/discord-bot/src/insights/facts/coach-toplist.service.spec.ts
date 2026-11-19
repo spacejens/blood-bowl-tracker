@@ -27,9 +27,13 @@ interface CoachRow {
   count: number;
 }
 
-/** The eight coach toplists the factory builds. */
+/** The twelve coach toplists the factory builds. */
 type CoachFactoryMethod =
   | 'countFoulsCommittedByCoach'
+  | 'countTouchdownsScoredByCoach'
+  | 'countCompletionsByCoach'
+  | 'countInterceptionsByCoach'
+  | 'countDeflectionsByCoach'
   | 'countMatchesPlayedByCoach'
   | 'countMatchesWonByCoach'
   | 'countMatchesLostByCoach'
@@ -155,6 +159,40 @@ const factoryCases: FactoryCase[] = [
       { coachId: 2, name: 'Grashnak', count: 4 },
     ],
     expectedTitle: 'Coaches by fouls committed',
+  },
+  {
+    describeName: 'resolveTouchdownsScored',
+    method: 'countTouchdownsScoredByCoach',
+    resolve: (service) => service.resolveTouchdownsScored(FACT_SCOPE_ALL_TIME),
+    rows: [
+      { coachId: 1, name: 'Roze Madder', count: 42 },
+      { coachId: 2, name: 'Grashnak', count: 17 },
+    ],
+    expectedTitle: 'Coaches by touchdowns scored',
+  },
+  {
+    describeName: 'resolveCompletions',
+    method: 'countCompletionsByCoach',
+    resolve: (service) => service.resolveCompletions(FACT_SCOPE_ALL_TIME),
+    rows: [
+      { coachId: 2, name: 'Grashnak', count: 30 },
+      { coachId: 1, name: 'Roze Madder', count: 11 },
+    ],
+    expectedTitle: 'Coaches by completions',
+  },
+  {
+    describeName: 'resolveInterceptions',
+    method: 'countInterceptionsByCoach',
+    resolve: (service) => service.resolveInterceptions(FACT_SCOPE_ALL_TIME),
+    rows: [{ coachId: 3, name: 'Skabsquik', count: 5 }],
+    expectedTitle: 'Coaches by interceptions',
+  },
+  {
+    describeName: 'resolveDeflections',
+    method: 'countDeflectionsByCoach',
+    resolve: (service) => service.resolveDeflections(FACT_SCOPE_ALL_TIME),
+    rows: [{ coachId: 1, name: 'Roze Madder', count: 8 }],
+    expectedTitle: 'Coaches by deflections',
   },
   {
     describeName: 'resolveTrophiesWon',
@@ -355,6 +393,25 @@ describe('CoachToplistService.resolveFoulsCommitted', () => {
       coaches,
       { leagueId: 9, eraId: 20 },
     );
+  });
+});
+
+describe.each([
+  ['resolveTouchdownsScored', 'countTouchdownsScoredByCoach'],
+  ['resolveCompletions', 'countCompletionsByCoach'],
+  ['resolveInterceptions', 'countInterceptionsByCoach'],
+  ['resolveDeflections', 'countDeflectionsByCoach'],
+] as const)('CoachToplistService.%s', (resolveName, method) => {
+  it('passes the whole scope through to the factory resolver', async () => {
+    // Dropping the competitionId is CoachesQueriesService's responsibility,
+    // covered in its own spec.
+    const coaches = mock<CoachesQueriesService>();
+    const { service, toplist } = await makeService(coaches);
+    await service[resolveName]({ leagueId: 9, eraId: 20 });
+    expect(toplist.resolver(method)).toHaveBeenCalledWith(coaches, {
+      leagueId: 9,
+      eraId: 20,
+    });
   });
 });
 
