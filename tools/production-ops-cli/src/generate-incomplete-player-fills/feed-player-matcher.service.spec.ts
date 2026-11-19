@@ -46,6 +46,7 @@ function bareOwner(row: TeamPlayerRow): FeedOwner {
     unspentSpp: row.unspentSpp,
     rulesSets: [],
     paid: [],
+    isIncomplete: row.isIncomplete,
   };
 }
 
@@ -355,7 +356,7 @@ describe('FeedPlayerMatcherService', () => {
   });
 
   describe('split search', () => {
-    it('hands twins sharing a key to the search, each report with its possible owners, oldest first', () => {
+    it('hands twins sharing a key to the search, each report with its possible owners, oldest first, and each owner with whether he is incomplete', () => {
       // Vlad von Drak: two stored players, five reports over two rosters of one team.
       const vlad = (messageId: string, rosterId: string, sppCost: number) =>
         report({
@@ -379,6 +380,7 @@ describe('FeedPlayerMatcherService', () => {
         positionName: 'Vampire',
         sppTotal: 30,
         unspentSpp: 4,
+        isIncomplete: true,
       });
       const second = teamPlayer({
         playerId: 881779,
@@ -386,6 +388,7 @@ describe('FeedPlayerMatcherService', () => {
         positionName: 'Vampire',
         sppTotal: 16,
         unspentSpp: 2,
+        isIncomplete: false,
       });
       search.search.mockReturnValue(
         new Map([

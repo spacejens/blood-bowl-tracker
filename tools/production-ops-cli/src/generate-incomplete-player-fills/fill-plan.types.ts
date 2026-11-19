@@ -289,6 +289,8 @@ export interface TeamPlayerRow {
   sppTotal: number | null;
   unspentSpp: number | null;
   isJourneyman: boolean;
+  /** Whether he is incomplete: one the generator fills, his stored data partial. */
+  isIncomplete: boolean;
 }
 
 /**
@@ -428,6 +430,8 @@ export interface FeedOwner {
   rulesSets: RulesSetPricingInput[];
   /** His stored paid advancements; empty when none are stored. */
   paid: PaidAdvancementRow[];
+  /** Whether he is incomplete, so his stored paid advancements may be partial. */
+  isIncomplete: boolean;
 }
 
 /**

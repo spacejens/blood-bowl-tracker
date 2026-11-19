@@ -128,6 +128,7 @@ const TeamPlayerRowSchema = z.object({
   sppTotal: value.nullable(),
   unspentSpp: value.nullable(),
   isJourneyman: z.boolean(),
+  isIncomplete: z.boolean(),
 });
 
 const PaidAdvancementRowSchema = z.object({

@@ -39,6 +39,7 @@ function fitInput(overrides: Partial<FeedFitInput> = {}): FeedFitInput {
       unspentSpp: 2,
       rulesSets: [pricingInput(costRows(BB2020_COSTS))],
       paid: [],
+      isIncomplete: false,
     },
     reports: [report()],
     skillNames: NAMES,
@@ -276,4 +277,66 @@ describe('FeedOwnerFitService', () => {
       ).toBe('invalid');
     },
   );
+
+  describe('for an incomplete owner, whose stored paid advancements may be partial', () => {
+    it.each([
+      ['another skill', [{ ...PAID_DODGE, skillId: 201 }]],
+      ['one more advancement', [PAID_DODGE, PAID_MA]],
+    ])(
+      'cannot decide when the prices add up to the SPP he spent and his stored paid advancements hold %s',
+      (_name, paid) => {
+        expect(
+          service.fit(
+            fitInput({
+              owner: { ...fitInput().owner, paid, isIncomplete: true },
+            }),
+          ),
+        ).toBe('unknown');
+      },
+    );
+
+    it('cannot decide when the prices are below the SPP he spent and a report is not among his stored paid advancements', () => {
+      expect(
+        service.fit(
+          fitInput({
+            owner: {
+              ...fitInput().owner,
+              unspentSpp: 0,
+              paid: [PAID_MA],
+              isIncomplete: true,
+            },
+          }),
+        ),
+      ).toBe('unknown');
+    });
+
+    it('still accepts reports that are exactly his stored paid advancements', () => {
+      expect(
+        service.fit(
+          fitInput({
+            owner: {
+              ...fitInput().owner,
+              paid: [PAID_DODGE],
+              isIncomplete: true,
+            },
+          }),
+        ),
+      ).toBe('valid');
+    });
+
+    it('still refuses prices above the SPP he spent', () => {
+      expect(
+        service.fit(
+          fitInput({
+            owner: {
+              ...fitInput().owner,
+              unspentSpp: 4,
+              paid: [PAID_MA],
+              isIncomplete: true,
+            },
+          }),
+        ),
+      ).toBe('invalid');
+    });
+  });
 });

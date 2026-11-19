@@ -35,6 +35,11 @@ export const ONGOING_COMPETITION_NAMES = [
   'Ogretoberfest 14',
 ] as const;
 
+/** INCOMPLETE_PLAYER_CONDITIONS as one SQL predicate over `game_data.players p`. */
+const INCOMPLETE_PLAYER_PREDICATE = INCOMPLETE_PLAYER_CONDITIONS.map(
+  (condition) => `p.${condition}`,
+).join(' OR ');
+
 const CANDIDATES_CTE = `WITH candidates AS (
   SELECT DISTINCT ON (p.id)
     p.id AS player_id, pe.external_id AS tp_id, te.team_id, p.team_era_id,
@@ -48,7 +53,7 @@ const CANDIDATES_CTE = `WITH candidates AS (
   JOIN game_data.external_systems es ON es.id = pe.external_system_id
   WHERE es.name = 'tourplay.net'
     AND pos.is_star_player = false
-    AND (${INCOMPLETE_PLAYER_CONDITIONS.map((condition) => `p.${condition}`).join(' OR ')})
+    AND (${INCOMPLETE_PLAYER_PREDICATE})
   ORDER BY p.id, pe.external_id
 )`;
 
@@ -63,13 +68,15 @@ FROM candidates`;
  * The candidates, and every non-star TP player of a candidate's team,
  * complete or not: the players the TP feed can report. A player with a BBL
  * id as well counts as TP; one with no `tourplay.net` id is left out.
+ * `is_incomplete` applies the conditions that select the candidates.
  */
 export const TEAM_PLAYERS_CTE = `${CANDIDATES_CTE},
 team_players AS (
   SELECT DISTINCT ON (p.id)
     p.id AS player_id, te.team_id, te.era_id, p.position_id,
     p.name AS player_name, pos.name AS position_name, p.spp_total,
-    p.unspent_spp, p.is_journeyman
+    p.unspent_spp, p.is_journeyman,
+    (${INCOMPLETE_PLAYER_PREDICATE}) AS is_incomplete
   FROM game_data.players p
   JOIN game_data.team_eras te ON te.id = p.team_era_id
   JOIN game_data.positions pos ON pos.id = p.position_id
@@ -182,7 +189,8 @@ export const TEAM_PLAYERS_SQL = `${TEAM_PLAYERS_CTE}
 SELECT player_id AS "playerId", team_id AS "teamId", era_id AS "eraId",
   position_id AS "positionId", player_name AS "playerName",
   position_name AS "positionName", spp_total AS "sppTotal",
-  unspent_spp AS "unspentSpp", is_journeyman AS "isJourneyman"
+  unspent_spp AS "unspentSpp", is_journeyman AS "isJourneyman",
+  is_incomplete AS "isIncomplete"
 FROM team_players`;
 
 /**
@@ -362,7 +370,7 @@ JOIN game_data.players_external_ids pe ON pe.player_id = p.id
 JOIN game_data.external_systems es ON es.id = pe.external_system_id
 WHERE es.name = 'tourplay.net'
   AND pos.is_star_player = false
-  AND NOT (${INCOMPLETE_PLAYER_CONDITIONS.map((condition) => `p.${condition}`).join(' OR ')})
+  AND NOT (${INCOMPLETE_PLAYER_PREDICATE})
   AND ${REDUCTION_COUNT_COLUMNS.map((column) => `p.${column} = 0`).join('\n  AND ')}
   AND EXISTS (
     SELECT 1 FROM game_data.match_events me

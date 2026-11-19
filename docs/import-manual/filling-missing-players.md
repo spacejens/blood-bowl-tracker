@@ -184,7 +184,10 @@ entry has the stored status, else `dead` if a death is recorded, else
   adding up to less than the SPP he spent that it lacks a later one. Either
   way the check cannot be decided and the feed players sharing him stay
   ambiguous (unless a report is not among his stored paid advancements,
-  which rules him out). A player given
+  which rules him out). Only a complete player's stored paid advancements
+  are taken as his full list. An incomplete player's are being
+  reconstructed and may be partial, so reports that differ from them, or
+  are not among them, leave the check undecided instead. A player given
   no reports is always valid, since the feed only goes back to the end
   of 2022. When exactly one way is valid, each player gets his reports.
   His reports, in the order they were posted, are his advancements, at

@@ -11,7 +11,14 @@ import type { FeedFit, FeedOwner } from './fill-plan.types';
 const NAMES = [{ skillId: 200, skillName: 'Dodge', nameId: 'Dodge' }];
 
 function owner(playerId: number): FeedOwner {
-  return { playerId, sppTotal: 40, unspentSpp: 0, rulesSets: [], paid: [] };
+  return {
+    playerId,
+    sppTotal: 40,
+    unspentSpp: 0,
+    rulesSets: [],
+    paid: [],
+    isIncomplete: false,
+  };
 }
 
 function owners(...ids: number[]): Map<number, FeedOwner> {

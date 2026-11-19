@@ -245,6 +245,7 @@ export class FeedPlayerMatcherService {
       paid: pricing.paidAdvancements.filter(
         (paid) => paid.playerId === row.playerId,
       ),
+      isIncomplete: row.isIncomplete,
     };
   }
 

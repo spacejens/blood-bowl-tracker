@@ -32,7 +32,10 @@ export interface FeedFitInput {
  * a shown cost is above its price, or the prices add up to less than he
  * spent, the feed may lack a report, so the fit is `unknown`, unless he has
  * paid advancements stored and a report is not among them, which rules him
- * out. No reports always fit. A check that cannot be decided (SPP not
+ * out. Those comparisons with his stored paid advancements rule out only a
+ * complete player, whose stored advancements are all he has; an incomplete
+ * player's may be partial, so for him they give `unknown` instead. No
+ * reports always fit. A check that cannot be decided (SPP not
  * stored, a skill not resolved, reports not priced, a possible gap in the
  * feed) gives `unknown`, so it never rules a split in or out.
  *
@@ -83,14 +86,25 @@ export class FeedOwnerFitService {
     if (outcome.total === spent && !earlierGap) {
       return owner.paid.length === 0 || this.samePaid(steps, owner.paid)
         ? 'valid'
-        : 'invalid';
+        : this.paidMismatch(owner);
     }
     // The feed may lack a report: an earlier one when a shown cost is above
     // its price, a later one when the reports cost less than he spent.
     if (owner.paid.length === 0) {
       return 'unknown';
     }
-    return this.withinPaid(steps, owner.paid) ? 'unknown' : 'invalid';
+    return this.withinPaid(steps, owner.paid)
+      ? 'unknown'
+      : this.paidMismatch(owner);
+  }
+
+  /**
+   * The fit when the reports disagree with his stored paid advancements: a
+   * complete player's are all he has, but an incomplete player's are being
+   * reconstructed and may be partial.
+   */
+  private paidMismatch(owner: FeedOwner): FeedFit {
+    return owner.isIncomplete ? 'unknown' : 'invalid';
   }
 
   /** Whether the steps are exactly the stored paid advancements, in any order. */

@@ -77,6 +77,7 @@ const TEAM_PLAYER = {
   sppTotal: 20,
   unspentSpp: null,
   isJourneyman: true,
+  isIncomplete: true,
 };
 const PAID = [
   { playerId: 1, skillId: 200, attributeValue: '+1', characteristic: null },
@@ -297,6 +298,11 @@ describe('IncompletePlayerFillQueriesService', () => {
       TEAM_PLAYERS_SQL,
       { ...TEAM_PLAYER, isJourneyman: null },
     ],
+    [
+      'a team player without an incomplete flag',
+      TEAM_PLAYERS_SQL,
+      { ...TEAM_PLAYER, isIncomplete: null },
+    ],
   ])('rejects %s', async (_name, sql, row) => {
     results.set(sql, [row]);
 
@@ -314,6 +320,19 @@ describe('IncompletePlayerFillQueriesService', () => {
       'te.team_id IN (SELECT team_id FROM candidates)',
     );
     expect(TEAM_PLAYERS_SQL).toContain('FROM team_players');
+  });
+
+  it('flags each team player incomplete by exactly the conditions that select candidates', () => {
+    const teamPlayers = TEAM_PLAYERS_CTE.slice(
+      TEAM_PLAYERS_CTE.indexOf('team_players AS ('),
+    );
+
+    expect(teamPlayers).toContain(
+      `(${INCOMPLETE_PLAYER_CONDITIONS.map(
+        (condition) => `p.${condition}`,
+      ).join(' OR ')}) AS is_incomplete`,
+    );
+    expect(TEAM_PLAYERS_SQL).toContain('is_incomplete AS "isIncomplete"');
   });
 
   it('selects only paid advancements that are still held', () => {

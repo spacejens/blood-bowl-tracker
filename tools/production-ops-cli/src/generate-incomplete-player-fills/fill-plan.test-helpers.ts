@@ -30,7 +30,7 @@ export function report(
   };
 }
 
-/** Flame (Gnoblar Lineman, team 20, era 4, position 30): a TP player with 20 SPP, 2 unspent. */
+/** Flame (Gnoblar Lineman, team 20, era 4, position 30): a complete TP player with 20 SPP, 2 unspent. */
 export function teamPlayer(
   overrides: Partial<TeamPlayerRow> = {},
 ): TeamPlayerRow {
@@ -44,6 +44,7 @@ export function teamPlayer(
     sppTotal: 20,
     unspentSpp: 2,
     isJourneyman: false,
+    isIncomplete: false,
     ...overrides,
   };
 }
