@@ -35,6 +35,7 @@ describe('CoachMatchGapsService', () => {
     { coachId: 2, name: 'Grashnak', count: 34 },
   ];
 
+  // Three builders are issued per call: the distinct match list, the
   // LAG() gap subquery, and the outer aggregate that is awaited.
   it('getGapBetweenMatchesByCoachDescending returns the rows the outer query resolves to', async () => {
     const { db, chains } = await build([], [], gapRows);
