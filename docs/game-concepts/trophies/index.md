@@ -5,6 +5,7 @@ A [trophy](../../glossary.md#trophy) is a curated, named award a [team](../teams
 - A trophy has a name and an optional description of its award criteria — the description is optional because a trophy may be known by name well before its criteria are documented.
 - A trophy is scoped to exactly one of a [competition group](../competitions/index.md#competition-groups) or a [league](../leagues/index.md), never both and never neither. A group-scoped trophy (e.g. "Major Gold") is awarded through every competition in that recurring group; a league-scoped trophy is a lifetime-achievement style award that any competition in the league can grant.
 - A trophy's recipient kind — team or individual player — is fixed at creation and does not vary from one award to the next.
+- A trophy is curated as granting a skill or not: whether an award of it gives its player a skill outside the player's advancements. Only [tLoEG](../../glossary.md#tloeg)'s Gudarnas Förkämpe does (a free mutation). This is curated data, not a rule the tracker enforces: an award's granted skill (below) is not checked against it.
 - Trophies are curated by hand rather than inferred from source data, for the same reason [competition groups](../competitions/index.md#competition-groups) are: a source system's label text alone (e.g. `1st`) cannot disambiguate which trophy is meant. See [docs/import-manual](../../import-manual/index.md#trophies) for how the curated catalog is maintained.
 
 ## Trophy award
