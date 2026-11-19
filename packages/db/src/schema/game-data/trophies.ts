@@ -5,7 +5,7 @@ import {
   TROPHY_RECIPIENT_KINDS,
 } from '@blood-bowl-tracker/domain-enums';
 import { sql } from 'drizzle-orm';
-import { check, integer, serial, varchar } from 'drizzle-orm/pg-core';
+import { boolean, check, integer, serial, varchar } from 'drizzle-orm/pg-core';
 
 import { historyTrackedTable } from '../history';
 import { competitionGroups } from './competition-groups';
@@ -112,6 +112,13 @@ const trophiesTable = historyTrackedTable({
     // What a `career_threshold` accumulates. Required for `career_threshold`,
     // null otherwise: each `max_*` kind implies its own aggregation.
     awardRuleMeasure: trophyAwardRuleMeasureEnum('award_rule_measure'),
+    // Whether an award of this trophy gives its player a skill outside his
+    // advancements, as Gudarnas Förkämpe's free mutation does. Curated, not
+    // inferred: a granted skill the sources do not show looks the same as
+    // none, so the fill generator treats an award of such a trophy as a
+    // possible free skill. Not null with a default of false, so a trophy
+    // nobody has curated for this grants none.
+    grantsSkill: boolean('grants_skill').notNull().default(false),
   },
   extraConfig: (t) => ({
     // A plain single-table check, unlike the cross-table comparisons

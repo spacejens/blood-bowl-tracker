@@ -344,6 +344,17 @@ describe('schema', () => {
     expect(trophies.leagueId.getSQLType()).toBe('integer');
   });
 
+  it('exports trophies.grants_skill as a not-null boolean defaulting to false', () => {
+    // Whether an award of the trophy gives its player a skill outside his
+    // advancements. Not null with a default, so every trophy curated before
+    // the column existed reads as granting none.
+    expect(trophies.grantsSkill).toBeDefined();
+    expect(trophies.grantsSkill.getSQLType()).toBe('boolean');
+    expect(trophies.grantsSkill.notNull).toBe(true);
+    expect(trophies.grantsSkill.hasDefault).toBe(true);
+    expect(trophies.grantsSkill.default).toBe(false);
+  });
+
   it('constrains trophies to exactly one of competition group and league', () => {
     const config = getTableConfig(trophies);
     const names = config.checks.map((c) => c.name);
