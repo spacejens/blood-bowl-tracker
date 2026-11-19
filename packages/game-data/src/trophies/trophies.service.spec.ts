@@ -118,6 +118,36 @@ describe('TrophiesService', () => {
     });
   });
 
+  it('writes a stated grantsSkill on the update path', async () => {
+    const { chains } = await build(
+      [{ ownerId: 1, externalSystemId: 1, externalId: 'Chaos Cup' }],
+      [fakeTrophy],
+    );
+
+    await service.upsert({ ...baseData, grantsSkill: true });
+
+    expect(firstCallArg(chains[1].set)).toMatchObject({ grantsSkill: true });
+  });
+
+  it('leaves grantsSkill out of the update when the payload omits it', async () => {
+    const { chains } = await build(
+      [{ ownerId: 1, externalSystemId: 1, externalId: 'Chaos Cup' }],
+      [fakeTrophy],
+    );
+
+    await service.upsert(baseData);
+
+    expect(firstCallArg(chains[1].set)).not.toHaveProperty('grantsSkill');
+  });
+
+  it('inserts no grantsSkill for a new trophy whose payload omits it, so the column default applies', async () => {
+    const { chains } = await build([], [fakeTrophy]);
+
+    await service.upsert(baseData);
+
+    expect(firstCallArg(chains[1].values)).not.toHaveProperty('grantsSkill');
+  });
+
   it('hands the rule curation to the sync service on the upsert transaction', async () => {
     const { db } = await build([], [fakeTrophy]);
 
