@@ -126,13 +126,21 @@ describe('FeedOwnerFitService', () => {
     ).toBe('invalid');
   });
 
-  it('cannot decide when a shown cost is above its price, since the feed may lack an earlier report', () => {
+  it('cannot decide when a shown cost is above its price and the shown costs fall short of the SPP he spent, since the feed may lack an earlier report', () => {
+    pricing.price.mockReturnValue({ kind: 'priced', stepCosts: [4], total: 4 });
+
+    expect(
+      service.fit(fitInput({ owner: { ...fitInput().owner, unspentSpp: 0 } })),
+    ).toBe('unknown');
+  });
+
+  it('cannot decide when a shown cost is above its price and the shown costs add up to the SPP he spent', () => {
     pricing.price.mockReturnValue({ kind: 'priced', stepCosts: [4], total: 4 });
 
     expect(service.fit(fitInput())).toBe('unknown');
   });
 
-  it('cannot decide when a shown cost is above its price and the prices add up to the SPP he spent', () => {
+  it('refuses a shown cost above its price when the shown costs exceed the SPP he spent, though the prices do not', () => {
     pricing.price.mockReturnValue({ kind: 'priced', stepCosts: [4], total: 4 });
 
     expect(
@@ -145,7 +153,7 @@ describe('FeedOwnerFitService', () => {
           },
         }),
       ),
-    ).toBe('unknown');
+    ).toBe('invalid');
   });
 
   it('refuses a shown cost above its price when the report is not among his stored paid advancements', () => {

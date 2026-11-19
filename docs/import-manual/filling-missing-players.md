@@ -177,9 +177,11 @@ entry has the stored status, else `dead` if a death is recorded, else
   owners is tried. A way is valid when each player's reports, in the order
   they were posted, pass the pricing checks below and, for a player with
   paid advancements stored, are exactly those advancements. A shown cost
-  below its price, or prices adding up to more than the SPP he spent, rules
-  a player out: a report the feed lacks before his reports would only move
-  them to later advancement numbers, whose costs never fall. A shown cost
+  below its price rules a player out: a report the feed lacks before his
+  reports would only move them to later advancement numbers, and the cost
+  of an advancement kind never falls as the number rises (true of every
+  cost stored today). Shown costs adding up to more than the SPP he spent
+  rule him out too, since they are what he paid. Otherwise, a shown cost
   above its price may mean the feed lacks an earlier report, and prices
   adding up to less than the SPP he spent that it lacks a later one. Either
   way the check cannot be decided and the feed players sharing him stay

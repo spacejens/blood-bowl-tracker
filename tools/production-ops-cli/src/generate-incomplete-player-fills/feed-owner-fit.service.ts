@@ -22,12 +22,14 @@ export interface FeedFitInput {
 /**
  * Whether one stored player can own a list of feed reports, by what
  * AdvancementFillStageService requires of a feed-matched player: at most six
- * reports, each priced in order as his first advancements. A shown cost
- * below its price rules him out: an earlier report the feed lacks would
- * only move the reports to later advancement numbers, whose costs never
- * fall. A shown cost above its price may mean such a gap. The prices must
- * not exceed his total minus his unspent SPP (the SPP he spent). When they
- * add up to exactly that, every shown cost is its price, and he has paid
+ * reports, each priced in order as his first advancements. This assumes the
+ * cost of an advancement kind never falls as the advancement number rises,
+ * which holds for every cost row stored today. A shown cost below its price
+ * rules him out: an earlier report the feed lacks would only move the
+ * reports to later advancement numbers, whose costs never fall. A shown
+ * cost above its price may mean such a gap. The shown costs must not exceed
+ * his total minus his unspent SPP (the SPP he spent). When the prices add
+ * up to exactly that, every shown cost is its price, and he has paid
  * advancements stored, the reports must be exactly those advancements. When
  * a shown cost is above its price, or the prices add up to less than he
  * spent, the feed may lack a report, so the fit is `unknown`, unless he has
@@ -76,8 +78,11 @@ export class FeedOwnerFitService {
     if (steps.some((step, at) => step.reportedCost < outcome.stepCosts[at])) {
       return 'invalid';
     }
+    // The shown costs are what he paid for these advancements, at least the
+    // prices, so they alone must fit within the SPP he spent.
     const spent = owner.sppTotal - owner.unspentSpp;
-    if (outcome.total > spent) {
+    const shownTotal = steps.reduce((sum, step) => sum + step.reportedCost, 0);
+    if (shownTotal > spent) {
       return 'invalid';
     }
     const earlierGap = steps.some(
