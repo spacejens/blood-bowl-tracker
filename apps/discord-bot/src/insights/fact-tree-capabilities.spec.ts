@@ -315,7 +315,7 @@ describe('buildFactTree match category capabilities', () => {
     const supported = factTreeNavigation
       .collectLeaves(tree)
       .filter((leaf) => leaf.supportsMatchCategory);
-    expect(supported).toHaveLength(71);
+    expect(supported).toHaveLength(75);
   });
 
   it('supports the match category on leaves that do not support a competition', () => {
@@ -327,6 +327,10 @@ describe('buildFactTree match category capabilities', () => {
       'coach.toplist.matches.drawn',
       'coach.toplist.competitions.played',
       'coach.toplist.fouls.committed',
+      'coach.toplist.touchdowns.scored',
+      'coach.toplist.completions',
+      'coach.toplist.interceptions',
+      'coach.toplist.deflections',
       'coach.toplist.timeBetweenMatches.average',
       'team.toplist.matches.played',
       'team.toplist.matches.won',

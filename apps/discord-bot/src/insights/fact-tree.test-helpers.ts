@@ -29,6 +29,12 @@ export function stubFactTreeDeps(): FactTreeDeps {
   );
   coachToplist.resolveErasActive.mockResolvedValue('coach eras active');
   coachToplist.resolveFoulsCommitted.mockResolvedValue('coach fouls committed');
+  coachToplist.resolveTouchdownsScored.mockResolvedValue(
+    'coach touchdowns scored',
+  );
+  coachToplist.resolveCompletions.mockResolvedValue('coach completions');
+  coachToplist.resolveInterceptions.mockResolvedValue('coach interceptions');
+  coachToplist.resolveDeflections.mockResolvedValue('coach deflections');
   coachToplist.resolveTrophiesWon.mockResolvedValue('coach trophies won');
   coachToplist.resolveTimeBetweenMatchesDescending.mockResolvedValue(
     'coach longest time between matches',
