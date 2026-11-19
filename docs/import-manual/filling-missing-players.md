@@ -243,10 +243,11 @@ checks `feed-match-ambiguous`, `spp-too-high` and `free-skill-risk` before it.
   marked journeyman could own one of those reports (`feed-match-ambiguous`);
 - with no feed reports, or as a marked journeyman, his total is at or
   above the cheapest advancement cost of his era (`spp-too-high`);
-- he holds any trophy award (a trophy may grant a skill, and one not
-  recorded yet looks the same as none), he has a gained Loner, Hatred or
-  free extra stored, or the feed reports a Loner, a Hatred or a skill a
-  cost row grants (`free-skill-risk`);
+- he holds an award of a trophy curated as granting a skill (see
+  [Trophies section](trophies.md); a granted skill not recorded yet looks
+  the same as none), he has a gained Loner, Hatred or free extra stored, or
+  the feed reports a Loner, a Hatred or a skill a cost row grants
+  (`free-skill-risk`);
 - his stat reductions are not certain to last (`lasting-injury-uncertain`);
 - with feed reports: his unspent SPP is not stored
   (`unspent-spp-missing`); there are more than six reports

@@ -116,13 +116,17 @@ LEFT JOIN game_data.skills s ON s.id = pa.skill_id
 WHERE pa.removed = false`;
 
 /**
- * Candidates holding any trophy award: a trophy may grant a skill, and a
- * null granted skill can mean it is not known yet.
+ * Candidates holding an award of a trophy curated as granting a skill: the
+ * award may have given him a skill outside his advancements, and a null
+ * granted skill can mean it is not known yet. An award of any other trophy
+ * gives no skill, so it is no risk.
  */
 export const FREE_SKILL_RISK_SQL = `${CANDIDATES_CTE}
 SELECT DISTINCT ta.player_id AS "playerId"
 FROM game_data.trophy_awards ta
-JOIN candidates c ON c.player_id = ta.player_id`;
+JOIN game_data.trophies t ON t.id = ta.trophy_id
+JOIN candidates c ON c.player_id = ta.player_id
+WHERE t.grants_skill = true`;
 
 /**
  * Every team of an ongoing competition: enrolled in it, or a side in one of
