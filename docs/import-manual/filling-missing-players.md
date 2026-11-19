@@ -275,7 +275,7 @@ The server's checks above still apply when the batch is applied.
 The generated file also holds a `lastingInjuryRepairs` section, see
 [Recording lasting reductions](#recording-lasting-reductions).
 
-Batches 007 to 011 hold the fills generated this way (see
+Batches 007 to 012 hold the fills generated this way (see
 [Batches](batches.md)).
 
 ## Recording lasting reductions

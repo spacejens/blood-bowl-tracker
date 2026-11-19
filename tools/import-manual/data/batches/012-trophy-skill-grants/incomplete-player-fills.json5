@@ -1,0 +1,195 @@
+// The data of TP players the TP import left incomplete whose data could be
+// proven: players too low on SPP to have advanced (no advancements, the
+// whole total unspent, stat reductions applied when all fall in their last
+// competition; a marked journeyman with journeyman: true and his Loner left
+// to the server), and players whose advancements the TP feed reports prove
+// in order and to the SPP spent. Then the complete TP players with a stat
+// reduction recorded in a match and none stored, for the server to record
+// the lasting reductions their stored data shows. Generated from the
+// production database by production-ops-cli
+// generate-incomplete-player-fills; see
+// docs/import-manual/filling-missing-players.md#generated-fills.
+{
+  externalSystems: [
+    {
+      name: 'Name',
+      category: 'bookkeeping',
+    },
+    {
+      name: 'tourplay.net',
+      category: 'imported_data_source',
+    },
+  ],
+  incompletePlayerFills: [
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '595518',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 5,
+        av: 7,
+      },
+      sppTotal: 5,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Catch',
+        },
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Sprint',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+      ],
+      advancements: [
+        {
+          skill: {
+            system: 'Name',
+            id: 'Leap',
+          },
+          source: 'random',
+        },
+      ],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '607539',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 4,
+        ag: 3,
+        pa: 5,
+        av: 9,
+      },
+      sppTotal: 2,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Defensive',
+        },
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '869393',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 7,
+        st: 2,
+        ag: 2,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 3,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [
+        {
+          skill: {
+            system: 'Name',
+            id: 'Fend',
+          },
+          source: 'random',
+        },
+      ],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1233621',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 8,
+      unspentSpp: 2,
+      startingSkills: [
+        {
+          skill: {
+            system: 'Name',
+            id: 'Aminosity',
+          },
+          attributeValue: 'Goblin',
+        },
+      ],
+      advancements: [
+        {
+          skill: {
+            system: 'Name',
+            id: 'Wrestle',
+          },
+          source: 'chosen',
+        },
+      ],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '1245163',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 2,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Jump Up',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Wresle',
+        },
+      ],
+      advancements: [],
+    },
+  ],
+  lastingInjuryRepairs: [],
+}
