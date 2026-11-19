@@ -795,9 +795,9 @@ describe('CoachesQueriesService', () => {
     });
 
     it('forwards the whole scope and limit verbatim, competition included', async () => {
-      // Unlike the match-event-backed coach counts, this one keeps the competitionId:
-      // a trophy award belongs to a competition, so coach.toplist.trophies.won
-      // declares supportsCompetition: true.
+      // Unlike the match-event-backed coach counts, this one keeps the
+      // competitionId: a trophy award belongs to a competition, so
+      // coach.toplist.trophies.won declares supportsCompetition: true.
       trophyAwardCounts.countTrophiesByCoach.mockResolvedValue([]);
       await build();
       await service.countTrophiesByCoach(

@@ -544,10 +544,11 @@ export class CoachesQueriesService {
 
   /**
    * Coaches ranked by the total number of trophies their teams have won,
-   * across every team they have coached. Unlike the match-event-backed coach counts
-   * (countActingEventsByCoach), the competitionId is forwarded: a trophy award belongs to a competition,
-   * so this fact is competition-scopable. The scope's match category is
-   * ignored by the shared service — a trophy award is not a match event.
+   * across every team they have coached. Unlike the match-event-backed coach
+   * counts, the competitionId is forwarded: a trophy award belongs to a
+   * competition, so this fact is competition-scopable. The scope's match
+   * category is ignored by the shared service — a trophy award is not a match
+   * event.
    */
   countTrophiesByCoach(
     scope: FactScope,
