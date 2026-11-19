@@ -268,8 +268,9 @@ checks `feed-match-ambiguous`, `spp-too-high` and `free-skill-risk` before it.
   the feed reports a Loner, a Hatred or a skill a cost row grants
   (`free-skill-risk`);
 - his stat reductions are not certain to last: none of the proofs under
-  lasting injuries above holds, or a match date cannot be read
-  (`lasting-injury-uncertain`);
+  lasting injuries above holds (`lasting-injury-uncertain`). A match date
+  that cannot be read only fails the proofs that compare dates (one
+  competition, death), never the never-healing era proof, which reads none;
 - with feed reports: his unspent SPP is not stored
   (`unspent-spp-missing`); there are more than six reports
   (`too-many-advancements`); a reported skill names no stored skill, or
