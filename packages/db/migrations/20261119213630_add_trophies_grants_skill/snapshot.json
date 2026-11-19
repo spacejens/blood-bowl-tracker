@@ -1,0 +1,81 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "8a3fb39f-d833-4370-9b48-d87be2e567f9",
+  "prevIds": [
+    "7741fcb9-7bd0-4661-a2c3-74c5ef0809f9"
+  ],
+  "footprints": [
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "trophies",
+        "grants_skill"
+      ],
+      "writes": [
+        "s|col|game_data.trophies.grants_skill",
+        "n|col|game_data.trophies.grants_skill",
+        "e|col|game_data.trophies.grants_skill"
+      ],
+      "reads": [
+        "n|tbl|game_data.trophies",
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "trophies_history",
+        "grants_skill"
+      ],
+      "writes": [
+        "s|col|game_data.trophies_history.grants_skill",
+        "n|col|game_data.trophies_history.grants_skill",
+        "e|col|game_data.trophies_history.grants_skill"
+      ],
+      "reads": [
+        "n|tbl|game_data.trophies_history",
+        "n|sch|game_data"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "trophies",
+        "name": "grants_skill",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "false",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "trophies_history",
+        "name": "grants_skill",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    }
+  ]
+}

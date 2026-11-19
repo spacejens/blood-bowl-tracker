@@ -54,7 +54,7 @@ export interface AdvancementStageInput {
   reductions: readonly StatReductionEventRow[];
   /** Every competition his team era played in, with its last match. */
   competitions: readonly TeamCompetitionRow[];
-  /** He holds a trophy award, or a stored gained free skill. */
+  /** He holds an award of a trophy that grants a skill, or a stored gained free skill. */
   freeSkillRisk: boolean;
   stored: readonly StoredAdvancementRow[];
   /** His position's one profile in his era; undefined when not certain. */

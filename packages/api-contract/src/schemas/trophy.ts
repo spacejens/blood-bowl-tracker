@@ -50,6 +50,7 @@ export const TrophySchema = z.object({
   awardRuleTieCutoff: z.number().nullable(),
   awardRuleThreshold: z.number().nullable(),
   awardRuleMeasure: TrophyAwardRuleMeasureSchema.nullable(),
+  grantsSkill: z.boolean(),
   createdAt: z.coerce.date(),
 });
 
@@ -73,6 +74,11 @@ export const UpsertTrophySchema = z.object({
   awardRuleTieCutoff: z.number().int().nullable().optional(),
   awardRuleThreshold: z.number().int().nullable().optional(),
   awardRuleMeasure: TrophyAwardRuleMeasureSchema.nullable().optional(),
+  // Whether an award of the trophy gives its player a skill outside his
+  // advancements. Optional but not nullable, since the column is NOT NULL:
+  // omitting it leaves the stored value alone, and a new trophy gets the
+  // column's default of false.
+  grantsSkill: z.boolean().optional(),
   // Supplying either array REPLACES that trophy's curated rows wholesale (an
   // empty array clears them); omitting it leaves them alone, matching how the
   // scalar fields above overlay rather than reset.

@@ -62,6 +62,9 @@ export class TrophiesProcessor {
           awardRuleTieCutoff: entry.awardRuleTieCutoff ?? null,
           awardRuleThreshold: entry.awardRuleThreshold ?? null,
           awardRuleMeasure: entry.awardRuleMeasure ?? null,
+          // Passed through as is, unlike the rule columns above: an omitted
+          // grant must leave the stored flag alone, never clear it.
+          grantsSkill: entry.grantsSkill,
           awardRuleMatchEventTypes: entry.awardRuleMatchEventTypes,
           awardRuleExcludedMatchEventTypes:
             entry.awardRuleExcludedMatchEventTypes,

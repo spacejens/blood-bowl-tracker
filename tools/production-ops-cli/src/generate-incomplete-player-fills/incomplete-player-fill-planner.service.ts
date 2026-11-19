@@ -339,7 +339,7 @@ export class IncompletePlayerFillPlannerService {
     );
   }
 
-  /** A trophy award, or a stored gained free skill. */
+  /** An award of a trophy that grants a skill, or a stored gained free skill. */
   private freeSkillRisk(gated: Gated): boolean {
     return (
       gated.index.freeSkillRisk.has(gated.candidate.playerId) ||

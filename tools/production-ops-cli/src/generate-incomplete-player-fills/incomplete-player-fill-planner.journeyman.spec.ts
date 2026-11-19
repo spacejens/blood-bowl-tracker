@@ -193,7 +193,7 @@ describe('IncompletePlayerFillPlannerService journeymen', () => {
     ).toBe('spp-too-high');
   });
 
-  it('skips one holding a trophy award', () => {
+  it('skips one holding an award of a skill-granting trophy', () => {
     expect(reasonFor(journeymanInput({ freeSkillRiskPlayerIds: [1] }))).toBe(
       'free-skill-risk',
     );
