@@ -40,6 +40,7 @@ import { PositionProfileService } from './position-profile.service';
 interface PlannerIndex {
   statReduction: Set<number>;
   death: Set<number>;
+  deathTimes: Map<number, string>;
   stored: Map<number, StoredAdvancementRow[]>;
   freeSkillRisk: Set<number>;
   ongoingTeams: Set<number>;
@@ -208,6 +209,7 @@ export class IncompletePlayerFillPlannerService {
           status: this.status(gated),
           reductions: index.reductions.get(candidate.playerId) ?? [],
           competitions: index.competitions.get(candidate.playerId) ?? [],
+          ...this.healing(gated),
           stored: this.stored(gated),
           profile: this.profile(candidate, index),
         }),
@@ -311,6 +313,7 @@ export class IncompletePlayerFillPlannerService {
       hasStatReduction: index.statReduction.has(candidate.playerId),
       reductions: index.reductions.get(candidate.playerId) ?? [],
       competitions: index.competitions.get(candidate.playerId) ?? [],
+      ...this.healing(gated),
       freeSkillRisk: this.freeSkillRisk(gated),
       stored: this.stored(gated),
       profile: this.profile(candidate, index),
@@ -337,6 +340,20 @@ export class IncompletePlayerFillPlannerService {
       gated.candidate,
       gated.index.death.has(gated.candidate.playerId),
     );
+  }
+
+  /** What the lasting-injury proof reads besides his reductions and competitions. */
+  private healing(gated: Gated): {
+    rulesSetNames: string[];
+    diedAt: string | null;
+  } {
+    const { candidate, index } = gated;
+    return {
+      rulesSetNames: (index.eraRulesSets.get(candidate.eraId) ?? []).map(
+        (row) => row.rulesSetName,
+      ),
+      diedAt: index.deathTimes.get(candidate.playerId) ?? null,
+    };
   }
 
   /** An award of a trophy that grants a skill, or a stored gained free skill. */
@@ -401,6 +418,9 @@ export class IncompletePlayerFillPlannerService {
     return {
       statReduction: new Set(input.statReductionPlayerIds),
       death: new Set(input.deathPlayerIds),
+      deathTimes: new Map(
+        input.deathTimes.map((row) => [row.playerId, row.diedAt]),
+      ),
       stored: this.groupBy(input.storedAdvancements, (row) => row.playerId),
       freeSkillRisk: new Set(input.freeSkillRiskPlayerIds),
       ongoingTeams: new Set(input.ongoingTeamIds),

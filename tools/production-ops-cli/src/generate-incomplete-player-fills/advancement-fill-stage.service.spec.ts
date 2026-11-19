@@ -38,6 +38,8 @@ function stageInput(
     hasStatReduction: false,
     reductions: [],
     competitions: [],
+    rulesSetNames: ['BB2020'],
+    diedAt: null,
     freeSkillRisk: false,
     stored: [],
     profile: profile(),

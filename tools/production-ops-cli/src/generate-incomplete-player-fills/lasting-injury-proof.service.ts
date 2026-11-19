@@ -10,8 +10,12 @@ import type {
 export interface LastingInjuryInput {
   /** The player's stat-reduction match events. */
   reductions: readonly StatReductionEventRow[];
-  /** Every competition his team era played in, with its last match. */
+  /** Every competition his team era played in, with its first and last match. */
   competitions: readonly TeamCompetitionRow[];
+  /** The names of his era's rules sets. */
+  rulesSetNames: readonly string[];
+  /** When the earliest match recording his death was played; null when none is recorded. */
+  diedAt: string | null;
 }
 
 /**

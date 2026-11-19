@@ -627,6 +627,8 @@ describe('IncompletePlayerFillPlannerService', () => {
       hasStatReduction: true,
       reductions: [event],
       competitions: [played],
+      rulesSetNames: ['BB2020'],
+      diedAt: null,
       freeSkillRisk: true,
       stored: [],
       profile: profile(),
@@ -701,20 +703,46 @@ describe('IncompletePlayerFillPlannerService', () => {
         statReductionPlayerIds: [1],
         statReductionEvents: [event, { ...event, playerId: 2 }],
         teamCompetitions: [played, { ...played, playerId: 2 }],
+        deathPlayerIds: [1],
+        deathTimes: [
+          { playerId: 1, diedAt: '2024-03-15T19:00:00+00:00' },
+          { playerId: 2, diedAt: '2024-01-01T19:00:00+00:00' },
+        ],
       }),
     );
 
     expect(injuryStage.decide).toHaveBeenCalledWith({
       candidate: candidate(),
       sppTotal: 5,
-      status: 'retired',
+      status: 'dead',
       reductions: [event],
       competitions: [played],
+      rulesSetNames: ['BB2020'],
+      diedAt: '2024-03-15T19:00:00+00:00',
       stored: [],
       profile: profile(),
     });
     expect(plan.entries).toEqual([STAGED]);
     expect(plan.report.eligibleByStage.injuryOnly).toBe(1);
+  });
+
+  it('hands the injury stage every rules set name of his era and no death time when none is recorded', () => {
+    injuryStage.decide.mockReturnValue({ entry: STAGED });
+
+    service.plan(
+      eligibleInput({
+        statReductionPlayerIds: [1],
+        eraRulesSets: [
+          { eraId: 4, rulesSetId: 7, rulesSetName: 'CRP', cheapestCost: 6 },
+          { eraId: 4, rulesSetId: 8, rulesSetName: 'CRP+', cheapestCost: 6 },
+          { eraId: 9, rulesSetId: 9, rulesSetName: 'BB2020', cheapestCost: 6 },
+        ],
+      }),
+    );
+
+    expect(injuryStage.decide).toHaveBeenCalledWith(
+      expect.objectContaining({ rulesSetNames: ['CRP', 'CRP+'], diedAt: null }),
+    );
   });
 
   it('skips a free-skill risk before the injury stage', () => {
