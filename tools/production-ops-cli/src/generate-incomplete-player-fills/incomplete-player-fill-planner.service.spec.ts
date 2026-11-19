@@ -205,7 +205,11 @@ describe('IncompletePlayerFillPlannerService', () => {
       },
       'spp-too-high',
     ],
-    ['a trophy award', { freeSkillRiskPlayerIds: [1] }, 'free-skill-risk'],
+    [
+      'an award of a skill-granting trophy',
+      { freeSkillRiskPlayerIds: [1] },
+      'free-skill-risk',
+    ],
     [
       'a recorded stat reduction',
       { statReductionPlayerIds: [1] },

@@ -323,6 +323,11 @@ const TrophyEntrySchema = z.object({
   awardRuleTieCutoff: z.number().int().positive().optional(),
   awardRuleThreshold: z.number().int().positive().optional(),
   awardRuleMeasure: TrophyAwardRuleMeasureSchema.optional(),
+  // Whether an award of this trophy gives its player a skill outside his
+  // advancements (Gudarnas Förkämpe's free mutation). Optional with no
+  // default: an entry that says nothing leaves the stored flag alone, and a
+  // new trophy gets the database's default of false.
+  grantsSkill: z.boolean().optional(),
   // Default `[]` rather than optional: an entry that says nothing about its
   // rule types really does have none, and letting the processor send `[]`
   // clears any stale rows from a previous classification.

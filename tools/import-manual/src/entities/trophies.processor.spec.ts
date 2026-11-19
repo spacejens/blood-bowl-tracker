@@ -48,6 +48,22 @@ function makeContext(data: ManualDataFile): ProcessContext {
   };
 }
 
+type TrophyEntry = ManualDataFile['trophies'][number];
+
+function gudarnas(overrides: Partial<TrophyEntry> = {}): TrophyEntry {
+  return {
+    name: 'Gudarnas Förkämpe',
+    recipientKind: 'player',
+    awardRuleKind: 'manual',
+    awardProcedure: 'Rolled by hand.',
+    awardRuleMatchEventTypes: [],
+    awardRuleExcludedMatchEventTypes: [],
+    awardRuleEligiblePositions: [],
+    externalIds: [{ system: 'tloeg.bbleague.se', id: 'Gudarnas Förkämpe' }],
+    ...overrides,
+  };
+}
+
 describe('TrophiesProcessor', () => {
   let processor: TrophiesProcessor;
   let trophies: MockProxy<TrophiesImportService>;
@@ -84,6 +100,7 @@ describe('TrophiesProcessor', () => {
       awardRuleTieCutoff: null,
       awardRuleThreshold: null,
       awardRuleMeasure: null,
+      grantsSkill: false,
       createdAt: new Date(),
       created: true,
     });
@@ -146,6 +163,7 @@ describe('TrophiesProcessor', () => {
       awardRuleTieCutoff: null,
       awardRuleThreshold: null,
       awardRuleMeasure: null,
+      grantsSkill: false,
       createdAt: new Date(),
       created: true,
     });
@@ -203,6 +221,7 @@ describe('TrophiesProcessor', () => {
       awardRuleTieCutoff: 4,
       awardRuleThreshold: null,
       awardRuleMeasure: null,
+      grantsSkill: false,
       createdAt: new Date(),
       created: true,
     });
@@ -279,6 +298,7 @@ describe('TrophiesProcessor', () => {
       awardRuleTieCutoff: null,
       awardRuleThreshold: null,
       awardRuleMeasure: null,
+      grantsSkill: false,
       createdAt: new Date(),
       created: true,
     });
@@ -344,6 +364,7 @@ describe('TrophiesProcessor', () => {
       awardRuleTieCutoff: null,
       awardRuleThreshold: null,
       awardRuleMeasure: null,
+      grantsSkill: false,
       createdAt: new Date(),
       created: true,
     });
@@ -393,6 +414,7 @@ describe('TrophiesProcessor', () => {
       awardRuleTieCutoff: null,
       awardRuleThreshold: null,
       awardRuleMeasure: null,
+      grantsSkill: false,
       createdAt: new Date(),
       created: true,
     });
@@ -463,6 +485,7 @@ describe('TrophiesProcessor', () => {
       awardRuleTieCutoff: null,
       awardRuleThreshold: 176,
       awardRuleMeasure: 'spp_sum',
+      grantsSkill: false,
       createdAt: new Date(),
       created: true,
     });
@@ -552,6 +575,7 @@ describe('TrophiesProcessor', () => {
       awardRuleTieCutoff: null,
       awardRuleThreshold: null,
       awardRuleMeasure: null,
+      grantsSkill: false,
       createdAt: new Date(),
       created: true,
     });
@@ -580,5 +604,29 @@ describe('TrophiesProcessor', () => {
       }),
       expect.anything(),
     );
+  });
+
+  it('forwards a stated skill grant to the trophy upsert', async () => {
+    refResolver.toExternalIds.mockReturnValue([
+      { externalSystemId: 1, externalId: 'Gudarnas Förkämpe' },
+    ]);
+    const data = emptyData();
+    data.trophies = [gudarnas({ grantsSkill: true })];
+
+    await processor.process(makeContext(data));
+
+    expect(trophies.upsert.mock.calls[0][0].grantsSkill).toBe(true);
+  });
+
+  it('passes an omitted skill grant through undefined, leaving the stored flag alone', async () => {
+    refResolver.toExternalIds.mockReturnValue([
+      { externalSystemId: 1, externalId: 'Gudarnas Förkämpe' },
+    ]);
+    const data = emptyData();
+    data.trophies = [gudarnas()];
+
+    await processor.process(makeContext(data));
+
+    expect(trophies.upsert.mock.calls[0][0].grantsSkill).toBeUndefined();
   });
 });

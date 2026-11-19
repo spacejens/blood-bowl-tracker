@@ -101,6 +101,7 @@ export class TrophiesService {
         awardRuleTieCutoff: data.awardRuleTieCutoff,
         awardRuleThreshold: data.awardRuleThreshold,
         awardRuleMeasure: data.awardRuleMeasure,
+        grantsSkill: data.grantsSkill,
       },
       externalIdTable: trophyExternalIds,
       ownerIdColumn: trophyExternalIds.trophyId,

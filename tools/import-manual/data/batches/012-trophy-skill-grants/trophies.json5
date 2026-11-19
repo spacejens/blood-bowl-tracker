@@ -1,0 +1,30 @@
+// Which curated trophies give their player a skill outside his
+// advancements. Only Gudarnas Förkämpe does: its winner gets a free mutation
+// after the Chaos Cup. Every other trophy keeps the default of false.
+//
+// The entry restates batch 001's Gudarnas Förkämpe unchanged apart from
+// grantsSkill. It repeats the whole award rule because the processor writes
+// an omitted rule column as null, and it keeps the same external id so the
+// upsert finds the same row.
+{
+  externalSystems: [
+    { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
+    { name: 'Name', category: 'bookkeeping' },
+  ],
+  trophies: [
+    {
+      name: 'Gudarnas Förkämpe',
+      recipientKind: 'player',
+      competitionGroup: { system: 'Name', id: 'Chaos Cup' },
+      description:
+        'The player who stands in the gods\' favor, awarded a "free" mutation immediately after the Chaos Cup.',
+      awardRuleKind: 'manual',
+      awardProcedure:
+        'The Chaos Cup winner nominates three of their players and rolls a D3 to choose one; no underlying statistic determines it.',
+      grantsSkill: true,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Gudarnas Förkämpe' },
+      ],
+    },
+  ],
+}

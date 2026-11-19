@@ -22,6 +22,7 @@ tools/import-manual/data/batches/
   009-tp-feed-injured-player-fills/
   010-tp-journeyman-fills/
   011-tp-feed-disambiguated-fills/
+  012-trophy-skill-grants/
 ```
 
 A batch directory is named `NNN-<slug>`: a three-digit number and a lowercase
@@ -128,6 +129,18 @@ The batches:
   pricing checks, and 9 marked journeymen no report can belong
   to, filled as having none. It is generated the same way as batch 008, and
   applies after the source importers and after batch 010, in a plain
+  `apply`.
+- **012-trophy-skill-grants** — restates Gudarnas Förkämpe, the one curated
+  trophy whose award gives its player a skill (a free mutation), with
+  `grantsSkill: true` (see [Trophies section](trophies.md)), so the fill
+  generator treats only its awards as a possible free skill. It also fills
+  in the data of 5 incomplete TP players that change made provable: each
+  holds only awards of trophies that grant no skill (Trogen Tjänst, Top
+  Intercepter). The fills are generated the same way as batch 008, but from
+  a restored production backup with this batch's trophy entry applied,
+  because the generator needs the flag this batch sets, which production
+  gets only when the batch is applied. The trophy entry runs before the fills within the batch. It
+  applies after the source importers and after batch 011, in a plain
   `apply`.
 
 A batch can also fill in the data of a TP player the TP import left

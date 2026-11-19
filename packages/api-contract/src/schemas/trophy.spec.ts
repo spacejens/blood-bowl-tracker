@@ -21,6 +21,7 @@ describe('trophy schemas', () => {
       awardRuleTieCutoff: null,
       awardRuleThreshold: null,
       awardRuleMeasure: null,
+      grantsSkill: false,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.recipientKind).toBe('team');
@@ -41,9 +42,54 @@ describe('trophy schemas', () => {
       awardRuleTieCutoff: null,
       awardRuleThreshold: null,
       awardRuleMeasure: null,
+      grantsSkill: false,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.description).toBeNull();
+  });
+
+  it('carries whether the trophy grants a skill on a trophy row', () => {
+    const row = {
+      id: 7,
+      name: 'Gudarnas Förkämpe',
+      recipientKind: 'player',
+      description: null,
+      competitionGroupId: 2,
+      leagueId: null,
+      awardRuleKind: 'manual',
+      awardProcedure: 'Rolled by hand.',
+      awardRuleRole: null,
+      awardRuleTieCutoff: null,
+      awardRuleThreshold: null,
+      awardRuleMeasure: null,
+      grantsSkill: true,
+      createdAt: '2026-01-01T00:00:00.000Z',
+    };
+    expect(TrophySchema.parse(row).grantsSkill).toBe(true);
+    expect(
+      TrophySchema.safeParse({ ...row, grantsSkill: undefined }).success,
+    ).toBe(false);
+  });
+
+  it('accepts grantsSkill on upsert and leaves it undefined when omitted', () => {
+    const externalIds = [
+      { externalSystemId: 1, externalId: 'Gudarnas Förkämpe' },
+    ];
+    expect(
+      UpsertTrophySchema.parse({ grantsSkill: true, externalIds }).grantsSkill,
+    ).toBe(true);
+    expect(
+      UpsertTrophySchema.parse({ externalIds }).grantsSkill,
+    ).toBeUndefined();
+  });
+
+  it('rejects a null grantsSkill on upsert', () => {
+    expect(
+      UpsertTrophySchema.safeParse({
+        grantsSkill: null,
+        externalIds: [{ externalSystemId: 1, externalId: 'Gudarnas Förkämpe' }],
+      }).success,
+    ).toBe(false);
   });
 
   it('rejects an unknown recipient kind', () => {
@@ -118,6 +164,7 @@ describe('trophy schemas', () => {
       awardRuleTieCutoff: 1,
       awardRuleThreshold: null,
       awardRuleMeasure: null,
+      grantsSkill: false,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.competitionGroupId).toBeNull();
