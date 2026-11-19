@@ -19,8 +19,15 @@ import {
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
+import type { ActionType } from '@blood-bowl-tracker/domain-enums';
 import type { FactScope } from '@blood-bowl-tracker/game-data';
-import { FOUL_TYPES } from '@blood-bowl-tracker/game-data';
+import {
+  COMPLETION_TYPES,
+  DEFLECTION_TYPES,
+  FOUL_TYPES,
+  INTERCEPTION_TYPES,
+  TOUCHDOWN_TYPES,
+} from '@blood-bowl-tracker/game-data';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { countRows } from '../shared/count-all';
@@ -476,16 +483,21 @@ export class CoachesQueriesService {
       .limit(limit);
   }
 
-  countFoulsCommittedByCoach(
+  /**
+   * The shared shape of every match-event-backed coach toplist: count events
+   * of the given types credited to the acting side, attributed to that
+   * team's coach and summed over all of the coach's teams. Deliberately does
+   * not forward scope.competitionId: these coach toplists are
+   * league/era/match-category-scoped only (the trophy toplist below is the
+   * exception, since a trophy award belongs to a competition).
+   */
+  private countActingEventsByCoach(
+    types: readonly ActionType[],
     scope: FactScope,
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
-    // Deliberately does not forward scope.competitionId: coach toplists are
-    // league/era/match-category-scoped only, matching the other
-    // match-event-backed coach.toplist.* facts (the trophy toplist below is
-    // the exception, since a trophy award belongs to a competition).
     return this.matchEventCounts.countMatchEventsByCoach({
-      selector: { role: 'acting', types: FOUL_TYPES },
+      selector: { role: 'acting', types },
       scope: {
         leagueId: scope.leagueId,
         eraId: scope.eraId,
@@ -495,10 +507,45 @@ export class CoachesQueriesService {
     });
   }
 
+  countFoulsCommittedByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.countActingEventsByCoach(FOUL_TYPES, scope, limit);
+  }
+
+  countTouchdownsScoredByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.countActingEventsByCoach(TOUCHDOWN_TYPES, scope, limit);
+  }
+
+  countCompletionsByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.countActingEventsByCoach(COMPLETION_TYPES, scope, limit);
+  }
+
+  countInterceptionsByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.countActingEventsByCoach(INTERCEPTION_TYPES, scope, limit);
+  }
+
+  countDeflectionsByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.countActingEventsByCoach(DEFLECTION_TYPES, scope, limit);
+  }
+
   /**
    * Coaches ranked by the total number of trophies their teams have won,
-   * across every team they have coached. Unlike countFoulsCommittedByCoach,
-   * the competitionId is forwarded: a trophy award belongs to a competition,
+   * across every team they have coached. Unlike the match-event-backed coach counts
+   * (countActingEventsByCoach), the competitionId is forwarded: a trophy award belongs to a competition,
    * so this fact is competition-scopable. The scope's match category is
    * ignored by the shared service — a trophy award is not a match event.
    */
