@@ -432,6 +432,64 @@ describe('AdvancementFillStageService', () => {
       ).toBe('lasting-injury-uncertain');
     });
 
+    it('fills a player whose reductions span competitions in an era where they never heal', () => {
+      const decision = service.decide(
+        injuredInput({
+          rulesSetNames: ['CRP'],
+          reductions: [
+            REDUCTION,
+            {
+              ...REDUCTION,
+              competitionId: 51,
+              playedAt: '2024-05-01T19:00:00+00:00',
+            },
+          ],
+          competitions: [
+            PLAYED,
+            {
+              ...PLAYED,
+              competitionId: 51,
+              firstPlayedAt: '2024-04-15T19:00:00+00:00',
+              lastPlayedAt: '2024-06-01T19:00:00+00:00',
+            },
+          ],
+        }),
+      );
+
+      expect('entry' in decision && decision.entry.characteristics).toEqual({
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 7,
+      });
+    });
+
+    it('fills a player who died in the competition of his reductions', () => {
+      const decision = service.decide(
+        injuredInput({
+          diedAt: '2024-03-01T19:00:00+00:00',
+          competitions: [
+            PLAYED,
+            {
+              ...PLAYED,
+              competitionId: 51,
+              firstPlayedAt: '2024-05-01T19:00:00+00:00',
+              lastPlayedAt: '2024-06-01T19:00:00+00:00',
+            },
+          ],
+        }),
+      );
+
+      expect('entry' in decision && decision.entry.characteristics).toEqual({
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      });
+    });
+
     it('skips a player with a recorded reduction but no reduction rows', () => {
       expect(reasonFor(injuredInput({ reductions: [] }))).toBe(
         'lasting-injury-uncertain',

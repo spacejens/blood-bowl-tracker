@@ -207,4 +207,252 @@ describe('LastingInjuryProofService', () => {
       ),
     ).toBeUndefined();
   });
+
+  describe('in an era whose rules sets never heal', () => {
+    it.each([[['CRP']], [['CRP+']], [['BB2016']], [['CRP', 'CRP+', 'BB2016']]])(
+      'counts reductions across competitions under %j',
+      (rulesSetNames) => {
+        expect(
+          service.prove(
+            proofInput({
+              rulesSetNames,
+              reductions: [
+                reduction(),
+                reduction({
+                  characteristic: 'av',
+                  competitionId: 51,
+                  playedAt: '2024-09-01T19:00:00+00:00',
+                }),
+              ],
+              competitions: [
+                competition(),
+                competition({
+                  competitionId: 51,
+                  firstPlayedAt: '2024-08-01T19:00:00+00:00',
+                  lastPlayedAt: '2024-10-01T19:00:00+00:00',
+                }),
+              ],
+            }),
+          ),
+        ).toEqual({ ma: 1, st: 0, ag: 0, pa: 0, av: 1 });
+      },
+    );
+
+    it('counts reductions without competition rows or readable dates', () => {
+      expect(
+        service.prove(
+          proofInput({
+            rulesSetNames: ['CRP'],
+            reductions: [reduction({ playedAt: 'not a date' })],
+            competitions: [],
+          }),
+        ),
+      ).toEqual({ ma: 1, st: 0, ag: 0, pa: 0, av: 0 });
+    });
+
+    it('is still uncertain without any reduction', () => {
+      expect(
+        service.prove(proofInput({ rulesSetNames: ['CRP'], reductions: [] })),
+      ).toBeUndefined();
+    });
+  });
+
+  describe('in an era that may heal', () => {
+    const spanning = {
+      reductions: [
+        reduction(),
+        reduction({ competitionId: 51, playedAt: '2024-09-01T19:00:00+00:00' }),
+      ],
+      competitions: [
+        competition(),
+        competition({
+          competitionId: 51,
+          firstPlayedAt: '2024-08-01T19:00:00+00:00',
+          lastPlayedAt: '2024-10-01T19:00:00+00:00',
+        }),
+      ],
+    };
+
+    it.each([
+      ['a mixed era', ['CRP', 'BB2020']],
+      ['an unknown rules set', ['Homebrew 2023']],
+      ['an era with no rules set', []],
+      ['a healing rules set', ['DB2021']],
+    ])('is uncertain across competitions in %s', (_name, rulesSetNames) => {
+      expect(
+        service.prove(proofInput({ ...spanning, rulesSetNames })),
+      ).toBeUndefined();
+    });
+  });
+
+  describe('with a recorded death', () => {
+    /** Reductions in competition 50 (Feb-Apr 2024); death on 15 March. */
+    const DIED = '2024-03-15T19:00:00+00:00';
+    /**
+     * A competition his team played after his death. It defeats the
+     * one-competition proof, so a test using it reaches the death proof.
+     */
+    const PLAYED_ON = competition({
+      competitionId: 51,
+      firstPlayedAt: '2024-05-01T19:00:00+00:00',
+      lastPlayedAt: '2024-09-01T19:00:00+00:00',
+    });
+
+    it("counts reductions when he died in the reductions' competition and the team played on", () => {
+      expect(
+        service.prove(
+          proofInput({
+            diedAt: DIED,
+            reductions: [
+              reduction(),
+              reduction({
+                characteristic: 'st',
+                playedAt: '2024-03-15T19:00:00+00:00',
+              }),
+            ],
+            competitions: [competition(), PLAYED_ON],
+          }),
+        ),
+      ).toEqual({ ma: 1, st: 1, ag: 0, pa: 0, av: 0 });
+    });
+
+    it('is uncertain when he died in a later competition', () => {
+      expect(
+        service.prove(
+          proofInput({
+            diedAt: '2024-06-01T19:00:00+00:00',
+            competitions: [
+              competition(),
+              competition({
+                competitionId: 51,
+                firstPlayedAt: '2024-05-01T19:00:00+00:00',
+                lastPlayedAt: '2024-06-01T19:00:00+00:00',
+              }),
+            ],
+          }),
+        ),
+      ).toBeUndefined();
+    });
+
+    it('is uncertain when his reductions span competitions before his death', () => {
+      expect(
+        service.prove(
+          proofInput({
+            diedAt: '2024-06-01T19:00:00+00:00',
+            reductions: [
+              reduction(),
+              reduction({
+                competitionId: 51,
+                playedAt: '2024-06-01T19:00:00+00:00',
+              }),
+            ],
+            competitions: [
+              competition(),
+              competition({
+                competitionId: 51,
+                firstPlayedAt: '2024-05-01T19:00:00+00:00',
+                lastPlayedAt: '2024-06-01T19:00:00+00:00',
+              }),
+            ],
+          }),
+        ),
+      ).toBeUndefined();
+    });
+
+    it('is uncertain when another competition overlaps the time between reduction and death', () => {
+      expect(
+        service.prove(
+          proofInput({
+            diedAt: DIED,
+            competitions: [
+              competition(),
+              competition({
+                competitionId: 51,
+                firstPlayedAt: '2024-03-10T19:00:00+00:00',
+                lastPlayedAt: '2024-04-20T19:00:00+00:00',
+              }),
+            ],
+          }),
+        ),
+      ).toBeUndefined();
+    });
+
+    it('ignores another competition that ended before the first reduction', () => {
+      expect(
+        service.prove(
+          proofInput({
+            diedAt: DIED,
+            competitions: [
+              competition({
+                competitionId: 49,
+                firstPlayedAt: '2023-10-01T19:00:00+00:00',
+                lastPlayedAt: '2023-12-01T19:00:00+00:00',
+              }),
+              competition(),
+              PLAYED_ON,
+            ],
+          }),
+        ),
+      ).toEqual({ ma: 1, st: 0, ag: 0, pa: 0, av: 0 });
+    });
+
+    it('is uncertain when a reduction is recorded after his death', () => {
+      expect(
+        service.prove(
+          proofInput({
+            diedAt: DIED,
+            reductions: [
+              reduction(),
+              reduction({ playedAt: '2024-03-20T19:00:00+00:00' }),
+            ],
+            competitions: [competition(), PLAYED_ON],
+          }),
+        ),
+      ).toBeUndefined();
+    });
+
+    it('is uncertain when a reduction is in a competition with no row', () => {
+      expect(
+        service.prove(
+          proofInput({
+            diedAt: DIED,
+            competitions: [competition({ competitionId: 49 })],
+          }),
+        ),
+      ).toBeUndefined();
+    });
+
+    it.each([
+      [
+        'the death date',
+        { diedAt: 'not a date', competitions: [competition(), PLAYED_ON] },
+      ],
+      [
+        "another competition's first match",
+        {
+          diedAt: DIED,
+          competitions: [
+            competition(),
+            competition({ competitionId: 51, firstPlayedAt: 'not a date' }),
+          ],
+        },
+      ],
+      [
+        "another competition's last match",
+        {
+          diedAt: DIED,
+          competitions: [
+            competition(),
+            competition({
+              competitionId: 51,
+              firstPlayedAt: '2024-05-01T19:00:00+00:00',
+              lastPlayedAt: 'not a date',
+            }),
+          ],
+        },
+      ],
+    ])('is uncertain when %s cannot be read', (_name, overrides) => {
+      expect(service.prove(proofInput(overrides))).toBeUndefined();
+    });
+  });
 });
