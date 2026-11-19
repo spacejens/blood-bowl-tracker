@@ -108,12 +108,23 @@ GROUP BY me.consequence_player_id`;
 
 /** For each candidate with a death match event, when the earliest such match was played. */
 export const DEATH_TIMES_SQL = `${CANDIDATES_CTE}
-SELECT me.consequence_player_id AS "playerId", min(m.played_at) AS "diedAt"
-FROM game_data.match_events me
-JOIN candidates c ON c.player_id = me.consequence_player_id
-JOIN game_data.matches m ON m.id = me.match_id
-WHERE me.consequence_type = 'death'
-GROUP BY me.consequence_player_id`;
+SELECT d."playerId", d."diedAt"
+FROM (
+  SELECT me.consequence_player_id AS "playerId", min(m.played_at) AS "diedAt"
+  FROM game_data.match_events me
+  JOIN candidates c ON c.player_id = me.consequence_player_id
+  JOIN game_data.matches m ON m.id = me.match_id
+  WHERE me.consequence_type = 'death'
+  GROUP BY me.consequence_player_id
+) d
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM game_data.match_events later
+  JOIN game_data.matches lm ON lm.id = later.match_id
+  WHERE (later.acting_player_id = d."playerId"
+      OR later.consequence_player_id = d."playerId")
+    AND lm.played_at > d."diedAt"
+)`;
 
 export const STORED_ADVANCEMENTS_SQL = `${CANDIDATES_CTE}
 SELECT pa.player_id AS "playerId", pa.source::text AS "source",

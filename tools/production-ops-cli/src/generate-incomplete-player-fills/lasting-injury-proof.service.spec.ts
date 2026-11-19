@@ -433,7 +433,12 @@ describe('LastingInjuryProofService', () => {
           diedAt: DIED,
           competitions: [
             competition(),
-            competition({ competitionId: 51, firstPlayedAt: 'not a date' }),
+            PLAYED_ON,
+            competition({
+              competitionId: 52,
+              firstPlayedAt: 'not a date',
+              lastPlayedAt: '2024-01-15T19:00:00+00:00',
+            }),
           ],
         },
       ],

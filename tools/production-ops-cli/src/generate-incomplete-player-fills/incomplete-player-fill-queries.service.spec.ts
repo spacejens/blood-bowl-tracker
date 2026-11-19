@@ -256,6 +256,13 @@ describe('IncompletePlayerFillQueriesService', () => {
     expect(DEATH_TIMES_SQL).toContain('JOIN candidates c');
   });
 
+  it('gives no death time to a candidate a later match event names', () => {
+    expect(DEATH_TIMES_SQL).toContain('NOT EXISTS');
+    expect(DEATH_TIMES_SQL).toContain('later.acting_player_id');
+    expect(DEATH_TIMES_SQL).toContain('later.consequence_player_id');
+    expect(DEATH_TIMES_SQL).toContain('lm.played_at > ');
+  });
+
   it('gives each team competition its first and last match', () => {
     expect(TEAM_COMPETITIONS_SQL).toContain(
       'min(m.played_at) AS "firstPlayedAt"',

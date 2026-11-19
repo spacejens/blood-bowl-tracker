@@ -34,6 +34,8 @@ interface Timed {
   input: LastingInjuryInput;
   reducedAt: number[];
   earliest: number;
+  /** The competition of the earliest reduction. */
+  home: number;
 }
 
 /**
@@ -82,11 +84,22 @@ export class LastingInjuryProofService {
     if (input.reductions.some((row) => !covered.has(row.competitionId))) {
       return false;
     }
-    const reducedAt = input.reductions.map((row) => Date.parse(row.playedAt));
-    if (reducedAt.some((time) => Number.isNaN(time))) {
+    const rows = input.reductions.map((row) => ({
+      time: Date.parse(row.playedAt),
+      competitionId: row.competitionId,
+    }));
+    if (rows.some((row) => Number.isNaN(row.time))) {
       return false;
     }
-    const timed: Timed = { input, reducedAt, earliest: Math.min(...reducedAt) };
+    const first = rows.reduce((best, row) =>
+      row.time < best.time ? row : best,
+    );
+    const timed: Timed = {
+      input,
+      reducedAt: rows.map((row) => row.time),
+      earliest: first.time,
+      home: first.competitionId,
+    };
     return this.withinOneCompetition(timed) || this.beforeDeath(timed);
   }
 
@@ -108,7 +121,7 @@ export class LastingInjuryProofService {
    * started by his death and played on past the earliest reduction.
    */
   private beforeDeath(timed: Timed): boolean {
-    const { input, reducedAt, earliest } = timed;
+    const { input, reducedAt, earliest, home } = timed;
     if (input.diedAt === null) {
       return false;
     }
@@ -116,7 +129,6 @@ export class LastingInjuryProofService {
     if (Number.isNaN(diedAt) || reducedAt.some((time) => time > diedAt)) {
       return false;
     }
-    const home = input.reductions[reducedAt.indexOf(earliest)]?.competitionId;
     return input.competitions
       .filter((row) => row.competitionId !== home)
       .every((row) => {

@@ -342,17 +342,25 @@ export class IncompletePlayerFillPlannerService {
     );
   }
 
-  /** What the lasting-injury proof reads besides his reductions and competitions. */
+  /**
+   * What the lasting-injury proof reads besides his reductions and
+   * competitions. A stored status other than dead contradicts a death
+   * event, so no death time is handed on then.
+   */
   private healing(gated: Gated): {
     rulesSetNames: string[];
     diedAt: string | null;
   } {
     const { candidate, index } = gated;
+    const contradicted =
+      candidate.status !== null && candidate.status !== 'dead';
     return {
       rulesSetNames: (index.eraRulesSets.get(candidate.eraId) ?? []).map(
         (row) => row.rulesSetName,
       ),
-      diedAt: index.deathTimes.get(candidate.playerId) ?? null,
+      diedAt: contradicted
+        ? null
+        : (index.deathTimes.get(candidate.playerId) ?? null),
     };
   }
 

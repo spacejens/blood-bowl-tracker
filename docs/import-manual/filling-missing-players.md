@@ -154,15 +154,16 @@ entry has the stored status, else `dead` if a death is recorded, else
   - every reduction was suffered in one competition, after which his team
     era played no other competition;
   - he died, every reduction was suffered no later than his death (the
-    earliest match recording it), and no other competition of his team
-    era both started by his death and had a match after his first
-    reduction.
+    earliest match recording it), and no competition of his team era
+    other than the one of his first reduction both started by his death
+    and had a match after that reduction. The death proof applies only
+    when his stored status is unknown or dead and no match event names
+    him in a match played after his death match.
 
   The generator holds the names of the rules sets that never heal; the
   database does not.
 
-  Each reduction worsens the
-  position's start value by one: MA, ST and AV go down; AG and PA go down
+  Each reduction worsens the position's start value by one: MA, ST and AV go down; AG and PA go down
   when bare and up in a target-number format. A characteristic is never
   worsened by more than two in all, and never past MA 1, ST 1, AV 1 (3+ in
   a target-number format), and AG and PA 1 (6+ in a target-number format).

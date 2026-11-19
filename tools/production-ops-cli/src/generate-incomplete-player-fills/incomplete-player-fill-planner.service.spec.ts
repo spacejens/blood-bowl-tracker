@@ -612,6 +612,7 @@ describe('IncompletePlayerFillPlannerService', () => {
         statReductionEvents: [event, { ...event, playerId: 2 }],
         teamCompetitions: [played, { ...played, playerId: 2 }],
         freeSkillRiskPlayerIds: [1],
+        deathTimes: [{ playerId: 1, diedAt: '2024-03-15T19:00:00+00:00' }],
         skillNames: [{ skillId: 200, skillName: 'Dodge', nameId: 'Dodge' }],
         advancementCosts: [ownCost, { ...ownCost, eraId: 9 }],
         skillCategories: [{ skillId: 200, rulesSetId: 7, category: 'agility' }],
@@ -628,7 +629,7 @@ describe('IncompletePlayerFillPlannerService', () => {
       reductions: [event],
       competitions: [played],
       rulesSetNames: ['BB2020'],
-      diedAt: null,
+      diedAt: '2024-03-15T19:00:00+00:00',
       freeSkillRisk: true,
       stored: [],
       profile: profile(),
@@ -744,6 +745,29 @@ describe('IncompletePlayerFillPlannerService', () => {
       expect.objectContaining({ rulesSetNames: ['CRP', 'CRP+'], diedAt: null }),
     );
   });
+
+  it.each([
+    ['active', null],
+    ['retired', null],
+    ['dead', '2024-03-15T19:00:00+00:00'],
+  ] as const)(
+    'with a stored status of %s hands the injury stage the death time %s',
+    (status, diedAt) => {
+      injuryStage.decide.mockReturnValue({ entry: STAGED });
+
+      service.plan(
+        eligibleInput({
+          candidates: [candidate({ status })],
+          statReductionPlayerIds: [1],
+          deathTimes: [{ playerId: 1, diedAt: '2024-03-15T19:00:00+00:00' }],
+        }),
+      );
+
+      expect(injuryStage.decide).toHaveBeenCalledWith(
+        expect.objectContaining({ diedAt }),
+      );
+    },
+  );
 
   it('skips a free-skill risk before the injury stage', () => {
     expect(
