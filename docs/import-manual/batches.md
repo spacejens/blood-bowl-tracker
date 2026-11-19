@@ -138,8 +138,8 @@ The batches:
   holds only awards of trophies that grant no skill (Trogen Tjänst, Top
   Intercepter). The fills are generated the same way as batch 008, but from
   a restored production backup with this batch's trophy entry applied,
-  because production had no record of which trophies grant a skill until
-  this batch. The trophy entry runs before the fills within the batch. It
+  because the generator needs the flag this batch sets, which production
+  gets only when the batch is applied. The trophy entry runs before the fills within the batch. It
   applies after the source importers and after batch 011, in a plain
   `apply`.
 

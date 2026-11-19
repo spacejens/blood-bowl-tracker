@@ -346,8 +346,8 @@ describe('schema', () => {
 
   it('exports trophies.grants_skill as a not-null boolean defaulting to false', () => {
     // Whether an award of the trophy gives its player a skill outside his
-    // advancements. Not null with a default, so every trophy curated before
-    // the column existed reads as granting none.
+    // advancements. Not null with a default, so a trophy nobody has curated
+    // for this grants none.
     expect(trophies.grantsSkill).toBeDefined();
     expect(trophies.grantsSkill.getSQLType()).toBe('boolean');
     expect(trophies.grantsSkill.notNull).toBe(true);

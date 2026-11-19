@@ -17,13 +17,13 @@ groups it references. See [Data files](index.md#data-files) for how
 sections are pooled.
 
 `grantsSkill` is `true` for a trophy whose award gives its player a skill
-outside his advancements: Gudarnas Förkämpe's free mutation is the only one
-curated. Omitting it leaves the stored value alone, and a new trophy gets
-`false`. The incomplete-player fill generator treats only an award of such a
-trophy as a possible free skill (see
-[Filling in missing players](filling-missing-players.md#generated-fills)).
-Batch 012 restates Gudarnas Förkämpe with it. A restated entry repeats the whole award rule, because the
-processor writes an omitted rule column as null.
+outside his advancements: Gudarnas Förkämpe's free mutation is an example,
+and batch 012 restates it with the flag. Omitting it leaves the stored value
+alone, and a new trophy gets `false`. The incomplete-player fill generator
+treats only an award of such a trophy as a possible free skill (see
+[Filling in missing players](filling-missing-players.md#generated-fills)). A
+restated entry repeats the whole award rule, because the processor writes an
+omitted rule column as null.
 
 Trophies deliberately carry no shared `Name` external id, the same precedent
 set for competitions: labels like `1st` are ambiguous across competition
