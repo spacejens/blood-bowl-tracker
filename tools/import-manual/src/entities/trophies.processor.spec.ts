@@ -84,6 +84,7 @@ describe('TrophiesProcessor', () => {
       awardRuleTieCutoff: null,
       awardRuleThreshold: null,
       awardRuleMeasure: null,
+      grantsSkill: false,
       createdAt: new Date(),
       created: true,
     });
@@ -146,6 +147,7 @@ describe('TrophiesProcessor', () => {
       awardRuleTieCutoff: null,
       awardRuleThreshold: null,
       awardRuleMeasure: null,
+      grantsSkill: false,
       createdAt: new Date(),
       created: true,
     });
@@ -203,6 +205,7 @@ describe('TrophiesProcessor', () => {
       awardRuleTieCutoff: 4,
       awardRuleThreshold: null,
       awardRuleMeasure: null,
+      grantsSkill: false,
       createdAt: new Date(),
       created: true,
     });
@@ -279,6 +282,7 @@ describe('TrophiesProcessor', () => {
       awardRuleTieCutoff: null,
       awardRuleThreshold: null,
       awardRuleMeasure: null,
+      grantsSkill: false,
       createdAt: new Date(),
       created: true,
     });
@@ -344,6 +348,7 @@ describe('TrophiesProcessor', () => {
       awardRuleTieCutoff: null,
       awardRuleThreshold: null,
       awardRuleMeasure: null,
+      grantsSkill: false,
       createdAt: new Date(),
       created: true,
     });
@@ -393,6 +398,7 @@ describe('TrophiesProcessor', () => {
       awardRuleTieCutoff: null,
       awardRuleThreshold: null,
       awardRuleMeasure: null,
+      grantsSkill: false,
       createdAt: new Date(),
       created: true,
     });
@@ -463,6 +469,7 @@ describe('TrophiesProcessor', () => {
       awardRuleTieCutoff: null,
       awardRuleThreshold: 176,
       awardRuleMeasure: 'spp_sum',
+      grantsSkill: false,
       createdAt: new Date(),
       created: true,
     });
@@ -552,6 +559,7 @@ describe('TrophiesProcessor', () => {
       awardRuleTieCutoff: null,
       awardRuleThreshold: null,
       awardRuleMeasure: null,
+      grantsSkill: false,
       createdAt: new Date(),
       created: true,
     });

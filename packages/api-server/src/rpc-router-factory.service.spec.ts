@@ -1015,6 +1015,7 @@ describe('RpcRouterFactoryService', () => {
         awardRuleTieCutoff: null,
         awardRuleThreshold: null,
         awardRuleMeasure: null,
+        grantsSkill: false,
         createdAt: new Date('2026-01-01'),
         updatedAt: new Date('2026-01-01'),
         historyVersion: 1,
@@ -1044,6 +1045,7 @@ describe('RpcRouterFactoryService', () => {
         awardRuleTieCutoff: null,
         awardRuleThreshold: null,
         awardRuleMeasure: null,
+        grantsSkill: false,
         createdAt: new Date('2026-01-01'),
         created: true,
       });
