@@ -40,6 +40,9 @@ export const BATCH_010 = 'batches/010-tp-journeyman-fills';
 /** Batch 011: the data of incomplete TP players the TP feed's reports were told apart for, generated from production. */
 export const BATCH_011 = 'batches/011-tp-feed-disambiguated-fills';
 
+/** Batch 012: which curated trophies grant a skill, and the data of incomplete TP players that makes provable, generated from a restored production backup. */
+export const BATCH_012 = 'batches/012-trophy-skill-grants';
+
 /** Every batch directory, as `batches/<name>`, in name order. */
 export function listBatches(): string[] {
   return readdirSync(join(DATA_ROOT, 'batches'), { withFileTypes: true })
