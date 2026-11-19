@@ -13,6 +13,7 @@ import {
   INCOMPLETE_PLAYER_CONDITIONS,
   LASTING_INJURY_REPAIRS_SQL,
   ONGOING_COMPETITIONS_SQL,
+  PAID_ADVANCEMENTS_SQL,
   POSITION_ACCESS_SQL,
   POSITION_RULES_SETS_SQL,
   POSITION_SKILLS_SQL,
@@ -22,6 +23,7 @@ import {
   STAT_REDUCTION_EVENTS_SQL,
   STORED_ADVANCEMENTS_SQL,
   TEAM_COMPETITIONS_SQL,
+  TEAM_PLAYERS_CTE,
   TEAM_PLAYERS_SQL,
   TEAM_ROSTERS_SQL,
 } from './incomplete-player-fill.sql';
@@ -68,9 +70,19 @@ const SKILL = {
 const TEAM_PLAYER = {
   playerId: 1,
   teamId: 20,
+  eraId: 4,
+  positionId: 30,
   playerName: 'Flame',
   positionName: 'Gnoblar Lineman',
+  sppTotal: 20,
+  unspentSpp: null,
+  isJourneyman: true,
+  isIncomplete: true,
 };
+const PAID = [
+  { playerId: 1, skillId: 200, attributeValue: '+1', characteristic: null },
+  { playerId: 1, skillId: null, attributeValue: null, characteristic: 'ma' },
+];
 const COST = {
   eraId: 4,
   rulesSetId: 7,
@@ -134,6 +146,7 @@ describe('IncompletePlayerFillQueriesService', () => {
       [ERA_RULES_SETS_SQL, [{ eraId: 4, rulesSetId: 7, cheapestCost: 6 }]],
       [TEAM_PLAYERS_SQL, [TEAM_PLAYER]],
       [TEAM_ROSTERS_SQL, [{ teamId: 20, rosterId: '24801' }]],
+      [PAID_ADVANCEMENTS_SQL, PAID],
       [
         SKILL_NAMES_SQL,
         [{ skillId: 200, skillName: 'Dodge', nameId: 'Dodge' }],
@@ -189,6 +202,7 @@ describe('IncompletePlayerFillQueriesService', () => {
       eraRulesSets: [{ eraId: 4, rulesSetId: 7, cheapestCost: 6 }],
       teamPlayers: [TEAM_PLAYER],
       teamRosters: [{ teamId: 20, rosterId: '24801' }],
+      paidAdvancements: PAID,
       skillNames: [{ skillId: 200, skillName: 'Dodge', nameId: 'Dodge' }],
       skillCategories: [{ skillId: 200, rulesSetId: 7, category: 'agility' }],
       positionAccess: [
@@ -274,10 +288,74 @@ describe('IncompletePlayerFillQueriesService', () => {
         access: 'tertiary',
       },
     ],
+    [
+      'an unknown paid characteristic',
+      PAID_ADVANCEMENTS_SQL,
+      { ...PAID[1], characteristic: 'xx' },
+    ],
+    [
+      'a team player without a journeyman marker',
+      TEAM_PLAYERS_SQL,
+      { ...TEAM_PLAYER, isJourneyman: null },
+    ],
+    [
+      'a team player without an incomplete flag',
+      TEAM_PLAYERS_SQL,
+      { ...TEAM_PLAYER, isIncomplete: null },
+    ],
   ])('rejects %s', async (_name, sql, row) => {
     results.set(sql, [row]);
 
     await expect(service.load()).rejects.toBeInstanceOf(ZodError);
+  });
+
+  it("selects only non-star TP players of the candidates' teams as team players", () => {
+    const teamPlayers = TEAM_PLAYERS_CTE.slice(
+      TEAM_PLAYERS_CTE.indexOf('team_players AS ('),
+    );
+
+    expect(teamPlayers).toContain("es.name = 'tourplay.net'");
+    expect(teamPlayers).toContain('pos.is_star_player = false');
+    expect(teamPlayers).toContain(
+      'te.team_id IN (SELECT team_id FROM candidates)',
+    );
+    expect(TEAM_PLAYERS_SQL).toContain('FROM team_players');
+  });
+
+  it('flags each team player incomplete by exactly the conditions that select candidates', () => {
+    const teamPlayers = TEAM_PLAYERS_CTE.slice(
+      TEAM_PLAYERS_CTE.indexOf('team_players AS ('),
+    );
+
+    expect(teamPlayers).toContain(
+      `(${INCOMPLETE_PLAYER_CONDITIONS.map(
+        (condition) => `p.${condition}`,
+      ).join(' OR ')}) AS is_incomplete`,
+    );
+    expect(TEAM_PLAYERS_SQL).toContain('is_incomplete AS "isIncomplete"');
+  });
+
+  it('selects only paid advancements that are still held', () => {
+    expect(PAID_ADVANCEMENTS_SQL).toContain('pa.removed = false');
+    expect(PAID_ADVANCEMENTS_SQL).toContain("pa.source <> 'starting'");
+    expect(PAID_ADVANCEMENTS_SQL).toContain('pa.is_free_extra = false');
+    expect(PAID_ADVANCEMENTS_SQL).toContain(
+      'JOIN team_players tp ON tp.player_id = pa.player_id',
+    );
+  });
+
+  it("prices the team players' eras and positions, not only the candidates'", () => {
+    for (const sql of [
+      ERA_RULES_SETS_SQL,
+      SKILL_CATEGORIES_SQL,
+      POSITION_ACCESS_SQL,
+      ADVANCEMENT_COSTS_SQL,
+    ]) {
+      const filter = sql.slice(TEAM_PLAYERS_CTE.length);
+
+      expect(filter).toContain('FROM team_players');
+      expect(filter).not.toContain('FROM candidates)');
+    }
   });
 
   it('selects only incomplete, non-star TP players', () => {

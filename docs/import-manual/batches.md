@@ -21,6 +21,7 @@ tools/import-manual/data/batches/
   008-tp-feed-player-fills/
   009-tp-feed-injured-player-fills/
   010-tp-journeyman-fills/
+  011-tp-feed-disambiguated-fills/
 ```
 
 A batch directory is named `NNN-<slug>`: a three-digit number and a lowercase
@@ -119,6 +120,15 @@ The batches:
   server), his whole SPP unspent and his status, with `journeyman: true`.
   It is generated the same way as batch 008, and applies after the source
   importers and after batch 009, in a plain `apply`.
+- **011-tp-feed-disambiguated-fills** — fills in the data of 22 incomplete
+  TP players whose TP feed reports match more than one stored player: 13
+  whose advancements the feed reports prove, since a report can belong only
+  to a TP player who can afford it and exactly one way of sharing the
+  reports out between players with the same name and position passes the
+  pricing checks, and 9 marked journeymen no report can belong
+  to, filled as having none. It is generated the same way as batch 008, and
+  applies after the source importers and after batch 010, in a plain
+  `apply`.
 
 A batch can also fill in the data of a TP player the TP import left
 incomplete, through the `incompletePlayerFills` section; see

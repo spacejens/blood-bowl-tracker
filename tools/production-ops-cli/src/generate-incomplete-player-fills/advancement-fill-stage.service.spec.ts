@@ -24,6 +24,7 @@ import {
   increaseStep,
   skillStep,
 } from './pricing.test-helpers';
+import { PricingRulesSetsService } from './pricing-rules-sets.service';
 
 /** Chosen primary Dodge for 6 of his 8 SPP, 2 unspent, under rules set 7. */
 function stageInput(
@@ -91,6 +92,9 @@ describe('AdvancementFillStageService', () => {
         AdvancementFillStageService,
         { provide: FeedSkillResolverService, useValue: skills },
         { provide: AdvancementPricingService, useValue: pricing },
+        // Pure and dependency-free, so passed real: the pricing assertions
+        // below check the rules sets it builds.
+        PricingRulesSetsService,
         // Pure, so passed real: the replay with its pure change service, the
         // dependency-free injury proof, validity and entry builder.
         CharacteristicReplayService,

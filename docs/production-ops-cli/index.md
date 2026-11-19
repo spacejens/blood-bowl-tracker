@@ -80,8 +80,10 @@ query runs. A missing or malformed file stops the run. Without the flag,
 players are not filled from feed reports; the other fills still run.
 `report` also gives `eligibleByStage` (fills with no advancements, from
 the feed with or without lasting injuries, and with lasting injuries only)
-and `feed` (how many feed player keys matched one stored player, several,
-or no player of a candidate's team; `null` without the flag).
+and `feed` (how many feed player keys gave their reports to stored
+players, stayed ambiguous, or named no stored TP player of a candidate's
+team who can afford their reports; `null` without the flag; see
+[Generated fills](../import-manual/filling-missing-players.md#generated-fills)).
 `journeymenFilled` counts the entries filled as journeymen
 (`journeyman: true`), which `eligibleByStage.noAdvancement` also counts.
 

@@ -35,6 +35,11 @@ export const ONGOING_COMPETITION_NAMES = [
   'Ogretoberfest 14',
 ] as const;
 
+/** INCOMPLETE_PLAYER_CONDITIONS as one SQL predicate over `game_data.players p`. */
+const INCOMPLETE_PLAYER_PREDICATE = INCOMPLETE_PLAYER_CONDITIONS.map(
+  (condition) => `p.${condition}`,
+).join(' OR ');
+
 const CANDIDATES_CTE = `WITH candidates AS (
   SELECT DISTINCT ON (p.id)
     p.id AS player_id, pe.external_id AS tp_id, te.team_id, p.team_era_id,
@@ -48,7 +53,7 @@ const CANDIDATES_CTE = `WITH candidates AS (
   JOIN game_data.external_systems es ON es.id = pe.external_system_id
   WHERE es.name = 'tourplay.net'
     AND pos.is_star_player = false
-    AND (${INCOMPLETE_PLAYER_CONDITIONS.map((condition) => `p.${condition}`).join(' OR ')})
+    AND (${INCOMPLETE_PLAYER_PREDICATE})
   ORDER BY p.id, pe.external_id
 )`;
 
@@ -58,6 +63,30 @@ SELECT player_id AS "playerId", tp_id AS "tpId", team_id AS "teamId",
   unspent_spp AS "unspentSpp", status, is_journeyman AS "isJourneyman",
   move, strength, agility, passing, armour
 FROM candidates`;
+
+/**
+ * The candidates, and every non-star TP player of a candidate's team,
+ * complete or not: the players the TP feed can report. A player with a BBL
+ * id as well counts as TP; one with no `tourplay.net` id is left out.
+ * `is_incomplete` applies the conditions that select the candidates.
+ */
+export const TEAM_PLAYERS_CTE = `${CANDIDATES_CTE},
+team_players AS (
+  SELECT DISTINCT ON (p.id)
+    p.id AS player_id, te.team_id, te.era_id, p.position_id,
+    p.name AS player_name, pos.name AS position_name, p.spp_total,
+    p.unspent_spp, p.is_journeyman,
+    (${INCOMPLETE_PLAYER_PREDICATE}) AS is_incomplete
+  FROM game_data.players p
+  JOIN game_data.team_eras te ON te.id = p.team_era_id
+  JOIN game_data.positions pos ON pos.id = p.position_id
+  JOIN game_data.players_external_ids pe ON pe.player_id = p.id
+  JOIN game_data.external_systems es ON es.id = pe.external_system_id
+  WHERE es.name = 'tourplay.net'
+    AND pos.is_star_player = false
+    AND te.team_id IN (SELECT team_id FROM candidates)
+  ORDER BY p.id
+)`;
 
 const STAT_REDUCTION_PREFIX = 'stat_reduction_';
 
@@ -146,24 +175,37 @@ WHERE (prs.position_id, ers.era_id) IN (
 )
 ORDER BY prss.id, se.external_id`;
 
-/** Every rules set of a candidate's era, with its cheapest advancement of any kind or league. */
-export const ERA_RULES_SETS_SQL = `${CANDIDATES_CTE}
+/** Every rules set of a team player's era, with its cheapest advancement of any kind or league. */
+export const ERA_RULES_SETS_SQL = `${TEAM_PLAYERS_CTE}
 SELECT ers.era_id AS "eraId", ers.rules_set_id AS "rulesSetId",
   min(ac.spp_cost) AS "cheapestCost"
 FROM game_data.era_rules_sets ers
 LEFT JOIN game_data.advancement_costs ac ON ac.rules_set_id = ers.rules_set_id
-WHERE ers.era_id IN (SELECT era_id FROM candidates)
+WHERE ers.era_id IN (SELECT era_id FROM team_players)
 GROUP BY ers.era_id, ers.rules_set_id`;
 
-/** Every non-star player of a candidate's team, complete or not, to match feed reports against. */
-export const TEAM_PLAYERS_SQL = `${CANDIDATES_CTE}
-SELECT p.id AS "playerId", te.team_id AS "teamId", p.name AS "playerName",
-  pos.name AS "positionName"
-FROM game_data.players p
-JOIN game_data.team_eras te ON te.id = p.team_era_id
-JOIN game_data.positions pos ON pos.id = p.position_id
-WHERE pos.is_star_player = false
-  AND te.team_id IN (SELECT team_id FROM candidates)`;
+/** Every non-star TP player of a candidate's team, complete or not, to match feed reports against. */
+export const TEAM_PLAYERS_SQL = `${TEAM_PLAYERS_CTE}
+SELECT player_id AS "playerId", team_id AS "teamId", era_id AS "eraId",
+  position_id AS "positionId", player_name AS "playerName",
+  position_name AS "positionName", spp_total AS "sppTotal",
+  unspent_spp AS "unspentSpp", is_journeyman AS "isJourneyman",
+  is_incomplete AS "isIncomplete"
+FROM team_players`;
+
+/**
+ * The stored paid advancements of every team player: gained skills with
+ * their variant, and characteristic increases, neither removed nor free.
+ */
+export const PAID_ADVANCEMENTS_SQL = `${TEAM_PLAYERS_CTE}
+SELECT pa.player_id AS "playerId", pa.skill_id AS "skillId",
+  pa.attribute_value AS "attributeValue",
+  lower(pa.characteristic::text) AS "characteristic"
+FROM game_data.player_advancements pa
+JOIN team_players tp ON tp.player_id = pa.player_id
+WHERE pa.removed = false
+  AND pa.source <> 'starting'
+  AND pa.is_free_extra = false`;
 
 /** The TP roster id (`tourplay.net` external id) of every candidate's team. */
 export const TEAM_ROSTERS_SQL = `${CANDIDATES_CTE}
@@ -181,19 +223,19 @@ JOIN game_data.external_systems es ON es.id = se.external_system_id
 JOIN game_data.skills s ON s.id = se.skill_id
 WHERE es.name = 'Name'`;
 
-const CANDIDATE_RULES_SET_IDS = `SELECT ers.rules_set_id
+const TEAM_PLAYER_RULES_SET_IDS = `SELECT ers.rules_set_id
   FROM game_data.era_rules_sets ers
-  WHERE ers.era_id IN (SELECT era_id FROM candidates)`;
+  WHERE ers.era_id IN (SELECT era_id FROM team_players)`;
 
-/** Every skill's category under every rules set of a candidate's era. */
-export const SKILL_CATEGORIES_SQL = `${CANDIDATES_CTE}
+/** Every skill's category under every rules set of a team player's era. */
+export const SKILL_CATEGORIES_SQL = `${TEAM_PLAYERS_CTE}
 SELECT srs.skill_id AS "skillId", srs.rules_set_id AS "rulesSetId",
   srs.category::text AS "category"
 FROM game_data.skill_rules_sets srs
-WHERE srs.rules_set_id IN (${CANDIDATE_RULES_SET_IDS})`;
+WHERE srs.rules_set_id IN (${TEAM_PLAYER_RULES_SET_IDS})`;
 
-/** Each candidate position's access to skill categories under his era's rules sets. */
-export const POSITION_ACCESS_SQL = `${CANDIDATES_CTE}
+/** Each team player position's access to skill categories under his era's rules sets. */
+export const POSITION_ACCESS_SQL = `${TEAM_PLAYERS_CTE}
 SELECT DISTINCT prs.position_id AS "positionId",
   prs.rules_set_id AS "rulesSetId",
   prsc.skill_category::text AS "category", prsc.access::text AS "access"
@@ -202,15 +244,15 @@ JOIN game_data.position_rules_sets prs ON prs.id = prsc.position_rules_set_id
 JOIN game_data.era_rules_sets ers ON ers.rules_set_id = prs.rules_set_id
 WHERE prsc.removed = false
   AND (prs.position_id, ers.era_id) IN (
-    SELECT position_id, era_id FROM candidates
+    SELECT position_id, era_id FROM team_players
   )`;
 
 /**
- * The advancement costs that apply to a candidate's era: each rules set's
+ * The advancement costs that apply to a team player's era: each rules set's
  * own rows and the rows of the era's league, the rows UnspentSppService
  * (packages/game-data) prices a player's advancements with.
  */
-export const ADVANCEMENT_COSTS_SQL = `${CANDIDATES_CTE}
+export const ADVANCEMENT_COSTS_SQL = `${TEAM_PLAYERS_CTE}
 SELECT ers.era_id AS "eraId", ac.rules_set_id AS "rulesSetId",
   ac.league_id AS "leagueId", ac.advancement_number AS "advancementNumber",
   ac.advancement_kind::text AS "advancementKind", ac.skill_id AS "skillId",
@@ -219,7 +261,7 @@ FROM game_data.era_rules_sets ers
 JOIN game_data.eras e ON e.id = ers.era_id
 JOIN game_data.advancement_costs ac ON ac.rules_set_id = ers.rules_set_id
   AND (ac.league_id IS NULL OR ac.league_id = e.league_id)
-WHERE ers.era_id IN (SELECT DISTINCT era_id FROM candidates)`;
+WHERE ers.era_id IN (SELECT DISTINCT era_id FROM team_players)`;
 
 /** Every stat-reduction match event of a candidate, with the match's competition and date. */
 export const STAT_REDUCTION_EVENTS_SQL = `${CANDIDATES_CTE}
@@ -328,7 +370,7 @@ JOIN game_data.players_external_ids pe ON pe.player_id = p.id
 JOIN game_data.external_systems es ON es.id = pe.external_system_id
 WHERE es.name = 'tourplay.net'
   AND pos.is_star_player = false
-  AND NOT (${INCOMPLETE_PLAYER_CONDITIONS.map((condition) => `p.${condition}`).join(' OR ')})
+  AND NOT (${INCOMPLETE_PLAYER_PREDICATE})
   AND ${REDUCTION_COUNT_COLUMNS.map((column) => `p.${column} = 0`).join('\n  AND ')}
   AND EXISTS (
     SELECT 1 FROM game_data.match_events me

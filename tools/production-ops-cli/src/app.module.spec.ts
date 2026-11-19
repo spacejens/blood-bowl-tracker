@@ -22,8 +22,10 @@ import { AdvancementPricingService } from './generate-incomplete-player-fills/ad
 import { CharacteristicChangeService } from './generate-incomplete-player-fills/characteristic-change.service';
 import { CharacteristicReplayService } from './generate-incomplete-player-fills/characteristic-replay.service';
 import { CharacteristicValidityService } from './generate-incomplete-player-fills/characteristic-validity.service';
+import { FeedOwnerFitService } from './generate-incomplete-player-fills/feed-owner-fit.service';
 import { FeedPlayerMatcherService } from './generate-incomplete-player-fills/feed-player-matcher.service';
 import { FeedSkillResolverService } from './generate-incomplete-player-fills/feed-skill-resolver.service';
+import { FeedSplitSearchService } from './generate-incomplete-player-fills/feed-split-search.service';
 import { FillEntryBuilderService } from './generate-incomplete-player-fills/fill-entry-builder.service';
 import { FillSectionRendererService } from './generate-incomplete-player-fills/fill-section-renderer.service';
 import { GenerateIncompletePlayerFillsService } from './generate-incomplete-player-fills/generate-incomplete-player-fills.service';
@@ -32,6 +34,7 @@ import { IncompletePlayerFillQueriesService } from './generate-incomplete-player
 import { InjuryFillStageService } from './generate-incomplete-player-fills/injury-fill-stage.service';
 import { LastingInjuryProofService } from './generate-incomplete-player-fills/lasting-injury-proof.service';
 import { PositionProfileService } from './generate-incomplete-player-fills/position-profile.service';
+import { PricingRulesSetsService } from './generate-incomplete-player-fills/pricing-rules-sets.service';
 import { ProductionJsonQueryService } from './generate-incomplete-player-fills/production-json-query.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
 import { ReadTpFeedHistoryService } from './read-tp-feed-history/read-tp-feed-history.service';
@@ -87,6 +90,15 @@ describe('AppModule', () => {
     );
     expect(moduleRef.get(AdvancementPricingService)).toBeInstanceOf(
       AdvancementPricingService,
+    );
+    expect(moduleRef.get(PricingRulesSetsService)).toBeInstanceOf(
+      PricingRulesSetsService,
+    );
+    expect(moduleRef.get(FeedOwnerFitService)).toBeInstanceOf(
+      FeedOwnerFitService,
+    );
+    expect(moduleRef.get(FeedSplitSearchService)).toBeInstanceOf(
+      FeedSplitSearchService,
     );
     expect(moduleRef.get(AdvancementFillStageService)).toBeInstanceOf(
       AdvancementFillStageService,

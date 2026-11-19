@@ -94,14 +94,20 @@ export interface FillPlannerRows {
   ongoingTeamIds: number[];
   positionRulesSets: PositionRulesSetRow[];
   positionSkills: PositionSkillRow[];
+  /** Rules sets and cheapest costs of the team players' eras; the candidates' eras are among them. */
   eraRulesSets: EraRulesSetRow[];
-  /** Every non-star player of a candidate's team. */
+  /** Every non-star TP player of a candidate's team. */
   teamPlayers: TeamPlayerRow[];
   /** The roster ids of the candidates' teams. */
   teamRosters: TeamRosterRow[];
+  /** The stored paid advancements of every team player. */
+  paidAdvancements: PaidAdvancementRow[];
   skillNames: SkillNameRow[];
+  /** Skill categories under the team players' eras' rules sets; the candidates' are among them. */
   skillCategories: SkillCategoryRow[];
+  /** Category access of the team players' positions; the candidates' positions are among them. */
   positionAccess: PositionAccessRow[];
+  /** Advancement costs of the team players' eras; the candidates' eras are among them. */
   advancementCosts: AdvancementCostRow[];
   statReductionEvents: StatReductionEventRow[];
   /** Only for candidates with a stat reduction. */
@@ -272,12 +278,31 @@ export type ReplayOutcome =
   | { kind: 'unapplicable' }
   | { kind: 'order-uncertain' };
 
-/** A non-star player of a candidate's team, for matching feed reports. */
+/** A non-star TP player of a candidate's team, complete or not, for matching feed reports. */
 export interface TeamPlayerRow {
   playerId: number;
   teamId: number;
+  eraId: number;
+  positionId: number;
   playerName: string;
   positionName: string;
+  sppTotal: number | null;
+  unspentSpp: number | null;
+  isJourneyman: boolean;
+  /** Whether he is incomplete: one the generator fills, his stored data partial. */
+  isIncomplete: boolean;
+}
+
+/**
+ * One stored paid advancement of a team player: a gained skill with its
+ * variant (`characteristic` null), or a characteristic increase (`skillId`
+ * null). Not removed, not starting, not a free extra.
+ */
+export interface PaidAdvancementRow {
+  playerId: number;
+  skillId: number | null;
+  attributeValue: string | null;
+  characteristic: CharacteristicKey | null;
 }
 
 /** A team's TP roster id: its `tourplay.net` external id. */
@@ -345,11 +370,11 @@ export type FeedMatch =
 /** How the feed's player keys matched the stored players. */
 export interface FeedSummary {
   reportKeys: number;
-  /** Keys naming exactly one stored player. */
+  /** Keys whose reports were given to stored players. */
   matchedKeys: number;
-  /** Keys naming several stored players, or with several roster links. */
+  /** Keys whose reports could belong to several players, or to someone not stored. */
   ambiguousKeys: number;
-  /** Keys naming no player of a candidate's team. */
+  /** Keys no stored TP player of a candidate's team can own any report of. */
   unmatchedKeys: number;
 }
 
@@ -395,6 +420,38 @@ export type PricingOutcome =
   | { kind: 'category-mismatch' }
   | { kind: 'disagree' }
   | { kind: 'unpriced' };
+
+/** What deciding whether a stored player owns a list of feed reports reads of him. */
+export interface FeedOwner {
+  playerId: number;
+  sppTotal: number | null;
+  unspentSpp: number | null;
+  /** One entry per rules set of his era, for his position. */
+  rulesSets: RulesSetPricingInput[];
+  /** His stored paid advancements; empty when none are stored. */
+  paid: PaidAdvancementRow[];
+  /** Whether he is incomplete, so his stored paid advancements may be partial. */
+  isIncomplete: boolean;
+}
+
+/**
+ * Whether a player can own a list of reports; `unknown` when a check cannot
+ * be decided, including when the feed may lack a report: a later one when the
+ * reports cost less than the SPP he spent, an earlier one when a shown cost is
+ * above its price.
+ */
+export type FeedFit = 'valid' | 'invalid' | 'unknown';
+
+/** The rows deciding whether a stored player can own a list of feed reports. */
+export type FeedPricingRows = Pick<
+  FillPlannerRows,
+  | 'paidAdvancements'
+  | 'skillNames'
+  | 'eraRulesSets'
+  | 'advancementCosts'
+  | 'skillCategories'
+  | 'positionAccess'
+>;
 
 /** A stage's verdict on one candidate. */
 export type StageDecision = { entry: FillEntry } | { reason: SkipReason };

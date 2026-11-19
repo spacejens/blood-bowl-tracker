@@ -165,12 +165,35 @@ entry has the stored status, else `dead` if a death is recorded, else
   below the cheapest advancement, where such a player differs from his
   fill only by a Loner he no longer has.
 - **Advancements from the TP feed** (with `--feed-channel`). The advancement
-  reports `read-tp-feed-history` saved are matched to him. The reports of
-  one feed player must name exactly one stored player: the same team (found
-  by the report's roster link), name and position. The shirt number is not
-  stored, so it is not compared, and he must be named by no other feed
-  player. His reports, in the order they were posted, are his advancements,
-  at most six. Each is priced at its advancement number by the kind the
+  reports `read-tp-feed-history` saved are matched to him. A report can
+  belong only to a stored TP player (a player with no `tourplay.net` id is
+  never one, since the feed reports only TP players) of the team its roster
+  link names, with its name and position, whose stored total is at least
+  the cost the report shows. The shirt number is not stored and can change
+  in TP, so it is not compared. A feed player none of whose reports anyone
+  stored can own names nobody stored. One feed player with one possible
+  owner gives him its reports. Feed players that share a possible owner are
+  decided together: every way of giving each report to one of its possible
+  owners is tried. A way is valid when each player's reports, in the order
+  they were posted, pass the pricing checks below and, for a player with
+  paid advancements stored, are exactly those advancements. A shown cost
+  below its price rules a player out: a report the feed lacks before his
+  reports would only move them to later advancement numbers, and the cost
+  of an advancement kind never falls as the number rises (true of every
+  cost stored today). Shown costs adding up to more than the SPP he spent
+  rule him out too, since they are what he paid. Otherwise, a shown cost
+  above its price may mean the feed lacks an earlier report, and prices
+  adding up to less than the SPP he spent that it lacks a later one. Either
+  way the check cannot be decided and the feed players sharing him stay
+  ambiguous (unless a report is not among his stored paid advancements,
+  which rules him out). Only a complete player's stored paid advancements
+  are taken as his full list. An incomplete player's are being
+  reconstructed and may be partial, so reports that differ from them, or
+  are not among them, leave the check undecided instead. A player given
+  no reports is always valid, since the feed only goes back to the end
+  of 2022. When exactly one way is valid, each player gets his reports.
+  His reports, in the order they were posted, are his advancements, at
+  most six. Each is priced at its advancement number by the kind the
   report gives: a chosen or random primary or secondary skill, or a random
   characteristic increase (a table roll under fixed thresholds). Every rules
   set of his era must give the same price. The prices must add up to exactly
@@ -210,9 +233,14 @@ checks `feed-match-ambiguous`, `spp-too-high` and `free-skill-risk` before it.
 - his total is missing (`spp-missing`);
 - his era has no rules set, or a rules set of his era prices nothing
   (`era-unpriced`);
-- the feed reports name him together with another stored player, or two
-  feed players name him, or any feed report names a marked journeyman
-  (`feed-match-ambiguous`);
+- some reports of a feed player that could name him could also belong to
+  someone not stored, or no single way of sharing out the reports of the
+  feed players that could name him passes the checks (none, several, one
+  that cannot be decided, for example a skill, a price, the total or the
+  unspent SPP is missing, or a player's reports are priced correctly but add
+  up to less than the SPP he spent, so the feed may lack a later report, or
+  more than 8 reports or 4 players to try), or a
+  marked journeyman could own one of those reports (`feed-match-ambiguous`);
 - with no feed reports, or as a marked journeyman, his total is at or
   above the cheapest advancement cost of his era (`spp-too-high`);
 - he holds any trophy award (a trophy may grant a skill, and one not
@@ -246,7 +274,7 @@ The server's checks above still apply when the batch is applied.
 The generated file also holds a `lastingInjuryRepairs` section, see
 [Recording lasting reductions](#recording-lasting-reductions).
 
-Batches 007, 008, 009 and 010 hold the fills generated this way (see
+Batches 007 to 011 hold the fills generated this way (see
 [Batches](batches.md)).
 
 ## Recording lasting reductions

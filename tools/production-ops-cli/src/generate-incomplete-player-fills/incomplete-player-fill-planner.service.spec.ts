@@ -11,6 +11,7 @@ import {
   eligibleInput,
   profile,
   report,
+  teamPlayer,
 } from './fill-plan.test-helpers';
 import {
   type FeedSummary,
@@ -520,12 +521,13 @@ describe('IncompletePlayerFillPlannerService', () => {
     const input = eligibleInput({
       feed: FEED,
       teamRosters: [{ teamId: 20, rosterId: '24801' }],
-      teamPlayers: [
+      teamPlayers: [teamPlayer()],
+      paidAdvancements: [
         {
           playerId: 1,
-          teamId: 20,
-          playerName: 'Flame',
-          positionName: 'Gnoblar Lineman',
+          skillId: 200,
+          attributeValue: null,
+          characteristic: null,
         },
       ],
     });
@@ -536,6 +538,14 @@ describe('IncompletePlayerFillPlannerService', () => {
       reports: FEED,
       rosters: input.teamRosters,
       players: input.teamPlayers,
+      pricing: {
+        paidAdvancements: input.paidAdvancements,
+        skillNames: input.skillNames,
+        eraRulesSets: input.eraRulesSets,
+        advancementCosts: input.advancementCosts,
+        skillCategories: input.skillCategories,
+        positionAccess: input.positionAccess,
+      },
     });
     expect(plan.report.feed).toEqual(SUMMARY);
   });
