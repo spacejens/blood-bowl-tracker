@@ -27,7 +27,7 @@ interface CoachRow {
   count: number;
 }
 
-/** The sixteen coach toplists the factory builds. */
+/** The twenty coach toplists the factory builds. */
 type CoachFactoryMethod =
   | 'countFoulsCommittedByCoach'
   | 'countTouchdownsScoredByCoach'
@@ -38,6 +38,10 @@ type CoachFactoryMethod =
   | 'countSeriousInjuriesCausedByCoach'
   | 'countLastingInjuriesCausedByCoach'
   | 'countDeathsCausedByCoach'
+  | 'countCasualtiesSufferedByCoach'
+  | 'countSeriousInjuriesSufferedByCoach'
+  | 'countLastingInjuriesSufferedByCoach'
+  | 'countDeathsSufferedByCoach'
   | 'countMatchesPlayedByCoach'
   | 'countMatchesWonByCoach'
   | 'countMatchesLostByCoach'
@@ -231,6 +235,41 @@ const factoryCases: FactoryCase[] = [
     rows: [{ coachId: 1, name: 'Roze Madder', count: 4 }],
     expectedTitle: 'Coaches by deaths caused',
   },
+  {
+    describeName: 'resolveCasualtiesSuffered',
+    method: 'countCasualtiesSufferedByCoach',
+    resolve: (service) =>
+      service.resolveCasualtiesSuffered(FACT_SCOPE_ALL_TIME),
+    rows: [
+      { coachId: 1, name: 'Roze Madder', count: 41 },
+      { coachId: 2, name: 'Grashnak', count: 19 },
+    ],
+    expectedTitle: 'Coaches by casualties suffered',
+  },
+  {
+    describeName: 'resolveSeriousInjuriesSuffered',
+    method: 'countSeriousInjuriesSufferedByCoach',
+    resolve: (service) =>
+      service.resolveSeriousInjuriesSuffered(FACT_SCOPE_ALL_TIME),
+    rows: [{ coachId: 2, name: 'Grashnak', count: 11 }],
+    expectedTitle: 'Coaches by serious injuries suffered',
+  },
+  {
+    describeName: 'resolveLastingInjuriesSuffered',
+    method: 'countLastingInjuriesSufferedByCoach',
+    resolve: (service) =>
+      service.resolveLastingInjuriesSuffered(FACT_SCOPE_ALL_TIME),
+    rows: [{ coachId: 3, name: 'Skabsquik', count: 5 }],
+    expectedTitle: 'Coaches by lasting injuries suffered',
+  },
+  {
+    describeName: 'resolveDeathsSuffered',
+    method: 'countDeathsSufferedByCoach',
+    resolve: (service) => service.resolveDeathsSuffered(FACT_SCOPE_ALL_TIME),
+    rows: [{ coachId: 1, name: 'Roze Madder', count: 3 }],
+    expectedTitle: 'Coaches by deaths suffered',
+  },
+
   {
     describeName: 'resolveTrophiesWon',
     method: 'countTrophiesByCoach',
@@ -442,6 +481,10 @@ describe.each([
   ['resolveSeriousInjuriesCaused', 'countSeriousInjuriesCausedByCoach'],
   ['resolveLastingInjuriesCaused', 'countLastingInjuriesCausedByCoach'],
   ['resolveDeathsCaused', 'countDeathsCausedByCoach'],
+  ['resolveCasualtiesSuffered', 'countCasualtiesSufferedByCoach'],
+  ['resolveSeriousInjuriesSuffered', 'countSeriousInjuriesSufferedByCoach'],
+  ['resolveLastingInjuriesSuffered', 'countLastingInjuriesSufferedByCoach'],
+  ['resolveDeathsSuffered', 'countDeathsSufferedByCoach'],
 ] as const)('CoachToplistService.%s', (resolveName, method) => {
   it('passes the whole scope through to the factory resolver', async () => {
     // Dropping the competitionId is CoachesQueriesService's responsibility,

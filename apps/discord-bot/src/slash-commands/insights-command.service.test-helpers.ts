@@ -8,7 +8,6 @@ import { Test } from '@nestjs/testing';
 import type {
   AutocompleteInteraction,
   ChatInputCommandInteraction,
-  InteractionReplyOptions,
 } from 'discord.js';
 import { vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -41,8 +40,10 @@ import { TrophiesListService } from '../insights/facts/trophies-list.service';
 import { DateRangeFormatterService } from '../shared/date-range-formatter.service';
 import { makeDateRangeFormatter } from '../shared/date-range-formatter-mock.test-helpers';
 import { AutocompleteChoiceLabelService } from './autocomplete-choice-label.service';
+import { stubCoachToplistReplies } from './coach-toplist-replies.test-helpers';
 import type { FactTreeLookup } from './fact-tree-lookup.test-helpers';
 import { InsightsCommandService } from './insights-command.service';
+import { sampleEmbedReply } from './sample-embed-reply.test-helpers';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
 
 export * from './fact-tree-lookup.test-helpers';
@@ -65,18 +66,6 @@ export * from './fact-tree-lookup.test-helpers';
  * tree (see `stubLeafCategory`, `asLeaf` and `asNode`), so the navigation
  * algorithm itself is covered only by its own spec.
  */
-
-/**
- * A canned rendered reply standing in for a real fact service's rendering
- * (title/description/button formatting is that service's own concern,
- * covered by its dedicated spec — not InsightsCommandService's).
- */
-function sampleEmbedReply(
-  title: string,
-  description: string,
-): InteractionReplyOptions {
-  return { embeds: [{ title, description }], components: [] };
-}
 
 export interface FactTreeMocks {
   coachToplist: MockProxy<CoachToplistService>;
@@ -104,82 +93,7 @@ export interface FactTreeMocks {
  */
 function makeFactTreeMocks(): FactTreeMocks {
   const coachToplist = mock<CoachToplistService>();
-  coachToplist.resolveMatchesPlayed.mockResolvedValue(
-    sampleEmbedReply('Coaches by matches played', '1. Roze Madder — 9'),
-  );
-  coachToplist.resolveMatchesWon.mockResolvedValue(
-    sampleEmbedReply('Coaches by matches won', '1. Roze Madder — 5'),
-  );
-  coachToplist.resolveMatchesLost.mockResolvedValue(
-    sampleEmbedReply('Coaches by matches lost', '1. Roze Madder — 3'),
-  );
-  coachToplist.resolveMatchesDrawn.mockResolvedValue(
-    sampleEmbedReply('Coaches by matches drawn', '1. Roze Madder — 1'),
-  );
-  coachToplist.resolveTeams.mockResolvedValue(
-    sampleEmbedReply('Coaches by teams', '1. Roze Madder — 3'),
-  );
-  coachToplist.resolveCompetitionsPlayed.mockResolvedValue(
-    sampleEmbedReply('Coaches by competitions played', '1. Roze Madder — 5'),
-  );
-  coachToplist.resolveErasActive.mockResolvedValue(
-    sampleEmbedReply('Coaches by eras active', '1. Roze Madder — 3'),
-  );
-  coachToplist.resolveFoulsCommitted.mockResolvedValue(
-    sampleEmbedReply('Coaches by fouls committed', '1. Roze Madder — 8'),
-  );
-  coachToplist.resolveTouchdownsScored.mockResolvedValue(
-    sampleEmbedReply('Coaches by touchdowns scored', '1. Roze Madder — 42'),
-  );
-  coachToplist.resolveCompletions.mockResolvedValue(
-    sampleEmbedReply('Coaches by completions', '1. Roze Madder — 30'),
-  );
-  coachToplist.resolveInterceptions.mockResolvedValue(
-    sampleEmbedReply('Coaches by interceptions', '1. Roze Madder — 5'),
-  );
-  coachToplist.resolveDeflections.mockResolvedValue(
-    sampleEmbedReply('Coaches by deflections', '1. Roze Madder — 8'),
-  );
-  coachToplist.resolveCasualtiesCaused.mockResolvedValue(
-    sampleEmbedReply('Coaches by casualties caused', '1. Roze Madder — 57'),
-  );
-  coachToplist.resolveSeriousInjuriesCaused.mockResolvedValue(
-    sampleEmbedReply(
-      'Coaches by serious injuries caused',
-      '1. Roze Madder — 14',
-    ),
-  );
-  coachToplist.resolveLastingInjuriesCaused.mockResolvedValue(
-    sampleEmbedReply(
-      'Coaches by lasting injuries caused',
-      '1. Roze Madder — 6',
-    ),
-  );
-  coachToplist.resolveDeathsCaused.mockResolvedValue(
-    sampleEmbedReply('Coaches by deaths caused', '1. Roze Madder — 4'),
-  );
-  coachToplist.resolveTrophiesWon.mockResolvedValue(
-    sampleEmbedReply('Coaches by trophies won', '1. Roze Madder — 3'),
-  );
-  coachToplist.resolveTimeBetweenMatchesDescending.mockResolvedValue(
-    sampleEmbedReply(
-      'Coaches by longest time between matches (highest first)',
-      '1. Roze Madder — 45 days',
-    ),
-  );
-  coachToplist.resolveTimeBetweenMatchesAscending.mockResolvedValue(
-    sampleEmbedReply(
-      'Coaches by longest time between matches (lowest first)',
-      '1. Roze Madder — 12 days',
-    ),
-  );
-  coachToplist.resolveAverageTimeBetweenMatches.mockResolvedValue(
-    sampleEmbedReply(
-      'Coaches by average time between matches',
-      '1. Roze Madder — 8 days',
-    ),
-  );
-
+  stubCoachToplistReplies(coachToplist);
   const teamToplist = mock<TeamToplistService>();
   teamToplist.resolveMatchesPlayed.mockResolvedValue(
     sampleEmbedReply('Teams by matches played', '1. 40 grinders — 12'),

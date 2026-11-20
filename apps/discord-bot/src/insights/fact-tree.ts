@@ -114,6 +114,14 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
             resolve: (scope) =>
               deps.coachToplist.resolveCasualtiesCaused(scope),
           },
+          suffered: {
+            supportsLeague: true,
+            supportsEra: true,
+            supportsCompetition: false,
+            supportsMatchCategory: true,
+            resolve: (scope) =>
+              deps.coachToplist.resolveCasualtiesSuffered(scope),
+          },
         },
         injuries: {
           serious: {
@@ -125,6 +133,14 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
               resolve: (scope) =>
                 deps.coachToplist.resolveSeriousInjuriesCaused(scope),
             },
+            suffered: {
+              supportsLeague: true,
+              supportsEra: true,
+              supportsCompetition: false,
+              supportsMatchCategory: true,
+              resolve: (scope) =>
+                deps.coachToplist.resolveSeriousInjuriesSuffered(scope),
+            },
           },
           lasting: {
             caused: {
@@ -135,6 +151,14 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
               resolve: (scope) =>
                 deps.coachToplist.resolveLastingInjuriesCaused(scope),
             },
+            suffered: {
+              supportsLeague: true,
+              supportsEra: true,
+              supportsCompetition: false,
+              supportsMatchCategory: true,
+              resolve: (scope) =>
+                deps.coachToplist.resolveLastingInjuriesSuffered(scope),
+            },
           },
         },
         deaths: {
@@ -144,6 +168,13 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
             supportsCompetition: false,
             supportsMatchCategory: true,
             resolve: (scope) => deps.coachToplist.resolveDeathsCaused(scope),
+          },
+          suffered: {
+            supportsLeague: true,
+            supportsEra: true,
+            supportsCompetition: false,
+            supportsMatchCategory: true,
+            resolve: (scope) => deps.coachToplist.resolveDeathsSuffered(scope),
           },
         },
         trophies: {

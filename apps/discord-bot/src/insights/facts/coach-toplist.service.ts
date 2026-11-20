@@ -24,6 +24,10 @@ type CoachToplistMethod =
   | 'countSeriousInjuriesCausedByCoach'
   | 'countLastingInjuriesCausedByCoach'
   | 'countDeathsCausedByCoach'
+  | 'countCasualtiesSufferedByCoach'
+  | 'countSeriousInjuriesSufferedByCoach'
+  | 'countLastingInjuriesSufferedByCoach'
+  | 'countDeathsSufferedByCoach'
   | 'countMatchesPlayedByCoach'
   | 'countMatchesWonByCoach'
   | 'countMatchesLostByCoach'
@@ -71,6 +75,12 @@ export class CoachToplistService {
         countSeriousInjuriesCausedByCoach: 'Coaches by serious injuries caused',
         countLastingInjuriesCausedByCoach: 'Coaches by lasting injuries caused',
         countDeathsCausedByCoach: 'Coaches by deaths caused',
+        countCasualtiesSufferedByCoach: 'Coaches by casualties suffered',
+        countSeriousInjuriesSufferedByCoach:
+          'Coaches by serious injuries suffered',
+        countLastingInjuriesSufferedByCoach:
+          'Coaches by lasting injuries suffered',
+        countDeathsSufferedByCoach: 'Coaches by deaths suffered',
         countMatchesPlayedByCoach: 'Coaches by matches played',
         countMatchesWonByCoach: 'Coaches by matches won',
         countMatchesLostByCoach: 'Coaches by matches lost',
@@ -152,6 +162,42 @@ export class CoachToplistService {
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
     return this.resolvers.countDeathsCausedByCoach(this.coachesQueries, scope);
+  }
+
+  resolveCasualtiesSuffered(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolvers.countCasualtiesSufferedByCoach(
+      this.coachesQueries,
+      scope,
+    );
+  }
+
+  resolveSeriousInjuriesSuffered(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolvers.countSeriousInjuriesSufferedByCoach(
+      this.coachesQueries,
+      scope,
+    );
+  }
+
+  resolveLastingInjuriesSuffered(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolvers.countLastingInjuriesSufferedByCoach(
+      this.coachesQueries,
+      scope,
+    );
+  }
+
+  resolveDeathsSuffered(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolvers.countDeathsSufferedByCoach(
+      this.coachesQueries,
+      scope,
+    );
   }
 
   resolveMatchesPlayed(
