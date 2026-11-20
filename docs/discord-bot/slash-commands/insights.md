@@ -121,8 +121,8 @@ schema rather than here — see `packages/db/src/schema/game-data/match-events.t
   suffered, counted the same way as `team.toplist.injuries.serious.suffered`.
 - `coach.toplist.injuries.lasting.suffered` — coaches ranked by lasting injuries
   suffered, counted the same way as `team.toplist.injuries.lasting.suffered`.
-- `coach.toplist.deaths.suffered` — coaches ranked by players killed, counted
-  the same way as `team.toplist.deaths.suffered`.
+- `coach.toplist.deaths.suffered` — coaches ranked by their own players killed,
+  counted the same way as `team.toplist.deaths.suffered`.
 - `coach.toplist.trophies.won` — coaches ranked by number of trophies their
   teams have won. Counts every recorded trophy award tied to any of the
   coach's teams, including player awards (MVP, most casualties, ...) won by

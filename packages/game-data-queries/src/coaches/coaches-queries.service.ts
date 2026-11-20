@@ -296,7 +296,7 @@ export class CoachesQueriesService {
   }
 
   /**
-   * The shared shape of every match-event-backed coach toplist: count events
+   * The shared shape of every acting-side match-event-backed coach toplist: count events
    * of the given types credited to the acting side, attributed to that
    * team's coach and summed over all of the coach's teams. Deliberately does
    * not forward scope.competitionId: these coach toplists are
@@ -448,9 +448,10 @@ export class CoachesQueriesService {
   }
 
   /**
-   * Damage the coach's teams suffered, counted exactly as the
-   * TeamsStatisticsService `count*SufferedByTeam` counterparts and summed
-   * over every team the coach has coached.
+   * Casualties the coach's teams suffered. This and the three damage-suffered
+   * counts that follow (serious injuries, lasting injuries, deaths) are
+   * counted exactly as the TeamsStatisticsService `count*SufferedByTeam`
+   * counterparts and summed over every team the coach has coached.
    */
   countCasualtiesSufferedByCoach(
     scope: FactScope,

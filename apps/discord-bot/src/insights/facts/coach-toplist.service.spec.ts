@@ -269,7 +269,6 @@ const factoryCases: FactoryCase[] = [
     rows: [{ coachId: 1, name: 'Roze Madder', count: 3 }],
     expectedTitle: 'Coaches by deaths suffered',
   },
-
   {
     describeName: 'resolveTrophiesWon',
     method: 'countTrophiesByCoach',
