@@ -1,0 +1,62 @@
+// The data of TP players the TP import left incomplete whose data could be
+// proven: players too low on SPP to have advanced (no advancements, the
+// whole total unspent, stat reductions applied when they certainly still
+// apply; a marked journeyman with journeyman: true and his Loner left to
+// the server), and players whose advancements the TP feed reports prove
+// in order and to the SPP spent. Then the complete TP players with a stat
+// reduction recorded in a match and none stored, for the server to record
+// the lasting reductions their stored data shows. Generated from the
+// production database by production-ops-cli
+// generate-incomplete-player-fills; see
+// docs/import-manual/filling-missing-players.md#generated-fills.
+{
+  externalSystems: [
+    {
+      name: 'Name',
+      category: 'bookkeeping',
+    },
+    {
+      name: 'tourplay.net',
+      category: 'imported_data_source',
+    },
+  ],
+  incompletePlayerFills: [
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '589363',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 2,
+        pa: 4,
+        av: 7,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '672595',
+      },
+      status: 'dead',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 5,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [],
+      advancements: [],
+    },
+  ],
+  lastingInjuryRepairs: [],
+}
