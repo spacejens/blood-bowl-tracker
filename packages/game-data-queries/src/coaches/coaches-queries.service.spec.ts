@@ -10,14 +10,17 @@ import {
 } from '@blood-bowl-tracker/db/test-helpers';
 import {
   CASUALTY_CAUSED_TYPES,
+  CASUALTY_SUFFERED_TYPES,
   COMPLETION_TYPES,
   DEATH_CAUSED_TYPES,
+  DEATH_SUFFERED_TYPES,
   DEFLECTION_TYPES,
   FACT_SCOPE_ALL_TIME,
   FOUL_TYPES,
   INTERCEPTION_TYPES,
   LASTING_INJURY_SUFFERED_TYPES,
   SERIOUS_INJURY_CAUSED_TYPES,
+  SERIOUS_INJURY_SUFFERED_TYPES,
   TOUCHDOWN_TYPES,
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
@@ -178,6 +181,46 @@ describe('CoachesQueriesService', () => {
             types: CASUALTY_CAUSED_TYPES,
             consequenceTypes: LASTING_INJURY_SUFFERED_TYPES,
           },
+          scope: { leagueId: 9, eraId: 20, category: 'season_final' },
+          limit: 21,
+        });
+      });
+    });
+
+    describe.each([
+      ['countCasualtiesSufferedByCoach', CASUALTY_SUFFERED_TYPES],
+      ['countSeriousInjuriesSufferedByCoach', SERIOUS_INJURY_SUFFERED_TYPES],
+      ['countLastingInjuriesSufferedByCoach', LASTING_INJURY_SUFFERED_TYPES],
+      ['countDeathsSufferedByCoach', DEATH_SUFFERED_TYPES],
+    ] as const)('%s', (method, types) => {
+      it('returns the rows MatchEventCountsService resolves to', async () => {
+        const rows = [
+          { coachId: 1, name: 'Roze Madder', count: 31 },
+          { coachId: 2, name: 'Grashnak', count: 12 },
+        ];
+        matchEventCounts.countMatchEventsByCoach.mockResolvedValue(rows);
+        await build();
+        await expect(service[method](FACT_SCOPE_ALL_TIME, 21)).resolves.toEqual(
+          rows,
+        );
+      });
+
+      it('forwards a consequence selector for its own suffered types and drops the competition from the scope', async () => {
+        // Credited to the victim's team, as for the team.toplist.*.suffered
+        // counterparts; coach toplists are league/era/match-category-scoped
+        // only, so the competitionId must not reach the count service.
+        await build();
+        await service[method](
+          {
+            leagueId: 9,
+            eraId: 20,
+            competitionId: 30,
+            category: 'season_final',
+          },
+          21,
+        );
+        expect(matchEventCounts.countMatchEventsByCoach).toHaveBeenCalledWith({
+          selector: { role: 'consequence', types },
           scope: { leagueId: 9, eraId: 20, category: 'season_final' },
           limit: 21,
         });

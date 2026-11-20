@@ -22,13 +22,16 @@ import type {
 import type { FactScope } from '@blood-bowl-tracker/game-data';
 import {
   CASUALTY_CAUSED_TYPES,
+  CASUALTY_SUFFERED_TYPES,
   COMPLETION_TYPES,
   DEATH_CAUSED_TYPES,
+  DEATH_SUFFERED_TYPES,
   DEFLECTION_TYPES,
   FOUL_TYPES,
   INTERCEPTION_TYPES,
   LASTING_INJURY_SUFFERED_TYPES,
   SERIOUS_INJURY_CAUSED_TYPES,
+  SERIOUS_INJURY_SUFFERED_TYPES,
   TOUCHDOWN_TYPES,
 } from '@blood-bowl-tracker/game-data';
 import { Inject, Injectable } from '@nestjs/common';
@@ -417,6 +420,77 @@ export class CoachesQueriesService {
   ): Promise<{ coachId: number; name: string; count: number }[]> {
     return this.countActingEventsByCoach(
       { types: DEATH_CAUSED_TYPES },
+      scope,
+      limit,
+    );
+  }
+
+  /**
+   * The consequence-side twin of countActingEventsByCoach: count events whose
+   * consequence is one of the given types, credited to the victim's team,
+   * attributed to that team's coach and summed over all of the coach's teams.
+   * Like its acting-side sibling it does not forward scope.competitionId.
+   */
+  private countConsequenceEventsByCoach(
+    types: readonly ConsequenceType[],
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.matchEventCounts.countMatchEventsByCoach({
+      selector: { role: 'consequence', types },
+      scope: {
+        leagueId: scope.leagueId,
+        eraId: scope.eraId,
+        category: scope.category,
+      },
+      limit,
+    });
+  }
+
+  /**
+   * Damage the coach's teams suffered, counted exactly as the
+   * TeamsStatisticsService `count*SufferedByTeam` counterparts and summed
+   * over every team the coach has coached.
+   */
+  countCasualtiesSufferedByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.countConsequenceEventsByCoach(
+      CASUALTY_SUFFERED_TYPES,
+      scope,
+      limit,
+    );
+  }
+
+  countSeriousInjuriesSufferedByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.countConsequenceEventsByCoach(
+      SERIOUS_INJURY_SUFFERED_TYPES,
+      scope,
+      limit,
+    );
+  }
+
+  countLastingInjuriesSufferedByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.countConsequenceEventsByCoach(
+      LASTING_INJURY_SUFFERED_TYPES,
+      scope,
+      limit,
+    );
+  }
+
+  countDeathsSufferedByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.countConsequenceEventsByCoach(
+      DEATH_SUFFERED_TYPES,
       scope,
       limit,
     );
