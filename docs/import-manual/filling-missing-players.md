@@ -143,15 +143,33 @@ entry has the stored status, else `dead` if a death is recorded, else
   when the rules set has Passing), its starting skills, no advancements, and
   the whole total unspent.
 - **Lasting injuries.** His total SPP is below the cheapest advancement, and
-  every stat reduction recorded for him was suffered in one competition,
-  after which his team era played no other competition. No point at which
-  lasting injuries heal can have passed. Each reduction worsens the
-  position's start value by one: MA, ST and AV go down; AG and PA go down
+  every stat reduction recorded for him certainly still applies. Under
+  BB2020, DB2021 and BB2025, niggling injuries and characteristic
+  reductions can heal between competitions, and healing is optional, so a
+  reduction is certain only when no such point can have passed while he
+  was on the team. Under CRP, CRP+ and BB2016 they never heal. The
+  reductions are certain when one of these holds:
+  - every rules set of his era is CRP, CRP+ or BB2016 (an era with any
+    other or unknown rules set counts as one where they may heal);
+  - every reduction was suffered in one competition, after which his team
+    era played no other competition;
+  - he died, every reduction was suffered no later than his death (the
+    earliest match recording it), and no competition of his team era
+    other than the one of his first reduction both started by his death
+    and had a match after that reduction. The death proof applies only
+    when his stored status is unknown or dead and no match event names
+    him in a match played after his death match.
+
+  The generator holds the names of the rules sets that never heal; the
+  database does not.
+
+  Each reduction worsens the position's start value by one: MA, ST and AV go down; AG and PA go down
   when bare and up in a target-number format. A characteristic is never
   worsened by more than two in all, and never past MA 1, ST 1, AV 1 (3+ in
   a target-number format), and AG and PA 1 (6+ in a target-number format).
   A PA of 0 (cannot pass) stays 0. These limits are the rulebooks'; the
   database does not hold them. The rest is as for no advancements.
+
 - **Journeymen.** A player whose stored journeyman marker is set (a
   line-up or roster that listed Loner set it, and no roster has since shown
   him recruited), in a basic position, and otherwise filled as for no
@@ -249,7 +267,10 @@ checks `feed-match-ambiguous`, `spp-too-high` and `free-skill-risk` before it.
   trophy is curated as, he has a gained Loner, Hatred or free extra stored, or
   the feed reports a Loner, a Hatred or a skill a cost row grants
   (`free-skill-risk`);
-- his stat reductions are not certain to last (`lasting-injury-uncertain`);
+- his stat reductions are not certain to last: none of the proofs under
+  lasting injuries above holds (`lasting-injury-uncertain`). A match date
+  that cannot be read only fails the proofs that compare dates (one
+  competition, death), never the never-healing era proof, which reads none;
 - with feed reports: his unspent SPP is not stored
   (`unspent-spp-missing`); there are more than six reports
   (`too-many-advancements`); a reported skill names no stored skill, or
@@ -276,7 +297,7 @@ The server's checks above still apply when the batch is applied.
 The generated file also holds a `lastingInjuryRepairs` section, see
 [Recording lasting reductions](#recording-lasting-reductions).
 
-Batches 007 to 012 hold the fills generated this way (see
+Batches 007 to 013 hold the fills generated this way (see
 [Batches](batches.md)).
 
 ## Recording lasting reductions
