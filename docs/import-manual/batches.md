@@ -23,6 +23,7 @@ tools/import-manual/data/batches/
   010-tp-journeyman-fills/
   011-tp-feed-disambiguated-fills/
   012-trophy-skill-grants/
+  013-tp-lasting-injury-fills/
 ```
 
 A batch directory is named `NNN-<slug>`: a three-digit number and a lowercase
@@ -142,6 +143,13 @@ The batches:
   gets only when the batch is applied. The trophy entry runs before the fills within the batch. It
   applies after the source importers and after batch 011, in a plain
   `apply`.
+- **013-tp-lasting-injury-fills** — fills in the data of 2 incomplete TP
+  players too low on SPP to have advanced whose stat reductions certainly
+  still apply, because they died before any point where lasting injuries
+  could heal had passed (see
+  [Generated fills](filling-missing-players.md#generated-fills)). It is
+  generated the same way as batch 008, and applies after the source
+  importers and after batch 012, in a plain `apply`.
 
 A batch can also fill in the data of a TP player the TP import left
 incomplete, through the `incompletePlayerFills` section; see

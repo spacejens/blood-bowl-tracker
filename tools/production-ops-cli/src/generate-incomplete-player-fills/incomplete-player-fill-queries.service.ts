@@ -18,6 +18,7 @@ import {
   BIG_GUY_POSITIONS_SQL,
   CANDIDATES_SQL,
   CONSEQUENCES_SQL,
+  DEATH_TIMES_SQL,
   ERA_RULES_SETS_SQL,
   FREE_SKILL_RISK_SQL,
   LASTING_INJURY_REPAIRS_SQL,
@@ -111,6 +112,7 @@ const PositionSkillRowSchema = z.object({
 const EraRulesSetRowSchema = z.object({
   eraId: id,
   rulesSetId: id,
+  rulesSetName: z.string(),
   cheapestCost: value.nullable(),
 });
 
@@ -182,8 +184,11 @@ const StatReductionEventRowSchema = z.object({
 const TeamCompetitionRowSchema = z.object({
   playerId: id,
   competitionId: id,
+  firstPlayedAt: timestamp,
   lastPlayedAt: timestamp,
 });
+
+const DeathTimeRowSchema = z.object({ playerId: id, diedAt: timestamp });
 
 const BigGuyPositionRowSchema = z.object({ positionId: id, eraId: id });
 
@@ -222,7 +227,8 @@ const LastingInjuryRepairCandidateRowSchema = z.object({
  * rows cover the candidates and their stored data, team players (TP
  * players of the candidates' teams), their paid advancements and rosters,
  * skill names and categories, position access, advancement costs and
- * stat-reduction events and Big Guy positions; separately, the complete
+ * stat-reduction events, the competitions and death times that decide
+ * whether they last, and Big Guy positions; separately, the complete
  * players who may need a lasting-reduction repair.
  */
 @Injectable()
@@ -245,6 +251,7 @@ export class IncompletePlayerFillQueriesService {
       deathPlayerIds: consequences
         .filter((row) => row.hasDeath)
         .map((row) => row.playerId),
+      deathTimes: await this.rows(DEATH_TIMES_SQL, DeathTimeRowSchema),
       storedAdvancements: await this.rows(
         STORED_ADVANCEMENTS_SQL,
         StoredAdvancementRowSchema,

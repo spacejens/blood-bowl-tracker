@@ -184,8 +184,13 @@ describe('IncompletePlayerFillPlannerService', () => {
       'an era with an unpriced rules set',
       {
         eraRulesSets: [
-          { eraId: 4, rulesSetId: 7, cheapestCost: 6 },
-          { eraId: 4, rulesSetId: 8, cheapestCost: null },
+          { eraId: 4, rulesSetId: 7, rulesSetName: 'BB2020', cheapestCost: 6 },
+          {
+            eraId: 4,
+            rulesSetId: 8,
+            rulesSetName: 'BB2020',
+            cheapestCost: null,
+          },
         ],
       },
       'era-unpriced',
@@ -199,8 +204,8 @@ describe('IncompletePlayerFillPlannerService', () => {
       'a total at the cheapest cost of another rules set of the era',
       {
         eraRulesSets: [
-          { eraId: 4, rulesSetId: 7, cheapestCost: 6 },
-          { eraId: 4, rulesSetId: 8, cheapestCost: 5 },
+          { eraId: 4, rulesSetId: 7, rulesSetName: 'BB2020', cheapestCost: 6 },
+          { eraId: 4, rulesSetId: 8, rulesSetName: 'BB2020', cheapestCost: 5 },
         ],
       },
       'spp-too-high',
@@ -579,6 +584,7 @@ describe('IncompletePlayerFillPlannerService', () => {
     const played = {
       playerId: 1,
       competitionId: 50,
+      firstPlayedAt: '2024-02-01T19:00:00+00:00',
       lastPlayedAt: '2024-04-01T19:00:00+00:00',
     };
     advancementStage.decide.mockReturnValue({ entry: STAGED });
@@ -606,6 +612,7 @@ describe('IncompletePlayerFillPlannerService', () => {
         statReductionEvents: [event, { ...event, playerId: 2 }],
         teamCompetitions: [played, { ...played, playerId: 2 }],
         freeSkillRiskPlayerIds: [1],
+        deathTimes: [{ playerId: 1, diedAt: '2024-03-15T19:00:00+00:00' }],
         skillNames: [{ skillId: 200, skillName: 'Dodge', nameId: 'Dodge' }],
         advancementCosts: [ownCost, { ...ownCost, eraId: 9 }],
         skillCategories: [{ skillId: 200, rulesSetId: 7, category: 'agility' }],
@@ -621,6 +628,8 @@ describe('IncompletePlayerFillPlannerService', () => {
       hasStatReduction: true,
       reductions: [event],
       competitions: [played],
+      rulesSetNames: ['BB2020'],
+      diedAt: '2024-03-15T19:00:00+00:00',
       freeSkillRisk: true,
       stored: [],
       profile: profile(),
@@ -685,6 +694,7 @@ describe('IncompletePlayerFillPlannerService', () => {
     const played = {
       playerId: 1,
       competitionId: 50,
+      firstPlayedAt: '2024-02-01T19:00:00+00:00',
       lastPlayedAt: '2024-04-01T19:00:00+00:00',
     };
     injuryStage.decide.mockReturnValue({ entry: STAGED });
@@ -694,21 +704,70 @@ describe('IncompletePlayerFillPlannerService', () => {
         statReductionPlayerIds: [1],
         statReductionEvents: [event, { ...event, playerId: 2 }],
         teamCompetitions: [played, { ...played, playerId: 2 }],
+        deathPlayerIds: [1],
+        deathTimes: [
+          { playerId: 1, diedAt: '2024-03-15T19:00:00+00:00' },
+          { playerId: 2, diedAt: '2024-01-01T19:00:00+00:00' },
+        ],
       }),
     );
 
     expect(injuryStage.decide).toHaveBeenCalledWith({
       candidate: candidate(),
       sppTotal: 5,
-      status: 'retired',
+      status: 'dead',
       reductions: [event],
       competitions: [played],
+      rulesSetNames: ['BB2020'],
+      diedAt: '2024-03-15T19:00:00+00:00',
       stored: [],
       profile: profile(),
     });
     expect(plan.entries).toEqual([STAGED]);
     expect(plan.report.eligibleByStage.injuryOnly).toBe(1);
   });
+
+  it('hands the injury stage every rules set name of his era and no death time when none is recorded', () => {
+    injuryStage.decide.mockReturnValue({ entry: STAGED });
+
+    service.plan(
+      eligibleInput({
+        statReductionPlayerIds: [1],
+        eraRulesSets: [
+          { eraId: 4, rulesSetId: 7, rulesSetName: 'CRP', cheapestCost: 6 },
+          { eraId: 4, rulesSetId: 8, rulesSetName: 'CRP+', cheapestCost: 6 },
+          { eraId: 9, rulesSetId: 9, rulesSetName: 'BB2020', cheapestCost: 6 },
+        ],
+      }),
+    );
+
+    expect(injuryStage.decide).toHaveBeenCalledWith(
+      expect.objectContaining({ rulesSetNames: ['CRP', 'CRP+'], diedAt: null }),
+    );
+  });
+
+  it.each([
+    ['active', null],
+    ['retired', null],
+    ['dead', '2024-03-15T19:00:00+00:00'],
+  ] as const)(
+    'with a stored status of %s hands the injury stage the death time %s',
+    (status, diedAt) => {
+      injuryStage.decide.mockReturnValue({ entry: STAGED });
+
+      service.plan(
+        eligibleInput({
+          candidates: [candidate({ status })],
+          statReductionPlayerIds: [1],
+          deathTimes: [{ playerId: 1, diedAt: '2024-03-15T19:00:00+00:00' }],
+        }),
+      );
+
+      expect(injuryStage.decide).toHaveBeenCalledWith(
+        expect.objectContaining({ diedAt }),
+      );
+    },
+  );
 
   it('skips a free-skill risk before the injury stage', () => {
     expect(

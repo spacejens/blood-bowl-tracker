@@ -106,6 +106,26 @@ JOIN candidates c ON c.player_id = me.consequence_player_id
 WHERE me.consequence_type IN (${STAT_REDUCTION_TYPES}, 'death')
 GROUP BY me.consequence_player_id`;
 
+/** For each candidate with a death match event, when the earliest such match was played. */
+export const DEATH_TIMES_SQL = `${CANDIDATES_CTE}
+SELECT d."playerId", d."diedAt"
+FROM (
+  SELECT me.consequence_player_id AS "playerId", min(m.played_at) AS "diedAt"
+  FROM game_data.match_events me
+  JOIN candidates c ON c.player_id = me.consequence_player_id
+  JOIN game_data.matches m ON m.id = me.match_id
+  WHERE me.consequence_type = 'death'
+  GROUP BY me.consequence_player_id
+) d
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM game_data.match_events later
+  JOIN game_data.matches lm ON lm.id = later.match_id
+  WHERE (later.acting_player_id = d."playerId"
+      OR later.consequence_player_id = d."playerId")
+    AND lm.played_at > d."diedAt"
+)`;
+
 export const STORED_ADVANCEMENTS_SQL = `${CANDIDATES_CTE}
 SELECT pa.player_id AS "playerId", pa.source::text AS "source",
   pa.skill_id AS "skillId", s.name AS "skillName",
@@ -184,11 +204,12 @@ ORDER BY prss.id, se.external_id`;
 /** Every rules set of a team player's era, with its cheapest advancement of any kind or league. */
 export const ERA_RULES_SETS_SQL = `${TEAM_PLAYERS_CTE}
 SELECT ers.era_id AS "eraId", ers.rules_set_id AS "rulesSetId",
-  min(ac.spp_cost) AS "cheapestCost"
+  rs.name AS "rulesSetName", min(ac.spp_cost) AS "cheapestCost"
 FROM game_data.era_rules_sets ers
+JOIN game_data.rules_sets rs ON rs.id = ers.rules_set_id
 LEFT JOIN game_data.advancement_costs ac ON ac.rules_set_id = ers.rules_set_id
 WHERE ers.era_id IN (SELECT era_id FROM team_players)
-GROUP BY ers.era_id, ers.rules_set_id`;
+GROUP BY ers.era_id, ers.rules_set_id, rs.name`;
 
 /** Every non-star TP player of a candidate's team, complete or not, to match feed reports against. */
 export const TEAM_PLAYERS_SQL = `${TEAM_PLAYERS_CTE}
@@ -282,11 +303,11 @@ WHERE me.consequence_type IN (${STAT_REDUCTION_TYPES})`;
 
 /**
  * For each candidate with a stat reduction, every competition his team era
- * played a match in, with the last such match.
+ * played a match in, with the first and last such match.
  */
 export const TEAM_COMPETITIONS_SQL = `${CANDIDATES_CTE}
 SELECT c.player_id AS "playerId", m.competition_id AS "competitionId",
-  max(m.played_at) AS "lastPlayedAt"
+  min(m.played_at) AS "firstPlayedAt", max(m.played_at) AS "lastPlayedAt"
 FROM candidates c
 JOIN game_data.match_teams mt ON mt.team_era_id = c.team_era_id
 JOIN game_data.matches m ON m.id = mt.match_id

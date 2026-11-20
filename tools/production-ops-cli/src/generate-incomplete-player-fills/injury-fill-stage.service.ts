@@ -21,6 +21,10 @@ export interface InjuryStageInput {
   status: PlayerStatus;
   reductions: readonly StatReductionEventRow[];
   competitions: readonly TeamCompetitionRow[];
+  /** The names of his era's rules sets. */
+  rulesSetNames: readonly string[];
+  /** When he died; null when no death is recorded. */
+  diedAt: string | null;
   stored: readonly StoredAdvancementRow[];
   profile: PositionProfile | undefined;
 }
@@ -48,6 +52,8 @@ export class InjuryFillStageService {
     const reductions = this.proof.prove({
       reductions: input.reductions,
       competitions: input.competitions,
+      rulesSetNames: input.rulesSetNames,
+      diedAt: input.diedAt,
     });
     if (reductions === undefined) {
       return { reason: 'lasting-injury-uncertain' };

@@ -54,6 +54,10 @@ export interface AdvancementStageInput {
   reductions: readonly StatReductionEventRow[];
   /** Every competition his team era played in, with its last match. */
   competitions: readonly TeamCompetitionRow[];
+  /** The names of his era's rules sets. */
+  rulesSetNames: readonly string[];
+  /** When he died; null when no death is recorded. */
+  diedAt: string | null;
   /** He holds an award of a trophy that grants a skill, or a stored gained free skill. */
   freeSkillRisk: boolean;
   stored: readonly StoredAdvancementRow[];
@@ -108,6 +112,8 @@ export class AdvancementFillStageService {
       this.proof.prove({
         reductions: input.reductions,
         competitions: input.competitions,
+        rulesSetNames: input.rulesSetNames,
+        diedAt: input.diedAt,
       }) === undefined
     ) {
       return { reason: 'lasting-injury-uncertain' };

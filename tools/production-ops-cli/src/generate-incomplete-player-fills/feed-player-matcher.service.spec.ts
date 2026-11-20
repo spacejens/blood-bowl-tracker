@@ -647,8 +647,18 @@ describe('FeedPlayerMatcherService', () => {
             paidAdvancements: [paid, { ...paid, playerId: 3 }],
             skillNames: names,
             eraRulesSets: [
-              { eraId: 4, rulesSetId: 7, cheapestCost: 6 },
-              { eraId: 9, rulesSetId: 8, cheapestCost: 6 },
+              {
+                eraId: 4,
+                rulesSetId: 7,
+                rulesSetName: 'BB2020',
+                cheapestCost: 6,
+              },
+              {
+                eraId: 9,
+                rulesSetId: 8,
+                rulesSetName: 'BB2020',
+                cheapestCost: 6,
+              },
             ],
             advancementCosts: [cost, { ...cost, eraId: 9, rulesSetId: 8 }],
             skillCategories: [

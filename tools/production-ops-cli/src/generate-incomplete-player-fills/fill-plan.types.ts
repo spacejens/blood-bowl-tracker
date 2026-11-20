@@ -76,10 +76,11 @@ export interface PositionSkillRow {
   attributeValue: string | null;
 }
 
-/** One rules set of an era and its cheapest advancement; null when it prices none. */
+/** One rules set of an era, its name, and its cheapest advancement; null when it prices none. */
 export interface EraRulesSetRow {
   eraId: number;
   rulesSetId: number;
+  rulesSetName: string;
   cheapestCost: number | null;
 }
 
@@ -89,6 +90,8 @@ export interface FillPlannerRows {
   statReductionPlayerIds: number[];
   /** Candidates named as recipient of a death match event. */
   deathPlayerIds: number[];
+  /** When each candidate with a death match event died. */
+  deathTimes: DeathTimeRow[];
   storedAdvancements: StoredAdvancementRow[];
   freeSkillRiskPlayerIds: number[];
   ongoingTeamIds: number[];
@@ -356,11 +359,19 @@ export interface StatReductionEventRow {
   playedAt: string;
 }
 
-/** A competition a candidate's team era played in, with its last match. */
+/** A competition a candidate's team era played in, with its first and last match. */
 export interface TeamCompetitionRow {
   playerId: number;
   competitionId: number;
+  firstPlayedAt: string;
   lastPlayedAt: string;
+}
+
+/** The earliest match recording a candidate's death. */
+export interface DeathTimeRow {
+  playerId: number;
+  /** When that match was played, as an ISO timestamp. */
+  diedAt: string;
 }
 
 /** What the feed says of one stored player. */

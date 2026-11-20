@@ -8,6 +8,7 @@ import {
   BIG_GUY_POSITIONS_SQL,
   CANDIDATES_SQL,
   CONSEQUENCES_SQL,
+  DEATH_TIMES_SQL,
   ERA_RULES_SETS_SQL,
   FREE_SKILL_RISK_SQL,
   INCOMPLETE_PLAYER_CONDITIONS,
@@ -101,8 +102,16 @@ const REDUCTION = {
 const TEAM_COMPETITION = {
   playerId: 2,
   competitionId: 50,
+  firstPlayedAt: '2024-02-01T19:00:00+00:00',
   lastPlayedAt: '2024-04-01T19:00:00+00:00',
 };
+const ERA_RULES_SET = {
+  eraId: 4,
+  rulesSetId: 7,
+  rulesSetName: 'BB2020',
+  cheapestCost: 6,
+};
+const DEATH_TIME = { playerId: 1, diedAt: '2024-03-15T19:00:00+00:00' };
 
 const REPAIR = {
   player: { system: 'tourplay.net', id: '929761' },
@@ -131,6 +140,7 @@ describe('IncompletePlayerFillQueriesService', () => {
           { playerId: 3, hasStatReduction: true, hasDeath: true },
         ],
       ],
+      [DEATH_TIMES_SQL, [DEATH_TIME]],
       [STORED_ADVANCEMENTS_SQL, []],
       [FREE_SKILL_RISK_SQL, [{ playerId: 9 }]],
       [
@@ -143,7 +153,7 @@ describe('IncompletePlayerFillQueriesService', () => {
       ],
       [POSITION_RULES_SETS_SQL, [PRS]],
       [POSITION_SKILLS_SQL, [SKILL]],
-      [ERA_RULES_SETS_SQL, [{ eraId: 4, rulesSetId: 7, cheapestCost: 6 }]],
+      [ERA_RULES_SETS_SQL, [ERA_RULES_SET]],
       [TEAM_PLAYERS_SQL, [TEAM_PLAYER]],
       [TEAM_ROSTERS_SQL, [{ teamId: 20, rosterId: '24801' }]],
       [PAID_ADVANCEMENTS_SQL, PAID],
@@ -194,12 +204,13 @@ describe('IncompletePlayerFillQueriesService', () => {
       candidates: [CANDIDATE],
       statReductionPlayerIds: [2, 3],
       deathPlayerIds: [1, 3],
+      deathTimes: [DEATH_TIME],
       storedAdvancements: [],
       freeSkillRiskPlayerIds: [9],
       ongoingTeamIds: [20, 21],
       positionRulesSets: [PRS],
       positionSkills: [SKILL],
-      eraRulesSets: [{ eraId: 4, rulesSetId: 7, cheapestCost: 6 }],
+      eraRulesSets: [ERA_RULES_SET],
       teamPlayers: [TEAM_PLAYER],
       teamRosters: [{ teamId: 20, rosterId: '24801' }],
       paidAdvancements: PAID,
@@ -239,6 +250,35 @@ describe('IncompletePlayerFillQueriesService', () => {
     );
   });
 
+  it("times each candidate's death by its earliest match", () => {
+    expect(DEATH_TIMES_SQL).toContain("me.consequence_type = 'death'");
+    expect(DEATH_TIMES_SQL).toContain('min(m.played_at) AS "diedAt"');
+    expect(DEATH_TIMES_SQL).toContain('JOIN candidates c');
+  });
+
+  it('gives no death time to a candidate a later match event names', () => {
+    expect(DEATH_TIMES_SQL).toContain('NOT EXISTS');
+    expect(DEATH_TIMES_SQL).toContain('later.acting_player_id');
+    expect(DEATH_TIMES_SQL).toContain('later.consequence_player_id');
+    expect(DEATH_TIMES_SQL).toContain('lm.played_at > ');
+  });
+
+  it('gives each team competition its first and last match', () => {
+    expect(TEAM_COMPETITIONS_SQL).toContain(
+      'min(m.played_at) AS "firstPlayedAt"',
+    );
+    expect(TEAM_COMPETITIONS_SQL).toContain(
+      'max(m.played_at) AS "lastPlayedAt"',
+    );
+  });
+
+  it("names each rules set of the team players' eras", () => {
+    expect(ERA_RULES_SETS_SQL).toContain('rs.name AS "rulesSetName"');
+    expect(ERA_RULES_SETS_SQL).toContain(
+      'GROUP BY ers.era_id, ers.rules_set_id, rs.name',
+    );
+  });
+
   it('selects every stat-reduction consequence type', () => {
     for (const type of [
       'stat_reduction_ma',
@@ -272,6 +312,21 @@ describe('IncompletePlayerFillQueriesService', () => {
       'an unreadable last match date',
       TEAM_COMPETITIONS_SQL,
       { ...TEAM_COMPETITION, lastPlayedAt: 'soon' },
+    ],
+    [
+      'an unreadable first match date',
+      TEAM_COMPETITIONS_SQL,
+      { ...TEAM_COMPETITION, firstPlayedAt: 'soon' },
+    ],
+    [
+      'an unreadable death date',
+      DEATH_TIMES_SQL,
+      { ...DEATH_TIME, diedAt: 'soon' },
+    ],
+    [
+      'a rules set without a name',
+      ERA_RULES_SETS_SQL,
+      { ...ERA_RULES_SET, rulesSetName: null },
     ],
     [
       'an unknown advancement kind',

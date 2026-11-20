@@ -78,6 +78,7 @@ export function eligibleInput(
     candidates: [candidate()],
     statReductionPlayerIds: [],
     deathPlayerIds: [],
+    deathTimes: [],
     storedAdvancements: [],
     freeSkillRiskPlayerIds: [],
     ongoingTeamIds: [],
@@ -105,7 +106,9 @@ export function eligibleInput(
         attributeValue: null,
       },
     ],
-    eraRulesSets: [{ eraId: 4, rulesSetId: 7, cheapestCost: 6 }],
+    eraRulesSets: [
+      { eraId: 4, rulesSetId: 7, rulesSetName: 'BB2020', cheapestCost: 6 },
+    ],
     teamPlayers: [],
     teamRosters: [],
     paidAdvancements: [],
