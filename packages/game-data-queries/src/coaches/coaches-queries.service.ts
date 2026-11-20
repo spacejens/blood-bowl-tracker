@@ -1,7 +1,6 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import {
   and,
-  asc,
   coaches,
   competitions,
   competitionTeams,
@@ -12,20 +11,26 @@ import {
   eras,
   ilike,
   inArray,
-  isNotNull,
   matches,
   matchTeams,
   sql,
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
-import type { ActionType } from '@blood-bowl-tracker/domain-enums';
+import type {
+  ActionType,
+  ConsequenceType,
+} from '@blood-bowl-tracker/domain-enums';
 import type { FactScope } from '@blood-bowl-tracker/game-data';
 import {
+  CASUALTY_CAUSED_TYPES,
   COMPLETION_TYPES,
+  DEATH_CAUSED_TYPES,
   DEFLECTION_TYPES,
   FOUL_TYPES,
   INTERCEPTION_TYPES,
+  LASTING_INJURY_SUFFERED_TYPES,
+  SERIOUS_INJURY_CAUSED_TYPES,
   TOUCHDOWN_TYPES,
 } from '@blood-bowl-tracker/game-data';
 import { Inject, Injectable } from '@nestjs/common';
@@ -35,6 +40,17 @@ import { LikePatternService } from '../shared/like-pattern.service';
 import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import { MatchOutcomeCountsService } from '../shared/match-outcome-counts.service';
 import { TrophyAwardCountsService } from '../shared/trophy-award-counts.service';
+import { CoachMatchGapsService } from './coach-match-gaps.service';
+
+/**
+ * The acting-side event filter of a match-event-backed coach count: the
+ * action types that count, optionally narrowed to rows whose own consequence
+ * is one of `consequenceTypes` (see MatchEventSelector).
+ */
+type ActingCoachEvents = {
+  types: readonly ActionType[];
+  consequenceTypes?: readonly ConsequenceType[];
+};
 
 /**
  * Read-only coach lookups, scoped counts and toplists for the Discord bot.
@@ -48,6 +64,7 @@ export class CoachesQueriesService {
     private readonly matchEventCounts: MatchEventCountsService,
     private readonly matchOutcomeCounts: MatchOutcomeCountsService,
     private readonly trophyAwardCounts: TrophyAwardCountsService,
+    private readonly coachMatchGaps: CoachMatchGapsService,
   ) {}
 
   async findById(
@@ -242,132 +259,35 @@ export class CoachesQueriesService {
   }
 
   /**
-   * Per-coach consecutive-match gaps, as a subquery of
-   * `{ coachId, name, gapDays }` rows — one row per match, with `gapDays` the
-   * fractional number of days since that coach's previous match in scope, and
-   * null for a coach's first match.
-   *
-   * The inner `selectDistinct` deduplicates a match a coach played with two of
-   * their own teams (same reason `countMatchesPlayedByCoach` counts distinct
-   * match ids), so such a match cannot produce a spurious zero-day gap. League,
-   * era and match-category filtering is applied here, before the window function, so only
-   * in-scope matches take part in a coach's gap sequence.
+   * The time-between-matches toplists live on CoachMatchGapsService; these
+   * delegates keep them reachable through CoachesQueriesService alongside the
+   * other coach toplists.
    */
-  private gapsByCoach(scope: FactScope) {
-    const coachMatches = this.db
-      .selectDistinct({
-        coachId: coaches.id,
-        name: coaches.name,
-        playedAt: matches.playedAt,
-      })
-      .from(matches)
-      .innerJoin(matchTeams, eq(matchTeams.matchId, matches.id))
-      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
-      .innerJoin(eras, eq(eras.id, teamEras.eraId))
-      .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .innerJoin(coaches, eq(coaches.id, teams.coachId))
-      .where(
-        and(
-          scope.leagueId === undefined
-            ? undefined
-            : eq(eras.leagueId, scope.leagueId),
-          scope.eraId === undefined
-            ? undefined
-            : eq(teamEras.eraId, scope.eraId),
-          scope.category === undefined
-            ? undefined
-            : eq(matches.category, scope.category),
-        ),
-      )
-      .as('coach_matches');
-
-    return this.db
-      .select({
-        coachId: coachMatches.coachId,
-        name: coachMatches.name,
-        gapDays: sql<
-          number | null
-        >`extract(epoch from ${coachMatches.playedAt} - lag(${coachMatches.playedAt}) over (partition by ${coachMatches.coachId} order by ${coachMatches.playedAt})) / 86400.0`.as(
-          'gap_days',
-        ),
-      })
-      .from(coachMatches)
-      .as('coach_match_gaps');
-  }
-
-  /**
-   * Coaches ranked by their single longest gap between consecutive matches,
-   * rounded half-up to whole days. `direction` is the only difference between
-   * the "longest gap" and "most consistent" toplists: they are the same metric
-   * read from opposite ends.
-   */
-  private rankByLongestGap(
-    scope: FactScope,
-    limit: number,
-    direction: 'asc' | 'desc',
-  ): Promise<{ coachId: number; name: string; count: number }[]> {
-    const gaps = this.gapsByCoach(scope);
-    // ::numeric before round() so PostgreSQL rounds half away from zero (gaps
-    // are never negative, so that is round-half-up); ::int matches the count
-    // shape LeaderboardService expects.
-    const longest = sql<number>`round(max(${gaps.gapDays})::numeric)::int`;
-    const query = this.db
-      .select({ coachId: gaps.coachId, name: gaps.name, count: longest })
-      .from(gaps)
-      // A null gap is a coach's first match; dropping those also drops coaches
-      // with fewer than two in-scope matches entirely.
-      .where(isNotNull(gaps.gapDays))
-      .groupBy(gaps.coachId, gaps.name);
-    // "Most consistent" only means something with a real activity history, so
-    // require 4 gaps (5 matches); "longest" deliberately has no floor, since
-    // it wants a coach's single worst gap regardless of how few they've played.
-    const filtered =
-      direction === 'asc' ? query.having(sql`count(*) >= 4`) : query;
-    return filtered
-      .orderBy(direction === 'desc' ? desc(longest) : asc(longest))
-      .limit(limit);
-  }
-
   getGapBetweenMatchesByCoachDescending(
     scope: FactScope,
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
-    return this.rankByLongestGap(scope, limit, 'desc');
+    return this.coachMatchGaps.getGapBetweenMatchesByCoachDescending(
+      scope,
+      limit,
+    );
   }
 
-  /**
-   * The same longest-gap metric ascending: the coaches whose *worst* gap is
-   * smallest, i.e. the most consistently active ones.
-   */
   getGapBetweenMatchesByCoachAscending(
     scope: FactScope,
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
-    return this.rankByLongestGap(scope, limit, 'asc');
+    return this.coachMatchGaps.getGapBetweenMatchesByCoachAscending(
+      scope,
+      limit,
+    );
   }
 
-  /**
-   * Coaches ranked by the mean gap across all of their consecutive in-scope
-   * matches, rounded half-up to whole days, smallest first.
-   */
   getAverageGapBetweenMatchesByCoach(
     scope: FactScope,
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
-    const gaps = this.gapsByCoach(scope);
-    const average = sql<number>`round(avg(${gaps.gapDays})::numeric)::int`;
-    return (
-      this.db
-        .select({ coachId: gaps.coachId, name: gaps.name, count: average })
-        .from(gaps)
-        .where(isNotNull(gaps.gapDays))
-        .groupBy(gaps.coachId, gaps.name)
-        // Same 4-gap (5-match) floor as the "most consistent" toplist, for the
-        // same reason: an average over too few matches is not a meaningful signal.
-        .having(sql`count(*) >= 4`)
-        .orderBy(asc(average))
-        .limit(limit)
-    );
+    return this.coachMatchGaps.getAverageGapBetweenMatchesByCoach(scope, limit);
   }
 
   /**
@@ -489,15 +409,17 @@ export class CoachesQueriesService {
    * team's coach and summed over all of the coach's teams. Deliberately does
    * not forward scope.competitionId: these coach toplists are
    * league/era/match-category-scoped only (the trophy toplist below is the
-   * exception, since a trophy award belongs to a competition).
+   * exception, since a trophy award belongs to a competition). An optional
+   * consequenceTypes narrows the count to actions whose own row records one
+   * of those consequences.
    */
   private countActingEventsByCoach(
-    types: readonly ActionType[],
+    events: ActingCoachEvents,
     scope: FactScope,
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
     return this.matchEventCounts.countMatchEventsByCoach({
-      selector: { role: 'acting', types },
+      selector: { role: 'acting', ...events },
       scope: {
         leagueId: scope.leagueId,
         eraId: scope.eraId,
@@ -511,35 +433,104 @@ export class CoachesQueriesService {
     scope: FactScope,
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
-    return this.countActingEventsByCoach(FOUL_TYPES, scope, limit);
+    return this.countActingEventsByCoach({ types: FOUL_TYPES }, scope, limit);
   }
 
   countTouchdownsScoredByCoach(
     scope: FactScope,
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
-    return this.countActingEventsByCoach(TOUCHDOWN_TYPES, scope, limit);
+    return this.countActingEventsByCoach(
+      { types: TOUCHDOWN_TYPES },
+      scope,
+      limit,
+    );
   }
 
   countCompletionsByCoach(
     scope: FactScope,
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
-    return this.countActingEventsByCoach(COMPLETION_TYPES, scope, limit);
+    return this.countActingEventsByCoach(
+      { types: COMPLETION_TYPES },
+      scope,
+      limit,
+    );
   }
 
   countInterceptionsByCoach(
     scope: FactScope,
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
-    return this.countActingEventsByCoach(INTERCEPTION_TYPES, scope, limit);
+    return this.countActingEventsByCoach(
+      { types: INTERCEPTION_TYPES },
+      scope,
+      limit,
+    );
   }
 
   countDeflectionsByCoach(
     scope: FactScope,
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
-    return this.countActingEventsByCoach(DEFLECTION_TYPES, scope, limit);
+    return this.countActingEventsByCoach(
+      { types: DEFLECTION_TYPES },
+      scope,
+      limit,
+    );
+  }
+
+  countCasualtiesCausedByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.countActingEventsByCoach(
+      { types: CASUALTY_CAUSED_TYPES },
+      scope,
+      limit,
+    );
+  }
+
+  countSeriousInjuriesCausedByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.countActingEventsByCoach(
+      { types: SERIOUS_INJURY_CAUSED_TYPES },
+      scope,
+      limit,
+    );
+  }
+
+  /**
+   * Lasting injuries the coach's teams inflicted: a casualty-severity action
+   * whose own row carries a lasting consequence, as for
+   * TeamsStatisticsService.countLastingInjuriesCausedByTeam. A foul does not
+   * count, and a consequence-only row has no causer.
+   */
+  countLastingInjuriesCausedByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.countActingEventsByCoach(
+      {
+        types: CASUALTY_CAUSED_TYPES,
+        consequenceTypes: LASTING_INJURY_SUFFERED_TYPES,
+      },
+      scope,
+      limit,
+    );
+  }
+
+  countDeathsCausedByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.countActingEventsByCoach(
+      { types: DEATH_CAUSED_TYPES },
+      scope,
+      limit,
+    );
   }
 
   /**

@@ -140,6 +140,24 @@ function makeFactTreeMocks(): FactTreeMocks {
   coachToplist.resolveDeflections.mockResolvedValue(
     sampleEmbedReply('Coaches by deflections', '1. Roze Madder — 8'),
   );
+  coachToplist.resolveCasualtiesCaused.mockResolvedValue(
+    sampleEmbedReply('Coaches by casualties caused', '1. Roze Madder — 57'),
+  );
+  coachToplist.resolveSeriousInjuriesCaused.mockResolvedValue(
+    sampleEmbedReply(
+      'Coaches by serious injuries caused',
+      '1. Roze Madder — 14',
+    ),
+  );
+  coachToplist.resolveLastingInjuriesCaused.mockResolvedValue(
+    sampleEmbedReply(
+      'Coaches by lasting injuries caused',
+      '1. Roze Madder — 6',
+    ),
+  );
+  coachToplist.resolveDeathsCaused.mockResolvedValue(
+    sampleEmbedReply('Coaches by deaths caused', '1. Roze Madder — 4'),
+  );
   coachToplist.resolveTrophiesWon.mockResolvedValue(
     sampleEmbedReply('Coaches by trophies won', '1. Roze Madder — 3'),
   );

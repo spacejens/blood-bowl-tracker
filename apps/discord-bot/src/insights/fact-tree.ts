@@ -105,6 +105,47 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
           supportsMatchCategory: true,
           resolve: (scope) => deps.coachToplist.resolveDeflections(scope),
         },
+        casualties: {
+          caused: {
+            supportsLeague: true,
+            supportsEra: true,
+            supportsCompetition: false,
+            supportsMatchCategory: true,
+            resolve: (scope) =>
+              deps.coachToplist.resolveCasualtiesCaused(scope),
+          },
+        },
+        injuries: {
+          serious: {
+            caused: {
+              supportsLeague: true,
+              supportsEra: true,
+              supportsCompetition: false,
+              supportsMatchCategory: true,
+              resolve: (scope) =>
+                deps.coachToplist.resolveSeriousInjuriesCaused(scope),
+            },
+          },
+          lasting: {
+            caused: {
+              supportsLeague: true,
+              supportsEra: true,
+              supportsCompetition: false,
+              supportsMatchCategory: true,
+              resolve: (scope) =>
+                deps.coachToplist.resolveLastingInjuriesCaused(scope),
+            },
+          },
+        },
+        deaths: {
+          caused: {
+            supportsLeague: true,
+            supportsEra: true,
+            supportsCompetition: false,
+            supportsMatchCategory: true,
+            resolve: (scope) => deps.coachToplist.resolveDeathsCaused(scope),
+          },
+        },
         trophies: {
           won: {
             // Counts every trophy_awards row tied to any of the coach's teams -
