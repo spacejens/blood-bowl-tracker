@@ -90,6 +90,55 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
             resolve: (scope) =>
               deps.coachToplist.resolveTouchdownsScored(scope),
           },
+          // Per-match averages over coaches with at least five matches in
+          // scope. No competition scope: the matches behind an average are
+          // scoped by league, era and category only.
+          average: {
+            scored: {
+              descending: {
+                supportsLeague: true,
+                supportsEra: true,
+                supportsCompetition: false,
+                supportsMatchCategory: true,
+                resolve: (scope) =>
+                  deps.coachAverageToplist.resolveAverageTouchdownsScoredDescending(
+                    scope,
+                  ),
+              },
+              ascending: {
+                supportsLeague: true,
+                supportsEra: true,
+                supportsCompetition: false,
+                supportsMatchCategory: true,
+                resolve: (scope) =>
+                  deps.coachAverageToplist.resolveAverageTouchdownsScoredAscending(
+                    scope,
+                  ),
+              },
+            },
+            conceded: {
+              descending: {
+                supportsLeague: true,
+                supportsEra: true,
+                supportsCompetition: false,
+                supportsMatchCategory: true,
+                resolve: (scope) =>
+                  deps.coachAverageToplist.resolveAverageTouchdownsConcededDescending(
+                    scope,
+                  ),
+              },
+              ascending: {
+                supportsLeague: true,
+                supportsEra: true,
+                supportsCompetition: false,
+                supportsMatchCategory: true,
+                resolve: (scope) =>
+                  deps.coachAverageToplist.resolveAverageTouchdownsConcededAscending(
+                    scope,
+                  ),
+              },
+            },
+          },
         },
         completions: {
           supportsLeague: true,
@@ -129,9 +178,7 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
             resolve: (scope) =>
               deps.coachToplist.resolveCasualtiesSuffered(scope),
           },
-          // Per-match averages over coaches with at least five matches in
-          // scope. No competition scope: the matches behind an average are
-          // scoped by league, era and category only.
+          // Per-match averages; same floor and scopes as the touchdown averages.
           average: {
             caused: {
               descending: {
