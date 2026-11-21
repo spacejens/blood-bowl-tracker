@@ -1,174 +1,22 @@
 import 'reflect-metadata';
 
 import type { Db } from '@blood-bowl-tracker/db';
-import {
-  coaches,
-  competitionGroups,
-  competitions,
-  DB,
-  eras,
-  leagues,
-  matches,
-  matchEvents,
-  matchTeams,
-  races,
-  teamEras,
-  teams,
-} from '@blood-bowl-tracker/db';
+import { DB } from '@blood-bowl-tracker/db';
 import {
   closeTestDb,
   resetGameDataTables,
 } from '@blood-bowl-tracker/db/test-helpers';
-import type {
-  ActionType,
-  ConsequenceType,
-  MatchCategory,
-} from '@blood-bowl-tracker/domain-enums';
 import type { FactScope } from '@blood-bowl-tracker/game-data';
 import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
+import { PerMatchAverageSqlService } from '../src/shared/per-match-average-sql.service';
 import type { TeamAverageRow } from '../src/teams/team-average-statistics.service';
 import { TeamAverageStatisticsService } from '../src/teams/team-average-statistics.service';
 import { connectTestDb } from './e2e-database';
-
-interface LeagueFixture {
-  leagueId: number;
-  eraId: number;
-  competitionId: number;
-}
-
-/**
- * One event recorded on a side: an action it took (`actionType`, keyed on the
- * acting side) and/or a consequence (`consequenceType`, keyed on the
- * consequence side). The consequence lands on the recording side unless
- * `victimSide` names another side by its index in `PlayMatchesOptions.sides`,
- * which is how one row records a foul by one side injuring the other.
- */
-interface SideEvent {
-  actionType?: ActionType;
-  consequenceType?: ConsequenceType;
-  victimSide?: number;
-}
-
-interface MatchSide {
-  teamEraId: number;
-  score: number;
-  /** Events recorded on this side in every one of the matches. */
-  events?: SideEvent[];
-}
-
-interface PlayMatchesOptions {
-  count: number;
-  competitionId: number;
-  category?: MatchCategory;
-  sides: MatchSide[];
-}
-
-/** One league with one era and one season competition in it. */
-async function seedLeague(db: Db, suffix: string): Promise<LeagueFixture> {
-  const [league] = await db
-    .insert(leagues)
-    .values({ name: `League ${suffix}` })
-    .returning();
-  const [era] = await db
-    .insert(eras)
-    .values({
-      name: `Era ${suffix}`,
-      leagueId: league.id,
-      startDate: '2020-01-01',
-    })
-    .returning();
-  const [group] = await db
-    .insert(competitionGroups)
-    .values({
-      name: `Season ${suffix}`,
-      leagueId: league.id,
-      namePattern: `^Season ${suffix}\\s*\\d+$`,
-    })
-    .returning();
-  const [competition] = await db
-    .insert(competitions)
-    .values({
-      name: `Season ${suffix} 1`,
-      type: 'season',
-      eraId: era.id,
-      competitionGroupId: group.id,
-      startDate: '2020-02-01',
-    })
-    .returning();
-  return {
-    leagueId: league.id,
-    eraId: era.id,
-    competitionId: competition.id,
-  };
-}
-
-/** A team with its own race and coach; returns the team id. */
-async function seedTeam(db: Db, name: string): Promise<number> {
-  const [race] = await db
-    .insert(races)
-    .values({ name: `${name} Race` })
-    .returning();
-  const [coach] = await db
-    .insert(coaches)
-    .values({ name: `${name} Coach` })
-    .returning();
-  const [team] = await db
-    .insert(teams)
-    .values({ name, raceId: race.id, coachId: coach.id })
-    .returning();
-  return team.id;
-}
-
-/** Enter a team into an era; returns the team era id. */
-async function joinEra(db: Db, teamId: number, eraId: number): Promise<number> {
-  const [teamEra] = await db
-    .insert(teamEras)
-    .values({ teamId, eraId })
-    .returning();
-  return teamEra.id;
-}
-
-/** Record `count` identical matches between the given sides. */
-async function playMatches(db: Db, options: PlayMatchesOptions): Promise<void> {
-  for (let i = 0; i < options.count; i += 1) {
-    const [match] = await db
-      .insert(matches)
-      .values({
-        competitionId: options.competitionId,
-        playedAt: new Date(Date.UTC(2020, 2, 1 + i, 12)),
-        name: `Match ${i + 1}`,
-        category: options.category ?? 'normal',
-      })
-      .returning();
-    const matchTeamIds: number[] = [];
-    for (const { teamEraId, score } of options.sides) {
-      const [matchTeam] = await db
-        .insert(matchTeams)
-        .values({ matchId: match.id, teamEraId, score })
-        .returning();
-      matchTeamIds.push(matchTeam.id);
-    }
-    const events = options.sides.flatMap(({ events: sideEvents = [] }, index) =>
-      sideEvents.map((event) => ({
-        matchId: match.id,
-        actingMatchTeamId:
-          event.actionType === undefined ? undefined : matchTeamIds[index],
-        actionType: event.actionType,
-        consequenceMatchTeamId:
-          event.consequenceType === undefined
-            ? undefined
-            : matchTeamIds[event.victimSide ?? index],
-        consequenceType: event.consequenceType,
-      })),
-    );
-    if (events.length > 0) {
-      await db.insert(matchEvents).values(events);
-    }
-  }
-}
+import type { LeagueFixture, MatchSide } from './match-fixtures';
+import { joinEra, playMatches, seedLeague, seedTeam } from './match-fixtures';
 
 function namesAndAverages(rows: TeamAverageRow[]): [string, number][] {
   return rows.map((row) => [row.name, row.average]);
@@ -191,7 +39,11 @@ describe('TeamAverageStatisticsService (real Postgres)', () => {
     // Same Test.createTestingModule shape as the unit specs; DB is a real
     // migrated database instead of mockDb(), which is the point of an e2e spec.
     const moduleRef = await Test.createTestingModule({
-      providers: [TeamAverageStatisticsService, { provide: DB, useValue: db }],
+      providers: [
+        TeamAverageStatisticsService,
+        PerMatchAverageSqlService,
+        { provide: DB, useValue: db },
+      ],
     }).compile();
     service = moduleRef.get(TeamAverageStatisticsService);
   });
