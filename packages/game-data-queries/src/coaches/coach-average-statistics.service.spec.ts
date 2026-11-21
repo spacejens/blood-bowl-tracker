@@ -118,6 +118,7 @@ describe('CoachAverageStatisticsService', () => {
       await service[method](FACT_SCOPE_ALL_TIME, 'desc', 21);
       const having = firstCallArg(chains[0].having);
       expect(sqlText(having)).toContain('count(distinct ');
+      expect(sqlText(having)).toContain(' >= ');
       expect(extractJoinColumns(having)).toEqual(['matches.id']);
       expect(extractAllFilterValues(having)).toEqual([
         MIN_MATCHES_FOR_PER_MATCH_AVERAGE,

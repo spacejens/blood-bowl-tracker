@@ -122,6 +122,9 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
             resolve: (scope) =>
               deps.coachToplist.resolveCasualtiesSuffered(scope),
           },
+          // Per-match averages over coaches with at least five matches in
+          // scope. No competition scope: the matches behind an average are
+          // scoped by league, era and category only.
           average: {
             caused: {
               descending: {
@@ -187,6 +190,7 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
               resolve: (scope) =>
                 deps.coachToplist.resolveSeriousInjuriesSuffered(scope),
             },
+            // Per-match averages; same floor and scopes as the casualty averages.
             average: {
               caused: {
                 descending: {
@@ -251,6 +255,7 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
               resolve: (scope) =>
                 deps.coachToplist.resolveLastingInjuriesSuffered(scope),
             },
+            // Per-match averages; same floor and scopes as the casualty averages.
             average: {
               caused: {
                 descending: {
@@ -314,6 +319,7 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
             supportsMatchCategory: true,
             resolve: (scope) => deps.coachToplist.resolveDeathsSuffered(scope),
           },
+          // Per-match averages; same floor and scopes as the casualty averages.
           average: {
             caused: {
               descending: {

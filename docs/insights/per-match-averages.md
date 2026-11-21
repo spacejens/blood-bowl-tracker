@@ -52,8 +52,8 @@ the parts they share live in
   - deaths suffered: death consequences, however the player died, fouls
     included.
 
-A match where the team recorded no such event counts as zero, so it still
-counts towards the matches played.
+A match where the team (or, for a coach, none of the coach's teams) recorded
+no such event counts as zero, so it still counts towards the matches played.
 
 A new average adds only its per-side value (and, for event counts, which
 events feed it); the division, floor, rounding, ordering and scope stay
@@ -78,8 +78,8 @@ same 5-match threshold the coach average-time-between-matches toplist uses.
 
 ## Rounding and ordering
 
-The average is rounded to two decimals in the database, so teams whose
-averages agree to two decimals tie, and the bot shows them with the same
+The average is rounded to two decimals in the database, so teams or coaches
+whose averages agree to two decimals tie, and the bot shows them with the same
 rank. Each average is ranked both highest first and lowest first. Ties are
 broken by team or coach name so the order is stable.
 
