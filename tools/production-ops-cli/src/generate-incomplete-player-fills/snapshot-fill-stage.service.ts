@@ -59,7 +59,9 @@ const SEARCH_REASONS: Record<
  * unspent SPP. The files must show him in one state that agrees with what
  * is stored. His gained skills are the snapshot's skills less his
  * position's starting skills, each starting skill shown exactly as often as
- * his position has it, and they must be distinct and number exactly his
+ * his position has it (a starting skill missing from the snapshot reports
+ * `snapshot-conflicts-stored`, one shown more often than the position has
+ * it `duplicate-skill`), and they must be distinct and number exactly his
  * level, so no characteristic increase or free skill hides among them. At
  * most six are searched, since the order search grows factorially. Exactly
  * one order and chosen-or-random source of them must cost the SPP he spent
@@ -258,6 +260,8 @@ export class SnapshotFillStageService {
       formats: profile.formats,
       events: this.reductions(input),
     });
+    // Reductions alone cannot make the order uncertain or unapplicable here;
+    // the guard narrows the outcome type.
     if (outcome.kind === 'order-uncertain') {
       return { reason: 'characteristic-order-uncertain' };
     }

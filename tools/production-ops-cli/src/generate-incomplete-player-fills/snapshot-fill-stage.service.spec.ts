@@ -337,14 +337,17 @@ describe('SnapshotFillStageService', () => {
     expect(reasonFor(stageInput())).toBe('snapshot-conflicts-stored');
   });
 
-  it('skips him when he gained a Loner or a Hatred', () => {
-    skills.resolve.mockReturnValue([
-      BLOCK,
-      { ...DODGE, skillName: 'Loner', nameId: 'Loner' },
-    ]);
+  it.each(['Loner', 'Hatred'])(
+    'skips him when he gained a Loner or a Hatred (%s)',
+    (name) => {
+      skills.resolve.mockReturnValue([
+        BLOCK,
+        { ...DODGE, skillName: name, nameId: name },
+      ]);
 
-    expect(reasonFor(stageInput())).toBe('free-skill-risk');
-  });
+      expect(reasonFor(stageInput())).toBe('free-skill-risk');
+    },
+  );
 
   it('skips him when he gained more than six skills, without searching their orders', () => {
     const gained = [1, 2, 3, 4, 5, 6, 7].map((n) => ({

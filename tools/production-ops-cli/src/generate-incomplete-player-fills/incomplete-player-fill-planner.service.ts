@@ -88,7 +88,8 @@ interface Gated {
  *   with his stat reductions, which must certainly last when he has any;
  * - with roster snapshot evidence, a player the feed does not name whose
  *   total is at or above the cheapest advancement goes to
- *   SnapshotFillStageService;
+ *   SnapshotFillStageService, which reports a free-skill risk as
+ *   `free-skill-risk`, as the feed stage does;
  * - a player whose total is below the cheapest advancement of his era, and
  *   with no free-skill risk, goes to InjuryFillStageService when stat
  *   reductions are recorded for him;
