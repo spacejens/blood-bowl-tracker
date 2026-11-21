@@ -24,6 +24,7 @@ tools/import-manual/data/batches/
   011-tp-feed-disambiguated-fills/
   012-trophy-skill-grants/
   013-tp-lasting-injury-fills/
+  014-tp-roster-snapshot-fills/
 ```
 
 A batch directory is named `NNN-<slug>`: a three-digit number and a lowercase
@@ -150,6 +151,16 @@ The batches:
   [Generated fills](filling-missing-players.md#generated-fills)). It is
   generated the same way as batch 008, and applies after the source
   importers and after batch 012, in a plain `apply`.
+- **014-tp-roster-snapshot-fills** — fills in the data of 97 incomplete TP
+  players at or above the cheapest advancement whom the TP feed never
+  reported: 97 whose downloaded TP match and roster snapshots prove their
+  gained skills, of which 43 gained none, with exactly one order and
+  chosen-or-random source fitting the SPP they spent (see
+  [Generated fills](filling-missing-players.md#generated-fills) and
+  [Roster snapshot evidence](roster-snapshot-evidence.md)). It is
+  generated the same way as batch 008, with `--snapshots` after
+  `read-tp-roster-snapshots`, and applies after the source importers and
+  after batch 013, in a plain `apply`.
 
 A batch can also fill in the data of a TP player the TP import left
 incomplete, through the `incompletePlayerFills` section; see
