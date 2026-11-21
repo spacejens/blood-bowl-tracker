@@ -9,7 +9,7 @@ incomplete players the feed does not name.
 ## What the files hold
 
 A match file embeds both sides' `lineUps` as TP shows them when downloaded.
-An entry has `lineUpMasterId`/`position`, `level`, `skills[]` (bare
+An entry has `lineUpMasterId` (the collector reads no position name), `level`, `skills[]` (bare
 `skillMasterId`, starting skills included), `totalStarPlayerPoints`,
 `starPlayerPoints` (unspent) and `state`. It has no characteristics, no
 chosen-or-random flag, no variant and no order.
@@ -23,10 +23,9 @@ In 1,320 of 1,336 roster entries, `level` equals the gained skills plus the
 characteristic increases. The 16 exceptions have more gained skills than
 levels (free skills). So `level` counts paid advancements.
 
-When the generator was first run with this evidence, none of the incomplete
-players at or above the cheapest advancement appeared in a standalone roster
-file, so comparing dated roster copies told nothing about them. All of them
-appeared in match files, and no player's match snapshots disagreed.
+None of the incomplete players at or above the cheapest advancement appears
+in a standalone roster file, so comparing dated roster copies told nothing about them. All of them
+appear in match files, and no player's match snapshots disagree.
 
 ## What cannot be proven from them
 

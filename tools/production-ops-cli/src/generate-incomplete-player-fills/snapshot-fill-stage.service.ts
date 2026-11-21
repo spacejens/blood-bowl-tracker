@@ -260,8 +260,9 @@ export class SnapshotFillStageService {
       formats: profile.formats,
       events: this.reductions(input),
     });
-    // Reductions alone cannot make the order uncertain or unapplicable here;
-    // the guard narrows the outcome type.
+    // Reductions are not expected to leave the order uncertain, but the guard
+    // is kept to narrow the outcome type; a reduction that cannot be applied
+    // (unapplicable) is possible and handled below.
     if (outcome.kind === 'order-uncertain') {
       return { reason: 'characteristic-order-uncertain' };
     }

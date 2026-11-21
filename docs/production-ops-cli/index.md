@@ -112,7 +112,7 @@ generator's advancement pricing next to game-data's own order check
 (`AdvancementOrderDeductionService`) and requires the server to accept
 exactly the spend the generator prices. The third runs the repair
 selector's reduction counts next to game-data's
-`PlayerFillReductionsService` and requires both to agree. It depends on no TP parser.
+`PlayerFillReductionsService` and requires both to agree.
 
 ## Reading the TP feed history
 

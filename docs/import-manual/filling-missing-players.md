@@ -298,7 +298,8 @@ checks `feed-match-ambiguous`, `spp-too-high` and `free-skill-risk` before it.
   competition, death), never the never-healing era proof, which reads none;
 - with `--snapshots`: no downloaded file shows him (`snapshot-missing`);
   the files show him in more than one state (`snapshot-disagrees`); their
-  total, unspent SPP or position differs from the stored one
+  total, unspent SPP or position differs from the stored one, or one of
+  his position's starting skills is missing from the snapshot
   (`snapshot-conflicts-stored`); his level is below his gained skills
   (`snapshot-level-mismatch`) or above them
   (`snapshot-characteristic-increase`); no order and source of them
