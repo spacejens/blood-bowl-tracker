@@ -41,6 +41,10 @@ import { ReadTpFeedHistoryService } from './read-tp-feed-history/read-tp-feed-hi
 import { SnowflakeOrderService } from './read-tp-feed-history/snowflake-order.service';
 import { TpFeedHistoryIndexService } from './read-tp-feed-history/tp-feed-history-index.service';
 import { TpFeedHistoryStoreService } from './read-tp-feed-history/tp-feed-history-store.service';
+import { ReadTpRosterSnapshotsService } from './read-tp-roster-snapshots/read-tp-roster-snapshots.service';
+import { TpRosterSnapshotExtractorService } from './read-tp-roster-snapshots/tp-roster-snapshot-extractor.service';
+import { TpRosterSnapshotIndexService } from './read-tp-roster-snapshots/tp-roster-snapshot-index.service';
+import { TpRosterSnapshotsStoreService } from './read-tp-roster-snapshots/tp-roster-snapshots-store.service';
 import { RunProductionQueryService } from './run-production-query/run-production-query.service';
 
 describe('AppModule', () => {
@@ -150,6 +154,18 @@ describe('AppModule', () => {
     );
     expect(moduleRef.get(TpFeedHistoryIndexService)).toBeInstanceOf(
       TpFeedHistoryIndexService,
+    );
+    expect(moduleRef.get(ReadTpRosterSnapshotsService)).toBeInstanceOf(
+      ReadTpRosterSnapshotsService,
+    );
+    expect(moduleRef.get(TpRosterSnapshotExtractorService)).toBeInstanceOf(
+      TpRosterSnapshotExtractorService,
+    );
+    expect(moduleRef.get(TpRosterSnapshotIndexService)).toBeInstanceOf(
+      TpRosterSnapshotIndexService,
+    );
+    expect(moduleRef.get(TpRosterSnapshotsStoreService)).toBeInstanceOf(
+      TpRosterSnapshotsStoreService,
     );
     expect(moduleRef.get(SnowflakeOrderService)).toBeInstanceOf(
       SnowflakeOrderService,

@@ -35,6 +35,10 @@ import { ReadTpFeedHistoryService } from './read-tp-feed-history/read-tp-feed-hi
 import { SnowflakeOrderService } from './read-tp-feed-history/snowflake-order.service';
 import { TpFeedHistoryIndexService } from './read-tp-feed-history/tp-feed-history-index.service';
 import { TpFeedHistoryStoreService } from './read-tp-feed-history/tp-feed-history-store.service';
+import { ReadTpRosterSnapshotsService } from './read-tp-roster-snapshots/read-tp-roster-snapshots.service';
+import { TpRosterSnapshotExtractorService } from './read-tp-roster-snapshots/tp-roster-snapshot-extractor.service';
+import { TpRosterSnapshotIndexService } from './read-tp-roster-snapshots/tp-roster-snapshot-index.service';
+import { TpRosterSnapshotsStoreService } from './read-tp-roster-snapshots/tp-roster-snapshots-store.service';
 import { RunProductionQueryService } from './run-production-query/run-production-query.service';
 
 @Module({
@@ -71,6 +75,10 @@ import { RunProductionQueryService } from './run-production-query/run-production
     SnowflakeOrderService,
     TpFeedHistoryIndexService,
     TpFeedHistoryStoreService,
+    ReadTpRosterSnapshotsService,
+    TpRosterSnapshotExtractorService,
+    TpRosterSnapshotIndexService,
+    TpRosterSnapshotsStoreService,
   ],
 })
 export class AppModule {}
