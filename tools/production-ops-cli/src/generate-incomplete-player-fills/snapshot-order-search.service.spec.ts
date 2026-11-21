@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { AdvancementPricingService } from './advancement-pricing.service';
 import {
   BB2020_COSTS,
+  BB2025_COSTS,
   costRows,
   FIXED_COSTS,
   pricingInput,
@@ -187,5 +188,92 @@ describe('SnapshotOrderSearchService', () => {
         spent: 6,
       }),
     ).toEqual({ kind: 'disagree' });
+  });
+
+  describe('rows that price one kind and number differently', () => {
+    const leagueRow = (
+      advancementKind: 'random_primary_skill' | 'random_characteristic',
+      advancementNumber: number,
+    ) => ({
+      eraId: 4,
+      rulesSetId: 7,
+      leagueId: 5,
+      advancementNumber,
+      advancementKind,
+      skillId: null,
+      sppCost: 99,
+    });
+
+    it('reports disagreement, not a skipped candidate, for a kind and number the search touches', () => {
+      const rulesSets = [
+        pricingInput([
+          ...costRows(BB2020_COSTS),
+          leagueRow('random_primary_skill', 1),
+        ]),
+      ];
+
+      expect(service.search({ skills: [DODGE], rulesSets, spent: 6 })).toEqual({
+        kind: 'disagree',
+      });
+    });
+
+    it('ignores conflicting rows of a number or kind the search cannot reach', () => {
+      const rulesSets = [
+        pricingInput([
+          ...costRows(BB2020_COSTS),
+          leagueRow('random_primary_skill', 2),
+          leagueRow('random_characteristic', 1),
+        ]),
+      ];
+
+      expect(
+        service.search({ skills: [DODGE], rulesSets, spent: 6 }),
+      ).toMatchObject({ kind: 'unique' });
+    });
+
+    it('reports disagreement for conflicting table rolls under fixed thresholds', () => {
+      const rulesSets = [
+        pricingInput([
+          ...costRows(FIXED_COSTS),
+          { ...costRows(FIXED_COSTS)[0], leagueId: 5, sppCost: 99 },
+        ]),
+      ];
+
+      expect(service.search({ skills: [DODGE], rulesSets, spent: 6 })).toEqual({
+        kind: 'disagree',
+      });
+    });
+  });
+
+  it('skips a candidate with no cost row and can still settle the rest', () => {
+    // BB2025 has no random secondary skill, so Guard can only be chosen.
+    const rulesSets = [pricingInput(costRows(BB2025_COSTS))];
+
+    // Random primary Dodge at 1 (3) + chosen secondary Guard at 2 (12) = 15.
+    expect(
+      service.search({ skills: [DODGE, GUARD], rulesSets, spent: 15 }),
+    ).toEqual({
+      kind: 'unique',
+      steps: [
+        step(DODGE, {
+          selection: 'random',
+          category: 'primary',
+          reportedCost: 3,
+        }),
+        step(GUARD, {
+          selection: 'chosen',
+          category: 'secondary',
+          reportedCost: 12,
+        }),
+      ],
+    });
+  });
+
+  it('leaves a primary and a secondary skill ambiguous when each order has one fit', () => {
+    // Dodge first (chosen, 6) then Guard (random secondary at 2, 8) = 14;
+    // Guard first (random secondary at 1, 6) then Dodge (chosen at 2, 8) = 14.
+    expect(
+      service.search({ skills: [DODGE, GUARD], rulesSets: bb2020, spent: 14 }),
+    ).toEqual({ kind: 'ambiguous' });
   });
 });

@@ -1,8 +1,12 @@
-import type { SkillAccess } from '@blood-bowl-tracker/domain-enums';
+import type {
+  AdvancementKind,
+  SkillAccess,
+} from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 
 import { AdvancementPricingService } from './advancement-pricing.service';
 import type {
+  AdvancementCostRow,
   FeedSelection,
   ResolvedStep,
   RulesSetPricingInput,
@@ -36,6 +40,13 @@ export type OrderSearchOutcome =
 
 type CategorisedSkill = GainedSkill & { category: SkillAccess };
 
+const SKILL_KINDS: readonly AdvancementKind[] = [
+  'chosen_primary_skill',
+  'chosen_secondary_skill',
+  'random_primary_skill',
+  'random_secondary_skill',
+];
+
 const SELECTIONS: readonly FeedSelection[] = ['chosen', 'random'];
 
 /**
@@ -49,6 +60,16 @@ const SELECTIONS: readonly FeedSelection[] = ['chosen', 'random'];
  * more than one, proves nothing. A granted skill, a category mismatch or
  * rules sets that disagree end the search, since no order changes them.
  *
+ * Rows of a kind and number the search can reach that price it differently
+ * (a league's row beside the rules set's own) leave a candidate undecidable,
+ * not impossible, so they end the search as disagreement instead of being
+ * skipped. A kind with no row at all is impossible and is skipped.
+ *
+ * The search prices n!·2^n candidates, so callers must cap the skill count.
+ * Identical duplicate skill entries count as distinct skills, so they yield
+ * `ambiguous`. A skill a rules set does not categorise is not access-checked
+ * under that set.
+ *
  * Pure decision logic, with no I/O; its collaborator is pure as well.
  */
 @Injectable()
@@ -59,6 +80,13 @@ export class SnapshotOrderSearchService {
     const skills = this.categorised(input);
     if (skills === undefined) {
       return { kind: 'category-mismatch' };
+    }
+    if (
+      input.rulesSets.some((rulesSet) =>
+        this.hasConflictingRows(rulesSet.costs, skills.length),
+      )
+    ) {
+      return { kind: 'disagree' };
     }
     let found: SnapshotStep[] | undefined;
     for (const steps of this.candidates(skills)) {
@@ -84,6 +112,31 @@ export class SnapshotOrderSearchService {
     return found === undefined
       ? { kind: 'none' }
       : { kind: 'unique', steps: found };
+  }
+
+  /** Whether the rows of any kind the search prices, at a number it reaches, give several prices. */
+  private hasConflictingRows(
+    costs: readonly AdvancementCostRow[],
+    count: number,
+  ): boolean {
+    const own = costs.filter((cost) => cost.leagueId === null);
+    const fixed =
+      own.length > 0 &&
+      own.every((cost) => cost.advancementKind === 'table_roll');
+    const kinds: readonly AdvancementKind[] = fixed
+      ? ['table_roll']
+      : SKILL_KINDS;
+    const prices = new Map<string, Set<number>>();
+    for (const cost of costs) {
+      if (
+        kinds.includes(cost.advancementKind) &&
+        cost.advancementNumber <= count
+      ) {
+        const key = `${cost.advancementKind}:${cost.advancementNumber}`;
+        prices.set(key, (prices.get(key) ?? new Set()).add(cost.sppCost));
+      }
+    }
+    return [...prices.values()].some((set) => set.size > 1);
   }
 
   /** Each skill with its one access across the rules sets; undefined when any has none or several. */
