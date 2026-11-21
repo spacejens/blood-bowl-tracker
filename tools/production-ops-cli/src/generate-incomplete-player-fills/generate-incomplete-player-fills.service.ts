@@ -3,6 +3,7 @@ import { WriteFileService } from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
 
 import { TpFeedHistoryStoreService } from '../read-tp-feed-history/tp-feed-history-store.service';
+import { TpRosterSnapshotsStoreService } from '../read-tp-roster-snapshots/tp-roster-snapshots-store.service';
 import type { FillReport } from './fill-plan.types';
 import { FillSectionRendererService } from './fill-section-renderer.service';
 import { IncompletePlayerFillPlannerService } from './incomplete-player-fill-planner.service';
@@ -17,6 +18,12 @@ export interface GenerateIncompletePlayerFillsInput {
    * proves advancements; absent leaves that stage off.
    */
   readonly feedChannel?: string;
+  /**
+   * Read the roster snapshots `read-tp-roster-snapshots` saved, to prove
+   * the advancements of players the feed does not name; absent leaves
+   * that stage off.
+   */
+  readonly snapshots?: true;
 }
 
 export interface GenerateIncompletePlayerFillsReport extends FillReport {
@@ -40,7 +47,7 @@ export interface GenerateIncompletePlayerFillsResult {
 /**
  * `generate-incomplete-player-fills`: reads production read-only, plans a
  * fill for every incomplete TP player whose data can be proven (optionally
- * from the saved TP feed reports), lists the complete TP players whose
+ * from the saved TP feed reports and roster snapshots), lists the complete TP players whose
  * stored line shows a lasting stat reduction the server would record, and
  * prints or writes the batch file with a report of who was filled by which
  * proof, who was skipped and why, and how many repairs are listed or left
@@ -55,6 +62,7 @@ export class GenerateIncompletePlayerFillsService {
     private readonly writeFile: WriteFileService,
     private readonly feedHistory: TpFeedHistoryStoreService,
     private readonly repairSelector: LastingInjuryRepairSelectorService,
+    private readonly snapshotStore: TpRosterSnapshotsStoreService,
   ) {}
 
   async run(
@@ -65,7 +73,15 @@ export class GenerateIncompletePlayerFillsService {
       input.feedChannel === undefined
         ? null
         : await this.feedHistory.readReports(input.feedChannel);
-    const plan = this.planner.plan({ ...(await this.queries.load()), feed });
+    const snapshots =
+      input.snapshots === true
+        ? await this.snapshotStore.readSnapshots()
+        : null;
+    const plan = this.planner.plan({
+      ...(await this.queries.load()),
+      feed,
+      snapshots,
+    });
     const candidates = await this.queries.loadLastingInjuryRepairCandidates();
     const repairs = this.repairSelector.select(candidates);
     const report: GenerateIncompletePlayerFillsReport = {

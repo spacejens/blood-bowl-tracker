@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
+import type { TpRosterSnapshots } from '../read-tp-roster-snapshots/tp-roster-snapshots.schema';
 import { AdvancementFillStageService } from './advancement-fill-stage.service';
 import { CharacteristicValidityService } from './characteristic-validity.service';
 import { FeedPlayerMatcherService } from './feed-player-matcher.service';
@@ -23,6 +24,7 @@ import {
 import { IncompletePlayerFillPlannerService } from './incomplete-player-fill-planner.service';
 import { InjuryFillStageService } from './injury-fill-stage.service';
 import { PositionProfileService } from './position-profile.service';
+import { SnapshotFillStageService } from './snapshot-fill-stage.service';
 
 const SUMMARY: FeedSummary = {
   reportKeys: 1,
@@ -48,6 +50,7 @@ describe('IncompletePlayerFillPlannerService', () => {
   let matcher: MockProxy<FeedPlayerMatcherService>;
   let advancementStage: MockProxy<AdvancementFillStageService>;
   let injuryStage: MockProxy<InjuryFillStageService>;
+  let snapshotStage: MockProxy<SnapshotFillStageService>;
 
   beforeEach(async () => {
     validity = mock<CharacteristicValidityService>();
@@ -55,6 +58,7 @@ describe('IncompletePlayerFillPlannerService', () => {
     matcher = mock<FeedPlayerMatcherService>();
     advancementStage = mock<AdvancementFillStageService>();
     injuryStage = mock<InjuryFillStageService>();
+    snapshotStage = mock<SnapshotFillStageService>();
     matcher.match.mockReturnValue({ byPlayer: new Map(), summary: SUMMARY });
     injuryStage.decide.mockReturnValue({ reason: 'lasting-injury-uncertain' });
     profiles.resolve.mockReturnValue(profile());
@@ -67,6 +71,7 @@ describe('IncompletePlayerFillPlannerService', () => {
         { provide: FeedPlayerMatcherService, useValue: matcher },
         { provide: AdvancementFillStageService, useValue: advancementStage },
         { provide: InjuryFillStageService, useValue: injuryStage },
+        { provide: SnapshotFillStageService, useValue: snapshotStage },
         // Pure and dependency-free, so passed real to keep asserting real entries.
         FillEntryBuilderService,
       ],
@@ -520,6 +525,7 @@ describe('IncompletePlayerFillPlannerService', () => {
       noAdvancement: 1,
       advancement: 0,
       injuryOnly: 0,
+      snapshot: 0,
     });
     expect(plan.report.feed).toBeNull();
     expect(matcher.match).not.toHaveBeenCalled();
@@ -779,5 +785,91 @@ describe('IncompletePlayerFillPlannerService', () => {
       ),
     ).toBe('free-skill-risk');
     expect(injuryStage.decide).not.toHaveBeenCalled();
+  });
+
+  describe('with roster snapshot evidence', () => {
+    const SNAPSHOTS: TpRosterSnapshots = {
+      players: {
+        '500': [
+          {
+            lineUpMasterId: 288,
+            level: 1,
+            skillMasterIds: [92],
+            totalSpp: 8,
+            unspentSpp: 2,
+            sources: ['e/match_1.json'],
+          },
+        ],
+      },
+      conflicts: [],
+      unreadable: [],
+    };
+    const rich = (overrides: Partial<FillPlannerInput> = {}) =>
+      eligibleInput({
+        candidates: [candidate({ sppTotal: 8 })],
+        snapshots: SNAPSHOTS,
+        tpSkillIds: [{ skillId: 200, masterId: '92' }],
+        tpPositionIds: [{ positionId: 30, tpPositionId: '288' }],
+        attributedSkillIds: [300],
+        ...overrides,
+      });
+
+    it('hands a player at or above the cheapest cost to the snapshot stage', () => {
+      snapshotStage.decide.mockReturnValue({ entry: STAGED });
+      const plan = service.plan(rich());
+
+      expect(plan.entries).toEqual([STAGED]);
+      expect(plan.report.eligibleByStage.snapshot).toBe(1);
+      expect(snapshotStage.decide).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sppTotal: 8,
+          snapshot: SNAPSHOTS.players['500'],
+          positionTpIds: ['288'],
+          tpSkillIds: [{ skillId: 200, masterId: '92' }],
+          attributedSkillIds: new Set([300]),
+          rulesSetIds: [7],
+          freeSkillRisk: false,
+        }),
+      );
+    });
+
+    it("reports the snapshot stage's reason", () => {
+      snapshotStage.decide.mockReturnValue({
+        reason: 'snapshot-order-ambiguous',
+      });
+
+      expect(reasonFor(rich())).toBe('snapshot-order-ambiguous');
+    });
+
+    it('hands over no snapshot for a player no file shows', () => {
+      snapshotStage.decide.mockReturnValue({ reason: 'snapshot-missing' });
+      service.plan(rich({ snapshots: { ...SNAPSHOTS, players: {} } }));
+
+      expect(snapshotStage.decide).toHaveBeenCalledWith(
+        expect.objectContaining({ snapshot: undefined }),
+      );
+    });
+
+    it('keeps such a player as spp-too-high without snapshot evidence', () => {
+      expect(reasonFor(rich({ snapshots: null }))).toBe('spp-too-high');
+      expect(snapshotStage.decide).not.toHaveBeenCalled();
+    });
+
+    it('does not ask the snapshot stage about a player below the cheapest cost', () => {
+      service.plan(rich({ candidates: [candidate()] }));
+
+      expect(snapshotStage.decide).not.toHaveBeenCalled();
+    });
+
+    it('leaves a player the feed names to the feed stage', () => {
+      advancementStage.decide.mockReturnValue({ entry: STAGED });
+      matcher.match.mockReturnValue({
+        byPlayer: new Map([[1, { kind: 'reports', reports: [report()] }]]),
+        summary: SUMMARY,
+      });
+      service.plan(rich({ feed: FEED }));
+
+      expect(snapshotStage.decide).not.toHaveBeenCalled();
+    });
   });
 });

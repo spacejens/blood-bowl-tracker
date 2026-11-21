@@ -11,6 +11,7 @@ import type {
   TpFeedHistoryReport,
   TpFeedHistoryReports,
 } from '../read-tp-feed-history/tp-feed-history-index.service';
+import type { TpRosterSnapshots } from '../read-tp-roster-snapshots/tp-roster-snapshots.schema';
 import type { TpPositionIdRow, TpSkillIdRow } from './snapshot-fill.types';
 
 /** The five characteristics, by the keys a fill entry uses. */
@@ -129,6 +130,8 @@ export interface FillPlannerRows {
 export interface FillPlannerInput extends FillPlannerRows {
   /** The feed channel's saved `reports.json`; null leaves the advancement stage off. */
   feed: TpFeedHistoryReports | null;
+  /** The saved roster snapshots; null leaves the snapshot stage off. */
+  snapshots: TpRosterSnapshots | null;
 }
 
 export interface ProfileSkill {
@@ -482,4 +485,5 @@ export type FeedPricingRows = Pick<
 export type StageDecision = { entry: FillEntry } | { reason: SkipReason };
 
 /** Which kind of proof filled a player. */
-export type FillStage = 'noAdvancement' | 'advancement' | 'injuryOnly';
+export type FillStage =
+  'noAdvancement' | 'advancement' | 'injuryOnly' | 'snapshot';

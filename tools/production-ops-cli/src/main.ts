@@ -56,7 +56,7 @@ const FETCH_DISCORD_MESSAGE_USAGE =
 
 const GENERATE_INCOMPLETE_PLAYER_FILLS_USAGE =
   'Usage: node dist/main.js generate-incomplete-player-fills ' +
-  '[--out=<repo-relative-path>] [--feed-channel=<channel-id>]';
+  '[--out=<repo-relative-path>] [--feed-channel=<channel-id>] [--snapshots]';
 const READ_TP_FEED_HISTORY_USAGE =
   'Usage: node dist/main.js read-tp-feed-history <channel-id> [--max-pages=N]';
 
@@ -66,6 +66,7 @@ const READ_TP_ROSTER_SNAPSHOTS_USAGE =
 const MAX_PAGES_FLAG = '--max-pages=';
 const OUT_FLAG = '--out=';
 const FEED_CHANNEL_FLAG = '--feed-channel=';
+const SNAPSHOTS_FLAG = '--snapshots';
 
 /** Arguments for `start-production-tunnel`; absent for every other subcommand. */
 interface StartProductionTunnelInput {
@@ -179,6 +180,7 @@ function readDiscordMessageLink(): string {
 function readGenerateIncompletePlayerFillsInput(): GenerateIncompletePlayerFillsInput {
   let out: string | undefined;
   let feedChannel: string | undefined;
+  let snapshots: true | undefined;
   for (const arg of process.argv.slice(3)) {
     if (
       out === undefined &&
@@ -192,6 +194,8 @@ function readGenerateIncompletePlayerFillsInput(): GenerateIncompletePlayerFills
       /^\d+$/u.test(arg.slice(FEED_CHANNEL_FLAG.length))
     ) {
       feedChannel = arg.slice(FEED_CHANNEL_FLAG.length);
+    } else if (snapshots === undefined && arg === SNAPSHOTS_FLAG) {
+      snapshots = true;
     } else {
       throw new Error(GENERATE_INCOMPLETE_PLAYER_FILLS_USAGE);
     }
@@ -199,6 +203,7 @@ function readGenerateIncompletePlayerFillsInput(): GenerateIncompletePlayerFills
   return {
     ...(out === undefined ? {} : { out }),
     ...(feedChannel === undefined ? {} : { feedChannel }),
+    ...(snapshots === undefined ? {} : { snapshots }),
   };
 }
 

@@ -123,6 +123,7 @@ export function eligibleInput(
     tpPositionIds: [],
     attributedSkillIds: [],
     feed: null,
+    snapshots: null,
     ...overrides,
   };
 }
