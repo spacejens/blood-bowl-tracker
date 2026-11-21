@@ -119,6 +119,9 @@ export function eligibleInput(
     statReductionEvents: [],
     teamCompetitions: [],
     bigGuyPositions: [],
+    tpSkillIds: [],
+    tpPositionIds: [],
+    attributedSkillIds: [],
     feed: null,
     ...overrides,
   };

@@ -11,6 +11,7 @@ import type {
   TpFeedHistoryReport,
   TpFeedHistoryReports,
 } from '../read-tp-feed-history/tp-feed-history-index.service';
+import type { TpPositionIdRow, TpSkillIdRow } from './snapshot-fill.types';
 
 /** The five characteristics, by the keys a fill entry uses. */
 export const CHARACTERISTIC_KEYS = ['ma', 'st', 'ag', 'pa', 'av'] as const;
@@ -117,6 +118,12 @@ export interface FillPlannerRows {
   teamCompetitions: TeamCompetitionRow[];
   /** Candidate positions that are not basic in the candidate's era. */
   bigGuyPositions: BigGuyPositionRow[];
+  /** Every skill's `tourplay.net` ids, which roster snapshots name it by. */
+  tpSkillIds: TpSkillIdRow[];
+  /** The `tourplay.net` ids of the candidates' positions. */
+  tpPositionIds: TpPositionIdRow[];
+  /** Skills a player or a position holds with a variant; a snapshot names none. */
+  attributedSkillIds: number[];
 }
 
 export interface FillPlannerInput extends FillPlannerRows {

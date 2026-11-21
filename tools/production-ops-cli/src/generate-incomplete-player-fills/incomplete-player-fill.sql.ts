@@ -405,3 +405,37 @@ WHERE es.name = 'tourplay.net'
       AND me.consequence_type IN (${STAT_REDUCTION_TYPES})
   )
 ORDER BY p.id, pe.external_id`;
+
+/**
+ * Every `tourplay.net` id of every skill: the skillMasterIds TP names it by,
+ * one per rules set, which import-tp-live registers on the skill. A roster
+ * snapshot names a player's skills only by these ids.
+ */
+export const TP_SKILL_IDS_SQL = `SELECT se.skill_id AS "skillId",
+  se.external_id AS "masterId"
+FROM game_data.skills_external_ids se
+JOIN game_data.external_systems es ON es.id = se.external_system_id
+WHERE es.name = 'tourplay.net'`;
+
+/** Every `tourplay.net` id of a candidate's position: the lineUpMasterIds TP lists it by. */
+export const TP_POSITION_IDS_SQL = `${CANDIDATES_CTE}
+SELECT DISTINCT pe.position_id AS "positionId",
+  pe.external_id AS "tpPositionId"
+FROM game_data.positions_external_ids pe
+JOIN game_data.external_systems es ON es.id = pe.external_system_id
+WHERE es.name = 'tourplay.net'
+  AND pe.position_id IN (SELECT position_id FROM candidates)`;
+
+/**
+ * Every skill a player or a position holds with a variant. A roster
+ * snapshot names a skill by its bare id, so it cannot say which variant a
+ * player gained.
+ */
+export const ATTRIBUTED_SKILLS_SQL = `SELECT DISTINCT attributed.skill_id AS "skillId"
+FROM (
+  SELECT pa.skill_id FROM game_data.player_advancements pa
+  WHERE pa.attribute_value IS NOT NULL AND pa.skill_id IS NOT NULL
+  UNION
+  SELECT prss.skill_id FROM game_data.position_rules_set_skills prss
+  WHERE prss.attribute_value IS NOT NULL
+) attributed`;
