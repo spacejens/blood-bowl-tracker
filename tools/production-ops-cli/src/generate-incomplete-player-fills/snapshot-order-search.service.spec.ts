@@ -217,18 +217,22 @@ describe('SnapshotOrderSearchService', () => {
       });
     });
 
-    it('ignores conflicting rows of a number or kind the search cannot reach', () => {
+    it('reports disagreement for a conflict only in a secondary kind while every skill is primary', () => {
+      // Over-reports on purpose: which kinds the search reaches is not known
+      // before it prices, so any skill kind's conflict ends it.
       const rulesSets = [
         pricingInput([
           ...costRows(BB2020_COSTS),
-          leagueRow('random_primary_skill', 2),
-          leagueRow('random_characteristic', 1),
+          {
+            ...leagueRow('random_primary_skill', 1),
+            advancementKind: 'chosen_secondary_skill' as const,
+          },
         ]),
       ];
 
-      expect(
-        service.search({ skills: [DODGE], rulesSets, spent: 6 }),
-      ).toMatchObject({ kind: 'unique' });
+      expect(service.search({ skills: [DODGE], rulesSets, spent: 6 })).toEqual({
+        kind: 'disagree',
+      });
     });
 
     it('reports disagreement for conflicting table rolls under fixed thresholds', () => {

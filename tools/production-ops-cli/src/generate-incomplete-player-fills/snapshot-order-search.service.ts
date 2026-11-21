@@ -1,12 +1,8 @@
-import type {
-  AdvancementKind,
-  SkillAccess,
-} from '@blood-bowl-tracker/domain-enums';
+import type { SkillAccess } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 
 import { AdvancementPricingService } from './advancement-pricing.service';
 import type {
-  AdvancementCostRow,
   FeedSelection,
   ResolvedStep,
   RulesSetPricingInput,
@@ -39,13 +35,6 @@ export type OrderSearchOutcome =
   | { kind: 'disagree' };
 
 type CategorisedSkill = GainedSkill & { category: SkillAccess };
-
-const SKILL_KINDS: readonly AdvancementKind[] = [
-  'chosen_primary_skill',
-  'chosen_secondary_skill',
-  'random_primary_skill',
-  'random_secondary_skill',
-];
 
 const SELECTIONS: readonly FeedSelection[] = ['chosen', 'random'];
 
@@ -83,7 +72,10 @@ export class SnapshotOrderSearchService {
     }
     if (
       input.rulesSets.some((rulesSet) =>
-        this.hasConflictingRows(rulesSet.costs, skills.length),
+        this.pricing.hasConflictingCosts({
+          costs: rulesSet.costs,
+          maxNumber: skills.length,
+        }),
       )
     ) {
       return { kind: 'disagree' };
@@ -112,31 +104,6 @@ export class SnapshotOrderSearchService {
     return found === undefined
       ? { kind: 'none' }
       : { kind: 'unique', steps: found };
-  }
-
-  /** Whether the rows of any kind the search prices, at a number it reaches, give several prices. */
-  private hasConflictingRows(
-    costs: readonly AdvancementCostRow[],
-    count: number,
-  ): boolean {
-    const own = costs.filter((cost) => cost.leagueId === null);
-    const fixed =
-      own.length > 0 &&
-      own.every((cost) => cost.advancementKind === 'table_roll');
-    const kinds: readonly AdvancementKind[] = fixed
-      ? ['table_roll']
-      : SKILL_KINDS;
-    const prices = new Map<string, Set<number>>();
-    for (const cost of costs) {
-      if (
-        kinds.includes(cost.advancementKind) &&
-        cost.advancementNumber <= count
-      ) {
-        const key = `${cost.advancementKind}:${cost.advancementNumber}`;
-        prices.set(key, (prices.get(key) ?? new Set()).add(cost.sppCost));
-      }
-    }
-    return [...prices.values()].some((set) => set.size > 1);
   }
 
   /** Each skill with its one access across the rules sets; undefined when any has none or several. */
