@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { buildFactTree } from './fact-tree';
 import type { FactNode } from './fact-tree.types';
+import { CoachAverageToplistService } from './facts/coach-average-toplist.service';
 import { CoachToplistService } from './facts/coach-toplist.service';
 import { CompetitionGroupsListService } from './facts/competition-groups-list.service';
 import { DateToplistFactsService } from './facts/date-toplist.service';
@@ -28,6 +29,7 @@ import { TrophiesListService } from './facts/trophies-list.service';
 export class FactTreeFactoryService {
   constructor(
     private readonly coachToplist: CoachToplistService,
+    private readonly coachAverageToplist: CoachAverageToplistService,
     private readonly dateToplist: DateToplistFactsService,
     private readonly teamToplist: TeamToplistService,
     private readonly playerToplist: PlayerToplistService,
@@ -47,6 +49,7 @@ export class FactTreeFactoryService {
   build(): FactNode {
     return buildFactTree({
       coachToplist: this.coachToplist,
+      coachAverageToplist: this.coachAverageToplist,
       dateToplist: this.dateToplist,
       teamToplist: this.teamToplist,
       playerToplist: this.playerToplist,

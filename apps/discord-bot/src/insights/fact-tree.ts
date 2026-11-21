@@ -140,7 +140,7 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
                 supportsCompetition: false,
                 supportsMatchCategory: true,
                 resolve: (scope) =>
-                  deps.coachToplist.resolveAverageCasualtiesCausedDescending(
+                  deps.coachAverageToplist.resolveAverageCasualtiesCausedDescending(
                     scope,
                   ),
               },
@@ -150,7 +150,7 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
                 supportsCompetition: false,
                 supportsMatchCategory: true,
                 resolve: (scope) =>
-                  deps.coachToplist.resolveAverageCasualtiesCausedAscending(
+                  deps.coachAverageToplist.resolveAverageCasualtiesCausedAscending(
                     scope,
                   ),
               },
@@ -162,7 +162,7 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
                 supportsCompetition: false,
                 supportsMatchCategory: true,
                 resolve: (scope) =>
-                  deps.coachToplist.resolveAverageCasualtiesSufferedDescending(
+                  deps.coachAverageToplist.resolveAverageCasualtiesSufferedDescending(
                     scope,
                   ),
               },
@@ -172,7 +172,7 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
                 supportsCompetition: false,
                 supportsMatchCategory: true,
                 resolve: (scope) =>
-                  deps.coachToplist.resolveAverageCasualtiesSufferedAscending(
+                  deps.coachAverageToplist.resolveAverageCasualtiesSufferedAscending(
                     scope,
                   ),
               },
@@ -206,7 +206,7 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
                   supportsCompetition: false,
                   supportsMatchCategory: true,
                   resolve: (scope) =>
-                    deps.coachToplist.resolveAverageSeriousInjuriesCausedDescending(
+                    deps.coachAverageToplist.resolveAverageSeriousInjuriesCausedDescending(
                       scope,
                     ),
                 },
@@ -216,7 +216,7 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
                   supportsCompetition: false,
                   supportsMatchCategory: true,
                   resolve: (scope) =>
-                    deps.coachToplist.resolveAverageSeriousInjuriesCausedAscending(
+                    deps.coachAverageToplist.resolveAverageSeriousInjuriesCausedAscending(
                       scope,
                     ),
                 },
@@ -228,7 +228,7 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
                   supportsCompetition: false,
                   supportsMatchCategory: true,
                   resolve: (scope) =>
-                    deps.coachToplist.resolveAverageSeriousInjuriesSufferedDescending(
+                    deps.coachAverageToplist.resolveAverageSeriousInjuriesSufferedDescending(
                       scope,
                     ),
                 },
@@ -238,7 +238,7 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
                   supportsCompetition: false,
                   supportsMatchCategory: true,
                   resolve: (scope) =>
-                    deps.coachToplist.resolveAverageSeriousInjuriesSufferedAscending(
+                    deps.coachAverageToplist.resolveAverageSeriousInjuriesSufferedAscending(
                       scope,
                     ),
                 },
@@ -271,7 +271,7 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
                   supportsCompetition: false,
                   supportsMatchCategory: true,
                   resolve: (scope) =>
-                    deps.coachToplist.resolveAverageLastingInjuriesCausedDescending(
+                    deps.coachAverageToplist.resolveAverageLastingInjuriesCausedDescending(
                       scope,
                     ),
                 },
@@ -281,7 +281,7 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
                   supportsCompetition: false,
                   supportsMatchCategory: true,
                   resolve: (scope) =>
-                    deps.coachToplist.resolveAverageLastingInjuriesCausedAscending(
+                    deps.coachAverageToplist.resolveAverageLastingInjuriesCausedAscending(
                       scope,
                     ),
                 },
@@ -293,7 +293,7 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
                   supportsCompetition: false,
                   supportsMatchCategory: true,
                   resolve: (scope) =>
-                    deps.coachToplist.resolveAverageLastingInjuriesSufferedDescending(
+                    deps.coachAverageToplist.resolveAverageLastingInjuriesSufferedDescending(
                       scope,
                     ),
                 },
@@ -303,7 +303,7 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
                   supportsCompetition: false,
                   supportsMatchCategory: true,
                   resolve: (scope) =>
-                    deps.coachToplist.resolveAverageLastingInjuriesSufferedAscending(
+                    deps.coachAverageToplist.resolveAverageLastingInjuriesSufferedAscending(
                       scope,
                     ),
                 },
@@ -335,25 +335,7 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
                 supportsCompetition: false,
                 supportsMatchCategory: true,
                 resolve: (scope) =>
-                  deps.coachToplist.resolveAverageDeathsCausedDescending(scope),
-              },
-              ascending: {
-                supportsLeague: true,
-                supportsEra: true,
-                supportsCompetition: false,
-                supportsMatchCategory: true,
-                resolve: (scope) =>
-                  deps.coachToplist.resolveAverageDeathsCausedAscending(scope),
-              },
-            },
-            suffered: {
-              descending: {
-                supportsLeague: true,
-                supportsEra: true,
-                supportsCompetition: false,
-                supportsMatchCategory: true,
-                resolve: (scope) =>
-                  deps.coachToplist.resolveAverageDeathsSufferedDescending(
+                  deps.coachAverageToplist.resolveAverageDeathsCausedDescending(
                     scope,
                   ),
               },
@@ -363,7 +345,29 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
                 supportsCompetition: false,
                 supportsMatchCategory: true,
                 resolve: (scope) =>
-                  deps.coachToplist.resolveAverageDeathsSufferedAscending(
+                  deps.coachAverageToplist.resolveAverageDeathsCausedAscending(
+                    scope,
+                  ),
+              },
+            },
+            suffered: {
+              descending: {
+                supportsLeague: true,
+                supportsEra: true,
+                supportsCompetition: false,
+                supportsMatchCategory: true,
+                resolve: (scope) =>
+                  deps.coachAverageToplist.resolveAverageDeathsSufferedDescending(
+                    scope,
+                  ),
+              },
+              ascending: {
+                supportsLeague: true,
+                supportsEra: true,
+                supportsCompetition: false,
+                supportsMatchCategory: true,
+                resolve: (scope) =>
+                  deps.coachAverageToplist.resolveAverageDeathsSufferedAscending(
                     scope,
                   ),
               },

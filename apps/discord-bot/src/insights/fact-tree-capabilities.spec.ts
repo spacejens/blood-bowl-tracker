@@ -251,7 +251,7 @@ describe('buildFactTree competition capabilities', () => {
     );
     await (leaf as FactLeaf).resolve({ leagueId: 9, eraId: 20 });
     expect(
-      d.coachToplist.resolveAverageDeathsSufferedAscending,
+      d.coachAverageToplist.resolveAverageDeathsSufferedAscending,
     ).toHaveBeenCalledWith({ leagueId: 9, eraId: 20 });
   });
 

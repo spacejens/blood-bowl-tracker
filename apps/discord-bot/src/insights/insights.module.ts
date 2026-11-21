@@ -44,6 +44,7 @@ import { NumberFormatterService } from '../shared/number-formatter.service';
 import { FACT_TREE } from './fact-tree.token';
 import { FactTreeFactoryService } from './fact-tree-factory.service';
 import { FactTreeNavigationService } from './fact-tree-navigation.service';
+import { CoachAverageToplistService } from './facts/coach-average-toplist.service';
 import { CoachToplistService } from './facts/coach-toplist.service';
 import { CompetitionGroupsListService } from './facts/competition-groups-list.service';
 import { DateToplistFactsService } from './facts/date-toplist.service';
@@ -120,6 +121,7 @@ const GAME_DATA_MODULES = [
     RandomSourceService,
     RandomInsightsScopeService,
     CoachToplistService,
+    CoachAverageToplistService,
     RaceToplistService,
     PositionToplistService,
     SkillToplistService,
@@ -163,6 +165,7 @@ const GAME_DATA_MODULES = [
     RandomSourceService,
     RandomInsightsScopeService,
     CoachToplistService,
+    CoachAverageToplistService,
     RaceToplistService,
     PositionToplistService,
     SkillToplistService,

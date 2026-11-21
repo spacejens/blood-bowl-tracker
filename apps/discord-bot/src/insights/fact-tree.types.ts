@@ -1,6 +1,7 @@
 import type { FactScope } from '@blood-bowl-tracker/game-data';
 import type { InteractionReplyOptions } from 'discord.js';
 
+import type { CoachAverageToplistService } from './facts/coach-average-toplist.service';
 import type { CoachToplistService } from './facts/coach-toplist.service';
 import type { CompetitionGroupsListService } from './facts/competition-groups-list.service';
 import type { DateToplistFactsService } from './facts/date-toplist.service';
@@ -20,6 +21,7 @@ import type { TrophiesListService } from './facts/trophies-list.service';
 /** `buildFactTree`'s dependency bag: the fact services it wires into leaves. */
 export interface FactTreeDeps {
   coachToplist: CoachToplistService;
+  coachAverageToplist: CoachAverageToplistService;
   dateToplist: DateToplistFactsService;
   competitionGroupsList: CompetitionGroupsListService;
   teamToplist: TeamToplistService;
