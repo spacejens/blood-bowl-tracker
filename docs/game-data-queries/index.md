@@ -33,9 +33,10 @@ Per entity, a `<Entity>QueriesService` holds that entity's bot-only reads,
 for example `CoachesQueriesService` beside `game-data`'s `CoachesService`.
 Statistics that grew into their own services keep their own names, such as
 `TeamsStatisticsService`, `TeamAverageStatisticsService`,
-`PlayerDeathService` and `OnThisDateService`. `src/shared/` holds the read
-helpers only these queries use, such as `MatchEventCountsService` and
-`LikePatternService`.
+`CoachAverageStatisticsService`, `PlayerDeathService` and
+`OnThisDateService`. `src/shared/` holds the read
+helpers only these queries use, such as `MatchEventCountsService`,
+`PerMatchAverageSqlService` and `LikePatternService`.
 
 ## Testing
 

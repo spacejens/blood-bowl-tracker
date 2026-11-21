@@ -22,9 +22,10 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 import {
-  MIN_MATCHES_FOR_TEAM_AVERAGE,
-  TeamAverageStatisticsService,
-} from './team-average-statistics.service';
+  MIN_MATCHES_FOR_PER_MATCH_AVERAGE,
+  PerMatchAverageSqlService,
+} from '../shared/per-match-average-sql.service';
+import { TeamAverageStatisticsService } from './team-average-statistics.service';
 
 describe('TeamAverageStatisticsService', () => {
   let service: TeamAverageStatisticsService;
@@ -35,7 +36,13 @@ describe('TeamAverageStatisticsService', () => {
   }> {
     const { db, chains } = mockDb(...rowsPerQuery);
     const moduleRef = await Test.createTestingModule({
-      providers: [TeamAverageStatisticsService, { provide: DB, useValue: db }],
+      providers: [
+        TeamAverageStatisticsService,
+        // Pure, dependency-free SQL-fragment builder: passed real so the
+        // assertions below cover the SQL it contributes (see CLAUDE.md).
+        PerMatchAverageSqlService,
+        { provide: DB, useValue: db },
+      ],
     }).compile();
     service = moduleRef.get(TeamAverageStatisticsService);
     return { db, chains };
@@ -45,10 +52,6 @@ describe('TeamAverageStatisticsService', () => {
   function selectedAverage(db: Db): unknown {
     return (firstCallArg(db.select) as { average: unknown }).average;
   }
-
-  it('floors the average at five matches', () => {
-    expect(MIN_MATCHES_FOR_TEAM_AVERAGE).toBe(5);
-  });
 
   describe.each([
     'averageTouchdownsScoredByTeam',
@@ -110,7 +113,7 @@ describe('TeamAverageStatisticsService', () => {
       expect(sqlText(having)).toContain(' >= ');
       expect(extractJoinColumns(having)).toEqual(['matches.id']);
       expect(extractAllFilterValues(having)).toEqual([
-        MIN_MATCHES_FOR_TEAM_AVERAGE,
+        MIN_MATCHES_FOR_PER_MATCH_AVERAGE,
       ]);
     });
 
