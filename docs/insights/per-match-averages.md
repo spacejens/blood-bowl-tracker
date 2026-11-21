@@ -1,15 +1,21 @@
-# Team per-match averages
+# Per-match averages
 
-Per-match averages per team, backing the `/insights` team average top lists
-(see [`/insights`](../discord-bot/slash-commands/insights.md)). Today these
-are average touchdowns scored and conceded, casualties caused and suffered,
-serious injuries caused and suffered, lasting injuries caused and suffered,
-and deaths caused and suffered, per match.
+Per-match averages per team and per coach, backing the `/insights` average
+top lists (see the
+[team facts](../discord-bot/slash-commands/insights-facts-team.md) and
+[coach facts](../discord-bot/slash-commands/insights-facts-coach.md)).
+Teams have average touchdowns scored and conceded, casualties caused and
+suffered, serious injuries caused and suffered, lasting injuries caused and
+suffered, and deaths caused and suffered, per match. Coaches have the same
+casualty, serious injury, lasting injury and death averages.
 
 Every such average is the same query, shaped by one input: the **per-side
-value** summed for each match the team played. The query divides that sum by
-the team's number of distinct matches in scope. For the exact query, see
-`packages/game-data-queries/src/teams/team-average-statistics.service.ts`.
+value** summed for each match side counted. The query divides that sum by
+the number of distinct matches in scope. For the exact queries, see
+`packages/game-data-queries/src/teams/team-average-statistics.service.ts`
+and `packages/game-data-queries/src/coaches/coach-average-statistics.service.ts`;
+the parts they share live in
+`packages/game-data-queries/src/shared/per-match-average-sql.service.ts`.
 
 ## Per-side values
 
@@ -53,10 +59,20 @@ A new average adds only its per-side value (and, for event counts, which
 events feed it); the division, floor, rounding, ordering and scope stay
 shared.
 
+## Coaches
+
+A coach's average spans every team the coach has coached. The per-side
+values of all of those teams' match sides are summed and divided by the
+distinct matches any of them played. A match between two of the coach's
+own teams therefore counts once as a match, while the events of both of
+its sides count. The per-side values are the team ones above, so a coach's
+average counts the same events as the team averages and the coach
+total-based toplists.
+
 ## Minimum matches
 
-A team is ranked only once it has at least 5 matches in scope
-(`MIN_MATCHES_FOR_TEAM_AVERAGE`). An average over one or two matches is
+A team or coach is ranked only once it has at least 5 matches in scope
+(`MIN_MATCHES_FOR_PER_MATCH_AVERAGE`). An average over one or two matches is
 noise: a single high-scoring match would otherwise top the list. This is the
 same 5-match threshold the coach average-time-between-matches toplist uses.
 
@@ -65,7 +81,7 @@ same 5-match threshold the coach average-time-between-matches toplist uses.
 The average is rounded to two decimals in the database, so teams whose
 averages agree to two decimals tie, and the bot shows them with the same
 rank. Each average is ranked both highest first and lowest first. Ties are
-broken by team name so the order is stable.
+broken by team or coach name so the order is stable.
 
 ## Scope
 
