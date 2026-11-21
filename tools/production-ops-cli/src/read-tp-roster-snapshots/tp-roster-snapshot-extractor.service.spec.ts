@@ -159,4 +159,41 @@ describe('TpRosterSnapshotExtractorService', () => {
       'lineUps.0.level',
     );
   });
+
+  it.each(['match', 'roster'] as const)(
+    'reports a %s file that is not an object as unreadable at its root',
+    (kind) => {
+      const result = service.extract({
+        kind,
+        source: 'f.json',
+        content: null,
+      });
+
+      expect(result.kind).toBe('unreadable');
+      expect(result.kind === 'unreadable' && result.reason).toContain('(root)');
+    },
+  );
+
+  it('leaves out a line-up whose id is negative, so no saved key is unreadable', () => {
+    const result = service.extract({
+      kind: 'match',
+      source: 'm.json',
+      content: matchFile([lineUp({ id: -1 }), lineUp({ id: 7 })]),
+    });
+
+    expect(result).toEqual({
+      kind: 'observations',
+      observations: [{ playerId: '7', source: 'm.json', state: STATE }],
+    });
+  });
+
+  it('leaves out a negative roster line-up id as well', () => {
+    const result = service.extract({
+      kind: 'roster',
+      source: 'r.json',
+      content: { lineUps: [lineUp({ id: -5 })] },
+    });
+
+    expect(result).toEqual({ kind: 'observations', observations: [] });
+  });
 });

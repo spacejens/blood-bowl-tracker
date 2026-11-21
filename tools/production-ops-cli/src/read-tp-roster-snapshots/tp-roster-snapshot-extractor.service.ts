@@ -58,7 +58,9 @@ export class TpRosterSnapshotExtractorService {
         observations: [
           ...inscriptionLocal.roster.lineUps,
           ...inscriptionVisitor.roster.lineUps,
-        ].map((entry) => this.observation(entry, entry.skills, input.source)),
+        ]
+          .filter((entry) => this.hasPlayerId(entry))
+          .map((entry) => this.observation(entry, entry.skills, input.source)),
       };
     }
     const parsed = rosterSnapshotFileSchema.safeParse(input.content);
@@ -67,14 +69,25 @@ export class TpRosterSnapshotExtractorService {
     }
     return {
       kind: 'observations',
-      observations: parsed.data.lineUps.map((entry) =>
-        this.observation(
-          entry,
-          [...(entry.lineUpMaster?.skills ?? []), ...entry.skills],
-          input.source,
+      observations: parsed.data.lineUps
+        .filter((entry) => this.hasPlayerId(entry))
+        .map((entry) =>
+          this.observation(
+            entry,
+            [...(entry.lineUpMaster?.skills ?? []), ...entry.skills],
+            input.source,
+          ),
         ),
-      ),
     };
+  }
+
+  /**
+   * A line-up id that is not negative. A negative id is no TP player id and
+   * would be saved as a key the snapshots file does not accept, so the entry
+   * is left out rather than failing the whole file.
+   */
+  private hasPlayerId(entry: SnapshotLineUp): boolean {
+    return entry.id >= 0;
   }
 
   private observation(
