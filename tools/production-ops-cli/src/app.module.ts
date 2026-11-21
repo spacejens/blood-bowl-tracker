@@ -30,6 +30,7 @@ import { LastingInjuryRepairSelectorService } from './generate-incomplete-player
 import { PositionProfileService } from './generate-incomplete-player-fills/position-profile.service';
 import { PricingRulesSetsService } from './generate-incomplete-player-fills/pricing-rules-sets.service';
 import { ProductionJsonQueryService } from './generate-incomplete-player-fills/production-json-query.service';
+import { SnapshotOrderSearchService } from './generate-incomplete-player-fills/snapshot-order-search.service';
 import { SnapshotSkillResolverService } from './generate-incomplete-player-fills/snapshot-skill-resolver.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
 import { ReadTpFeedHistoryService } from './read-tp-feed-history/read-tp-feed-history.service';
@@ -56,6 +57,7 @@ import { RunProductionQueryService } from './run-production-query/run-production
     AdvancementPricingService,
     PricingRulesSetsService,
     SnapshotSkillResolverService,
+    SnapshotOrderSearchService,
     FeedOwnerFitService,
     FeedSplitSearchService,
     AdvancementFillStageService,
