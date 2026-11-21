@@ -65,6 +65,54 @@ export function stubFactTreeDeps(): FactTreeDeps {
   coachToplist.resolveAverageTimeBetweenMatches.mockResolvedValue(
     'coach average time between matches',
   );
+  coachToplist.resolveAverageCasualtiesCausedDescending.mockResolvedValue(
+    'coach average casualties caused, highest first',
+  );
+  coachToplist.resolveAverageCasualtiesCausedAscending.mockResolvedValue(
+    'coach average casualties caused, lowest first',
+  );
+  coachToplist.resolveAverageCasualtiesSufferedDescending.mockResolvedValue(
+    'coach average casualties suffered, highest first',
+  );
+  coachToplist.resolveAverageCasualtiesSufferedAscending.mockResolvedValue(
+    'coach average casualties suffered, lowest first',
+  );
+  coachToplist.resolveAverageSeriousInjuriesCausedDescending.mockResolvedValue(
+    'coach average serious injuries caused, highest first',
+  );
+  coachToplist.resolveAverageSeriousInjuriesCausedAscending.mockResolvedValue(
+    'coach average serious injuries caused, lowest first',
+  );
+  coachToplist.resolveAverageSeriousInjuriesSufferedDescending.mockResolvedValue(
+    'coach average serious injuries suffered, highest first',
+  );
+  coachToplist.resolveAverageSeriousInjuriesSufferedAscending.mockResolvedValue(
+    'coach average serious injuries suffered, lowest first',
+  );
+  coachToplist.resolveAverageLastingInjuriesCausedDescending.mockResolvedValue(
+    'coach average lasting injuries caused, highest first',
+  );
+  coachToplist.resolveAverageLastingInjuriesCausedAscending.mockResolvedValue(
+    'coach average lasting injuries caused, lowest first',
+  );
+  coachToplist.resolveAverageLastingInjuriesSufferedDescending.mockResolvedValue(
+    'coach average lasting injuries suffered, highest first',
+  );
+  coachToplist.resolveAverageLastingInjuriesSufferedAscending.mockResolvedValue(
+    'coach average lasting injuries suffered, lowest first',
+  );
+  coachToplist.resolveAverageDeathsCausedDescending.mockResolvedValue(
+    'coach average deaths caused, highest first',
+  );
+  coachToplist.resolveAverageDeathsCausedAscending.mockResolvedValue(
+    'coach average deaths caused, lowest first',
+  );
+  coachToplist.resolveAverageDeathsSufferedDescending.mockResolvedValue(
+    'coach average deaths suffered, highest first',
+  );
+  coachToplist.resolveAverageDeathsSufferedAscending.mockResolvedValue(
+    'coach average deaths suffered, lowest first',
+  );
 
   const teamToplist = mock<TeamToplistService>();
   teamToplist.resolveMatchesPlayed.mockResolvedValue('team matches played');

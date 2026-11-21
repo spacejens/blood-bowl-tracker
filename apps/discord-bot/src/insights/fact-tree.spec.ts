@@ -17,10 +17,10 @@ beforeEach(async () => {
 });
 
 describe('buildFactTree', () => {
-  it('exposes exactly one hundred and three leaf facts', () => {
+  it('exposes exactly one hundred and nineteen leaf facts', () => {
     expect(
       factTreeNavigation.collectLeaves(buildFactTree(stubFactTreeDeps())),
-    ).toHaveLength(103);
+    ).toHaveLength(119);
   });
 
   it('wires coach.toplist.matches.played to CoachToplistService.resolveMatchesPlayed', async () => {
@@ -37,6 +37,86 @@ describe('buildFactTree', () => {
     ['coach.toplist.matches.won', 'coachToplist', 'resolveMatchesWon'],
     ['coach.toplist.matches.lost', 'coachToplist', 'resolveMatchesLost'],
     ['coach.toplist.matches.drawn', 'coachToplist', 'resolveMatchesDrawn'],
+    [
+      'coach.toplist.casualties.average.caused.descending',
+      'coachToplist',
+      'resolveAverageCasualtiesCausedDescending',
+    ],
+    [
+      'coach.toplist.casualties.average.caused.ascending',
+      'coachToplist',
+      'resolveAverageCasualtiesCausedAscending',
+    ],
+    [
+      'coach.toplist.casualties.average.suffered.descending',
+      'coachToplist',
+      'resolveAverageCasualtiesSufferedDescending',
+    ],
+    [
+      'coach.toplist.casualties.average.suffered.ascending',
+      'coachToplist',
+      'resolveAverageCasualtiesSufferedAscending',
+    ],
+    [
+      'coach.toplist.injuries.serious.average.caused.descending',
+      'coachToplist',
+      'resolveAverageSeriousInjuriesCausedDescending',
+    ],
+    [
+      'coach.toplist.injuries.serious.average.caused.ascending',
+      'coachToplist',
+      'resolveAverageSeriousInjuriesCausedAscending',
+    ],
+    [
+      'coach.toplist.injuries.serious.average.suffered.descending',
+      'coachToplist',
+      'resolveAverageSeriousInjuriesSufferedDescending',
+    ],
+    [
+      'coach.toplist.injuries.serious.average.suffered.ascending',
+      'coachToplist',
+      'resolveAverageSeriousInjuriesSufferedAscending',
+    ],
+    [
+      'coach.toplist.injuries.lasting.average.caused.descending',
+      'coachToplist',
+      'resolveAverageLastingInjuriesCausedDescending',
+    ],
+    [
+      'coach.toplist.injuries.lasting.average.caused.ascending',
+      'coachToplist',
+      'resolveAverageLastingInjuriesCausedAscending',
+    ],
+    [
+      'coach.toplist.injuries.lasting.average.suffered.descending',
+      'coachToplist',
+      'resolveAverageLastingInjuriesSufferedDescending',
+    ],
+    [
+      'coach.toplist.injuries.lasting.average.suffered.ascending',
+      'coachToplist',
+      'resolveAverageLastingInjuriesSufferedAscending',
+    ],
+    [
+      'coach.toplist.deaths.average.caused.descending',
+      'coachToplist',
+      'resolveAverageDeathsCausedDescending',
+    ],
+    [
+      'coach.toplist.deaths.average.caused.ascending',
+      'coachToplist',
+      'resolveAverageDeathsCausedAscending',
+    ],
+    [
+      'coach.toplist.deaths.average.suffered.descending',
+      'coachToplist',
+      'resolveAverageDeathsSufferedDescending',
+    ],
+    [
+      'coach.toplist.deaths.average.suffered.ascending',
+      'coachToplist',
+      'resolveAverageDeathsSufferedAscending',
+    ],
     ['team.toplist.matches.won', 'teamToplist', 'resolveMatchesWon'],
     ['team.toplist.matches.lost', 'teamToplist', 'resolveMatchesLost'],
     ['team.toplist.matches.drawn', 'teamToplist', 'resolveMatchesDrawn'],
