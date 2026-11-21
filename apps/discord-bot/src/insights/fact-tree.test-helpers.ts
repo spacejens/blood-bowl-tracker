@@ -21,18 +21,6 @@ import { TrophiesListService } from './facts/trophies-list.service';
 export function stubFactTreeDeps(): FactTreeDeps {
   const coachToplist = mock<CoachToplistService>();
   const coachAverageToplist = mock<CoachAverageToplistService>();
-  coachAverageToplist.resolveAverageTouchdownsScoredDescending.mockResolvedValue(
-    'coach average touchdowns scored, highest first',
-  );
-  coachAverageToplist.resolveAverageTouchdownsScoredAscending.mockResolvedValue(
-    'coach average touchdowns scored, lowest first',
-  );
-  coachAverageToplist.resolveAverageTouchdownsConcededDescending.mockResolvedValue(
-    'coach average touchdowns conceded, highest first',
-  );
-  coachAverageToplist.resolveAverageTouchdownsConcededAscending.mockResolvedValue(
-    'coach average touchdowns conceded, lowest first',
-  );
   coachToplist.resolveMatchesPlayed.mockResolvedValue('coach matches played');
   coachToplist.resolveMatchesWon.mockResolvedValue('coach matches won');
   coachToplist.resolveMatchesLost.mockResolvedValue('coach matches lost');
@@ -79,6 +67,18 @@ export function stubFactTreeDeps(): FactTreeDeps {
   );
   coachToplist.resolveAverageTimeBetweenMatches.mockResolvedValue(
     'coach average time between matches',
+  );
+  coachAverageToplist.resolveAverageTouchdownsScoredDescending.mockResolvedValue(
+    'coach average touchdowns scored, highest first',
+  );
+  coachAverageToplist.resolveAverageTouchdownsScoredAscending.mockResolvedValue(
+    'coach average touchdowns scored, lowest first',
+  );
+  coachAverageToplist.resolveAverageTouchdownsConcededDescending.mockResolvedValue(
+    'coach average touchdowns conceded, highest first',
+  );
+  coachAverageToplist.resolveAverageTouchdownsConcededAscending.mockResolvedValue(
+    'coach average touchdowns conceded, lowest first',
   );
   coachAverageToplist.resolveAverageCasualtiesCausedDescending.mockResolvedValue(
     'coach average casualties caused, highest first',

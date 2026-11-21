@@ -49,12 +49,12 @@ interface AveragePerMatchByCoachOptions extends PerSideCount {
 
 /**
  * Per-match averages per coach, over every team the coach has coached: the
- * per-side values (touchdowns or event counts) of all of those teams' match sides, summed, divided by the
- * distinct matches any of them played. A match between two of the coach's
- * own teams therefore counts once as a match and with both sides' values.
- * Same event selectors, minimum-matches floor, rounding and scope as the
- * team averages, so a coach's figure is consistent with them and with the
- * coach totals.
+ * per-side values (touchdowns or event counts) of all of those teams' match
+ * sides, summed, divided by the distinct matches any of them played. A match
+ * between two of the coach's own teams therefore counts once as a match and
+ * with both sides' values. Same per-side values, minimum-matches floor,
+ * rounding and scope as the team averages, so a coach's figure is consistent
+ * with them and with the coach totals.
  */
 @Injectable()
 export class CoachAverageStatisticsService {
