@@ -2,26 +2,25 @@ import type { Db } from '@blood-bowl-tracker/db';
 import { DB, teams } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
 import {
-  extractAllFilterValues,
   extractFilterValues,
   extractJoinColumns,
   firstCallArg,
-  is,
   mockDb,
-  SQL,
   sqlText,
-  StringChunk,
 } from '@blood-bowl-tracker/db/test-helpers';
 import {
   CASUALTY_CAUSED_TYPES,
+  CASUALTY_SUFFERED_TYPES,
   COMPLETION_TYPES,
   DEATH_CAUSED_TYPES,
+  DEATH_SUFFERED_TYPES,
   DEFLECTION_TYPES,
   FACT_SCOPE_ALL_TIME,
   FOUL_TYPES,
   INTERCEPTION_TYPES,
   LASTING_INJURY_SUFFERED_TYPES,
   SERIOUS_INJURY_CAUSED_TYPES,
+  SERIOUS_INJURY_SUFFERED_TYPES,
   TOUCHDOWN_TYPES,
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
@@ -34,26 +33,8 @@ import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import { MatchOutcomeCountsService } from '../shared/match-outcome-counts.service';
 import { TrophyAwardCountsService } from '../shared/trophy-award-counts.service';
 import { CoachMatchGapsService } from './coach-match-gaps.service';
+import { CoachParticipationCountsService } from './coach-participation-counts.service';
 import { CoachesQueriesService } from './coaches-queries.service';
-
-/**
- * True when a captured aggregate expression is `countDistinct(...)` rather
- * than plain `count(...)`. drizzle-orm renders `countDistinct` as
- * `sql`count(distinct ${expr})`` — its first query chunk is a `StringChunk`
- * whose text starts with "count(distinct ", vs. "count(" for plain `count`.
- * Used to guard against double-counting when a join can legitimately produce
- * more than one row per grouped entity (e.g. a team with `teamEras` rows in
- * two eras of the same league).
- */
-function isCountDistinct(expr: unknown): boolean {
-  if (!is(expr, SQL)) return false;
-  const first = expr.queryChunks[0];
-  // `[value].flat()` accepts `StringChunk.value` whether drizzle-orm types it
-  // as a string or as an array of strings.
-  return (
-    is(first, StringChunk) && [first.value].flat().join('').includes('distinct')
-  );
-}
 
 describe('CoachesQueriesService', () => {
   let service: CoachesQueriesService;
@@ -62,6 +43,7 @@ describe('CoachesQueriesService', () => {
   let matchOutcomeCounts: MockProxy<MatchOutcomeCountsService>;
   let trophyAwardCounts: MockProxy<TrophyAwardCountsService>;
   let coachMatchGaps: MockProxy<CoachMatchGapsService>;
+  let coachParticipationCounts: MockProxy<CoachParticipationCountsService>;
 
   async function build(...rowsPerQuery: unknown[][]): Promise<{
     db: Db;
@@ -76,6 +58,10 @@ describe('CoachesQueriesService', () => {
         { provide: MatchOutcomeCountsService, useValue: matchOutcomeCounts },
         { provide: TrophyAwardCountsService, useValue: trophyAwardCounts },
         { provide: CoachMatchGapsService, useValue: coachMatchGaps },
+        {
+          provide: CoachParticipationCountsService,
+          useValue: coachParticipationCounts,
+        },
         { provide: DB, useValue: db },
       ],
     }).compile();
@@ -89,48 +75,10 @@ describe('CoachesQueriesService', () => {
     matchOutcomeCounts = mock<MatchOutcomeCountsService>();
     trophyAwardCounts = mock<TrophyAwardCountsService>();
     coachMatchGaps = mock<CoachMatchGapsService>();
+    coachParticipationCounts = mock<CoachParticipationCountsService>();
   });
 
   describe('toplist queries', () => {
-    it('countMatchesPlayedByCoach returns the rows the query resolves to', async () => {
-      const rows = [
-        { coachId: 1, name: 'Roze Madder', count: 9 },
-        { coachId: 2, name: 'Grashnak', count: 4 },
-      ];
-      const { db } = await build(rows);
-      await expect(
-        service.countMatchesPlayedByCoach(FACT_SCOPE_ALL_TIME, 21),
-      ).resolves.toEqual(rows);
-      expect(db.select).toHaveBeenCalledTimes(1);
-    });
-
-    it('countTeamsByCoach returns the rows the query resolves to', async () => {
-      const rows = [{ coachId: 1, name: 'Roze Madder', count: 3 }];
-      const { db } = await build(rows);
-      await expect(
-        service.countTeamsByCoach(FACT_SCOPE_ALL_TIME, 21),
-      ).resolves.toEqual(rows);
-      expect(db.select).toHaveBeenCalledTimes(1);
-      const selectedFields = firstCallArg(db.select, 0, 0) as {
-        count: unknown;
-      };
-      expect(isCountDistinct(selectedFields.count)).toBe(true);
-    });
-
-    it('countMatchesPlayedByCoach filters by era when an eraId is given', async () => {
-      const rows = [{ coachId: 1, name: 'Roze Madder', count: 2 }];
-      const { chains } = await build(rows);
-      await expect(
-        service.countMatchesPlayedByCoach({ eraId: 20 }, 21),
-      ).resolves.toEqual(rows);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
-      ).toEqual(['match_teams.match_id', 'matches.id']);
-      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(20);
-      expect(chains[0].limit).toHaveBeenCalledWith(21);
-    });
-
     it.each([
       ['countMatchesWonByCoach', 'won'],
       ['countMatchesLostByCoach', 'lost'],
@@ -158,64 +106,6 @@ describe('CoachesQueriesService', () => {
         });
       },
     );
-
-    it('countTeamsByCoach joins team_eras when an eraId is given', async () => {
-      const rows = [{ coachId: 1, name: 'Roze Madder', count: 1 }];
-      const { db, chains } = await build(rows);
-      await expect(
-        service.countTeamsByCoach({ eraId: 20 }, 21),
-      ).resolves.toEqual(rows);
-      // Era path adds a second innerJoin (teams + teamEras) vs. one when unfiltered.
-      expect(chains[0].innerJoin).toHaveBeenCalledTimes(2);
-      expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 1, 1)),
-      ).toEqual(['team_eras.team_id', 'teams.id', 'team_eras.era_id']);
-      const selectedFields = firstCallArg(db.select, 0, 0) as {
-        count: unknown;
-      };
-      expect(isCountDistinct(selectedFields.count)).toBe(true);
-    });
-
-    it('countCompetitionsByCoach returns the rows the query resolves to', async () => {
-      const rows = [
-        { coachId: 1, name: 'Roze Madder', count: 5 },
-        { coachId: 2, name: 'Grashnak', count: 2 },
-      ];
-      const { db } = await build(rows);
-      await expect(
-        service.countCompetitionsByCoach(FACT_SCOPE_ALL_TIME, 21),
-      ).resolves.toEqual(rows);
-      expect(db.select).toHaveBeenCalledTimes(1);
-    });
-
-    it('countCompetitionsByCoach filters by era when an eraId is given', async () => {
-      const rows = [{ coachId: 1, name: 'Roze Madder', count: 3 }];
-      const { chains } = await build(rows);
-      await expect(
-        service.countCompetitionsByCoach({ eraId: 20 }, 21),
-      ).resolves.toEqual(rows);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
-      ).toEqual(['competition_teams.competition_id', 'competitions.id']);
-      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(20);
-      expect(chains[0].limit).toHaveBeenCalledWith(21);
-    });
-
-    it('countErasByCoach returns the rows the query resolves to', async () => {
-      const rows = [
-        { coachId: 1, name: 'Roze Madder', count: 3 },
-        { coachId: 2, name: 'Grashnak', count: 3 },
-        { coachId: 3, name: 'Skabsquik', count: 1 },
-      ];
-      const { db, chains } = await build(rows);
-      await expect(service.countErasByCoach(21)).resolves.toEqual(rows);
-      expect(db.select).toHaveBeenCalledTimes(1);
-      expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
-      ).toEqual(['teams.id', 'team_eras.team_id']);
-      expect(chains[0].limit).toHaveBeenCalledWith(21);
-    });
 
     describe.each([
       ['countFoulsCommittedByCoach', FOUL_TYPES],
@@ -297,6 +187,46 @@ describe('CoachesQueriesService', () => {
       });
     });
 
+    describe.each([
+      ['countCasualtiesSufferedByCoach', CASUALTY_SUFFERED_TYPES],
+      ['countSeriousInjuriesSufferedByCoach', SERIOUS_INJURY_SUFFERED_TYPES],
+      ['countLastingInjuriesSufferedByCoach', LASTING_INJURY_SUFFERED_TYPES],
+      ['countDeathsSufferedByCoach', DEATH_SUFFERED_TYPES],
+    ] as const)('%s', (method, types) => {
+      it('returns the rows MatchEventCountsService resolves to', async () => {
+        const rows = [
+          { coachId: 1, name: 'Roze Madder', count: 31 },
+          { coachId: 2, name: 'Grashnak', count: 12 },
+        ];
+        matchEventCounts.countMatchEventsByCoach.mockResolvedValue(rows);
+        await build();
+        await expect(service[method](FACT_SCOPE_ALL_TIME, 21)).resolves.toEqual(
+          rows,
+        );
+      });
+
+      it('forwards a consequence selector for its own suffered types and drops the competition from the scope', async () => {
+        // Credited to the victim's team, as for the team.toplist.*.suffered
+        // counterparts; coach toplists are league/era/match-category-scoped
+        // only, so the competitionId must not reach the count service.
+        await build();
+        await service[method](
+          {
+            leagueId: 9,
+            eraId: 20,
+            competitionId: 30,
+            category: 'season_final',
+          },
+          21,
+        );
+        expect(matchEventCounts.countMatchEventsByCoach).toHaveBeenCalledWith({
+          selector: { role: 'consequence', types },
+          scope: { leagueId: 9, eraId: 20, category: 'season_final' },
+          limit: 21,
+        });
+      });
+    });
+
     it('countCasualtiesCausedByCoach does not count fouls', async () => {
       await build();
       await service.countCasualtiesCausedByCoach(FACT_SCOPE_ALL_TIME, 21);
@@ -305,81 +235,6 @@ describe('CoachesQueriesService', () => {
       for (const foulType of FOUL_TYPES) {
         expect(selector.types).not.toContain(foulType);
       }
-    });
-
-    it('countMatchesPlayedByCoach filters by the match category', async () => {
-      const { chains } = await build([]);
-      await service.countMatchesPlayedByCoach({ category: 'season_final' }, 21);
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-        'season_final',
-      ]);
-    });
-
-    it('countCompetitionsByCoach does not join matches when no category is given', async () => {
-      const { chains } = await build([]);
-      await service.countCompetitionsByCoach({ eraId: 20 }, 21);
-      expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
-    });
-
-    it('countCompetitionsByCoach counts only competitions with a match of the given category', async () => {
-      const { chains } = await build([]);
-      await service.countCompetitionsByCoach({ category: 'cup_final' }, 21);
-      expect(chains[0].innerJoin).toHaveBeenCalledTimes(7);
-      expect(
-        extractAllFilterValues(firstCallArg(chains[0].innerJoin, 6, 1)),
-      ).toContain('cup_final');
-    });
-  });
-
-  describe('league scoping', () => {
-    it('countMatchesPlayedByCoach filters by league via the eras join', async () => {
-      const { chains } = await build([]);
-      await service.countMatchesPlayedByCoach({ leagueId: 9 }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 2, 1)),
-      ).toEqual(['eras.id', 'team_eras.era_id']);
-      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(9);
-    });
-
-    it('countCompetitionsByCoach filters by league via the eras join', async () => {
-      const { chains } = await build([]);
-      await service.countCompetitionsByCoach({ leagueId: 9 }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 2, 1)),
-      ).toEqual(['eras.id', 'team_eras.era_id']);
-      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(9);
-    });
-
-    it('countTeamsByCoach counts teams the coach ran in an era of the league', async () => {
-      const rows = [{ coachId: 1, name: 'Roze Madder', count: 2 }];
-      const { chains } = await build(rows);
-      await expect(
-        service.countTeamsByCoach({ leagueId: 9 }, 21),
-      ).resolves.toEqual(rows);
-      // League path adds two innerJoins (teams + teamEras + eras) vs. one unfiltered.
-      expect(chains[0].innerJoin).toHaveBeenCalledTimes(3);
-      expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 2, 1)),
-      ).toEqual(['eras.id', 'team_eras.era_id', 'eras.league_id']);
-    });
-
-    it('countTeamsByCoach does not double-count a team with teamEras rows in two eras of the same league', async () => {
-      // The league scope joins teamEras unfiltered by era, then filters by
-      // eras.leagueId. A team with separate teamEras rows in two different
-      // eras of the *same* league (no unique constraint on teamId alone)
-      // would join to two rows and be counted twice unless the aggregate
-      // uses DISTINCT on teams.id.
-      const rows = [{ coachId: 1, name: 'Roze Madder', count: 1 }];
-      const { db } = await build(rows);
-      await expect(
-        service.countTeamsByCoach({ leagueId: 9 }, 21),
-      ).resolves.toEqual(rows);
-      const selectedFields = firstCallArg(db.select, 0, 0) as {
-        count: unknown;
-      };
-      expect(isCountDistinct(selectedFields.count)).toBe(true);
     });
   });
 
@@ -672,6 +527,45 @@ describe('CoachesQueriesService', () => {
         expect(db.select).not.toHaveBeenCalled();
       },
     );
+  });
+
+  describe('participation toplists', () => {
+    it.each([
+      'countMatchesPlayedByCoach',
+      'countCompetitionsByCoach',
+      'countTeamsByCoach',
+    ] as const)(
+      '%s delegates to CoachParticipationCountsService with the scope and limit',
+      async (method) => {
+        // The queries themselves are covered by
+        // coach-participation-counts.service.spec.ts.
+        const rows = [{ coachId: 1, name: 'Roze Madder', count: 9 }];
+        coachParticipationCounts[method].mockResolvedValue(rows);
+        const { db } = await build();
+        await expect(
+          service[method](
+            { leagueId: 9, eraId: 20, category: 'cup_final' },
+            21,
+          ),
+        ).resolves.toEqual(rows);
+        expect(coachParticipationCounts[method]).toHaveBeenCalledWith(
+          { leagueId: 9, eraId: 20, category: 'cup_final' },
+          21,
+        );
+        expect(db.select).not.toHaveBeenCalled();
+      },
+    );
+
+    it('countErasByCoach delegates to CoachParticipationCountsService with the limit', async () => {
+      const rows = [{ coachId: 1, name: 'Roze Madder', count: 3 }];
+      coachParticipationCounts.countErasByCoach.mockResolvedValue(rows);
+      const { db } = await build();
+      await expect(service.countErasByCoach(21)).resolves.toEqual(rows);
+      expect(coachParticipationCounts.countErasByCoach).toHaveBeenCalledWith(
+        21,
+      );
+      expect(db.select).not.toHaveBeenCalled();
+    });
   });
 
   describe('countTrophiesByCoach', () => {

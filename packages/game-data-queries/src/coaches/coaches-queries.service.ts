@@ -1,8 +1,6 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import {
-  and,
   coaches,
-  competitions,
   competitionTeams,
   countDistinct,
   DB,
@@ -24,13 +22,16 @@ import type {
 import type { FactScope } from '@blood-bowl-tracker/game-data';
 import {
   CASUALTY_CAUSED_TYPES,
+  CASUALTY_SUFFERED_TYPES,
   COMPLETION_TYPES,
   DEATH_CAUSED_TYPES,
+  DEATH_SUFFERED_TYPES,
   DEFLECTION_TYPES,
   FOUL_TYPES,
   INTERCEPTION_TYPES,
   LASTING_INJURY_SUFFERED_TYPES,
   SERIOUS_INJURY_CAUSED_TYPES,
+  SERIOUS_INJURY_SUFFERED_TYPES,
   TOUCHDOWN_TYPES,
 } from '@blood-bowl-tracker/game-data';
 import { Inject, Injectable } from '@nestjs/common';
@@ -41,6 +42,7 @@ import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import { MatchOutcomeCountsService } from '../shared/match-outcome-counts.service';
 import { TrophyAwardCountsService } from '../shared/trophy-award-counts.service';
 import { CoachMatchGapsService } from './coach-match-gaps.service';
+import { CoachParticipationCountsService } from './coach-participation-counts.service';
 
 /**
  * The acting-side event filter of a match-event-backed coach count: the
@@ -65,6 +67,7 @@ export class CoachesQueriesService {
     private readonly matchOutcomeCounts: MatchOutcomeCountsService,
     private readonly trophyAwardCounts: TrophyAwardCountsService,
     private readonly coachMatchGaps: CoachMatchGapsService,
+    private readonly coachParticipationCounts: CoachParticipationCountsService,
   ) {}
 
   async findById(
@@ -185,38 +188,20 @@ export class CoachesQueriesService {
       .limit(limit);
   }
 
-  async countMatchesPlayedByCoach(
+  /**
+   * The participation toplists (matches played, competitions entered, teams
+   * coached, eras active) live on CoachParticipationCountsService; these
+   * delegates keep them reachable through CoachesQueriesService alongside the
+   * other coach toplists.
+   */
+  countMatchesPlayedByCoach(
     scope: FactScope,
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
-    return this.db
-      .select({
-        coachId: coaches.id,
-        name: coaches.name,
-        count: countDistinct(matches.id),
-      })
-      .from(matches)
-      .innerJoin(matchTeams, eq(matchTeams.matchId, matches.id))
-      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
-      .innerJoin(eras, eq(eras.id, teamEras.eraId))
-      .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .innerJoin(coaches, eq(coaches.id, teams.coachId))
-      .where(
-        and(
-          scope.leagueId === undefined
-            ? undefined
-            : eq(eras.leagueId, scope.leagueId),
-          scope.eraId === undefined
-            ? undefined
-            : eq(teamEras.eraId, scope.eraId),
-          scope.category === undefined
-            ? undefined
-            : eq(matches.category, scope.category),
-        ),
-      )
-      .groupBy(coaches.id, coaches.name)
-      .orderBy(desc(countDistinct(matches.id)))
-      .limit(limit);
+    return this.coachParticipationCounts.countMatchesPlayedByCoach(
+      scope,
+      limit,
+    );
   }
 
   /**
@@ -290,121 +275,28 @@ export class CoachesQueriesService {
     return this.coachMatchGaps.getAverageGapBetweenMatchesByCoach(scope, limit);
   }
 
-  /**
-   * Coaches ranked by distinct competitions entered. A match category narrows
-   * this to the competitions in which the coach's teams actually played a match
-   * of that category (e.g. the competitions they reached the final of), which
-   * needs the played matches joined in — registration alone
-   * (`competitionTeams`) carries no category. The join is added only on that
-   * path so the unfiltered count keeps counting entries rather than
-   * appearances.
-   */
-  async countCompetitionsByCoach(
+  countCompetitionsByCoach(
     scope: FactScope,
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
-    const eraFilter = and(
-      scope.leagueId === undefined
-        ? undefined
-        : eq(eras.leagueId, scope.leagueId),
-      scope.eraId === undefined ? undefined : eq(teamEras.eraId, scope.eraId),
-    );
-    const base = this.db
-      .select({
-        coachId: coaches.id,
-        name: coaches.name,
-        count: countDistinct(competitions.id),
-      })
-      .from(competitions)
-      .innerJoin(
-        competitionTeams,
-        eq(competitionTeams.competitionId, competitions.id),
-      )
-      .innerJoin(teamEras, eq(teamEras.id, competitionTeams.teamEraId))
-      .innerJoin(eras, eq(eras.id, teamEras.eraId))
-      .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .innerJoin(coaches, eq(coaches.id, teams.coachId));
-    if (scope.category === undefined) {
-      return base
-        .where(eraFilter)
-        .groupBy(coaches.id, coaches.name)
-        .orderBy(desc(countDistinct(competitions.id)))
-        .limit(limit);
-    }
-    return base
-      .innerJoin(matchTeams, eq(matchTeams.teamEraId, teamEras.id))
-      .innerJoin(
-        matches,
-        and(
-          eq(matches.id, matchTeams.matchId),
-          eq(matches.competitionId, competitions.id),
-          eq(matches.category, scope.category),
-        ),
-      )
-      .where(eraFilter)
-      .groupBy(coaches.id, coaches.name)
-      .orderBy(desc(countDistinct(competitions.id)))
-      .limit(limit);
+    return this.coachParticipationCounts.countCompetitionsByCoach(scope, limit);
   }
 
-  async countTeamsByCoach(
+  countTeamsByCoach(
     scope: FactScope,
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
-    const base = this.db
-      .select({
-        coachId: coaches.id,
-        name: coaches.name,
-        count: countDistinct(teams.id),
-      })
-      .from(coaches)
-      .innerJoin(teams, eq(teams.coachId, coaches.id));
-    if (scope.leagueId !== undefined) {
-      return base
-        .innerJoin(teamEras, eq(teamEras.teamId, teams.id))
-        .innerJoin(
-          eras,
-          and(eq(eras.id, teamEras.eraId), eq(eras.leagueId, scope.leagueId)),
-        )
-        .groupBy(coaches.id, coaches.name)
-        .orderBy(desc(countDistinct(teams.id)))
-        .limit(limit);
-    }
-    if (scope.eraId !== undefined) {
-      return base
-        .innerJoin(
-          teamEras,
-          and(eq(teamEras.teamId, teams.id), eq(teamEras.eraId, scope.eraId)),
-        )
-        .groupBy(coaches.id, coaches.name)
-        .orderBy(desc(countDistinct(teams.id)))
-        .limit(limit);
-    }
-    return base
-      .groupBy(coaches.id, coaches.name)
-      .orderBy(desc(countDistinct(teams.id)))
-      .limit(limit);
+    return this.coachParticipationCounts.countTeamsByCoach(scope, limit);
   }
 
-  async countErasByCoach(
+  countErasByCoach(
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
-    return this.db
-      .select({
-        coachId: coaches.id,
-        name: coaches.name,
-        count: countDistinct(teamEras.eraId),
-      })
-      .from(teamEras)
-      .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .innerJoin(coaches, eq(coaches.id, teams.coachId))
-      .groupBy(coaches.id, coaches.name)
-      .orderBy(desc(countDistinct(teamEras.eraId)))
-      .limit(limit);
+    return this.coachParticipationCounts.countErasByCoach(limit);
   }
 
   /**
-   * The shared shape of every match-event-backed coach toplist: count events
+   * The shared shape of every acting-side match-event-backed coach toplist: count events
    * of the given types credited to the acting side, attributed to that
    * team's coach and summed over all of the coach's teams. Deliberately does
    * not forward scope.competitionId: these coach toplists are
@@ -528,6 +420,78 @@ export class CoachesQueriesService {
   ): Promise<{ coachId: number; name: string; count: number }[]> {
     return this.countActingEventsByCoach(
       { types: DEATH_CAUSED_TYPES },
+      scope,
+      limit,
+    );
+  }
+
+  /**
+   * The consequence-side twin of countActingEventsByCoach: count events whose
+   * consequence is one of the given types, credited to the victim's team,
+   * attributed to that team's coach and summed over all of the coach's teams.
+   * Like its acting-side sibling it does not forward scope.competitionId.
+   */
+  private countConsequenceEventsByCoach(
+    types: readonly ConsequenceType[],
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.matchEventCounts.countMatchEventsByCoach({
+      selector: { role: 'consequence', types },
+      scope: {
+        leagueId: scope.leagueId,
+        eraId: scope.eraId,
+        category: scope.category,
+      },
+      limit,
+    });
+  }
+
+  /**
+   * Casualties the coach's teams suffered. This and the three damage-suffered
+   * counts that follow (serious injuries, lasting injuries, deaths) are
+   * counted exactly as the TeamsStatisticsService `count*SufferedByTeam`
+   * counterparts and summed over every team the coach has coached.
+   */
+  countCasualtiesSufferedByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.countConsequenceEventsByCoach(
+      CASUALTY_SUFFERED_TYPES,
+      scope,
+      limit,
+    );
+  }
+
+  countSeriousInjuriesSufferedByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.countConsequenceEventsByCoach(
+      SERIOUS_INJURY_SUFFERED_TYPES,
+      scope,
+      limit,
+    );
+  }
+
+  countLastingInjuriesSufferedByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.countConsequenceEventsByCoach(
+      LASTING_INJURY_SUFFERED_TYPES,
+      scope,
+      limit,
+    );
+  }
+
+  countDeathsSufferedByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.countConsequenceEventsByCoach(
+      DEATH_SUFFERED_TYPES,
       scope,
       limit,
     );

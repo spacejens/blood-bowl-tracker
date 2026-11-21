@@ -45,6 +45,16 @@ export function stubFactTreeDeps(): FactTreeDeps {
     'coach lasting injuries caused',
   );
   coachToplist.resolveDeathsCaused.mockResolvedValue('coach deaths caused');
+  coachToplist.resolveCasualtiesSuffered.mockResolvedValue(
+    'coach casualties suffered',
+  );
+  coachToplist.resolveSeriousInjuriesSuffered.mockResolvedValue(
+    'coach serious injuries suffered',
+  );
+  coachToplist.resolveLastingInjuriesSuffered.mockResolvedValue(
+    'coach lasting injuries suffered',
+  );
+  coachToplist.resolveDeathsSuffered.mockResolvedValue('coach deaths suffered');
   coachToplist.resolveTrophiesWon.mockResolvedValue('coach trophies won');
   coachToplist.resolveTimeBetweenMatchesDescending.mockResolvedValue(
     'coach longest time between matches',
