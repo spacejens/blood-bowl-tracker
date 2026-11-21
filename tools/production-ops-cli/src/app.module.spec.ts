@@ -36,6 +36,7 @@ import { LastingInjuryProofService } from './generate-incomplete-player-fills/la
 import { PositionProfileService } from './generate-incomplete-player-fills/position-profile.service';
 import { PricingRulesSetsService } from './generate-incomplete-player-fills/pricing-rules-sets.service';
 import { ProductionJsonQueryService } from './generate-incomplete-player-fills/production-json-query.service';
+import { SnapshotFillStageService } from './generate-incomplete-player-fills/snapshot-fill-stage.service';
 import { SnapshotOrderSearchService } from './generate-incomplete-player-fills/snapshot-order-search.service';
 import { SnapshotSkillResolverService } from './generate-incomplete-player-fills/snapshot-skill-resolver.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
@@ -99,6 +100,9 @@ describe('AppModule', () => {
     );
     expect(moduleRef.get(PricingRulesSetsService)).toBeInstanceOf(
       PricingRulesSetsService,
+    );
+    expect(moduleRef.get(SnapshotFillStageService)).toBeInstanceOf(
+      SnapshotFillStageService,
     );
     expect(moduleRef.get(SnapshotOrderSearchService)).toBeInstanceOf(
       SnapshotOrderSearchService,
