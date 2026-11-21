@@ -17,10 +17,10 @@ beforeEach(async () => {
 });
 
 describe('buildFactTree', () => {
-  it('exposes exactly one hundred and nineteen leaf facts', () => {
+  it('exposes exactly one hundred and twenty leaf facts', () => {
     expect(
       factTreeNavigation.collectLeaves(buildFactTree(stubFactTreeDeps())),
-    ).toHaveLength(119);
+    ).toHaveLength(120);
   });
 
   it('wires coach.toplist.matches.played to CoachToplistService.resolveMatchesPlayed', async () => {
@@ -288,6 +288,7 @@ describe('buildFactTree', () => {
   });
 
   it.each([
+    ['coach.toplist.sent_off', 'resolveTimesSentOff'],
     ['coach.toplist.touchdowns.scored', 'resolveTouchdownsScored'],
     ['coach.toplist.completions', 'resolveCompletions'],
     ['coach.toplist.interceptions', 'resolveInterceptions'],

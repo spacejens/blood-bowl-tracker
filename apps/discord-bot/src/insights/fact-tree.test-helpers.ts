@@ -29,6 +29,7 @@ export function stubFactTreeDeps(): FactTreeDeps {
   );
   coachToplist.resolveErasActive.mockResolvedValue('coach eras active');
   coachToplist.resolveFoulsCommitted.mockResolvedValue('coach fouls committed');
+  coachToplist.resolveTimesSentOff.mockResolvedValue('coach times sent off');
   coachToplist.resolveTouchdownsScored.mockResolvedValue(
     'coach touchdowns scored',
   );

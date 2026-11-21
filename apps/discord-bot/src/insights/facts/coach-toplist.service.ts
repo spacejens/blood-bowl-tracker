@@ -20,6 +20,7 @@ import { ToplistFactoryService } from './toplist-factory.service';
 
 type CoachToplistMethod =
   | 'countFoulsCommittedByCoach'
+  | 'countTimesSentOffByCoach'
   | 'countTouchdownsScoredByCoach'
   | 'countCompletionsByCoach'
   | 'countInterceptionsByCoach'
@@ -83,6 +84,7 @@ export class CoachToplistService {
     >({
       titles: {
         countFoulsCommittedByCoach: 'Coaches by fouls committed',
+        countTimesSentOffByCoach: 'Coaches by times sent off',
         countTouchdownsScoredByCoach: 'Coaches by touchdowns scored',
         countCompletionsByCoach: 'Coaches by completions',
         countInterceptionsByCoach: 'Coaches by interceptions',
@@ -118,6 +120,12 @@ export class CoachToplistService {
       this.coachesQueries,
       scope,
     );
+  }
+
+  resolveTimesSentOff(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolvers.countTimesSentOffByCoach(this.coachesQueries, scope);
   }
 
   resolveTouchdownsScored(

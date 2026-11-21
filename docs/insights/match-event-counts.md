@@ -25,7 +25,7 @@ Not every count exists for both grouping entities, and that is by design — not
 - A handful of counts are additionally counted by **coach**, reached from the per-team count by way
   of the team's coach and summed over every team the coach has coached: fouls committed, touchdowns
   scored, completions, interceptions, deflections, casualties, serious injuries, lasting injuries
-  and deaths caused, and casualties, serious injuries, lasting injuries and deaths suffered. They
+  and deaths caused, and casualties, serious injuries, lasting injuries and deaths suffered, and times sent off. They
   exist because someone wanted to read those lists, not because every player/team count needs a
   coach twin. The match-event-backed coach grouping takes league, era and match-category scopes
   only; the trophies-by-coach toplist is the one coach toplist that takes a competition scope.

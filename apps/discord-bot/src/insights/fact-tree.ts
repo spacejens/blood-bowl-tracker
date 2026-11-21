@@ -74,6 +74,13 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
             resolve: (scope) => deps.coachToplist.resolveFoulsCommitted(scope),
           },
         },
+        sent_off: {
+          supportsLeague: true,
+          supportsEra: true,
+          supportsCompetition: false,
+          supportsMatchCategory: true,
+          resolve: (scope) => deps.coachToplist.resolveTimesSentOff(scope),
+        },
         touchdowns: {
           scored: {
             supportsLeague: true,
