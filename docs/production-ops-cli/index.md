@@ -98,7 +98,10 @@ evidence `read-tp-roster-snapshots` saves (see
 [Reading the TP roster snapshots](#reading-the-tp-roster-snapshots)),
 before any query runs. A missing or malformed file stops the run. Without
 the flag, players at or above the cheapest advancement whom the feed does
-not name stay `spp-too-high`. The queries also read every skill's and every
+not name stay `spp-too-high`; with it and without `--feed-channel`, every
+such player goes to the snapshot stage, which also needs his stored unspent
+SPP to equal the snapshot's. The evidence file's age is not checked, so run
+`read-tp-roster-snapshots` again after downloading. The queries also read every skill's and every
 candidate position's `tourplay.net` ids, and the skills held with a variant
 anywhere. `report.eligibleByStage.snapshot` counts the snapshot fills. See
 [Generated fills](../import-manual/filling-missing-players.md#generated-fills).

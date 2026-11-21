@@ -153,8 +153,8 @@ The batches:
   importers and after batch 012, in a plain `apply`.
 - **014-tp-roster-snapshot-fills** — fills in the data of 97 incomplete TP
   players at or above the cheapest advancement whom the TP feed never
-  reported: 97 whose downloaded TP match and roster snapshots prove their
-  gained skills, of which 43 gained none, with exactly one order and
+  reported, all from downloaded TP match and roster snapshots that prove
+  their gained skills (43 gained none), with exactly one order and
   chosen-or-random source fitting the SPP they spent (see
   [Generated fills](filling-missing-players.md#generated-fills) and
   [Roster snapshot evidence](roster-snapshot-evidence.md)). It is

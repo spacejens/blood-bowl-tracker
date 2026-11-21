@@ -25,7 +25,9 @@ levels (free skills). So `level` counts paid advancements.
 
 None of the incomplete players at or above the cheapest advancement appears
 in a standalone roster file, so comparing dated roster copies told nothing about them. All of them
-appear in match files, and no player's match snapshots disagree.
+appear in match files, and none of them has match snapshots that disagree.
+Other players' snapshots can disagree across download runs, and the
+generator skips such a player as `snapshot-disagrees`.
 
 ## What cannot be proven from them
 
@@ -34,8 +36,20 @@ appear in match files, and no player's match snapshots disagree.
 - The source of a skill under fixed thresholds.
 - The variant of a gained skill.
 - Players of teams in ongoing competitions, whose data still changes.
+- His state at the match. A match file shows him as of its download run, so
+  the evidence is only as current as the newest download containing him.
+  The stored unspent SPP, taken from another source, must therefore be
+  present and equal to the snapshot's: it is the check against a snapshot
+  gone stale, for example one taken before he spent SPP.
+- A free skill the generator cannot see together with a characteristic
+  increase. The two would make his level equal his gained-skill count, so
+  anyone relaxing the rule that exactly one order must fit, for players
+  with several advancements, must account for it.
 
 ## How it is used
+
+`--snapshots` does not check how old the evidence file is, so run
+`read-tp-roster-snapshots` again after every download.
 
 The generator's rules for the snapshot stage and its skip reasons are in
 [Generated fills](filling-missing-players.md#generated-fills). Players the

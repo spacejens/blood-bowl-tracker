@@ -235,12 +235,14 @@ entry has the stored status, else `dead` if a death is recorded, else
   match's recorded play time, which can be an estimate when the source gave
   no play date. An increase is placed at its report's post time.
 - **Advancements from TP roster snapshots** (with `--snapshots`). For a
-  player the feed does not name whose total is at or above the cheapest
-  advancement, the downloaded TP match and roster files
+  player the feed does not name (without `--feed-channel`, every such
+  player) whose total is at or above the cheapest advancement, the
+  downloaded TP match and roster files
   (`read-tp-roster-snapshots`) give his level, his skills by TP id, and
   his total and unspent SPP. They must show him in one state, with his
-  stored total, his stored position (by its TP ids) and, when one is
-  stored, his stored unspent SPP. Each skill id must name one stored
+  stored total, his stored position (by its TP ids) and his stored unspent
+  SPP, which must be present: a file shows him as of its download run, and
+  the stored unspent SPP is the check that it is not out of date. Each skill id must name one stored
   skill (by its `tourplay.net` id). His gained skills are those less his
   position's starting skills, and must number exactly his level, which
   counts his paid advancements: a higher level means a characteristic
@@ -300,7 +302,8 @@ checks `feed-match-ambiguous`, `spp-too-high` and `free-skill-risk` before it.
   the files show him in more than one state (`snapshot-disagrees`); their
   total, unspent SPP or position differs from the stored one, or one of
   his position's starting skills is missing from the snapshot
-  (`snapshot-conflicts-stored`); his level is below his gained skills
+  (`snapshot-conflicts-stored`); his unspent SPP is not stored
+  (`unspent-spp-missing`); his level is below his gained skills
   (`snapshot-level-mismatch`) or above them
   (`snapshot-characteristic-increase`); no order and source of them
   costs the SPP he spent (`snapshot-spend-mismatch`), or more than one

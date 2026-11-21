@@ -79,7 +79,7 @@ function stageInput(
   overrides: Partial<SnapshotStageInput> = {},
 ): SnapshotStageInput {
   return {
-    candidate: candidate({ sppTotal: 8, unspentSpp: null }),
+    candidate: candidate({ sppTotal: 8, unspentSpp: 2 }),
     sppTotal: 8,
     status: 'retired',
     hasStatReduction: false,
@@ -185,6 +185,7 @@ describe('SnapshotFillStageService', () => {
     const decision = service.decide(
       stageInput({
         snapshot: [{ ...STATE, level: 0, skillMasterIds: [96], unspentSpp: 8 }],
+        candidate: candidate({ sppTotal: 8, unspentSpp: 8 }),
       }),
     );
 
@@ -193,11 +194,16 @@ describe('SnapshotFillStageService', () => {
   });
 
   it('accepts a stored unspent SPP that equals the snapshot', () => {
+    expect(reasonFor(stageInput())).toBeUndefined();
+  });
+
+  it("skips a player with no stored unspent SPP rather than take the snapshot's", () => {
     expect(
       reasonFor(
-        stageInput({ candidate: candidate({ sppTotal: 8, unspentSpp: 2 }) }),
+        stageInput({ candidate: candidate({ sppTotal: 8, unspentSpp: null }) }),
       ),
-    ).toBeUndefined();
+    ).toBe('unspent-spp-missing');
+    expect(order.search).not.toHaveBeenCalled();
   });
 
   it('applies reductions that certainly last to the line', () => {
@@ -237,12 +243,18 @@ describe('SnapshotFillStageService', () => {
     ],
     [
       'the unspent SPP is above the total',
-      { snapshot: [{ ...STATE, unspentSpp: 9 }] },
+      {
+        snapshot: [{ ...STATE, unspentSpp: 9 }],
+        candidate: candidate({ sppTotal: 8, unspentSpp: 9 }),
+      },
       'spp-does-not-add-up',
     ],
     [
       'the unspent SPP is negative',
-      { snapshot: [{ ...STATE, unspentSpp: -1 }] },
+      {
+        snapshot: [{ ...STATE, unspentSpp: -1 }],
+        candidate: candidate({ sppTotal: 8, unspentSpp: -1 }),
+      },
       'spp-does-not-add-up',
     ],
     [
@@ -390,7 +402,11 @@ describe('SnapshotFillStageService', () => {
 
   it('skips him when stored data contradicts the entry', () => {
     expect(
-      reasonFor(stageInput({ candidate: candidate({ sppTotal: 8, move: 5 }) })),
+      reasonFor(
+        stageInput({
+          candidate: candidate({ sppTotal: 8, unspentSpp: 2, move: 5 }),
+        }),
+      ),
     ).toBe('stored-data-contradicts');
   });
 

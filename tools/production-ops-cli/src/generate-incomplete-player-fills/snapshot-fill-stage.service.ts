@@ -57,7 +57,7 @@ const SEARCH_REASONS: Record<
  * from what his downloaded TP match and roster files show of him: his
  * level (his paid advancements), his skills by TP id, and his total and
  * unspent SPP. The files must show him in one state that agrees with what
- * is stored. His gained skills are the snapshot's skills less his
+ * is stored, his stored unspent SPP included, which must be present. His gained skills are the snapshot's skills less his
  * position's starting skills, each starting skill shown exactly as often as
  * his position has it (a starting skill missing from the snapshot reports
  * `snapshot-conflicts-stored`, one shown more often than the position has
@@ -92,6 +92,9 @@ export class SnapshotFillStageService {
       return { reason: 'snapshot-disagrees' };
     }
     const state = states[0];
+    if (input.candidate.unspentSpp === null) {
+      return { reason: 'unspent-spp-missing' };
+    }
     if (this.conflictsStored(input, state)) {
       return { reason: 'snapshot-conflicts-stored' };
     }
@@ -141,15 +144,19 @@ export class SnapshotFillStageService {
     });
   }
 
-  /** His total and position must equal the stored ones, and a stored unspent SPP the snapshot's. */
+  /**
+   * His total, unspent SPP and position must equal the stored ones. A match
+   * file shows him as of its download run, not as of the match, so the
+   * stored unspent SPP, taken from another source, is the check that the
+   * snapshot has not gone stale.
+   */
   private conflictsStored(
     input: SnapshotStageInput,
     state: TpRosterSnapshotVariant,
   ): boolean {
-    const storedUnspent = input.candidate.unspentSpp;
     return (
       state.totalSpp !== input.sppTotal ||
-      (storedUnspent !== null && storedUnspent !== state.unspentSpp) ||
+      input.candidate.unspentSpp !== state.unspentSpp ||
       !input.positionTpIds.includes(String(state.lineUpMasterId))
     );
   }
