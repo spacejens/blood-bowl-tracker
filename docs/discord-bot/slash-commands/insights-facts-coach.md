@@ -21,6 +21,10 @@ how a fact path is chosen and which scope options apply.
   sense.
 - `coach.toplist.fouls.committed` — coaches ranked by fouls committed. Counts
   foul events credited to the acting team, attributed to that team's coach.
+- `coach.toplist.sent_off` — coaches ranked by players sent off. Counts match
+  events that sent a player off, credited to the team that player belongs to,
+  summed over every team the coach has coached (the same events as
+  `team.toplist.sent_off`).
 - `coach.toplist.touchdowns.scored` — coaches ranked by touchdowns scored.
   Counts touchdown events credited to the acting team, summed over every team
   the coach has coached.

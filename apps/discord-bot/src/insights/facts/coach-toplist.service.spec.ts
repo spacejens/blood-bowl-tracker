@@ -30,9 +30,10 @@ interface CoachRow {
   count: number;
 }
 
-/** The twenty coach toplists the factory builds. */
+/** The twenty-one coach toplists the factory builds. */
 type CoachFactoryMethod =
   | 'countFoulsCommittedByCoach'
+  | 'countTimesSentOffByCoach'
   | 'countTouchdownsScoredByCoach'
   | 'countCompletionsByCoach'
   | 'countInterceptionsByCoach'
@@ -174,6 +175,16 @@ const factoryCases: FactoryCase[] = [
       { coachId: 2, name: 'Grashnak', count: 4 },
     ],
     expectedTitle: 'Coaches by fouls committed',
+  },
+  {
+    describeName: 'resolveTimesSentOff',
+    method: 'countTimesSentOffByCoach',
+    resolve: (service) => service.resolveTimesSentOff(FACT_SCOPE_ALL_TIME),
+    rows: [
+      { coachId: 1, name: 'Roze Madder', count: 6 },
+      { coachId: 2, name: 'Grashnak', count: 2 },
+    ],
+    expectedTitle: 'Coaches by times sent off',
   },
   {
     describeName: 'resolveTouchdownsScored',
@@ -479,6 +490,7 @@ describe('CoachToplistService.resolveFoulsCommitted', () => {
 });
 
 describe.each([
+  ['resolveTimesSentOff', 'countTimesSentOffByCoach'],
   ['resolveTouchdownsScored', 'countTouchdownsScoredByCoach'],
   ['resolveCompletions', 'countCompletionsByCoach'],
   ['resolveInterceptions', 'countInterceptionsByCoach'],

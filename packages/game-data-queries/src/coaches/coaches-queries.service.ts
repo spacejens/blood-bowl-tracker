@@ -30,6 +30,7 @@ import {
   FOUL_TYPES,
   INTERCEPTION_TYPES,
   LASTING_INJURY_SUFFERED_TYPES,
+  SENT_OFF_TYPES,
   SERIOUS_INJURY_CAUSED_TYPES,
   SERIOUS_INJURY_SUFFERED_TYPES,
   TOUCHDOWN_TYPES,
@@ -495,6 +496,18 @@ export class CoachesQueriesService {
       scope,
       limit,
     );
+  }
+
+  /**
+   * Players of the coach's teams sent off, counted exactly as
+   * TeamsStatisticsService.countTimesSentOffByTeam (credited to the team the
+   * player belongs to) and summed over every team the coach has coached.
+   */
+  countTimesSentOffByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.countConsequenceEventsByCoach(SENT_OFF_TYPES, scope, limit);
   }
 
   /**

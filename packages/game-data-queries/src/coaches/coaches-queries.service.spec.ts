@@ -19,6 +19,7 @@ import {
   FOUL_TYPES,
   INTERCEPTION_TYPES,
   LASTING_INJURY_SUFFERED_TYPES,
+  SENT_OFF_TYPES,
   SERIOUS_INJURY_CAUSED_TYPES,
   SERIOUS_INJURY_SUFFERED_TYPES,
   TOUCHDOWN_TYPES,
@@ -192,6 +193,7 @@ describe('CoachesQueriesService', () => {
       ['countSeriousInjuriesSufferedByCoach', SERIOUS_INJURY_SUFFERED_TYPES],
       ['countLastingInjuriesSufferedByCoach', LASTING_INJURY_SUFFERED_TYPES],
       ['countDeathsSufferedByCoach', DEATH_SUFFERED_TYPES],
+      ['countTimesSentOffByCoach', SENT_OFF_TYPES],
     ] as const)('%s', (method, types) => {
       it('returns the rows MatchEventCountsService resolves to', async () => {
         const rows = [
@@ -205,10 +207,11 @@ describe('CoachesQueriesService', () => {
         );
       });
 
-      it('forwards a consequence selector for its own suffered types and drops the competition from the scope', async () => {
-        // Credited to the victim's team, as for the team.toplist.*.suffered
-        // counterparts; coach toplists are league/era/match-category-scoped
-        // only, so the competitionId must not reach the count service.
+      it('forwards a consequence selector for its own types and drops the competition from the scope', async () => {
+        // Credited to the team of the player the consequence befell, as for
+        // the team.toplist counterparts; coach toplists are
+        // league/era/match-category-scoped only, so the competitionId must
+        // not reach the count service.
         await build();
         await service[method](
           {
