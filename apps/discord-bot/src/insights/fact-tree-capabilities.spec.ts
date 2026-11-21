@@ -39,6 +39,26 @@ const TEAM_AVERAGE_PATHS = [
   'team.toplist.deaths.average.suffered.ascending',
 ] as const;
 
+/** Every coach per-match average leaf: league, era and category, no competition. */
+const COACH_AVERAGE_PATHS = [
+  'coach.toplist.casualties.average.caused.descending',
+  'coach.toplist.casualties.average.caused.ascending',
+  'coach.toplist.casualties.average.suffered.descending',
+  'coach.toplist.casualties.average.suffered.ascending',
+  'coach.toplist.injuries.serious.average.caused.descending',
+  'coach.toplist.injuries.serious.average.caused.ascending',
+  'coach.toplist.injuries.serious.average.suffered.descending',
+  'coach.toplist.injuries.serious.average.suffered.ascending',
+  'coach.toplist.injuries.lasting.average.caused.descending',
+  'coach.toplist.injuries.lasting.average.caused.ascending',
+  'coach.toplist.injuries.lasting.average.suffered.descending',
+  'coach.toplist.injuries.lasting.average.suffered.ascending',
+  'coach.toplist.deaths.average.caused.descending',
+  'coach.toplist.deaths.average.caused.ascending',
+  'coach.toplist.deaths.average.suffered.descending',
+  'coach.toplist.deaths.average.suffered.ascending',
+] as const;
+
 describe('buildFactTree leaf capabilities', () => {
   it('excludes some leaves from era filtering', () => {
     const tree = buildFactTree(stubFactTreeDeps());
@@ -213,6 +233,28 @@ describe('buildFactTree competition capabilities', () => {
     }
   });
 
+  it('scopes the coach per-match averages to league and era but not competition', () => {
+    const tree = buildFactTree(stubFactTreeDeps());
+    for (const path of COACH_AVERAGE_PATHS) {
+      const leaf = factTreeNavigation.resolvePath(tree, path) as FactLeaf;
+      expect(leaf.supportsLeague, path).toBe(true);
+      expect(leaf.supportsEra, path).toBe(true);
+      expect(leaf.supportsCompetition, path).toBe(false);
+    }
+  });
+
+  it('forwards the league and era scope to a coach per-match average leaf', async () => {
+    const d = stubFactTreeDeps();
+    const leaf = factTreeNavigation.resolvePath(
+      buildFactTree(d),
+      'coach.toplist.deaths.average.suffered.ascending',
+    );
+    await (leaf as FactLeaf).resolve({ leagueId: 9, eraId: 20 });
+    expect(
+      d.coachToplist.resolveAverageDeathsSufferedAscending,
+    ).toHaveBeenCalledWith({ leagueId: 9, eraId: 20 });
+  });
+
   it('forwards competitionId to an in-scope team leaf', async () => {
     const d = stubFactTreeDeps();
     const leaf = factTreeNavigation.resolvePath(
@@ -315,7 +357,7 @@ describe('buildFactTree match category capabilities', () => {
     const supported = factTreeNavigation
       .collectLeaves(tree)
       .filter((leaf) => leaf.supportsMatchCategory);
-    expect(supported).toHaveLength(83);
+    expect(supported).toHaveLength(99);
   });
 
   it('supports the match category on leaves that do not support a competition', () => {
@@ -340,6 +382,7 @@ describe('buildFactTree match category capabilities', () => {
       'coach.toplist.injuries.lasting.suffered',
       'coach.toplist.deaths.suffered',
       'coach.toplist.timeBetweenMatches.average',
+      ...COACH_AVERAGE_PATHS,
       'team.toplist.matches.played',
       'team.toplist.matches.won',
       'team.toplist.matches.lost',
