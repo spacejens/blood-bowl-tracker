@@ -43,4 +43,15 @@ export class PricingRulesSetsService {
       ),
     }));
   }
+
+  /** Whether one rules set gives a category two different accesses; identical duplicates are fine. */
+  hasConflictingAccess(rows: readonly PositionAccessRow[]): boolean {
+    const seen = new Map<string, string>();
+    return rows.some((row) => {
+      const key = JSON.stringify([row.rulesSetId, row.category]);
+      const earlier = seen.get(key);
+      seen.set(key, row.access);
+      return earlier !== undefined && earlier !== row.access;
+    });
+  }
 }

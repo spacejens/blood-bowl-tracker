@@ -64,4 +64,29 @@ describe('PricingRulesSetsService', () => {
       }),
     ).toEqual([]);
   });
+
+  describe('hasConflictingAccess', () => {
+    const row = (access: 'primary' | 'secondary', rulesSetId = 7) => ({
+      positionId: 30,
+      rulesSetId,
+      category: 'agility' as const,
+      access,
+    });
+
+    it('finds a category one rules set gives two accesses', () => {
+      expect(
+        service.hasConflictingAccess([row('primary'), row('secondary')]),
+      ).toBe(true);
+    });
+
+    it('accepts identical duplicates and different rules sets', () => {
+      expect(
+        service.hasConflictingAccess([
+          row('primary'),
+          row('primary'),
+          row('secondary', 8),
+        ]),
+      ).toBe(false);
+    });
+  });
 });
