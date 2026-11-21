@@ -19,6 +19,7 @@ import {
 } from './generate-incomplete-player-fills/generate-incomplete-player-fills.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
 import { ReadTpFeedHistoryService } from './read-tp-feed-history/read-tp-feed-history.service';
+import { ReadTpRosterSnapshotsService } from './read-tp-roster-snapshots/read-tp-roster-snapshots.service';
 import { RunProductionQueryService } from './run-production-query/run-production-query.service';
 
 const SUBCOMMANDS = [
@@ -30,6 +31,7 @@ const SUBCOMMANDS = [
   'fetch-discord-message',
   'generate-incomplete-player-fills',
   'read-tp-feed-history',
+  'read-tp-roster-snapshots',
 ] as const;
 
 type Subcommand = (typeof SUBCOMMANDS)[number];
@@ -54,13 +56,17 @@ const FETCH_DISCORD_MESSAGE_USAGE =
 
 const GENERATE_INCOMPLETE_PLAYER_FILLS_USAGE =
   'Usage: node dist/main.js generate-incomplete-player-fills ' +
-  '[--out=<repo-relative-path>] [--feed-channel=<channel-id>]';
+  '[--out=<repo-relative-path>] [--feed-channel=<channel-id>] [--snapshots]';
 const READ_TP_FEED_HISTORY_USAGE =
   'Usage: node dist/main.js read-tp-feed-history <channel-id> [--max-pages=N]';
+
+const READ_TP_ROSTER_SNAPSHOTS_USAGE =
+  'Usage: node dist/main.js read-tp-roster-snapshots (no arguments)';
 
 const MAX_PAGES_FLAG = '--max-pages=';
 const OUT_FLAG = '--out=';
 const FEED_CHANNEL_FLAG = '--feed-channel=';
+const SNAPSHOTS_FLAG = '--snapshots';
 
 /** Arguments for `start-production-tunnel`; absent for every other subcommand. */
 interface StartProductionTunnelInput {
@@ -89,6 +95,7 @@ interface DispatchArgs {
   readonly discordMessageLink?: string;
   readonly generateIncompletePlayerFills?: GenerateIncompletePlayerFillsInput;
   readonly readTpFeedHistory?: ReadTpFeedHistoryInput;
+  readonly readTpRosterSnapshots?: true;
 }
 
 function readExpectedApiBaseUrl(): string {
@@ -173,6 +180,7 @@ function readDiscordMessageLink(): string {
 function readGenerateIncompletePlayerFillsInput(): GenerateIncompletePlayerFillsInput {
   let out: string | undefined;
   let feedChannel: string | undefined;
+  let snapshots: true | undefined;
   for (const arg of process.argv.slice(3)) {
     if (
       out === undefined &&
@@ -186,6 +194,8 @@ function readGenerateIncompletePlayerFillsInput(): GenerateIncompletePlayerFills
       /^\d+$/u.test(arg.slice(FEED_CHANNEL_FLAG.length))
     ) {
       feedChannel = arg.slice(FEED_CHANNEL_FLAG.length);
+    } else if (snapshots === undefined && arg === SNAPSHOTS_FLAG) {
+      snapshots = true;
     } else {
       throw new Error(GENERATE_INCOMPLETE_PLAYER_FILLS_USAGE);
     }
@@ -193,7 +203,16 @@ function readGenerateIncompletePlayerFillsInput(): GenerateIncompletePlayerFills
   return {
     ...(out === undefined ? {} : { out }),
     ...(feedChannel === undefined ? {} : { feedChannel }),
+    ...(snapshots === undefined ? {} : { snapshots }),
   };
+}
+
+/** The subcommand takes no arguments. */
+function readReadTpRosterSnapshotsInput(): true {
+  if (process.argv.length > 3) {
+    throw new Error(READ_TP_ROSTER_SNAPSHOTS_USAGE);
+  }
+  return true;
 }
 
 /**
@@ -247,6 +266,10 @@ function readArgs(subcommand: Subcommand): DispatchArgs {
     readTpFeedHistory:
       subcommand === 'read-tp-feed-history'
         ? readReadTpFeedHistoryInput()
+        : undefined,
+    readTpRosterSnapshots:
+      subcommand === 'read-tp-roster-snapshots'
+        ? readReadTpRosterSnapshotsInput()
         : undefined,
   };
 }
@@ -319,6 +342,12 @@ function dispatch(
       return app
         .get(ReadTpFeedHistoryService)
         .run(args.readTpFeedHistory.channelId, args.readTpFeedHistory.maxPages);
+    }
+    case 'read-tp-roster-snapshots': {
+      if (args.readTpRosterSnapshots === undefined) {
+        throw new Error(READ_TP_ROSTER_SNAPSHOTS_USAGE);
+      }
+      return app.get(ReadTpRosterSnapshotsService).run();
     }
   }
 }

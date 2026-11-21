@@ -241,4 +241,76 @@ describe('AdvancementPricingService', () => {
       }),
     ).toEqual({ kind: 'priced', stepCosts: [], total: 0 });
   });
+
+  describe('hasConflictingCosts', () => {
+    const leagueRow = (
+      advancementKind: 'random_primary_skill' | 'random_characteristic',
+      advancementNumber: number,
+    ) => ({
+      eraId: 4,
+      rulesSetId: 7,
+      leagueId: 5,
+      advancementNumber,
+      advancementKind,
+      skillId: null,
+      sppCost: 99,
+    });
+
+    it('is true when a skill kind at a number up to the maximum has several prices', () => {
+      expect(
+        service.hasConflictingCosts({
+          costs: [
+            ...costRows(BB2020_COSTS),
+            leagueRow('random_primary_skill', 1),
+          ],
+          maxNumber: 1,
+        }),
+      ).toBe(true);
+    });
+
+    it('is false for a conflict at a number beyond the maximum', () => {
+      expect(
+        service.hasConflictingCosts({
+          costs: [
+            ...costRows(BB2020_COSTS),
+            leagueRow('random_primary_skill', 2),
+          ],
+          maxNumber: 1,
+        }),
+      ).toBe(false);
+    });
+
+    it('is false for a conflict in a kind that is not a skill kind', () => {
+      expect(
+        service.hasConflictingCosts({
+          costs: [
+            ...costRows(BB2020_COSTS),
+            leagueRow('random_characteristic', 1),
+          ],
+          maxNumber: 1,
+        }),
+      ).toBe(false);
+    });
+
+    it('is true for conflicting table rolls under fixed thresholds', () => {
+      expect(
+        service.hasConflictingCosts({
+          costs: [
+            ...costRows(FIXED_COSTS),
+            { ...costRows(FIXED_COSTS)[0], leagueId: 5, sppCost: 99 },
+          ],
+          maxNumber: 1,
+        }),
+      ).toBe(true);
+    });
+
+    it('is false when every kind and number has one price', () => {
+      expect(
+        service.hasConflictingCosts({
+          costs: costRows(BB2020_COSTS),
+          maxNumber: 6,
+        }),
+      ).toBe(false);
+    });
+  });
 });

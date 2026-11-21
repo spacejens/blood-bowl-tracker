@@ -153,7 +153,7 @@ export class AdvancementFillStageService {
     if (this.repeatsSkill(steps, profile)) {
       return { reason: 'duplicate-skill' };
     }
-    if (this.hasConflictingAccess(input.positionAccess)) {
+    if (this.pricingRulesSets.hasConflictingAccess(input.positionAccess)) {
       return { reason: 'skill-category-mismatch' };
     }
     const priceReason = this.priceReason(
@@ -238,17 +238,6 @@ export class AdvancementFillStageService {
     return outcome.stepCosts.some((cost, at) => cost !== steps[at].reportedCost)
       ? 'feed-cost-mismatch'
       : undefined;
-  }
-
-  /** Whether one rules set gives a category two different accesses; identical duplicates are fine. */
-  private hasConflictingAccess(rows: readonly PositionAccessRow[]): boolean {
-    const seen = new Map<string, string>();
-    return rows.some((row) => {
-      const key = JSON.stringify([row.rulesSetId, row.category]);
-      const earlier = seen.get(key);
-      seen.set(key, row.access);
-      return earlier !== undefined && earlier !== row.access;
-    });
   }
 
   /** His increases at their reports' times, and his reductions at their matches' times. */
