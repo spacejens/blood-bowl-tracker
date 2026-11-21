@@ -28,6 +28,8 @@ interface CoachRow {
 interface AverageCase {
   resolverName: string;
   method:
+    | 'averageTouchdownsScoredByCoach'
+    | 'averageTouchdownsConcededByCoach'
     | 'averageCasualtiesCausedByCoach'
     | 'averageCasualtiesSufferedByCoach'
     | 'averageSeriousInjuriesCausedByCoach'
@@ -45,6 +47,42 @@ interface AverageCase {
 }
 
 const cases: AverageCase[] = [
+  {
+    resolverName: 'resolveAverageTouchdownsScoredDescending',
+    method: 'averageTouchdownsScoredByCoach',
+    direction: 'desc',
+    resolve: (service, scope) =>
+      service.resolveAverageTouchdownsScoredDescending(scope),
+    expectedTitle:
+      'Coaches by average touchdowns scored per match (highest first)',
+  },
+  {
+    resolverName: 'resolveAverageTouchdownsScoredAscending',
+    method: 'averageTouchdownsScoredByCoach',
+    direction: 'asc',
+    resolve: (service, scope) =>
+      service.resolveAverageTouchdownsScoredAscending(scope),
+    expectedTitle:
+      'Coaches by average touchdowns scored per match (lowest first)',
+  },
+  {
+    resolverName: 'resolveAverageTouchdownsConcededDescending',
+    method: 'averageTouchdownsConcededByCoach',
+    direction: 'desc',
+    resolve: (service, scope) =>
+      service.resolveAverageTouchdownsConcededDescending(scope),
+    expectedTitle:
+      'Coaches by average touchdowns conceded per match (highest first)',
+  },
+  {
+    resolverName: 'resolveAverageTouchdownsConcededAscending',
+    method: 'averageTouchdownsConcededByCoach',
+    direction: 'asc',
+    resolve: (service, scope) =>
+      service.resolveAverageTouchdownsConcededAscending(scope),
+    expectedTitle:
+      'Coaches by average touchdowns conceded per match (lowest first)',
+  },
   {
     resolverName: 'resolveAverageCasualtiesCausedDescending',
     method: 'averageCasualtiesCausedByCoach',

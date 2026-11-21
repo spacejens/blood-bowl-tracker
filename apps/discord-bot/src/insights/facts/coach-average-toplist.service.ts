@@ -15,6 +15,8 @@ import { LeaderboardService } from '../leaderboard.service';
 
 /** The `CoachAverageStatisticsService` per-match average queries; they share one signature. */
 type CoachAverageMethod =
+  | 'averageTouchdownsScoredByCoach'
+  | 'averageTouchdownsConcededByCoach'
   | 'averageCasualtiesCausedByCoach'
   | 'averageCasualtiesSufferedByCoach'
   | 'averageSeriousInjuriesCausedByCoach'
@@ -76,6 +78,50 @@ export class CoachAverageToplistService {
       entityLink: this.coachLink,
       formatRow: (row) =>
         `${row.rank}. ${row.name} — ${this.numbers.decimal(row.count)} per match`,
+    });
+  }
+
+  resolveAverageTouchdownsScoredDescending(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageToplist({
+      measure: 'touchdowns scored',
+      method: 'averageTouchdownsScoredByCoach',
+      scope,
+      direction: 'desc',
+    });
+  }
+
+  resolveAverageTouchdownsScoredAscending(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageToplist({
+      measure: 'touchdowns scored',
+      method: 'averageTouchdownsScoredByCoach',
+      scope,
+      direction: 'asc',
+    });
+  }
+
+  resolveAverageTouchdownsConcededDescending(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageToplist({
+      measure: 'touchdowns conceded',
+      method: 'averageTouchdownsConcededByCoach',
+      scope,
+      direction: 'desc',
+    });
+  }
+
+  resolveAverageTouchdownsConcededAscending(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveAverageToplist({
+      measure: 'touchdowns conceded',
+      method: 'averageTouchdownsConcededByCoach',
+      scope,
+      direction: 'asc',
     });
   }
 
