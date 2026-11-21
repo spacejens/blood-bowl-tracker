@@ -1,3 +1,5 @@
+export type { CoachAverageDirection } from './coaches/coach-average-statistics.service';
+export { CoachAverageStatisticsService } from './coaches/coach-average-statistics.service';
 export { CoachesQueriesModule } from './coaches/coaches-queries.module';
 export { CoachesQueriesService } from './coaches/coaches-queries.service';
 export { CompetitionGroupsQueriesModule } from './competition-groups/competition-groups-queries.module';
