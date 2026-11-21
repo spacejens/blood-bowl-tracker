@@ -135,7 +135,7 @@ same entry is again `unchanged`.
 [production-ops-cli](../production-ops-cli/index.md#generating-incomplete-player-fills))
 writes entries for the incomplete TP players whose data it can prove. Every
 entry has the stored status, else `dead` if a death is recorded, else
-`retired`. There are four kinds of entry:
+`retired`. There are five kinds of entry:
 
 - **No advancements.** His total SPP is below the cheapest advancement any
   rules set of his era prices, house rules included, and no stat reduction
@@ -234,6 +234,30 @@ entry has the stored status, else `dead` if a death is recorded, else
   This ordering rests on two assumptions. A reduction is placed at its
   match's recorded play time, which can be an estimate when the source gave
   no play date. An increase is placed at its report's post time.
+- **Advancements from TP roster snapshots** (with `--snapshots`). For a
+  player the feed does not name whose total is at or above the cheapest
+  advancement, the downloaded TP match and roster files
+  (`read-tp-roster-snapshots`) give his level, his skills by TP id, and
+  his total and unspent SPP. They must show him in one state, with his
+  stored total, his stored position (by its TP ids) and, when one is
+  stored, his stored unspent SPP. Each skill id must name one stored
+  skill (by its `tourplay.net` id). His gained skills are those less his
+  position's starting skills, and must number exactly his level, which
+  counts his paid advancements: a higher level means a characteristic
+  increase the files cannot name, a lower one a free skill. Each gained
+  skill must have one `Name` id and be held with a variant by no player
+  or position, since the files name no variant. Each is primary or
+  secondary by his position's access to its category. Every order of
+  them, with every chosen-or-random source, is priced as for the feed,
+  and exactly one must cost exactly his total minus his unspent SPP
+  (nothing, for level 0). Two skills of the same kind, or any skill
+  under fixed thresholds, always fit more than one way, so such players
+  are not filled. Stat reductions are handled as for lasting injuries.
+  The entry is the position's start values (with any reductions), its
+  starting skills, the skills in that order with their source, and his
+  total and unspent SPP. See
+  [Roster snapshot evidence](roster-snapshot-evidence.md) for what the
+  files show and what they cannot.
 
 A player is skipped, with the reason reported, when any of these holds. The
 list is not in precedence order: he is reported by the first reason that
@@ -259,8 +283,9 @@ checks `feed-match-ambiguous`, `spp-too-high` and `free-skill-risk` before it.
   up to less than the SPP he spent, so the feed may lack a later report, or
   more than 8 reports or 4 players to try), or a
   marked journeyman could own one of those reports (`feed-match-ambiguous`);
-- with no feed reports, or as a marked journeyman, his total is at or
-  above the cheapest advancement cost of his era (`spp-too-high`);
+- with no feed reports and without `--snapshots`, or as a marked
+  journeyman, his total is at or above the cheapest advancement cost of his
+  era (`spp-too-high`);
 - he holds an award of a trophy curated as granting a skill (see
   [Trophies section](trophies.md); a granted skill not recorded yet looks
   the same as none) or an award that records a granted skill, whatever its
@@ -271,6 +296,19 @@ checks `feed-match-ambiguous`, `spp-too-high` and `free-skill-risk` before it.
   lasting injuries above holds (`lasting-injury-uncertain`). A match date
   that cannot be read only fails the proofs that compare dates (one
   competition, death), never the never-healing era proof, which reads none;
+- with `--snapshots`: no downloaded file shows him (`snapshot-missing`);
+  the files show him in more than one state (`snapshot-disagrees`); their
+  total, unspent SPP or position differs from the stored one
+  (`snapshot-conflicts-stored`); his level is below his gained skills
+  (`snapshot-level-mismatch`) or above them
+  (`snapshot-characteristic-increase`); no order and source of them
+  costs the SPP he spent (`snapshot-spend-mismatch`), or more than one
+  does (`snapshot-order-ambiguous`). The feed's checks
+  `spp-does-not-add-up`, `skill-unresolved` (also a gained skill with no
+  single `Name` id or held with a variant), `duplicate-skill`,
+  `too-many-advancements`, `skill-category-mismatch`,
+  `rules-sets-disagree` and `free-skill-risk` apply to the snapshot's
+  skills too;
 - with feed reports: his unspent SPP is not stored
   (`unspent-spp-missing`); there are more than six reports
   (`too-many-advancements`); a reported skill names no stored skill, or

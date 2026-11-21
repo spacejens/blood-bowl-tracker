@@ -20,10 +20,11 @@ it.
 | `start-production-tunnel` | Start `deploy-production`'s `flyctl proxy` tunnel as a detached, pid-tracked process |
 | `stop-production-tunnel` | Stop the tunnel started by `start-production-tunnel`, using its persisted pid |
 | `run-production-query` | Run a read-only, timeout-enforced SQL query against production, reading it from stdin |
-| `generate-incomplete-player-fills` | Plan the manual-import fills of incomplete TP players whose data can be proven, read-only from production, optionally with the TP feed evidence `read-tp-feed-history` saved (`--feed-channel=<channel-id>`); prints the batch file and a report, or writes the file with `--out=<repo-relative-path>` |
+| `generate-incomplete-player-fills` | Plan the manual-import fills of incomplete TP players whose data can be proven, read-only from production, optionally with the TP feed evidence `read-tp-feed-history` saved (`--feed-channel=<channel-id>`) and the roster snapshot evidence `read-tp-roster-snapshots` saved (`--snapshots`); prints the batch file and a report, or writes the file with `--out=<repo-relative-path>` |
 | `fetch-recent-discord-messages` | Fetch the N (1-100) most recent raw messages of a Discord channel, embeds included; `--before=<message-id>` fetches the N before that message instead, so a caller can page back through history |
 | `fetch-discord-message` | Fetch one raw Discord message, embeds included, by its message link |
 | `read-tp-feed-history` | Read a TP feed channel's whole history and save its advancement reports as local evidence; `--max-pages=N` stops after N pages of 100 |
+| `read-tp-roster-snapshots` | Read every downloaded TP match and roster file and save what each shows of every player, as evidence for `generate-incomplete-player-fills --snapshots` |
 
 ## Running it
 
@@ -91,6 +92,17 @@ team who can afford their reports; `null` without the flag; see
 `journeymenFilled` counts the entries filled as journeymen
 (`journeyman: true`), which `eligibleByStage.noAdvancement` also counts.
 
+`--snapshots` reads
+`tools/production-ops-cli/data/tp-roster-snapshots/snapshots.json`, the
+evidence `read-tp-roster-snapshots` saves (see
+[Reading the TP roster snapshots](#reading-the-tp-roster-snapshots)),
+before any query runs. A missing or malformed file stops the run. Without
+the flag, players at or above the cheapest advancement whom the feed does
+not name stay `spp-too-high`. The queries also read every skill's and every
+candidate position's `tourplay.net` ids, and the skills held with a variant
+anywhere. `report.eligibleByStage.snapshot` counts the snapshot fills. See
+[Generated fills](../import-manual/filling-missing-players.md#generated-fills).
+
 The package depends on `@blood-bowl-tracker/domain-enums` for the status,
 characteristic-format, skill, advancement-kind and match-event enums.
 `@blood-bowl-tracker/db` and `@blood-bowl-tracker/game-data` are dev
@@ -100,7 +112,7 @@ generator's advancement pricing next to game-data's own order check
 (`AdvancementOrderDeductionService`) and requires the server to accept
 exactly the spend the generator prices. The third runs the repair
 selector's reduction counts next to game-data's
-`PlayerFillReductionsService` and requires both to agree.
+`PlayerFillReductionsService` and requires both to agree. It depends on no TP parser.
 
 ## Reading the TP feed history
 
@@ -153,6 +165,36 @@ gitignored `tools/production-ops-cli/data/tp-feed-<channel-id>/`:
 main checkout from a worktree, so output written there survives the
 worktree's removal. In a worktree created before this directory existed, run
 `node tools/fs-utils-cli/dist/main.js sync-gitignored` first.
+
+## Reading the TP roster snapshots
+
+```bash
+node tools/production-ops-cli/dist/main.js read-tp-roster-snapshots
+```
+
+- **Input.** Every `match_<id>.json` and `rosters_<id>.json` under
+  `tools/import-tp/data` (download-tp's files), found by name, so
+  `rosters_masters?ruleSet=N.json` is not read. In a worktree the directory
+  links to the main checkout's; run `sync-gitignored` first if it is
+  missing.
+- **What is read.** Of each line-up entry: the TP player id,
+  `lineUpMasterId`, `level`, the skill ids, `totalStarPlayerPoints` and
+  `starPlayerPoints` (unspent). A match lists starting and gained skills
+  together. A roster lists the gained skills on the player and the starting
+  skills on his position template, and the two are listed together.
+- **Output.** `snapshots.json` in the gitignored
+  `tools/production-ops-cli/data/tp-roster-snapshots/`, regenerated on every
+  run. `players` maps a TP player id to each distinct state with its source
+  files. `conflicts` lists the players shown in more than one state.
+  `unreadable` lists the files of another shape, with the reason. Neither
+  stops the run.
+- **Summary.** Match and roster files read, unreadable files, players and
+  conflicts.
+
+It reads its own minimal shape of the files rather than using
+`packages/parse-tp`, whose match parser keeps no `level`. It changes no
+player. See [Roster snapshot evidence](../import-manual/roster-snapshot-evidence.md)
+for what the files show.
 
 ## Development
 
