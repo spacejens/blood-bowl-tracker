@@ -4,10 +4,10 @@ Per-match averages per team and per coach, backing the `/insights` average
 top lists (see the
 [team facts](../discord-bot/slash-commands/insights-facts-team.md) and
 [coach facts](../discord-bot/slash-commands/insights-facts-coach.md)).
-Teams have average touchdowns scored and conceded, casualties caused and
-suffered, serious injuries caused and suffered, lasting injuries caused and
-suffered, and deaths caused and suffered, per match. Coaches have the same
-casualty, serious injury, lasting injury and death averages.
+Teams and coaches both have average touchdowns scored and conceded,
+casualties caused and suffered, serious injuries caused and suffered,
+lasting injuries caused and suffered, and deaths caused and suffered, per
+match.
 
 Every such average is the same query, shaped by one input: the **per-side
 value** summed for each match side counted. The query divides that sum by
@@ -64,10 +64,11 @@ shared.
 A coach's average spans every team the coach has coached. The per-side
 values of all of those teams' match sides are summed and divided by the
 distinct matches any of them played. A match between two of the coach's
-own teams therefore counts once as a match, while the events of both of
-its sides count. The per-side values are the team ones above, so a coach's
-average counts the same events as the team averages and the coach
-total-based toplists.
+own teams therefore counts once as a match, while both of its sides'
+values count: both sides' touchdowns are scored, each side concedes the
+other's, and both sides' events count. The per-side values are the team
+ones above, so a coach's average counts the same touchdowns and events as
+the team averages.
 
 ## Minimum matches
 

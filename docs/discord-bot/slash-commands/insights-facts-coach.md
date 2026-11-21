@@ -28,6 +28,25 @@ how a fact path is chosen and which scope options apply.
 - `coach.toplist.touchdowns.scored` — coaches ranked by touchdowns scored.
   Counts touchdown events credited to the acting team, summed over every team
   the coach has coached.
+- `coach.toplist.touchdowns.average.scored.descending` — coaches ranked by
+  average touchdowns scored per match, highest first. Every coach per-match
+  average fact (`coach.toplist.*.average.*`) spans all of the coach's teams:
+  their per-side values are summed and divided by the distinct matches any
+  of those teams played, so a match between two of the coach's own teams
+  counts once, with both sides' values. They count the same touchdowns or
+  events as the matching `team.toplist.*.average.*` fact, are shown to two
+  decimals (`3.42 per match`), rank only coaches with at least 5 matches in
+  scope, and take the league, era and match-category scopes but not
+  competition. See
+  [Per-match averages](../../insights/per-match-averages.md).
+- `coach.toplist.touchdowns.average.scored.ascending` — the same average,
+  lowest first.
+- `coach.toplist.touchdowns.average.conceded.descending` — coaches ranked by
+  average touchdowns scored against their teams per match, highest first.
+  Every other side of a match counts, so in a four-team merged final all
+  three opponents' touchdowns are conceded.
+- `coach.toplist.touchdowns.average.conceded.ascending` — the same conceded
+  average, lowest first.
 - `coach.toplist.completions` — coaches ranked by passes completed, counted the
   same way.
 - `coach.toplist.interceptions` — coaches ranked by interceptions made, counted
@@ -52,15 +71,7 @@ how a fact path is chosen and which scope options apply.
 - `coach.toplist.deaths.suffered` — coaches ranked by their own players killed,
   counted the same way as `team.toplist.deaths.suffered`.
 - `coach.toplist.casualties.average.caused.descending` — coaches ranked by
-  average casualties caused per match, highest first. Every coach per-match
-  average fact (`coach.toplist.*.average.*`) spans all of the coach's teams:
-  their events are summed and divided by the distinct matches any of those
-  teams played, so a match between two of the coach's own teams counts once,
-  with both sides' events. They count the same events as the matching
-  `team.toplist.*.average.*` fact, are shown to two decimals
-  (`3.42 per match`), rank only coaches with at least 5 matches in scope, and
-  take the league, era and match-category scopes but not competition. See
-  [Per-match averages](../../insights/per-match-averages.md).
+  average casualties caused per match, highest first.
 - `coach.toplist.casualties.average.caused.ascending` — the same average,
   lowest first.
 - `coach.toplist.casualties.average.suffered.descending` — coaches ranked by
