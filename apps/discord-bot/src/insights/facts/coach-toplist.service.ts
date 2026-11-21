@@ -1,9 +1,5 @@
 import type { FactScope } from '@blood-bowl-tracker/game-data';
-import type { CoachAverageDirection } from '@blood-bowl-tracker/game-data-queries';
-import {
-  CoachAverageStatisticsService,
-  CoachesQueriesService,
-} from '@blood-bowl-tracker/game-data-queries';
+import { CoachesQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -41,17 +37,6 @@ type CoachToplistMethod =
   | 'countCompetitionsByCoach'
   | 'countTrophiesByCoach';
 
-/** The `CoachAverageStatisticsService` per-match average queries; they share one signature. */
-type CoachAverageMethod =
-  | 'averageCasualtiesCausedByCoach'
-  | 'averageCasualtiesSufferedByCoach'
-  | 'averageSeriousInjuriesCausedByCoach'
-  | 'averageSeriousInjuriesSufferedByCoach'
-  | 'averageLastingInjuriesCausedByCoach'
-  | 'averageLastingInjuriesSufferedByCoach'
-  | 'averageDeathsCausedByCoach'
-  | 'averageDeathsSufferedByCoach';
-
 interface CoachCountRow {
   coachId: number;
   name: string;
@@ -72,7 +57,6 @@ export class CoachToplistService {
 
   constructor(
     private readonly coachesQueries: CoachesQueriesService,
-    private readonly averages: CoachAverageStatisticsService,
     private readonly leaderboard: LeaderboardService,
     private readonly numbers: NumberFormatterService,
     private readonly toplistFactory: ToplistFactoryService,
@@ -344,212 +328,6 @@ export class CoachToplistService {
       title: 'Coaches by average time between matches',
       fetchRows: (limit) =>
         this.coachesQueries.getAverageGapBetweenMatchesByCoach(scope, limit),
-    });
-  }
-
-  /**
-   * Every per-match average toplist shares this builder; each differs only
-   * in its measure, its backing `CoachAverageStatisticsService` query and
-   * its direction. The average is carried as the row's `count` because the
-   * leaderboard ranks ties on `count`; the query has already rounded it to
-   * two decimals and applied the minimum-matches floor. Hand-written rather
-   * than factory-built because it renders a two-decimal average instead of
-   * a bare count, and passes a direction.
-   */
-  private resolveAverageToplist(options: {
-    measure: string;
-    method: CoachAverageMethod;
-    scope: FactScope;
-    direction: CoachAverageDirection;
-  }): Promise<string | InteractionReplyOptions> {
-    const { measure, method, scope, direction } = options;
-    return this.leaderboard.resolveToplist<CoachCountRow>({
-      title: `Coaches by average ${measure} per match (${direction === 'desc' ? 'highest' : 'lowest'} first)`,
-      fetchRows: async (limit) =>
-        (await this.averages[method](scope, direction, limit)).map(
-          ({ average, ...row }) => ({ ...row, count: average }),
-        ),
-      timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
-      noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
-      entityLink: this.coachLink,
-      formatRow: (row) =>
-        `${row.rank}. ${row.name} — ${this.numbers.decimal(row.count)} per match`,
-    });
-  }
-
-  resolveAverageCasualtiesCausedDescending(
-    scope: FactScope,
-  ): Promise<string | InteractionReplyOptions> {
-    return this.resolveAverageToplist({
-      measure: 'casualties caused',
-      method: 'averageCasualtiesCausedByCoach',
-      scope,
-      direction: 'desc',
-    });
-  }
-
-  resolveAverageCasualtiesCausedAscending(
-    scope: FactScope,
-  ): Promise<string | InteractionReplyOptions> {
-    return this.resolveAverageToplist({
-      measure: 'casualties caused',
-      method: 'averageCasualtiesCausedByCoach',
-      scope,
-      direction: 'asc',
-    });
-  }
-
-  resolveAverageCasualtiesSufferedDescending(
-    scope: FactScope,
-  ): Promise<string | InteractionReplyOptions> {
-    return this.resolveAverageToplist({
-      measure: 'casualties suffered',
-      method: 'averageCasualtiesSufferedByCoach',
-      scope,
-      direction: 'desc',
-    });
-  }
-
-  resolveAverageCasualtiesSufferedAscending(
-    scope: FactScope,
-  ): Promise<string | InteractionReplyOptions> {
-    return this.resolveAverageToplist({
-      measure: 'casualties suffered',
-      method: 'averageCasualtiesSufferedByCoach',
-      scope,
-      direction: 'asc',
-    });
-  }
-
-  resolveAverageSeriousInjuriesCausedDescending(
-    scope: FactScope,
-  ): Promise<string | InteractionReplyOptions> {
-    return this.resolveAverageToplist({
-      measure: 'serious injuries caused',
-      method: 'averageSeriousInjuriesCausedByCoach',
-      scope,
-      direction: 'desc',
-    });
-  }
-
-  resolveAverageSeriousInjuriesCausedAscending(
-    scope: FactScope,
-  ): Promise<string | InteractionReplyOptions> {
-    return this.resolveAverageToplist({
-      measure: 'serious injuries caused',
-      method: 'averageSeriousInjuriesCausedByCoach',
-      scope,
-      direction: 'asc',
-    });
-  }
-
-  resolveAverageSeriousInjuriesSufferedDescending(
-    scope: FactScope,
-  ): Promise<string | InteractionReplyOptions> {
-    return this.resolveAverageToplist({
-      measure: 'serious injuries suffered',
-      method: 'averageSeriousInjuriesSufferedByCoach',
-      scope,
-      direction: 'desc',
-    });
-  }
-
-  resolveAverageSeriousInjuriesSufferedAscending(
-    scope: FactScope,
-  ): Promise<string | InteractionReplyOptions> {
-    return this.resolveAverageToplist({
-      measure: 'serious injuries suffered',
-      method: 'averageSeriousInjuriesSufferedByCoach',
-      scope,
-      direction: 'asc',
-    });
-  }
-
-  resolveAverageLastingInjuriesCausedDescending(
-    scope: FactScope,
-  ): Promise<string | InteractionReplyOptions> {
-    return this.resolveAverageToplist({
-      measure: 'lasting injuries caused',
-      method: 'averageLastingInjuriesCausedByCoach',
-      scope,
-      direction: 'desc',
-    });
-  }
-
-  resolveAverageLastingInjuriesCausedAscending(
-    scope: FactScope,
-  ): Promise<string | InteractionReplyOptions> {
-    return this.resolveAverageToplist({
-      measure: 'lasting injuries caused',
-      method: 'averageLastingInjuriesCausedByCoach',
-      scope,
-      direction: 'asc',
-    });
-  }
-
-  resolveAverageLastingInjuriesSufferedDescending(
-    scope: FactScope,
-  ): Promise<string | InteractionReplyOptions> {
-    return this.resolveAverageToplist({
-      measure: 'lasting injuries suffered',
-      method: 'averageLastingInjuriesSufferedByCoach',
-      scope,
-      direction: 'desc',
-    });
-  }
-
-  resolveAverageLastingInjuriesSufferedAscending(
-    scope: FactScope,
-  ): Promise<string | InteractionReplyOptions> {
-    return this.resolveAverageToplist({
-      measure: 'lasting injuries suffered',
-      method: 'averageLastingInjuriesSufferedByCoach',
-      scope,
-      direction: 'asc',
-    });
-  }
-
-  resolveAverageDeathsCausedDescending(
-    scope: FactScope,
-  ): Promise<string | InteractionReplyOptions> {
-    return this.resolveAverageToplist({
-      measure: 'deaths caused',
-      method: 'averageDeathsCausedByCoach',
-      scope,
-      direction: 'desc',
-    });
-  }
-
-  resolveAverageDeathsCausedAscending(
-    scope: FactScope,
-  ): Promise<string | InteractionReplyOptions> {
-    return this.resolveAverageToplist({
-      measure: 'deaths caused',
-      method: 'averageDeathsCausedByCoach',
-      scope,
-      direction: 'asc',
-    });
-  }
-
-  resolveAverageDeathsSufferedDescending(
-    scope: FactScope,
-  ): Promise<string | InteractionReplyOptions> {
-    return this.resolveAverageToplist({
-      measure: 'deaths suffered',
-      method: 'averageDeathsSufferedByCoach',
-      scope,
-      direction: 'desc',
-    });
-  }
-
-  resolveAverageDeathsSufferedAscending(
-    scope: FactScope,
-  ): Promise<string | InteractionReplyOptions> {
-    return this.resolveAverageToplist({
-      measure: 'deaths suffered',
-      method: 'averageDeathsSufferedByCoach',
-      scope,
-      direction: 'asc',
     });
   }
 }

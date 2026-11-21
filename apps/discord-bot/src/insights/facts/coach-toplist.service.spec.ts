@@ -1,8 +1,5 @@
 import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
-import {
-  CoachAverageStatisticsService,
-  CoachesQueriesService,
-} from '@blood-bowl-tracker/game-data-queries';
+import { CoachesQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -71,10 +68,6 @@ async function makeService(
     providers: [
       CoachToplistService,
       { provide: CoachesQueriesService, useValue: coaches },
-      {
-        provide: CoachAverageStatisticsService,
-        useValue: mock<CoachAverageStatisticsService>(),
-      },
       { provide: LeaderboardService, useValue: leaderboard },
       { provide: NumberFormatterService, useValue: numbers },
       { provide: ToplistFactoryService, useValue: toplist.factory },

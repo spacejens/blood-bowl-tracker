@@ -21,6 +21,7 @@ import { buildFactTree } from '../insights/fact-tree';
 import { FACT_TREE } from '../insights/fact-tree.token';
 import type { FactNode } from '../insights/fact-tree.types';
 import { FactTreeNavigationService } from '../insights/fact-tree-navigation.service';
+import { CoachAverageToplistService } from '../insights/facts/coach-average-toplist.service';
 import { CoachToplistService } from '../insights/facts/coach-toplist.service';
 import { CompetitionGroupsListService } from '../insights/facts/competition-groups-list.service';
 import { DateToplistFactsService } from '../insights/facts/date-toplist.service';
@@ -69,6 +70,7 @@ export * from './fact-tree-lookup.test-helpers';
 
 export interface FactTreeMocks {
   coachToplist: MockProxy<CoachToplistService>;
+  coachAverageToplist: MockProxy<CoachAverageToplistService>;
   teamToplist: MockProxy<TeamToplistService>;
   playerToplist: MockProxy<PlayerToplistService>;
   raceToplist: MockProxy<RaceToplistService>;
@@ -94,6 +96,7 @@ export interface FactTreeMocks {
 function makeFactTreeMocks(): FactTreeMocks {
   const coachToplist = mock<CoachToplistService>();
   stubCoachToplistReplies(coachToplist);
+  const coachAverageToplist = mock<CoachAverageToplistService>();
   const teamToplist = mock<TeamToplistService>();
   teamToplist.resolveMatchesPlayed.mockResolvedValue(
     sampleEmbedReply('Teams by matches played', '1. 40 grinders — 12'),
@@ -328,6 +331,7 @@ function makeFactTreeMocks(): FactTreeMocks {
 
   return {
     coachToplist,
+    coachAverageToplist,
     teamToplist,
     playerToplist,
     raceToplist,
