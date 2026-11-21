@@ -8,6 +8,7 @@ import {
   eras,
   matches,
   matchTeams,
+  sql,
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
@@ -25,7 +26,7 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import type {
   PerMatchAverageDirection,
-  PerSideEventCount,
+  PerSideCount,
 } from '../shared/per-match-average-sql.service';
 import { PerMatchAverageSqlService } from '../shared/per-match-average-sql.service';
 
@@ -39,8 +40,8 @@ export interface CoachAverageRow {
   average: number;
 }
 
-/** The per-side event count plus the ranking options of one coach average query. */
-interface AveragePerMatchByCoachOptions extends PerSideEventCount {
+/** The per-side numerator plus the ranking options of one coach average query. */
+interface AveragePerMatchByCoachOptions extends PerSideCount {
   direction: CoachAverageDirection;
   scope: FactScope;
   limit: number;
@@ -48,9 +49,9 @@ interface AveragePerMatchByCoachOptions extends PerSideEventCount {
 
 /**
  * Per-match averages per coach, over every team the coach has coached: the
- * event counts of all of those teams' match sides, summed, divided by the
+ * per-side values (touchdowns or event counts) of all of those teams' match sides, summed, divided by the
  * distinct matches any of them played. A match between two of the coach's
- * own teams therefore counts once as a match and with both sides' events.
+ * own teams therefore counts once as a match and with both sides' values.
  * Same event selectors, minimum-matches floor, rounding and scope as the
  * team averages, so a coach's figure is consistent with them and with the
  * coach totals.
@@ -61,6 +62,42 @@ export class CoachAverageStatisticsService {
     @Inject(DB) private readonly db: Db,
     private readonly perMatchAverage: PerMatchAverageSqlService,
   ) {}
+
+  /** Touchdowns the coach's teams scored per match (`match_teams.score`). */
+  averageTouchdownsScoredByCoach(
+    scope: FactScope,
+    direction: CoachAverageDirection,
+    limit: number,
+  ): Promise<CoachAverageRow[]> {
+    return this.averagePerMatchByCoach({
+      perMatchValue: sql`${matchTeams.score}`,
+      direction,
+      scope,
+      limit,
+    });
+  }
+
+  /**
+   * Touchdowns scored against the coach's teams per match: for each of the
+   * coach's sides, the summed score of every other side of the same match,
+   * so a four-team merged final counts all three opponents and a match
+   * between two of the coach's own teams counts each side's score as
+   * conceded by the other. The correlated subquery aliases its own
+   * `match_teams` as `opponent_sides`, so the unaliased column references
+   * resolve to the outer query's side.
+   */
+  averageTouchdownsConcededByCoach(
+    scope: FactScope,
+    direction: CoachAverageDirection,
+    limit: number,
+  ): Promise<CoachAverageRow[]> {
+    return this.averagePerMatchByCoach({
+      perMatchValue: sql`(select coalesce(sum(opponent_sides.score), 0) from ${matchTeams} as opponent_sides where opponent_sides.match_id = ${matchTeams.matchId} and opponent_sides.id <> ${matchTeams.id})`,
+      direction,
+      scope,
+      limit,
+    });
+  }
 
   /**
    * Casualties the coach's teams inflicted per match. A foul that caused a
@@ -209,14 +246,14 @@ export class CoachAverageStatisticsService {
    * One row per (match, side) of any of the coach's teams, grouped by coach.
    * `count(distinct matches.id)` keeps a match between two of the coach's
    * own teams to one match in the denominator, while `sum` still adds both
-   * sides' events.
+   * sides' values.
    */
   private averagePerMatchByCoach(
     options: AveragePerMatchByCoachOptions,
   ): Promise<CoachAverageRow[]> {
     const { perMatchValue, perSideJoin, direction, scope, limit } = options;
     const average = this.perMatchAverage.average(perMatchValue);
-    return this.db
+    const joined = this.db
       .select({ coachId: coaches.id, name: coaches.name, average })
       .from(matches)
       .innerJoin(matchTeams, eq(matchTeams.matchId, matches.id))
@@ -224,7 +261,12 @@ export class CoachAverageStatisticsService {
       .innerJoin(eras, eq(eras.id, teamEras.eraId))
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
       .innerJoin(coaches, eq(coaches.id, teams.coachId))
-      .leftJoin(perSideJoin.table, perSideJoin.on)
+      .$dynamic();
+    const query =
+      perSideJoin === undefined
+        ? joined
+        : joined.leftJoin(perSideJoin.table, perSideJoin.on);
+    return query
       .where(this.perMatchAverage.scopeFilter(scope))
       .groupBy(coaches.id, coaches.name)
       .having(this.perMatchAverage.minimumMatches())
