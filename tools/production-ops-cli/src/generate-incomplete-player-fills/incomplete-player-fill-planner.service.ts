@@ -86,6 +86,9 @@ interface Gated {
  *
  * - a player the TP feed reports name goes to AdvancementFillStageService,
  *   with his stat reductions, which must certainly last when he has any;
+ *   when his reports do not add up to the SPP he spent and roster snapshot
+ *   evidence is loaded, SnapshotFillStageService may still prove him with
+ *   the reports fixed in place (`feedWithSnapshot`);
  * - with roster snapshot evidence, a player the feed does not name whose
  *   total is at or above the cheapest advancement goes to
  *   SnapshotFillStageService, which reports a free-skill risk as
@@ -148,6 +151,7 @@ export class IncompletePlayerFillPlannerService {
       advancement: 0,
       injuryOnly: 0,
       snapshot: 0,
+      feedWithSnapshot: 0,
     };
     let journeymenFilled = 0;
     const entries: FillEntry[] = [];
@@ -205,12 +209,7 @@ export class IncompletePlayerFillPlannerService {
       return { reason: 'feed-match-ambiguous' };
     }
     if (match?.kind === 'reports') {
-      return this.staged(
-        'advancement',
-        this.advancementStage.decide(
-          this.advancementInput(gated, match.reports),
-        ),
-      );
+      return this.feed(gated, match.reports);
     }
     if (sppTotal >= cheapest) {
       return index.snapshots === null
@@ -270,6 +269,33 @@ export class IncompletePlayerFillPlannerService {
       return { reason: 'journeyman' };
     }
     return this.noAdvancement(gated);
+  }
+
+  /**
+   * A player the feed names. When his reports do not add up to the SPP he
+   * spent, the feed may lack some of them; with snapshot evidence, the
+   * snapshot stage tries his snapshot's gained skills with the reports
+   * fixed in place. Anything else, or a snapshot that proves nothing, keeps
+   * the feed stage's verdict.
+   */
+  private feed(gated: Gated, reports: TpFeedHistoryReport[]): Decision {
+    const decision = this.advancementStage.decide(
+      this.advancementInput(gated, reports),
+    );
+    if (
+      'reason' in decision &&
+      decision.reason === 'spp-does-not-add-up' &&
+      gated.index.snapshots !== null
+    ) {
+      const completed = this.snapshotStage.decide({
+        ...this.snapshotInput(gated),
+        feedReports: reports,
+      });
+      if ('entry' in completed) {
+        return { entry: completed.entry, stage: 'feedWithSnapshot' };
+      }
+    }
+    return this.staged('advancement', decision);
   }
 
   /** A player too low on SPP to have advanced, with no stat reduction. */

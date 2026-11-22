@@ -497,4 +497,8 @@ export type StageDecision = { entry: FillEntry } | { reason: SkipReason };
 
 /** Which kind of proof filled a player. */
 export type FillStage =
-  'noAdvancement' | 'advancement' | 'injuryOnly' | 'snapshot';
+  | 'noAdvancement'
+  | 'advancement'
+  | 'injuryOnly'
+  | 'snapshot'
+  | 'feedWithSnapshot';

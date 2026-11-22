@@ -6,8 +6,9 @@ import type { TpRosterSnapshotVariant } from '../read-tp-roster-snapshots/tp-ros
 import { CharacteristicChangeService } from './characteristic-change.service';
 import { CharacteristicReplayService } from './characteristic-replay.service';
 import { CharacteristicValidityService } from './characteristic-validity.service';
+import { FeedSkillResolverService } from './feed-skill-resolver.service';
 import { FillEntryBuilderService } from './fill-entry-builder.service';
-import { candidate, profile } from './fill-plan.test-helpers';
+import { candidate, profile, report } from './fill-plan.test-helpers';
 import type {
   SkipReason,
   StatReductionEventRow,
@@ -125,13 +126,15 @@ describe('SnapshotFillStageService', () => {
         { provide: SnapshotOrderSearchService, useValue: order },
         // Pure and dependency-free, so passed real, as in the advancement
         // stage's spec: rules-set building, the replay with its change
-        // service, the injury proof, validity and the entry builder.
+        // service, the injury proof, validity, the entry builder and the
+        // feed skill resolver.
         PricingRulesSetsService,
         CharacteristicReplayService,
         CharacteristicChangeService,
         LastingInjuryProofService,
         CharacteristicValidityService,
         FillEntryBuilderService,
+        FeedSkillResolverService,
       ],
     }).compile();
     service = moduleRef.get(SnapshotFillStageService);
@@ -141,6 +144,69 @@ describe('SnapshotFillStageService', () => {
     const decision = service.decide(input);
     return 'reason' in decision ? decision.reason : undefined;
   }
+
+  it('searches with no fixed reports for a player the feed does not name', () => {
+    service.decide(stageInput());
+
+    expect(order.search.mock.calls[0][0].fixed).toEqual([]);
+  });
+
+  it('hands his resolved feed reports to the search as fixed steps', () => {
+    service.decide(
+      stageInput({
+        feedReports: [
+          report({ selection: 'random', category: 'primary', sppCost: 3 }),
+        ],
+      }),
+    );
+
+    expect(order.search.mock.calls[0][0].fixed).toEqual([
+      {
+        kind: 'skill',
+        skillId: 200,
+        skillName: 'Dodge',
+        nameId: 'Dodge',
+        attributeValue: null,
+        selection: 'random',
+        category: 'primary',
+        reportedCost: 3,
+      },
+    ]);
+  });
+
+  it('fills a feed-named player from the order the search finds', () => {
+    const decision = service.decide(stageInput({ feedReports: [report()] }));
+
+    expect('entry' in decision && decision.entry.advancements).toEqual([
+      { skill: { system: 'Name', id: 'Dodge' }, source: 'chosen' },
+    ]);
+  });
+
+  it('skips a player with a feed report naming no stored skill', () => {
+    expect(
+      reasonFor(
+        stageInput({ feedReports: [report({ gain: { skill: 'Nope' } })] }),
+      ),
+    ).toBe('skill-unresolved');
+    expect(order.search).not.toHaveBeenCalled();
+  });
+
+  it('skips a player with a reported characteristic increase the snapshot cannot name', () => {
+    expect(
+      reasonFor(
+        stageInput({
+          feedReports: [
+            report({
+              category: 'characteristics',
+              gain: { characteristic: 'MA', delta: 1 },
+              sppCost: 18,
+            }),
+          ],
+        }),
+      ),
+    ).toBe('snapshot-characteristic-increase');
+    expect(order.search).not.toHaveBeenCalled();
+  });
 
   it("fills the player with his snapshot's gained skill, in the order found", () => {
     expect(service.decide(stageInput())).toEqual({

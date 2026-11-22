@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
+import type { TpFeedHistoryReport } from '../read-tp-feed-history/tp-feed-history-index.service';
 import type { TpRosterSnapshotVariant } from '../read-tp-roster-snapshots/tp-roster-snapshots.schema';
 import {
   type AdvancementStageInput,
@@ -7,6 +8,7 @@ import {
 } from './advancement-fill-stage.service';
 import { CharacteristicReplayService } from './characteristic-replay.service';
 import { CharacteristicValidityService } from './characteristic-validity.service';
+import { FeedSkillResolverService } from './feed-skill-resolver.service';
 import { FillEntryBuilderService } from './fill-entry-builder.service';
 import type {
   CharacteristicEvent,
@@ -39,6 +41,11 @@ export interface SnapshotStageInput extends Omit<
   positionTpIds: readonly string[];
   tpSkillIds: readonly TpSkillIdRow[];
   attributedSkillIds: ReadonlySet<number>;
+  /**
+   * The feed reports matched to him, oldest first, when the feed names him
+   * but they do not add up to the SPP he spent; absent otherwise.
+   */
+  feedReports?: readonly TpFeedHistoryReport[];
 }
 
 const SEARCH_REASONS: Record<
@@ -57,9 +64,10 @@ const SEARCH_REASONS: Record<
  * from what his downloaded TP match and roster files show of him: his
  * level (his paid advancements), his skills by TP id, and his total and
  * unspent SPP. The files must show him in one state that agrees with what
- * is stored, his stored unspent SPP included, which must be present. His gained skills are the snapshot's skills less his
- * position's starting skills, each starting skill shown exactly as often as
- * his position has it (a starting skill missing from the snapshot reports
+ * is stored, his stored unspent SPP included, which must be present. His
+ * gained skills are the snapshot's skills less his position's starting
+ * skills, each starting skill shown exactly as often as his position has
+ * it (a starting skill missing from the snapshot reports
  * `snapshot-conflicts-stored`, one shown more often than the position has
  * it `duplicate-skill`), and they must be distinct and number exactly his
  * level, so no characteristic increase or free skill hides among them. At
@@ -68,6 +76,9 @@ const SEARCH_REASONS: Record<
  * (SnapshotOrderSearchService). Any stat reductions recorded for him must
  * certainly last, and are applied to his position's line. The checks run
  * in a fixed order and the first that fails is the reason reported.
+ * For a player the feed names whose reports do not add up, the reports are
+ * resolved as for the feed stage and must all be skills; the search must then
+ * place each where its shown cost, selection and category put it.
  *
  * Pure decision logic, with no I/O; its collaborators are pure as well.
  */
@@ -81,6 +92,7 @@ export class SnapshotFillStageService {
     private readonly replay: CharacteristicReplayService,
     private readonly validity: CharacteristicValidityService,
     private readonly entries: FillEntryBuilderService,
+    private readonly feedSkills: FeedSkillResolverService,
   ) {}
 
   decide(input: SnapshotStageInput): StageDecision {
@@ -123,8 +135,13 @@ export class SnapshotFillStageService {
     if (this.pricingRulesSets.hasConflictingAccess(input.positionAccess)) {
       return { reason: 'skill-category-mismatch' };
     }
+    const fixed = this.fixed(input);
+    if (typeof fixed === 'string') {
+      return { reason: fixed };
+    }
     const search = this.order.search({
       skills: gained,
+      fixed,
       rulesSets: this.pricingRulesSets.build({
         rulesSetIds: input.rulesSetIds,
         costs: input.costs,
@@ -144,6 +161,23 @@ export class SnapshotFillStageService {
     });
   }
 
+  /** His feed reports as the skill steps the search must honour, or why not. */
+  private fixed(input: SnapshotStageInput): SnapshotStep[] | SkipReason {
+    const steps = this.feedSkills.resolve({
+      reports: input.feedReports ?? [],
+      skillNames: input.skillNames,
+    });
+    if (steps === undefined) {
+      return 'skill-unresolved';
+    }
+    const skills = steps.filter(
+      (step): step is SnapshotStep => step.kind === 'skill',
+    );
+    return skills.length === steps.length
+      ? skills
+      : 'snapshot-characteristic-increase';
+  }
+
   /**
    * His total, unspent SPP and position must equal the stored ones. A match
    * file shows him as of its download run, not as of the match, so the
@@ -161,7 +195,7 @@ export class SnapshotFillStageService {
     );
   }
 
-  /** The checks that read no skill, giving his certain profile when all pass. */
+  /** The checks that read no skill, giving his certain profile if all pass. */
   private gate(
     input: SnapshotStageInput,
     state: TpRosterSnapshotVariant,
@@ -244,7 +278,7 @@ export class SnapshotFillStageService {
       : named;
   }
 
-  /** His level counts his paid advancements, which must be exactly his gained skills. */
+  /** His level counts his paid advancements: exactly his gained skills. */
   private countReason(level: number, gained: number): SkipReason | undefined {
     if (level > gained) {
       return 'snapshot-characteristic-increase';
