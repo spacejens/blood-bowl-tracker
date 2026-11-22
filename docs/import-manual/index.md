@@ -196,8 +196,7 @@ whatever the next free batch number is):
 
 A `rulesSets` entry is `{ name, moveFormat?, strengthFormat?, agilityFormat?,
 passingFormat?, armourFormat?, lastingInjuriesNeverHeal?, externalIds }`. The
-five optional `*Format`
-fields say which characteristic the rules set has and how it is displayed:
+five optional `*Format` fields say which characteristic the rules set has and how it is displayed:
 `'bare'` a plain number, `'plus'` a target a die roll has to meet ("+"),
 `'plus_zero_legal'` the same except a stored 0 is itself legal and renders as
 a bare "0" rather than the meaningless "0+", and `'absent'` no such

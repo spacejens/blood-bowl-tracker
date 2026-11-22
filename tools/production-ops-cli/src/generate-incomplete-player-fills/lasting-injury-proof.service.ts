@@ -29,7 +29,7 @@ interface Timed {
 
 /**
  * Decides whether a player's recorded stat reductions certainly still
- * apply. Under BB2020, DB2021 and BB2025 they may heal between
+ * apply. Under a rules set where they may heal they can do so between
  * competitions, and healing is optional, so a reduction is uncertain when
  * a point where it could heal comes after it. They are certain when:
  *

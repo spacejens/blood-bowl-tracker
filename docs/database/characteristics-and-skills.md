@@ -2,9 +2,8 @@
 
 How rules-set characteristic formats and lasting-injury healing, position and
 player characteristics, the skills catalogue, skill access and player status
-are stored. See
-[database.md](../database.md) for migrations, history tracking and the other
-entity-storage pages.
+are stored. See [database.md](../database.md) for migrations, history tracking
+and the other entity-storage pages.
 
 ## Characteristic formats
 

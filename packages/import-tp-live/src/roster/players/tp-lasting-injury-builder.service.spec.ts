@@ -26,7 +26,7 @@ const crp: RulesSet = {
   agilityFormat: 'bare',
   passingFormat: 'absent',
   armourFormat: 'bare',
-  lastingInjuriesNeverHeal: false,
+  lastingInjuriesNeverHeal: true,
 };
 
 function player(overrides: Partial<TpRosterPlayer> = {}): TpRosterPlayer {

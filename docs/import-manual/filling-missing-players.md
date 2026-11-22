@@ -165,10 +165,9 @@ entry has the stored status, else `dead` if a death is recorded, else
   The generator reads which rules sets never heal from the database
   (`rules_sets.lasting_injuries_never_heal`, see
   [Rules sets](index.md#rules-sets)); it holds no list of rules set names.
-  A rules set nobody has curated reads as possibly healing, so until batch
-  015 is applied the generator proves fewer fills, never a wrong one. Its
-  query needs the column, so run it against production only once the
-  migration adding it is deployed.
+  A rules set nobody has curated reads as possibly healing, so the generator
+  proves fewer fills, never a wrong one. Its query needs the column, so run
+  it only against a database whose migrations include it.
 
   Each reduction worsens the position's start value by one: MA, ST and AV go down; AG and PA go down
   when bare and up in a target-number format. A characteristic is never
