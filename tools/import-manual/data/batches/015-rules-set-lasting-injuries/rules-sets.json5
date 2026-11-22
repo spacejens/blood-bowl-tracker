@@ -1,0 +1,45 @@
+// Whether lasting injuries -- niggling injuries and characteristic
+// reductions -- never heal under each rules set. Under CRP, CRP+ and BB2016
+// they never heal. Under BB2020, DB2021 and BB2025 they can heal between
+// competitions, so those keep the default of false ("may heal"), stated here
+// so that every rules set says it explicitly.
+//
+// Each entry restates a rules set batch 001 declares in
+// spp-award-values.json5, with the same name and "Name" external id so the
+// upsert lands on the same row. The characteristic formats are left out: an
+// omitted field leaves the stored value alone.
+{
+  externalSystems: [{ name: 'Name', category: 'bookkeeping' }],
+  rulesSets: [
+    {
+      name: 'CRP',
+      lastingInjuriesNeverHeal: true,
+      externalIds: [{ system: 'Name', id: 'CRP' }],
+    },
+    {
+      name: 'CRP+',
+      lastingInjuriesNeverHeal: true,
+      externalIds: [{ system: 'Name', id: 'CRP+' }],
+    },
+    {
+      name: 'BB2016',
+      lastingInjuriesNeverHeal: true,
+      externalIds: [{ system: 'Name', id: 'BB2016' }],
+    },
+    {
+      name: 'BB2020',
+      lastingInjuriesNeverHeal: false,
+      externalIds: [{ system: 'Name', id: 'BB2020' }],
+    },
+    {
+      name: 'DB2021',
+      lastingInjuriesNeverHeal: false,
+      externalIds: [{ system: 'Name', id: 'DB2021' }],
+    },
+    {
+      name: 'BB2025',
+      lastingInjuriesNeverHeal: false,
+      externalIds: [{ system: 'Name', id: 'BB2025' }],
+    },
+  ],
+}

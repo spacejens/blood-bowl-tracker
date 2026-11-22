@@ -25,6 +25,7 @@ tools/import-manual/data/batches/
   012-trophy-skill-grants/
   013-tp-lasting-injury-fills/
   014-tp-roster-snapshot-fills/
+  015-rules-set-lasting-injuries/
 ```
 
 A batch directory is named `NNN-<slug>`: a three-digit number and a lowercase
@@ -161,6 +162,16 @@ The batches:
   generated the same way as batch 008, with `--snapshots` after
   `read-tp-roster-snapshots`, and applies after the source importers and
   after batch 013, in a plain `apply`.
+- **015-rules-set-lasting-injuries** — restates each of the six rules sets
+  batch 001 curates, with only `name`, `externalIds` and
+  `lastingInjuriesNeverHeal` (see [Rules sets](index.md#rules-sets)):
+  `true` for CRP, CRP+ and BB2016, under which niggling injuries and
+  characteristic reductions never heal, and `false` for BB2020, DB2021 and
+  BB2025. The fill generator reads the flag to prove lasting injuries (see
+  [Generated fills](filling-missing-players.md#generated-fills)). Until this
+  batch is applied every rules set reads `false`, so the generator proves
+  fewer fills, never a wrong one. It applies after the source importers and
+  after batch 014, in a plain `apply`.
 
 A batch can also fill in the data of a TP player the TP import left
 incomplete, through the `incompletePlayerFills` section; see
