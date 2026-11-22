@@ -76,6 +76,7 @@ describe('rules set schemas', () => {
       RulesSetSchema.parse({
         id: 1,
         name: 'BB2020',
+        lastingInjuriesNeverHeal: false,
         createdAt: '2026-01-01T00:00:00.000Z',
       }),
     ).toThrow();
