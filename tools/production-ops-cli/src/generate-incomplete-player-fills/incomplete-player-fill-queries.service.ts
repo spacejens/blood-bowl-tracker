@@ -115,7 +115,7 @@ const PositionSkillRowSchema = z.object({
 const EraRulesSetRowSchema = z.object({
   eraId: id,
   rulesSetId: id,
-  rulesSetName: z.string(),
+  lastingInjuriesNeverHeal: z.boolean(),
   cheapestCost: value.nullable(),
 });
 

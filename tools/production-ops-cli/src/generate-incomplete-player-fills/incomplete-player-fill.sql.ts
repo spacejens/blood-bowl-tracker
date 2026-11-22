@@ -201,15 +201,19 @@ WHERE (prs.position_id, ers.era_id) IN (
 )
 ORDER BY prss.id, se.external_id`;
 
-/** Every rules set of a team player's era, with its cheapest advancement of any kind or league. */
+/**
+ * Every rules set of a team player's era, with whether lasting injuries
+ * never heal under it and its cheapest advancement of any kind or league.
+ */
 export const ERA_RULES_SETS_SQL = `${TEAM_PLAYERS_CTE}
 SELECT ers.era_id AS "eraId", ers.rules_set_id AS "rulesSetId",
-  rs.name AS "rulesSetName", min(ac.spp_cost) AS "cheapestCost"
+  rs.lasting_injuries_never_heal AS "lastingInjuriesNeverHeal",
+  min(ac.spp_cost) AS "cheapestCost"
 FROM game_data.era_rules_sets ers
 JOIN game_data.rules_sets rs ON rs.id = ers.rules_set_id
 LEFT JOIN game_data.advancement_costs ac ON ac.rules_set_id = ers.rules_set_id
 WHERE ers.era_id IN (SELECT era_id FROM team_players)
-GROUP BY ers.era_id, ers.rules_set_id, rs.name`;
+GROUP BY ers.era_id, ers.rules_set_id, rs.lasting_injuries_never_heal`;
 
 /** Every non-star TP player of a candidate's team, complete or not, to match feed reports against. */
 export const TEAM_PLAYERS_SQL = `${TEAM_PLAYERS_CTE}

@@ -650,13 +650,13 @@ describe('FeedPlayerMatcherService', () => {
               {
                 eraId: 4,
                 rulesSetId: 7,
-                rulesSetName: 'BB2020',
+                lastingInjuriesNeverHeal: false,
                 cheapestCost: 6,
               },
               {
                 eraId: 9,
                 rulesSetId: 8,
-                rulesSetName: 'BB2020',
+                lastingInjuriesNeverHeal: false,
                 cheapestCost: 6,
               },
             ],

@@ -34,7 +34,7 @@ function stageInput(
         lastPlayedAt: '2024-04-01T19:00:00+00:00',
       },
     ],
-    rulesSetNames: ['BB2020'],
+    rulesSetsNeverHeal: [false],
     diedAt: null,
     stored: [],
     profile: profile(),
@@ -101,9 +101,9 @@ describe('InjuryFillStageService', () => {
     expect('entry' in decision && decision.entry.status).toBe('active');
   });
 
-  it('asks the proof about his reductions, team era competitions, rules sets and death', () => {
+  it('asks the proof about his reductions, team era competitions, rules set healing and death', () => {
     const input = stageInput({
-      rulesSetNames: ['CRP', 'CRP+'],
+      rulesSetsNeverHeal: [true, true],
       diedAt: '2024-03-15T19:00:00+00:00',
     });
     service.decide(input);
@@ -111,7 +111,7 @@ describe('InjuryFillStageService', () => {
     expect(proof.prove).toHaveBeenCalledWith({
       reductions: input.reductions,
       competitions: input.competitions,
-      rulesSetNames: ['CRP', 'CRP+'],
+      rulesSetsNeverHeal: [true, true],
       diedAt: '2024-03-15T19:00:00+00:00',
     });
   });

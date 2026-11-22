@@ -78,11 +78,11 @@ export interface PositionSkillRow {
   attributeValue: string | null;
 }
 
-/** One rules set of an era, its name, and its cheapest advancement; null when it prices none. */
+/** One rules set of an era, whether lasting injuries never heal under it, and its cheapest advancement; null when it prices none. */
 export interface EraRulesSetRow {
   eraId: number;
   rulesSetId: number;
-  rulesSetName: string;
+  lastingInjuriesNeverHeal: boolean;
   cheapestCost: number | null;
 }
 

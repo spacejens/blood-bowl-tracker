@@ -189,11 +189,16 @@ describe('IncompletePlayerFillPlannerService', () => {
       'an era with an unpriced rules set',
       {
         eraRulesSets: [
-          { eraId: 4, rulesSetId: 7, rulesSetName: 'BB2020', cheapestCost: 6 },
+          {
+            eraId: 4,
+            rulesSetId: 7,
+            lastingInjuriesNeverHeal: false,
+            cheapestCost: 6,
+          },
           {
             eraId: 4,
             rulesSetId: 8,
-            rulesSetName: 'BB2020',
+            lastingInjuriesNeverHeal: false,
             cheapestCost: null,
           },
         ],
@@ -209,8 +214,18 @@ describe('IncompletePlayerFillPlannerService', () => {
       'a total at the cheapest cost of another rules set of the era',
       {
         eraRulesSets: [
-          { eraId: 4, rulesSetId: 7, rulesSetName: 'BB2020', cheapestCost: 6 },
-          { eraId: 4, rulesSetId: 8, rulesSetName: 'BB2020', cheapestCost: 5 },
+          {
+            eraId: 4,
+            rulesSetId: 7,
+            lastingInjuriesNeverHeal: false,
+            cheapestCost: 6,
+          },
+          {
+            eraId: 4,
+            rulesSetId: 8,
+            lastingInjuriesNeverHeal: false,
+            cheapestCost: 5,
+          },
         ],
       },
       'spp-too-high',
@@ -634,7 +649,7 @@ describe('IncompletePlayerFillPlannerService', () => {
       hasStatReduction: true,
       reductions: [event],
       competitions: [played],
-      rulesSetNames: ['BB2020'],
+      rulesSetsNeverHeal: [false],
       diedAt: '2024-03-15T19:00:00+00:00',
       freeSkillRisk: true,
       stored: [],
@@ -724,7 +739,7 @@ describe('IncompletePlayerFillPlannerService', () => {
       status: 'dead',
       reductions: [event],
       competitions: [played],
-      rulesSetNames: ['BB2020'],
+      rulesSetsNeverHeal: [false],
       diedAt: '2024-03-15T19:00:00+00:00',
       stored: [],
       profile: profile(),
@@ -733,22 +748,40 @@ describe('IncompletePlayerFillPlannerService', () => {
     expect(plan.report.eligibleByStage.injuryOnly).toBe(1);
   });
 
-  it('hands the injury stage every rules set name of his era and no death time when none is recorded', () => {
+  it("hands the injury stage each of his era's rules sets' healing flags and no death time when none is recorded", () => {
     injuryStage.decide.mockReturnValue({ entry: STAGED });
 
     service.plan(
       eligibleInput({
         statReductionPlayerIds: [1],
         eraRulesSets: [
-          { eraId: 4, rulesSetId: 7, rulesSetName: 'CRP', cheapestCost: 6 },
-          { eraId: 4, rulesSetId: 8, rulesSetName: 'CRP+', cheapestCost: 6 },
-          { eraId: 9, rulesSetId: 9, rulesSetName: 'BB2020', cheapestCost: 6 },
+          {
+            eraId: 4,
+            rulesSetId: 7,
+            lastingInjuriesNeverHeal: true,
+            cheapestCost: 6,
+          },
+          {
+            eraId: 4,
+            rulesSetId: 8,
+            lastingInjuriesNeverHeal: false,
+            cheapestCost: 6,
+          },
+          {
+            eraId: 9,
+            rulesSetId: 9,
+            lastingInjuriesNeverHeal: true,
+            cheapestCost: 6,
+          },
         ],
       }),
     );
 
     expect(injuryStage.decide).toHaveBeenCalledWith(
-      expect.objectContaining({ rulesSetNames: ['CRP', 'CRP+'], diedAt: null }),
+      expect.objectContaining({
+        rulesSetsNeverHeal: [true, false],
+        diedAt: null,
+      }),
     );
   });
 
