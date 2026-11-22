@@ -47,6 +47,7 @@ function makeRulesSet(id: number, name: string): RulesSet {
     agilityFormat: 'bare',
     passingFormat: 'absent',
     armourFormat: 'bare',
+    lastingInjuriesNeverHeal: false,
     createdAt: new Date('2026-01-01'),
   };
 }

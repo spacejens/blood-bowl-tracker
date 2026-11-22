@@ -19,6 +19,8 @@ export const RulesSetSchema = z.object({
   agilityFormat: CharacteristicFormatSchema,
   passingFormat: CharacteristicFormatSchema,
   armourFormat: CharacteristicFormatSchema,
+  // Required, like the formats: the column is NOT NULL with a default.
+  lastingInjuriesNeverHeal: z.boolean(),
   createdAt: z.coerce.date(),
 });
 
@@ -32,6 +34,11 @@ export const UpsertRulesSetSchema = z.object({
   agilityFormat: CharacteristicFormatSchema.optional(),
   passingFormat: CharacteristicFormatSchema.optional(),
   armourFormat: CharacteristicFormatSchema.optional(),
+  // Whether niggling injuries and characteristic reductions never heal under
+  // the rules set. Optional but not nullable, since the column is NOT NULL:
+  // omitting it leaves the stored value alone, and a new rules set gets the
+  // column's default of false ("may heal").
+  lastingInjuriesNeverHeal: z.boolean().optional(),
   externalIds: z.array(ExternalIdSchema).min(1),
 });
 

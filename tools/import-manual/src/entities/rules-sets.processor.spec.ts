@@ -73,6 +73,7 @@ describe('RulesSetsProcessor', () => {
       agilityFormat: 'bare',
       passingFormat: 'absent',
       armourFormat: 'bare',
+      lastingInjuriesNeverHeal: false,
       createdAt: new Date(),
       created: true,
     });

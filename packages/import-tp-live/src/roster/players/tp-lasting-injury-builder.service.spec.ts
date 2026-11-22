@@ -14,6 +14,7 @@ const bb2020: RulesSet = {
   agilityFormat: 'plus',
   passingFormat: 'plus',
   armourFormat: 'plus',
+  lastingInjuriesNeverHeal: false,
   createdAt: new Date('2026-01-01'),
 };
 
@@ -25,6 +26,7 @@ const crp: RulesSet = {
   agilityFormat: 'bare',
   passingFormat: 'absent',
   armourFormat: 'bare',
+  lastingInjuriesNeverHeal: false,
 };
 
 function player(overrides: Partial<TpRosterPlayer> = {}): TpRosterPlayer {
