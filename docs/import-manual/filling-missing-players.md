@@ -253,7 +253,8 @@ entry has the stored status, else `dead` if a death is recorded, else
   position's starting skills, and must number exactly his level, which
   counts his paid advancements: a higher level means a characteristic
   increase the files cannot name, a lower one a free skill. Each gained
-  skill must have one `Name` id and be held with a variant by no player
+  skill must have one `Name` id (or, with several, count through the one
+  equal to its stored name) and be held with a variant by no player
   or position, since the files name no variant. Each is primary or
   secondary by his position's access to its category. Every order of
   them, with every chosen-or-random source, is priced as for the feed,
@@ -329,7 +330,8 @@ checks `feed-match-ambiguous`, `spp-too-high` and `free-skill-risk` before it.
   costs the SPP he spent (`snapshot-spend-mismatch`), or more than one
   does (`snapshot-order-ambiguous`). The feed's checks
   `spp-does-not-add-up`, `skill-unresolved` (also a gained skill with no
-  single `Name` id or held with a variant), `duplicate-skill`,
+  single `Name` id, or none equal to its stored name when it has several,
+  or held with a variant), `duplicate-skill`,
   `too-many-advancements`, `skill-category-mismatch`,
   `rules-sets-disagree` and `free-skill-risk` apply to the snapshot's
   skills too;
