@@ -1,5 +1,5 @@
 import { CHARACTERISTIC_FORMATS } from '@blood-bowl-tracker/domain-enums';
-import { serial, varchar } from 'drizzle-orm/pg-core';
+import { boolean, serial, varchar } from 'drizzle-orm/pg-core';
 
 import { historyTrackedTable } from '../history';
 import { gameData } from './pg-schema';
@@ -42,6 +42,15 @@ const rulesSetsTable = historyTrackedTable({
     armourFormat: characteristicFormatEnum('armour_format')
       .notNull()
       .default('bare'),
+    // Whether niggling injuries and characteristic reductions never heal
+    // under this rules set: true for CRP, CRP+ and BB2016, false for the
+    // rules sets under which they can heal between competitions. Named for
+    // the true case so that the default means "may heal": a rules set nobody
+    // has curated, such as one a source importer creates, is never assumed
+    // to keep its injuries. Curated in tools/import-manual.
+    lastingInjuriesNeverHeal: boolean('lasting_injuries_never_heal')
+      .notNull()
+      .default(false),
   },
 });
 

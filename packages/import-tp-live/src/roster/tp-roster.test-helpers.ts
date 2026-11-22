@@ -19,6 +19,7 @@ export const RULES_SET: DbRulesSet = {
   agilityFormat: 'plus',
   passingFormat: 'plus',
   armourFormat: 'plus',
+  lastingInjuriesNeverHeal: false,
   createdAt: new Date('2020-01-01'),
   updatedAt: new Date('2020-01-01'),
   historyVersion: 1,

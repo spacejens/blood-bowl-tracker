@@ -1,0 +1,81 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "99acaa34-3c64-474b-9eb9-6830293b2f85",
+  "prevIds": [
+    "8a3fb39f-d833-4370-9b48-d87be2e567f9"
+  ],
+  "footprints": [
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "rules_sets",
+        "lasting_injuries_never_heal"
+      ],
+      "writes": [
+        "s|col|game_data.rules_sets.lasting_injuries_never_heal",
+        "n|col|game_data.rules_sets.lasting_injuries_never_heal",
+        "e|col|game_data.rules_sets.lasting_injuries_never_heal"
+      ],
+      "reads": [
+        "n|tbl|game_data.rules_sets",
+        "n|sch|game_data"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "game_data",
+        "rules_sets_history",
+        "lasting_injuries_never_heal"
+      ],
+      "writes": [
+        "s|col|game_data.rules_sets_history.lasting_injuries_never_heal",
+        "n|col|game_data.rules_sets_history.lasting_injuries_never_heal",
+        "e|col|game_data.rules_sets_history.lasting_injuries_never_heal"
+      ],
+      "reads": [
+        "n|tbl|game_data.rules_sets_history",
+        "n|sch|game_data"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "rules_sets",
+        "name": "lasting_injuries_never_heal",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "false",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "game_data",
+        "table": "rules_sets_history",
+        "name": "lasting_injuries_never_heal",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+ALTER TABLE "game_data"."rules_sets" ADD COLUMN "lasting_injuries_never_heal" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "game_data"."rules_sets_history" ADD COLUMN "lasting_injuries_never_heal" boolean;
