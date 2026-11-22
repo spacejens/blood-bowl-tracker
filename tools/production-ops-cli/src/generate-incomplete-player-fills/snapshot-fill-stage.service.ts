@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
+import type { TpFeedHistoryReport } from '../read-tp-feed-history/tp-feed-history-index.service';
 import type { TpRosterSnapshotVariant } from '../read-tp-roster-snapshots/tp-roster-snapshots.schema';
 import {
   type AdvancementStageInput,
@@ -7,6 +8,7 @@ import {
 } from './advancement-fill-stage.service';
 import { CharacteristicReplayService } from './characteristic-replay.service';
 import { CharacteristicValidityService } from './characteristic-validity.service';
+import { FeedSkillResolverService } from './feed-skill-resolver.service';
 import { FillEntryBuilderService } from './fill-entry-builder.service';
 import type {
   CharacteristicEvent,
@@ -39,6 +41,11 @@ export interface SnapshotStageInput extends Omit<
   positionTpIds: readonly string[];
   tpSkillIds: readonly TpSkillIdRow[];
   attributedSkillIds: ReadonlySet<number>;
+  /**
+   * The feed reports matched to him, oldest first, when the feed names him
+   * but they do not add up to the SPP he spent; absent otherwise.
+   */
+  feedReports?: readonly TpFeedHistoryReport[];
 }
 
 const SEARCH_REASONS: Record<
@@ -68,6 +75,9 @@ const SEARCH_REASONS: Record<
  * (SnapshotOrderSearchService). Any stat reductions recorded for him must
  * certainly last, and are applied to his position's line. The checks run
  * in a fixed order and the first that fails is the reason reported.
+ * For a player the feed names whose reports do not add up, the reports are
+ * resolved as for the feed stage and must all be skills; the search must then
+ * place each where its shown cost, selection and category put it.
  *
  * Pure decision logic, with no I/O; its collaborators are pure as well.
  */
@@ -81,6 +91,7 @@ export class SnapshotFillStageService {
     private readonly replay: CharacteristicReplayService,
     private readonly validity: CharacteristicValidityService,
     private readonly entries: FillEntryBuilderService,
+    private readonly feedSkills: FeedSkillResolverService,
   ) {}
 
   decide(input: SnapshotStageInput): StageDecision {
@@ -123,8 +134,13 @@ export class SnapshotFillStageService {
     if (this.pricingRulesSets.hasConflictingAccess(input.positionAccess)) {
       return { reason: 'skill-category-mismatch' };
     }
+    const fixed = this.fixed(input);
+    if (typeof fixed === 'string') {
+      return { reason: fixed };
+    }
     const search = this.order.search({
       skills: gained,
+      fixed,
       rulesSets: this.pricingRulesSets.build({
         rulesSetIds: input.rulesSetIds,
         costs: input.costs,
@@ -142,6 +158,23 @@ export class SnapshotFillStageService {
       profile,
       unspentSpp: state.unspentSpp,
     });
+  }
+
+  /** His feed reports as the skill steps the order search must honour; or why they cannot be. */
+  private fixed(input: SnapshotStageInput): SnapshotStep[] | SkipReason {
+    const steps = this.feedSkills.resolve({
+      reports: input.feedReports ?? [],
+      skillNames: input.skillNames,
+    });
+    if (steps === undefined) {
+      return 'skill-unresolved';
+    }
+    const skills = steps.filter(
+      (step): step is SnapshotStep => step.kind === 'skill',
+    );
+    return skills.length === steps.length
+      ? skills
+      : 'snapshot-characteristic-increase';
   }
 
   /**
