@@ -126,7 +126,8 @@ describe('SnapshotFillStageService', () => {
         { provide: SnapshotOrderSearchService, useValue: order },
         // Pure and dependency-free, so passed real, as in the advancement
         // stage's spec: rules-set building, the replay with its change
-        // service, the injury proof, validity, the entry builder and the feed skill resolver.
+        // service, the injury proof, validity, the entry builder and the
+        // feed skill resolver.
         PricingRulesSetsService,
         CharacteristicReplayService,
         CharacteristicChangeService,

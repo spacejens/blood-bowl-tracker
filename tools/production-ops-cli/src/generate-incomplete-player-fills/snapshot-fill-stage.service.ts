@@ -64,8 +64,8 @@ const SEARCH_REASONS: Record<
  * from what his downloaded TP match and roster files show of him: his
  * level (his paid advancements), his skills by TP id, and his total and
  * unspent SPP. The files must show him in one state that agrees with what
- * is stored, his stored unspent SPP included, which must be present. His gained skills are the snapshot's skills less his
- * position's starting skills, each starting skill shown exactly as often as
+ * is stored, his stored unspent SPP included, which must be present. His
+ * gained skills are the snapshot's skills less his position's starting skills, each starting skill shown exactly as often as
  * his position has it (a starting skill missing from the snapshot reports
  * `snapshot-conflicts-stored`, one shown more often than the position has
  * it `duplicate-skill`), and they must be distinct and number exactly his
@@ -160,7 +160,7 @@ export class SnapshotFillStageService {
     });
   }
 
-  /** His feed reports as the skill steps the order search must honour; or why they cannot be. */
+  /** His feed reports as the skill steps the search must honour, or why not. */
   private fixed(input: SnapshotStageInput): SnapshotStep[] | SkipReason {
     const steps = this.feedSkills.resolve({
       reports: input.feedReports ?? [],
@@ -194,7 +194,7 @@ export class SnapshotFillStageService {
     );
   }
 
-  /** The checks that read no skill, giving his certain profile when all pass. */
+  /** The checks that read no skill, giving his certain profile if all pass. */
   private gate(
     input: SnapshotStageInput,
     state: TpRosterSnapshotVariant,
@@ -277,7 +277,7 @@ export class SnapshotFillStageService {
       : named;
   }
 
-  /** His level counts his paid advancements, which must be exactly his gained skills. */
+  /** His level counts his paid advancements: exactly his gained skills. */
   private countReason(level: number, gained: number): SkipReason | undefined {
     if (level > gained) {
       return 'snapshot-characteristic-increase';

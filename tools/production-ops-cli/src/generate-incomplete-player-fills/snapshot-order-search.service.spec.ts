@@ -399,6 +399,56 @@ describe('SnapshotOrderSearchService', () => {
       });
     });
 
+    describe('with two fixed reports', () => {
+      const spentTen = {
+        skills: [DODGE, SPRINT],
+        rulesSets: twoPrimaries,
+        spent: 10,
+      };
+      const dodgeRandomAtFour = fixed(DODGE, {
+        selection: 'random',
+        category: 'primary',
+        reportedCost: 4,
+      });
+      const sprintChosenAtSix = fixed(SPRINT, {
+        selection: 'chosen',
+        category: 'primary',
+        reportedCost: 6,
+      });
+
+      it('settles the order when the reports are given in the order that fits', () => {
+        expect(
+          service.search({
+            ...spentTen,
+            fixed: [sprintChosenAtSix, dodgeRandomAtFour],
+          }),
+        ).toEqual({
+          kind: 'unique',
+          steps: [
+            step(SPRINT, {
+              selection: 'chosen',
+              category: 'primary',
+              reportedCost: 6,
+            }),
+            step(DODGE, {
+              selection: 'random',
+              category: 'primary',
+              reportedCost: 4,
+            }),
+          ],
+        });
+      });
+
+      it('finds no fit when only the reverse of the given order would fit', () => {
+        expect(
+          service.search({
+            ...spentTen,
+            fixed: [dodgeRandomAtFour, sprintChosenAtSix],
+          }),
+        ).toEqual({ kind: 'none' });
+      });
+    });
+
     it('behaves as unfixed for an empty list', () => {
       expect(
         service.search({

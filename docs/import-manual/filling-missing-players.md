@@ -253,7 +253,7 @@ entry has the stored status, else `dead` if a death is recorded, else
   position's starting skills, and must number exactly his level, which
   counts his paid advancements: a higher level means a characteristic
   increase the files cannot name, a lower one a free skill. Each gained
-  skill must have one `Name` id (or, with several, count through the one
+  skill must have one `Name` id (or, with several, use the one
   equal to its stored name) and be held with a variant by no player
   or position, since the files name no variant. Each is primary or
   secondary by his position's access to its category. Every order of
@@ -271,11 +271,14 @@ entry has the stored status, else `dead` if a death is recorded, else
   `--feed-channel` and `--snapshots`). For a player the feed names whose
   reports do not add up to his stored total minus his stored unspent SPP,
   the feed may lack some of his advancements, for example a report missing
-  before the ones it has. His snapshot is then checked as for advancements from TP roster
-  snapshots, with his reports fixed in place: every report must be a skill
-  among his gained skills, at most one report per skill, and each order
-  and source tried must put that skill at an advancement whose price is
-  the report's shown cost, with the report's selection and category.
+  before the ones it has. His snapshot is then checked as for advancements
+  from TP roster snapshots, with his reports fixed in place, trusted as his
+  as in the feed stage: every report must be a skill among his gained
+  skills, at most one report per skill, and each order and source tried
+  must put that skill at an advancement whose price is the report's shown
+  cost, with the report's selection and category. The reports must also
+  keep the feed's posting order (oldest first). A report that carries a
+  variant, such as "Mighty Blow (+1)", leaves the player unfilled.
   Exactly one order and source must cost exactly what he spent. When the
   snapshot proves nothing, or a report is a characteristic increase, he
   stays skipped as `spp-does-not-add-up`.

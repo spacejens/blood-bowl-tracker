@@ -26,7 +26,8 @@ export interface OrderSearchInput {
   spent: number;
   /**
    * Skills the TP feed reports, whose place each admissible order must
-   * honour; empty or absent when the feed names none.
+   * honour, given oldest first: the order must also place them in that
+   * sequence. Empty or absent when the feed names none.
    */
   fixed?: readonly SnapshotStep[];
 }
@@ -66,8 +67,9 @@ const SELECTIONS: readonly FeedSelection[] = ['chosen', 'random'];
  *
  * Fixed reports, which the TP feed shows, narrow the candidates to those
  * placing each reported skill at an advancement whose price is the shown
- * cost, with the shown selection and category; a report that names no
- * gained skill, names one twice or has a variant leaves no candidate.
+ * cost, with the shown selection and category, and in the order the reports
+ * were given (oldest first); a report that names no gained skill, names one
+ * twice or has a variant leaves no candidate.
  *
  * Pure decision logic, with no I/O; its collaborator is pure as well.
  */
@@ -163,23 +165,34 @@ export class SnapshotOrderSearchService {
     );
   }
 
-  /** Whether each fixed report's skill sits where its selection, category and shown cost put it. */
+  /**
+   * Whether each fixed report's skill sits where its selection, category and
+   * shown cost put it, and the reports sit in the order they were given.
+   */
   private honours(parts: {
     fixed: readonly SnapshotStep[];
     steps: readonly SnapshotStep[];
     stepCosts: readonly number[];
   }): boolean {
-    return parts.fixed.every((report) => {
+    let previous = -1;
+    for (const report of parts.fixed) {
       const at = parts.steps.findIndex(
         (step) => step.skillId === report.skillId,
       );
+      if (at === -1 || at <= previous) {
+        return false;
+      }
+      previous = at;
       const step = parts.steps[at];
-      return (
-        step.selection === report.selection &&
-        step.category === report.category &&
-        parts.stepCosts[at] === report.reportedCost
-      );
-    });
+      if (
+        step.selection !== report.selection ||
+        step.category !== report.category ||
+        parts.stepCosts[at] !== report.reportedCost
+      ) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /** Every order of the skills, each with every chosen-or-random assignment. */
