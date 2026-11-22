@@ -420,7 +420,7 @@
         av: 8,
       },
       sppTotal: 4,
-      unspentSpp: 1,
+      unspentSpp: 4,
       startingSkills: [
         {
           system: 'Name',
