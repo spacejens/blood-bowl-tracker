@@ -115,10 +115,10 @@ The batches:
   leaves them incomplete while the batch's repairs name them. Those 4 were
   added after the batch was applied to production, as an exception, so that a
   scratch import can apply it; production's data did not change, only its
-  ledger hash, updated once by hand. It also lists 54 complete TP players with a stat reduction
-  recorded in a match and none stored, among them players batches 007 and
-  008 filled, for the server to record the lasting reductions their stored
-  data shows (see
+  ledger hash, updated once by hand. It also lists 54 complete TP players
+  with a stat reduction recorded in a match and none stored, among them
+  players batches 007 and 008 filled, for the server to record the lasting
+  reductions their stored data shows (see
   [Recording lasting reductions](filling-missing-players.md#recording-lasting-reductions)).
   It is generated the same way as batch 008, and applies after the source
   importers and after batch 008, in a plain `apply`.

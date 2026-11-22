@@ -8,7 +8,7 @@
 // production database by production-ops-cli
 // generate-incomplete-player-fills; see
 // docs/import-manual/filling-missing-players.md#generated-fills.
-// A few entries at the end of the fills were added by hand from
+// The last four entries of the fills were written by hand from
 // production's data; they are marked by a comment.
 {
   externalSystems: [
