@@ -175,9 +175,9 @@ The batches:
   after batch 014, in a plain `apply`.
 - **016-tp-feed-snapshot-fills** — fills in the data of 11 incomplete TP
   players, of two kinds. For 4 of them the TP feed has reports that did not
-  add up to the SPP they spent: for three the feed lacks their first
-  advancement, and TP renamed the fourth, splitting his reports across two
-  feed keys. Their roster snapshots name both gained skills, and with each
+  add up to the SPP they spent, because none of the reports matched to them
+  is their first advancement. Their roster snapshots name both gained
+  skills, and with each
   reported skill fixed at the advancement its shown cost gives, exactly one
   order and chosen-or-random source fits the SPP spent. The other 7 are
   proven from roster snapshots alone, their gained skill carrying a
