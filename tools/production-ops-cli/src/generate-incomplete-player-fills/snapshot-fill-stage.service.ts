@@ -65,8 +65,9 @@ const SEARCH_REASONS: Record<
  * level (his paid advancements), his skills by TP id, and his total and
  * unspent SPP. The files must show him in one state that agrees with what
  * is stored, his stored unspent SPP included, which must be present. His
- * gained skills are the snapshot's skills less his position's starting skills, each starting skill shown exactly as often as
- * his position has it (a starting skill missing from the snapshot reports
+ * gained skills are the snapshot's skills less his position's starting
+ * skills, each starting skill shown exactly as often as his position has
+ * it (a starting skill missing from the snapshot reports
  * `snapshot-conflicts-stored`, one shown more often than the position has
  * it `duplicate-skill`), and they must be distinct and number exactly his
  * level, so no characteristic increase or free skill hides among them. At

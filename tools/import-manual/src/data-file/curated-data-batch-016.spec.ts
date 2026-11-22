@@ -44,16 +44,67 @@ describe('curated batch 016 TP fills from feed reports and roster snapshots', ()
     expect(ids.filter((id) => earlier.has(id))).toEqual([]);
   });
 
-  it('gives the feed-completed players two gained skills', () => {
-    const entries = batch().incompletePlayerFills.filter((entry) =>
-      FEED_COMPLETED_PLAYERS.includes(entry.player.id),
-    );
+  it.each([
+    {
+      id: '733558',
+      spent: 14,
+      total: 18,
+      unspent: 4,
+      steps: [
+        { skill: 'Block', source: 'random', cost: 6 },
+        { skill: 'Wrestle', source: 'random', cost: 8 },
+      ],
+    },
+    {
+      id: '746088',
+      spent: 10,
+      total: 12,
+      unspent: 2,
+      steps: [
+        { skill: 'Pro', source: 'random', cost: 6 },
+        { skill: 'Diving Tackle', source: 'random', cost: 4 },
+      ],
+    },
+    {
+      id: '794833',
+      spent: 7,
+      total: 8,
+      unspent: 1,
+      steps: [
+        { skill: 'Tackle', source: 'random', cost: 3 },
+        { skill: 'Frenzy', source: 'random', cost: 4 },
+      ],
+    },
+    {
+      id: '986890',
+      spent: 7,
+      total: 7,
+      unspent: 0,
+      steps: [
+        { skill: 'Sure Feet', source: 'random', cost: 3 },
+        { skill: 'Sprint', source: 'random', cost: 4 },
+      ],
+    },
+  ])(
+    'gives player $id his two gained skills in order, costing exactly the SPP he spent',
+    ({ id, spent, total, unspent, steps }) => {
+      const entry = batch().incompletePlayerFills.find(
+        (candidate) => candidate.player.id === id,
+      );
 
-    expect(entries).toHaveLength(FEED_COMPLETED_PLAYERS.length);
-    for (const entry of entries) {
-      expect(entry.advancements).toHaveLength(2);
-    }
-  });
+      expect(entry?.sppTotal).toBe(total);
+      expect(entry?.unspentSpp).toBe(unspent);
+      expect(
+        entry?.advancements.map((advancement) =>
+          'skill' in advancement
+            ? { skill: advancement.skill.id, source: advancement.source }
+            : undefined,
+        ),
+      ).toEqual(steps.map(({ skill, source }) => ({ skill, source })));
+      expect(steps.reduce((sum, step) => sum + step.cost, 0)).toBe(spent);
+      expect(total - unspent).toBe(spent);
+    },
+  );
 
   it('names every gained skill under the Name system, with its source', () => {
     for (const entry of batch().incompletePlayerFills) {
