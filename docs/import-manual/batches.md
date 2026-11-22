@@ -26,6 +26,7 @@ tools/import-manual/data/batches/
   013-tp-lasting-injury-fills/
   014-tp-roster-snapshot-fills/
   015-rules-set-lasting-injuries/
+  016-tp-feed-snapshot-fills/
 ```
 
 A batch directory is named `NNN-<slug>`: a three-digit number and a lowercase
@@ -172,6 +173,19 @@ The batches:
   batch is applied every rules set reads `false`, so the generator proves
   fewer fills, never a wrong one. It applies after the source importers and
   after batch 014, in a plain `apply`.
+- **016-tp-feed-snapshot-fills** — fills in the data of 11 incomplete TP
+  players, of two kinds. For 4 of them the TP feed has reports that did not
+  add up to the SPP they spent: for three the feed lacks their first
+  advancement, and TP renamed the fourth, splitting his reports across two
+  feed keys. Their roster snapshots name both gained skills, and with each
+  reported skill fixed at the advancement its shown cost gives, exactly one
+  order and chosen-or-random source fits the SPP spent. The other 7 are
+  proven from roster snapshots alone, their gained skill carrying a
+  spelling-variant Name id that resolves by its canonical name (see
+  [Generated fills](filling-missing-players.md#generated-fills)). It is
+  generated the same way as batch 014, with both `--feed-channel` and
+  `--snapshots`, and applies after the source importers and after batch
+  015, in a plain `apply`.
 
 A batch can also fill in the data of a TP player the TP import left
 incomplete, through the `incompletePlayerFills` section; see

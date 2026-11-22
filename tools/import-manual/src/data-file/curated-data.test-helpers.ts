@@ -52,6 +52,9 @@ export const BATCH_014 = 'batches/014-tp-roster-snapshot-fills';
 /** Batch 015: whether lasting injuries never heal under each rules set. */
 export const BATCH_015 = 'batches/015-rules-set-lasting-injuries';
 
+/** Batch 016: the data of incomplete TP players whose partial TP feed or roster snapshots the other complete, generated from production. */
+export const BATCH_016 = 'batches/016-tp-feed-snapshot-fills';
+
 /** Every batch directory, as `batches/<name>`, in name order. */
 export function listBatches(): string[] {
   return readdirSync(join(DATA_ROOT, 'batches'), { withFileTypes: true })
