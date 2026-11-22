@@ -133,4 +133,40 @@ describe('RulesSetsProcessor', () => {
 
     expect(count).toBe(0);
   });
+
+  it('forwards a stated lastingInjuriesNeverHeal to the rules set upsert', async () => {
+    refResolver.toExternalIds.mockReturnValue([
+      { externalSystemId: 2, externalId: 'CRP' },
+    ]);
+    const data = emptyData();
+    data.rulesSets = [
+      {
+        name: 'CRP',
+        lastingInjuriesNeverHeal: true,
+        externalIds: [{ system: 'Name', id: 'CRP' }],
+      },
+    ];
+
+    await processor.process(makeContext(data));
+
+    expect(rulesSets.upsert.mock.calls[0][0].lastingInjuriesNeverHeal).toBe(
+      true,
+    );
+  });
+
+  it('passes an omitted lastingInjuriesNeverHeal through undefined, leaving the stored flag alone', async () => {
+    refResolver.toExternalIds.mockReturnValue([
+      { externalSystemId: 2, externalId: 'CRP' },
+    ]);
+    const data = emptyData();
+    data.rulesSets = [
+      { name: 'CRP', externalIds: [{ system: 'Name', id: 'CRP' }] },
+    ];
+
+    await processor.process(makeContext(data));
+
+    expect(
+      rulesSets.upsert.mock.calls[0][0].lastingInjuriesNeverHeal,
+    ).toBeUndefined();
+  });
 });
