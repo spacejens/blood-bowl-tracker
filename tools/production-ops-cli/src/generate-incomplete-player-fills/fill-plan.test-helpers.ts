@@ -82,6 +82,7 @@ export function eligibleInput(
     storedAdvancements: [],
     freeSkillRiskPlayerIds: [],
     ongoingTeamIds: [],
+    ongoingCompetitions: [],
     positionRulesSets: [
       {
         positionRulesSetId: 40,

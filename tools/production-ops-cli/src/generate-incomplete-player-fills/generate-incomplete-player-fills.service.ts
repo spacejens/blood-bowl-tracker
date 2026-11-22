@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 
 import { TpFeedHistoryStoreService } from '../read-tp-feed-history/tp-feed-history-store.service';
 import { TpRosterSnapshotsStoreService } from '../read-tp-roster-snapshots/tp-roster-snapshots-store.service';
-import type { FillReport } from './fill-plan.types';
+import type { FillReport, OngoingCompetitionSummary } from './fill-plan.types';
 import { FillSectionRendererService } from './fill-section-renderer.service';
 import { IncompletePlayerFillPlannerService } from './incomplete-player-fill-planner.service';
 import { IncompletePlayerFillQueriesService } from './incomplete-player-fill-queries.service';
@@ -27,6 +27,11 @@ export interface GenerateIncompletePlayerFillsInput {
 }
 
 export interface GenerateIncompletePlayerFillsReport extends FillReport {
+  /**
+   * The competitions treated as ongoing (a `tourplay.net` id and no end
+   * date), each with its team count; their teams' players are skipped.
+   */
+  readonly ongoingCompetitions: readonly OngoingCompetitionSummary[];
   /** The players listed in the file's `lastingInjuryRepairs` section. */
   readonly lastingInjuryRepairs: number;
   /**
@@ -49,8 +54,8 @@ export interface GenerateIncompletePlayerFillsResult {
  * fill for every incomplete TP player whose data can be proven (optionally
  * from the saved TP feed reports and roster snapshots), lists the complete
  * TP players whose stored line shows a lasting stat reduction the server
- * would record, and prints or writes the batch file with a report of who was
- * filled by which proof, who was skipped and why, and how many repairs are
+ * would record, and prints or writes the batch file with a report of which
+ * competitions were treated as ongoing, who was filled by which proof, who was skipped and why, and how many repairs are
  * listed or left out with nothing to record.
  */
 @Injectable()
@@ -77,15 +82,13 @@ export class GenerateIncompletePlayerFillsService {
       input.snapshots === true
         ? await this.snapshotStore.readSnapshots()
         : null;
-    const plan = this.planner.plan({
-      ...(await this.queries.load()),
-      feed,
-      snapshots,
-    });
+    const rows = await this.queries.load();
+    const plan = this.planner.plan({ ...rows, feed, snapshots });
     const candidates = await this.queries.loadLastingInjuryRepairCandidates();
     const repairs = this.repairSelector.select(candidates);
     const report: GenerateIncompletePlayerFillsReport = {
       ...plan.report,
+      ongoingCompetitions: rows.ongoingCompetitions,
       lastingInjuryRepairs: repairs.length,
       lastingInjuryRepairsNothingToRecord: candidates.length - repairs.length,
     };

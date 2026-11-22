@@ -49,10 +49,12 @@ runner has a `tuplesOnly` mode for this: it passes `psql` its tuples-only
 flag so the output holds just the result. Each query is wrapped in
 `json_agg`, so that output is parsed as JSON. The selection repeats
 game-data's `INCOMPLETE_PLAYER_CRITERIA` in SQL, and a spec keeps the two in
-step. The run stops if either ongoing competition the skip rules name
-("Major Season 31", "Ogretoberfest 14") has no team in the database: it is
-not found by name, or no team era is enrolled in it or plays in one of its
-matches. What it selects and why is described in
+step. A competition counts as ongoing when it has a `tourplay.net` id and no end
+date: the TP importers store an end date only once TP shows the
+competition finished, so one that has ended but is not fully imported still
+counts. No list of competition names is kept, and a run with no ongoing
+competition skips no team for that reason.
+What it selects and why is described in
 [Filling in missing players](../import-manual/filling-missing-players.md#generated-fills).
 A trophy award makes its player a free-skill risk only when the trophy is
 curated as granting a skill (`game_data.trophies.grants_skill`) or the award
@@ -62,7 +64,11 @@ to tell which rules sets never heal lasting injuries, so its migration is
 needed too.
 
 The output is JSON: `report` counts the players considered and filled, and
-lists the skipped players' TP ids under each reason. The batch file also
+lists the skipped players' TP ids under each reason.
+`report.ongoingCompetitions` lists the competitions treated as ongoing,
+each with its id, name and `teamCount` (distinct teams enrolled in it or
+playing one of its matches), so the set of skipped teams can be checked;
+it is empty when none is ongoing. The batch file also
 gets a `lastingInjuryRepairs` section listing every complete non-star TP
 player with a stat reduction recorded in a match and none stored whose
 stored line shows a reduction the server would record (see

@@ -279,7 +279,9 @@ checks `feed-match-ambiguous`, `spp-too-high` and `free-skill-risk` before it.
 - a team era of his team is enrolled in, or plays in a match of, an ongoing
   competition, whatever his stored status (`team-in-ongoing-competition`):
   his data is still changing, and his stored total may understate his real
-  one while SPP adjustments estimate the competition in progress;
+  one while SPP adjustments estimate the competition in progress. A
+  competition is ongoing when it has a `tourplay.net` id and no stored end
+  date, which the TP importers write only once TP shows it finished;
 - his total is missing (`spp-missing`);
 - his era has no rules set, or a rules set of his era prices nothing
   (`era-unpriced`);
