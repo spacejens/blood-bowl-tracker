@@ -94,6 +94,52 @@ describe('RulesSetsService', () => {
     expect(db.update).toHaveBeenCalledWith(rulesSets);
   });
 
+  it('writes a stated lastingInjuriesNeverHeal on the update path', async () => {
+    const { chains } = await build(
+      [{ ownerId: 1, externalSystemId: 1, externalId: 'BB2020' }],
+      [fakeRulesSet],
+    );
+
+    await service.upsert({ ...baseData, lastingInjuriesNeverHeal: true });
+
+    expect(firstCallArg(chains[1].set)).toMatchObject({
+      lastingInjuriesNeverHeal: true,
+    });
+  });
+
+  it('writes a stated lastingInjuriesNeverHeal on the insert path', async () => {
+    const { chains } = await build([], [fakeRulesSet]);
+
+    await service.upsert({ ...baseData, lastingInjuriesNeverHeal: true });
+
+    expect(firstCallArg(chains[1].values)).toMatchObject({
+      lastingInjuriesNeverHeal: true,
+    });
+  });
+
+  it('leaves lastingInjuriesNeverHeal out of the update when the payload omits it', async () => {
+    const { chains } = await build(
+      [{ ownerId: 1, externalSystemId: 1, externalId: 'BB2020' }],
+      [fakeRulesSet],
+    );
+
+    await service.upsert(baseData);
+
+    expect(firstCallArg(chains[1].set)).not.toHaveProperty(
+      'lastingInjuriesNeverHeal',
+    );
+  });
+
+  it('inserts no lastingInjuriesNeverHeal for a new rules set whose payload omits it, so the column default applies', async () => {
+    const { chains } = await build([], [fakeRulesSet]);
+
+    await service.upsert(baseData);
+
+    expect(firstCallArg(chains[1].values)).not.toHaveProperty(
+      'lastingInjuriesNeverHeal',
+    );
+  });
+
   it('throws RulesSetUpsertConflictError when external IDs match different rules sets', async () => {
     const { db, chains } = await build([
       { ownerId: 1, externalSystemId: 1, externalId: 'BB2020' },
