@@ -231,5 +231,6 @@ every write path is safe to repeat:
   advancement costs, unspent SPP, free extras and the order of player
   advancements.
 - [Characteristics and skills](database/characteristics-and-skills.md) —
-  rules-set characteristic formats, position and player characteristics, the
-  skills catalogue, skill access and player status.
+  rules-set characteristic formats and lasting-injury healing, position and
+  player characteristics, the skills catalogue, skill access and player
+  status.

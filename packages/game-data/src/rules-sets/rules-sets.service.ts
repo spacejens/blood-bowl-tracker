@@ -40,6 +40,7 @@ export class RulesSetsService {
         agilityFormat: data.agilityFormat,
         passingFormat: data.passingFormat,
         armourFormat: data.armourFormat,
+        lastingInjuriesNeverHeal: data.lastingInjuriesNeverHeal,
       },
       externalIdTable: rulesSetExternalIds,
       ownerIdColumn: rulesSetExternalIds.rulesSetId,

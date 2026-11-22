@@ -149,8 +149,10 @@ entry has the stored status, else `dead` if a death is recorded, else
   reduction is certain only when no such point can have passed while he
   was on the team. Under CRP, CRP+ and BB2016 they never heal. The
   reductions are certain when one of these holds:
-  - every rules set of his era is CRP, CRP+ or BB2016 (an era with any
-    other or unknown rules set counts as one where they may heal);
+  - every rules set of his era is stored as one under which they never
+    heal (`lastingInjuriesNeverHeal`, which batch 015 sets for CRP, CRP+
+    and BB2016); an era with no rules set, or with any rules set not
+    flagged, counts as one where they may heal;
   - every reduction was suffered in one competition, after which his team
     era played no other competition;
   - he died, every reduction was suffered no later than his death (the
@@ -160,8 +162,12 @@ entry has the stored status, else `dead` if a death is recorded, else
     when his stored status is unknown or dead and no match event names
     him in a match played after his death match.
 
-  The generator holds the names of the rules sets that never heal; the
-  database does not.
+  The generator reads which rules sets never heal from the database
+  (`rules_sets.lasting_injuries_never_heal`, see
+  [Rules sets](index.md#rules-sets)); it holds no list of rules set names.
+  A rules set nobody has curated reads as possibly healing, so the generator
+  proves fewer fills, never a wrong one. Its query needs the column, so run
+  it only against a database whose migrations include it.
 
   Each reduction worsens the position's start value by one: MA, ST and AV go down; AG and PA go down
   when bare and up in a target-number format. A characteristic is never

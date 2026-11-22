@@ -20,6 +20,7 @@ const BARE_RULES_SET: RulesSet = {
   agilityFormat: 'plus',
   passingFormat: 'plus',
   armourFormat: 'plus',
+  lastingInjuriesNeverHeal: false,
   createdAt: new Date('2026-01-01'),
 };
 

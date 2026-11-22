@@ -1,9 +1,9 @@
 # Characteristics and skills storage
 
-How rules-set characteristic formats, position and player characteristics,
-the skills catalogue, skill access and player status are stored. See
-[database.md](../database.md) for migrations, history tracking and the other
-entity-storage pages.
+How rules-set characteristic formats and lasting-injury healing, position and
+player characteristics, the skills catalogue, skill access and player status
+are stored. See [database.md](../database.md) for migrations, history tracking
+and the other entity-storage pages.
 
 ## Characteristic formats
 
@@ -17,6 +17,18 @@ has to meet) or `plus_zero_legal` (the same target-number format as `plus`,
 except a stored 0 is itself legal and renders as a bare "0" rather than the
 meaningless "0+" — used only for Passing, where 0 means the position
 structurally cannot pass).
+
+## Lasting-injury healing
+
+`rules_sets.lasting_injuries_never_heal` (`boolean`, not null, default
+`false`) says whether niggling injuries and characteristic reductions never
+heal under the rules set: `true` for CRP, CRP+ and BB2016, `false` for
+BB2020, DB2021 and BB2025, under which they can heal between competitions.
+It is named for the `true` case so that the default means "may heal": a rules
+set nobody has curated, such as one a source importer creates, is never
+assumed to keep its injuries. The values are curated in `tools/import-manual`
+(see [batches](../import-manual/batches.md)). The BBL and TP importers say
+nothing about it and leave the stored value alone.
 
 ## Position characteristics
 

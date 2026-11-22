@@ -57,7 +57,9 @@ matches. What it selects and why is described in
 A trophy award makes its player a free-skill risk only when the trophy is
 curated as granting a skill (`game_data.trophies.grants_skill`) or the award
 records a granted skill, so the queries need a database whose migrations
-include that column.
+include that column. They also read `game_data.rules_sets.lasting_injuries_never_heal`
+to tell which rules sets never heal lasting injuries, so its migration is
+needed too.
 
 The output is JSON: `report` counts the players considered and filled, and
 lists the skipped players' TP ids under each reason. The batch file also

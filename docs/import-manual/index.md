@@ -195,8 +195,8 @@ whatever the next free batch number is):
 ### Rules sets
 
 A `rulesSets` entry is `{ name, moveFormat?, strengthFormat?, agilityFormat?,
-passingFormat?, armourFormat?, externalIds }`. The five optional `*Format`
-fields say which characteristic the rules set has and how it is displayed:
+passingFormat?, armourFormat?, lastingInjuriesNeverHeal?, externalIds }`. The
+five optional `*Format` fields say which characteristic the rules set has and how it is displayed:
 `'bare'` a plain number, `'plus'` a target a die roll has to meet ("+"),
 `'plus_zero_legal'` the same except a stored 0 is itself legal and renders as
 a bare "0" rather than the meaningless "0+", and `'absent'` no such
@@ -208,6 +208,14 @@ numbers (`'plus'`) starting with BB2020; Passing did too, but as
 `'plus_zero_legal'`, since 0 is a legal Passing value (structurally cannot
 pass), unlike Agility or Armour. The older rules sets (CRP, CRP+, BB2016)
 have no Passing characteristic, so `passingFormat` is `'absent'` there.
+
+`lastingInjuriesNeverHeal` says whether niggling injuries and characteristic
+reductions never heal under the rules set: `true` for CRP, CRP+ and BB2016,
+`false` for BB2020, DB2021 and BB2025, under which they can heal between
+competitions. An entry that omits it leaves the stored value alone, and a
+rules set nobody has curated reads `false`, possibly healing. The fill
+generator reads it (see
+[Generated fills](filling-missing-players.md#generated-fills)).
 
 ### Keywords
 

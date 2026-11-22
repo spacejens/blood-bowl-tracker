@@ -12,22 +12,11 @@ export interface LastingInjuryInput {
   reductions: readonly StatReductionEventRow[];
   /** Every competition his team era played in, with its first and last match. */
   competitions: readonly TeamCompetitionRow[];
-  /** The names of his era's rules sets. */
-  rulesSetNames: readonly string[];
+  /** Per rules set of his era, whether lasting injuries never heal under it. */
+  rulesSetsNeverHeal: readonly boolean[];
   /** When the earliest match recording his death was played; null when none is recorded. */
   diedAt: string | null;
 }
-
-/**
- * Rules sets under which niggling injuries and characteristic reductions
- * never heal, by their stored names. The rulebooks say so; the database
- * does not hold it.
- */
-export const NEVER_HEALING_RULES_SET_NAMES: ReadonlySet<string> = new Set([
-  'CRP',
-  'CRP+',
-  'BB2016',
-]);
 
 /** LastingInjuryInput with its reduction times read. */
 interface Timed {
@@ -40,12 +29,14 @@ interface Timed {
 
 /**
  * Decides whether a player's recorded stat reductions certainly still
- * apply. Under BB2020, DB2021 and BB2025 they may heal between
+ * apply. Under a rules set where they may heal they can do so between
  * competitions, and healing is optional, so a reduction is uncertain when
  * a point where it could heal comes after it. They are certain when:
  *
- * - every rules set of his era is one under which they never heal (an
- *   unknown name counts as possibly healing);
+ * - every rules set of his era is stored as one under which they never
+ *   heal (`rules_sets.lasting_injuries_never_heal`); an era with no rules
+ *   set counts as possibly healing, and so does an uncurated rules set,
+ *   which reads false;
  * - or all were suffered in one competition, and his team era played no
  *   match of another competition after the earliest of them. That also
  *   skips a player whose team played on after he left, which costs a fill
@@ -66,17 +57,14 @@ export class LastingInjuryProofService {
     if (reductions.length === 0) {
       return undefined;
     }
-    if (this.neverHeals(input.rulesSetNames) || this.noHealPassed(input)) {
+    if (this.neverHeals(input.rulesSetsNeverHeal) || this.noHealPassed(input)) {
       return this.count(reductions);
     }
     return undefined;
   }
 
-  private neverHeals(names: readonly string[]): boolean {
-    return (
-      names.length > 0 &&
-      names.every((name) => NEVER_HEALING_RULES_SET_NAMES.has(name))
-    );
+  private neverHeals(flags: readonly boolean[]): boolean {
+    return flags.length > 0 && flags.every((flag) => flag);
   }
 
   private noHealPassed(input: LastingInjuryInput): boolean {

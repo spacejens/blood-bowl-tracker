@@ -34,14 +34,14 @@ function competition(
   };
 }
 
-/** A BB2020 player with no recorded death: only the one-competition proof applies. */
+/** A player under one rules set that may heal, with no recorded death: only the one-competition proof applies. */
 function proofInput(
   overrides: Partial<LastingInjuryInput> = {},
 ): LastingInjuryInput {
   return {
     reductions: [reduction()],
     competitions: [competition()],
-    rulesSetNames: ['BB2020'],
+    rulesSetsNeverHeal: [false],
     diedAt: null,
     ...overrides,
   };
@@ -209,13 +209,13 @@ describe('LastingInjuryProofService', () => {
   });
 
   describe('in an era whose rules sets never heal', () => {
-    it.each([[['CRP']], [['CRP+']], [['BB2016']], [['CRP', 'CRP+', 'BB2016']]])(
-      'counts reductions across competitions under %j',
-      (rulesSetNames) => {
+    it.each([[[true]], [[true, true, true]]])(
+      'counts reductions across competitions when the flags are %j',
+      (rulesSetsNeverHeal) => {
         expect(
           service.prove(
             proofInput({
-              rulesSetNames,
+              rulesSetsNeverHeal,
               reductions: [
                 reduction(),
                 reduction({
@@ -242,7 +242,7 @@ describe('LastingInjuryProofService', () => {
       expect(
         service.prove(
           proofInput({
-            rulesSetNames: ['CRP'],
+            rulesSetsNeverHeal: [true],
             reductions: [reduction({ playedAt: 'not a date' })],
             competitions: [],
           }),
@@ -252,7 +252,9 @@ describe('LastingInjuryProofService', () => {
 
     it('is still uncertain without any reduction', () => {
       expect(
-        service.prove(proofInput({ rulesSetNames: ['CRP'], reductions: [] })),
+        service.prove(
+          proofInput({ rulesSetsNeverHeal: [true], reductions: [] }),
+        ),
       ).toBeUndefined();
     });
   });
@@ -274,15 +276,18 @@ describe('LastingInjuryProofService', () => {
     };
 
     it.each([
-      ['a mixed era', ['CRP', 'BB2020']],
-      ['an unknown rules set', ['Homebrew 2023']],
+      ['a mixed era', [true, false]],
       ['an era with no rules set', []],
-      ['a healing rules set', ['DB2021']],
-    ])('is uncertain across competitions in %s', (_name, rulesSetNames) => {
-      expect(
-        service.prove(proofInput({ ...spanning, rulesSetNames })),
-      ).toBeUndefined();
-    });
+      ['a rules set that may heal', [false]],
+      ['an era of rules sets that may heal', [false, false]],
+    ])(
+      'is uncertain across competitions in %s',
+      (_name, rulesSetsNeverHeal) => {
+        expect(
+          service.prove(proofInput({ ...spanning, rulesSetsNeverHeal })),
+        ).toBeUndefined();
+      },
+    );
   });
 
   describe('with a recorded death', () => {

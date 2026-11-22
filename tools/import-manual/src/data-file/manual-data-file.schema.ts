@@ -55,6 +55,11 @@ const RulesSetEntrySchema = z.object({
   agilityFormat: CharacteristicFormatSchema.optional(),
   passingFormat: CharacteristicFormatSchema.optional(),
   armourFormat: CharacteristicFormatSchema.optional(),
+  // Whether niggling injuries and characteristic reductions never heal under
+  // this rules set. Optional with no default: an entry that says nothing
+  // leaves the stored flag alone, and a new rules set gets the database's
+  // default of false ("may heal").
+  lastingInjuriesNeverHeal: z.boolean().optional(),
   externalIds,
 });
 

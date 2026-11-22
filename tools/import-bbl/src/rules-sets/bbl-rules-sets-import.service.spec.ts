@@ -57,6 +57,7 @@ function makeRulesSetRecord(id: number) {
     agilityFormat: 'bare' as const,
     passingFormat: 'bare' as const,
     armourFormat: 'bare' as const,
+    lastingInjuriesNeverHeal: false,
     createdAt: new Date('2026-01-01'),
     created: true,
   };
