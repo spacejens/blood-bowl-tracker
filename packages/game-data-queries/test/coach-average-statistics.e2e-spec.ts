@@ -15,7 +15,7 @@ import type { CoachAverageRow } from '../src/coaches/coach-average-statistics.se
 import { CoachAverageStatisticsService } from '../src/coaches/coach-average-statistics.service';
 import { PerMatchAverageSqlService } from '../src/shared/per-match-average-sql.service';
 import { connectTestDb } from './e2e-database';
-import type { LeagueFixture } from './match-fixtures';
+import type { LeagueFixture, MatchSide } from './match-fixtures';
 import {
   joinEra,
   playMatches,
@@ -170,6 +170,203 @@ describe('CoachAverageStatisticsService (real Postgres)', () => {
         ),
       ),
     ).toEqual([['Derby Coach', 1]]);
+  });
+
+  it('spans all of a coach’s teams for touchdowns scored and conceded', async () => {
+    const league = await seedLeague(db, 'One');
+    const fiveCoachId = await seedCoach(db, 'Five Coach');
+    const fiveA = await joinEra(
+      db,
+      await seedTeam(db, 'Five A', fiveCoachId),
+      league.eraId,
+    );
+    const fiveB = await joinEra(
+      db,
+      await seedTeam(db, 'Five B', fiveCoachId),
+      league.eraId,
+    );
+    // Four Coach plays four matches, Lone Coach one: both below the floor.
+    const four = await joinEra(db, await seedTeam(db, 'Four'), league.eraId);
+    const lone = await joinEra(db, await seedTeam(db, 'Lone'), league.eraId);
+    await playMatches(db, {
+      count: 3,
+      competitionId: league.competitionId,
+      sides: [
+        { teamEraId: fiveA, score: 2 },
+        { teamEraId: four, score: 0 },
+      ],
+    });
+    await playMatches(db, {
+      count: 1,
+      competitionId: league.competitionId,
+      sides: [
+        { teamEraId: fiveB, score: 1 },
+        { teamEraId: four, score: 1 },
+      ],
+    });
+    await playMatches(db, {
+      count: 1,
+      competitionId: league.competitionId,
+      sides: [
+        { teamEraId: fiveB, score: 0 },
+        { teamEraId: lone, score: 3 },
+      ],
+    });
+
+    // Scored 2+2+2+1+0 = 7 and conceded 0+0+0+1+3 = 4 over 5 matches.
+    await expect(
+      service.averageTouchdownsScoredByCoach(FACT_SCOPE_ALL_TIME, 'desc', 10),
+    ).resolves.toEqual([
+      { coachId: fiveCoachId, name: 'Five Coach', average: 1.4 },
+    ]);
+    expect(
+      namesAndAverages(
+        await service.averageTouchdownsConcededByCoach(
+          FACT_SCOPE_ALL_TIME,
+          'desc',
+          10,
+        ),
+      ),
+    ).toEqual([['Five Coach', 0.8]]);
+  });
+
+  it('counts a match between two of the coach’s own teams once, with both sides’ touchdowns', async () => {
+    const league = await seedLeague(db, 'One');
+    const derbyCoachId = await seedCoach(db, 'Derby Coach');
+    const home = await joinEra(
+      db,
+      await seedTeam(db, 'Derby Home', derbyCoachId),
+      league.eraId,
+    );
+    const away = await joinEra(
+      db,
+      await seedTeam(db, 'Derby Away', derbyCoachId),
+      league.eraId,
+    );
+    await playMatches(db, {
+      count: 5,
+      competitionId: league.competitionId,
+      sides: [
+        { teamEraId: home, score: 2 },
+        { teamEraId: away, score: 1 },
+      ],
+    });
+
+    // 15 touchdowns (3 per match) over 5 distinct matches, not 10 sides.
+    expect(
+      namesAndAverages(
+        await service.averageTouchdownsScoredByCoach(
+          FACT_SCOPE_ALL_TIME,
+          'desc',
+          10,
+        ),
+      ),
+    ).toEqual([['Derby Coach', 3]]);
+    // Each side concedes the other's score: 1 + 2 per match.
+    expect(
+      namesAndAverages(
+        await service.averageTouchdownsConcededByCoach(
+          FACT_SCOPE_ALL_TIME,
+          'desc',
+          10,
+        ),
+      ),
+    ).toEqual([['Derby Coach', 3]]);
+  });
+
+  describe('touchdown averages in a four-team merged final played five times', () => {
+    beforeEach(async () => {
+      const league = await seedLeague(db, 'One');
+      const sides: MatchSide[] = [];
+      // Each team gets its own coach, named `<team> Coach`. Charlie is
+      // seeded before Bravo so ids run opposite to name order and only the
+      // name tie-break orders their equal averages.
+      for (const [name, score] of [
+        ['Alpha', 3],
+        ['Charlie', 1],
+        ['Bravo', 1],
+        ['Delta', 0],
+      ] as const) {
+        const teamEraId = await joinEra(
+          db,
+          await seedTeam(db, name),
+          league.eraId,
+        );
+        sides.push({ teamEraId, score });
+      }
+      await playMatches(db, {
+        count: 5,
+        competitionId: league.competitionId,
+        category: 'season_final',
+        sides,
+      });
+    });
+
+    it('ranks touchdowns scored highest first, ties by coach name', async () => {
+      expect(
+        namesAndAverages(
+          await service.averageTouchdownsScoredByCoach(
+            FACT_SCOPE_ALL_TIME,
+            'desc',
+            10,
+          ),
+        ),
+      ).toEqual([
+        ['Alpha Coach', 3],
+        ['Bravo Coach', 1],
+        ['Charlie Coach', 1],
+        ['Delta Coach', 0],
+      ]);
+    });
+
+    it('ranks touchdowns scored lowest first, ties by coach name', async () => {
+      expect(
+        namesAndAverages(
+          await service.averageTouchdownsScoredByCoach(
+            FACT_SCOPE_ALL_TIME,
+            'asc',
+            10,
+          ),
+        ),
+      ).toEqual([
+        ['Delta Coach', 0],
+        ['Bravo Coach', 1],
+        ['Charlie Coach', 1],
+        ['Alpha Coach', 3],
+      ]);
+    });
+
+    it('counts every other side as conceded, highest first', async () => {
+      expect(
+        namesAndAverages(
+          await service.averageTouchdownsConcededByCoach(
+            FACT_SCOPE_ALL_TIME,
+            'desc',
+            10,
+          ),
+        ),
+      ).toEqual([
+        ['Delta Coach', 5],
+        ['Bravo Coach', 4],
+        ['Charlie Coach', 4],
+        ['Alpha Coach', 2],
+      ]);
+    });
+
+    it('ranks touchdowns conceded lowest first and honours the limit', async () => {
+      expect(
+        namesAndAverages(
+          await service.averageTouchdownsConcededByCoach(
+            FACT_SCOPE_ALL_TIME,
+            'asc',
+            2,
+          ),
+        ),
+      ).toEqual([
+        ['Alpha Coach', 2],
+        ['Bravo Coach', 4],
+      ]);
+    });
   });
 
   describe('casualty averages', () => {

@@ -1,8 +1,5 @@
 import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
-import {
-  CoachAverageStatisticsService,
-  CoachesQueriesService,
-} from '@blood-bowl-tracker/game-data-queries';
+import { CoachesQueriesService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -30,9 +27,10 @@ interface CoachRow {
   count: number;
 }
 
-/** The twenty coach toplists the factory builds. */
+/** The twenty-one coach toplists the factory builds. */
 type CoachFactoryMethod =
   | 'countFoulsCommittedByCoach'
+  | 'countTimesSentOffByCoach'
   | 'countTouchdownsScoredByCoach'
   | 'countCompletionsByCoach'
   | 'countInterceptionsByCoach'
@@ -70,10 +68,6 @@ async function makeService(
     providers: [
       CoachToplistService,
       { provide: CoachesQueriesService, useValue: coaches },
-      {
-        provide: CoachAverageStatisticsService,
-        useValue: mock<CoachAverageStatisticsService>(),
-      },
       { provide: LeaderboardService, useValue: leaderboard },
       { provide: NumberFormatterService, useValue: numbers },
       { provide: ToplistFactoryService, useValue: toplist.factory },
@@ -174,6 +168,16 @@ const factoryCases: FactoryCase[] = [
       { coachId: 2, name: 'Grashnak', count: 4 },
     ],
     expectedTitle: 'Coaches by fouls committed',
+  },
+  {
+    describeName: 'resolveTimesSentOff',
+    method: 'countTimesSentOffByCoach',
+    resolve: (service) => service.resolveTimesSentOff(FACT_SCOPE_ALL_TIME),
+    rows: [
+      { coachId: 1, name: 'Roze Madder', count: 6 },
+      { coachId: 2, name: 'Grashnak', count: 2 },
+    ],
+    expectedTitle: 'Coaches by times sent off',
   },
   {
     describeName: 'resolveTouchdownsScored',
@@ -479,6 +483,7 @@ describe('CoachToplistService.resolveFoulsCommitted', () => {
 });
 
 describe.each([
+  ['resolveTimesSentOff', 'countTimesSentOffByCoach'],
   ['resolveTouchdownsScored', 'countTouchdownsScoredByCoach'],
   ['resolveCompletions', 'countCompletionsByCoach'],
   ['resolveInterceptions', 'countInterceptionsByCoach'],

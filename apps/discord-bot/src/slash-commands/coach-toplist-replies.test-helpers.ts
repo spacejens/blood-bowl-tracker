@@ -34,6 +34,9 @@ export function stubCoachToplistReplies(
   coachToplist.resolveFoulsCommitted.mockResolvedValue(
     sampleEmbedReply('Coaches by fouls committed', '1. Roze Madder — 8'),
   );
+  coachToplist.resolveTimesSentOff.mockResolvedValue(
+    sampleEmbedReply('Coaches by times sent off', '1. Roze Madder — 6'),
+  );
   coachToplist.resolveTouchdownsScored.mockResolvedValue(
     sampleEmbedReply('Coaches by touchdowns scored', '1. Roze Madder — 42'),
   );
