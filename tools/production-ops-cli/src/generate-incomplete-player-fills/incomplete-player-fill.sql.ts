@@ -25,16 +25,6 @@ export const INCOMPLETE_PLAYER_CONDITIONS = [
   'status is null',
 ] as const;
 
-/**
- * Competitions still being played. A player of a team enrolled in one, or
- * playing in its matches, may still be active and gaining SPP, so he is not
- * filled.
- */
-export const ONGOING_COMPETITION_NAMES = [
-  'Major Season 31',
-  'Ogretoberfest 14',
-] as const;
-
 /** INCOMPLETE_PLAYER_CONDITIONS as one SQL predicate over `game_data.players p`. */
 const INCOMPLETE_PLAYER_PREDICATE = INCOMPLETE_PLAYER_CONDITIONS.map(
   (condition) => `p.${condition}`,
@@ -152,10 +142,14 @@ WHERE t.grants_skill = true OR ta.granted_skill_id IS NOT NULL`;
 
 /**
  * Every team of an ongoing competition: enrolled in it, or a side in one of
- * its matches. A competition with neither has no row at all.
+ * its matches. A competition is ongoing when it has a `tourplay.net` id and
+ * no end date; the TP importers store an end date only once TP shows it
+ * finished. A player of such a team may still be active and gaining SPP, so
+ * he is not filled. A competition with no team has no row at all.
  */
 export const ONGOING_COMPETITIONS_SQL = `SELECT DISTINCT
-  c.name AS "competitionName", te.team_id AS "teamId"
+  c.id AS "competitionId", c.name AS "competitionName",
+  te.team_id AS "teamId"
 FROM game_data.competitions c
 JOIN (
   SELECT ct.competition_id, ct.team_era_id
@@ -166,7 +160,13 @@ JOIN (
   JOIN game_data.match_teams mt ON mt.match_id = m.id
 ) playing ON playing.competition_id = c.id
 JOIN game_data.team_eras te ON te.id = playing.team_era_id
-WHERE c.name IN (${ONGOING_COMPETITION_NAMES.map((name) => `'${name}'`).join(', ')})`;
+WHERE c.end_date IS NULL
+  AND EXISTS (
+    SELECT 1
+    FROM game_data.competitions_external_ids ce
+    JOIN game_data.external_systems es ON es.id = ce.external_system_id
+    WHERE ce.competition_id = c.id AND es.name = 'tourplay.net'
+  )`;
 
 export const POSITION_RULES_SETS_SQL = `${CANDIDATES_CTE}
 SELECT prs.id AS "positionRulesSetId", prs.position_id AS "positionId",

@@ -149,9 +149,9 @@ describe('IncompletePlayerFillQueriesService', () => {
       [
         ONGOING_COMPETITIONS_SQL,
         [
-          { competitionName: 'Major Season 31', teamId: 20 },
-          { competitionName: 'Ogretoberfest 14', teamId: 21 },
-          { competitionName: 'Ogretoberfest 14', teamId: 20 },
+          { competitionId: 1, competitionName: 'Major Season 31', teamId: 20 },
+          { competitionId: 2, competitionName: 'Ogretoberfest 14', teamId: 21 },
+          { competitionId: 2, competitionName: 'Ogretoberfest 14', teamId: 20 },
         ],
       ],
       [POSITION_RULES_SETS_SQL, [PRS]],
@@ -214,6 +214,10 @@ describe('IncompletePlayerFillQueriesService', () => {
       storedAdvancements: [],
       freeSkillRiskPlayerIds: [9],
       ongoingTeamIds: [20, 21],
+      ongoingCompetitions: [
+        { competitionId: 1, name: 'Major Season 31', teamCount: 1 },
+        { competitionId: 2, name: 'Ogretoberfest 14', teamCount: 2 },
+      ],
       positionRulesSets: [PRS],
       positionSkills: [SKILL],
       eraRulesSets: [ERA_RULES_SET],
@@ -454,21 +458,38 @@ describe('IncompletePlayerFillQueriesService', () => {
     }
   });
 
-  it('refuses to run when an ongoing competition has no team', async () => {
+  it('runs with no ongoing competition, skipping no team', async () => {
+    results.set(ONGOING_COMPETITIONS_SQL, []);
+
+    const rows = await service.load();
+
+    expect(rows.ongoingTeamIds).toEqual([]);
+    expect(rows.ongoingCompetitions).toEqual([]);
+    expect(rows.candidates).toEqual([CANDIDATE]);
+  });
+
+  it('lists same-named ongoing competitions apart, by id', async () => {
     results.set(ONGOING_COMPETITIONS_SQL, [
-      { competitionName: 'Major Season 31', teamId: 20 },
+      { competitionId: 9, competitionName: 'Cup', teamId: 20 },
+      { competitionId: 3, competitionName: 'Cup', teamId: 21 },
+      { competitionId: 3, competitionName: 'Cup', teamId: 22 },
+      { competitionId: 5, competitionName: 'Ale League', teamId: 20 },
     ]);
 
-    await expect(service.load()).rejects.toThrow(
-      'Ongoing competition "Ogretoberfest 14" has no enrolled or playing team',
-    );
-    expect(json.rows).toHaveBeenCalledTimes(1);
+    const rows = await service.load();
+
+    expect(rows.ongoingCompetitions).toEqual([
+      { competitionId: 5, name: 'Ale League', teamCount: 1 },
+      { competitionId: 3, name: 'Cup', teamCount: 2 },
+      { competitionId: 9, name: 'Cup', teamCount: 1 },
+    ]);
+    expect(rows.ongoingTeamIds).toEqual([20, 21, 22]);
   });
 
   it('refuses an ongoing-competition row with no team', async () => {
     results.set(ONGOING_COMPETITIONS_SQL, [
-      { competitionName: 'Major Season 31', teamId: 20 },
-      { competitionName: 'Ogretoberfest 14', teamId: null },
+      { competitionId: 1, competitionName: 'Major Season 31', teamId: 20 },
+      { competitionId: 2, competitionName: 'Ogretoberfest 14', teamId: null },
     ]);
 
     await expect(service.load()).rejects.toBeInstanceOf(ZodError);
@@ -478,6 +499,16 @@ describe('IncompletePlayerFillQueriesService', () => {
   it('counts both enrolled teams and teams in matches as ongoing', () => {
     expect(ONGOING_COMPETITIONS_SQL).toContain('game_data.competition_teams');
     expect(ONGOING_COMPETITIONS_SQL).toContain('game_data.match_teams');
+  });
+
+  it('treats a TP competition with no end date as ongoing, whatever its name', () => {
+    expect(ONGOING_COMPETITIONS_SQL).toContain('c.end_date IS NULL');
+    expect(ONGOING_COMPETITIONS_SQL).toContain(
+      'game_data.competitions_external_ids',
+    );
+    expect(ONGOING_COMPETITIONS_SQL).toContain("es.name = 'tourplay.net'");
+    expect(ONGOING_COMPETITIONS_SQL).toContain('ce.competition_id = c.id');
+    expect(ONGOING_COMPETITIONS_SQL).not.toContain('c.name IN');
   });
 
   it('treats an award of a skill-granting trophy, or one that records a skill, as a free-skill risk', () => {

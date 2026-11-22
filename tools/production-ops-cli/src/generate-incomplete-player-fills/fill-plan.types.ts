@@ -86,6 +86,14 @@ export interface EraRulesSetRow {
   cheapestCost: number | null;
 }
 
+/** A competition the generator treats as ongoing, with how many teams it holds. */
+export interface OngoingCompetitionSummary {
+  competitionId: number;
+  name: string;
+  /** Distinct teams enrolled in it or playing one of its matches. */
+  teamCount: number;
+}
+
 export interface FillPlannerRows {
   candidates: CandidateRow[];
   /** Candidates named as recipient of any stat-reduction match event. */
@@ -96,7 +104,10 @@ export interface FillPlannerRows {
   deathTimes: DeathTimeRow[];
   storedAdvancements: StoredAdvancementRow[];
   freeSkillRiskPlayerIds: number[];
+  /** Teams of the ongoing competitions; their players are skipped. */
   ongoingTeamIds: number[];
+  /** The competitions treated as ongoing, for the report; the planner does not read it. */
+  ongoingCompetitions: OngoingCompetitionSummary[];
   positionRulesSets: PositionRulesSetRow[];
   positionSkills: PositionSkillRow[];
   /** Rules sets and cheapest costs of the team players' eras; the candidates' eras are among them. */

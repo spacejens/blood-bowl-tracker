@@ -12,6 +12,7 @@ import {
   CHARACTERISTIC_KEYS,
   type FillPlannerRows,
   type LastingInjuryRepairCandidate,
+  type OngoingCompetitionSummary,
 } from './fill-plan.types';
 import {
   ADVANCEMENT_COSTS_SQL,
@@ -23,7 +24,6 @@ import {
   ERA_RULES_SETS_SQL,
   FREE_SKILL_RISK_SQL,
   LASTING_INJURY_REPAIRS_SQL,
-  ONGOING_COMPETITION_NAMES,
   ONGOING_COMPETITIONS_SQL,
   PAID_ADVANCEMENTS_SQL,
   POSITION_ACCESS_SQL,
@@ -80,6 +80,7 @@ const StoredAdvancementRowSchema = z.object({
 const PlayerIdRowSchema = z.object({ playerId: id });
 
 const OngoingRowSchema = z.object({
+  competitionId: id,
   competitionName: z.string(),
   teamId: id,
 });
@@ -253,7 +254,6 @@ export class IncompletePlayerFillQueriesService {
 
   async load(): Promise<FillPlannerRows> {
     const ongoing = await this.rows(ONGOING_COMPETITIONS_SQL, OngoingRowSchema);
-    this.assertOngoingFound(ongoing);
     const candidates = await this.rows(CANDIDATES_SQL, CandidateRowSchema);
     const consequences = await this.rows(
       CONSEQUENCES_SQL,
@@ -276,6 +276,7 @@ export class IncompletePlayerFillQueriesService {
         await this.rows(FREE_SKILL_RISK_SQL, PlayerIdRowSchema)
       ).map((row) => row.playerId),
       ongoingTeamIds: [...new Set(ongoing.map((row) => row.teamId))],
+      ongoingCompetitions: this.summarizeOngoing(ongoing),
       positionRulesSets: await this.rows(
         POSITION_RULES_SETS_SQL,
         PositionRulesSetRowSchema,
@@ -348,22 +349,26 @@ export class IncompletePlayerFillQueriesService {
   }
 
   /**
-   * Without the ongoing competitions' teams every player of those teams
-   * would be filled, so a name with no team (not found, or with no enrolled
-   * team and no match) stops the run.
+   * One summary per ongoing competition, counting its distinct teams (the
+   * query's rows are distinct per competition and team), ordered by name
+   * and then id so same-named competitions stay apart.
    */
-  private assertOngoingFound(
-    rows: readonly { competitionName: string }[],
-  ): void {
-    for (const name of ONGOING_COMPETITION_NAMES) {
-      if (!rows.some((row) => row.competitionName === name)) {
-        throw new Error(
-          `Ongoing competition "${name}" has no enrolled or playing team ` +
-            "in the database. Its teams' players cannot be told apart from " +
-            'retired ones; check the stored competition name in ' +
-            'ONGOING_COMPETITION_NAMES.',
-        );
-      }
+  private summarizeOngoing(
+    rows: readonly z.infer<typeof OngoingRowSchema>[],
+  ): OngoingCompetitionSummary[] {
+    const byId = new Map<number, OngoingCompetitionSummary>();
+    for (const row of rows) {
+      const summary = byId.get(row.competitionId) ?? {
+        competitionId: row.competitionId,
+        name: row.competitionName,
+        teamCount: 0,
+      };
+      summary.teamCount += 1;
+      byId.set(row.competitionId, summary);
     }
+    return [...byId.values()].sort(
+      (a, b) =>
+        a.name.localeCompare(b.name) || a.competitionId - b.competitionId,
+    );
   }
 }
