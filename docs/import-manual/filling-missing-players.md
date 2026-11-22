@@ -365,7 +365,8 @@ The server's checks above still apply when the batch is applied.
 The generated file also holds a `lastingInjuryRepairs` section, see
 [Recording lasting reductions](#recording-lasting-reductions).
 
-Batches 007 to 014 and 016 hold the fills generated this way (see
+Batches 007 to 014 and 016 hold the fills generated this way, except that
+batch 009 also holds four fills taken by hand from production data (see
 [Batches](batches.md)).
 
 ## Recording lasting reductions
@@ -401,10 +402,18 @@ from his stored characteristics and increases as above, and writes only the
 five reduction counts. The importer skips an entry whose player does not
 resolve. The server refuses, with an import error, a player who is not a TP
 player, is a star player or is still counted as incomplete (fill him in
-instead). It writes nothing for a player who already has a reduction stored,
-or whose stored line does not show a reduction (it healed, it was absorbed
-by a limit, the position has no start value, or the stored line is out of
-date). Applying the same entry again changes nothing.
+instead). The server writes nothing for a player who already has a reduction
+stored, or whose stored line does not show a reduction (it healed, it was
+absorbed by a limit, the position has no start value, or the stored line is
+out of date). Applying the same entry again changes nothing.
+
+A player complete in production may still be incomplete on a database built
+from scratch, when his data came from a source the scratch import lacks (for
+example TP roster data the downloaded files do not hold); his repair then
+stops the batch. So a repair of a player no source supplies goes with a fill
+of him in the same batch, which runs first, as batch 009 does for four
+players. The generator does not detect such players, so the full import is
+the check (see [Batches](batches.md#operating-procedure)).
 
 `generate-incomplete-player-fills` lists every non-star TP player who is no
 longer incomplete, has a stat reduction recorded in a match and has no

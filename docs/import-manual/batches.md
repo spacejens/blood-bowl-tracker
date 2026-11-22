@@ -108,13 +108,18 @@ The batches:
   is skipped and why). It references players the TP importer creates and
   batch 004's advancement costs, so it applies after the source importers
   and after batch 007, in a plain `apply`.
-- **009-tp-feed-injured-player-fills** — fills in the data of 8 incomplete TP
-  players whose advancements the TP feed reports prove and who also have
-  stat reductions that certainly still apply, combined in the order they
-  happened. It also lists 54 complete TP players with a stat reduction
-  recorded in a match and none stored, among them players batches 007 and
-  008 filled, for the server to record the lasting reductions their stored
-  data shows (see
+- **009-tp-feed-injured-player-fills** — fills in the data of 12 incomplete TP
+  players: the 8 whose advancements the TP feed reports prove and who also
+  have stat reductions that certainly still apply, combined in the order they
+  happened, and 4 retired players with no advancements, whom production has
+  complete from TP roster data the downloaded files lack, so a scratch import
+  leaves them incomplete while the batch's repairs name them. Those 4 were
+  added after the batch was applied to production, as an exception, so that a
+  scratch import can apply it; production's data did not change, only its
+  ledger hash, updated once by hand. It also lists 54 complete TP players
+  with a stat reduction recorded in a match and none stored, among them
+  players batches 007 and 008 filled, for the server to record the lasting
+  reductions their stored data shows (see
   [Recording lasting reductions](filling-missing-players.md#recording-lasting-reductions)).
   It is generated the same way as batch 008, and applies after the source
   importers and after batch 008, in a plain `apply`.
@@ -231,6 +236,13 @@ of external ids. The importer refuses to run when an
 applied batch's content no longer matches what was recorded, and when a
 recorded batch has been renamed or removed.
 
+The one exception so far is batch 009 (see its entry). A batch that a scratch
+import cannot apply may be extended so it carries the data production already
+holds, when no later batch can do it (a fill must run before the same batch's
+repairs). Production's recorded hash is then updated once by hand, with an
+`update` that matches the batch's name and old hash, the new hash computed by
+`BatchContentHashService`.
+
 Editing comments or formatting in an applied batch is harmless: the recorded
 content hash is computed over the parsed content (SHA-256 of its canonical
 JSON, object keys sorted, empty sections dropped, schema defaults left out),
@@ -307,6 +319,11 @@ Passing a directory instead imports that directory ad hoc and records nothing
   A plain `apply` on a fresh database before the source importers fails at
   002, which references rows only the sources create, and leaves it
   unrecorded; it is safe to rerun after the sources.
+- **Checking a scratch build:** the check that every batch applies from
+  scratch is `deploy-local`'s full import on an empty database. It needs the
+  gitignored BBL and TP downloads, so CI cannot run it. Run it after adding a
+  batch that fills or repairs players, since a batch generated from production
+  can depend on data production got from a source the scratch import lacks.
 - **Long-lived database (production):** a plain `apply`. It
   applies just the batches not yet recorded.
 

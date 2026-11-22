@@ -8,6 +8,8 @@
 // production database by production-ops-cli
 // generate-incomplete-player-fills; see
 // docs/import-manual/filling-missing-players.md#generated-fills.
+// The last four entries of the fills were written by hand from
+// production's data; they are marked by a comment.
 {
   externalSystems: [
     {
@@ -328,6 +330,151 @@
           source: 'chosen',
         },
       ],
+    },
+    // Complete in production from creation, from TP roster data the
+    // downloaded TP files do not hold (they appear there only in match
+    // line-ups), so a scratch import leaves them incomplete. Filled here,
+    // with production's data, so the lasting-reduction repairs below find
+    // them complete.
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2463398',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 3,
+        ag: 4,
+        pa: 6,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+        {
+          system: 'Name',
+          id: 'Regeneration',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2464149',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 5,
+        st: 1,
+        ag: 3,
+        pa: 4,
+        av: 6,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Titchy',
+        },
+        {
+          system: 'Name',
+          id: 'Stunty',
+        },
+        {
+          system: 'Name',
+          id: 'Right Stuff',
+        },
+        {
+          system: 'Name',
+          id: 'Side Step',
+        },
+        {
+          system: 'Name',
+          id: 'Dodge',
+        },
+        {
+          system: 'Name',
+          id: 'Insignificant',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2592815',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 7,
+        st: 3,
+        ag: 3,
+        pa: 3,
+        av: 8,
+      },
+      sppTotal: 4,
+      unspentSpp: 4,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Catch',
+        },
+        {
+          system: 'Name',
+          id: 'Dauntless',
+        },
+        {
+          system: 'Name',
+          id: 'Strip Ball',
+        },
+        {
+          system: 'Name',
+          id: 'Pass',
+        },
+      ],
+      advancements: [],
+    },
+    {
+      player: {
+        system: 'tourplay.net',
+        id: '2735305',
+      },
+      status: 'retired',
+      characteristics: {
+        ma: 6,
+        st: 3,
+        ag: 3,
+        pa: 4,
+        av: 8,
+      },
+      sppTotal: 0,
+      unspentSpp: 0,
+      startingSkills: [
+        {
+          system: 'Name',
+          id: 'Thick Skull',
+        },
+        {
+          system: 'Name',
+          id: 'Drunkard',
+        },
+        {
+          system: 'Name',
+          id: 'Block',
+        },
+        {
+          system: 'Name',
+          id: 'Unsteady',
+        },
+      ],
+      advancements: [],
     },
   ],
   lastingInjuryRepairs: [
