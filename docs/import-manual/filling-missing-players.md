@@ -135,7 +135,7 @@ same entry is again `unchanged`.
 [production-ops-cli](../production-ops-cli/index.md#generating-incomplete-player-fills))
 writes entries for the incomplete TP players whose data it can prove. Every
 entry has the stored status, else `dead` if a death is recorded, else
-`retired`. There are five kinds of entry:
+`retired`. There are six kinds of entry:
 
 - **No advancements.** His total SPP is below the cheapest advancement any
   rules set of his era prices, house rules included, and no stat reduction
@@ -266,6 +266,19 @@ entry has the stored status, else `dead` if a death is recorded, else
   total and unspent SPP. See
   [Roster snapshot evidence](roster-snapshot-evidence.md) for what the
   files show and what they cannot.
+- **Advancements from the TP feed completed by snapshots** (with both
+  `--feed-channel` and `--snapshots`). For a player the feed names whose
+  reports do not add up to his stored total minus his stored unspent SPP,
+  the feed may lack some of his advancements: a report missing before the
+  ones it has, or reports TP split across two feed keys when it renamed
+  him. His snapshot is then checked as for advancements from TP roster
+  snapshots, with his reports fixed in place: every report must be a skill
+  among his gained skills, at most one report per skill, and each order
+  and source tried must put that skill at an advancement whose price is
+  the report's shown cost, with the report's selection and category.
+  Exactly one order and source must cost exactly what he spent. When the
+  snapshot proves nothing, or a report is a characteristic increase, he
+  stays skipped as `spp-does-not-add-up`.
 
 A player is skipped, with the reason reported, when any of these holds. The
 list is not in precedence order: he is reported by the first reason that
@@ -330,7 +343,8 @@ checks `feed-match-ambiguous`, `spp-too-high` and `free-skill-risk` before it.
   than the report, or gives a category two different accesses
   (`skill-category-mismatch`); the rules sets of his era price the reports
   differently (`rules-sets-disagree`); the prices cannot be found, or do
-  not add up to the SPP he spent (`spp-does-not-add-up`); or a price is not
+  not add up to the SPP he spent and, with `--snapshots`, his snapshot
+  does not complete them (`spp-does-not-add-up`); or a price is not
   the cost the report shows (`feed-cost-mismatch`);
 - his position's data differs between the rules sets of his era, or names a
   skill with no `Name` id or with an empty attribute value
@@ -347,7 +361,7 @@ The server's checks above still apply when the batch is applied.
 The generated file also holds a `lastingInjuryRepairs` section, see
 [Recording lasting reductions](#recording-lasting-reductions).
 
-Batches 007 to 014 hold the fills generated this way (see
+Batches 007 to 014 and 016 hold the fills generated this way (see
 [Batches](batches.md)).
 
 ## Recording lasting reductions
