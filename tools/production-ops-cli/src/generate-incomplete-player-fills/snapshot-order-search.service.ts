@@ -24,6 +24,11 @@ export interface OrderSearchInput {
   rulesSets: readonly RulesSetPricingInput[];
   /** His total minus his unspent SPP. */
   spent: number;
+  /**
+   * Skills the TP feed reports, whose place each admissible order must
+   * honour; empty or absent when the feed names none.
+   */
+  fixed?: readonly SnapshotStep[];
 }
 
 export type OrderSearchOutcome =
@@ -59,6 +64,11 @@ const SELECTIONS: readonly FeedSelection[] = ['chosen', 'random'];
  * `ambiguous`. A skill a rules set does not categorise is not access-checked
  * under that set.
  *
+ * Fixed reports, which the TP feed shows, narrow the candidates to those
+ * placing each reported skill at an advancement whose price is the shown
+ * cost, with the shown selection and category; a report that names no
+ * gained skill, names one twice or has a variant leaves no candidate.
+ *
  * Pure decision logic, with no I/O; its collaborator is pure as well.
  */
 @Injectable()
@@ -80,6 +90,10 @@ export class SnapshotOrderSearchService {
     ) {
       return { kind: 'disagree' };
     }
+    const fixed = input.fixed ?? [];
+    if (!this.applicable(fixed, skills)) {
+      return { kind: 'none' };
+    }
     let found: SnapshotStep[] | undefined;
     for (const steps of this.candidates(skills)) {
       const outcome = this.pricing.price({ steps, rulesSets: input.rulesSets });
@@ -90,7 +104,11 @@ export class SnapshotOrderSearchService {
       ) {
         return { kind: outcome.kind };
       }
-      if (outcome.kind !== 'priced' || outcome.total !== input.spent) {
+      if (
+        outcome.kind !== 'priced' ||
+        outcome.total !== input.spent ||
+        !this.honours({ fixed, steps, stepCosts: outcome.stepCosts })
+      ) {
         continue;
       }
       if (found !== undefined) {
@@ -126,6 +144,42 @@ export class SnapshotOrderSearchService {
       skills.push({ ...skill, category: [...accesses][0] });
     }
     return skills;
+  }
+
+  /** Whether each fixed report names one distinct gained skill, with no variant. */
+  private applicable(
+    fixed: readonly SnapshotStep[],
+    skills: readonly CategorisedSkill[],
+  ): boolean {
+    const ids = new Set(fixed.map((report) => report.skillId));
+    return (
+      fixed.length <= skills.length &&
+      ids.size === fixed.length &&
+      fixed.every(
+        (report) =>
+          report.attributeValue === null &&
+          skills.some((skill) => skill.skillId === report.skillId),
+      )
+    );
+  }
+
+  /** Whether each fixed report's skill sits where its selection, category and shown cost put it. */
+  private honours(parts: {
+    fixed: readonly SnapshotStep[];
+    steps: readonly SnapshotStep[];
+    stepCosts: readonly number[];
+  }): boolean {
+    return parts.fixed.every((report) => {
+      const at = parts.steps.findIndex(
+        (step) => step.skillId === report.skillId,
+      );
+      const step = parts.steps[at];
+      return (
+        step.selection === report.selection &&
+        step.category === report.category &&
+        parts.stepCosts[at] === report.reportedCost
+      );
+    });
   }
 
   /** Every order of the skills, each with every chosen-or-random assignment. */

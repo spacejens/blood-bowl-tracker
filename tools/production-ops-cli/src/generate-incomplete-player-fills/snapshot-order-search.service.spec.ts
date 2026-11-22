@@ -280,4 +280,259 @@ describe('SnapshotOrderSearchService', () => {
       service.search({ skills: [DODGE, GUARD], rulesSets: bb2020, spent: 14 }),
     ).toEqual({ kind: 'ambiguous' });
   });
+
+  describe('with fixed feed reports', () => {
+    const fixed = (
+      skill: { skillId: number; skillName: string; nameId: string },
+      rest: {
+        selection: 'chosen' | 'random';
+        category: 'primary' | 'secondary';
+        reportedCost: number;
+      },
+      attributeValue: string | null = null,
+    ) => ({ kind: 'skill' as const, ...skill, attributeValue, ...rest });
+    const twoPrimaries = [
+      pricingInput(costRows(BB2020_COSTS), {
+        skillCategories: new Map([
+          [200, 'agility'],
+          [202, 'agility'],
+        ]),
+      }),
+    ];
+
+    it('settles an order a later report fixes when the feed lacks the earlier one', () => {
+      // Unfixed, 14 is ambiguous (see the test above). A random secondary
+      // Guard shown at 8 sits at advancement 2, so Dodge is first and
+      // chosen (6).
+      expect(
+        service.search({
+          skills: [DODGE, GUARD],
+          rulesSets: bb2020,
+          spent: 14,
+          fixed: [
+            fixed(GUARD, {
+              selection: 'random',
+              category: 'secondary',
+              reportedCost: 8,
+            }),
+          ],
+        }),
+      ).toEqual({
+        kind: 'unique',
+        steps: [
+          step(DODGE, {
+            selection: 'chosen',
+            category: 'primary',
+            reportedCost: 6,
+          }),
+          step(GUARD, {
+            selection: 'random',
+            category: 'secondary',
+            reportedCost: 8,
+          }),
+        ],
+      });
+    });
+
+    it('lets the shown cost pick the advancement number', () => {
+      // Guard shown at 6 is advancement 1, so Dodge is second and chosen (8).
+      expect(
+        service.search({
+          skills: [DODGE, GUARD],
+          rulesSets: bb2020,
+          spent: 14,
+          fixed: [
+            fixed(GUARD, {
+              selection: 'random',
+              category: 'secondary',
+              reportedCost: 6,
+            }),
+          ],
+        }),
+      ).toEqual({
+        kind: 'unique',
+        steps: [
+          step(GUARD, {
+            selection: 'random',
+            category: 'secondary',
+            reportedCost: 6,
+          }),
+          step(DODGE, {
+            selection: 'chosen',
+            category: 'primary',
+            reportedCost: 8,
+          }),
+        ],
+      });
+    });
+
+    it('settles two primaries when the feed shows only the later one', () => {
+      // A renamed player: the matcher gave him only Sprint at 4. Unfixed,
+      // 7 is ambiguous (see above).
+      expect(
+        service.search({
+          skills: [DODGE, SPRINT],
+          rulesSets: twoPrimaries,
+          spent: 7,
+          fixed: [
+            fixed(SPRINT, {
+              selection: 'random',
+              category: 'primary',
+              reportedCost: 4,
+            }),
+          ],
+        }),
+      ).toEqual({
+        kind: 'unique',
+        steps: [
+          step(DODGE, {
+            selection: 'random',
+            category: 'primary',
+            reportedCost: 3,
+          }),
+          step(SPRINT, {
+            selection: 'random',
+            category: 'primary',
+            reportedCost: 4,
+          }),
+        ],
+      });
+    });
+
+    it('behaves as unfixed for an empty list', () => {
+      expect(
+        service.search({
+          skills: [DODGE, GUARD],
+          rulesSets: bb2020,
+          spent: 14,
+          fixed: [],
+        }),
+      ).toEqual({ kind: 'ambiguous' });
+    });
+
+    it('stays ambiguous when the fixed report still leaves several fits', () => {
+      // Under fixed thresholds chosen and random cost the same, so the
+      // unreported Sprint can still be either.
+      expect(
+        service.search({
+          skills: [DODGE, SPRINT],
+          rulesSets: [
+            pricingInput(costRows(FIXED_COSTS), {
+              skillCategories: new Map([
+                [200, 'agility'],
+                [202, 'agility'],
+              ]),
+            }),
+          ],
+          spent: 16,
+          fixed: [
+            fixed(DODGE, {
+              selection: 'chosen',
+              category: 'primary',
+              reportedCost: 6,
+            }),
+          ],
+        }),
+      ).toEqual({ kind: 'ambiguous' });
+    });
+
+    it.each([
+      [
+        'a shown cost no advancement number prices',
+        [
+          fixed(GUARD, {
+            selection: 'random',
+            category: 'secondary',
+            reportedCost: 12,
+          }),
+        ],
+      ],
+      [
+        'a selection that does not fit',
+        [
+          fixed(GUARD, {
+            selection: 'chosen',
+            category: 'secondary',
+            reportedCost: 8,
+          }),
+        ],
+      ],
+      [
+        "a category other than the position's access",
+        [
+          fixed(GUARD, {
+            selection: 'random',
+            category: 'primary',
+            reportedCost: 8,
+          }),
+        ],
+      ],
+      [
+        'a skill not among the gained ones',
+        [
+          fixed(SPRINT, {
+            selection: 'random',
+            category: 'primary',
+            reportedCost: 4,
+          }),
+        ],
+      ],
+      [
+        'a skill with a variant',
+        [
+          fixed(
+            GUARD,
+            { selection: 'random', category: 'secondary', reportedCost: 8 },
+            '+1',
+          ),
+        ],
+      ],
+      [
+        'one skill reported twice',
+        [
+          fixed(GUARD, {
+            selection: 'random',
+            category: 'secondary',
+            reportedCost: 8,
+          }),
+          fixed(GUARD, {
+            selection: 'random',
+            category: 'secondary',
+            reportedCost: 8,
+          }),
+        ],
+      ],
+    ])('finds no fit for %s', (_, reports) => {
+      expect(
+        service.search({
+          skills: [DODGE, GUARD],
+          rulesSets: bb2020,
+          spent: 14,
+          fixed: reports,
+        }),
+      ).toEqual({ kind: 'none' });
+    });
+
+    it('finds no fit for more reports than gained skills', () => {
+      expect(
+        service.search({
+          skills: [DODGE],
+          rulesSets: bb2020,
+          spent: 6,
+          fixed: [
+            fixed(DODGE, {
+              selection: 'chosen',
+              category: 'primary',
+              reportedCost: 6,
+            }),
+            fixed(GUARD, {
+              selection: 'random',
+              category: 'secondary',
+              reportedCost: 8,
+            }),
+          ],
+        }),
+      ).toEqual({ kind: 'none' });
+    });
+  });
 });
