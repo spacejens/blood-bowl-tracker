@@ -269,9 +269,8 @@ entry has the stored status, else `dead` if a death is recorded, else
 - **Advancements from the TP feed completed by snapshots** (with both
   `--feed-channel` and `--snapshots`). For a player the feed names whose
   reports do not add up to his stored total minus his stored unspent SPP,
-  the feed may lack some of his advancements: a report missing before the
-  ones it has, or reports TP split across two feed keys when it renamed
-  him. His snapshot is then checked as for advancements from TP roster
+  the feed may lack some of his advancements, for example a report missing
+  before the ones it has. His snapshot is then checked as for advancements from TP roster
   snapshots, with his reports fixed in place: every report must be a skill
   among his gained skills, at most one report per skill, and each order
   and source tried must put that skill at an advancement whose price is
