@@ -11,12 +11,16 @@ const TP_IDS = [
   { skillId: 301, masterId: '50' },
   { skillId: 400, masterId: '136' },
   { skillId: 500, masterId: '7' },
+  { skillId: 600, masterId: '20' },
 ];
 const NAMES = [
   { skillId: 100, skillName: 'Block', nameId: 'Block' },
   { skillId: 200, skillName: 'Dodge', nameId: 'Dodge' },
-  { skillId: 400, skillName: 'Guard', nameId: 'Guard' },
-  { skillId: 400, skillName: 'Guard', nameId: 'Guard (old)' },
+  { skillId: 400, skillName: 'Guard', nameId: 'Guard (a)' },
+  { skillId: 400, skillName: 'Guard', nameId: 'Guard (b)' },
+  { skillId: 600, skillName: 'Wrestle', nameId: 'Wrestle' },
+  { skillId: 600, skillName: 'Wrestle', nameId: 'Wresle' },
+  { skillId: 600, skillName: 'Wrestle', nameId: 'Wrestle' },
 ];
 
 describe('SnapshotSkillResolverService', () => {
@@ -59,7 +63,18 @@ describe('SnapshotSkillResolverService', () => {
     expect(resolve([50])).toBeUndefined();
   });
 
-  it('gives no Name id to a skill with none, or with several', () => {
+  it('takes the Name id equal to the stored name when there are several', () => {
+    expect(resolve([20])).toEqual([
+      {
+        skillId: 600,
+        skillName: 'Wrestle',
+        nameId: 'Wrestle',
+        attributed: false,
+      },
+    ]);
+  });
+
+  it('gives no Name id to a skill with none, or with none equal to its name', () => {
     expect(resolve([7, 136])).toEqual([
       { skillId: 500, skillName: null, nameId: null, attributed: false },
       { skillId: 400, skillName: null, nameId: null, attributed: false },

@@ -92,7 +92,8 @@ evidence `read-tp-feed-history` saves (see
 query runs. A missing or malformed file stops the run. Without the flag,
 players are not filled from feed reports; the other fills still run.
 `report` also gives `eligibleByStage` (fills with no advancements, from
-the feed with or without lasting injuries, and with lasting injuries only)
+the feed with or without lasting injuries, with lasting injuries only,
+from snapshots, and from the feed completed by snapshots)
 and `feed` (how many feed player keys gave their reports to stored
 players, stayed ambiguous, or named no stored TP player of a candidate's
 team who can afford their reports; `null` without the flag; see
@@ -102,17 +103,21 @@ team who can afford their reports; `null` without the flag; see
 
 `--snapshots` reads
 `tools/production-ops-cli/data/tp-roster-snapshots/snapshots.json`, the
-evidence `read-tp-roster-snapshots` saves (see
-[Reading the TP roster snapshots](#reading-the-tp-roster-snapshots)),
-before any query runs. A missing or malformed file stops the run. Without
-the flag, players at or above the cheapest advancement whom the feed does
-not name stay `spp-too-high`; with it and without `--feed-channel`, every
-such player goes to the snapshot stage, which also needs his stored unspent
-SPP to equal the snapshot's. The evidence file's age is not checked, so run
-`read-tp-roster-snapshots` again after downloading. The queries also read every skill's and every
-candidate position's `tourplay.net` ids, and the skills held with a variant
-anywhere. `report.eligibleByStage.snapshot` counts the snapshot fills. See
-[Generated fills](../import-manual/filling-missing-players.md#generated-fills).
+evidence `read-tp-roster-snapshots` saves (see [Reading the TP roster
+snapshots](#reading-the-tp-roster-snapshots)), before any query runs. A
+missing or malformed file stops the run. Without the flag, players at or
+above the cheapest advancement whom the feed does not name stay
+`spp-too-high`; with it and without `--feed-channel`, every such player
+goes to the snapshot stage, which also needs his stored unspent SPP to
+equal the snapshot's. With both flags, a player the feed names whose
+reports do not add up to the SPP he spent also goes to the snapshot stage,
+with his reports fixed in place; `report.eligibleByStage.feedWithSnapshot`
+counts those fills. The evidence file's age is not checked, so run
+`read-tp-roster-snapshots` again after downloading. The queries also read
+every skill's and every candidate position's `tourplay.net` ids, and the
+skills held with a variant anywhere. `report.eligibleByStage.snapshot`
+counts the snapshot fills. See [Generated
+fills](../import-manual/filling-missing-players.md#generated-fills).
 
 The package depends on `@blood-bowl-tracker/domain-enums` for the status,
 characteristic-format, skill, advancement-kind and match-event enums.

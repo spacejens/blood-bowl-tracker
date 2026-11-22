@@ -5,9 +5,12 @@ import type { TpSkillIdRow } from './snapshot-fill.types';
 
 export interface SnapshotSkill {
   skillId: number;
-  /** The skill's stored name; null when it has no Name id, or several. */
+  /** The skill's stored name; null when it has no single canonical Name id. */
   skillName: string | null;
-  /** Its one Name id; null when it has none, or several. */
+  /**
+   * Its one Name id, or when it has several the one equal to its stored name;
+   * null when there is no such single id.
+   */
   nameId: string | null;
   /** Whether some player or position holds it with a variant. */
   attributed: boolean;
@@ -26,7 +29,8 @@ export interface ResolveSnapshotSkillsInput {
  * TpSkillIdLookupService does: each id names the one stored skill carrying
  * it as a `tourplay.net` external id. An id no skill carries, or several
  * do, leaves the whole player unresolved. Each skill comes with its Name id
- * when it has exactly one, and with whether it is held with a variant
+ * when it has exactly one, or else the one equal to its stored name (spelling
+ * variants are aliases of it), and with whether it is held with a variant
  * anywhere, which a snapshot cannot show.
  *
  * Pure decision logic, with no I/O and no dependencies.
@@ -55,11 +59,15 @@ export class SnapshotSkillResolverService {
     input: ResolveSnapshotSkillsInput,
   ): SnapshotSkill {
     const names = input.skillNames.filter((row) => row.skillId === skillId);
-    const one = new Set(names.map((row) => row.nameId)).size === 1;
+    const ids = new Set(names.map((row) => row.nameId));
+    const canonical =
+      ids.size === 1
+        ? names[0]
+        : names.find((row) => row.nameId === row.skillName);
     return {
       skillId,
-      skillName: one ? names[0].skillName : null,
-      nameId: one ? names[0].nameId : null,
+      skillName: canonical?.skillName ?? null,
+      nameId: canonical?.nameId ?? null,
       attributed: input.attributedSkillIds.has(skillId),
     };
   }

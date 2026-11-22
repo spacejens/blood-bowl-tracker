@@ -541,6 +541,7 @@ describe('IncompletePlayerFillPlannerService', () => {
       advancement: 0,
       injuryOnly: 0,
       snapshot: 0,
+      feedWithSnapshot: 0,
     });
     expect(plan.report.feed).toBeNull();
     expect(matcher.match).not.toHaveBeenCalled();
